@@ -1,13 +1,15 @@
 import * as React from 'react';
-import { DATA_CONNECTION_PREFIX, getConfigMap, getSecret } from '~/api';
+import { getConfigMap, getSecret } from '~/api';
 import { ConfigMapKind, NotebookKind, SecretKind } from '~/k8sTypes';
 import { EnvVarResourceType } from '~/types';
+import { isConnection } from '~/concepts/connectionTypes/types';
 import {
   ConfigMapCategory,
   EnvironmentVariableType,
   EnvVariable,
   SecretCategory,
 } from '~/pages/projects/types';
+import { isSecretKind } from './utils';
 
 export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVariable[]> => {
   const envFromList = notebook.spec.template.spec.containers[0].envFrom || [];
@@ -40,10 +42,7 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
             data: data ? Object.keys(data).map((key) => ({ key, value: data[key] })) : [],
           },
         };
-      } else if (
-        resource.kind === EnvVarResourceType.Secret &&
-        !resource.metadata.name.startsWith(DATA_CONNECTION_PREFIX)
-      ) {
+      } else if (isSecretKind(resource) && !isConnection(resource)) {
         envVar = {
           type: EnvironmentVariableType.SECRET,
           existingName: resource.metadata.name,

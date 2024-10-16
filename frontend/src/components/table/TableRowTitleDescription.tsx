@@ -7,6 +7,7 @@ import TruncatedText from '~/components/TruncatedText';
 type TableRowTitleDescriptionProps = {
   title: React.ReactNode;
   boldTitle?: boolean;
+  titleIcon?: React.ReactNode;
   resource?: K8sResourceCommon;
   subtitle?: React.ReactNode;
   description?: React.ReactNode;
@@ -19,6 +20,7 @@ type TableRowTitleDescriptionProps = {
 const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
   title,
   boldTitle = true,
+  titleIcon,
   description,
   resource,
   subtitle,
@@ -56,6 +58,7 @@ const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
         ) : (
           title
         )}
+        {titleIcon}
       </div>
       {subtitle}
       {descriptionNode}

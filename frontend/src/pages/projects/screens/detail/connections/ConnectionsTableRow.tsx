@@ -1,35 +1,35 @@
 import * as React from 'react';
-import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { LabelGroup, Truncate } from '@patternfly/react-core';
+import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
+import { Icon, LabelGroup, Truncate } from '@patternfly/react-core';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { Connection, ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
 import { TableRowTitleDescription } from '~/components/table';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { getCompatibleTypes } from '~/concepts/connectionTypes/utils';
+import { getCompatibleTypes, getConnectionTypeDisplayName } from '~/concepts/connectionTypes/utils';
 import CompatibilityLabel from '~/concepts/connectionTypes/CompatibilityLabel';
 import ConnectedResources from '~/pages/projects/screens/detail/connections/ConnectedResources';
 
 type ConnectionsTableRowProps = {
   obj: Connection;
   connectionTypes?: ConnectionTypeConfigMapObj[];
-  onEditConnection: (pvc: Connection) => void;
-  onDeleteConnection: (dataConnection: Connection) => void;
+  kebabActions: IAction[];
+  showCompatibilityCell?: boolean;
+  showConnectedResourcesCell?: boolean;
+  showWarningIcon?: boolean;
 };
 
 const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
   obj,
   connectionTypes,
-  onEditConnection,
-  onDeleteConnection,
+  kebabActions,
+  showCompatibilityCell = true,
+  showConnectedResourcesCell = true,
+  showWarningIcon = false,
 }) => {
-  const connectionTypeDisplayName = React.useMemo(() => {
-    const matchingType = connectionTypes?.find(
-      (type) => type.metadata.name === obj.metadata.annotations['opendatahub.io/connection-type'],
-    );
-    return (
-      matchingType?.metadata.annotations?.['openshift.io/display-name'] ||
-      obj.metadata.annotations['opendatahub.io/connection-type']
-    );
-  }, [obj, connectionTypes]);
+  const connectionTypeDisplayName = React.useMemo(
+    () => getConnectionTypeDisplayName(obj, connectionTypes ?? []),
+    [obj, connectionTypes],
+  );
 
   const compatibleTypes = obj.data
     ? getCompatibleTypes(
@@ -45,6 +45,13 @@ const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
         <TableRowTitleDescription
           title={<Truncate content={getDisplayNameFromK8sResource(obj)} />}
           boldTitle={false}
+          titleIcon={
+            showWarningIcon ? (
+              <Icon status="warning" className="pf-v5-u-pl-lg">
+                <ExclamationTriangleIcon />
+              </Icon>
+            ) : undefined
+          }
           resource={obj}
           description={getDescriptionFromK8sResource(obj)}
           truncateDescriptionLines={2}
@@ -52,37 +59,26 @@ const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
         />
       </Td>
       <Td dataLabel="Type">{connectionTypeDisplayName}</Td>
-      <Td dataLabel="Compatibility">
-        {compatibleTypes.length ? (
-          <LabelGroup>
-            {compatibleTypes.map((compatibleType) => (
-              <CompatibilityLabel key={compatibleType} type={compatibleType} />
-            ))}
-          </LabelGroup>
-        ) : (
-          '-'
-        )}
-      </Td>
-      <Td dataLabel="Connected resources">
-        <ConnectedResources connection={obj} />
-      </Td>
+      {showCompatibilityCell && (
+        <Td dataLabel="Compatibility">
+          {compatibleTypes.length ? (
+            <LabelGroup>
+              {compatibleTypes.map((compatibleType) => (
+                <CompatibilityLabel key={compatibleType} type={compatibleType} />
+              ))}
+            </LabelGroup>
+          ) : (
+            '-'
+          )}
+        </Td>
+      )}
+      {showConnectedResourcesCell && (
+        <Td dataLabel="Connected resources">
+          <ConnectedResources connection={obj} />
+        </Td>
+      )}
       <Td isActionCell>
-        <ActionsColumn
-          items={[
-            {
-              title: 'Edit',
-              onClick: () => {
-                onEditConnection(obj);
-              },
-            },
-            {
-              title: 'Delete',
-              onClick: () => {
-                onDeleteConnection(obj);
-              },
-            },
-          ]}
-        />
+        <ActionsColumn items={kebabActions} />
       </Td>
     </Tr>
   );

@@ -201,3 +201,17 @@ export const parseConnectionSecretValues = (
 
   return response;
 };
+
+export const getConnectionTypeDisplayName = (
+  connection: Connection,
+  connectionTypes: ConnectionTypeConfigMapObj[],
+): string => {
+  const matchingType = connectionTypes.find(
+    (type) =>
+      type.metadata.name === connection.metadata.annotations['opendatahub.io/connection-type'],
+  );
+  return (
+    matchingType?.metadata.annotations?.['openshift.io/display-name'] ||
+    connection.metadata.annotations['opendatahub.io/connection-type']
+  );
+};

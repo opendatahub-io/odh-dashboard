@@ -34,8 +34,20 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
             key={connection.metadata.name}
             obj={connection}
             connectionTypes={connectionTypes}
-            onEditConnection={() => setManageConnectionModal(connection)}
-            onDeleteConnection={() => setDeleteConnection(connection)}
+            kebabActions={[
+              {
+                title: 'Edit',
+                onClick: () => {
+                  setManageConnectionModal(connection);
+                },
+              },
+              {
+                title: 'Delete',
+                onClick: () => {
+                  setDeleteConnection(connection);
+                },
+              },
+            ]}
           />
         )}
         isStriped
