@@ -5,7 +5,7 @@ import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { Connection, ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
 import { TableRowTitleDescription } from '~/components/table';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { getCompatibleTypes } from '~/concepts/connectionTypes/utils';
+import { getCompatibleTypes, getConnectionTypeDisplayName } from '~/concepts/connectionTypes/utils';
 import CompatibilityLabel from '~/concepts/connectionTypes/CompatibilityLabel';
 import ConnectedResources from '~/pages/projects/screens/detail/connections/ConnectedResources';
 
@@ -26,15 +26,10 @@ const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
   showConnectedResourcesCell = true,
   showWarningIcon = false,
 }) => {
-  const connectionTypeDisplayName = React.useMemo(() => {
-    const matchingType = connectionTypes?.find(
-      (type) => type.metadata.name === obj.metadata.annotations['opendatahub.io/connection-type'],
-    );
-    return (
-      matchingType?.metadata.annotations?.['openshift.io/display-name'] ||
-      obj.metadata.annotations['opendatahub.io/connection-type']
-    );
-  }, [obj, connectionTypes]);
+  const connectionTypeDisplayName = React.useMemo(
+    () => getConnectionTypeDisplayName(obj, connectionTypes ?? []),
+    [obj, connectionTypes],
+  );
 
   const compatibleTypes = obj.data
     ? getCompatibleTypes(

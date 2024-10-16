@@ -16,7 +16,8 @@ import { SortableData, Table } from '~/components/table';
 import { createSecret, replaceSecret } from '~/api';
 import { NotebookKind, ProjectKind } from '~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { Connection } from '~/concepts/connectionTypes/types';
+import { Connection, ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
+import { getConnectionTypeDisplayName } from '~/concepts/connectionTypes/utils';
 import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
 import { useNotebooksStates } from '~/pages/projects/notebook/useNotebooksStates';
 import { SpawnerPageSectionTitles } from '~/pages/projects/screens/spawner/const';
@@ -27,7 +28,7 @@ import { SelectConnectionsModal } from './SelectConnectionsModal';
 import { connectionEnvVarConflicts, DuplicateEnvVarWarning } from './DuplicateEnvVarsWarning';
 import { DetachConnectionModal } from './DetachConnectionModal';
 
-const columns: SortableData<Connection>[] = [
+const getColumns = (connectionTypes: ConnectionTypeConfigMapObj[]): SortableData<Connection>[] => [
   {
     field: 'name',
     label: 'Name',
@@ -38,8 +39,8 @@ const columns: SortableData<Connection>[] = [
     field: 'type',
     label: 'Type',
     sortable: (a, b) =>
-      a.metadata.annotations['opendatahub.io/connection-type'].localeCompare(
-        b.metadata.annotations['opendatahub.io/connection-type'],
+      getConnectionTypeDisplayName(a, connectionTypes).localeCompare(
+        getConnectionTypeDisplayName(b, connectionTypes),
       ),
   },
   {
@@ -70,12 +71,14 @@ export const ConnectionsFormSection: React.FC<Props> = ({
 }) => {
   const [connectionTypes] = useWatchConnectionTypes();
 
-  const [initialNumberConnections] = React.useState(selectedConnections.length);
+  const columns = React.useMemo(() => getColumns(connectionTypes), [connectionTypes]);
+
+  const initialNumberConnections = React.useRef(selectedConnections.length);
   const notebookArray = React.useMemo(() => (notebook ? [notebook] : []), [notebook]);
   const [notebookStates] = useNotebooksStates(
     notebookArray,
     notebook?.metadata.namespace || '',
-    initialNumberConnections > 0,
+    initialNumberConnections.current > 0,
   );
   const isRunning = React.useMemo(
     () =>
@@ -113,7 +116,9 @@ export const ConnectionsFormSection: React.FC<Props> = ({
           <FlexItem>
             <Button
               data-testid="attach-existing-connection-button"
-              aria-describedby="no-connections-tooltip"
+              aria-describedby={
+                unselectedConnections.length === 0 ? 'no-connections-tooltip' : undefined
+              }
               variant="secondary"
               isAriaDisabled={unselectedConnections.length === 0}
               onClick={() => setShowAttachConnectionsModal(true)}
