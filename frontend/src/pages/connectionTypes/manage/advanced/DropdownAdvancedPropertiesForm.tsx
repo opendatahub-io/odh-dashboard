@@ -23,11 +23,14 @@ const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>
   onChange,
   onValidate,
 }) => {
+  const { variant } = properties;
   React.useEffect(() => {
-    if (!properties.variant) {
+    if (!variant) {
       onChange({ ...properties, variant: 'single' });
     }
-  });
+    // only run when variant is not set
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [variant]);
 
   React.useEffect(() => {
     // filter out empty rows for validation (they will be removed on save)

@@ -7,7 +7,6 @@ import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeFieldType,
   ConnectionTypeValueType,
-  isConnectionTypeDataField,
 } from '~/concepts/connectionTypes/types';
 import { ProjectKind, SecretKind } from '~/k8sTypes';
 import { useK8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
@@ -15,6 +14,7 @@ import {
   assembleConnectionSecret,
   filterEnabledConnectionTypes,
   getDefaultValues,
+  isConnectionTypeDataField,
   parseConnectionSecretValues,
 } from '~/concepts/connectionTypes/utils';
 import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';

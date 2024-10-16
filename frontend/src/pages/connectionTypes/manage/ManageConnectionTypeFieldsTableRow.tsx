@@ -6,13 +6,14 @@ import {
   ConnectionTypeField,
   ConnectionTypeFieldType,
   SectionField,
-  isConnectionTypeDataField,
 } from '~/concepts/connectionTypes/types';
 import { defaultValueToString, fieldTypeToString } from '~/concepts/connectionTypes/utils';
 import type { RowProps } from '~/utilities/useDraggableTableControlled';
 import { columns } from '~/pages/connectionTypes/manage/fieldTableColumns';
 import { ConnectionTypeFieldRemoveModal } from '~/pages/connectionTypes/manage/ConnectionTypeFieldRemoveModal';
 import { TableRowTitleDescription } from '~/components/table';
+import { ValidationContext } from '~/utilities/useValidation';
+import { ValidationErrorCodes } from '~/concepts/connectionTypes/validationUtils';
 
 type Props = {
   row: ConnectionTypeField;
@@ -38,6 +39,7 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
   onChange,
   ...props
 }) => {
+  const { hasValidationIssue } = React.useContext(ValidationContext);
   const showMoveToSection = React.useMemo(() => {
     const parentSection = fields.findLast(
       (f, i) => f.type === ConnectionTypeFieldType.Section && i < rowIndex,
@@ -47,16 +49,6 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
     return potentialSectionsToMoveTo > 0;
   }, [fields, rowIndex]);
   const [showRemoveField, setShowRemoveField] = React.useState<boolean>();
-
-  const isEnvVarConflict = React.useMemo(
-    () =>
-      row.type === ConnectionTypeFieldType.Section
-        ? false
-        : !!fields.find(
-            (f) => f !== row && isConnectionTypeDataField(f) && f.envVar === row.envVar,
-          ),
-    [row, fields],
-  );
 
   if (row.type === ConnectionTypeFieldType.Section) {
     return (
@@ -146,7 +138,10 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
           <FlexItem>
             <Truncate content={row.envVar || '-'} />
           </FlexItem>
-          {isEnvVarConflict ? (
+          {hasValidationIssue(
+            ['fields', rowIndex, 'envVar'],
+            ValidationErrorCodes.ENV_VAR_CONFLICT,
+          ) ? (
             <FlexItem>
               <Icon
                 status="danger"

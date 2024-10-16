@@ -6,7 +6,7 @@ import NumericAdvancedPropertiesForm from '~/pages/connectionTypes/manage/advanc
 import FileUploadAdvancedPropertiesForm from '~/pages/connectionTypes/manage/advanced/FileUploadAdvancedPropertiesForm';
 import DropdownAdvancedPropertiesForm from '~/pages/connectionTypes/manage/advanced/DropdownAdvancedPropertiesForm';
 
-const CustomFieldPropertiesForm = <T extends ConnectionTypeDataField>(
+const DataFieldAdvancedPropertiesForm = <T extends ConnectionTypeDataField>(
   props: AdvancedFieldProps<T>,
 ): React.ReactNode => {
   const Component = (() => {
@@ -36,4 +36,4 @@ const CustomFieldPropertiesForm = <T extends ConnectionTypeDataField>(
   ) : undefined;
 };
 
-export default CustomFieldPropertiesForm;
+export default DataFieldAdvancedPropertiesForm;

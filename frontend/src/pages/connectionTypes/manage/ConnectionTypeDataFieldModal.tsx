@@ -26,11 +26,11 @@ import {
   connectionTypeDataFields,
   ConnectionTypeField,
   ConnectionTypeFieldType,
-  isConnectionTypeDataField,
 } from '~/concepts/connectionTypes/types';
 import {
   fieldNameToEnvVar,
   fieldTypeToString,
+  isConnectionTypeDataField,
   isValidEnvVar,
 } from '~/concepts/connectionTypes/utils';
 import { isEnumMember } from '~/utilities/utils';
