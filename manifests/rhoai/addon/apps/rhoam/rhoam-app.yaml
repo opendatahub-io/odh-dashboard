@@ -23,7 +23,7 @@ spec:
 
   category: Red Hat managed
   support: redhat
-  docsLink: https://access.redhat.com/documentation/en-us/red_hat_openshift_api_management
+  docsLink: https://docs.redhat.com/en/documentation/red_hat_openshift_api_management
   quickStart: deploy-model-rhoam
   getStartedLink: https://console.redhat.com/openshift/details/<CLUSTER_ID/>#addOns
   getStartedMarkDown: >-
@@ -37,4 +37,4 @@ spec:
       For more information visit:
       [https://www.redhat.com/en/technologies/cloud-computing/openshift/openshift-api-management](https://www.redhat.com/en/technologies/cloud-computing/openshift/openshift-api-management)
 
-      [https://access.redhat.com/documentation/en-us/red_hat_openshift_api_management](https://access.redhat.com/documentation/en-us/red_hat_openshift_api_management)
+      [https://docs.redhat.com/en/documentation/red_hat_openshift_api_management](https://docs.redhat.com/en/documentation/red_hat_openshift_api_management)
