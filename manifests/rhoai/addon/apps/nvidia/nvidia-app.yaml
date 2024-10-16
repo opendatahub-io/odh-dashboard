@@ -27,7 +27,7 @@ spec:
     linkPreface: |-
       Before enabling, be sure you have installed the NVIDIA GPU Add-on:
     link: https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/managing_openshift_ai/enabling_accelerators#enabling-nvidia-gpus_managing-rhoai
-  validationConfigMap: nvidia-validation-result
+    validationConfigMap: nvidia-validation-result
   getStartedMarkDown: >-
     # NVIDIA GPU Add-on
 
