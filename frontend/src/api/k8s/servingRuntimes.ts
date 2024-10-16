@@ -21,8 +21,8 @@ import { ContainerResources } from '~/types';
 import { getModelServingRuntimeName } from '~/pages/modelServing/utils';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
-import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
+import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import { getModelServingProjects } from './projects';
 import { assemblePodSpecOptions, getshmVolume, getshmVolumeMount } from './utils';
 
@@ -33,7 +33,7 @@ export const assembleServingRuntime = (
   isCustomServingRuntimesEnabled: boolean,
   isEditing?: boolean,
   initialAcceleratorProfile?: AcceleratorProfileState,
-  selectedAcceleratorProfile?: AcceleratorProfileSelectFieldState,
+  selectedAcceleratorProfile?: AcceleratorProfileFormData,
   isModelMesh?: boolean,
 ): ServingRuntimeKind => {
   const {
@@ -240,7 +240,7 @@ export const updateServingRuntime = (options: {
   isCustomServingRuntimesEnabled: boolean;
   opts?: K8sAPIOptions;
   initialAcceleratorProfile?: AcceleratorProfileState;
-  selectedAcceleratorProfile?: AcceleratorProfileSelectFieldState;
+  selectedAcceleratorProfile?: AcceleratorProfileFormData;
   isModelMesh?: boolean;
 }): Promise<ServingRuntimeKind> => {
   const {
@@ -282,7 +282,7 @@ export const createServingRuntime = (options: {
   isCustomServingRuntimesEnabled: boolean;
   opts?: K8sAPIOptions;
   initialAcceleratorProfile?: AcceleratorProfileState;
-  selectedAcceleratorProfile?: AcceleratorProfileSelectFieldState;
+  selectedAcceleratorProfile?: AcceleratorProfileFormData;
   isModelMesh?: boolean;
 }): Promise<ServingRuntimeKind> => {
   const {

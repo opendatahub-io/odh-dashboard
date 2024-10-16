@@ -33,7 +33,7 @@ import {
   getServingRuntimeTokens,
   setUpTokenAuth,
 } from '~/pages/modelServing/utils';
-import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
+import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
 import {
   addSupportServingPlatformProject,
   assembleSecret,
@@ -47,12 +47,12 @@ import {
 import { isDataConnectionAWS } from '~/pages/projects/screens/detail/data-connections/utils';
 import { removeLeadingSlash } from '~/utilities/string';
 import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
-import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import {
   getNGCSecretType,
   getNIMData,
   getNIMResource,
 } from '~/pages/modelServing/screens/projects/nimUtils';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 
 const NIM_CONFIGMAP_NAME = 'nvidia-nim-images-data';
 
@@ -326,7 +326,7 @@ const createInferenceServiceAndDataConnection = (
   editInfo?: InferenceServiceKind,
   isModelMesh?: boolean,
   initialAcceleratorProfile?: AcceleratorProfileState,
-  selectedAcceleratorProfile?: AcceleratorProfileSelectFieldState,
+  selectedAcceleratorProfile?: AcceleratorProfileFormData,
   dryRun = false,
   isStorageNeeded?: boolean,
 ) => {
@@ -382,7 +382,7 @@ export const getSubmitInferenceServiceResourceFn = (
   servingRuntimeName?: string,
   isModelMesh?: boolean,
   initialAcceleratorProfile?: AcceleratorProfileState,
-  selectedAcceleratorProfile?: AcceleratorProfileSelectFieldState,
+  selectedAcceleratorProfile?: AcceleratorProfileFormData,
   allowCreate?: boolean,
   secrets?: SecretKind[],
   isStorageNeeded?: boolean,
@@ -448,7 +448,7 @@ export const getSubmitServingRuntimeResourcesFn = (
   editInfo: ServingRuntimeEditInfo | undefined,
   allowCreate: boolean,
   initialAcceleratorProfile: AcceleratorProfileState,
-  selectedAcceleratorProfile: AcceleratorProfileSelectFieldState,
+  selectedAcceleratorProfile: AcceleratorProfileFormData,
   servingPlatformEnablement: NamespaceApplicationCase,
   currentProject?: ProjectKind,
   name?: string,
@@ -470,7 +470,7 @@ export const getSubmitServingRuntimeResourcesFn = (
   const servingRuntimeName = translateDisplayNameForK8s(servingRuntimeData.name);
   const createTokenAuth = servingRuntimeData.tokenAuth && allowCreate;
 
-  const controlledState: AcceleratorProfileSelectFieldState = isGpuDisabled(servingRuntimeSelected)
+  const controlledState: AcceleratorProfileFormData = isGpuDisabled(servingRuntimeSelected)
     ? { count: 0, useExistingSettings: false }
     : selectedAcceleratorProfile;
 

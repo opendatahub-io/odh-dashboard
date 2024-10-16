@@ -3,7 +3,7 @@ import { EventStatus, NotebookSize, NotebookStatus } from '~/types';
 import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
-import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
+import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
 import { useWatchNotebookEvents } from './useWatchNotebookEvents';
 
 export const hasStopAnnotation = (notebook: NotebookKind): boolean =>

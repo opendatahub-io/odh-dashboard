@@ -10,14 +10,14 @@ import {
 } from '~/pages/modelServing/customServingRuntimes/utils';
 import { isCompatibleWithAccelerator as isCompatibleWithAcceleratorProfile } from '~/pages/projects/screens/spawner/spawnerUtils';
 import SimpleSelect from '~/components/SimpleSelect';
-import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 
 type ServingRuntimeTemplateSectionProps = {
   data: CreatingServingRuntimeObject;
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
   templates: TemplateKind[];
   isEditing?: boolean;
-  selectedAcceleratorProfile: AcceleratorProfileSelectFieldState;
+  selectedAcceleratorProfile: AcceleratorProfileFormData;
 };
 
 const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps> = ({
