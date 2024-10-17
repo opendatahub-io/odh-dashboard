@@ -172,5 +172,5 @@ export enum NamespaceApplicationCase {
   /**
    * Downgrade a project from Modelmesh, Kserve or NIM so the platform can be selected again.
    */
-  RESET_MODEL_SERVING,
+  RESET_MODEL_SERVING_PLATFORM,
 }
