@@ -10,7 +10,7 @@ import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import { assemblePvc, createPvc, deletePvc, getDashboardPvcs, updatePvc } from '~/api/k8s/pvcs';
 import { PVCModel } from '~/api/models/k8s';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
-import { CreatingStorageObject } from '~/pages/projects/types';
+import { StorageData } from '~/pages/projects/types';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sGetResource: jest.fn(),
@@ -26,11 +26,9 @@ const k8sCreateResourceMock = jest.mocked(k8sCreateResource<PersistentVolumeClai
 const k8sUpdateResourceMock = jest.mocked(k8sUpdateResource<PersistentVolumeClaimKind>);
 const k8sDeleteResourceMock = jest.mocked(k8sDeleteResource<PersistentVolumeClaimKind, K8sStatus>);
 
-const data: CreatingStorageObject = {
-  nameDesc: {
-    name: 'pvc',
-    description: 'Test Storage',
-  },
+const data: StorageData = {
+  name: 'pvc',
+  description: 'Test Storage',
   size: '5Gi',
 };
 

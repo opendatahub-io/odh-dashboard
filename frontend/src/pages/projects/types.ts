@@ -30,6 +30,7 @@ export type CreatingStorageObject = {
   nameDesc: NameDescType;
   size: string;
   storageClassName?: string;
+  mountPath?: string;
 };
 
 export type MountPath = {
@@ -61,9 +62,14 @@ export enum StorageType {
 }
 
 export type StorageData = {
-  storageType: StorageType;
-  creating: CreatingStorageObject;
-  existing: ExistingStorageObject;
+  name: string;
+  size: string;
+  storageType?: StorageType;
+  description?: string;
+  storageClassName?: string;
+  mountPath?: string;
+  existingName?: string;
+  id?: number;
 };
 
 export type StartNotebookData = {
