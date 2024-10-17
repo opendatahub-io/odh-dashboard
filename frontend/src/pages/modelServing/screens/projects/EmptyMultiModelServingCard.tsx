@@ -10,87 +10,47 @@ import {
   TextVariants,
 } from '@patternfly/react-core';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { ServingRuntimePlatform } from '~/types';
-import {
-  getSortedTemplates,
-  getTemplateEnabled,
-  getTemplateEnabledForPlatform,
-} from '~/pages/modelServing/customServingRuntimes/utils';
-import ModelServingPlatformButtonAction from '~/pages/modelServing/screens/projects/ModelServingPlatformButtonAction';
-import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
+import { NamespaceApplicationCase } from '~/pages/projects/types';
+import ModelServingPlatformSelectButton from '~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
 
-const EmptyMultiModelServingCard: React.FC = () => {
-  const [open, setOpen] = React.useState(false);
+type EmptyMultiModelServingCardProps = {
+  setErrorSelectingPlatform: (e?: Error) => void;
+};
 
-  const {
-    servingRuntimes: { refresh: refreshServingRuntime },
-    servingRuntimeTemplates: [templates],
-    servingRuntimeTemplateOrder: { data: templateOrder },
-    servingRuntimeTemplateDisablement: { data: templateDisablement },
-    serverSecrets: { refresh: refreshTokens },
-    inferenceServices: { refresh: refreshInferenceServices },
-    currentProject,
-  } = React.useContext(ProjectDetailsContext);
-
-  const templatesSorted = getSortedTemplates(templates, templateOrder);
-  const templatesEnabled = templatesSorted.filter((template) =>
-    getTemplateEnabled(template, templateDisablement),
-  );
-  const emptyTemplates = templatesEnabled.length === 0;
-
-  const onSubmit = (submit: boolean) => {
-    if (submit) {
-      refreshServingRuntime();
-      refreshInferenceServices();
-      setTimeout(refreshTokens, 500); // need a timeout to wait for tokens creation
-    }
-  };
-
+const EmptyMultiModelServingCard: React.FC<EmptyMultiModelServingCardProps> = ({
+  setErrorSelectingPlatform,
+}) => {
+  const { currentProject } = React.useContext(ProjectDetailsContext);
   return (
-    <>
-      <Card
-        style={{
-          height: '100%',
-          border: '1px solid var(--pf-v5-global--BorderColor--100)',
-          borderRadius: 16,
-        }}
-        data-testid="multi-serving-platform-card"
-      >
-        <CardTitle>
-          <TextContent>
-            <Text component={TextVariants.h2}>Multi-model serving platform</Text>
-          </TextContent>
-        </CardTitle>
-        <CardBody>
-          Multiple models can be deployed on one shared model server. Choose this option when you
-          want to deploy a number of small or medium-sized models that can share the server
-          resources.
-        </CardBody>
-        <CardFooter>
-          <Bullseye>
-            <ModelServingPlatformButtonAction
-              isProjectModelMesh
-              emptyTemplates={emptyTemplates}
-              onClick={() => setOpen(true)}
-              variant="secondary"
-              testId="multi-serving-add-server-button"
-            />
-          </Bullseye>
-        </CardFooter>
-      </Card>
-      {open ? (
-        <ManageServingRuntimeModal
-          currentProject={currentProject}
-          servingRuntimeTemplates={templatesEnabled.filter((template) =>
-            getTemplateEnabledForPlatform(template, ServingRuntimePlatform.MULTI),
-          )}
-          onClose={(submit: boolean) => {
-            setOpen(false);
-            onSubmit(submit);
-          }}
-        />
-      ) : null}
-    </>
+    <Card
+      style={{
+        height: '100%',
+        border: '1px solid var(--pf-v5-global--BorderColor--100)',
+        borderRadius: 16,
+      }}
+      data-testid="multi-serving-platform-card"
+    >
+      <CardTitle>
+        <TextContent>
+          <Text component={TextVariants.h2}>Multi-model serving platform</Text>
+        </TextContent>
+      </CardTitle>
+      <CardBody>
+        Multiple models can be deployed on one shared model server. Choose this option when you want
+        to deploy a number of small or medium-sized models that can share the server resources.
+      </CardBody>
+      <CardFooter>
+        <Bullseye>
+          <ModelServingPlatformSelectButton
+            namespace={currentProject.metadata.name}
+            servingPlatform={NamespaceApplicationCase.MODEL_MESH_PROMOTION}
+            setError={setErrorSelectingPlatform}
+            variant="secondary"
+            data-testid="multi-serving-select-button" // TODO this changed from multi-serving-add-server-button, inform QE and look for other cases
+          />
+        </Bullseye>
+      </CardFooter>
+    </Card>
   );
 };
 

@@ -100,7 +100,7 @@ export const applyNamespaceChange = async (
         checkPermissionsFn = checkEditNamespacePermission;
       }
       break;
-    case NamespaceApplicationCase.RESET_MODEL_SERVING:
+    case NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM:
       {
         annotations = { 'opendatahub.io/nim-support': null };
         labels = { 'modelmesh-enabled': null };

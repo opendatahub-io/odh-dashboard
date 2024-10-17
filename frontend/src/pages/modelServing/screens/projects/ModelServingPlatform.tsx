@@ -2,6 +2,7 @@ import * as React from 'react';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import {
   Alert,
+  AlertActionCloseButton,
   Flex,
   FlexItem,
   Gallery,
@@ -46,6 +47,8 @@ const ModelServingPlatform: React.FC = () => {
   const [platformSelected, setPlatformSelected] = React.useState<
     ServingRuntimePlatform | undefined
   >(undefined);
+
+  const [errorSelectingPlatform, setErrorSelectingPlatform] = React.useState<Error>();
 
   const servingPlatformStatuses = useServingPlatformStatuses();
 
@@ -243,18 +246,39 @@ const ModelServingPlatform: React.FC = () => {
                   <StackItem>
                     <Gallery hasGutter>
                       <GalleryItem>
-                        <EmptySingleModelServingCard />
+                        <EmptySingleModelServingCard
+                          setErrorSelectingPlatform={setErrorSelectingPlatform}
+                        />
                       </GalleryItem>
                       <GalleryItem>
-                        <EmptyMultiModelServingCard />
+                        <EmptyMultiModelServingCard
+                          setErrorSelectingPlatform={setErrorSelectingPlatform}
+                        />
                       </GalleryItem>
                       {isNIMAvailable && (
                         <GalleryItem>
-                          <EmptyNIMModelServingCard />
+                          <EmptyNIMModelServingCard
+                            setErrorSelectingPlatform={setErrorSelectingPlatform}
+                          />
                         </GalleryItem>
                       )}
                     </Gallery>
                   </StackItem>
+                  {errorSelectingPlatform && (
+                    <StackItem>
+                      <Alert
+                        variant="danger"
+                        isInline
+                        isPlain
+                        title={errorSelectingPlatform.message} // TODO follow up on this message
+                        actionClose={
+                          <AlertActionCloseButton
+                            onClose={() => setErrorSelectingPlatform(undefined)}
+                          />
+                        }
+                      />
+                    </StackItem>
+                  )}
                   <StackItem>
                     <Alert
                       variant="info"
