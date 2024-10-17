@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Text, Icon, Tooltip } from '@patternfly/react-core';
+import { Text, Icon, Popover } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
   ExclamationCircleIcon,
@@ -45,6 +45,7 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
             isInline
             tabIndex={0}
             iconSize={iconSize}
+            style={{ cursor: 'pointer' }}
           >
             <CheckCircleIcon />
           </Icon>
@@ -59,6 +60,7 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
             isInline
             tabIndex={0}
             iconSize={iconSize}
+            style={{ cursor: 'pointer' }}
           >
             <ExclamationCircleIcon />
           </Icon>
@@ -80,6 +82,7 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
             isInline
             tabIndex={0}
             iconSize={iconSize}
+            style={{ cursor: 'pointer' }}
           >
             <OutlinedQuestionCircleIcon />
           </Icon>
@@ -94,6 +97,7 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
             isInline
             tabIndex={0}
             iconSize={iconSize}
+            style={{ cursor: 'pointer' }}
           >
             <OutlinedQuestionCircleIcon />
           </Icon>
@@ -102,10 +106,9 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
   };
 
   return (
-    <Tooltip
-      role="none"
-      data-testid="model-status-tooltip"
-      content={
+    <Popover
+      position="right"
+      bodyContent={
         modelStatus?.failedToSchedule ? (
           <Text>Insufficient resources</Text>
         ) : (
@@ -114,7 +117,7 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
       }
     >
       {statusIcon()}
-    </Tooltip>
+    </Popover>
   );
 };
 
