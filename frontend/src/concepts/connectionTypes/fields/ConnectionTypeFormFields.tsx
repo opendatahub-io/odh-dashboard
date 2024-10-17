@@ -7,9 +7,9 @@ import {
   ConnectionTypeField,
   ConnectionTypeFieldType,
   ConnectionTypeValueType,
-  isConnectionTypeDataField,
   SectionField,
 } from '~/concepts/connectionTypes/types';
+import { isConnectionTypeDataField } from '~/concepts/connectionTypes/utils';
 
 type Props = {
   fields?: ConnectionTypeField[];

@@ -9,10 +9,7 @@ import {
   TimestampTooltipVariant,
   Truncate,
 } from '@patternfly/react-core';
-import {
-  ConnectionTypeConfigMapObj,
-  isConnectionTypeDataField,
-} from '~/concepts/connectionTypes/types';
+import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
 import { relativeTime } from '~/utilities/time';
 import { updateConnectionTypeEnabled } from '~/services/connectionTypesService';
 import useNotification from '~/utilities/useNotification';
@@ -25,7 +22,7 @@ import {
 } from '~/concepts/k8s/utils';
 import { connectionTypeColumns } from '~/pages/connectionTypes/columns';
 import CategoryLabel from '~/concepts/connectionTypes/CategoryLabel';
-import { getCompatibleTypes } from '~/concepts/connectionTypes/utils';
+import { getCompatibleTypes, isConnectionTypeDataField } from '~/concepts/connectionTypes/utils';
 import CompatibilityLabel from '~/concepts/connectionTypes/CompatibilityLabel';
 
 type ConnectionTypesTableRowProps = {
