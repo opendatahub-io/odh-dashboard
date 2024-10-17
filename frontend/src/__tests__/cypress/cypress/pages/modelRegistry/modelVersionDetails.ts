@@ -1,3 +1,5 @@
+import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
+
 class ModelVersionDetails {
   visit() {
     const preferredModelRegistry = 'modelregistry-sample';
@@ -70,6 +72,54 @@ class ModelVersionDetails {
   findRegisteredDeploymentsTab() {
     return cy.findByTestId('deployments-tab');
   }
+
+  findAddPropertyButton() {
+    return cy.findByTestId('add-property-button');
+  }
+
+  findAddKeyInput() {
+    return cy.findByTestId('add-property-key-input');
+  }
+
+  findAddValueInput() {
+    return cy.findByTestId('add-property-value-input');
+  }
+
+  findKeyEditInput(key: string) {
+    return cy.findByTestId(['edit-property-key-input', key]);
+  }
+
+  findValueEditInput(value: string) {
+    return cy.findByTestId(['edit-property-value-input', value]);
+  }
+
+  findSaveButton() {
+    return cy.findByTestId('save-edit-button-property');
+  }
+
+  findCancelButton() {
+    return cy.findByTestId('discard-edit-button-property');
+  }
+
+  findExpandControlButton() {
+    return cy.findByTestId('expand-control-button');
+  }
+
+  private findTable() {
+    return cy.findByTestId('properties-table');
+  }
+
+  findPropertiesTableRows() {
+    return this.findTable().find('tbody tr');
+  }
+
+  getRow(name: string) {
+    return new PropertyRow(() =>
+      this.findTable().find(`[data-label=Key]`).contains(name).parents('tr'),
+    );
+  }
 }
+
+class PropertyRow extends TableRow {}
 
 export const modelVersionDetails = new ModelVersionDetails();

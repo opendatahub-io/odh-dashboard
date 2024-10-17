@@ -36,6 +36,7 @@ const EditableTextDescriptionListGroup: React.FC<EditableTextDescriptionListGrou
       isSavingEdits={isSavingEdits}
       contentWhenEditing={
         <TextArea
+          autoFocus
           data-testid={`edit-text-area-${title}`}
           aria-label={`Text box for editing ${title}`}
           value={unsavedValue}
