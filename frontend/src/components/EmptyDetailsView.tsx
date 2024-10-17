@@ -10,7 +10,7 @@ import {
 
 type EmptyDetailsViewProps = {
   title?: string;
-  description?: string;
+  description?: React.ReactNode;
   iconImage?: string;
   imageAlt?: string;
   allowCreate?: boolean;
