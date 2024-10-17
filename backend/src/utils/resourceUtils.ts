@@ -76,9 +76,7 @@ const DASHBOARD_CONFIG = {
 };
 
 const fetchDashboardCR = async (fastify: KubeFastifyInstance): Promise<DashboardConfig[]> => {
-  return fetchOrCreateDashboardCR(fastify)
-    .then(softDisableBiasMetrics(fastify))
-    .then((dashboardCR) => [dashboardCR]);
+  return fetchOrCreateDashboardCR(fastify).then((dashboardCR) => [dashboardCR]);
 };
 
 const fetchWatchedClusterStatus = async (
@@ -86,48 +84,6 @@ const fetchWatchedClusterStatus = async (
 ): Promise<DataScienceClusterKindStatus[]> => {
   return fetchClusterStatus(fastify).then((clusterStatus) => [clusterStatus]);
 };
-
-/**
- * TODO: Support Bias Metrics https://issues.redhat.com/browse/RHOAIENG-13084
- * For RHOAI Only
- * Always disable bias metrics until we can properly support the new UI flow.
- * Note: This does no changes to the on-cluster value -- there can be a de-sync
- */
-const softDisableBiasMetrics =
-  (fastify: KubeFastifyInstance) =>
-  (dashboardConfig: DashboardConfig): DashboardConfig & { status?: object } => {
-    if (!isRHOAI(fastify)) {
-      return dashboardConfig;
-    }
-
-    fastify.log.info(
-      'Trusty Bias Metrics are explicitly disabled in the cached odh-dashboard-config',
-    );
-    return {
-      ...dashboardConfig,
-      spec: {
-        ...dashboardConfig.spec,
-        dashboardConfig: {
-          ...dashboardConfig.spec.dashboardConfig,
-          disableBiasMetrics: true,
-        },
-      },
-      // NOTE: This is a fake status to help show in the UI that we are overriding the value
-      // The CRD does not support a status property today and should not have existing statuses here
-      // No code should use this -- this is purely for debugging in the UI
-      // To be removed as soon as we can support trusty properly
-      status: {
-        conditions: [
-          {
-            message: 'This feature flag state is being ignored',
-            reason: 'IgnoredFeatureFlag',
-            status: 'False',
-            type: 'disableBiasMetricsAvailable',
-          },
-        ],
-      },
-    };
-  };
 
 const fetchOrCreateDashboardCR = async (fastify: KubeFastifyInstance): Promise<DashboardConfig> => {
   return fastify.kube.customObjectsApi

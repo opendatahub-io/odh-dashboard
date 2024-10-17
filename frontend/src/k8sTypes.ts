@@ -1316,7 +1316,7 @@ export type DashboardCommonConfig = {
   disableProjectSharing: boolean;
   disableCustomServingRuntimes: boolean;
   disablePipelines: boolean;
-  disableBiasMetrics: boolean;
+  disableTrustyBiasMetrics: boolean;
   disablePerformanceMetrics: boolean;
   disableKServe: boolean;
   disableKServeAuth: boolean;
