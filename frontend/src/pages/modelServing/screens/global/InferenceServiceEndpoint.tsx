@@ -2,6 +2,12 @@ import * as React from 'react';
 import {
   Button,
   ClipboardCopy,
+  ClipboardCopyVariant,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  Divider,
   HelperText,
   HelperTextItem,
   Popover,
@@ -40,14 +46,15 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
     return (
       <Popover
         data-testid="internal-service-popover"
-        headerContent="Internal Service can be accessed inside the cluster"
+        headerContent="Inference endpoints"
         aria-label="Internal Service Info"
+        hasAutoWidth
         bodyContent={
           <InternalServicePopoverContent inferenceService={inferenceService} isKserve={isKserve} />
         }
       >
         <Button data-testid="internal-service-button" isInline variant="link">
-          Internal Service
+          Endpoint details (internal)
         </Button>
       </Popover>
     );
@@ -68,9 +75,38 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
   }
 
   return (
-    <ClipboardCopy hoverTip="Copy" clickTip="Copied" isReadOnly>
-      {isKserve ? routeLink : `${routeLink}/infer`}
-    </ClipboardCopy>
+    <Popover
+      data-testid="external-service-popover"
+      headerContent="Inference endpoints"
+      aria-label="External Service Info"
+      hasAutoWidth
+      bodyContent={
+        <InternalServicePopoverContent inferenceService={inferenceService} isKserve={isKserve} />
+      }
+      footerContent={
+        <DescriptionList>
+          <DescriptionListGroup>
+            <Divider />
+            <DescriptionListTerm>
+              External (can be accessed from inside or outside the cluster)
+            </DescriptionListTerm>
+            <DescriptionListDescription style={{ paddingLeft: 'var(--pf-v5-global--spacer--md)' }}>
+              <ClipboardCopy
+                hoverTip="Copy"
+                clickTip="Copied"
+                variant={ClipboardCopyVariant.inlineCompact}
+              >
+                {isKserve ? routeLink : `${routeLink}/infer`}
+              </ClipboardCopy>
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+        </DescriptionList>
+      }
+    >
+      <Button data-testid="internal-external-service-button" isInline variant="link">
+        Endpoint details (internal and external)
+      </Button>
+    </Popover>
   );
 };
 

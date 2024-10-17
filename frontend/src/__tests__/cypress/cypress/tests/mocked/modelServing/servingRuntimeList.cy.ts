@@ -481,6 +481,10 @@ describe('Serving Runtime List', () => {
           mockInferenceServiceK8sResource({
             name: 'another-inference-service',
             displayName: 'Another Inference Service',
+            statusPredictor: {
+              grpcUrl: 'grpc://modelmesh-serving.app:8033',
+              restUrl: 'http:///modelmesh-serving.app:8000',
+            },
             deleted: true,
             isModelMesh: true,
           }),
@@ -547,6 +551,107 @@ describe('Serving Runtime List', () => {
       modelServingSection
         .findInferenceServiceTableHeaderButton('Model name')
         .should(be.sortDescending);
+    });
+
+    it('modelmesh inference endpoints when external route is enabled', () => {
+      initIntercepts({
+        projectEnableModelMesh: true,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'another-inference-service',
+            displayName: 'Another Inference Service',
+            statusPredictor: {
+              grpcUrl: 'grpc://modelmesh-serving.app:8033',
+              restUtl: 'http:///modelmesh-serving.app:8000',
+            },
+            deleted: true,
+            isModelMesh: true,
+          }),
+        ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+      modelServingSection
+        .getModelMeshRow('OVMS Model Serving')
+        .findDeployedModelExpansionButton()
+        .click();
+      const inferenceServiceRow = modelServingSection.getInferenceServiceRow(
+        'Another Inference Service',
+      );
+      inferenceServiceRow.findExternalServiceButton().click();
+      inferenceServiceRow
+        .findExternalServicePopover()
+        .findByText('Internal (can only be accessed from inside the cluster)')
+        .should('exist');
+      inferenceServiceRow
+        .findExternalServicePopover()
+        .findByText('grpc://modelmesh-serving.app:8033')
+        .should('exist');
+      inferenceServiceRow
+        .findExternalServicePopover()
+        .findByText('http:///modelmesh-serving.app:8000')
+        .should('exist');
+      inferenceServiceRow
+        .findExternalServicePopover()
+        .findByText('External (can be accessed from inside or outside the cluster)')
+        .should('exist');
+      inferenceServiceRow
+        .findExternalServicePopover()
+        .findByText('https://another-inference-service-test-project.apps.user.com/infer')
+        .should('exist');
+    });
+
+    it('modelmesh inference endpoints when external route is not enabled', () => {
+      initIntercepts({
+        projectEnableModelMesh: true,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'another-inference-service',
+            displayName: 'Another Inference Service',
+            statusPredictor: {
+              grpcUrl: 'grpc://modelmesh-serving.app:8033',
+              restUtl: 'http:///modelmesh-serving.app:8000',
+            },
+            deleted: true,
+            isModelMesh: true,
+          }),
+        ],
+        servingRuntimes: [
+          mockServingRuntimeK8sResourceLegacy({}),
+          mockServingRuntimeK8sResource({
+            name: 'test-model',
+            namespace: 'test-project',
+            auth: true,
+            route: false,
+          }),
+        ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+      modelServingSection
+        .getModelMeshRow('OVMS Model Serving')
+        .findDeployedModelExpansionButton()
+        .click();
+      const inferenceServiceRow = modelServingSection.getInferenceServiceRow(
+        'Another Inference Service',
+      );
+      inferenceServiceRow.findInternalServiceButton().click();
+      inferenceServiceRow
+        .findInternalServicePopover()
+        .findByText('Internal (can only be accessed from inside the cluster)')
+        .should('exist');
+      inferenceServiceRow
+        .findInternalServicePopover()
+        .findByText('grpc://modelmesh-serving.app:8033')
+        .should('exist');
+      inferenceServiceRow
+        .findInternalServicePopover()
+        .findByText('http:///modelmesh-serving.app:8000')
+        .should('exist');
     });
   });
 
