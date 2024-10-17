@@ -5,30 +5,35 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { FAST_POLL_INTERVAL } from '~/utilities/const';
+import { FAST_POLL_INTERVAL, POLL_INTERVAL } from '~/utilities/const';
 import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
 import EmptyDetailsView from '~/components/EmptyDetailsView';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
+import useRefreshInterval from '~/utilities/useRefreshInterval';
 import NotebookTable from './NotebookTable';
 
 const NotebookList: React.FC = () => {
   const {
     currentProject,
-    notebooks: { data: notebookStates, loaded, error: loadError, refresh: refreshNotebooks },
+    notebooks: { data: notebookStates, loaded, error: loadError },
     refreshAllProjectData: refresh,
   } = React.useContext(ProjectDetailsContext);
   const navigate = useNavigate();
   const projectName = currentProject.metadata.name;
   const isNotebooksEmpty = notebookStates.length === 0;
 
-  React.useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-    if (notebookStates.some((notebookState) => notebookState.isStarting)) {
-      interval = setInterval(() => refreshNotebooks(), FAST_POLL_INTERVAL);
-    }
-    return () => clearInterval(interval);
-  }, [notebookStates, refreshNotebooks]);
+  useRefreshInterval(FAST_POLL_INTERVAL, () =>
+    notebookStates
+      .filter((notebookState) => notebookState.isStarting || notebookState.isStopping)
+      .forEach((notebookState) => notebookState.refresh()),
+  );
+
+  useRefreshInterval(POLL_INTERVAL, () =>
+    notebookStates
+      .filter((notebookState) => !notebookState.isStarting && !notebookState.isStopping)
+      .forEach((notebookState) => notebookState.refresh()),
+  );
 
   return (
     <DetailsSection

@@ -272,8 +272,9 @@ describe('Data science projects details', () => {
     );
     projectListPage.visit();
     const projectTableRow = projectListPage.getProjectRow('Test Project');
-    projectTableRow.findNotebookColumn().click();
-    cy.wait('@getWorkbench');
+    projectTableRow.findNotebookColumnExpander().click();
+    const notebookRows = projectTableRow.getNotebookRows();
+    notebookRows.should('have.length', 1);
   });
 
   it('should open the modal to stop workbench when user stops the workbench', () => {
@@ -316,13 +317,14 @@ describe('Data science projects details', () => {
     );
     projectListPage.visit();
     const projectTableRow = projectListPage.getProjectRow('Test Project');
-    projectTableRow.findNotebookColumn().click();
+    projectTableRow.findNotebookColumnExpander().click();
+    const notebookRows = projectTableRow.getNotebookRows();
+    notebookRows.should('have.length', 1);
 
     const notebookRow = projectTableRow.getNotebookRow('Test Notebook');
     notebookRow.findNotebookRouteLink().should('have.attr', 'aria-disabled', 'false');
 
-    notebookRow.findKebabAction('Start').should('be.disabled');
-    notebookRow.findKebabAction('Stop').click();
+    notebookRow.findNotebookStop().click();
 
     //stop workbench
     notebookConfirmModal.findStopWorkbenchButton().should('be.enabled');
