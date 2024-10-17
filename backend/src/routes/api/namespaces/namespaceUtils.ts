@@ -100,6 +100,13 @@ export const applyNamespaceChange = async (
         checkPermissionsFn = checkEditNamespacePermission;
       }
       break;
+    case NamespaceApplicationCase.RESET_MODEL_SERVING:
+      {
+        annotations = { 'opendatahub.io/nim-support': null };
+        labels = { 'modelmesh-enabled': null };
+        checkPermissionsFn = checkEditNamespacePermission;
+      }
+      break;
     default:
       throw createCustomError('Unknown configuration', 'Cannot apply namespace change', 400);
   }
