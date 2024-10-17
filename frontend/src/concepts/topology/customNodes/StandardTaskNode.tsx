@@ -12,7 +12,13 @@ import {
   WithContextMenuProps,
   WithSelectionProps,
 } from '@patternfly/react-topology';
-import { AngleDoubleRightIcon } from '@patternfly/react-icons';
+import {
+  AngleDoubleRightIcon,
+  BanIcon,
+  OutlinedWindowRestoreIcon,
+  PendingIcon,
+  SyncAltIcon,
+} from '@patternfly/react-icons';
 import { PipelineNodeModelExpanded } from '~/concepts/topology/types';
 import { ExecutionStateKF } from '~/concepts/pipelines/kfTypes';
 
@@ -30,22 +36,35 @@ const StandardTaskNode: React.FunctionComponent<StandardTaskNodeProps> = ({
   const data = element.getData();
   const [hover, hoverRef] = useHover<SVGGElement>();
   const detailsLevel = element.getGraph().getDetailsLevel();
+  const state = data?.pipelineTask.status?.state;
 
-  // Set the cached node status to Succeeded
-  const getNodeStatus = () => {
-    if (data?.pipelineTask.status?.state === ExecutionStateKF.CACHED) {
-      return RunStatus.Succeeded;
+  const status = React.useMemo(() => {
+    switch (state) {
+      case ExecutionStateKF.CACHED:
+        return RunStatus.Succeeded;
+      case ExecutionStateKF.RUNNING:
+        return RunStatus.InProgress;
+      default:
+        return data?.runStatus;
     }
-    return data?.runStatus;
-  };
+  }, [state, data?.runStatus]);
 
-  const whenDecorator = data?.pipelineTask.whenStatus ? (
-    <WhenDecorator
-      element={element}
-      status={data.pipelineTask.whenStatus}
-      leftOffset={DEFAULT_WHEN_OFFSET}
-    />
-  ) : null;
+  const customStatusIcon = React.useMemo(() => {
+    switch (state) {
+      case ExecutionStateKF.CANCELED:
+        return <BanIcon />;
+      case ExecutionStateKF.CANCELING:
+        return <SyncAltIcon />;
+      case ExecutionStateKF.CACHED:
+        return <OutlinedWindowRestoreIcon />;
+      case ExecutionStateKF.SKIPPED:
+        return <AngleDoubleRightIcon />;
+      case ExecutionStateKF.PENDING:
+        return <PendingIcon />;
+      default:
+        return undefined;
+    }
+  }, [state]);
 
   return (
     <g ref={hoverRef}>
@@ -54,12 +73,8 @@ const StandardTaskNode: React.FunctionComponent<StandardTaskNodeProps> = ({
         onSelect={onSelect}
         selected={selected}
         scaleNode={hover && detailsLevel !== ScaleDetailsLevel.high}
-        status={getNodeStatus()}
-        customStatusIcon={
-          data?.pipelineTask.status?.state === ExecutionStateKF.CACHED ? (
-            <AngleDoubleRightIcon />
-          ) : undefined
-        }
+        status={status}
+        customStatusIcon={customStatusIcon}
         hideDetailsAtMedium
         hiddenDetailsShownStatuses={[
           RunStatus.Succeeded,
@@ -71,7 +86,13 @@ const StandardTaskNode: React.FunctionComponent<StandardTaskNodeProps> = ({
         whenSize={data?.pipelineTask.whenStatus ? DEFAULT_WHEN_SIZE : 0}
         {...rest}
       >
-        {whenDecorator}
+        {data?.pipelineTask.whenStatus && (
+          <WhenDecorator
+            element={element}
+            status={data.pipelineTask.whenStatus}
+            leftOffset={DEFAULT_WHEN_OFFSET}
+          />
+        )}
       </TaskNode>
     </g>
   );

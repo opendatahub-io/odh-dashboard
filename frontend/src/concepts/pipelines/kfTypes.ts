@@ -501,6 +501,7 @@ export enum RuntimeStateKF {
   FAILED = 'FAILED',
   CANCELING = 'CANCELING',
   CANCELED = 'CANCELED',
+  CACHED = 'CACHED',
   PAUSED = 'PAUSED',
 }
 
@@ -511,6 +512,9 @@ export enum ExecutionStateKF {
   CANCELED = 'Canceled',
   FAILED = 'Failed',
   CACHED = 'Cached',
+  SKIPPED = 'Skipped',
+  PENDING = 'Pending',
+  CANCELING = 'Canceling',
 }
 
 export enum ArtifactStateKF {
@@ -529,6 +533,7 @@ export const runtimeStateLabels = {
   [RuntimeStateKF.FAILED]: 'Failed',
   [RuntimeStateKF.CANCELING]: 'Canceling',
   [RuntimeStateKF.CANCELED]: 'Canceled',
+  [RuntimeStateKF.CACHED]: 'Cached',
   [RuntimeStateKF.PAUSED]: 'Paused',
 };
 

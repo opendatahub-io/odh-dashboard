@@ -3,7 +3,8 @@ import {
   BanIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
-  NotStartedIcon,
+  InProgressIcon,
+  PendingIcon,
   QuestionCircleIcon,
   SyncAltIcon,
 } from '@patternfly/react-icons';
@@ -44,11 +45,12 @@ export const computeRunStatus = (run?: PipelineRunKFv2 | null): RunStatusDetails
     case RuntimeStateKF.PENDING:
     case RuntimeStateKF.RUNTIME_STATE_UNSPECIFIED:
     case undefined:
-      icon = <NotStartedIcon />;
+      icon = <PendingIcon />;
       label = runtimeStateLabels[RuntimeStateKF.PENDING];
       break;
     case RuntimeStateKF.RUNNING:
-      icon = <SyncAltIcon />;
+      icon = <InProgressIcon />;
+      color = 'blue';
       label = runtimeStateLabels[RuntimeStateKF.RUNNING];
       break;
     case RuntimeStateKF.SKIPPED:
@@ -69,11 +71,12 @@ export const computeRunStatus = (run?: PipelineRunKFv2 | null): RunStatusDetails
       details = run.error?.message;
       break;
     case RuntimeStateKF.CANCELING:
-      icon = <BanIcon />;
+      icon = <SyncAltIcon />;
       label = runtimeStateLabels[RuntimeStateKF.CANCELING];
       break;
     case RuntimeStateKF.CANCELED:
       icon = <BanIcon />;
+      color = 'gold';
       label = runtimeStateLabels[RuntimeStateKF.CANCELED];
       break;
     case RuntimeStateKF.PAUSED:
