@@ -15,10 +15,11 @@ import {
   HelperTextItem,
   SelectGroup,
   Divider,
+  SelectOptionProps,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons/dist/esm/icons/times-icon';
 
-export type SelectionOptions = {
+export type SelectionOptions = Omit<SelectOptionProps, 'id'> & {
   id: number | string;
   name: string;
   selected?: boolean;
@@ -49,9 +50,12 @@ type MultiSelectionProps = {
   isCreateOptionOnTop?: boolean;
   /** Message to display to create a new option */
   createOptionMessage?: string | ((newValue: string) => string);
+  filterFunction?: (filterText: string, options: SelectionOptions[]) => SelectionOptions[];
 };
 
 const defaultCreateOptionMessage = (newValue: string) => `Create "${newValue}"`;
+const defaultFilterFunction = (filterText: string, options: SelectionOptions[]) =>
+  options.filter((o) => !filterText || o.name.toLowerCase().includes(filterText.toLowerCase()));
 
 export const MultiSelection: React.FC<MultiSelectionProps> = ({
   value = [],
@@ -69,6 +73,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   isCreatable = false,
   isCreateOptionOnTop = false,
   createOptionMessage = defaultCreateOptionMessage,
+  filterFunction = defaultFilterFunction,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState<string>('');
@@ -80,16 +85,14 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     let counter = 0;
     return groupedValues
       .map((g) => {
-        const values = g.values.filter(
-          (v) => !inputValue || v.name.toLowerCase().includes(inputValue.toLowerCase()),
-        );
+        const values = filterFunction(inputValue, g.values);
         return {
           ...g,
           values: values.map((v) => ({ ...v, index: counter++ })),
         };
       })
       .filter((g) => g.values.length);
-  }, [inputValue, groupedValues]);
+  }, [filterFunction, groupedValues, inputValue]);
 
   const setOpen = (open: boolean) => {
     setIsOpen(open);
@@ -104,10 +107,11 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
 
   const selectOptions = React.useMemo(
     () =>
-      value
-        .filter((v) => !inputValue || v.name.toLowerCase().includes(inputValue.toLowerCase()))
-        .map((v, index) => ({ ...v, index: groupOptions.length + index })),
-    [groupOptions, inputValue, value],
+      filterFunction(inputValue, value).map((v, index) => ({
+        ...v,
+        index: groupOptions.length + index,
+      })),
+    [filterFunction, groupOptions, inputValue, value],
   );
 
   const allValues = React.useMemo(() => {
@@ -340,6 +344,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
                     value={option.id}
                     ref={null}
                     isSelected={option.selected}
+                    description={option.description}
                   >
                     {option.name}
                   </SelectOption>
@@ -363,6 +368,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
                 value={option.id}
                 ref={null}
                 isSelected={option.selected}
+                description={option.description}
               >
                 {option.name}
               </SelectOption>

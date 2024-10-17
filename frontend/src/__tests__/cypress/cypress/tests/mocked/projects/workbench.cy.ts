@@ -13,6 +13,7 @@ import { mockImageStreamK8sResource } from '~/__mocks__/mockImageStreamK8sResour
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
 import {
+  attachConnectionModal,
   createSpawnerPage,
   editSpawnerPage,
   notFoundSpawnerPage,
@@ -37,6 +38,7 @@ import {
 import { mock200Status } from '~/__mocks__/mockK8sStatus';
 import type { NotebookSize } from '~/types';
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
+import { mockConnectionTypeConfigMap } from '~/__mocks__/mockConnectionType';
 
 const configYamlPath = '../../__mocks__/mock-upload-configmap.yaml';
 
@@ -401,6 +403,74 @@ describe('Workbench page', () => {
           },
           name: 'wb-1234',
           namespace: 'test-project',
+        },
+      });
+    });
+    verifyRelativeURL('/projects/test-project?section=workbenches');
+  });
+
+  it('Create workbench with connection', () => {
+    initIntercepts({ isEmpty: true });
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableConnectionTypes: false }));
+    cy.interceptOdh('GET /api/connection-types', [mockConnectionTypeConfigMap({})]);
+    cy.interceptK8sList(
+      { model: SecretModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockSecretK8sResource({ name: 'test1', displayName: 'test1' }),
+        mockSecretK8sResource({ name: 'test2', displayName: 'test2' }),
+      ]),
+    );
+
+    workbenchPage.visit('test-project');
+    workbenchPage.findCreateButton().click();
+    createSpawnerPage.findSubmitButton().should('be.disabled');
+    verifyRelativeURL('/projects/test-project/spawner');
+    createSpawnerPage.k8sNameDescription.findDisplayNameInput().fill('1234');
+    createSpawnerPage.findNotebookImage('test-9').click();
+
+    createSpawnerPage.findAttachConnectionButton().click();
+    attachConnectionModal.shouldBeOpen();
+    attachConnectionModal.findAttachButton().should('be.disabled');
+    attachConnectionModal.selectConnectionOption('test1');
+    attachConnectionModal.findAttachButton().should('be.enabled');
+    attachConnectionModal.selectConnectionOption('test2');
+    attachConnectionModal.findAttachButton().click();
+
+    createSpawnerPage.findConnectionsTableRow('test1', 's3');
+    createSpawnerPage.findConnectionsTableRow('test2', 's3');
+
+    createSpawnerPage.findSubmitButton().click();
+    cy.wait('@createWorkbench').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          annotations: {
+            'openshift.io/display-name': '1234',
+          },
+          name: 'wb-1234',
+          namespace: 'test-project',
+        },
+        spec: {
+          template: {
+            spec: {
+              affinity: {},
+              containers: [
+                {
+                  envFrom: [
+                    {
+                      secretRef: {
+                        name: 'test1',
+                      },
+                    },
+                    {
+                      secretRef: {
+                        name: 'test2',
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          },
         },
       });
     });

@@ -73,7 +73,7 @@ const NotebookAdminControl: React.FC = () => {
             Create, delete, and manage permissions for {ODH_PRODUCT_NAME} users in OpenShift.{' '}
             <ExternalLink
               text="Learn more about OpenShift user management"
-              to="https://access.redhat.com/documentation/en-us/red_hat_openshift_data_science/1/html/managing_users_and_user_resources/index"
+              to="https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/managing_openshift_ai/managing-users-and-groups"
             />
           </Alert>
         </StackItem>
