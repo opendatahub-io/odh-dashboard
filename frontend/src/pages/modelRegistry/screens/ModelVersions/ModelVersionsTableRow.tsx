@@ -42,7 +42,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
   const actions: IAction[] = isArchiveRow
     ? [
         {
-          title: 'Restore version',
+          title: 'Restore model version',
           onClick: () => setIsRestoreModalOpen(true),
         },
       ]

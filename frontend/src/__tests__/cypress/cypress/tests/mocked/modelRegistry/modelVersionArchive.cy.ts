@@ -214,7 +214,7 @@ describe('Restoring archive version', () => {
     modelVersionArchive.visit();
 
     const archiveVersionRow = modelVersionArchive.getRow('model version 2');
-    archiveVersionRow.findKebabAction('Restore version').click();
+    archiveVersionRow.findKebabAction('Restore model version').click();
 
     restoreVersionModal.findRestoreButton().click();
 
@@ -334,7 +334,7 @@ describe('Archiving version', () => {
     initIntercepts({});
     modelVersionArchive.visitModelVersionDetails();
     cy.findByTestId('model-version-details-action-button')
-      .findDropdownItem('Archive version')
+      .findDropdownItem('Archive model version')
       .should('have.attr', 'aria-disabled');
   });
 
@@ -355,7 +355,7 @@ describe('Archiving version', () => {
     modelVersionArchive.visitModelVersionDetails();
     modelVersionArchive
       .findModelVersionsDetailsHeaderAction()
-      .findDropdownItem('Archive version')
+      .findDropdownItem('Archive model version')
       .click();
 
     archiveVersionModal.findArchiveButton().should('be.disabled');

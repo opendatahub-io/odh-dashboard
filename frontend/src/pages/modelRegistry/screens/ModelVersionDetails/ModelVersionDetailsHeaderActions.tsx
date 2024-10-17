@@ -64,15 +64,15 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
           <DropdownItem
             isAriaDisabled={hasDeployment}
             id="archive-version-button"
-            aria-label="Archive version"
+            aria-label="Archive model version"
             key="archive-version-button"
             onClick={() => setIsArchiveModalOpen(true)}
             tooltipProps={
-              hasDeployment ? { content: 'Deployed versions cannot be archived' } : undefined
+              hasDeployment ? { content: 'Deployed model versions cannot be archived' } : undefined
             }
             ref={tooltipRef}
           >
-            Archive version
+            Archive model version
           </DropdownItem>
         </DropdownList>
       </Dropdown>

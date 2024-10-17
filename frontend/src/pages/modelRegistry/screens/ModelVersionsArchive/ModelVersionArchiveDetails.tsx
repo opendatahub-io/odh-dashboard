@@ -90,7 +90,7 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
         }
         headerAction={
           <Button data-testid="restore-button" onClick={() => setIsRestoreModalOpen(true)}>
-            Restore version
+            Restore model version
           </Button>
         }
         description={<Truncate content={mv?.description || ''} />}
