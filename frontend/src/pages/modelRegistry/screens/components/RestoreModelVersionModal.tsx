@@ -41,7 +41,7 @@ export const RestoreModelVersionModal: React.FC<RestoreModelVersionModalProps> =
   return (
     <Modal
       isOpen
-      title="Restore version?"
+      title="Restore model version?"
       variant="small"
       onClose={onClose}
       footer={

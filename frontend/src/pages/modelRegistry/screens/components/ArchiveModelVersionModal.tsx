@@ -44,7 +44,7 @@ export const ArchiveModelVersionModal: React.FC<ArchiveModelVersionModalProps> =
   return (
     <Modal
       isOpen
-      title="Archive version?"
+      title="Archive model version?"
       titleIconVariant="warning"
       variant="small"
       onClose={onClose}

@@ -16,9 +16,13 @@ import { RegisteredModel, ModelState } from '~/concepts/modelRegistry/types';
 
 interface ModelVersionsHeaderActionsProps {
   rm: RegisteredModel;
+  hasDeployments?: boolean;
 }
 
-const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({ rm }) => {
+const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
+  rm,
+  hasDeployments = false,
+}) => {
   const { apiState } = React.useContext(ModelRegistryContext);
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
 
@@ -56,6 +60,12 @@ const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
                 key="archive-model-button"
                 onClick={() => setIsArchiveModalOpen(true)}
                 ref={tooltipRef}
+                isAriaDisabled={hasDeployments}
+                tooltipProps={
+                  hasDeployments
+                    ? { content: 'Models with deployed versions cannot be archived.' }
+                    : undefined
+                }
               >
                 Archive model
               </DropdownItem>
