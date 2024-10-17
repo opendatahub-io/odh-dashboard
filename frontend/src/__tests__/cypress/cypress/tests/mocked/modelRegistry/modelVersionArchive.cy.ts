@@ -281,14 +281,14 @@ describe('Archiving version', () => {
     });
   });
 
-  it('Non archived version details page does have deployment tab', () => {
+  it('Non archived version details page has the Deployments tab', () => {
     initIntercepts({});
     modelVersionArchive.visitModelVersionDetails();
     modelVersionArchive.findVersionDetailsTab().should('exist');
     modelVersionArchive.findVersionDeploymentTab().should('exist');
   });
 
-  it('Archived version details page does not have deployment tab', () => {
+  it('Archived version details page does not have the Deployments tab', () => {
     initIntercepts({});
     modelVersionArchive.visitArchiveVersionDetail();
     modelVersionArchive.findVersionDetailsTab().should('exist');
