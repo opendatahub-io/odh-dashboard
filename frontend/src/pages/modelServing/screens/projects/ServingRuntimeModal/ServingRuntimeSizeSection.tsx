@@ -93,6 +93,7 @@ const ServingRuntimeSizeSection = <D extends CreatingModelServingObjectCommon>({
               dataTestId="model-server-size-selection"
               isFullWidth
               options={sizeOptions()}
+              value={data.modelSize.name}
               toggleProps={{ id: 'model-server-size-selection' }}
               toggleLabel={data.modelSize.name || 'Select a model server size'}
               onChange={(option) => {
