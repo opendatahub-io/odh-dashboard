@@ -130,7 +130,7 @@ export const getDefaultValues = (
 
 export const assembleConnectionSecret = (
   project: ProjectKind,
-  type: ConnectionTypeConfigMapObj,
+  connectionTypeName: string,
   nameDesc: K8sNameDescriptionFieldData,
   values: {
     [key: string]: ConnectionTypeValueType;
@@ -155,7 +155,7 @@ export const assembleConnectionSecret = (
         'opendatahub.io/managed': 'true',
       },
       annotations: {
-        'opendatahub.io/connection-type': type.metadata.name,
+        'opendatahub.io/connection-type': connectionTypeName,
         'openshift.io/display-name': nameDesc.name,
         'openshift.io/description': nameDesc.description,
       },
@@ -215,3 +215,10 @@ export const getConnectionTypeDisplayName = (
     connection.metadata.annotations['opendatahub.io/connection-type']
   );
 };
+
+export const filterEnabledConnectionTypes = <
+  T extends ConnectionTypeConfigMap | ConnectionTypeConfigMapObj,
+>(
+  connectionTypes: T[],
+): T[] =>
+  connectionTypes.filter((t) => t.metadata.annotations?.['opendatahub.io/enabled'] === 'true');

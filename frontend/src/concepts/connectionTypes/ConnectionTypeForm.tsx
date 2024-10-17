@@ -27,44 +27,76 @@ import {
 } from '~/concepts/k8s/K8sNameDescriptionField/types';
 import { ConnectionTypeDetailsHelperText } from './ConnectionTypeDetailsHelperText';
 
+const createSelectOption = (
+  connectionType: ConnectionTypeConfigMapObj,
+  isSelected: boolean,
+): TypeaheadSelectOption => {
+  const description = getDescriptionFromK8sResource(connectionType);
+  return {
+    value: getResourceNameFromK8sResource(connectionType),
+    content: getDisplayNameFromK8sResource(connectionType),
+    description: (
+      <Flex direction={{ default: 'column' }} rowGap={{ default: 'rowGapNone' }}>
+        {description && (
+          <FlexItem>
+            <Truncate content={description} />
+          </FlexItem>
+        )}
+        {connectionType.data?.category?.length && (
+          <FlexItem>
+            <Truncate content={`Category: ${connectionType.data.category.join(', ')}`} />
+          </FlexItem>
+        )}
+      </Flex>
+    ),
+    data: `${description} ${connectionType.data?.category?.join(' ')}`,
+    isSelected,
+  };
+};
+
 const getConnectionTypeSelectOptions = (
   isPreview: boolean,
-  selectedConnectionType?: ConnectionTypeConfigMapObj,
   connectionTypes?: ConnectionTypeConfigMapObj[],
+  selectedConnectionType?: ConnectionTypeConfigMapObj,
+  selectedConnectionTypeName?: string,
 ): TypeaheadSelectOption[] => {
-  if (isPreview && selectedConnectionType?.metadata.annotations?.['openshift.io/display-name']) {
-    return [
-      {
-        value: '',
-        content: selectedConnectionType.metadata.annotations['openshift.io/display-name'],
-        isSelected: true,
-      },
-    ];
-  }
-  if (!isPreview && connectionTypes) {
-    return connectionTypes.map((t) => ({
-      value: getResourceNameFromK8sResource(t),
-      content: getDisplayNameFromK8sResource(t),
-      description: (
-        <Flex direction={{ default: 'column' }} rowGap={{ default: 'rowGapNone' }}>
-          {getDescriptionFromK8sResource(t) && (
-            <FlexItem>
-              <Truncate content={getDescriptionFromK8sResource(t)} />
-            </FlexItem>
-          )}
-          {t.data?.category?.length && (
-            <FlexItem>
-              <Truncate content={`Category: ${t.data.category.join(', ')}`} />
-            </FlexItem>
-          )}
-        </Flex>
-      ),
-      data: `${getDescriptionFromK8sResource(t)} ${t.data?.category?.join(' ')}`,
-      isSelected:
-        !!selectedConnectionType &&
-        getResourceNameFromK8sResource(t) ===
-          getResourceNameFromK8sResource(selectedConnectionType),
-    }));
+  if (isPreview) {
+    const displayName = selectedConnectionType?.metadata.annotations?.['openshift.io/display-name'];
+    if (displayName) {
+      return [
+        {
+          value: '',
+          content: displayName,
+          isSelected: true,
+        },
+      ];
+    }
+  } else {
+    if (!connectionTypes || connectionTypes.length === 0) {
+      if (selectedConnectionType) {
+        return [createSelectOption(selectedConnectionType, true)];
+      }
+      if (selectedConnectionTypeName) {
+        return [
+          {
+            value: selectedConnectionTypeName,
+            content: selectedConnectionTypeName,
+            isSelected: true,
+          },
+        ];
+      }
+    }
+    if (connectionTypes) {
+      return connectionTypes.map((t) =>
+        createSelectOption(
+          t,
+          !!selectedConnectionType &&
+            getResourceNameFromK8sResource(t) ===
+              (selectedConnectionTypeName ||
+                getResourceNameFromK8sResource(selectedConnectionType)),
+        ),
+      );
+    }
   }
   return [];
 };
@@ -73,33 +105,36 @@ type Props = Pick<
   React.ComponentProps<typeof ConnectionTypeFormFields>,
   'onChange' | 'onValidate'
 > & {
-  connectionType?: ConnectionTypeConfigMapObj;
-  setConnectionType?: (obj?: ConnectionTypeConfigMapObj) => void;
-  connectionTypes?: ConnectionTypeConfigMapObj[];
+  connectionType?: ConnectionTypeConfigMapObj | string;
+  setConnectionType?: (name: string) => void;
+  options?: ConnectionTypeConfigMapObj[];
   isPreview?: boolean;
   connectionNameDesc?: K8sNameDescriptionFieldData;
   setConnectionNameDesc?: K8sNameDescriptionFieldUpdateFunction;
   connectionValues?: {
     [key: string]: ConnectionTypeValueType;
   };
-  disableTypeSelection?: boolean;
 };
 
 const ConnectionTypeForm: React.FC<Props> = ({
-  connectionType,
+  connectionType: connectionTypeUnion,
   setConnectionType,
-  connectionTypes,
+  options,
   isPreview = false,
   connectionNameDesc,
   setConnectionNameDesc,
   connectionValues,
   onChange,
   onValidate,
-  disableTypeSelection,
 }) => {
-  const options: TypeaheadSelectOption[] = React.useMemo(
-    () => getConnectionTypeSelectOptions(isPreview, connectionType, connectionTypes),
-    [isPreview, connectionType, connectionTypes],
+  const [connectionTypeName, connectionType] =
+    typeof connectionTypeUnion === 'string'
+      ? [connectionTypeUnion]
+      : [connectionTypeUnion?.metadata.name, connectionTypeUnion];
+
+  const selectOptions: TypeaheadSelectOption[] = React.useMemo(
+    () => getConnectionTypeSelectOptions(isPreview, options, connectionType, connectionTypeName),
+    [isPreview, options, connectionType, connectionTypeName],
   );
 
   return (
@@ -108,11 +143,13 @@ const ConnectionTypeForm: React.FC<Props> = ({
       <FormGroup label="Connection type" fieldId="connection-type" isRequired>
         <TypeaheadSelect
           id="connection-type"
-          selectOptions={options}
-          onSelect={(_, selection) =>
-            setConnectionType?.(connectionTypes?.find((c) => c.metadata.name === selection))
-          }
-          isDisabled={isPreview || disableTypeSelection}
+          selectOptions={selectOptions}
+          onSelect={(_, selection) => {
+            if (typeof selection === 'string') {
+              setConnectionType?.(selection);
+            }
+          }}
+          isDisabled={isPreview || !options || options.length <= 1}
           placeholder={
             isPreview && !connectionType?.metadata.annotations?.['openshift.io/display-name']
               ? 'Unspecified'
@@ -137,7 +174,7 @@ const ConnectionTypeForm: React.FC<Props> = ({
           <ConnectionTypeDetailsHelperText connectionType={connectionType} isPreview={isPreview} />
         )}
       </FormGroup>
-      {(isPreview || connectionType?.metadata.name) && (
+      {(isPreview || connectionTypeName) && (
         <FormSection title="Connection details">
           <K8sNameDescriptionField
             dataTestId="connection-name-desc"

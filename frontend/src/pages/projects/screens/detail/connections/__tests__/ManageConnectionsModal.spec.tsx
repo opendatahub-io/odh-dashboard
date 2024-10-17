@@ -496,7 +496,7 @@ describe('Edit connection modal', () => {
           connectionType: 's3',
           data: {
             UNMATCHED_1: window.btoa('unmatched1!'),
-            env1: window.btoa('saved data'),
+            env1: window.btoa('true'),
             UNMATCHED_2: window.btoa('unmatched2!'),
           },
         })}
@@ -505,8 +505,8 @@ describe('Edit connection modal', () => {
             name: 's3',
             fields: [
               {
-                type: 'short-text',
-                name: 'Short text',
+                type: 'boolean',
+                name: 'Checkbox field',
                 envVar: 'env1',
                 properties: {},
               },
@@ -517,8 +517,35 @@ describe('Edit connection modal', () => {
     );
 
     expect(screen.getByRole('combobox')).toHaveValue('s3');
-    expect(screen.getByRole('textbox', { name: 'Short text' })).toHaveValue('saved data');
+    expect(screen.getByRole('checkbox', { name: 'Checkbox field' })).toBeChecked();
     expect(screen.getByRole('textbox', { name: 'UNMATCHED_1' })).toHaveValue('unmatched1!');
+    expect(screen.getByRole('textbox', { name: 'UNMATCHED_2' })).toHaveValue('unmatched2!');
+  });
+
+  it('should list non matching values as short text with missing connection type', async () => {
+    render(
+      <ManageConnectionModal
+        isEdit
+        project={mockProjectK8sResource({})}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connection={mockConnection({
+          name: 's3-connection',
+          description: 's3 desc',
+          connectionType: 's3',
+          data: {
+            UNMATCHED_1: window.btoa('unmatched1!'),
+            env1: window.btoa('true'),
+            UNMATCHED_2: window.btoa('unmatched2!'),
+          },
+        })}
+        connectionTypes={[]}
+      />,
+    );
+
+    expect(screen.getByRole('combobox')).toHaveValue('s3');
+    expect(screen.getByRole('textbox', { name: 'UNMATCHED_1' })).toHaveValue('unmatched1!');
+    expect(screen.getByRole('textbox', { name: 'env1' })).toHaveValue('true');
     expect(screen.getByRole('textbox', { name: 'UNMATCHED_2' })).toHaveValue('unmatched2!');
   });
 });
