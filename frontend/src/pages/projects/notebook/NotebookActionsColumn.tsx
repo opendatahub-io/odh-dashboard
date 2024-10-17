@@ -6,7 +6,6 @@ import { NotebookState } from '~/pages/projects/notebook/types';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 import { startNotebook, stopNotebook } from '~/api';
-import useNotebookAcceleratorProfile from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfile';
 import useNotebookDeploymentSize from '~/pages/projects/screens/detail/notebooks/useNotebookDeploymentSize';
 import useStopNotebookModalAvailability from '~/pages/projects/notebook/useStopNotebookModalAvailability';
 import { useAppContext } from '~/app/AppContext';
@@ -15,6 +14,7 @@ import { currentlyHasPipelines } from '~/concepts/pipelines/elyra/utils';
 import StopNotebookConfirmModal from '~/pages/projects/notebook/StopNotebookConfirmModal';
 import useNotebookImage from '~/pages/projects/screens/detail/notebooks/useNotebookImage';
 import { NotebookImageAvailability } from '~/pages/projects/screens/detail/notebooks/const';
+import useNotebookAcceleratorProfileForm from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileForm';
 
 export const useNotebookActionsColumn = (
   project: ProjectKind,
@@ -24,7 +24,8 @@ export const useNotebookActionsColumn = (
 ): [React.ReactNode, () => void] => {
   const navigate = useNavigate();
   const { notebook, isStarting, isRunning, isStopping, refresh } = notebookState;
-  const acceleratorProfile = useNotebookAcceleratorProfile(notebook);
+  const { initialState: initialAcceleratorProfileState } =
+    useNotebookAcceleratorProfileForm(notebook);
   const { size } = useNotebookDeploymentSize(notebook);
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
@@ -43,12 +44,12 @@ export const useNotebookActionsColumn = (
     (action: 'started' | 'stopped') => {
       fireFormTrackingEvent(`Workbench ${action === 'started' ? 'Started' : 'Stopped'}`, {
         outcome: TrackingOutcome.submit,
-        acceleratorCount: acceleratorProfile.unknownProfileDetected
+        acceleratorCount: initialAcceleratorProfileState.unknownProfileDetected
           ? undefined
-          : acceleratorProfile.count,
-        accelerator: acceleratorProfile.acceleratorProfile
-          ? `${acceleratorProfile.acceleratorProfile.spec.displayName} (${acceleratorProfile.acceleratorProfile.metadata.name}): ${acceleratorProfile.acceleratorProfile.spec.identifier}`
-          : acceleratorProfile.unknownProfileDetected
+          : initialAcceleratorProfileState.count,
+        accelerator: initialAcceleratorProfileState.acceleratorProfile
+          ? `${initialAcceleratorProfileState.acceleratorProfile.spec.displayName} (${initialAcceleratorProfileState.acceleratorProfile.metadata.name}): ${initialAcceleratorProfileState.acceleratorProfile.spec.identifier}`
+          : initialAcceleratorProfileState.unknownProfileDetected
           ? 'Unknown'
           : 'None',
         lastSelectedSize:
@@ -63,7 +64,7 @@ export const useNotebookActionsColumn = (
         }),
       });
     },
-    [acceleratorProfile, notebook, size],
+    [initialAcceleratorProfileState, notebook, size],
   );
 
   const handleStop = React.useCallback(() => {
