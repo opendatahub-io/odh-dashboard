@@ -6,12 +6,8 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
-  MenuToggle,
   Modal,
   Popover,
-  Select,
-  SelectList,
-  SelectOption,
   TextArea,
   TextInput,
 } from '@patternfly/react-core';
@@ -37,6 +33,7 @@ import { isEnumMember } from '~/utilities/utils';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import DataFieldPropertiesForm from '~/pages/connectionTypes/manage/DataFieldPropertiesForm';
 import { prepareFieldForSave } from '~/pages/connectionTypes/manage/manageFieldUtils';
+import SimpleSelect from '~/components/SimpleSelect';
 
 const isConnectionTypeFieldType = (
   fieldType: string | number | undefined,
@@ -69,7 +66,6 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
       : ConnectionTypeFieldType.ShortText,
   );
   const [required, setRequired] = React.useState<boolean | undefined>(field?.required);
-  const [isTypeSelectOpen, setIsTypeSelectOpen] = React.useState<boolean>(false);
   const [properties, setProperties] = React.useState<unknown>(field?.properties || {});
   const [isPropertiesValid, setPropertiesValid] = React.useState(true);
   const [autoGenerateEnvVar, setAutoGenerateEnvVar] = React.useState<boolean>(!envVar);
@@ -209,45 +205,29 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
           </FormHelperText>
         </FormGroup>
         <FormGroup fieldId="fieldType" label="Type" isRequired data-testid="field-type-select">
-          <Select
+          <SimpleSelect
             id="fieldType"
-            isOpen={isTypeSelectOpen}
-            shouldFocusToggleOnSelect
-            selected={fieldType}
-            onSelect={(_e, selection) => {
+            onChange={(selection) => {
               if (isConnectionTypeFieldType(selection)) {
                 setPropertiesValid(true);
                 setProperties({});
                 setFieldType(selection);
-                setIsTypeSelectOpen(false);
               }
             }}
-            onOpenChange={(open) => setIsTypeSelectOpen(open)}
-            toggle={(toggleRef) => (
-              <MenuToggle
-                ref={toggleRef}
-                id="type-select"
-                isFullWidth
-                onClick={() => {
-                  setIsTypeSelectOpen((open) => !open);
-                }}
-                isExpanded={isTypeSelectOpen}
-              >
-                {fieldType ? fieldTypeToString(fieldType) : ''}
-              </MenuToggle>
-            )}
-          >
-            <SelectList>
-              {connectionTypeDataFields
-                .map((value) => ({ label: fieldTypeToString(value), value }))
-                .toSorted((a, b) => a.label.localeCompare(b.label))
-                .map(({ value, label }) => (
-                  <SelectOption key={value} value={value} data-testid={`field-${value}-select`}>
-                    {label}
-                  </SelectOption>
-                ))}
-            </SelectList>
-          </Select>
+            options={connectionTypeDataFields
+              .map((value) => ({ label: fieldTypeToString(value), value }))
+              .toSorted((a, b) => a.label.localeCompare(b.label))
+              .map(({ value, label }) => ({
+                key: value,
+                label: value,
+                dropdownLabel: label,
+                dataTestId: `field-${value}-select`,
+              }))}
+            shouldFocusToggleOnSelect
+            isFullWidth
+            value={fieldType}
+            toggleLabel={fieldType ? fieldTypeToString(fieldType) : ''}
+          />
         </FormGroup>
         {newField ? (
           <DataFieldPropertiesForm

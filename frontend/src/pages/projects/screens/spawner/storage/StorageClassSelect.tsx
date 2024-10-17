@@ -92,9 +92,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
         onChange={(selection) => {
           setStorageClassName(selection);
         }}
-        isDisabled={
-          disableStorageClassSelect || !storageClassesLoaded || enabledStorageClasses.length <= 1
-        }
+        isDisabled={disableStorageClassSelect || !storageClassesLoaded}
         placeholder="Select storage class"
         popperProps={{ appendTo: menuAppendTo }}
       />
