@@ -17,12 +17,6 @@ const CustomServingRuntimeAPIProtocolSelector: React.FC<
     selectedPlatforms.includes(ServingRuntimePlatform.MULTI) &&
     !selectedPlatforms.includes(ServingRuntimePlatform.SINGLE);
 
-  React.useEffect(() => {
-    if (isOnlyModelMesh) {
-      setSelectedAPIProtocol(ServingRuntimeAPIProtocol.REST);
-    }
-  }, [isOnlyModelMesh, setSelectedAPIProtocol]);
-
   const options = [
     {
       key: ServingRuntimeAPIProtocol.REST,
@@ -48,7 +42,6 @@ const CustomServingRuntimeAPIProtocolSelector: React.FC<
         dataTestId="custom-serving-api-protocol-selection"
         aria-label="Select a model serving api protocol"
         placeholder="Select a value"
-        isDisabled={isOnlyModelMesh}
         options={options}
         value={selectedAPIProtocol || ''}
         onChange={(key) => {
