@@ -169,4 +169,8 @@ export enum NamespaceApplicationCase {
    * Nvidia NIMs run on KServe but have different requirements than regular models.
    */
   KSERVE_NIM_PROMOTION,
+  /**
+   * Downgrade a project from Modelmesh, Kserve or NIM so the platform can be selected again.
+   */
+  RESET_MODEL_SERVING,
 }
