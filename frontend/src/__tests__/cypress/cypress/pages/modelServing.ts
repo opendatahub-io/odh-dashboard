@@ -285,7 +285,7 @@ class InferenceServiceRow extends TableRow {
   findStatusTooltip() {
     return this.find()
       .findByTestId('status-tooltip')
-      .trigger('mouseenter')
+      .click()
       .then(() => {
         cy.findByTestId('model-status-tooltip');
       });
@@ -296,7 +296,7 @@ class InferenceServiceRow extends TableRow {
       .invoke('text')
       .should('contain', msg)
       .then(() => {
-        this.findStatusTooltip().trigger('mouseleave');
+        this.findStatusTooltip().find('button').click();
       });
   }
 

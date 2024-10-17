@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Text, Icon, Popover } from '@patternfly/react-core';
+import { Icon, Popover, Button } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
   ExclamationCircleIcon,
@@ -45,7 +45,6 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
             isInline
             tabIndex={0}
             iconSize={iconSize}
-            style={{ cursor: 'pointer' }}
           >
             <CheckCircleIcon />
           </Icon>
@@ -60,7 +59,6 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
             isInline
             tabIndex={0}
             iconSize={iconSize}
-            style={{ cursor: 'pointer' }}
           >
             <ExclamationCircleIcon />
           </Icon>
@@ -82,7 +80,6 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
             isInline
             tabIndex={0}
             iconSize={iconSize}
-            style={{ cursor: 'pointer' }}
           >
             <OutlinedQuestionCircleIcon />
           </Icon>
@@ -97,7 +94,6 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
             isInline
             tabIndex={0}
             iconSize={iconSize}
-            style={{ cursor: 'pointer' }}
           >
             <OutlinedQuestionCircleIcon />
           </Icon>
@@ -105,18 +101,18 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
     }
   };
 
+  const bodyContent = modelStatus?.failedToSchedule
+    ? 'Insufficient resources'
+    : getInferenceServiceStatusMessage(inferenceService);
+
   return (
     <Popover
-      position="right"
-      bodyContent={
-        modelStatus?.failedToSchedule ? (
-          <Text>Insufficient resources</Text>
-        ) : (
-          <Text>{getInferenceServiceStatusMessage(inferenceService)}</Text>
-        )
-      }
+      data-testid="model-status-tooltip"
+      position="top"
+      bodyContent={bodyContent}
+      isVisible={bodyContent ? undefined : false}
     >
-      {statusIcon()}
+      <Button variant="link" isInline icon={statusIcon()} />
     </Popover>
   );
 };
