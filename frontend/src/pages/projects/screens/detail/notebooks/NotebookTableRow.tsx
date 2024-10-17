@@ -14,7 +14,8 @@ import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconBut
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { NotebookSize } from '~/types';
 import NotebookStateStatus from '~/pages/projects/notebook/NotebookStateStatus';
-import { useNotebookActionsColumn } from '~/pages/projects/notebook/NotebookActionsColumn';
+import useNotebookStateAction from '~/pages/projects/notebook/useNotebookStateAction';
+import { NotebookActionsColumn } from '~/pages/projects/notebook/NotebookActionsColumn';
 import useNotebookDeploymentSize from './useNotebookDeploymentSize';
 import useNotebookImage from './useNotebookImage';
 import NotebookSizeDetails from './NotebookSizeDetails';
@@ -51,12 +52,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
     },
   };
   const [notebookImage, loaded, loadError] = useNotebookImage(obj.notebook);
-  const [ActionColumn, stopNotebook] = useNotebookActionsColumn(
-    currentProject,
-    obj,
-    canEnablePipelines,
-    onNotebookDelete,
-  );
+  const { NotebookStateAction, stopNotebook } = useNotebookStateAction(obj, canEnablePipelines);
 
   return (
     <Tbody isExpanded={isExpanded}>
@@ -155,10 +151,19 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
         <Td dataLabel="Status">
           <NotebookStateStatus notebookState={obj} stopNotebook={stopNotebook} />
         </Td>
+        <Td>{NotebookStateAction}</Td>
         <Td isActionCell={compact} style={{ verticalAlign: 'top' }}>
           <NotebookRouteLink label="Open" notebook={obj.notebook} isRunning={obj.isRunning} />
         </Td>
-        {!compact ? <Td isActionCell>{ActionColumn}</Td> : null}
+        {!compact ? (
+          <Td isActionCell>
+            <NotebookActionsColumn
+              project={currentProject}
+              notebookState={obj}
+              onNotebookDelete={onNotebookDelete}
+            />
+          </Td>
+        ) : null}
       </Tr>
       {!compact ? (
         <Tr isExpanded={isExpanded}>

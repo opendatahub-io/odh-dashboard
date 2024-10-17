@@ -32,7 +32,13 @@ export const columns: SortableData<NotebookState>[] = [
     field: 'status',
     label: 'Status',
     sortable: (a, b) => getNotebookStatusValue(a) - getNotebookStatusValue(b),
-    width: 40,
+    modifier: 'fitContent',
+  },
+  {
+    field: '',
+    label: '',
+    sortable: false,
+    width: 20,
   },
   {
     field: 'kebab',

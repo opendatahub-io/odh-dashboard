@@ -46,6 +46,14 @@ class ProjectNotebookRow extends TableRow {
   findNotebookStatusText() {
     return this.find().findByTestId('notebook-status-text');
   }
+
+  findNotebookStart() {
+    return this.find().findByTestId('notebook-start-action');
+  }
+
+  findNotebookStop() {
+    return this.find().findByTestId('notebook-stop-action');
+  }
 }
 
 class ProjectRow extends TableRow {
@@ -57,8 +65,16 @@ class ProjectRow extends TableRow {
     return this.find().findByTestId('notebook-column-expand');
   }
 
+  findNotebookColumnExpander() {
+    return this.find().findByTestId('notebook-column-count');
+  }
+
   findNotebookTable() {
     return this.find().parents('tbody').findByTestId('project-notebooks-table');
+  }
+
+  getNotebookRows() {
+    return this.findNotebookTable().findByTestId('project-notebooks-table-row');
   }
 
   getNotebookRow(notebookName: string) {

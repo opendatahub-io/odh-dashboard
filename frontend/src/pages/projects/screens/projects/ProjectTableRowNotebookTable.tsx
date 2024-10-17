@@ -1,21 +1,23 @@
 import * as React from 'react';
 import { Table } from '~/components/table';
 import { NotebookKind, ProjectKind } from '~/k8sTypes';
-import { useNotebooksStates } from '~/pages/projects/notebook/useNotebooksStates';
 import CanEnableElyraPipelinesCheck from '~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
 import ProjectTableRowNotebookTableRow from '~/pages/projects/screens/projects/ProjectTableRowNotebookTableRow';
 import DeleteNotebookModal from '~/pages/projects/notebook/DeleteNotebookModal';
+import { NotebookState } from '~/pages/projects/notebook/types';
+import { FetchStateRefreshPromise } from '~/utilities/useFetchState';
 import { columns } from './notebookTableData';
 
 type ProjectTableRowNotebookTableProps = {
-  notebooks: NotebookKind[];
+  notebookStates: NotebookState[];
   obj: ProjectKind;
+  refresh: FetchStateRefreshPromise<NotebookState[]>;
 };
 const ProjectTableRowNotebookTable: React.FC<ProjectTableRowNotebookTableProps> = ({
-  notebooks,
+  notebookStates,
   obj: project,
+  refresh,
 }) => {
-  const [notebookStates, loaded, , refresh] = useNotebooksStates(notebooks, project.metadata.name);
   const [notebookToDelete, setNotebookToDelete] = React.useState<NotebookKind | undefined>();
 
   return (
@@ -24,9 +26,6 @@ const ProjectTableRowNotebookTable: React.FC<ProjectTableRowNotebookTableProps> 
         <>
           <Table
             className="odh-project-table-row--notebook-table"
-            loading={!loaded}
-            skeletonRowCount={notebooks.length}
-            skeletonRowProps={{ style: { border: 'none' } }}
             variant="compact"
             defaultSortColumn={0}
             data={notebookStates}

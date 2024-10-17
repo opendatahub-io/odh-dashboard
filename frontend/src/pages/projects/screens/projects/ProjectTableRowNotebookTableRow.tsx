@@ -5,7 +5,8 @@ import NotebookRouteLink from '~/pages/projects/notebook/NotebookRouteLink';
 import NotebookStateStatus from '~/pages/projects/notebook/NotebookStateStatus';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { NotebookState } from '~/pages/projects/notebook/types';
-import { useNotebookActionsColumn } from '~/pages/projects/notebook/NotebookActionsColumn';
+import { NotebookActionsColumn } from '~/pages/projects/notebook/NotebookActionsColumn';
+import useNotebookStateAction from '~/pages/projects/notebook/useNotebookStateAction';
 
 type ProjectTableRowNotebookTableRowProps = {
   project: ProjectKind;
@@ -19,11 +20,9 @@ const ProjectTableRowNotebookTableRow: React.FC<ProjectTableRowNotebookTableRowP
   onNotebookDelete,
   enablePipelines,
 }) => {
-  const [ActionColumn, stopNotebook] = useNotebookActionsColumn(
-    project,
+  const { NotebookStateAction, stopNotebook } = useNotebookStateAction(
     notebookState,
     enablePipelines,
-    onNotebookDelete,
   );
   return (
     <Tr style={{ border: 'none' }} data-testid="project-notebooks-table-row">
@@ -37,7 +36,14 @@ const ProjectTableRowNotebookTableRow: React.FC<ProjectTableRowNotebookTableRowP
       <Td dataLabel="Status">
         <NotebookStateStatus notebookState={notebookState} stopNotebook={stopNotebook} />
       </Td>
-      <Td isActionCell>{ActionColumn}</Td>
+      <Td>{NotebookStateAction}</Td>
+      <Td isActionCell>
+        <NotebookActionsColumn
+          project={project}
+          notebookState={notebookState}
+          onNotebookDelete={onNotebookDelete}
+        />
+      </Td>
     </Tr>
   );
 };
