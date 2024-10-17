@@ -36,6 +36,7 @@ const SelectMultiModelCard: React.FC<SelectMultiModelCardProps> = ({
           servingPlatform={NamespaceApplicationCase.MODEL_MESH_PROMOTION}
           setError={setErrorSelectingPlatform}
           variant="link"
+          isInline
           data-testid="multi-serving-select-button" // TODO this changed from model-serving-platform-button (which was duplicated), inform QE and look for other cases
         />
       </CardFooter>

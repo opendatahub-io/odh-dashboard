@@ -1,14 +1,8 @@
 import * as React from 'react';
-import {
-  Alert,
-  AlertActionCloseButton,
-  Gallery,
-  Stack,
-  Text,
-  TextContent,
-} from '@patternfly/react-core';
+import { Alert, Gallery, Stack, Text, TextContent } from '@patternfly/react-core';
 import CollapsibleSection from '~/concepts/design/CollapsibleSection';
 import { useIsNIMAvailable } from '~/pages/modelServing/screens/projects/useIsNIMAvailable';
+import ModelServingPlatformSelectErrorAlert from '~/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
 import { useDashboardNamespace } from '~/redux/selectors';
 import SelectNIMCard from './SelectNIMCard';
 import SelectSingleModelCard from './SelectSingleModelCard';
@@ -50,13 +44,9 @@ const PlatformSelectSection: React.FC = () => {
           )}
         </Gallery>
         {errorSelectingPlatform && (
-          <Alert
-            isInline
-            variant="danger"
-            title={errorSelectingPlatform.message} // TODO follow up on this message
-            actionClose={
-              <AlertActionCloseButton onClose={() => setErrorSelectingPlatform(undefined)} />
-            }
+          <ModelServingPlatformSelectErrorAlert
+            error={errorSelectingPlatform}
+            clearError={() => setErrorSelectingPlatform(undefined)}
           />
         )}
         <Alert

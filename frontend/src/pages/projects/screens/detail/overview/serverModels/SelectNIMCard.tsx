@@ -34,6 +34,7 @@ const SelectNIMCard: React.FC<SelectNIMCardProps> = ({ setErrorSelectingPlatform
           servingPlatform={NamespaceApplicationCase.KSERVE_PROMOTION}
           setError={setErrorSelectingPlatform}
           variant="link"
+          isInline
           data-testid="nim-serving-select-button" // TODO this changed from model-serving-platform-button (which was duplicated), inform QE and look for other cases
         />
       </CardFooter>
