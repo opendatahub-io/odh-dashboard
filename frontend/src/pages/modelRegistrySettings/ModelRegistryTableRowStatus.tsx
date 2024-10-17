@@ -30,7 +30,6 @@ enum ConditionStatus {
   True = 'True',
   False = 'False',
 }
-
 interface ModelRegistryTableRowStatusProps {
   conditions: K8sCondition[] | undefined;
 }
@@ -121,8 +120,24 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
     }
   }
 
+  const isClickable =
+    statusLabel === ModelRegistryStatusLabel.Unavailable ||
+    statusLabel === ModelRegistryStatusLabel.Degrading;
+
   const label = (
-    <Label data-testid="model-registry-label" icon={icon} color={color} isCompact>
+    <Label
+      {...(isClickable
+        ? {
+            onClick: () => {
+              /* intentional no-op */
+            },
+          }
+        : {})}
+      data-testid="model-registry-label"
+      icon={icon}
+      color={color}
+      isCompact
+    >
       {statusLabel}
     </Label>
   );
