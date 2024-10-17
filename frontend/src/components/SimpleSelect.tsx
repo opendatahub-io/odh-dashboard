@@ -23,6 +23,7 @@ export type SimpleSelectOption = {
   dropdownLabel?: React.ReactNode;
   isPlaceholder?: boolean;
   isDisabled?: boolean;
+  dataTestId?: string;
 };
 
 export type SimpleGroupSelectOption = {
@@ -131,13 +132,20 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
             <SelectGroup key={group.key} label={group.label}>
               <SelectList>
                 {group.options.map(
-                  ({ key, label, dropdownLabel, description, isDisabled: optionDisabled }) => (
+                  ({
+                    key,
+                    label,
+                    dropdownLabel,
+                    description,
+                    isDisabled: optionDisabled,
+                    dataTestId: optionDataTestId,
+                  }) => (
                     <SelectOption
                       key={key}
                       value={key}
                       description={<TruncatedText maxLines={2} content={description} />}
                       isDisabled={optionDisabled}
-                      data-testid={key}
+                      data-testid={optionDataTestId || key}
                     >
                       {dropdownLabel || label}
                     </SelectOption>
@@ -151,13 +159,20 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
           <SelectList>
             {groupedOptions?.length ? <Divider /> : null}
             {options.map(
-              ({ key, label, dropdownLabel, description, isDisabled: optionDisabled }) => (
+              ({
+                key,
+                label,
+                dropdownLabel,
+                description,
+                isDisabled: optionDisabled,
+                dataTestId: optionDataTestId,
+              }) => (
                 <SelectOption
                   key={key}
                   value={key}
                   description={<TruncatedText maxLines={2} content={description} />}
                   isDisabled={optionDisabled}
-                  data-testid={key}
+                  data-testid={optionDataTestId || key}
                 >
                   {dropdownLabel || label}
                 </SelectOption>
