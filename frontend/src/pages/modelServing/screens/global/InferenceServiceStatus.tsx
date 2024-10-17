@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Text, Icon, Tooltip } from '@patternfly/react-core';
+import { Text, Icon, Popover, Button } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
   ExclamationCircleIcon,
@@ -102,10 +102,10 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
   };
 
   return (
-    <Tooltip
-      role="none"
+    <Popover
       data-testid="model-status-tooltip"
-      content={
+      position="top"
+      bodyContent={
         modelStatus?.failedToSchedule ? (
           <Text>Insufficient resources</Text>
         ) : (
@@ -113,8 +113,8 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
         )
       }
     >
-      {statusIcon()}
-    </Tooltip>
+      <Button variant="link" isInline icon={statusIcon()} />
+    </Popover>
   );
 };
 
