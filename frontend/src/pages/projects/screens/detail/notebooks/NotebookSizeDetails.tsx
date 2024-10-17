@@ -6,6 +6,7 @@ import {
   DescriptionListTerm,
 } from '@patternfly/react-core';
 import { NotebookSize } from '~/types';
+import { formatMemory } from '~/utilities/valueUnits';
 
 type NotebookSizeDetailsProps = {
   notebookSize: NotebookSize;
@@ -21,13 +22,13 @@ const NotebookSizeDetails: React.FC<NotebookSizeDetailsProps> = ({ notebookSize 
       <DescriptionListGroup>
         <DescriptionListTerm>Limits</DescriptionListTerm>
         <DescriptionListDescription>
-          {limits?.cpu ?? 'Unknown'} CPU, {limits?.memory ?? 'Unknown'} Memory
+          {limits?.cpu ?? 'Unknown'} CPU, {formatMemory(limits?.memory) || 'Unknown'} Memory
         </DescriptionListDescription>
       </DescriptionListGroup>
       <DescriptionListGroup>
         <DescriptionListTerm>Requests</DescriptionListTerm>
         <DescriptionListDescription>
-          {requests?.cpu ?? 'Unknown'} CPU, {requests?.memory ?? 'Unknown'} Memory
+          {requests?.cpu ?? 'Unknown'} CPU, {formatMemory(requests?.memory) || 'Unknown'} Memory
         </DescriptionListDescription>
       </DescriptionListGroup>
     </DescriptionList>

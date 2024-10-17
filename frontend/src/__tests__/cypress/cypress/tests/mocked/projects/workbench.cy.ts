@@ -286,7 +286,7 @@ describe('Workbench page', () => {
     createSpawnerPage.findPVSizeInput().should('have.value', '19');
     createSpawnerPage.findPVSizePlusButton().click();
     createSpawnerPage.findPVSizeInput().should('have.value', '20');
-    createSpawnerPage.selectPVSize('Mi');
+    createSpawnerPage.selectPVSize('MiB');
 
     //add existing cluster storage
     createSpawnerPage.findExistingStorageRadio().click();
