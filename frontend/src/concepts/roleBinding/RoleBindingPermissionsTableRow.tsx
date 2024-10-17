@@ -179,7 +179,7 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
               </SplitItem>
             </Split>
           ) : isDefaultGroup ? (
-            <Tooltip content="The default group always has access to model registry">
+            <Tooltip content="The default group always has access to model registry.">
               <Button
                 variant="plain"
                 isAriaDisabled
