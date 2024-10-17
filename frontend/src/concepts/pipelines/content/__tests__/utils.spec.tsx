@@ -3,9 +3,9 @@ import {
   BanIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
-  NotStartedIcon,
+  InProgressIcon,
+  PendingIcon,
   QuestionCircleIcon,
-  SyncAltIcon,
 } from '@patternfly/react-icons';
 import React from 'react';
 import {
@@ -64,13 +64,13 @@ describe('computeRunStatus', () => {
   it('should check for Started run status', () => {
     const runStatus = computeRunStatus(createRun(RuntimeStateKF.PENDING));
     expect(runStatus.label).toBe(runtimeStateLabels[RuntimeStateKF.PENDING]);
-    expect(runStatus.icon).toStrictEqual(<NotStartedIcon />);
+    expect(runStatus.icon).toStrictEqual(<PendingIcon />);
   });
 
   it('should check for Running run status', () => {
     const runStatus = computeRunStatus(createRun(RuntimeStateKF.RUNNING));
     expect(runStatus.label).toBe(runtimeStateLabels[RuntimeStateKF.RUNNING]);
-    expect(runStatus.icon).toStrictEqual(<SyncAltIcon />);
+    expect(runStatus.icon).toStrictEqual(<InProgressIcon />);
   });
 
   it('should check for Completed run status', () => {

@@ -40,7 +40,7 @@ export const LastExperimentRuns: ExperimentUtil = ({ experiment }) => {
     <Split hasGutter>
       {last5runs.map((run) => (
         <SplitItem key={run.run_id}>
-          <RunStatus run={run} justIcon />
+          <RunStatus run={run} hasNoLabel />
         </SplitItem>
       ))}
     </Split>

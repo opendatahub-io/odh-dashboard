@@ -5,7 +5,7 @@ import { Execution } from '~/third_party/mlmd';
 import { getExecutionDisplayName } from '~/pages/pipelines/global/experiments/executions/utils';
 import { executionDetailsRoute } from '~/routes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import ExecutionStatus from '~/pages/pipelines/global/experiments/executions/ExecutionStatus';
+import { ExecutionStatus } from '~/pages/pipelines/global/experiments/executions/ExecutionStatus';
 
 type ExecutionsTableRowProps = {
   obj: Execution;
@@ -21,7 +21,7 @@ const ExecutionsTableRow: React.FC<ExecutionsTableRowProps> = ({ obj }) => {
         </Link>
       </Td>
       <Td dataLabel="Status">
-        <ExecutionStatus isIcon status={obj.getLastKnownState()} />
+        <ExecutionStatus status={obj.getLastKnownState()} isCompact />
       </Td>
       <Td dataLabel="ID">{obj.getId()}</Td>
       <Td dataLabel="Type">{obj.getType()}</Td>
