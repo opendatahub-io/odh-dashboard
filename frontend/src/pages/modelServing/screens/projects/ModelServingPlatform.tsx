@@ -37,6 +37,9 @@ import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nim
 import DeployNIMServiceModal from '~/pages/modelServing/screens/projects/NIMServiceModal/DeployNIMServiceModal';
 import { useDashboardNamespace } from '~/redux/selectors';
 import { useIsNIMAvailable } from '~/pages/modelServing/screens/projects/useIsNIMAvailable';
+import { NamespaceApplicationCase } from '~/pages/projects/types';
+import ModelServingPlatformSelectButton from '~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
+import ModelServingPlatformSelectErrorAlert from '~/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ModelMeshServingRuntimeTable from './ModelMeshSection/ServingRuntimeTable';
 import ModelServingPlatformButtonAction from './ModelServingPlatformButtonAction';
@@ -46,6 +49,8 @@ const ModelServingPlatform: React.FC = () => {
   const [platformSelected, setPlatformSelected] = React.useState<
     ServingRuntimePlatform | undefined
   >(undefined);
+
+  const [errorSelectingPlatform, setErrorSelectingPlatform] = React.useState<Error>();
 
   const servingPlatformStatuses = useServingPlatformStatuses();
 
@@ -108,9 +113,19 @@ const ModelServingPlatform: React.FC = () => {
           imageAlt={modelMeshEnabled ? 'No model servers' : 'No deployed models'}
           title={modelMeshEnabled ? 'Start by adding a model server' : 'Start by deploying a model'}
           description={
-            modelMeshEnabled
-              ? 'Model servers are used to deploy models and to allow apps to send requests to your models. Configuring a model server includes specifying the number of replicas being deployed, the server size, the token authentication, the serving runtime, and how the project that the model server belongs to is accessed.\n'
-              : 'Each model is deployed on its own model server.'
+            <Stack hasGutter>
+              {errorSelectingPlatform && (
+                <ModelServingPlatformSelectErrorAlert
+                  error={errorSelectingPlatform}
+                  clearError={() => setErrorSelectingPlatform(undefined)}
+                />
+              )}
+              <StackItem>
+                {modelMeshEnabled
+                  ? 'Model servers are used to deploy models and to allow apps to send requests to your models. Configuring a model server includes specifying the number of replicas being deployed, the server size, the token authentication, the serving runtime, and how the project that the model server belongs to is accessed.\n'
+                  : 'Each model is deployed on its own model server.'}
+              </StackItem>
+            </Stack>
           }
           createButton={
             <ModelServingPlatformButtonAction
@@ -243,18 +258,30 @@ const ModelServingPlatform: React.FC = () => {
                   <StackItem>
                     <Gallery hasGutter>
                       <GalleryItem>
-                        <EmptySingleModelServingCard />
+                        <EmptySingleModelServingCard
+                          setErrorSelectingPlatform={setErrorSelectingPlatform}
+                        />
                       </GalleryItem>
                       <GalleryItem>
-                        <EmptyMultiModelServingCard />
+                        <EmptyMultiModelServingCard
+                          setErrorSelectingPlatform={setErrorSelectingPlatform}
+                        />
                       </GalleryItem>
                       {isNIMAvailable && (
                         <GalleryItem>
-                          <EmptyNIMModelServingCard />
+                          <EmptyNIMModelServingCard
+                            setErrorSelectingPlatform={setErrorSelectingPlatform}
+                          />
                         </GalleryItem>
                       )}
                     </Gallery>
                   </StackItem>
+                  {errorSelectingPlatform && (
+                    <ModelServingPlatformSelectErrorAlert
+                      error={errorSelectingPlatform}
+                      clearError={() => setErrorSelectingPlatform(undefined)}
+                    />
+                  )}
                   <StackItem>
                     <Alert
                       variant="info"
@@ -273,11 +300,23 @@ const ModelServingPlatform: React.FC = () => {
         labels={
           currentProjectServingPlatform
             ? [
-                <Label key="serving-platform-label" data-testid="serving-platform-label">
-                  {isProjectModelMesh
-                    ? 'Multi-model serving enabled'
-                    : 'Single-model serving enabled'}
-                </Label>,
+                <Flex gap={{ default: 'gapSm' }} key="serving-platform-label">
+                  <Label data-testid="serving-platform-label">
+                    {isProjectModelMesh
+                      ? 'Multi-model serving enabled'
+                      : 'Single-model serving enabled'}
+                  </Label>
+                  {emptyModelServer && (
+                    <ModelServingPlatformSelectButton
+                      namespace={currentProject.metadata.name}
+                      servingPlatform={NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}
+                      setError={setErrorSelectingPlatform}
+                      variant="link"
+                      isInline
+                      data-testid="change-serving-platform-button"
+                    />
+                  )}
+                </Flex>,
               ]
             : undefined
         }
