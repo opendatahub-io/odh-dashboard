@@ -3,11 +3,23 @@ import { useParams } from 'react-router';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { useConnectionType } from '~/concepts/connectionTypes/useConnectionType';
 import { updateConnectionType } from '~/services/connectionTypesService';
+import { ownedByDSC } from '~/concepts/k8s/utils';
 import ManageConnectionTypePage from './ManageConnectionTypePage';
 
 const EditConnectionTypePage: React.FC = () => {
   const { name } = useParams();
   const [existingConnectionType, isLoaded, error] = useConnectionType(name);
+
+  if (existingConnectionType && ownedByDSC(existingConnectionType)) {
+    return (
+      <ApplicationsPage
+        loaded={isLoaded}
+        errorMessage="Unable to edit"
+        loadError={new Error('This connection type is not editable')}
+        empty
+      />
+    );
+  }
 
   if (!isLoaded || error) {
     return <ApplicationsPage loaded={isLoaded} loadError={error} empty />;
