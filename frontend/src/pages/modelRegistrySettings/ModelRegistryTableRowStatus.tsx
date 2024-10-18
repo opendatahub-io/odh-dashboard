@@ -125,7 +125,7 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
         ? {
             onClick: () => {
               /* intentional no-op - Click event is handled by the Popover parent, 
-              this prop enables clickable styles in the PatternFly Label" */
+              this prop enables clickable styles in the PatternFly Label */
             },
           }
         : {})}
