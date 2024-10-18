@@ -117,16 +117,15 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
     }
   }
 
-  const isClickable =
-    statusLabel === ModelRegistryStatusLabel.Unavailable ||
-    statusLabel === ModelRegistryStatusLabel.Degrading;
+  const isClickable = popoverTitle && popoverMessages.length;
 
   const label = (
     <Label
       {...(isClickable
         ? {
             onClick: () => {
-              /* intentional no-op */
+              /* intentional no-op - Click event is handled by the Popover parent, 
+              this prop enables clickable styles in the PatternFly Label" */
             },
           }
         : {})}
