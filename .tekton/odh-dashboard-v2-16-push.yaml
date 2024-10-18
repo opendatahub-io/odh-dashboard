@@ -6,8 +6,11 @@ metadata:
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "rhoai-2.16"
+    build.appstudio.openshift.io/build-nudge-files: "build/operator-nudging.yaml"
+    pipelinesascode.tekton.dev/on-cel-expression: |
+      event == "push" 
+      && target_branch == "rhoai-2.16"
+      && ( !".tekton/**".pathChanged() || ".tekton/odh-dashboard-v2-16-push.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: rhoai-v2-16
@@ -22,11 +25,13 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/rhoai-tenant/odh-dashboard-v2-16:{{revision}}
+    value: quay.io/rhoai/odh-dashboard-rhel8:{{target_branch}}
   - name: dockerfile
     value: Dockerfile.konflux
   - name: path-context
     value: .
+  - name: prefetch-input
+    value: [{"type": "npm", "path": "."}, {"type": "npm", "path": "frontend"}, {"type": "npm", "path": "backend"}]
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while reducing network traffic.
@@ -98,7 +103,7 @@ spec:
       description: Skip checks against built image
       name: skip-checks
       type: string
-    - default: "false"
+    - default: "true"
       description: Execute the build with network isolation
       name: hermetic
       type: string
@@ -232,6 +237,13 @@ spec:
         - $(params.build-args[*])
       - name: BUILD_ARGS_FILE
         value: $(params.build-args-file)
+      - name: LABELS
+        value:
+          - version=v2.16.0
+          - url=$(params.git-url)
+          - release='$(tasks.clone-repository.results.commit-timestamp)' 
+          - git.url=$(params.git-url)
+          - git.commit=$(params.revision)
       runAfter:
       - prefetch-dependencies
       taskRef:
@@ -422,6 +434,9 @@ spec:
       params:
       - name: IMAGE
         value: $(tasks.build-image-index.results.IMAGE_URL)
+      - name: ADDITIONAL_TAGS
+        value: 
+          - '{{target_branch}}-{{revision}}'
       runAfter:
       - build-image-index
       taskRef:

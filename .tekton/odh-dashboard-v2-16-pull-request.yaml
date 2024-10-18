@@ -30,6 +30,8 @@ spec:
     value: Dockerfile.konflux
   - name: path-context
     value: .
+  - name: prefetch-input
+    value: [{"type": "npm", "path": "."}, {"type": "npm", "path": "frontend"}, {"type": "npm", "path": "backend"}]
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while reducing network traffic.
@@ -101,7 +103,7 @@ spec:
       description: Skip checks against built image
       name: skip-checks
       type: string
-    - default: "false"
+    - default: "true"
       description: Execute the build with network isolation
       name: hermetic
       type: string
