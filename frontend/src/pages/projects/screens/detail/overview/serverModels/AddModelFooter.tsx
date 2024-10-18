@@ -69,6 +69,7 @@ const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform, isNIM
         isInline
         testId="model-serving-platform-button"
       />
+      {/* TODO this may be where we put a button to return to model registry? */}
       {modalShown && isProjectModelMesh && !isNIM ? (
         <ManageServingRuntimeModal
           currentProject={currentProject}
