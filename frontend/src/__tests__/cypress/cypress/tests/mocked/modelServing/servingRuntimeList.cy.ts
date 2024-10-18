@@ -420,7 +420,8 @@ describe('Serving Runtime List', () => {
       inferenceServiceModal.findModelNameInput().type('Test Name');
       inferenceServiceModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       inferenceServiceModal.findSubmitButton().should('be.disabled');
-      inferenceServiceModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
+      inferenceServiceModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
+      inferenceServiceModal.findExistingConnectionSelect().should('be.disabled');
       inferenceServiceModal.findLocationPathInput().type('test-model/');
       inferenceServiceModal.findSubmitButton().should('be.enabled');
       inferenceServiceModal.findNewDataConnectionOption().click();
@@ -682,7 +683,8 @@ describe('Serving Runtime List', () => {
       kserveModal.findAuthenticationCheckbox().check();
       kserveModal.findExternalRouteError().should('not.exist');
       kserveModal.findServiceAccountNameInput().should('have.value', 'default-name');
-      kserveModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
+      kserveModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
+      kserveModal.findExistingConnectionSelect().should('be.disabled');
       kserveModal.findLocationPathInput().type('test-model/');
       kserveModal.findSubmitButton().should('be.enabled');
       kserveModal.findNewDataConnectionOption().click();
@@ -847,7 +849,8 @@ describe('Serving Runtime List', () => {
       kserveModal.findModelNameInput().type('Test Name');
       kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
-      kserveModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
+      kserveModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
+      kserveModal.findExistingConnectionSelect().should('be.disabled');
       kserveModal.findNewDataConnectionOption().click();
       kserveModal.findLocationNameInput().type('Test Name');
       kserveModal.findLocationAccessKeyInput().type('test-key');
@@ -1072,7 +1075,8 @@ describe('Serving Runtime List', () => {
       kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
-      kserveModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
+      kserveModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
+      kserveModal.findExistingConnectionSelect().should('be.disabled');
 
       kserveModal.findLocationPathInput().type('test-model/');
       kserveModal.findSubmitButton().should('be.enabled');
@@ -1806,7 +1810,8 @@ describe('Serving Runtime List', () => {
       kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
-      kserveModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
+      kserveModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
+      kserveModal.findExistingConnectionSelect().should('be.disabled');
       kserveModal.findLocationPathInput().type('test-model/');
       kserveModal.findSubmitButton().should('be.enabled');
       kserveModal.findSubmitButton().click();
@@ -1839,7 +1844,8 @@ describe('Serving Runtime List', () => {
       kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
-      kserveModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
+      kserveModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
+      kserveModal.findExistingConnectionSelect().should('be.disabled');
       kserveModal.findLocationPathInput().type('test-model/');
       kserveModal.findSubmitButton().should('be.enabled');
       kserveModal.findSubmitButton().click();

@@ -352,10 +352,12 @@ describe('Model Serving Global', () => {
 
     // test filling in minimum required fields
     inferenceServiceModal.findModelNameInput().type('Test Name');
-    inferenceServiceModal.findServingRuntimeSelect().findSelectOption('OVMS Model Serving').click();
+    inferenceServiceModal.findServingRuntimeSelect().should('contain.text', 'OVMS Model Serving');
+    inferenceServiceModal.findServingRuntimeSelect().should('be.disabled');
     inferenceServiceModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
     inferenceServiceModal.findSubmitButton().should('be.disabled');
-    inferenceServiceModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
+    inferenceServiceModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
+    inferenceServiceModal.findExistingConnectionSelect().should('be.disabled');
     inferenceServiceModal.findLocationPathInput().type('test-model/');
     inferenceServiceModal.findSubmitButton().should('be.enabled');
     inferenceServiceModal.findNewDataConnectionOption().click();
@@ -436,10 +438,12 @@ describe('Model Serving Global', () => {
 
     // test filling in minimum required fields
     inferenceServiceModal.findModelNameInput().type('trigger-error');
-    inferenceServiceModal.findServingRuntimeSelect().findSelectOption('OVMS Model Serving').click();
+    inferenceServiceModal.findServingRuntimeSelect().should('contain.text', 'OVMS Model Serving');
+    inferenceServiceModal.findServingRuntimeSelect().should('be.disabled');
     inferenceServiceModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
     inferenceServiceModal.findSubmitButton().should('be.disabled');
-    inferenceServiceModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
+    inferenceServiceModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
+    inferenceServiceModal.findExistingConnectionSelect().should('be.disabled');
     inferenceServiceModal.findLocationPathInput().type('test-model/');
     inferenceServiceModal.findSubmitButton().should('be.enabled');
     inferenceServiceModal.findLocationPathInput().type('test-model/');
