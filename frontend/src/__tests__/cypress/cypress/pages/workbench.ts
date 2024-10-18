@@ -169,6 +169,14 @@ class NotebookRow extends TableRow {
     return this.find().findByTestId('notebook-status-text');
   }
 
+  findNotebookStart() {
+    return this.find().findByTestId('notebook-start-action');
+  }
+
+  findNotebookStop() {
+    return this.find().findByTestId('notebook-stop-action');
+  }
+
   findNotebookStatusPopover(name: string) {
     return cy.findByTestId('notebook-status-popover').contains(name);
   }
