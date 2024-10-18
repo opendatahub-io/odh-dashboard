@@ -1,7 +1,10 @@
 import * as React from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import {
   Alert,
+  Button,
+  EmptyStateActions,
   Flex,
   FlexItem,
   Gallery,
@@ -40,6 +43,7 @@ import { useIsNIMAvailable } from '~/pages/modelServing/screens/projects/useIsNI
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import ModelServingPlatformSelectButton from '~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
 import ModelServingPlatformSelectErrorAlert from '~/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
+import { modelVersionUrl } from '~/pages/modelRegistry/screens/routeUtils';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ModelMeshServingRuntimeTable from './ModelMeshSection/ServingRuntimeTable';
 import ModelServingPlatformButtonAction from './ModelServingPlatformButtonAction';
@@ -51,6 +55,14 @@ const ModelServingPlatform: React.FC = () => {
   >(undefined);
 
   const [errorSelectingPlatform, setErrorSelectingPlatform] = React.useState<Error>();
+
+  const navigate = useNavigate();
+  const [queryParams] = useSearchParams();
+  const modelRegistryName = queryParams.get('modelRegistryName');
+  const registeredModelId = queryParams.get('registeredModelId');
+  const modelVersionId = queryParams.get('modelVersionId');
+  // deployingFromRegistry = User came from the Model Registry page because this project didn't have a serving platform selected
+  const deployingFromRegistry = !!(modelRegistryName && registeredModelId && modelVersionId);
 
   const servingPlatformStatuses = useServingPlatformStatuses();
 
@@ -110,8 +122,10 @@ const ModelServingPlatform: React.FC = () => {
         <EmptyDetailsView
           allowCreate
           iconImage={typedEmptyImage(ProjectObjectType.modelServer)}
-          imageAlt={modelMeshEnabled ? 'No model servers' : 'No deployed models'}
-          title={modelMeshEnabled ? 'Start by adding a model server' : 'Start by deploying a model'}
+          imageAlt={isProjectModelMesh ? 'No model servers' : 'No deployed models'}
+          title={
+            isProjectModelMesh ? 'Start by adding a model server' : 'Start by deploying a model'
+          }
           description={
             <Stack hasGutter>
               {errorSelectingPlatform && (
@@ -121,7 +135,7 @@ const ModelServingPlatform: React.FC = () => {
                 />
               )}
               <StackItem>
-                {modelMeshEnabled
+                {isProjectModelMesh
                   ? 'Model servers are used to deploy models and to allow apps to send requests to your models. Configuring a model server includes specifying the number of replicas being deployed, the server size, the token authentication, the serving runtime, and how the project that the model server belongs to is accessed.\n'
                   : 'Each model is deployed on its own model server.'}
               </StackItem>
@@ -139,6 +153,21 @@ const ModelServingPlatform: React.FC = () => {
                 );
               }}
             />
+          }
+          footerExtraChildren={
+            deployingFromRegistry &&
+            !isProjectModelMesh && ( // For modelmesh we don't want to offer this until there is a model server
+              <EmptyStateActions>
+                <Button
+                  variant="link"
+                  onClick={() =>
+                    navigate(modelVersionUrl(modelVersionId, registeredModelId, modelRegistryName))
+                  }
+                >
+                  Deploy model from model registry
+                </Button>
+              </EmptyStateActions>
+            )
           }
         />
       );
@@ -184,6 +213,7 @@ const ModelServingPlatform: React.FC = () => {
     );
   };
 
+  // TODO Do we need a "Deploy model from model registry" link in the table view here?
   return (
     <>
       <DetailsSection
