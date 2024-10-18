@@ -33,7 +33,7 @@ const StorageSizeBar: React.FC<StorageSizeBarProps> = ({ pvc }) => {
     );
   }
 
-  const inUseValue = `${bytesAsRoundedGiB(inUseInBytes)}Gi`;
+  const inUseValue = `${bytesAsRoundedGiB(inUseInBytes)}GiB`;
   const percentage = ((parseFloat(inUseValue) / parseFloat(maxValue)) * 100).toFixed(2);
   const percentageLabel = error ? '' : `Storage is ${percentage}% full`;
 
