@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {
   Icon,
+  Label,
   Level,
   LevelItem,
   Spinner,
@@ -35,20 +36,26 @@ type ExtraProps = Record<string, unknown>;
 type RunUtil<P = ExtraProps> = React.FC<{ run: PipelineRunKFv2 } & P>;
 type RecurringRunUtil<P = ExtraProps> = React.FC<{ recurringRun: PipelineRecurringRunKFv2 } & P>;
 
-export const RunStatus: RunUtil<{ justIcon?: boolean }> = ({ justIcon, run }) => {
-  const { icon, status, label, details, createdAt } = computeRunStatus(run);
+export const RunStatus: RunUtil<{ hasNoLabel?: boolean; isCompact?: boolean }> = ({
+  hasNoLabel,
+  isCompact = true,
+  run,
+}) => {
+  const { icon, status, color, label, details, createdAt } = computeRunStatus(run);
   let tooltipContent: React.ReactNode = details;
-
-  const content = (
-    <div style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>
-      <Icon isInline status={status}>
-        {icon}
-      </Icon>{' '}
-      {!justIcon && label}
-    </div>
+  let content = (
+    <Label color={color} icon={icon} isCompact={isCompact}>
+      {label}
+    </Label>
   );
 
-  if (justIcon && !tooltipContent) {
+  if (hasNoLabel && !tooltipContent) {
+    content = (
+      <Icon isInline status={status}>
+        {icon}
+      </Icon>
+    );
+
     // If we are just an icon with no tooltip -- make it the status for ease of understanding
     tooltipContent = (
       <Stack>
@@ -61,6 +68,7 @@ export const RunStatus: RunUtil<{ justIcon?: boolean }> = ({ justIcon, run }) =>
   if (tooltipContent) {
     return <Tooltip content={tooltipContent}>{content}</Tooltip>;
   }
+
   return content;
 };
 
