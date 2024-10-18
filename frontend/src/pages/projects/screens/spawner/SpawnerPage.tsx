@@ -55,6 +55,7 @@ import { getConnectionsFromNotebook } from './connections/utils';
 import { ClusterStorageTable } from './storage/ClusterStorageTable';
 import useDefaultPvcSize from './storage/useDefaultPvcSize';
 import { defaultClusterStorage } from './storage/constants';
+import { ClusterStorageEmptyState } from './storage/ClusterStorageEmptyState';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
@@ -266,11 +267,15 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               id={SpawnerPageSectionID.CLUSTER_STORAGE}
               aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
             >
-              <ClusterStorageTable
-                storageData={storageData.map((formData, index) => ({ ...formData, id: index }))}
-                setStorageData={setStorageData}
-                workbenchName={k8sNameDescriptionData.data.k8sName.value}
-              />
+              {storageData.length ? (
+                <ClusterStorageTable
+                  storageData={storageData.map((formData, index) => ({ ...formData, id: index }))}
+                  setStorageData={setStorageData}
+                  workbenchName={k8sNameDescriptionData.data.k8sName.value}
+                />
+              ) : (
+                <ClusterStorageEmptyState />
+              )}
             </FormSection>
             {isConnectionTypesEnabled ? (
               <ConnectionsFormSection

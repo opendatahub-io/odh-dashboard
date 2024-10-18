@@ -1,19 +1,8 @@
 import React from 'react';
 
-import {
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateIcon,
-  EmptyStateVariant,
-  Flex,
-  FlexItem,
-  Icon,
-  Popover,
-  Title,
-  Truncate,
-} from '@patternfly/react-core';
+import { Flex, FlexItem, Icon, Popover, Truncate } from '@patternfly/react-core';
 import { Tr, Td, ActionsColumn } from '@patternfly/react-table';
-import { InfoCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
+import { InfoCircleIcon } from '@patternfly/react-icons';
 
 import { Table } from '~/components/table';
 import { StorageData, StorageType } from '~/pages/projects/types';
@@ -91,18 +80,6 @@ export const ClusterStorageTable: React.FC<ClusterStorageTableProps> = ({
         variant="compact"
         columns={clusterStorageTableColumns}
         data={storageData}
-        emptyTableView={
-          <EmptyState variant={EmptyStateVariant.xs} data-testid="cluster-storage-empty-state">
-            <EmptyStateIcon icon={PlusCircleIcon} />
-            <Title headingLevel="h2" size="lg">
-              No cluster storage
-            </Title>
-            <EmptyStateBody>
-              To save your project&apos;s data, attach cluster storage to your workbench. Your data
-              will not persist without storage.
-            </EmptyStateBody>
-          </EmptyState>
-        }
         rowRenderer={(row) => (
           <Tr key={row.id} data-testid={`cluster-storage-table-row ${row.id}`}>
             <Td dataLabel="Name">
