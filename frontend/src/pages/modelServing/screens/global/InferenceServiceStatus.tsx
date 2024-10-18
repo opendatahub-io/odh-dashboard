@@ -37,31 +37,31 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
       case InferenceServiceModelState.LOADED:
       case InferenceServiceModelState.STANDBY:
         return (
-          <Icon
-            data-testid="status-tooltip"
-            role="button"
-            aria-label="success icon"
-            status="success"
+          <Button
+            aria-label="success status"
+            variant="link"
             isInline
-            tabIndex={0}
-            iconSize={iconSize}
-          >
-            <CheckCircleIcon />
-          </Icon>
+            data-testid="status-tooltip"
+            icon={
+              <Icon status="success" isInline iconSize={iconSize}>
+                <CheckCircleIcon />
+              </Icon>
+            }
+          />
         );
       case InferenceServiceModelState.FAILED_TO_LOAD:
         return (
-          <Icon
-            data-testid="status-tooltip"
-            role="button"
-            aria-label="error icon"
-            status="danger"
+          <Button
+            aria-label="danger status"
+            variant="link"
             isInline
-            tabIndex={0}
-            iconSize={iconSize}
-          >
-            <ExclamationCircleIcon />
-          </Icon>
+            data-testid="status-tooltip"
+            icon={
+              <Icon status="danger" isInline iconSize={iconSize}>
+                <ExclamationCircleIcon />
+              </Icon>
+            }
+          />
         );
       case InferenceServiceModelState.PENDING:
       case InferenceServiceModelState.LOADING:
@@ -72,31 +72,31 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
         );
       case InferenceServiceModelState.UNKNOWN:
         return (
-          <Icon
-            data-testid="status-tooltip"
-            role="button"
-            aria-label="warning icon"
-            status="warning"
+          <Button
+            aria-label="warning status"
+            variant="link"
             isInline
-            tabIndex={0}
-            iconSize={iconSize}
-          >
-            <OutlinedQuestionCircleIcon />
-          </Icon>
+            data-testid="status-tooltip"
+            icon={
+              <Icon status="warning" isInline iconSize={iconSize}>
+                <OutlinedQuestionCircleIcon />
+              </Icon>
+            }
+          />
         );
       default:
         return (
-          <Icon
-            data-testid="status-tooltip"
-            role="button"
-            aria-label="warning icon"
-            status="warning"
+          <Button
+            aria-label="warning status"
+            variant="link"
             isInline
-            tabIndex={0}
-            iconSize={iconSize}
-          >
-            <OutlinedQuestionCircleIcon />
-          </Icon>
+            data-testid="status-tooltip"
+            icon={
+              <Icon status="warning" isInline iconSize={iconSize}>
+                <OutlinedQuestionCircleIcon />
+              </Icon>
+            }
+          />
         );
     }
   };
@@ -112,7 +112,7 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
       bodyContent={bodyContent}
       isVisible={bodyContent ? undefined : false}
     >
-      <Button variant="link" isInline icon={statusIcon()} />
+      {statusIcon()}
     </Popover>
   );
 };
