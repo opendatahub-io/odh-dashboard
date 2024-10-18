@@ -50,24 +50,29 @@ const FileUploadAdvancedPropertiesForm: React.FC<AdvancedFieldProps<FileField>> 
             isDuplicate={isDuplicateExtension(index, displayedExtensions)}
             textRef={index === displayedExtensions.length - 1 ? lastTextRef : undefined}
             onChange={(val) => {
+              if (!val && displayedExtensions.length === 1) {
+                onChange({ ...properties, extensions: [] });
+              } else {
+                onChange({
+                  ...properties,
+                  extensions: [
+                    ...displayedExtensions.slice(0, index),
+                    val,
+                    ...displayedExtensions.slice(index + 1),
+                  ],
+                });
+              }
+            }}
+            onRemove={() => {
+              const exts = [
+                ...displayedExtensions.slice(0, index),
+                ...displayedExtensions.slice(index + 1),
+              ];
               onChange({
                 ...properties,
-                extensions: [
-                  ...displayedExtensions.slice(0, index),
-                  val,
-                  ...displayedExtensions.slice(index + 1),
-                ],
+                extensions: exts.length === 1 && exts[0].length === 0 ? [] : exts,
               });
             }}
-            onRemove={() =>
-              onChange({
-                ...properties,
-                extensions: [
-                  ...displayedExtensions.slice(0, index),
-                  ...displayedExtensions.slice(index + 1),
-                ],
-              })
-            }
             allowRemove={displayedExtensions.length > 1 || !!displayedExtensions[0]}
           />
         ))}

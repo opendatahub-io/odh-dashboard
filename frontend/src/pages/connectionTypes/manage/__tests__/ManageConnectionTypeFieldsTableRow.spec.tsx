@@ -3,6 +3,7 @@ import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import ManageConnectionTypeFieldsTableRow from '~/pages/connectionTypes/manage/ManageConnectionTypeFieldsTableRow';
 import { ShortTextField, TextField } from '~/concepts/connectionTypes/types';
+import { ValidationContext, ValidationContextType } from '~/utilities/useValidation';
 
 const renderRow = (
   props: Pick<React.ComponentProps<typeof ManageConnectionTypeFieldsTableRow>, 'row'> &
@@ -47,10 +48,23 @@ describe('ManageConnectionTypeFieldsTableRow', () => {
       properties: {},
     };
 
-    const result = render(renderRow({ row: field, fields: [field] }));
+    const hasValidationIssueMock = jest.fn(() => false);
+    const contextValue = {
+      hasValidationIssue: hasValidationIssueMock,
+    } as unknown as ValidationContextType;
+    const result = render(renderRow({ row: field, fields: [field] }), {
+      wrapper: ({ children }) => (
+        <ValidationContext.Provider value={contextValue}>{children}</ValidationContext.Provider>
+      ),
+    });
     expect(screen.queryByLabelText(/conflict/)).not.toBeInTheDocument();
 
+    hasValidationIssueMock.mockClear();
+    hasValidationIssueMock.mockReturnValue(true);
     result.rerender(renderRow({ row: field, fields: [field, field2] }));
     expect(screen.queryByLabelText(/conflict/)).toBeInTheDocument();
+
+    expect(hasValidationIssueMock).toHaveBeenCalledTimes(1);
+    expect(hasValidationIssueMock).toHaveBeenCalledWith(['fields', 0, 'envVar'], 'envVar_conflict');
   });
 });
