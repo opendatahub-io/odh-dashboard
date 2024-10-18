@@ -94,18 +94,15 @@ export const mockStartNotebookData = ({
   },
 });
 
-export const mockStorageData: StorageData = {
-  storageType: StorageType.NEW_PVC,
-  creating: {
-    nameDesc: {
-      name: 'test-pvc',
-      description: '',
-    },
+export const mockStorageData: StorageData[] = [
+  {
+    storageType: StorageType.NEW_PVC,
+    name: 'test-pvc',
+    description: '',
     size: '20Gi',
     storageClassName: 'gp2-csi',
   },
-  existing: { storage: '' },
-};
+];
 
 export const mockDataConnectionData: DataConnectionData = {
   type: 'creating',

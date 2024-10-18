@@ -5,16 +5,16 @@ import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { getNotebookPVCNames } from './utils';
 
 const useNotebookPVCItems = (
-  notebook: NotebookKind,
+  notebook: NotebookKind | undefined,
 ): [pvcs: PersistentVolumeClaimKind[], loaded: boolean, loadError?: Error] => {
   const {
     pvcs: { data: allPvcs, loaded, error },
   } = React.useContext(ProjectDetailsContext);
 
-  const pvcNames = useDeepCompareMemoize(getNotebookPVCNames(notebook));
+  const pvcNames = useDeepCompareMemoize(notebook && getNotebookPVCNames(notebook));
 
   const pvcs = React.useMemo(
-    () => allPvcs.filter((pvc) => pvcNames.includes(pvc.metadata.name)),
+    () => allPvcs.filter((pvc) => pvcNames?.includes(pvc.metadata.name)),
     [allPvcs, pvcNames],
   );
 
