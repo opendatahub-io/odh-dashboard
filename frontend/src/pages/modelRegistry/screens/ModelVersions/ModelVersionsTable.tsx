@@ -2,8 +2,11 @@ import * as React from 'react';
 import { Table } from '~/components/table';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
-import ModelVersionsTableRow from './ModelVersionsTableRow';
+import useInferenceServices from '~/pages/modelServing/useInferenceServices';
+import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
+import { KnownLabels } from '~/k8sTypes';
 import { mvColumns } from './ModelVersionsTableColumns';
+import ModelVersionsTableRow from './ModelVersionsTableRow';
 
 type ModelVersionsTableProps = {
   clearFilters: () => void;
@@ -18,25 +21,35 @@ const ModelVersionsTable: React.FC<ModelVersionsTableProps> = ({
   toolbarContent,
   isArchiveModel,
   refresh,
-}) => (
-  <Table
-    data-testid="model-versions-table"
-    data={modelVersions}
-    columns={mvColumns}
-    toolbarContent={toolbarContent}
-    defaultSortColumn={3}
-    enablePagination
-    onClearFilters={clearFilters}
-    emptyTableView={<DashboardEmptyTableView onClearFilters={clearFilters} />}
-    rowRenderer={(mv) => (
-      <ModelVersionsTableRow
-        key={mv.name}
-        modelVersion={mv}
-        isArchiveModel={isArchiveModel}
-        refresh={refresh}
-      />
-    )}
-  />
-);
+}) => {
+  const inferenceServices = useMakeFetchObject(
+    useInferenceServices(undefined, modelVersions[0].registeredModelId),
+  );
+  const hasDeploys = (mvId: string) =>
+    !!inferenceServices.data.some(
+      (s) => s.metadata.labels?.[KnownLabels.MODEL_VERSION_ID] === mvId,
+    );
+  return (
+    <Table
+      data-testid="model-versions-table"
+      data={modelVersions}
+      columns={mvColumns}
+      toolbarContent={toolbarContent}
+      defaultSortColumn={3}
+      enablePagination
+      onClearFilters={clearFilters}
+      emptyTableView={<DashboardEmptyTableView onClearFilters={clearFilters} />}
+      rowRenderer={(mv) => (
+        <ModelVersionsTableRow
+          hasDeployment={hasDeploys(mv.id)}
+          key={mv.name}
+          modelVersion={mv}
+          isArchiveModel={isArchiveModel}
+          refresh={refresh}
+        />
+      )}
+    />
+  );
+};
 
 export default ModelVersionsTable;

@@ -65,8 +65,8 @@ const ArchiveModelVersionDetails: React.FC<ArchiveModelVersionDetailsProps> = ({
       }
       headerAction={
         <Tooltip content="The version of an archived model cannot be restored unless the model is restored.">
-          <Button data-testid="restore-button" aria-label="restore version" isAriaDisabled>
-            Restore version
+          <Button data-testid="restore-button" aria-label="restore model version" isAriaDisabled>
+            Restore model version
           </Button>
         </Tooltip>
       }

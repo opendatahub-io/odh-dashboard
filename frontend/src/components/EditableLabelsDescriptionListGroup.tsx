@@ -162,7 +162,7 @@ const EditableLabelsDescriptionListGroup: React.FC<EditableTextDescriptionListGr
       >
         <LabelGroup data-testid="label-group">
           {labels.map((label) => (
-            <Label textMaxWidth="40ch" key={label} color="blue" data-testid="label">
+            <Label key={label} color="blue" data-testid="label">
               {label}
             </Label>
           ))}

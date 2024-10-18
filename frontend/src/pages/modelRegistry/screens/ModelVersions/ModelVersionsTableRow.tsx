@@ -21,6 +21,7 @@ type ModelVersionsTableRowProps = {
   modelVersion: ModelVersion;
   isArchiveRow?: boolean;
   isArchiveModel?: boolean;
+  hasDeployment?: boolean;
   refresh: () => void;
 };
 
@@ -28,6 +29,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
   modelVersion: mv,
   isArchiveRow,
   isArchiveModel,
+  hasDeployment = false,
   refresh,
 }) => {
   const navigate = useNavigate();
@@ -40,7 +42,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
   const actions: IAction[] = isArchiveRow
     ? [
         {
-          title: 'Restore version',
+          title: 'Restore model version',
           onClick: () => setIsRestoreModalOpen(true),
         },
       ]
@@ -52,6 +54,10 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
         {
           title: 'Archive model version',
           onClick: () => setIsArchiveModalOpen(true),
+          isAriaDisabled: hasDeployment,
+          tooltipProps: hasDeployment
+            ? { content: 'Deployed versions cannot be archived' }
+            : undefined,
         },
       ];
 

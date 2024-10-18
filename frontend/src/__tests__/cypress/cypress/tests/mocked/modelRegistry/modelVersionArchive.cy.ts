@@ -1,12 +1,21 @@
 /* eslint-disable camelcase */
-import { mockDscStatus, mockK8sResourceList } from '~/__mocks__';
+import {
+  mockDscStatus,
+  mockInferenceServiceK8sResource,
+  mockK8sResourceList,
+  mockProjectK8sResource,
+} from '~/__mocks__';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
-import { ServiceModel } from '~/__tests__/cypress/cypress/utils/models';
+import {
+  InferenceServiceModel,
+  ProjectModel,
+  ServiceModel,
+} from '~/__tests__/cypress/cypress/utils/models';
 import { mockModelVersionList } from '~/__mocks__/mockModelVersionList';
 import { mockModelVersion } from '~/__mocks__/mockModelVersion';
 import type { ModelVersion } from '~/concepts/modelRegistry/types';
-import { ModelState } from '~/concepts/modelRegistry/types';
+import { ModelRegistryMetadataType, ModelState } from '~/concepts/modelRegistry/types';
 import { mockRegisteredModel } from '~/__mocks__/mockRegisteredModel';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import {
@@ -31,16 +40,40 @@ const initIntercepts = ({
       name: 'model version 1',
       author: 'Author 1',
       id: '1',
-      labels: [
-        'Financial data',
-        'Fraud detection',
-        'Test label',
-        'Machine learning',
-        'Next data to be overflow',
-        'Test label x',
-        'Test label y',
-        'Test label z',
-      ],
+      customProperties: {
+        'Financial data': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Fraud detection': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Test label': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Machine learning': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Next data to be overflow': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Test label x': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Test label y': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Test label z': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+      },
       state: ModelState.ARCHIVED,
     }),
     mockModelVersion({ id: '2', name: 'model version 2', state: ModelState.ARCHIVED }),
@@ -205,7 +238,7 @@ describe('Restoring archive version', () => {
     modelVersionArchive.visit();
 
     const archiveVersionRow = modelVersionArchive.getRow('model version 2');
-    archiveVersionRow.findKebabAction('Restore version').click();
+    archiveVersionRow.findKebabAction('Restore model version').click();
 
     restoreVersionModal.findRestoreButton().click();
 
@@ -272,6 +305,63 @@ describe('Archiving version', () => {
     });
   });
 
+  it('Non archived version details page has the Deployments tab', () => {
+    initIntercepts({});
+    modelVersionArchive.visitModelVersionDetails();
+    modelVersionArchive.findVersionDetailsTab().should('exist');
+    modelVersionArchive.findVersionDeploymentTab().should('exist');
+  });
+
+  it('Archived version details page does not have the Deployments tab', () => {
+    initIntercepts({});
+    modelVersionArchive.visitArchiveVersionDetail();
+    modelVersionArchive.findVersionDetailsTab().should('exist');
+    modelVersionArchive.findVersionDeploymentTab().should('not.exist');
+  });
+
+  it('Cannot archive version that has a deployment from versions table', () => {
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+    cy.interceptK8sList(
+      InferenceServiceModel,
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    initIntercepts({});
+
+    modelVersionArchive.visitModelVersionList();
+
+    const modelVersionRow = modelRegistry.getModelVersionRow('model version 3');
+    modelVersionRow.findKebabAction('Archive model version').should('have.attr', 'aria-disabled');
+  });
+
+  it('Cannot archive model that has versions with a deployment', () => {
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+    cy.interceptK8sList(
+      InferenceServiceModel,
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    initIntercepts({});
+
+    modelVersionArchive.visitModelVersionList();
+
+    modelRegistry
+      .findModelVersionsHeaderAction()
+      .findDropdownItem('Archive model')
+      .should('have.attr', 'aria-disabled');
+  });
+
+  it('Cannot archive model version with deployment from the version detail page', () => {
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+    cy.interceptK8sList(
+      InferenceServiceModel,
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    initIntercepts({});
+    modelVersionArchive.visitModelVersionDetails();
+    cy.findByTestId('model-version-details-action-button')
+      .findDropdownItem('Archive model version')
+      .should('have.attr', 'aria-disabled');
+  });
+
   it('Archive version from versions details', () => {
     cy.interceptOdh(
       'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId',
@@ -289,7 +379,7 @@ describe('Archiving version', () => {
     modelVersionArchive.visitModelVersionDetails();
     modelVersionArchive
       .findModelVersionsDetailsHeaderAction()
-      .findDropdownItem('Archive version')
+      .findDropdownItem('Archive model version')
       .click();
 
     archiveVersionModal.findArchiveButton().should('be.disabled');

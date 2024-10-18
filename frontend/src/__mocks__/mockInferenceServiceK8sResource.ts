@@ -99,6 +99,8 @@ export const mockInferenceServiceK8sResource = ({
     generation: 1,
     labels: {
       name,
+      [KnownLabels.REGISTERED_MODEL_ID]: '1',
+      [KnownLabels.MODEL_VERSION_ID]: '3',
       [KnownLabels.DASHBOARD_RESOURCE]: 'true',
       ...(kserveInternalLabel && { 'networking.knative.dev/visibility': 'cluster-local' }),
     },
