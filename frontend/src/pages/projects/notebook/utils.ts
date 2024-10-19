@@ -1,6 +1,9 @@
 import { EventKind, NotebookKind } from '~/k8sTypes';
-import { EventStatus, NotebookStatus } from '~/types';
+import { EventStatus, NotebookSize, NotebookStatus } from '~/types';
 import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
 import { useWatchNotebookEvents } from './useWatchNotebookEvents';
 
 export const hasStopAnnotation = (notebook: NotebookKind): boolean =>
@@ -264,3 +267,31 @@ export const useNotebookStatus = (
 
 export const getEventFullMessage = (event: EventKind): string =>
   `${getEventTimestamp(event)} [${event.type}] ${event.message}`;
+
+export const fireNotebookTrackingEvent = (
+  action: 'started' | 'stopped',
+  notebook: NotebookKind,
+  size: NotebookSize | null,
+  acceleratorProfile: AcceleratorProfileState,
+): void => {
+  fireFormTrackingEvent(`Workbench ${action === 'started' ? 'Started' : 'Stopped'}`, {
+    outcome: TrackingOutcome.submit,
+    acceleratorCount: acceleratorProfile.unknownProfileDetected
+      ? undefined
+      : acceleratorProfile.count,
+    accelerator: acceleratorProfile.acceleratorProfile
+      ? `${acceleratorProfile.acceleratorProfile.spec.displayName} (${acceleratorProfile.acceleratorProfile.metadata.name}): ${acceleratorProfile.acceleratorProfile.spec.identifier}`
+      : acceleratorProfile.unknownProfileDetected
+      ? 'Unknown'
+      : 'None',
+    lastSelectedSize:
+      size?.name || notebook.metadata.annotations?.['notebooks.opendatahub.io/last-size-selection'],
+    lastSelectedImage:
+      notebook.metadata.annotations?.['notebooks.opendatahub.io/last-image-selection'],
+    projectName: notebook.metadata.namespace,
+    notebookName: notebook.metadata.name,
+    ...(action === 'stopped' && {
+      lastActivity: notebook.metadata.annotations?.['notebooks.kubeflow.org/last-activity'],
+    }),
+  });
+};

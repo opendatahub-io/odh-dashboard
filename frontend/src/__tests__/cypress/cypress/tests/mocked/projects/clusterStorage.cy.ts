@@ -135,7 +135,7 @@ describe('ClusterStorage', () => {
     addClusterStorageModal.findPVSizeInput().should('have.value', '19');
     addClusterStorageModal.findPVSizePlusButton().click();
     addClusterStorageModal.findPVSizeInput().should('have.value', '20');
-    addClusterStorageModal.selectPVSize('Mi');
+    addClusterStorageModal.selectPVSize('MiB');
 
     //connect workbench
     addClusterStorageModal
@@ -386,7 +386,7 @@ describe('ClusterStorage', () => {
     clusterStorageRow.findKebabAction('Edit storage').click();
     updateClusterStorageModal.findNameInput().should('have.value', 'Test Storage');
     updateClusterStorageModal.findPVSizeInput().should('have.value', '5');
-    updateClusterStorageModal.shouldHavePVSizeSelectValue('Gi');
+    updateClusterStorageModal.shouldHavePVSizeSelectValue('GiB');
     updateClusterStorageModal.findPersistentStorageWarning().should('exist');
     updateClusterStorageModal.findSubmitButton().should('be.enabled');
     updateClusterStorageModal.findNameInput().fill('test-updated');

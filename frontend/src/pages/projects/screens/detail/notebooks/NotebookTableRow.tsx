@@ -14,13 +14,22 @@ import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconBut
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { NotebookSize } from '~/types';
 import NotebookStateStatus from '~/pages/projects/notebook/NotebookStateStatus';
-import { useNotebookActionsColumn } from '~/pages/projects/notebook/NotebookActionsColumn';
-import useNotebookDeploymentSize from './useNotebookDeploymentSize';
-import useNotebookImage from './useNotebookImage';
-import NotebookSizeDetails from './NotebookSizeDetails';
-import NotebookStorageBars from './NotebookStorageBars';
-import { NotebookImageDisplayName } from './NotebookImageDisplayName';
+import { NotebookActionsColumn } from '~/pages/projects/notebook/NotebookActionsColumn';
+import { computeNotebooksTolerations } from '~/utilities/tolerations';
+import { startNotebook, stopNotebook } from '~/api';
+import { currentlyHasPipelines } from '~/concepts/pipelines/elyra/utils';
+import { fireNotebookTrackingEvent } from '~/pages/projects/notebook/utils';
+import useNotebookAcceleratorProfile from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfile';
+import useStopNotebookModalAvailability from '~/pages/projects/notebook/useStopNotebookModalAvailability';
+import { useAppContext } from '~/app/AppContext';
+import NotebookStateAction from '~/pages/projects/notebook/NotebookStateAction';
+import StopNotebookConfirmModal from '~/pages/projects/notebook/StopNotebookConfirmModal';
 import { NotebookImageAvailability } from './const';
+import { NotebookImageDisplayName } from './NotebookImageDisplayName';
+import NotebookStorageBars from './NotebookStorageBars';
+import NotebookSizeDetails from './NotebookSizeDetails';
+import useNotebookImage from './useNotebookImage';
+import useNotebookDeploymentSize from './useNotebookDeploymentSize';
 
 type NotebookTableRowProps = {
   obj: NotebookState;
@@ -51,12 +60,41 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
     },
   };
   const [notebookImage, loaded, loadError] = useNotebookImage(obj.notebook);
-  const [ActionColumn, stopNotebook] = useNotebookActionsColumn(
-    currentProject,
-    obj,
-    canEnablePipelines,
-    onNotebookDelete,
-  );
+  const acceleratorProfile = useNotebookAcceleratorProfile(obj.notebook);
+  const [dontShowModalValue] = useStopNotebookModalAvailability();
+  const { dashboardConfig } = useAppContext();
+  const [isOpenConfirm, setOpenConfirm] = React.useState(false);
+  const [inProgress, setInProgress] = React.useState(false);
+  const { name: notebookName, namespace: notebookNamespace } = obj.notebook.metadata;
+
+  const onStart = React.useCallback(() => {
+    setInProgress(true);
+    const tolerationSettings = computeNotebooksTolerations(dashboardConfig, obj.notebook);
+    startNotebook(
+      obj.notebook,
+      tolerationSettings,
+      canEnablePipelines && !currentlyHasPipelines(obj.notebook),
+    ).then(() => {
+      fireNotebookTrackingEvent('started', obj.notebook, notebookSize, acceleratorProfile);
+      obj.refresh().then(() => setInProgress(false));
+    });
+  }, [dashboardConfig, obj, canEnablePipelines, notebookSize, acceleratorProfile]);
+
+  const handleStop = React.useCallback(() => {
+    fireNotebookTrackingEvent('stopped', obj.notebook, notebookSize, acceleratorProfile);
+    setInProgress(true);
+    stopNotebook(notebookName, notebookNamespace).then(() => {
+      obj.refresh().then(() => setInProgress(false));
+    });
+  }, [acceleratorProfile, notebookName, notebookNamespace, notebookSize, obj]);
+
+  const onStop = React.useCallback(() => {
+    if (dontShowModalValue) {
+      handleStop();
+    } else {
+      setOpenConfirm(true);
+    }
+  }, [dontShowModalValue, handleStop]);
 
   return (
     <Tbody isExpanded={isExpanded}>
@@ -153,12 +191,28 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
           </Td>
         ) : null}
         <Td dataLabel="Status">
-          <NotebookStateStatus notebookState={obj} stopNotebook={stopNotebook} />
+          <NotebookStateStatus notebookState={obj} stopNotebook={handleStop} />
+        </Td>
+        <Td>
+          <NotebookStateAction
+            notebookState={obj}
+            onStart={onStart}
+            onStop={onStop}
+            isDisabled={inProgress}
+          />
         </Td>
         <Td isActionCell={compact} style={{ verticalAlign: 'top' }}>
           <NotebookRouteLink label="Open" notebook={obj.notebook} isRunning={obj.isRunning} />
         </Td>
-        {!compact ? <Td isActionCell>{ActionColumn}</Td> : null}
+        {!compact ? (
+          <Td isActionCell>
+            <NotebookActionsColumn
+              project={currentProject}
+              notebookState={obj}
+              onNotebookDelete={onNotebookDelete}
+            />
+          </Td>
+        ) : null}
       </Tr>
       {!compact ? (
         <Tr isExpanded={isExpanded}>
@@ -187,6 +241,17 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
           <Td />
           <Td />
         </Tr>
+      ) : null}
+      {isOpenConfirm ? (
+        <StopNotebookConfirmModal
+          notebookState={obj}
+          onClose={(confirmStatus) => {
+            if (confirmStatus) {
+              handleStop();
+            }
+            setOpenConfirm(false);
+          }}
+        />
       ) : null}
     </Tbody>
   );

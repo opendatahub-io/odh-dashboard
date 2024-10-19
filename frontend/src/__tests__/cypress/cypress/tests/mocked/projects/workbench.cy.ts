@@ -286,7 +286,7 @@ describe('Workbench page', () => {
     createSpawnerPage.findPVSizeInput().should('have.value', '19');
     createSpawnerPage.findPVSizePlusButton().click();
     createSpawnerPage.findPVSizeInput().should('have.value', '20');
-    createSpawnerPage.selectPVSize('Mi');
+    createSpawnerPage.selectPVSize('MiB');
 
     //add existing cluster storage
     createSpawnerPage.findExistingStorageRadio().click();
@@ -534,7 +534,7 @@ describe('Workbench page', () => {
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
 
     //stop Workbench
-    notebookRow.findKebabAction('Stop').click();
+    notebookRow.findNotebookStop().click();
     notebookConfirmModal.findStopWorkbenchButton().should('be.enabled');
     cy.interceptK8s(
       NotebookModel,
@@ -584,7 +584,7 @@ describe('Workbench page', () => {
       }),
     );
 
-    notebookRow.findKebabAction('Start').click();
+    notebookRow.findNotebookStart().click();
     notebookRow.findHaveNotebookStatusText().should('have.text', 'Starting');
     notebookRow.findHaveNotebookStatusText().click();
 

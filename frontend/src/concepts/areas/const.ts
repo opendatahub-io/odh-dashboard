@@ -17,7 +17,7 @@ export const allFeatureFlags: string[] = Object.keys({
   disableProjectSharing: false,
   disableCustomServingRuntimes: false,
   disablePipelines: false,
-  disableBiasMetrics: false,
+  disableTrustyBiasMetrics: false,
   disablePerformanceMetrics: false,
   disableKServe: false,
   disableKServeAuth: false,
@@ -94,7 +94,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     reliantAreas: [SupportedArea.DS_PROJECTS_VIEW],
   },
   [SupportedArea.BIAS_METRICS]: {
-    featureFlags: ['disableBiasMetrics'],
+    featureFlags: ['disableTrustyBiasMetrics'],
     requiredComponents: [StackComponent.TRUSTY_AI],
     reliantAreas: [SupportedArea.MODEL_SERVING],
   },

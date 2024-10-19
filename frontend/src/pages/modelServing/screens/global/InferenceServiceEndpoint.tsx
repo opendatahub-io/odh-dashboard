@@ -54,7 +54,7 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
         }
       >
         <Button data-testid="internal-service-button" isInline variant="link">
-          Endpoint details (internal)
+          Internal endpoint details
         </Button>
       </Popover>
     );
@@ -104,7 +104,7 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
       }
     >
       <Button data-testid="internal-external-service-button" isInline variant="link">
-        Endpoint details (internal and external)
+        Internal and external endpoint details
       </Button>
     </Popover>
   );
