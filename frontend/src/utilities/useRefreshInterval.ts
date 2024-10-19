@@ -6,7 +6,7 @@ const useRefreshInterval = (refreshInterval: number, callback: () => void): void
   cb.current = callback;
 
   React.useEffect(() => {
-    const timer = setInterval(cb.current, refreshInterval);
+    const timer = setInterval(() => cb.current(), refreshInterval);
     return () => clearInterval(timer);
   }, [refreshInterval]);
 };

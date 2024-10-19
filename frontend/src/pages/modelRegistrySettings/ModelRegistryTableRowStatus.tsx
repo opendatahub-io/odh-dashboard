@@ -30,7 +30,6 @@ enum ConditionStatus {
   True = 'True',
   False = 'False',
 }
-
 interface ModelRegistryTableRowStatusProps {
   conditions: K8sCondition[] | undefined;
 }
@@ -121,8 +120,23 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
     }
   }
 
+  const isClickable = popoverTitle && popoverMessages.length;
+
   const label = (
-    <Label data-testid="model-registry-label" icon={icon} color={color} isCompact>
+    <Label
+      {...(isClickable
+        ? {
+            onClick: () => {
+              /* intentional no-op - Click event is handled by the Popover parent, 
+              this prop enables clickable styles in the PatternFly Label */
+            },
+          }
+        : {})}
+      data-testid="model-registry-label"
+      icon={icon}
+      color={color}
+      isCompact
+    >
       {statusLabel}
     </Label>
   );

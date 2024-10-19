@@ -396,8 +396,26 @@ describe('MR Permissions', () => {
     it('Disabled actions on default group', () => {
       initIntercepts({ isEmpty: false });
       modelRegistryPermissions.visit('example-mr');
-      groupTable.getTableRow('example-mr-users').findKebab().should('be.disabled');
-      groupTable.getTableRow('example-mr-users-2').findKebab().should('not.be.disabled');
+
+      cy.contains('td', 'example-mr-users')
+        .closest('tr')
+        .within(() => {
+          cy.get('button[aria-disabled="true"]')
+            .should('exist')
+            .and(
+              'have.attr',
+              'aria-label',
+              'The default group always has access to model registry.',
+            )
+            .find('svg')
+            .should('exist');
+        });
+
+      cy.contains('td', 'example-mr-users-2')
+        .closest('tr')
+        .within(() => {
+          cy.get('button:not([aria-disabled="true"])').should('exist').and('be.visible');
+        });
     });
   });
 

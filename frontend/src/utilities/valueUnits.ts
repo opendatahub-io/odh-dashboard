@@ -22,8 +22,8 @@ export const CPU_UNITS: UnitOption[] = [
   { name: 'Milicores', unit: 'm', weight: 1 },
 ];
 export const MEMORY_UNITS_FOR_SELECTION: UnitOption[] = [
-  { name: 'Gi', unit: 'Gi', weight: 1024 },
-  { name: 'Mi', unit: 'Mi', weight: 1 },
+  { name: 'GiB', unit: 'Gi', weight: 1024 },
+  { name: 'MiB', unit: 'Mi', weight: 1 },
 ];
 export const MEMORY_UNITS_FOR_PARSING: UnitOption[] = [
   { name: 'EB', unit: 'E', weight: 1000 ** 6 },
@@ -154,4 +154,20 @@ export const isMemoryLimitLarger = (
   }
 
   return isLarger(limitMemory, requestMemory, MEMORY_UNITS_FOR_PARSING, isEqualOkay);
+};
+
+export const formatMemory = <T extends ValueUnitString | undefined>(
+  value: T,
+): T | ValueUnitString => {
+  if (!value) {
+    return value;
+  }
+
+  const match = value.match(/^(\d*\.?\d*)(.*)$/);
+  if (!(match && match[1] && match[2])) {
+    return value;
+  }
+  return `${match[1]}${
+    MEMORY_UNITS_FOR_PARSING.find((o) => o.unit === match[2])?.name || match[2]
+  }`;
 };
