@@ -146,7 +146,7 @@ export const getDefaultValues = (
 };
 
 export const assembleConnectionSecret = (
-  project: ProjectKind,
+  project: ProjectKind | string,
   connectionTypeName: string,
   nameDesc: K8sNameDescriptionFieldData,
   values: {
@@ -166,7 +166,7 @@ export const assembleConnectionSecret = (
     kind: 'Secret',
     metadata: {
       name: nameDesc.k8sName.value || translateDisplayNameForK8s(nameDesc.name),
-      namespace: project.metadata.name,
+      namespace: typeof project === 'string' ? project : project.metadata.name,
       labels: {
         'opendatahub.io/dashboard': 'true',
         'opendatahub.io/managed': 'true',
