@@ -55,6 +55,9 @@ import {
   FormTrackingEventProperties,
   TrackingOutcome,
 } from '~/concepts/analyticsTracking/trackingProperties';
+import useConnectionTypesEnabled from '~/concepts/connectionTypes/useConnectionTypesEnabled';
+import { Connection } from '~/concepts/connectionTypes/types';
+import { ConnectionSection } from '~/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionSection';
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 import EnvironmentVariablesSection from './EnvironmentVariablesSection';
 import ServingRuntimeArgsSection from './ServingRuntimeArgsSection';
@@ -111,6 +114,10 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       setCreateDataInferenceService,
       registeredModelDeployInfo,
     );
+
+  const isConnectionTypesEnabled = useConnectionTypesEnabled();
+  const [connection, setConnection] = React.useState<Connection>();
+  const [isConnectionValid, setIsConnectionvalid] = React.useState(false);
 
   const isAuthorinoEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status;
   const currentProjectName = projectContext?.currentProject.metadata.name;
@@ -169,6 +176,9 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const storageCanCreate = (): boolean => {
     if (createDataInferenceService.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
       return createDataInferenceService.storage.dataConnection !== '';
+    }
+    if (isConnectionTypesEnabled) {
+      return isConnectionValid;
     }
     return isAWSValid(createDataInferenceService.storage.awsData, [AwsKeys.AWS_S3_BUCKET]);
   };
@@ -259,6 +269,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       selectedAcceleratorProfile,
       allowCreate,
       editInfo?.secrets,
+      undefined,
+      connection,
     );
 
     const props: FormTrackingEventProperties = {
@@ -400,13 +412,22 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
             </FormSection>
             {!hideForm && (
               <FormSection title="Source model location" id="model-location">
-                <DataConnectionSection
-                  data={createDataInferenceService}
-                  setData={setCreateDataInferenceService}
-                  loaded={!!projectContext?.dataConnections || dataConnectionsLoaded}
-                  loadError={dataConnectionsLoadError}
-                  dataConnections={dataConnections}
-                />
+                {isConnectionTypesEnabled ? (
+                  <ConnectionSection
+                    data={createDataInferenceService}
+                    setData={setCreateDataInferenceService}
+                    setConnection={setConnection}
+                    setIsConnectionvalid={setIsConnectionvalid}
+                  />
+                ) : (
+                  <DataConnectionSection
+                    data={createDataInferenceService}
+                    setData={setCreateDataInferenceService}
+                    loaded={!!projectContext?.dataConnections || dataConnectionsLoaded}
+                    loadError={dataConnectionsLoadError}
+                    dataConnections={dataConnections}
+                  />
+                )}
               </FormSection>
             )}
             {servingRuntimeParamsEnabled && (
