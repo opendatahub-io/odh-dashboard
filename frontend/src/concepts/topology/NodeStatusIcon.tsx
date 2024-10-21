@@ -1,10 +1,11 @@
 import React from 'react';
 import {
-  NotStartedIcon,
-  SyncAltIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
   BanIcon,
+  InProgressIcon,
+  OutlinedWindowRestoreIcon,
+  PendingIcon,
 } from '@patternfly/react-icons';
 import { Icon, Tooltip } from '@patternfly/react-core';
 import { RuntimeStateKF, runtimeStateLabels } from '~/concepts/pipelines/kfTypes';
@@ -17,12 +18,18 @@ const NodeStatusIcon: React.FC<{ runStatus: RuntimeStateKF | string }> = ({ runS
   switch (runStatus) {
     case runtimeStateLabels[RuntimeStateKF.PENDING]:
     case runtimeStateLabels[RuntimeStateKF.RUNTIME_STATE_UNSPECIFIED]:
-      icon = <NotStartedIcon />;
+      icon = <PendingIcon />;
       label = runtimeStateLabels[RuntimeStateKF.PENDING];
       break;
     case runtimeStateLabels[RuntimeStateKF.RUNNING]:
-      icon = <SyncAltIcon />;
+      icon = <InProgressIcon />;
+      status = 'info';
       label = runtimeStateLabels[RuntimeStateKF.RUNNING];
+      break;
+    case runtimeStateLabels[RuntimeStateKF.CACHED]:
+      icon = <OutlinedWindowRestoreIcon />;
+      status = 'success';
+      label = runtimeStateLabels[RuntimeStateKF.CACHED];
       break;
     case runtimeStateLabels[RuntimeStateKF.SKIPPED]:
       icon = <CheckCircleIcon />;
@@ -44,6 +51,7 @@ const NodeStatusIcon: React.FC<{ runStatus: RuntimeStateKF | string }> = ({ runS
       break;
     case runtimeStateLabels[RuntimeStateKF.CANCELED]:
       icon = <BanIcon />;
+      status = 'warning';
       label = runtimeStateLabels[RuntimeStateKF.CANCELED];
       break;
     case runtimeStateLabels[RuntimeStateKF.PAUSED]:

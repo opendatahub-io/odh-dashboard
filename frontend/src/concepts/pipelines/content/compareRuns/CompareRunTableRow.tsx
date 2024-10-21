@@ -79,7 +79,7 @@ const CompareRunTableRow: React.FC<CompareRunTableRowProps> = ({
         <RunDuration run={run} />
       </Td>
       <Td dataLabel="Status">
-        <RunStatus justIcon run={run} />
+        <RunStatus run={run} />
       </Td>
     </Tr>
   );
