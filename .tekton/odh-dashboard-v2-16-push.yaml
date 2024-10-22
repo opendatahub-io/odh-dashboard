@@ -74,6 +74,28 @@ spec:
       workspaces:
       - name: workspace
         workspace: workspace
+    - name: send-slack-notification
+      params:
+      - name: message
+        value: "$(tasks.rhoai-init.results.slack-message-failure-text)"
+      - name: secret-name
+        value: rhoai-konflux-secret
+      - name: key-name
+        value: slack-webhook
+      taskRef:
+        params:
+        - name: name
+          value: slack-webhook-notification
+        - name: bundle
+          value: quay.io/konflux-ci/tekton-catalog/task-slack-webhook-notification:0.1@sha256:0dfdfd87a8716ff9c20ae3325eff9a5d52ee9c708959c1e93eaedc852621a4d5
+        - name: kind
+          value: task
+        resolver: bundles
+      when:
+      - input: $(tasks.status)
+        operator: in
+        values:
+        - "Failed"
     params:
     - description: Source Repository URL
       name: git-url
@@ -145,6 +167,41 @@ spec:
       name: CHAINS-GIT_COMMIT
       value: $(tasks.clone-repository.results.commit)
     tasks:
+    - name: rhoai-init
+      params:
+      - name: pipelinerun-name
+        value: "$(context.pipelineRun.name)"
+      taskSpec:
+        results:
+        - description: Notification text to be posted to slack
+          name: slack-message-failure-text
+        steps:
+        - image: alpine
+          name: rhoai-init
+          script: |
+            pipelinerun_name=$(params.pipelinerun-name)
+            target_branch={{target_branch}}
+            echo "pipelinerun-name = $pipelinerun_name"
+
+            application_name=${target_branch/rhoai-/}
+            application_name=rhoai-v${application_name/./-}
+            echo "application-name = $application_name"
+
+            component_name=${pipelinerun_name/-on-*/}
+            echo "component-name = $component_name"
+
+            KONFLUX_SERVER="https://konflux.apps.stone-prod-p02.hjvn.p1.openshiftapps.com"
+            build_url="${KONFLUX_SERVER}/application-pipeline/workspaces/rhoai/applications/${application_name}/pipelineruns/${pipelinerun_name}/logs"
+
+            alertEmoji=":alert:"
+            statusText="Failed"
+            statusEmoji=":failed:"
+
+            build_time="$(date +%Y-%m-%dT%H:%M:%S)"
+            slack_message="${alertEmoji} <${build_url}|${pipelinerun_name}> - ${build_time}"
+            slack_message=$(echo -e "${slack_message}\nStatus: ${statusText} ${statusEmoji}")
+
+            echo -n "${slack_message}" > "$(results.slack-message-failure-text.path)"
     - name: init
       params:
       - name: image-url
@@ -162,6 +219,8 @@ spec:
         - name: kind
           value: task
         resolver: bundles
+      runAfter:
+      - rhoai-init
     - name: clone-repository
       params:
       - name: url
