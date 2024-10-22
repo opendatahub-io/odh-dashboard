@@ -1,4 +1,4 @@
-import { ProjectKind } from '~/k8sTypes';
+import { ProjectKind, SecretKind } from '~/k8sTypes';
 import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
 import {
@@ -6,12 +6,29 @@ import {
   ConnectionTypeConfigMap,
   ConnectionTypeConfigMapObj,
   ConnectionTypeDataField,
+  connectionTypeDataFields,
+  ConnectionTypeDataFieldTypeUnion,
+  ConnectionTypeField,
   ConnectionTypeFieldType,
   ConnectionTypeFieldTypeUnion,
   ConnectionTypeValueType,
-  isConnectionTypeDataField,
 } from '~/concepts/connectionTypes/types';
 import { enumIterator } from '~/utilities/utils';
+
+export const isConnectionTypeDataFieldType = (
+  type: ConnectionTypeFieldTypeUnion | string,
+): type is ConnectionTypeDataFieldTypeUnion =>
+  connectionTypeDataFields.some((t) => t === type) && type !== ConnectionTypeFieldType.Section;
+
+export const isConnectionTypeDataField = (
+  field: ConnectionTypeField,
+): field is ConnectionTypeDataField => field.type !== ConnectionTypeFieldType.Section;
+
+export const isConnection = (secret: SecretKind): secret is Connection =>
+  !!secret.metadata.annotations &&
+  'opendatahub.io/connection-type' in secret.metadata.annotations &&
+  !!secret.metadata.labels &&
+  secret.metadata.labels['opendatahub.io/managed'] === 'true';
 
 export const toConnectionTypeConfigMapObj = (
   configMap: ConnectionTypeConfigMap,
@@ -90,7 +107,7 @@ export const fieldNameToEnvVar = (name: string): string => {
   return allUppercase;
 };
 
-const ENV_VAR_NAME_REGEX = new RegExp('^[_a-zA-Z][_a-zA-Z0-9]*$');
+export const ENV_VAR_NAME_REGEX = new RegExp('^[_a-zA-Z][_a-zA-Z0-9]*$');
 export const isValidEnvVar = (name: string): boolean => ENV_VAR_NAME_REGEX.test(name);
 
 export const isModelServingCompatible = (envVars: string[]): boolean =>
