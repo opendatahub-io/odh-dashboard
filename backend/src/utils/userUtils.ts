@@ -89,27 +89,21 @@ export const getUser = async (
   }
 };
 
-export const getUserInfo = async (
+export const getUserName = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
-): Promise<{ userName: string; userID: string }> => {
+): Promise<string> => {
   const { currentUser } = fastify.kube;
 
   try {
     const userOauth = await getUser(fastify, request);
-    return {
-      userName: userOauth.metadata.name,
-      userID: userOauth.metadata.annotations?.['toolchain.dev.openshift.com/sso-user-id'],
-    };
+    return userOauth.metadata.name;
   } catch (e) {
     if (DEV_MODE) {
       if (isImpersonating()) {
-        return { userName: DEV_IMPERSONATE_USER ?? '', userID: undefined };
+        return DEV_IMPERSONATE_USER ?? '';
       }
-      return {
-        userName: (currentUser.username || currentUser.name).split('/')[0],
-        userID: undefined,
-      };
+      return (currentUser.username || currentUser.name).split('/')[0];
     }
     fastify.log.error(`Failed to retrieve username: ${errorHandler(e)}`);
     const error = createCustomError(

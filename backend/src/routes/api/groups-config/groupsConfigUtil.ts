@@ -8,7 +8,7 @@ import {
   KubeFastifyInstance,
 } from '../../../types';
 import { getAllGroups, getGroupsCR, updateGroupsCR } from '../../../utils/groupsUtils';
-import { getUserInfo } from '../../../utils/userUtils';
+import { getUserName } from '../../../utils/userUtils';
 import { isUserAdmin } from '../../../utils/adminUtils';
 
 const SYSTEM_AUTHENTICATED = 'system:authenticated';
@@ -34,8 +34,8 @@ export const updateGroupsConfig = async (
   const { customObjectsApi } = fastify.kube;
   const { namespace } = fastify.kube;
 
-  const userInfo = await getUserInfo(fastify, request);
-  const isAdmin = await isUserAdmin(fastify, userInfo.userName, namespace);
+  const userName = await getUserName(fastify, request);
+  const isAdmin = await isUserAdmin(fastify, userName, namespace);
 
   if (!isAdmin) {
     const error = createError(403, 'Error updating groups, user needs to be admin');

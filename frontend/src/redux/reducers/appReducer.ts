@@ -24,6 +24,7 @@ const appReducer = (state: AppState = initialState, action: GetUserAction): AppS
       return {
         ...state,
         user: action.payload.user,
+        userID: action.payload.userId,
         userLoading: false,
         userError: null,
         clusterID: action.payload.clusterID,

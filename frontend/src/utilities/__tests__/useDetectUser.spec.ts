@@ -29,6 +29,7 @@ describe('useDetectUser', () => {
         },
         namespace: 'myNamespace',
         userName: 'John Doe',
+        userID: '1234',
         clusterID: 'myClusterID',
         clusterBranding: 'My Cluster',
         isAdmin: true,
