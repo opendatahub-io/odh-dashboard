@@ -71,6 +71,8 @@ spec:
                       type: boolean
                     disableModelRegistry:
                       type: boolean
+                    disableServingRuntimeParams:
+                      type: boolean
                     disableConnectionTypes:
                       type: boolean
                     disableStorageClasses:

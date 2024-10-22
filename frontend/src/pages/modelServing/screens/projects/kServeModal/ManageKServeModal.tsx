@@ -138,6 +138,9 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const [alertVisible, setAlertVisible] = React.useState(true);
+  const servingRuntimeParamsEnabled = useIsAreaAvailable(
+    SupportedArea.SERVING_RUNTIME_PARAMS,
+  ).status;
 
   React.useEffect(() => {
     if (currentProjectName) {
@@ -403,6 +406,11 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                   loadError={dataConnectionsLoadError}
                   dataConnections={dataConnections}
                 />
+              </FormSection>
+            )}
+            {servingRuntimeParamsEnabled && (
+              <FormSection title="Configuration parameters" id="configuration-params">
+                {/* TODO: enter the fields here */}
               </FormSection>
             )}
           </StackItem>
