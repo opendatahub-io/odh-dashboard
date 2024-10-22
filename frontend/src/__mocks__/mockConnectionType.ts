@@ -42,7 +42,7 @@ export const mockConnectionTypeConfigMapObj = ({
     annotations: {
       'openshift.io/display-name': displayName,
       'openshift.io/description': description,
-      'opendatahub.io/enabled': enabled ? 'true' : 'false',
+      'opendatahub.io/disabled': enabled ? 'false' : 'true',
       'opendatahub.io/username': username || '',
     },
     ...(preInstalled

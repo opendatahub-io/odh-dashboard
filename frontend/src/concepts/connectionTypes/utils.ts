@@ -221,4 +221,4 @@ export const filterEnabledConnectionTypes = <
 >(
   connectionTypes: T[],
 ): T[] =>
-  connectionTypes.filter((t) => t.metadata.annotations?.['opendatahub.io/enabled'] === 'true');
+  connectionTypes.filter((t) => t.metadata.annotations?.['opendatahub.io/disabled'] !== 'true');

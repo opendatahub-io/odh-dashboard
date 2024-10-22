@@ -43,7 +43,7 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
   const notification = useNotification();
   const [isUpdating, setIsUpdating] = React.useState(false);
   const [isEnabled, setIsEnabled] = React.useState(
-    () => obj.metadata.annotations?.['opendatahub.io/enabled'] === 'true',
+    () => obj.metadata.annotations?.['opendatahub.io/disabled'] !== 'true',
   );
   const createdDate = obj.metadata.creationTimestamp
     ? new Date(obj.metadata.creationTimestamp)
@@ -78,10 +78,6 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
         setIsUpdating(false);
       });
   };
-
-  React.useEffect(() => {
-    setIsEnabled(obj.metadata.annotations?.['opendatahub.io/enabled'] === 'true');
-  }, [obj.metadata.annotations]);
 
   const compatibleTypes = getCompatibleTypes(
     obj.data?.fields
