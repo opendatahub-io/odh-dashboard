@@ -908,7 +908,7 @@ describe('removeNotebookSecret', () => {
         {
           op: 'replace',
           path: '/spec/template/spec/containers/0/envFrom',
-          value: [{ secretRef: { name: 'aws-connection-db-1' } }],
+          value: [{ secretRef: { name: 'secret' } }],
         },
       ],
       queryOptions: { name, ns: namespace },
@@ -982,7 +982,7 @@ describe('removeNotebookSecret', () => {
         {
           op: 'replace',
           path: '/spec/template/spec/containers/0/envFrom',
-          value: [{ secretRef: { name: 'aws-connection-db-1' } }],
+          value: [{ secretRef: { name: 'secret' } }],
         },
       ],
       queryOptions: { name, ns: namespace },

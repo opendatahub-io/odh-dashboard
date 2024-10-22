@@ -50,6 +50,7 @@ import useDefaultStorageClass from './storage/useDefaultStorageClass';
 import usePreferredStorageClass from './storage/usePreferredStorageClass';
 import { ConnectionsFormSection } from './connections/ConnectionsFormSection';
 import { getConnectionsFromNotebook } from './connections/utils';
+import AlertWarningText from './environmentVariables/AlertWarningText';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
@@ -90,7 +91,9 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     defaultStorageClassName,
   );
 
-  const [envVariables, setEnvVariables] = useNotebookEnvVariables(existingNotebook);
+  const [envVariables, setEnvVariables, envVariablesLoaded, deletedConfigMaps, deletedSecrets] =
+    useNotebookEnvVariables(existingNotebook);
+
   const [dataConnectionData, setDataConnectionData] = useNotebookDataConnection(
     dataConnections.data,
     existingNotebook,
@@ -216,6 +219,12 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               id={SpawnerPageSectionID.ENVIRONMENT_VARIABLES}
               aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.ENVIRONMENT_VARIABLES]}
             >
+              {envVariablesLoaded && (
+                <AlertWarningText
+                  deletedConfigMaps={deletedConfigMaps}
+                  deletedSecrets={deletedSecrets}
+                />
+              )}
               <EnvironmentVariables envVariables={envVariables} setEnvVariables={setEnvVariables} />
             </FormSection>
             <FormSection
