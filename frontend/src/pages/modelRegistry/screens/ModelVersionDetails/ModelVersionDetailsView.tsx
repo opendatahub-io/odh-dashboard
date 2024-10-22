@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useState, useEffect } from 'react';
 import { DescriptionList, Flex, FlexItem, TextVariants, Title } from '@patternfly/react-core';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
 import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
@@ -27,6 +28,22 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
   const [modelArtifact] = useModelArtifactsByVersionId(mv.id);
   const { apiState } = React.useContext(ModelRegistryContext);
   const storageFields = uriToObjectStorageFields(modelArtifact.items[0]?.uri || '');
+
+  // Add state for both model format and version
+  const [modelFormat, setModelFormat] = useState(
+    modelArtifact.items[0]?.modelFormatName || 'No source model format',
+  );
+  const [modelFormatVersion, setModelFormatVersion] = useState(
+    modelArtifact.items[0]?.modelFormatVersion || 'No source model format version',
+  );
+
+  // Update both modelFormat and modelFormatVersion when modelArtifact changes
+  useEffect(() => {
+    setModelFormat(modelArtifact.items[0]?.modelFormatName || 'No source model format');
+    setModelFormatVersion(
+      modelArtifact.items[0]?.modelFormatVersion || 'No source model format version',
+    );
+  }, [modelArtifact]);
 
   return (
     <Flex
@@ -158,20 +175,40 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
           Source model format
         </Title>
         <DescriptionList isFillColumns>
-          <DashboardDescriptionListGroup
-            title="Name"
-            isEmpty={modelArtifact.size === 0 || !modelArtifact.items[0].modelFormatName}
-            contentWhenEmpty="No source model format"
-          >
-            {modelArtifact.items[0]?.modelFormatName}
-          </DashboardDescriptionListGroup>
-          <DashboardDescriptionListGroup
+          <EditableTextDescriptionListGroup
+            value={modelFormat}
+            saveEditedValue={(value) =>
+              apiState.api
+                .patchModelArtifact(
+                  {},
+                  { modelFormatName: value },
+                  modelArtifact.items[0]?.id || '',
+                )
+                .then(() => {
+                  setModelFormat(value);
+                  refresh();
+                })
+            }
+            title="Model Format"
+            contentWhenEmpty="No model format specified"
+          />
+          <EditableTextDescriptionListGroup
+            value={modelFormatVersion}
+            saveEditedValue={(newVersion) =>
+              apiState.api
+                .patchModelArtifact(
+                  {},
+                  { modelFormatVersion: newVersion },
+                  modelArtifact.items[0]?.id || '',
+                )
+                .then(() => {
+                  setModelFormatVersion(newVersion);
+                  refresh();
+                })
+            }
             title="Version"
-            isEmpty={modelArtifact.size === 0 || !modelArtifact.items[0].modelFormatVersion}
             contentWhenEmpty="No source model format version"
-          >
-            {modelArtifact.items[0]?.modelFormatVersion}
-          </DashboardDescriptionListGroup>
+          />
         </DescriptionList>
         <DescriptionList isFillColumns style={{ marginTop: '2em' }}>
           <DashboardDescriptionListGroup
