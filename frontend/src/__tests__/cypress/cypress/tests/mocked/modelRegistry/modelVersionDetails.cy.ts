@@ -24,7 +24,7 @@ import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import { modelVersionDetails } from '~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDetails';
 import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
 import { modelServingGlobal } from '~/__tests__/cypress/cypress/pages/modelServing';
-import { ModelRegistryMetadataType } from '~/concepts/modelRegistry/types';
+import { ModelRegistryMetadataType, ModelState } from '~/concepts/modelRegistry/types';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 const mockModelVersions = mockModelVersion({
@@ -170,6 +170,13 @@ const initIntercepts = () => {
           registeredModelId: '1',
           id: '2',
           name: 'Version 2',
+        }),
+        mockModelVersion({
+          author: 'Author 3',
+          registeredModelId: '1',
+          id: '3',
+          name: 'Version 3',
+          state: ModelState.ARCHIVED,
         }),
       ],
     }),
@@ -333,6 +340,7 @@ describe('Model version details', () => {
     it('Switching model versions', () => {
       modelVersionDetails.findVersionId().contains('1');
       modelVersionDetails.findModelVersionDropdownButton().click();
+      modelVersionDetails.findModelVersionDropdownItem('Version 3').should('not.exist');
       modelVersionDetails.findModelVersionDropdownSearch().fill('Version 2');
       modelVersionDetails.findModelVersionDropdownItem('Version 2').click();
       modelVersionDetails.findVersionId().contains('2');
