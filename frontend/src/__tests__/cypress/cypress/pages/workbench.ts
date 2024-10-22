@@ -198,6 +198,39 @@ class AttachConnectionModal extends Modal {
   }
 }
 
+class StorageTableRow extends TableRow {
+  private findByDataLabel(label: string) {
+    return this.find().find(`[data-label="${label}"]`);
+  }
+
+  findNameValue() {
+    return this.findByDataLabel('Name');
+  }
+
+  findStorageSizeValue() {
+    return this.findByDataLabel('Storage size');
+  }
+
+  findMountPathValue() {
+    return this.findByDataLabel('Mount path');
+  }
+}
+
+class StorageTable {
+  find() {
+    return cy.findByTestId('cluster-storage-table');
+  }
+
+  getRowById(id: number) {
+    return new StorageTableRow(
+      () =>
+        this.find().findByTestId(['cluster-storage-table-row', id]) as unknown as Cypress.Chainable<
+          JQuery<HTMLTableRowElement>
+        >,
+    );
+  }
+}
+
 class CreateSpawnerPage {
   k8sNameDescription = new K8sNameDescriptionField('workbench');
 
@@ -206,16 +239,8 @@ class CreateSpawnerPage {
     return this;
   }
 
-  findNewStorageRadio() {
-    return cy.findByTestId('persistent-new-storage-type-radio');
-  }
-
-  findExistingStorageRadio() {
-    return cy.findByTestId('persistent-existing-storage-type-radio');
-  }
-
-  findClusterStorageInput() {
-    return cy.findByTestId('create-new-storage-name');
+  getStorageTable() {
+    return new StorageTable();
   }
 
   private findPVSizeField() {
@@ -357,11 +382,6 @@ class EditSpawnerPage extends CreateSpawnerPage {
   private wait() {
     cy.findByTestId('app-page-title').should('have.text', 'Edit Test Notebook');
     cy.testA11y();
-  }
-
-  shouldHavePersistentStorage(name: string) {
-    cy.findByTestId('persistent-storage-group').find('input').should('have.value', name);
-    return this;
   }
 
   shouldHaveNotebookImageSelectInput(name: string) {

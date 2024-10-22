@@ -11,20 +11,15 @@ import { PVCModel } from '~/api/models';
 import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '~/const';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { CreatingStorageObject } from '~/pages/projects/types';
+import { StorageData } from '~/pages/projects/types';
 
 export const assemblePvc = (
-  data: CreatingStorageObject,
+  data: StorageData,
   namespace: string,
   editName?: string,
   hideFromUI?: boolean,
 ): PersistentVolumeClaimKind => {
-  const {
-    nameDesc: { name: pvcName, description },
-    size,
-    storageClassName,
-  } = data;
-
+  const { name: pvcName, description, size, storageClassName } = data;
   const name = editName || translateDisplayNameForK8s(pvcName);
 
   return {
@@ -40,7 +35,7 @@ export const assemblePvc = (
       }),
       annotations: {
         'openshift.io/display-name': pvcName.trim(),
-        'openshift.io/description': description,
+        ...(description && { 'openshift.io/description': description }),
       },
     },
     spec: {
@@ -69,7 +64,7 @@ export const getDashboardPvcs = (projectName: string): Promise<PersistentVolumeC
   });
 
 export const createPvc = (
-  data: CreatingStorageObject,
+  data: StorageData,
   namespace: string,
   opts?: K8sAPIOptions,
   hideFromUI?: boolean,
@@ -82,7 +77,7 @@ export const createPvc = (
 };
 
 export const updatePvc = (
-  data: CreatingStorageObject,
+  data: StorageData,
   existingData: PersistentVolumeClaimKind,
   namespace: string,
   opts?: K8sAPIOptions,

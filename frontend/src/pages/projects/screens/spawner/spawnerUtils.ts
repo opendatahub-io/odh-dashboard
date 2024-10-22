@@ -1,13 +1,6 @@
-import * as React from 'react';
 import compareVersions from 'compare-versions';
 import { NotebookSize, Volume, VolumeMount } from '~/types';
-import {
-  BuildKind,
-  ImageStreamKind,
-  ImageStreamSpecTagType,
-  K8sDSGResource,
-  NotebookKind,
-} from '~/k8sTypes';
+import { BuildKind, ImageStreamKind, ImageStreamSpecTagType, K8sDSGResource } from '~/k8sTypes';
 import {
   ConfigMapCategory,
   DataConnectionData,
@@ -15,10 +8,7 @@ import {
   EnvVariableDataEntry,
   SecretCategory,
   StartNotebookData,
-  StorageData,
-  StorageType,
 } from '~/pages/projects/types';
-import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
 import { AWS_FIELDS } from '~/pages/projects/dataConnections/const';
 import { FieldOptions } from '~/components/FieldList';
 import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
@@ -30,31 +20,6 @@ import {
 import { FAILED_PHASES, PENDING_PHASES, IMAGE_ANNOTATIONS } from './const';
 
 /******************* Common utils *******************/
-export const useMergeDefaultPVCName = (
-  storageData: StorageData,
-  defaultPVCName: string,
-  defaultStorageClassName?: string,
-): StorageData => {
-  const modifiedRef = React.useRef(false);
-
-  if (modifiedRef.current || storageData.creating.nameDesc.name) {
-    modifiedRef.current = true;
-    return storageData;
-  }
-
-  return {
-    ...storageData,
-    creating: {
-      ...storageData.creating,
-      nameDesc: {
-        ...storageData.creating.nameDesc,
-        name: storageData.creating.nameDesc.name || defaultPVCName,
-      },
-      storageClassName: storageData.creating.storageClassName || defaultStorageClassName,
-    },
-  };
-};
-
 export const getVersion = (version?: string | number, prefix?: string): string => {
   if (!version) {
     return '';
@@ -269,30 +234,6 @@ export const getSizeDescription = (size: NotebookSize): string =>
   `Requests: ${size.resources.requests?.cpu || '??'} CPU, ` +
   `${size.resources.requests?.memory || '??'} Memory`;
 
-/******************* Storage utils *******************/
-export const getVolumesByStorageData = (
-  storageData: StorageData,
-): { volumes: Volume[]; volumeMounts: VolumeMount[] } => {
-  const { storageType, existing } = storageData;
-  const volumes: Volume[] = [];
-  const volumeMounts: VolumeMount[] = [];
-
-  if (storageType === StorageType.EXISTING_PVC) {
-    const { storage } = existing;
-    if (storage) {
-      volumes.push({ name: storage, persistentVolumeClaim: { claimName: storage } });
-      volumeMounts.push({ mountPath: ROOT_MOUNT_PATH, name: storage });
-    }
-  }
-
-  return { volumes, volumeMounts };
-};
-
-export const getRootVolumeName = (notebook?: NotebookKind): string =>
-  notebook?.spec.template.spec.containers[0].volumeMounts?.find(
-    (volumeMount) => volumeMount.mountPath === ROOT_MOUNT_PATH,
-  )?.name || '';
-
 /******************* Checking utils *******************/
 /**
  * Check if there is 1 or more versions available for an image stream
@@ -395,22 +336,16 @@ export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => 
 
 export const checkRequiredFieldsForNotebookStart = (
   startNotebookData: StartNotebookData,
-  storageData: StorageData,
   envVariables: EnvVariable[],
   dataConnection: DataConnectionData,
 ): boolean => {
   const { projectName, notebookData, image } = startNotebookData;
-  const { storageType, creating, existing } = storageData;
   const isNotebookDataValid = !!(
     projectName &&
     isK8sNameDescriptionDataValid(notebookData) &&
     image.imageStream &&
     image.imageVersion
   );
-
-  const newStorageFieldInvalid = storageType === StorageType.NEW_PVC && !creating.nameDesc.name;
-  const existingStorageFieldInvalid = storageType === StorageType.EXISTING_PVC && !existing.storage;
-  const isStorageDataValid = !newStorageFieldInvalid && !existingStorageFieldInvalid;
 
   const newDataConnectionInvalid =
     dataConnection.type === 'creating' &&
@@ -420,12 +355,7 @@ export const checkRequiredFieldsForNotebookStart = (
   const isDataConnectionValid =
     !dataConnection.enabled || (!newDataConnectionInvalid && !existingDataConnectionInvalid);
 
-  return (
-    isNotebookDataValid &&
-    isStorageDataValid &&
-    isEnvVariableDataValid(envVariables) &&
-    isDataConnectionValid
-  );
+  return isNotebookDataValid && isEnvVariableDataValid(envVariables) && isDataConnectionValid;
 };
 
 export const isInvalidBYONImageStream = (imageStream: ImageStreamKind): boolean => {
@@ -439,3 +369,31 @@ export const isInvalidBYONImageStream = (imageStream: ImageStreamKind): boolean 
     (activeTag === undefined || activeTag.items === null)
   );
 };
+
+export const getPvcVolumeDetails = (
+  pvcVolumeList: { volumes: Volume[]; volumeMounts: VolumeMount[] }[],
+): {
+  volumes: Volume[];
+  volumeMounts: VolumeMount[];
+} =>
+  pvcVolumeList.reduce(
+    (acc, response) => {
+      if (response.volumes.length) {
+        acc.volumes = acc.volumes.concat(response.volumes);
+      } else {
+        acc.volumes = response.volumes;
+      }
+
+      if (response.volumeMounts.length) {
+        acc.volumeMounts = acc.volumeMounts.concat(response.volumeMounts);
+      } else {
+        acc.volumeMounts = response.volumeMounts;
+      }
+
+      return acc;
+    },
+    {
+      volumes: [],
+      volumeMounts: [],
+    },
+  );

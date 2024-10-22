@@ -26,19 +26,20 @@ import {
   FormTrackingEventProperties,
   TrackingOutcome,
 } from '~/concepts/analyticsTracking/trackingProperties';
+import useNotebookPVCItems from '~/pages/projects/pvc/useNotebookPVCItems';
 import {
   createConfigMapsAndSecretsForNotebook,
   createPvcDataForNotebook,
-  replaceRootVolumesForNotebook,
   updateConfigMapsAndSecretsForNotebook,
+  updatePvcDataForNotebook,
 } from './service';
-import { checkRequiredFieldsForNotebookStart } from './spawnerUtils';
+import { checkRequiredFieldsForNotebookStart, getPvcVolumeDetails } from './spawnerUtils';
 import { getNotebookDataConnection } from './dataConnection/useNotebookDataConnection';
 import { setConnectionsOnEnvFrom } from './connections/utils';
 
 type SpawnerFooterProps = {
   startNotebookData: StartNotebookData;
-  storageData: StorageData;
+  storageData: StorageData[];
   envVariables: EnvVariable[];
   dataConnection: DataConnectionData;
   isConnectionTypesEnabled?: boolean;
@@ -79,17 +80,14 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const [createInProgress, setCreateInProgress] = React.useState(false);
   const isButtonDisabled =
     createInProgress ||
-    !checkRequiredFieldsForNotebookStart(
-      startNotebookData,
-      storageData,
-      envVariables,
-      dataConnection,
-    );
+    !checkRequiredFieldsForNotebookStart(startNotebookData, envVariables, dataConnection);
   const { username } = useUser();
   const existingNotebookDataConnection = getNotebookDataConnection(
     editNotebook,
     existingDataConnections,
   );
+  const [existingNotebookPvcs] = useNotebookPVCItems(editNotebook);
+
   const afterStart = (name: string, type: 'created' | 'updated') => {
     const { selectedAcceleratorProfile, notebookSize, image } = startNotebookData;
     const tep: FormTrackingEventProperties = {
@@ -110,8 +108,6 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       imageName: image.imageStream?.metadata.name,
       projectName,
       notebookName: name,
-      storageType: storageData.storageType,
-      storageDataSize: storageData.creating.size,
       dataConnectionType: dataConnection.creating?.type?.toString(),
       dataConnectionCategory: dataConnection.creating?.values?.category?.toString(),
       dataConnectionEnabled: dataConnection.enabled,
@@ -141,12 +137,15 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       return;
     }
 
-    const pvcDetails = await replaceRootVolumesForNotebook(
-      projectName,
-      editNotebook,
-      storageData,
-      dryRun,
-    );
+    const updatePvcRequests = storageData.map((pvcData) => {
+      const existingPvc = existingNotebookPvcs.find(
+        (pvc) => pvc.metadata.name === pvcData.existingName,
+      );
+      return updatePvcDataForNotebook(projectName, pvcData, existingPvc, dryRun);
+    });
+
+    const pvcResponses = await Promise.all(updatePvcRequests);
+    const pvcVolumeDetails = getPvcVolumeDetails(pvcResponses);
 
     let envFrom = await updateConfigMapsAndSecretsForNotebook(
       projectName,
@@ -166,7 +165,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       annotations['notebooks.opendatahub.io/notebook-restart'] = 'true';
     }
 
-    const { volumes, volumeMounts } = pvcDetails;
+    const { volumes, volumeMounts } = pvcVolumeDetails;
     const newStartNotebookData: StartNotebookData = {
       ...startNotebookData,
       volumes,
@@ -204,14 +203,21 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       dataConnection.enabled && dataConnection.type === 'existing' && dataConnection.existing
         ? [dataConnection.existing]
         : [];
-    const pvcDetails = await createPvcDataForNotebook(projectName, storageData, dryRun);
+
+    const createPvcRequests = storageData.map((pvcData) =>
+      createPvcDataForNotebook(projectName, pvcData, dryRun),
+    );
+
+    const pvcResponses = await Promise.all(createPvcRequests);
+    const pvcVolumeDetails = getPvcVolumeDetails(pvcResponses);
+
     let envFrom = await createConfigMapsAndSecretsForNotebook(
       projectName,
       [...envVariables, ...newDataConnection],
       dryRun,
     );
 
-    const { volumes, volumeMounts } = pvcDetails;
+    const { volumes, volumeMounts } = pvcVolumeDetails;
     if (isConnectionTypesEnabled) {
       envFrom = setConnectionsOnEnvFrom(connections, envFrom, projectConnections);
     }
