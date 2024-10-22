@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
   Truncate,
   MenuToggle,
+  // eslint-disable-next-line no-restricted-imports
   Select,
   SelectList,
   SelectOption,
@@ -23,6 +24,7 @@ export type SimpleSelectOption = {
   dropdownLabel?: React.ReactNode;
   isPlaceholder?: boolean;
   isDisabled?: boolean;
+  isFavorited?: boolean;
   dataTestId?: string;
 };
 
@@ -91,6 +93,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
     if (totalOptionsKey) {
       onChange(totalOptionsKey, false);
     }
+    // We don't want the callback function to be a dependency
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalOptionsKey]);
 
@@ -137,6 +140,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
                     label,
                     dropdownLabel,
                     description,
+                    isFavorited,
                     isDisabled: optionDisabled,
                     dataTestId: optionDataTestId,
                   }) => (
@@ -145,6 +149,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
                       value={key}
                       description={<TruncatedText maxLines={2} content={description} />}
                       isDisabled={optionDisabled}
+                      isFavorited={isFavorited}
                       data-testid={optionDataTestId || key}
                     >
                       {dropdownLabel || label}
@@ -164,6 +169,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
                 label,
                 dropdownLabel,
                 description,
+                isFavorited,
                 isDisabled: optionDisabled,
                 dataTestId: optionDataTestId,
               }) => (
@@ -171,6 +177,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
                   key={key}
                   value={key}
                   description={<TruncatedText maxLines={2} content={description} />}
+                  isFavorited={isFavorited}
                   isDisabled={optionDisabled}
                   data-testid={optionDataTestId || key}
                 >

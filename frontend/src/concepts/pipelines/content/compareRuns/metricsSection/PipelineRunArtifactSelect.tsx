@@ -1,5 +1,10 @@
 import React from 'react';
 import {
+  /** Special use case for Select in this file
+   * It allows multi-selection in the dropdown while keeps the toggle unchanged
+   * Don't use SimpleSelect here
+   */
+  // eslint-disable-next-line no-restricted-imports
   Select,
   SelectOption,
   SelectList,

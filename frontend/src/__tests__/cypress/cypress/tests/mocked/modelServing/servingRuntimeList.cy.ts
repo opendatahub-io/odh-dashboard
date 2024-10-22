@@ -502,7 +502,7 @@ describe('Serving Runtime List', () => {
       inferenceServiceModalEdit
         .findExistingConnectionSelect()
         .should('have.text', 'Test Secret')
-        .should('be.enabled');
+        .should('be.disabled');
     });
 
     it('ModelMesh ServingRuntime list', () => {
