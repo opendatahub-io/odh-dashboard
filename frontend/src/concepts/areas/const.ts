@@ -26,6 +26,7 @@ export const allFeatureFlags: string[] = Object.keys({
   disableAcceleratorProfiles: false,
   disableDistributedWorkloads: false,
   disableModelRegistry: false,
+  disableServingRuntimeParams: false,
   disableConnectionTypes: false,
   disableStorageClasses: false,
   disableNIMModelServing: true,
@@ -114,6 +115,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disableModelRegistry'],
     requiredComponents: [StackComponent.MODEL_REGISTRY],
     requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
+  },
+  [SupportedArea.SERVING_RUNTIME_PARAMS]: {
+    featureFlags: ['disableServingRuntimeParams'],
+    reliantAreas: [SupportedArea.K_SERVE, SupportedArea.MODEL_SERVING],
   },
   [SupportedArea.NIM_MODEL]: {
     featureFlags: ['disableNIMModelServing'],

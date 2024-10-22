@@ -61,6 +61,9 @@ export enum SupportedArea {
 
   /* Model Registry areas */
   MODEL_REGISTRY = 'model-registry',
+
+  /* Alter parameters areas */
+  SERVING_RUNTIME_PARAMS = 'serving-runtime-params',
 }
 
 /** Components deployed by the Operator. Part of the DSC Status. */
