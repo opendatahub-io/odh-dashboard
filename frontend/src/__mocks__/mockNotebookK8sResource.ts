@@ -4,6 +4,7 @@ import { DEFAULT_NOTEBOOK_SIZES } from '~/pages/projects/screens/spawner/const';
 import { ContainerResources, TolerationEffect, TolerationOperator, VolumeMount } from '~/types';
 import { genUID } from '~/__mocks__/mockUtils';
 import { RecursivePartial } from '~/typeHelpers';
+import { EnvironmentFromVariable } from '~/pages/projects/types';
 
 type MockResourceConfigType = {
   name?: string;
@@ -11,7 +12,7 @@ type MockResourceConfigType = {
   namespace?: string;
   user?: string;
   description?: string;
-  envFromName?: string;
+  envFrom?: EnvironmentFromVariable[];
   resources?: ContainerResources;
   image?: string;
   lastImageSelection?: string;
@@ -23,7 +24,14 @@ type MockResourceConfigType = {
 export const mockNotebookK8sResource = ({
   name = 'test-notebook',
   displayName = 'Test Notebook',
-  envFromName = 'aws-connection-db-1',
+  envFrom = [
+    {
+      secretRef: {
+        name: 'secret',
+      },
+    },
+  ],
+
   namespace = 'test-project',
   user = 'test-user',
   description = '',
@@ -99,13 +107,7 @@ export const mockNotebookK8sResource = ({
                       'image-registry.openshift-image-registry.svc:5000/opendatahub/code-server-notebook:2023.2',
                   },
                 ],
-                envFrom: [
-                  {
-                    secretRef: {
-                      name: envFromName,
-                    },
-                  },
-                ],
+                envFrom,
                 image,
                 imagePullPolicy: 'Always',
                 livenessProbe: {
