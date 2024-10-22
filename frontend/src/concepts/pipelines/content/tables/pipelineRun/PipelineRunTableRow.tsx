@@ -163,7 +163,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
         <RunDuration run={run} />
       </Td>
       <Td dataLabel="Status">
-        <RunStatus justIcon run={run} />
+        <RunStatus run={run} />
       </Td>
       {customCells}
       {hasRowActions && (
