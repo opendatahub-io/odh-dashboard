@@ -129,7 +129,7 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
               nameLabelClass="artifact-node-label"
               hideDetailsAtMedium
               customStatusIcon={
-                data?.artifactType === 'system.Metrics' ? <MonitoringIcon /> : <ListIcon />
+                isMetricsArtifactType(data?.artifactType) ? <MonitoringIcon /> : <ListIcon />
               }
               truncateLength={30}
               element={element}
@@ -152,7 +152,7 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
                       : 'var(--pf-v5-global--icon--Color--light)'
                   }
                 >
-                  {data?.artifactType === 'system.Metrics' ? <MonitoringIcon /> : <ListIcon />}
+                  {isMetricsArtifactType(data?.artifactType) ? <MonitoringIcon /> : <ListIcon />}
                 </g>
               </g>
             ) : null}
