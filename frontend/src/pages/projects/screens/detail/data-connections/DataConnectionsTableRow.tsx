@@ -50,6 +50,7 @@ const DataConnectionsTableRow: React.FC<DataConnectionsTableRowProps> = ({
               onEditDataConnection(obj);
             },
           },
+          { isSeparator: true },
           {
             title: 'Delete data connection',
             onClick: () => {

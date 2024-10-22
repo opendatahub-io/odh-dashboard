@@ -29,6 +29,7 @@ const ArchivedExperimentTable: React.FC<ArchivedExperimentTableProps> = ({ ...ba
               setIsRestoreModalOpen(true);
             },
           },
+          { isSeparator: true },
           {
             title: 'Delete',
             isDisabled: experiment.display_name === 'Default',

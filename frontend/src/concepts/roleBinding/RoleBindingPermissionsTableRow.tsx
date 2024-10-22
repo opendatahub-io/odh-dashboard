@@ -197,6 +197,7 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
                     onEdit();
                   },
                 },
+                { isSeparator: true },
                 {
                   title: 'Delete',
                   onClick: () => {

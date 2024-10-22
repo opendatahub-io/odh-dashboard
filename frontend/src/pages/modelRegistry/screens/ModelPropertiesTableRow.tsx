@@ -181,6 +181,7 @@ const ModelPropertiesTableRow: React.FC<ModelPropertiesTableRowProps> = ({
               popperProps={{ direction: 'up' }}
               items={[
                 { title: 'Edit', onClick: onEditClick, isDisabled: isSavingEdits },
+                { isSeparator: true },
                 { title: 'Delete', onClick: onDeleteClick, isDisabled: isSavingEdits },
               ]}
             />

@@ -126,6 +126,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
                         onEditInferenceService(inferenceService);
                       },
                     },
+                    { isSeparator: true },
                   ]),
               {
                 title: 'Delete',

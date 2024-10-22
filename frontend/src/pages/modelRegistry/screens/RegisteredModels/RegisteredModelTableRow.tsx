@@ -51,19 +51,24 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
         }
       },
     },
-    isArchiveRow
-      ? {
-          title: 'Restore model',
-          onClick: () => setIsRestoreModalOpen(true),
-        }
-      : {
-          title: 'Archive model',
-          onClick: () => setIsArchiveModalOpen(true),
-          isAriaDisabled: hasDeploys,
-          tooltipProps: hasDeploys
-            ? { content: 'Models with deployed versions cannot be archived.' }
-            : undefined,
-        },
+    ...(isArchiveRow
+      ? [
+          {
+            title: 'Restore model',
+            onClick: () => setIsRestoreModalOpen(true),
+          },
+        ]
+      : [
+          { isSeparator: true },
+          {
+            title: 'Archive model',
+            onClick: () => setIsArchiveModalOpen(true),
+            isAriaDisabled: hasDeploys,
+            tooltipProps: hasDeploys
+              ? { content: 'Models with deployed versions cannot be archived.' }
+              : undefined,
+          },
+        ]),
   ];
 
   return (

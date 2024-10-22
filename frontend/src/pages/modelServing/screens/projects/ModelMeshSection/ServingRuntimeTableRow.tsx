@@ -176,6 +176,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
                 : []),
               ...(allowDelete
                 ? [
+                    { isSeparator: true },
                     {
                       title: 'Delete model server',
                       onClick: () => onDeleteServingRuntime(obj),

@@ -63,6 +63,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
   ];
 
   if (!isRootVolume) {
+    actions.push({ isSeparator: true });
     actions.push({
       title: 'Delete storage',
       onClick: () => {

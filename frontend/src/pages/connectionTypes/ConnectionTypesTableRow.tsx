@@ -154,6 +154,7 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
               title: 'Duplicate',
               onClick: () => navigate(`/connectionTypes/duplicate/${obj.metadata.name}`),
             },
+            { isSeparator: true },
             {
               title: 'Delete',
               onClick: () => handleDelete(obj),
