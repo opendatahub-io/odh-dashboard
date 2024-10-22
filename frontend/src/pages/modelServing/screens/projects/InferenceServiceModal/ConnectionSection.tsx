@@ -133,7 +133,7 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
 
   const [connectionValues, setConnectionValues] = React.useState<{
     [key: string]: ConnectionTypeValueType;
-  }>(enabledConnectionTypes.length <= 1 ? getDefaultValues(enabledConnectionTypes[0]) : {});
+  }>(enabledConnectionTypes.length === 1 ? getDefaultValues(enabledConnectionTypes[0]) : {});
 
   const [validations, setValidations] = React.useState<{
     [key: string]: boolean;
