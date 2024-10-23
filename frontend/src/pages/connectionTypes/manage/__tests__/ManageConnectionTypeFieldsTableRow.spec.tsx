@@ -25,7 +25,6 @@ const renderRow = (
           onEdit={fn}
           onMoveToSection={fn}
           id="test"
-          rowIndex={0}
           {...props}
         />
       </tbody>

@@ -86,9 +86,8 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
             <Tbody {...tableProps.tbodyProps}>
               {rowsToRender.map(({ data: row, rowProps }, index) => (
                 <ManageConnectionTypeFieldsTableRow
-                  key={index}
+                  key={rowProps.id}
                   row={row}
-                  rowIndex={index}
                   fields={fields}
                   onEdit={() => {
                     setModalField({
