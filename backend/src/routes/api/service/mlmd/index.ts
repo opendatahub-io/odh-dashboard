@@ -4,7 +4,7 @@ import { proxyService } from '../../../../utils/proxy';
 export default proxyService<DSPipelineKind>(
   {
     apiGroup: 'datasciencepipelinesapplications.opendatahub.io',
-    apiVersion: 'v1alpha1',
+    apiVersion: 'v1',
     kind: 'DataSciencepipelinesApplication',
     plural: 'datasciencepipelinesapplications',
   },
