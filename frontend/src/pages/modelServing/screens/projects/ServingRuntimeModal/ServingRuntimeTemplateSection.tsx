@@ -10,7 +10,7 @@ import {
 } from '~/pages/modelServing/customServingRuntimes/utils';
 import { isCompatibleWithAccelerator as isCompatibleWithAcceleratorProfile } from '~/pages/projects/screens/spawner/spawnerUtils';
 import SimpleSelect from '~/components/SimpleSelect';
-import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileForm';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 
 type ServingRuntimeTemplateSectionProps = {
   data: CreatingServingRuntimeObject;

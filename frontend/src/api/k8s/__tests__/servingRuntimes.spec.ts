@@ -25,7 +25,7 @@ import {
 } from '~/api/k8s/servingRuntimes';
 import { ProjectModel, ServingRuntimeModel } from '~/api/models';
 import { ProjectKind, ServingRuntimeKind } from '~/k8sTypes';
-import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileForm';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));

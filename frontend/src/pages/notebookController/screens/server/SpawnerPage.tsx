@@ -46,7 +46,7 @@ import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 import useDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
-import useNotebookAcceleratorProfileForm from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileForm';
+import useNotebookAcceleratorProfileFormState from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileFormState';
 import SizeSelectField from './SizeSelectField';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
@@ -81,7 +81,7 @@ const SpawnerPage: React.FC = () => {
     initialState: acceleratorProfileInitialState,
     formData: acceleratorProfileFormData,
     setFormData: setAcceleratorProfileFormData,
-  } = useNotebookAcceleratorProfileForm(currentUserNotebook);
+  } = useNotebookAcceleratorProfileFormState(currentUserNotebook);
 
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
   const [submitError, setSubmitError] = React.useState<Error | null>(null);

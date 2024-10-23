@@ -22,7 +22,7 @@ import { getModelServingRuntimeName } from '~/pages/modelServing/utils';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
-import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileForm';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import { getModelServingProjects } from './projects';
 import { assemblePodSpecOptions, getshmVolume, getshmVolumeMount } from './utils';
 

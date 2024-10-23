@@ -12,7 +12,7 @@ import AcceleratorProfileSelectField from '~/pages/notebookController/screens/se
 import { getCompatibleAcceleratorIdentifiers } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
 import SimpleSelect from '~/components/SimpleSelect';
-import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileForm';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
 
 type ServingRuntimeSizeSectionProps<D extends CreatingModelServingObjectCommon> = {

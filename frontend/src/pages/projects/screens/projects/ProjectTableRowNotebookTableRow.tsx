@@ -15,7 +15,7 @@ import useNotebookDeploymentSize from '~/pages/projects/screens/detail/notebooks
 import { fireNotebookTrackingEvent } from '~/pages/projects/notebook/utils';
 import StopNotebookConfirmModal from '~/pages/projects/notebook/StopNotebookConfirmModal';
 import NotebookStateAction from '~/pages/projects/notebook/NotebookStateAction';
-import useNotebookAcceleratorProfileForm from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileForm';
+import useNotebookAcceleratorProfileFormState from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileFormState';
 
 type ProjectTableRowNotebookTableRowProps = {
   project: ProjectKind;
@@ -30,7 +30,7 @@ const ProjectTableRowNotebookTableRow: React.FC<ProjectTableRowNotebookTableRowP
   enablePipelines,
 }) => {
   const { notebook, refresh } = notebookState;
-  const { initialState: acceleratorProfile } = useNotebookAcceleratorProfileForm(notebook);
+  const { initialState: acceleratorProfile } = useNotebookAcceleratorProfileFormState(notebook);
   const [dontShowModalValue] = useStopNotebookModalAvailability();
   const { dashboardConfig } = useAppContext();
   const { size } = useNotebookDeploymentSize(notebook);

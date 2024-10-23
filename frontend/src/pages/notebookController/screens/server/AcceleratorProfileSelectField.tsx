@@ -18,7 +18,7 @@ import { isHTMLInputElement } from '~/utilities/utils';
 import { AcceleratorProfileKind } from '~/k8sTypes';
 import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileForm';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
 import useDetectedAccelerators from './useDetectedAccelerators';
 

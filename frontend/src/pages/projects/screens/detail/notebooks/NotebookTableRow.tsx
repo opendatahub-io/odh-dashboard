@@ -29,7 +29,7 @@ import NotebookStorageBars from './NotebookStorageBars';
 import NotebookSizeDetails from './NotebookSizeDetails';
 import useNotebookImage from './useNotebookImage';
 import useNotebookDeploymentSize from './useNotebookDeploymentSize';
-import useNotebookAcceleratorProfileForm from './useNotebookAcceleratorProfileForm';
+import useNotebookAcceleratorProfileFormState from './useNotebookAcceleratorProfileFormState';
 
 type NotebookTableRowProps = {
   obj: NotebookState;
@@ -60,7 +60,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
     },
   };
   const [notebookImage, loaded, loadError] = useNotebookImage(obj.notebook);
-  const { initialState: acceleratorProfile } = useNotebookAcceleratorProfileForm(obj.notebook);
+  const { initialState: acceleratorProfile } = useNotebookAcceleratorProfileFormState(obj.notebook);
   const [dontShowModalValue] = useStopNotebookModalAvailability();
   const { dashboardConfig } = useAppContext();
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);

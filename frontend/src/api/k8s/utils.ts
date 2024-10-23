@@ -7,7 +7,7 @@ import {
   Volume,
 } from '~/types';
 import { determineTolerations } from '~/utilities/tolerations';
-import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileForm';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
 
 export const assemblePodSpecOptions = (

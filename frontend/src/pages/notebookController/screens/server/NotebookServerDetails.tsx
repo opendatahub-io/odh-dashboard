@@ -20,7 +20,7 @@ import {
 import { useAppContext } from '~/app/AppContext';
 import { useWatchImages } from '~/utilities/useWatchImages';
 import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
-import useNotebookAcceleratorProfileForm from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileForm';
+import useNotebookAcceleratorProfileFormState from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileFormState';
 import { getNotebookSizes } from './usePreferredNotebookSize';
 
 const NotebookServerDetails: React.FC = () => {
@@ -29,7 +29,7 @@ const NotebookServerDetails: React.FC = () => {
   const [isExpanded, setExpanded] = React.useState(false);
   const { dashboardConfig } = useAppContext();
   const { initialState: initialAcceleratorProfileState } =
-    useNotebookAcceleratorProfileForm(notebook);
+    useNotebookAcceleratorProfileFormState(notebook);
 
   const container: PodContainer | undefined = notebook?.spec.template.spec.containers.find(
     (currentContainer) => currentContainer.name === notebook.metadata.name,

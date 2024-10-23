@@ -27,7 +27,7 @@ import { InferenceServiceModel, ProjectModel } from '~/api/models';
 import { InferenceServiceKind, ProjectKind } from '~/k8sTypes';
 import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { ModelServingSize } from '~/pages/modelServing/screens/types';
-import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileForm';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({

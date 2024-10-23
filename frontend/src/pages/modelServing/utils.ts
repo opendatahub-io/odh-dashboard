@@ -41,7 +41,7 @@ import {
   ServingRuntimeToken,
 } from '~/pages/modelServing/screens/types';
 import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
-import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileForm';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 
 type TokenNames = {
   serviceAccountName: string;

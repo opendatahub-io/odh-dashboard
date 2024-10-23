@@ -3,7 +3,7 @@ import _ from 'lodash-es';
 import { Toleration, TolerationEffect, TolerationOperator, TolerationSettings } from '~/types';
 import { DashboardConfigKind, NotebookKind } from '~/k8sTypes';
 import { AcceleratorProfileState } from './useReadAcceleratorState';
-import { AcceleratorProfileFormData } from './useAcceleratorProfileForm';
+import { AcceleratorProfileFormData } from './useAcceleratorProfileFormState';
 
 export type TolerationChanges = {
   type: 'add' | 'remove' | 'replace' | 'nothing';

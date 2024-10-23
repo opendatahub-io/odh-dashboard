@@ -13,7 +13,7 @@ import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/typ
 import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { ContainerResources } from '~/types';
-import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileForm';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
 import { getModelServingProjects } from './projects';
 import { assemblePodSpecOptions } from './utils';

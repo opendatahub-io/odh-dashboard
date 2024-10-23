@@ -1,9 +1,9 @@
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import useAcceleratorProfileForm, {
+import useAcceleratorProfileFormState, {
   UseAcceleratorProfileFormResult,
-} from '~/utilities/useAcceleratorProfileForm';
+} from '~/utilities/useAcceleratorProfileFormState';
 
-const useServingAcceleratorProfileForm = (
+const useServingAcceleratorProfileFormState = (
   servingRuntime?: ServingRuntimeKind | null,
   inferenceService?: InferenceServiceKind | null,
 ): UseAcceleratorProfileFormResult => {
@@ -15,7 +15,7 @@ const useServingAcceleratorProfileForm = (
   const tolerations =
     inferenceService?.spec.predictor.tolerations || servingRuntime?.spec.tolerations;
 
-  return useAcceleratorProfileForm(resources, tolerations, acceleratorProfileName);
+  return useAcceleratorProfileFormState(resources, tolerations, acceleratorProfileName);
 };
 
-export default useServingAcceleratorProfileForm;
+export default useServingAcceleratorProfileFormState;

@@ -26,7 +26,7 @@ import {
 } from '~/k8sTypes';
 import { requestsUnderLimits, resourcesArePositive } from '~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
-import useServingAcceleratorProfileForm from '~/pages/modelServing/screens/projects/useServingAcceleratorProfileForm';
+import useServingAcceleratorProfileFormState from '~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { ServingRuntimeEditInfo } from '~/pages/modelServing/screens/types';
 import ServingRuntimeSizeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeSizeSection';
@@ -108,7 +108,7 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
     setFormData: setSelectedAcceleratorProfile,
     resetFormData: resetSelectedAcceleratorProfile,
     initialState: initialAcceleratorProfileState,
-  } = useServingAcceleratorProfileForm(
+  } = useServingAcceleratorProfileFormState(
     editInfo?.servingRuntimeEditInfo?.servingRuntime,
     editInfo?.inferenceServiceEditInfo,
   );

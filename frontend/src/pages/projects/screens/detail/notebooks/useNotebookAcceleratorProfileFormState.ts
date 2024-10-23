@@ -1,10 +1,10 @@
 import { NotebookKind } from '~/k8sTypes';
 import { Notebook } from '~/types';
-import useAcceleratorProfileForm, {
+import useAcceleratorProfileFormState, {
   UseAcceleratorProfileFormResult,
-} from '~/utilities/useAcceleratorProfileForm';
+} from '~/utilities/useAcceleratorProfileFormState';
 
-const useNotebookAcceleratorProfileForm = (
+const useNotebookAcceleratorProfileFormState = (
   notebook?: NotebookKind | Notebook | null,
 ): UseAcceleratorProfileFormResult => {
   const name = notebook?.metadata.annotations?.['opendatahub.io/accelerator-name'];
@@ -13,7 +13,7 @@ const useNotebookAcceleratorProfileForm = (
   )?.resources;
   const tolerations = notebook?.spec.template.spec.tolerations;
 
-  return useAcceleratorProfileForm(resources, tolerations, name);
+  return useAcceleratorProfileFormState(resources, tolerations, name);
 };
 
-export default useNotebookAcceleratorProfileForm;
+export default useNotebookAcceleratorProfileFormState;

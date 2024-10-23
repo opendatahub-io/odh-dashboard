@@ -29,7 +29,7 @@ import K8sNameDescriptionField, {
 import { LimitNameResourceType } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import useConnectionTypesEnabled from '~/concepts/connectionTypes/useConnectionTypesEnabled';
 import { Connection } from '~/concepts/connectionTypes/types';
-import useNotebookAcceleratorProfileForm from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileForm';
+import useNotebookAcceleratorProfileFormState from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileFormState';
 import { SpawnerPageSectionID } from './types';
 import { ScrollableSelectorID, SpawnerPageSectionTitles } from './const';
 import SpawnerFooter from './SpawnerFooter';
@@ -116,7 +116,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     initialState: acceleratorProfileInitialState,
     formData: acceleratorProfileFormData,
     setFormData: setAcceleratorProfileFormData,
-  } = useNotebookAcceleratorProfileForm(existingNotebook);
+  } = useNotebookAcceleratorProfileFormState(existingNotebook);
 
   React.useEffect(() => {
     if (selectedImage.imageStream) {

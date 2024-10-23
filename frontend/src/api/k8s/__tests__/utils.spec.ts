@@ -2,7 +2,7 @@ import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
 import { assemblePodSpecOptions, getshmVolume, getshmVolumeMount } from '~/api/k8s/utils';
 import { ContainerResources, TolerationEffect, TolerationOperator } from '~/types';
-import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileForm';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
 

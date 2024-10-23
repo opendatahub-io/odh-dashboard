@@ -52,7 +52,7 @@ import {
   getNIMData,
   getNIMResource,
 } from '~/pages/modelServing/screens/projects/nimUtils';
-import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileForm';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 
 const NIM_CONFIGMAP_NAME = 'nvidia-nim-images-data';
 

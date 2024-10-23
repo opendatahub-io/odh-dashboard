@@ -17,7 +17,7 @@ export type UseAcceleratorProfileFormResult = {
   resetFormData: () => void;
 };
 
-const useAcceleratorProfileForm = (
+const useAcceleratorProfileFormState = (
   resources?: ContainerResources,
   tolerations?: Toleration[],
   existingAcceleratorProfileName?: string,
@@ -42,4 +42,4 @@ const useAcceleratorProfileForm = (
   };
 };
 
-export default useAcceleratorProfileForm;
+export default useAcceleratorProfileFormState;

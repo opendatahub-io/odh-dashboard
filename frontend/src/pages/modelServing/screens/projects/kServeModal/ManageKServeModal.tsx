@@ -26,7 +26,7 @@ import {
 import { requestsUnderLimits, resourcesArePositive } from '~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
-import useServingAcceleratorProfileForm from '~/pages/modelServing/screens/projects/useServingAcceleratorProfileForm';
+import useServingAcceleratorProfileFormState from '~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import {
   InferenceServiceStorageType,
@@ -119,7 +119,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     formData: selectedAcceleratorProfile,
     setFormData: setSelectedAcceleratorProfile,
     resetFormData: resetSelectedAcceleratorProfile,
-  } = useServingAcceleratorProfileForm(
+  } = useServingAcceleratorProfileFormState(
     editInfo?.servingRuntimeEditInfo?.servingRuntime,
     editInfo?.inferenceServiceEditInfo,
   );

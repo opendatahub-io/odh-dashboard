@@ -13,7 +13,7 @@ import {
 } from '~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
-import useServingAcceleratorProfileForm from '~/pages/modelServing/screens/projects/useServingAcceleratorProfileForm';
+import useServingAcceleratorProfileFormState from '~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import { ServingRuntimeEditInfo } from '~/pages/modelServing/screens/types';
@@ -58,7 +58,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     formData: selectedAcceleratorProfile,
     setFormData: setSelectedAcceleratorProfile,
     initialState: initialAcceleratorProfile,
-  } = useServingAcceleratorProfileForm(editInfo?.servingRuntime);
+  } = useServingAcceleratorProfileFormState(editInfo?.servingRuntime);
 
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
