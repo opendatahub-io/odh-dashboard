@@ -21,7 +21,7 @@ export type BaseMetric = {
   protectedAttribute: string;
   outcomeName: string;
   modelId: string;
-  requestName: string;
+  requestName?: string;
   thresholdDelta?: number;
   batchSize?: number;
 };
