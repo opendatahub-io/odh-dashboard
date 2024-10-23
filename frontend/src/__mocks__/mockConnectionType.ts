@@ -308,7 +308,9 @@ const mockFields: ConnectionTypeField[] = [
     description: 'Test boolean',
     envVar: 'boolean_1',
     required: false,
-    properties: {},
+    properties: {
+      label: 'Input label',
+    },
   },
   {
     type: 'boolean',

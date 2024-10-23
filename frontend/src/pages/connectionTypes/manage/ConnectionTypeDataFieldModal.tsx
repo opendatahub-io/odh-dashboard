@@ -37,6 +37,7 @@ import { isEnumMember } from '~/utilities/utils';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import DataFieldPropertiesForm from '~/pages/connectionTypes/manage/DataFieldPropertiesForm';
 import { prepareFieldForSave } from '~/pages/connectionTypes/manage/manageFieldUtils';
+import useGenericObjectState from '~/utilities/useGenericObjectState';
 
 const isConnectionTypeFieldType = (
   fieldType: string | number | undefined,
@@ -58,21 +59,24 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
   isEdit,
   fields,
 }) => {
-  const [name, setName] = React.useState<string>(field?.name || '');
-  const [description, setDescription] = React.useState<string | undefined>(field?.description);
-  const [envVar, setEnvVar] = React.useState<string>(field?.envVar || '');
-  const [fieldType, setFieldType] = React.useState<ConnectionTypeFieldType | undefined>(
-    field?.type
+  const [data, setData] = useGenericObjectState({
+    name: field?.name || '',
+    description: field?.description,
+    envVar: field?.envVar || '',
+    fieldType: field?.type
       ? // Cast from specific type to generic type
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-explicit-any
         (field.type as ConnectionTypeFieldType)
       : ConnectionTypeFieldType.ShortText,
-  );
-  const [required, setRequired] = React.useState<boolean | undefined>(field?.required);
-  const [isTypeSelectOpen, setIsTypeSelectOpen] = React.useState<boolean>(false);
-  const [properties, setProperties] = React.useState<unknown>(field?.properties || {});
+    required: field?.required,
+    properties: field?.properties || {},
+  });
+  const canSubmit = React.useRef(data).current !== data || !isEdit;
+  const { name, description, envVar, fieldType, required, properties } = data;
+
+  const [isTypeSelectOpen, setIsTypeSelectOpen] = React.useState(false);
   const [isPropertiesValid, setPropertiesValid] = React.useState(true);
-  const [autoGenerateEnvVar, setAutoGenerateEnvVar] = React.useState<boolean>(!envVar);
+  const [autoGenerateEnvVar, setAutoGenerateEnvVar] = React.useState(!envVar);
 
   const isEnvVarConflict = React.useMemo(
     () => !!fields?.find((f) => f !== field && isConnectionTypeDataField(f) && f.envVar === envVar),
@@ -81,26 +85,22 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
 
   const isEnvVarValid = !envVar || isValidEnvVar(envVar);
 
-  const isValid = !!fieldType && isPropertiesValid && !!name && !!envVar && isEnvVarValid;
+  const isValid = isPropertiesValid && !!name && !!envVar && isEnvVarValid;
 
-  const newField = fieldType
-    ? // Cast from specific type to generic type
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-explicit-any
-      ({
-        type: fieldType,
-        name,
-        description,
-        envVar,
-        required,
-        properties,
-      } as ConnectionTypeDataField)
-    : undefined;
+  // Cast from specific type to generic type
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-explicit-any
+  const newField = {
+    type: fieldType,
+    name,
+    description,
+    envVar,
+    required,
+    properties,
+  } as ConnectionTypeDataField;
 
   const handleSubmit = () => {
     if (isValid) {
-      if (newField) {
-        onSubmit(prepareFieldForSave(newField));
-      }
+      onSubmit(prepareFieldForSave(newField));
       onClose();
     }
   };
@@ -116,7 +116,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
           onCancel={onClose}
           onSubmit={handleSubmit}
           submitLabel={isEdit ? 'Save' : 'Add'}
-          isSubmitDisabled={!isValid}
+          isSubmitDisabled={!canSubmit || !isValid}
           alertTitle="Error"
         />
       }
@@ -129,9 +129,9 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
             id="name"
             value={name}
             onChange={(_ev, value) => {
-              setName(value);
+              setData('name', value);
               if (autoGenerateEnvVar) {
-                setEnvVar(fieldNameToEnvVar(value));
+                setData('envVar', fieldNameToEnvVar(value));
               }
             }}
             data-testid="field-name-input"
@@ -157,7 +157,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
             id="description"
             data-testid="field-description-input"
             value={description}
-            onChange={(_ev, value) => setDescription(value)}
+            onChange={(_ev, value) => setData('description', value)}
           />
         </FormGroup>
         <FormGroup
@@ -184,7 +184,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
               if (autoGenerateEnvVar) {
                 setAutoGenerateEnvVar(false);
               }
-              setEnvVar(value);
+              setData('envVar', value);
             }}
             data-testid="field-env-var-input"
             validated={!isEnvVarValid ? 'error' : isEnvVarConflict ? 'warning' : 'default'}
@@ -217,8 +217,10 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
             onSelect={(_e, selection) => {
               if (isConnectionTypeFieldType(selection)) {
                 setPropertiesValid(true);
-                setProperties({});
-                setFieldType(selection);
+                setData('properties', {});
+                // setProperties({});
+                setData('fieldType', selection);
+                // setFieldType(selection);
                 setIsTypeSelectOpen(false);
               }
             }}
@@ -233,7 +235,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
                 }}
                 isExpanded={isTypeSelectOpen}
               >
-                {fieldType ? fieldTypeToString(fieldType) : ''}
+                {fieldTypeToString(fieldType)}
               </MenuToggle>
             )}
           >
@@ -249,13 +251,11 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
             </SelectList>
           </Select>
         </FormGroup>
-        {newField ? (
-          <DataFieldPropertiesForm
-            field={newField}
-            onChange={setProperties}
-            onValidate={setPropertiesValid}
-          />
-        ) : undefined}
+        <DataFieldPropertiesForm
+          field={newField}
+          onChange={(value) => setData('properties', value)}
+          onValidate={setPropertiesValid}
+        />
         <FormGroup fieldId="isRequired">
           <Checkbox
             id="isRequired"
@@ -263,7 +263,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
             label="Field is required"
             isChecked={required || false}
             onChange={(_ev, checked) => {
-              setRequired(checked);
+              setData('required', checked);
             }}
           />
         </FormGroup>

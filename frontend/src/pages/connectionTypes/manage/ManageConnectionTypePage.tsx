@@ -72,6 +72,10 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
   const { data: connectionNameDesc, onDataChange: setConnectionNameDesc } =
     useK8sNameDescriptionFieldData({ initialData: prefill });
 
+  const isDataDirty = React.useRef(data).current !== data;
+  const isNameDirty = React.useRef(connectionNameDesc).current !== connectionNameDesc;
+  const canSubmit = isDataDirty || isNameDirty || !isEdit;
+
   const categoryItems = React.useMemo<SelectionOptions[]>(
     () =>
       category
@@ -209,7 +213,7 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
                 })
               }
               onCancel={onCancel}
-              isSaveDisabled={!isValid}
+              isSaveDisabled={!canSubmit || !isValid}
               saveButtonLabel={isEdit ? 'Save' : 'Create'}
             />
           </PageSection>
