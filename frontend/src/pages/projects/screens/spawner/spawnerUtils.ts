@@ -22,6 +22,7 @@ import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
 import { AWS_FIELDS } from '~/pages/projects/dataConnections/const';
 import { FieldOptions } from '~/components/FieldList';
 import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
+import { formatMemory } from '~/utilities/valueUnits';
 import {
   BuildStatus,
   ImageVersionDependencyType,
@@ -265,9 +266,9 @@ export const getDefaultVersionForImageStream = (
 /******************* Deployment Size utils *******************/
 export const getSizeDescription = (size: NotebookSize): string =>
   `Limits: ${size.resources.limits?.cpu || '??'} CPU, ` +
-  `${size.resources.limits?.memory || '??'} Memory ` +
+  `${formatMemory(size.resources.limits?.memory) || '??'} Memory ` +
   `Requests: ${size.resources.requests?.cpu || '??'} CPU, ` +
-  `${size.resources.requests?.memory || '??'} Memory`;
+  `${formatMemory(size.resources.requests?.memory) || '??'} Memory`;
 
 /******************* Storage utils *******************/
 export const getVolumesByStorageData = (

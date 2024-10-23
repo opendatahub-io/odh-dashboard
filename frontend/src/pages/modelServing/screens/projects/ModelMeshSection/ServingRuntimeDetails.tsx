@@ -12,6 +12,7 @@ import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { getServingRuntimeSizes } from '~/pages/modelServing/screens/projects/utils';
 import useServingAcceleratorProfile from '~/pages/modelServing/screens/projects/useServingAcceleratorProfile';
 import { getResourceSize } from '~/pages/modelServing/utils';
+import { formatMemory } from '~/utilities/valueUnits';
 
 type ServingRuntimeDetailsProps = {
   obj: ServingRuntimeKind;
@@ -46,10 +47,14 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj, isvc
             <List isPlain>
               <ListItem>{size?.name || 'Custom'}</ListItem>
               <ListItem>
-                {`${resources.requests?.cpu} CPUs, ${resources.requests?.memory} Memory requested`}
+                {`${resources.requests?.cpu} CPUs, ${formatMemory(
+                  resources.requests?.memory,
+                )} Memory requested`}
               </ListItem>
               <ListItem>
-                {`${resources.limits?.cpu} CPUs, ${resources.limits?.memory} Memory limit`}
+                {`${resources.limits?.cpu} CPUs, ${formatMemory(
+                  resources.limits?.memory,
+                )} Memory limit`}
               </ListItem>
             </List>
           </DescriptionListDescription>

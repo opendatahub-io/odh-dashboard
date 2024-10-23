@@ -14,6 +14,7 @@ import AcceleratorProfileSelectField, {
 import { getCompatibleAcceleratorIdentifiers } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
 import SimpleSelect from '~/components/SimpleSelect';
+import { formatMemory } from '~/utilities/valueUnits';
 import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
 
 type ServingRuntimeSizeSectionProps<D extends CreatingModelServingObjectCommon> = {
@@ -64,9 +65,9 @@ const ServingRuntimeSizeSection = <D extends CreatingModelServingObjectCommon>({
       const desc =
         name !== 'Custom'
           ? `Limits: ${size.resources.limits?.cpu || '??'} CPU, ` +
-            `${size.resources.limits?.memory || '??'} Memory ` +
+            `${formatMemory(size.resources.limits?.memory) || '??'} Memory ` +
             `Requests: ${size.resources.requests?.cpu || '??'} CPU, ` +
-            `${size.resources.requests?.memory || '??'} Memory`
+            `${formatMemory(size.resources.requests?.memory) || '??'} Memory`
           : '';
       return { key: name, label: name, description: desc };
     });
