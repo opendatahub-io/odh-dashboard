@@ -75,7 +75,7 @@ describe('NotebookServer', () => {
         notebookSizeName: 'XSmall',
         imageName: 'code-server-notebook',
         imageTagName: '2023.2',
-        acceleratorProfile: { acceleratorProfiles: [], count: 0, unknownProfileDetected: false },
+        acceleratorProfile: { count: 0, useExistingSettings: false },
         envVars: { configMap: {}, secrets: {} },
         state: 'started',
         storageClassName: 'openshift-default-sc',

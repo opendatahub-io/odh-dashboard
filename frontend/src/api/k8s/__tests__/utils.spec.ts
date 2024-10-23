@@ -1,8 +1,8 @@
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
-import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
+import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
 import { assemblePodSpecOptions, getshmVolume, getshmVolumeMount } from '~/api/k8s/utils';
 import { ContainerResources, TolerationEffect, TolerationOperator } from '~/types';
-import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
 
@@ -27,7 +27,7 @@ describe('assemblePodSpecOptions', () => {
       count: 0,
       unknownProfileDetected: false,
     };
-    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
       profile: acceleratorProfileMock,
       count: 1,
       useExistingSettings: false,
@@ -63,7 +63,7 @@ describe('assemblePodSpecOptions', () => {
       count: 1,
       unknownProfileDetected: false,
     };
-    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
       profile: undefined,
       count: 0,
       useExistingSettings: false,
@@ -116,7 +116,7 @@ describe('assemblePodSpecOptions', () => {
       count: 1,
       unknownProfileDetected: false,
     };
-    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
       profile: acceleratorProfileMock,
       count: 1,
       useExistingSettings: false,
@@ -168,7 +168,7 @@ describe('assemblePodSpecOptions', () => {
       count: 1,
       unknownProfileDetected: true,
     };
-    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
       profile: acceleratorProfileMock,
       count: 1,
       useExistingSettings: false,
@@ -238,7 +238,7 @@ describe('assemblePodSpecOptions', () => {
       count: 1,
       unknownProfileDetected: false,
     };
-    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
       profile: acceleratorProfileMock,
       count: 1,
       useExistingSettings: false,
@@ -278,7 +278,7 @@ describe('assemblePodSpecOptions', () => {
       count: 1,
       unknownProfileDetected: false,
     };
-    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
       profile: acceleratorProfileMock,
       count: 1,
       useExistingSettings: false,

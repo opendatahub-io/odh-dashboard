@@ -20,7 +20,7 @@ import {
 import { useAppContext } from '~/app/AppContext';
 import { useWatchImages } from '~/utilities/useWatchImages';
 import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
-import useNotebookAcceleratorProfile from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfile';
+import useNotebookAcceleratorProfileFormState from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileFormState';
 import { getNotebookSizes } from './usePreferredNotebookSize';
 
 const NotebookServerDetails: React.FC = () => {
@@ -28,7 +28,8 @@ const NotebookServerDetails: React.FC = () => {
   const { images, loaded } = useWatchImages();
   const [isExpanded, setExpanded] = React.useState(false);
   const { dashboardConfig } = useAppContext();
-  const acceleratorProfile = useNotebookAcceleratorProfile(notebook);
+  const { initialState: initialAcceleratorProfileState } =
+    useNotebookAcceleratorProfileFormState(notebook);
 
   const container: PodContainer | undefined = notebook?.spec.template.spec.containers.find(
     (currentContainer) => currentContainer.name === notebook.metadata.name,
@@ -110,17 +111,19 @@ const NotebookServerDetails: React.FC = () => {
         <DescriptionListGroup>
           <DescriptionListTerm>Accelerator</DescriptionListTerm>
           <DescriptionListDescription>
-            {acceleratorProfile.acceleratorProfile
-              ? acceleratorProfile.acceleratorProfile.spec.displayName
-              : acceleratorProfile.unknownProfileDetected
+            {initialAcceleratorProfileState.acceleratorProfile
+              ? initialAcceleratorProfileState.acceleratorProfile.spec.displayName
+              : initialAcceleratorProfileState.unknownProfileDetected
               ? 'Unknown'
               : 'None'}
           </DescriptionListDescription>
         </DescriptionListGroup>
-        {!acceleratorProfile.unknownProfileDetected && (
+        {!initialAcceleratorProfileState.unknownProfileDetected && (
           <DescriptionListGroup>
             <DescriptionListTerm>Number of accelerators</DescriptionListTerm>
-            <DescriptionListDescription>{acceleratorProfile.count}</DescriptionListDescription>
+            <DescriptionListDescription>
+              {initialAcceleratorProfileState.count}
+            </DescriptionListDescription>
           </DescriptionListGroup>
         )}
       </DescriptionList>

@@ -10,9 +10,9 @@ import {
   VolumeMount,
 } from '~/types';
 import { AWSSecretKind } from '~/k8sTypes';
-import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
-import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
+import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
 import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import { AwsKeys } from './dataConnections/const';
 
 export type UpdateObjectAtPropAndValue<T> = <K extends keyof T>(
@@ -71,7 +71,7 @@ export type StartNotebookData = {
   notebookData: K8sNameDescriptionFieldData;
   notebookSize: NotebookSize;
   initialAcceleratorProfile: AcceleratorProfileState;
-  selectedAcceleratorProfile: AcceleratorProfileSelectFieldState;
+  selectedAcceleratorProfile: AcceleratorProfileFormData;
   image: ImageStreamAndVersion;
   volumes?: Volume[];
   volumeMounts?: VolumeMount[];

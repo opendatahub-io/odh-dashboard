@@ -1,4 +1,3 @@
-import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import {
   PodAffinity,
   ContainerResources,
@@ -8,12 +7,13 @@ import {
   Volume,
 } from '~/types';
 import { determineTolerations } from '~/utilities/tolerations';
-import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
+import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
 
 export const assemblePodSpecOptions = (
   resourceSettings: ContainerResources,
   initialAcceleratorProfile?: AcceleratorProfileState,
-  selectedAcceleratorProfile?: AcceleratorProfileSelectFieldState,
+  selectedAcceleratorProfile?: AcceleratorProfileFormData,
   tolerationSettings?: TolerationSettings,
   existingTolerations?: Toleration[],
   affinitySettings?: PodAffinity,

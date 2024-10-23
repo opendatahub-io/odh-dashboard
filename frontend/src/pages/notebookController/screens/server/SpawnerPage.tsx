@@ -42,12 +42,11 @@ import { NotebookControllerContext } from '~/pages/notebookController/NotebookCo
 import ImpersonateAlert from '~/pages/notebookController/screens/admin/ImpersonateAlert';
 import useNamespaces from '~/pages/notebookController/useNamespaces';
 import { getEnvConfigMap, getEnvSecret } from '~/services/envService';
-import useNotebookAcceleratorProfile from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfile';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
-import useGenericObjectState from '~/utilities/useGenericObjectState';
 import useDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
+import useNotebookAcceleratorProfileFormState from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileFormState';
 import SizeSelectField from './SizeSelectField';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
@@ -55,9 +54,7 @@ import EnvironmentVariablesRow from './EnvironmentVariablesRow';
 import ImageSelector from './ImageSelector';
 import { usePreferredNotebookSize } from './usePreferredNotebookSize';
 import StartServerModal from './StartServerModal';
-import AcceleratorProfileSelectField, {
-  AcceleratorProfileSelectFieldState,
-} from './AcceleratorProfileSelectField';
+import AcceleratorProfileSelectField from './AcceleratorProfileSelectField';
 
 import '~/pages/notebookController/NotebookController.scss';
 
@@ -80,18 +77,16 @@ const SpawnerPage: React.FC = () => {
     tag: undefined,
   });
   const { selectedSize, setSelectedSize, sizes } = usePreferredNotebookSize();
-  const acceleratorProfile = useNotebookAcceleratorProfile(currentUserNotebook);
+  const {
+    initialState: acceleratorProfileInitialState,
+    formData: acceleratorProfileFormData,
+    setFormData: setAcceleratorProfileFormData,
+  } = useNotebookAcceleratorProfileFormState(currentUserNotebook);
+
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
 
   const [defaultStorageClass, defaultStorageClassLoaded] = useDefaultStorageClass();
-
-  const [selectedAcceleratorProfile, setSelectedAcceleratorProfile] =
-    useGenericObjectState<AcceleratorProfileSelectFieldState>({
-      profile: undefined,
-      count: 0,
-      useExistingSettings: false,
-    });
 
   const disableSubmit =
     createInProgress ||
@@ -256,14 +251,14 @@ const SpawnerPage: React.FC = () => {
   const fireStartServerEvent = () => {
     fireFormTrackingEvent('Notebook Server Started', {
       outcome: TrackingOutcome.submit,
-      accelerator: acceleratorProfile.acceleratorProfile
-        ? `${acceleratorProfile.acceleratorProfile.spec.displayName} (${acceleratorProfile.acceleratorProfile.metadata.name}): ${acceleratorProfile.acceleratorProfile.spec.identifier}`
-        : acceleratorProfile.unknownProfileDetected
+      accelerator: acceleratorProfileFormData.profile
+        ? `${acceleratorProfileFormData.profile.spec.displayName} (${acceleratorProfileFormData.profile.metadata.name}): ${acceleratorProfileFormData.profile.spec.identifier}`
+        : acceleratorProfileFormData.useExistingSettings
         ? 'Unknown'
         : 'None',
-      acceleratorCount: acceleratorProfile.unknownProfileDetected
+      acceleratorCount: acceleratorProfileFormData.useExistingSettings
         ? undefined
-        : acceleratorProfile.count,
+        : acceleratorProfileFormData.count,
       lastSelectedSize: selectedSize.name,
       lastSelectedImage: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
     });
@@ -278,7 +273,7 @@ const SpawnerPage: React.FC = () => {
       notebookSizeName: selectedSize.name,
       imageName: selectedImageTag.image?.name || '',
       imageTagName: selectedImageTag.tag?.name || '',
-      acceleratorProfile,
+      acceleratorProfile: acceleratorProfileFormData,
       envVars,
       state: NotebookState.Started,
       username: impersonatedUsername || undefined,
@@ -352,9 +347,9 @@ const SpawnerPage: React.FC = () => {
               sizes={sizes}
             />
             <AcceleratorProfileSelectField
-              acceleratorProfileState={acceleratorProfile}
-              selectedAcceleratorProfile={selectedAcceleratorProfile}
-              setSelectedAcceleratorProfile={setSelectedAcceleratorProfile}
+              initialState={acceleratorProfileInitialState}
+              formData={acceleratorProfileFormData}
+              setFormData={setAcceleratorProfileFormData}
             />
           </FormSection>
           <FormSection title="Environment variables" className="odh-notebook-controller__env-var">

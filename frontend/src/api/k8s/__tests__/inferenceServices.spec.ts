@@ -27,8 +27,8 @@ import { InferenceServiceModel, ProjectModel } from '~/api/models';
 import { InferenceServiceKind, ProjectKind } from '~/k8sTypes';
 import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { ModelServingSize } from '~/pages/modelServing/screens/types';
-import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
-import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
+import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
@@ -174,7 +174,7 @@ describe('assembleInferenceService', () => {
       unknownProfileDetected: false,
     };
 
-    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
       profile: mockAcceleratorProfile({}),
       count: 1,
       useExistingSettings: false,
@@ -207,7 +207,7 @@ describe('assembleInferenceService', () => {
       unknownProfileDetected: false,
     };
 
-    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
       profile: mockAcceleratorProfile({}),
       count: 1,
       useExistingSettings: false,
@@ -238,7 +238,7 @@ describe('assembleInferenceService', () => {
       unknownProfileDetected: false,
     };
 
-    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
       profile: mockAcceleratorProfile({}),
       count: 1,
       useExistingSettings: false,
@@ -270,7 +270,7 @@ describe('assembleInferenceService', () => {
       unknownProfileDetected: false,
     };
 
-    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
       profile: mockAcceleratorProfile({}),
       count: 1,
       useExistingSettings: false,
@@ -299,7 +299,7 @@ describe('assembleInferenceService', () => {
       unknownProfileDetected: false,
     };
 
-    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
       profile: mockAcceleratorProfile({}),
       count: 1,
       useExistingSettings: false,
@@ -352,7 +352,7 @@ describe('assembleInferenceService', () => {
       unknownProfileDetected: false,
     };
 
-    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
       profile: mockAcceleratorProfile({}),
       count: 1,
       useExistingSettings: false,
