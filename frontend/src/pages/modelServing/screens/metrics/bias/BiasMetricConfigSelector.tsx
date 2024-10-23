@@ -14,8 +14,6 @@ const BiasMetricConfigSelector: React.FC<BiasMetricConfigSelectorProps> = ({
   initialSelections,
 }) => {
   const { biasMetricConfigs, statusState } = useModelBiasData();
-  const [uiSelections, setUISelections] = React.useState<string>();
-  const [currentSelections, setCurrentSelections] = React.useState<string>();
   const elementId = React.useId();
 
   const spdConfigs = biasMetricConfigs.filter((x) => x.metricType === BiasMetricType.SPD);
@@ -26,10 +24,6 @@ const BiasMetricConfigSelector: React.FC<BiasMetricConfigSelectorProps> = ({
       <span id={elementId} hidden>
         Select the metrics to display charts for
       </span>
-      <div>ALL: {biasMetricConfigs.map((c) => c.name).join(', ')}</div>
-      <div>UI: {uiSelections}</div>
-      <div>current: {currentSelections}</div>
-      <div>initialSelections: {initialSelections.map((s) => s.name).join(', ')}</div>
       <MultiSelection
         ariaLabel="Select a metric"
         groupedValues={[
@@ -53,12 +47,6 @@ const BiasMetricConfigSelector: React.FC<BiasMetricConfigSelectorProps> = ({
           },
         ]}
         setValue={(newState: SelectionOptions[]) => {
-          setUISelections(
-            newState
-              .filter((s) => s.selected)
-              .map((s) => s.name)
-              .join(', '),
-          );
           const selections = newState.reduce<BiasMetricConfig[]>((acc, item) => {
             if (item.selected) {
               const selectedConfig = biasMetricConfigs.find((s) => s.id === item.id);
@@ -68,7 +56,6 @@ const BiasMetricConfigSelector: React.FC<BiasMetricConfigSelectorProps> = ({
             }
             return acc;
           }, []);
-          setCurrentSelections(selections.map((s) => s.name).join(', '));
           onChange(selections);
         }}
         selectionRequired
