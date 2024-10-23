@@ -7,8 +7,7 @@ import useFetchState, {
 } from '~/utilities/useFetchState';
 import { Connection } from '~/concepts/connectionTypes/types';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE, LABEL_SELECTOR_DATA_CONNECTION_AWS } from '~/const';
-import { isConnection } from '~/concepts/connectionTypes/utils';
-import { isModelServingCompatible } from '~/concepts/connectionTypes/utils';
+import { isConnection, isModelServingCompatible } from '~/concepts/connectionTypes/utils';
 
 const useConnections = (
   namespace?: string,

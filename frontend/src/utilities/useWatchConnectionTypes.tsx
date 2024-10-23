@@ -1,9 +1,10 @@
 import React from 'react';
+import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
 import {
-  ConnectionTypeConfigMapObj,
+  CompatibleTypes,
+  getCompatibleTypes,
   isConnectionTypeDataField,
-} from '~/concepts/connectionTypes/types';
-import { CompatibleTypes, getCompatibleTypes } from '~/concepts/connectionTypes/utils';
+} from '~/concepts/connectionTypes/utils';
 import { fetchConnectionTypes } from '~/services/connectionTypesService';
 import useFetchState, { FetchState, FetchStateCallbackPromise } from '~/utilities/useFetchState';
 

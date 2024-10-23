@@ -10,11 +10,14 @@ import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeFieldType,
   ConnectionTypeValueType,
-  isConnectionTypeDataField,
 } from '~/concepts/connectionTypes/types';
 import ConnectionTypeForm from '~/concepts/connectionTypes/ConnectionTypeForm';
 import { useK8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { assembleConnectionSecret, getDefaultValues } from '~/concepts/connectionTypes/utils';
+import {
+  assembleConnectionSecret,
+  getDefaultValues,
+  isConnectionTypeDataField,
+} from '~/concepts/connectionTypes/utils';
 import { ConnectionDetailsHelperText } from '~/concepts/connectionTypes/ConnectionDetailsHelperText';
 import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
 import TypeaheadSelect, { TypeaheadSelectOption } from '~/components/TypeaheadSelect';
