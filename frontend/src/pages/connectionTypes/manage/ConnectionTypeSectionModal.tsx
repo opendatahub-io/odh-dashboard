@@ -4,6 +4,7 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { SectionField } from '~/concepts/connectionTypes/types';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+import useGenericObjectState from '~/utilities/useGenericObjectState';
 
 type Props = {
   field?: SectionField;
@@ -13,9 +14,12 @@ type Props = {
 };
 
 const ConnectionTypeSectionModal: React.FC<Props> = ({ field, onClose, onSubmit, isEdit }) => {
-  const [name, setName] = React.useState(field?.name || '');
-  const [description, setDescription] = React.useState(field?.description || '');
-
+  const [data, setData] = useGenericObjectState({
+    name: field?.name || '',
+    description: field?.description || '',
+  });
+  const canSubmit = React.useRef(data).current !== data || !isEdit;
+  const { name, description } = data;
   const isValid = name.length > 0;
 
   return (
@@ -34,7 +38,7 @@ const ConnectionTypeSectionModal: React.FC<Props> = ({ field, onClose, onSubmit,
               onClose();
             }
           }}
-          isSubmitDisabled={!isValid}
+          isSubmitDisabled={!canSubmit || !isValid}
           alertTitle=""
         />
       }
@@ -62,7 +66,7 @@ const ConnectionTypeSectionModal: React.FC<Props> = ({ field, onClose, onSubmit,
             id="section-name"
             data-testid="section-name"
             value={name}
-            onChange={(_e, value) => setName(value)}
+            onChange={(_e, value) => setData('name', value)}
           />
         </FormGroup>
         <FormGroup
@@ -84,7 +88,7 @@ const ConnectionTypeSectionModal: React.FC<Props> = ({ field, onClose, onSubmit,
             id="section-description"
             data-testid="section-description"
             value={description}
-            onChange={(_e, value) => setDescription(value)}
+            onChange={(_e, value) => setData('description', value)}
           />
         </FormGroup>
       </Form>
