@@ -210,6 +210,29 @@ const initIntercepts = () => {
     },
     mockModelArtifactList({}),
   );
+
+  cy.interceptOdh(
+    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts`,
+    {
+      body: {
+        items: [
+          {
+            author: "clusteradminuser1",
+            createTimeSinceEpoch: "1729694473163",
+            customProperties: {},
+            id: "46",
+            lastUpdateTimeSinceEpoch: "1729694473163",
+            name: "n1",
+            registeredModelId: "45",
+            state: "LIVE"
+          }
+        ],
+        nextPageToken: "",
+        pageSize: 99999,
+        size: 1
+      }
+    }
+  );
 };
 
 describe('Model version details', () => {
@@ -247,6 +270,46 @@ describe('Model version details', () => {
       modelVersionDetails.findStorageRegion().contains('test-region');
       modelVersionDetails.findStorageBucket().contains('test-bucket');
       modelVersionDetails.findStoragePath().contains('demo-models/test-path');
+      
+    });
+
+    it('should edit model format and version', () => {
+      cy.intercept('PATCH', '/api/service/modelregistry/*/api/model_registry/*/model_versions/*/artifacts*', {
+        statusCode: 200,
+        body: { message: 'Model artifact updated successfully' }
+      }).as('updateModelArtifact');
+
+      // Wait for the page to load
+      cy.findByTestId('app-page-title', { timeout: 1000 }).should('be.visible');
+
+      cy.findByTestId('model-format', { timeout: 15000 }).should('be.visible')
+        .and('have.text', 'No source model format');
+      cy.findByTestId('model-format-version', { timeout: 15000 }).should('be.visible')
+        .and('have.text', 'No source model format version');
+
+      cy.findByTestId('model-format-edit-button').click();
+      cy.findByTestId('model-format-input').clear().type('New Model Format');
+      cy.findByTestId('save-edit-button-property').click();
+
+      cy.wait('@updateModelArtifact').then((interception) => {
+        expect(interception.request.body).to.deep.equal({
+          modelFormatName: 'New Model Format',
+        });
+      });
+
+      cy.findByTestId('model-format').should('have.text', 'New Model Format');
+
+      cy.findByTestId('model-format-version-edit-button').click();
+      cy.findByTestId('model-format-version-input').clear().type('1.0.0');
+      cy.findByTestId('save-edit-button-property').click();
+
+      cy.wait('@updateModelArtifact').then((interception) => {
+        expect(interception.request.body).to.deep.equal({
+          modelFormatVersion: '1.0.0',
+        });
+      });
+
+      cy.findByTestId('model-format-version').should('have.text', '1.0.0');
     });
 
     it('should add a property', () => {
@@ -376,3 +439,4 @@ describe('Model version details', () => {
     });
   });
 });
+
