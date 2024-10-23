@@ -644,13 +644,11 @@ declare global {
           response: OdhResponse<RoleBindingKind>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts',
+          type: 'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_artifacts/:artifactId',
           options: {
-            query: { view: string };
-            path: { namespace: string; serviceName: string; modelVersionId: string }; // Updated to include modelVersionId
+            path: { serviceName: string; apiVersion: string; artifactId: string };
           },
-          response: OdhResponse<{
-          }>,
+          response: OdhResponse<ModelArtifact>,
         ) => Cypress.Chainable<null>);
     }
   }
@@ -689,3 +687,4 @@ Cypress.Commands.add(
     );
   },
 );
+

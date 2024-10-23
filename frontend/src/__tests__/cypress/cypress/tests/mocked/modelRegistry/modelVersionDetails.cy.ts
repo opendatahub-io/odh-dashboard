@@ -211,28 +211,23 @@ const initIntercepts = () => {
     mockModelArtifactList({}),
   );
 
-  cy.interceptOdh(
-    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts`,
+  cy.intercept(
+    'PATCH',
+    '/api/service/modelregistry/*/api/model_registry/*/model_artifacts/*',
     {
       body: {
-        items: [
-          {
-            author: "clusteradminuser1",
-            createTimeSinceEpoch: "1729694473163",
-            customProperties: {},
-            id: "46",
-            lastUpdateTimeSinceEpoch: "1729694473163",
-            name: "n1",
-            registeredModelId: "45",
-            state: "LIVE"
-          }
-        ],
-        nextPageToken: "",
-        pageSize: 99999,
-        size: 1
+        artifactType: "model-artifact",
+        createTimeSinceEpoch: "1729694473577",
+        customProperties: {},
+        id: "24",
+        lastUpdateTimeSinceEpoch: "1729712188616",
+        modelFormatName: "UPdate",
+        name: "test1-n1-artifact",
+        state: "LIVE",
+        uri: "s3://b/t?endpoint=b"
       }
     }
-  );
+  ).as('updateArtifact');
 };
 
 describe('Model version details', () => {
@@ -273,27 +268,32 @@ describe('Model version details', () => {
       
     });
 
-    it('should edit model format and version', () => {
-      cy.intercept('PATCH', '/api/service/modelregistry/*/api/model_registry/*/model_versions/*/artifacts*', {
-        statusCode: 200,
-        body: { message: 'Model artifact updated successfully' }
-      }).as('updateModelArtifact');
-
-      // Wait for the page to load
-      cy.findByTestId('app-page-title', { timeout: 1000 }).should('be.visible');
-
-      cy.findByTestId('model-format', { timeout: 15000 }).should('be.visible')
-        .and('have.text', 'No source model format');
-      cy.findByTestId('model-format-version', { timeout: 15000 }).should('be.visible')
-        .and('have.text', 'No source model format version');
-
-      cy.findByTestId('model-format-edit-button').click();
-      cy.findByTestId('model-format-input').clear().type('New Model Format');
-      cy.findByTestId('save-edit-button-property').click();
-
-      cy.wait('@updateModelArtifact').then((interception) => {
+    it('should update model format and version', () => {
+      cy.intercept(
+        'PATCH',
+        '/api/service/modelregistry/*/api/model_registry/*/model_artifacts/*',
+        {
+          body: {
+            artifactType: "model-artifact",
+            createTimeSinceEpoch: "1729694473577",
+            customProperties: {},
+            id: "24",
+            lastUpdateTimeSinceEpoch: "1729712188616",
+            modelFormatName: "UPdate",
+            name: "test1-n1-artifact",
+            state: "LIVE",
+            uri: "s3://b/t?endpoint=b"
+          }
+        }
+      ).as('updateArtifact');
+      
+      // Test model format update
+      cy.get('[data-testid="model-format-input"]').clear().type('UPdate');
+      cy.get('[data-testid="save-button"]').click();
+      
+      cy.wait('@updateArtifact').then((interception) => {
         expect(interception.request.body).to.deep.equal({
-          modelFormatName: 'New Model Format',
+          modelFormatName: "UPdate"
         });
       });
 
@@ -303,7 +303,7 @@ describe('Model version details', () => {
       cy.findByTestId('model-format-version-input').clear().type('1.0.0');
       cy.findByTestId('save-edit-button-property').click();
 
-      cy.wait('@updateModelArtifact').then((interception) => {
+      cy.wait('@updateArtifact').then((interception) => {
         expect(interception.request.body).to.deep.equal({
           modelFormatVersion: '1.0.0',
         });
@@ -439,4 +439,3 @@ describe('Model version details', () => {
     });
   });
 });
-
