@@ -17,7 +17,6 @@ import { ValidationErrorCodes } from '~/concepts/connectionTypes/validationUtils
 
 type Props = {
   row: ConnectionTypeField;
-  rowIndex: number;
   fields: ConnectionTypeField[];
   onEdit: () => void;
   onRemove: () => void;
@@ -29,7 +28,6 @@ type Props = {
 
 const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
   row,
-  rowIndex,
   fields,
   onEdit,
   onRemove,
@@ -39,6 +37,7 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
   onChange,
   ...props
 }) => {
+  const rowIndex = React.useMemo(() => fields.findIndex((f) => f === row), [fields, row]);
   const { hasValidationIssue } = React.useContext(ValidationContext);
   const showMoveToSection = React.useMemo(() => {
     const parentSection = fields.findLast(
