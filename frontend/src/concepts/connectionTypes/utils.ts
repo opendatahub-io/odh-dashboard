@@ -145,6 +145,18 @@ export const getDefaultValues = (
   return defaults;
 };
 
+export const withRequiredFields = (
+  connectionType?: ConnectionTypeConfigMapObj,
+  envVars?: string[],
+): ConnectionTypeConfigMapObj | undefined => {
+  for (const field of connectionType?.data?.fields ?? []) {
+    if (isConnectionTypeDataField(field) && envVars?.includes(field.envVar)) {
+      field.required = true;
+    }
+  }
+  return connectionType;
+};
+
 export const assembleConnectionSecret = (
   project: ProjectKind | string,
   connectionTypeName: string,

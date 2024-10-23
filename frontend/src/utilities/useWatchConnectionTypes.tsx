@@ -20,10 +20,7 @@ export const useWatchConnectionTypes = (
     if (modelServingCompatible) {
       connectionTypes = connectionTypes.filter((type) => {
         const compatibleTypes = getCompatibleTypes(
-          type.data?.fields
-            ?.filter(isConnectionTypeDataField)
-            .filter((field) => field.required)
-            .map((field) => field.envVar) ?? [],
+          type.data?.fields?.filter(isConnectionTypeDataField).map((field) => field.envVar) ?? [],
         );
 
         return compatibleTypes.includes(CompatibleTypes.ModelServing);
