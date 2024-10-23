@@ -1,3 +1,4 @@
+import React from 'react';
 import { AcceleratorProfileKind } from '~/k8sTypes';
 import { ContainerResources, Toleration } from '~/types';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
@@ -15,6 +16,9 @@ export type UseAcceleratorProfileFormResult = {
   formData: AcceleratorProfileFormData;
   setFormData: UpdateObjectAtPropAndValue<AcceleratorProfileFormData>;
   resetFormData: () => void;
+  loaded: boolean;
+  loadError: Error | undefined;
+  refresh: () => Promise<AcceleratorProfileState | undefined>;
 };
 
 const useAcceleratorProfileFormState = (
@@ -22,23 +26,34 @@ const useAcceleratorProfileFormState = (
   tolerations?: Toleration[],
   existingAcceleratorProfileName?: string,
 ): UseAcceleratorProfileFormResult => {
-  const initialState = useReadAcceleratorState(
+  const [initialState, loaded, loadError, refresh] = useReadAcceleratorState(
     resources,
     tolerations,
     existingAcceleratorProfileName,
   );
 
   const [formData, setFormData, resetFormData] = useGenericObjectState<AcceleratorProfileFormData>({
-    profile: initialState.acceleratorProfile,
-    count: initialState.count,
-    useExistingSettings: !!initialState.acceleratorProfile,
+    profile: undefined,
+    count: 0,
+    useExistingSettings: false,
   });
+
+  React.useEffect(() => {
+    if (loaded) {
+      setFormData('profile', initialState.acceleratorProfile);
+      setFormData('count', initialState.count);
+      setFormData('useExistingSettings', initialState.unknownProfileDetected);
+    }
+  }, [loaded, initialState, setFormData]);
 
   return {
     initialState,
     formData,
     setFormData,
     resetFormData,
+    loaded,
+    loadError,
+    refresh,
   };
 };
 
