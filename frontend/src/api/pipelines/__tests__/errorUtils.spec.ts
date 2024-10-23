@@ -1,11 +1,11 @@
 /* eslint-disable camelcase */
 import { handlePipelineFailures } from '~/api/pipelines/errorUtils';
-import { mockPipelineKF } from '~/__mocks__/mockPipelineKF';
+import { mockPipelineKFv2 } from '~/__mocks__/mockPipelineKF';
 import { NotReadyError } from '~/utilities/useFetchState';
 
 describe('handlePipelineFailures', () => {
   it('should successfully return pipeline', async () => {
-    const pipelineMock = mockPipelineKF({});
+    const pipelineMock = mockPipelineKFv2({});
     const result = await handlePipelineFailures(Promise.resolve(pipelineMock));
     expect(result).toStrictEqual(pipelineMock);
   });
