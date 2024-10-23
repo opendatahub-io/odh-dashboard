@@ -17,6 +17,7 @@ import {
   assembleConnectionSecret,
   getDefaultValues,
   isConnectionTypeDataField,
+  withRequiredFields,
 } from '~/concepts/connectionTypes/utils';
 import { ConnectionDetailsHelperText } from '~/concepts/connectionTypes/ConnectionDetailsHelperText';
 import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
@@ -131,7 +132,16 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
   );
   const [selectedConnectionType, setSelectedConnectionType] = React.useState<
     ConnectionTypeConfigMapObj | undefined
-  >(enabledConnectionTypes.length === 1 ? connectionTypes[0] : undefined);
+  >(
+    enabledConnectionTypes.length === 1
+      ? withRequiredFields(connectionTypes[0], [
+          'AWS_ACCESS_KEY_ID',
+          'AWS_SECRET_ACCESS_KEY',
+          'AWS_S3_ENDPOINT',
+          'AWS_S3_BUCKET',
+        ])
+      : undefined,
+  );
   const { data: nameDescData, onDataChange: setNameDescData } = useK8sNameDescriptionFieldData();
 
   const [connectionValues, setConnectionValues] = React.useState<{
@@ -185,7 +195,10 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
         connectionType={selectedConnectionType}
         setConnectionType={(type) => {
           setSelectedConnectionType(
-            connectionTypes.find((t) => getResourceNameFromK8sResource(t) === type),
+            withRequiredFields(
+              connectionTypes.find((t) => getResourceNameFromK8sResource(t) === type),
+              ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_S3_ENDPOINT', 'AWS_S3_BUCKET'],
+            ),
           );
         }}
         connectionNameDesc={nameDescData}
