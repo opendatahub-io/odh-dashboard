@@ -687,4 +687,3 @@ Cypress.Commands.add(
     );
   },
 );
-
