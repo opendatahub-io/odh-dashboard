@@ -51,6 +51,7 @@ const BiasConfigurationTableRow: React.FC<BiasConfigurationTableRowProps> = ({
                   onCloneConfiguration(obj);
                 },
               },
+              { isSeparator: true },
               {
                 title: 'Delete',
                 onClick: () => {

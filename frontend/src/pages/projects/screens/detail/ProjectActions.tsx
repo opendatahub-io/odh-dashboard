@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Dropdown, DropdownItem, MenuToggle, DropdownList } from '@patternfly/react-core';
+import { Dropdown, DropdownItem, MenuToggle, DropdownList, Divider } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { getDashboardMainContainer } from '~/utilities/utils';
 import { AccessReviewResourceAttributes, ProjectKind } from '~/k8sTypes';
@@ -68,9 +68,12 @@ const ProjectActions: React.FC<Props> = ({ project }) => {
           </DropdownItem>
         ) : null}
         {canDelete ? (
-          <DropdownItem data-testid="delete-project-action" onClick={() => setDeleteOpen(true)}>
-            Delete project
-          </DropdownItem>
+          <>
+            <Divider />
+            <DropdownItem data-testid="delete-project-action" onClick={() => setDeleteOpen(true)}>
+              Delete project
+            </DropdownItem>
+          </>
         ) : null}
       </DropdownList>
     </Dropdown>

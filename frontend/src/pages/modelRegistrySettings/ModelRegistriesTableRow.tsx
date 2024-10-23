@@ -68,6 +68,7 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
                 title: 'View database configuration',
                 onClick: () => setIsDatabaseConfigModalOpen(true),
               },
+              { isSeparator: true },
               {
                 title: 'Delete model registry',
                 onClick: () => setIsDeleteModalOpen(true),

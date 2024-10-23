@@ -68,6 +68,7 @@ const AcceleratorProfilesTableRow: React.FC<AcceleratorProfilesTableRowType> = (
               onClick: () =>
                 navigate(`/acceleratorProfiles/edit/${acceleratorProfile.metadata.name}`),
             },
+            { isSeparator: true },
             {
               title: 'Delete',
               onClick: () => handleDelete(acceleratorProfile),

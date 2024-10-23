@@ -94,6 +94,7 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
                 title: 'Duplicate',
                 onClick: () => onDuplicate({ ...row, name: `Copy of ${row.name}` }),
               },
+              { isSeparator: true },
               {
                 title: 'Remove',
                 onClick: () => setShowRemoveField(true),
@@ -190,6 +191,7 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
                   },
                 ]
               : []),
+            { isSeparator: true },
             {
               title: 'Remove',
               onClick: () => setShowRemoveField(true),
