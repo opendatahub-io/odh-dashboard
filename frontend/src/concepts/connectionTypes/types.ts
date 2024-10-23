@@ -121,7 +121,7 @@ export type ConnectionTypeConfigMap = K8sResourceCommon & {
   metadata: {
     name: string;
     annotations?: DisplayNameAnnotations & {
-      'opendatahub.io/enabled'?: 'true' | 'false';
+      'opendatahub.io/disabled'?: 'true' | 'false';
       'opendatahub.io/username'?: string;
     };
     labels: DashboardLabels & {
