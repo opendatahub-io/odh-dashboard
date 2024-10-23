@@ -9,13 +9,13 @@ import { NotebookActionsColumn } from '~/pages/projects/notebook/NotebookActions
 import { computeNotebooksTolerations } from '~/utilities/tolerations';
 import { startNotebook, stopNotebook } from '~/api';
 import { currentlyHasPipelines } from '~/concepts/pipelines/elyra/utils';
-import useNotebookAcceleratorProfile from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfile';
 import useStopNotebookModalAvailability from '~/pages/projects/notebook/useStopNotebookModalAvailability';
 import { useAppContext } from '~/app/AppContext';
 import useNotebookDeploymentSize from '~/pages/projects/screens/detail/notebooks/useNotebookDeploymentSize';
 import { fireNotebookTrackingEvent } from '~/pages/projects/notebook/utils';
 import StopNotebookConfirmModal from '~/pages/projects/notebook/StopNotebookConfirmModal';
 import NotebookStateAction from '~/pages/projects/notebook/NotebookStateAction';
+import useNotebookAcceleratorProfileForm from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileForm';
 
 type ProjectTableRowNotebookTableRowProps = {
   project: ProjectKind;
@@ -30,7 +30,7 @@ const ProjectTableRowNotebookTableRow: React.FC<ProjectTableRowNotebookTableRowP
   enablePipelines,
 }) => {
   const { notebook, refresh } = notebookState;
-  const acceleratorProfile = useNotebookAcceleratorProfile(notebook);
+  const { initialState: acceleratorProfile } = useNotebookAcceleratorProfileForm(notebook);
   const [dontShowModalValue] = useStopNotebookModalAvailability();
   const { dashboardConfig } = useAppContext();
   const { size } = useNotebookDeploymentSize(notebook);
