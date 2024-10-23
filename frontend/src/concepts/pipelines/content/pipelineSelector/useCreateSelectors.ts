@@ -14,11 +14,7 @@ import {
   TableSortProps,
   getTableSortProps,
 } from '~/concepts/pipelines/content/tables/usePipelineTable';
-import {
-  ExperimentKFv2,
-  PipelineCoreResourceKFv2,
-  PipelineKFv2,
-} from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF, PipelineCoreResourceKF, PipelineKF } from '~/concepts/pipelines/kfTypes';
 import { PipelineListPaged } from '~/concepts/pipelines/types';
 import { FetchState } from '~/utilities/useFetchState';
 
@@ -34,11 +30,11 @@ type UsePipelineSelectorData<DataType> = {
   searchProps: Omit<UseSelectorSearchValue, 'onClear' | 'totalSize'>;
 } & Pick<UseSelectorSearchValue, 'totalSize'>;
 
-export const useActiveExperimentSelector = (): UsePipelineSelectorData<ExperimentKFv2> => {
+export const useActiveExperimentSelector = (): UsePipelineSelectorData<ExperimentKF> => {
   const experimentsTable = useActiveExperimentTable();
   const [[{ items: initialData, nextPageToken: initialPageToken }, loaded]] = experimentsTable;
 
-  return useCreateSelector<ExperimentKFv2>(
+  return useCreateSelector<ExperimentKF>(
     experimentsTable,
     useActiveExperimentLoadMore({
       initialData,
@@ -48,16 +44,16 @@ export const useActiveExperimentSelector = (): UsePipelineSelectorData<Experimen
   );
 };
 
-export const usePipelineSelector = (): UsePipelineSelectorData<PipelineKFv2> => {
+export const usePipelineSelector = (): UsePipelineSelectorData<PipelineKF> => {
   const pipelinesTable = usePipelinesTable();
   const [[{ items: initialData, nextPageToken: initialPageToken }, loaded]] = pipelinesTable;
-  return useCreateSelector<PipelineKFv2>(
+  return useCreateSelector<PipelineKF>(
     pipelinesTable,
     usePipelineLoadMore({ initialData, initialPageToken, loaded }),
   );
 };
 
-const useCreateSelector = <T extends PipelineCoreResourceKFv2>(
+const useCreateSelector = <T extends PipelineCoreResourceKF>(
   tableData: [FetchState<PipelineListPaged<T>>, TableProps],
   useLoadMoreFunc: (props: LoadMoreProps) => UseLoadMoreFunc<T>,
 ): UsePipelineSelectorData<T> => {

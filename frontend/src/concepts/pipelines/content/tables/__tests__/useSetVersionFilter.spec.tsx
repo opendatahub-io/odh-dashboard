@@ -3,9 +3,9 @@ import { BrowserRouter } from 'react-router-dom';
 
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
 import { useSetVersionFilter } from '~/concepts/pipelines/content/tables/useSetVersionFilter';
-import { PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 
-let mockUseLocationState: { lastVersion: Partial<PipelineVersionKFv2> } | undefined;
+let mockUseLocationState: { lastVersion: Partial<PipelineVersionKF> } | undefined;
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useLocation: jest.fn(() => ({

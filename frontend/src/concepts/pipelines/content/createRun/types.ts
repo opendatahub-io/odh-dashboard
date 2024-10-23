@@ -1,8 +1,8 @@
 import { ProjectKind } from '~/k8sTypes';
 import {
-  ExperimentKFv2,
-  PipelineKFv2,
-  PipelineVersionKFv2,
+  ExperimentKF,
+  PipelineKF,
+  PipelineVersionKF,
   RuntimeConfigParameters,
 } from '~/concepts/pipelines/kfTypes';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
@@ -47,15 +47,15 @@ export type RunType = OneTriggerRunType | ScheduledRunType;
 export type RunFormData = {
   project: ProjectKind;
   nameDesc: { name: string; description: string };
-  pipeline: PipelineKFv2 | null;
-  version: PipelineVersionKFv2 | null;
-  experiment: ExperimentKFv2 | null;
+  pipeline: PipelineKF | null;
+  version: PipelineVersionKF | null;
+  experiment: ExperimentKF | null;
   runType: RunType;
   params?: RuntimeConfigParameters;
 };
 
 export type SafeRunFormData = RunFormData & {
-  pipeline: PipelineKFv2;
+  pipeline: PipelineKF;
   params: RuntimeConfigParameters;
 };
 

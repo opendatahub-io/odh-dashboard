@@ -229,14 +229,14 @@ export enum TriggerStrategy {
 }
 
 // https://github.com/kubeflow/pipelines/blob/cc971c962596afab4d5d544c466836ea3ee2656d/api/v2alpha1/pipeline_spec.proto#L197
-export type ParameterKFV2 = {
+export type ParameterKF = {
   parameterType: InputDefinitionParameterType;
   defaultValue?: RuntimeConfigParamValue;
   isOptional?: boolean;
   description?: string;
 };
 
-export type ParametersKF = Record<string, ParameterKFV2>;
+export type ParametersKF = Record<string, ParameterKF>;
 
 export type PipelineExecutorKF = {
   container: {
@@ -309,7 +309,7 @@ export type PipelineSpecVolume = {
 
 export type PipelineSpecVariable = EitherNotBoth<PipelineSpec, PipelineSpecVolume>;
 
-export type PipelineVersionKFv2 = PipelineCoreResourceKFv2 & {
+export type PipelineVersionKF = PipelineCoreResourceKF & {
   pipeline_id: string;
   pipeline_version_id: string;
   pipeline_spec: PipelineSpecVariable;
@@ -318,7 +318,7 @@ export type PipelineVersionKFv2 = PipelineCoreResourceKFv2 & {
   error?: GoogleRpcStatusKF;
 };
 
-export type ArgoWorkflowPipelineVersion = Omit<PipelineVersionKFv2, 'pipeline_spec'> & {
+export type ArgoWorkflowPipelineVersion = Omit<PipelineVersionKF, 'pipeline_spec'> & {
   pipeline_spec: K8sResourceCommon;
 };
 
@@ -368,7 +368,7 @@ export type TriggerKF = {
   periodic_schedule?: PeriodicScheduleKF;
 };
 
-export type PipelineCoreResourceKFv2 = {
+export type PipelineCoreResourceKF = {
   display_name: string;
   description?: string;
   created_at: string;
@@ -383,7 +383,7 @@ export type GoogleRpcStatusKF = {
   }[];
 };
 
-export type PipelineKFv2 = PipelineCoreResourceKFv2 & {
+export type PipelineKF = PipelineCoreResourceKF & {
   pipeline_id: string;
   error?: GoogleRpcStatusKF;
 };
@@ -483,7 +483,7 @@ export type RunDetailsKF = {
   task_details: TaskDetailKF[];
 };
 
-export type PipelineRunKFv2 = PipelineCoreResourceKFv2 & {
+export type PipelineRunKF = PipelineCoreResourceKF & {
   experiment_id: string;
   run_id: string;
   storage_state: StorageStateKF;
@@ -507,7 +507,7 @@ export type PipelineVersionReference = {
   pipeline_version_id: string;
 };
 
-export type PipelineRecurringRunKFv2 = PipelineCoreResourceKFv2 & {
+export type PipelineRecurringRunKF = PipelineCoreResourceKF & {
   pipeline_spec?: PipelineSpecKF;
   service_account?: string;
   max_concurrency: string;
@@ -525,7 +525,7 @@ export type PipelineRecurringRunKFv2 = PipelineCoreResourceKFv2 & {
   experiment_id: string;
 };
 
-export type ExperimentKFv2 = {
+export type ExperimentKF = {
   experiment_id: string;
   display_name: string;
   description: string;
@@ -536,40 +536,40 @@ export type ExperimentKFv2 = {
 };
 
 export type ListExperimentsResponseKF = PipelineKFCallCommon<{
-  experiments: ExperimentKFv2[];
+  experiments: ExperimentKF[];
 }>;
 export type ListPipelinesResponseKF = PipelineKFCallCommon<{
-  pipelines: PipelineKFv2[];
+  pipelines: PipelineKF[];
 }>;
 export type ListPipelineRunsResourceKF = PipelineKFCallCommon<{
-  runs: PipelineRunKFv2[];
+  runs: PipelineRunKF[];
 }>;
 export type ListPipelineRecurringRunsResourceKF = PipelineKFCallCommon<{
-  recurringRuns: PipelineRecurringRunKFv2[];
+  recurringRuns: PipelineRecurringRunKF[];
 }>;
 export type ListPipelineVersionsKF = PipelineKFCallCommon<{
-  pipeline_versions: PipelineVersionKFv2[];
+  pipeline_versions: PipelineVersionKF[];
 }>;
 
 export type CreatePipelineAndVersionKFData = {
-  pipeline: Omit<PipelineKFv2, 'pipeline_id' | 'error' | 'created_at'>;
+  pipeline: Omit<PipelineKF, 'pipeline_id' | 'error' | 'created_at'>;
   pipeline_version: Omit<
-    PipelineVersionKFv2,
+    PipelineVersionKF,
     'pipeline_id' | 'pipeline_version_id' | 'error' | 'created_at' | 'pipeline_spec'
   >;
 };
 
 export type CreatePipelineVersionKFData = Omit<
-  PipelineVersionKFv2,
+  PipelineVersionKF,
   'pipeline_version_id' | 'error' | 'created_at' | 'pipeline_spec'
 >;
 
 export type CreateExperimentKFData = Omit<
-  ExperimentKFv2,
+  ExperimentKF,
   'experiment_id' | 'created_at' | 'namespace' | 'storage_state' | 'last_run_created_at'
 >;
 export type CreatePipelineRunKFData = Omit<
-  PipelineRunKFv2,
+  PipelineRunKF,
   | 'run_id'
   | 'recurring_run_id'
   | 'created_at'
@@ -584,7 +584,7 @@ export type CreatePipelineRunKFData = Omit<
 >;
 
 export type CreatePipelineRecurringRunKFData = Omit<
-  PipelineRecurringRunKFv2,
+  PipelineRecurringRunKF,
   | 'recurring_run_id'
   | 'status'
   | 'created_at'

@@ -8,14 +8,14 @@ import {
   MenuToggleProps,
   Tooltip,
 } from '@patternfly/react-core';
-import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineImportModal from '~/concepts/pipelines/content/import/PipelineImportModal';
 import PipelineVersionImportModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
 
 type ImportPipelineSplitButtonProps = {
-  onImportPipeline?: (pipeline: PipelineKFv2) => void;
-  onImportPipelineVersion?: (pipelineVersion: PipelineVersionKFv2) => void;
+  onImportPipeline?: (pipeline: PipelineKF) => void;
+  onImportPipelineVersion?: (pipelineVersion: PipelineVersionKF) => void;
   variant?: MenuToggleProps['variant'];
   disable?: boolean;
   disableUploadVersion?: boolean;

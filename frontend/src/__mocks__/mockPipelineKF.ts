@@ -1,15 +1,15 @@
 /* eslint-disable camelcase */
-import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 
 type MockResourceConfigType = {
   name?: string;
   id?: string;
 };
 
-export const mockPipelineKFv2 = ({
+export const mockPipelineKF = ({
   name = 'test-pipeline',
   id = 'test-pipeline',
-}: MockResourceConfigType): PipelineKFv2 => ({
+}: MockResourceConfigType): PipelineKF => ({
   pipeline_id: id,
   created_at: '2023-11-23T17:16:37Z',
   display_name: name,

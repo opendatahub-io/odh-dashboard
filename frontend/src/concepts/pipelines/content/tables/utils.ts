@@ -1,10 +1,10 @@
 import {
-  PipelineRecurringRunKFv2,
-  PipelineRunKFv2,
+  PipelineRecurringRunKF,
+  PipelineRunKF,
   PipelineSpecVariable,
 } from '~/concepts/pipelines/kfTypes';
 
-export const getRunDuration = (run: PipelineRunKFv2): number => {
+export const getRunDuration = (run: PipelineRunKF): number => {
   const finishedDate = new Date(run.finished_at);
   if (finishedDate.getFullYear() <= 1970) {
     // Kubeflow initial timestamp -- epoch, not an actual value
@@ -16,7 +16,7 @@ export const getRunDuration = (run: PipelineRunKFv2): number => {
 };
 
 export const getPipelineRecurringRunStartTime = (
-  recurringRun: PipelineRecurringRunKFv2,
+  recurringRun: PipelineRecurringRunKF,
 ): Date | null => {
   const startTime =
     recurringRun.trigger.cron_schedule?.start_time ||
@@ -26,7 +26,7 @@ export const getPipelineRecurringRunStartTime = (
 };
 
 export const getPipelineRecurringRunEndTime = (
-  recurringRun: PipelineRecurringRunKFv2,
+  recurringRun: PipelineRecurringRunKF,
 ): Date | null => {
   const endTime =
     recurringRun.trigger.cron_schedule?.end_time ||
@@ -48,7 +48,7 @@ export enum PipelineRunLabels {
 
 const inPast = (date: Date | null): boolean => (date ? date.getTime() - Date.now() <= 0 : false);
 export const getPipelineRecurringRunScheduledState = (
-  recurringRun: PipelineRecurringRunKFv2,
+  recurringRun: PipelineRecurringRunKF,
 ): [state: ScheduledState, started: Date | null, ended: Date | null] => {
   const startDate = getPipelineRecurringRunStartTime(recurringRun);
   const endDate = getPipelineRecurringRunEndTime(recurringRun);

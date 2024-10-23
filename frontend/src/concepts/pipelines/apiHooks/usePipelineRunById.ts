@@ -5,11 +5,11 @@ import useFetchState, {
   NotReadyError,
 } from '~/utilities/useFetchState';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineRunKFv2, RuntimeStateKF, runtimeStateLabels } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF, RuntimeStateKF, runtimeStateLabels } from '~/concepts/pipelines/kfTypes';
 import { FAST_POLL_INTERVAL } from '~/utilities/const';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 
-export const isPipelineRunFinished = (run?: PipelineRunKFv2 | null): boolean => {
+export const isPipelineRunFinished = (run?: PipelineRunKF | null): boolean => {
   const { label } = computeRunStatus(run);
   return [
     runtimeStateLabels[RuntimeStateKF.SUCCEEDED],
@@ -21,11 +21,11 @@ export const isPipelineRunFinished = (run?: PipelineRunKFv2 | null): boolean => 
 const usePipelineRunById = (
   pipelineRunId?: string,
   refreshForDetails?: boolean,
-): FetchState<PipelineRunKFv2 | null> => {
+): FetchState<PipelineRunKF | null> => {
   const { api } = usePipelinesAPI();
   const [pipelineFinished, setPipelineFinished] = React.useState(false);
 
-  const call = React.useCallback<FetchStateCallbackPromise<PipelineRunKFv2 | null>>(
+  const call = React.useCallback<FetchStateCallbackPromise<PipelineRunKF | null>>(
     (opts) => {
       if (!pipelineRunId) {
         return Promise.reject(new NotReadyError('No pipeline run id'));

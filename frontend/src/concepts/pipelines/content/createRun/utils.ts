@@ -5,7 +5,7 @@ import {
   SafeRunFormData,
   ScheduledType,
 } from '~/concepts/pipelines/content/createRun/types';
-import { ParametersKF, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { ParametersKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { getCorePipelineSpec } from '~/concepts/pipelines/getCorePipelineSpec';
 import { convertToDate } from '~/utilities/time';
 import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
@@ -56,7 +56,7 @@ export const isFilledRunFormData = (formData: RunFormData): formData is SafeRunF
 };
 
 export const getInputDefinitionParams = (
-  version: PipelineVersionKFv2 | null | undefined,
+  version: PipelineVersionKF | null | undefined,
 ): ParametersKF | undefined => {
   // Return undefined for Argo workflow versions as they don't have root.inputDefinitions
   if (isArgoWorkflow(version?.pipeline_spec)) {

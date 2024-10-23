@@ -8,8 +8,8 @@ import {
 } from '@patternfly/react-core';
 import {
   InputDefinitionParameterType,
-  PipelineRecurringRunKFv2,
-  PipelineRunKFv2,
+  PipelineRecurringRunKF,
+  PipelineRunKF,
   PipelineSpecVariable,
 } from '~/concepts/pipelines/kfTypes';
 import {
@@ -19,7 +19,7 @@ import {
 import { ExecutionDetailsPropertiesValueCode } from '~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsPropertiesValue';
 
 type PipelineRunTabParametersProps = {
-  run: PipelineRecurringRunKFv2 | PipelineRunKFv2 | null;
+  run: PipelineRecurringRunKF | PipelineRunKF | null;
   pipelineSpec: PipelineSpecVariable | undefined;
 };
 

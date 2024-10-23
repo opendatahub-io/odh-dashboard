@@ -3,7 +3,7 @@ import { EmptyStateVariant } from '@patternfly/react-core';
 import { TableVariant } from '@patternfly/react-table';
 import PipelineSelectorTableRow from '~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
 import { TableBase, getTableColumnSort } from '~/components/table';
-import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import { pipelineSelectorColumns } from '~/concepts/pipelines/content/pipelineSelector/columns';
 import PipelineViewMoreFooterRow from '~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
@@ -12,7 +12,7 @@ import SearchSelector from '~/components/searchSelector/SearchSelector';
 
 type PipelineSelectorProps = {
   selection?: string;
-  onSelect: (pipeline: PipelineKFv2) => void;
+  onSelect: (pipeline: PipelineKF) => void;
 };
 
 const PipelineSelector: React.FC<PipelineSelectorProps> = ({ selection, onSelect }) => {

@@ -8,7 +8,7 @@ import {
 } from '~/third_party/mlmd';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { getMlmdContext } from '~/concepts/pipelines/apiHooks/mlmd/useMlmdContext';
-import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import {
   GetArtifactsByContextResponse,
   GetExecutionsByContextResponse,
@@ -66,7 +66,7 @@ describe('useGetArtifactsByRuns', () => {
   mockEvent.getExecutionId = jest.fn().mockReturnValue(1);
 
   // eslint-disable-next-line camelcase
-  const mockRun = { run_id: 'test-run-id' } as PipelineRunKFv2;
+  const mockRun = { run_id: 'test-run-id' } as PipelineRunKF;
 
   beforeEach(() => {
     jest.clearAllMocks();

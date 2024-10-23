@@ -1,13 +1,13 @@
 /* eslint-disable camelcase */
 import {
-  PipelineRecurringRunKFv2,
+  PipelineRecurringRunKF,
   RecurringRunMode,
   RecurringRunStatus,
 } from '~/concepts/pipelines/kfTypes';
 
 export const buildMockRecurringRunKF = (
-  recurringRun?: Partial<PipelineRecurringRunKFv2>,
-): PipelineRecurringRunKFv2 => ({
+  recurringRun?: Partial<PipelineRecurringRunKF>,
+): PipelineRecurringRunKF => ({
   recurring_run_id: 'test-recurring-run',
   display_name: 'Test recurring run',
   pipeline_version_reference: {

@@ -10,9 +10,9 @@ import {
 } from '~/concepts/pipelines/content/createRun/types';
 import {
   DateTimeKF,
-  ExperimentKFv2,
-  PipelineRecurringRunKFv2,
-  PipelineRunKFv2,
+  ExperimentKF,
+  PipelineRecurringRunKF,
+  PipelineRunKF,
   RuntimeConfigParameters,
   StorageStateKF,
 } from '~/concepts/pipelines/kfTypes';
@@ -43,7 +43,7 @@ const parseKFTime = (kfTime?: DateTimeKF): RunDateTime | undefined => {
 
 const useUpdateRunType = (
   setFunction: UpdateObjectAtPropAndValue<RunFormData>,
-  initialData?: PipelineRunKFv2 | PipelineRecurringRunKFv2 | null,
+  initialData?: PipelineRunKF | PipelineRecurringRunKF | null,
 ): void => {
   React.useEffect(() => {
     if (!initialData || !isPipelineRecurringRun(initialData)) {
@@ -97,7 +97,7 @@ const useUpdateRunType = (
 
 const useUpdateExperimentFormData = (
   formState: GenericObjectState<RunFormData>,
-  experiment: ExperimentKFv2 | null | undefined,
+  experiment: ExperimentKF | null | undefined,
 ) => {
   const [formData, setFormValue] = formState;
 
@@ -118,7 +118,7 @@ const useUpdateExperimentFormData = (
 
 const useUpdateDuplicateData = (
   setFunction: UpdateObjectAtPropAndValue<RunFormData>,
-  initialData?: PipelineRunKFv2 | PipelineRecurringRunKFv2 | null,
+  initialData?: PipelineRunKF | PipelineRecurringRunKF | null,
 ) => {
   const duplicateRunPipelineId = initialData?.pipeline_version_reference?.pipeline_id || '';
   const duplicateRunVersionId = initialData?.pipeline_version_reference?.pipeline_version_id || '';
@@ -147,7 +147,7 @@ const useUpdateDuplicateData = (
 };
 
 const useRunFormData = (
-  run?: PipelineRunKFv2 | PipelineRecurringRunKFv2 | null,
+  run?: PipelineRunKF | PipelineRecurringRunKF | null,
   initialFormData?: Partial<RunFormData>,
 ): GenericObjectState<RunFormData> => {
   const { project } = usePipelinesAPI();

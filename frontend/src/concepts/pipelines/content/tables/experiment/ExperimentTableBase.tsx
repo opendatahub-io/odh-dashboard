@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { IAction, TableVariant } from '@patternfly/react-table';
 import { TableBase, getTableColumnSort, useCheckboxTable } from '~/components/table';
-import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
 import { experimentColumns } from '~/concepts/pipelines/content/tables/columns';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import usePipelineFilter from '~/concepts/pipelines/content/tables/usePipelineFilter';
@@ -10,7 +10,7 @@ import ExperimentTableRow from './ExperimentTableRow';
 import { ExperimentTableToolbar } from './ExperimentTableToolbar';
 
 type ExperimentTableProps = {
-  experiments: ExperimentKFv2[];
+  experiments: ExperimentKF[];
   loading?: boolean;
   totalSize: number;
   page: number;
@@ -25,7 +25,7 @@ type ExperimentTableProps = {
   toolbarContentRenderer: (
     selections: string[],
   ) => React.ComponentProps<typeof ExperimentTableToolbar>['children'];
-  getActionColumnItems: (experiment: ExperimentKFv2) => IAction[];
+  getActionColumnItems: (experiment: ExperimentKF) => IAction[];
 };
 
 const ExperimentTable: React.FC<ExperimentTableProps> = ({

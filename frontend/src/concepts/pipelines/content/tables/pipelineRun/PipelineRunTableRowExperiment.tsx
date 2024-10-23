@@ -4,10 +4,10 @@ import { Td } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { experimentRunsRoute } from '~/routes';
-import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
 
 type PipelineRunTableRowExperimentProps = {
-  experiment: ExperimentKFv2 | null;
+  experiment: ExperimentKF | null;
   loaded: boolean;
 };
 

@@ -4,12 +4,12 @@ import { Artifact } from '~/third_party/mlmd';
 import { GetArtifactsByContextRequest } from '~/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
 import useFetchState, { FetchState, FetchStateCallbackPromise } from '~/utilities/useFetchState';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import { MlmdContextTypes } from './types';
 import { getMlmdContext } from './useMlmdContext';
 
 export const useGetArtifactsByRuns = (
-  runs: PipelineRunKFv2[],
+  runs: PipelineRunKF[],
 ): FetchState<Record<string, Artifact[]>[]> => {
   const { metadataStoreServiceClient } = usePipelinesAPI();
 

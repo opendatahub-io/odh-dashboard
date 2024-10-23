@@ -1,7 +1,7 @@
 import { SortableData } from '~/components/table';
-import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
 
-export const experimentSelectorColumns: SortableData<ExperimentKFv2>[] = [
+export const experimentSelectorColumns: SortableData<ExperimentKF>[] = [
   {
     label: 'Experiment name',
     field: 'name',

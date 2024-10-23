@@ -4,14 +4,14 @@ import {
   ArtifactType,
   InputDefinitionParameterType,
   PipelineKFCallCommon,
-  PipelineVersionKFv2,
+  PipelineVersionKF,
 } from '~/concepts/pipelines/kfTypes';
 
 export type BuildMockPipelinveVersionsType = PipelineKFCallCommon<{
-  pipeline_versions: (PipelineVersionKFv2 | ArgoWorkflowPipelineVersion)[];
+  pipeline_versions: (PipelineVersionKF | ArgoWorkflowPipelineVersion)[];
 }>;
 
-export const mockPipelineVersionsListV2: PipelineVersionKFv2[] = [
+export const mockPipelineVersionsList: PipelineVersionKF[] = [
   {
     pipeline_id: 'f9ccf7d7-ceb6-41f2-a1a1-35f0ddef0921',
     pipeline_version_id: '04aff21b-15d6-40a1-a4ac-8f89c416127e',
@@ -241,9 +241,9 @@ export const mockPipelineVersionsListV2: PipelineVersionKFv2[] = [
   },
 ];
 
-export const buildMockPipelineVersionV2 = (
-  pipelineVersion?: Partial<PipelineVersionKFv2>,
-): PipelineVersionKFv2 => {
+export const buildMockPipelineVersion = (
+  pipelineVersion?: Partial<PipelineVersionKF>,
+): PipelineVersionKF => {
   /* eslint-disable @typescript-eslint/naming-convention */
   const display_name = pipelineVersion?.display_name || 'Test pipeline version';
   const pipeline_version_id = display_name.replace(/ /g, '-').toLowerCase();
@@ -515,11 +515,8 @@ export const buildMockPipelineVersionV2 = (
   };
 };
 
-export const buildMockPipelineVersionsV2 = (
-  pipeline_versions: (
-    | PipelineVersionKFv2
-    | ArgoWorkflowPipelineVersion
-  )[] = mockPipelineVersionsListV2,
+export const buildMockPipelineVersions = (
+  pipeline_versions: (PipelineVersionKF | ArgoWorkflowPipelineVersion)[] = mockPipelineVersionsList,
   totalSize?: number,
   nextPageToken?: string,
 ): BuildMockPipelinveVersionsType => ({
@@ -627,7 +624,7 @@ export const mockArgoWorkflowPipelineVersion = ({
     },
   },
 });
-export const mockMetricsVisualizationVersion: PipelineVersionKFv2 = {
+export const mockMetricsVisualizationVersion: PipelineVersionKF = {
   pipeline_id: 'metrics-pipeline',
   pipeline_version_id: 'metrics-pipeline-version',
   display_name: 'metrics visualization',

@@ -5,7 +5,7 @@ import { Divider, Dropdown, DropdownItem, DropdownList, MenuToggle } from '@patt
 
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineVersionImportModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
-import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import {
   pipelineVersionCreateRecurringRunRoute,
   pipelineVersionCreateRunRoute,
@@ -22,8 +22,8 @@ import {
 type PipelineDetailsActionsProps = {
   onDelete: () => void;
   isPipelineSupported: boolean;
-  pipeline: PipelineKFv2 | null;
-  pipelineVersion: PipelineVersionKFv2 | null;
+  pipeline: PipelineKF | null;
+  pipelineVersion: PipelineVersionKF | null;
 };
 
 const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({

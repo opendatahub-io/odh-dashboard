@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
-import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 
-export const mockPipelinesV2Proxy: { pipelines: PipelineKFv2[]; total_size: number } = {
+export const mockPipelinesProxy: { pipelines: PipelineKF[]; total_size: number } = {
   pipelines: [
     {
       pipeline_id: 'f9ccf7d7-ceb6-41f2-a1a1-35f0ddef0921-0',
@@ -32,7 +32,7 @@ export const mockPipelinesV2Proxy: { pipelines: PipelineKFv2[]; total_size: numb
   total_size: 5,
 };
 
-export const buildMockPipelineV2 = (pipeline?: Partial<PipelineKFv2>): PipelineKFv2 => {
+export const buildMockPipeline = (pipeline?: Partial<PipelineKF>): PipelineKF => {
   /* eslint-disable @typescript-eslint/naming-convention */
   const display_name = pipeline?.display_name || 'Test pipeline';
   const pipeline_id = display_name.replace(/ /g, '-').toLowerCase();
@@ -47,13 +47,13 @@ export const buildMockPipelineV2 = (pipeline?: Partial<PipelineKFv2>): PipelineK
 };
 
 export const buildMockPipelines = (
-  pipelines: PipelineKFv2[] = mockPipelinesV2Proxy.pipelines,
+  pipelines: PipelineKF[] = mockPipelinesProxy.pipelines,
   totalSize?: number,
   nextPageToken?: string,
 ): {
   total_size?: number | undefined;
   next_page_token?: string | undefined;
-  pipelines: PipelineKFv2[];
+  pipelines: PipelineKF[];
 } => ({
   pipelines,
   total_size: totalSize || pipelines.length,
