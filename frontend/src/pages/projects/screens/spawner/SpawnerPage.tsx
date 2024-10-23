@@ -3,8 +3,6 @@ import { Link } from 'react-router-dom';
 import {
   Breadcrumb,
   BreadcrumbItem,
-  Flex,
-  FlexItem,
   Form,
   FormSection,
   PageSection,
@@ -52,10 +50,9 @@ import useDefaultStorageClass from './storage/useDefaultStorageClass';
 import usePreferredStorageClass from './storage/usePreferredStorageClass';
 import { ConnectionsFormSection } from './connections/ConnectionsFormSection';
 import { getConnectionsFromNotebook } from './connections/utils';
-import { ClusterStorageTable } from './storage/ClusterStorageTable';
 import useDefaultPvcSize from './storage/useDefaultPvcSize';
 import { defaultClusterStorage } from './storage/constants';
-import { ClusterStorageEmptyState } from './storage/ClusterStorageEmptyState';
+import ClusterStorageFormSection from './storage/ClusterStorageFormSection';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
@@ -244,39 +241,11 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
             >
               <EnvironmentVariables envVariables={envVariables} setEnvVariables={setEnvVariables} />
             </FormSection>
-            <FormSection
-              title={
-                <Flex
-                  spaceItems={{ default: 'spaceItemsMd' }}
-                  alignItems={{ default: 'alignItemsCenter' }}
-                >
-                  <FlexItem spacer={{ default: 'spacerLg' }}>
-                    {SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
-                  </FlexItem>
-
-                  {/* TODO, show when corresponding modals are created
-                  <Button variant="secondary" data-testid="existing-storage-button">
-                    Attach existing storage
-                  </Button>
-
-                  <Button variant="secondary" data-testid="create-storage-button">
-                    Create storage
-                  </Button> */}
-                </Flex>
-              }
-              id={SpawnerPageSectionID.CLUSTER_STORAGE}
-              aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
-            >
-              {storageData.length ? (
-                <ClusterStorageTable
-                  storageData={storageData.map((formData, index) => ({ ...formData, id: index }))}
-                  setStorageData={setStorageData}
-                  workbenchName={k8sNameDescriptionData.data.k8sName.value}
-                />
-              ) : (
-                <ClusterStorageEmptyState />
-              )}
-            </FormSection>
+            <ClusterStorageFormSection
+              storageData={storageData}
+              setStorageData={setStorageData}
+              workbenchName={k8sNameDescriptionData.data.name}
+            />
             {isConnectionTypesEnabled ? (
               <ConnectionsFormSection
                 project={currentProject}
