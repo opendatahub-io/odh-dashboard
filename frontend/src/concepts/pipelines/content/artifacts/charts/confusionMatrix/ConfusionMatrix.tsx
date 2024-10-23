@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text } from '@patternfly/react-core';
+import { Content } from '@patternfly/react-core';
 import './ConfusionMatrix.scss';
 import { ConfusionMatrixConfig } from './types';
 
@@ -40,7 +40,7 @@ const ConfusionMatrix: React.FC<ConfusionMatrixProps> = ({
                   minWidth: cellSize,
                 }}
               >
-                <Text>{labels[rowIndex]}</Text>
+                <Content component="p">{labels[rowIndex]}</Content>
               </td>
               {row.map((cell, cellIndex) => (
                 <td
@@ -75,9 +75,12 @@ const ConfusionMatrix: React.FC<ConfusionMatrixProps> = ({
                     width: cellSize,
                   }}
                 >
-                  <Text style={{ transform: `translateX(${size / 4}px) rotate(315deg)` }}>
+                  <Content
+                    component="p"
+                    style={{ transform: `translateX(${size / 4}px) rotate(315deg)` }}
+                  >
                     {label}
-                  </Text>
+                  </Content>
                 </div>
               </th>
             ))}

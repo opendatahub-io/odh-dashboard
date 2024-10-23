@@ -1,7 +1,7 @@
 .odh-type-bordered-card {
   position: relative;
   border-radius: 16px;
-  border: 1px solid var(--pf-v5-global--BorderColor--100);
+  border: 1px solid var(--pf-t--global--border--color--default);
   padding: 1px;
 
   &:after {
@@ -84,14 +84,15 @@
       display: none;
       top: unset;
       bottom: 0;
-      transform: rotate( -180deg );
+      transform: rotate(-180deg);
     }
     &:hover {
       cursor: pointer;
     }
-    &:hover, &.m-is-selected {
+    &:hover,
+    &.m-is-selected {
       &:after {
-        display: block
+        display: block;
       }
       &.project {
         border-color: var(--ai-project--BorderColor);

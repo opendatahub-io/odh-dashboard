@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Checkbox, Text, TextVariants } from '@patternfly/react-core';
+import { Checkbox, Content, ContentVariants } from '@patternfly/react-core';
 import SettingSection from '~/components/SettingSection';
 
 type TelemetrySettingsProps = {
@@ -23,17 +23,17 @@ const TelemetrySettings: React.FC<TelemetrySettingsProps> = ({
     <SettingSection
       title="Usage data collection"
       footer={
-        <Text component={TextVariants.small}>
+        <Content component={ContentVariants.small}>
           For more information see the{' '}
-          <Text
-            component={TextVariants.a}
+          <Content
+            component={ContentVariants.a}
             href="https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/managing_resources/managing-collection-of-usage-data"
             target="_blank"
           >
             documentation
-          </Text>
+          </Content>
           .
-        </Text>
+        </Content>
       }
     >
       <Checkbox

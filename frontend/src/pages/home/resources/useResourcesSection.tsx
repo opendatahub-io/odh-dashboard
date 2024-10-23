@@ -4,12 +4,10 @@ import {
   Button,
   EmptyState,
   EmptyStateBody,
-  EmptyStateHeader,
-  EmptyStateIcon,
   EmptyStateVariant,
   PageSection,
   Stack,
-  TextVariants,
+  ContentVariants,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import OdhDocCard from '~/components/OdhDocCard';
@@ -41,21 +39,22 @@ export const useResourcesSection = (): React.ReactNode => {
   }
 
   return (
-    <PageSection data-testid="landing-page-resources">
+    <PageSection hasBodyWrapper={false} data-testid="landing-page-resources">
       <CollapsibleSection
         title="Get oriented with learning resources"
-        titleVariant={TextVariants.h1}
+        titleVariant={ContentVariants.h1}
         open={resourcesOpen}
         setOpen={setResourcesOpen}
       >
         <Stack hasGutter>
           {loadError ? (
-            <EmptyState variant={EmptyStateVariant.lg} data-id="error-empty-state">
-              <EmptyStateHeader
-                titleText="Error loading resources"
-                icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-                headingLevel="h3"
-              />
+            <EmptyState
+              headingLevel="h3"
+              icon={ExclamationCircleIcon}
+              titleText="Error loading resources"
+              variant={EmptyStateVariant.lg}
+              data-id="error-empty-state"
+            >
               <EmptyStateBody>{loadError.message}</EmptyStateBody>
             </EmptyState>
           ) : (
@@ -67,7 +66,7 @@ export const useResourcesSection = (): React.ReactNode => {
                   odhDoc={doc}
                   showFavorite={false}
                   style={{
-                    border: '1px solid var(--pf-v5-global--BorderColor--100)',
+                    border: '1px solid var(--pf-t--global--border--color--default)',
                     borderRadius: 16,
                   }}
                 />

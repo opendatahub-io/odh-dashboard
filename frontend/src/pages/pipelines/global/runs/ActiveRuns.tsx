@@ -1,14 +1,7 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 
-import {
-  Bullseye,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateIcon,
-  Spinner,
-  EmptyStateHeader,
-} from '@patternfly/react-core';
+import { Bullseye, EmptyState, EmptyStateBody, Spinner } from '@patternfly/react-core';
 import { CubesIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 
 import PipelineRunTable from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
@@ -27,12 +20,12 @@ export const ActiveRuns: React.FC = () => {
   if (isExperimentArchived) {
     return (
       <Bullseye>
-        <EmptyState data-testid="experiment-archived-empty-state">
-          <EmptyStateHeader
-            titleText="Experiment archived"
-            icon={<EmptyStateIcon icon={CubesIcon} />}
-            headingLevel="h2"
-          />
+        <EmptyState
+          data-testid="experiment-archived-empty-state"
+          titleText="Experiment archived"
+          icon={CubesIcon}
+          headingLevel="h2"
+        >
           <EmptyStateBody>
             When an experiment is archived, its runs are moved to the {PipelineRunTabTitle.ARCHIVED}{' '}
             tab.
@@ -45,12 +38,11 @@ export const ActiveRuns: React.FC = () => {
   if (error) {
     return (
       <Bullseye>
-        <EmptyState>
-          <EmptyStateHeader
-            titleText="There was an issue loading active runs"
-            icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-            headingLevel="h2"
-          />
+        <EmptyState
+          titleText="There was an issue loading active runs"
+          icon={ExclamationCircleIcon}
+          headingLevel="h2"
+        >
           <EmptyStateBody>{error.message}</EmptyStateBody>
         </EmptyState>
       </Bullseye>

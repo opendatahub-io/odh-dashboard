@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Form, Modal, Radio } from '@patternfly/react-core';
+import { Form, Radio } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import TrustyDBSecretFields from '~/concepts/trustyai/content/TrustyDBSecretFields';
 import useTrustyInstallModalData, {

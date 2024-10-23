@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  Bullseye,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateHeader,
-  EmptyStateIcon,
-} from '@patternfly/react-core';
+import { Bullseye, EmptyState, EmptyStateBody } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 
 interface ExperimentLoadingErrorProps {
@@ -14,12 +8,11 @@ interface ExperimentLoadingErrorProps {
 
 const ExperimentLoadingError: React.FC<ExperimentLoadingErrorProps> = ({ error }) => (
   <Bullseye>
-    <EmptyState>
-      <EmptyStateHeader
-        titleText="There was an issue loading experiments"
-        icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-        headingLevel="h2"
-      />
+    <EmptyState
+      headingLevel="h2"
+      titleText="There was an issue loading experiments"
+      icon={ExclamationCircleIcon}
+    >
       <EmptyStateBody>{error.message}</EmptyStateBody>
     </EmptyState>
   </Bullseye>

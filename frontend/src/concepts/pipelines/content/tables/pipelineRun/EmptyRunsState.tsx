@@ -4,8 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   EmptyState,
   EmptyStateBody,
-  EmptyStateIcon,
-  EmptyStateHeader,
   EmptyStateFooter,
   EmptyStateActions,
   Button,
@@ -23,13 +21,12 @@ export const EmptyRunsState: React.FC<EmptyRunsStateProps> = ({ createRunRoute, 
   const navigate = useNavigate();
 
   return (
-    <EmptyState data-testid={dataTestId}>
-      <EmptyStateHeader
-        titleText="No runs"
-        icon={<EmptyStateIcon icon={PlusCircleIcon} />}
-        headingLevel="h2"
-      />
-
+    <EmptyState
+      data-testid={dataTestId}
+      titleText="No runs"
+      icon={PlusCircleIcon}
+      headingLevel="h2"
+    >
       <EmptyStateBody>
         To get started, create a run. Alternatively, go to the{' '}
         <b>{PipelineRunTabTitle.SCHEDULES}</b> tab and create a schedule to execute recurring runs.

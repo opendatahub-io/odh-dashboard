@@ -63,7 +63,7 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
   if (loadError) {
     return (
       <HelperText>
-        <HelperTextItem variant="warning" hasIcon>
+        <HelperTextItem variant="warning">
           Failed to get endpoint for this deployed model. {loadError.message}
         </HelperTextItem>
       </HelperText>
@@ -90,7 +90,7 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
             <DescriptionListTerm>
               External (can be accessed from inside or outside the cluster)
             </DescriptionListTerm>
-            <DescriptionListDescription style={{ paddingLeft: 'var(--pf-v5-global--spacer--md)' }}>
+            <DescriptionListDescription style={{ paddingLeft: 'var(--pf-t--global--spacer--md)' }}>
               <ClipboardCopy
                 hoverTip="Copy"
                 clickTip="Copied"

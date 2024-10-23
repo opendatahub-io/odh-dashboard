@@ -5,9 +5,7 @@ import {
   Bullseye,
   EmptyState,
   EmptyStateBody,
-  EmptyStateIcon,
   Spinner,
-  EmptyStateHeader,
   Breadcrumb,
   BreadcrumbItem,
   Truncate,
@@ -54,12 +52,11 @@ export const ManageRunsPageInternal: React.FC<ManageRunsPageInternalProps> = ({ 
   if (error) {
     return (
       <Bullseye>
-        <EmptyState>
-          <EmptyStateHeader
-            titleText="There was an issue loading runs"
-            icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-            headingLevel="h2"
-          />
+        <EmptyState
+          headingLevel="h2"
+          icon={ExclamationCircleIcon}
+          titleText="There was an issue loading runs"
+        >
           <EmptyStateBody>{error.message}</EmptyStateBody>
         </EmptyState>
       </Bullseye>

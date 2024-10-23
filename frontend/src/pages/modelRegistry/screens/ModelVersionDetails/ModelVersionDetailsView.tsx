@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { DescriptionList, Flex, FlexItem, TextVariants, Title } from '@patternfly/react-core';
+import { DescriptionList, Flex, FlexItem, ContentVariants, Title } from '@patternfly/react-core';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
 import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
 import EditableTextDescriptionListGroup from '~/components/EditableTextDescriptionListGroup';
@@ -91,7 +91,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             <InlineTruncatedClipboardCopy testId="model-version-id" textToCopy={mv.id} />
           </DashboardDescriptionListGroup>
         </DescriptionList>
-        <Title style={{ marginTop: '1em' }} headingLevel={TextVariants.h3}>
+        <Title style={{ marginTop: '1em' }} headingLevel={ContentVariants.h3}>
           Model location
         </Title>
         <DescriptionList isFillColumns>
@@ -154,7 +154,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             </>
           )}
         </DescriptionList>
-        <Title style={{ marginTop: '1em' }} headingLevel={TextVariants.h3}>
+        <Title style={{ marginTop: '1em' }} headingLevel="h3">
           Source model format
         </Title>
         <DescriptionList isFillColumns>

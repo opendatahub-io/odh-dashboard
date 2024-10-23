@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { PageSection, Stack, Text, TextContent } from '@patternfly/react-core';
+import { PageSection, Stack, Content } from '@patternfly/react-core';
 import { SectionType, sectionTypeBorderColor } from '~/concepts/design/utils';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
 import { SupportedArea } from '~/concepts/areas';
@@ -78,11 +78,11 @@ export const useAIFlows = (): React.ReactNode => {
     }
 
     return (
-      <PageSection data-testid="home-page-ai-flows" variant="light">
+      <PageSection hasBodyWrapper={false} data-testid="home-page-ai-flows">
         <Stack hasGutter>
-          <TextContent>
-            <Text component="h1">Train, serve, monitor, and manage AI/ML models</Text>
-          </TextContent>
+          <Content>
+            <Content component="h1">Train, serve, monitor, and manage AI/ML models</Content>
+          </Content>
           <EvenlySpacedGallery itemCount={cards.length} hasGutter>
             {cards}
           </EvenlySpacedGallery>

@@ -24,7 +24,7 @@ const ImageLocationField: React.FC<ImageLocationFieldProps> = ({
     label="Image location"
     isRequired
     fieldId="byon-image-location-input"
-    labelIcon={
+    labelHelp={
       <Popover
         aria-label="Image location help popover"
         headerContent="Location examples"

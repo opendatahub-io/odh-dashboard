@@ -1,5 +1,6 @@
 import React from 'react';
-import { Button, Flex, FlexItem, Form, FormGroup, Modal, Truncate } from '@patternfly/react-core';
+import { Button, Flex, FlexItem, Form, FormGroup, Truncate } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import { MultiSelection, SelectionOptions } from '~/components/MultiSelection';
 import { Connection, ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';

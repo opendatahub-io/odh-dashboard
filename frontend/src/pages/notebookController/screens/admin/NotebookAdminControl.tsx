@@ -2,7 +2,6 @@ import * as React from 'react';
 import {
   Alert,
   EmptyState,
-  EmptyStateHeader,
   EmptyStateVariant,
   Spinner,
   Stack,
@@ -53,9 +52,13 @@ const NotebookAdminControl: React.FC = () => {
       provideChildrenPadding
       loaded={loaded}
       loadingContent={
-        <EmptyState variant={EmptyStateVariant.lg} data-id="loading-empty-state">
+        <EmptyState
+          headingLevel="h1"
+          titleText="Loading"
+          variant={EmptyStateVariant.lg}
+          data-id="loading-empty-state"
+        >
           <Spinner size="xl" />
-          <EmptyStateHeader titleText="Loading" headingLevel="h1" />
         </EmptyState>
       }
       loadError={loadError}

@@ -9,8 +9,7 @@ import {
   Spinner,
   Stack,
   StackItem,
-  Text,
-  TextContent,
+  Content,
   Title,
 } from '@patternfly/react-core';
 import { ProjectObjectType } from '~/concepts/design/utils';
@@ -73,7 +72,7 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({
   };
 
   return (
-    <PageSection aria-label="details-section" variant="light" id={id}>
+    <PageSection hasBodyWrapper={false} aria-label="details-section" id={id}>
       <Stack
         data-testid={`section-${id}`}
         hasGutter
@@ -111,9 +110,7 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({
                   </Flex>
                 </FlexItem>
                 <FlexItem>
-                  <TextContent>
-                    {description && <Text component="p">{description}</Text>}
-                  </TextContent>
+                  <Content>{description && <Content component="p">{description}</Content>}</Content>
                 </FlexItem>
               </Flex>
               <Flex direction={{ default: 'column', md: 'row' }}>

@@ -38,7 +38,7 @@ const InternalServicePopoverContent: React.FC<InternalServicePopoverContentProps
               clickTip="Copied"
               variant={ClipboardCopyVariant.inlineCompact}
             >
-              {inferenceService.status?.address?.url}
+              {inferenceService.status?.address?.url ?? ''}
             </ClipboardCopy>
           </DescriptionListDescription>
         </DescriptionListGroup>
@@ -58,7 +58,7 @@ const InternalServicePopoverContent: React.FC<InternalServicePopoverContentProps
             <DescriptionListTerm>
               <ListItem>{route}</ListItem>
             </DescriptionListTerm>
-            <DescriptionListDescription style={{ paddingLeft: 'var(--pf-v5-global--spacer--md)' }}>
+            <DescriptionListDescription style={{ paddingLeft: 'var(--pf-t--global--spacer--md)' }}>
               <ClipboardCopy
                 hoverTip="Copy"
                 clickTip="Copied"

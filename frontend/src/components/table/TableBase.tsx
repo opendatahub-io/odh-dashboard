@@ -284,8 +284,8 @@ const TableBase = <T,>({
       {(toolbarContent || showPagination) && (
         <Toolbar
           inset={{ default: 'insetNone' }}
-          className="pf-v5-u-w-100"
-          customChipGroupContent={onClearFilters ? undefined : <></>}
+          className="pf-v6-u-w-100"
+          customLabelGroupContent={onClearFilters ? undefined : <></>}
           clearAllFilters={onClearFilters}
         >
           <ToolbarContent>
@@ -293,8 +293,8 @@ const TableBase = <T,>({
             {showPagination && (
               <ToolbarItem
                 variant="pagination"
-                align={{ default: 'alignRight' }}
-                className="pf-v5-u-pr-lg"
+                align={{ default: 'alignEnd' }}
+                className="pf-v6-u-pr-lg"
               >
                 {pagination('top')}
               </ToolbarItem>
@@ -312,11 +312,11 @@ const TableBase = <T,>({
       )}
 
       {(bottomToolbarContent || showPagination) && (
-        <Toolbar inset={{ default: 'insetNone' }} className="pf-v5-u-w-100">
+        <Toolbar inset={{ default: 'insetNone' }} className="pf-v6-u-w-100">
           <ToolbarContent alignItems="center">
             {bottomToolbarContent}
             {showPagination && (
-              <ToolbarItem variant="pagination" align={{ default: 'alignRight' }}>
+              <ToolbarItem variant="pagination" align={{ default: 'alignEnd' }}>
                 {pagination('bottom')}
               </ToolbarItem>
             )}

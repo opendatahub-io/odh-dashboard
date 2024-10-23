@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Form, FormGroup, Modal } from '@patternfly/react-core';
+import { Form, FormGroup } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import { ConnectionTypeField, ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';

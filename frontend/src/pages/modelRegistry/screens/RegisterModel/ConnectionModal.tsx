@@ -1,5 +1,6 @@
 import React from 'react';
-import { Modal, Button, FormGroup, HelperText, Form, FormHelperText } from '@patternfly/react-core';
+import { Button, FormGroup, HelperText, Form, FormHelperText } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import ProjectSelector from '~/concepts/projects/ProjectSelector';
 import { DataConnection } from '~/pages/projects/types';
 import { ConnectionDropdown } from './ConnectionDropdown';

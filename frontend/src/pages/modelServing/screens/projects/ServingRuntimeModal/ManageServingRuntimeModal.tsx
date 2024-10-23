@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Form, Modal, Stack, StackItem } from '@patternfly/react-core';
+import { Form, Stack, StackItem } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
   submitServingRuntimeResourcesWithDryRun,

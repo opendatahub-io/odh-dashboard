@@ -76,7 +76,7 @@ export const computeRunStatus = (run?: PipelineRunKFv2 | null): RunStatusDetails
       break;
     case RuntimeStateKF.CANCELED:
       icon = <BanIcon />;
-      color = 'gold';
+      color = 'orangered';
       label = runtimeStateLabels[RuntimeStateKF.CANCELED];
       break;
     case RuntimeStateKF.PAUSED:

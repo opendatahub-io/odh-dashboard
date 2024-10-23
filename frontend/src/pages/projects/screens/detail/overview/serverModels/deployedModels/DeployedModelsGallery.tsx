@@ -4,13 +4,10 @@ import {
   EmptyState,
   EmptyStateBody,
   EmptyStateFooter,
-  EmptyStateHeader,
-  EmptyStateIcon,
   Flex,
   FlexItem,
   Gallery,
-  Text,
-  TextContent,
+  Content,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { SearchIcon } from '@patternfly/react-icons';
@@ -106,11 +103,7 @@ const DeployedModelsGallery: React.FC<DeployedModelsGalleryProps> = ({
 
   if (filteredServices.length === 0 && deployedModels.length > 0) {
     return (
-      <EmptyState variant="sm">
-        <EmptyStateHeader
-          titleText="No results found"
-          icon={<EmptyStateIcon icon={SearchIcon} />}
-        />
+      <EmptyState icon={SearchIcon} titleText="No results found" variant="sm">
         <EmptyStateBody>Clear the filter or apply a different one.</EmptyStateBody>
         <EmptyStateFooter>
           <Button isInline variant="link" onClick={onClearFilters}>
@@ -126,7 +119,7 @@ const DeployedModelsGallery: React.FC<DeployedModelsGalleryProps> = ({
       <Gallery
         hasGutter
         minWidths={{ default: '285px' }}
-        style={{ marginBottom: 'var(--pf-v5-global--spacer--sm)' }}
+        style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
       >
         {shownServices.map((model) => (
           <DeployedModelCard
@@ -140,11 +133,11 @@ const DeployedModelsGallery: React.FC<DeployedModelsGalleryProps> = ({
       </Gallery>
       <Flex gap={{ default: 'gapMd' }}>
         <FlexItem>
-          <TextContent>
-            <Text component="small">
+          <Content>
+            <Content component="small">
               {shownServices.length} of {filteredServices.length} models
-            </Text>
-          </TextContent>
+            </Content>
+          </Content>
         </FlexItem>
         <FlexItem>
           <Button

@@ -63,14 +63,13 @@ const FileUploadExtensionRow: React.FC<FileUploadExtensionRowProps> = ({
         </InputGroupItem>
         <InputGroupItem isPlain>
           <Button
+            icon={<MinusCircleIcon />}
             variant="plain"
             data-testid="file-upload-extension-row-remove"
             aria-label="remove extension"
             isDisabled={!allowRemove}
             onClick={onRemove}
-          >
-            <MinusCircleIcon />
-          </Button>
+          />
         </InputGroupItem>
       </InputGroup>
       {!isValid ? (

@@ -2,8 +2,6 @@ import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   EmptyState,
   EmptyStateBody,
-  EmptyStateHeader,
-  EmptyStateIcon,
   EmptyStateVariant,
   PageSection,
   Spinner,
@@ -66,15 +64,13 @@ const ProjectsSettingsTab: React.FC<RoleBindingProjectPermissionsProps> = ({
   if (loadError) {
     return (
       <EmptyState
+        headingLevel="h2"
+        icon={ExclamationCircleIcon}
+        titleText="There was an issue loading projects"
         variant={EmptyStateVariant.lg}
         data-id="error-empty-state"
         id={ProjectSectionID.PERMISSIONS}
       >
-        <EmptyStateHeader
-          titleText="There was an issue loading projects"
-          icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-          headingLevel="h2"
-        />
         <EmptyStateBody>{loadError.message}</EmptyStateBody>
       </EmptyState>
     );
@@ -83,18 +79,19 @@ const ProjectsSettingsTab: React.FC<RoleBindingProjectPermissionsProps> = ({
   if (!loaded) {
     return (
       <EmptyState
+        headingLevel="h2"
+        titleText="Loading"
         variant={EmptyStateVariant.lg}
         data-id="loading-empty-state"
         id={ProjectSectionID.PERMISSIONS}
       >
         <Spinner size="xl" />
-        <EmptyStateHeader titleText="Loading" headingLevel="h2" />
       </EmptyState>
     );
   }
 
   return (
-    <PageSection isFilled variant="light">
+    <PageSection hasBodyWrapper={false} isFilled>
       <Stack hasGutter>
         <StackItem>{description}</StackItem>
         <StackItem>

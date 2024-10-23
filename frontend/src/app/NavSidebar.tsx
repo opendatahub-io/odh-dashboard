@@ -60,9 +60,9 @@ const NavSidebar: React.FC = () => {
   const userNavData = useBuildNavData();
 
   return (
-    <PageSidebar theme="dark">
+    <PageSidebar>
       <PageSidebarBody>
-        <Nav theme="dark" aria-label="Nav">
+        <Nav aria-label="Nav">
           <NavList>
             {userNavData.map((item) =>
               isNavDataGroup(item) ? (

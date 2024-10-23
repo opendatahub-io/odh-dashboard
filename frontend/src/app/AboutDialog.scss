@@ -3,7 +3,7 @@
 // Override to use the full width of the dialog rather than wrapping early
 .odh-about-dialog {
   height: fit-content;
-  .pf-v5-c-about-modal-box__content {
+  .pf-v6-c-about-modal-box__content {
     grid-column-end: -1;
   }
 }

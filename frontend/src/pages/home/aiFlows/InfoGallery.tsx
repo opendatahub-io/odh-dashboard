@@ -19,7 +19,7 @@ const InfoGallery: React.FC<InfoGalleryProps> = ({ infoItems, closeAlt, onClose,
       closeTestId={closeTestId}
       style={{
         borderRadius: 16,
-        border: `1px solid var(--pf-v5-global--BorderColor--100)`,
+        border: `1px solid var(--pf-t--global--border--color--default)`,
       }}
     >
       {infoItems}

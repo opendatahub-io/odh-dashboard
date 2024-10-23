@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Label,
+  LabelGroup,
   Button,
-  Chip,
-  ChipGroup,
   MenuToggle,
   MenuToggleElement,
   Select,
@@ -13,6 +13,7 @@ import {
   TextInputGroupMain,
   TextInputGroupUtilities,
 } from '@patternfly/react-core';
+
 import { TimesIcon } from '@patternfly/react-icons';
 import useAcceleratorProfiles from '~/pages/notebookController/screens/server/useAcceleratorProfiles';
 import { useDashboardNamespace } from '~/redux/selectors';
@@ -132,23 +133,25 @@ export const AcceleratorIdentifierMultiselect: React.FC<AcceleratorIdentifierMul
           isExpanded={isOpen}
           aria-controls="select-multi-create-typeahead-listbox"
         >
-          <ChipGroup aria-label="Current selections">
+          <LabelGroup aria-label="Current selections">
             {data.map((selection, index) => (
-              <Chip
+              <Label
+                variant="outline"
                 key={index}
-                onClick={(ev) => {
+                onClose={(ev) => {
                   ev.stopPropagation();
                   onSelect(selection);
                 }}
               >
                 {selection}
-              </Chip>
+              </Label>
             ))}
-          </ChipGroup>
+          </LabelGroup>
         </TextInputGroupMain>
         <TextInputGroupUtilities>
           {data.length > 0 && (
             <Button
+              icon={<TimesIcon aria-hidden />}
               variant="plain"
               onClick={() => {
                 setInputValue('');
@@ -156,9 +159,7 @@ export const AcceleratorIdentifierMultiselect: React.FC<AcceleratorIdentifierMul
                 textInputRef.current?.focus();
               }}
               aria-label="Clear input value"
-            >
-              <TimesIcon aria-hidden />
-            </Button>
+            />
           )}
         </TextInputGroupUtilities>
       </TextInputGroup>

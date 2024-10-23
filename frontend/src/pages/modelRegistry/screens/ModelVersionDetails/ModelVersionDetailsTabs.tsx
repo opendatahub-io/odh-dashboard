@@ -41,7 +41,11 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
         aria-label="Model versions details tab"
         data-testid="model-versions-details-tab"
       >
-        <PageSection isFilled variant="light" data-testid="model-versions-details-tab-content">
+        <PageSection
+          hasBodyWrapper={false}
+          isFilled
+          data-testid="model-versions-details-tab-content"
+        >
           <ModelVersionDetailsView
             modelVersion={mv}
             refresh={refresh}
@@ -56,7 +60,7 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
           aria-label="Deployments tab"
           data-testid="deployments-tab"
         >
-          <PageSection isFilled variant="light" data-testid="deployments-tab-content">
+          <PageSection hasBodyWrapper={false} isFilled data-testid="deployments-tab-content">
             <ModelVersionRegisteredDeploymentsView
               inferenceServices={inferenceServices}
               servingRuntimes={servingRuntimes}

@@ -9,8 +9,7 @@ import {
   CardTitle,
   Stack,
   StackItem,
-  Text,
-  TextContent,
+  Content,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { QuickStartContextValues } from '@patternfly/quickstarts';
@@ -87,6 +86,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({
     if (odhDoc.spec.type === OdhDocumentType.Documentation) {
       return (
         <Button
+          icon={<ExternalLinkAltIcon />}
           variant="link"
           component="a"
           className="odh-card__footer__link"
@@ -97,13 +97,13 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({
           data-testid="view-documentation"
         >
           View documentation
-          <ExternalLinkAltIcon />
         </Button>
       );
     }
     if (odhDoc.spec.type === OdhDocumentType.Tutorial) {
       return (
         <Button
+          icon={<ExternalLinkAltIcon />}
           variant="link"
           component="a"
           className="odh-card__footer__link"
@@ -113,7 +113,6 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({
           rel="noopener noreferrer"
         >
           Access tutorial
-          <ExternalLinkAltIcon />
         </Button>
       );
     }
@@ -132,6 +131,7 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({
     if (odhDoc.spec.type === OdhDocumentType.HowTo) {
       return (
         <Button
+          icon={<ExternalLinkAltIcon />}
           variant="link"
           component="a"
           className="odh-card__footer__link"
@@ -142,7 +142,6 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({
           data-testid="read-how-to-article"
         >
           Read how-to article
-          <ExternalLinkAltIcon />
         </Button>
       );
     }
@@ -175,13 +174,16 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({
         <BrandImage src={odhDoc.spec.img || odhDoc.spec.icon || ''} alt={odhDoc.spec.displayName} />
       </CardHeader>
       <CardTitle>
-        <TextContent>
+        <Content>
           {odhDoc.spec.displayName}
           {/* Override the bold font in the title, make the subtitle lighter */}
-          <Text component="small" style={{ fontWeight: 'var(--pf-v5-global--FontWeight--normal)' }}>
+          <Content
+            component="small"
+            style={{ fontWeight: 'var(--pf-t--global--font--weight--body--default)' }}
+          >
             by {odhDoc.spec.appDisplayName}
-          </Text>
-        </TextContent>
+          </Content>
+        </Content>
       </CardTitle>
       <CardBody>
         <Stack hasGutter>

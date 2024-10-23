@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as _ from 'lodash-es';
-import { Alert, Button, Form, Modal, Stack, StackItem } from '@patternfly/react-core';
+import { Alert, Button, Form, Stack, StackItem } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import AWSField from '~/pages/projects/dataConnections/AWSField';
 import { DataConnection, EnvVariableDataEntry } from '~/pages/projects/types';
