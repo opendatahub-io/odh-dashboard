@@ -129,6 +129,10 @@ class NotebookRow extends TableRow {
     return this;
   }
 
+  findNotebookImageAvailability() {
+    return cy.findByTestId('notebook-image-availability');
+  }
+
   shouldHaveClusterStorageTitle() {
     this.findExpansion()
       .findByTestId('notebook-storage-bar-title')

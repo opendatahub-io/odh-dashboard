@@ -1,7 +1,5 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
-import { NotebookImageAvailability } from '~/pages/projects/screens/detail/notebooks/const';
-import useNotebookImage from '~/pages/projects/screens/detail/notebooks/useNotebookImage';
 import { NotebookState } from './types';
 
 type Props = {
@@ -12,13 +10,9 @@ type Props = {
 };
 
 const NotebookStateAction: React.FC<Props> = ({ notebookState, onStart, onStop, isDisabled }) => {
-  const { notebook, isStarting, isRunning, isStopping } = notebookState;
-  const [notebookImage] = useNotebookImage(notebook);
+  const { isStarting, isRunning, isStopping } = notebookState;
 
-  const actionDisabled =
-    isDisabled ||
-    isStopping ||
-    (notebookImage?.imageAvailability === NotebookImageAvailability.DELETED && !isRunning);
+  const actionDisabled = isDisabled || isStopping;
 
   return isStarting || isRunning ? (
     <Button

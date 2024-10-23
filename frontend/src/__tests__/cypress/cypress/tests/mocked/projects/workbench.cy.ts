@@ -39,12 +39,14 @@ import { mock200Status } from '~/__mocks__/mockK8sStatus';
 import type { NotebookSize } from '~/types';
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import { mockConnectionTypeConfigMap } from '~/__mocks__/mockConnectionType';
+import type { PodKind } from '~/k8sTypes';
 
 const configYamlPath = '../../__mocks__/mock-upload-configmap.yaml';
 
 type HandlersProps = {
   isEmpty?: boolean;
   notebookSizes?: NotebookSize[];
+  mockPodList?: PodKind[];
 };
 
 const initIntercepts = ({
@@ -64,6 +66,7 @@ const initIntercepts = ({
       },
     },
   ],
+  mockPodList = [mockPodK8sResource({})],
 }: HandlersProps) => {
   cy.interceptK8sList(StorageClassModel, mockStorageClassList());
   cy.interceptOdh(
@@ -82,7 +85,7 @@ const initIntercepts = ({
   );
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
   cy.interceptK8s(ProjectModel, mockProjectK8sResource({}));
-  cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
+  cy.interceptK8sList(PodModel, mockK8sResourceList(mockPodList));
   cy.interceptK8sList(
     ImageStreamModel,
     mockK8sResourceList([
@@ -594,6 +597,38 @@ describe('Workbench page', () => {
       ]);
     });
     notebookRow.findNotebookStatusPopover('Waiting for notebook to start...').should('exist');
+  });
+
+  it('Validate the start button is enabled when the notebook image is deleted', () => {
+    initIntercepts({ mockPodList: [] });
+
+    cy.interceptK8sList(
+      {
+        model: NotebookModel,
+        ns: 'test-project',
+      },
+      mockK8sResourceList([
+        mockNotebookK8sResource({
+          name: 'deleted-image-notebook',
+          opts: {
+            metadata: {
+              annotations: {
+                'kubeflow-resource-stopped': '2023-02-14T21:45:14Z',
+              },
+            },
+          },
+          displayName: 'Notebook with deleted image',
+          image: 'test-imagestream:invalid',
+        }),
+      ]),
+    );
+
+    workbenchPage.visit('test-project');
+
+    const notebookRow = workbenchPage.getNotebookRow('Notebook with deleted image');
+    notebookRow.findNotebookImageAvailability().should('have.text', 'Deleted');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Stopped');
+    notebookRow.findNotebookStart().should('not.be.disabled');
   });
 
   it('Edit workbench', () => {
