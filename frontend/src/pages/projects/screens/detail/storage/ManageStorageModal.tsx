@@ -87,6 +87,13 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, onCl
       forNotebook: { name: notebookName, mountPath },
     } = createData;
     const pvcPromises: Promise<PersistentVolumeClaimKind | NotebookKind>[] = [];
+    const storageData = {
+      name: createData.nameDesc.name,
+      description: createData.nameDesc.description,
+      size: createData.size,
+      storageClassName: createData.storageClassName,
+    };
+
     if (existingData) {
       const pvcName = existingData.metadata.name;
       if (
@@ -95,7 +102,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, onCl
         existingData.spec.resources.requests.storage !== createData.size ||
         existingData.spec.storageClassName !== createData.storageClassName
       ) {
-        pvcPromises.push(updatePvc(createData, existingData, namespace, { dryRun }));
+        pvcPromises.push(updatePvc(storageData, existingData, namespace, { dryRun }));
       }
       if (existingData.spec.resources.requests.storage !== createData.size) {
         connectedNotebooks.map((connectedNotebook) =>
@@ -119,7 +126,7 @@ const ManageStorageModal: React.FC<AddStorageModalProps> = ({ existingData, onCl
       }
       return;
     }
-    const createdPvc = await createPvc(createData, namespace, { dryRun });
+    const createdPvc = await createPvc(storageData, namespace, { dryRun });
     if (notebookName) {
       await attachNotebookPVC(notebookName, namespace, createdPvc.metadata.name, mountPath.value, {
         dryRun,
