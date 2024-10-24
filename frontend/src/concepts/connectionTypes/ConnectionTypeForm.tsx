@@ -2,7 +2,6 @@ import * as React from 'react';
 import {
   Flex,
   FlexItem,
-  Form,
   FormGroup,
   FormSection,
   MenuToggleStatus,
@@ -138,7 +137,7 @@ const ConnectionTypeForm: React.FC<Props> = ({
   );
 
   return (
-    <Form>
+    <>
       {isPreview && <Title headingLevel="h1">Add connection</Title>}
       <FormGroup label="Connection type" fieldId="connection-type" isRequired>
         <TypeaheadSelect
@@ -207,7 +206,7 @@ const ConnectionTypeForm: React.FC<Props> = ({
           />
         </FormSection>
       )}
-    </Form>
+    </>
   );
 };
 
