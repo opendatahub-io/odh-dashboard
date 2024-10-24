@@ -2,11 +2,9 @@ import * as React from 'react';
 import {
   Flex,
   FlexItem,
-  Form,
   FormGroup,
   FormSection,
   MenuToggleStatus,
-  Title,
   Truncate,
 } from '@patternfly/react-core';
 import ConnectionTypeFormFields from '~/concepts/connectionTypes/fields/ConnectionTypeFormFields';
@@ -138,8 +136,7 @@ const ConnectionTypeForm: React.FC<Props> = ({
   );
 
   return (
-    <Form>
-      {isPreview && <Title headingLevel="h1">Add connection</Title>}
+    <>
       <FormGroup label="Connection type" fieldId="connection-type" isRequired>
         <TypeaheadSelect
           id="connection-type"
@@ -207,7 +204,7 @@ const ConnectionTypeForm: React.FC<Props> = ({
           />
         </FormSection>
       )}
-    </Form>
+    </>
   );
 };
 

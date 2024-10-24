@@ -24,6 +24,7 @@ import { connectionTypeColumns } from '~/pages/connectionTypes/columns';
 import CategoryLabel from '~/concepts/connectionTypes/CategoryLabel';
 import { getCompatibleTypes, isConnectionTypeDataField } from '~/concepts/connectionTypes/utils';
 import CompatibilityLabel from '~/concepts/connectionTypes/CompatibilityLabel';
+import ConnectionTypePreviewModal from '~/concepts/connectionTypes/ConnectionTypePreviewModal';
 
 type ConnectionTypesTableRowProps = {
   obj: ConnectionTypeConfigMapObj;
@@ -38,6 +39,7 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
 }) => {
   const navigate = useNavigate();
   const notification = useNotification();
+  const [showPreview, setShowPreview] = React.useState(false);
   const [isUpdating, setIsUpdating] = React.useState(false);
   const [isEnabled, setIsEnabled] = React.useState(
     () => obj.metadata.annotations?.['opendatahub.io/disabled'] !== 'true',
@@ -143,6 +145,10 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
         <ActionsColumn
           items={[
             {
+              title: 'Preview',
+              onClick: () => setShowPreview(true),
+            },
+            {
               title: 'Edit',
               onClick: () => navigate(`/connectionTypes/edit/${obj.metadata.name}`),
             },
@@ -158,6 +164,9 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
           ]}
         />
       </Td>
+      {showPreview ? (
+        <ConnectionTypePreviewModal obj={obj} onClose={() => setShowPreview(false)} />
+      ) : null}
     </Tr>
   );
 };
