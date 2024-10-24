@@ -242,7 +242,7 @@ describe('Workbench page', () => {
     //to check scrollable dropdown selection
     createSpawnerPage.findNotebookImage('test-9').click();
     createSpawnerPage.selectContainerSize(
-      'XSmall Limits: 0.5 CPU, 500Mi Memory Requests: 0.1 CPU, 100Mi Memory',
+      'XSmall Limits: 0.5 CPU, 500MiB Memory Requests: 0.1 CPU, 100MiB Memory',
     );
     createSpawnerPage.findSubmitButton().should('be.enabled');
     createSpawnerPage.findAddVariableButton().click();
@@ -385,7 +385,7 @@ describe('Workbench page', () => {
     //to check scrollable dropdown selection
     createSpawnerPage.findNotebookImage('test-9').click();
     createSpawnerPage.selectContainerSize(
-      'XSmall Limits: 0.5 CPU, 500Mi Memory Requests: 0.1 CPU, 100Mi Memory',
+      'XSmall Limits: 0.5 CPU, 500MiB Memory Requests: 0.1 CPU, 100MiB Memory',
     );
     createSpawnerPage.findSubmitButton().should('be.enabled');
 
