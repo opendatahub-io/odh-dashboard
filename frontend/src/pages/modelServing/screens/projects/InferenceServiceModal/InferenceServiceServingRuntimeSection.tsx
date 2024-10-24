@@ -52,7 +52,6 @@ const InferenceServiceServingRuntimeSection: React.FC<
     <FormGroup label="Model server" fieldId="inference-service-model-selection" isRequired>
       <SimpleSelect
         dataTestId="inference-service-model-selection"
-        isDisabled={servingRuntimes.length === 0}
         options={servingRuntimes.map((servingRuntime) => ({
           key: servingRuntime.metadata.name,
           label: getDisplayNameFromK8sResource(servingRuntime),

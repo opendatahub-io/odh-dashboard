@@ -1,5 +1,9 @@
 import React from 'react';
 import {
+  /**
+   * The Select component is used to build another generic component here
+   */
+  // eslint-disable-next-line no-restricted-imports
   Select,
   SelectOption,
   SelectList,
