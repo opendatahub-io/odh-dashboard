@@ -17,7 +17,7 @@ import { modelRegistryUrl, registeredModelUrl } from '~/pages/modelRegistry/scre
 import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegisteredModels';
 import { filterLiveModels } from '~/concepts/modelRegistry/utils';
 import { useRegisterVersionData } from './useRegisterModelData';
-import { isRegisterVersionSubmitDisabled, registerVersion } from './utils';
+import { isNameValid, isRegisterVersionSubmitDisabled, registerVersion } from './utils';
 import RegistrationCommonFormSections from './RegistrationCommonFormSections';
 import { useRegistrationCommonState } from './useRegistrationCommonState';
 import PrefilledModelRegistryField from './PrefilledModelRegistryField';
@@ -34,7 +34,9 @@ const RegisterVersion: React.FC = () => {
     useRegistrationCommonState();
 
   const [formData, setData] = useRegisterVersionData(prefilledRegisteredModelId);
-  const isSubmitDisabled = isSubmitting || isRegisterVersionSubmitDisabled(formData);
+  const isVersionNameValid = isNameValid(formData.versionName);
+  const isSubmitDisabled =
+    isSubmitting || isRegisterVersionSubmitDisabled(formData) || !isVersionNameValid;
   const { registeredModelId } = formData;
 
   const [allRegisteredModels, loadedRegisteredModels, loadRegisteredModelsError] =
@@ -121,6 +123,8 @@ const RegisterVersion: React.FC = () => {
                 setData={setData}
                 isFirstVersion={false}
                 latestVersion={latestVersion}
+                registredModelId={registeredModelId}
+                isVersionNameValid={isVersionNameValid}
               />
             </StackItem>
           </Stack>

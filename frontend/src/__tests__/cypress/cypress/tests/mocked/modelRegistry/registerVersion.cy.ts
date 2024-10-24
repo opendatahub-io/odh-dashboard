@@ -350,6 +350,7 @@ describe('Register model page with no preselected model', () => {
   });
 
   it('Creates expected resources on submit in object storage mode', () => {
+    const veryLongName = 'Test name'.repeat(15); // A string over 128 characters
     registerVersionPage.selectRegisteredModel('Test model 1');
     registerVersionPage.findFormField(FormFieldSelector.VERSION_NAME).type('Test version name');
     registerVersionPage
@@ -359,6 +360,14 @@ describe('Register model page with no preselected model', () => {
       .findFormField(FormFieldSelector.LOCATION_PATH)
       .type('demo-models/flan-t5-small-caikit');
 
+    registerVersionPage.findFormField(FormFieldSelector.VERSION_NAME).clear().type(veryLongName);
+    registerVersionPage.findSubmitButton().should('be.disabled');
+    registerVersionPage
+      .findFormField(FormFieldSelector.VERSION_NAME)
+      .clear()
+      .type('Test version name');
+
+    registerVersionPage.findSubmitButton().should('be.enabled');
     registerVersionPage.findSubmitButton().click();
 
     cy.wait('@createModelVersion').then((interception) => {
@@ -373,7 +382,7 @@ describe('Register model page with no preselected model', () => {
     });
     cy.wait('@createModelArtifact').then((interception) => {
       expect(interception.request.body).to.containSubset({
-        name: 'Test model 1-Test version name-artifact',
+        name: 'Test version name',
         description: 'Test version description',
         customProperties: {},
         state: ModelArtifactState.LIVE,
@@ -428,7 +437,7 @@ describe('Register model page with no preselected model', () => {
     });
     cy.wait('@createModelArtifact').then((interception) => {
       expect(interception.request.body).to.containSubset({
-        name: 'Test model 1-Test version name-artifact',
+        name: 'Test version name',
         description: 'Test version description',
         customProperties: {},
         state: ModelArtifactState.LIVE,
@@ -513,7 +522,7 @@ describe('Register model page with preselected model', () => {
     });
     cy.wait('@createModelArtifact').then((interception) => {
       expect(interception.request.body).to.containSubset({
-        name: 'Test model 1-Test version name-artifact',
+        name: 'Test version name',
         description: 'Test version description',
         customProperties: {},
         state: ModelArtifactState.LIVE,
@@ -568,7 +577,7 @@ describe('Register model page with preselected model', () => {
     });
     cy.wait('@createModelArtifact').then((interception) => {
       expect(interception.request.body).to.containSubset({
-        name: 'Test model 1-Test version name-artifact',
+        name: 'Test version name',
         description: 'Test version description',
         customProperties: {},
         state: ModelArtifactState.LIVE,

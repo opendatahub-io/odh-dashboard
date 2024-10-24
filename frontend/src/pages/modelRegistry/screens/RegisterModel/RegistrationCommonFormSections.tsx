@@ -13,7 +13,7 @@ import {
   FormHelperText,
   Button,
 } from '@patternfly/react-core';
-import { OptimizeIcon } from '@patternfly/react-icons';
+import { ExclamationCircleIcon, OptimizeIcon } from '@patternfly/react-icons';
 import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
 import { DataConnection, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { convertAWSSecretData } from '~/pages/projects/screens/detail/data-connections/utils';
@@ -27,6 +27,8 @@ type RegistrationCommonFormSectionsProps<D extends RegistrationCommonFormData> =
   setData: UpdateObjectAtPropAndValue<D>;
   isFirstVersion: boolean;
   latestVersion?: ModelVersion;
+  registredModelId?: string;
+  isVersionNameValid?: boolean;
 };
 
 const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
@@ -34,6 +36,8 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
   setData,
   isFirstVersion,
   latestVersion,
+  isVersionNameValid,
+  registredModelId,
 }: RegistrationCommonFormSectionsProps<D>): React.ReactNode => {
   const [isAutofillModalOpen, setAutofillModalOpen] = React.useState(false);
 
@@ -87,13 +91,24 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
             value={versionName}
             onChange={(_e, value) => setData('versionName', value)}
           />
-          {latestVersion && (
-            <FormHelperText>
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem
+                hasIcon={!!(registredModelId && latestVersion)}
+                icon={isVersionNameValid ? null : <ExclamationCircleIcon />}
+                variant={isVersionNameValid ? 'indeterminate' : 'error'}
+              >
+                Cannot exceed 128 characters
+              </HelperTextItem>
+            </HelperText>
+            {latestVersion && (
               <HelperText>
-                <HelperTextItem>Current version is {latestVersion.name}</HelperTextItem>
+                <HelperTextItem variant="indeterminate" isDynamic>
+                  Current version is {latestVersion.name}
+                </HelperTextItem>
               </HelperText>
-            </FormHelperText>
-          )}
+            )}
+          </FormHelperText>
         </FormGroup>
         <FormGroup label="Version description" fieldId="version-description">
           <TextArea
