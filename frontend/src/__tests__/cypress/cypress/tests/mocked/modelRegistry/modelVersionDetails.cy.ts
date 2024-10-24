@@ -217,6 +217,20 @@ const initIntercepts = () => {
     },
     mockModelArtifactList({}),
   );
+
+  cy.intercept('PATCH', '/api/service/modelregistry/*/api/model_registry/*/model_artifacts/*', {
+    body: {
+      artifactType: 'model-artifact',
+      createTimeSinceEpoch: '1729694473577',
+      customProperties: {},
+      id: '24',
+      lastUpdateTimeSinceEpoch: '1729712188616',
+      modelFormatName: 'UPdate',
+      name: 'test1-n1-artifact',
+      state: 'LIVE',
+      uri: 's3://b/t?endpoint=b',
+    },
+  }).as('updateArtifact');
 };
 
 describe('Model version details', () => {
@@ -381,6 +395,47 @@ describe('Model version details', () => {
       modelVersionDetails.findRegisteredDeploymentsTab().click();
 
       modelServingGlobal.getModelRow('Test Inference Service').should('exist');
+    });
+  });
+
+  describe('Model Version Details', () => {
+    beforeEach(() => {
+      initIntercepts();
+      modelVersionDetails.visit();
+    });
+
+    it('should update source model format', () => {
+      cy.intercept('PATCH', '/api/service/modelregistry/*/api/model_registry/*/model_artifacts/*', {
+        body: {
+          modelFormatName: 'NewFormat',
+        },
+      }).as('updateModelFormat');
+
+      modelVersionDetails.findSourceModelFormat().should('contain', 'NewFormat');
+      modelVersionDetails.findSaveButton().click();
+
+      cy.wait('@updateModelFormat').then((interception) => {
+        expect(interception.request.body).to.deep.equal({
+          modelFormatName: 'NewFormat',
+        });
+      });
+    });
+
+    it('should update source model version', () => {
+      cy.intercept('PATCH', '/api/service/modelregistry/*/api/model_registry/*/model_artifacts/*', {
+        body: {
+          modelFormatVersion: '2.0.0',
+        },
+      }).as('updateModelVersion');
+
+      modelVersionDetails.findSourceModelVersion().should('contain', '2.0.0');
+      modelVersionDetails.findSaveButton().click();
+
+      cy.wait('@updateModelVersion').then((interception) => {
+        expect(interception.request.body).to.deep.equal({
+          modelFormatVersion: '2.0.0',
+        });
+      });
     });
   });
 });
