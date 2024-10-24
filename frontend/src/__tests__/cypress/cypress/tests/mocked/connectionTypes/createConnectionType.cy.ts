@@ -183,6 +183,24 @@ describe('edit', () => {
     );
   });
 
+  it('should duplicate connection into create page', () => {
+    cy.interceptOdh(
+      'GET /api/connection-types/:name',
+      { path: { name: 'existing' } },
+      toConnectionTypeConfigMap(existing),
+    );
+    createConnectionTypePage.visitEditPage('existing');
+
+    createConnectionTypePage.findConnectionTypeName().should('have.value', 'existing');
+    createConnectionTypePage.findConnectionTypeDesc().fill('new description');
+    createConnectionTypePage.findDuplicateConnectionTypeButton().click();
+
+    cy.url().should('include', '/connectionTypes/duplicate/existing');
+
+    createConnectionTypePage.findConnectionTypeName().should('have.value', 'Copy of existing');
+    createConnectionTypePage.findConnectionTypeDesc().should('have.value', 'new description');
+  });
+
   it('Drag and drop field rows in table', () => {
     cy.interceptOdh(
       'GET /api/connection-types/:name',
