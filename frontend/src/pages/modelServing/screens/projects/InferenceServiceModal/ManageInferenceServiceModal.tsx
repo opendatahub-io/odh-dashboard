@@ -63,10 +63,13 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
       registeredModelDeployInfo,
     );
 
+  const hasEditInfo = !!editInfo;
   React.useEffect(() => {
-    setCreateData('project', currentProjectName);
-    setCreateData('servingRuntimeName', currentServingRuntimeName);
-  }, [setCreateData, currentProjectName, currentServingRuntimeName]);
+    if (!hasEditInfo) {
+      setCreateData('project', currentProjectName);
+      setCreateData('servingRuntimeName', currentServingRuntimeName);
+    }
+  }, [setCreateData, currentProjectName, currentServingRuntimeName, hasEditInfo]);
 
   const storageCanCreate = (): boolean => {
     if (createData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
