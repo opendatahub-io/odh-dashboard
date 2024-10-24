@@ -145,6 +145,7 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
             {
               title: 'Edit',
               onClick: () => navigate(`/connectionTypes/edit/${obj.metadata.name}`),
+              isDisabled: ownedByDSC(obj),
             },
             {
               title: 'Duplicate',
@@ -154,6 +155,7 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
             {
               title: 'Delete',
               onClick: () => handleDelete(obj),
+              isDisabled: ownedByDSC(obj),
             },
           ]}
         />
