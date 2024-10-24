@@ -182,6 +182,7 @@ describe('Register model page', () => {
   });
 
   it('Creates expected resources on submit in object storage mode', () => {
+    const veryLongName = 'Test name'.repeat(15); // A string over 128 characters
     registerModelPage.findFormField(FormFieldSelector.MODEL_NAME).type('Test model name');
     registerModelPage
       .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
@@ -201,7 +202,17 @@ describe('Register model page', () => {
     registerModelPage
       .findFormField(FormFieldSelector.LOCATION_PATH)
       .type('demo-models/flan-t5-small-caikit');
+    registerModelPage.findSubmitButton().should('be.enabled');
 
+    registerModelPage.findFormField(FormFieldSelector.MODEL_NAME).clear().type(veryLongName);
+    registerModelPage.findSubmitButton().should('be.disabled');
+    registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).clear().type(veryLongName);
+    registerModelPage.findFormField(FormFieldSelector.MODEL_NAME).clear().type('Test model name');
+    registerModelPage.findSubmitButton().should('be.disabled');
+    registerModelPage
+      .findFormField(FormFieldSelector.VERSION_NAME)
+      .clear()
+      .type('Test version name');
     registerModelPage.findSubmitButton().click();
 
     cy.wait('@createRegisteredModel').then((interception) => {
@@ -224,7 +235,7 @@ describe('Register model page', () => {
     });
     cy.wait('@createModelArtifact').then((interception) => {
       expect(interception.request.body).to.containSubset({
-        name: 'Test model name-Test version name-artifact',
+        name: 'Test version name',
         description: 'Test version description',
         customProperties: {},
         state: ModelArtifactState.LIVE,
@@ -292,7 +303,7 @@ describe('Register model page', () => {
     });
     cy.wait('@createModelArtifact').then((interception) => {
       expect(interception.request.body).to.containSubset({
-        name: 'Test model name-Test version name-artifact',
+        name: 'Test version name',
         description: 'Test version description',
         customProperties: {},
         state: ModelArtifactState.LIVE,
