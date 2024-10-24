@@ -39,7 +39,6 @@ const ConnectionTypeSectionModal: React.FC<Props> = ({ field, onClose, onSubmit,
             }
           }}
           isSubmitDisabled={!canSubmit || !isValid}
-          alertTitle=""
         />
       }
       elementToFocus="#section-name"

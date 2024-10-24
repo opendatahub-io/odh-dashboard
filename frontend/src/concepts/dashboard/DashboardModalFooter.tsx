@@ -14,10 +14,10 @@ type DashboardModalFooterProps = {
   submitButtonVariant?: ButtonProps['variant'];
   onSubmit: () => void;
   onCancel: () => void;
-  isSubmitDisabled: boolean;
+  isSubmitDisabled?: boolean;
   isSubmitLoading?: boolean;
   isCancelDisabled?: boolean;
-  alertTitle: string;
+  alertTitle?: string;
   error?: Error;
 };
 

@@ -1,17 +1,17 @@
 import * as React from 'react';
 import { Modal } from '@patternfly/react-core';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
+import { ConnectionTypeDataField } from '~/concepts/connectionTypes/types';
 
 type Props = {
-  field: string;
-  isSection: boolean;
+  field: ConnectionTypeDataField;
   onClose: (submit: boolean) => void;
 };
 
-export const ConnectionTypeFieldRemoveModal: React.FC<Props> = ({ field, isSection, onClose }) => (
+const ConnectionTypeDataFieldRemoveModal: React.FC<Props> = ({ field, onClose }) => (
   <Modal
     isOpen
-    title={isSection ? 'Remove section heading?' : 'Remove field?'}
+    title="Remove field?"
     onClose={() => onClose(false)}
     variant="small"
     footer={
@@ -19,14 +19,11 @@ export const ConnectionTypeFieldRemoveModal: React.FC<Props> = ({ field, isSecti
         submitLabel="Remove"
         onCancel={() => onClose(false)}
         onSubmit={() => onClose(true)}
-        alertTitle=""
-        isSubmitDisabled={false}
       />
     }
   >
-    The <b>{field}</b>{' '}
-    {isSection
-      ? `section heading will be removed. Associated fields will not be removed.`
-      : `field will be removed.`}
+    The <b>{field.name}</b> field will be removed.
   </Modal>
 );
+
+export default ConnectionTypeDataFieldRemoveModal;

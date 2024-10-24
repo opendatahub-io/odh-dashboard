@@ -7,10 +7,15 @@ import {
   ConnectionTypeFieldType,
   SectionField,
 } from '~/concepts/connectionTypes/types';
-import { defaultValueToString, fieldTypeToString } from '~/concepts/connectionTypes/utils';
+import {
+  defaultValueToString,
+  fieldTypeToString,
+  findSectionFields,
+} from '~/concepts/connectionTypes/utils';
 import type { RowProps } from '~/utilities/useDraggableTableControlled';
 import { columns } from '~/pages/connectionTypes/manage/fieldTableColumns';
-import { ConnectionTypeFieldRemoveModal } from '~/pages/connectionTypes/manage/ConnectionTypeFieldRemoveModal';
+import ConnectionTypeDataFieldRemoveModal from '~/pages/connectionTypes/manage/ConnectionTypeDataFieldRemoveModal';
+import ConnectionTypeSectionRemoveModal from '~/pages/connectionTypes/manage/ConnectionTypeSectionRemoveModal';
 import { TableRowTitleDescription } from '~/components/table';
 import { ValidationContext } from '~/utilities/useValidation';
 import { ValidationErrorCodes } from '~/concepts/connectionTypes/validationUtils';
@@ -19,8 +24,8 @@ type Props = {
   row: ConnectionTypeField;
   fields: ConnectionTypeField[];
   onEdit: () => void;
-  onRemove: () => void;
-  onDuplicate: (field: ConnectionTypeField) => void;
+  onRemove: (removeSectionFields?: boolean) => void;
+  onDuplicate: () => void;
   onAddField: (parentSection: SectionField) => void;
   onMoveToSection: () => void;
   onChange: (updatedField: ConnectionTypeField) => void;
@@ -92,7 +97,7 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
               },
               {
                 title: 'Duplicate',
-                onClick: () => onDuplicate({ ...row, name: `Copy of ${row.name}` }),
+                onClick: () => onDuplicate(),
               },
               { isSeparator: true },
               {
@@ -103,13 +108,13 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
           />
         </Td>
         {showRemoveField ? (
-          <ConnectionTypeFieldRemoveModal
-            field={row.name}
-            isSection
-            onClose={(submit) => {
+          <ConnectionTypeSectionRemoveModal
+            field={row}
+            fields={findSectionFields(rowIndex, fields)}
+            onClose={(submit, removeFields) => {
               setShowRemoveField(false);
               if (submit) {
-                onRemove();
+                onRemove(removeFields);
               }
             }}
           />
@@ -181,7 +186,7 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
             },
             {
               title: 'Duplicate',
-              onClick: () => onDuplicate({ ...row, name: `Copy of ${row.name}` }),
+              onClick: () => onDuplicate(),
             },
             ...(showMoveToSection
               ? [
@@ -200,9 +205,8 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
         />
       </Td>
       {showRemoveField ? (
-        <ConnectionTypeFieldRemoveModal
-          field={row.name}
-          isSection={false}
+        <ConnectionTypeDataFieldRemoveModal
+          field={row}
           onClose={(submit) => {
             setShowRemoveField(false);
             if (submit) {
