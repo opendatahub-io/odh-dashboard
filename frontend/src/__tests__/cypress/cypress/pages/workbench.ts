@@ -378,6 +378,10 @@ class EditSpawnerPage extends CreateSpawnerPage {
     return this;
   }
 
+  findAlertMessage() {
+    return cy.findByTestId('env-variable-alert-message');
+  }
+
   findCancelButton() {
     return cy.findByTestId('workbench-cancel-button');
   }

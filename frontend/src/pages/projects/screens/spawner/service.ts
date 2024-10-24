@@ -26,6 +26,7 @@ import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
 import { ConfigMapKind, NotebookKind, SecretKind } from '~/k8sTypes';
 import { getVolumesByStorageData } from './spawnerUtils';
 import { fetchNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
+import { getDeletedConfigMapOrSecretVariables } from './environmentVariables/utils';
 
 export const createPvcDataForNotebook = async (
   projectName: string,
@@ -196,6 +197,10 @@ export const updateConfigMapsAndSecretsForNotebook = async (
   dryRun = false,
 ): Promise<EnvironmentFromVariable[]> => {
   const existingEnvVars = await fetchNotebookEnvVariables(notebook);
+  const { deletedConfigMaps, deletedSecrets } = getDeletedConfigMapOrSecretVariables(
+    notebook,
+    existingEnvVars,
+  );
   const newDataConnection =
     dataConnection?.enabled && dataConnection.type === 'creating' && dataConnection.creating
       ? dataConnection.creating
@@ -217,6 +222,7 @@ export const updateConfigMapsAndSecretsForNotebook = async (
   const currentNames = oldResources
     .map((envVar) => envVar.existingName)
     .filter((v): v is string => !!v);
+
   const removeResources = existingEnvVars.filter(
     (envVar) => envVar.existingName && !currentNames.includes(envVar.existingName),
   );
@@ -267,7 +273,7 @@ export const updateConfigMapsAndSecretsForNotebook = async (
   ]);
 
   const deletingNames = deleteResources.map((resource) => resource.existingName || '');
-  deletingNames.push(...removeDataConnections);
+  deletingNames.push(...removeDataConnections, ...deletedSecrets, ...deletedConfigMaps);
 
   const envFromList = notebook.spec.template.spec.containers[0].envFrom || [];
 
