@@ -15,6 +15,8 @@ import useGenericObjectState from '~/utilities/useGenericObjectState';
 import { getRootVolumeName } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import useDefaultPvcSize from './useDefaultPvcSize';
+import { MountPathFormat } from './types';
+import { MOUNT_PATH_PREFIX } from './const';
 
 export const useCreateStorageObjectForNotebook = (
   existingData?: PersistentVolumeClaimKind,
@@ -112,4 +114,46 @@ export const useStorageDataObject = (
       storage: getRootVolumeName(notebook),
     },
   });
+};
+
+// Returns the initial mount path format based on the isCreate and mountPath props.
+export const useMountPathFormat = (
+  isCreate: boolean,
+  mountPath: string,
+): [MountPathFormat, React.Dispatch<React.SetStateAction<MountPathFormat>>] => {
+  const getInitialFormat = React.useCallback(() => {
+    if (isCreate) {
+      return MountPathFormat.STANDARD;
+    }
+    return mountPath.startsWith(MOUNT_PATH_PREFIX)
+      ? MountPathFormat.STANDARD
+      : MountPathFormat.CUSTOM;
+  }, [isCreate, mountPath]);
+
+  const [format, setFormat] = React.useState(getInitialFormat);
+
+  React.useEffect(() => {
+    if (!isCreate) {
+      const newFormat = mountPath.startsWith(MOUNT_PATH_PREFIX)
+        ? MountPathFormat.STANDARD
+        : MountPathFormat.CUSTOM;
+      setFormat(newFormat);
+    }
+  }, [isCreate, mountPath]);
+
+  return [format, setFormat] as const;
+};
+
+// Validates the mount path for a storage object.
+export const validateMountPath = (value: string, inUseMountPaths: string[]): string => {
+  if (value.length === 0) {
+    return 'Enter a path to a model or folder. This path cannot point to a root folder.';
+  }
+  if (!/^[a-z-]+\/?$/.test(value)) {
+    return 'Must only consist of lowercase letters and dashes.';
+  }
+  if (inUseMountPaths.includes(`/${value}`)) {
+    return 'Mount folder is already in use for this workbench.';
+  }
+  return '';
 };

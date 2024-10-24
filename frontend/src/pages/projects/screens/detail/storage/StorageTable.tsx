@@ -8,8 +8,8 @@ import { getStorageClassConfig } from '~/pages/storageClasses/utils';
 import useStorageClasses from '~/concepts/k8s/useStorageClasses';
 import StorageTableRow from './StorageTableRow';
 import { columns } from './data';
-import ManageStorageModal from './ManageStorageModal';
 import { StorageTableData } from './types';
+import ClusterStorageModal from './ClusterStorageModal';
 
 type StorageTableProps = {
   pvcs: PersistentVolumeClaimKind[];
@@ -85,7 +85,7 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
         )}
       />
       {editPVC ? (
-        <ManageStorageModal
+        <ClusterStorageModal
           existingData={editPVC}
           onClose={(updated) => {
             if (updated) {
