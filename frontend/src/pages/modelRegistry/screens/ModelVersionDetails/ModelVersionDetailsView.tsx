@@ -176,6 +176,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
         </Title>
         <DescriptionList isFillColumns>
           <EditableTextDescriptionListGroup
+            testid="source-model-format"
             value={modelFormat}
             saveEditedValue={(value) =>
               apiState.api
@@ -193,6 +194,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             contentWhenEmpty="No model format specified"
           />
           <EditableTextDescriptionListGroup
+            testid="source-model-version"
             value={modelFormatVersion}
             saveEditedValue={(newVersion) =>
               apiState.api

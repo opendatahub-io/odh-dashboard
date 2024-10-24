@@ -23,6 +23,29 @@ class ModelVersionDetails {
   findDescription() {
     return cy.findByTestId('model-version-description');
   }
+  findSourceModelFormat() {
+    return cy.findByTestId('source-model-format');
+  }
+
+  findSourceModelFormatEditButton() {
+    return cy.findByTestId('source-model-format-edit-button');
+  }
+
+  findSourceModelFormatInput() {
+    return cy.findByTestId('source-model-format-input');
+  }
+
+  findSourceModelVersion() {
+    return cy.findByTestId('source-model-version');
+  }
+
+  findSourceModelVersionEditButton() {
+    return cy.findByTestId('source-model-version-edit-button');
+  }
+
+  findSourceModelVersionInput() {
+    return cy.findByTestId('source-model-version-input');
+  }
 
   findMoreLabelsButton() {
     return cy.findByTestId('label-group').find('button');
