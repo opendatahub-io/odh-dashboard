@@ -21,6 +21,9 @@ type ProjectSelectorProps = {
   error?: Error;
   isOpen: boolean;
   setOpen: (open: boolean) => void;
+  modelRegistryName?: string;
+  registeredModelId?: string;
+  modelVersionId?: string;
 };
 
 const ProjectSelector: React.FC<ProjectSelectorProps> = ({
@@ -29,8 +32,19 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   error,
   isOpen,
   setOpen,
+  modelRegistryName,
+  registeredModelId,
+  modelVersionId,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
+
+  const projectLinkUrlParams = new URLSearchParams();
+  projectLinkUrlParams.set('section', ProjectSectionID.MODEL_SERVER);
+  if (modelRegistryName && registeredModelId && modelVersionId) {
+    projectLinkUrlParams.set('modelRegistryName', modelRegistryName);
+    projectLinkUrlParams.set('registeredModelId', registeredModelId);
+    projectLinkUrlParams.set('modelVersionId', modelVersionId);
+  }
 
   return (
     <FormGroup label="Project" fieldId="deploy-model-project-selector" isRequired>
@@ -84,7 +98,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
           <StackItem>
             <Alert isInline variant="danger" title={error.message}>
               <Link
-                to={`/projects/${selectedProject.metadata.name}?section=${ProjectSectionID.MODEL_SERVER}`}
+                to={`/projects/${selectedProject.metadata.name}?${projectLinkUrlParams.toString()}`}
               >
                 Go to <b>{getDisplayNameFromK8sResource(selectedProject)}</b> project page
               </Link>

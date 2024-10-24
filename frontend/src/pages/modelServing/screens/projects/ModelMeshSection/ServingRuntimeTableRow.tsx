@@ -3,13 +3,15 @@ import * as React from 'react';
 import { Button, Icon, Skeleton, Tooltip, Truncate } from '@patternfly/react-core';
 import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { KnownLabels, ServingRuntimeKind } from '~/k8sTypes';
+import SimpleMenuActions from '~/components/SimpleMenuActions';
 import EmptyTableCellForAlignment from '~/pages/projects/components/EmptyTableCellForAlignment';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
+import { modelVersionUrl } from '~/pages/modelRegistry/screens/routeUtils';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 import {
@@ -36,6 +38,13 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
   allowDelete,
 }) => {
   const navigate = useNavigate();
+
+  const [queryParams] = useSearchParams();
+  const modelRegistryName = queryParams.get('modelRegistryName');
+  const registeredModelId = queryParams.get('registeredModelId');
+  const modelVersionId = queryParams.get('modelVersionId');
+  // deployingFromRegistry = User came from the Model Registry page because this project didn't have a serving platform selected
+  const deployingFromRegistry = !!(modelRegistryName && registeredModelId && modelVersionId);
 
   const {
     currentProject,
@@ -147,14 +156,38 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
           )}
         </Td>
         <Td style={{ textAlign: 'end' }}>
-          <Button
-            data-testid="deploy-model-button"
-            onClick={() => onDeployModel(obj)}
-            key={`action-${ProjectSectionID.CLUSTER_STORAGES}`}
-            variant="secondary"
-          >
-            Deploy model
-          </Button>
+          {deployingFromRegistry ? (
+            <SimpleMenuActions
+              key={`action-${ProjectSectionID.MODEL_SERVER}`}
+              testId="deploy-model-dropdown"
+              toggleProps={{ variant: 'secondary' }}
+              toggleLabel="Deploy model"
+              dropdownItems={[
+                {
+                  key: 'deploy',
+                  label: 'Deploy model',
+                  onClick: () => onDeployModel(obj),
+                },
+                {
+                  key: 'deployFromRegistry',
+                  label: 'Deploy model from model registry',
+                  onClick: () => {
+                    // TODO also pass a param to open the deploy modal and prefill the project
+                    navigate(modelVersionUrl(modelVersionId, registeredModelId, modelRegistryName));
+                  },
+                },
+              ]}
+            />
+          ) : (
+            <Button
+              data-testid="deploy-model-button"
+              onClick={() => onDeployModel(obj)}
+              key={`action-${ProjectSectionID.MODEL_SERVER}`}
+              variant="secondary"
+            >
+              Deploy model
+            </Button>
+          )}
         </Td>
         <Td isActionCell>
           <ActionsColumn

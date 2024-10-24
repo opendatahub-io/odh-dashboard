@@ -11,6 +11,7 @@ import { ServingRuntimePlatform } from '~/types';
 import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
 import useRegisteredModelDeployInfo from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
+import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { getKServeTemplates } from '~/pages/modelServing/customServingRuntimes/utils';
 import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
 
@@ -31,6 +32,7 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
     servingRuntimeTemplateOrder: { data: templateOrder },
     servingRuntimeTemplateDisablement: { data: templateDisablement },
   } = React.useContext(ModelRegistryContext);
+  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
 
   const [selectedProject, setSelectedProject] = React.useState<ProjectKind | null>(null);
   const servingPlatformStatuses = useServingPlatformStatuses();
@@ -68,6 +70,9 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
       error={error}
       isOpen={isProjectSelectorOpen}
       setOpen={setProjectSelectorOpen}
+      modelRegistryName={preferredModelRegistry?.metadata.name}
+      registeredModelId={modelVersion.registeredModelId}
+      modelVersionId={modelVersion.id}
     />
   );
 

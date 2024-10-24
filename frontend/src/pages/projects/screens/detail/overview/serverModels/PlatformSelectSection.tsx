@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Alert, Gallery, Stack, Text, TextContent } from '@patternfly/react-core';
 import CollapsibleSection from '~/concepts/design/CollapsibleSection';
 import { useIsNIMAvailable } from '~/pages/modelServing/screens/projects/useIsNIMAvailable';
+import ModelServingPlatformSelectErrorAlert from '~/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
 import { useDashboardNamespace } from '~/redux/selectors';
 import SelectNIMCard from './SelectNIMCard';
 import SelectSingleModelCard from './SelectSingleModelCard';
@@ -9,6 +10,8 @@ import SelectMultiModelCard from './SelectMultiModelCard';
 
 const PlatformSelectSection: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
+  const [errorSelectingPlatform, setErrorSelectingPlatform] = React.useState<Error>();
+
   const isNIMAvailable = useIsNIMAvailable(dashboardNamespace);
 
   const galleryWidths = isNIMAvailable
@@ -34,10 +37,18 @@ const PlatformSelectSection: React.FC = () => {
           </Text>
         </TextContent>
         <Gallery hasGutter {...galleryWidths}>
-          <SelectSingleModelCard />
-          <SelectMultiModelCard />
-          {isNIMAvailable && <SelectNIMCard />}
+          <SelectSingleModelCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
+          <SelectMultiModelCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
+          {isNIMAvailable && (
+            <SelectNIMCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
+          )}
         </Gallery>
+        {errorSelectingPlatform && (
+          <ModelServingPlatformSelectErrorAlert
+            error={errorSelectingPlatform}
+            clearError={() => setErrorSelectingPlatform(undefined)}
+          />
+        )}
         <Alert
           isInline
           variant="info"
