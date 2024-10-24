@@ -16,7 +16,7 @@ export const formatListResponse = (x: BaseMetricListResponse): BiasMetricConfig[
     id: m.id,
     metricType: m.request.metricName,
     modelId: m.request.modelId,
-    name: m.request.requestName,
+    name: m.request.requestName ?? `${m.request.metricName}-${m.request.modelId}`,
     outcomeName: m.request.outcomeName,
     privilegedAttribute: m.request.privilegedAttribute.value,
     protectedAttribute: m.request.protectedAttribute,
