@@ -102,6 +102,10 @@ class CreateConnectionTypePage {
   getCategorySection() {
     return new CategorySection(() => cy.findByTestId('connection-type-category-toggle'));
   }
+
+  findDuplicateConnectionTypeButton() {
+    return cy.findByTestId('duplicate-connection-type');
+  }
 }
 
 class CategorySection extends Contextual<HTMLElement> {
