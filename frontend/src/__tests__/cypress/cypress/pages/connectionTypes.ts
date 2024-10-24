@@ -1,4 +1,5 @@
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
+import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 import { TableRow } from './components/table';
 import { TableToolbar } from './components/TableToolbar';
 import { Contextual } from './components/Contextual';
@@ -258,5 +259,12 @@ class ConnectionTypesPage {
   }
 }
 
+class ConnectionTypePreviewModal extends Modal {
+  constructor() {
+    super('Preview connection');
+  }
+}
+
 export const connectionTypesPage = new ConnectionTypesPage();
 export const createConnectionTypePage = new CreateConnectionTypePage();
+export const connectionTypePreviewModal = new ConnectionTypePreviewModal();
