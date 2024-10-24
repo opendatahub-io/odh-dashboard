@@ -239,3 +239,14 @@ export const filterEnabledConnectionTypes = <
   connectionTypes: T[],
 ): T[] =>
   connectionTypes.filter((t) => t.metadata.annotations?.['opendatahub.io/disabled'] !== 'true');
+
+export const findSectionFields = (
+  sectionIndex: number,
+  fields: ConnectionTypeField[],
+): ConnectionTypeField[] => {
+  const nextSectionIndex = fields.findIndex(
+    (f, i) => i > sectionIndex && f.type === ConnectionTypeFieldType.Section,
+  );
+
+  return fields.slice(sectionIndex + 1, nextSectionIndex === -1 ? undefined : nextSectionIndex);
+};

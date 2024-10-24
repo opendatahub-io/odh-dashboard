@@ -53,7 +53,6 @@ export const ConnectionTypeMoveFieldToSectionModal: React.FC<Props> = ({
             }
           }}
           isSubmitDisabled={!selectedSection}
-          alertTitle=""
         />
       }
     >
