@@ -1387,7 +1387,7 @@ export type DataScienceClusterKindStatus = {
     };
   };
   conditions: K8sCondition[];
-  installedComponents: { [key in StackComponent]?: boolean };
+  installedComponents?: { [key in StackComponent]?: boolean };
   phase?: string;
   release?: {
     name: string;
