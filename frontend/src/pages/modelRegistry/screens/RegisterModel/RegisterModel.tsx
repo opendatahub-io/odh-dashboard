@@ -4,6 +4,9 @@ import {
   BreadcrumbItem,
   Form,
   FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
   PageSection,
   Stack,
   StackItem,
@@ -13,11 +16,12 @@ import {
 import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
 import { useParams, useNavigate } from 'react-router';
 import { Link } from 'react-router-dom';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import FormSection from '~/components/pf-overrides/FormSection';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { modelRegistryUrl, registeredModelUrl } from '~/pages/modelRegistry/screens/routeUtils';
 import { useRegisterModelData } from './useRegisterModelData';
-import { isRegisterModelSubmitDisabled, registerModel } from './utils';
+import { isNameValid, isRegisterModelSubmitDisabled, registerModel } from './utils';
 import RegistrationCommonFormSections from './RegistrationCommonFormSections';
 import { useRegistrationCommonState } from './useRegistrationCommonState';
 import PrefilledModelRegistryField from './PrefilledModelRegistryField';
@@ -31,7 +35,13 @@ const RegisterModel: React.FC = () => {
     useRegistrationCommonState();
 
   const [formData, setData] = useRegisterModelData();
-  const isSubmitDisabled = isSubmitting || isRegisterModelSubmitDisabled(formData);
+  const isVersionNameValid = isNameValid(formData.versionName);
+  const isModelNameValid = isNameValid(formData.modelName);
+  const isSubmitDisabled =
+    isSubmitting ||
+    isRegisterModelSubmitDisabled(formData) ||
+    !isVersionNameValid ||
+    !isModelNameValid;
   const { modelName, modelDescription } = formData;
 
   const onSubmit = () =>
@@ -76,6 +86,16 @@ const RegisterModel: React.FC = () => {
                     value={modelName}
                     onChange={(_e, value) => setData('modelName', value)}
                   />
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem
+                        icon={isModelNameValid ? null : <ExclamationCircleIcon />}
+                        variant={isModelNameValid ? 'indeterminate' : 'error'}
+                      >
+                        Cannot exceed 128 characters
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
                 </FormGroup>
                 <FormGroup label="Model description" fieldId="model-description">
                   <TextArea
@@ -91,6 +111,7 @@ const RegisterModel: React.FC = () => {
                 formData={formData}
                 setData={setData}
                 isFirstVersion
+                isVersionNameValid={isVersionNameValid}
               />
             </StackItem>
           </Stack>
