@@ -27,6 +27,7 @@ import {
   createServingRuntimeModal,
   editServingRuntimeModal,
   inferenceServiceModal,
+  inferenceServiceModalEdit,
   kserveModal,
   kserveModalEdit,
   modelServingSection,
@@ -469,6 +470,38 @@ describe('Serving Runtime List', () => {
       cy.get('@createInferenceService.all').then((interceptions) => {
         expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
       });
+    });
+
+    it('Edit ModelMesh model', () => {
+      initIntercepts({
+        projectEnableModelMesh: true,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'ovms-testing',
+            displayName: 'OVMS ONNX',
+            isModelMesh: true,
+          }),
+        ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+
+      modelServingSection
+        .getModelMeshRow('OVMS Model Serving')
+        .findDeployedModelExpansionButton()
+        .click();
+      modelServingSection.getInferenceServiceRow('OVMS ONNX').findKebabAction('Edit').click();
+      inferenceServiceModalEdit.shouldBeOpen();
+      inferenceServiceModalEdit
+        .findServingRuntimeSelect()
+        .should('have.text', 'OVMS Model Serving')
+        .should('be.enabled');
+      inferenceServiceModalEdit
+        .findExistingConnectionSelect()
+        .should('have.text', 'Test Secret')
+        .should('be.enabled');
     });
 
     it('ModelMesh ServingRuntime list', () => {
