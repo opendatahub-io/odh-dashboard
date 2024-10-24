@@ -188,7 +188,7 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
 
     const servingRuntimeName =
       editInfo?.inferenceServiceEditInfo?.spec.predictor.model?.runtime ||
-      translateDisplayNameForK8s(createDataInferenceService.name);
+      translateDisplayNameForK8s(createDataInferenceService.name, { safeK8sPrefix: 'nim-' });
 
     const nimPVCName = getUniqueId('nim-pvc');
 
