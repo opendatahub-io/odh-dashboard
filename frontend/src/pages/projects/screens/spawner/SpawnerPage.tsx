@@ -50,6 +50,8 @@ import useDefaultStorageClass from './storage/useDefaultStorageClass';
 import usePreferredStorageClass from './storage/usePreferredStorageClass';
 import { ConnectionsFormSection } from './connections/ConnectionsFormSection';
 import { getConnectionsFromNotebook } from './connections/utils';
+import WorkbenchStorageModal from './storage/WorkbenchStorageModal';
+import AttachExistingStorageModal from './storage/AttachExistingStorageModal';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
@@ -102,6 +104,9 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
       ? getConnectionsFromNotebook(existingNotebook, projectConnections)
       : [],
   );
+
+  const [isCreateStorageModalOpen, setIsCreateStorageModalOpen] = React.useState(false);
+  const [isAttachStorageModalOpen, setIsAttachStorageModalOpen] = React.useState(false);
 
   const [selectedAcceleratorProfile, setSelectedAcceleratorProfile] =
     useGenericObjectState<AcceleratorProfileSelectFieldState>({
@@ -233,6 +238,42 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               />
               <StorageField storageData={storageData} setStorageData={setStorageData} />
             </FormSection>
+            {/* TODO: Commented out for now, because we don't have the storage table yet
+                Will be removed after RHOAIENG-1101
+            */}
+            {/* <FormSection
+              title={
+                <Flex
+                  spaceItems={{ default: 'spaceItemsMd' }}
+                  alignItems={{ default: 'alignItemsCenter' }}
+                >
+                  <FlexItem spacer={{ default: 'spacerLg' }}>
+                    {SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
+                  </FlexItem>
+
+                  <Button
+                    variant="secondary"
+                    data-testid="existing-storage-button"
+                    onClick={() => setIsAttachStorageModalOpen(true)}
+                  >
+                    Attach existing storage
+                  </Button>
+
+                  <Button
+                    variant="secondary"
+                    data-testid="create-storage-button"
+                    onClick={() => setIsCreateStorageModalOpen(true)}
+                  >
+                    Create storage
+                  </Button>
+                </Flex>
+              }
+              id={SpawnerPageSectionID.CLUSTER_STORAGE}
+              aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
+            > */}
+            {/* TODO: add existing storage section */}
+            {/* </FormSection> */}
+
             {isConnectionTypesEnabled ? (
               <ConnectionsFormSection
                 project={currentProject}
@@ -293,6 +334,30 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
           </StackItem>
         </Stack>
       </PageSection>
+      {isCreateStorageModalOpen && (
+        <WorkbenchStorageModal
+          onClose={(submitted, sd) => {
+            setIsCreateStorageModalOpen(false);
+            if (submitted && sd) {
+              // eslint-disable-next-line no-console
+              console.log('WorkbenchStorageModal', sd);
+              // TODO: handle storage add to cluster storage table
+            }
+          }}
+        />
+      )}
+      {isAttachStorageModalOpen && (
+        <AttachExistingStorageModal
+          onClose={(submitted, sd) => {
+            // eslint-disable-next-line no-console
+            console.log('AttachExistingStorageModal', sd);
+            setIsAttachStorageModalOpen(false);
+            if (submitted && sd) {
+              // TODO: handle storage add to cluster storage table
+            }
+          }}
+        />
+      )}
     </ApplicationsPage>
   );
 };

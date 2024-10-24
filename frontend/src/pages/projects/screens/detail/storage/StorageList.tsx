@@ -9,7 +9,7 @@ import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import StorageTable from './StorageTable';
-import ManageStorageModal from './ManageStorageModal';
+import ClusterStorageModal from './ClusterStorageModal';
 
 const StorageList: React.FC = () => {
   const [isOpen, setOpen] = React.useState(false);
@@ -73,10 +73,10 @@ const StorageList: React.FC = () => {
         ) : null}
       </DetailsSection>
       {isOpen ? (
-        <ManageStorageModal
-          onClose={(submit: boolean) => {
+        <ClusterStorageModal
+          onClose={(submitted, storageData) => {
             setOpen(false);
-            if (submit) {
+            if (submitted && storageData) {
               refresh();
             }
           }}

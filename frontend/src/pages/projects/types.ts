@@ -30,6 +30,7 @@ export type CreatingStorageObject = {
   nameDesc: NameDescType;
   size: string;
   storageClassName?: string;
+  mountPath?: string;
 };
 
 export type MountPath = {
