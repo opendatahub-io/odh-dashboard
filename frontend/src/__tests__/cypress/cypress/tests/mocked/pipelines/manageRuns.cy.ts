@@ -1,13 +1,13 @@
 /* eslint-disable camelcase */
 import {
   buildMockExperimentKF,
-  buildMockPipelineV2,
-  buildMockPipelineVersionV2,
-  buildMockPipelineVersionsV2,
+  buildMockPipeline,
+  buildMockPipelineVersion,
+  buildMockPipelineVersions,
   buildMockPipelines,
   buildMockRunKF,
 } from '~/__mocks__';
-import type { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import type { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import {
   manageRunsPage,
   manageRunsTable,
@@ -22,7 +22,7 @@ const initialRunIds = ['test-run-1', 'test-run-2'];
 
 const mockRuns = Array(11)
   .fill(buildMockRunKF())
-  .map((mockRun: PipelineRunKFv2, index) => ({
+  .map((mockRun: PipelineRunKF, index) => ({
     ...mockRun,
     display_name: `Test run ${index + 1}`,
     run_id: `test-run-${index + 1}`,
@@ -122,10 +122,10 @@ const initIntercepts = () => {
     {
       path: { namespace: projectName, serviceName: 'dspa' },
     },
-    buildMockPipelines([buildMockPipelineV2({ pipeline_id: pipelineId })]),
+    buildMockPipelines([buildMockPipeline({ pipeline_id: pipelineId })]),
   );
 
-  const mockPipelineVersion = buildMockPipelineVersionV2({
+  const mockPipelineVersion = buildMockPipelineVersion({
     pipeline_version_id: pipelineVersionId,
     pipeline_id: pipelineId,
   });
@@ -135,7 +135,7 @@ const initIntercepts = () => {
     {
       path: { namespace: projectName, serviceName: 'dspa', pipelineId },
     },
-    buildMockPipelineVersionsV2([mockPipelineVersion]),
+    buildMockPipelineVersions([mockPipelineVersion]),
   );
 
   cy.interceptOdh(
@@ -150,7 +150,7 @@ const initIntercepts = () => {
       {
         path: { namespace: projectName, serviceName: 'dspa', runId: selectedRunId },
       },
-      mockRuns.find((mockRun) => mockRun.run_id === selectedRunId) as PipelineRunKFv2,
+      mockRuns.find((mockRun) => mockRun.run_id === selectedRunId) as PipelineRunKF,
     );
   });
   cy.interceptOdh(

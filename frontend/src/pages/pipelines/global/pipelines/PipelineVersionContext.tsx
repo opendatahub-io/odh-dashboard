@@ -1,14 +1,14 @@
 import React from 'react';
 import { Bullseye, Spinner } from '@patternfly/react-core';
 import { Outlet } from 'react-router-dom';
-import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { usePipelineVersionByParams } from '~/pages/pipelines/global/pipelines/usePipelineVersionByParams';
 import { pipelineVersionsBaseRoute } from '~/routes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 
 type PipelineVersionContextState = {
-  pipeline: PipelineKFv2 | null;
-  version: PipelineVersionKFv2 | null;
+  pipeline: PipelineKF | null;
+  version: PipelineVersionKF | null;
   basePath: string;
 };
 

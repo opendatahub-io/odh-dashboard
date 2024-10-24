@@ -2,7 +2,7 @@ import * as React from 'react';
 import { TableText, Td, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import { Skeleton } from '@patternfly/react-core';
-import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd, TableRowTitleDescription } from '~/components/table';
 import {
   RunCreated,
@@ -18,7 +18,7 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 type CompareRunTableRowProps = {
   isChecked: boolean;
   onToggleCheck: () => void;
-  run: PipelineRunKFv2;
+  run: PipelineRunKF;
 };
 
 const CompareRunTableRow: React.FC<CompareRunTableRowProps> = ({

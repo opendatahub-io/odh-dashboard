@@ -1,11 +1,11 @@
 import React from 'react';
 import { Label, Split, SplitItem, Truncate } from '@patternfly/react-core';
-import { PipelineRunKFv2, StorageStateKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 import PipelineRunTypeLabel from '~/concepts/pipelines/content/PipelineRunTypeLabel';
 
 type RecurringRunTitleProps = {
-  run: PipelineRunKFv2;
+  run: PipelineRunKF;
   statusIcon?: boolean;
   pipelineRunLabel?: boolean;
 };

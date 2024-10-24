@@ -5,7 +5,7 @@ import { mockImageStreamK8sResource } from '~/__mocks__/mockImageStreamK8sResour
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
-import { mockPipelineKFv2 } from '~/__mocks__/mockPipelineKF';
+import { mockPipelineKF } from '~/__mocks__/mockPipelineKF';
 import { buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
 import { mockServiceAccountK8sResource } from '~/__mocks__/mockServiceAccountK8sResource';
@@ -242,7 +242,7 @@ const initIntercepts = ({
       method: 'GET',
       pathname: `/api/service/pipelines/test-project/dspa/apis/v2beta1/pipelines`,
     },
-    buildMockPipelines(isEmpty ? [] : [mockPipelineKFv2({})]),
+    buildMockPipelines(isEmpty ? [] : [mockPipelineKF({})]),
   );
 };
 

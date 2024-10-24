@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 import { Truncate } from '@patternfly/react-core';
 
-import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import {
   asTimestamp,
   DetailItem,
@@ -11,8 +11,8 @@ import {
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
 
 type PipelineSummaryDescriptionListProps = {
-  pipeline: PipelineKFv2 | null;
-  version: PipelineVersionKFv2 | null;
+  pipeline: PipelineKF | null;
+  version: PipelineVersionKF | null;
 };
 
 export const PipelineSummaryDescriptionList: React.FC<PipelineSummaryDescriptionListProps> = ({

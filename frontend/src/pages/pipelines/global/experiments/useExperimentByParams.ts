@@ -2,10 +2,10 @@ import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { experimentsRootPath } from '~/routes';
 import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
-import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
 
 export const useExperimentByParams = (): {
-  experiment: ExperimentKFv2 | null;
+  experiment: ExperimentKF | null;
   isExperimentLoaded: boolean;
 } => {
   const navigate = useNavigate();

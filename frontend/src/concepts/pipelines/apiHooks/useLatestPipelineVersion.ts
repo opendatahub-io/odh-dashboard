@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import useFetchState, {
   FetchState,
@@ -14,11 +14,11 @@ import useFetchState, {
  */
 export const useLatestPipelineVersion = (
   pipelineId: string | undefined,
-): FetchState<PipelineVersionKFv2 | null> => {
+): FetchState<PipelineVersionKF | null> => {
   const { api } = usePipelinesAPI();
 
   const getLatestVersion = React.useCallback<
-    FetchStateCallbackPromise<PipelineVersionKFv2 | null>
+    FetchStateCallbackPromise<PipelineVersionKF | null>
   >(async () => {
     if (!pipelineId) {
       return Promise.reject(new NotReadyError('No pipeline id'));

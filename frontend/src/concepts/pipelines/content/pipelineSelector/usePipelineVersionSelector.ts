@@ -12,7 +12,7 @@ import {
   TableSortProps,
   getTableSortProps,
 } from '~/concepts/pipelines/content/tables/usePipelineTable';
-import { PipelineCoreResourceKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineCoreResourceKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { PipelineListPaged } from '~/concepts/pipelines/types';
 import { FetchState } from '~/utilities/useFetchState';
 
@@ -30,16 +30,16 @@ type UsePipelineSelectorData<DataType> = {
 
 const usePipelineVersionSelector = (
   pipelineId: string | undefined,
-): UsePipelineSelectorData<PipelineVersionKFv2> => {
+): UsePipelineSelectorData<PipelineVersionKF> => {
   const versionsTable = usePipelineVersionsTable(pipelineId)();
   const [[{ items: initialData, nextPageToken: initialPageToken }, loaded]] = versionsTable;
-  return useCreateUsePipelineSelector<PipelineVersionKFv2>(
+  return useCreateUsePipelineSelector<PipelineVersionKF>(
     versionsTable,
     usePipelineVersionLoadMore({ initialData, initialPageToken, loaded }, pipelineId),
   );
 };
 
-const useCreateUsePipelineSelector = <T extends PipelineCoreResourceKFv2>(
+const useCreateUsePipelineSelector = <T extends PipelineCoreResourceKF>(
   tableData: [FetchState<PipelineListPaged<T>>, TableProps],
   useLoadMoreFunc: (props: LoadMoreProps) => UseLoadMoreFunc<T>,
 ): UsePipelineSelectorData<T> => {

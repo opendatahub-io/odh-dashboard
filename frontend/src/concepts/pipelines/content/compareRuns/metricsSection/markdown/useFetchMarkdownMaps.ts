@@ -6,14 +6,14 @@ import {
   getFullArtifactPathLabel,
   getFullArtifactPaths,
 } from '~/concepts/pipelines/content/compareRuns/metricsSection/utils';
-import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import { allSettledPromises } from '~/utilities/allSettledPromises';
 
 const useFetchMarkdownMaps = (
   markdownArtifacts?: RunArtifact[],
 ): {
   configMap: Record<string, MarkdownAndTitle[]>;
-  runMap: Record<string, PipelineRunKFv2>;
+  runMap: Record<string, PipelineRunKF>;
   configsLoaded: boolean;
 } => {
   const [configsLoaded, setConfigsLoaded] = React.useState(false);
@@ -22,7 +22,7 @@ const useFetchMarkdownMaps = (
   const [configMapBuilder, setConfigMapBuilder] = React.useState<
     Record<string, MarkdownAndTitle[]>
   >({});
-  const [runMapBuilder, setRunMapBuilder] = React.useState<Record<string, PipelineRunKFv2>>({});
+  const [runMapBuilder, setRunMapBuilder] = React.useState<Record<string, PipelineRunKF>>({});
 
   const fullArtifactPaths = React.useMemo(() => {
     if (!markdownArtifacts) {

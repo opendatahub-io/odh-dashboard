@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { PipelineCoreResourceKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineCoreResourceKF } from '~/concepts/pipelines/kfTypes';
 import {
   PipelineListPaged,
   PipelineOptions,
@@ -52,7 +52,7 @@ export const getTablePagingProps = (
     setPageSize,
   }))(tableProps);
 
-export function useCreatePipelineRunTable<T extends PipelineCoreResourceKFv2>(
+export function useCreatePipelineRunTable<T extends PipelineCoreResourceKF>(
   fetchState: (options: PipelineRunOptions) => FetchState<PipelineListPaged<T>>,
   additionalOptions?: PipelineRunOptions,
   limit?: number,
@@ -67,7 +67,7 @@ export function useCreatePipelineRunTable<T extends PipelineCoreResourceKFv2>(
 }
 
 const createUsePipelineTable =
-  <T extends PipelineCoreResourceKFv2>(
+  <T extends PipelineCoreResourceKF>(
     useState: (options: PipelineOptions | PipelineRunOptions) => FetchState<PipelineListPaged<T>>,
   ) =>
   // providing a limit overrides pageSize and prevents paging

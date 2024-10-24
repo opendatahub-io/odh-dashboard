@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { TableVariant } from '@patternfly/react-table';
 import { useParams } from 'react-router-dom';
-import { PipelineRecurringRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRecurringRunKF } from '~/concepts/pipelines/kfTypes';
 import { getTableColumnSort, useCheckboxTable, TableBase } from '~/components/table';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipelineRunsModal';
@@ -16,7 +16,7 @@ import PipelineRecurringRunTableRow from './PipelineRecurringRunTableRow';
 import PipelineRecurringRunTableToolbar from './PipelineRecurringRunTableToolbar';
 
 type PipelineRecurringRunTableProps = {
-  recurringRuns: PipelineRecurringRunKFv2[];
+  recurringRuns: PipelineRecurringRunKF[];
   refresh: () => void;
   loading?: boolean;
   totalSize: number;
@@ -53,7 +53,7 @@ const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
     isSelected,
     // eslint-disable-next-line camelcase
   } = useCheckboxTable(recurringRuns.map(({ recurring_run_id }) => recurring_run_id));
-  const [deleteResources, setDeleteResources] = React.useState<PipelineRecurringRunKFv2[]>([]);
+  const [deleteResources, setDeleteResources] = React.useState<PipelineRecurringRunKF[]>([]);
 
   useSetVersionFilter(filterToolbarProps.onFilterUpdate);
 
@@ -104,13 +104,13 @@ const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
                     onClick: () =>
                       setDeleteResources(
                         selections
-                          .map<PipelineRecurringRunKFv2 | undefined>((selection) =>
+                          .map<PipelineRecurringRunKF | undefined>((selection) =>
                             recurringRuns.find(
                               // eslint-disable-next-line camelcase
                               ({ recurring_run_id }) => recurring_run_id === selection,
                             ),
                           )
-                          .filter((v): v is PipelineRecurringRunKFv2 => !!v),
+                          .filter((v): v is PipelineRecurringRunKF => !!v),
                       ),
                     isDisabled: !selections.length,
                   },

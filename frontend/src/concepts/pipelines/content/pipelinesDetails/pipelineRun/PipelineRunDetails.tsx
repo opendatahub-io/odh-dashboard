@@ -29,7 +29,7 @@ import useExecutionsForPipelineRun from '~/concepts/pipelines/content/pipelinesD
 import { useGetEventsByExecutionIds } from '~/concepts/pipelines/apiHooks/mlmd/useGetEventsByExecutionId';
 import { PipelineTopology } from '~/concepts/topology';
 import { FetchState } from '~/utilities/useFetchState';
-import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import PipelineNotSupported from '~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineNotSupported';
 import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
 import { usePipelineRunArtifacts } from './artifacts';
@@ -37,7 +37,7 @@ import { PipelineRunDetailsTabs } from './PipelineRunDetailsTabs';
 
 const PipelineRunDetails: React.FC<
   PathProps & {
-    fetchedRun: FetchState<PipelineRunKFv2 | null>;
+    fetchedRun: FetchState<PipelineRunKF | null>;
   }
 > = ({ fetchedRun, breadcrumbPath, contextPath }) => {
   const navigate = useNavigate();

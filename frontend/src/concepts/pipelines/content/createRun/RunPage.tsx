@@ -4,11 +4,11 @@ import { useLocation } from 'react-router-dom';
 import { PageSection } from '@patternfly/react-core';
 
 import {
-  ExperimentKFv2,
-  PipelineKFv2,
-  PipelineRecurringRunKFv2,
-  PipelineRunKFv2,
-  PipelineVersionKFv2,
+  ExperimentKF,
+  PipelineKF,
+  PipelineRecurringRunKF,
+  PipelineRunKF,
+  PipelineVersionKF,
 } from '~/concepts/pipelines/kfTypes';
 import GenericSidebar from '~/components/GenericSidebar';
 import {
@@ -32,13 +32,13 @@ import { asEnumMember } from '~/utilities/utils';
 import useDefaultExperiment from '~/pages/pipelines/global/experiments/useDefaultExperiment';
 
 type RunPageProps = {
-  duplicateRun?: PipelineRunKFv2 | PipelineRecurringRunKFv2 | null;
+  duplicateRun?: PipelineRunKF | PipelineRecurringRunKF | null;
   contextPath: string;
   testId?: string;
   runType: RunTypeOption;
-  contextExperiment?: ExperimentKFv2 | null;
-  contextPipeline?: PipelineKFv2 | null;
-  contextPipelineVersion?: PipelineVersionKFv2 | null;
+  contextExperiment?: ExperimentKF | null;
+  contextPipeline?: PipelineKF | null;
+  contextPipelineVersion?: PipelineVersionKF | null;
 };
 
 const RunPage: React.FC<RunPageProps> = ({

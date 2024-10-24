@@ -10,7 +10,7 @@ import {
   mockedArtifactsResponse,
 } from '~/__mocks__/mlmd/mockGetArtifacts';
 import {
-  buildMockPipelineV2,
+  buildMockPipeline,
   mockMetricsVisualizationRun,
   mockMetricsVisualizationVersion,
 } from '~/__mocks__';
@@ -21,7 +21,7 @@ import { initMlmdIntercepts } from './mlmdUtils';
 
 const projectName = 'test-project-name';
 
-const mockPipeline = buildMockPipelineV2({
+const mockPipeline = buildMockPipeline({
   pipeline_id: 'metrics-pipeline',
   display_name: 'metrics-pipeline',
 });

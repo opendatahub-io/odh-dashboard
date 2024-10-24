@@ -2,10 +2,10 @@
 import {
   mockDataSciencePipelineApplicationK8sResource,
   mockK8sResourceList,
-  buildMockPipelineV2,
+  buildMockPipeline,
   buildMockPipelines,
-  buildMockPipelineVersionV2,
-  buildMockPipelineVersionsV2,
+  buildMockPipelineVersion,
+  buildMockPipelineVersions,
   mockProjectK8sResource,
   mockRouteK8sResource,
   mockSecretK8sResource,
@@ -31,12 +31,12 @@ import {
   SecretModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import type { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import type { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { tablePagination } from '~/__tests__/cypress/cypress/pages/components/Pagination';
 
 const projectName = 'test-project-name';
-const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
-const initialMockPipelineVersion = buildMockPipelineVersionV2({
+const initialMockPipeline = buildMockPipeline({ display_name: 'Test pipeline' });
+const initialMockPipelineVersion = buildMockPipelineVersion({
   pipeline_id: initialMockPipeline.pipeline_id,
 });
 const pipelineYamlPath = './cypress/tests/mocked/pipelines/mock-upload-pipeline.yaml';
@@ -400,13 +400,13 @@ describe('Pipelines', () => {
 
   describe('Table filtering and sorting', () => {
     it('Filter by pipeline name', () => {
-      const mockPipelines: PipelineKFv2[] = [
-        buildMockPipelineV2({
+      const mockPipelines: PipelineKF[] = [
+        buildMockPipeline({
           display_name: 'Test pipeline 1',
           pipeline_id: 'test-pipeline-1',
         }),
 
-        buildMockPipelineV2({
+        buildMockPipeline({
           display_name: 'Test pipeline 2',
           pipeline_id: 'test-pipeline-2',
         }),
@@ -433,13 +433,13 @@ describe('Pipelines', () => {
 
     it('Filter by created after', () => {
       const mockPipelines = [
-        buildMockPipelineV2({
+        buildMockPipeline({
           display_name: 'Test pipeline 1',
           pipeline_id: 'test-pipeline-1',
           created_at: '2023-01-30T22:55:17Z',
         }),
 
-        buildMockPipelineV2({
+        buildMockPipeline({
           display_name: 'Test pipeline 2',
           pipeline_id: 'test-pipeline-2',
           created_at: '2024-01-30T22:55:17Z',
@@ -486,12 +486,12 @@ describe('Pipelines', () => {
       pipelinesTable.shouldSortTable({
         sortType: PipelineSort.All,
         pipelines: [
-          buildMockPipelineV2({
+          buildMockPipeline({
             display_name: 'Test pipeline 1',
             pipeline_id: 'test-pipeline-1',
             created_at: '2023-01-30T22:55:17Z',
           }),
-          buildMockPipelineV2({
+          buildMockPipeline({
             display_name: 'Test pipeline 2',
             pipeline_id: 'test-pipeline-2',
             created_at: '2024-01-30T22:55:17Z',
@@ -567,7 +567,7 @@ describe('Pipelines', () => {
       display_name: 'New pipeline',
       description: 'New pipeline description',
     };
-    const uploadedMockPipeline = buildMockPipelineV2(uploadPipelineParams);
+    const uploadedMockPipeline = buildMockPipeline(uploadPipelineParams);
 
     // Intercept upload/re-fetch of pipelines
     pipelineImportModal.mockUploadPipeline(uploadPipelineParams, projectName).as('uploadPipeline');
@@ -679,8 +679,8 @@ describe('Pipelines', () => {
         },
       },
     };
-    const createdMockPipeline = buildMockPipelineV2(uploadPipelineAndVersionParams.pipeline);
-    const createdVersion = buildMockPipelineVersionV2(
+    const createdMockPipeline = buildMockPipeline(uploadPipelineAndVersionParams.pipeline);
+    const createdVersion = buildMockPipelineVersion(
       uploadPipelineAndVersionParams.pipeline_version,
     );
 
@@ -738,7 +738,7 @@ describe('Pipelines', () => {
     // Open the "Upload new version" modal
     pipelinesGlobal.findUploadVersionButton().click();
 
-    const uploadedMockPipelineVersion = buildMockPipelineVersionV2(uploadVersionParams);
+    const uploadedMockPipelineVersion = buildMockPipelineVersion(uploadVersionParams);
 
     // Intercept upload/re-fetch of pipeline versions
     pipelineVersionImportModal
@@ -833,7 +833,7 @@ describe('Pipelines', () => {
     // Open the "Upload new version" modal
     pipelinesGlobal.findUploadVersionButton().click();
 
-    const uploadedMockPipelineVersion = buildMockPipelineVersionV2(createPipelineVersionParams);
+    const uploadedMockPipelineVersion = buildMockPipelineVersion(createPipelineVersionParams);
 
     // Intercept upload/re-fetch of pipeline versions
     pipelinesTable
@@ -935,7 +935,7 @@ describe('Pipelines', () => {
           pipelineId: initialMockPipeline.pipeline_id,
         },
       },
-      buildMockPipelineVersionsV2([]),
+      buildMockPipelineVersions([]),
     ).as('refreshVersions');
 
     pipelineDeleteModal.findSubmitButton().click();
@@ -990,22 +990,22 @@ describe('Pipelines', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
 
-    const mockPipeline1 = buildMockPipelineV2({
+    const mockPipeline1 = buildMockPipeline({
       display_name: 'Test pipeline 1',
       pipeline_id: 'test-pipeline-1',
     });
-    const mockPipeline2 = buildMockPipelineV2({
+    const mockPipeline2 = buildMockPipeline({
       display_name: 'Test pipeline 2',
       pipeline_id: 'test-pipeline-2',
     });
 
-    const mockPipeline1Version1 = buildMockPipelineVersionV2({
+    const mockPipeline1Version1 = buildMockPipelineVersion({
       pipeline_id: mockPipeline1.pipeline_id,
       pipeline_version_id: 'test-pipeline-1-version-1',
       display_name: `${mockPipeline1.display_name} version 1`,
     });
 
-    const mockPipeline1Version2 = buildMockPipelineVersionV2({
+    const mockPipeline1Version2 = buildMockPipelineVersion({
       pipeline_id: mockPipeline1.pipeline_id,
       pipeline_version_id: 'test-pipeline-1-version-2',
       display_name: `${mockPipeline1.display_name} version 2`,
@@ -1079,8 +1079,8 @@ describe('Pipelines', () => {
   });
 
   it('run and schedule dropdown action should be disabled when pipeline and pipeline version is not supported', () => {
-    const mockPipelines: PipelineKFv2[] = [
-      buildMockPipelineV2({
+    const mockPipelines: PipelineKF[] = [
+      buildMockPipeline({
         display_name: 'Argo workflow',
         pipeline_id: 'argo-workflow',
       }),
@@ -1107,9 +1107,7 @@ describe('Pipelines', () => {
           pipelineId: 'argo-workflow',
         },
       },
-      buildMockPipelineVersionsV2([
-        mockArgoWorkflowPipelineVersion({ pipelineId: 'argo-workflow' }),
-      ]),
+      buildMockPipelineVersions([mockArgoWorkflowPipelineVersion({ pipelineId: 'argo-workflow' })]),
     );
 
     initIntercepts({ mockPipelines });
@@ -1233,13 +1231,13 @@ describe('Pipelines', () => {
   });
 
   it('Table pagination', () => {
-    const mockPipelinesV2 = Array.from({ length: 25 }, (_, i) =>
-      buildMockPipelineV2({
+    const mockPipelines = Array.from({ length: 25 }, (_, i) =>
+      buildMockPipeline({
         display_name: `Test pipeline-${i}`,
       }),
     );
     initIntercepts({
-      mockPipelines: mockPipelinesV2.slice(0, 10),
+      mockPipelines: mockPipelines.slice(0, 10),
       totalSize: 25,
       nextPageToken: 'page-2-token',
     });
@@ -1252,7 +1250,7 @@ describe('Pipelines', () => {
       });
     });
 
-    pipelinesTable.getRowById(mockPipelinesV2[0].pipeline_id).find().should('exist');
+    pipelinesTable.getRowById(mockPipelines[0].pipeline_id).find().should('exist');
     pipelinesTable.findRows().should('have.length', '10');
 
     const pagination = tablePagination.top;
@@ -1264,7 +1262,7 @@ describe('Pipelines', () => {
       {
         path: { namespace: projectName, serviceName: 'dspa' },
       },
-      buildMockPipelines(mockPipelinesV2.slice(10, 20), 25),
+      buildMockPipelines(mockPipelines.slice(10, 20), 25),
     ).as('refreshPipelines');
 
     pagination.findNextButton().click();
@@ -1276,7 +1274,7 @@ describe('Pipelines', () => {
       });
     });
 
-    pipelinesTable.getRowById(mockPipelinesV2[10].pipeline_id).find().should('exist');
+    pipelinesTable.getRowById(mockPipelines[10].pipeline_id).find().should('exist');
     pipelinesTable.findRows().should('have.length', '10');
 
     // test Previous button
@@ -1285,7 +1283,7 @@ describe('Pipelines', () => {
       {
         path: { namespace: projectName, serviceName: 'dspa' },
       },
-      buildMockPipelines(mockPipelinesV2.slice(0, 10), 25),
+      buildMockPipelines(mockPipelines.slice(0, 10), 25),
     ).as('getFirstTenPipelines');
 
     pagination.findPreviousButton().click();
@@ -1297,7 +1295,7 @@ describe('Pipelines', () => {
       });
     });
 
-    pipelinesTable.getRowById(mockPipelinesV2[0].pipeline_id).find().should('exist');
+    pipelinesTable.getRowById(mockPipelines[0].pipeline_id).find().should('exist');
 
     // 20 per page
     cy.interceptOdh(
@@ -1305,19 +1303,19 @@ describe('Pipelines', () => {
       {
         path: { namespace: projectName, serviceName: 'dspa' },
       },
-      buildMockPipelines(mockPipelinesV2.slice(0, 20), 22),
+      buildMockPipelines(mockPipelines.slice(0, 20), 22),
     );
     pagination.selectToggleOption('20 per page');
     pagination.findPreviousButton().should('be.disabled');
-    pipelinesTable.getRowById(mockPipelinesV2[19].pipeline_id).find().should('exist');
+    pipelinesTable.getRowById(mockPipelines[19].pipeline_id).find().should('exist');
     pipelinesTable.findRows().should('have.length', '20');
   });
 });
 
 type HandlersProps = {
   isEmpty?: boolean;
-  mockPipelines?: PipelineKFv2[];
-  mockPipelineVersions?: PipelineVersionKFv2[];
+  mockPipelines?: PipelineKF[];
+  mockPipelineVersions?: PipelineVersionKF[];
   hasNoPipelineVersions?: boolean;
   totalSize?: number;
   errorMessage?: string;
@@ -1388,7 +1386,7 @@ const initIntercepts = ({
         pipelineId: initialMockPipeline.pipeline_id,
       },
     },
-    hasNoPipelineVersions ? {} : buildMockPipelineVersionsV2(mockPipelineVersions),
+    hasNoPipelineVersions ? {} : buildMockPipelineVersions(mockPipelineVersions),
   );
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId',

@@ -1,4 +1,4 @@
-import type { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
+import type { ExperimentKF } from '~/concepts/pipelines/kfTypes';
 
 class PipelineFilterBar {
   find() {
@@ -69,7 +69,7 @@ class PipelineRunFilterBar extends PipelineFilterBar {
     cy.findByTestId('experiment-search-select').findSelectOption(name).click();
   }
 
-  mockExperiments(experiments: ExperimentKFv2[], namespace: string) {
+  mockExperiments(experiments: ExperimentKF[], namespace: string) {
     return cy.interceptOdh(
       'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments',
       {

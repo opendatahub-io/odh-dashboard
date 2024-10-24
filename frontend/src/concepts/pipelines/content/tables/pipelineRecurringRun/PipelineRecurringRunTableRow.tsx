@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ActionsColumn, TableText, Td, Tr } from '@patternfly/react-table';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { PipelineRecurringRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRecurringRunKF } from '~/concepts/pipelines/kfTypes';
 import { TableRowTitleDescription, CheckboxTd } from '~/components/table';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
@@ -21,7 +21,7 @@ type PipelineRecurringRunTableRowProps = {
   refresh: () => void;
   onToggleCheck: () => void;
   onDelete: () => void;
-  recurringRun: PipelineRecurringRunKFv2;
+  recurringRun: PipelineRecurringRunKF;
 };
 
 const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> = ({

@@ -2,24 +2,24 @@ import { act } from 'react';
 import * as React from 'react';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import createUsePipelineTable from '~/concepts/pipelines/content/tables/usePipelineTable';
-import { PipelineCoreResourceKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineCoreResourceKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import { PipelineListPaged, PipelineOptions } from '~/concepts/pipelines/types';
 import { FetchState } from '~/utilities/useFetchState';
 
 describe('usePipelineTable', () => {
   it('should indicate initialLoaded after first load', async () => {
     let setInternalStateFn: (
-      state: FetchState<PipelineListPaged<PipelineCoreResourceKFv2>>,
+      state: FetchState<PipelineListPaged<PipelineCoreResourceKF>>,
     ) => void = () => {
       // empty
     };
     const useMock = jest.fn((() => {
       const [internalState, setInternalState] = React.useState<
-        FetchState<PipelineListPaged<PipelineCoreResourceKFv2>>
+        FetchState<PipelineListPaged<PipelineCoreResourceKF>>
       >([{ totalSize: 0, items: [] }, false, undefined, jest.fn()]);
       setInternalStateFn = setInternalState;
       return internalState;
-    }) as unknown as (options: PipelineOptions) => FetchState<PipelineListPaged<PipelineCoreResourceKFv2 | PipelineRunKFv2>>);
+    }) as unknown as (options: PipelineOptions) => FetchState<PipelineListPaged<PipelineCoreResourceKF | PipelineRunKF>>);
 
     // initialLoaded starts as `false`
     const renderResult = testHook(createUsePipelineTable(useMock))();
@@ -40,7 +40,7 @@ describe('usePipelineTable', () => {
   it('should call inner hook with query params', () => {
     const useMock = jest.fn((() => [{}, false]) as unknown as (
       options: PipelineOptions,
-    ) => FetchState<PipelineListPaged<PipelineCoreResourceKFv2 | PipelineRunKFv2>>);
+    ) => FetchState<PipelineListPaged<PipelineCoreResourceKF | PipelineRunKF>>);
 
     const renderResult = testHook(createUsePipelineTable(useMock))();
 
@@ -94,7 +94,7 @@ describe('usePipelineTable', () => {
   it('should prevent page changes when a limit is set', () => {
     const useMock = jest.fn((() => [{}, false]) as unknown as (
       options: PipelineOptions,
-    ) => FetchState<PipelineListPaged<PipelineCoreResourceKFv2 | PipelineRunKFv2>>);
+    ) => FetchState<PipelineListPaged<PipelineCoreResourceKF | PipelineRunKF>>);
 
     const renderResult = testHook(createUsePipelineTable(useMock))(25);
 
@@ -118,7 +118,7 @@ describe('usePipelineTable', () => {
   it('should provide stable callbacks', async () => {
     const useMock = jest.fn((() => [{}, false]) as unknown as (
       options: PipelineOptions,
-    ) => FetchState<PipelineListPaged<PipelineCoreResourceKFv2 | PipelineRunKFv2>>);
+    ) => FetchState<PipelineListPaged<PipelineCoreResourceKF | PipelineRunKF>>);
 
     const renderResult = testHook(createUsePipelineTable(useMock))();
 

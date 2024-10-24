@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Bullseye, Divider, Flex, FlexItem, Spinner } from '@patternfly/react-core';
-import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import { RunArtifact } from '~/concepts/pipelines/apiHooks/mlmd/types';
 
 import { FullArtifactPath } from '~/concepts/pipelines/content/compareRuns/metricsSection/types';
@@ -43,7 +43,7 @@ const ConfusionMatrixCompare: React.FC<ConfusionMatrixCompareProps> = ({
   const { configMap, runMap } = React.useMemo(
     () =>
       fullArtifactPaths.reduce<{
-        runMap: Record<string, PipelineRunKFv2>;
+        runMap: Record<string, PipelineRunKF>;
         configMap: Record<string, { title: string; config: ConfusionMatrixConfig }[]>;
       }>(
         (acc, fullPath) => {

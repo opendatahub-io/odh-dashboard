@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { conditionalArea, SupportedArea } from '~/concepts/areas';
-import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import { CompareRunsSearchParam } from '~/concepts/pipelines/content/types';
 import useNotification from '~/utilities/useNotification';
 import { allSettledPromises } from '~/utilities/allSettledPromises';
@@ -9,10 +9,10 @@ import useFetchState, { FetchStateCallbackPromise } from '~/utilities/useFetchSt
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 
 type CompareRunsContextType = {
-  runs: PipelineRunKFv2[];
-  selectedRuns: PipelineRunKFv2[];
-  setRuns: (runs: PipelineRunKFv2[]) => void;
-  setSelectedRuns: React.Dispatch<React.SetStateAction<PipelineRunKFv2[]>>;
+  runs: PipelineRunKF[];
+  selectedRuns: PipelineRunKF[];
+  setRuns: (runs: PipelineRunKF[]) => void;
+  setSelectedRuns: React.Dispatch<React.SetStateAction<PipelineRunKF[]>>;
   loaded: boolean;
 };
 
@@ -41,7 +41,7 @@ export const CompareRunsContextProvider = conditionalArea<CompareRunsContextProv
 
   // get runs from run ids
   const { api } = usePipelinesAPI();
-  const fetchSuccessfulRuns = React.useCallback<FetchStateCallbackPromise<PipelineRunKFv2[]>>(
+  const fetchSuccessfulRuns = React.useCallback<FetchStateCallbackPromise<PipelineRunKF[]>>(
     (opts) =>
       allSettledPromises(runIdsArray.map((id) => api.getPipelineRun(opts, id))).then(
         ([successful]) => successful.map(({ value }) => value),
@@ -65,12 +65,12 @@ export const CompareRunsContextProvider = conditionalArea<CompareRunsContextProv
     }
   }, [loaded, notification, runIdsArray.length, runs, searchParams, setSearchParams]);
 
-  const [selectedRuns, setSelectedRuns] = React.useState<PipelineRunKFv2[]>([]);
+  const [selectedRuns, setSelectedRuns] = React.useState<PipelineRunKF[]>([]);
   React.useEffect(() => {
     setSelectedRuns(runs);
   }, [runs]);
 
-  const setRuns = (selected: PipelineRunKFv2[]) => {
+  const setRuns = (selected: PipelineRunKF[]) => {
     searchParams.set(
       CompareRunsSearchParam.RUNS,
       selected.map(({ run_id: runId }) => runId).join(','),

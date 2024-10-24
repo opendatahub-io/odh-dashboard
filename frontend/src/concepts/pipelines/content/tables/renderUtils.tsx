@@ -15,11 +15,11 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { printSeconds, relativeDuration, relativeTime } from '~/utilities/time';
 import {
-  PipelineRunKFv2,
+  PipelineRunKF,
   runtimeStateLabels,
-  PipelineRecurringRunKFv2,
+  PipelineRecurringRunKF,
   RecurringRunStatus as RecurringRunStatusType,
-  ExperimentKFv2,
+  ExperimentKF,
 } from '~/concepts/pipelines/kfTypes';
 import {
   getRunDuration,
@@ -33,8 +33,8 @@ import { useContextExperimentArchived as useIsExperimentArchived } from '~/pages
 export const NoRunContent = (): React.JSX.Element => <>-</>;
 
 type ExtraProps = Record<string, unknown>;
-type RunUtil<P = ExtraProps> = React.FC<{ run: PipelineRunKFv2 } & P>;
-type RecurringRunUtil<P = ExtraProps> = React.FC<{ recurringRun: PipelineRecurringRunKFv2 } & P>;
+type RunUtil<P = ExtraProps> = React.FC<{ run: PipelineRunKF } & P>;
+type RecurringRunUtil<P = ExtraProps> = React.FC<{ recurringRun: PipelineRecurringRunKF } & P>;
 
 export const RunStatus: RunUtil<{ hasNoLabel?: boolean; isCompact?: boolean }> = ({
   hasNoLabel,
@@ -140,7 +140,7 @@ export const RecurringRunScheduled: RecurringRunUtil = ({ recurringRun }) => {
 
 export const RecurringRunStatus: RecurringRunUtil<{
   onToggle: (value: boolean) => Promise<void>;
-  experiment: ExperimentKFv2 | null;
+  experiment: ExperimentKF | null;
 }> = ({ recurringRun, onToggle, experiment }) => {
   const [error, setError] = React.useState<Error | null>(null);
   const [isChangingFlag, setIsChangingFlag] = React.useState(false);

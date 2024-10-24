@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { FormGroup, StackItem } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import PipelineSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineSelector';
 import { getNameEqualsFilter } from '~/concepts/pipelines/utils';
 import { generatePipelineVersionName, PipelineUploadOption } from './utils';
@@ -10,8 +10,8 @@ import { usePipelineVersionImportModalData } from './useImportModalData';
 import PipelineImportBase from './PipelineImportBase';
 
 type PipelineVersionImportModalProps = {
-  existingPipeline?: PipelineKFv2 | null;
-  onClose: (pipelineVersion?: PipelineVersionKFv2, pipeline?: PipelineKFv2 | null) => void;
+  existingPipeline?: PipelineKF | null;
+  onClose: (pipelineVersion?: PipelineVersionKF, pipeline?: PipelineKF | null) => void;
 };
 
 const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({

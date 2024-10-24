@@ -3,8 +3,8 @@ import { mockDataSciencePipelineApplicationK8sResource } from '~/__mocks__/mockD
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import {
-  buildMockPipelineVersionV2,
-  buildMockPipelineVersionsV2,
+  buildMockPipelineVersion,
+  buildMockPipelineVersions,
 } from '~/__mocks__/mockPipelineVersionsProxy';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
@@ -19,7 +19,7 @@ import {
 } from '~/__tests__/cypress/cypress/pages/pipelines';
 import { buildMockRunKF } from '~/__mocks__/mockRunKF';
 import { mockPipelinePodK8sResource } from '~/__mocks__/mockPipelinePodK8sResource';
-import { buildMockPipelineV2 } from '~/__mocks__';
+import { buildMockPipeline } from '~/__mocks__';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import {
   DataSciencePipelineApplicationModel,
@@ -33,16 +33,16 @@ import { RecurringRunStatus } from '~/concepts/pipelines/kfTypes';
 import { initMlmdIntercepts } from './mlmdUtils';
 
 const projectId = 'test-project';
-const mockPipeline = buildMockPipelineV2({
+const mockPipeline = buildMockPipeline({
   pipeline_id: 'test-pipeline',
   display_name: 'test-pipeline',
 });
-const mockVersion = buildMockPipelineVersionV2({
+const mockVersion = buildMockPipelineVersion({
   pipeline_id: mockPipeline.pipeline_id,
   pipeline_version_id: 'test-version-id',
   display_name: 'test-version-name',
 });
-const mockVersion2 = buildMockPipelineVersionV2({
+const mockVersion2 = buildMockPipelineVersion({
   pipeline_id: mockPipeline.pipeline_id,
   pipeline_version_id: 'test-version-id-2',
   display_name: 'test-version-2',
@@ -117,7 +117,7 @@ const initIntercepts = () => {
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
     { path: { namespace: projectId, serviceName: 'dspa', pipelineId: mockPipeline.pipeline_id } },
-    buildMockPipelineVersionsV2([mockVersion, mockVersion2]),
+    buildMockPipelineVersions([mockVersion, mockVersion2]),
   );
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',

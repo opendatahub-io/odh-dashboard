@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
-import { PipelineRunKFv2, RuntimeStateKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF, RuntimeStateKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 
-export const buildMockRunKF = (run?: Partial<PipelineRunKFv2>): PipelineRunKFv2 => ({
+export const buildMockRunKF = (run?: Partial<PipelineRunKF>): PipelineRunKF => ({
   experiment_id: '1a1a1e71-25b6-46b6-a9eb-6ff1d8518be9',
   run_id: '17577391-357e-489f-b88a-f0f8895d5376',
   display_name: 'Test run',
@@ -178,7 +178,7 @@ export const buildMockRunKF = (run?: Partial<PipelineRunKFv2>): PipelineRunKFv2 
   ...run,
 });
 
-export const mockMetricsVisualizationRun: PipelineRunKFv2 = {
+export const mockMetricsVisualizationRun: PipelineRunKF = {
   experiment_id: '337b4750-40fa-4593-8c07-f80c542cbb7d',
   run_id: 'test-metrics-pipeline-run',
   display_name: 'test',

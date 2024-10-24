@@ -13,12 +13,12 @@ import {
   Split,
 } from '@patternfly/react-core';
 import { CompressIcon, ExpandIcon } from '@patternfly/react-icons';
-import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 
 type ArtifactDisplayConfig<T> = { config: T; title: string; fileSize?: number };
 
 type PipelineRunArtifactSelectProps<T> = {
-  run?: PipelineRunKFv2;
+  run?: PipelineRunKF;
   renderArtifact: (config: ArtifactDisplayConfig<T>) => React.ReactNode;
   data: ArtifactDisplayConfig<T>[];
   setExpandedGraph: (config?: ArtifactDisplayConfig<T>) => void;

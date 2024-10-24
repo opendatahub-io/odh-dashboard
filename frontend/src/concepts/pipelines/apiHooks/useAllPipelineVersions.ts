@@ -1,5 +1,5 @@
 import React from 'react';
-import { PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineQuery from '~/concepts/pipelines/apiHooks/usePipelineQuery';
 import {
@@ -21,7 +21,7 @@ async function getAllVersions(
   pipelineId: string,
   params: PipelineParams | undefined,
   listPipelineVersions: ListPipelineVersions,
-): Promise<PipelineVersionKFv2[]> {
+): Promise<PipelineVersionKF[]> {
   const result = await listPipelineVersions(opts, pipelineId, params);
   let allVersions = result.pipeline_versions ?? [];
 
@@ -44,12 +44,12 @@ async function getAllVersions(
 export const useAllPipelineVersions = (
   options: PipelineOptions = {},
   refreshRate = 0,
-): FetchState<PipelineListPaged<PipelineVersionKFv2>> => {
+): FetchState<PipelineListPaged<PipelineVersionKF>> => {
   const { api } = usePipelinesAPI();
   const [{ items: pipelines }, pipelinesLoaded] = useAllPipelines();
   const pipelineIds = useDeepCompareMemoize(pipelines.map((pipeline) => pipeline.pipeline_id));
 
-  return usePipelineQuery<PipelineVersionKFv2>(
+  return usePipelineQuery<PipelineVersionKF>(
     React.useCallback(
       async (opts, params) => {
         if (!pipelinesLoaded) {
@@ -62,7 +62,7 @@ export const useAllPipelineVersions = (
         const results = await Promise.all(pipelineVersionRequests);
 
         return results.reduce(
-          (acc: { total_size: number; items: PipelineVersionKFv2[] }, versions) => {
+          (acc: { total_size: number; items: PipelineVersionKF[] }, versions) => {
             // eslint-disable-next-line camelcase
             acc.total_size += versions.length || 0;
             acc.items = acc.items.concat(versions);

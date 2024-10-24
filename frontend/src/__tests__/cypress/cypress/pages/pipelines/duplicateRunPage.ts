@@ -1,9 +1,9 @@
 import type {
-  ExperimentKFv2,
-  PipelineKFv2,
-  PipelineRecurringRunKFv2,
-  PipelineRunKFv2,
-  PipelineVersionKFv2,
+  ExperimentKF,
+  PipelineKF,
+  PipelineRecurringRunKF,
+  PipelineRunKF,
+  PipelineVersionKF,
 } from '~/concepts/pipelines/kfTypes';
 import { CreateRunPage } from '~/__tests__/cypress/cypress/pages/pipelines/createRunPage';
 
@@ -14,7 +14,7 @@ class DuplicateRunPage extends CreateRunPage {
     super(type);
   }
 
-  mockGetRun(namespace: string, run: PipelineRunKFv2) {
+  mockGetRun(namespace: string, run: PipelineRunKF) {
     return cy.interceptOdh(
       'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
       {
@@ -24,7 +24,7 @@ class DuplicateRunPage extends CreateRunPage {
     );
   }
 
-  mockGetRecurringRun(namespace: string, recurringRun: PipelineRecurringRunKFv2) {
+  mockGetRecurringRun(namespace: string, recurringRun: PipelineRecurringRunKF) {
     return cy.interceptOdh(
       'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
       { path: { namespace, serviceName: 'dspa', recurringRunId: recurringRun.recurring_run_id } },
@@ -34,7 +34,7 @@ class DuplicateRunPage extends CreateRunPage {
 
   mockGetPipelineVersion(
     namespace: string,
-    pipelineVersion: PipelineVersionKFv2,
+    pipelineVersion: PipelineVersionKF,
   ): Cypress.Chainable<null> {
     return cy.interceptOdh(
       'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId',
@@ -50,7 +50,7 @@ class DuplicateRunPage extends CreateRunPage {
     );
   }
 
-  mockGetPipeline(namespace: string, pipeline: PipelineKFv2): Cypress.Chainable<null> {
+  mockGetPipeline(namespace: string, pipeline: PipelineKF): Cypress.Chainable<null> {
     return cy.interceptOdh(
       'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId',
       { path: { namespace, serviceName: 'dspa', pipelineId: pipeline.pipeline_id } },
@@ -58,7 +58,7 @@ class DuplicateRunPage extends CreateRunPage {
     );
   }
 
-  mockGetExperiment(namespace: string, experiment: ExperimentKFv2): Cypress.Chainable<null> {
+  mockGetExperiment(namespace: string, experiment: ExperimentKF): Cypress.Chainable<null> {
     return cy.interceptOdh(
       'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments/:experimentId',
       { path: { namespace, serviceName: 'dspa', experimentId: experiment.experiment_id } },

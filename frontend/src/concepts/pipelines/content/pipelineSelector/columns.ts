@@ -1,7 +1,7 @@
 import { SortableData } from '~/components/table';
-import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 
-export const pipelineSelectorColumns: SortableData<PipelineKFv2>[] = [
+export const pipelineSelectorColumns: SortableData<PipelineKF>[] = [
   {
     label: 'Pipeline name',
     field: 'name',
@@ -16,7 +16,7 @@ export const pipelineSelectorColumns: SortableData<PipelineKFv2>[] = [
   },
 ];
 
-export const pipelineVersionSelectorColumns: SortableData<PipelineVersionKFv2>[] = [
+export const pipelineVersionSelectorColumns: SortableData<PipelineVersionKF>[] = [
   {
     label: 'Pipeline version',
     field: 'name',

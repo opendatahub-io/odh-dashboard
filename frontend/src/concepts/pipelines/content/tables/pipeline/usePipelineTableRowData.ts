@@ -1,16 +1,16 @@
 import usePipelineVersionsForPipeline from '~/concepts/pipelines/apiHooks/usePipelineVersionsForPipeline';
-import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { PipelineListPaged } from '~/concepts/pipelines/types';
 import { FetchStateRefreshPromise } from '~/utilities/useFetchState';
 
 const usePipelineTableRowData = (
-  pipeline: PipelineKFv2,
+  pipeline: PipelineKF,
 ): {
-  version: PipelineVersionKFv2 | undefined;
+  version: PipelineVersionKF | undefined;
   updatedDate: Date;
   totalSize: number;
   loading: boolean;
-  refresh: FetchStateRefreshPromise<PipelineListPaged<PipelineVersionKFv2>>;
+  refresh: FetchStateRefreshPromise<PipelineListPaged<PipelineVersionKF>>;
 } => {
   const [{ items, totalSize }, isLoaded, , refresh] = usePipelineVersionsForPipeline(
     pipeline.pipeline_id,

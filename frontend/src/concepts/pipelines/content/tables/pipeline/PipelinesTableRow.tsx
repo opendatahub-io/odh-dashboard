@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Td, Tbody, Tr, ActionsColumn, TableText } from '@patternfly/react-table';
 import { Link, useNavigate } from 'react-router-dom';
 import { Skeleton } from '@patternfly/react-core';
-import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd, TableRowTitleDescription } from '~/components/table';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelinesTableExpandedRow from '~/concepts/pipelines/content/tables/pipeline/PipelinesTableExpandedRow';
@@ -25,13 +25,13 @@ const DISABLE_TOOLTIP =
   'All child pipeline versions must be deleted before deleting the parent pipeline';
 
 type PipelinesTableRowProps = {
-  pipeline: PipelineKFv2;
+  pipeline: PipelineKF;
   isChecked: boolean;
   onToggleCheck: () => void;
   rowIndex: number;
   onDeletePipeline: () => void;
   refreshPipelines: () => Promise<unknown>;
-  disableCheck: (id: PipelineKFv2, disabled: boolean) => void;
+  disableCheck: (id: PipelineKF, disabled: boolean) => void;
 };
 
 const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
@@ -46,7 +46,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
   const [isExpanded, setExpanded] = React.useState(false);
-  const [importTarget, setImportTarget] = React.useState<PipelineKFv2 | null>(null);
+  const [importTarget, setImportTarget] = React.useState<PipelineKF | null>(null);
   const {
     version,
     totalSize,

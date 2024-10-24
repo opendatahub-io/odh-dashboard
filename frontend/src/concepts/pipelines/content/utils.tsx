@@ -10,9 +10,9 @@ import {
 } from '@patternfly/react-icons';
 import { Icon, LabelProps } from '@patternfly/react-core';
 import {
-  PipelineCoreResourceKFv2,
-  PipelineRecurringRunKFv2,
-  PipelineRunKFv2,
+  PipelineCoreResourceKF,
+  PipelineRecurringRunKF,
+  PipelineRunKF,
   RuntimeStateKF,
   runtimeStateLabels,
 } from '~/concepts/pipelines/kfTypes';
@@ -20,7 +20,7 @@ import { relativeTime } from '~/utilities/time';
 
 export type RunStatusDetails = {
   icon: React.ReactNode;
-  label: PipelineRunKFv2['state'] | string;
+  label: PipelineRunKF['state'] | string;
   color?: LabelProps['color'];
   status?: React.ComponentProps<typeof Icon>['status'];
   details?: string;
@@ -30,7 +30,7 @@ export type RunStatusDetails = {
 const UNKNOWN_ICON = <QuestionCircleIcon />;
 const UNKNOWN_STATUS = 'warning';
 
-export const computeRunStatus = (run?: PipelineRunKFv2 | null): RunStatusDetails => {
+export const computeRunStatus = (run?: PipelineRunKF | null): RunStatusDetails => {
   if (!run) {
     return { icon: UNKNOWN_ICON, status: UNKNOWN_STATUS, label: '-' };
   }
@@ -94,17 +94,16 @@ export const computeRunStatus = (run?: PipelineRunKFv2 | null): RunStatusDetails
 };
 
 export const getPipelineAndVersionDeleteString = (
-  resources: PipelineCoreResourceKFv2[],
+  resources: PipelineCoreResourceKF[],
   type: 'pipeline' | 'version',
 ): string => `${resources.length} ${type}${resources.length !== 1 ? 's' : ''}`;
 
-export const getPipelineResourceUniqueID = (resource: PipelineCoreResourceKFv2): string =>
+export const getPipelineResourceUniqueID = (resource: PipelineCoreResourceKF): string =>
   resource.display_name + resource.created_at;
 
-export const isPipelineRun = (resource: PipelineCoreResourceKFv2): resource is PipelineRunKFv2 =>
+export const isPipelineRun = (resource: PipelineCoreResourceKF): resource is PipelineRunKF =>
   'run_id' in resource;
 
 export const isPipelineRecurringRun = (
-  resource: PipelineCoreResourceKFv2,
-): resource is PipelineRecurringRunKFv2 =>
-  'recurring_run_id' in resource && !('run_id' in resource);
+  resource: PipelineCoreResourceKF,
+): resource is PipelineRecurringRunKF => 'recurring_run_id' in resource && !('run_id' in resource);

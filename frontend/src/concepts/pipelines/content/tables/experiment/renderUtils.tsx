@@ -1,11 +1,11 @@
 import React from 'react';
 import { Split, SplitItem } from '@patternfly/react-core';
-import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
 import { usePipelineRunsByExperiment } from '~/concepts/pipelines/apiHooks/usePipelineRuns';
 import { RunStatus } from '~/concepts/pipelines/content/tables/renderUtils';
 
-type ExperimentUtil<P = Record<string, unknown>> = React.FC<{ experiment: ExperimentKFv2 } & P>;
+type ExperimentUtil<P = Record<string, unknown>> = React.FC<{ experiment: ExperimentKF } & P>;
 
 export const ExperimentCreated: ExperimentUtil = ({ experiment }) => {
   const createdDate = new Date(experiment.created_at);

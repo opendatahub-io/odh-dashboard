@@ -3,7 +3,7 @@ import {
   PipelineUploadOption,
   generatePipelineVersionName,
 } from '~/concepts/pipelines/content/import/utils';
-import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import useGenericObjectState, { GenericObjectState } from '~/utilities/useGenericObjectState';
 
 export type PipelineImportData = {
@@ -12,7 +12,7 @@ export type PipelineImportData = {
   uploadOption: PipelineUploadOption;
   fileContents: string;
   pipelineUrl: string;
-  pipeline: PipelineKFv2 | null;
+  pipeline: PipelineKF | null;
 };
 
 export const usePipelineImportModalData = (): GenericObjectState<PipelineImportData> =>
@@ -26,7 +26,7 @@ export const usePipelineImportModalData = (): GenericObjectState<PipelineImportD
   });
 
 export const usePipelineVersionImportModalData = (
-  existingPipeline?: PipelineKFv2 | null,
+  existingPipeline?: PipelineKF | null,
 ): GenericObjectState<PipelineImportData> => {
   const createDataState = useGenericObjectState<PipelineImportData>({
     name: React.useMemo(() => generatePipelineVersionName(existingPipeline), [existingPipeline]),

@@ -7,7 +7,7 @@ import {
   CreateRunPageSections,
   runPageSectionTitles,
 } from '~/concepts/pipelines/content/createRun/const';
-import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import PipelineSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineSelector';
 import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipelineButton';
 import PipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
@@ -15,9 +15,9 @@ import RunForm from '~/concepts/pipelines/content/createRun/RunForm';
 import ImportPipelineVersionButton from '~/concepts/pipelines/content/import/ImportPipelineVersionButton';
 
 type PipelineSectionProps = Pick<React.ComponentProps<typeof RunForm>, 'onValueChange'> & {
-  pipeline: PipelineKFv2 | null;
-  version: PipelineVersionKFv2 | null;
-  updateInputParams: (version: PipelineVersionKFv2 | undefined) => void;
+  pipeline: PipelineKF | null;
+  version: PipelineVersionKF | null;
+  updateInputParams: (version: PipelineVersionKF | undefined) => void;
   setInitialLoadedState: (isInitial: boolean) => void;
 };
 
@@ -29,7 +29,7 @@ const PipelineSection: React.FC<PipelineSectionProps> = ({
   setInitialLoadedState,
 }) => {
   const onPipelineChange = React.useCallback(
-    (value: PipelineKFv2) => {
+    (value: PipelineKF) => {
       onValueChange('pipeline', value);
       onValueChange('version', undefined);
       setInitialLoadedState(false);
@@ -38,7 +38,7 @@ const PipelineSection: React.FC<PipelineSectionProps> = ({
   );
 
   const onVersionChange = React.useCallback(
-    (value: PipelineVersionKFv2) => {
+    (value: PipelineVersionKF) => {
       onValueChange('version', value);
       updateInputParams(value);
     },

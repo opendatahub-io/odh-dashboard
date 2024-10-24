@@ -4,7 +4,7 @@ import {
   mockDashboardConfig,
   mockDataSciencePipelineApplicationK8sResource,
   mockK8sResourceList,
-  buildMockPipelineV2,
+  buildMockPipeline,
   buildMockPipelines,
   mockProjectK8sResource,
   mockRouteK8sResource,
@@ -32,7 +32,7 @@ import {
 import { RecurringRunStatus, RuntimeStateKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 
 const projectName = 'test-project-name';
-const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
+const initialMockPipeline = buildMockPipeline({ display_name: 'Test pipeline' });
 const currentTime = new Date();
 currentTime.setMonth(currentTime.getMonth() - 3);
 const mockExperiments = [

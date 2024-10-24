@@ -1,10 +1,10 @@
 import * as React from 'react';
-import { PipelineRecurringRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRecurringRunKF } from '~/concepts/pipelines/kfTypes';
 import { PipelineAPIState } from '~/concepts/pipelines/context/usePipelineAPIState';
 
 type RecurringRunStatus = {
   loading: boolean;
-  data: PipelineRecurringRunKFv2 | null;
+  data: PipelineRecurringRunKF | null;
 };
 
 export type GetRecurringRunInformation = (recurringRunId?: string) => RecurringRunStatus;

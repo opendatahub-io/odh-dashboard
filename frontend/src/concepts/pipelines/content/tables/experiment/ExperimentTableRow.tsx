@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import { Truncate } from '@patternfly/react-core';
-import { ExperimentKFv2, StorageStateKF } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd, TableRowTitleDescription } from '~/components/table';
 import { experimentArchivedRunsRoute, experimentRunsRoute } from '~/routes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
@@ -11,7 +11,7 @@ import { ExperimentCreated, LastExperimentRuns, LastExperimentRunsStarted } from
 type ExperimentTableRowProps = {
   isChecked: boolean;
   onToggleCheck: () => void;
-  experiment: ExperimentKFv2;
+  experiment: ExperimentKF;
   actionColumnItems: IAction[];
 };
 

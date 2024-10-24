@@ -8,8 +8,8 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import {
-  PipelineRecurringRunKFv2,
-  PipelineRunKFv2,
+  PipelineRecurringRunKF,
+  PipelineRunKF,
   RecurringRunStatus,
 } from '~/concepts/pipelines/kfTypes';
 import { getRunDuration } from '~/concepts/pipelines/content/tables/utils';
@@ -29,7 +29,7 @@ import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { RecurringRunTrigger } from '~/concepts/pipelines/content/tables/renderUtils';
 
 type PipelineRunTabDetailsProps = {
-  run?: PipelineRunKFv2 | PipelineRecurringRunKFv2 | null;
+  run?: PipelineRunKF | PipelineRecurringRunKF | null;
   workflowName?: string;
 };
 

@@ -1,12 +1,12 @@
 import React from 'react';
 import { ListItem, StackItem } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
 import { ArchiveModal } from '~/concepts/pipelines/content/ArchiveModal';
 import { BulkActionExpandableSection } from '~/pages/projects/components/BulkActionExpandableSection';
 
 interface ArchiveExperimentModalProps {
-  experiments: ExperimentKFv2[];
+  experiments: ExperimentKF[];
   onCancel: () => void;
 }
 
