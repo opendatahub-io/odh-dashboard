@@ -263,7 +263,6 @@ describe('Model version details', () => {
       modelVersionDetails.findStoragePath().contains('demo-models/test-path');
     });
 
-
     it('should add a property', () => {
       modelVersionDetails.findAddPropertyButton().click();
       modelVersionDetails.findAddKeyInput().type('new_key');
@@ -397,50 +396,36 @@ describe('Model version details', () => {
       modelVersionDetails.visit();
     });
 
-
-
     it('should update source model format', () => {
-      cy.intercept(
-        'PATCH',
-        '/api/service/modelregistry/*/api/model_registry/*/model_artifacts/*',
-        {
-          body: {
-            modelFormatName: 'NewFormat',
-          }
-        }
-      ).as('updateModelFormat');
+      cy.intercept('PATCH', '/api/service/modelregistry/*/api/model_registry/*/model_artifacts/*', {
+        body: {
+          modelFormatName: 'NewFormat',
+        },
+      }).as('updateModelFormat');
 
       modelVersionDetails.findSourceModelFormat().should('contain', 'NewFormat');
-      modelVersionDetails.findSourceModelFormatInput().clear().type('NewFormat');
       modelVersionDetails.findSaveButton().click();
 
       cy.wait('@updateModelFormat').then((interception) => {
         expect(interception.request.body).to.deep.equal({
-          modelFormatName: 'NewFormat'
+          modelFormatName: 'NewFormat',
         });
       });
-
-   
     });
 
     it('should update source model version', () => {
-      cy.intercept(
-        'PATCH',
-        '/api/service/modelregistry/*/api/model_registry/*/model_artifacts/*',
-        {
-          body: {
-            modelFormatVersion: '2.0.0',
-          }
-        }
-      ).as('updateModelVersion');
+      cy.intercept('PATCH', '/api/service/modelregistry/*/api/model_registry/*/model_artifacts/*', {
+        body: {
+          modelFormatVersion: '2.0.0',
+        },
+      }).as('updateModelVersion');
 
       modelVersionDetails.findSourceModelVersion().should('contain', '2.0.0');
-      modelVersionDetails.findSourceModelVersionInput().clear().type('2.0.0');
       modelVersionDetails.findSaveButton().click();
 
       cy.wait('@updateModelVersion').then((interception) => {
         expect(interception.request.body).to.deep.equal({
-          modelFormatVersion: '2.0.0'
+          modelFormatVersion: '2.0.0',
         });
       });
     });
