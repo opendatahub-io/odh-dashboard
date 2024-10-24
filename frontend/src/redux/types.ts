@@ -26,6 +26,7 @@ export interface GetUserAction {
   type: string;
   payload: {
     user?: string;
+    userId?: string;
     clusterID?: string;
     serverURL?: string;
     clusterBranding?: string;
@@ -65,6 +66,7 @@ export type StatusResponse = {
     };
     namespace: string;
     userName: string;
+    userID: string;
     clusterID: string;
     clusterBranding: string;
     isAdmin: boolean;

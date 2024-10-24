@@ -12,6 +12,7 @@ export const mockStatus = (options?: {
     },
     namespace: 'opendatahub',
     userName: 'test-user',
+    userID: '1234',
     clusterID: '16855612-2bb7-4a4c-9ff0-72rasdfd5',
     clusterBranding: 'ocp',
     isAdmin: options?.isAdmin ?? false,

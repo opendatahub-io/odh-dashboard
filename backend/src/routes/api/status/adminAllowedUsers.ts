@@ -1,6 +1,6 @@
 import { FastifyRequest } from 'fastify';
 import { KubeFastifyInstance } from '../../../types';
-import { getUserInfo } from '../../../utils/userUtils';
+import { getUserName } from '../../../utils/userUtils';
 import {
   getAdminUserList,
   getAllowedUserList,
@@ -66,8 +66,7 @@ export const getAllowedUsers = async (
   request: FastifyRequest<{ Params: { namespace: string } }>,
 ): Promise<AllowedUser[]> => {
   const { namespace } = request.params;
-  const userInfo = await getUserInfo(fastify, request);
-  const currentUser = userInfo.userName;
+  const currentUser = await getUserName(fastify, request);
   const isAdmin = await isUserAdmin(fastify, currentUser, namespace);
   if (!isAdmin) {
     // Privileged call -- return nothing

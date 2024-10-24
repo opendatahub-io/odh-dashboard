@@ -1,6 +1,6 @@
 import { FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, KubeStatus } from '../../../types';
-import { getUserInfo } from '../../../utils/userUtils';
+import { getUserName } from '../../../utils/userUtils';
 import { createCustomError } from '../../../utils/requestUtils';
 import { isUserAdmin, isUserAllowed } from '../../../utils/adminUtils';
 import { isImpersonating } from '../../../devFlags';
@@ -19,7 +19,7 @@ export const status = async (
 
   const { server } = currentCluster;
 
-  const { userName, userID } = await getUserInfo(fastify, request);
+  const userName = await getUserName(fastify, request);
   const isAdmin = await isUserAdmin(fastify, userName, namespace);
   const isAllowed = isAdmin ? true : await isUserAllowed(fastify, userName);
 
@@ -37,7 +37,6 @@ export const status = async (
       currentUser,
       namespace,
       userName,
-      userID,
       clusterID,
       clusterBranding,
       isAdmin,

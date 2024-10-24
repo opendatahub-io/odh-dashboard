@@ -5,6 +5,7 @@ import { UserState } from './types';
 
 const getUser = (state: AppState): UserState => ({
   username: state.user ?? '', // TODO: alternative?
+  userID: state.userID ?? '',
   isAdmin: !!state.isAdmin,
   isAllowed: !!state.isAllowed,
   userLoading: state.userLoading,

@@ -65,6 +65,7 @@ useAppContextMock.mockReturnValue({
 const useUserMock = jest.mocked(useUser);
 useUserMock.mockReturnValue({
   username: 'test-user',
+  userID: '1234',
   isAdmin: false,
   isAllowed: true,
   userLoading: false,

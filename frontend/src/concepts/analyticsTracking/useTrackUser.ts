@@ -4,12 +4,9 @@ import { useAccessReview } from '~/api';
 import { AccessReviewResourceAttributes } from '~/k8sTypes';
 import { IdentifyEventProperties } from '~/concepts/analyticsTracking/trackingProperties';
 
-export const useTrackUser = (
-  username?: string,
-  ssoUserID?: string,
-): [IdentifyEventProperties, boolean] => {
-  const { isAdmin } = useUser();
-  const [userID, setUserID] = React.useState<string | undefined>(ssoUserID);
+export const useTrackUser = (username?: string): [IdentifyEventProperties, boolean] => {
+  const { isAdmin, userID } = useUser();
+  const [finalUserID, setUserID] = React.useState<string | undefined>(userID);
 
   const createReviewResource: AccessReviewResourceAttributes = {
     group: 'project.openshift.io',
@@ -29,7 +26,7 @@ export const useTrackUser = (
       return aId;
     };
 
-    if (!ssoUserID) {
+    if (!userID) {
       computeAnonymousUserId().then((val) => {
         setUserID(val);
       });
@@ -42,10 +39,10 @@ export const useTrackUser = (
     () => ({
       isAdmin,
       canCreateProjects: allowCreate,
-      userID,
+      userID: finalUserID,
     }),
-    [isAdmin, allowCreate, userID],
+    [isAdmin, allowCreate, finalUserID],
   );
 
-  return [props, acLoaded && !!userID];
+  return [props, acLoaded && !!finalUserID];
 };
