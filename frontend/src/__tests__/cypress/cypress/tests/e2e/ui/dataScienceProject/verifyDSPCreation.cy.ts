@@ -16,17 +16,17 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
   let testData: DataScienceProjectData;
 
   before(() => {
-    cy.fixture('e2e/dataScienceProject.yaml', 'utf8')
+    return cy.fixture('e2e/dataScienceProject.yaml', 'utf8')
       .then((yamlContent: string) => {
         // Parse the YAML content
         testData = yaml.load(yamlContent) as DataScienceProjectData;
         const projectName = testData.dspOCName;
-
+  
         // Check if the project name is defined
         if (!projectName) {
           throw new Error('Project name is undefined or empty');
         }
-
+  
         // Verify if the OpenShift project exists
         return verifyOpenShiftProjectExists(projectName);
       })
@@ -35,8 +35,10 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
         if (exists) {
           cy.log(`Project ${projectName} exists. Deleting before test.`);
           return deleteOpenShiftProject(projectName);
+        } else {
+          cy.log(`Project ${projectName} does not exist. Proceeding with test.`);
+          return cy.wrap(null); // Return a resolved promise
         }
-        cy.log(`Project ${projectName} does not exist. Proceeding with test.`);
       });
   });
 
