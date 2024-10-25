@@ -425,11 +425,7 @@ describe('Model version details', () => {
       ).as('updateModelVersion');
 
       modelVersionDetails.findSourceModelVersion('edit').click();
-      modelVersionDetails
-        .findSourceModelVersion('group')
-        .find('input')
-        .clear()
-        .type('2.0.0');
+      modelVersionDetails.findSourceModelVersion('group').find('input').clear().type('2.0.0');
       modelVersionDetails.findSourceModelVersion('save').click();
 
       cy.wait('@updateModelVersion').then((interception) => {
