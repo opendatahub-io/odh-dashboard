@@ -5,15 +5,10 @@ import {
   EmptyStateIcon,
   EmptyStateHeader,
   EmptyStateFooter,
-  Popover,
-  Button,
-  Icon,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import PopoverListContent from '~/components/PopoverListContent';
 import projectsEmptyStateImg from '~/images/empty-state-projects-color.svg';
-import { FindAdministratorOptions } from '~/pages/projects/screens/projects/const';
+import WhosMyAdministrator from '~/components/WhosMyAdministrator';
 import NewProjectButton from './NewProjectButton';
 
 type EmptyProjectsProps = {
@@ -49,29 +44,10 @@ const EmptyProjects: React.FC<EmptyProjectsProps> = ({ allowCreate }) => {
             />
           </>
         ) : (
-          <Popover
-            minWidth="400px"
-            headerContent="Your administrator might be:"
-            bodyContent={
-              <PopoverListContent
-                data-testid="projects-empty-admin-help-content"
-                listItems={FindAdministratorOptions}
-              />
-            }
-          >
-            <Button
-              data-testid="projects-empty-admin-help"
-              isInline
-              variant="link"
-              icon={
-                <Icon isInline aria-label="More info">
-                  <OutlinedQuestionCircleIcon />
-                </Icon>
-              }
-            >
-              {`Who's my administrator?`}
-            </Button>
-          </Popover>
+          <WhosMyAdministrator
+            contentTestId="projects-empty-admin-help-content"
+            linkTestId="projects-empty-admin-help"
+          />
         )}
       </EmptyStateFooter>
     </EmptyState>
