@@ -117,7 +117,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
 
   const isConnectionTypesEnabled = useConnectionTypesEnabled();
   const [connection, setConnection] = React.useState<Connection>();
-  const [isConnectionValid, setIsConnectionvalid] = React.useState(false);
+  const [isConnectionValid, setIsConnectionValid] = React.useState(false);
 
   const isAuthorinoEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status;
   const currentProjectName = projectContext?.currentProject.metadata.name;
@@ -417,7 +417,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                     data={createDataInferenceService}
                     setData={setCreateDataInferenceService}
                     setConnection={setConnection}
-                    setIsConnectionvalid={setIsConnectionvalid}
+                    setIsConnectionValid={setIsConnectionValid}
                   />
                 ) : (
                   <DataConnectionSection

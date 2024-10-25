@@ -68,7 +68,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
 
   const isConnectionTypesEnabled = useConnectionTypesEnabled();
   const [connection, setConnection] = React.useState<Connection>();
-  const [isConnectionValid, setIsConnectionvalid] = React.useState(false);
+  const [isConnectionValid, setIsConnectionValid] = React.useState(false);
 
   const hasEditInfo = !!editInfo;
   React.useEffect(() => {
@@ -205,7 +205,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
                       data={createData}
                       setData={setCreateData}
                       setConnection={setConnection}
-                      setIsConnectionvalid={setIsConnectionvalid}
+                      setIsConnectionValid={setIsConnectionValid}
                     />
                   ) : (
                     <DataConnectionSection

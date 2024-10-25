@@ -13,10 +13,12 @@ import {
 } from '~/concepts/connectionTypes/types';
 import ConnectionTypeForm from '~/concepts/connectionTypes/ConnectionTypeForm';
 import { useK8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import {
   assembleConnectionSecret,
   getDefaultValues,
   isConnectionTypeDataField,
+  S3ConnectionTypeKeys,
   withRequiredFields,
 } from '~/concepts/connectionTypes/utils';
 import { ConnectionDetailsHelperText } from '~/concepts/connectionTypes/ConnectionDetailsHelperText';
@@ -115,7 +117,7 @@ type NewConnectionFieldProps = {
   data: CreatingInferenceServiceObject;
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
   setNewConnection: (connection: Connection) => void;
-  setIsConnectionvalid: (isValid: boolean) => void;
+  setIsConnectionValid: (isValid: boolean) => void;
 };
 
 const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
@@ -123,23 +125,18 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
   data,
   setData,
   setNewConnection,
-  setIsConnectionvalid,
+  setIsConnectionValid,
 }) => {
   const enabledConnectionTypes = React.useMemo(
     () =>
-      connectionTypes.filter((t) => t.metadata.annotations?.['opendatahub.io/enabled'] === 'true'),
+      connectionTypes.filter((t) => t.metadata.annotations?.['opendatahub.io/disabled'] !== 'true'),
     [connectionTypes],
   );
   const [selectedConnectionType, setSelectedConnectionType] = React.useState<
     ConnectionTypeConfigMapObj | undefined
   >(
     enabledConnectionTypes.length === 1
-      ? withRequiredFields(connectionTypes[0], [
-          'AWS_ACCESS_KEY_ID',
-          'AWS_SECRET_ACCESS_KEY',
-          'AWS_S3_ENDPOINT',
-          'AWS_S3_BUCKET',
-        ])
+      ? withRequiredFields(connectionTypes[0], S3ConnectionTypeKeys)
       : undefined,
   );
   const { data: nameDescData, onDataChange: setNameDescData } = useK8sNameDescriptionFieldData();
@@ -154,7 +151,7 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
   const isFormValid = React.useMemo(
     () =>
       !!selectedConnectionType &&
-      !!nameDescData.name &&
+      isK8sNameDescriptionDataValid(nameDescData) &&
       !selectedConnectionType.data?.fields?.find(
         (field) =>
           isConnectionTypeDataField(field) &&
@@ -176,7 +173,7 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
           connectionValues,
         ),
       );
-      setIsConnectionvalid(isFormValid);
+      setIsConnectionValid(isFormValid);
     }
   }, [
     connectionValues,
@@ -184,7 +181,7 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
     isFormValid,
     nameDescData,
     selectedConnectionType,
-    setIsConnectionvalid,
+    setIsConnectionValid,
     setNewConnection,
   ]);
 
@@ -197,7 +194,7 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
           setSelectedConnectionType(
             withRequiredFields(
               connectionTypes.find((t) => getResourceNameFromK8sResource(t) === type),
-              ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_S3_ENDPOINT', 'AWS_S3_BUCKET'],
+              S3ConnectionTypeKeys,
             ),
           );
         }}
@@ -223,14 +220,14 @@ type Props = {
   data: CreatingInferenceServiceObject;
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
   setConnection: (connection?: Connection) => void;
-  setIsConnectionvalid: (isValid: boolean) => void;
+  setIsConnectionValid: (isValid: boolean) => void;
 };
 
 export const ConnectionSection: React.FC<Props> = ({
   data,
   setData,
   setConnection,
-  setIsConnectionvalid,
+  setIsConnectionValid,
 }) => {
   const [connectionTypes] = useWatchConnectionTypes(true);
   const [projectConnections] = useConnections(data.project, true);
@@ -300,7 +297,7 @@ export const ConnectionSection: React.FC<Props> = ({
               data={data}
               setData={setData}
               setNewConnection={setConnection}
-              setIsConnectionvalid={setIsConnectionvalid}
+              setIsConnectionValid={setIsConnectionValid}
             />
           )
         }

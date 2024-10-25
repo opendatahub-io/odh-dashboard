@@ -16,7 +16,25 @@ jest.mock('~/utilities/useWatchConnectionTypes', () => ({
           {
             type: 'short-text',
             name: 'Access key',
-            envVar: 'text',
+            envVar: 'AWS_ACCESS_KEY_ID',
+            properties: {},
+          },
+          {
+            type: 'short-text',
+            name: 'Secret key',
+            envVar: 'AWS_SECRET_ACCESS_KEY',
+            properties: {},
+          },
+          {
+            type: 'short-text',
+            name: 'Endpoint',
+            envVar: 'AWS_S3_ENDPOINT',
+            properties: {},
+          },
+          {
+            type: 'short-text',
+            name: 'Bucket',
+            envVar: 'AWS_S3_BUCKET',
             properties: {},
           },
         ],
@@ -49,7 +67,7 @@ describe('ConnectionsFormSection', () => {
         })}
         setData={mockSetData}
         setConnection={mockSetConnection}
-        setIsConnectionvalid={() => undefined}
+        setIsConnectionValid={() => undefined}
       />,
     );
 
@@ -93,7 +111,7 @@ describe('ConnectionsFormSection', () => {
         })}
         setData={() => undefined}
         setConnection={() => undefined}
-        setIsConnectionvalid={() => undefined}
+        setIsConnectionValid={() => undefined}
       />,
     );
 
@@ -118,7 +136,7 @@ describe('ConnectionsFormSection', () => {
         })}
         setData={mockSetData}
         setConnection={mockSetConnection}
-        setIsConnectionvalid={() => undefined}
+        setIsConnectionValid={() => undefined}
       />,
     );
 

@@ -14,9 +14,7 @@ export const useWatchConnectionTypes = (
   const callback = React.useCallback<
     FetchStateCallbackPromise<ConnectionTypeConfigMapObj[]>
   >(async () => {
-    const secrets = await fetchConnectionTypes();
-
-    let connectionTypes = secrets;
+    let connectionTypes = await fetchConnectionTypes();
     if (modelServingCompatible) {
       connectionTypes = connectionTypes.filter((type) => {
         const compatibleTypes = getCompatibleTypes(

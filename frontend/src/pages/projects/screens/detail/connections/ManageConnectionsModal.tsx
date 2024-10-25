@@ -9,6 +9,8 @@ import {
   ConnectionTypeValueType,
 } from '~/concepts/connectionTypes/types';
 import { ProjectKind, SecretKind } from '~/k8sTypes';
+import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
+import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import { useK8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import {
   assembleConnectionSecret,
@@ -17,7 +19,6 @@ import {
   isConnectionTypeDataField,
   parseConnectionSecretValues,
 } from '~/concepts/connectionTypes/utils';
-import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
 
 type Props = {
   connection?: Connection;
@@ -83,7 +84,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
   const isFormValid = React.useMemo(
     () =>
       !!connectionTypeName &&
-      !!nameDescData.name &&
+      isK8sNameDescriptionDataValid(nameDescData) &&
       !selectedConnectionType?.data?.fields?.find(
         (field) =>
           isConnectionTypeDataField(field) &&
@@ -147,7 +148,12 @@ export const ManageConnectionModal: React.FC<Props> = ({
             }
 
             onSubmit(
-              assembleConnectionSecret(project, connectionTypeName, nameDescData, connectionValues),
+              assembleConnectionSecret(
+                project.metadata.name,
+                connectionTypeName,
+                nameDescData,
+                connectionValues,
+              ),
             )
               .then(() => {
                 onClose(true);
