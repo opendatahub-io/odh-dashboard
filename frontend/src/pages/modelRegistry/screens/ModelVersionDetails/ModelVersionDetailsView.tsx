@@ -45,44 +45,41 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             title="Description"
             contentWhenEmpty="No description"
             value={mv.description || ''}
-            saveEditedValue={
-              (value) =>
-                apiState.api
-                  .patchModelVersion(
-                    {},
-                    {
-                      description: value,
-                    },
-                    mv.id,
-                  )
-                  .then(refresh) // Only refresh the relevant part
+            saveEditedValue={(value) =>
+              apiState.api
+                .patchModelVersion(
+                  {},
+                  {
+                    description: value,
+                  },
+                  mv.id,
+                )
+                .then(refresh)
             }
           />
           <EditableLabelsDescriptionListGroup
             labels={getLabels(mv.customProperties)}
             isArchive={isArchiveVersion}
             allExistingKeys={Object.keys(mv.customProperties)}
-            saveEditedLabels={
-              (editedLabels) =>
-                apiState.api
-                  .patchModelVersion(
-                    {},
-                    {
-                      customProperties: mergeUpdatedLabels(mv.customProperties, editedLabels),
-                    },
-                    mv.id,
-                  )
-                  .then(refresh) // Only refresh the relevant part
+            saveEditedLabels={(editedLabels) =>
+              apiState.api
+                .patchModelVersion(
+                  {},
+                  {
+                    customProperties: mergeUpdatedLabels(mv.customProperties, editedLabels),
+                  },
+                  mv.id,
+                )
+                .then(refresh)
             }
           />
           <ModelPropertiesDescriptionListGroup
             isArchive={isArchiveVersion}
             customProperties={mv.customProperties}
-            saveEditedCustomProperties={
-              (editedProperties) =>
-                apiState.api
-                  .patchModelVersion({}, { customProperties: editedProperties }, mv.id)
-                  .then(refresh) // Only refresh the relevant part
+            saveEditedCustomProperties={(editedProperties) =>
+              apiState.api
+                .patchModelVersion({}, { customProperties: editedProperties }, mv.id)
+                .then(refresh)
             }
           />
         </DescriptionList>
@@ -188,7 +185,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
               apiState.api
                 .patchModelArtifact({}, { modelFormatVersion: newVersion }, modelArtifact?.id || '')
                 .then(() => {
-                  refreshModelArtifacts(); // Only refresh the relevant part
+                  refreshModelArtifacts();
                 })
             }
             title="Version"
