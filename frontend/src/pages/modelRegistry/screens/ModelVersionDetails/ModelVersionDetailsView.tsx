@@ -13,6 +13,7 @@ import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimest
 import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
 import { uriToObjectStorageFields } from '~/concepts/modelRegistry/utils';
 import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
+import EditableInputDescriptionListGroup from '~/components/EditableInputDescriptionListGroup';
 
 type ModelVersionDetailsViewProps = {
   modelVersion: ModelVersion;
@@ -30,19 +31,15 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
   const storageFields = uriToObjectStorageFields(modelArtifact.items[0]?.uri || '');
 
   // Add state for both model format and version
-  const [modelFormat, setModelFormat] = useState(
-    modelArtifact.items[0]?.modelFormatName || 'No source model format',
-  );
+  const [modelFormat, setModelFormat] = useState(modelArtifact.items[0]?.modelFormatName || '');
   const [modelFormatVersion, setModelFormatVersion] = useState(
-    modelArtifact.items[0]?.modelFormatVersion || 'No source model format version',
+    modelArtifact.items[0]?.modelFormatVersion || '',
   );
 
   // Update both modelFormat and modelFormatVersion when modelArtifact changes
   useEffect(() => {
-    setModelFormat(modelArtifact.items[0]?.modelFormatName || 'No source model format');
-    setModelFormatVersion(
-      modelArtifact.items[0]?.modelFormatVersion || 'No source model format version',
-    );
+    setModelFormat(modelArtifact.items[0]?.modelFormatName || '');
+    setModelFormatVersion(modelArtifact.items[0]?.modelFormatVersion || '');
   }, [modelArtifact]);
 
   return (
@@ -175,8 +172,9 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
           Source model format
         </Title>
         <DescriptionList isFillColumns>
-          <EditableTextDescriptionListGroup
+          <EditableInputDescriptionListGroup
             testid="source-model-format"
+            isArchive={isArchiveVersion}
             value={modelFormat}
             saveEditedValue={(value) =>
               apiState.api
@@ -193,9 +191,10 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             title="Model Format"
             contentWhenEmpty="No model format specified"
           />
-          <EditableTextDescriptionListGroup
+          <EditableInputDescriptionListGroup
             testid="source-model-version"
             value={modelFormatVersion}
+            isArchive={isArchiveVersion}
             saveEditedValue={(newVersion) =>
               apiState.api
                 .patchModelArtifact(

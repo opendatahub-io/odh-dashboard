@@ -72,7 +72,7 @@ const mockModelVersions = mockModelVersion({
       metadataType: ModelRegistryMetadataType.STRING,
       string_value: '',
     },
-    'Long label data to be truncated abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc':
+    'Long label data to be truncated abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc':
       {
         metadataType: ModelRegistryMetadataType.STRING,
         string_value: '',
@@ -408,14 +408,15 @@ describe('Model version details', () => {
           },
         },
         mockModelArtifact({}),
-      );
+      ).as('updateModelFormat');
 
-      modelVersionDetails.findSourceModelFormat().should('contain', 'NewFormat');
-      modelVersionDetails.findSaveButton().click();
+      modelVersionDetails.findSourceModelFormat().find('[data-testid="edit-button"]').click();
+      modelVersionDetails.findSourceModelFormat().find('input').clear().type('UpdatedFormat');
+      modelVersionDetails.findSourceModelFormat().find('[data-testid="save-button"]').click();
 
       cy.wait('@updateModelFormat').then((interception) => {
         expect(interception.request.body).to.deep.equal({
-          modelFormatName: 'NewFormat',
+          modelFormatName: 'UpdatedFormat',
         });
       });
     });
@@ -431,10 +432,11 @@ describe('Model version details', () => {
           },
         },
         mockModelArtifact({}),
-      );
+      ).as('updateModelVersion');
 
-      modelVersionDetails.findSourceModelVersion().should('contain', '2.0.0');
-      modelVersionDetails.findSaveButton().click();
+      modelVersionDetails.findSourceModelVersion().find('[data-testid="edit-button"]').click();
+      modelVersionDetails.findSourceModelVersion().find('input').clear().type('2.0.0');
+      modelVersionDetails.findSourceModelVersion().find('[data-testid="save-button"]').click();
 
       cy.wait('@updateModelVersion').then((interception) => {
         expect(interception.request.body).to.deep.equal({
