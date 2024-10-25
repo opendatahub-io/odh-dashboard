@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
 import DeleteExperimentModal from '~/pages/pipelines/global/experiments/DeleteExperimentModal';
 import { RestoreExperimentModal } from '~/pages/pipelines/global/experiments/RestoreExperimentModal';
 import ExperimentTableBase from './ExperimentTableBase';
@@ -14,8 +14,8 @@ const ArchivedExperimentTable: React.FC<ArchivedExperimentTableProps> = ({ ...ba
   const { experiments } = baseTable;
 
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
-  const [deleteExperiment, setDeleteExperiment] = React.useState<ExperimentKFv2>();
-  const [restoreExperiments, setRestoreExperiments] = React.useState<ExperimentKFv2[]>([]);
+  const [deleteExperiment, setDeleteExperiment] = React.useState<ExperimentKF>();
+  const [restoreExperiments, setRestoreExperiments] = React.useState<ExperimentKF[]>([]);
 
   return (
     <>
@@ -44,12 +44,12 @@ const ArchivedExperimentTable: React.FC<ArchivedExperimentTableProps> = ({ ...ba
             onRestoreAll={() => {
               setRestoreExperiments(
                 selections
-                  .map<ExperimentKFv2 | undefined>((selection) =>
+                  .map<ExperimentKF | undefined>((selection) =>
                     experiments.find(
                       ({ experiment_id: experimentId }) => experimentId === selection,
                     ),
                   )
-                  .filter((v): v is ExperimentKFv2 => !!v),
+                  .filter((v): v is ExperimentKF => !!v),
               );
               setIsRestoreModalOpen(true);
             }}

@@ -2,12 +2,12 @@ import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
-import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { pipelinesBaseRoute } from '~/routes';
 
 export const usePipelineVersionByParams = (): {
-  pipeline: PipelineKFv2 | null;
-  version: PipelineVersionKFv2 | null;
+  pipeline: PipelineKF | null;
+  version: PipelineVersionKF | null;
   isLoaded: boolean;
 } => {
   const navigate = useNavigate();

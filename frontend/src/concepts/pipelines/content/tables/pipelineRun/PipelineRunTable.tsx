@@ -6,7 +6,7 @@ import { TableVariant, Td } from '@patternfly/react-table';
 import { ColumnsIcon } from '@patternfly/react-icons';
 
 import { TableBase, getTableColumnSort, useCheckboxTable } from '~/components/table';
-import { ArtifactType, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { ArtifactType, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import {
   getExperimentRunColumns,
   pipelineRunColumns,
@@ -34,7 +34,7 @@ import { UnavailableMetricValue } from './UnavailableMetricValue';
 import { useMetricColumnNames } from './useMetricColumnNames';
 
 type PipelineRunTableProps = {
-  runs: PipelineRunKFv2[];
+  runs: PipelineRunKF[];
   loading?: boolean;
   totalSize: number;
   page: number;
@@ -86,7 +86,7 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
   const [isCustomColModalOpen, setIsCustomColModalOpen] = React.useState(false);
-  const selectedRuns = selectedIds.reduce((acc: PipelineRunKFv2[], selectedId) => {
+  const selectedRuns = selectedIds.reduce((acc: PipelineRunKF[], selectedId) => {
     const selectedRun = runs.find((run) => run.run_id === selectedId);
 
     if (selectedRun) {

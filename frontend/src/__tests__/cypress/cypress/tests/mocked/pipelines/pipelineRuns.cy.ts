@@ -5,10 +5,10 @@ import {
   mockK8sResourceList,
   mockProjectK8sResource,
   buildMockRunKF,
-  buildMockPipelineVersionsV2,
-  buildMockPipelineVersionV2,
+  buildMockPipelineVersions,
+  buildMockPipelineVersion,
   buildMockPipelines,
-  buildMockPipelineV2,
+  buildMockPipeline,
   buildMockExperimentKF,
   buildMockRecurringRunKF,
 } from '~/__mocks__';
@@ -85,7 +85,7 @@ const mockExperiments = mockExperimentIds.map((experimentId) =>
 );
 
 const mockVersions = mockVersionIds.map((versionId) =>
-  buildMockPipelineVersionV2({
+  buildMockPipelineVersion({
     pipeline_id: pipelineId,
     pipeline_version_id: versionId,
     display_name: startCase(versionId),
@@ -1089,7 +1089,7 @@ const initIntercepts = () => {
     {
       path: { namespace: projectName, serviceName: 'dspa' },
     },
-    buildMockPipelines([buildMockPipelineV2({ pipeline_id: pipelineId })]),
+    buildMockPipelines([buildMockPipeline({ pipeline_id: pipelineId })]),
   );
 
   cy.interceptOdh(
@@ -1101,7 +1101,7 @@ const initIntercepts = () => {
         pipelineId,
       },
     },
-    buildMockPipelineV2({
+    buildMockPipeline({
       pipeline_id: pipelineId,
     }),
   );
@@ -1109,7 +1109,7 @@ const initIntercepts = () => {
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
     { path: { namespace: projectName, serviceName: 'dspa', pipelineId } },
-    buildMockPipelineVersionsV2(mockVersions),
+    buildMockPipelineVersions(mockVersions),
   );
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId',
@@ -1121,6 +1121,6 @@ const initIntercepts = () => {
         pipelineVersionId,
       },
     },
-    buildMockPipelineVersionV2({ pipeline_id: pipelineId, pipeline_version_id: pipelineVersionId }),
+    buildMockPipelineVersion({ pipeline_id: pipelineId, pipeline_version_id: pipelineVersionId }),
   );
 };

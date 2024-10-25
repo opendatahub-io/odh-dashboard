@@ -14,7 +14,7 @@ import {
 } from '~/concepts/pipelines/content/createRun/const';
 import {
   InputDefinitionParameterType,
-  PipelineVersionKFv2,
+  PipelineVersionKF,
   RuntimeConfigParameters,
 } from '~/concepts/pipelines/kfTypes';
 import { getInputDefinitionParams } from '~/concepts/pipelines/content/createRun/utils';
@@ -24,7 +24,7 @@ import { NumberInputParam } from './NumberInputParam';
 
 type ParamsSectionProps = {
   runParams: RuntimeConfigParameters | undefined;
-  version: PipelineVersionKFv2 | null;
+  version: PipelineVersionKF | null;
   onChange: (params: RuntimeConfigParameters) => void;
 };
 

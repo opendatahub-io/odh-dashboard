@@ -14,10 +14,10 @@ import React from 'react';
 import { useParams } from 'react-router';
 import { useNavigate } from 'react-router-dom';
 import { experimentsBaseRoute, experimentsManageCompareRunsRoute } from '~/routes';
-import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 
 type CompareRunsInvalidRunCountProps = {
-  runs: PipelineRunKFv2[];
+  runs: PipelineRunKF[];
 };
 
 export const CompareRunsInvalidRunCount: React.FC<CompareRunsInvalidRunCountProps> = ({ runs }) => {

@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import { pipelineVersionDetailsRoute } from '~/routes';
 import { getNameEqualsFilter } from '~/concepts/pipelines/utils';
 import { usePipelineImportModalData } from './useImportModalData';
@@ -10,7 +10,7 @@ import PipelineImportBase from './PipelineImportBase';
 import { PipelineUploadOption } from './utils';
 
 type PipelineImportModalProps = {
-  onClose: (pipeline?: PipelineKFv2) => void;
+  onClose: (pipeline?: PipelineKF) => void;
   redirectAfterImport?: boolean;
 };
 
@@ -23,7 +23,7 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({
   const [modalData, setData, resetData] = usePipelineImportModalData();
 
   const handleClose = React.useCallback(
-    async (pipeline?: PipelineKFv2) => {
+    async (pipeline?: PipelineKF) => {
       onClose(pipeline);
 
       if (pipeline && redirectAfterImport) {

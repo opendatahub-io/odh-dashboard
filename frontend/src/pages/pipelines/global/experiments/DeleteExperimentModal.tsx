@@ -1,10 +1,10 @@
 import * as React from 'react';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
 
 type DeleteExperimentModalProps = {
-  experiment: ExperimentKFv2;
+  experiment: ExperimentKF;
   onCancel: () => void;
 };
 

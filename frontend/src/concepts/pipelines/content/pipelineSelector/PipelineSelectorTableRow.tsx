@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { Stack, StackItem, Tooltip } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
-import { ExperimentKFv2, PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF, PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { relativeTime } from '~/utilities/time';
 
 type PipelineSelectorTableRowProps = {
-  obj: PipelineKFv2 | PipelineVersionKFv2 | ExperimentKFv2;
+  obj: PipelineKF | PipelineVersionKF | ExperimentKF;
   onClick: () => void;
 };
 

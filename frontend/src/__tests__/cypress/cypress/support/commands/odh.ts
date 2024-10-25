@@ -39,16 +39,16 @@ import type {
 } from '~/types';
 import type {
   ArgoWorkflowPipelineVersion,
-  ExperimentKFv2,
+  ExperimentKF,
   GoogleRpcStatusKF,
   ListExperimentsResponseKF,
   ListPipelineRecurringRunsResourceKF,
   ListPipelineRunsResourceKF,
   ListPipelinesResponseKF,
-  PipelineKFv2,
-  PipelineRecurringRunKFv2,
-  PipelineRunKFv2,
-  PipelineVersionKFv2,
+  PipelineKF,
+  PipelineRecurringRunKF,
+  PipelineRunKF,
+  PipelineVersionKF,
 } from '~/concepts/pipelines/kfTypes';
 import type { GrpcResponse } from '~/__mocks__/mlmd/utils';
 import type { BuildMockPipelinveVersionsType } from '~/__mocks__';
@@ -382,7 +382,7 @@ declare global {
             };
           },
           response: OdhResponse<
-            PipelineVersionKFv2 | ArgoWorkflowPipelineVersion | GoogleRpcStatusKF
+            PipelineVersionKF | ArgoWorkflowPipelineVersion | GoogleRpcStatusKF
           >,
         ) => Cypress.Chainable<null>) &
         ((
@@ -401,7 +401,7 @@ declare global {
         ((
           type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId`,
           options: { path: { namespace: string; serviceName: string; pipelineId: string } },
-          response: OdhResponse<PipelineKFv2 | GoogleRpcStatusKF>,
+          response: OdhResponse<PipelineKF | GoogleRpcStatusKF>,
         ) => Cypress.Chainable<null>) &
         ((
           type: `DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId`,
@@ -414,7 +414,7 @@ declare global {
         ((
           type: `POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/upload_version`,
           options: { path: { namespace: string; serviceName: string }; times?: number },
-          response: OdhResponse<PipelineVersionKFv2 | GoogleRpcStatusKF>,
+          response: OdhResponse<PipelineVersionKF | GoogleRpcStatusKF>,
         ) => Cypress.Chainable<null>) &
         ((
           type: `POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions`,
@@ -422,7 +422,7 @@ declare global {
             path: { namespace: string; serviceName: string; pipelineId: string };
             times?: number;
           },
-          response: OdhResponse<PipelineVersionKFv2 | GoogleRpcStatusKF>,
+          response: OdhResponse<PipelineVersionKF | GoogleRpcStatusKF>,
         ) => Cypress.Chainable<null>) &
         ((
           type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions`,
@@ -461,7 +461,7 @@ declare global {
         ((
           type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId`,
           options: { path: { namespace: string; serviceName: string; recurringRunId: string } },
-          response: OdhResponse<PipelineRecurringRunKFv2>,
+          response: OdhResponse<PipelineRecurringRunKF>,
         ) => Cypress.Chainable<null>) &
         ((
           type: `DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId`,
@@ -471,12 +471,12 @@ declare global {
         ((
           type: `POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/create`,
           options: { path: { namespace: string; serviceName: string }; times?: number },
-          response: OdhResponse<PipelineKFv2 | GoogleRpcStatusKF>,
+          response: OdhResponse<PipelineKF | GoogleRpcStatusKF>,
         ) => Cypress.Chainable<null>) &
         ((
           type: `POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/upload`,
           options: { path: { namespace: string; serviceName: string }; times?: number },
-          response: OdhResponse<PipelineKFv2 | GoogleRpcStatusKF>,
+          response: OdhResponse<PipelineKF | GoogleRpcStatusKF>,
         ) => Cypress.Chainable<null>) &
         ((
           type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs`,
@@ -486,7 +486,7 @@ declare global {
         ((
           type: `POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs`,
           options: { path: { namespace: string; serviceName: string }; times?: number },
-          response: OdhResponse<PipelineRunKFv2 | GoogleRpcStatusKF>,
+          response: OdhResponse<PipelineRunKF | GoogleRpcStatusKF>,
         ) => Cypress.Chainable<null>) &
         ((
           type: `DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId`,
@@ -496,7 +496,7 @@ declare global {
         ((
           type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId`,
           options: { path: { namespace: string; serviceName: string; runId: string } },
-          response: OdhResponse<PipelineRunKFv2 | GoogleRpcStatusKF>,
+          response: OdhResponse<PipelineRunKF | GoogleRpcStatusKF>,
         ) => Cypress.Chainable<null>) &
         ((
           type: `POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId`,
@@ -516,12 +516,12 @@ declare global {
         ((
           type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments/:experimentId`,
           options: { path: { namespace: string; serviceName: string; experimentId: string } },
-          response: OdhResponse<ExperimentKFv2>,
+          response: OdhResponse<ExperimentKF>,
         ) => Cypress.Chainable<null>) &
         ((
           type: `POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns`,
           options: { path: { namespace: string; serviceName: string }; times?: number },
-          response: OdhResponse<PipelineRecurringRunKFv2>,
+          response: OdhResponse<PipelineRecurringRunKF>,
         ) => Cypress.Chainable<null>) &
         ((
           type: `GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns`,

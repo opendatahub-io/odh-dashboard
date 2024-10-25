@@ -22,11 +22,7 @@ import {
   SecretModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mockSuccessGoogleRpcStatus } from '~/__mocks__/mockGoogleRpcStatusKF';
-import {
-  buildMockPipelineV2,
-  buildMockPipelineVersionV2,
-  buildMockRecurringRunKF,
-} from '~/__mocks__';
+import { buildMockPipeline, buildMockPipelineVersion, buildMockRecurringRunKF } from '~/__mocks__';
 
 const initIntercepts = () => {
   cy.interceptOdh(
@@ -90,7 +86,7 @@ const initIntercepts = () => {
         pipelineId: 'pipeline_id',
       },
     },
-    buildMockPipelineV2({
+    buildMockPipeline({
       pipeline_id: 'pipeline-id',
     }),
   );
@@ -104,7 +100,7 @@ const initIntercepts = () => {
         pipelineVersionId: 'version_id',
       },
     },
-    buildMockPipelineVersionV2({
+    buildMockPipelineVersion({
       pipeline_id: 'pipeline_id',
       pipeline_version_id: 'version_id',
     }),

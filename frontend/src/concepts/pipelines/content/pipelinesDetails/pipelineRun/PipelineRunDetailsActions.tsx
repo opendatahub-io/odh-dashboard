@@ -11,13 +11,13 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import useNotification from '~/utilities/useNotification';
-import { PipelineRunKFv2, RuntimeStateKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF, RuntimeStateKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 import { duplicateRunRoute, experimentsCompareRunsRoute } from '~/routes';
 import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
 import { getDashboardMainContainer } from '~/utilities/utils';
 
 type PipelineRunDetailsActionsProps = {
-  run?: PipelineRunKFv2 | null;
+  run?: PipelineRunKF | null;
   onArchive: () => void;
   onDelete: () => void;
   isPipelineSupported: boolean;

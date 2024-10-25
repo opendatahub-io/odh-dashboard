@@ -1,7 +1,7 @@
 import { checkboxTableColumn, SortableData } from '~/components/table';
-import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 
-export const compareRunColumns: SortableData<PipelineRunKFv2>[] = [
+export const compareRunColumns: SortableData<PipelineRunKF>[] = [
   checkboxTableColumn(),
   {
     label: 'Run',

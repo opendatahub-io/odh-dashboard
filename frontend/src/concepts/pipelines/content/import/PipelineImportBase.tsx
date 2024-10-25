@@ -11,7 +11,7 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { DuplicateNameHelperText } from '~/concepts/pipelines/content/DuplicateNameHelperText';
 import {
@@ -27,14 +27,11 @@ import { PipelineImportData } from './useImportModalData';
 export type PipelineImportBaseProps = {
   title: string;
   submitButtonText: string;
-  onClose: (
-    result?: PipelineKFv2 | PipelineVersionKFv2,
-    currentPipeline?: PipelineKFv2 | null,
-  ) => void;
+  onClose: (result?: PipelineKF | PipelineVersionKF, currentPipeline?: PipelineKF | null) => void;
   data: PipelineImportData;
   setData: UpdateObjectAtPropAndValue<PipelineImportData>;
   resetData: () => void;
-  submitAction: () => Promise<PipelineKFv2 | PipelineVersionKFv2>;
+  submitAction: () => Promise<PipelineKF | PipelineVersionKF>;
   checkForDuplicateName: (value: string) => Promise<boolean>;
   children?: React.ReactNode;
 };
@@ -64,7 +61,7 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
     (uploadOption === PipelineUploadOption.URL_IMPORT ? !pipelineUrl : !fileContents);
 
   const onBeforeClose = React.useCallback(
-    (result?: PipelineKFv2 | PipelineVersionKFv2) => {
+    (result?: PipelineKF | PipelineVersionKF) => {
       onClose(result, data.pipeline);
       setImporting(false);
       setError(undefined);
