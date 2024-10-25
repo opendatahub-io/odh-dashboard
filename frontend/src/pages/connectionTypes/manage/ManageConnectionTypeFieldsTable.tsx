@@ -17,6 +17,7 @@ import { Table, Thead, Tbody, Tr, Th } from '@patternfly/react-table';
 import { ConnectionTypeField, ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
 import useDraggableTableControlled from '~/utilities/useDraggableTableControlled';
 import { columns } from '~/pages/connectionTypes/manage/fieldTableColumns';
+import { findSectionFields } from '~/concepts/connectionTypes/utils';
 import ConnectionTypeFieldModal from './ConnectionTypeFieldModal';
 import ManageConnectionTypeFieldsTableRow from './ManageConnectionTypeFieldsTableRow';
 import { ConnectionTypeMoveFieldToSectionModal } from './ConnectionTypeFieldMoveModal';
@@ -96,16 +97,27 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
                       index,
                     });
                   }}
-                  onRemove={() => onFieldsChange(fields.filter((f, i) => i !== index))}
-                  onDuplicate={(field) => {
+                  onRemove={(removeSectionFields) => {
+                    if (removeSectionFields) {
+                      const sectionFields = findSectionFields(index, fields);
+                      onFieldsChange([
+                        ...fields.slice(0, index),
+                        ...(sectionFields.length === 0
+                          ? []
+                          : fields.slice(index + 1 + sectionFields.length)),
+                      ]);
+                    } else {
+                      onFieldsChange(fields.filter((f, i) => i !== index));
+                    }
+                  }}
+                  onDuplicate={() => {
                     setModalField({
-                      field: structuredClone(field),
+                      field: structuredClone({ ...row, name: `Copy of ${row.name}` }),
+                      index: index + 1,
                     });
                   }}
                   onAddField={() => {
-                    const nextSectionIndex = fields.findIndex(
-                      (f, i) => i > index && f.type === ConnectionTypeFieldType.Section,
-                    );
+                    const nextSectionIndex = index + findSectionFields(index, fields).length;
                     if (nextSectionIndex >= 0) {
                       setModalField({ index: nextSectionIndex });
                     } else {
