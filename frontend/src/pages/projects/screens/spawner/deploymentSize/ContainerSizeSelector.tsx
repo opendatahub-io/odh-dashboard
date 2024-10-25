@@ -18,7 +18,6 @@ const ContainerSizeSelector: React.FC<ContainerSizeSelectorProps> = ({
 }) => (
   <FormGroup label="Container size" fieldId="container-size" data-testid="container-size-group">
     <SimpleSelect
-      id="jeff"
       popperProps={{ appendTo: getDashboardMainContainer() }}
       isFullWidth
       value={value.name}
