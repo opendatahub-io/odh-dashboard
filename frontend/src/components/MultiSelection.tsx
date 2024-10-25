@@ -333,7 +333,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
           </SelectList>
         ) : null}
         {selectGroups.map((g, index) => (
-          <>
+          <React.Fragment key={g.id}>
             <SelectGroup label={g.name} key={g.id}>
               <SelectList isAriaMultiselectable>
                 {g.values.map((option) => (
@@ -352,7 +352,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
               </SelectList>
             </SelectGroup>
             {index < selectGroups.length - 1 || selectOptions.length ? <Divider /> : null}
-          </>
+          </React.Fragment>
         ))}
         {selectOptions.length ||
         (createOption && (!isCreateOptionOnTop || groupOptions.length === 0)) ? (
