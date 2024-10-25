@@ -211,20 +211,6 @@ const initIntercepts = () => {
     },
     mockModelArtifactList({}),
   );
-
-  cy.intercept('PATCH', '/api/service/modelregistry/*/api/model_registry/*/model_artifacts/*', {
-    body: {
-      artifactType: 'model-artifact',
-      createTimeSinceEpoch: '1729694473577',
-      customProperties: {},
-      id: '24',
-      lastUpdateTimeSinceEpoch: '1729712188616',
-      modelFormatName: 'UPdate',
-      name: 'test1-n1-artifact',
-      state: 'LIVE',
-      uri: 's3://b/t?endpoint=b',
-    },
-  }).as('updateArtifact');
 };
 
 describe('Model version details', () => {
@@ -410,9 +396,13 @@ describe('Model version details', () => {
         mockModelArtifact({}),
       ).as('updateModelFormat');
 
-      modelVersionDetails.findSourceModelFormat().find('[data-testid="edit-button"]').click();
-      modelVersionDetails.findSourceModelFormat().find('input').clear().type('UpdatedFormat');
-      modelVersionDetails.findSourceModelFormat().find('[data-testid="save-button"]').click();
+      modelVersionDetails.findSourceModelFormat('edit').click();
+      modelVersionDetails
+        .findSourceModelFormat('group')
+        .find('input')
+        .clear()
+        .type('UpdatedFormat');
+      modelVersionDetails.findSourceModelFormat('save').click();
 
       cy.wait('@updateModelFormat').then((interception) => {
         expect(interception.request.body).to.deep.equal({
@@ -434,9 +424,13 @@ describe('Model version details', () => {
         mockModelArtifact({}),
       ).as('updateModelVersion');
 
-      modelVersionDetails.findSourceModelVersion().find('[data-testid="edit-button"]').click();
-      modelVersionDetails.findSourceModelVersion().find('input').clear().type('2.0.0');
-      modelVersionDetails.findSourceModelVersion().find('[data-testid="save-button"]').click();
+      modelVersionDetails.findSourceModelVersion('edit').click();
+      modelVersionDetails
+        .findSourceModelVersion('group')
+        .find('input')
+        .clear()
+        .type('2.0.0');
+      modelVersionDetails.findSourceModelVersion('save').click();
 
       cy.wait('@updateModelVersion').then((interception) => {
         expect(interception.request.body).to.deep.equal({
