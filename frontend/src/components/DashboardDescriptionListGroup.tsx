@@ -23,6 +23,9 @@ type EditableProps = {
   onEditClick: () => void;
   onSaveEditsClick: () => void;
   onDiscardEditsClick: () => void;
+  editButtonTestId?: string;
+  saveButtonTestId?: string;
+  cancelButtonTestId?: string;
 };
 
 export type DashboardDescriptionListGroupProps = {
@@ -32,6 +35,7 @@ export type DashboardDescriptionListGroupProps = {
   isEmpty?: boolean;
   contentWhenEmpty?: React.ReactNode;
   children: React.ReactNode;
+  groupTestId?: string;
 } & (({ isEditable: true } & EditableProps) | ({ isEditable?: false } & Partial<EditableProps>));
 
 const DashboardDescriptionListGroup: React.FC<DashboardDescriptionListGroupProps> = (props) => {
@@ -49,9 +53,13 @@ const DashboardDescriptionListGroup: React.FC<DashboardDescriptionListGroupProps
     onSaveEditsClick,
     onDiscardEditsClick,
     children,
+    groupTestId,
+    editButtonTestId,
+    saveButtonTestId,
+    cancelButtonTestId,
   } = props;
   return (
-    <DescriptionListGroup>
+    <DescriptionListGroup data-testid={groupTestId}>
       {action || isEditable ? (
         <DescriptionListTerm className="odh-custom-description-list-term-with-action">
           <Split>
@@ -62,7 +70,7 @@ const DashboardDescriptionListGroup: React.FC<DashboardDescriptionListGroupProps
                   <ActionList isIconList>
                     <ActionListItem>
                       <Button
-                        data-testid={`save-edit-button-${title}`}
+                        data-testid={saveButtonTestId}
                         aria-label={`Save edits to ${title}`}
                         variant="link"
                         onClick={onSaveEditsClick}
@@ -73,7 +81,7 @@ const DashboardDescriptionListGroup: React.FC<DashboardDescriptionListGroupProps
                     </ActionListItem>
                     <ActionListItem>
                       <Button
-                        data-testid={`discard-edit-button-${title}`}
+                        data-testid={cancelButtonTestId}
                         aria-label={`Discard edits to ${title} `}
                         variant="plain"
                         onClick={onDiscardEditsClick}
@@ -85,7 +93,7 @@ const DashboardDescriptionListGroup: React.FC<DashboardDescriptionListGroupProps
                   </ActionList>
                 ) : (
                   <Button
-                    data-testid={`edit-button-${title}`}
+                    data-testid={editButtonTestId}
                     aria-label={`Edit ${title}`}
                     isInline
                     variant="link"

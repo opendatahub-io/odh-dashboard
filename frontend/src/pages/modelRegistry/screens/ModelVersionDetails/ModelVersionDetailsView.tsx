@@ -24,9 +24,11 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
   isArchiveVersion,
   refresh,
 }) => {
-  const [modelArtifact] = useModelArtifactsByVersionId(mv.id);
+  // TODO handle loading state / error for artifacts here?
+  const [modelArtifacts, , , refreshModelArtifacts] = useModelArtifactsByVersionId(mv.id);
+  const modelArtifact = modelArtifacts.items.length ? modelArtifacts.items[0] : null;
   const { apiState } = React.useContext(ModelRegistryContext);
-  const storageFields = uriToObjectStorageFields(modelArtifact.items[0]?.uri || '');
+  const storageFields = uriToObjectStorageFields(modelArtifact?.uri || '');
 
   return (
     <Flex
@@ -37,7 +39,8 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
       <FlexItem flex={{ default: 'flex_1' }}>
         <DescriptionList isFillColumns>
           <EditableTextDescriptionListGroup
-            testid="model-version-description"
+            editableVariant="TextArea"
+            baseTestId="model-version-description"
             isArchive={isArchiveVersion}
             title="Description"
             contentWhenEmpty="No description"
@@ -99,7 +102,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             <>
               <DashboardDescriptionListGroup
                 title="Endpoint"
-                isEmpty={modelArtifact.size === 0 || !storageFields.endpoint}
+                isEmpty={modelArtifacts.size === 0 || !storageFields.endpoint}
                 contentWhenEmpty="No endpoint"
               >
                 <InlineTruncatedClipboardCopy
@@ -109,7 +112,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
               </DashboardDescriptionListGroup>
               <DashboardDescriptionListGroup
                 title="Region"
-                isEmpty={modelArtifact.size === 0 || !storageFields.region}
+                isEmpty={modelArtifacts.size === 0 || !storageFields.region}
                 contentWhenEmpty="No region"
               >
                 <InlineTruncatedClipboardCopy
@@ -119,7 +122,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
               </DashboardDescriptionListGroup>
               <DashboardDescriptionListGroup
                 title="Bucket"
-                isEmpty={modelArtifact.size === 0 || !storageFields.bucket}
+                isEmpty={modelArtifacts.size === 0 || !storageFields.bucket}
                 contentWhenEmpty="No bucket"
               >
                 <InlineTruncatedClipboardCopy
@@ -129,7 +132,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
               </DashboardDescriptionListGroup>
               <DashboardDescriptionListGroup
                 title="Path"
-                isEmpty={modelArtifact.size === 0 || !storageFields.path}
+                isEmpty={modelArtifacts.size === 0 || !storageFields.path}
                 contentWhenEmpty="No path"
               >
                 <InlineTruncatedClipboardCopy
@@ -143,12 +146,12 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             <>
               <DashboardDescriptionListGroup
                 title="URI"
-                isEmpty={modelArtifact.size === 0 || !modelArtifact.items[0].uri}
+                isEmpty={modelArtifacts.size === 0 || !modelArtifact?.uri}
                 contentWhenEmpty="No URI"
               >
                 <InlineTruncatedClipboardCopy
                   testId="storage-uri"
-                  textToCopy={modelArtifact.items[0]?.uri || ''}
+                  textToCopy={modelArtifact?.uri || ''}
                 />
               </DashboardDescriptionListGroup>
             </>
@@ -158,20 +161,36 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
           Source model format
         </Title>
         <DescriptionList isFillColumns>
-          <DashboardDescriptionListGroup
-            title="Name"
-            isEmpty={modelArtifact.size === 0 || !modelArtifact.items[0].modelFormatName}
-            contentWhenEmpty="No source model format"
-          >
-            {modelArtifact.items[0]?.modelFormatName}
-          </DashboardDescriptionListGroup>
-          <DashboardDescriptionListGroup
+          <EditableTextDescriptionListGroup
+            editableVariant="TextInput"
+            baseTestId="source-model-format"
+            isArchive={isArchiveVersion}
+            value={modelArtifact?.modelFormatName || ''}
+            saveEditedValue={(value) =>
+              apiState.api
+                .patchModelArtifact({}, { modelFormatName: value }, modelArtifact?.id || '')
+                .then(() => {
+                  refreshModelArtifacts();
+                })
+            }
+            title="Model Format"
+            contentWhenEmpty="No model format specified"
+          />
+          <EditableTextDescriptionListGroup
+            editableVariant="TextInput"
+            baseTestId="source-model-version"
+            value={modelArtifact?.modelFormatVersion || ''}
+            isArchive={isArchiveVersion}
+            saveEditedValue={(newVersion) =>
+              apiState.api
+                .patchModelArtifact({}, { modelFormatVersion: newVersion }, modelArtifact?.id || '')
+                .then(() => {
+                  refreshModelArtifacts();
+                })
+            }
             title="Version"
-            isEmpty={modelArtifact.size === 0 || !modelArtifact.items[0].modelFormatVersion}
             contentWhenEmpty="No source model format version"
-          >
-            {modelArtifact.items[0]?.modelFormatVersion}
-          </DashboardDescriptionListGroup>
+          />
         </DescriptionList>
         <DescriptionList isFillColumns style={{ marginTop: '2em' }}>
           <DashboardDescriptionListGroup
