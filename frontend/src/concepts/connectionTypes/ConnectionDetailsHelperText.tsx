@@ -7,13 +7,12 @@ import {
   DescriptionListTerm,
   HelperText,
   HelperTextItem,
-  LabelGroup,
   Popover,
 } from '@patternfly/react-core';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import TruncatedText from '~/components/TruncatedText';
 import { Connection, ConnectionTypeConfigMapObj } from './types';
-import CategoryLabel from './CategoryLabel';
+import { getConnectionTypeDisplayName } from './utils';
 
 type Props = {
   connection: Connection;
@@ -23,6 +22,7 @@ type Props = {
 export const ConnectionDetailsHelperText: React.FC<Props> = ({ connection, connectionType }) => {
   const displayName = getDisplayNameFromK8sResource(connection);
   const description = getDescriptionFromK8sResource(connection);
+  const connectionTypeName = getConnectionTypeDisplayName(connection, connectionType);
 
   return (
     <HelperText>
@@ -48,17 +48,7 @@ export const ConnectionDetailsHelperText: React.FC<Props> = ({ connection, conne
               ) : undefined}
               <DescriptionListGroup>
                 <DescriptionListTerm>Type</DescriptionListTerm>
-                <DescriptionListDescription>
-                  {connectionType?.data?.category?.length ? (
-                    <LabelGroup>
-                      {connectionType.data.category.map((category) => (
-                        <CategoryLabel key={category} category={category} />
-                      ))}
-                    </LabelGroup>
-                  ) : (
-                    '-'
-                  )}
-                </DescriptionListDescription>
+                <DescriptionListDescription>{connectionTypeName}</DescriptionListDescription>
               </DescriptionListGroup>
             </DescriptionList>
           }

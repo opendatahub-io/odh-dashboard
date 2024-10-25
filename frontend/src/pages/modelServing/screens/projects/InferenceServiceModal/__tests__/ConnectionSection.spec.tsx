@@ -77,7 +77,7 @@ describe('ConnectionsFormSection', () => {
     expect(result.getByRole('textbox', { name: 'folder-path' })).toHaveValue('');
 
     await act(async () => result.getByRole('button', { name: 'Typeahead menu toggle' }).click());
-    await act(async () => result.getByRole('option', { name: 's3-connection' }).click());
+    await act(async () => result.getByRole('option', { name: 's3-connection Type: s3' }).click());
     expect(mockSetData).toHaveBeenLastCalledWith('storage', {
       type: InferenceServiceStorageType.EXISTING_STORAGE,
       path: '',
