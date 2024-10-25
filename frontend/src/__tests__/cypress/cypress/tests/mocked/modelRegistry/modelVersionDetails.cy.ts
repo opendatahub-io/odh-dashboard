@@ -13,6 +13,7 @@ import {
   mockProjectK8sResource,
   mockDscStatus,
 } from '~/__mocks__';
+import { mockModelArtifact } from '~/__mocks__/mockModelArtifact';
 
 import {
   InferenceServiceModel,
@@ -397,11 +398,17 @@ describe('Model version details', () => {
     });
 
     it('should update source model format', () => {
-      cy.intercept('PATCH', '/api/service/modelregistry/*/api/model_registry/*/model_artifacts/*', {
-        body: {
-          modelFormatName: 'NewFormat',
+      cy.interceptOdh(
+        'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_artifacts/:artifactId',
+        {
+          path: {
+            serviceName: 'modelregistry-sample',
+            apiVersion: MODEL_REGISTRY_API_VERSION,
+            artifactId: '1',
+          },
         },
-      }).as('updateModelFormat');
+        mockModelArtifact({}),
+      );
 
       modelVersionDetails.findSourceModelFormat().should('contain', 'NewFormat');
       modelVersionDetails.findSaveButton().click();
@@ -414,11 +421,17 @@ describe('Model version details', () => {
     });
 
     it('should update source model version', () => {
-      cy.intercept('PATCH', '/api/service/modelregistry/*/api/model_registry/*/model_artifacts/*', {
-        body: {
-          modelFormatVersion: '2.0.0',
+      cy.interceptOdh(
+        'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_artifacts/:artifactId',
+        {
+          path: {
+            serviceName: 'modelregistry-sample',
+            apiVersion: MODEL_REGISTRY_API_VERSION,
+            artifactId: '1',
+          },
         },
-      }).as('updateModelVersion');
+        mockModelArtifact({}),
+      );
 
       modelVersionDetails.findSourceModelVersion().should('contain', '2.0.0');
       modelVersionDetails.findSaveButton().click();

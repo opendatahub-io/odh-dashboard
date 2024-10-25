@@ -23,7 +23,7 @@ class ModelVersionDetails {
   findDescription() {
     return cy.findByTestId('model-version-description');
   }
-  
+
   findSourceModelFormat() {
     return cy.findByTestId('source-model-format');
   }
