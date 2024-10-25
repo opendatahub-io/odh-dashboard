@@ -56,6 +56,8 @@ import {
   TrackingOutcome,
 } from '~/concepts/analyticsTracking/trackingProperties';
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
+import EnvironmentVariablesSection from './EnvironmentVariablesSection';
+import ServingRuntimeArgsSection from './ServingRuntimeArgsSection';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -92,7 +94,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   editInfo,
   projectSection,
   registeredModelDeployInfo,
-  shouldFormHidden,
+  shouldFormHidden: hideForm,
 }) => {
   const [createDataServingRuntime, setCreateDataServingRuntime, resetDataServingRuntime, sizes] =
     useCreateServingRuntimeObject(editInfo?.servingRuntimeEditInfo);
@@ -290,7 +292,6 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
         fireFormTrackingEvent(editInfo ? 'Model Updated' : 'Model Deployed', props);
       });
   };
-
   return (
     <Modal
       title={editInfo ? 'Edit model' : 'Deploy model'}
@@ -350,7 +351,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                   }
                 />
               )}
-              {!shouldFormHidden && (
+              {!hideForm && (
                 <>
                   <InferenceServiceNameSection
                     data={createDataInferenceService}
@@ -397,7 +398,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                 </>
               )}
             </FormSection>
-            {!shouldFormHidden && (
+            {!hideForm && (
               <FormSection title="Source model location" id="model-location">
                 <DataConnectionSection
                   data={createDataInferenceService}
@@ -410,7 +411,14 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
             )}
             {servingRuntimeParamsEnabled && (
               <FormSection title="Configuration parameters" id="configuration-params">
-                {/* TODO: enter the fields here */}
+                <ServingRuntimeArgsSection
+                  data={createDataInferenceService}
+                  setData={setCreateDataInferenceService}
+                />
+                <EnvironmentVariablesSection
+                  data={createDataInferenceService}
+                  setData={setCreateDataInferenceService}
+                />
               </FormSection>
             )}
           </StackItem>
