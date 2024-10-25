@@ -53,6 +53,7 @@ import {
   getNIMResource,
 } from '~/pages/modelServing/screens/projects/nimUtils';
 import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
+import { Connection } from '~/concepts/connectionTypes/types';
 
 const NIM_CONFIGMAP_NAME = 'nvidia-nim-images-data';
 
@@ -320,7 +321,7 @@ export const createAWSSecret = (
     { dryRun },
   );
 
-const createInferenceServiceAndDataConnection = (
+const createInferenceServiceAndDataConnection = async (
   inferenceServiceData: CreatingInferenceServiceObject,
   existingStorage: boolean,
   editInfo?: InferenceServiceKind,
@@ -329,51 +330,41 @@ const createInferenceServiceAndDataConnection = (
   selectedAcceleratorProfile?: AcceleratorProfileFormData,
   dryRun = false,
   isStorageNeeded?: boolean,
+  connection?: Connection,
 ) => {
+  let secret;
   if (!existingStorage) {
-    return createAWSSecret(inferenceServiceData, dryRun).then((secret) =>
-      editInfo
-        ? updateInferenceService(
-            inferenceServiceData,
-            editInfo,
-            secret.metadata.name,
-            isModelMesh,
-            initialAcceleratorProfile,
-            selectedAcceleratorProfile,
-            dryRun,
-            isStorageNeeded,
-          )
-        : createInferenceService(
-            inferenceServiceData,
-            secret.metadata.name,
-            isModelMesh,
-            initialAcceleratorProfile,
-            selectedAcceleratorProfile,
-            dryRun,
-            isStorageNeeded,
-          ),
+    if (connection) {
+      secret = await createSecret(connection, { dryRun });
+    } else {
+      secret = await createAWSSecret(inferenceServiceData, dryRun);
+    }
+  }
+
+  let inferenceService;
+  if (editInfo) {
+    inferenceService = await updateInferenceService(
+      inferenceServiceData,
+      editInfo,
+      secret?.metadata.name,
+      isModelMesh,
+      initialAcceleratorProfile,
+      selectedAcceleratorProfile,
+      dryRun,
+      isStorageNeeded,
+    );
+  } else {
+    inferenceService = await createInferenceService(
+      inferenceServiceData,
+      secret?.metadata.name,
+      isModelMesh,
+      initialAcceleratorProfile,
+      selectedAcceleratorProfile,
+      dryRun,
+      isStorageNeeded,
     );
   }
-  return editInfo !== undefined
-    ? updateInferenceService(
-        inferenceServiceData,
-        editInfo,
-        undefined,
-        isModelMesh,
-        initialAcceleratorProfile,
-        selectedAcceleratorProfile,
-        dryRun,
-        isStorageNeeded,
-      )
-    : createInferenceService(
-        inferenceServiceData,
-        undefined,
-        isModelMesh,
-        initialAcceleratorProfile,
-        selectedAcceleratorProfile,
-        dryRun,
-        isStorageNeeded,
-      );
+  return inferenceService;
 };
 
 export const getSubmitInferenceServiceResourceFn = (
@@ -386,6 +377,7 @@ export const getSubmitInferenceServiceResourceFn = (
   allowCreate?: boolean,
   secrets?: SecretKind[],
   isStorageNeeded?: boolean,
+  connection?: Connection,
 ): ((opts: { dryRun?: boolean }) => Promise<void>) => {
   const inferenceServiceData = {
     ...createData,
@@ -416,6 +408,7 @@ export const getSubmitInferenceServiceResourceFn = (
       selectedAcceleratorProfile,
       dryRun,
       isStorageNeeded,
+      connection,
     ).then((inferenceService) =>
       setUpTokenAuth(
         createData,
