@@ -116,6 +116,26 @@ declare global {
        */
       // eslint-disable-next-line @typescript-eslint/method-signature-style
       findAllByTestId(id: Matcher | Matcher[], options?: MatcherOptions): Chainable<JQuery>;
+
+      /**
+       * Logs a step in the Cypress test runner and console.
+       * This method is useful for creating clear, descriptive logs of test steps,
+       * enhancing test readability and debugging.
+       *
+       * @param description A string describing the step being performed in the test.
+       *
+       * Usage:
+       * cy.step('Logging in to the application');
+       * cy.step('Verifying dashboard elements');
+       *
+       * In the Cypress test runner and console, this will appear as:
+       * STEP: Logging in to the application
+       * STEP: Verifying dashboard elements
+       *
+       * This helps in quickly identifying the current stage of the test execution
+       * and provides a clear overview of the test flow.
+       */
+      step: (description: string) => Chainable;
     }
   }
 }
@@ -235,6 +255,10 @@ Cypress.Commands.overwriteQuery('findByTestId', function findByTestId(...args) {
 });
 Cypress.Commands.overwriteQuery('findAllByTestId', function findAllByTestId(...args) {
   return enhancedFindByTestId(this, ...args);
+});
+
+Cypress.Commands.add('step', (description: string) => {
+  cy.log(`\n--- 🔷 Step: ${description} 🔷---\n`);
 });
 
 const enhancedFindByTestId = (

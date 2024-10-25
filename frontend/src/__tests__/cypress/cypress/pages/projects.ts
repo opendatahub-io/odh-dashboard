@@ -314,6 +314,22 @@ class ProjectDetails {
   getKserveModelMetricLink(name: string) {
     return this.findKserveModelsTable().findByTestId(`metrics-link-${name}`);
   }
+
+  verifyProjectName(project: string) {
+    return cy.get('[data-testid="app-page-title"]').should('contain.text', project);
+  }
+
+  verifyProjectDescription(description: string) {
+    return cy.findByText(description);
+  }
+
+  findActions() {
+    return cy.findByTestId('project-actions');
+  }
+
+  findDeleteProjectButton() {
+    return cy.findByTestId('delete-project-action').find('button');
+  }
 }
 
 class ProjectDetailsSettingsTab extends ProjectDetails {

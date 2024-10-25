@@ -84,3 +84,10 @@ export type TestConfig = {
   OCP_ADMIN_USER: UserAuthConfig;
   S3: AWSS3Buckets;
 };
+
+export type DataScienceProjectData = {
+  dspCreationProjectName: string;
+  dspCreationProjectDescription: string;
+  dspCreationURL: string;
+  dspOCName: string;
+};

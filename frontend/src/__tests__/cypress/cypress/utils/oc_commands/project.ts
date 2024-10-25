@@ -71,3 +71,43 @@ export const addUserToProject = (
     return result;
   });
 };
+
+/**
+ * Verify if an OpenShift Project exists
+ *
+ * @param projectName OpenShift Project name to verify (in the format like 'cypress-test-project')
+ * @returns A Cypress chainable boolean indicating whether the project exists (true) or not (false)
+ */
+export const verifyOpenShiftProjectExists = (projectName: string): Cypress.Chainable<boolean> => {
+  if (!projectName || typeof projectName !== 'string') {
+    cy.log(`ERROR: Invalid project name provided: ${projectName}`);
+    throw new Error(`Invalid project name: ${projectName}`);
+  }
+
+  const checkCommand = `oc get project "${projectName}" -o name`;
+
+  cy.log(`Executing command: ${checkCommand}`);
+
+  return cy.exec(checkCommand, { failOnNonZeroExit: false }).then((result: Cypress.Exec) => {
+    cy.log(`Command result: ${JSON.stringify(result)}`);
+
+    if (result.code !== 0 && result.code !== 1) {
+      // Code 1 is expected when the project doesn't exist, so we only throw for other non-zero codes
+      cy.log(`ERROR: Command execution failed
+              stdout: ${result.stdout}
+              stderr: ${result.stderr}`);
+      throw new Error(`Command failed with code ${result.code}`);
+    }
+
+    const projectExists =
+      result.code === 0 && result.stdout.trim() === `project.project.openshift.io/${projectName}`;
+
+    if (projectExists) {
+      cy.log(`Project '${projectName}' exists.`);
+    } else {
+      cy.log(`Project '${projectName}' does not exist.`);
+    }
+
+    return cy.wrap(projectExists);
+  });
+};
