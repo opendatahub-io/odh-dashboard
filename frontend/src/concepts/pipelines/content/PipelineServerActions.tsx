@@ -27,7 +27,7 @@ const PipelineServerActions: React.FC<PipelineServerActionsProps> = ({ variant, 
     React.useContext(PipelineAndVersionContext);
   const { pipelines, versions } = getResourcesForDeletion();
   const [deletePipelinesOpen, setDeletePipelinesOpen] = React.useState(false);
-
+  const { pipelinesServer } = usePipelinesAPI();
   const DropdownComponent = (
     <Dropdown
       onOpenChange={(isOpened) => setOpen(isOpened)}
@@ -68,24 +68,28 @@ const PipelineServerActions: React.FC<PipelineServerActionsProps> = ({ variant, 
           <DropdownItem key="view-server-details" onClick={() => setViewOpen(true)}>
             View pipeline server configuration
           </DropdownItem>,
-          <Divider key="separator" />,
-          <DropdownItem
-            onClick={() => {
-              setDeleteOpen(true);
-            }}
-            key="delete-server"
-          >
-            Delete pipeline server
-          </DropdownItem>,
-          ...(variant === 'kebab'
+          ...(pipelinesServer.compatible
             ? [
+                <Divider key="separator" />,
                 <DropdownItem
-                  key="delete"
-                  onClick={() => setDeletePipelinesOpen(true)}
-                  isDisabled={pipelines.length === 0 && versions.length === 0}
+                  onClick={() => {
+                    setDeleteOpen(true);
+                  }}
+                  key="delete-server"
                 >
-                  Delete
+                  Delete pipeline server
                 </DropdownItem>,
+                ...(variant === 'kebab'
+                  ? [
+                      <DropdownItem
+                        key="delete"
+                        onClick={() => setDeletePipelinesOpen(true)}
+                        isDisabled={pipelines.length === 0 && versions.length === 0}
+                      >
+                        Delete
+                      </DropdownItem>,
+                    ]
+                  : []),
               ]
             : []),
         ]}

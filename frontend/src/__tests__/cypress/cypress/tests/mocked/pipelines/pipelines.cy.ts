@@ -30,7 +30,6 @@ import {
   RouteModel,
   SecretModel,
 } from '~/__tests__/cypress/cypress/utils/models';
-import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import type { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { tablePagination } from '~/__tests__/cypress/cypress/pages/components/Pagination';
 
@@ -502,7 +501,7 @@ describe('Pipelines', () => {
     });
   });
 
-  it('incompatible dpsa version shows error with delete option for regular user', () => {
+  it('incompatible dpsa version shows error', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
     cy.interceptK8sList(
@@ -519,7 +518,7 @@ describe('Pipelines', () => {
     pipelinesGlobal.visit(projectName);
     pipelinesGlobal.isApiAvailable();
     pipelinesGlobal.findIsServerIncompatible().should('exist');
-    pipelinesGlobal.findDeletePipelineServerButton().should('exist');
+    pipelinesGlobal.shouldHaveIncompatibleTitleText();
   });
 
   it('error while creating a pipeline server', () => {
@@ -528,27 +527,6 @@ describe('Pipelines', () => {
     pipelinesGlobal
       .findPipelineTimeoutErrorMessage()
       .should('have.text', 'Data connection unsuccessfully verified');
-  });
-
-  it('incompatible dpsa version shows error with delete option for admin', () => {
-    asProductAdminUser();
-    initIntercepts({});
-    pipelinesGlobal.visit(projectName);
-    cy.interceptK8sList(
-      DataSciencePipelineApplicationModel,
-      mockK8sResourceList([
-        mockDataSciencePipelineApplicationK8sResource({ namespace: projectName, dspVersion: 'v1' }),
-      ]),
-    );
-    cy.interceptK8s(
-      DataSciencePipelineApplicationModel,
-      mockDataSciencePipelineApplicationK8sResource({ namespace: projectName, dspVersion: 'v1' }),
-    );
-
-    pipelinesGlobal.visit(projectName);
-    pipelinesGlobal.isApiAvailable();
-    pipelinesGlobal.findIsServerIncompatible().should('exist');
-    pipelinesGlobal.findDeletePipelineServerButton().should('exist');
   });
 
   it('selects a different project', () => {
