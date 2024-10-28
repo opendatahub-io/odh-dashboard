@@ -79,6 +79,7 @@ describe('AboutDialog', () => {
     dsciFetchStatus = [dsciStatus, true, undefined, () => Promise.resolve(dsciStatus)];
     userInfo = {
       username: 'test-user',
+      userID: '1234',
       isAdmin: false,
       isAllowed: true,
       userLoading: false,
