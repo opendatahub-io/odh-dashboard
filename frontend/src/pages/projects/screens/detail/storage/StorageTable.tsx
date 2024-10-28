@@ -31,7 +31,8 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
     () =>
       storageClassesLoaded &&
       storageTableData.some(
-        (data) => !data.storageClass || !getStorageClassConfig(data.storageClass)?.isEnabled,
+        (data) =>
+          !data.storageClass || getStorageClassConfig(data.storageClass)?.isEnabled === false,
       ),
     [storageClassesLoaded, storageTableData],
   );
