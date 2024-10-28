@@ -24,11 +24,12 @@ const MetricTypeField: React.FC<MetricTypeFieldProps> = ({ fieldId, value, onCha
           onChange(selectedValue);
         }
       }}
-      options={enumIterator(BiasMetricType).map(([type, enumValue]) => ({
-        key: enumValue,
+      options={enumIterator(BiasMetricType).map(([, type]) => ({
+        key: type,
         label: METRIC_TYPE_DISPLAY_NAME[type],
         description: METRIC_TYPE_DESCRIPTION[type],
       }))}
+      value={value}
       placeholder="Select"
       toggleLabel={value}
       toggleProps={{ id: fieldId }}

@@ -62,7 +62,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
     <FormGroup label="Serving runtime" fieldId="serving-runtime-template-selection" isRequired>
       <SimpleSelect
         isFullWidth
-        isDisabled={isEditing || filteredTemplates.length === 0}
+        isDisabled={isEditing}
         dataTestId="serving-runtime-template-selection"
         aria-label="Select a template"
         options={options}

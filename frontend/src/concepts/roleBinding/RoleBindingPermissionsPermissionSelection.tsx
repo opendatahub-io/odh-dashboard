@@ -28,6 +28,7 @@ const RoleBindingPermissionsPermissionSelection: React.FC<
       onSelect(castRoleBindingPermissionsRoleType(newSelection));
     }}
     popperProps={{ direction: 'down' }}
+    previewDescription={false}
   />
 );
 
