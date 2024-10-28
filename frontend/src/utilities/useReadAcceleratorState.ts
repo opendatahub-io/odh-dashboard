@@ -10,6 +10,7 @@ import {
   TolerationOperator,
 } from '~/types';
 import { getAcceleratorProfileCount, isEnumMember } from '~/utilities/utils';
+import useFetchState, { FetchState } from '~/utilities/useFetchState';
 
 export type AcceleratorProfileState = {
   acceleratorProfiles: AcceleratorProfileKind[];
@@ -22,22 +23,22 @@ export type AcceleratorProfileState = {
     }
 );
 
-const useAcceleratorProfileState = (
+const useReadAcceleratorState = (
   resources?: ContainerResources,
   tolerations?: Toleration[],
   existingAcceleratorProfileName?: string,
-): AcceleratorProfileState => {
+): FetchState<AcceleratorProfileState> => {
   const { dashboardNamespace } = useDashboardNamespace();
   const [acceleratorProfiles, loaded, loadError] = useAcceleratorProfiles(dashboardNamespace);
 
-  return React.useMemo(() => {
+  const fetchAcceleratorState = React.useCallback((): Promise<AcceleratorProfileState> => {
     if (!loaded || loadError) {
-      return {
+      return Promise.resolve({
         acceleratorProfiles: [],
         acceleratorProfile: undefined,
         count: 0,
         unknownProfileDetected: false,
-      };
+      });
     }
     // Exit early if no resources = not in edit mode
     if (resources) {
@@ -46,12 +47,12 @@ const useAcceleratorProfileState = (
       );
 
       if (acceleratorProfile) {
-        return {
+        return Promise.resolve({
           acceleratorProfiles,
           acceleratorProfile,
           count: getAcceleratorProfileCount(acceleratorProfile, resources),
           unknownProfileDetected: false,
-        };
+        });
       }
       // check if there is accelerator usage in the container
       // this is to handle the case where the accelerator is disabled, deleted, or empty
@@ -79,12 +80,12 @@ const useAcceleratorProfileState = (
           );
 
           if (migratedAcceleratorProfile) {
-            return {
+            return Promise.resolve({
               acceleratorProfiles,
               acceleratorProfile: migratedAcceleratorProfile,
               count: getAcceleratorProfileCount(migratedAcceleratorProfile, resources),
               unknownProfileDetected: false,
-            };
+            });
           }
           // create a fake accelerator to use
           const fakeAcceleratorProfile: AcceleratorProfileKind = {
@@ -107,28 +108,28 @@ const useAcceleratorProfileState = (
             },
           };
 
-          return {
+          return Promise.resolve({
             acceleratorProfiles: [fakeAcceleratorProfile, ...acceleratorProfiles],
             acceleratorProfile: fakeAcceleratorProfile,
             count: Number(nvidiaAcceleratorRequests.count ?? 0),
             unknownProfileDetected: false,
-          };
+          });
         }
-        return {
+        return Promise.resolve({
           acceleratorProfiles,
           acceleratorProfile: undefined,
           count: 0,
           unknownProfileDetected: true,
-        };
+        });
       }
     }
 
-    return {
+    return Promise.resolve({
       acceleratorProfiles,
       acceleratorProfile: undefined,
       count: 0,
       unknownProfileDetected: false,
-    };
+    });
   }, [
     acceleratorProfiles,
     loaded,
@@ -137,6 +138,17 @@ const useAcceleratorProfileState = (
     tolerations,
     existingAcceleratorProfileName,
   ]);
+
+  return useFetchState<AcceleratorProfileState>(
+    fetchAcceleratorState,
+    {
+      acceleratorProfiles: [],
+      acceleratorProfile: undefined,
+      count: 0,
+      unknownProfileDetected: false,
+    },
+    { initialPromisePurity: true },
+  );
 };
 
-export default useAcceleratorProfileState;
+export default useReadAcceleratorState;

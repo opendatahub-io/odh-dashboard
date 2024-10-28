@@ -40,8 +40,8 @@ import {
   ModelServingSize,
   ServingRuntimeToken,
 } from '~/pages/modelServing/screens/types';
-import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
-import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
+import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 
 type TokenNames = {
   serviceAccountName: string;
@@ -290,7 +290,7 @@ export const getServingRuntimeTokens = (tokens?: SecretKind[]): ServingRuntimeTo
 
 const isAcceleratorProfileChanged = (
   initialAcceleratorProfile: AcceleratorProfileState,
-  selectedAcceleratorProfile: AcceleratorProfileSelectFieldState,
+  selectedAcceleratorProfile: AcceleratorProfileFormData,
 ) => {
   // both are none, check if it's using existing
   if (!selectedAcceleratorProfile.profile && !initialAcceleratorProfile.acceleratorProfile) {
@@ -317,7 +317,7 @@ export const isModelServerEditInfoChanged = (
   createData: CreatingServingRuntimeObject,
   sizes: ModelServingSize[],
   initialAcceleratorProfile: AcceleratorProfileState,
-  selectedAcceleratorProfile: AcceleratorProfileSelectFieldState,
+  selectedAcceleratorProfile: AcceleratorProfileFormData,
   editInfo?: ServingRuntimeEditInfo,
 ): boolean =>
   editInfo?.servingRuntime
