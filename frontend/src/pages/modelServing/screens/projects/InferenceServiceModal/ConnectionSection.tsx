@@ -1,7 +1,17 @@
 import React from 'react';
-import { Button, FormGroup, FormSection, Popover, Radio } from '@patternfly/react-core';
+import {
+  Button,
+  Flex,
+  FlexItem,
+  FormGroup,
+  FormSection,
+  Popover,
+  Radio,
+  Truncate,
+} from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import {
+  getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,
 } from '~/concepts/k8s/utils';
@@ -16,6 +26,7 @@ import { useK8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptio
 import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import {
   assembleConnectionSecret,
+  getConnectionTypeDisplayName,
   getDefaultValues,
   isConnectionTypeDataField,
   S3ConnectionTypeKeys,
@@ -54,13 +65,26 @@ const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = ({
       projectConnections.map((connection) => ({
         content: getDisplayNameFromK8sResource(connection),
         value: getResourceNameFromK8sResource(connection),
-        description: connection.metadata.annotations['openshift.io/description'],
+        description: (
+          <Flex direction={{ default: 'column' }} rowGap={{ default: 'rowGapNone' }}>
+            {getDescriptionFromK8sResource(connection) && (
+              <FlexItem>
+                <Truncate content={getDescriptionFromK8sResource(connection)} />
+              </FlexItem>
+            )}
+            <FlexItem>
+              <Truncate
+                content={`Type: ${getConnectionTypeDisplayName(connection, connectionTypes)}`}
+              />
+            </FlexItem>
+          </Flex>
+        ),
         isSelected:
           !!selectedConnection &&
           getResourceNameFromK8sResource(connection) ===
             getResourceNameFromK8sResource(selectedConnection),
       })),
-    [projectConnections, selectedConnection],
+    [connectionTypes, projectConnections, selectedConnection],
   );
   const selectedConnectionType = React.useMemo(
     () =>
