@@ -10,13 +10,14 @@ import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
 import { useQueryParams } from '~/utilities/useQueryParams';
 import ModelServingPlatform from '~/pages/modelServing/screens/projects/ModelServingPlatform';
-import { typedObjectImage, ProjectObjectType } from '~/concepts/design/utils';
+import { ProjectObjectType } from '~/concepts/design/utils';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { AccessReviewResourceAttributes } from '~/k8sTypes';
 import { useAccessReview } from '~/api';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import useConnectionTypesEnabled from '~/concepts/connectionTypes/useConnectionTypesEnabled';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
+import HeaderIcon from '~/concepts/design/HeaderIcon';
 import useCheckLogoutParams from './useCheckLogoutParams';
 import ProjectOverview from './overview/ProjectOverview';
 import NotebookList from './notebooks/NotebookList';
@@ -120,11 +121,8 @@ const ProjectDetails: React.FC = () => {
   return (
     <ApplicationsPage
       title={
-        <Flex
-          spaceItems={{ default: 'spaceItemsSm' }}
-          alignItems={{ default: 'alignItemsFlexStart' }}
-        >
-          <img style={{ height: 32 }} src={typedObjectImage(ProjectObjectType.project)} alt="" />
+        <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+          <HeaderIcon type={ProjectObjectType.projectContext} />
           <FlexItem>
             <ResourceNameTooltip resource={currentProject} wrap={false}>
               {displayName}
