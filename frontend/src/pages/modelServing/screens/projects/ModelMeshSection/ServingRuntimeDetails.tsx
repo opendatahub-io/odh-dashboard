@@ -10,8 +10,9 @@ import {
 import { AppContext } from '~/app/AppContext';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { getServingRuntimeSizes } from '~/pages/modelServing/screens/projects/utils';
-import useServingAcceleratorProfile from '~/pages/modelServing/screens/projects/useServingAcceleratorProfile';
+import useServingAcceleratorProfileFormState from '~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
 import { getResourceSize } from '~/pages/modelServing/utils';
+import { formatMemory } from '~/utilities/valueUnits';
 
 type ServingRuntimeDetailsProps = {
   obj: ServingRuntimeKind;
@@ -20,9 +21,11 @@ type ServingRuntimeDetailsProps = {
 
 const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj, isvc }) => {
   const { dashboardConfig } = React.useContext(AppContext);
-  const acceleratorProfile = useServingAcceleratorProfile(obj, isvc);
-  const selectedAcceleratorProfile = acceleratorProfile.acceleratorProfile;
-  const enabledAcceleratorProfiles = acceleratorProfile.acceleratorProfiles.filter(
+  const { initialState: initialAcceleratorProfileState } = useServingAcceleratorProfileFormState(
+    obj,
+    isvc,
+  );
+  const enabledAcceleratorProfiles = initialAcceleratorProfileState.acceleratorProfiles.filter(
     (ac) => ac.spec.enabled,
   );
   const resources = isvc?.spec.predictor.model?.resources || obj.spec.containers[0].resources;
@@ -46,10 +49,14 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj, isvc
             <List isPlain>
               <ListItem>{size?.name || 'Custom'}</ListItem>
               <ListItem>
-                {`${resources.requests?.cpu} CPUs, ${resources.requests?.memory} Memory requested`}
+                {`${resources.requests?.cpu} CPUs, ${formatMemory(
+                  resources.requests?.memory,
+                )} Memory requested`}
               </ListItem>
               <ListItem>
-                {`${resources.limits?.cpu} CPUs, ${resources.limits?.memory} Memory limit`}
+                {`${resources.limits?.cpu} CPUs, ${formatMemory(
+                  resources.limits?.memory,
+                )} Memory limit`}
               </ListItem>
             </List>
           </DescriptionListDescription>
@@ -58,23 +65,26 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj, isvc
       <DescriptionListGroup>
         <DescriptionListTerm>Accelerator</DescriptionListTerm>
         <DescriptionListDescription>
-          {selectedAcceleratorProfile
-            ? `${selectedAcceleratorProfile.spec.displayName}${
-                !selectedAcceleratorProfile.spec.enabled ? ' (disabled)' : ''
+          {initialAcceleratorProfileState.acceleratorProfile
+            ? `${initialAcceleratorProfileState.acceleratorProfile.spec.displayName}${
+                !initialAcceleratorProfileState.acceleratorProfile.spec.enabled ? ' (disabled)' : ''
               }`
             : enabledAcceleratorProfiles.length === 0
             ? 'No accelerator enabled'
-            : acceleratorProfile.unknownProfileDetected
+            : initialAcceleratorProfileState.unknownProfileDetected
             ? 'Unknown'
             : 'No accelerator selected'}
         </DescriptionListDescription>
       </DescriptionListGroup>
-      {!acceleratorProfile.unknownProfileDetected && acceleratorProfile.acceleratorProfile && (
-        <DescriptionListGroup>
-          <DescriptionListTerm>Number of accelerators</DescriptionListTerm>
-          <DescriptionListDescription>{acceleratorProfile.count}</DescriptionListDescription>
-        </DescriptionListGroup>
-      )}
+      {!initialAcceleratorProfileState.unknownProfileDetected &&
+        initialAcceleratorProfileState.acceleratorProfile && (
+          <DescriptionListGroup>
+            <DescriptionListTerm>Number of accelerators</DescriptionListTerm>
+            <DescriptionListDescription>
+              {initialAcceleratorProfileState.count}
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+        )}
     </DescriptionList>
   );
 };

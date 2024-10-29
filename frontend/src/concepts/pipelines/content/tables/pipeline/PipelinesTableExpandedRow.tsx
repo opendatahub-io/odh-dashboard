@@ -9,14 +9,14 @@ import {
   EmptyStateFooter,
   Bullseye,
 } from '@patternfly/react-core';
-import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import PipelineVersionTable from '~/concepts/pipelines/content/tables/pipelineVersion/PipelineVersionTable';
 import usePipelineVersionsTable from '~/concepts/pipelines/content/tables/pipelineVersion/usePipelineVersionsTable';
 import { getTableSortProps } from '~/concepts/pipelines/content/tables/usePipelineTable';
 import ImportPipelineVersionButton from '~/concepts/pipelines/content/import/ImportPipelineVersionButton';
 
 type PipelinesTableExpandedRowProps = {
-  pipeline: PipelineKFv2;
+  pipeline: PipelineKF;
 };
 
 const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({ pipeline }) => {

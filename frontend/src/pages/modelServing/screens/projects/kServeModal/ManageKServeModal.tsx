@@ -26,7 +26,7 @@ import {
 import { requestsUnderLimits, resourcesArePositive } from '~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
-import useServingAcceleratorProfile from '~/pages/modelServing/screens/projects/useServingAcceleratorProfile';
+import useServingAcceleratorProfileFormState from '~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import {
   InferenceServiceStorageType,
@@ -48,14 +48,17 @@ import { useAccessReview } from '~/api';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 import usePrefillDeployModalFromModelRegistry from '~/pages/modelRegistry/screens/RegisteredModels/usePrefillDeployModalFromModelRegistry';
-import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
-import useGenericObjectState from '~/utilities/useGenericObjectState';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import {
   FormTrackingEventProperties,
   TrackingOutcome,
 } from '~/concepts/analyticsTracking/trackingProperties';
+import useConnectionTypesEnabled from '~/concepts/connectionTypes/useConnectionTypesEnabled';
+import { Connection } from '~/concepts/connectionTypes/types';
+import { ConnectionSection } from '~/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionSection';
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
+import EnvironmentVariablesSection from './EnvironmentVariablesSection';
+import ServingRuntimeArgsSection from './ServingRuntimeArgsSection';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -92,7 +95,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   editInfo,
   projectSection,
   registeredModelDeployInfo,
-  shouldFormHidden,
+  shouldFormHidden: hideForm,
 }) => {
   const [createDataServingRuntime, setCreateDataServingRuntime, resetDataServingRuntime, sizes] =
     useCreateServingRuntimeObject(editInfo?.servingRuntimeEditInfo);
@@ -110,25 +113,26 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       registeredModelDeployInfo,
     );
 
+  const isConnectionTypesEnabled = useConnectionTypesEnabled();
+  const [connection, setConnection] = React.useState<Connection>();
+  const [isConnectionValid, setIsConnectionValid] = React.useState(false);
+
   const isAuthorinoEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status;
   const currentProjectName = projectContext?.currentProject.metadata.name;
   const namespace = currentProjectName || createDataInferenceService.project;
   const isInferenceServiceNameWithinLimit =
     translateDisplayNameForK8s(createDataInferenceService.name).length <= 253;
 
-  const acceleratorProfileState = useServingAcceleratorProfile(
+  const {
+    initialState: initialAcceleratorProfileState,
+    formData: selectedAcceleratorProfile,
+    setFormData: setSelectedAcceleratorProfile,
+    resetFormData: resetSelectedAcceleratorProfile,
+  } = useServingAcceleratorProfileFormState(
     editInfo?.servingRuntimeEditInfo?.servingRuntime,
     editInfo?.inferenceServiceEditInfo,
   );
-  const [
-    selectedAcceleratorProfile,
-    setSelectedAcceleratorProfile,
-    resetSelectedAcceleratorProfile,
-  ] = useGenericObjectState<AcceleratorProfileSelectFieldState>({
-    profile: undefined,
-    count: 0,
-    useExistingSettings: false,
-  });
+
   const customServingRuntimesEnabled = useCustomServingRuntimesEnabled();
   const [allowCreate] = useAccessReview({
     ...accessReviewResource,
@@ -138,6 +142,9 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const [alertVisible, setAlertVisible] = React.useState(true);
+  const servingRuntimeParamsEnabled = useIsAreaAvailable(
+    SupportedArea.SERVING_RUNTIME_PARAMS,
+  ).status;
 
   React.useEffect(() => {
     if (currentProjectName) {
@@ -164,6 +171,9 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const storageCanCreate = (): boolean => {
     if (createDataInferenceService.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
       return createDataInferenceService.storage.dataConnection !== '';
+    }
+    if (isConnectionTypesEnabled) {
+      return isConnectionValid;
     }
     return isAWSValid(createDataInferenceService.storage.awsData, [AwsKeys.AWS_S3_BUCKET]);
   };
@@ -234,7 +244,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       namespace,
       editInfo?.servingRuntimeEditInfo,
       false,
-      acceleratorProfileState,
+      initialAcceleratorProfileState,
       selectedAcceleratorProfile,
       NamespaceApplicationCase.KSERVE_PROMOTION,
       projectContext?.currentProject,
@@ -250,10 +260,12 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       editInfo?.inferenceServiceEditInfo,
       servingRuntimeName,
       false,
-      acceleratorProfileState,
+      initialAcceleratorProfileState,
       selectedAcceleratorProfile,
       allowCreate,
       editInfo?.secrets,
+      undefined,
+      connection,
     );
 
     const props: FormTrackingEventProperties = {
@@ -287,7 +299,6 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
         fireFormTrackingEvent(editInfo ? 'Model Updated' : 'Model Deployed', props);
       });
   };
-
   return (
     <Modal
       title={editInfo ? 'Edit model' : 'Deploy model'}
@@ -347,7 +358,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                   }
                 />
               )}
-              {!shouldFormHidden && (
+              {!hideForm && (
                 <>
                   <InferenceServiceNameSection
                     data={createDataInferenceService}
@@ -378,7 +389,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                     setData={setCreateDataInferenceService}
                     sizes={sizes}
                     servingRuntimeSelected={servingRuntimeSelected}
-                    acceleratorProfileState={acceleratorProfileState}
+                    acceleratorProfileState={initialAcceleratorProfileState}
                     selectedAcceleratorProfile={selectedAcceleratorProfile}
                     setSelectedAcceleratorProfile={setSelectedAcceleratorProfile}
                     infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
@@ -394,14 +405,35 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                 </>
               )}
             </FormSection>
-            {!shouldFormHidden && (
+            {!hideForm && (
               <FormSection title="Source model location" id="model-location">
-                <DataConnectionSection
+                {isConnectionTypesEnabled ? (
+                  <ConnectionSection
+                    data={createDataInferenceService}
+                    setData={setCreateDataInferenceService}
+                    setConnection={setConnection}
+                    setIsConnectionValid={setIsConnectionValid}
+                  />
+                ) : (
+                  <DataConnectionSection
+                    data={createDataInferenceService}
+                    setData={setCreateDataInferenceService}
+                    loaded={!!projectContext?.dataConnections || dataConnectionsLoaded}
+                    loadError={dataConnectionsLoadError}
+                    dataConnections={dataConnections}
+                  />
+                )}
+              </FormSection>
+            )}
+            {servingRuntimeParamsEnabled && (
+              <FormSection title="Configuration parameters" id="configuration-params">
+                <ServingRuntimeArgsSection
                   data={createDataInferenceService}
                   setData={setCreateDataInferenceService}
-                  loaded={!!projectContext?.dataConnections || dataConnectionsLoaded}
-                  loadError={dataConnectionsLoadError}
-                  dataConnections={dataConnections}
+                />
+                <EnvironmentVariablesSection
+                  data={createDataInferenceService}
+                  setData={setCreateDataInferenceService}
                 />
               </FormSection>
             )}

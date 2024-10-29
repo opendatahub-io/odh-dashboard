@@ -11,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import useCreateExperimentData from '~/concepts/pipelines/content/experiment/useCreateExperimentData';
-import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import {
   NAME_CHARACTER_LIMIT,
@@ -20,7 +20,7 @@ import {
 import { CharLimitHelperText } from '~/components/CharLimitHelperText';
 
 type CreateExperimentModalProps = {
-  onClose: (experiment?: ExperimentKFv2) => void;
+  onClose: (experiment?: ExperimentKF) => void;
 };
 
 const CreateExperimentModal: React.FC<CreateExperimentModalProps> = ({ onClose }) => {
@@ -31,7 +31,7 @@ const CreateExperimentModal: React.FC<CreateExperimentModalProps> = ({ onClose }
 
   const haveEnoughData = !!name;
 
-  const onBeforeClose = (experiment?: ExperimentKFv2) => {
+  const onBeforeClose = (experiment?: ExperimentKF) => {
     onClose(experiment);
     setSubmitting(false);
     setError(undefined);

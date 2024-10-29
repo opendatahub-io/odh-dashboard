@@ -1118,149 +1118,6 @@ export type ServiceKind = K8sResourceCommon & {
   };
 };
 
-/** @deprecated - Tekton is no longer used */
-export type PipelineRunTaskSpecDigest = {
-  name: string;
-  outputs: unknown[]; // TODO: detail outputs
-  version: string;
-};
-
-/** @deprecated - Tekton is no longer used */
-type PipelineRunTaskSpecStep = {
-  name: string;
-  args?: string[];
-  command: string[] | undefined;
-  image: string;
-};
-
-/** @deprecated - Tekton is no longer used */
-export type PipelineRunTaskSpecResult = {
-  name: string;
-  type: string;
-  description?: string;
-};
-
-/** @deprecated - Tekton is no longer used */
-export type PipelineRunTaskVolumeMount = {
-  name: string;
-  mountPath: string;
-};
-
-/** @deprecated - Tekton is no longer used */
-export type PipelineRunTaskSpec = {
-  steps: PipelineRunTaskSpecStep[];
-  stepTemplate?: {
-    volumeMounts?: PipelineRunTaskVolumeMount[];
-  };
-  results: PipelineRunTaskSpecResult[] | undefined;
-  metadata?: {
-    annotations?: {
-      /** @see PipelineRunTaskSpecDigest */
-      'pipelines.kubeflow.org/component_spec_digest': string;
-      'pipelines.kubeflow.org/task_display_name': string;
-    };
-    labels: {
-      'pipelines.kubeflow.org/cache_enabled': 'true';
-    };
-  };
-};
-
-/** @deprecated - Tekton is no longer used */
-export type PipelineRunTaskParam = {
-  name: string;
-  value: string;
-};
-
-/** @deprecated - Tekton is no longer used */
-export type PipelineRunTaskWhen = {
-  input: string;
-  operator: string;
-  values: string[];
-};
-
-/** @deprecated - Tekton is no longer used */
-export type PipelineRunTask = {
-  name: string;
-  taskSpec: PipelineRunTaskSpec;
-  params?: PipelineRunTaskParam[];
-  when?: PipelineRunTaskWhen[];
-  // TODO: favour this
-  runAfter?: string[];
-};
-
-/** @deprecated - Tekton is no longer used */
-export type PipelineRunPipelineSpec = {
-  tasks: PipelineRunTask[];
-};
-
-/** @deprecated - Tekton is no longer used */
-export type SkippedTask = {
-  name: string;
-  reason: string;
-  whenExpressions: PipelineRunTaskWhen;
-};
-
-/** @deprecated - Tekton is no longer used */
-export type TaskRunResults = {
-  name: string;
-  type: string;
-  value: string;
-};
-
-/** @deprecated - Tekton is no longer used */
-export type PipelineRunTaskStatusStep = {
-  volumeMounts?: PipelineRunTaskVolumeMount[];
-};
-
-/** @deprecated - Tekton is no longer used */
-export type PipelineRunTaskRunStatusProperties = {
-  conditions?: K8sCondition[];
-  podName: string;
-  startTime: string;
-  completionTime?: string;
-  // TODO: Populate these
-  steps?: unknown[];
-  taskResults?: TaskRunResults[];
-  taskSpec?: {
-    steps?: PipelineRunTaskStatusStep[];
-    results?: unknown[];
-  };
-};
-
-/** @deprecated - Tekton is no longer used */
-export type PipelineRunTaskRunStatus = {
-  /** The task name; pipelineSpec.tasks[].name */
-  pipelineTaskName: string;
-  status?: PipelineRunTaskRunStatusProperties;
-};
-
-/** @deprecated - Tekton is no longer used */
-export type PipelineRunKind = K8sResourceCommon & {
-  metadata: {
-    name: string;
-  };
-  spec: {
-    pipelineSpec?: PipelineRunPipelineSpec;
-    params?: PipelineRunTaskParam[];
-    /** Unsupported for Kubeflow */
-    pipelineRef?: {
-      name: string;
-    };
-  };
-  status?: {
-    startTime: string;
-    completionTime?: string;
-    succeededCondition?: string;
-    conditions?: K8sCondition[];
-    /** Keyed on a generated key for the task run */
-    taskRuns?: Record<string, PipelineRunTaskRunStatus>;
-    pipelineSpec: PipelineRunPipelineSpec;
-    skippedTasks?: SkippedTask[];
-    /** References Tekton tasks -- unlikely we will need this */
-    childReferences: unknown[];
-  };
-};
-
 export type UserKind = K8sResourceCommon & {
   metadata: {
     name: string;
@@ -1325,6 +1182,7 @@ export type DashboardCommonConfig = {
   disableAcceleratorProfiles: boolean;
   disableDistributedWorkloads: boolean;
   disableModelRegistry: boolean;
+  disableServingRuntimeParams: boolean;
   disableConnectionTypes: boolean;
   disableStorageClasses: boolean;
   disableNIMModelServing: boolean;
@@ -1386,7 +1244,7 @@ export type DataScienceClusterKindStatus = {
     };
   };
   conditions: K8sCondition[];
-  installedComponents: { [key in StackComponent]?: boolean };
+  installedComponents?: { [key in StackComponent]?: boolean };
   phase?: string;
   release?: {
     name: string;

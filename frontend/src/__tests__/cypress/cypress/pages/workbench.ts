@@ -129,6 +129,10 @@ class NotebookRow extends TableRow {
     return this;
   }
 
+  findNotebookImageAvailability() {
+    return cy.findByTestId('notebook-image-availability');
+  }
+
   shouldHaveClusterStorageTitle() {
     this.findExpansion()
       .findByTestId('notebook-storage-bar-title')
@@ -372,6 +376,10 @@ class EditSpawnerPage extends CreateSpawnerPage {
   shouldHaveContainerSizeInput(name: string) {
     cy.findByTestId('container-size-group').contains(name).should('exist');
     return this;
+  }
+
+  findAlertMessage() {
+    return cy.findByTestId('env-variable-alert-message');
   }
 
   findCancelButton() {

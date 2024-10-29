@@ -30,6 +30,7 @@ export const NotebookActionsColumn: React.FC<Props> = ({
             );
           },
         },
+        { isSeparator: true },
         {
           title: 'Delete workbench',
           onClick: () => {

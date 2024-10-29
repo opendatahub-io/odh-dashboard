@@ -54,7 +54,7 @@ const initIntercepts = ({ isEmpty = false }: HandlersProps) => {
   cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
   cy.interceptK8sList(
     NotebookModel,
-    mockK8sResourceList([mockNotebookK8sResource({ envFromName: '' })]),
+    mockK8sResourceList([mockNotebookK8sResource({ envFrom: [] })]),
   );
   cy.interceptK8sList(
     ProjectModel,
@@ -173,7 +173,9 @@ describe('Data connections', () => {
     editDataConnectionModal.findNotebookRestartAlert().should('exist');
     cy.interceptK8sList(
       NotebookModel,
-      mockK8sResourceList([mockNotebookK8sResource({ envFromName: 'test-secret' })]),
+      mockK8sResourceList([
+        mockNotebookK8sResource({ envFrom: [{ secretRef: { name: 'test-secret' } }] }),
+      ]),
     ).as('addConnectedWorkbench');
     cy.interceptK8s('PUT', SecretModel, mockSecretK8sResource({})).as('editDataConnection');
 

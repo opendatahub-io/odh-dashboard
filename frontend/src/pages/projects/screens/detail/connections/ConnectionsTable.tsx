@@ -41,6 +41,7 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
                   setManageConnectionModal(connection);
                 },
               },
+              { isSeparator: true },
               {
                 title: 'Delete',
                 onClick: () => {

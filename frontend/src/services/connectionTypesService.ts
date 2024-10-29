@@ -70,9 +70,9 @@ export const updateConnectionTypeEnabled = (
     });
   }
   patch.push({
-    op: connectionType.metadata.annotations?.['opendatahub.io/enabled'] ? 'replace' : 'add',
-    path: '/metadata/annotations/opendatahub.io~1enabled',
-    value: String(enabled),
+    op: connectionType.metadata.annotations?.['opendatahub.io/disabled'] ? 'replace' : 'add',
+    path: '/metadata/annotations/opendatahub.io~1disabled',
+    value: String(!enabled),
   });
 
   return axios

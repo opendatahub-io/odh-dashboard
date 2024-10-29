@@ -6,9 +6,9 @@ import { ValueOf } from '~/typeHelpers';
 import { ParamsSection } from '~/concepts/pipelines/content/createRun/contentSections/ParamsSection';
 import RunTypeSectionScheduled from '~/concepts/pipelines/content/createRun/contentSections/RunTypeSectionScheduled';
 import {
-  PipelineRecurringRunKFv2,
-  PipelineRunKFv2,
-  PipelineVersionKFv2,
+  PipelineRecurringRunKF,
+  PipelineRunKF,
+  PipelineVersionKF,
   RuntimeConfigParameters,
 } from '~/concepts/pipelines/kfTypes';
 import ProjectAndExperimentSection from '~/concepts/pipelines/content/createRun/contentSections/ProjectAndExperimentSection';
@@ -57,7 +57,7 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) 
     React.useCallback(
       async (value: string) => {
         if (value) {
-          let duplicateRuns: PipelineRunKFv2[] | PipelineRecurringRunKFv2[] | undefined = [];
+          let duplicateRuns: PipelineRunKF[] | PipelineRecurringRunKF[] | undefined = [];
 
           if (isSchedule) {
             const { recurringRuns } = await api.listPipelineRecurringRuns(
@@ -81,7 +81,7 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) 
   );
 
   const updateInputParams = React.useCallback(
-    (version: PipelineVersionKFv2 | undefined) =>
+    (version: PipelineVersionKF | undefined) =>
       onValueChange(
         'params',
         Object.entries(getInputDefinitionParams(version) || {}).reduce(

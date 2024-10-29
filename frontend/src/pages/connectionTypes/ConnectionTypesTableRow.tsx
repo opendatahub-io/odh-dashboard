@@ -9,10 +9,7 @@ import {
   TimestampTooltipVariant,
   Truncate,
 } from '@patternfly/react-core';
-import {
-  ConnectionTypeConfigMapObj,
-  isConnectionTypeDataField,
-} from '~/concepts/connectionTypes/types';
+import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
 import { relativeTime } from '~/utilities/time';
 import { updateConnectionTypeEnabled } from '~/services/connectionTypesService';
 import useNotification from '~/utilities/useNotification';
@@ -25,8 +22,9 @@ import {
 } from '~/concepts/k8s/utils';
 import { connectionTypeColumns } from '~/pages/connectionTypes/columns';
 import CategoryLabel from '~/concepts/connectionTypes/CategoryLabel';
-import { getCompatibleTypes } from '~/concepts/connectionTypes/utils';
+import { getCompatibleTypes, isConnectionTypeDataField } from '~/concepts/connectionTypes/utils';
 import CompatibilityLabel from '~/concepts/connectionTypes/CompatibilityLabel';
+import ConnectionTypePreviewModal from '~/concepts/connectionTypes/ConnectionTypePreviewModal';
 
 type ConnectionTypesTableRowProps = {
   obj: ConnectionTypeConfigMapObj;
@@ -41,9 +39,10 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
 }) => {
   const navigate = useNavigate();
   const notification = useNotification();
+  const [showPreview, setShowPreview] = React.useState(false);
   const [isUpdating, setIsUpdating] = React.useState(false);
   const [isEnabled, setIsEnabled] = React.useState(
-    () => obj.metadata.annotations?.['opendatahub.io/enabled'] === 'true',
+    () => obj.metadata.annotations?.['opendatahub.io/disabled'] !== 'true',
   );
   const createdDate = obj.metadata.creationTimestamp
     ? new Date(obj.metadata.creationTimestamp)
@@ -78,10 +77,6 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
         setIsUpdating(false);
       });
   };
-
-  React.useEffect(() => {
-    setIsEnabled(obj.metadata.annotations?.['opendatahub.io/enabled'] === 'true');
-  }, [obj.metadata.annotations]);
 
   const compatibleTypes = getCompatibleTypes(
     obj.data?.fields
@@ -150,6 +145,10 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
         <ActionsColumn
           items={[
             {
+              title: 'Preview',
+              onClick: () => setShowPreview(true),
+            },
+            {
               title: 'Edit',
               onClick: () => navigate(`/connectionTypes/edit/${obj.metadata.name}`),
             },
@@ -157,6 +156,7 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
               title: 'Duplicate',
               onClick: () => navigate(`/connectionTypes/duplicate/${obj.metadata.name}`),
             },
+            { isSeparator: true },
             {
               title: 'Delete',
               onClick: () => handleDelete(obj),
@@ -164,6 +164,9 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
           ]}
         />
       </Td>
+      {showPreview ? (
+        <ConnectionTypePreviewModal obj={obj} onClose={() => setShowPreview(false)} />
+      ) : null}
     </Tr>
   );
 };

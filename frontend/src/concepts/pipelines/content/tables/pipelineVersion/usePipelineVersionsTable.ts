@@ -2,13 +2,13 @@ import usePipelineVersionsForPipeline from '~/concepts/pipelines/apiHooks/usePip
 import createUsePipelineTable, {
   TableProps,
 } from '~/concepts/pipelines/content/tables/usePipelineTable';
-import { PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { PipelineListPaged, PipelineOptions } from '~/concepts/pipelines/types';
 import { FetchState } from '~/utilities/useFetchState';
 
 export default (
   pipelineId?: string,
-): ((limit?: number) => [FetchState<PipelineListPaged<PipelineVersionKFv2>>, TableProps]) =>
+): ((limit?: number) => [FetchState<PipelineListPaged<PipelineVersionKF>>, TableProps]) =>
   createUsePipelineTable((options: PipelineOptions) =>
     usePipelineVersionsForPipeline(pipelineId, options),
   );

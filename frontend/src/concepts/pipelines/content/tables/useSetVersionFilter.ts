@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 
-import { PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { FilterOptions, FilterProps } from './usePipelineFilter';
 
 /**
@@ -10,7 +10,7 @@ import { FilterOptions, FilterProps } from './usePipelineFilter';
  */
 export const useSetVersionFilter = (onFilterUpdate: FilterProps['onFilterUpdate']): void => {
   const { state } = useLocation();
-  const [versionToFilter, setVersionToFilter] = React.useState<PipelineVersionKFv2 | undefined>(
+  const [versionToFilter, setVersionToFilter] = React.useState<PipelineVersionKF | undefined>(
     state?.lastVersion,
   );
 

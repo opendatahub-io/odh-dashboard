@@ -1,18 +1,18 @@
 import * as React from 'react';
-import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 
 type PipelineAndVersionContextType = {
   pipelineDataSelector: () => {
-    selectedPipelines: PipelineKFv2[];
-    setSelectedPipelines: React.Dispatch<React.SetStateAction<PipelineKFv2[]>>;
+    selectedPipelines: PipelineKF[];
+    setSelectedPipelines: React.Dispatch<React.SetStateAction<PipelineKF[]>>;
   };
-  versionDataSelector: (pipeline: PipelineKFv2) => {
-    selectedVersions: PipelineVersionKFv2[];
-    setSelectedVersions: React.Dispatch<React.SetStateAction<PipelineVersionKFv2[]>>;
+  versionDataSelector: (pipeline: PipelineKF) => {
+    selectedVersions: PipelineVersionKF[];
+    setSelectedVersions: React.Dispatch<React.SetStateAction<PipelineVersionKF[]>>;
   };
   getResourcesForDeletion: () => {
-    pipelines: PipelineKFv2[];
-    versions: { pipelineName: string; version: PipelineVersionKFv2 }[];
+    pipelines: PipelineKF[];
+    versions: { pipelineName: string; version: PipelineVersionKF }[];
   };
   clearAfterDeletion: () => void;
   isPipelineChecked: (pipelineId: string) => boolean;
@@ -22,7 +22,7 @@ type PipelineAndVersionContextProviderProps = {
   children: React.ReactNode;
 };
 
-type SelectedVersion = { pipelineName: string; versions: PipelineVersionKFv2[] };
+type SelectedVersion = { pipelineName: string; versions: PipelineVersionKF[] };
 
 export const PipelineAndVersionContext = React.createContext<PipelineAndVersionContextType>({
   pipelineDataSelector: () => ({ selectedPipelines: [], setSelectedPipelines: () => undefined }),
@@ -35,17 +35,15 @@ export const PipelineAndVersionContext = React.createContext<PipelineAndVersionC
 const PipelineAndVersionContextProvider: React.FC<PipelineAndVersionContextProviderProps> = ({
   children,
 }) => {
-  const [selectedPipelines, setSelectedPipelines] = React.useState<PipelineKFv2[]>([]);
+  const [selectedPipelines, setSelectedPipelines] = React.useState<PipelineKF[]>([]);
   const [selectedVersions, setSelectedVersions] = React.useState<{
     [pipelineId: string]: SelectedVersion | undefined;
   }>({});
 
   const setVersions =
-    (pipeline: PipelineKFv2) =>
+    (pipeline: PipelineKF) =>
     (
-      newVersions:
-        | PipelineVersionKFv2[]
-        | ((prevState: PipelineVersionKFv2[]) => PipelineVersionKFv2[]),
+      newVersions: PipelineVersionKF[] | ((prevState: PipelineVersionKF[]) => PipelineVersionKF[]),
     ) => {
       setSelectedVersions((prev) => ({
         ...prev,
@@ -71,7 +69,7 @@ const PipelineAndVersionContextProvider: React.FC<PipelineAndVersionContextProvi
         selectedPipelines,
         setSelectedPipelines,
       }),
-      versionDataSelector: (pipeline: PipelineKFv2) => ({
+      versionDataSelector: (pipeline: PipelineKF) => ({
         selectedVersions: selectedVersions[pipeline.pipeline_id]?.versions || [],
         setSelectedVersions: setVersions(pipeline),
       }),

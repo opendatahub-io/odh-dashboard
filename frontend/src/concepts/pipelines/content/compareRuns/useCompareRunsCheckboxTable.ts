@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { useCheckboxTableBase, UseCheckboxTableBaseProps } from '~/components/table';
 import { useCompareRuns } from '~/concepts/pipelines/content/compareRuns/CompareRunsContext';
-import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 
-const useCompareRunsCheckboxTable = (): UseCheckboxTableBaseProps<PipelineRunKFv2> => {
+const useCompareRunsCheckboxTable = (): UseCheckboxTableBaseProps<PipelineRunKF> => {
   const { selectedRuns, setSelectedRuns, runs } = useCompareRuns();
-  return useCheckboxTableBase<PipelineRunKFv2>(
+  return useCheckboxTableBase<PipelineRunKF>(
     runs,
     selectedRuns,
     setSelectedRuns,

@@ -138,6 +138,11 @@
           {
             "group": ["~/__mocks__/third_party/mlmd", "~/__mocks__/third_party/mlmd/*"],
             "message": "Importing from '~/__mocks__/third_party/mlmd/' is restricted to '~/__mocks__/mlmd/'."
+          },
+          {
+            "group": ["@patternfly/react-core"],
+            "importNames": ["Select"],
+            "message": "Import 'SimpleSelect', 'MultiSelection' or 'TypeaheadSelect' from '~/components' instead."
           }
         ]
       }

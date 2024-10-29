@@ -78,7 +78,7 @@ const PipelineRunTableToolbarBase: React.FC<PipelineRunTableToolbarBaseProps> = 
         [FilterOptions.STATUS]: ({ value, onChange, ...props }) => (
           <SimpleSelect
             {...props}
-            value={value ?? ''}
+            value={value}
             aria-label="Select a status"
             options={Object.values(statusRuntimeStates).map((v) => ({
               key: v,

@@ -13,6 +13,7 @@ import {
   mockProjectK8sResource,
   mockDscStatus,
 } from '~/__mocks__';
+import { mockModelArtifact } from '~/__mocks__/mockModelArtifact';
 
 import {
   InferenceServiceModel,
@@ -24,7 +25,7 @@ import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import { modelVersionDetails } from '~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDetails';
 import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
 import { modelServingGlobal } from '~/__tests__/cypress/cypress/pages/modelServing';
-import { ModelRegistryMetadataType } from '~/concepts/modelRegistry/types';
+import { ModelRegistryMetadataType, ModelState } from '~/concepts/modelRegistry/types';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 const mockModelVersions = mockModelVersion({
@@ -170,6 +171,13 @@ const initIntercepts = () => {
           registeredModelId: '1',
           id: '2',
           name: 'Version 2',
+        }),
+        mockModelVersion({
+          author: 'Author 3',
+          registeredModelId: '1',
+          id: '3',
+          name: 'Version 3',
+          state: ModelState.ARCHIVED,
         }),
       ],
     }),
@@ -333,6 +341,7 @@ describe('Model version details', () => {
     it('Switching model versions', () => {
       modelVersionDetails.findVersionId().contains('1');
       modelVersionDetails.findModelVersionDropdownButton().click();
+      modelVersionDetails.findModelVersionDropdownItem('Version 3').should('not.exist');
       modelVersionDetails.findModelVersionDropdownSearch().fill('Version 2');
       modelVersionDetails.findModelVersionDropdownItem('Version 2').click();
       modelVersionDetails.findVersionId().contains('2');
@@ -373,6 +382,65 @@ describe('Model version details', () => {
       modelVersionDetails.findRegisteredDeploymentsTab().click();
 
       modelServingGlobal.getModelRow('Test Inference Service').should('exist');
+    });
+  });
+
+  describe('Model Version Details', () => {
+    beforeEach(() => {
+      initIntercepts();
+      modelVersionDetails.visit();
+    });
+
+    it('should update source model format', () => {
+      cy.interceptOdh(
+        'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_artifacts/:artifactId',
+        {
+          path: {
+            serviceName: 'modelregistry-sample',
+            apiVersion: MODEL_REGISTRY_API_VERSION,
+            artifactId: '1',
+          },
+        },
+        mockModelArtifact({}),
+      ).as('updateModelFormat');
+
+      modelVersionDetails.findSourceModelFormat('edit').click();
+      modelVersionDetails
+        .findSourceModelFormat('group')
+        .find('input')
+        .clear()
+        .type('UpdatedFormat');
+      modelVersionDetails.findSourceModelFormat('save').click();
+
+      cy.wait('@updateModelFormat').then((interception) => {
+        expect(interception.request.body).to.deep.equal({
+          modelFormatName: 'UpdatedFormat',
+        });
+      });
+    });
+
+    it('should update source model version', () => {
+      cy.interceptOdh(
+        'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_artifacts/:artifactId',
+        {
+          path: {
+            serviceName: 'modelregistry-sample',
+            apiVersion: MODEL_REGISTRY_API_VERSION,
+            artifactId: '1',
+          },
+        },
+        mockModelArtifact({}),
+      ).as('updateModelVersion');
+
+      modelVersionDetails.findSourceModelVersion('edit').click();
+      modelVersionDetails.findSourceModelVersion('group').find('input').clear().type('2.0.0');
+      modelVersionDetails.findSourceModelVersion('save').click();
+
+      cy.wait('@updateModelVersion').then((interception) => {
+        expect(interception.request.body).to.deep.equal({
+          modelFormatVersion: '2.0.0',
+        });
+      });
     });
   });
 });

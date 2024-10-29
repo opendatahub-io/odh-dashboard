@@ -26,6 +26,7 @@ export interface GetUserAction {
   type: string;
   payload: {
     user?: string;
+    userId?: string;
     clusterID?: string;
     serverURL?: string;
     clusterBranding?: string;
@@ -64,6 +65,7 @@ export type StatusResponse = {
       token: string;
     };
     namespace: string;
+    userID: string;
     userName: string;
     clusterID: string;
     clusterBranding: string;

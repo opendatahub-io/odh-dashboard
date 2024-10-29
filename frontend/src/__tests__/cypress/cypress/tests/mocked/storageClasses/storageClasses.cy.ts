@@ -395,7 +395,10 @@ describe('Storage classes', () => {
       const storageClasses = [
         ...mockStorageClasses,
         buildMockStorageClass(
-          { ...mockStorageClasses[0], metadata: { ...mockStorageClasses[0], name: 'sc-2' } },
+          {
+            ...mockStorageClasses[0],
+            metadata: { ...mockStorageClasses[0].metadata, name: 'sc-2' },
+          },
           { displayName: 'Test SC 2' },
         ),
       ];

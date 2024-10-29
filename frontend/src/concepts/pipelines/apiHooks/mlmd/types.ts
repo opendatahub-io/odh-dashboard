@@ -1,5 +1,5 @@
 import { Artifact, Context, ContextType, Event, Execution } from '~/third_party/mlmd';
-import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 
 export type MlmdContext = Context;
 
@@ -23,6 +23,6 @@ export type ExecutionArtifact = {
 
 // each run has multiple executions, each execution can have multiple artifacts
 export type RunArtifact = {
-  run: PipelineRunKFv2;
+  run: PipelineRunKF;
   executionArtifacts: ExecutionArtifact[];
 };

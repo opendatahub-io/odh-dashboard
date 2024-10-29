@@ -19,7 +19,6 @@ import { computeNotebooksTolerations } from '~/utilities/tolerations';
 import { startNotebook, stopNotebook } from '~/api';
 import { currentlyHasPipelines } from '~/concepts/pipelines/elyra/utils';
 import { fireNotebookTrackingEvent } from '~/pages/projects/notebook/utils';
-import useNotebookAcceleratorProfile from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfile';
 import useStopNotebookModalAvailability from '~/pages/projects/notebook/useStopNotebookModalAvailability';
 import { useAppContext } from '~/app/AppContext';
 import NotebookStateAction from '~/pages/projects/notebook/NotebookStateAction';
@@ -30,6 +29,7 @@ import NotebookStorageBars from './NotebookStorageBars';
 import NotebookSizeDetails from './NotebookSizeDetails';
 import useNotebookImage from './useNotebookImage';
 import useNotebookDeploymentSize from './useNotebookDeploymentSize';
+import useNotebookAcceleratorProfileFormState from './useNotebookAcceleratorProfileFormState';
 
 type NotebookTableRowProps = {
   obj: NotebookState;
@@ -60,7 +60,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
     },
   };
   const [notebookImage, loaded, loadError] = useNotebookImage(obj.notebook);
-  const acceleratorProfile = useNotebookAcceleratorProfile(obj.notebook);
+  const { initialState: acceleratorProfile } = useNotebookAcceleratorProfileFormState(obj.notebook);
   const [dontShowModalValue] = useStopNotebookModalAvailability();
   const { dashboardConfig } = useAppContext();
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);

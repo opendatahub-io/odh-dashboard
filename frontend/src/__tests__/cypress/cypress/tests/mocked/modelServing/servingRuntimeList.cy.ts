@@ -27,6 +27,7 @@ import {
   createServingRuntimeModal,
   editServingRuntimeModal,
   inferenceServiceModal,
+  inferenceServiceModalEdit,
   kserveModal,
   kserveModalEdit,
   modelServingSection,
@@ -420,7 +421,8 @@ describe('Serving Runtime List', () => {
       inferenceServiceModal.findModelNameInput().type('Test Name');
       inferenceServiceModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       inferenceServiceModal.findSubmitButton().should('be.disabled');
-      inferenceServiceModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
+      inferenceServiceModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
+      inferenceServiceModal.findExistingConnectionSelect().should('be.disabled');
       inferenceServiceModal.findLocationPathInput().type('test-model/');
       inferenceServiceModal.findSubmitButton().should('be.enabled');
       inferenceServiceModal.findNewDataConnectionOption().click();
@@ -469,6 +471,38 @@ describe('Serving Runtime List', () => {
       cy.get('@createInferenceService.all').then((interceptions) => {
         expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
       });
+    });
+
+    it('Edit ModelMesh model', () => {
+      initIntercepts({
+        projectEnableModelMesh: true,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'ovms-testing',
+            displayName: 'OVMS ONNX',
+            isModelMesh: true,
+          }),
+        ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+
+      modelServingSection
+        .getModelMeshRow('OVMS Model Serving')
+        .findDeployedModelExpansionButton()
+        .click();
+      modelServingSection.getInferenceServiceRow('OVMS ONNX').findKebabAction('Edit').click();
+      inferenceServiceModalEdit.shouldBeOpen();
+      inferenceServiceModalEdit
+        .findServingRuntimeSelect()
+        .should('have.text', 'OVMS Model Serving')
+        .should('be.enabled');
+      inferenceServiceModalEdit
+        .findExistingConnectionSelect()
+        .should('have.text', 'Test Secret')
+        .should('be.disabled');
     });
 
     it('ModelMesh ServingRuntime list', () => {
@@ -532,7 +566,7 @@ describe('Serving Runtime List', () => {
         .click();
       modelServingSection.findInferenceServiceTable().should('exist');
       let inferenceServiceRow = modelServingSection.getInferenceServiceRow('OVMS ONNX');
-      inferenceServiceRow.findStatusTooltip().should('be.visible');
+      inferenceServiceRow.findStatusTooltip();
       inferenceServiceRow.findStatusTooltipValue('Failed to pull model from storage due to error');
 
       // Check status of deployed model which loaded successfully after an error
@@ -682,7 +716,8 @@ describe('Serving Runtime List', () => {
       kserveModal.findAuthenticationCheckbox().check();
       kserveModal.findExternalRouteError().should('not.exist');
       kserveModal.findServiceAccountNameInput().should('have.value', 'default-name');
-      kserveModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
+      kserveModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
+      kserveModal.findExistingConnectionSelect().should('be.disabled');
       kserveModal.findLocationPathInput().type('test-model/');
       kserveModal.findSubmitButton().should('be.enabled');
       kserveModal.findNewDataConnectionOption().click();
@@ -847,7 +882,8 @@ describe('Serving Runtime List', () => {
       kserveModal.findModelNameInput().type('Test Name');
       kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
-      kserveModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
+      kserveModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
+      kserveModal.findExistingConnectionSelect().should('be.disabled');
       kserveModal.findNewDataConnectionOption().click();
       kserveModal.findLocationNameInput().type('Test Name');
       kserveModal.findLocationAccessKeyInput().type('test-key');
@@ -1072,7 +1108,8 @@ describe('Serving Runtime List', () => {
       kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
-      kserveModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
+      kserveModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
+      kserveModal.findExistingConnectionSelect().should('be.disabled');
 
       kserveModal.findLocationPathInput().type('test-model/');
       kserveModal.findSubmitButton().should('be.enabled');
@@ -1806,7 +1843,8 @@ describe('Serving Runtime List', () => {
       kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
-      kserveModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
+      kserveModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
+      kserveModal.findExistingConnectionSelect().should('be.disabled');
       kserveModal.findLocationPathInput().type('test-model/');
       kserveModal.findSubmitButton().should('be.enabled');
       kserveModal.findSubmitButton().click();
@@ -1839,7 +1877,8 @@ describe('Serving Runtime List', () => {
       kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
-      kserveModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
+      kserveModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
+      kserveModal.findExistingConnectionSelect().should('be.disabled');
       kserveModal.findLocationPathInput().type('test-model/');
       kserveModal.findSubmitButton().should('be.enabled');
       kserveModal.findSubmitButton().click();

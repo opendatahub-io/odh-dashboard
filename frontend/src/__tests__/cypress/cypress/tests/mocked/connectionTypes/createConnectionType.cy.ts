@@ -106,6 +106,7 @@ describe('duplicate', () => {
   it('Prefill details from existing connection', () => {
     createConnectionTypePage.visitDuplicatePage('existing');
 
+    createConnectionTypePage.findSubmitButton().should('be.enabled');
     createConnectionTypePage
       .findConnectionTypeName()
       .should(
@@ -182,6 +183,24 @@ describe('edit', () => {
     );
   });
 
+  it('should duplicate connection into create page', () => {
+    cy.interceptOdh(
+      'GET /api/connection-types/:name',
+      { path: { name: 'existing' } },
+      toConnectionTypeConfigMap(existing),
+    );
+    createConnectionTypePage.visitEditPage('existing');
+
+    createConnectionTypePage.findConnectionTypeName().should('have.value', 'existing');
+    createConnectionTypePage.findConnectionTypeDesc().fill('new description');
+    createConnectionTypePage.findDuplicateConnectionTypeButton().click();
+
+    cy.url().should('include', '/connectionTypes/duplicate/existing');
+
+    createConnectionTypePage.findConnectionTypeName().should('have.value', 'Copy of existing');
+    createConnectionTypePage.findConnectionTypeDesc().should('have.value', 'new description');
+  });
+
   it('Drag and drop field rows in table', () => {
     cy.interceptOdh(
       'GET /api/connection-types/:name',
@@ -189,6 +208,8 @@ describe('edit', () => {
       toConnectionTypeConfigMap(existing),
     );
     createConnectionTypePage.visitEditPage('existing');
+
+    createConnectionTypePage.findSubmitButton().should('be.disabled');
 
     createConnectionTypePage.getFieldsTableRow(0).findName().should('contain.text', 'header1');
     createConnectionTypePage.getFieldsTableRow(1).findName().should('contain.text', 'field1');
@@ -205,6 +226,8 @@ describe('edit', () => {
     createConnectionTypePage.getFieldsTableRow(0).findName().should('contain.text', 'field2');
     createConnectionTypePage.getFieldsTableRow(1).findName().should('contain.text', 'field1');
     createConnectionTypePage.getFieldsTableRow(2).findName().should('contain.text', 'header1');
+
+    createConnectionTypePage.findSubmitButton().should('be.enabled');
   });
 
   it('Move field to section modal', () => {

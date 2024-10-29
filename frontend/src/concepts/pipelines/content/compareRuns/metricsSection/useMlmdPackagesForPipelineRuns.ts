@@ -2,7 +2,7 @@ import React from 'react';
 import { MlmdContextTypes } from '~/concepts/pipelines/apiHooks/mlmd/types';
 import { getMlmdContext } from '~/concepts/pipelines/apiHooks/mlmd/useMlmdContext';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import useFetchState, { FetchState, FetchStateCallbackPromise } from '~/utilities/useFetchState';
 import {
   GetArtifactsByContextRequest,
@@ -12,7 +12,7 @@ import {
 import { PipelineRunRelatedMlmd } from './types';
 
 const useMlmdPackagesForPipelineRuns = (
-  runs: PipelineRunKFv2[],
+  runs: PipelineRunKF[],
 ): FetchState<PipelineRunRelatedMlmd[]> => {
   const { metadataStoreServiceClient } = usePipelinesAPI();
 

@@ -18,6 +18,7 @@ import {
 import { Flex, FlexItem, Popover, Stack, StackItem } from '@patternfly/react-core';
 import { PipelineNodeModelExpanded, StandardTaskNodeData } from '~/concepts/topology/types';
 import NodeStatusIcon from '~/concepts/topology/NodeStatusIcon';
+import { ExecutionStateKF } from '~/concepts/pipelines/kfTypes';
 import { NODE_HEIGHT, NODE_WIDTH } from './const';
 
 const MAX_TIP_ITEMS = 6;
@@ -35,6 +36,8 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
     const [hover, hoverRef] = useHover<SVGGElement>();
     const popoverRef = React.useRef<SVGGElement>(null);
     const detailsLevel = element.getGraph().getDetailsLevel();
+    const runStatus = element.getData()?.runStatus;
+    const state = element.getData()?.pipelineTask.status?.state;
 
     const getPopoverTasksList = (items: Node<NodeModel>[]) => (
       <Stack hasGutter>
@@ -54,6 +57,19 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
       </Stack>
     );
 
+    const status = React.useMemo(() => {
+      switch (state) {
+        case ExecutionStateKF.CACHED:
+          return RunStatus.Succeeded;
+        case ExecutionStateKF.RUNNING:
+          return RunStatus.InProgress;
+        default:
+          return runStatus;
+      }
+    }, [state, runStatus]);
+
+    // TODO, Update canceled status icon with BanIcon when PF topology is updated
+    // https://issues.redhat.com/browse/RHOAIENG-14822
     const groupNode = (
       <DefaultTaskGroup
         element={element}
@@ -68,7 +84,7 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
         showStatusState
         scaleNode={hover && detailsLevel !== ScaleDetailsLevel.high}
         showLabelOnHover
-        status={element.getData()?.runStatus}
+        status={status}
         hiddenDetailsShownStatuses={[
           RunStatus.Succeeded,
           RunStatus.Pending,

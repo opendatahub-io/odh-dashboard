@@ -26,7 +26,7 @@ import ExecutionDetailsIDSection from '~/pages/pipelines/global/experiments/exec
 import ExecutionDetailsInputOutputSection from '~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsInputOutputSection';
 import ExecutionDetailsPropertiesSection from '~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsPropertiesSection';
 import ExecutionDetailsReferenceSection from '~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsReferenceSection';
-import ExecutionStatus from '~/pages/pipelines/global/experiments/executions/ExecutionStatus';
+import { ExecutionStatus } from '~/pages/pipelines/global/experiments/executions/ExecutionStatus';
 import {
   getExecutionDisplayName,
   parseEventsByType,
