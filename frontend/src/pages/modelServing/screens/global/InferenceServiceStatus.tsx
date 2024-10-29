@@ -101,6 +101,22 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
     }
   };
 
+  const headerContent = () => {
+    switch (state) {
+      case InferenceServiceModelState.LOADED:
+        return 'Available';
+      case InferenceServiceModelState.FAILED_TO_LOAD:
+        return 'Failed';
+      case InferenceServiceModelState.PENDING:
+      case InferenceServiceModelState.LOADING:
+        return 'In Progress';
+      case InferenceServiceModelState.UNKNOWN:
+        return 'Status Unknown';
+      default:
+        return 'Inference Service Status';
+    }
+  };
+
   const bodyContent = modelStatus?.failedToSchedule
     ? 'Insufficient resources'
     : getInferenceServiceStatusMessage(inferenceService);
@@ -109,7 +125,8 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
     <Popover
       data-testid="model-status-tooltip"
       position="top"
-      bodyContent={bodyContent}
+      headerContent={headerContent()}
+      bodyContent={<div style={{ maxHeight: '95vh', overflow: 'auto' }}>{bodyContent}</div>}
       isVisible={bodyContent ? undefined : false}
     >
       {statusIcon()}
