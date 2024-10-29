@@ -124,11 +124,11 @@ describe('NIM Model Serving', () => {
       projectDetails
         .getKserveTableRow('Test Name')
         .findInfoValueFor('Model server size')
-        .should('contain.text', '1 CPUs, 4Gi Memory requested');
+        .should('contain.text', '1 CPUs, 4GiB Memory requested');
       projectDetails
         .getKserveTableRow('Test Name')
         .findInfoValueFor('Model server size')
-        .should('contain.text', '2 CPUs, 8Gi Memory limit');
+        .should('contain.text', '2 CPUs, 8GiB Memory limit');
       projectDetails
         .getKserveTableRow('Test Name')
         .findInfoValueFor('Accelerator')
