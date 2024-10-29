@@ -336,7 +336,7 @@ const ModelServingPlatform: React.FC = () => {
                       ? 'Multi-model serving enabled'
                       : 'Single-model serving enabled'}
                   </Label>
-                  {emptyModelServer && (
+                  {emptyModelServer && numServingPlatformsAvailable > 1 && (
                     <ModelServingPlatformSelectButton
                       namespace={currentProject.metadata.name}
                       servingPlatform={NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}
