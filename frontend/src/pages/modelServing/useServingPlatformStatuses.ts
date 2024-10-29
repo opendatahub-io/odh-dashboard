@@ -12,7 +12,7 @@ const useServingPlatformStatuses = (): ServingPlatformStatuses => {
   const modelMeshEnabled = modelMeshStatus.status;
   const kServeInstalled = !!kServeStatus.requiredComponents?.[StackComponent.K_SERVE];
   const modelMeshInstalled = !!modelMeshStatus.requiredComponents?.[StackComponent.MODEL_MESH];
-  const isNIMAvailable = useIsNIMAvailable(dashboardNamespace); // TODO lift this to context?
+  const isNIMAvailable = useIsNIMAvailable(dashboardNamespace);
 
   return {
     kServe: {
