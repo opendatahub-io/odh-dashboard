@@ -38,8 +38,6 @@ import EmptyModelServingPlatform from '~/pages/modelServing/screens/projects/Emp
 import EmptyNIMModelServingCard from '~/pages/modelServing/screens/projects/EmptyNIMModelServingCard';
 import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
 import DeployNIMServiceModal from '~/pages/modelServing/screens/projects/NIMServiceModal/DeployNIMServiceModal';
-import { useDashboardNamespace } from '~/redux/selectors';
-import { useIsNIMAvailable } from '~/pages/modelServing/screens/projects/useIsNIMAvailable';
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import ModelServingPlatformSelectButton from '~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
 import ModelServingPlatformSelectErrorAlert from '~/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
@@ -65,12 +63,12 @@ const ModelServingPlatform: React.FC = () => {
   const deployingFromRegistry = !!(modelRegistryName && registeredModelId && modelVersionId);
 
   const servingPlatformStatuses = useServingPlatformStatuses();
-
-  const { dashboardNamespace } = useDashboardNamespace();
-  const isNIMAvailable = useIsNIMAvailable(dashboardNamespace);
-
-  const kServeEnabled = servingPlatformStatuses.kServe.enabled;
-  const modelMeshEnabled = servingPlatformStatuses.modelMesh.enabled;
+  const {
+    kServe: { enabled: kServeEnabled },
+    modelMesh: { enabled: modelMeshEnabled },
+    nim: { available: isNIMAvailable },
+    numServingPlatformsAvailable,
+  } = servingPlatformStatuses;
 
   const {
     servingRuntimes: {
@@ -289,17 +287,20 @@ const ModelServingPlatform: React.FC = () => {
                       <GalleryItem>
                         <EmptySingleModelServingCard
                           setErrorSelectingPlatform={setErrorSelectingPlatform}
+                          numServingPlatformsAvailable={numServingPlatformsAvailable}
                         />
                       </GalleryItem>
                       <GalleryItem>
                         <EmptyMultiModelServingCard
                           setErrorSelectingPlatform={setErrorSelectingPlatform}
+                          numServingPlatformsAvailable={numServingPlatformsAvailable}
                         />
                       </GalleryItem>
                       {isNIMAvailable && (
                         <GalleryItem>
                           <EmptyNIMModelServingCard
                             setErrorSelectingPlatform={setErrorSelectingPlatform}
+                            numServingPlatformsAvailable={numServingPlatformsAvailable}
                           />
                         </GalleryItem>
                       )}

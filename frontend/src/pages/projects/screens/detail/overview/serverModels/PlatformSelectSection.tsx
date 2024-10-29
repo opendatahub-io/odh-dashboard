@@ -1,18 +1,20 @@
 import * as React from 'react';
 import { Alert, Gallery, Stack, Text, TextContent } from '@patternfly/react-core';
 import CollapsibleSection from '~/concepts/design/CollapsibleSection';
-import { useIsNIMAvailable } from '~/pages/modelServing/screens/projects/useIsNIMAvailable';
 import ModelServingPlatformSelectErrorAlert from '~/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
-import { useDashboardNamespace } from '~/redux/selectors';
+import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import SelectNIMCard from './SelectNIMCard';
 import SelectSingleModelCard from './SelectSingleModelCard';
 import SelectMultiModelCard from './SelectMultiModelCard';
 
 const PlatformSelectSection: React.FC = () => {
-  const { dashboardNamespace } = useDashboardNamespace();
   const [errorSelectingPlatform, setErrorSelectingPlatform] = React.useState<Error>();
 
-  const isNIMAvailable = useIsNIMAvailable(dashboardNamespace);
+  const servingPlatformStatuses = useServingPlatformStatuses();
+  const {
+    nim: { available: isNIMAvailable },
+    numServingPlatformsAvailable,
+  } = servingPlatformStatuses;
 
   const galleryWidths = isNIMAvailable
     ? {
@@ -37,10 +39,19 @@ const PlatformSelectSection: React.FC = () => {
           </Text>
         </TextContent>
         <Gallery hasGutter {...galleryWidths}>
-          <SelectSingleModelCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
-          <SelectMultiModelCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
+          <SelectSingleModelCard
+            setErrorSelectingPlatform={setErrorSelectingPlatform}
+            numServingPlatformsAvailable={numServingPlatformsAvailable}
+          />
+          <SelectMultiModelCard
+            setErrorSelectingPlatform={setErrorSelectingPlatform}
+            numServingPlatformsAvailable={numServingPlatformsAvailable}
+          />
           {isNIMAvailable && (
-            <SelectNIMCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
+            <SelectNIMCard
+              setErrorSelectingPlatform={setErrorSelectingPlatform}
+              numServingPlatformsAvailable={numServingPlatformsAvailable}
+            />
           )}
         </Gallery>
         {errorSelectingPlatform && (

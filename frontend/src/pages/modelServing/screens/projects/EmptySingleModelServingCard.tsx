@@ -17,9 +17,19 @@ import {
   getTemplateEnabledForPlatform,
 } from '~/pages/modelServing/customServingRuntimes/utils';
 import ModelServingPlatformButtonAction from '~/pages/modelServing/screens/projects/ModelServingPlatformButtonAction';
+import ModelServingPlatformSelectButton from '~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
+import { NamespaceApplicationCase } from '~/pages/projects/types';
 import ManageKServeModal from './kServeModal/ManageKServeModal';
 
-const EmptySingleModelServingCard: React.FC = () => {
+type EmptySingleModelServingCardProps = {
+  setErrorSelectingPlatform: (e?: Error) => void;
+  numServingPlatformsAvailable: number;
+};
+
+const EmptySingleModelServingCard: React.FC<EmptySingleModelServingCardProps> = ({
+  setErrorSelectingPlatform,
+  numServingPlatformsAvailable,
+}) => {
   const {
     dataConnections: { data: dataConnections },
   } = React.useContext(ProjectDetailsContext);
@@ -70,13 +80,23 @@ const EmptySingleModelServingCard: React.FC = () => {
         </CardBody>
         <CardFooter>
           <Bullseye>
-            <ModelServingPlatformButtonAction
-              isProjectModelMesh={false}
-              emptyTemplates={emptyTemplates}
-              onClick={() => setOpen(true)}
-              variant="secondary"
-              testId="single-serving-deploy-button"
-            />
+            {numServingPlatformsAvailable > 1 ? (
+              <ModelServingPlatformSelectButton
+                namespace={currentProject.metadata.name}
+                servingPlatform={NamespaceApplicationCase.KSERVE_PROMOTION}
+                setError={setErrorSelectingPlatform}
+                variant="secondary"
+                data-testid="single-serving-select-button" // TODO this changed from single-serving-deploy-button, inform QE and look for other cases
+              />
+            ) : (
+              <ModelServingPlatformButtonAction
+                isProjectModelMesh={false}
+                emptyTemplates={emptyTemplates}
+                onClick={() => setOpen(true)}
+                variant="secondary"
+                testId="single-serving-deploy-button"
+              />
+            )}
           </Bullseye>
         </CardFooter>
       </Card>

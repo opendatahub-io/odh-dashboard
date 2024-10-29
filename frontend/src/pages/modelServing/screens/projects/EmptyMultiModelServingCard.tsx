@@ -17,9 +17,19 @@ import {
   getTemplateEnabledForPlatform,
 } from '~/pages/modelServing/customServingRuntimes/utils';
 import ModelServingPlatformButtonAction from '~/pages/modelServing/screens/projects/ModelServingPlatformButtonAction';
+import ModelServingPlatformSelectButton from '~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
+import { NamespaceApplicationCase } from '~/pages/projects/types';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 
-const EmptyMultiModelServingCard: React.FC = () => {
+type EmptyMultiModelServingCardProps = {
+  setErrorSelectingPlatform: (e?: Error) => void;
+  numServingPlatformsAvailable: number;
+};
+
+const EmptyMultiModelServingCard: React.FC<EmptyMultiModelServingCardProps> = ({
+  setErrorSelectingPlatform,
+  numServingPlatformsAvailable,
+}) => {
   const [open, setOpen] = React.useState(false);
 
   const {
@@ -68,13 +78,23 @@ const EmptyMultiModelServingCard: React.FC = () => {
         </CardBody>
         <CardFooter>
           <Bullseye>
-            <ModelServingPlatformButtonAction
-              isProjectModelMesh
-              emptyTemplates={emptyTemplates}
-              onClick={() => setOpen(true)}
-              variant="secondary"
-              testId="multi-serving-add-server-button"
-            />
+            {numServingPlatformsAvailable > 1 ? (
+              <ModelServingPlatformSelectButton
+                namespace={currentProject.metadata.name}
+                servingPlatform={NamespaceApplicationCase.MODEL_MESH_PROMOTION}
+                setError={setErrorSelectingPlatform}
+                variant="secondary"
+                data-testid="multi-serving-select-button" // TODO this changed from multi-serving-add-server-button, inform QE and look for other cases
+              />
+            ) : (
+              <ModelServingPlatformButtonAction
+                isProjectModelMesh
+                emptyTemplates={emptyTemplates}
+                onClick={() => setOpen(true)}
+                variant="secondary"
+                testId="multi-serving-add-server-button"
+              />
+            )}
           </Bullseye>
         </CardFooter>
       </Card>
