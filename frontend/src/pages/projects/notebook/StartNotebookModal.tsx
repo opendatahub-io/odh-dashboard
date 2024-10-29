@@ -137,7 +137,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
         onClick={() => onClose(true)}
         isDisabled={!open}
       >
-        Cancel
+        Stop workbench
       </Button>
     ) : (
       <NotebookRouteLink
@@ -178,11 +178,11 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
 
   return (
     <Modal
-      aria-label="Starting server modal"
+      aria-label="Starting workbench modal"
       description="Depending on the size and resources requested, this can take several minutes."
       appendTo={document.body}
       variant={ModalVariant.small}
-      title="Starting server"
+      title="Starting workbench"
       isOpen
       showClose
       onClose={() => onClose(false)}
