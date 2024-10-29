@@ -85,7 +85,7 @@ const EmptyNIMModelServingCard: React.FC<EmptyNIMModelServingCardProps> = ({
                 servingPlatform={NamespaceApplicationCase.KSERVE_NIM_PROMOTION}
                 setError={setErrorSelectingPlatform}
                 variant="secondary"
-                data-testid="nim-serving-select-button" // TODO this changed from nim-serving-deploy-button, inform QE and look for other cases
+                data-testid="nim-serving-select-button"
               />
             ) : (
               <ModelServingPlatformButtonAction

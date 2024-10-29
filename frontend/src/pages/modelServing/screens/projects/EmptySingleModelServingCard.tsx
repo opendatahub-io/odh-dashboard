@@ -86,7 +86,7 @@ const EmptySingleModelServingCard: React.FC<EmptySingleModelServingCardProps> = 
                 servingPlatform={NamespaceApplicationCase.KSERVE_PROMOTION}
                 setError={setErrorSelectingPlatform}
                 variant="secondary"
-                data-testid="single-serving-select-button" // TODO this changed from single-serving-deploy-button, inform QE and look for other cases
+                data-testid="single-serving-select-button"
               />
             ) : (
               <ModelServingPlatformButtonAction

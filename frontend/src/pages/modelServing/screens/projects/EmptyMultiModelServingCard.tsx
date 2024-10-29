@@ -84,7 +84,7 @@ const EmptyMultiModelServingCard: React.FC<EmptyMultiModelServingCardProps> = ({
                 servingPlatform={NamespaceApplicationCase.MODEL_MESH_PROMOTION}
                 setError={setErrorSelectingPlatform}
                 variant="secondary"
-                data-testid="multi-serving-select-button" // TODO this changed from multi-serving-add-server-button, inform QE and look for other cases
+                data-testid="multi-serving-select-button"
               />
             ) : (
               <ModelServingPlatformButtonAction

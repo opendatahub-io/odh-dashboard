@@ -41,7 +41,7 @@ const SelectSingleModelCard: React.FC<SelectSingleModelCardProps> = ({
             setError={setErrorSelectingPlatform}
             variant="link"
             isInline
-            data-testid="single-serving-select-button" // TODO this changed from model-serving-platform-button (which was duplicated), inform QE and look for other cases
+            data-testid="single-serving-select-button"
           />
         </CardFooter>
       ) : (

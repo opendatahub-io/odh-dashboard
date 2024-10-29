@@ -161,6 +161,7 @@ const ModelServingPlatform: React.FC = () => {
                   onClick={() =>
                     navigate(modelVersionUrl(modelVersionId, registeredModelId, modelRegistryName))
                   }
+                  data-testid="deploy-from-registry"
                 >
                   Deploy model from model registry
                 </Button>
