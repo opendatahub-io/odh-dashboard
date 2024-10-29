@@ -12,7 +12,9 @@ import {
   fieldTypeToString,
   getCompatibleTypes,
   isModelServingCompatible,
+  isModelServingTypeCompatible,
   isValidEnvVar,
+  ModelServingCompatibleConnectionTypes,
   toConnectionTypeConfigMap,
   toConnectionTypeConfigMapObj,
 } from '~/concepts/connectionTypes/utils';
@@ -310,5 +312,31 @@ describe('getCompatibleTypes', () => {
         'URI',
       ]),
     ).toEqual([CompatibleTypes.ModelServing]);
+  });
+});
+
+describe('isModelServingTypeCompatible', () => {
+  it('should identify model serving compatible env vars', () => {
+    expect(
+      isModelServingTypeCompatible(['invalid'], ModelServingCompatibleConnectionTypes.ModelServing),
+    ).toBe(false);
+    expect(
+      isModelServingTypeCompatible(
+        ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_S3_ENDPOINT', 'AWS_S3_BUCKET'],
+        ModelServingCompatibleConnectionTypes.ModelServing,
+      ),
+    ).toBe(true);
+    expect(
+      isModelServingTypeCompatible(['invalid'], ModelServingCompatibleConnectionTypes.OCI),
+    ).toBe(false);
+    expect(isModelServingTypeCompatible(['URI'], ModelServingCompatibleConnectionTypes.OCI)).toBe(
+      true,
+    );
+    expect(
+      isModelServingTypeCompatible(['invalid'], ModelServingCompatibleConnectionTypes.URI),
+    ).toBe(false);
+    expect(isModelServingTypeCompatible(['URI'], ModelServingCompatibleConnectionTypes.URI)).toBe(
+      true,
+    );
   });
 });

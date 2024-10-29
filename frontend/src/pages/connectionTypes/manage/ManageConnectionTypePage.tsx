@@ -4,13 +4,20 @@ import {
   AlertActionLink,
   Button,
   Checkbox,
+  Flex,
+  FlexItem,
   Form,
   FormGroup,
   FormSection,
   PageSection,
+  Popover,
+  Stack,
+  StackItem,
+  Text,
+  TextContent,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
-import { OpenDrawerRightIcon } from '@patternfly/react-icons';
+import { OpenDrawerRightIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { useUser } from '~/redux/selectors';
 import {
   ConnectionTypeConfigMapObj,
@@ -34,6 +41,15 @@ import {
   connectionTypeFormSchema,
   ValidationErrorCodes,
 } from '~/concepts/connectionTypes/validationUtils';
+import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
+import {
+  filterModelServingCompatibleTypes,
+  isConnectionTypeDataField,
+  isModelServingTypeCompatible,
+} from '~/concepts/connectionTypes/utils';
+import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+import SimpleMenuActions from '~/components/SimpleMenuActions';
+import { joinWithCommaAnd } from '~/utilities/string';
 import CreateConnectionTypeFooter from './ManageConnectionTypeFooter';
 import ManageConnectionTypeFieldsTable from './ManageConnectionTypeFieldsTable';
 import ManageConnectionTypeBreadcrumbs from './ManageConnectionTypeBreadcrumbs';
@@ -47,6 +63,12 @@ type Props = {
 const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) => {
   const navigate = useNavigate();
   const { username: currentUsername } = useUser();
+
+  const [connectionTypes] = useWatchConnectionTypes();
+  const modelServingCompatibleTypes = React.useMemo(
+    () => filterModelServingCompatibleTypes(connectionTypes),
+    [connectionTypes],
+  );
 
   const [isDrawerExpanded, setIsDrawerExpanded] = React.useState(false);
 
@@ -99,6 +121,11 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
       ),
     [connectionNameDesc, enabled, fields, username, category],
   );
+
+  const matchedModelServingCompatibleTypes = React.useMemo(() => {
+    const envVars = fields.filter(isConnectionTypeDataField).map((f) => f.envVar);
+    return modelServingCompatibleTypes.filter((t) => isModelServingTypeCompatible(envVars, t.key));
+  }, [fields, modelServingCompatibleTypes]);
 
   const isValid =
     React.useMemo(() => isK8sNameDescriptionDataValid(connectionNameDesc), [connectionNameDesc]) &&
@@ -200,17 +227,94 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
                   onChange={(_e, value) => setData('enabled', value)}
                 />
               </FormGroup>
-              <FormSection title="Fields" className="pf-v5-u-mt-0">
+              <FormSection
+                className="pf-v5-u-mt-0"
+                title={
+                  <Flex gap={{ default: 'gapSm' }}>
+                    <FlexItem>Fields</FlexItem>
+                    {modelServingCompatibleTypes.length > 0 ? (
+                      <>
+                        <FlexItem>
+                          <SimpleMenuActions
+                            testId="select-model-serving-compatible-type"
+                            toggleLabel="Select a model serving compatible type"
+                            variant="secondary"
+                            dropdownItems={modelServingCompatibleTypes.map((t) => ({
+                              key: t.key,
+                              label: t.name,
+                              onClick: () => {
+                                setData('fields', [
+                                  ...fields,
+                                  {
+                                    type: 'section',
+                                    name: t.name,
+                                    description: `Configure the fields that make this connection compatible with ${t.name}.`,
+                                  },
+                                  ...(t.type.data?.fields ?? []),
+                                ]);
+                              },
+                            }))}
+                          />
+                        </FlexItem>
+                        <FlexItem>
+                          <Popover
+                            headerContent="Model serving compatible types "
+                            bodyContent={
+                              <TextContent>
+                                <Text>
+                                  Model serving compatible connection types can be used for model
+                                  serving. A connection can use one of multiple different methods,
+                                  such as S3 compatible storage or URI, for serving models.
+                                </Text>
+                                <Text>
+                                  Select a type to automatically add the fields required to use its
+                                  corresponding model serving method.
+                                </Text>
+                              </TextContent>
+                            }
+                          >
+                            <DashboardPopupIconButton
+                              icon={<OutlinedQuestionCircleIcon />}
+                              aria-label="More info for section heading"
+                            />
+                          </Popover>
+                        </FlexItem>
+                      </>
+                    ) : undefined}
+                  </Flex>
+                }
+              >
                 <FormGroup>
-                  {validation.hasValidationIssue(
-                    ['fields'],
-                    ValidationErrorCodes.FIELDS_ENV_VAR_CONFLICT,
-                  ) ? (
-                    <Alert isInline variant="danger" title="Environment variables conflict">
-                      Two or more fields are using the same environment variable. Ensure that each
-                      field uses a unique environment variable to proceed.
-                    </Alert>
-                  ) : null}
+                  <Stack hasGutter>
+                    {matchedModelServingCompatibleTypes.length > 0 ? (
+                      <StackItem>
+                        <Alert
+                          data-testid="compatible-model-serving-types-alert"
+                          isInline
+                          variant="info"
+                          title={`This connection type is compatible with ${joinWithCommaAnd(
+                            matchedModelServingCompatibleTypes.map((t) => t.name),
+                            {
+                              singlePrefix: 'the ',
+                              singleSuffix: ' model serving type.',
+                              multiSuffix: ' model serving types.',
+                            },
+                          )}`}
+                        />
+                      </StackItem>
+                    ) : undefined}
+                    {validation.hasValidationIssue(
+                      ['fields'],
+                      ValidationErrorCodes.FIELDS_ENV_VAR_CONFLICT,
+                    ) ? (
+                      <StackItem>
+                        <Alert isInline variant="danger" title="Environment variables conflict">
+                          Two or more fields are using the same environment variable. Ensure that
+                          each field uses a unique environment variable to proceed.
+                        </Alert>
+                      </StackItem>
+                    ) : undefined}
+                  </Stack>
                   <ManageConnectionTypeFieldsTable
                     fields={fields}
                     onFieldsChange={(value) => setData('fields', value)}
