@@ -18,7 +18,7 @@ import {
   Text,
   TextContent,
 } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
@@ -44,7 +44,7 @@ interface DeployedModelsSectionProps {
 }
 
 const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPlatform }) => {
-  const navigate = useNavigate();
+  const [queryParams, setQueryParams] = useSearchParams();
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const {
     inferenceServices: { data: inferenceServices, loaded: inferenceServicesLoaded },
@@ -115,10 +115,12 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
     }
 
     if (isMultiPlatform && modelServers.length && deployedModels.length === 0) {
-      const navToModels = () =>
-        navigate(
-          `/projects/${currentProject.metadata.name}?section=${ProjectSectionID.MODEL_SERVER}`,
-        );
+      const navToModels = () => {
+        // Instead of calling navigate(), change tabs by changing the section query param to retain other query params.
+        // This is how the GenericHorizontalBar component changes tabs internally.
+        queryParams.set('section', ProjectSectionID.MODEL_SERVER);
+        setQueryParams(queryParams);
+      };
 
       return (
         <OverviewCard
