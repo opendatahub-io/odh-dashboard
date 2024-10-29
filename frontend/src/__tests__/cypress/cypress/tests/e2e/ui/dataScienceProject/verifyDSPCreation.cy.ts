@@ -56,12 +56,8 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
     // Step 3: Enter project information
     cy.step('Enter valid project information');
     // Use test data for project name and description
-    createProjectModal.k8sNameDescription
-      .findDisplayNameInput()
-      .type(testData.ProjectName);
-    createProjectModal.k8sNameDescription
-      .findDescriptionInput()
-      .type(testData.ProjectDescription);
+    createProjectModal.k8sNameDescription.findDisplayNameInput().type(testData.ProjectName);
+    createProjectModal.k8sNameDescription.findDescriptionInput().type(testData.ProjectDescription);
 
     // Step 4: Save the project
     cy.step('Save the project and verify it was created successfully');
