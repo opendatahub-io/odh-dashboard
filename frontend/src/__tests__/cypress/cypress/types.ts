@@ -86,8 +86,8 @@ export type TestConfig = {
 };
 
 export type DataScienceProjectData = {
-  dspCreationProjectName: string;
-  dspCreationProjectDescription: string;
-  dspCreationURL: string;
-  dspOCName: string;
+  ProjectName: string;
+  ProjectDescription: string;
+  ProjectURL: string;
+  OCProjectName: string;
 };

@@ -21,7 +21,7 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
       .then((yamlContent: string) => {
         // Parse the YAML content
         testData = yaml.load(yamlContent) as DataScienceProjectData;
-        const projectName = testData.dspOCName;
+        const projectName = testData.OCProjectName;
 
         // Check if the project name is defined
         if (!projectName) {
@@ -32,7 +32,7 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
         return verifyOpenShiftProjectExists(projectName);
       })
       .then((exists) => {
-        const projectName = testData.dspOCName;
+        const projectName = testData.OCProjectName;
         if (exists) {
           cy.log(`Project ${projectName} exists. Deleting before test.`);
           return deleteOpenShiftProject(projectName);
@@ -42,7 +42,7 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
       });
   });
 
-  it('Create a Data Science Project in RHOAI', () => {
+  it('Create and Delete a Data Science Project in RHOAI', () => {
     // Step 1: Log into the application
     cy.step('Log into the application');
     cy.visitWithLogin('/', ADMIN_USER);
@@ -58,22 +58,22 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
     // Use test data for project name and description
     createProjectModal.k8sNameDescription
       .findDisplayNameInput()
-      .type(testData.dspCreationProjectName);
+      .type(testData.ProjectName);
     createProjectModal.k8sNameDescription
       .findDescriptionInput()
-      .type(testData.dspCreationProjectDescription);
+      .type(testData.ProjectDescription);
 
     // Step 4: Save the project
     cy.step('Save the project and verify it was created successfully');
     createProjectModal.findSubmitButton().click();
 
     // Step 5: Verify the project has been created
-    cy.step(`Verify that the project ${testData.dspCreationProjectName} has been created`);
-    cy.url().should('include', `/projects/${testData.dspOCName}`);
-    projectDetails.verifyProjectName(testData.dspCreationProjectName);
+    cy.step(`Verify that the project ${testData.ProjectName} has been created`);
+    cy.url().should('include', `/projects/${testData.ProjectURL}`);
+    projectDetails.verifyProjectName(testData.ProjectName);
 
-    cy.step(`Verify that the description ${testData.dspCreationProjectDescription} displays`);
-    projectDetails.verifyProjectDescription(testData.dspCreationProjectDescription);
+    cy.step(`Verify that the description ${testData.ProjectDescription} displays`);
+    projectDetails.verifyProjectDescription(testData.ProjectDescription);
 
     //Step 6: Delete the project
     cy.step('Deleting the project - clicking actions');
@@ -82,14 +82,14 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
 
     cy.step('Entering project details for deletion');
     deleteModal.shouldBeOpen();
-    deleteModal.findInput().type(testData.dspCreationProjectName);
+    deleteModal.findInput().type(testData.ProjectName);
 
     cy.step('Clicking Submit to delete the project');
     deleteModal.findSubmitButton().should('be.enabled').click();
 
     //Step 7: Navigate to the Project list page and search for the Project
-    cy.step(`Verify that the project ${testData.dspCreationProjectName} has been deleted`);
-    projectListPage.filterProjectByName(testData.dspCreationProjectName);
+    cy.step(`Verify that the project ${testData.ProjectName} has been deleted`);
+    projectListPage.filterProjectByName(testData.ProjectName);
     projectListPage.findEmptyResults();
   });
 });
