@@ -1,5 +1,15 @@
 import * as React from 'react';
-import { FormGroup, Label, Split, SplitItem, Truncate } from '@patternfly/react-core';
+import {
+  Button,
+  FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  Label,
+  Split,
+  SplitItem,
+  Truncate,
+} from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
 import { TemplateKind } from '~/k8sTypes';
@@ -14,6 +24,7 @@ import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFor
 
 type ServingRuntimeTemplateSectionProps = {
   data: CreatingServingRuntimeObject;
+  onConfigureParamsClick?: () => void;
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
   templates: TemplateKind[];
   isEditing?: boolean;
@@ -22,6 +33,7 @@ type ServingRuntimeTemplateSectionProps = {
 
 const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps> = ({
   data,
+  onConfigureParamsClick,
   setData,
   templates,
   isEditing,
@@ -77,6 +89,19 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
           setData('servingRuntimeTemplateName', name);
         }}
       />
+      {data.servingRuntimeTemplateName && onConfigureParamsClick && (
+        <FormHelperText>
+          <HelperText>
+            <HelperTextItem data-testid="serving-runtime-template-helptext">
+              You can optimize model performance by{' '}
+              <Button isInline onClick={() => onConfigureParamsClick()} variant="link">
+                configuring the parameters
+              </Button>{' '}
+              of the selected serving runtime.
+            </HelperTextItem>
+          </HelperText>
+        </FormHelperText>
+      )}
     </FormGroup>
   );
 };
