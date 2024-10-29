@@ -11,12 +11,14 @@ import {
   EmptyStateBody,
   EmptyStateHeader,
   EmptyStateIcon,
+  EmptyStateFooter,
 } from '@patternfly/react-core';
 import { WrenchIcon } from '@patternfly/react-icons';
 import MetricsPageToolbar from '~/concepts/metrics/MetricsPageToolbar';
 import { DistributedWorkloadsContext } from '~/concepts/distributedWorkloads/DistributedWorkloadsContext';
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
 import { LoadingState } from '~/pages/distributedWorkloads/components/LoadingState';
+import WhosMyAdministrator from '~/components/WhosMyAdministrator';
 import {
   DistributedWorkloadsTabId,
   useDistributedWorkloadsTabs,
@@ -52,8 +54,9 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
   }
 
   if (!clusterQueue.data || localQueues.data.length === 0) {
+    const nonAdmin = !clusterQueue.data;
     const title = `Configure the ${!clusterQueue.data ? 'cluster queue' : 'project queue'}`;
-    const message = !clusterQueue.data
+    const message = nonAdmin
       ? 'Ask your cluster admin to configure the cluster queue.'
       : 'Configure the queue for this project, or select a different project.';
 
@@ -65,6 +68,11 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
           icon={<EmptyStateIcon icon={WrenchIcon} />}
         />
         <EmptyStateBody>{message}</EmptyStateBody>
+        {nonAdmin ? (
+          <EmptyStateFooter>
+            <WhosMyAdministrator />
+          </EmptyStateFooter>
+        ) : null}
       </EmptyState>
     );
   }

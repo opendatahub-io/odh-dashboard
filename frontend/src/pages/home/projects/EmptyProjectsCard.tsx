@@ -12,6 +12,7 @@ import {
 } from '@patternfly/react-core';
 import { ArrowRightIcon } from '@patternfly/react-icons';
 import getStartedImage from '~/images/AI_ML-illustration-Blog-thumbnail.svg';
+import WhosMyAdministrator from '~/components/WhosMyAdministrator';
 
 type EmptyProjectsCardProps = {
   allowCreate: boolean;
@@ -53,7 +54,11 @@ const EmptyProjectsCard: React.FC<EmptyProjectsCardProps> = ({ allowCreate, onCr
                   Create a project
                 </Button>
               </StackItem>
-            ) : null}
+            ) : (
+              <StackItem>
+                <WhosMyAdministrator isInline />
+              </StackItem>
+            )}
           </Stack>
         </FlexItem>
       </Flex>
