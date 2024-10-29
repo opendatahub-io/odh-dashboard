@@ -18,7 +18,7 @@ export const mockDataSciencePipelineApplicationK8sResource = ({
   message = '',
   dspaSecretName = 'aws-connection-testdb',
 }: MockResourceConfigType): DSPipelineKind => ({
-  apiVersion: 'datasciencepipelinesapplications.opendatahub.io/v1',
+  apiVersion: 'datasciencepipelinesapplications.opendatahub.io/v1alpha1',
   kind: 'DataSciencePipelinesApplication',
   metadata: {
     name,
