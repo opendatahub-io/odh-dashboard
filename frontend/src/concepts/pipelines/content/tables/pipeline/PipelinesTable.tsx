@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import { Table, TableBase, getTableColumnSort } from '~/components/table';
 import PipelinesTableRow from '~/concepts/pipelines/content/tables/pipeline/PipelinesTableRow';
 import { pipelineColumns } from '~/concepts/pipelines/content/tables/columns';
@@ -8,7 +8,7 @@ import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesMo
 import usePipelinesCheckboxTable from '~/concepts/pipelines/content/tables/pipeline/usePipelinesCheckboxTable';
 
 type PipelinesTableProps = {
-  pipelines: PipelineKFv2[];
+  pipelines: PipelineKF[];
   refreshPipelines: () => Promise<unknown>;
   loading?: boolean;
   totalSize?: number;
@@ -49,7 +49,7 @@ const PipelinesTable: React.FC<PipelinesTableProps> = ({
     disableCheck,
   } = usePipelinesCheckboxTable(pipelines);
 
-  const [deletePipelines, setDeletePipelines] = React.useState<PipelineKFv2[]>([]);
+  const [deletePipelines, setDeletePipelines] = React.useState<PipelineKF[]>([]);
 
   return (
     <>

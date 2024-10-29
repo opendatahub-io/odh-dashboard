@@ -53,7 +53,6 @@ export const ConnectionTypeMoveFieldToSectionModal: React.FC<Props> = ({
             }
           }}
           isSubmitDisabled={!selectedSection}
-          alertTitle=""
         />
       }
     >
@@ -69,7 +68,6 @@ export const ConnectionTypeMoveFieldToSectionModal: React.FC<Props> = ({
             value={selectedSection?.key}
             onChange={(key) => setSelectedSection(options.find((s) => s.key === key))}
             isFullWidth
-            isDisabled={options.length === 1}
           />
         </FormGroup>
       </Form>

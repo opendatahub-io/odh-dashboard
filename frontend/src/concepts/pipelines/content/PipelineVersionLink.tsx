@@ -2,14 +2,14 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Skeleton, Tooltip } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { pipelineVersionDetailsRoute } from '~/routes';
 import { NoRunContent } from './tables/renderUtils';
 
 interface PipelineVersionLinkProps {
   displayName?: string;
   loadingIndicator?: React.ReactElement;
-  version?: PipelineVersionKFv2 | null;
+  version?: PipelineVersionKF | null;
   error?: Error;
   loaded: boolean;
 }

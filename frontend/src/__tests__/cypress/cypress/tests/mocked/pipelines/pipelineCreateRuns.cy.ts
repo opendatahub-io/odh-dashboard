@@ -1,10 +1,10 @@
 /* eslint-disable camelcase */
-import type { PipelineRecurringRunKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import type { PipelineRecurringRunKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import { InputDefinitionParameterType, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 import {
   buildMockRunKF,
-  buildMockPipelineV2,
-  buildMockPipelineVersionV2,
+  buildMockPipeline,
+  buildMockPipelineVersion,
   buildMockRecurringRunKF,
   buildMockExperimentKF,
   mockArgoWorkflowPipelineVersion,
@@ -23,8 +23,8 @@ import { getCorePipelineSpec } from '~/concepts/pipelines/getCorePipelineSpec';
 import { configIntercept, dspaIntercepts, projectsIntercept } from './intercepts';
 
 const projectName = 'test-project-name';
-const mockPipeline = buildMockPipelineV2();
-const mockPipelineVersion = buildMockPipelineVersionV2({ pipeline_id: mockPipeline.pipeline_id });
+const mockPipeline = buildMockPipeline();
+const mockPipelineVersion = buildMockPipelineVersion({ pipeline_id: mockPipeline.pipeline_id });
 const mockArgoPipelineVersion = mockArgoWorkflowPipelineVersion({});
 const pipelineVersionRef = {
   pipeline_id: mockPipeline.pipeline_id,
@@ -135,7 +135,7 @@ describe('Pipeline create runs', () => {
     it('creates an active run', () => {
       visitLegacyRunsPage();
 
-      const createRunParams: Partial<PipelineRunKFv2> = {
+      const createRunParams: Partial<PipelineRunKF> = {
         display_name: 'New run',
         description: 'New run description',
         run_id: 'new-run-id',
@@ -286,7 +286,7 @@ describe('Pipeline create runs', () => {
     it('create run with default and optional parameters', () => {
       visitLegacyRunsPage();
 
-      const createRunParams: Partial<PipelineRunKFv2> = {
+      const createRunParams: Partial<PipelineRunKF> = {
         display_name: 'New run',
         description: 'New run description',
         run_id: 'new-run-id',
@@ -415,7 +415,7 @@ describe('Pipeline create runs', () => {
     it('create run with all parameter types', () => {
       visitLegacyRunsPage();
 
-      const createRunParams: Partial<PipelineRunKFv2> = {
+      const createRunParams: Partial<PipelineRunKF> = {
         display_name: 'New run',
         description: 'New run description',
         run_id: 'new-run-id',
@@ -898,7 +898,7 @@ const initIntercepts = () => {
         pipelineId: mockPipelineVersion.pipeline_id,
       },
     },
-    buildMockPipelineV2({
+    buildMockPipeline({
       pipeline_id: mockPipelineVersion.pipeline_id,
     }),
   );
@@ -912,7 +912,7 @@ const initIntercepts = () => {
         pipelineVersionId: mockPipelineVersion.pipeline_version_id,
       },
     },
-    buildMockPipelineVersionV2({
+    buildMockPipelineVersion({
       pipeline_id: mockPipelineVersion.pipeline_id,
       pipeline_version_id: mockPipelineVersion.pipeline_version_id,
     }),
@@ -933,7 +933,7 @@ const initIntercepts = () => {
   });
 };
 
-const createRecurringRunParams: Partial<PipelineRecurringRunKFv2> = {
+const createRecurringRunParams: Partial<PipelineRecurringRunKF> = {
   display_name: 'New recurring run',
   description: 'New recurring run description',
   recurring_run_id: 'new-recurring-run-id',

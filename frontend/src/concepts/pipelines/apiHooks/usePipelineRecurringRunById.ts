@@ -5,14 +5,14 @@ import useFetchState, {
   NotReadyError,
 } from '~/utilities/useFetchState';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineRecurringRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRecurringRunKF } from '~/concepts/pipelines/kfTypes';
 
 const usePipelineRecurringRunById = (
   pipelineRecurringRunByIdId?: string,
-): FetchState<PipelineRecurringRunKFv2 | null> => {
+): FetchState<PipelineRecurringRunKF | null> => {
   const { api } = usePipelinesAPI();
 
-  const call = React.useCallback<FetchStateCallbackPromise<PipelineRecurringRunKFv2 | null>>(
+  const call = React.useCallback<FetchStateCallbackPromise<PipelineRecurringRunKF | null>>(
     (opts) => {
       if (!pipelineRecurringRunByIdId) {
         return Promise.reject(new NotReadyError('No pipeline recurring run id'));

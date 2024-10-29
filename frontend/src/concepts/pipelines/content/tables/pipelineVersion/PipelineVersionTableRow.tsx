@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ActionsColumn, TableText, Td, Tr } from '@patternfly/react-table';
 import { Link, useNavigate } from 'react-router-dom';
-import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd, TableRowTitleDescription } from '~/components/table';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
@@ -21,9 +21,9 @@ import {
 type PipelineVersionTableRowProps = {
   isChecked: boolean;
   onToggleCheck: () => void;
-  version: PipelineVersionKFv2;
+  version: PipelineVersionKF;
   isDisabled: boolean;
-  pipeline: PipelineKFv2;
+  pipeline: PipelineKF;
   onDeleteVersion: () => void;
 };
 

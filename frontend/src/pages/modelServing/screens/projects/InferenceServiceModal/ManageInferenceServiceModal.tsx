@@ -16,11 +16,14 @@ import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/con
 import { containsOnlySlashes, isS3PathValid } from '~/utilities/string';
 import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 import usePrefillDeployModalFromModelRegistry from '~/pages/modelRegistry/screens/RegisteredModels/usePrefillDeployModalFromModelRegistry';
+import useConnectionTypesEnabled from '~/concepts/connectionTypes/useConnectionTypesEnabled';
+import { Connection } from '~/concepts/connectionTypes/types';
 import DataConnectionSection from './DataConnectionSection';
 import ProjectSection from './ProjectSection';
 import InferenceServiceFrameworkSection from './InferenceServiceFrameworkSection';
 import InferenceServiceServingRuntimeSection from './InferenceServiceServingRuntimeSection';
 import InferenceServiceNameSection from './InferenceServiceNameSection';
+import { ConnectionSection } from './ConnectionSection';
 
 type ManageInferenceServiceModalProps = {
   onClose: (submit: boolean) => void;
@@ -63,6 +66,10 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
       registeredModelDeployInfo,
     );
 
+  const isConnectionTypesEnabled = useConnectionTypesEnabled();
+  const [connection, setConnection] = React.useState<Connection>();
+  const [isConnectionValid, setIsConnectionValid] = React.useState(false);
+
   const hasEditInfo = !!editInfo;
   React.useEffect(() => {
     if (!hasEditInfo) {
@@ -74,6 +81,9 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
   const storageCanCreate = (): boolean => {
     if (createData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
       return createData.storage.dataConnection !== '';
+    }
+    if (isConnectionTypesEnabled) {
+      return isConnectionValid;
     }
     return isAWSValid(createData.storage.awsData, [AwsKeys.AWS_S3_BUCKET]);
   };
@@ -118,6 +128,12 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
       editInfo,
       undefined,
       true,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      connection,
     )
       .then(() => onSuccess())
       .catch((e) => {
@@ -184,13 +200,22 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
               </StackItem>
               <StackItem>
                 <FormSection title="Source model location" id="model-location">
-                  <DataConnectionSection
-                    data={createData}
-                    setData={setCreateData}
-                    loaded={!!projectContext?.dataConnections || dataConnectionsLoaded}
-                    loadError={dataConnectionsLoadError}
-                    dataConnections={dataConnections}
-                  />
+                  {isConnectionTypesEnabled ? (
+                    <ConnectionSection
+                      data={createData}
+                      setData={setCreateData}
+                      setConnection={setConnection}
+                      setIsConnectionValid={setIsConnectionValid}
+                    />
+                  ) : (
+                    <DataConnectionSection
+                      data={createData}
+                      setData={setCreateData}
+                      loaded={!!projectContext?.dataConnections || dataConnectionsLoaded}
+                      loadError={dataConnectionsLoadError}
+                      dataConnections={dataConnections}
+                    />
+                  )}
                 </FormSection>
               </StackItem>
             </>

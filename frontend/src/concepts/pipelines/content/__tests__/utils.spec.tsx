@@ -9,14 +9,14 @@ import {
 } from '@patternfly/react-icons';
 import React from 'react';
 import {
-  PipelineRunKFv2,
+  PipelineRunKF,
   StorageStateKF,
   RuntimeStateKF,
   runtimeStateLabels,
 } from '~/concepts/pipelines/kfTypes';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 
-const run: PipelineRunKFv2 = {
+const run: PipelineRunKF = {
   created_at: '2023-09-05T16:23:25Z',
   storage_state: StorageStateKF.AVAILABLE,
   finished_at: '2023-09-05T16:24:34Z',
@@ -44,11 +44,11 @@ const run: PipelineRunKFv2 = {
   state_history: [],
 };
 
-const createRun = (state: RuntimeStateKF | string): PipelineRunKFv2 =>
+const createRun = (state: RuntimeStateKF | string): PipelineRunKF =>
   ({
     ...run,
     state,
-  } as PipelineRunKFv2);
+  } as PipelineRunKF);
 
 describe('computeRunStatus', () => {
   it('should check for run status when run status is undefined', () => {

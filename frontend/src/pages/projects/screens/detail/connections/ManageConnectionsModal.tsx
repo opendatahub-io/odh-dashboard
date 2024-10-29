@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Modal } from '@patternfly/react-core';
+import { Alert, Modal, Form } from '@patternfly/react-core';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import ConnectionTypeForm from '~/concepts/connectionTypes/ConnectionTypeForm';
 import {
@@ -9,6 +9,8 @@ import {
   ConnectionTypeValueType,
 } from '~/concepts/connectionTypes/types';
 import { ProjectKind, SecretKind } from '~/k8sTypes';
+import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
+import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import { useK8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import {
   assembleConnectionSecret,
@@ -17,7 +19,6 @@ import {
   isConnectionTypeDataField,
   parseConnectionSecretValues,
 } from '~/concepts/connectionTypes/utils';
-import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
 
 type Props = {
   connection?: Connection;
@@ -83,7 +84,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
   const isFormValid = React.useMemo(
     () =>
       !!connectionTypeName &&
-      !!nameDescData.name &&
+      isK8sNameDescriptionDataValid(nameDescData) &&
       !selectedConnectionType?.data?.fields?.find(
         (field) =>
           isConnectionTypeDataField(field) &&
@@ -147,7 +148,12 @@ export const ManageConnectionModal: React.FC<Props> = ({
             }
 
             onSubmit(
-              assembleConnectionSecret(project, connectionTypeName, nameDescData, connectionValues),
+              assembleConnectionSecret(
+                project.metadata.name,
+                connectionTypeName,
+                nameDescData,
+                connectionValues,
+              ),
             )
               .then(() => {
                 onClose(true);
@@ -175,34 +181,36 @@ export const ManageConnectionModal: React.FC<Props> = ({
           restarted, redeployed, or otherwise regenerated.
         </Alert>
       )}
-      <ConnectionTypeForm
-        options={!isEdit ? enabledConnectionTypes : undefined}
-        connectionType={selectedConnectionType || (isEdit ? connectionTypeSource : undefined)}
-        setConnectionType={(name: string) => {
-          const obj = connectionTypes.find((c) => c.metadata.name === name);
-          if (!isModified) {
-            setIsModified(true);
+      <Form>
+        <ConnectionTypeForm
+          options={!isEdit ? enabledConnectionTypes : undefined}
+          connectionType={selectedConnectionType || (isEdit ? connectionTypeSource : undefined)}
+          setConnectionType={(name: string) => {
+            const obj = connectionTypes.find((c) => c.metadata.name === name);
+            if (!isModified) {
+              setIsModified(true);
+            }
+            changeSelectionType(obj);
+          }}
+          connectionNameDesc={nameDescData}
+          setConnectionNameDesc={(key: keyof K8sNameDescriptionFieldData, value: string) => {
+            if (!isModified) {
+              setIsModified(true);
+            }
+            setNameDescData(key, value);
+          }}
+          connectionValues={connectionValues}
+          onChange={(field, value) => {
+            if (!isModified) {
+              setIsModified(true);
+            }
+            setConnectionValues((prev) => ({ ...prev, [field.envVar]: value }));
+          }}
+          onValidate={(field, isValid) =>
+            setValidations((prev) => ({ ...prev, [field.envVar]: isValid }))
           }
-          changeSelectionType(obj);
-        }}
-        connectionNameDesc={nameDescData}
-        setConnectionNameDesc={(key: keyof K8sNameDescriptionFieldData, value: string) => {
-          if (!isModified) {
-            setIsModified(true);
-          }
-          setNameDescData(key, value);
-        }}
-        connectionValues={connectionValues}
-        onChange={(field, value) => {
-          if (!isModified) {
-            setIsModified(true);
-          }
-          setConnectionValues((prev) => ({ ...prev, [field.envVar]: value }));
-        }}
-        onValidate={(field, isValid) =>
-          setValidations((prev) => ({ ...prev, [field.envVar]: isValid }))
-        }
-      />
+        />
+      </Form>
     </Modal>
   );
 };

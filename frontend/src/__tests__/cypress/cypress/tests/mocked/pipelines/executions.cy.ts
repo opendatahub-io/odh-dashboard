@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import {
-  buildMockPipelineV2,
+  buildMockPipeline,
   buildMockPipelines,
   mockDashboardConfig,
   mockDataSciencePipelineApplicationK8sResource,
@@ -23,7 +23,7 @@ import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import { decodeGetExecutionsRequest, initMlmdIntercepts } from './mlmdUtils';
 
 const projectName = 'test-project-name';
-const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
+const initialMockPipeline = buildMockPipeline({ display_name: 'Test pipeline' });
 
 describe('ExecutionsError', () => {
   it('Fails to load executions list', () => {

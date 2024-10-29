@@ -85,7 +85,7 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
       <SimpleSelect
         isScrollable
         isFullWidth
-        isDisabled={isEditing || options.length === 0}
+        isDisabled={isEditing}
         id="nim-model-list-selection"
         dataTestId="nim-model-list-selection"
         aria-label="Select NVIDIA NIM to deploy"

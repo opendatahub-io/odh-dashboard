@@ -27,7 +27,7 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineFilter, {
   FilterOptions,
 } from '~/concepts/pipelines/content/tables/usePipelineFilter';
-import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
 import PipelineRunVersionsContextProvider from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
@@ -35,7 +35,7 @@ import { EmptyRunsState } from '~/concepts/pipelines/content/tables/pipelineRun/
 import { ManageRunsTable } from './ManageRunsTable';
 
 interface ManageRunsPageInternalProps {
-  experiment: ExperimentKFv2;
+  experiment: ExperimentKF;
 }
 
 export const ManageRunsPageInternal: React.FC<ManageRunsPageInternalProps> = ({ experiment }) => {

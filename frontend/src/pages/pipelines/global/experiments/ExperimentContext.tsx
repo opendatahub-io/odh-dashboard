@@ -1,13 +1,13 @@
 import React from 'react';
 import { Bullseye, Spinner } from '@patternfly/react-core';
 import { Outlet } from 'react-router-dom';
-import { ExperimentKFv2, StorageStateKF } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 import { useExperimentByParams } from '~/pages/pipelines/global/experiments/useExperimentByParams';
 import { experimentRoute } from '~/routes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 
 type ExperimentContextState = {
-  experiment: ExperimentKFv2 | null;
+  experiment: ExperimentKF | null;
   basePath: string;
 };
 
@@ -41,7 +41,7 @@ const ExperimentContextProvider: React.FC = () => {
 };
 
 export const useContextExperimentArchived = (
-  experimentAvailable?: ExperimentKFv2 | null,
+  experimentAvailable?: ExperimentKF | null,
 ): boolean => {
   const { experiment } = React.useContext(ExperimentContext);
   const experimentStorageState = experimentAvailable?.storage_state ?? experiment?.storage_state;

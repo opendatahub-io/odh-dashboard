@@ -1,5 +1,6 @@
 export type UserState = {
   username: string;
+  userID: string;
   isAdmin: boolean;
   isAllowed: boolean;
   userLoading: boolean;

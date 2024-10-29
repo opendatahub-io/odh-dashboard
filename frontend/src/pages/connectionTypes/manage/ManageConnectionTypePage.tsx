@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {
   Alert,
+  AlertActionLink,
   Button,
   Checkbox,
   Form,
@@ -134,13 +135,30 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
             )
           }
         >
-          {isEdit ? (
+          {isEdit && prefill ? (
             <PageSection variant="light" className="pf-v5-u-pt-0">
               <Alert
                 isInline
                 variant="warning"
-                title="Editing this connection type does not affect existing connections of this type."
-              />
+                title="Consider duplicating"
+                actionLinks={
+                  <AlertActionLink
+                    data-testid="duplicate-connection-type"
+                    onClick={() => {
+                      navigate(`/connectionTypes/duplicate/${prefill.metadata.name}`, {
+                        state: {
+                          connectionType: connectionTypeObj,
+                        },
+                      });
+                    }}
+                  >
+                    Duplicate
+                  </AlertActionLink>
+                }
+              >
+                Editing this connection type does not affect existing connections of this type. To
+                keep track of previous versions of this connection type, consider duplicating it.
+              </Alert>
             </PageSection>
           ) : undefined}
           <PageSection isFilled variant="light" className="pf-v5-u-pt-0">

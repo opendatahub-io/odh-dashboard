@@ -8,12 +8,11 @@ import {
 } from '~/pages/modelServing/screens/types';
 import { ServingRuntimeKind } from '~/k8sTypes';
 import { isGpuDisabled } from '~/pages/modelServing/screens/projects/utils';
-import AcceleratorProfileSelectField, {
-  AcceleratorProfileSelectFieldState,
-} from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
+import AcceleratorProfileSelectField from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import { getCompatibleAcceleratorIdentifiers } from '~/pages/projects/screens/spawner/spawnerUtils';
-import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
+import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
 import SimpleSelect from '~/components/SimpleSelect';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import { formatMemory } from '~/utilities/valueUnits';
 import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
 
@@ -23,8 +22,8 @@ type ServingRuntimeSizeSectionProps<D extends CreatingModelServingObjectCommon> 
   sizes: ModelServingSize[];
   servingRuntimeSelected?: ServingRuntimeKind;
   acceleratorProfileState: AcceleratorProfileState;
-  selectedAcceleratorProfile: AcceleratorProfileSelectFieldState;
-  setSelectedAcceleratorProfile: UpdateObjectAtPropAndValue<AcceleratorProfileSelectFieldState>;
+  selectedAcceleratorProfile: AcceleratorProfileFormData;
+  setSelectedAcceleratorProfile: UpdateObjectAtPropAndValue<AcceleratorProfileFormData>;
   infoContent?: string;
 };
 
@@ -94,6 +93,7 @@ const ServingRuntimeSizeSection = <D extends CreatingModelServingObjectCommon>({
               dataTestId="model-server-size-selection"
               isFullWidth
               options={sizeOptions()}
+              value={data.modelSize.name}
               toggleProps={{ id: 'model-server-size-selection' }}
               toggleLabel={data.modelSize.name || 'Select a model server size'}
               onChange={(option) => {
@@ -114,12 +114,12 @@ const ServingRuntimeSizeSection = <D extends CreatingModelServingObjectCommon>({
       </FormGroup>
       {!gpuDisabled && (
         <AcceleratorProfileSelectField
-          acceleratorProfileState={acceleratorProfileState}
+          initialState={acceleratorProfileState}
           supportedAcceleratorProfiles={supportedAcceleratorProfiles}
           resourceDisplayName="serving runtime"
           infoContent="Ensure that appropriate tolerations are in place before adding an accelerator to your model server."
-          selectedAcceleratorProfile={selectedAcceleratorProfile}
-          setSelectedAcceleratorProfile={setSelectedAcceleratorProfile}
+          formData={selectedAcceleratorProfile}
+          setFormData={setSelectedAcceleratorProfile}
         />
       )}
     </>

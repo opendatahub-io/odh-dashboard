@@ -3,7 +3,10 @@ import {
   asProductAdminUser,
   asProjectAdminUser,
 } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { connectionTypesPage } from '~/__tests__/cypress/cypress/pages/connectionTypes';
+import {
+  connectionTypePreviewModal,
+  connectionTypesPage,
+} from '~/__tests__/cypress/cypress/pages/connectionTypes';
 import { mockDashboardConfig } from '~/__mocks__';
 import {
   mockConnectionTypeConfigMap,
@@ -81,6 +84,11 @@ describe('Connection types', () => {
     row2.shouldShowPreInstalledLabel();
     row2.shouldBeDisabled();
     row2.shouldHaveModelServingCompatibility();
+
+    row2.findKebabAction('Preview').click();
+    connectionTypePreviewModal.shouldBeOpen();
+    connectionTypePreviewModal.findCloseButton().click();
+    connectionTypePreviewModal.shouldBeOpen(false);
   });
 
   it('should delete connection type', () => {

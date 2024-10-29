@@ -1,4 +1,4 @@
-import { ProjectKind, SecretKind } from '~/k8sTypes';
+import { SecretKind } from '~/k8sTypes';
 import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
 import {
@@ -110,10 +110,15 @@ export const fieldNameToEnvVar = (name: string): string => {
 export const ENV_VAR_NAME_REGEX = new RegExp('^[_a-zA-Z][_a-zA-Z0-9]*$');
 export const isValidEnvVar = (name: string): boolean => ENV_VAR_NAME_REGEX.test(name);
 
+export const S3ConnectionTypeKeys = [
+  'AWS_ACCESS_KEY_ID',
+  'AWS_SECRET_ACCESS_KEY',
+  'AWS_S3_ENDPOINT',
+  'AWS_S3_BUCKET',
+];
+
 export const isModelServingCompatible = (envVars: string[]): boolean =>
-  ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_S3_ENDPOINT', 'AWS_S3_BUCKET'].every(
-    (envVar) => envVars.includes(envVar),
-  );
+  S3ConnectionTypeKeys.every((envVar) => envVars.includes(envVar));
 
 export enum CompatibleTypes {
   ModelServing = 'Model serving',
@@ -145,8 +150,30 @@ export const getDefaultValues = (
   return defaults;
 };
 
+export const withRequiredFields = (
+  connectionType?: ConnectionTypeConfigMapObj,
+  envVars?: string[],
+): ConnectionTypeConfigMapObj | undefined => {
+  if (!connectionType) {
+    return undefined;
+  }
+  const newFields = connectionType.data?.fields?.map((f) => ({
+    ...f,
+    ...(isConnectionTypeDataField(f) && envVars?.includes(f.envVar) && { required: true }),
+  }));
+  return {
+    ...connectionType,
+    data: connectionType.data
+      ? {
+          ...connectionType.data,
+          fields: newFields,
+        }
+      : undefined,
+  };
+};
+
 export const assembleConnectionSecret = (
-  project: ProjectKind,
+  projectName: string,
   connectionTypeName: string,
   nameDesc: K8sNameDescriptionFieldData,
   values: {
@@ -166,7 +193,7 @@ export const assembleConnectionSecret = (
     kind: 'Secret',
     metadata: {
       name: nameDesc.k8sName.value || translateDisplayNameForK8s(nameDesc.name),
-      namespace: project.metadata.name,
+      namespace: projectName,
       labels: {
         'opendatahub.io/dashboard': 'true',
         'opendatahub.io/managed': 'true',
@@ -221,12 +248,14 @@ export const parseConnectionSecretValues = (
 
 export const getConnectionTypeDisplayName = (
   connection: Connection,
-  connectionTypes: ConnectionTypeConfigMapObj[],
+  connectionTypes?: ConnectionTypeConfigMapObj[] | ConnectionTypeConfigMapObj,
 ): string => {
-  const matchingType = connectionTypes.find(
-    (type) =>
-      type.metadata.name === connection.metadata.annotations['opendatahub.io/connection-type'],
-  );
+  const matchingType = Array.isArray(connectionTypes)
+    ? connectionTypes.find(
+        (type) =>
+          type.metadata.name === connection.metadata.annotations['opendatahub.io/connection-type'],
+      )
+    : connectionTypes;
   return (
     matchingType?.metadata.annotations?.['openshift.io/display-name'] ||
     connection.metadata.annotations['opendatahub.io/connection-type']
@@ -239,3 +268,14 @@ export const filterEnabledConnectionTypes = <
   connectionTypes: T[],
 ): T[] =>
   connectionTypes.filter((t) => t.metadata.annotations?.['opendatahub.io/disabled'] !== 'true');
+
+export const findSectionFields = (
+  sectionIndex: number,
+  fields: ConnectionTypeField[],
+): ConnectionTypeField[] => {
+  const nextSectionIndex = fields.findIndex(
+    (f, i) => i > sectionIndex && f.type === ConnectionTypeFieldType.Section,
+  );
+
+  return fields.slice(sectionIndex + 1, nextSectionIndex === -1 ? undefined : nextSectionIndex);
+};

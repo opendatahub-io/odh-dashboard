@@ -1,4 +1,5 @@
 import {
+  mockCustomSecretK8sResource,
   mockDashboardConfig,
   mockDscStatus,
   mockK8sResourceList,
@@ -35,11 +36,12 @@ import {
   StorageClassModel,
   AcceleratorProfileModel,
 } from '~/__tests__/cypress/cypress/utils/models';
-import { mock200Status } from '~/__mocks__/mockK8sStatus';
+import { mock200Status, mock404Error } from '~/__mocks__/mockK8sStatus';
 import type { NotebookSize } from '~/types';
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import { mockConnectionTypeConfigMap } from '~/__mocks__/mockConnectionType';
 import type { PodKind } from '~/k8sTypes';
+import type { EnvironmentFromVariable } from '~/pages/projects/types';
 
 const configYamlPath = '../../__mocks__/mock-upload-configmap.yaml';
 
@@ -47,10 +49,12 @@ type HandlersProps = {
   isEmpty?: boolean;
   notebookSizes?: NotebookSize[];
   mockPodList?: PodKind[];
+  envFrom?: EnvironmentFromVariable[];
 };
 
 const initIntercepts = ({
   isEmpty = false,
+  envFrom,
   notebookSizes = [
     {
       name: 'Medium',
@@ -139,6 +143,23 @@ const initIntercepts = ({
       }),
     ]),
   );
+  cy.interceptK8s(
+    { model: SecretModel, ns: 'test-project', name: 'secret' },
+    mockCustomSecretK8sResource({
+      name: 'secret',
+      namespace: 'test-project',
+      data: { test: 'c2RzZA==' },
+    }),
+  );
+  cy.interceptK8s(
+    'PUT',
+    { model: SecretModel, ns: 'test-project', name: 'secret' },
+    mockCustomSecretK8sResource({
+      name: 'secret',
+      namespace: 'test-project',
+      data: { test: 'c2RzZA==' },
+    }),
+  );
   cy.interceptK8s(SecretModel, mockSecretK8sResource({ name: 'aws-connection-db-1' }));
   cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('stopWorkbench');
   cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'test-notebook' }));
@@ -152,6 +173,7 @@ const initIntercepts = ({
         ? []
         : [
             mockNotebookK8sResource({
+              envFrom,
               opts: {
                 metadata: {
                   name: 'test-notebook',
@@ -667,6 +689,7 @@ describe('Workbench page', () => {
       mockK8sResourceList([mockPVCK8sResource({ name: 'test-notebook' })]),
     );
     editSpawnerPage.visit('test-notebook');
+    editSpawnerPage.findAlertMessage().should('not.exist');
     editSpawnerPage.k8sNameDescription.findDisplayNameInput().should('have.value', 'Test Notebook');
     editSpawnerPage.shouldHaveNotebookImageSelectInput('Test Image');
     editSpawnerPage.shouldHaveContainerSizeInput('Small');
@@ -696,8 +719,172 @@ describe('Workbench page', () => {
         spec: {
           template: {
             spec: {
+              containers: [
+                {
+                  envFrom: [
+                    {
+                      secretRef: {
+                        name: 'secret',
+                      },
+                    },
+                  ],
+
+                  name: 'test-notebook',
+                },
+              ],
               volumes: [
                 { name: 'test-notebook', persistentVolumeClaim: { claimName: 'test-notebook' } },
+              ],
+            },
+          },
+        },
+      });
+    });
+    // Actual request
+    cy.wait('@editWorkbench').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+  });
+
+  it('Edit workbench when either configMap or secret variables not present', () => {
+    initIntercepts({
+      envFrom: [
+        {
+          secretRef: {
+            name: 'secret-1',
+          },
+        },
+        {
+          secretRef: {
+            name: 'secret-2',
+          },
+        },
+      ],
+    });
+    cy.interceptK8s(
+      {
+        model: SecretModel,
+        ns: 'test-project',
+        name: 'secret-1',
+      },
+      {
+        statusCode: 404,
+        body: mock404Error({}),
+      },
+    );
+    cy.interceptK8s(
+      {
+        model: SecretModel,
+        ns: 'test-project',
+        name: 'secret-2',
+      },
+      {
+        statusCode: 404,
+        body: mock404Error({}),
+      },
+    );
+    editSpawnerPage.visit('test-notebook');
+    editSpawnerPage.findAlertMessage().should('exist');
+    editSpawnerPage.findAlertMessage().contains('secret-1 and secret-2');
+    cy.interceptK8s('PUT', NotebookModel, mockNotebookK8sResource({})).as('editWorkbenchDryRun');
+    cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('editWorkbench');
+    editSpawnerPage.findSubmitButton().click();
+    cy.wait('@editWorkbenchDryRun').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          annotations: {
+            'openshift.io/description': '',
+            'openshift.io/display-name': 'Test Notebook',
+            'opendatahub.io/image-display-name': 'Test Image',
+            'opendatahub.io/accelerator-name': '',
+          },
+        },
+        spec: {
+          template: {
+            spec: {
+              containers: [
+                {
+                  envFrom: [],
+
+                  name: 'test-notebook',
+                },
+              ],
+            },
+          },
+        },
+      });
+    });
+    // Actual request
+    cy.wait('@editWorkbench').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+  });
+
+  it('Edit workbench when both configMap and secret are deleted', () => {
+    initIntercepts({
+      envFrom: [
+        {
+          secretRef: {
+            name: 'secret-1',
+          },
+        },
+        {
+          configMapRef: {
+            name: 'secret-2',
+          },
+        },
+      ],
+    });
+    cy.interceptK8s(
+      {
+        model: SecretModel,
+        ns: 'test-project',
+        name: 'secret-1',
+      },
+      {
+        statusCode: 404,
+        body: mock404Error({}),
+      },
+    );
+    cy.interceptK8s(
+      {
+        model: ConfigMapModel,
+        ns: 'test-project',
+        name: 'secret-2',
+      },
+      {
+        statusCode: 404,
+        body: mock404Error({}),
+      },
+    );
+    editSpawnerPage.visit('test-notebook');
+    editSpawnerPage.findAlertMessage().should('exist');
+    editSpawnerPage.findAlertMessage().contains('secret-1 secret');
+    editSpawnerPage.findAlertMessage().contains('secret-2 config map');
+    cy.interceptK8s('PUT', NotebookModel, mockNotebookK8sResource({})).as('editWorkbenchDryRun');
+    cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('editWorkbench');
+    editSpawnerPage.findSubmitButton().click();
+    cy.wait('@editWorkbenchDryRun').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          annotations: {
+            'openshift.io/description': '',
+            'openshift.io/display-name': 'Test Notebook',
+            'opendatahub.io/image-display-name': 'Test Image',
+            'opendatahub.io/accelerator-name': '',
+          },
+        },
+        spec: {
+          template: {
+            spec: {
+              containers: [
+                {
+                  envFrom: [],
+
+                  name: 'test-notebook',
+                },
               ],
             },
           },
@@ -761,7 +948,42 @@ describe('Workbench page', () => {
   });
 
   it('Delete Workbench', () => {
-    initIntercepts({});
+    initIntercepts({
+      envFrom: [
+        {
+          secretRef: {
+            name: 'secret-1',
+          },
+        },
+        {
+          configMapRef: {
+            name: 'secret-2',
+          },
+        },
+      ],
+    });
+    cy.interceptK8s(
+      {
+        model: SecretModel,
+        ns: 'test-project',
+        name: 'secret-1',
+      },
+      {
+        statusCode: 404,
+        body: mock404Error({}),
+      },
+    );
+    cy.interceptK8s(
+      {
+        model: ConfigMapModel,
+        ns: 'test-project',
+        name: 'secret-2',
+      },
+      {
+        statusCode: 404,
+        body: mock404Error({}),
+      },
+    );
     workbenchPage.visit('test-project');
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
     notebookRow.findKebabAction('Delete workbench').click();

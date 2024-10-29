@@ -30,6 +30,7 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
       <FlexItem flex={{ default: 'flex_1' }}>
         <DescriptionList isFillColumns>
           <EditableTextDescriptionListGroup
+            editableVariant="TextArea"
             title="Description"
             isArchive={isArchiveModel}
             contentWhenEmpty="No description"

@@ -61,7 +61,7 @@ export const isAreaAvailable = (
   const requiredComponentsState =
     requiredComponents && dscStatus
       ? requiredComponents.reduce<IsAreaAvailableStatus['requiredComponents']>(
-          (acc, component) => ({ ...acc, [component]: dscStatus.installedComponents[component] }),
+          (acc, component) => ({ ...acc, [component]: dscStatus.installedComponents?.[component] }),
           {},
         )
       : null;

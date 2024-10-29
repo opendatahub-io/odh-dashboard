@@ -33,7 +33,7 @@ import {
   getServingRuntimeTokens,
   setUpTokenAuth,
 } from '~/pages/modelServing/utils';
-import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
+import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
 import {
   addSupportServingPlatformProject,
   assembleSecret,
@@ -47,12 +47,13 @@ import {
 import { isDataConnectionAWS } from '~/pages/projects/screens/detail/data-connections/utils';
 import { removeLeadingSlash } from '~/utilities/string';
 import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
-import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import {
   getNGCSecretType,
   getNIMData,
   getNIMResource,
 } from '~/pages/modelServing/screens/projects/nimUtils';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
+import { Connection } from '~/concepts/connectionTypes/types';
 
 const NIM_CONFIGMAP_NAME = 'nvidia-nim-images-data';
 
@@ -320,60 +321,50 @@ export const createAWSSecret = (
     { dryRun },
   );
 
-const createInferenceServiceAndDataConnection = (
+const createInferenceServiceAndDataConnection = async (
   inferenceServiceData: CreatingInferenceServiceObject,
   existingStorage: boolean,
   editInfo?: InferenceServiceKind,
   isModelMesh?: boolean,
   initialAcceleratorProfile?: AcceleratorProfileState,
-  selectedAcceleratorProfile?: AcceleratorProfileSelectFieldState,
+  selectedAcceleratorProfile?: AcceleratorProfileFormData,
   dryRun = false,
   isStorageNeeded?: boolean,
+  connection?: Connection,
 ) => {
+  let secret;
   if (!existingStorage) {
-    return createAWSSecret(inferenceServiceData, dryRun).then((secret) =>
-      editInfo
-        ? updateInferenceService(
-            inferenceServiceData,
-            editInfo,
-            secret.metadata.name,
-            isModelMesh,
-            initialAcceleratorProfile,
-            selectedAcceleratorProfile,
-            dryRun,
-            isStorageNeeded,
-          )
-        : createInferenceService(
-            inferenceServiceData,
-            secret.metadata.name,
-            isModelMesh,
-            initialAcceleratorProfile,
-            selectedAcceleratorProfile,
-            dryRun,
-            isStorageNeeded,
-          ),
+    if (connection) {
+      secret = await createSecret(connection, { dryRun });
+    } else {
+      secret = await createAWSSecret(inferenceServiceData, dryRun);
+    }
+  }
+
+  let inferenceService;
+  if (editInfo) {
+    inferenceService = await updateInferenceService(
+      inferenceServiceData,
+      editInfo,
+      secret?.metadata.name,
+      isModelMesh,
+      initialAcceleratorProfile,
+      selectedAcceleratorProfile,
+      dryRun,
+      isStorageNeeded,
+    );
+  } else {
+    inferenceService = await createInferenceService(
+      inferenceServiceData,
+      secret?.metadata.name,
+      isModelMesh,
+      initialAcceleratorProfile,
+      selectedAcceleratorProfile,
+      dryRun,
+      isStorageNeeded,
     );
   }
-  return editInfo !== undefined
-    ? updateInferenceService(
-        inferenceServiceData,
-        editInfo,
-        undefined,
-        isModelMesh,
-        initialAcceleratorProfile,
-        selectedAcceleratorProfile,
-        dryRun,
-        isStorageNeeded,
-      )
-    : createInferenceService(
-        inferenceServiceData,
-        undefined,
-        isModelMesh,
-        initialAcceleratorProfile,
-        selectedAcceleratorProfile,
-        dryRun,
-        isStorageNeeded,
-      );
+  return inferenceService;
 };
 
 export const getSubmitInferenceServiceResourceFn = (
@@ -382,10 +373,11 @@ export const getSubmitInferenceServiceResourceFn = (
   servingRuntimeName?: string,
   isModelMesh?: boolean,
   initialAcceleratorProfile?: AcceleratorProfileState,
-  selectedAcceleratorProfile?: AcceleratorProfileSelectFieldState,
+  selectedAcceleratorProfile?: AcceleratorProfileFormData,
   allowCreate?: boolean,
   secrets?: SecretKind[],
   isStorageNeeded?: boolean,
+  connection?: Connection,
 ): ((opts: { dryRun?: boolean }) => Promise<void>) => {
   const inferenceServiceData = {
     ...createData,
@@ -416,6 +408,7 @@ export const getSubmitInferenceServiceResourceFn = (
       selectedAcceleratorProfile,
       dryRun,
       isStorageNeeded,
+      connection,
     ).then((inferenceService) =>
       setUpTokenAuth(
         createData,
@@ -448,7 +441,7 @@ export const getSubmitServingRuntimeResourcesFn = (
   editInfo: ServingRuntimeEditInfo | undefined,
   allowCreate: boolean,
   initialAcceleratorProfile: AcceleratorProfileState,
-  selectedAcceleratorProfile: AcceleratorProfileSelectFieldState,
+  selectedAcceleratorProfile: AcceleratorProfileFormData,
   servingPlatformEnablement: NamespaceApplicationCase,
   currentProject?: ProjectKind,
   name?: string,
@@ -470,7 +463,7 @@ export const getSubmitServingRuntimeResourcesFn = (
   const servingRuntimeName = translateDisplayNameForK8s(servingRuntimeData.name);
   const createTokenAuth = servingRuntimeData.tokenAuth && allowCreate;
 
-  const controlledState: AcceleratorProfileSelectFieldState = isGpuDisabled(servingRuntimeSelected)
+  const controlledState: AcceleratorProfileFormData = isGpuDisabled(servingRuntimeSelected)
     ? { count: 0, useExistingSettings: false }
     : selectedAcceleratorProfile;
 

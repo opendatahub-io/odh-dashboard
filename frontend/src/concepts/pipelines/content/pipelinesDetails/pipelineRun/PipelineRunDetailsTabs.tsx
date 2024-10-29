@@ -13,8 +13,8 @@ import {
 
 import PipelineDetailsYAML from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsYAML';
 import {
-  PipelineRecurringRunKFv2,
-  PipelineRunKFv2,
+  PipelineRecurringRunKF,
+  PipelineRunKF,
   PipelineSpecVariable,
 } from '~/concepts/pipelines/kfTypes';
 import { isPipelineRecurringRun } from '~/concepts/pipelines/content/utils';
@@ -29,7 +29,7 @@ enum DetailsTabKey {
 }
 
 interface PipelineRunDetailsTabsProps {
-  run: PipelineRunKFv2 | PipelineRecurringRunKFv2 | null;
+  run: PipelineRunKF | PipelineRecurringRunKF | null;
   pipelineSpec: PipelineSpecVariable | undefined;
   graphContent: React.ReactNode;
   versionError?: Error;
