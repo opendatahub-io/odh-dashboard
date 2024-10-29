@@ -1,17 +1,17 @@
 import * as React from 'react';
 import { Icon, ListItem, Tooltip } from '@patternfly/react-core';
 import { CheckCircleIcon, ExclamationCircleIcon, PendingIcon } from '@patternfly/react-icons';
-import { PipelineCoreResourceKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineCoreResourceKF } from '~/concepts/pipelines/kfTypes';
 import { PipelineResourceDeleteResult } from '~/concepts/pipelines/content/useDeleteStatuses';
 import { BulkActionExpandableSection } from '~/pages/projects/components/BulkActionExpandableSection';
 import { getPipelineResourceUniqueID } from './utils';
 
 type DeletePipelineModalExpandableSectionProps = {
-  toDeleteResources: PipelineCoreResourceKFv2[];
+  toDeleteResources: PipelineCoreResourceKF[];
   type: 'runs' | 'pipelines' | 'pipeline versions';
   deleting: boolean;
   deleteStatuses: PipelineResourceDeleteResult[];
-  children: (resource: PipelineCoreResourceKFv2) => React.ReactNode;
+  children: (resource: PipelineCoreResourceKF) => React.ReactNode;
 };
 
 const DeletePipelineModalExpandableSection: React.FC<DeletePipelineModalExpandableSectionProps> = ({

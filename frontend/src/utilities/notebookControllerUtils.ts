@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { AxiosError } from 'axios';
+import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { createRoleBinding, getRoleBinding } from '~/services/roleBindingService';
 import {
   EnvVarReducedTypeKeyValues,
   EventStatus,
   K8sEvent,
-  K8sResourceCommon,
   Notebook,
   NotebookControllerUserState,
   NotebookStatus,

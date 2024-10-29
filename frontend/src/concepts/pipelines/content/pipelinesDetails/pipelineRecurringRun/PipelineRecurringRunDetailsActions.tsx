@@ -10,12 +10,12 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineRecurringRunKFv2, RecurringRunStatus } from '~/concepts/pipelines/kfTypes';
+import { PipelineRecurringRunKF, RecurringRunStatus } from '~/concepts/pipelines/kfTypes';
 import { duplicateRecurringRunRoute } from '~/routes';
 import { getDashboardMainContainer } from '~/utilities/utils';
 
 type PipelineRecurringRunDetailsActionsProps = {
-  recurringRun?: PipelineRecurringRunKFv2;
+  recurringRun?: PipelineRecurringRunKF;
   onDelete: () => void;
   isPipelineSupported: boolean;
 };

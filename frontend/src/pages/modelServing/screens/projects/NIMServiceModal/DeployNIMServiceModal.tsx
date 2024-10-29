@@ -26,7 +26,7 @@ import {
 } from '~/k8sTypes';
 import { requestsUnderLimits, resourcesArePositive } from '~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
-import useServingAcceleratorProfile from '~/pages/modelServing/screens/projects/useServingAcceleratorProfile';
+import useServingAcceleratorProfileFormState from '~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { ServingRuntimeEditInfo } from '~/pages/modelServing/screens/types';
 import ServingRuntimeSizeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeSizeSection';
@@ -42,8 +42,6 @@ import {
 import { useAccessReview } from '~/api';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import KServeAutoscalerReplicaSection from '~/pages/modelServing/screens/projects/kServeModal/KServeAutoscalerReplicaSection';
-import useGenericObjectState from '~/utilities/useGenericObjectState';
-import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import NIMPVCSizeSection from '~/pages/modelServing/screens/projects/NIMServiceModal/NIMPVCSizeSection';
 import {
   getNIMServingRuntimeTemplate,
@@ -105,19 +103,16 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
     ServingRuntimeKind | undefined
   >(undefined);
 
-  const acceleratorProfileState = useServingAcceleratorProfile(
+  const {
+    formData: selectedAcceleratorProfile,
+    setFormData: setSelectedAcceleratorProfile,
+    resetFormData: resetSelectedAcceleratorProfile,
+    initialState: initialAcceleratorProfileState,
+  } = useServingAcceleratorProfileFormState(
     editInfo?.servingRuntimeEditInfo?.servingRuntime,
     editInfo?.inferenceServiceEditInfo,
   );
-  const [
-    selectedAcceleratorProfile,
-    setSelectedAcceleratorProfile,
-    resetSelectedAcceleratorProfile,
-  ] = useGenericObjectState<AcceleratorProfileSelectFieldState>({
-    profile: undefined,
-    count: 0,
-    useExistingSettings: false,
-  });
+
   const customServingRuntimesEnabled = useCustomServingRuntimesEnabled();
   const [allowCreate] = useAccessReview({
     ...accessReviewResource,
@@ -188,7 +183,7 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
 
     const servingRuntimeName =
       editInfo?.inferenceServiceEditInfo?.spec.predictor.model?.runtime ||
-      translateDisplayNameForK8s(createDataInferenceService.name);
+      translateDisplayNameForK8s(createDataInferenceService.name, { safeK8sPrefix: 'nim-' });
 
     const nimPVCName = getUniqueId('nim-pvc');
 
@@ -203,7 +198,7 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
       namespace,
       editInfo?.servingRuntimeEditInfo,
       false,
-      acceleratorProfileState,
+      initialAcceleratorProfileState,
       selectedAcceleratorProfile,
       NamespaceApplicationCase.KSERVE_NIM_PROMOTION,
       projectContext?.currentProject,
@@ -216,7 +211,7 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
       editInfo?.inferenceServiceEditInfo,
       servingRuntimeName,
       false,
-      acceleratorProfileState,
+      initialAcceleratorProfileState,
       selectedAcceleratorProfile,
       allowCreate,
       editInfo?.secrets,
@@ -331,7 +326,7 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
             setData={setCreateDataInferenceService}
             sizes={sizes}
             servingRuntimeSelected={servingRuntimeSelected}
-            acceleratorProfileState={acceleratorProfileState}
+            acceleratorProfileState={initialAcceleratorProfileState}
             selectedAcceleratorProfile={selectedAcceleratorProfile}
             setSelectedAcceleratorProfile={setSelectedAcceleratorProfile}
             infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."

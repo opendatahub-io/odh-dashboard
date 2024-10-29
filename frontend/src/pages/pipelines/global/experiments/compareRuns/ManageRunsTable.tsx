@@ -11,7 +11,7 @@ import PipelineRunTable from '~/concepts/pipelines/content/tables/pipelineRun/Pi
 import PipelineRunTableRow from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
 import PipelineRunTableToolbar from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
 import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
-import { ExperimentKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import { experimentsCompareRunsRoute } from '~/routes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { FilterProps } from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbarBase';
@@ -19,7 +19,7 @@ import { FilterProps } from '~/concepts/pipelines/content/tables/pipelineRun/Pip
 type ManageRunsTableProps = Omit<React.ComponentProps<typeof PipelineRunTable>, 'runType'> & {
   filterProps: FilterProps;
   selectedRunIds: string[];
-  experiment: ExperimentKFv2 | null;
+  experiment: ExperimentKF | null;
   onClearFilters: () => void;
 };
 
@@ -49,7 +49,7 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
   const experimentId = experiment?.experiment_id ?? '';
 
   const rowRenderer = React.useCallback(
-    (run: PipelineRunKFv2) => {
+    (run: PipelineRunKF) => {
       const isChecked = selections.includes(run.run_id);
       const isDisabled = !isChecked && selections.length === 10;
 

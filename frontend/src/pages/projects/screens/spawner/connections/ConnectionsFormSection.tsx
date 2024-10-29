@@ -166,6 +166,7 @@ export const ConnectionsFormSection: React.FC<Props> = ({
                     setManageConnectionModal({ connection, isEdit: true });
                   },
                 },
+                { isSeparator: true },
                 {
                   title: 'Detach',
                   onClick: () => {

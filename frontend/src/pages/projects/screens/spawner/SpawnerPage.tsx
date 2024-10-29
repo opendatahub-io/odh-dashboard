@@ -19,13 +19,9 @@ import useNotebookImageData from '~/pages/projects/screens/detail/notebooks/useN
 import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
 import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
 import CanEnableElyraPipelinesCheck from '~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
-import AcceleratorProfileSelectField, {
-  AcceleratorProfileSelectFieldState,
-} from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
-import useNotebookAcceleratorProfile from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfile';
+import AcceleratorProfileSelectField from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import { NotebookImageAvailability } from '~/pages/projects/screens/detail/notebooks/const';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import useGenericObjectState from '~/utilities/useGenericObjectState';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
@@ -33,6 +29,7 @@ import K8sNameDescriptionField, {
 import { LimitNameResourceType } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import useConnectionTypesEnabled from '~/concepts/connectionTypes/useConnectionTypesEnabled';
 import { Connection } from '~/concepts/connectionTypes/types';
+import useNotebookAcceleratorProfileFormState from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileFormState';
 import { SpawnerPageSectionID } from './types';
 import { ScrollableSelectorID, SpawnerPageSectionTitles } from './const';
 import SpawnerFooter from './SpawnerFooter';
@@ -50,6 +47,7 @@ import useDefaultStorageClass from './storage/useDefaultStorageClass';
 import usePreferredStorageClass from './storage/usePreferredStorageClass';
 import { ConnectionsFormSection } from './connections/ConnectionsFormSection';
 import { getConnectionsFromNotebook } from './connections/utils';
+import AlertWarningText from './environmentVariables/AlertWarningText';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
@@ -90,7 +88,9 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     defaultStorageClassName,
   );
 
-  const [envVariables, setEnvVariables] = useNotebookEnvVariables(existingNotebook);
+  const [envVariables, setEnvVariables, envVariablesLoaded, deletedConfigMaps, deletedSecrets] =
+    useNotebookEnvVariables(existingNotebook);
+
   const [dataConnectionData, setDataConnectionData] = useNotebookDataConnection(
     dataConnections.data,
     existingNotebook,
@@ -102,13 +102,6 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
       ? getConnectionsFromNotebook(existingNotebook, projectConnections)
       : [],
   );
-
-  const [selectedAcceleratorProfile, setSelectedAcceleratorProfile] =
-    useGenericObjectState<AcceleratorProfileSelectFieldState>({
-      profile: undefined,
-      count: 0,
-      useExistingSettings: false,
-    });
 
   const restartNotebooks = useWillNotebooksRestart([existingNotebook?.metadata.name || '']);
 
@@ -122,7 +115,11 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     }
   }, [data, loaded, loadError]);
 
-  const notebookAcceleratorProfileState = useNotebookAcceleratorProfile(existingNotebook);
+  const {
+    initialState: acceleratorProfileInitialState,
+    formData: acceleratorProfileFormData,
+    setFormData: setAcceleratorProfileFormData,
+  } = useNotebookAcceleratorProfileFormState(existingNotebook);
 
   React.useEffect(() => {
     if (selectedImage.imageStream) {
@@ -190,7 +187,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                 selectedImage={selectedImage}
                 setSelectedImage={setSelectedImage}
                 compatibleAcceleratorIdentifier={
-                  notebookAcceleratorProfileState.acceleratorProfile?.spec.identifier
+                  acceleratorProfileInitialState.acceleratorProfile?.spec.identifier
                 }
               />
             </FormSection>
@@ -205,10 +202,10 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                 value={selectedSize}
               />
               <AcceleratorProfileSelectField
-                acceleratorProfileState={notebookAcceleratorProfileState}
                 supportedAcceleratorProfiles={supportedAcceleratorProfiles}
-                selectedAcceleratorProfile={selectedAcceleratorProfile}
-                setSelectedAcceleratorProfile={setSelectedAcceleratorProfile}
+                initialState={acceleratorProfileInitialState}
+                formData={acceleratorProfileFormData}
+                setFormData={setAcceleratorProfileFormData}
               />
             </FormSection>
             <FormSection
@@ -216,6 +213,12 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               id={SpawnerPageSectionID.ENVIRONMENT_VARIABLES}
               aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.ENVIRONMENT_VARIABLES]}
             >
+              {envVariablesLoaded && (
+                <AlertWarningText
+                  deletedConfigMaps={deletedConfigMaps}
+                  deletedSecrets={deletedSecrets}
+                />
+              )}
               <EnvironmentVariables envVariables={envVariables} setEnvVariables={setEnvVariables} />
             </FormSection>
             <FormSection
@@ -274,8 +277,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                     projectName: currentProject.metadata.name,
                     image: selectedImage,
                     notebookSize: selectedSize,
-                    initialAcceleratorProfile: notebookAcceleratorProfileState,
-                    selectedAcceleratorProfile,
+                    initialAcceleratorProfile: acceleratorProfileInitialState,
+                    selectedAcceleratorProfile: acceleratorProfileFormData,
                     volumes: [],
                     volumeMounts: [],
                     existingTolerations: existingNotebook?.spec.template.spec.tolerations || [],

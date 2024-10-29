@@ -59,7 +59,6 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
     >
       <SimpleSelect
         dataTestId="inference-service-framework-selection"
-        isDisabled={models.length === 0}
         toggleProps={{ id: 'inference-service-framework-selection' }}
         options={models.map((framework) => {
           const name = framework.version

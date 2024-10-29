@@ -50,7 +50,7 @@ const initInterceptors = ({ isEmpty = false, storageClassName }: HandlersProps) 
         ? []
         : [
             mockPVCK8sResource({ uid: 'test-id', storageClassName }),
-            mockPVCK8sResource({ displayName: 'Another Cluster Storage' }),
+            mockPVCK8sResource({ displayName: 'Another Cluster Storage', storageClassName }),
           ],
     ),
   );
@@ -81,7 +81,23 @@ describe('ClusterStorage', () => {
         }),
       );
 
-      cy.interceptK8sList(StorageClassModel, mockStorageClassList());
+      cy.interceptK8sList(
+        StorageClassModel,
+        mockStorageClassList([
+          ...mockStorageClasses,
+          buildMockStorageClass(
+            {
+              ...mockStorageClasses[0],
+              metadata: {
+                ...mockStorageClasses[0].metadata,
+                name: 'test-initial-storage-class',
+                annotations: {},
+              },
+            },
+            {},
+          ),
+        ]),
+      );
     });
 
     it('Check whether the Storage class column is present', () => {
@@ -102,6 +118,15 @@ describe('ClusterStorage', () => {
       clusterStorageRow.shouldHaveDeprecatedTooltip();
       clusterStorage.shouldHaveDeprecatedAlertMessage();
       clusterStorage.closeDeprecatedAlert();
+    });
+
+    it('Should hide deprecated alert when the storage class is not configured', () => {
+      initInterceptors({ storageClassName: 'test-initial-storage-class' });
+      clusterStorage.visit('test-project');
+
+      const clusterStorageRow = clusterStorage.getClusterStorageRow('Test Storage');
+      clusterStorageRow.queryDeprecatedLabel().should('not.exist');
+      clusterStorage.shouldNotHaveDeprecatedAlertMessage();
     });
   });
 

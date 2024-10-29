@@ -25,7 +25,6 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
   onCancel,
   onSubmit,
 }) => {
-  const [isProjectSelectorOpen, setProjectSelectorOpen] = React.useState(false);
   const {
     servingRuntimeTemplates: [templates],
     servingRuntimeTemplateOrder: { data: templateOrder },
@@ -66,8 +65,6 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
       selectedProject={selectedProject}
       setSelectedProject={setSelectedProject}
       error={error}
-      isOpen={isProjectSelectorOpen}
-      setOpen={setProjectSelectorOpen}
     />
   );
 

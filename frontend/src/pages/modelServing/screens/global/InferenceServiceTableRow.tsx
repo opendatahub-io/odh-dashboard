@@ -35,34 +35,24 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   isGlobal,
   columnNames,
 }) => {
+  const { projects } = React.useContext(ProjectsContext);
+  const project = projects.find(byName(inferenceService.metadata.namespace)) ?? null;
+  const isKServeNIMEnabled = project ? isProjectNIMSupported(project) : false;
+
   const [modelMetricsEnabled] = useModelMetricsEnabled();
   const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
 
   const modelMesh = isModelMesh(inferenceService);
   const modelMeshMetricsSupported = modelMetricsEnabled && modelMesh;
-  const kserveMetricsSupported = modelMetricsEnabled && kserveMetricsEnabled && !modelMesh;
+  const kserveMetricsSupported =
+    modelMetricsEnabled && kserveMetricsEnabled && !modelMesh && !isKServeNIMEnabled;
   const displayName = getDisplayNameFromK8sResource(inferenceService);
-
-  const { projects } = React.useContext(ProjectsContext);
-  const project = projects.find(byName(inferenceService.metadata.namespace)) ?? null;
-  const isKServeNIMEnabled = project ? isProjectNIMSupported(project) : false;
 
   return (
     <>
       <Td dataLabel="Name">
         <ResourceNameTooltip resource={inferenceService}>
-          {modelMeshMetricsSupported ? (
-            <Link
-              data-testid={`metrics-link-${displayName}`}
-              to={
-                isGlobal
-                  ? `/modelServing/${inferenceService.metadata.namespace}/metrics/${inferenceService.metadata.name}`
-                  : `/projects/${inferenceService.metadata.namespace}/metrics/model/${inferenceService.metadata.name}`
-              }
-            >
-              {displayName}
-            </Link>
-          ) : kserveMetricsSupported ? (
+          {modelMeshMetricsSupported || kserveMetricsSupported ? (
             <Link
               data-testid={`metrics-link-${displayName}`}
               to={
@@ -126,6 +116,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
                         onEditInferenceService(inferenceService);
                       },
                     },
+                    { isSeparator: true },
                   ]),
               {
                 title: 'Delete',

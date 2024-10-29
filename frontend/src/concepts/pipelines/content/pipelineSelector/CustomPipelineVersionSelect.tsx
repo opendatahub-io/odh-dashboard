@@ -17,14 +17,14 @@ import {
 import useDebounceCallback from '~/utilities/useDebounceCallback';
 import PipelineSelectorTableRow from '~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
 import { Table } from '~/components/table';
-import { PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { pipelineVersionSelectorColumns } from '~/concepts/pipelines/content/pipelineSelector/columns';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 
 type CustomPipelineVersionSelectProps = {
-  versions: PipelineVersionKFv2[];
+  versions: PipelineVersionKF[];
   selection: string | undefined;
-  onSelect: (version: PipelineVersionKFv2) => void;
+  onSelect: (version: PipelineVersionKF) => void;
 };
 
 /**
@@ -38,7 +38,7 @@ const CustomPipelineVersionSelect: React.FC<CustomPipelineVersionSelectProps> = 
 }) => {
   const [isOpen, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState('');
-  const [filteredVersions, setFilteredVersions] = React.useState<PipelineVersionKFv2[]>(versions);
+  const [filteredVersions, setFilteredVersions] = React.useState<PipelineVersionKF[]>(versions);
   const [visibleLength, setVisibleLength] = React.useState(10);
   const placeholder = versions.length === 0 ? 'No versions available' : 'Select...';
 

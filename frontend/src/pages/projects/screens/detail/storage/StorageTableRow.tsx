@@ -63,6 +63,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
   ];
 
   if (!isRootVolume) {
+    actions.push({ isSeparator: true });
     actions.push({
       title: 'Delete storage',
       onClick: () => {
@@ -130,7 +131,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
                       </Label>
                     </Tooltip>
                   ) : (
-                    !storageClassConfig?.isEnabled && (
+                    storageClassConfig?.isEnabled === false && (
                       <Tooltip
                         data-testid="storage-class-deprecated-tooltip"
                         content="This storage class is deprecated, but the cluster storage is still active."

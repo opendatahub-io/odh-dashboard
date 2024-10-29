@@ -22,6 +22,7 @@ jest.mock('react-router-dom', () => ({
 const useUserMock = jest.mocked(useUser);
 useUserMock.mockReturnValue({
   username: 'test-user',
+  userID: '1234',
   isAdmin: false,
   isAllowed: true,
   userLoading: false,

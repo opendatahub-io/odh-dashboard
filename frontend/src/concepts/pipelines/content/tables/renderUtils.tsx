@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {
   Icon,
+  Label,
   Level,
   LevelItem,
   Spinner,
@@ -14,11 +15,11 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { printSeconds, relativeDuration, relativeTime } from '~/utilities/time';
 import {
-  PipelineRunKFv2,
+  PipelineRunKF,
   runtimeStateLabels,
-  PipelineRecurringRunKFv2,
+  PipelineRecurringRunKF,
   RecurringRunStatus as RecurringRunStatusType,
-  ExperimentKFv2,
+  ExperimentKF,
 } from '~/concepts/pipelines/kfTypes';
 import {
   getRunDuration,
@@ -32,23 +33,29 @@ import { useContextExperimentArchived as useIsExperimentArchived } from '~/pages
 export const NoRunContent = (): React.JSX.Element => <>-</>;
 
 type ExtraProps = Record<string, unknown>;
-type RunUtil<P = ExtraProps> = React.FC<{ run: PipelineRunKFv2 } & P>;
-type RecurringRunUtil<P = ExtraProps> = React.FC<{ recurringRun: PipelineRecurringRunKFv2 } & P>;
+type RunUtil<P = ExtraProps> = React.FC<{ run: PipelineRunKF } & P>;
+type RecurringRunUtil<P = ExtraProps> = React.FC<{ recurringRun: PipelineRecurringRunKF } & P>;
 
-export const RunStatus: RunUtil<{ justIcon?: boolean }> = ({ justIcon, run }) => {
-  const { icon, status, label, details, createdAt } = computeRunStatus(run);
+export const RunStatus: RunUtil<{ hasNoLabel?: boolean; isCompact?: boolean }> = ({
+  hasNoLabel,
+  isCompact = true,
+  run,
+}) => {
+  const { icon, status, color, label, details, createdAt } = computeRunStatus(run);
   let tooltipContent: React.ReactNode = details;
-
-  const content = (
-    <div style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>
-      <Icon isInline status={status}>
-        {icon}
-      </Icon>{' '}
-      {!justIcon && label}
-    </div>
+  let content = (
+    <Label color={color} icon={icon} isCompact={isCompact}>
+      {label}
+    </Label>
   );
 
-  if (justIcon && !tooltipContent) {
+  if (hasNoLabel && !tooltipContent) {
+    content = (
+      <Icon isInline status={status}>
+        {icon}
+      </Icon>
+    );
+
     // If we are just an icon with no tooltip -- make it the status for ease of understanding
     tooltipContent = (
       <Stack>
@@ -61,6 +68,7 @@ export const RunStatus: RunUtil<{ justIcon?: boolean }> = ({ justIcon, run }) =>
   if (tooltipContent) {
     return <Tooltip content={tooltipContent}>{content}</Tooltip>;
   }
+
   return content;
 };
 
@@ -132,7 +140,7 @@ export const RecurringRunScheduled: RecurringRunUtil = ({ recurringRun }) => {
 
 export const RecurringRunStatus: RecurringRunUtil<{
   onToggle: (value: boolean) => Promise<void>;
-  experiment: ExperimentKFv2 | null;
+  experiment: ExperimentKF | null;
 }> = ({ recurringRun, onToggle, experiment }) => {
   const [error, setError] = React.useState<Error | null>(null);
   const [isChangingFlag, setIsChangingFlag] = React.useState(false);

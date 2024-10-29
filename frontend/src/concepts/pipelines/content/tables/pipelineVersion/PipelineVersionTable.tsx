@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { TableVariant } from '@patternfly/react-table';
 import { TableBase, getTableColumnSort } from '~/components/table';
-import { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { pipelineVersionColumns } from '~/concepts/pipelines/content/tables/columns';
 import PipelineVersionTableRow from '~/concepts/pipelines/content/tables/pipelineVersion/PipelineVersionTableRow';
 import { usePipelineVersionLoadMore } from '~/concepts/pipelines/content/tables/usePipelineLoadMore';
@@ -12,8 +12,8 @@ import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesMo
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 
 type PipelineVersionTableProps = {
-  pipeline: PipelineKFv2;
-  initialVersions: PipelineVersionKFv2[];
+  pipeline: PipelineKF;
+  initialVersions: PipelineVersionKF[];
   nextPageToken?: string;
   loading?: boolean;
   totalSize: number;
@@ -52,7 +52,7 @@ const PipelineVersionTable: React.FC<PipelineVersionTableProps> = ({
   const { refreshAllAPI } = usePipelinesAPI();
 
   const [deleteVersions, setDeleteVersions] = React.useState<
-    { pipelineName: string; version: PipelineVersionKFv2 }[]
+    { pipelineName: string; version: PipelineVersionKF }[]
   >([]);
 
   return (

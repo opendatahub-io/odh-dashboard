@@ -3,6 +3,7 @@ import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternf
 import { NotebookSize } from '~/types';
 import { getDashboardMainContainer } from '~/utilities/utils';
 import SimpleSelect from '~/components/SimpleSelect';
+import { formatMemory } from '~/utilities/valueUnits';
 
 type SizeSelectFieldProps = {
   value: NotebookSize;
@@ -16,9 +17,9 @@ const SizeSelectField: React.FC<SizeSelectFieldProps> = ({ value, setValue, size
       const { name } = size;
       const desc =
         `Limits: ${size.resources.limits?.cpu || '??'} CPU, ` +
-        `${size.resources.limits?.memory || '??'} Memory | ` +
+        `${formatMemory(size.resources.limits?.memory) || '??'} Memory | ` +
         `Requests: ${size.resources.requests?.cpu || '??'} CPU, ` +
-        `${size.resources.requests?.memory || '??'} Memory`;
+        `${formatMemory(size.resources.requests?.memory) || '??'} Memory`;
 
       return {
         key: name,

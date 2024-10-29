@@ -1,6 +1,6 @@
 import { SortableData } from '~/components/table';
 import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
-import { getCreatorFromK8sResource } from '~/concepts/k8s/utils';
+import { getCreatorFromK8sResource, getResourceNameFromK8sResource } from '~/concepts/k8s/utils';
 
 const sorter = (
   a: ConnectionTypeConfigMapObj,
@@ -13,9 +13,7 @@ const sorter = (
     const aValue = getCreatorFromK8sResource(a);
     const bValue = getCreatorFromK8sResource(b);
     compValue = aValue.localeCompare(bValue);
-  }
-
-  if (keyField === 'created') {
+  } else if (keyField === 'created') {
     const aValue = a.metadata.creationTimestamp
       ? new Date(a.metadata.creationTimestamp)
       : new Date();
@@ -23,21 +21,18 @@ const sorter = (
       ? new Date(b.metadata.creationTimestamp)
       : new Date();
     return bValue.getTime() - aValue.getTime();
-  }
-
-  if (keyField === 'enable') {
-    return a.metadata.annotations?.['opendatahub.io/enabled'] === 'true' ||
-      b.metadata.annotations?.['opendatahub.io/enabled'] !== 'true'
-      ? -1
-      : 1;
+  } else if (keyField === 'enable') {
+    const aDisabled = a.metadata.annotations?.['opendatahub.io/disabled'] === 'true';
+    const bDisabled = b.metadata.annotations?.['opendatahub.io/disabled'] === 'true';
+    compValue = aDisabled === bDisabled ? 0 : aDisabled ? 1 : -1;
   }
 
   if (compValue !== 0) {
     return compValue;
   }
 
-  const aValue = a.metadata.annotations?.['openshift.io/display-name'] || a.metadata.name;
-  const bValue = b.metadata.annotations?.['openshift.io/display-name'] || b.metadata.name;
+  const aValue = getResourceNameFromK8sResource(a);
+  const bValue = getResourceNameFromK8sResource(b);
 
   return aValue.localeCompare(bValue);
 };
@@ -75,7 +70,7 @@ export const connectionTypeColumns: SortableData<ConnectionTypeConfigMapObj>[] =
   },
   {
     label: 'Enable',
-    field: 'Enable',
+    field: 'enable',
     sortable: sorter,
     info: {
       popover:

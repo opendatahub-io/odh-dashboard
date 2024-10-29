@@ -42,7 +42,7 @@ export const mockConnectionTypeConfigMapObj = ({
     annotations: {
       'openshift.io/display-name': displayName,
       'openshift.io/description': description,
-      'opendatahub.io/enabled': enabled ? 'true' : 'false',
+      'opendatahub.io/disabled': enabled ? 'false' : 'true',
       'opendatahub.io/username': username || '',
     },
     ...(preInstalled
@@ -308,7 +308,9 @@ const mockFields: ConnectionTypeField[] = [
     description: 'Test boolean',
     envVar: 'boolean_1',
     required: false,
-    properties: {},
+    properties: {
+      label: 'Input label',
+    },
   },
   {
     type: 'boolean',

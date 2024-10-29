@@ -181,8 +181,10 @@ describe('Manage Accelerator Profile', () => {
   it('one preset identifier is auto filled and disabled', () => {
     initIntercepts({});
     identifierAcceleratorProfile.visit();
-    identifierAcceleratorProfile.findIdentifierInput().should('have.value', 'test-identifier');
-    identifierAcceleratorProfile.findIdentifierInput().should('be.disabled');
+    identifierAcceleratorProfile
+      .findAcceleratorIdentifierSelect()
+      .should('contain.text', 'test-identifier');
+    identifierAcceleratorProfile.findAcceleratorIdentifierSelect().should('be.disabled');
   });
 
   it('multiple preset identifiers show dropdown', () => {

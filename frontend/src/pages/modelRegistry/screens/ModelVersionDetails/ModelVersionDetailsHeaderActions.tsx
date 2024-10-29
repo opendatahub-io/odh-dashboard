@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Dropdown, DropdownList, MenuToggle, DropdownItem } from '@patternfly/react-core';
+import { Dropdown, DropdownList, MenuToggle, DropdownItem, Divider } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
 import { ArchiveModelVersionModal } from '~/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
@@ -61,6 +61,7 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
           >
             Deploy
           </DropdownItem>
+          <Divider key="separator" />
           <DropdownItem
             isAriaDisabled={hasDeployment}
             id="archive-version-button"

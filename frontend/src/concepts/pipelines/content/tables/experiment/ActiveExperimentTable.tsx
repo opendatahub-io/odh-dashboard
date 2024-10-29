@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
 import { ArchiveExperimentModal } from '~/pages/pipelines/global/experiments/ArchiveExperimentModal';
 import ExperimentTableBase from './ExperimentTableBase';
 import { ActiveExperimentTableToolbar } from './ExperimentTableToolbar';
@@ -13,7 +13,7 @@ const ActiveExperimentTable: React.FC<ActiveExperimentTableProps> = ({ ...baseTa
   const { experiments } = baseTable;
 
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
-  const [archiveExperiments, setArchiveExperiments] = React.useState<ExperimentKFv2[]>([]);
+  const [archiveExperiments, setArchiveExperiments] = React.useState<ExperimentKF[]>([]);
 
   return (
     <>
@@ -34,12 +34,12 @@ const ActiveExperimentTable: React.FC<ActiveExperimentTableProps> = ({ ...baseTa
             onArchiveAll={() => {
               setArchiveExperiments(
                 selections
-                  .map<ExperimentKFv2 | undefined>((selection) =>
+                  .map<ExperimentKF | undefined>((selection) =>
                     experiments.find(
                       ({ experiment_id: experimentId }) => experimentId === selection,
                     ),
                   )
-                  .filter((v): v is ExperimentKFv2 => !!v),
+                  .filter((v): v is ExperimentKF => !!v),
               );
               setIsArchiveModalOpen(true);
             }}

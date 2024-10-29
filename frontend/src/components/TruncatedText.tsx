@@ -3,8 +3,8 @@ import { Tooltip } from '@patternfly/react-core';
 
 type TruncatedTextProps = {
   maxLines: number;
-  content: string;
-} & React.HTMLProps<HTMLSpanElement>;
+  content: React.ReactNode;
+} & Omit<React.HTMLProps<HTMLSpanElement>, 'content'>;
 
 const TruncatedText: React.FC<TruncatedTextProps> = ({ maxLines, content, ...props }) => {
   const outerElementRef = React.useRef<HTMLElement>(null);

@@ -5,14 +5,14 @@ import {
   kebabTableColumn,
 } from '~/components/table';
 import {
-  PipelineVersionKFv2,
-  PipelineKFv2,
-  PipelineRecurringRunKFv2,
-  PipelineRunKFv2,
-  ExperimentKFv2,
+  PipelineVersionKF,
+  PipelineKF,
+  PipelineRecurringRunKF,
+  PipelineRunKF,
+  ExperimentKF,
 } from '~/concepts/pipelines/kfTypes';
 
-export const pipelineColumns: SortableData<PipelineKFv2>[] = [
+export const pipelineColumns: SortableData<PipelineKF>[] = [
   expandTableColumn(),
   checkboxTableColumn(),
   {
@@ -42,7 +42,7 @@ export const pipelineColumns: SortableData<PipelineKFv2>[] = [
   kebabTableColumn(),
 ];
 
-export const pipelineVersionColumns: SortableData<PipelineVersionKFv2>[] = [
+export const pipelineVersionColumns: SortableData<PipelineVersionKF>[] = [
   checkboxTableColumn(),
   {
     label: 'Pipeline version',
@@ -59,7 +59,7 @@ export const pipelineVersionColumns: SortableData<PipelineVersionKFv2>[] = [
   kebabTableColumn(),
 ];
 
-export const experimentColumns: SortableData<ExperimentKFv2>[] = [
+export const experimentColumns: SortableData<ExperimentKF>[] = [
   checkboxTableColumn(),
   {
     label: 'Experiment',
@@ -88,7 +88,7 @@ export const experimentColumns: SortableData<ExperimentKFv2>[] = [
   kebabTableColumn(),
 ];
 
-export const pipelineRunColumns: SortableData<PipelineRunKFv2>[] = [
+export const pipelineRunColumns: SortableData<PipelineRunKF>[] = [
   checkboxTableColumn(),
   {
     label: 'Run',
@@ -130,7 +130,7 @@ export const pipelineRunColumns: SortableData<PipelineRunKFv2>[] = [
 
 export function getExperimentRunColumns(
   metricsColumnNames: string[],
-): SortableData<PipelineRunKFv2>[] {
+): SortableData<PipelineRunKF>[] {
   return [
     { ...checkboxTableColumn(), isStickyColumn: true, stickyMinWidth: '45px' },
     {
@@ -176,7 +176,7 @@ export function getExperimentRunColumns(
   ];
 }
 
-export const pipelineRecurringRunColumns: SortableData<PipelineRecurringRunKFv2>[] = [
+export const pipelineRecurringRunColumns: SortableData<PipelineRecurringRunKF>[] = [
   checkboxTableColumn(),
   {
     label: 'Schedule',

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import { useNavigate, useParams } from 'react-router-dom';
-import { PipelineRunKFv2, RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF, RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd } from '~/components/table';
 import {
   RunCreated,
@@ -25,7 +25,7 @@ import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
 type PipelineRunTableRowProps = {
   checkboxProps: Omit<React.ComponentProps<typeof CheckboxTd>, 'id'>;
   onDelete?: () => void;
-  run: PipelineRunKFv2;
+  run: PipelineRunKF;
   customCells?: React.ReactNode;
   hasExperiments?: boolean;
   hasRowActions?: boolean;
@@ -163,7 +163,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
         <RunDuration run={run} />
       </Td>
       <Td dataLabel="Status">
-        <RunStatus justIcon run={run} />
+        <RunStatus run={run} />
       </Td>
       {customCells}
       {hasRowActions && (

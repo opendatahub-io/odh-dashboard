@@ -51,6 +51,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
           title: 'Deploy',
           onClick: () => setIsDeployModalOpen(true),
         },
+        { isSeparator: true },
         {
           title: 'Archive model version',
           onClick: () => setIsArchiveModalOpen(true),

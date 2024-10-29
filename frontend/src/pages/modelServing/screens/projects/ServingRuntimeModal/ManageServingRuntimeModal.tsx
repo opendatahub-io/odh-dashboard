@@ -13,13 +13,11 @@ import {
 } from '~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
-import useServingAcceleratorProfile from '~/pages/modelServing/screens/projects/useServingAcceleratorProfile';
+import useServingAcceleratorProfileFormState from '~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import { ServingRuntimeEditInfo } from '~/pages/modelServing/screens/types';
 import { useAccessReview } from '~/api';
-import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
-import useGenericObjectState from '~/utilities/useGenericObjectState';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import {
   FormTrackingEventProperties,
@@ -56,13 +54,12 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   editInfo,
 }) => {
   const [createData, setCreateData, resetData, sizes] = useCreateServingRuntimeObject(editInfo);
-  const initialAcceleratorProfile = useServingAcceleratorProfile(editInfo?.servingRuntime);
-  const [selectedAcceleratorProfile, setSelectedAcceleratorProfile] =
-    useGenericObjectState<AcceleratorProfileSelectFieldState>({
-      profile: undefined,
-      count: 0,
-      useExistingSettings: false,
-    });
+  const {
+    formData: selectedAcceleratorProfile,
+    setFormData: setSelectedAcceleratorProfile,
+    initialState: initialAcceleratorProfile,
+  } = useServingAcceleratorProfileFormState(editInfo?.servingRuntime);
+
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 

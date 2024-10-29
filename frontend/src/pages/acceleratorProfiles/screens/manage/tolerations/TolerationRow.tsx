@@ -27,6 +27,7 @@ const TolerationRow: React.FC<TolerationRowProps> = ({ toleration, onEdit, onDel
               title: 'Edit',
               onClick: () => onEdit(toleration),
             },
+            { isSeparator: true },
             {
               title: 'Delete',
               onClick: () => onDelete(toleration),

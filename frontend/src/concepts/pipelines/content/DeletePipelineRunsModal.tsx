@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineRecurringRunKFv2, PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRecurringRunKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import { K8sAPIOptions } from '~/k8sTypes';
 import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 import DeletePipelineModalExpandableSection from '~/concepts/pipelines/content/DeletePipelineModalExpandableSection';
@@ -14,11 +14,11 @@ type DeletePipelineRunsModalProps = {
 } & (
   | {
       type: PipelineRunType.ARCHIVED;
-      toDeleteResources: PipelineRunKFv2[];
+      toDeleteResources: PipelineRunKF[];
     }
   | {
       type: PipelineRunType.SCHEDULED;
-      toDeleteResources: PipelineRecurringRunKFv2[];
+      toDeleteResources: PipelineRecurringRunKF[];
     }
 );
 

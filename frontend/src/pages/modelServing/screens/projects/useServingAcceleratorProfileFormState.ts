@@ -1,12 +1,12 @@
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import useAcceleratorProfileState, {
-  AcceleratorProfileState,
-} from '~/utilities/useAcceleratorProfileState';
+import useAcceleratorProfileFormState, {
+  UseAcceleratorProfileFormResult,
+} from '~/utilities/useAcceleratorProfileFormState';
 
-const useServingAcceleratorProfile = (
+const useServingAcceleratorProfileFormState = (
   servingRuntime?: ServingRuntimeKind | null,
   inferenceService?: InferenceServiceKind | null,
-): AcceleratorProfileState => {
+): UseAcceleratorProfileFormResult => {
   const acceleratorProfileName =
     servingRuntime?.metadata.annotations?.['opendatahub.io/accelerator-name'];
   const resources =
@@ -15,7 +15,7 @@ const useServingAcceleratorProfile = (
   const tolerations =
     inferenceService?.spec.predictor.tolerations || servingRuntime?.spec.tolerations;
 
-  return useAcceleratorProfileState(resources, tolerations, acceleratorProfileName);
+  return useAcceleratorProfileFormState(resources, tolerations, acceleratorProfileName);
 };
 
-export default useServingAcceleratorProfile;
+export default useServingAcceleratorProfileFormState;

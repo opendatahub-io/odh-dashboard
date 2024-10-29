@@ -10,12 +10,12 @@ import {
 } from '@patternfly/react-core';
 import { CompareRunsEmptyState } from '~/concepts/pipelines/content/compareRuns/CompareRunsEmptyState';
 import { PipelineRunArtifactSelect } from '~/concepts/pipelines/content/compareRuns/metricsSection/PipelineRunArtifactSelect';
-import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import { CompareRunsNoMetrics } from '~/concepts/pipelines/content/compareRuns/CompareRunsNoMetrics';
 
 type MarkdownCompareProps = {
   configMap: Record<string, MarkdownAndTitle[]>;
-  runMap: Record<string, PipelineRunKFv2>;
+  runMap: Record<string, PipelineRunKF>;
   isEmpty: boolean;
   isLoaded: boolean;
 };

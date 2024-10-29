@@ -3,20 +3,20 @@ import {
   BanIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
-  NotStartedIcon,
+  InProgressIcon,
+  PendingIcon,
   QuestionCircleIcon,
-  SyncAltIcon,
 } from '@patternfly/react-icons';
 import React from 'react';
 import {
-  PipelineRunKFv2,
+  PipelineRunKF,
   StorageStateKF,
   RuntimeStateKF,
   runtimeStateLabels,
 } from '~/concepts/pipelines/kfTypes';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 
-const run: PipelineRunKFv2 = {
+const run: PipelineRunKF = {
   created_at: '2023-09-05T16:23:25Z',
   storage_state: StorageStateKF.AVAILABLE,
   finished_at: '2023-09-05T16:24:34Z',
@@ -44,11 +44,11 @@ const run: PipelineRunKFv2 = {
   state_history: [],
 };
 
-const createRun = (state: RuntimeStateKF | string): PipelineRunKFv2 =>
+const createRun = (state: RuntimeStateKF | string): PipelineRunKF =>
   ({
     ...run,
     state,
-  } as PipelineRunKFv2);
+  } as PipelineRunKF);
 
 describe('computeRunStatus', () => {
   it('should check for run status when run status is undefined', () => {
@@ -64,13 +64,13 @@ describe('computeRunStatus', () => {
   it('should check for Started run status', () => {
     const runStatus = computeRunStatus(createRun(RuntimeStateKF.PENDING));
     expect(runStatus.label).toBe(runtimeStateLabels[RuntimeStateKF.PENDING]);
-    expect(runStatus.icon).toStrictEqual(<NotStartedIcon />);
+    expect(runStatus.icon).toStrictEqual(<PendingIcon />);
   });
 
   it('should check for Running run status', () => {
     const runStatus = computeRunStatus(createRun(RuntimeStateKF.RUNNING));
     expect(runStatus.label).toBe(runtimeStateLabels[RuntimeStateKF.RUNNING]);
-    expect(runStatus.icon).toStrictEqual(<SyncAltIcon />);
+    expect(runStatus.icon).toStrictEqual(<InProgressIcon />);
   });
 
   it('should check for Completed run status', () => {

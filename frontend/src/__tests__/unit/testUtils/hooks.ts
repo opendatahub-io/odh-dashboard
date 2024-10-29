@@ -104,9 +104,9 @@ export const renderHook = <
  *
  * ```
  * const renderResult = testHook(useSayHello)('world');
- * expectHook(renderResult).toBe('Hello world!');
+ * expect(renderResult).hookToBe('Hello world!');
  * renderResult.rerender('there');
- * expectHook(renderResult).toBe('Hello there!');
+ * expect(renderResult).hookToBe('Hello there!');
  * ```
  */
 export const testHook =
@@ -137,11 +137,11 @@ export const testHook =
  *
  * eg.
  * ```
- * expectHook(renderResult).isStrictEqual(standardUseFetchState('test value', true))
+ * expect(renderResult).hookToStrictEqual(standardUseFetchState('test value', true))
  * ```
  * is equivalent to:
  * ```
- * expectHook(renderResult).isStrictEqual(['test value', true, undefined, expect.any(Function)])
+ * expect(renderResult).hookToStrictEqual(['test value', true, undefined, expect.any(Function)])
  * ```
  */
 export const standardUseFetchState = <D>(

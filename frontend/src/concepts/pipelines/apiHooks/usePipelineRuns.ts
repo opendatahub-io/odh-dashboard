@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import { FetchState } from '~/utilities/useFetchState';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineQuery from '~/concepts/pipelines/apiHooks/usePipelineQuery';
@@ -7,12 +7,12 @@ import { PipelineListPaged, PipelineRunOptions } from '~/concepts/pipelines/type
 
 export const usePipelineActiveRuns = (
   options?: PipelineRunOptions,
-): FetchState<PipelineListPaged<PipelineRunKFv2>> => {
+): FetchState<PipelineListPaged<PipelineRunKF>> => {
   const { api } = usePipelinesAPI();
   const experimentId = options?.experimentId;
   const pipelineVersionId = options?.pipelineVersionId;
 
-  return usePipelineQuery<PipelineRunKFv2>(
+  return usePipelineQuery<PipelineRunKF>(
     React.useCallback(
       (opts, params) =>
         api
@@ -30,12 +30,12 @@ export const usePipelineActiveRuns = (
 
 export const usePipelineArchivedRuns = (
   options?: PipelineRunOptions,
-): FetchState<PipelineListPaged<PipelineRunKFv2>> => {
+): FetchState<PipelineListPaged<PipelineRunKF>> => {
   const { api } = usePipelinesAPI();
   const experimentId = options?.experimentId;
   const pipelineVersionId = options?.pipelineVersionId;
 
-  return usePipelineQuery<PipelineRunKFv2>(
+  return usePipelineQuery<PipelineRunKF>(
     React.useCallback(
       (opts, params) =>
         api
@@ -54,10 +54,10 @@ export const usePipelineArchivedRuns = (
 export const usePipelineRunsByExperiment = (
   experimentId: string,
   options?: PipelineRunOptions,
-): FetchState<PipelineListPaged<PipelineRunKFv2>> => {
+): FetchState<PipelineListPaged<PipelineRunKF>> => {
   const { api } = usePipelinesAPI();
 
-  return usePipelineQuery<PipelineRunKFv2>(
+  return usePipelineQuery<PipelineRunKF>(
     React.useCallback(
       (opts, params) =>
         api

@@ -31,7 +31,8 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
     () =>
       storageClassesLoaded &&
       storageTableData.some(
-        (data) => !data.storageClass || !getStorageClassConfig(data.storageClass)?.isEnabled,
+        (data) =>
+          !data.storageClass || getStorageClassConfig(data.storageClass)?.isEnabled === false,
       ),
     [storageClassesLoaded, storageTableData],
   );
@@ -61,9 +62,9 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
             />
           }
         >
-          A storage class has been deprecated by your administrator, but the cluster storage using
-          it is still active. If you want to migrate your data to a cluster storage instance using a
-          different storage class, contact your administrator.
+          One or more storage classes have been deprecated by your administrator, but the cluster
+          storage instances using them remain active. If you want to migrate your data to a cluster
+          storage instance using a different storage class, contact your administrator.
         </Alert>
       )}
       <Table

@@ -24,6 +24,14 @@ class ModelVersionDetails {
     return cy.findByTestId('model-version-description');
   }
 
+  findSourceModelFormat(subComponent: 'group' | 'edit' | 'save' | 'cancel') {
+    return cy.findByTestId(`source-model-format-${subComponent}`);
+  }
+
+  findSourceModelVersion(subComponent: 'group' | 'edit' | 'save' | 'cancel') {
+    return cy.findByTestId(`source-model-version-${subComponent}`);
+  }
+
   findMoreLabelsButton() {
     return cy.findByTestId('label-group').find('button');
   }
