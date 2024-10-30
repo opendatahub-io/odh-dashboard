@@ -124,9 +124,10 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
   return (
     <Popover
       data-testid="model-status-tooltip"
+      className="odh-u-scrollable"
       position="top"
       headerContent={headerContent()}
-      bodyContent={<div style={{ maxHeight: '95vh', overflow: 'auto' }}>{bodyContent}</div>}
+      bodyContent={bodyContent}
       isVisible={bodyContent ? undefined : false}
     >
       {statusIcon()}
