@@ -13,7 +13,6 @@ const PlatformSelectSection: React.FC = () => {
   const servingPlatformStatuses = useServingPlatformStatuses();
   const {
     nim: { available: isNIMAvailable },
-    numServingPlatformsAvailable,
   } = servingPlatformStatuses;
 
   const galleryWidths = isNIMAvailable
@@ -39,19 +38,10 @@ const PlatformSelectSection: React.FC = () => {
           </Text>
         </TextContent>
         <Gallery hasGutter {...galleryWidths}>
-          <SelectSingleModelCard
-            setErrorSelectingPlatform={setErrorSelectingPlatform}
-            numServingPlatformsAvailable={numServingPlatformsAvailable}
-          />
-          <SelectMultiModelCard
-            setErrorSelectingPlatform={setErrorSelectingPlatform}
-            numServingPlatformsAvailable={numServingPlatformsAvailable}
-          />
+          <SelectSingleModelCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
+          <SelectMultiModelCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
           {isNIMAvailable && (
-            <SelectNIMCard
-              setErrorSelectingPlatform={setErrorSelectingPlatform}
-              numServingPlatformsAvailable={numServingPlatformsAvailable}
-            />
+            <SelectNIMCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
           )}
         </Gallery>
         {errorSelectingPlatform && (

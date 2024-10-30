@@ -288,20 +288,17 @@ const ModelServingPlatform: React.FC = () => {
                       <GalleryItem>
                         <EmptySingleModelServingCard
                           setErrorSelectingPlatform={setErrorSelectingPlatform}
-                          numServingPlatformsAvailable={numServingPlatformsAvailable}
                         />
                       </GalleryItem>
                       <GalleryItem>
                         <EmptyMultiModelServingCard
                           setErrorSelectingPlatform={setErrorSelectingPlatform}
-                          numServingPlatformsAvailable={numServingPlatformsAvailable}
                         />
                       </GalleryItem>
                       {isNIMAvailable && (
                         <GalleryItem>
                           <EmptyNIMModelServingCard
                             setErrorSelectingPlatform={setErrorSelectingPlatform}
-                            numServingPlatformsAvailable={numServingPlatformsAvailable}
                           />
                         </GalleryItem>
                       )}

@@ -2,21 +2,15 @@ import * as React from 'react';
 import { CardBody, CardFooter, Text, TextContent } from '@patternfly/react-core';
 import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
 import OverviewCard from '~/pages/projects/screens/detail/overview/components/OverviewCard';
-import { ServingRuntimePlatform } from '~/types';
 import ModelServingPlatformSelectButton from '~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { NamespaceApplicationCase } from '~/pages/projects/types';
-import AddModelFooter from './AddModelFooter';
 
 type SelectNIMCardProps = {
   setErrorSelectingPlatform: (e?: Error) => void;
-  numServingPlatformsAvailable: number;
 };
 
-const SelectNIMCard: React.FC<SelectNIMCardProps> = ({
-  setErrorSelectingPlatform,
-  numServingPlatformsAvailable,
-}) => {
+const SelectNIMCard: React.FC<SelectNIMCardProps> = ({ setErrorSelectingPlatform }) => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   return (
     <OverviewCard
@@ -34,20 +28,16 @@ const SelectNIMCard: React.FC<SelectNIMCardProps> = ({
           </Text>
         </TextContent>
       </CardBody>
-      {numServingPlatformsAvailable > 1 ? (
-        <CardFooter>
-          <ModelServingPlatformSelectButton
-            namespace={currentProject.metadata.name}
-            servingPlatform={NamespaceApplicationCase.KSERVE_NIM_PROMOTION}
-            setError={setErrorSelectingPlatform}
-            variant="link"
-            isInline
-            data-testid="nim-serving-select-button"
-          />
-        </CardFooter>
-      ) : (
-        <AddModelFooter selectedPlatform={ServingRuntimePlatform.SINGLE} isNIM />
-      )}
+      <CardFooter>
+        <ModelServingPlatformSelectButton
+          namespace={currentProject.metadata.name}
+          servingPlatform={NamespaceApplicationCase.KSERVE_NIM_PROMOTION}
+          setError={setErrorSelectingPlatform}
+          variant="link"
+          isInline
+          data-testid="nim-serving-select-button"
+        />
+      </CardFooter>
     </OverviewCard>
   );
 };

@@ -2,20 +2,16 @@ import * as React from 'react';
 import { CardBody, CardFooter, Text, TextContent } from '@patternfly/react-core';
 import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
 import OverviewCard from '~/pages/projects/screens/detail/overview/components/OverviewCard';
-import { ServingRuntimePlatform } from '~/types';
 import ModelServingPlatformSelectButton from '~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { NamespaceApplicationCase } from '~/pages/projects/types';
-import AddModelFooter from './AddModelFooter';
 
 type SelectMultiModelCardProps = {
   setErrorSelectingPlatform: (e?: Error) => void;
-  numServingPlatformsAvailable: number;
 };
 
 const SelectMultiModelCard: React.FC<SelectMultiModelCardProps> = ({
   setErrorSelectingPlatform,
-  numServingPlatformsAvailable,
 }) => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   return (
@@ -34,20 +30,16 @@ const SelectMultiModelCard: React.FC<SelectMultiModelCardProps> = ({
           </Text>
         </TextContent>
       </CardBody>
-      {numServingPlatformsAvailable > 1 ? (
-        <CardFooter>
-          <ModelServingPlatformSelectButton
-            namespace={currentProject.metadata.name}
-            servingPlatform={NamespaceApplicationCase.MODEL_MESH_PROMOTION}
-            setError={setErrorSelectingPlatform}
-            variant="link"
-            isInline
-            data-testid="multi-serving-select-button"
-          />
-        </CardFooter>
-      ) : (
-        <AddModelFooter selectedPlatform={ServingRuntimePlatform.MULTI} />
-      )}
+      <CardFooter>
+        <ModelServingPlatformSelectButton
+          namespace={currentProject.metadata.name}
+          servingPlatform={NamespaceApplicationCase.MODEL_MESH_PROMOTION}
+          setError={setErrorSelectingPlatform}
+          variant="link"
+          isInline
+          data-testid="multi-serving-select-button"
+        />
+      </CardFooter>
     </OverviewCard>
   );
 };
