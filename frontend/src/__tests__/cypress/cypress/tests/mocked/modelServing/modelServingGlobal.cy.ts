@@ -408,10 +408,12 @@ describe('Model Serving Global', () => {
               modelFormat: { name: 'onnx', version: '1' },
               runtime: 'test-model',
               storage: { key: 'test-secret', path: 'test-model/' },
+              args: [''],
+              env: [],
             },
           },
         },
-      });
+      } satisfies InferenceServiceKind);
     });
 
     // Actaul request
@@ -471,10 +473,12 @@ describe('Model Serving Global', () => {
               modelFormat: { name: 'onnx', version: '1' },
               runtime: 'test-model',
               storage: { key: 'test-secret', path: 'test-model/test-model/' },
+              args: [''],
+              env: [],
             },
           },
         },
-      });
+      } satisfies InferenceServiceKind);
     });
 
     cy.findByText('Error creating model server');
