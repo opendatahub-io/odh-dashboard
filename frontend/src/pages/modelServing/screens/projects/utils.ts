@@ -182,7 +182,7 @@ export const defaultInferenceService: CreatingInferenceServiceObject = {
   tokenAuth: false,
   tokens: [],
   servingRuntimeArgs: [''],
-  servingRuntimeEnvVars: [{ name: 'gjjgjgjg', value: 'hfhfhjfj' }],
+  servingRuntimeEnvVars: [],
 };
 
 export const useCreateInferenceServiceObject = (
