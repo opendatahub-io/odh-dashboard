@@ -356,7 +356,23 @@ const createInferenceServiceAndDataConnection = async (
       secret = await createAWSSecret(inferenceServiceData, dryRun);
     }
   }
-  const storageUri = window.atob(connection?.data?.URI || '') || inferenceServiceData.storage.uri;
+  let storageUri;
+  // new URI connection
+  if (connection?.stringData?.URI) {
+    storageUri = connection.stringData.URI;
+  }
+  // existing URI connection
+  else if (connection?.data?.URI) {
+    storageUri = window.atob(connection.data.URI);
+  }
+  // new / existing DATA connection
+  else if (secret || inferenceServiceData.storage.dataConnection) {
+    storageUri = undefined;
+  }
+  // existing storageUri
+  else if (inferenceServiceData.storage.uri) {
+    storageUri = inferenceServiceData.storage.uri;
+  }
 
   let inferenceService;
   if (editInfo) {
