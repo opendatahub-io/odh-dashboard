@@ -25,6 +25,7 @@ import {
 } from '~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionArchive';
 import { labelModal, modelRegistry } from '~/__tests__/cypress/cypress/pages/modelRegistry';
 import { mockModelRegistryService } from '~/__mocks__/mockModelRegistryService';
+import { KnownLabels } from '~/k8sTypes';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 
@@ -323,7 +324,14 @@ describe('Archiving version', () => {
     cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
     cy.interceptK8sList(
       InferenceServiceModel,
-      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+      mockK8sResourceList([
+        mockInferenceServiceK8sResource({
+          additionalLabels: {
+            [KnownLabels.REGISTERED_MODEL_ID]: '1',
+            [KnownLabels.MODEL_VERSION_ID]: '3',
+          },
+        }),
+      ]),
     );
     initIntercepts({});
 
