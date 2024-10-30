@@ -17,7 +17,8 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
 
   // Setup: Load test data and ensure clean state
   before(() => {
-    cy.fixture('e2e/dataScienceProject.yaml', 'utf8')
+    return cy
+      .fixture('e2e/dataScienceProject.yaml', 'utf8')
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as DataScienceProjectData;
         const projectName = testData.dsOCProjectName;
@@ -36,6 +37,8 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
           return deleteOpenShiftProject(projectName);
         }
         cy.log(`Project ${projectName} does not exist. Proceeding with test.`);
+        // Return a resolved promise to ensure a value is always returned
+        return cy.wrap(null);
       });
   });
 
