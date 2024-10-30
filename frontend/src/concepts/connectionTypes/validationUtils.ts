@@ -19,7 +19,7 @@ const baseFieldPropertiesSchema = z.object({
 const baseDataFieldPropertiesSchema = baseFieldSchema.extend({
   envVar: z.string().regex(ENV_VAR_NAME_REGEX, {
     message:
-      'Valid characters include letters, numbers, and underscores ( _ ), and must not start with a number.',
+      'Must start with a letter or underscore. Valid characters include letters, numbers, and underscores ( _ ).',
   }),
   required: z.boolean().optional(),
 });
