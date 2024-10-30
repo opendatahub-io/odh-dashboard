@@ -182,7 +182,7 @@ class NotebookRow extends TableRow {
   }
 
   findNotebookStatusPopover(name: string) {
-    return cy.findByTestId('workbench-status-popover').contains(name);
+    return cy.findByTestId('notebook-status-popover').contains(name);
   }
 }
 

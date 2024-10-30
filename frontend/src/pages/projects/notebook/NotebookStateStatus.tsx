@@ -74,7 +74,7 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
     return (
       <>
         <Popover
-          data-testid="workbench-status-popover"
+          data-testid="notebook-status-popover"
           shouldClose={() => setPopoverVisible(false)}
           isVisible={isPopoverVisible}
           headerContent="Workbench status"

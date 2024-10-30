@@ -47,17 +47,6 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   const spawnFailed = spawnStatus?.status === AlertVariant.danger;
 
   React.useEffect(() => {
-    if (isRunning) {
-      setSpawnPercentile(100);
-      setSpawnStatus({
-        status: AlertVariant.success,
-        title: 'Success',
-        description: 'The notebook server is up and running.',
-      });
-    }
-  }, [isRunning]);
-
-  React.useEffect(() => {
     if (isStarting && !isRunning) {
       if (!notebookStatus) {
         return;
