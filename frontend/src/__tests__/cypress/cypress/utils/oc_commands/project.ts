@@ -94,6 +94,7 @@ export const getOpenShiftProject = (projectName: string): Cypress.Chainable<stri
     return cy.wrap(result.code === 0 ? result.stdout.trim() : null);
   });
 };
+
 /**
  * Verify if an OpenShift Project exists
  *

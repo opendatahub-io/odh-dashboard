@@ -18,7 +18,7 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
   // Setup: Load test data and ensure clean state
   before(() => {
     return cy
-      .fixture('e2e/dataScienceProject.yaml', 'utf8')
+      .fixture('e2e/dataScienceProjects/dataScienceProject.yaml', 'utf8')
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as DataScienceProjectData;
         const projectName = testData.dsOCProjectName;
