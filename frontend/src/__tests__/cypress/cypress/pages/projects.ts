@@ -307,6 +307,10 @@ class ProjectDetails {
     return cy.findByTestId('unsupported-pipeline-version-alert');
   }
 
+  findPipelineTimeoutErrorMessage() {
+    return cy.findByTestId('timeout-pipeline-error-message');
+  }
+
   findKserveModelsTable() {
     return cy.findByTestId('kserve-inference-service-table');
   }
