@@ -110,6 +110,10 @@ export const fieldNameToEnvVar = (name: string): string => {
 export const ENV_VAR_NAME_REGEX = new RegExp('^[_a-zA-Z][_a-zA-Z0-9]*$');
 export const isValidEnvVar = (name: string): boolean => ENV_VAR_NAME_REGEX.test(name);
 
+export const isUriConnectionType = (connectionType: ConnectionTypeConfigMapObj): boolean =>
+  !!connectionType.data?.fields?.find((f) => isConnectionTypeDataField(f) && f.envVar === 'URI');
+export const isUriConnection = (connection?: Connection): boolean => !!connection?.data?.URI;
+
 export const S3ConnectionTypeKeys = [
   'AWS_ACCESS_KEY_ID',
   'AWS_SECRET_ACCESS_KEY',
@@ -150,7 +154,7 @@ export const isModelServingTypeCompatible = (
 ): boolean => modelServinConnectionTypes[type].envVars.every((envVar) => envVars.includes(envVar));
 
 export const isModelServingCompatible = (envVars: string[]): boolean =>
-  S3ConnectionTypeKeys.every((envVar) => envVars.includes(envVar));
+  S3ConnectionTypeKeys.every((envVar) => envVars.includes(envVar)) || envVars.includes('URI');
 
 export enum CompatibleTypes {
   ModelServing = 'Model serving',

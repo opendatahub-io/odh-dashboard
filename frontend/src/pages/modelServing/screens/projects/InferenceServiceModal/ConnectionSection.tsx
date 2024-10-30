@@ -29,6 +29,8 @@ import {
   getConnectionTypeDisplayName,
   getDefaultValues,
   isConnectionTypeDataField,
+  isUriConnection,
+  isUriConnectionType,
   S3ConnectionTypeKeys,
   withRequiredFields,
 } from '~/concepts/connectionTypes/utils';
@@ -41,6 +43,7 @@ import {
 } from '~/pages/modelServing/screens/types';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
+import { isConnectionPathValid } from '~/pages/modelServing/screens/projects/utils';
 import DataConnectionFolderPathField from './DataConnectionFolderPathField';
 
 type ExistingConnectionFieldProps = {
@@ -50,6 +53,7 @@ type ExistingConnectionFieldProps = {
   onSelect: (connection: Connection) => void;
   folderPath: string;
   setFolderPath: (path: string) => void;
+  setIsConnectionValid: (isValid: boolean) => void;
 };
 
 const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = ({
@@ -59,6 +63,7 @@ const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = ({
   onSelect,
   folderPath,
   setFolderPath,
+  setIsConnectionValid,
 }) => {
   const options: TypeaheadSelectOption[] = React.useMemo(
     () =>
@@ -96,6 +101,13 @@ const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = ({
     [connectionTypes, selectedConnection?.metadata.annotations],
   );
 
+  React.useEffect(() => {
+    setIsConnectionValid(
+      !!selectedConnectionType &&
+        (isUriConnectionType(selectedConnectionType) ? true : isConnectionPathValid(folderPath)),
+    );
+  }, [folderPath, selectedConnectionType, setIsConnectionValid]);
+
   return (
     <>
       <Popover
@@ -111,7 +123,7 @@ const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = ({
           Not seeing what you&apos;re looking for?
         </Button>
       </Popover>
-      <FormGroup label="Connection" fieldId="connection" isRequired className="pf-v5-u-mb-lg">
+      <FormGroup label="Connection" isRequired className="pf-v5-u-mb-lg">
         <TypeaheadSelect
           selectOptions={options}
           onSelect={(_, value) => {
@@ -131,7 +143,9 @@ const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = ({
           />
         )}
       </FormGroup>
-      <DataConnectionFolderPathField folderPath={folderPath} setFolderPath={setFolderPath} />
+      {selectedConnectionType && !isUriConnection(selectedConnection) && (
+        <DataConnectionFolderPathField folderPath={folderPath} setFolderPath={setFolderPath} />
+      )}
     </>
   );
 };
@@ -197,11 +211,18 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
           connectionValues,
         ),
       );
-      setIsConnectionValid(isFormValid);
     }
+    setIsConnectionValid(
+      isFormValid &&
+        !!selectedConnectionType &&
+        (isUriConnectionType(selectedConnectionType)
+          ? true
+          : isConnectionPathValid(data.storage.path)),
+    );
   }, [
     connectionValues,
     data.project,
+    data.storage.path,
     isFormValid,
     nameDescData,
     selectedConnectionType,
@@ -232,10 +253,12 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
           setValidations((prev) => ({ ...prev, [field.envVar]: isValid }))
         }
       />
-      <DataConnectionFolderPathField
-        folderPath={data.storage.path}
-        setFolderPath={(path) => setData('storage', { ...data.storage, path })}
-      />
+      {selectedConnectionType && !isUriConnectionType(selectedConnectionType) && (
+        <DataConnectionFolderPathField
+          folderPath={data.storage.path}
+          setFolderPath={(path) => setData('storage', { ...data.storage, path })}
+        />
+      )}
     </FormSection>
   );
 };
@@ -266,6 +289,26 @@ export const ConnectionSection: React.FC<Props> = ({
 
   return (
     <>
+      {data.storage.uri && (
+        <Radio
+          id="existing-uri-radio"
+          name="existing-uri-radio"
+          label="Current URI"
+          isChecked={data.storage.type === InferenceServiceStorageType.EXISTING_URI}
+          onChange={() => {
+            setConnection(undefined);
+            setData('storage', {
+              ...data.storage,
+              type: InferenceServiceStorageType.EXISTING_URI,
+              dataConnection: '',
+              path: '',
+              awsData: [],
+              alert: undefined,
+            });
+          }}
+          body={data.storage.type === InferenceServiceStorageType.EXISTING_URI && data.storage.uri}
+        />
+      )}
       <Radio
         name="existing-connection-radio"
         id="existing-connection-radio"
@@ -277,6 +320,9 @@ export const ConnectionSection: React.FC<Props> = ({
           setData('storage', {
             ...data.storage,
             type: InferenceServiceStorageType.EXISTING_STORAGE,
+            dataConnection: '',
+            path: '',
+            awsData: [],
             alert: undefined,
           });
         }}
@@ -295,6 +341,7 @@ export const ConnectionSection: React.FC<Props> = ({
               }}
               folderPath={data.storage.path}
               setFolderPath={(path) => setData('storage', { ...data.storage, path })}
+              setIsConnectionValid={setIsConnectionValid}
             />
           )
         }
@@ -303,14 +350,17 @@ export const ConnectionSection: React.FC<Props> = ({
         name="new-connection-radio"
         id="new-connection-radio"
         data-testid="new-connection-radio"
+        label="Create connection"
         className="pf-v5-u-mb-lg"
-        label="New connection"
         isChecked={data.storage.type === InferenceServiceStorageType.NEW_STORAGE}
         onChange={() => {
           setConnection(undefined);
           setData('storage', {
             ...data.storage,
             type: InferenceServiceStorageType.NEW_STORAGE,
+            dataConnection: '',
+            path: '',
+            awsData: [],
             alert: undefined,
           });
         }}

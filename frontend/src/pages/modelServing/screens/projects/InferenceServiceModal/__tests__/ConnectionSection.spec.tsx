@@ -1,6 +1,6 @@
 import React, { act } from 'react';
 import '@testing-library/jest-dom';
-import { fireEvent, render } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { mockConnection } from '~/__mocks__/mockConnection';
 import { mockConnectionTypeConfigMapObj } from '~/__mocks__/mockConnectionType';
 import { mockInferenceServiceModalData } from '~/__mocks__/mockInferenceServiceModalData';
@@ -72,9 +72,7 @@ describe('ConnectionsFormSection', () => {
     );
 
     expect(result.getByRole('radio', { name: 'Existing connection' })).toBeChecked();
-
     expect(result.getByRole('combobox', { name: 'Type to filter' })).toHaveValue('');
-    expect(result.getByRole('textbox', { name: 'folder-path' })).toHaveValue('');
 
     await act(async () => result.getByRole('button', { name: 'Typeahead menu toggle' }).click());
     await act(async () => result.getByRole('option', { name: 's3-connection Type: s3' }).click());
@@ -82,18 +80,6 @@ describe('ConnectionsFormSection', () => {
       type: InferenceServiceStorageType.EXISTING_STORAGE,
       path: '',
       dataConnection: 's3-connection',
-      awsData: [],
-    });
-
-    await act(async () =>
-      fireEvent.change(result.getByRole('textbox', { name: 'folder-path' }), {
-        target: { value: 'models/fraud' },
-      }),
-    );
-    expect(mockSetData).toHaveBeenLastCalledWith('storage', {
-      type: InferenceServiceStorageType.EXISTING_STORAGE,
-      path: 'models/fraud',
-      dataConnection: '',
       awsData: [],
     });
   });
@@ -121,7 +107,7 @@ describe('ConnectionsFormSection', () => {
     expect(result.getByRole('textbox', { name: 'folder-path' })).toHaveValue('models/fraud');
   });
 
-  it('should render new connection radio selection', async () => {
+  it('should render create connection radio selection', async () => {
     const mockSetData = jest.fn();
     const mockSetConnection = jest.fn();
     const result = render(
@@ -140,10 +126,8 @@ describe('ConnectionsFormSection', () => {
       />,
     );
 
-    expect(result.getByRole('radio', { name: 'New connection' })).toBeChecked();
-
+    expect(result.getByRole('radio', { name: 'Create connection' })).toBeChecked();
     expect(result.getByRole('combobox', { name: 'Type to filter' })).toHaveValue('');
-    expect(result.getByRole('textbox', { name: 'folder-path' })).toHaveValue('');
 
     await act(async () => result.getByRole('button', { name: 'Typeahead menu toggle' }).click());
     await act(async () => result.getByRole('option', { name: /s3/ }).click());
@@ -151,5 +135,31 @@ describe('ConnectionsFormSection', () => {
     expect(result.getByRole('textbox', { name: 'Connection name' })).toHaveValue('');
     expect(result.getByRole('textbox', { name: 'Connection description' })).toHaveValue('');
     expect(result.getByRole('textbox', { name: 'Access key' })).toHaveValue('');
+    expect(result.getByRole('textbox', { name: 'Secret key' })).toHaveValue('');
+    expect(result.getByRole('textbox', { name: 'Endpoint' })).toHaveValue('');
+    expect(result.getByRole('textbox', { name: 'Bucket' })).toHaveValue('');
+    expect(result.getByRole('textbox', { name: 'folder-path' })).toHaveValue('');
+  });
+
+  it('should show current URI', async () => {
+    const result = render(
+      <ConnectionSection
+        data={mockInferenceServiceModalData({
+          storage: {
+            type: InferenceServiceStorageType.EXISTING_URI,
+            uri: 'http://something.something/fraud.zip',
+            path: '',
+            dataConnection: '',
+            awsData: [],
+          },
+        })}
+        setData={() => undefined}
+        setConnection={() => undefined}
+        setIsConnectionValid={() => undefined}
+      />,
+    );
+
+    expect(result.getByRole('radio', { name: 'Current URI' })).toBeChecked();
+    expect(result.getByText('http://something.something/fraud.zip'));
   });
 });
