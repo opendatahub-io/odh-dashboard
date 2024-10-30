@@ -44,6 +44,7 @@ type HandlersProps = {
   disableKServeConfig?: boolean;
   disableKServeMetrics?: boolean;
   disableModelConfig?: boolean;
+  enableModelMesh?: boolean;
   isEnabled?: string;
   isUnknown?: boolean;
   templates?: boolean;
@@ -58,6 +59,7 @@ const initIntercepts = ({
   disableKServeConfig,
   disableKServeMetrics,
   disableModelConfig,
+  enableModelMesh,
   isEmpty = false,
   imageStreamName = 'test-image',
   imageStreamTag = 'latest',
@@ -137,8 +139,11 @@ const initIntercepts = ({
     );
   }
   cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
-  cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
-  cy.interceptK8s(ProjectModel, mockProjectK8sResource({}));
+
+  const mockProject = mockProjectK8sResource({ enableModelMesh });
+  cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProject]));
+  cy.interceptK8s(ProjectModel, mockProject);
+
   cy.interceptK8s(
     RouteModel,
     mockRouteK8sResource({
@@ -160,10 +165,6 @@ const initIntercepts = ({
         namespace: 'test-project',
       }),
     },
-  );
-  cy.interceptK8sList(
-    ProjectModel,
-    mockK8sResourceList([mockProjectK8sResource({ enableModelMesh: undefined })]),
   );
 
   cy.interceptK8sList(
@@ -330,18 +331,56 @@ describe('Project Details', () => {
       projectDetails.shouldHaveNoPlatformSelectedText();
     });
 
-    it('Both model serving platforms are enabled with no serving runtimes templates', () => {
+    it('Both model serving platforms are enabled, no platform selected', () => {
       initIntercepts({ disableKServeConfig: false, disableModelConfig: false });
       projectDetails.visitSection('test-project', 'model-server');
+      projectDetails.findSelectPlatformButton('single').should('exist');
+      projectDetails.findSelectPlatformButton('multi').should('exist');
+    });
 
-      //single-model-serving platform
-      projectDetails.findSingleModelDeployButton().should('have.attr', 'aria-disabled');
-      projectDetails.findSingleModelDeployButton().trigger('mouseenter');
+    it('Only single serving platform enabled, no serving runtimes templates', () => {
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: true,
+      });
+      projectDetails.visitSection('test-project', 'model-server');
+      projectDetails.findTopLevelDeployModelButton().should('have.attr', 'aria-disabled');
+      projectDetails.findTopLevelDeployModelButton().trigger('mouseenter');
       projectDetails.findDeployModelTooltip().should('be.visible');
+    });
 
-      //multi-model-serving platform
-      projectDetails.findMultiModelButton().should('have.attr', 'aria-disabled');
-      projectDetails.findMultiModelButton().trigger('mouseenter');
+    it('Only multi serving platform enabled, no serving runtimes templates', () => {
+      initIntercepts({
+        disableKServeConfig: true,
+        disableModelConfig: false,
+      });
+      projectDetails.visitSection('test-project', 'model-server');
+      projectDetails.findTopLevelAddModelServerButton().should('have.attr', 'aria-disabled');
+      projectDetails.findTopLevelAddModelServerButton().trigger('mouseenter');
+      projectDetails.findDeployModelTooltip().should('be.visible');
+    });
+
+    it('Both model serving platforms are enabled, single-model platform is selected, no serving runtimes templates', () => {
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+        enableModelMesh: false,
+      });
+      projectDetails.visitSection('test-project', 'model-server');
+      projectDetails.findTopLevelDeployModelButton().should('have.attr', 'aria-disabled');
+      projectDetails.findTopLevelDeployModelButton().trigger('mouseenter');
+      projectDetails.findDeployModelTooltip().should('be.visible');
+    });
+
+    it('Both model serving platforms are enabled, multi-model platform is selected, no serving runtimes templates', () => {
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+        enableModelMesh: true,
+      });
+      projectDetails.visitSection('test-project', 'model-server');
+      projectDetails.findTopLevelAddModelServerButton().should('have.attr', 'aria-disabled');
+      projectDetails.findTopLevelAddModelServerButton().trigger('mouseenter');
       projectDetails.findDeployModelTooltip().should('be.visible');
     });
 

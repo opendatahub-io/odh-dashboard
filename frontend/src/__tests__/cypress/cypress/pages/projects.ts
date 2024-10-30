@@ -248,12 +248,18 @@ class ProjectDetails {
     return cy.findByTestId('import-pipeline-button', { timeout });
   }
 
-  findSingleModelDeployButton() {
-    return this.findModelServingPlatform('single').findByTestId('single-serving-deploy-button');
+  findSelectPlatformButton(platform: string) {
+    return this.findModelServingPlatform(platform).findByTestId(
+      `${platform}-serving-select-button`,
+    );
   }
 
-  findMultiModelButton() {
-    return this.findModelServingPlatform('multi').findByTestId('multi-serving-add-server-button');
+  findTopLevelDeployModelButton() {
+    return cy.findByTestId('deploy-button');
+  }
+
+  findTopLevelAddModelServerButton() {
+    return cy.findByTestId('add-server-button');
   }
 
   findDeployModelTooltip() {

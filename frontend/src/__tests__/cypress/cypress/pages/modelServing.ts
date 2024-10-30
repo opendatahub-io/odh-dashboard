@@ -357,6 +357,10 @@ class InferenceServiceRow extends TableRow {
   }
 }
 class ServingPlatformCard extends Contextual<HTMLElement> {
+  findSelectPlatformButton(platform: string) {
+    return this.find().findByTestId(`${platform}-serving-select-button`);
+  }
+
   findDeployModelButton() {
     return this.find().findByTestId('single-serving-deploy-button');
   }
