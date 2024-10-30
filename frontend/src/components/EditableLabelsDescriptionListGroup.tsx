@@ -1,73 +1,90 @@
-import * as React from 'react';
+import React, { useState } from 'react';
 import {
-  Button,
-  Form,
-  FormGroup,
-  FormHelperText,
-  HelperText,
-  HelperTextItem,
   Label,
   LabelGroup,
-  Modal,
-  TextInput,
+  Alert,
+  AlertVariant
 } from '@patternfly/react-core';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import DashboardDescriptionListGroup, {
-  DashboardDescriptionListGroupProps,
-} from './DashboardDescriptionListGroup';
+import DashboardDescriptionListGroup from './DashboardDescriptionListGroup';
 
-type EditableTextDescriptionListGroupProps = Partial<
-  Pick<DashboardDescriptionListGroupProps, 'title' | 'contentWhenEmpty'>
-> & {
+interface EditableLabelsProps {
   labels: string[];
-  saveEditedLabels: (labels: string[]) => Promise<unknown>;
-  allExistingKeys?: string[];
+  onLabelsChange: (labels: string[]) => Promise<void>;
   isArchive?: boolean;
-};
+  allExistingKeys?: string[];
+  title?: string;
+  contentWhenEmpty?: string;
+}
 
-const EditableLabelsDescriptionListGroup: React.FC<EditableTextDescriptionListGroupProps> = ({
+export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> = ({
   title = 'Labels',
   contentWhenEmpty = 'No labels',
   labels,
-  saveEditedLabels,
+  onLabelsChange,
   isArchive,
   allExistingKeys = labels,
 }) => {
-  const [isEditing, setIsEditing] = React.useState(false);
-  const [unsavedLabels, setUnsavedLabels] = React.useState(labels);
-  const [isSavingEdits, setIsSavingEdits] = React.useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSavingEdits, setIsSavingEdits] = useState(false);
+  const [unsavedLabels, setUnsavedLabels] = useState(labels);
+  const [addLabelInputValue, setAddLabelInputValue] = useState('');
+  const [isAddLabelModalOpen, setIsAddLabelModalOpen] = useState(false);
+  const [labelErrors, setLabelErrors] = useState<{ [key: string]: string }>({});
 
-  const editUnsavedLabel = (newText: string, index: number) => {
-    if (isSavingEdits) {
-      return;
-    }
-    const copy = [...unsavedLabels];
-    copy[index] = newText;
-    setUnsavedLabels(copy);
-  };
-  const removeUnsavedLabel = (text: string) => {
-    if (isSavingEdits) {
-      return;
-    }
-    setUnsavedLabels(unsavedLabels.filter((label) => label !== text));
-  };
-  const addUnsavedLabel = (text: string) => {
-    if (isSavingEdits) {
-      return;
-    }
-    setUnsavedLabels([...unsavedLabels, text]);
-  };
-
-  // Don't allow a label that matches a non-label property key or another label (as they stand before saving)
-  // Note that this means if you remove a label and add it back before saving, that is valid
   const reservedKeys = [
     ...allExistingKeys.filter((key) => !labels.includes(key)),
     ...unsavedLabels,
   ];
 
-  const [isAddLabelModalOpen, setIsAddLabelModalOpen] = React.useState(false);
-  const [addLabelInputValue, setAddLabelInputValue] = React.useState('');
-  const addLabelInputRef = React.useRef<HTMLInputElement>(null);
+  const validateLabel = (text: string): string | null => {
+    console.log('Validating label:', text, 'Reserved keys:', reservedKeys);
+    if (reservedKeys.includes(text)) {
+      const error = `"${text}" already exists. Use a unique name that doesn't match any existing key or property`;
+      console.log('Validation error:', error);
+      return error;
+    } else if (text.length > 63) {
+      return "Label text can't exceed 63 characters";
+    }
+    return null;
+  };
+
+  const editUnsavedLabel = (newText: string, index: number) => {
+    if (isSavingEdits) return;
+    const copy = [...unsavedLabels];
+    const oldText = copy[index];
+    copy[index] = newText;
+    setUnsavedLabels(copy);
+    
+    const error = validateLabel(newText);
+    const newErrors = { ...labelErrors };
+    delete newErrors[oldText];
+    if (error) {
+      newErrors[newText] = error;
+    }
+    setLabelErrors(newErrors);
+  };
+
+  const removeUnsavedLabel = (text: string) => {
+    if (isSavingEdits) return;
+    setUnsavedLabels(unsavedLabels.filter((label) => label !== text));
+  };
+
+  const addUnsavedLabel = (text: string) => {
+    if (isSavingEdits) return;
+    if (!text.trim()) return;
+    
+    const error = validateLabel(text.trim());
+    if (error) {
+      setLabelErrors(prev => ({ ...prev, [text.trim()]: error }));
+      return;
+    }
+    
+    setUnsavedLabels(prev => [...prev, text.trim()]);
+    const newErrors = { ...labelErrors };
+    delete newErrors[text.trim()];
+    setLabelErrors(newErrors);
+  };
+
   let addLabelValidationError: string | null = null;
   if (reservedKeys.includes(addLabelInputValue)) {
     addLabelValidationError = 'Label must not match an existing label or property key';
@@ -75,22 +92,22 @@ const EditableLabelsDescriptionListGroup: React.FC<EditableTextDescriptionListGr
     addLabelValidationError = "Label text can't exceed 63 characters";
   }
 
-  const toggleAddLabelModal = () => {
-    setAddLabelInputValue('');
-    setIsAddLabelModalOpen(!isAddLabelModalOpen);
-  };
-  React.useEffect(() => {
-    if (isAddLabelModalOpen && addLabelInputRef.current) {
-      addLabelInputRef.current.focus();
-    }
-  }, [isAddLabelModalOpen]);
-
-  const addLabelModalSubmitDisabled = !addLabelInputValue || !!addLabelValidationError;
-  const submitAddLabelModal = (event?: React.FormEvent) => {
-    event?.preventDefault();
-    if (!addLabelModalSubmitDisabled) {
-      addUnsavedLabel(addLabelInputValue);
-      toggleAddLabelModal();
+  const handleEditComplete = (_event: any, newText: string, index: number) => {
+    console.log('Edit complete:', newText, 'Index:', index);
+    const error = validateLabel(newText);
+    if (error) {
+      console.log('Setting error for:', newText, error);
+      setLabelErrors(prev => ({ ...prev, [newText]: error }));
+    } else {
+      const newLabels = [...unsavedLabels];
+      const oldLabel = newLabels[index];
+      newLabels[index] = newText;
+      setUnsavedLabels(newLabels);
+      // Clear any previous errors for both old and new labels
+      const newErrors = { ...labelErrors };
+      delete newErrors[oldLabel];
+      delete newErrors[newText];
+      setLabelErrors(newErrors);
     }
   };
 
@@ -103,57 +120,79 @@ const EditableLabelsDescriptionListGroup: React.FC<EditableTextDescriptionListGr
         isEditable={!isArchive}
         isEditing={isEditing}
         isSavingEdits={isSavingEdits}
+        isSaveDisabled={Object.keys(labelErrors).length > 0}
         contentWhenEditing={
-          <LabelGroup
-            data-testid="label-group"
-            isEditable={!isSavingEdits}
-            numLabels={unsavedLabels.length}
-            addLabelControl={
-              !isSavingEdits && (
+          <>
+            <LabelGroup
+              data-testid="label-group"
+              isEditable={!isSavingEdits}
+              numLabels={10}
+              expandedText="Show Less"
+              collapsedText="Show More"
+              addLabelControl={
+                !isSavingEdits && (
+                  <Label
+                    color="blue"
+                    variant="outline"
+                    isEditable
+                    editableProps={{
+                      'aria-label': 'Add label'
+                    }}
+                    onEditComplete={(_event, newText) => {
+                      console.log('Adding new label:', newText);
+                      const error = validateLabel(newText);
+                      if (error) {
+                        setLabelErrors(prev => ({ ...prev, [newText]: error }));
+                      } else {
+                        setUnsavedLabels(prev => [...prev, newText]);
+                        const newErrors = { ...labelErrors };
+                        delete newErrors[newText];
+                        setLabelErrors(newErrors);
+                      }
+                    }}
+                  >
+                    Add label
+                  </Label>
+                )
+              }
+            >
+              {unsavedLabels.map((label, index) => (
                 <Label
-                  textMaxWidth="40ch"
-                  color="blue"
-                  variant="outline"
-                  isOverflowLabel
-                  onClick={toggleAddLabelModal}
+                  key={label}
+                  color={labelErrors[label] ? 'red' : 'blue'}
+                  isEditable={!isSavingEdits}
+                  onClose={() => removeUnsavedLabel(label)}
+                  closeBtnProps={{ isDisabled: isSavingEdits }}
+                  onEditComplete={(_event, newText) => handleEditComplete(_event, newText, index)}
                 >
-                  Add label
+                  {label}
                 </Label>
-              )
-            }
-          >
-            {unsavedLabels.map((label, index) => (
-              <Label
-                key={label}
-                color="blue"
-                data-testid="label"
-                isEditable={!isSavingEdits}
-                editableProps={{ 'aria-label': `Editable label with text ${label}` }}
-                onClose={() => removeUnsavedLabel(label)}
-                closeBtnProps={{ isDisabled: isSavingEdits }}
-                onEditComplete={(_event, newText) => {
-                  if (!reservedKeys.includes(newText) && newText.length <= 63) {
-                    editUnsavedLabel(newText, index);
-                  }
-                }}
-              >
-                {label}
-              </Label>
-            ))}
-          </LabelGroup>
+              ))}
+            </LabelGroup>
+            {Object.keys(labelErrors).length > 0 && (
+              <Alert
+                variant={AlertVariant.danger}
+                isInline
+                title={Object.values(labelErrors)[0]}
+                aria-live="polite"
+              />
+            )}
+          </>
         }
         onEditClick={() => {
           setUnsavedLabels(labels);
+          setLabelErrors({});
           setIsEditing(true);
         }}
         onSaveEditsClick={async () => {
+          if (Object.keys(labelErrors).length > 0) return;
           setIsSavingEdits(true);
           try {
-            await saveEditedLabels(unsavedLabels);
+            await onLabelsChange(unsavedLabels);
           } finally {
             setIsSavingEdits(false);
+            setIsEditing(false);
           }
-          setIsEditing(false);
         }}
         onDiscardEditsClick={() => {
           setUnsavedLabels(labels);
@@ -168,56 +207,6 @@ const EditableLabelsDescriptionListGroup: React.FC<EditableTextDescriptionListGr
           ))}
         </LabelGroup>
       </DashboardDescriptionListGroup>
-      {isAddLabelModalOpen ? (
-        <Modal
-          variant="small"
-          title="Add label"
-          isOpen
-          onClose={toggleAddLabelModal}
-          actions={[
-            <Button
-              key="save"
-              variant="primary"
-              form="add-label-form"
-              onClick={submitAddLabelModal}
-              isDisabled={addLabelModalSubmitDisabled}
-            >
-              Save
-            </Button>,
-            <Button key="cancel" variant="link" onClick={toggleAddLabelModal}>
-              Cancel
-            </Button>,
-          ]}
-        >
-          <Form id="add-label-form" onSubmit={submitAddLabelModal}>
-            <FormGroup label="Label text" fieldId="add-label-form-label-text" isRequired>
-              <TextInput
-                type="text"
-                id="add-label-form-label-text"
-                name="add-label-form-label-text"
-                value={addLabelInputValue}
-                onChange={(_event: React.FormEvent<HTMLInputElement>, value: string) =>
-                  setAddLabelInputValue(value)
-                }
-                ref={addLabelInputRef}
-                isRequired
-                validated={addLabelValidationError ? 'error' : 'default'}
-              />
-              {addLabelValidationError && (
-                <FormHelperText>
-                  <HelperText>
-                    <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
-                      {addLabelValidationError}
-                    </HelperTextItem>
-                  </HelperText>
-                </FormHelperText>
-              )}
-            </FormGroup>
-          </Form>
-        </Modal>
-      ) : null}
     </>
   );
 };
-
-export default EditableLabelsDescriptionListGroup;

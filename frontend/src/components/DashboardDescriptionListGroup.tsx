@@ -36,6 +36,7 @@ export type DashboardDescriptionListGroupProps = {
   contentWhenEmpty?: React.ReactNode;
   children: React.ReactNode;
   groupTestId?: string;
+  isSaveDisabled?: boolean;
 } & (({ isEditable: true } & EditableProps) | ({ isEditable?: false } & Partial<EditableProps>));
 
 const DashboardDescriptionListGroup: React.FC<DashboardDescriptionListGroupProps> = (props) => {
