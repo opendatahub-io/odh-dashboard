@@ -300,10 +300,6 @@ export const assembleNotebook = async (
                   --ServerApp.quit_button=False
                   --ServerApp.tornado_settings={"user":"${translatedUsername}","hub_host":"${url}","hub_prefix":"/notebookController/${translatedUsername}"}`,
                 },
-                {
-                  name: 'JUPYTER_IMAGE',
-                  value: imageUrl,
-                },
                 ...configMapEnvs,
                 ...secretEnvs,
               ],

@@ -137,10 +137,6 @@ export const assembleNotebook = (
                   --ServerApp.quit_button=False
                   --ServerApp.tornado_settings={"user":"${translatedUsername}","hub_host":"${origin}","hub_prefix":"/projects/${projectName}"}`,
                 },
-                {
-                  name: 'JUPYTER_IMAGE',
-                  value: imageUrl,
-                },
               ],
               envFrom,
               resources,
