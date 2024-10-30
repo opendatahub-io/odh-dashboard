@@ -46,16 +46,7 @@ describe('NIM Models Deployments', () => {
     cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([mockNimServingRuntime()]));
 
     modelServingGlobal.visit('test-project');
-    modelServingGlobal.getModelRow('Test Name').get('button[aria-label="Kebab toggle"]').click();
-
-    modelServingGlobal
-      .getModelRow('Test Name')
-      .get('button[role="menuitem"]')
-      .should('have.length', 1);
-    modelServingGlobal
-      .getModelRow('Test Name')
-      .get('button[role="menuitem"]')
-      .contains('Delete')
-      .should('exist');
+    modelServingGlobal.getModelRow('Test Name').findKebabAction('Edit').should('not.exist');
+    modelServingGlobal.getModelRow('Test Name').findKebabAction('Delete').should('exist');
   });
 });
