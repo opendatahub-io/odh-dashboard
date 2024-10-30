@@ -20,18 +20,22 @@ const PipelineCoreApplicationPage: React.FC<PipelineCoreApplicationPageProps> = 
   overrideChildPadding,
   ...pageProps
 }) => {
-  const pipelinesAPi = usePipelinesAPI();
+  const { pipelinesServer } = usePipelinesAPI();
 
   return (
     <ApplicationsPage
       {...pageProps}
-      loaded={!pipelinesAPi.pipelinesServer.initializing}
-      empty={!pipelinesAPi.pipelinesServer.installed}
+      loaded={!pipelinesServer.initializing}
+      empty={!pipelinesServer.installed}
       emptyStatePage={<NoPipelineServer variant={ButtonVariant.primary} />}
       headerContent={<PipelineCoreProjectSelector getRedirectPath={getRedirectPath} />}
       provideChildrenPadding={!overrideChildPadding}
     >
-      {pipelinesAPi.pipelinesServer.timedOut ? <PipelineServerTimedOut /> : children}
+      {pipelinesServer.timedOut && pipelinesServer.compatible ? (
+        <PipelineServerTimedOut />
+      ) : (
+        children
+      )}
     </ApplicationsPage>
   );
 };
