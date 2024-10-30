@@ -22,6 +22,7 @@ type MockResourceConfigType = {
   kserveInternalUrl?: string;
   statusPredictor?: Record<string, string>;
   kserveInternalLabel?: boolean;
+  additionalLabels?: Record<string, string>;
 };
 
 type InferenceServicek8sError = K8sStatus & {
@@ -80,6 +81,7 @@ export const mockInferenceServiceK8sResource = ({
   statusPredictor = undefined,
   kserveInternalUrl = '',
   kserveInternalLabel = false,
+  additionalLabels = {},
 }: MockResourceConfigType): InferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1beta1',
   kind: 'InferenceService',
@@ -99,8 +101,7 @@ export const mockInferenceServiceK8sResource = ({
     generation: 1,
     labels: {
       name,
-      [KnownLabels.REGISTERED_MODEL_ID]: '1',
-      [KnownLabels.MODEL_VERSION_ID]: '3',
+      ...additionalLabels,
       [KnownLabels.DASHBOARD_RESOURCE]: 'true',
       ...(kserveInternalLabel && { 'networking.knative.dev/visibility': 'cluster-local' }),
     },
