@@ -16,31 +16,44 @@ import {
 } from '@patternfly/react-icons';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
+import { ServingContainer } from '~/k8sTypes';
 
 type EnvironmentVariablesSectionType = {
-  data?: CreatingInferenceServiceObject;
+  data: CreatingInferenceServiceObject;
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
 };
 
-const EnvironmentVariablesSection: React.FC<EnvironmentVariablesSectionType> = () => {
-  const [additionalEnvVars, setAdditionalEnvVars] = React.useState<
-    Array<{ name: string; value: string }>
-  >([]);
+const EnvironmentVariablesSection: React.FC<EnvironmentVariablesSectionType> = ({
+  data,
+  setData,
+}) => {
+  const [additionalEnvVars, setAdditionalEnvVars] = React.useState<ServingContainer['env']>(
+    data.servingRuntimeEnvVars,
+  );
 
   const addEnvVar = () => {
-    setAdditionalEnvVars((prevVars) => [...prevVars, { name: '', value: '' }]);
+    if (additionalEnvVars) {
+      const newVars = [...additionalEnvVars, { name: '', value: '' }];
+      setAdditionalEnvVars(newVars);
+      setData('servingRuntimeEnvVars', newVars);
+    }
   };
 
   const removeEnvVar = (indexToRemove: number) => {
-    setAdditionalEnvVars((prevVars) => prevVars.filter((_, i) => i !== indexToRemove));
+    if (additionalEnvVars) {
+      const newVars = additionalEnvVars.filter((_, i) => i !== indexToRemove);
+      setAdditionalEnvVars(newVars);
+      setData('servingRuntimeEnvVars', newVars);
+    }
   };
 
   const updateEnvVar = (indexToUpdate: number, updates: { name?: string; value?: string }) => {
-    setAdditionalEnvVars((prevVars) => {
-      const newVars = [...prevVars];
-      newVars[indexToUpdate] = { ...prevVars[indexToUpdate], ...updates };
-      return newVars;
-    });
+    if (additionalEnvVars) {
+      const newVars = [...additionalEnvVars];
+      newVars[indexToUpdate] = { ...additionalEnvVars[indexToUpdate], ...updates };
+      setAdditionalEnvVars(newVars);
+      setData('servingRuntimeEnvVars', newVars);
+    }
   };
 
   return (
@@ -60,10 +73,10 @@ const EnvironmentVariablesSection: React.FC<EnvironmentVariablesSectionType> = (
           </Icon>
         </Popover>
       }
-      fieldId="model-server-replicas"
+      fieldId="environment-variables"
     >
       <Stack hasGutter>
-        {additionalEnvVars.map((envVar, index) => (
+        {additionalEnvVars?.map((envVar, index) => (
           <Split hasGutter key={index}>
             <SplitItem isFilled>
               <TextInput
