@@ -1,5 +1,4 @@
 import React from 'react';
-
 import {
   EmptyState,
   EmptyStateVariant,
@@ -8,11 +7,12 @@ import {
   Title,
   Alert,
   AlertActionCloseButton,
+  EmptyStateFooter,
 } from '@patternfly/react-core';
-
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import useStorageClasses from '~/concepts/k8s/useStorageClasses';
+import WhosMyAdministrator from '~/components/WhosMyAdministrator';
 import { StorageClassesTable } from './StorageClassesTable';
 import { StorageClassContextProvider, useStorageClassContext } from './StorageClassesContext';
 
@@ -55,6 +55,9 @@ const StorageClassesPageInternal: React.FC<StorageClassesPageInternalProps> = ({
               At least one OpenShift storage class is required to use OpenShift AI. Configure a
               storage class in OpenShift, or request that your admin configure one.
             </EmptyStateBody>
+            <EmptyStateFooter>
+              <WhosMyAdministrator />
+            </EmptyStateFooter>
           </EmptyState>
         </PageSection>
       }

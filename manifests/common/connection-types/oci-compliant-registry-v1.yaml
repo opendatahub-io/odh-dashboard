@@ -1,0 +1,13 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: oci-compliant-registry-v1
+  labels:
+    opendatahub.io/connection-type: 'true'
+    opendatahub.io/dashboard: 'true'
+  annotations:
+    openshift.io/description: 'Connect to an OCI-compliant container registry, enabling integration with containerized applications and services. Use this connection type to pull and manage container images and artifacts that adhere to the Open Container Initiative (OCI) standards, ensuring compatibility with OCI-compliant tools and workflows.'
+    openshift.io/display-name: OCI compliant registry - v1
+data:
+  category: '["URI"]'
+  fields: '[{"type":"uri","name":"URI","envVar":"URI","required":true,"properties":{}}]'
