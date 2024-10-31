@@ -75,6 +75,7 @@
     "axios": "^1.6.4",
     "classnames": "^2.2.6",
     "compare-versions": "^3.6.0",
+    "cypress-plugin-steps": "^1.1.1",
     "dompurify": "^2.2.6",
     "google-protobuf": "^3.11.2",
     "grpc-web": "^1.2.1",

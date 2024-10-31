@@ -86,6 +86,12 @@ export type TestConfig = {
   S3: AWSS3Buckets;
 };
 
+export type DataScienceProjectData = {
+  dsProjectName: string;
+  dsProjectDescription: string;
+  dsOCProjectName: string;
+};
+
 export type NimServingResponse = {
   body: {
     body: ConfigMapKind | SecretKind;
