@@ -5,7 +5,7 @@
  */
 export function handleOCCommandResult(result: Cypress.Exec): void {
   if (result.code !== 0 && result.code !== 1) {
-    // When some resources e.g. projects don't exist 
+    // When some resources e.g. projects don't exist
     cy.log(`ERROR: Command execution failed
             stdout: ${result.stdout}
             stderr: ${result.stderr}`);
