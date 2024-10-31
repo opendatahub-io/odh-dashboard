@@ -4,7 +4,7 @@ import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
-import { useWatchNotebookEvents } from './useWatchNotebookEvents';
+import { useWatchNotebookEvents } from '~/api';
 
 export const hasStopAnnotation = (notebook: NotebookKind): boolean =>
   !!(
@@ -124,7 +124,7 @@ export const useNotebookStatus = (
   podUid: string,
   spawnInProgress: boolean,
 ): [status: NotebookStatus | null, events: EventKind[]] => {
-  const events = useWatchNotebookEvents(notebook, podUid, spawnInProgress);
+  const [events] = useWatchNotebookEvents(notebook, podUid);
 
   const annotationTime = notebook.metadata.annotations?.['notebooks.kubeflow.org/last-activity'];
   const lastActivity = annotationTime
