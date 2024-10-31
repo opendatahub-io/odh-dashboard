@@ -12,7 +12,7 @@ import {
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import TruncatedText from '~/components/TruncatedText';
 import { Connection, ConnectionTypeConfigMapObj } from './types';
-import { getConnectionTypeDisplayName } from './utils';
+import { getConnectionTypeDisplayName, parseConnectionSecretValues } from './utils';
 
 type Props = {
   connection: Connection;
@@ -23,6 +23,11 @@ export const ConnectionDetailsHelperText: React.FC<Props> = ({ connection, conne
   const displayName = getDisplayNameFromK8sResource(connection);
   const description = getDescriptionFromK8sResource(connection);
   const connectionTypeName = getConnectionTypeDisplayName(connection, connectionType);
+
+  const connectionValues = React.useMemo(
+    () => parseConnectionSecretValues(connection, connectionType),
+    [connection, connectionType],
+  );
 
   return (
     <HelperText>
@@ -40,12 +45,18 @@ export const ConnectionDetailsHelperText: React.FC<Props> = ({ connection, conne
                 <DescriptionListTerm>Connection name</DescriptionListTerm>
                 <DescriptionListDescription>{displayName}</DescriptionListDescription>
               </DescriptionListGroup>
-              {description ? (
+              {description && (
                 <DescriptionListGroup>
                   <DescriptionListTerm>Connection description</DescriptionListTerm>
                   <DescriptionListDescription>{description}</DescriptionListDescription>
                 </DescriptionListGroup>
-              ) : undefined}
+              )}
+              {connectionValues.URI && (
+                <DescriptionListGroup>
+                  <DescriptionListTerm>URI</DescriptionListTerm>
+                  <DescriptionListDescription>{connectionValues.URI}</DescriptionListDescription>
+                </DescriptionListGroup>
+              )}
               <DescriptionListGroup>
                 <DescriptionListTerm>Type</DescriptionListTerm>
                 <DescriptionListDescription>{connectionTypeName}</DescriptionListDescription>

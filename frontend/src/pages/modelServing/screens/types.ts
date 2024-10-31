@@ -82,12 +82,14 @@ export type CreatingModelServingObjectCommon = {
 export enum InferenceServiceStorageType {
   NEW_STORAGE = 'new-storage',
   EXISTING_STORAGE = 'existing-storage',
+  EXISTING_URI = 'existing-uri',
 }
 
 export type InferenceServiceStorage = {
   type: InferenceServiceStorageType;
   path: string;
   dataConnection: string;
+  uri?: string;
   awsData: EnvVariableDataEntry[];
   alert?: {
     type: AlertVariant;

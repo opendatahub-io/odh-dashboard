@@ -3,6 +3,7 @@ import { Form, FormSection, Modal, Stack, StackItem } from '@patternfly/react-co
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
   getCreateInferenceServiceLabels,
+  isConnectionPathValid,
   submitInferenceServiceResourceWithDryRun,
   useCreateInferenceServiceObject,
 } from '~/pages/modelServing/screens/projects/utils';
@@ -13,7 +14,6 @@ import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types'
 import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
-import { containsOnlySlashes, isS3PathValid } from '~/utilities/string';
 import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 import usePrefillDeployModalFromModelRegistry from '~/pages/modelRegistry/screens/RegisteredModels/usePrefillDeployModalFromModelRegistry';
 import useConnectionTypesEnabled from '~/concepts/connectionTypes/useConnectionTypesEnabled';
@@ -79,13 +79,25 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
   }, [setCreateData, currentProjectName, currentServingRuntimeName, hasEditInfo]);
 
   const storageCanCreate = (): boolean => {
-    if (createData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
-      return createData.storage.dataConnection !== '';
+    if (createData.storage.type === InferenceServiceStorageType.EXISTING_URI) {
+      return !!createData.storage.uri;
     }
+    if (createData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
+      if (isConnectionTypesEnabled) {
+        return isConnectionValid;
+      }
+      return (
+        createData.storage.dataConnection !== '' && isConnectionPathValid(createData.storage.path)
+      );
+    }
+    // NEW_STORAGE
     if (isConnectionTypesEnabled) {
       return isConnectionValid;
     }
-    return isAWSValid(createData.storage.awsData, [AwsKeys.AWS_S3_BUCKET]);
+    return (
+      isAWSValid(createData.storage.awsData, [AwsKeys.AWS_S3_BUCKET]) &&
+      isConnectionPathValid(createData.storage.path)
+    );
   };
 
   const isDisabled =
@@ -94,9 +106,6 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     createData.project === '' ||
     createData.format.name === '' ||
     createData.servingRuntimeName === '' ||
-    containsOnlySlashes(createData.storage.path) ||
-    !isS3PathValid(createData.storage.path) ||
-    createData.storage.path === '' ||
     !isInferenceServiceNameWithinLimit ||
     !storageCanCreate();
 
