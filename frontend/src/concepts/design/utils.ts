@@ -32,6 +32,7 @@ export enum SectionType {
 
 export enum ProjectObjectType {
   project = 'project',
+  projectContext = 'projectContext',
   notebook = 'notebook',
   pipelineSetup = 'pipeline-setup',
   pipeline = 'pipeline',
@@ -52,6 +53,8 @@ export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
   switch (objectType) {
     case ProjectObjectType.project:
       return 'var(--ai-project--BackgroundColor)';
+    case ProjectObjectType.projectContext:
+      return 'var(--ai-project-context--BackgroundColor)';
     case ProjectObjectType.notebook:
       return 'var(--ai-notebook--BackgroundColor)';
     case ProjectObjectType.pipeline:
@@ -82,6 +85,8 @@ export const typedColor = (objectType: ProjectObjectType): string => {
   switch (objectType) {
     case ProjectObjectType.project:
       return 'var(--ai-project--Color)';
+    case ProjectObjectType.projectContext:
+      return 'var(--ai-project-context--Color)';
     case ProjectObjectType.notebook:
       return 'var(--ai-notebook--Color)';
     case ProjectObjectType.pipeline:
@@ -111,6 +116,7 @@ export const typedColor = (objectType: ProjectObjectType): string => {
 export const typedObjectImage = (objectType: ProjectObjectType): string => {
   switch (objectType) {
     case ProjectObjectType.project:
+    case ProjectObjectType.projectContext:
       return projectImg;
     case ProjectObjectType.notebook:
       return notebookImg;
@@ -144,6 +150,7 @@ export const typedObjectImage = (objectType: ProjectObjectType): string => {
 export const typedEmptyImage = (objectType: ProjectObjectType, option?: string): string => {
   switch (objectType) {
     case ProjectObjectType.project:
+    case ProjectObjectType.projectContext:
       return projectEmptyStateImg;
     case ProjectObjectType.notebook:
       return notebookEmptyStateImg;
