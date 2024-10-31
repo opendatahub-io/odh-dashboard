@@ -137,6 +137,8 @@ export const mockInferenceServiceK8sResource = ({
           key: secretName,
           path,
         },
+        args: [''],
+        env: [],
       },
     },
   },
