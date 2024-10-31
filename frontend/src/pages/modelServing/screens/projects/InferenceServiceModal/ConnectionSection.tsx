@@ -103,10 +103,10 @@ const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = ({
 
   React.useEffect(() => {
     setIsConnectionValid(
-      !!selectedConnectionType &&
-        (isUriConnectionType(selectedConnectionType) ? true : isConnectionPathValid(folderPath)),
+      !!selectedConnection &&
+        (isUriConnection(selectedConnection) ? true : isConnectionPathValid(folderPath)),
     );
-  }, [folderPath, selectedConnectionType, setIsConnectionValid]);
+  }, [folderPath, selectedConnection, setIsConnectionValid]);
 
   return (
     <>
@@ -143,7 +143,7 @@ const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = ({
           />
         )}
       </FormGroup>
-      {selectedConnectionType && !isUriConnection(selectedConnection) && (
+      {selectedConnection && !isUriConnection(selectedConnection) && (
         <DataConnectionFolderPathField folderPath={folderPath} setFolderPath={setFolderPath} />
       )}
     </>
@@ -300,9 +300,6 @@ export const ConnectionSection: React.FC<Props> = ({
             setData('storage', {
               ...data.storage,
               type: InferenceServiceStorageType.EXISTING_URI,
-              dataConnection: '',
-              path: '',
-              awsData: [],
               alert: undefined,
             });
           }}
@@ -320,9 +317,6 @@ export const ConnectionSection: React.FC<Props> = ({
           setData('storage', {
             ...data.storage,
             type: InferenceServiceStorageType.EXISTING_STORAGE,
-            dataConnection: '',
-            path: '',
-            awsData: [],
             alert: undefined,
           });
         }}
@@ -358,9 +352,6 @@ export const ConnectionSection: React.FC<Props> = ({
           setData('storage', {
             ...data.storage,
             type: InferenceServiceStorageType.NEW_STORAGE,
-            dataConnection: '',
-            path: '',
-            awsData: [],
             alert: undefined,
           });
         }}

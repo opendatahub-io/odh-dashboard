@@ -339,7 +339,6 @@ export const createAWSSecret = (
 
 const createInferenceServiceAndDataConnection = async (
   inferenceServiceData: CreatingInferenceServiceObject,
-  existingStorage: boolean,
   editInfo?: InferenceServiceKind,
   isModelMesh?: boolean,
   initialAcceleratorProfile?: AcceleratorProfileState,
@@ -349,28 +348,23 @@ const createInferenceServiceAndDataConnection = async (
   connection?: Connection,
 ) => {
   let secret;
-  if (!existingStorage) {
+  let storageUri;
+  if (inferenceServiceData.storage.type === InferenceServiceStorageType.NEW_STORAGE) {
     if (connection) {
       secret = await createSecret(connection, { dryRun });
+      if (connection.stringData?.URI) {
+        storageUri = connection.stringData.URI;
+      }
     } else {
       secret = await createAWSSecret(inferenceServiceData, dryRun);
     }
   }
-  let storageUri;
-  // new URI connection
-  if (connection?.stringData?.URI) {
-    storageUri = connection.stringData.URI;
+  if (inferenceServiceData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
+    if (connection?.data?.URI) {
+      storageUri = window.atob(connection.data.URI);
+    }
   }
-  // existing URI connection
-  else if (connection?.data?.URI) {
-    storageUri = window.atob(connection.data.URI);
-  }
-  // new / existing DATA connection
-  else if (secret || inferenceServiceData.storage.dataConnection) {
-    storageUri = undefined;
-  }
-  // existing storageUri
-  else if (inferenceServiceData.storage.uri) {
+  if (inferenceServiceData.storage.type === InferenceServiceStorageType.EXISTING_URI) {
     storageUri = inferenceServiceData.storage.uri;
   }
 
@@ -437,17 +431,12 @@ export const getSubmitInferenceServiceResourceFn = (
     },
   };
 
-  const existingStorage =
-    inferenceServiceData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE ||
-    inferenceServiceData.storage.type === InferenceServiceStorageType.EXISTING_URI;
-
   const createTokenAuth = createData.tokenAuth && !!allowCreate;
   const inferenceServiceName = translateDisplayNameForK8s(inferenceServiceData.name);
 
   return ({ dryRun = false }) =>
     createInferenceServiceAndDataConnection(
       inferenceServiceData,
-      existingStorage,
       editInfo,
       isModelMesh,
       initialAcceleratorProfile,
