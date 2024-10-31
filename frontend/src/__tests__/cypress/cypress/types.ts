@@ -89,10 +89,9 @@ export type TestConfig = {
 export type DataScienceProjectData = {
   dsProjectName: string;
   dsProjectDescription: string;
-  dsProjectURL: string;
   dsOCProjectName: string;
 };
-  
+
 export type NimServingResponse = {
   body: {
     body: ConfigMapKind | SecretKind;

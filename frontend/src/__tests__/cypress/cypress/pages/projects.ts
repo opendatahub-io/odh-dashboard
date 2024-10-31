@@ -330,7 +330,7 @@ class ProjectDetails {
   findDeleteProjectButton() {
     return cy.findByTestId('delete-project-action').find('button');
   }
-    
+
   getKserveTableRow(name: string) {
     return new KserveTableRow(() =>
       this.findKserveModelsTable()
