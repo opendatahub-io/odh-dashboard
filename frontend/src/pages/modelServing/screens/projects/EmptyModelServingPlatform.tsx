@@ -2,11 +2,12 @@ import * as React from 'react';
 import {
   EmptyState,
   EmptyStateBody,
+  EmptyStateFooter,
   EmptyStateHeader,
   EmptyStateIcon,
 } from '@patternfly/react-core';
-import EmptyDetailsList from '~/pages/projects/screens/detail/EmptyDetailsList';
 import gearsImg from '~/images/gears.svg';
+import WhosMyAdministrator from '~/components/WhosMyAdministrator';
 
 const EmptyModelServingPlatform: React.FC = () => (
   <EmptyState variant="xs">
@@ -20,13 +21,10 @@ const EmptyModelServingPlatform: React.FC = () => (
       To enable model serving, an administrator must first select a model serving platform in the
       cluster settings.
     </EmptyStateBody>
+    <EmptyStateFooter>
+      <WhosMyAdministrator />
+    </EmptyStateFooter>
   </EmptyState>
 );
-
-<EmptyDetailsList
-  title="No model serving platform selected"
-  description="To enable model serving, an administrator must first select a model serving platform in the cluster settings."
-  icon={() => <img src={gearsImg} alt="settings" />}
-/>;
 
 export default EmptyModelServingPlatform;

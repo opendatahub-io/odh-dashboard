@@ -202,7 +202,7 @@ class ProjectDetails {
     return this.findDataConnectionTable().find('thead').findByRole('button', { name });
   }
 
-  private findModelServingPlatform(name: string) {
+  findModelServingPlatform(name: string) {
     return this.findComponent('model-server').findByTestId(`${name}-serving-platform-card`);
   }
 
@@ -307,7 +307,7 @@ class ProjectDetails {
     return cy.findByTestId('unsupported-pipeline-version-alert');
   }
 
-  private findKserveModelsTable() {
+  findKserveModelsTable() {
     return cy.findByTestId('kserve-inference-service-table');
   }
 
@@ -330,6 +330,16 @@ class ProjectDetails {
   findDeleteProjectButton() {
     return cy.findByTestId('delete-project-action').find('button');
   }
+    
+  getKserveTableRow(name: string) {
+    return new KserveTableRow(() =>
+      this.findKserveModelsTable()
+        .find('tbody')
+        .find('[data-label="Name"]')
+        .contains(name)
+        .closest('tr'),
+    );
+  }
 }
 
 class ProjectDetailsSettingsTab extends ProjectDetails {
@@ -342,9 +352,51 @@ class ProjectDetailsSettingsTab extends ProjectDetails {
   }
 }
 
+class ProjectDetailsOverviewTab extends ProjectDetails {
+  visit(project: string) {
+    super.visitSection(project, 'overview');
+  }
+
+  findDeployedModelServingRuntime(name: string) {
+    return cy
+      .findByTestId('section-overview')
+      .get('div')
+      .contains(name)
+      .parents('.odh-type-bordered-card .model-server')
+      .get('dd');
+  }
+
+  findModelServingPlatform(name: string) {
+    return cy.findByTestId(`${name}-platform-card`);
+  }
+}
+
+class KserveTableRow extends TableRow {
+  findAPIProtocol() {
+    return this.find().find(`[data-label="API protocol"]`);
+  }
+
+  findServiceRuntime() {
+    return this.find().find(`[data-label="Serving Runtime"]`);
+  }
+
+  findDetailsTriggerButton() {
+    return this.find().findByTestId('kserve-model-row-item').find('button');
+  }
+
+  private findDetailsCell() {
+    return this.find().next('tr').find('td').eq(1);
+  }
+
+  findInfoValueFor(label: string) {
+    return this.findDetailsCell().find('dt').contains(label).closest('div').find('dd');
+  }
+}
+
 export const projectListPage = new ProjectListPage();
 export const createProjectModal = new CreateEditProjectModal();
 export const editProjectModal = new CreateEditProjectModal(true);
 export const deleteProjectModal = new DeleteModal();
 export const projectDetails = new ProjectDetails();
 export const projectDetailsSettingsTab = new ProjectDetailsSettingsTab();
+export const projectDetailsOverviewTab = new ProjectDetailsOverviewTab();

@@ -59,6 +59,14 @@ class PipelinesGlobal {
     return cy.findByTestId('incompatible-pipelines-server');
   }
 
+  shouldHaveIncompatibleTitleText() {
+    cy.findByTestId('incompatible-pipelines-server-title').should(
+      'contain.text',
+      'Unsupported pipeline and pipeline server version',
+    );
+    return this;
+  }
+
   findDeletePipelineServerButton() {
     return this.findIsServerIncompatible().findByTestId('delete-pipeline-server-button');
   }

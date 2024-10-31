@@ -1,0 +1,341 @@
+import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
+import { mockNimInferenceService, mockNimServingRuntime } from '~/__mocks__/mockNimResource';
+import {
+  InferenceServiceModel,
+  ServingRuntimeModel,
+} from '~/__tests__/cypress/cypress/utils/models';
+import {
+  projectDetails,
+  projectDetailsOverviewTab,
+} from '~/__tests__/cypress/cypress/pages/projects';
+import { nimDeployModal } from '~/__tests__/cypress/cypress/pages/components/NIMDeployModal';
+import {
+  initInterceptorsValidatingNimEnablement,
+  initInterceptsForDeleteModel,
+  initInterceptsToDeployModel,
+  initInterceptsToEnableNim,
+} from '~/__tests__/cypress/cypress/utils/nimUtils';
+import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+
+describe('NIM Model Serving', () => {
+  describe('Deploying a model from an existing Project', () => {
+    it('should be disabled if the modal is empty', () => {
+      initInterceptsToEnableNim({ hasAllModels: true });
+
+      projectDetails.visitSection('test-project', 'model-server');
+      // For multiple cards use case
+      projectDetails
+        .findModelServingPlatform('nvidia-nim-model')
+        .findByTestId('nim-serving-deploy-button')
+        .click();
+
+      // test that you can not submit on empty
+      nimDeployModal.shouldBeOpen();
+      nimDeployModal.findSubmitButton().should('be.disabled');
+    });
+
+    it('should be enabled if the modal has the minimal info', () => {
+      initInterceptsToEnableNim({});
+      const nimInferenceService = mockNimInferenceService();
+      initInterceptsToDeployModel(nimInferenceService);
+
+      projectDetails.visitSection('test-project', 'model-server');
+      cy.get('button[data-testid=deploy-button]').click();
+
+      // test that you can not submit on empty
+      nimDeployModal.shouldBeOpen();
+      nimDeployModal.findSubmitButton().should('be.disabled');
+
+      // test filling in minimum required fields
+      nimDeployModal.findModelNameInput().type('Test Name');
+      nimDeployModal
+        .findNIMToDeploy()
+        .findSelectOption('Snowflake Arctic Embed Large Embedding - 1.0.0')
+        .click();
+      nimDeployModal.findSubmitButton().should('be.enabled');
+
+      nimDeployModal.findNimStorageSizeInput().should('have.value', '30');
+      nimDeployModal.findStorageSizeMinusButton().click();
+      nimDeployModal.findNimStorageSizeInput().should('have.value', '29');
+      nimDeployModal.findStorageSizePlusButton().click();
+      nimDeployModal.findNimStorageSizeInput().should('have.value', '30');
+
+      nimDeployModal.findNimModelReplicas().should('have.value', '1');
+      nimDeployModal.findNimModelReplicasPlusButton().click();
+      nimDeployModal.findNimModelReplicas().should('have.value', '2');
+      nimDeployModal.findNimModelReplicasMinusButton().click();
+      nimDeployModal.findNimModelReplicas().should('have.value', '1');
+
+      nimDeployModal.findSubmitButton().click();
+
+      //dry run request
+      if (nimInferenceService.status) {
+        delete nimInferenceService.status;
+      }
+      cy.wait('@createInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body).to.eql(nimInferenceService);
+      });
+
+      // Actual request
+      cy.wait('@createInferenceService').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
+      cy.get('@createInferenceService.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); // 1 dry run request and 1 actual request
+      });
+
+      nimDeployModal.shouldBeOpen(false);
+    });
+
+    it('should list the deployed model in Models tab', () => {
+      initInterceptsToEnableNim({ hasAllModels: false });
+      cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([mockNimInferenceService()]));
+      cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([mockNimServingRuntime()]));
+
+      projectDetails.visitSection('test-project', 'model-server');
+
+      // Table is visible and has 1 row
+      projectDetails.findKserveModelsTable().should('have.length', 1);
+
+      // First row matches the NIM inference service details
+      projectDetails
+        .getKserveTableRow('Test Name')
+        .findServiceRuntime()
+        .should('have.text', 'NVIDIA NIM');
+      projectDetails.getKserveTableRow('Test Name').findAPIProtocol().should('have.text', 'REST');
+
+      // Open toggle to validate Model details
+      projectDetails.getKserveTableRow('Test Name').findDetailsTriggerButton().click();
+
+      projectDetails
+        .getKserveTableRow('Test Name')
+        .findInfoValueFor('Framework')
+        .should('have.text', 'arctic-embed-l');
+      projectDetails
+        .getKserveTableRow('Test Name')
+        .findInfoValueFor('Model server replicas')
+        .should('have.text', '1');
+      projectDetails
+        .getKserveTableRow('Test Name')
+        .findInfoValueFor('Model server size')
+        .should('contain.text', 'Small');
+      projectDetails
+        .getKserveTableRow('Test Name')
+        .findInfoValueFor('Model server size')
+        .should('contain.text', '1 CPUs, 4GiB Memory requested');
+      projectDetails
+        .getKserveTableRow('Test Name')
+        .findInfoValueFor('Model server size')
+        .should('contain.text', '2 CPUs, 8GiB Memory limit');
+      projectDetails
+        .getKserveTableRow('Test Name')
+        .findInfoValueFor('Accelerator')
+        .should('have.text', 'No accelerator selected');
+    });
+
+    it('should list the deployed model in Overview tab', () => {
+      initInterceptsToEnableNim({ hasAllModels: false });
+      cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([mockNimInferenceService()]));
+      cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([mockNimServingRuntime()]));
+
+      projectDetails.visit('test-project');
+
+      // Card is visible
+      projectDetailsOverviewTab
+        .findDeployedModelServingRuntime('Test Name')
+        .should('have.text', 'NVIDIA NIM');
+    });
+
+    it('should be blocked if failed to fetch NIM model list', () => {
+      initInterceptsToEnableNim({});
+      projectDetailsOverviewTab.visit('test-project');
+      cy.findByTestId('model-serving-platform-button').click();
+      nimDeployModal.shouldDisplayError(
+        'There was a problem fetching the NIM models. Please try again later.',
+      );
+      nimDeployModal.findSubmitButton().should('be.disabled');
+    });
+  });
+
+  describe('Enabling NIM', () => {
+    describe('When NIM feature is enabled', () => {
+      it("should allow deploying NIM from a Project's Overview tab when the only platform", () => {
+        initInterceptsToEnableNim({});
+        projectDetailsOverviewTab.visit('test-project');
+        cy.findByTestId('model-serving-platform-button').click();
+        nimDeployModal.shouldBeOpen();
+      });
+
+      it("should allow deploying NIM from a Project's Overview tab when multiple platforms exist", () => {
+        initInterceptorsValidatingNimEnablement({
+          disableKServe: false,
+          disableModelMesh: false,
+          disableNIMModelServing: false,
+        });
+        projectDetailsOverviewTab.visit('test-project');
+        projectDetailsOverviewTab
+          .findModelServingPlatform('nvidia-nim')
+          .findByTestId('model-serving-platform-button')
+          .click();
+        nimDeployModal.shouldBeOpen();
+      });
+
+      it("should allow deploying NIM from a Project's Models tab when the only platform", () => {
+        initInterceptsToEnableNim({});
+        projectDetails.visitSection('test-project', 'model-server');
+        cy.get('button[data-testid=deploy-button]').click();
+        nimDeployModal.shouldBeOpen();
+      });
+
+      it("should allow deploying NIM from a Project's Models tab when multiple platforms exist", () => {
+        initInterceptorsValidatingNimEnablement({
+          disableKServe: false,
+          disableModelMesh: false,
+          disableNIMModelServing: false,
+        });
+        projectDetails.visitSection('test-project', 'model-server');
+        projectDetails
+          .findModelServingPlatform('nvidia-nim-model')
+          .findByTestId('nim-serving-deploy-button')
+          .click();
+        nimDeployModal.shouldBeOpen();
+      });
+    });
+
+    describe('When NIM feature is disabled', () => {
+      it("should NOT allow deploying NIM from a Project's Overview tab when the only platform", () => {
+        initInterceptorsValidatingNimEnablement({
+          disableKServe: true,
+          disableModelMesh: true,
+          disableNIMModelServing: true,
+        });
+        projectDetailsOverviewTab.visit('test-project');
+        cy.findByTestId('model-serving-platform-button').should('not.exist');
+      });
+
+      it("should NOT allow deploying NIM from a Project's Overview tab when multiple platforms exist", () => {
+        initInterceptorsValidatingNimEnablement({
+          disableKServe: false,
+          disableModelMesh: false,
+          disableNIMModelServing: true,
+        });
+        projectDetailsOverviewTab.visit('test-project');
+        projectDetailsOverviewTab.findModelServingPlatform('nvidia-nim').should('not.exist');
+        cy.findByTestId('model-serving-platform-button').should('not.exist');
+      });
+
+      it("should NOT allow deploying NIM from a Project's Models tab when the only platform", () => {
+        initInterceptorsValidatingNimEnablement({
+          disableKServe: true,
+          disableModelMesh: true,
+          disableNIMModelServing: true,
+        });
+        projectDetails.visitSection('test-project', 'model-server');
+        cy.get('button[data-testid=deploy-button]').should('not.exist');
+      });
+
+      it("should NOT allow deploying NIM to a Project's Models tab when multiple platforms exist", () => {
+        initInterceptorsValidatingNimEnablement({
+          disableKServe: false,
+          disableModelMesh: false,
+          disableNIMModelServing: true,
+        });
+        projectDetails.visitSection('test-project', 'model-server');
+        projectDetails.findModelServingPlatform('nvidia-nim-model').should('not.exist');
+        cy.findByTestId('nim-serving-deploy-button').should('not.exist');
+      });
+    });
+
+    describe('When the Template is missing', () => {
+      it("should NOT allow deploying NIM from a Project's Overview tab when the only platform", () => {
+        initInterceptorsValidatingNimEnablement(
+          {
+            disableKServe: false,
+            disableModelMesh: false,
+            disableNIMModelServing: false,
+          },
+          true,
+        );
+        projectDetailsOverviewTab.visit('test-project');
+        cy.findByTestId('model-serving-platform-button').should('not.exist');
+      });
+
+      it("should NOT allow deploying NIM from a Project's Overview tab when multiple platforms exist", () => {
+        initInterceptorsValidatingNimEnablement(
+          {
+            disableKServe: false,
+            disableModelMesh: false,
+            disableNIMModelServing: false,
+          },
+          true,
+        );
+        projectDetailsOverviewTab.visit('test-project');
+        projectDetailsOverviewTab.findModelServingPlatform('nvidia-nim').should('not.exist');
+        cy.findByTestId('model-serving-platform-button').should('not.exist');
+      });
+
+      it("should NOT allow deploying NIM from a Project's Models tab when the only platform", () => {
+        initInterceptorsValidatingNimEnablement(
+          {
+            disableKServe: false,
+            disableModelMesh: false,
+            disableNIMModelServing: false,
+          },
+          true,
+        );
+        projectDetails.visitSection('test-project', 'model-server');
+        cy.get('button[data-testid=deploy-button]').should('not.exist');
+      });
+
+      it("should NOT allow deploying NIM to a Project's Models tab when multiple platforms exist", () => {
+        initInterceptorsValidatingNimEnablement(
+          {
+            disableKServe: false,
+            disableModelMesh: false,
+            disableNIMModelServing: false,
+          },
+          true,
+        );
+        projectDetails.visitSection('test-project', 'model-server');
+        projectDetails.findModelServingPlatform('nvidia-nim-model').should('not.exist');
+        cy.findByTestId('nim-serving-deploy-button').should('not.exist');
+      });
+    });
+  });
+
+  describe('Deleting an existing model', () => {
+    it("should be the only option available from the Project's Models tab", () => {
+      initInterceptsToEnableNim({});
+      initInterceptsForDeleteModel();
+
+      // go the Models tab in the created project
+      projectDetails.visitSection('test-project', 'model-server');
+      // grab the deployed models table and click the kebab menu
+      cy.findByTestId('kserve-model-row-item').get('button[aria-label="Kebab toggle"').click();
+      cy.get('ul[role="menu"]').should('have.length', 1);
+      cy.get('button').contains('Delete').should('exist');
+    });
+
+    it('should delete the underlying InferenceService and ServingRuntime', () => {
+      initInterceptsToEnableNim({});
+      initInterceptsForDeleteModel();
+
+      // go the Models tab in the created project
+      projectDetails.visitSection('test-project', 'model-server');
+      // grab the deployed models table and click the kebab menu
+      cy.findByTestId('kserve-model-row-item').get('button[aria-label="Kebab toggle"').click();
+      // grab the delete menu and click it
+      cy.get('button').contains('Delete').click();
+      // grab the delete menu window and put in the project name
+      deleteModal.findInput().type('Test Name');
+      // grab the delete button and click it
+      deleteModal.findSubmitButton().click();
+
+      // verify the model was deleted
+      cy.wait('@deleteInference');
+      cy.wait('@deleteRuntime');
+    });
+  });
+});

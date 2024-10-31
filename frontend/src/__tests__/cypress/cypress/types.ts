@@ -1,4 +1,5 @@
 import type { RouteMatcher } from 'cypress/types/net-stubbing';
+import type { ConfigMapKind, SecretKind } from '~/k8sTypes';
 
 export type Snapshot = {
   method: string;
@@ -90,4 +91,10 @@ export type DataScienceProjectData = {
   dsProjectDescription: string;
   dsProjectURL: string;
   dsOCProjectName: string;
+};
+  
+export type NimServingResponse = {
+  body: {
+    body: ConfigMapKind | SecretKind;
+  };
 };

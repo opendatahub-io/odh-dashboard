@@ -1,22 +1,13 @@
 import * as React from 'react';
-import {
-  Button,
-  Icon,
-  Popover,
-  SearchInput,
-  ToolbarGroup,
-  ToolbarItem,
-} from '@patternfly/react-core';
+import { SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import PopoverListContent from '~/components/PopoverListContent';
 import FilterToolbar from '~/components/FilterToolbar';
 import {
-  FindAdministratorOptions,
   ProjectsFilterDataType,
   projectsFilterOptions,
   ProjectsFilterOptions,
 } from '~/pages/projects/screens/projects/const';
+import WhosMyAdministrator from '~/components/WhosMyAdministrator';
 import NewProjectButton from './NewProjectButton';
 
 type ProjectsToolbarProps = {
@@ -64,25 +55,12 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
               onProjectCreated={(projectName) => navigate(`/projects/${projectName}`)}
             />
           ) : (
-            <Popover
-              minWidth="400px"
+            <WhosMyAdministrator
+              buttonLabel="Need another project?"
               headerContent="Need another project?"
-              bodyContent={
-                <PopoverListContent
-                  data-testid="projects-admin-help-content"
-                  leadText="To request a new project, contact your administrator."
-                  listHeading="Your administrator might be:"
-                  listItems={FindAdministratorOptions}
-                />
-              }
-            >
-              <Button data-testid="projects-empty-admin-help" variant="link">
-                <Icon isInline aria-label="More info">
-                  <OutlinedQuestionCircleIcon />
-                </Icon>
-                <span className="pf-v5-u-ml-xs">Need another project?</span>
-              </Button>
-            </Popover>
+              leadText="To request a new project, contact your administrator."
+              contentTestId="projects-admin-help-content"
+            />
           )}
         </ToolbarItem>
       </ToolbarGroup>

@@ -1,7 +1,7 @@
 import { V1ConfigMap } from '@kubernetes/client-node';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, RecursivePartial } from '../../../types';
-import { secureAdminRoute } from '../../../utils/route-security';
+import { secureAdminRoute, secureRoute } from '../../../utils/route-security';
 import {
   getConnectionType,
   listConnectionTypes,
@@ -14,7 +14,7 @@ import {
 module.exports = async (fastify: KubeFastifyInstance) => {
   fastify.get(
     '/',
-    secureAdminRoute(fastify)(async (request: FastifyRequest, reply: FastifyReply) =>
+    secureRoute(fastify)(async (request: FastifyRequest, reply: FastifyReply) =>
       listConnectionTypes(fastify)
         .then((res) => res)
         .catch((res) => {
@@ -25,7 +25,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
 
   fastify.get(
     '/:name',
-    secureAdminRoute(fastify)(
+    secureRoute(fastify)(
       async (request: FastifyRequest<{ Params: { name: string } }>, reply: FastifyReply) =>
         getConnectionType(fastify, request.params.name)
           .then((res) => res)
