@@ -181,6 +181,8 @@ export const defaultInferenceService: CreatingInferenceServiceObject = {
   externalRoute: false,
   tokenAuth: false,
   tokens: [],
+  servingRuntimeArgs: [''],
+  servingRuntimeEnvVars: [],
 };
 
 export const useCreateInferenceServiceObject = (
@@ -229,6 +231,10 @@ export const useCreateInferenceServiceObject = (
     getInferenceServiceSize(sizes, existingData, existingServingRuntimeData),
   );
 
+  const existingServingRuntimeArgs = existingData?.spec.predictor.model?.args;
+
+  const existingServingRuntimeEnvVars = existingData?.spec.predictor.model?.env;
+
   React.useEffect(() => {
     if (existingName) {
       setCreateData('name', existingName);
@@ -252,6 +258,8 @@ export const useCreateInferenceServiceObject = (
       setCreateData('externalRoute', existingExternalRoute);
       setCreateData('tokenAuth', existingTokenAuth);
       setCreateData('tokens', existingTokens);
+      setCreateData('servingRuntimeArgs', existingServingRuntimeArgs);
+      setCreateData('servingRuntimeEnvVars', existingServingRuntimeEnvVars);
     }
   }, [
     existingName,
@@ -266,6 +274,8 @@ export const useCreateInferenceServiceObject = (
     existingExternalRoute,
     existingTokenAuth,
     existingTokens,
+    existingServingRuntimeArgs,
+    existingServingRuntimeEnvVars,
   ]);
 
   return [...createInferenceServiceState, sizes];

@@ -38,6 +38,8 @@ export const assembleInferenceService = (
     minReplicas,
     tokenAuth,
     externalRoute,
+    servingRuntimeArgs,
+    servingRuntimeEnvVars,
   } = data;
   const name = editName || translateDisplayNameForK8s(data.name);
   const { path, dataConnection } = storage;
@@ -79,6 +81,8 @@ export const assembleInferenceService = (
                 key: dataConnectionKey,
                 path,
               },
+              args: servingRuntimeArgs,
+              env: servingRuntimeEnvVars,
             },
           },
         },
@@ -121,6 +125,8 @@ export const assembleInferenceService = (
                 key: dataConnectionKey,
                 path,
               },
+              args: servingRuntimeArgs,
+              env: servingRuntimeEnvVars,
             },
           },
         },
