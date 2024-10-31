@@ -117,6 +117,38 @@ export const S3ConnectionTypeKeys = [
   'AWS_S3_BUCKET',
 ];
 
+export enum ModelServingCompatibleConnectionTypes {
+  ModelServing = 's3',
+  OCI = 'oci-compliant-registry-v1',
+  URI = 'uri-v1',
+}
+
+const modelServinConnectionTypes: Record<
+  ModelServingCompatibleConnectionTypes,
+  {
+    name: string;
+    envVars: string[];
+  }
+> = {
+  [ModelServingCompatibleConnectionTypes.ModelServing]: {
+    name: 'S3 compatible object storage',
+    envVars: S3ConnectionTypeKeys,
+  },
+  [ModelServingCompatibleConnectionTypes.OCI]: {
+    name: 'OCI compliant registry',
+    envVars: ['URI'],
+  },
+  [ModelServingCompatibleConnectionTypes.URI]: {
+    name: 'URI',
+    envVars: ['URI'],
+  },
+};
+
+export const isModelServingTypeCompatible = (
+  envVars: string[],
+  type: ModelServingCompatibleConnectionTypes,
+): boolean => modelServinConnectionTypes[type].envVars.every((envVar) => envVars.includes(envVar));
+
 export const isModelServingCompatible = (envVars: string[]): boolean =>
   S3ConnectionTypeKeys.every((envVar) => envVars.includes(envVar));
 
@@ -279,3 +311,19 @@ export const findSectionFields = (
 
   return fields.slice(sectionIndex + 1, nextSectionIndex === -1 ? undefined : nextSectionIndex);
 };
+
+export const filterModelServingCompatibleTypes = (
+  connectionTypes: ConnectionTypeConfigMapObj[],
+): {
+  key: ModelServingCompatibleConnectionTypes;
+  name: string;
+  type: ConnectionTypeConfigMapObj;
+}[] =>
+  enumIterator(ModelServingCompatibleConnectionTypes)
+    .map(([, value]) => {
+      const connectionType = connectionTypes.find((t) => t.metadata.name === value);
+      return connectionType
+        ? { key: value, name: modelServinConnectionTypes[value].name, type: connectionType }
+        : undefined;
+    })
+    .filter((t) => t != null);

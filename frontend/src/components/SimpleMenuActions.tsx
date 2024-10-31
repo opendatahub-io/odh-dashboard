@@ -22,12 +22,20 @@ const isSpacer = (v: Item | Spacer): v is Spacer => 'isSpacer' in v;
 type SimpleDropdownProps = {
   dropdownItems: (Item | Spacer)[];
   testId?: string;
+  toggleLabel?: string;
+  variant?: React.ComponentProps<typeof MenuToggle>['variant'];
 } & Omit<
   React.ComponentProps<typeof Dropdown>,
   'isOpen' | 'isPlain' | 'popperProps' | 'toggle' | 'onChange'
 >;
 
-const SimpleMenuActions: React.FC<SimpleDropdownProps> = ({ dropdownItems, testId, ...props }) => {
+const SimpleMenuActions: React.FC<SimpleDropdownProps> = ({
+  dropdownItems,
+  testId,
+  toggleLabel,
+  variant,
+  ...props
+}) => {
   const [open, setOpen] = React.useState(false);
 
   return (
@@ -37,17 +45,17 @@ const SimpleMenuActions: React.FC<SimpleDropdownProps> = ({ dropdownItems, testI
       onOpenChange={(isOpened) => setOpen(isOpened)}
       toggle={(toggleRef) => (
         <MenuToggle
-          aria-label="Actions"
+          aria-label={toggleLabel ?? 'Actions'}
           data-testid={testId}
-          variant="plain"
+          variant={variant ?? (toggleLabel ? 'default' : 'plain')}
           ref={toggleRef}
           onClick={() => setOpen(!open)}
           isExpanded={open}
         >
-          <EllipsisVIcon />
+          {toggleLabel ?? <EllipsisVIcon />}
         </MenuToggle>
       )}
-      popperProps={{ position: 'right' }}
+      popperProps={!toggleLabel ? { position: 'right' } : undefined}
     >
       <DropdownList>
         {dropdownItems.map((itemOrSpacer, i) =>
