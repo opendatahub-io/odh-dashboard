@@ -152,18 +152,6 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     }
   }, [currentProjectName, setCreateDataInferenceService]);
 
-  // Refresh model format selection when changing serving runtime template selection
-  // Don't affect the edit modal
-  React.useEffect(() => {
-    if (!editInfo?.servingRuntimeEditInfo?.servingRuntime) {
-      setCreateDataInferenceService('format', { name: '' });
-    }
-  }, [
-    createDataServingRuntime.servingRuntimeTemplateName,
-    editInfo?.servingRuntimeEditInfo?.servingRuntime,
-    setCreateDataInferenceService,
-  ]);
-
   // Serving Runtime Validation
   const isDisabledServingRuntime = namespace === '' || actionInProgress;
 
@@ -391,12 +379,14 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                     templates={servingRuntimeTemplates || []}
                     isEditing={!!editInfo}
                     selectedAcceleratorProfile={selectedAcceleratorProfile}
+                    resetModelFormat={() => setCreateDataInferenceService('format', { name: '' })}
                   />
                   <InferenceServiceFrameworkSection
                     data={createDataInferenceService}
                     setData={setCreateDataInferenceService}
                     modelContext={servingRuntimeSelected?.spec.supportedModelFormats}
                     registeredModelFormat={registeredModelDeployInfo?.modelFormat}
+                    selectedRuntimeName={servingRuntimeSelected?.metadata.name}
                   />
                   <KServeAutoscalerReplicaSection
                     data={createDataInferenceService}
