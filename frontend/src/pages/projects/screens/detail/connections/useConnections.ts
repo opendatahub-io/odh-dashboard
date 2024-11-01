@@ -6,8 +6,8 @@ import useFetchState, {
   NotReadyError,
 } from '~/utilities/useFetchState';
 import { Connection } from '~/concepts/connectionTypes/types';
-import { LABEL_SELECTOR_DASHBOARD_RESOURCE, LABEL_SELECTOR_DATA_CONNECTION_AWS } from '~/const';
-import { isConnection, isModelServingCompatible } from '~/concepts/connectionTypes/utils';
+import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '~/const';
+import { isConnection, isModelServingCompatibleConnection } from '~/concepts/connectionTypes/utils';
 
 const useConnections = (
   namespace?: string,
@@ -20,16 +20,14 @@ const useConnections = (
       }
 
       const secrets = await getSecretsByLabel(
-        `${LABEL_SELECTOR_DASHBOARD_RESOURCE},${LABEL_SELECTOR_DATA_CONNECTION_AWS}`,
+        `${LABEL_SELECTOR_DASHBOARD_RESOURCE}`,
         namespace,
         opts,
       );
       let connections = secrets.filter((secret) => isConnection(secret));
 
       if (modelServingCompatible) {
-        connections = connections.filter(
-          (secret) => !!secret.data && isModelServingCompatible(Object.keys(secret.data)),
-        );
+        connections = connections.filter(isModelServingCompatibleConnection);
       }
 
       return connections;

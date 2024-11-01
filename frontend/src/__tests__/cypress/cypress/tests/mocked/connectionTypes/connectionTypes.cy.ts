@@ -83,7 +83,7 @@ describe('Connection types', () => {
     row2.shouldHaveDescription('description 2');
     row2.shouldShowPreInstalledLabel();
     row2.shouldBeDisabled();
-    row2.shouldHaveModelServingCompatibility();
+    row2.findConnectionTypeCompatibility().should('have.text', 'S3 compatible object storage');
 
     row2.findKebabAction('Preview').click();
     connectionTypePreviewModal.shouldBeOpen();

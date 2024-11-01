@@ -5,7 +5,10 @@ import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { Connection, ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
 import { TableRowTitleDescription } from '~/components/table';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { getCompatibleTypes, getConnectionTypeDisplayName } from '~/concepts/connectionTypes/utils';
+import {
+  getConnectionModelServingCompatibleTypes,
+  getConnectionTypeDisplayName,
+} from '~/concepts/connectionTypes/utils';
 import CompatibilityLabel from '~/concepts/connectionTypes/CompatibilityLabel';
 import ConnectedResources from '~/pages/projects/screens/detail/connections/ConnectedResources';
 
@@ -31,13 +34,7 @@ const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
     [obj, connectionTypes],
   );
 
-  const compatibleTypes = obj.data
-    ? getCompatibleTypes(
-        Object.entries(obj.data)
-          .filter(([, value]) => !!value)
-          .map(([key]) => key),
-      )
-    : [];
+  const compatibleTypes = getConnectionModelServingCompatibleTypes(obj);
 
   return (
     <Tr>
