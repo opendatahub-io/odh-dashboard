@@ -97,3 +97,7 @@ export type NimServingResponse = {
     body: ConfigMapKind | SecretKind;
   };
 };
+
+export type SettingsTestData = {
+  pvcDefaultSize: number;
+};
