@@ -15,9 +15,14 @@ import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/typ
 type ServingRuntimeArgsSectionType = {
   data: CreatingInferenceServiceObject;
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
+  inputRef: React.RefObject<HTMLTextAreaElement>;
 };
 
-const ServingRuntimeArgsSection: React.FC<ServingRuntimeArgsSectionType> = ({ data, setData }) => (
+const ServingRuntimeArgsSection: React.FC<ServingRuntimeArgsSectionType> = ({
+  data,
+  setData,
+  inputRef,
+}) => (
   <FormGroup
     label="Additional serving runtime arguments"
     labelIcon={
@@ -37,9 +42,11 @@ const ServingRuntimeArgsSection: React.FC<ServingRuntimeArgsSectionType> = ({ da
     fieldId="serving-runtime-arguments"
   >
     <TextArea
+      id="servingRuntimeArgsInput"
+      ref={inputRef}
       placeholder={`--arg\n--arg2=value2\n--arg3 value3`}
       value={data.servingRuntimeArgs?.join('\n')}
-      onChange={(e, srArgs) => setData('servingRuntimeArgs', srArgs.split('\n'))}
+      onChange={(_e, srArgs) => setData('servingRuntimeArgs', srArgs.split('\n'))}
       autoResize
     />
     <FormHelperText>
