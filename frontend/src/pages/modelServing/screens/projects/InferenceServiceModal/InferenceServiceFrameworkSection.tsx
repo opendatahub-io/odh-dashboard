@@ -5,7 +5,6 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
-  Skeleton,
 } from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
@@ -34,9 +33,6 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
   const { name: dataFormatName, version: dataFormatVersion } = data.format;
   const placeholderText =
     models.length === 0 ? 'No frameworks available to select' : 'Select a framework';
-  if (!modelContext && !loaded && data.servingRuntimeName !== '') {
-    return <Skeleton />;
-  }
 
   if (loadError) {
     return (
@@ -64,6 +60,7 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
             label: name,
           };
         })}
+        isSkeleton={!modelContext && !loaded && data.servingRuntimeName !== ''}
         isLoadingOptions={!modelContext && !loaded}
         isFullWidth
         toggleLabel={

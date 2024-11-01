@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Alert, FormGroup, Skeleton, Text } from '@patternfly/react-core';
+import { Alert, FormGroup, Text } from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
 import { ServingRuntimeKind } from '~/k8sTypes';
@@ -28,10 +28,6 @@ const InferenceServiceServingRuntimeSection: React.FC<
   const placeholderText =
     servingRuntimes.length === 0 ? 'No model servers available to select' : 'Select a model server';
 
-  if (!loaded && !currentServingRuntime && data.project !== '') {
-    return <Skeleton />;
-  }
-
   if (loadError) {
     return (
       <Alert title="Error loading model servers" variant="danger">
@@ -56,6 +52,7 @@ const InferenceServiceServingRuntimeSection: React.FC<
           key: servingRuntime.metadata.name,
           label: getDisplayNameFromK8sResource(servingRuntime),
         }))}
+        isSkeleton={!loaded && data.project !== ''}
         toggleProps={{ id: 'inference-service-model-selection' }}
         isFullWidth
         value={data.servingRuntimeName}
