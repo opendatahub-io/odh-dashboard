@@ -113,3 +113,21 @@ export const truncateString = (str: string, length: number): string => {
   }
   return `${str.substring(0, length)}…`;
 };
+
+export const joinWithCommaAnd = (
+  items: string[],
+  options?: {
+    singlePrefix?: string;
+    singleSuffix?: string;
+    multiPrefix?: string;
+    multiSuffix?: string;
+  },
+): string =>
+  items.length > 1
+    ? `${options?.multiPrefix ?? ''}${items
+        .slice(0, items.length - 1)
+        .map((i) => i)
+        .join(', ')}${items.length > 2 ? ',' : ''} and ${items[items.length - 1]}${
+        options?.multiSuffix ?? ''
+      }`
+    : `${options?.singlePrefix ?? ''}${items[0]}${options?.singleSuffix ?? ''}`;

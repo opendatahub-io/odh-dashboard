@@ -492,6 +492,8 @@ export type InferenceServiceKind = K8sResourceCommon & {
           path?: string;
           schemaPath?: string;
         };
+        args?: ServingContainer['args'];
+        env?: ServingContainer['env'];
       };
       maxReplicas?: number;
       minReplicas?: number;

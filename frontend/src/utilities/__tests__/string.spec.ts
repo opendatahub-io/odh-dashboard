@@ -7,6 +7,7 @@ import {
   replaceNumericPartWithString,
   containsMultipleSlashesPattern,
   triggerFileDownload,
+  joinWithCommaAnd,
 } from '~/utilities/string';
 
 global.URL.createObjectURL = jest.fn(() => 'test-url');
@@ -232,5 +233,37 @@ describe('triggerFileDownload', () => {
     createElementSpy.mockRestore();
     appendChildSpy.mockRestore();
     removeChildSpy.mockRestore();
+  });
+});
+
+describe('joinWithCommaAnd', () => {
+  it('should join items with comma and oxford comma', () => {
+    expect(joinWithCommaAnd(['item1', 'item2', 'item3'])).toBe('item1, item2, and item3');
+  });
+
+  it('should join items with no comma if only two items', () => {
+    expect(joinWithCommaAnd(['item1', 'item2'])).toBe('item1 and item2');
+  });
+
+  it('should join items with comma and with custom prefix and suffix', () => {
+    expect(
+      joinWithCommaAnd(['item1', 'item2', 'item3'], {
+        singlePrefix: 'invalid',
+        singleSuffix: 'invalid',
+        multiPrefix: 'Prefix ',
+        multiSuffix: ' suffix.',
+      }),
+    ).toBe('Prefix item1, item2, and item3 suffix.');
+  });
+
+  it('should join single item with custom prefix and suffix', () => {
+    expect(
+      joinWithCommaAnd(['item1'], {
+        singlePrefix: 'Prefix ',
+        singleSuffix: ' suffix.',
+        multiPrefix: 'invalid',
+        multiSuffix: 'invalid',
+      }),
+    ).toBe('Prefix item1 suffix.');
   });
 });

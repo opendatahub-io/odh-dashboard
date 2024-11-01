@@ -110,6 +110,10 @@ export const fieldNameToEnvVar = (name: string): string => {
 export const ENV_VAR_NAME_REGEX = new RegExp('^[_a-zA-Z][_a-zA-Z0-9]*$');
 export const isValidEnvVar = (name: string): boolean => ENV_VAR_NAME_REGEX.test(name);
 
+export const isUriConnectionType = (connectionType: ConnectionTypeConfigMapObj): boolean =>
+  !!connectionType.data?.fields?.find((f) => isConnectionTypeDataField(f) && f.envVar === 'URI');
+export const isUriConnection = (connection?: Connection): boolean => !!connection?.data?.URI;
+
 export const S3ConnectionTypeKeys = [
   'AWS_ACCESS_KEY_ID',
   'AWS_SECRET_ACCESS_KEY',
@@ -117,8 +121,40 @@ export const S3ConnectionTypeKeys = [
   'AWS_S3_BUCKET',
 ];
 
+export enum ModelServingCompatibleConnectionTypes {
+  ModelServing = 's3',
+  OCI = 'oci-compliant-registry-v1',
+  URI = 'uri-v1',
+}
+
+const modelServinConnectionTypes: Record<
+  ModelServingCompatibleConnectionTypes,
+  {
+    name: string;
+    envVars: string[];
+  }
+> = {
+  [ModelServingCompatibleConnectionTypes.ModelServing]: {
+    name: 'S3 compatible object storage',
+    envVars: S3ConnectionTypeKeys,
+  },
+  [ModelServingCompatibleConnectionTypes.OCI]: {
+    name: 'OCI compliant registry',
+    envVars: ['URI'],
+  },
+  [ModelServingCompatibleConnectionTypes.URI]: {
+    name: 'URI',
+    envVars: ['URI'],
+  },
+};
+
+export const isModelServingTypeCompatible = (
+  envVars: string[],
+  type: ModelServingCompatibleConnectionTypes,
+): boolean => modelServinConnectionTypes[type].envVars.every((envVar) => envVars.includes(envVar));
+
 export const isModelServingCompatible = (envVars: string[]): boolean =>
-  S3ConnectionTypeKeys.every((envVar) => envVars.includes(envVar));
+  S3ConnectionTypeKeys.every((envVar) => envVars.includes(envVar)) || envVars.includes('URI');
 
 export enum CompatibleTypes {
   ModelServing = 'Model serving',
@@ -279,3 +315,19 @@ export const findSectionFields = (
 
   return fields.slice(sectionIndex + 1, nextSectionIndex === -1 ? undefined : nextSectionIndex);
 };
+
+export const filterModelServingCompatibleTypes = (
+  connectionTypes: ConnectionTypeConfigMapObj[],
+): {
+  key: ModelServingCompatibleConnectionTypes;
+  name: string;
+  type: ConnectionTypeConfigMapObj;
+}[] =>
+  enumIterator(ModelServingCompatibleConnectionTypes)
+    .map(([, value]) => {
+      const connectionType = connectionTypes.find((t) => t.metadata.name === value);
+      return connectionType
+        ? { key: value, name: modelServinConnectionTypes[value].name, type: connectionType }
+        : undefined;
+    })
+    .filter((t) => t != null);
