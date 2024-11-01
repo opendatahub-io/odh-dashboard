@@ -1,4 +1,4 @@
-import { SecretKind } from '~/k8sTypes';
+import { KnownLabels, SecretKind } from '~/k8sTypes';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
 import {
@@ -25,7 +25,15 @@ export const isConnectionTypeDataField = (
 ): field is ConnectionTypeDataField => field.type !== ConnectionTypeFieldType.Section;
 
 export const isConnection = (secret: SecretKind): secret is Connection =>
-  !!secret.metadata.annotations && 'opendatahub.io/connection-type' in secret.metadata.annotations;
+  !!secret.metadata.annotations &&
+  ('opendatahub.io/connection-type' in secret.metadata.annotations ||
+    'opendatahub.io/connection-type-ref' in secret.metadata.annotations) &&
+  !!secret.metadata.labels &&
+  KnownLabels.DASHBOARD_RESOURCE in secret.metadata.labels;
+
+export const getConnectionTypeRef = (connection: Connection | undefined): string | undefined =>
+  connection?.metadata.annotations['opendatahub.io/connection-type-ref'] ??
+  connection?.metadata.annotations['opendatahub.io/connection-type'];
 
 export const toConnectionTypeConfigMapObj = (
   configMap: ConnectionTypeConfigMap,
@@ -130,16 +138,14 @@ const modelServingCompatibleTypesMetadata: Record<
     name: string;
     resource: string;
     envVars: string[];
-    isConnectionCompatible?: (connection: Connection) => boolean;
+    managedType?: string;
   }
 > = {
   [ModelServingCompatibleTypes.S3ObjectStorage]: {
     name: ModelServingCompatibleTypes.S3ObjectStorage,
     resource: 's3',
     envVars: S3ConnectionTypeKeys,
-    isConnectionCompatible: (connection) =>
-      connection.metadata.annotations['opendatahub.io/connection-type'] === 's3' &&
-      connection.metadata.labels['opendatahub.io/managed'] === 'true',
+    managedType: 's3',
   },
   [ModelServingCompatibleTypes.OCI]: {
     name: ModelServingCompatibleTypes.OCI,
@@ -184,10 +190,16 @@ export const getConnectionModelServingCompatibleTypes = (
     Object.entries(connection.data ?? {})
       .filter(([, value]) => !!value)
       .map(([key]) => key),
-  ).filter(
-    (type) =>
-      modelServingCompatibleTypesMetadata[type].isConnectionCompatible?.(connection) ?? true,
-  );
+  ).filter((type) => {
+    const { managedType } = modelServingCompatibleTypesMetadata[type];
+    if (managedType) {
+      return (
+        connection.metadata.annotations['opendatahub.io/connection-type'] === managedType &&
+        connection.metadata.labels['opendatahub.io/managed'] === 'true'
+      );
+    }
+    return true;
+  });
 
 export const getConnectionTypeModelServingCompatibleTypes = (
   connectionType: ConnectionTypeConfigMapObj,
@@ -241,13 +253,20 @@ export const assembleConnectionSecret = (
   },
 ): Connection => {
   const connectionValuesAsStrings = Object.fromEntries(
-    Object.entries(values).map(([key, value]) => {
-      if (Array.isArray(value)) {
-        return [key, JSON.stringify(value)]; // multi select
-      }
-      return [key, String(value)];
-    }),
+    Object.entries(values)
+      .map(([key, value]) => {
+        if (Array.isArray(value)) {
+          return [key, JSON.stringify(value)]; // multi select
+        }
+        return [key, String(value)];
+      })
+      .filter(([, value]) => !!value),
   );
+
+  const managedType = getModelServingCompatibleTypes(Object.keys(connectionValuesAsStrings)).map(
+    (t) => modelServingCompatibleTypesMetadata[t].managedType,
+  )[0];
+
   return {
     apiVersion: 'v1',
     kind: 'Secret',
@@ -256,12 +275,13 @@ export const assembleConnectionSecret = (
       namespace: projectName,
       labels: {
         'opendatahub.io/dashboard': 'true',
-        'opendatahub.io/managed': 'true',
+        ...(managedType && { 'opendatahub.io/managed': 'true' }),
       },
       annotations: {
-        'opendatahub.io/connection-type': connectionTypeName,
         'openshift.io/display-name': nameDesc.name,
         'openshift.io/description': nameDesc.description,
+        'opendatahub.io/connection-type-ref': connectionTypeName,
+        ...(managedType && { 'opendatahub.io/connection-type': managedType }),
       },
     },
     stringData: connectionValuesAsStrings,
@@ -309,16 +329,12 @@ export const parseConnectionSecretValues = (
 export const getConnectionTypeDisplayName = (
   connection: Connection,
   connectionTypes?: ConnectionTypeConfigMapObj[] | ConnectionTypeConfigMapObj,
-): string => {
+): string | undefined => {
+  const ref = getConnectionTypeRef(connection);
   const matchingType = Array.isArray(connectionTypes)
-    ? connectionTypes.find(
-        (type) =>
-          type.metadata.name === connection.metadata.annotations['opendatahub.io/connection-type'],
-      )
+    ? connectionTypes.find((type) => type.metadata.name === ref)
     : connectionTypes;
-  return matchingType
-    ? getDisplayNameFromK8sResource(matchingType)
-    : connection.metadata.annotations['opendatahub.io/connection-type'];
+  return matchingType ? getDisplayNameFromK8sResource(matchingType) : ref;
 };
 
 export const filterEnabledConnectionTypes = <

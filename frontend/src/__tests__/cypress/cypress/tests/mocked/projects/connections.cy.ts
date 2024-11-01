@@ -123,11 +123,11 @@ describe('Connections', () => {
         kind: 'Secret',
         metadata: {
           annotations: {
-            'opendatahub.io/connection-type': 'test',
+            'opendatahub.io/connection-type-ref': 'test',
             'openshift.io/description': '',
             'openshift.io/display-name': 'new connection',
           },
-          labels: { 'opendatahub.io/dashboard': 'true', 'opendatahub.io/managed': 'true' },
+          labels: { 'opendatahub.io/dashboard': 'true' },
           name: 'new-connection',
           namespace: 'test-project',
         },
@@ -171,7 +171,8 @@ describe('Connections', () => {
         kind: 'Secret',
         metadata: {
           annotations: {
-            'opendatahub.io/connection-type': 'postgres',
+            'opendatahub.io/connection-type': 's3',
+            'opendatahub.io/connection-type-ref': 'postgres',
             'openshift.io/description': '',
             'openshift.io/display-name': 'test2',
           },

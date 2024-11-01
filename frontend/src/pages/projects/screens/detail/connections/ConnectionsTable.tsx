@@ -3,7 +3,7 @@ import { Connection, ConnectionTypeConfigMapObj } from '~/concepts/connectionTyp
 import { deleteSecret } from '~/api';
 import { Table } from '~/components/table';
 import ConnectionsTableRow from './ConnectionsTableRow';
-import { columns } from './connectionsTableColumns';
+import { getColumns } from './connectionsTableColumns';
 import { ConnectionsDeleteModal } from './ConnectionsDeleteModal';
 
 type ConnectionsTableProps = {
@@ -22,6 +22,8 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
   setManageConnectionModal,
 }) => {
   const [deleteConnection, setDeleteConnection] = React.useState<Connection>();
+
+  const columns = React.useMemo(() => getColumns(connectionTypes), [connectionTypes]);
 
   return (
     <>

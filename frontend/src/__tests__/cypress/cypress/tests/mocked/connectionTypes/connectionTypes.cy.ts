@@ -100,6 +100,9 @@ describe('Connection types', () => {
       },
       { success: true },
     ).as('delete');
+
+    connectionTypesPage.shouldHaveConnectionTypes();
+
     cy.interceptOdh('GET /api/connection-types', [
       mockConnectionTypeConfigMap({}),
       mockConnectionTypeConfigMap({
@@ -111,7 +114,6 @@ describe('Connection types', () => {
       }),
     ]);
 
-    connectionTypesPage.shouldHaveConnectionTypes();
     connectionTypesPage.getConnectionTypeRow('Test display name').findKebabAction('Delete').click();
     deleteModal.findSubmitButton().should('be.disabled');
     deleteModal.findInput().fill('Test display name');

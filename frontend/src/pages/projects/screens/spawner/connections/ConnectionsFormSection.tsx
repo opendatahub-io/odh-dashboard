@@ -39,8 +39,8 @@ const getColumns = (connectionTypes: ConnectionTypeConfigMapObj[]): SortableData
     field: 'type',
     label: 'Type',
     sortable: (a, b) =>
-      getConnectionTypeDisplayName(a, connectionTypes).localeCompare(
-        getConnectionTypeDisplayName(b, connectionTypes),
+      (getConnectionTypeDisplayName(a, connectionTypes) || '').localeCompare(
+        getConnectionTypeDisplayName(b, connectionTypes) || '',
       ),
   },
   {

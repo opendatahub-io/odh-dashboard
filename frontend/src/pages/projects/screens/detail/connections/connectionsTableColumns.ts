@@ -1,7 +1,10 @@
-import { Connection } from '~/concepts/connectionTypes/types';
+import { Connection, ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
 import { SortableData } from '~/components/table';
+import { getConnectionTypeDisplayName } from '~/concepts/connectionTypes/utils';
 
-export const columns: SortableData<Connection>[] = [
+export const getColumns = (
+  connectionTypes?: ConnectionTypeConfigMapObj[],
+): SortableData<Connection>[] => [
   {
     field: 'name',
     label: 'Name',
@@ -16,8 +19,8 @@ export const columns: SortableData<Connection>[] = [
     label: 'Type',
     width: 20,
     sortable: (a, b) =>
-      a.metadata.annotations['opendatahub.io/connection-type'].localeCompare(
-        b.metadata.annotations['opendatahub.io/connection-type'],
+      (getConnectionTypeDisplayName(a, connectionTypes) || '').localeCompare(
+        getConnectionTypeDisplayName(b, connectionTypes) || '',
       ),
   },
   {
