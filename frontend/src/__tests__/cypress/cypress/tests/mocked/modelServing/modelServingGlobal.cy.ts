@@ -507,11 +507,29 @@ describe('Model Serving Global', () => {
 
     modelServingGlobal.findDeployModelButton().click();
 
-    // test that you can not submit on empty
     kserveModal.shouldBeOpen();
     kserveModal.findServingRuntimeTemplateHelptext().should('not.exist');
     kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
     kserveModal.findServingRuntimeTemplateHelptext().should('exist');
+  });
+
+  it('View predefined args popover populates', () => {
+    initIntercepts({
+      projectEnableModelMesh: false,
+      disableServingRuntimeParamsConfig: false,
+    });
+    modelServingGlobal.visit('test-project');
+
+    modelServingGlobal.findDeployModelButton().click();
+
+    kserveModal.shouldBeOpen();
+    kserveModal.findPredefinedArgsButton().click();
+    kserveModal.findPredefinedArgsList().should('exist');
+    kserveModal.findPredefinedArgsList().should('not.include.text', '--port=8001');
+    kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+    kserveModal.findPredefinedArgsButton().click();
+    kserveModal.findPredefinedArgsList().should('exist');
+    kserveModal.findPredefinedArgsList().should('include.text', '--port=8001');
   });
 
   it('Navigate to kserve model metrics page only if enabled', () => {

@@ -437,6 +437,9 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
             {servingRuntimeParamsEnabled && (
               <FormSection title="Configuration parameters" id="configuration-params">
                 <ServingRuntimeArgsSection
+                  predefinedArgs={servingRuntimeSelected?.spec.containers
+                    .flatMap((c) => c.args)
+                    .filter((arg) => typeof arg === 'string')}
                   data={createDataInferenceService}
                   setData={setCreateDataInferenceService}
                   inputRef={servingRuntimeArgsInputRef}
