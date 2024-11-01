@@ -45,6 +45,9 @@ export const assembleInferenceService = (
   const { path, dataConnection, uri } = storage;
   const dataConnectionKey = secretKey || dataConnection;
 
+  const nonEmptyArgs = servingRuntimeArgs?.filter(Boolean) || [];
+  const nonEmptyEnvVars = servingRuntimeEnvVars?.filter((ev) => ev.name) || [];
+
   const updateInferenceService: InferenceServiceKind = inferenceService
     ? {
         ...inferenceService,
@@ -85,8 +88,8 @@ export const assembleInferenceService = (
                       path,
                     },
                   }),
-              args: servingRuntimeArgs,
-              env: servingRuntimeEnvVars,
+              args: nonEmptyArgs,
+              env: nonEmptyEnvVars,
             },
           },
         },
@@ -133,8 +136,8 @@ export const assembleInferenceService = (
                       path,
                     },
                   }),
-              args: servingRuntimeArgs,
-              env: servingRuntimeEnvVars,
+              args: nonEmptyArgs,
+              env: nonEmptyEnvVars,
             },
           },
         },
