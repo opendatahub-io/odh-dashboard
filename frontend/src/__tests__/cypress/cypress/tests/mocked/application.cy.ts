@@ -35,9 +35,8 @@ describe('Application', () => {
     applicationLauncher.toggleAppLauncherButton();
 
     // Have a static item
-    const applicationLauncherMenuGroupStatic = applicationLauncher.getApplicationLauncherMenuGroup(
-      `${Cypress.env('ODH_PRODUCT_NAME')} Applications`,
-    );
+    const applicationLauncherMenuGroupStatic =
+      applicationLauncher.getApplicationLauncherMenuGroup('Red Hat Applications');
     applicationLauncherMenuGroupStatic.shouldHaveApplicationLauncherItem(
       'OpenShift Cluster Manager',
     );
