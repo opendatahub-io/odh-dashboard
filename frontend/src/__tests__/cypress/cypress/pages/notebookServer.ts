@@ -40,6 +40,10 @@ class NotebookServer {
   findStopNotebookServerButton() {
     return cy.findByTestId('stop-nb-server-button');
   }
+
+  findAcceleratorProfileSelect() {
+    return cy.findByTestId('accelerator-profile-select');
+  }
 }
 
 export const notebookServer = new NotebookServer();

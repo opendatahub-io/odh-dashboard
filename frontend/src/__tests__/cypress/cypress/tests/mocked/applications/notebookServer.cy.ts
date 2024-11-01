@@ -16,7 +16,11 @@ import {
   stopNotebookModal,
 } from '~/__tests__/cypress/cypress/pages/administration';
 import { homePage } from '~/__tests__/cypress/cypress/pages/home/home';
-import { StorageClassModel } from '~/__tests__/cypress/cypress/utils/models';
+import {
+  AcceleratorProfileModel,
+  StorageClassModel,
+} from '~/__tests__/cypress/cypress/utils/models';
+import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 
 const groupSubjects: RoleBindingSubject[] = [
   {
@@ -45,7 +49,17 @@ const initIntercepts = () => {
       disableStorageClasses: false,
     }),
   );
-
+  cy.interceptK8sList(
+    AcceleratorProfileModel,
+    mockK8sResourceList([
+      mockAcceleratorProfile({
+        name: 'test-gpu',
+        displayName: 'Test GPU',
+        namespace: 'opendatahub',
+        uid: 'uid',
+      }),
+    ]),
+  );
   cy.interceptK8sList(StorageClassModel, mockStorageClassList());
 };
 
@@ -75,7 +89,36 @@ describe('NotebookServer', () => {
         notebookSizeName: 'XSmall',
         imageName: 'code-server-notebook',
         imageTagName: '2023.2',
-        acceleratorProfile: { count: 0, useExistingSettings: false },
+        acceleratorProfile: { count: 0, acceleratorProfile: undefined },
+        envVars: { configMap: {}, secrets: {} },
+        state: 'started',
+        storageClassName: 'openshift-default-sc',
+      });
+    });
+  });
+
+  it('should start notebook server with accelerator profile', () => {
+    notebookServer.visit();
+    notebookServer.findAcceleratorProfileSelect().click();
+    notebookServer.findAcceleratorProfileSelect().findSelectOption('Test GPU').click();
+    notebookServer.findAcceleratorProfileSelect().should('contain', 'Test GPU');
+    notebookServer.findStartServerButton().should('be.visible');
+    notebookServer.findStartServerButton().click();
+
+    cy.wait('@startNotebookServer').then((interception) => {
+      expect(interception.request.body).to.eql({
+        notebookSizeName: 'XSmall',
+        imageName: 'code-server-notebook',
+        imageTagName: '2023.2',
+        acceleratorProfile: {
+          count: 1,
+          acceleratorProfile: mockAcceleratorProfile({
+            name: 'test-gpu',
+            displayName: 'Test GPU',
+            namespace: 'opendatahub',
+            uid: 'uid',
+          }),
+        },
         envVars: { configMap: {}, secrets: {} },
         state: 'started',
         storageClassName: 'openshift-default-sc',
