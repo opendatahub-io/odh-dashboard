@@ -36,6 +36,7 @@ export type SimpleGroupSelectOption = {
 
 type SimpleSelectProps = {
   options?: SimpleSelectOption[];
+  isLoadingOptions?: boolean;
   groupedOptions?: SimpleGroupSelectOption[];
   value?: string;
   toggleLabel?: React.ReactNode;
@@ -56,6 +57,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
   isDisabled,
   onChange,
   options,
+  isLoadingOptions = false,
   groupedOptions,
   placeholder = 'Select...',
   value,
@@ -88,14 +90,14 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
   );
 
   // If there is only one option, call the onChange function
-  const totalOptionsKey = totalOptions.length === 1 ? totalOptions[0].key : null;
   React.useEffect(() => {
-    if (totalOptionsKey) {
-      onChange(totalOptionsKey, false);
+    const singleOptionKey = totalOptions.length === 1 ? totalOptions[0].key : null;
+    if (singleOptionKey && !isLoadingOptions) {
+      onChange(singleOptionKey, false);
     }
     // We don't want the callback function to be a dependency
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totalOptionsKey]);
+  }, [totalOptions, isLoadingOptions]);
 
   return (
     <>

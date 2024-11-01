@@ -18,7 +18,6 @@ type InferenceServiceFrameworkSectionProps = {
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
   modelContext?: SupportedModelFormats[];
   registeredModelFormat?: string;
-  selectedRuntimeName?: string;
 };
 
 const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectionProps> = ({
@@ -26,7 +25,6 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
   setData,
   modelContext,
   registeredModelFormat,
-  selectedRuntimeName,
 }) => {
   const [modelsContextLoaded, loaded, loadError] = useModelFramework(
     modelContext ? undefined : data.servingRuntimeName,
@@ -62,14 +60,11 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
             ? `${framework.name} - ${framework.version}`
             : `${framework.name}`;
           return {
-            // SimpleSelect component will only trigger onChange
-            // when there is only one option and has a different key
-            // We need to make the key unique to make sure it can
-            // be auto-selected when different serving runtimes have the same one option
-            key: `${selectedRuntimeName} - ${name}`,
+            key: name,
             label: name,
           };
         })}
+        isLoadingOptions={!modelContext && !loaded}
         isFullWidth
         toggleLabel={
           dataFormatVersion
@@ -77,8 +72,7 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
             : dataFormatName || placeholderText
         }
         onChange={(option) => {
-          // De-constructing and omit selected serving runtime name
-          const [, name, version] = option.split(' - ');
+          const [name, version] = option.split(' - ');
           setData('format', { name, version });
         }}
       />
