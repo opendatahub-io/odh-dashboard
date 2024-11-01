@@ -42,7 +42,7 @@ const ServingRuntimeArgsSection: React.FC<ServingRuntimeArgsSectionType> = ({
     fieldId="serving-runtime-arguments"
   >
     <TextArea
-      id="servingRuntimeArgsInput"
+      id="serving-runtime-arguments"
       ref={inputRef}
       placeholder={`--arg\n--arg2=value2\n--arg3 value3`}
       value={data.servingRuntimeArgs?.join('\n')}
