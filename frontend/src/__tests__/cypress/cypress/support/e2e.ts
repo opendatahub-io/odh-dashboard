@@ -19,6 +19,7 @@ import 'cypress-mochawesome-reporter/register';
 import './commands';
 import { asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { addCommands as webSocketsAddCommands } from './websockets';
+import 'cypress-plugin-steps';
 
 chai.use(chaiSubset);
 

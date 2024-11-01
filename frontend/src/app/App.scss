@@ -89,3 +89,8 @@ body,
     max-width: 100%;
   }
 }
+
+.pf-v5-c-popover.odh-u-scrollable .pf-v5-c-popover__body {
+  max-height: 65vh;
+  overflow: auto;
+}

@@ -107,6 +107,14 @@ class CreateConnectionTypePage {
   findDuplicateConnectionTypeButton() {
     return cy.findByTestId('duplicate-connection-type');
   }
+
+  findCompatibleModelServingTypesAlert() {
+    return cy.findByTestId('compatible-model-serving-types-alert');
+  }
+
+  findModelServingCompatibleTypeDropdown() {
+    return cy.findByTestId('select-model-serving-compatible-type');
+  }
 }
 
 class CategorySection extends Contextual<HTMLElement> {
