@@ -26,9 +26,16 @@ const EnvironmentVariablesSection: React.FC<EnvironmentVariablesSectionType> = (
   data,
   setData,
 }) => {
+  const lastNameFieldRef = React.useRef<HTMLInputElement>(null);
+  const addVarButtonRef = React.useRef<HTMLButtonElement>(null);
+
   const addEnvVar = () => {
     const newVars = [...(data.servingRuntimeEnvVars || []), { name: '', value: '' }];
     setData('servingRuntimeEnvVars', newVars);
+    requestAnimationFrame(() => {
+      lastNameFieldRef.current?.focus();
+      addVarButtonRef.current?.scrollIntoView();
+    });
   };
 
   const removeEnvVar = (indexToRemove: number) => {
@@ -75,6 +82,9 @@ const EnvironmentVariablesSection: React.FC<EnvironmentVariablesSectionType> = (
                 onChange={(_event: React.FormEvent<HTMLInputElement>, value: string) =>
                   updateEnvVar(index, { name: value })
                 }
+                ref={
+                  index === data.servingRuntimeEnvVars!.length - 1 ? lastNameFieldRef : undefined
+                }
               />
             </SplitItem>
             <SplitItem isFilled>
@@ -95,7 +105,13 @@ const EnvironmentVariablesSection: React.FC<EnvironmentVariablesSectionType> = (
             </SplitItem>
           </Split>
         ))}
-        <Button isInline variant="link" onClick={addEnvVar} icon={<PlusCircleIcon />}>
+        <Button
+          isInline
+          variant="link"
+          onClick={addEnvVar}
+          icon={<PlusCircleIcon />}
+          ref={addVarButtonRef}
+        >
           Add variable
         </Button>
       </Stack>
