@@ -16,7 +16,6 @@ import {
 } from '@patternfly/react-icons';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
-import { ServingContainer } from '~/k8sTypes';
 
 type EnvironmentVariablesSectionType = {
   data: CreatingInferenceServiceObject;
@@ -27,31 +26,29 @@ const EnvironmentVariablesSection: React.FC<EnvironmentVariablesSectionType> = (
   data,
   setData,
 }) => {
-  const [additionalEnvVars, setAdditionalEnvVars] = React.useState<ServingContainer['env']>(
-    data.servingRuntimeEnvVars,
-  );
+  const lastNameFieldRef = React.useRef<HTMLInputElement>(null);
+  const addVarButtonRef = React.useRef<HTMLButtonElement>(null);
 
   const addEnvVar = () => {
-    if (additionalEnvVars) {
-      const newVars = [...additionalEnvVars, { name: '', value: '' }];
-      setAdditionalEnvVars(newVars);
-      setData('servingRuntimeEnvVars', newVars);
-    }
+    const newVars = [...(data.servingRuntimeEnvVars || []), { name: '', value: '' }];
+    setData('servingRuntimeEnvVars', newVars);
+    requestAnimationFrame(() => {
+      lastNameFieldRef.current?.focus();
+      addVarButtonRef.current?.scrollIntoView();
+    });
   };
 
   const removeEnvVar = (indexToRemove: number) => {
-    if (additionalEnvVars) {
-      const newVars = additionalEnvVars.filter((_, i) => i !== indexToRemove);
-      setAdditionalEnvVars(newVars);
+    if (data.servingRuntimeEnvVars) {
+      const newVars = data.servingRuntimeEnvVars.filter((_, i) => i !== indexToRemove);
       setData('servingRuntimeEnvVars', newVars);
     }
   };
 
   const updateEnvVar = (indexToUpdate: number, updates: { name?: string; value?: string }) => {
-    if (additionalEnvVars) {
-      const newVars = [...additionalEnvVars];
-      newVars[indexToUpdate] = { ...additionalEnvVars[indexToUpdate], ...updates };
-      setAdditionalEnvVars(newVars);
+    if (data.servingRuntimeEnvVars) {
+      const newVars = [...data.servingRuntimeEnvVars];
+      newVars[indexToUpdate] = { ...data.servingRuntimeEnvVars[indexToUpdate], ...updates };
       setData('servingRuntimeEnvVars', newVars);
     }
   };
@@ -76,7 +73,7 @@ const EnvironmentVariablesSection: React.FC<EnvironmentVariablesSectionType> = (
       fieldId="environment-variables"
     >
       <Stack hasGutter>
-        {additionalEnvVars?.map((envVar, index) => (
+        {data.servingRuntimeEnvVars?.map((envVar, index) => (
           <Split hasGutter key={index}>
             <SplitItem isFilled>
               <TextInput
@@ -84,6 +81,9 @@ const EnvironmentVariablesSection: React.FC<EnvironmentVariablesSectionType> = (
                 value={envVar.name}
                 onChange={(_event: React.FormEvent<HTMLInputElement>, value: string) =>
                   updateEnvVar(index, { name: value })
+                }
+                ref={
+                  index === data.servingRuntimeEnvVars!.length - 1 ? lastNameFieldRef : undefined
                 }
               />
             </SplitItem>
@@ -105,7 +105,13 @@ const EnvironmentVariablesSection: React.FC<EnvironmentVariablesSectionType> = (
             </SplitItem>
           </Split>
         ))}
-        <Button isInline variant="link" onClick={addEnvVar} icon={<PlusCircleIcon />}>
+        <Button
+          isInline
+          variant="link"
+          onClick={addEnvVar}
+          icon={<PlusCircleIcon />}
+          ref={addVarButtonRef}
+        >
           Add variable
         </Button>
       </Stack>

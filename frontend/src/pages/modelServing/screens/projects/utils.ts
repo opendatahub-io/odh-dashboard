@@ -181,7 +181,7 @@ export const defaultInferenceService: CreatingInferenceServiceObject = {
   externalRoute: false,
   tokenAuth: false,
   tokens: [],
-  servingRuntimeArgs: [''],
+  servingRuntimeArgs: [],
   servingRuntimeEnvVars: [],
 };
 

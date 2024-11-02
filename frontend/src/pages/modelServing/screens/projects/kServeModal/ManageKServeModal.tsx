@@ -215,6 +215,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     [editInfo, servingRuntimeTemplates, createDataServingRuntime.servingRuntimeTemplateName],
   );
 
+  const servingRuntimeArgsInputRef = React.useRef<HTMLTextAreaElement>(null);
+
   const onBeforeClose = (submitted: boolean) => {
     fireFormTrackingEvent(editInfo ? 'Model Updated' : 'Model Deployed', {
       outcome: TrackingOutcome.cancel,
@@ -377,6 +379,14 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                   />
                   <ServingRuntimeTemplateSection
                     data={createDataServingRuntime}
+                    onConfigureParamsClick={
+                      servingRuntimeParamsEnabled
+                        ? () =>
+                            requestAnimationFrame(() => {
+                              servingRuntimeArgsInputRef.current?.focus();
+                            })
+                        : undefined
+                    }
                     setData={setCreateDataServingRuntime}
                     templates={servingRuntimeTemplates || []}
                     isEditing={!!editInfo}
@@ -440,6 +450,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                 <ServingRuntimeArgsSection
                   data={createDataInferenceService}
                   setData={setCreateDataInferenceService}
+                  inputRef={servingRuntimeArgsInputRef}
                 />
                 <EnvironmentVariablesSection
                   data={createDataInferenceService}
