@@ -10,7 +10,6 @@ import {
 import { ThIcon } from '@patternfly/react-icons';
 import openshiftLogo from '~/images/openshift.svg';
 import { useWatchConsoleLinks } from '~/utilities/useWatchConsoleLinks';
-import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { getOpenShiftConsoleServerURL } from '~/utilities/clusterUtils';
 import { useClusterInfo } from '~/redux/selectors/clusterInfo';
 import { ApplicationAction, Section } from '~/types';
@@ -86,7 +85,7 @@ const AppLauncher: React.FC = () => {
         return [];
       }
       const section: Section = {
-        label: `${ODH_PRODUCT_NAME} Applications`,
+        label: `Red Hat Applications`,
         actions: [],
       };
       if (osConsoleAction) {
