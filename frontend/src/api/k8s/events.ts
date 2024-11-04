@@ -1,5 +1,5 @@
 import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
-import { EventKind, NotebookKind } from '~/k8sTypes';
+import { EventKind } from '~/k8sTypes';
 import { EventModel } from '~/api/models';
 import useK8sWatchResourceList from '~/utilities/useK8sWatchResourceList';
 import { CustomWatchK8sResult } from '~/types';
@@ -23,12 +23,11 @@ export const getNotebookEvents = async (
   });
 
 export const useWatchNotebookEvents = (
-  notebook: NotebookKind,
+  namespace: string,
+  name: string,
   podUid?: string,
-): CustomWatchK8sResult<EventKind[]> => {
-  const { namespace, name } = notebook.metadata;
-
-  return useK8sWatchResourceList(
+): CustomWatchK8sResult<EventKind[]> =>
+  useK8sWatchResourceList(
     {
       isList: true,
       groupVersionKind: groupVersionKind(EventModel),
@@ -39,4 +38,3 @@ export const useWatchNotebookEvents = (
     },
     EventModel,
   );
-};

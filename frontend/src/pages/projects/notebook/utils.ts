@@ -124,7 +124,11 @@ export const useNotebookStatus = (
   podUid: string,
   spawnInProgress: boolean,
 ): [status: NotebookStatus | null, events: EventKind[]] => {
-  const [events] = useWatchNotebookEvents(notebook, podUid);
+  const [events] = useWatchNotebookEvents(
+    notebook.metadata.namespace,
+    notebook.metadata.name,
+    podUid,
+  );
 
   const annotationTime = notebook.metadata.annotations?.['notebooks.kubeflow.org/last-activity'];
   const lastActivity = annotationTime
