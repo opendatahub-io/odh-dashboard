@@ -1,3 +1,4 @@
+import { K8sNameDescriptionField } from '~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
 import { Modal } from './components/Modal';
 import { TableToolbar } from './components/TableToolbar';
 import { TableRow } from './components/table';
@@ -86,9 +87,7 @@ class AcceleratorProfile {
 }
 
 class ManageAcceleratorProfile {
-  findAcceleratorNameInput() {
-    return cy.findByTestId('accelerator-name-input');
-  }
+  k8sNameDescription = new K8sNameDescriptionField('accelerator-profile');
 
   findIdentifierInput() {
     return cy.findByTestId('accelerator-identifier-input');
@@ -101,10 +100,6 @@ class ManageAcceleratorProfile {
 
   findTolerationsButton() {
     return cy.findByTestId('add-toleration-button');
-  }
-
-  findDescriptionInput() {
-    return cy.findByTestId('accelerator-description-input');
   }
 
   findSubmitButton() {

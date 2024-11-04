@@ -26,9 +26,15 @@ export type K8sNameDescriptionFieldData = {
   };
 };
 
+export type K8sNameDescriptionType = {
+  name?: string;
+  k8sName?: string;
+  description?: string;
+};
+
 export type UseK8sNameDescriptionDataConfiguration = {
   /** Seed the state with initial data */
-  initialData?: K8sResourceCommon;
+  initialData?: K8sResourceCommon | K8sNameDescriptionType;
   /** Allow for custom internal logic for limiting k8s names based on their type */
   limitNameResourceType?: LimitNameResourceType;
   /**
