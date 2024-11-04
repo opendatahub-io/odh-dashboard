@@ -30,6 +30,10 @@ class StorageClassesPage {
     return cy.findByTestId('storage-classes-empty-state');
   }
 
+  findNoDefaultAlert() {
+    return cy.findByTestId('no-default-storage-class-alert');
+  }
+
   mockGetStorageClasses(storageClasses?: StorageClassKind[], times?: number) {
     return cy.interceptK8sList(
       {
