@@ -30,7 +30,7 @@ const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
   showWarningIcon = false,
 }) => {
   const connectionTypeDisplayName = React.useMemo(
-    () => getConnectionTypeDisplayName(obj, connectionTypes ?? []),
+    () => getConnectionTypeDisplayName(obj, connectionTypes ?? []) || 'Unknown',
     [obj, connectionTypes],
   );
 

@@ -150,7 +150,8 @@ export type Connection = SecretKind & {
       'opendatahub.io/managed'?: 'true';
     };
     annotations: DisplayNameAnnotations & {
-      'opendatahub.io/connection-type': string;
+      'opendatahub.io/connection-type'?: 's3' | string;
+      'opendatahub.io/connection-type-ref'?: string;
     };
   };
   data?: {

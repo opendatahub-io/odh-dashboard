@@ -3,6 +3,7 @@ import { Button, Flex, FlexItem, Form, FormGroup, Modal, Truncate } from '@patte
 import { MultiSelection, SelectionOptions } from '~/components/MultiSelection';
 import { Connection, ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { getConnectionTypeRef } from '~/concepts/connectionTypes/utils';
 import { connectionEnvVarConflicts, DuplicateEnvVarWarning } from './DuplicateEnvVarsWarning';
 
 type Props = {
@@ -21,9 +22,7 @@ export const SelectConnectionsModal: React.FC<Props> = ({
   const [selectionOptions, setSelectionOptions] = React.useState<SelectionOptions[]>(() =>
     connectionsToList.map((c) => {
       const category = connectionTypes
-        .find(
-          (type) => c.metadata.annotations['opendatahub.io/connection-type'] === type.metadata.name,
-        )
+        .find((type) => getConnectionTypeRef(c) === type.metadata.name)
         ?.data?.category?.join(', ');
 
       return {

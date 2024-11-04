@@ -15,6 +15,7 @@ import { useK8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptio
 import {
   assembleConnectionSecret,
   filterEnabledConnectionTypes,
+  getConnectionTypeRef,
   getDefaultValues,
   isConnectionTypeDataField,
   parseConnectionSecretValues,
@@ -46,7 +47,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
     [connectionTypes],
   );
 
-  const connectionTypeSource = connection?.metadata.annotations['opendatahub.io/connection-type'];
+  const connectionTypeSource = getConnectionTypeRef(connection);
 
   const [selectedConnectionType, setSelectedConnectionType] = React.useState<
     ConnectionTypeConfigMapObj | undefined
