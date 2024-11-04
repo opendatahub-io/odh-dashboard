@@ -34,7 +34,6 @@ const mockNotebooks = [
   mockNotebookK8sResource({ name: 'another-notebook', displayName: 'Another notebook' }),
 ];
 describe('Delete connection modal', () => {
-  const onDelete = jest.fn();
   const onClose = jest.fn();
 
   beforeEach(() => {
@@ -68,7 +67,6 @@ describe('Delete connection modal', () => {
         namespace={deleteConnection.metadata.namespace}
         deleteConnection={deleteConnection}
         onClose={onClose}
-        onDelete={onDelete}
       />,
     );
 
@@ -104,7 +102,6 @@ describe('Delete connection modal', () => {
         namespace={deleteConnection.metadata.namespace}
         deleteConnection={deleteConnection}
         onClose={onClose}
-        onDelete={onDelete}
       />,
     );
 

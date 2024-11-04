@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Connection, ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
-import { deleteSecret } from '~/api';
 import { Table } from '~/components/table';
 import ConnectionsTableRow from './ConnectionsTableRow';
 import { getColumns } from './connectionsTableColumns';
@@ -65,9 +64,6 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
               refreshConnections();
             }
           }}
-          onDelete={() =>
-            deleteSecret(deleteConnection.metadata.namespace, deleteConnection.metadata.name)
-          }
         />
       )}
     </>
