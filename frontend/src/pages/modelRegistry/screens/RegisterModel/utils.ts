@@ -13,6 +13,7 @@ import {
   RegisterVersionFormData,
   RegistrationCommonFormData,
 } from './useRegisterModelData';
+import { MR_CHARACTER_LIMIT } from './const';
 
 export type RegisterModelCreatedResources = RegisterVersionCreatedResources & {
   registeredModel: RegisteredModel;
@@ -66,7 +67,7 @@ export const registerVersion = async (
     },
   );
   const modelArtifact = await apiState.api.createModelArtifactForModelVersion({}, modelVersion.id, {
-    name: `${registeredModel.name}-${formData.versionName}-artifact`,
+    name: `${formData.versionName}`,
     description: formData.versionDescription,
     customProperties: {},
     state: ModelArtifactState.LIVE,
@@ -103,12 +104,17 @@ const isSubmitDisabledForCommonFields = (formData: RegistrationCommonFormData): 
     !versionName ||
     (modelLocationType === ModelLocationType.URI && !modelLocationURI) ||
     (modelLocationType === ModelLocationType.ObjectStorage &&
-      (!modelLocationBucket || !modelLocationEndpoint || !modelLocationPath))
+      (!modelLocationBucket || !modelLocationEndpoint || !modelLocationPath)) ||
+    !isNameValid(versionName)
   );
 };
 
 export const isRegisterModelSubmitDisabled = (formData: RegisterModelFormData): boolean =>
-  !formData.modelName || isSubmitDisabledForCommonFields(formData);
+  !formData.modelName ||
+  isSubmitDisabledForCommonFields(formData) ||
+  !isNameValid(formData.modelName);
 
 export const isRegisterVersionSubmitDisabled = (formData: RegisterVersionFormData): boolean =>
   !formData.registeredModelId || isSubmitDisabledForCommonFields(formData);
+
+export const isNameValid = (name: string): boolean => name.length <= MR_CHARACTER_LIMIT;
