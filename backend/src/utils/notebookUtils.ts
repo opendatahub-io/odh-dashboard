@@ -274,7 +274,7 @@ export const assembleNotebook = async (
         'opendatahub.io/username': username,
         'kubeflow-resource-stopped': null,
         'opendatahub.io/accelerator-name':
-          acceleratorProfile.acceleratorProfile?.metadata.name || '',
+          data.acceleratorProfile?.acceleratorProfile?.metadata.name || '',
       },
       name: name,
       namespace: namespace,
