@@ -25,7 +25,7 @@ const ConnectedResources: React.FC<Props> = ({ connection }) => {
     return <Spinner size="sm" />;
   }
 
-  if (!connectedNotebooks.length) {
+  if (!connectedNotebooks.length && !connectedModels.length) {
     return '-';
   }
 
