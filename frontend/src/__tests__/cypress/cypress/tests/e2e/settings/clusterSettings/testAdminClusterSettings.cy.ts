@@ -1,5 +1,5 @@
 import yaml from 'js-yaml';
-import { ADMIN_USER, TEST_USER, KUBE_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import { ADMIN_USER, TEST_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
   clusterSettings,
   cullerSettings,
