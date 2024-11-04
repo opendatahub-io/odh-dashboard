@@ -58,6 +58,7 @@ const DashboardDescriptionListGroup: React.FC<DashboardDescriptionListGroupProps
     editButtonTestId,
     saveButtonTestId,
     cancelButtonTestId,
+    isSaveDisabled,
   } = props;
   return (
     <DescriptionListGroup data-testid={groupTestId}>
@@ -75,7 +76,7 @@ const DashboardDescriptionListGroup: React.FC<DashboardDescriptionListGroupProps
                         aria-label={`Save edits to ${title}`}
                         variant="link"
                         onClick={onSaveEditsClick}
-                        isDisabled={isSavingEdits}
+                        isDisabled={isSavingEdits || isSaveDisabled}
                       >
                         <CheckIcon />
                       </Button>

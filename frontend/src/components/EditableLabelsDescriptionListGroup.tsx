@@ -1,10 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Label,
-  LabelGroup,
-  Alert,
-  AlertVariant
-} from '@patternfly/react-core';
+import { Label, LabelGroup, Alert, AlertVariant } from '@patternfly/react-core';
 import DashboardDescriptionListGroup from './DashboardDescriptionListGroup';
 
 interface EditableLabelsProps {
@@ -36,25 +31,27 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
 
   const validateLabel = (text: string): string | null => {
     if (reservedKeys.includes(text)) {
-      const error = `"${text}" already exists. Use a unique name that doesn't match any existing key or property`;
-      return error;
-    } else if (text.length > 63) {
+      return `"${text}" already exists. Use a unique name that doesn't match any existing key or property`;
+    }
+    if (text.length > 63) {
       return "Label text can't exceed 63 characters";
     }
     return null;
   };
 
   const removeUnsavedLabel = (text: string) => {
-    if (isSavingEdits) return;
+    if (isSavingEdits) {
+      return;
+    }
     setUnsavedLabels(unsavedLabels.filter((label) => label !== text));
   };
 
-  const handleEditComplete = (_event: any, newText: string, _index: number) => {
+  const handleEditComplete = (_event: MouseEvent | KeyboardEvent, newText: string) => {
     const error = validateLabel(newText);
     if (error) {
-      setLabelErrors(prev => ({ ...prev, [newText]: error }));
+      setLabelErrors((prev) => ({ ...prev, [newText]: error }));
     } else {
-      setUnsavedLabels(prev => [...prev, newText]);
+      setUnsavedLabels((prev) => [...prev, newText]);
       setLabelErrors({});
     }
   };
@@ -87,14 +84,14 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
                   editableProps={{
                     'aria-label': 'Add label',
                     defaultValue: '',
-                    'data-testid': 'add-label-input'
+                    'data-testid': 'add-label-input',
                   }}
                   onEditComplete={(_event, newText) => {
                     const error = validateLabel(newText);
                     if (error) {
-                      setLabelErrors(prev => ({ ...prev, [newText]: error }));
+                      setLabelErrors((prev) => ({ ...prev, [newText]: error }));
                     } else {
-                      setUnsavedLabels(prev => [...prev, newText]);
+                      setUnsavedLabels((prev) => [...prev, newText]);
                       const newErrors = { ...labelErrors };
                       delete newErrors[newText];
                       setLabelErrors(newErrors);
@@ -106,22 +103,22 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
               )
             }
           >
-            {unsavedLabels.map((label, index) => (
+            {unsavedLabels.map((label) => (
               <Label
                 data-testid={`editable-label-${label}`}
                 key={`${label}-${labelErrors[label] ? 'error' : 'normal'}`}
                 color={labelErrors[label] ? 'red' : 'blue'}
                 isEditable={!isSavingEdits}
                 onClose={() => removeUnsavedLabel(label)}
-                closeBtnProps={{ 
+                closeBtnProps={{
                   isDisabled: isSavingEdits,
-                  'data-testid': `remove-label-${label}`
+                  'data-testid': `remove-label-${label}`,
                 }}
-                onEditComplete={(_event, newText) => handleEditComplete(_event, newText, index)}
+                onEditComplete={(_event, newText) => handleEditComplete(_event, newText)}
                 editableProps={{
                   defaultValue: '',
                   'aria-label': 'Edit label',
-                  'data-testid': `edit-label-input-${label}`
+                  'data-testid': `edit-label-input-${label}`,
                 }}
               >
                 {label}
@@ -145,7 +142,9 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
         setIsEditing(true);
       }}
       onSaveEditsClick={async () => {
-        if (Object.keys(labelErrors).length > 0) return;
+        if (Object.keys(labelErrors).length > 0) {
+          return;
+        }
         setIsSavingEdits(true);
         try {
           await onLabelsChange(unsavedLabels);
