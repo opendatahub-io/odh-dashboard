@@ -577,8 +577,8 @@ export type NotebookData = {
   notebookSizeName: string;
   imageName: string;
   imageTagName: string;
-  acceleratorProfile: {
-    acceleratorProfile?: AcceleratorProfileKind;
+  acceleratorProfile?: {
+    acceleratorProfile: AcceleratorProfileKind;
     count: number;
   };
   envVars: EnvVarReducedTypeKeyValues;
