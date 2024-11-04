@@ -24,7 +24,11 @@ import {
   AccessReviewResourceAttributes,
   SecretKind,
 } from '~/k8sTypes';
-import { requestsUnderLimits, resourcesArePositive } from '~/pages/modelServing/utils';
+import {
+  getKServeContainerArgs,
+  requestsUnderLimits,
+  resourcesArePositive,
+} from '~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
 import useServingAcceleratorProfileFormState from '~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
@@ -299,6 +303,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
         fireFormTrackingEvent(editInfo ? 'Model Updated' : 'Model Deployed', props);
       });
   };
+
   return (
     <Modal
       title={editInfo ? 'Edit model' : 'Deploy model'}
@@ -437,9 +442,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
             {servingRuntimeParamsEnabled && (
               <FormSection title="Configuration parameters" id="configuration-params">
                 <ServingRuntimeArgsSection
-                  predefinedArgs={servingRuntimeSelected?.spec.containers
-                    .flatMap((c) => c.args)
-                    .filter((arg) => typeof arg === 'string')}
+                  predefinedArgs={getKServeContainerArgs(servingRuntimeSelected)}
                   data={createDataInferenceService}
                   setData={setCreateDataInferenceService}
                   inputRef={servingRuntimeArgsInputRef}

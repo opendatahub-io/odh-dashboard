@@ -123,6 +123,7 @@ const initIntercepts = ({
           name: 'template-2',
           displayName: 'Caikit',
           platforms: [ServingRuntimePlatform.SINGLE],
+          containerName: 'kserve-container',
         }),
         mockServingRuntimeTemplateK8sResource({
           name: 'template-3',

@@ -30,6 +30,7 @@ import {
   InferenceServiceKind,
   ServiceAccountKind,
   RoleKind,
+  ServingContainer,
 } from '~/k8sTypes';
 import { ContainerResources } from '~/types';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
@@ -258,6 +259,19 @@ export const getServingRuntimeOrReturnEmpty = (
   }
 
   return servingRuntime?.spec.containers[0]?.resources;
+};
+
+export const getKServeContainer = (
+  servingRuntime?: ServingRuntimeKind,
+): ServingContainer | undefined =>
+  servingRuntime?.spec.containers.find((container) => container.name === 'kserve-container');
+
+// will return `undefined` if no kserve container, force empty array if there is kserve with no args
+export const getKServeContainerArgs = (
+  servingRuntime?: ServingRuntimeKind,
+): string[] | undefined => {
+  const kserveContainer = getKServeContainer(servingRuntime);
+  return kserveContainer ? kserveContainer.args ?? [] : undefined;
 };
 
 export const getServingRuntimeSize = (
