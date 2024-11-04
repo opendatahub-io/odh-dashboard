@@ -43,9 +43,8 @@ import {
 } from '~/concepts/connectionTypes/validationUtils';
 import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
 import {
-  filterModelServingCompatibleTypes,
-  isConnectionTypeDataField,
-  isModelServingTypeCompatible,
+  filterModelServingConnectionTypes,
+  getConnectionTypeModelServingCompatibleTypes,
 } from '~/concepts/connectionTypes/utils';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import SimpleMenuActions from '~/components/SimpleMenuActions';
@@ -65,8 +64,8 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
   const { username: currentUsername } = useUser();
 
   const [connectionTypes] = useWatchConnectionTypes();
-  const modelServingCompatibleTypes = React.useMemo(
-    () => filterModelServingCompatibleTypes(connectionTypes),
+  const modelServingConnectionTypesMetadata = React.useMemo(
+    () => filterModelServingConnectionTypes(connectionTypes),
     [connectionTypes],
   );
 
@@ -122,10 +121,10 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
     [connectionNameDesc, enabled, fields, username, category],
   );
 
-  const matchedModelServingCompatibleTypes = React.useMemo(() => {
-    const envVars = fields.filter(isConnectionTypeDataField).map((f) => f.envVar);
-    return modelServingCompatibleTypes.filter((t) => isModelServingTypeCompatible(envVars, t.key));
-  }, [fields, modelServingCompatibleTypes]);
+  const modelServingCompatibleTypes = React.useMemo(
+    () => getConnectionTypeModelServingCompatibleTypes(connectionTypeObj),
+    [connectionTypeObj],
+  );
 
   const isValid =
     React.useMemo(() => isK8sNameDescriptionDataValid(connectionNameDesc), [connectionNameDesc]) &&
@@ -232,14 +231,14 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
                 title={
                   <Flex gap={{ default: 'gapSm' }}>
                     <FlexItem>Fields</FlexItem>
-                    {modelServingCompatibleTypes.length > 0 ? (
+                    {modelServingConnectionTypesMetadata.length > 0 ? (
                       <>
                         <FlexItem>
                           <SimpleMenuActions
                             testId="select-model-serving-compatible-type"
                             toggleLabel="Select a model serving compatible type"
                             variant="secondary"
-                            dropdownItems={modelServingCompatibleTypes.map((t) => ({
+                            dropdownItems={modelServingConnectionTypesMetadata.map((t) => ({
                               key: t.key,
                               label: t.name,
                               onClick: () => {
@@ -286,14 +285,14 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
               >
                 <FormGroup>
                   <Stack hasGutter>
-                    {matchedModelServingCompatibleTypes.length > 0 ? (
+                    {modelServingCompatibleTypes.length > 0 ? (
                       <StackItem>
                         <Alert
                           data-testid="compatible-model-serving-types-alert"
                           isInline
                           variant="info"
                           title={`This connection type is compatible with ${joinWithCommaAnd(
-                            matchedModelServingCompatibleTypes.map((t) => t.name),
+                            modelServingCompatibleTypes,
                             {
                               singlePrefix: 'the ',
                               singleSuffix: ' model serving type.',

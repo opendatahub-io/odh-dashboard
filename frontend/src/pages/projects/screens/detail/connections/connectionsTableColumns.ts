@@ -22,9 +22,10 @@ export const columns: SortableData<Connection>[] = [
   },
   {
     field: 'compatibility',
-    label: 'Compatibility',
+    label: 'Model serving compatibility',
     width: 20,
     sortable: false,
+    modifier: 'wrap',
   },
   {
     field: 'connections',

@@ -58,11 +58,11 @@ describe('Connections', () => {
     const row1 = connectionsPage.getConnectionRow('test1');
     row1.find().findByText('test1').should('exist');
     row1.find().findByText('s3').should('exist');
-    row1.find().findByText('Model serving').should('exist');
+    row1.find().findByText('S3 compatible object storage').should('exist');
     const row2 = connectionsPage.getConnectionRow('test2');
     row2.find().findByText('test2').should('exist');
     row2.find().findByText('postgres').should('exist');
-    row1.find().findByText('Model serving').should('exist');
+    row2.find().findByText('S3 compatible object storage').should('not.exist');
   });
 
   it('Delete a connection', () => {

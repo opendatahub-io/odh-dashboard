@@ -147,7 +147,7 @@ export type ConnectionTypeValueType = ConnectionTypeDataField['properties']['def
 export type Connection = SecretKind & {
   metadata: {
     labels: DashboardLabels & {
-      'opendatahub.io/managed': 'true';
+      'opendatahub.io/managed'?: 'true';
     };
     annotations: DisplayNameAnnotations & {
       'opendatahub.io/connection-type': string;
