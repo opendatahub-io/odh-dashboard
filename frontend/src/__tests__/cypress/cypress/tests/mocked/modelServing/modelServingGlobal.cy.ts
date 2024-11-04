@@ -524,8 +524,7 @@ describe('Model Serving Global', () => {
 
     kserveModal.shouldBeOpen();
     kserveModal.findPredefinedArgsButton().click();
-    kserveModal.findPredefinedArgsList().should('exist');
-    kserveModal.findPredefinedArgsList().should('not.include.text', '--port=8001');
+    kserveModal.findPredefinedArgsList().should('not.exist');
     kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
     kserveModal.findPredefinedArgsButton().click();
     kserveModal.findPredefinedArgsList().should('exist');
