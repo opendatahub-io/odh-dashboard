@@ -89,7 +89,7 @@ describe('NotebookServer', () => {
         notebookSizeName: 'XSmall',
         imageName: 'code-server-notebook',
         imageTagName: '2023.2',
-        acceleratorProfile: { count: 0, acceleratorProfile: undefined },
+        acceleratorProfile: undefined,
         envVars: { configMap: {}, secrets: {} },
         state: 'started',
         storageClassName: 'openshift-default-sc',
