@@ -1,5 +1,5 @@
 import { AlertVariant } from '@patternfly/react-core';
-import { SecretKind, ServingRuntimeKind } from '~/k8sTypes';
+import { SecretKind, ServingContainer, ServingRuntimeKind } from '~/k8sTypes';
 import { DataConnection, EnvVariableDataEntry } from '~/pages/projects/types';
 import { ContainerResources } from '~/types';
 
@@ -67,6 +67,8 @@ export type CreatingInferenceServiceObject = CreatingModelServingObjectCommon & 
   maxReplicas: number;
   minReplicas: number;
   labels?: Record<string, string>;
+  servingRuntimeArgs?: ServingContainer['args'];
+  servingRuntimeEnvVars?: ServingContainer['env'];
 };
 
 export type CreatingModelServingObjectCommon = {
@@ -80,12 +82,14 @@ export type CreatingModelServingObjectCommon = {
 export enum InferenceServiceStorageType {
   NEW_STORAGE = 'new-storage',
   EXISTING_STORAGE = 'existing-storage',
+  EXISTING_URI = 'existing-uri',
 }
 
 export type InferenceServiceStorage = {
   type: InferenceServiceStorageType;
   path: string;
   dataConnection: string;
+  uri?: string;
   awsData: EnvVariableDataEntry[];
   alert?: {
     type: AlertVariant;

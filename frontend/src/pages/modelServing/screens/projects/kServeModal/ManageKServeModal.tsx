@@ -13,6 +13,7 @@ import {
   getCreateInferenceServiceLabels,
   getSubmitInferenceServiceResourceFn,
   getSubmitServingRuntimeResourcesFn,
+  isConnectionPathValid,
   useCreateInferenceServiceObject,
   useCreateServingRuntimeObject,
 } from '~/pages/modelServing/screens/projects/utils';
@@ -42,7 +43,6 @@ import InferenceServiceNameSection from '~/pages/modelServing/screens/projects/I
 import InferenceServiceFrameworkSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/InferenceServiceFrameworkSection';
 import DataConnectionSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/DataConnectionSection';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
-import { containsOnlySlashes, isS3PathValid } from '~/utilities/string';
 import AuthServingRuntimeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
 import { useAccessReview } from '~/api';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
@@ -169,13 +169,26 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
 
   // Inference Service Validation
   const storageCanCreate = (): boolean => {
-    if (createDataInferenceService.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
-      return createDataInferenceService.storage.dataConnection !== '';
+    if (createDataInferenceService.storage.type === InferenceServiceStorageType.EXISTING_URI) {
+      return !!createDataInferenceService.storage.uri;
     }
+    if (createDataInferenceService.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
+      if (isConnectionTypesEnabled) {
+        return isConnectionValid;
+      }
+      return (
+        createDataInferenceService.storage.dataConnection !== '' &&
+        isConnectionPathValid(createDataInferenceService.storage.path)
+      );
+    }
+    // NEW_STORAGE
     if (isConnectionTypesEnabled) {
       return isConnectionValid;
     }
-    return isAWSValid(createDataInferenceService.storage.awsData, [AwsKeys.AWS_S3_BUCKET]);
+    return (
+      isAWSValid(createDataInferenceService.storage.awsData, [AwsKeys.AWS_S3_BUCKET]) &&
+      isConnectionPathValid(createDataInferenceService.storage.path)
+    );
   };
 
   const baseInputValueValid =
@@ -188,9 +201,6 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     createDataInferenceService.name.trim() === '' ||
     createDataInferenceService.project === '' ||
     createDataInferenceService.format.name === '' ||
-    containsOnlySlashes(createDataInferenceService.storage.path) ||
-    !isS3PathValid(createDataInferenceService.storage.path) ||
-    createDataInferenceService.storage.path === '' ||
     !isInferenceServiceNameWithinLimit ||
     !storageCanCreate() ||
     !baseInputValueValid;
@@ -204,6 +214,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       ),
     [editInfo, servingRuntimeTemplates, createDataServingRuntime.servingRuntimeTemplateName],
   );
+
+  const servingRuntimeArgsInputRef = React.useRef<HTMLTextAreaElement>(null);
 
   const onBeforeClose = (submitted: boolean) => {
     fireFormTrackingEvent(editInfo ? 'Model Updated' : 'Model Deployed', {
@@ -367,6 +379,14 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                   />
                   <ServingRuntimeTemplateSection
                     data={createDataServingRuntime}
+                    onConfigureParamsClick={
+                      servingRuntimeParamsEnabled
+                        ? () =>
+                            requestAnimationFrame(() => {
+                              servingRuntimeArgsInputRef.current?.focus();
+                            })
+                        : undefined
+                    }
                     setData={setCreateDataServingRuntime}
                     templates={servingRuntimeTemplates || []}
                     isEditing={!!editInfo}
@@ -430,6 +450,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                 <ServingRuntimeArgsSection
                   data={createDataInferenceService}
                   setData={setCreateDataInferenceService}
+                  inputRef={servingRuntimeArgsInputRef}
                 />
                 <EnvironmentVariablesSection
                   data={createDataInferenceService}

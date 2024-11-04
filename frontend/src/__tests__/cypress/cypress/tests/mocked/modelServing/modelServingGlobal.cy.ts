@@ -14,6 +14,7 @@ import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/Delete
 import {
   inferenceServiceModal,
   inferenceServiceModalEdit,
+  kserveModal,
   modelServingGlobal,
 } from '~/__tests__/cypress/cypress/pages/modelServing';
 import {
@@ -38,6 +39,7 @@ type HandlersProps = {
   delayInferenceServices?: boolean;
   delayServingRuntimes?: boolean;
   disableKServeMetrics?: boolean;
+  disableServingRuntimeParamsConfig?: boolean;
 };
 
 const initIntercepts = ({
@@ -49,11 +51,15 @@ const initIntercepts = ({
   delayInferenceServices,
   delayServingRuntimes,
   disableKServeMetrics,
+  disableServingRuntimeParamsConfig,
 }: HandlersProps) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      installedComponents: { kserve: true, 'model-mesh': true },
+      installedComponents: {
+        kserve: true,
+        'model-mesh': true,
+      },
     }),
   );
   cy.interceptOdh(
@@ -62,6 +68,7 @@ const initIntercepts = ({
       disableKServe: disableKServeConfig,
       disableModelMesh: disableModelMeshConfig,
       disableKServeMetrics,
+      disableServingRuntimeParams: disableServingRuntimeParamsConfig,
     }),
   );
   cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(servingRuntimes));
@@ -408,10 +415,12 @@ describe('Model Serving Global', () => {
               modelFormat: { name: 'onnx', version: '1' },
               runtime: 'test-model',
               storage: { key: 'test-secret', path: 'test-model/' },
+              args: [],
+              env: [],
             },
           },
         },
-      });
+      } satisfies InferenceServiceKind);
     });
 
     // Actaul request
@@ -471,10 +480,12 @@ describe('Model Serving Global', () => {
               modelFormat: { name: 'onnx', version: '1' },
               runtime: 'test-model',
               storage: { key: 'test-secret', path: 'test-model/test-model/' },
+              args: [],
+              env: [],
             },
           },
         },
-      });
+      } satisfies InferenceServiceKind);
     });
 
     cy.findByText('Error creating model server');
@@ -486,6 +497,23 @@ describe('Model Serving Global', () => {
     modelServingGlobal.findDeployModelButton().click();
     cy.findByText('Error creating model server').should('not.exist');
   });
+
+  it('Serving runtime helptext', () => {
+    initIntercepts({
+      projectEnableModelMesh: false,
+      disableServingRuntimeParamsConfig: false,
+    });
+    modelServingGlobal.visit('test-project');
+
+    modelServingGlobal.findDeployModelButton().click();
+
+    // test that you can not submit on empty
+    kserveModal.shouldBeOpen();
+    kserveModal.findServingRuntimeTemplateHelptext().should('not.exist');
+    kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+    kserveModal.findServingRuntimeTemplateHelptext().should('exist');
+  });
+
   it('Navigate to kserve model metrics page only if enabled', () => {
     initIntercepts({});
     modelServingGlobal.visit('test-project');

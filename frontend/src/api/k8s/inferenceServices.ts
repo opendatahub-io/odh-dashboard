@@ -38,10 +38,15 @@ export const assembleInferenceService = (
     minReplicas,
     tokenAuth,
     externalRoute,
+    servingRuntimeArgs,
+    servingRuntimeEnvVars,
   } = data;
   const name = editName || translateDisplayNameForK8s(data.name);
-  const { path, dataConnection } = storage;
+  const { path, dataConnection, uri } = storage;
   const dataConnectionKey = secretKey || dataConnection;
+
+  const nonEmptyArgs = servingRuntimeArgs?.filter(Boolean) || [];
+  const nonEmptyEnvVars = servingRuntimeEnvVars?.filter((ev) => ev.name) || [];
 
   const updateInferenceService: InferenceServiceKind = inferenceService
     ? {
@@ -75,10 +80,16 @@ export const assembleInferenceService = (
                 ...(format.version && { version: format.version }),
               },
               runtime: servingRuntimeName,
-              storage: {
-                key: dataConnectionKey,
-                path,
-              },
+              ...(uri
+                ? { storageUri: uri }
+                : {
+                    storage: {
+                      key: dataConnectionKey,
+                      path,
+                    },
+                  }),
+              args: nonEmptyArgs,
+              env: nonEmptyEnvVars,
             },
           },
         },
@@ -117,10 +128,16 @@ export const assembleInferenceService = (
                 ...(format.version && { version: format.version }),
               },
               runtime: servingRuntimeName,
-              storage: {
-                key: dataConnectionKey,
-                path,
-              },
+              ...(uri
+                ? { storageUri: uri }
+                : {
+                    storage: {
+                      key: dataConnectionKey,
+                      path,
+                    },
+                  }),
+              args: nonEmptyArgs,
+              env: nonEmptyEnvVars,
             },
           },
         },

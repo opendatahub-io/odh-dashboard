@@ -415,6 +415,7 @@ describe('Model version details', () => {
       cy.wait('@updateModelFormat').then((interception) => {
         expect(interception.request.body).to.deep.equal({
           modelFormatName: 'UpdatedFormat',
+          artifactType: 'model-artifact',
         });
       });
     });
@@ -439,6 +440,7 @@ describe('Model version details', () => {
       cy.wait('@updateModelVersion').then((interception) => {
         expect(interception.request.body).to.deep.equal({
           modelFormatVersion: '2.0.0',
+          artifactType: 'model-artifact',
         });
       });
     });
