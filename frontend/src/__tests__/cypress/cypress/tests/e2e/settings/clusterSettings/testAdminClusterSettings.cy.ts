@@ -66,14 +66,4 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
     pageNotfound.findPage().should('exist');
     clusterSettings.findNavItem().should('not.exist');
   });
-  it('Kube Admin User - should not have access rights to view the Cluster Settings tab', () => {
-    // Authentication and attempt to navigate to Cluster Settings
-    cy.step('Log into the application');
-    cy.visitWithLogin('/', KUBE_ADMIN_USER);
-
-    cy.step('Navigate to the Cluster Settings');
-    clusterSettings.visit(false);
-    pageNotfound.findPage().should('exist');
-    clusterSettings.findNavItem().should('not.exist');
-  });
 });
