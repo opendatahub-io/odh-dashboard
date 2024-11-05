@@ -191,14 +191,14 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
                 variant={isEnvVarValid ? 'default' : 'error'}
                 icon={isEnvVarValid ? undefined : <ExclamationCircleIcon />}
               >
-                Valid characters include letters, numbers, and underscores ( _ ), and must not start
-                with a number.
+                Must start with a letter or underscore. Valid characters include letters, numbers,
+                and underscores ( _ ).
               </HelperTextItem>
             </HelperText>
             {isEnvVarConflict ? (
               <HelperText data-testid="envvar-conflict-warning">
                 <HelperTextItem icon={<WarningTriangleIcon />} variant="warning">
-                  {envVar} already exists within this connection type.
+                  {envVar} already exists within this connection type. Try a different name.
                 </HelperTextItem>
               </HelperText>
             ) : undefined}

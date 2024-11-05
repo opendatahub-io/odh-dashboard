@@ -7,7 +7,9 @@ const useModelFramework = (
   namespace?: string,
 ): [models: SupportedModelFormats[], loaded: boolean, loadError: Error | undefined] => {
   const [models, setModels] = React.useState<SupportedModelFormats[]>([]);
-  const [loaded, setLoaded] = React.useState(false);
+  const [loadedFrameworksForRuntimeName, setLoadedFrameworksForRuntimeName] = React.useState<
+    string | null
+  >(null);
   const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
 
   React.useEffect(() => {
@@ -15,18 +17,18 @@ const useModelFramework = (
       return;
     }
     setLoadError(undefined);
-    setLoaded(false);
+    setLoadedFrameworksForRuntimeName(null);
     getServingRuntime(name, namespace)
       .then((servingRuntime) => {
         setModels(servingRuntime.spec.supportedModelFormats || []);
-        setLoaded(true);
+        setLoadedFrameworksForRuntimeName(name);
       })
       .catch((e) => {
         setLoadError(e);
       });
   }, [name, namespace]);
 
-  return [models, loaded, loadError];
+  return [models, loadedFrameworksForRuntimeName === name, loadError];
 };
 
 export default useModelFramework;

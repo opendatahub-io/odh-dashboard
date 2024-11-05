@@ -50,6 +50,8 @@ type HandlersProps = {
   imageStreamPythonDependencies?: string;
   v1PipelineServer?: boolean;
   pipelineServerInstalled?: boolean;
+  pipelineServerInitializing?: boolean;
+  pipelineServerErrorMessage?: string;
 };
 
 const initIntercepts = ({
@@ -65,6 +67,8 @@ const initIntercepts = ({
   templates = false,
   v1PipelineServer = false,
   pipelineServerInstalled = true,
+  pipelineServerInitializing,
+  pipelineServerErrorMessage,
 }: HandlersProps) => {
   cy.interceptK8sList(
     { model: SecretModel, ns: 'test-project' },
@@ -118,12 +122,18 @@ const initIntercepts = ({
       mockK8sResourceList([
         mockDataSciencePipelineApplicationK8sResource({
           dspVersion: v1PipelineServer ? 'v1' : 'v2',
+          message: pipelineServerErrorMessage,
+          initializing: pipelineServerInitializing,
         }),
       ]),
     );
     cy.interceptK8s(
       DataSciencePipelineApplicationModel,
-      mockDataSciencePipelineApplicationK8sResource({ dspVersion: v1PipelineServer ? 'v1' : 'v2' }),
+      mockDataSciencePipelineApplicationK8sResource({
+        dspVersion: v1PipelineServer ? 'v1' : 'v2',
+        message: pipelineServerErrorMessage,
+        initializing: pipelineServerInitializing,
+      }),
     );
   }
   cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
@@ -270,6 +280,21 @@ describe('Project Details', () => {
       projectDetails.showProjectResourceDetails();
       projectDetails.findProjectResourceNameText().should('have.text', 'test-project');
       projectDetails.findProjectResourceKindText().should('have.text', 'Project');
+    });
+
+    it('Should show pipeline server error when the server has errors', () => {
+      initIntercepts({
+        pipelineServerInitializing: true,
+        pipelineServerErrorMessage: 'Data connection unsuccessfully verified',
+      });
+      projectDetails.visit('test-project');
+      projectDetails
+        .findPipelineTimeoutErrorMessage()
+        .should('have.text', 'Data connection unsuccessfully verified');
+      projectDetails.findTab('Pipelines').click();
+      projectDetails
+        .findPipelineTimeoutErrorMessage()
+        .should('have.text', 'Data connection unsuccessfully verified');
     });
 
     it('Should not allow actions for non-provisioning users', () => {

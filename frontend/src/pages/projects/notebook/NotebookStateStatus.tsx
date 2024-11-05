@@ -77,11 +77,11 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
           data-testid="notebook-status-popover"
           shouldClose={() => setPopoverVisible(false)}
           isVisible={isPopoverVisible}
-          headerContent="Notebook status"
+          headerContent="Workbench status"
           bodyContent={
             events[events.length - 1]
               ? getEventFullMessage(events[events.length - 1])
-              : 'Waiting for notebook to start...'
+              : 'Waiting for workbench to start...'
           }
           footerContent={
             <Button

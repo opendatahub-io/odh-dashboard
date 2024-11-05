@@ -63,7 +63,7 @@ const PipelinesSection: React.FC = () => {
           ) : null
         }
         actions={actions}
-        isLoading={(compatible && !apiAvailable && installed) || initializing}
+        isLoading={(!timedOut && compatible && !apiAvailable && installed) || initializing}
         isEmpty={!installed}
         emptyState={<NoPipelineServer variant={ButtonVariant.primary} />}
         showDivider={isPipelinesEmpty}

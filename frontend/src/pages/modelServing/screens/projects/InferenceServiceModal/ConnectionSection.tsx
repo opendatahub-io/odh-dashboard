@@ -27,6 +27,7 @@ import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescription
 import {
   assembleConnectionSecret,
   getConnectionTypeDisplayName,
+  getConnectionTypeRef,
   getDefaultValues,
   isConnectionTypeDataField,
   isUriConnection,
@@ -79,7 +80,9 @@ const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = ({
             )}
             <FlexItem>
               <Truncate
-                content={`Type: ${getConnectionTypeDisplayName(connection, connectionTypes)}`}
+                content={`Type: ${
+                  getConnectionTypeDisplayName(connection, connectionTypes) || 'Unknown'
+                }`}
               />
             </FlexItem>
           </Flex>
@@ -94,11 +97,9 @@ const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = ({
   const selectedConnectionType = React.useMemo(
     () =>
       connectionTypes.find(
-        (t) =>
-          getResourceNameFromK8sResource(t) ===
-          selectedConnection?.metadata.annotations['opendatahub.io/connection-type'],
+        (t) => getResourceNameFromK8sResource(t) === getConnectionTypeRef(selectedConnection),
       ),
-    [connectionTypes, selectedConnection?.metadata.annotations],
+    [connectionTypes, selectedConnection],
   );
 
   React.useEffect(() => {

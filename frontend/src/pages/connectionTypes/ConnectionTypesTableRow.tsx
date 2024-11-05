@@ -22,7 +22,7 @@ import {
 } from '~/concepts/k8s/utils';
 import { connectionTypeColumns } from '~/pages/connectionTypes/columns';
 import CategoryLabel from '~/concepts/connectionTypes/CategoryLabel';
-import { getCompatibleTypes, isConnectionTypeDataField } from '~/concepts/connectionTypes/utils';
+import { getConnectionTypeModelServingCompatibleTypes } from '~/concepts/connectionTypes/utils';
 import CompatibilityLabel from '~/concepts/connectionTypes/CompatibilityLabel';
 import ConnectionTypePreviewModal from '~/concepts/connectionTypes/ConnectionTypePreviewModal';
 
@@ -78,12 +78,11 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
       });
   };
 
-  const compatibleTypes = getCompatibleTypes(
-    obj.data?.fields
-      ?.filter(isConnectionTypeDataField)
-      .filter((field) => field.required)
-      .map((field) => field.envVar) ?? [],
+  const compatibleTypes = React.useMemo(
+    () => getConnectionTypeModelServingCompatibleTypes(obj),
+    [obj],
   );
+
   return (
     <Tr>
       <Td dataLabel={connectionTypeColumns[0].label}>
