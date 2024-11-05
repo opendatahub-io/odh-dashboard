@@ -8,6 +8,7 @@ import {
   EmptyStateBody,
   EmptyStateHeader,
   EmptyStateIcon,
+  EmptyStateVariant,
   Spinner,
   Stack,
   Text,
@@ -84,7 +85,7 @@ const PipelinesCard: React.FC = () => {
       );
     }
 
-    if (pipelinesServer.timedOut) {
+    if (pipelinesServer.timedOut && pipelinesServer.compatible) {
       return (
         <CardBody>
           <PipelineServerTimedOut />
@@ -94,7 +95,7 @@ const PipelinesCard: React.FC = () => {
 
     return (
       <EnsureAPIAvailability>
-        <EnsureCompatiblePipelineServer>
+        <EnsureCompatiblePipelineServer emptyStateVariant={EmptyStateVariant.xs}>
           <PipelinesCardMetrics />
         </EnsureCompatiblePipelineServer>
       </EnsureAPIAvailability>
