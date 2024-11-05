@@ -175,6 +175,7 @@ spec:
             build_time="$(date +%Y-%m-%dT%H:%M:%S)"
             slack_message="${alertEmoji} <${build_url}|${pipelinerun_name}> - ${build_time}"
             slack_message=$(echo -e "${slack_message}\nStatus: ${statusText} ${statusEmoji}")
+            slack_message=$(echo -e "${slack_message}\nCC - <@S05B904NQ6L>")
 
             echo -n "${slack_message}" > "$(results.slack-message-failure-text.path)"
     - name: init
@@ -279,6 +280,7 @@ spec:
         - release='$(tasks.clone-repository.results.commit-timestamp)'
         - git.url=$(params.git-url)
         - git.commit=$(params.revision)
+        - io.openshift.tags="odh-dashboard"
       - name: SOURCE_ARTIFACT
         value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
       - name: CACHI2_ARTIFACT
