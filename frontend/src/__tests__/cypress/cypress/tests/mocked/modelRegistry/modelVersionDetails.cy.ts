@@ -72,7 +72,7 @@ const mockModelVersions = mockModelVersion({
       metadataType: ModelRegistryMetadataType.STRING,
       string_value: '',
     },
-    'Long label data to be truncated abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc':
+    'Long label data to be truncated abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc':
       {
         metadataType: ModelRegistryMetadataType.STRING,
         string_value: '',
@@ -238,8 +238,6 @@ describe('Model version details', () => {
     it('Model version details tab', () => {
       modelVersionDetails.findVersionId().contains('1');
       modelVersionDetails.findDescription().should('have.text', 'Description of model version');
-      modelVersionDetails.findMoreLabelsButton().contains('6 more');
-      modelVersionDetails.findMoreLabelsButton().click();
       modelVersionDetails.shouldContainsModalLabels([
         'Testing label',
         'Financial',

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Label, LabelGroup, Alert, AlertVariant } from '@patternfly/react-core';
+import { Label, LabelGroup, Alert, AlertVariant, Button } from '@patternfly/react-core';
 import DashboardDescriptionListGroup from './DashboardDescriptionListGroup';
 
 interface EditableLabelsProps {
@@ -50,10 +50,20 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
     const error = validateLabel(newText);
     if (error) {
       setLabelErrors((prev) => ({ ...prev, [newText]: error }));
-    } else {
-      setUnsavedLabels((prev) => [...prev, newText]);
+    } else if (newText) {
+      setUnsavedLabels((prev) => {
+        const filtered = prev.filter((label) => label !== 'New Label');
+        return [...filtered, newText];
+      });
       setLabelErrors({});
     }
+  };
+
+  const addNewLabel = () => {
+    if (isSavingEdits) {
+      return;
+    }
+    setUnsavedLabels((prev) => [...prev, 'New Label']);
   };
 
   return (
@@ -74,34 +84,6 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
             numLabels={10}
             expandedText="Show Less"
             collapsedText="Show More"
-            addLabelControl={
-              !isSavingEdits && (
-                <Label
-                  data-testid="add-label-button"
-                  color="blue"
-                  variant="outline"
-                  isEditable
-                  editableProps={{
-                    'aria-label': 'Add label',
-                    defaultValue: '',
-                    'data-testid': 'add-label-input',
-                  }}
-                  onEditComplete={(_event, newText) => {
-                    const error = validateLabel(newText);
-                    if (error) {
-                      setLabelErrors((prev) => ({ ...prev, [newText]: error }));
-                    } else {
-                      setUnsavedLabels((prev) => [...prev, newText]);
-                      const newErrors = { ...labelErrors };
-                      delete newErrors[newText];
-                      setLabelErrors(newErrors);
-                    }
-                  }}
-                >
-                  Add label
-                </Label>
-              )
-            }
           >
             {unsavedLabels.map((label) => (
               <Label
@@ -124,6 +106,20 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
                 {label}
               </Label>
             ))}
+            <Button
+              data-testid="add-label-button"
+              variant="plain"
+              className="pf-v5-c-label pf-m-outline"
+              onClick={addNewLabel}
+              isDisabled={isSavingEdits}
+              style={{
+                border: '2px solid #d2d2d2',
+                color: '#0066CC',
+                backgroundColor: 'transparent',
+              }}
+            >
+              Add label
+            </Button>
           </LabelGroup>
           {Object.keys(labelErrors).length > 0 && (
             <Alert
@@ -132,6 +128,7 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
               isInline
               title={Object.values(labelErrors)[0]}
               aria-live="polite"
+              isPlain
             />
           )}
         </>

@@ -3,7 +3,7 @@ import { DescriptionList, Flex, FlexItem, TextVariants, Title } from '@patternfl
 import { ModelVersion } from '~/concepts/modelRegistry/types';
 import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
 import EditableTextDescriptionListGroup from '~/components/EditableTextDescriptionListGroup';
-import {EditableLabelsDescriptionListGroup} from '~/components/EditableLabelsDescriptionListGroup';
+import { EditableLabelsDescriptionListGroup } from '~/components/EditableLabelsDescriptionListGroup';
 import ModelPropertiesDescriptionListGroup from '~/pages/modelRegistry/screens/ModelPropertiesDescriptionListGroup';
 import { getLabels, mergeUpdatedLabels } from '~/pages/modelRegistry/screens/utils';
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
