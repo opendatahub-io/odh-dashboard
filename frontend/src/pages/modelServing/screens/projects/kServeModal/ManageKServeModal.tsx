@@ -26,6 +26,7 @@ import {
 } from '~/k8sTypes';
 import {
   getKServeContainerArgs,
+  getKServeContainerEnvVarStrs,
   requestsUnderLimits,
   resourcesArePositive,
 } from '~/pages/modelServing/utils';
@@ -448,6 +449,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                   inputRef={servingRuntimeArgsInputRef}
                 />
                 <EnvironmentVariablesSection
+                  predefinedVars={getKServeContainerEnvVarStrs(servingRuntimeSelected)}
                   data={createDataInferenceService}
                   setData={setCreateDataInferenceService}
                 />
