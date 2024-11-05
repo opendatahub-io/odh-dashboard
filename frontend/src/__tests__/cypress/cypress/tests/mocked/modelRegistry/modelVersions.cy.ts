@@ -245,6 +245,11 @@ describe('Model Versions', () => {
     modelRegistry.findModelVersionsTableSearch().type('Test author');
     modelRegistry.findModelVersionsTableRows().should('have.length', 1);
     modelRegistry.findModelVersionsTableRows().contains('Test author');
+
+    // searching with no matches shows no results screen
+    modelRegistry.findModelVersionsTableSearch().focused().clear();
+    modelRegistry.findModelVersionsTableSearch().type('no matches for this');
+    modelRegistry.findModelRegistryEmptyTableState();
   });
 
   it('Model version details back button should lead to versions table', () => {
