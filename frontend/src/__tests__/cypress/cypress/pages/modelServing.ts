@@ -157,6 +157,22 @@ class InferenceServiceModal extends Modal {
   findLocationPathInputError() {
     return this.find().findByTestId('folder-path-error');
   }
+
+  findServingRuntimeArgumentsSection() {
+    return this.find().findByTestId('serving-runtime-arguments');
+  }
+
+  findServingRuntimeArgumentsSectionInput() {
+    return this.find().findByTestId('serving-runtime-arguments-input');
+  }
+
+  findServingRuntimeEnvVarsSection() {
+    return this.find().findByTestId('serving-runtime-environment-variables');
+  }
+
+  // findLocationPathInputError() {
+  //   return this.find().findByTestId('folder-path-error');
+  // }
 }
 
 class ServingRuntimeModal extends Modal {

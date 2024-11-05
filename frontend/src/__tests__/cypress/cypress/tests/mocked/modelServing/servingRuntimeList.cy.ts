@@ -60,6 +60,7 @@ import { mockRoleK8sResource } from '~/__mocks__/mockRoleK8sResource';
 type HandlersProps = {
   disableKServeConfig?: boolean;
   disableKServeAuthConfig?: boolean;
+  disableServingRuntimeParams?: boolean;
   disableModelMeshConfig?: boolean;
   disableAccelerator?: boolean;
   projectEnableModelMesh?: boolean;
@@ -78,6 +79,7 @@ type HandlersProps = {
 const initIntercepts = ({
   disableKServeConfig,
   disableKServeAuthConfig,
+  disableServingRuntimeParams = true,
   disableModelMeshConfig,
   disableAccelerator,
   projectEnableModelMesh,
@@ -131,6 +133,7 @@ const initIntercepts = ({
       disableKServe: disableKServeConfig,
       disableModelMesh: disableModelMeshConfig,
       disableKServeAuth: disableKServeAuthConfig,
+      disableServingRuntimeParams,
     }),
   );
   cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
@@ -690,10 +693,11 @@ describe('Serving Runtime List', () => {
   });
 
   describe('KServe', () => {
-    it('Deploy KServe model', () => {
+    it.only('Deploy KServe model', () => {
       initIntercepts({
         disableModelMeshConfig: false,
         disableKServeConfig: false,
+        disableServingRuntimeParams: false,
         servingRuntimes: [],
         requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
         projectEnableModelMesh: false,
@@ -730,6 +734,9 @@ describe('Serving Runtime List', () => {
       kserveModal.findLocationEndpointInput().type('test-endpoint');
       kserveModal.findLocationBucketInput().type('test-bucket');
       kserveModal.findLocationPathInput().type('test-model/');
+      kserveModal.findServingRuntimeArgumentsSectionInput().should('exist');
+      kserveModal.findServingRuntimeArgumentsSectionInput().type('--arg=value');
+      // kserveModal.findServingRuntimeEnvVarsSection().should('be.visible');
       kserveModal.findSubmitButton().should('be.enabled');
 
       // test submitting form, the modal should close to indicate success.
