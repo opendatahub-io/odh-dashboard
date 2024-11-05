@@ -14,6 +14,7 @@ import ManageKServeModal from '~/pages/modelServing/screens/projects/kServeModal
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
+import ManageNIMServingModal from '~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
 
 const ServeModelButton: React.FC = () => {
   const [platformSelected, setPlatformSelected] = React.useState<
@@ -38,9 +39,6 @@ const ServeModelButton: React.FC = () => {
     getTemplateEnabled(template, templateDisablement),
   );
   const isKServeNIMEnabled = !!project && isProjectNIMSupported(project);
-  if (isKServeNIMEnabled) {
-    return null;
-  }
 
   const onSubmit = (submit: boolean) => {
     if (submit) {
@@ -89,18 +87,25 @@ const ServeModelButton: React.FC = () => {
         />
       ) : null}
       {platformSelected === ServingRuntimePlatform.SINGLE ? (
-        <ManageKServeModal
-          projectContext={{
-            currentProject: project,
-            dataConnections,
-          }}
-          servingRuntimeTemplates={templatesEnabled.filter((template) =>
-            getTemplateEnabledForPlatform(template, ServingRuntimePlatform.SINGLE),
-          )}
-          onClose={(submit: boolean) => {
-            onSubmit(submit);
-          }}
-        />
+        isKServeNIMEnabled ? (
+          <ManageNIMServingModal
+            projectContext={{ currentProject: project, dataConnections }}
+            onClose={onSubmit}
+          />
+        ) : (
+          <ManageKServeModal
+            projectContext={{
+              currentProject: project,
+              dataConnections,
+            }}
+            servingRuntimeTemplates={templatesEnabled.filter((template) =>
+              getTemplateEnabledForPlatform(template, ServingRuntimePlatform.SINGLE),
+            )}
+            onClose={(submit: boolean) => {
+              onSubmit(submit);
+            }}
+          />
+        )
       ) : null}
     </>
   );

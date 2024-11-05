@@ -135,6 +135,8 @@ export const useCreateServingRuntimeObject = (existingData?: {
 
   const existingTokens = useDeepCompareMemoize(getServingRuntimeTokens(existingData?.secrets));
 
+  const existingImageName = existingData?.servingRuntime?.spec.containers[0].image;
+
   React.useEffect(() => {
     if (existingServingRuntimeName) {
       setCreateData('name', existingServingRuntimeName);
@@ -144,6 +146,7 @@ export const useCreateServingRuntimeObject = (existingData?: {
       setCreateData('externalRoute', existingExternalRoute);
       setCreateData('tokenAuth', existingTokenAuth);
       setCreateData('tokens', existingTokens);
+      setCreateData('imageName', existingImageName);
     }
   }, [
     existingServingRuntimeName,
@@ -155,6 +158,7 @@ export const useCreateServingRuntimeObject = (existingData?: {
     existingTokens,
     setCreateData,
     sizes,
+    existingImageName,
   ]);
   return [...createModelState, sizes];
 };

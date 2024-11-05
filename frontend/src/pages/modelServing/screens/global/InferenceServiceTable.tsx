@@ -2,13 +2,15 @@ import * as React from 'react';
 import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
 import { SortableData, Table } from '~/components/table';
 import { InferenceServiceKind, ProjectKind, SecretKind, ServingRuntimeKind } from '~/k8sTypes';
-import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import { isModelMesh } from '~/pages/modelServing/utils';
 import ManageKServeModal from '~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 import ResourceTr from '~/components/ResourceTr';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
+import ManageNIMServingModal from '~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
 import InferenceServiceTableRow from './InferenceServiceTableRow';
 import { getGlobalInferenceServiceColumns, getProjectInferenceServiceColumns } from './data';
 import DeleteInferenceServiceModal from './DeleteInferenceServiceModal';
@@ -40,6 +42,8 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
   const [deleteInferenceService, setDeleteInferenceService] =
     React.useState<InferenceServiceKind>();
   const [editInferenceService, setEditInferenceService] = React.useState<InferenceServiceKind>();
+  const project = projects.find(byName(inferenceServices[0].metadata.namespace)) ?? null;
+  const isKServeNIMEnabled = !!project && isProjectNIMSupported(project);
   const mappedColumns = React.useMemo(() => {
     const columns = getColumns?.(projects);
 
@@ -53,6 +57,8 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
 
     return getProjectInferenceServiceColumns();
   }, [getColumns, isGlobal, projects]);
+
+  const KServeManageModalComponent = isKServeNIMEnabled ? ManageNIMServingModal : ManageKServeModal;
 
   return (
     <>
@@ -120,7 +126,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
         />
       ) : null}
       {!!editInferenceService && !isModelMesh(editInferenceService) ? (
-        <ManageKServeModal
+        <KServeManageModalComponent
           editInfo={{
             inferenceServiceEditInfo: editInferenceService,
             servingRuntimeEditInfo: {
