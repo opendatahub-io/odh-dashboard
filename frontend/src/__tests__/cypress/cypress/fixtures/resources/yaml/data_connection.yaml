@@ -4,7 +4,7 @@ metadata:
   name: aws-connection-ods-ci-ds-pipelines
   namespace: {{NAMESPACE}}
   labels:
-    opendatahub.io/dashboard: 'true'
+    opendatahub.io/dashboard: 'true'a
     opendatahub.io/managed: 'true'
   annotations:
     opendatahub.io/connection-type: s3
