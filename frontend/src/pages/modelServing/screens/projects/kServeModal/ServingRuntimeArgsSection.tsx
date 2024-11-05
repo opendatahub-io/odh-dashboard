@@ -41,7 +41,10 @@ const ServingRuntimeArgsSection: React.FC<ServingRuntimeArgsSectionType> = ({
     );
     if (!predefinedArgs) {
       return (
-        <Tooltip content={<div>Select a serving runtime to view its predefined arguments</div>}>
+        <Tooltip
+          data-testid="predefined-args-tooltip"
+          content={<div>Select a serving runtime to view its predefined arguments</div>}
+        >
           {button}
         </Tooltip>
       );
