@@ -47,17 +47,6 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   const spawnFailed = spawnStatus?.status === AlertVariant.danger;
 
   React.useEffect(() => {
-    if (isRunning) {
-      setSpawnPercentile(100);
-      setSpawnStatus({
-        status: AlertVariant.success,
-        title: 'Success',
-        description: 'The notebook server is up and running.',
-      });
-    }
-  }, [isRunning]);
-
-  React.useEffect(() => {
     if (isStarting && !isRunning) {
       if (!notebookStatus) {
         return;
@@ -137,7 +126,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
         onClick={() => onClose(true)}
         isDisabled={!open}
       >
-        Cancel
+        Stop workbench
       </Button>
     ) : (
       <NotebookRouteLink
@@ -178,11 +167,11 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
 
   return (
     <Modal
-      aria-label="Starting server modal"
+      aria-label="Starting workbench modal"
       description="Depending on the size and resources requested, this can take several minutes."
       appendTo={document.body}
       variant={ModalVariant.small}
-      title="Starting server"
+      title="Starting workbench"
       isOpen
       showClose
       onClose={() => onClose(false)}

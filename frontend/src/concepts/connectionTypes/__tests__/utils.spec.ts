@@ -1,3 +1,4 @@
+import { mockConnection } from '~/__mocks__/mockConnection';
 import { mockConnectionTypeConfigMapObj } from '~/__mocks__/mockConnectionType';
 import {
   ConnectionTypeFieldType,
@@ -6,15 +7,14 @@ import {
   TextField,
 } from '~/concepts/connectionTypes/types';
 import {
-  CompatibleTypes,
   defaultValueToString,
   fieldNameToEnvVar,
   fieldTypeToString,
-  getCompatibleTypes,
-  isModelServingCompatible,
+  getConnectionModelServingCompatibleTypes,
+  isModelServingCompatibleConnection,
   isModelServingTypeCompatible,
   isValidEnvVar,
-  ModelServingCompatibleConnectionTypes,
+  ModelServingCompatibleTypes,
   toConnectionTypeConfigMap,
   toConnectionTypeConfigMapObj,
 } from '~/concepts/connectionTypes/utils';
@@ -268,75 +268,164 @@ describe('isValidEnvVar', () => {
   });
 });
 
-describe('isModelServingCompatible', () => {
-  it('should identify model serving compatible env vars', () => {
-    expect(isModelServingCompatible([])).toBe(false);
+describe('isModelServingCompatibleConnection', () => {
+  it('should identify model serving compatible connections', () => {
+    expect(isModelServingCompatibleConnection(mockConnection({}))).toBe(false);
     expect(
-      isModelServingCompatible([
-        'AWS_ACCESS_KEY_ID',
-        'AWS_SECRET_ACCESS_KEY',
-        'AWS_S3_ENDPOINT',
-        'AWS_S3_BUCKET',
-      ]),
+      isModelServingCompatibleConnection(
+        mockConnection({
+          data: {
+            AWS_ACCESS_KEY_ID: 'test',
+            AWS_SECRET_ACCESS_KEY: 'test',
+            AWS_S3_ENDPOINT: 'test',
+            AWS_S3_BUCKET: 'test',
+          },
+        }),
+      ),
     ).toBe(true);
-    expect(isModelServingCompatible(['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'])).toBe(false);
     expect(
-      isModelServingCompatible([
-        'AWS_ACCESS_KEY_ID',
-        'AWS_SECRET_ACCESS_KEY',
-        'AWS_S3_ENDPOINT',
-        'AWS_S3_BUCKET',
-        'URI',
-      ]),
+      isModelServingCompatibleConnection(
+        mockConnection({
+          connectionType: 'test',
+          data: {
+            AWS_ACCESS_KEY_ID: 'test',
+            AWS_SECRET_ACCESS_KEY: 'test',
+            AWS_S3_ENDPOINT: 'test',
+            AWS_S3_BUCKET: 'test',
+          },
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      isModelServingCompatibleConnection(
+        mockConnection({
+          managed: false,
+          data: {
+            AWS_ACCESS_KEY_ID: 'test',
+            AWS_SECRET_ACCESS_KEY: 'test',
+            AWS_S3_ENDPOINT: 'test',
+            AWS_S3_BUCKET: 'test',
+          },
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      isModelServingCompatibleConnection(
+        mockConnection({
+          data: {
+            AWS_ACCESS_KEY_ID: 'test',
+          },
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      isModelServingCompatibleConnection(
+        mockConnection({
+          data: {
+            URI: 'test',
+          },
+        }),
+      ),
     ).toBe(true);
   });
 });
 
-describe('getCompatibleTypes', () => {
-  it('should return compatible types', () => {
-    expect(getCompatibleTypes(['AWS_ACCESS_KEY_ID'])).toEqual([]);
+describe('getConnectionModelServingCompatibleTypes', () => {
+  it('should identify model serving compatible connections', () => {
+    expect(getConnectionModelServingCompatibleTypes(mockConnection({}))).toEqual([]);
     expect(
-      getCompatibleTypes([
-        'AWS_ACCESS_KEY_ID',
-        'AWS_SECRET_ACCESS_KEY',
-        'AWS_S3_ENDPOINT',
-        'AWS_S3_BUCKET',
-      ]),
-    ).toEqual([CompatibleTypes.ModelServing]);
+      getConnectionModelServingCompatibleTypes(
+        mockConnection({
+          data: {
+            AWS_ACCESS_KEY_ID: 'test',
+            AWS_SECRET_ACCESS_KEY: 'test',
+            AWS_S3_ENDPOINT: 'test',
+            AWS_S3_BUCKET: 'test',
+          },
+        }),
+      ),
+    ).toEqual([ModelServingCompatibleTypes.S3ObjectStorage]);
     expect(
-      getCompatibleTypes([
-        'AWS_ACCESS_KEY_ID',
-        'AWS_SECRET_ACCESS_KEY',
-        'AWS_S3_ENDPOINT',
-        'AWS_S3_BUCKET',
-        'URI',
-      ]),
-    ).toEqual([CompatibleTypes.ModelServing]);
+      getConnectionModelServingCompatibleTypes(
+        mockConnection({
+          connectionType: 'test',
+          data: {
+            AWS_ACCESS_KEY_ID: 'test',
+            AWS_SECRET_ACCESS_KEY: 'test',
+            AWS_S3_ENDPOINT: 'test',
+            AWS_S3_BUCKET: 'test',
+          },
+        }),
+      ),
+    ).toEqual([]);
+    expect(
+      getConnectionModelServingCompatibleTypes(
+        mockConnection({
+          managed: false,
+          data: {
+            AWS_ACCESS_KEY_ID: 'test',
+            AWS_SECRET_ACCESS_KEY: 'test',
+            AWS_S3_ENDPOINT: 'test',
+            AWS_S3_BUCKET: 'test',
+          },
+        }),
+      ),
+    ).toEqual([]);
+    expect(
+      getConnectionModelServingCompatibleTypes(
+        mockConnection({
+          data: {
+            AWS_ACCESS_KEY_ID: 'test',
+          },
+        }),
+      ),
+    ).toEqual([]);
+    expect(
+      getConnectionModelServingCompatibleTypes(
+        mockConnection({
+          data: {
+            URI: 'test',
+          },
+        }),
+      ),
+    ).toEqual([ModelServingCompatibleTypes.OCI, ModelServingCompatibleTypes.URI]);
+    expect(
+      getConnectionModelServingCompatibleTypes(
+        mockConnection({
+          data: {
+            AWS_ACCESS_KEY_ID: 'test',
+            AWS_SECRET_ACCESS_KEY: 'test',
+            AWS_S3_ENDPOINT: 'test',
+            AWS_S3_BUCKET: 'test',
+            URI: 'test',
+          },
+        }),
+      ),
+    ).toEqual([
+      ModelServingCompatibleTypes.S3ObjectStorage,
+      ModelServingCompatibleTypes.OCI,
+      ModelServingCompatibleTypes.URI,
+    ]);
   });
 });
 
 describe('isModelServingTypeCompatible', () => {
   it('should identify model serving compatible env vars', () => {
     expect(
-      isModelServingTypeCompatible(['invalid'], ModelServingCompatibleConnectionTypes.ModelServing),
+      isModelServingTypeCompatible(
+        ['AWS_ACCESS_KEY_ID'],
+        ModelServingCompatibleTypes.S3ObjectStorage,
+      ),
     ).toBe(false);
     expect(
       isModelServingTypeCompatible(
         ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_S3_ENDPOINT', 'AWS_S3_BUCKET'],
-        ModelServingCompatibleConnectionTypes.ModelServing,
+        ModelServingCompatibleTypes.S3ObjectStorage,
       ),
     ).toBe(true);
-    expect(
-      isModelServingTypeCompatible(['invalid'], ModelServingCompatibleConnectionTypes.OCI),
-    ).toBe(false);
-    expect(isModelServingTypeCompatible(['URI'], ModelServingCompatibleConnectionTypes.OCI)).toBe(
-      true,
-    );
-    expect(
-      isModelServingTypeCompatible(['invalid'], ModelServingCompatibleConnectionTypes.URI),
-    ).toBe(false);
-    expect(isModelServingTypeCompatible(['URI'], ModelServingCompatibleConnectionTypes.URI)).toBe(
-      true,
-    );
+    expect(isModelServingTypeCompatible(['invalid'], ModelServingCompatibleTypes.OCI)).toBe(false);
+    expect(isModelServingTypeCompatible(['URI'], ModelServingCompatibleTypes.OCI)).toBe(true);
+    expect(isModelServingTypeCompatible(['invalid'], ModelServingCompatibleTypes.URI)).toBe(false);
+    expect(isModelServingTypeCompatible(['URI'], ModelServingCompatibleTypes.URI)).toBe(true);
   });
 });

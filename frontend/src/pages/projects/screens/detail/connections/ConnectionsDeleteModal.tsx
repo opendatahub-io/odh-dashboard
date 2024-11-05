@@ -1,5 +1,4 @@
 import React from 'react';
-import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   Badge,
   Bullseye,
@@ -20,19 +19,18 @@ import {
 import { useNotebooksStates } from '~/pages/projects/notebook/useNotebooksStates';
 import { NotebookKind } from '~/k8sTypes';
 import { useInferenceServicesForConnection } from '~/pages/projects/useInferenceServicesForConnection';
+import { deleteSecret, removeNotebookSecret } from '~/api';
 
 type Props = {
   namespace: string;
   deleteConnection: Connection;
   onClose: (deleted?: boolean) => void;
-  onDelete: () => Promise<K8sStatus>;
 };
 
 export const ConnectionsDeleteModal: React.FC<Props> = ({
   namespace,
   deleteConnection,
   onClose,
-  onDelete,
 }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error>();
@@ -61,8 +59,18 @@ export const ConnectionsDeleteModal: React.FC<Props> = ({
       onDelete={() => {
         setIsDeleting(true);
         setError(undefined);
-
-        onDelete()
+        Promise.all(
+          connectedNotebooks.map((notebook) =>
+            removeNotebookSecret(
+              notebook.metadata.name,
+              notebook.metadata.namespace,
+              deleteConnection.metadata.name,
+            ),
+          ),
+        )
+          .then(() =>
+            deleteSecret(deleteConnection.metadata.namespace, deleteConnection.metadata.name),
+          )
           .then(() => {
             onClose(true);
           })

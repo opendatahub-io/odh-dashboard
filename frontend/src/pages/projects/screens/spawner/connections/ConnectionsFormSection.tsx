@@ -17,7 +17,10 @@ import { createSecret, replaceSecret } from '~/api';
 import { NotebookKind, ProjectKind } from '~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { Connection, ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
-import { getConnectionTypeDisplayName } from '~/concepts/connectionTypes/utils';
+import {
+  filterEnabledConnectionTypes,
+  getConnectionTypeDisplayName,
+} from '~/concepts/connectionTypes/utils';
 import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
 import { useNotebooksStates } from '~/pages/projects/notebook/useNotebooksStates';
 import { SpawnerPageSectionTitles } from '~/pages/projects/screens/spawner/const';
@@ -39,8 +42,8 @@ const getColumns = (connectionTypes: ConnectionTypeConfigMapObj[]): SortableData
     field: 'type',
     label: 'Type',
     sortable: (a, b) =>
-      getConnectionTypeDisplayName(a, connectionTypes).localeCompare(
-        getConnectionTypeDisplayName(b, connectionTypes),
+      (getConnectionTypeDisplayName(a, connectionTypes) || '').localeCompare(
+        getConnectionTypeDisplayName(b, connectionTypes) || '',
       ),
   },
   {
@@ -70,6 +73,11 @@ export const ConnectionsFormSection: React.FC<Props> = ({
   setSelectedConnections,
 }) => {
   const [connectionTypes] = useWatchConnectionTypes();
+
+  const enabledConnectionTypes = React.useMemo(
+    () => filterEnabledConnectionTypes(connectionTypes),
+    [connectionTypes],
+  );
 
   const columns = React.useMemo(() => getColumns(connectionTypes), [connectionTypes]);
 
@@ -106,7 +114,8 @@ export const ConnectionsFormSection: React.FC<Props> = ({
     [selectedConnections],
   );
 
-  const tooltipRef = React.useRef<HTMLButtonElement>();
+  const connectionsTooltipRef = React.useRef<HTMLButtonElement>();
+  const connectionTypesTooltipRef = React.useRef<HTMLButtonElement>();
 
   return (
     <FormSection
@@ -122,26 +131,39 @@ export const ConnectionsFormSection: React.FC<Props> = ({
               variant="secondary"
               isAriaDisabled={unselectedConnections.length === 0}
               onClick={() => setShowAttachConnectionsModal(true)}
-              ref={tooltipRef}
+              ref={connectionsTooltipRef}
             >
               Attach existing connections
             </Button>
             {unselectedConnections.length === 0 && (
               <Tooltip
                 id="no-connections-tooltip"
-                content="No existing connections available"
-                triggerRef={tooltipRef}
+                content="No connections available"
+                triggerRef={connectionsTooltipRef}
               />
             )}
           </FlexItem>
           <FlexItem>
             <Button
               data-testid="create-connection-button"
+              aria-describedby={
+                enabledConnectionTypes.length === 0 ? 'no-connection-types-tooltip' : undefined
+              }
               variant="secondary"
+              content="No connection types available"
+              isAriaDisabled={enabledConnectionTypes.length === 0}
               onClick={() => setManageConnectionModal({ connection: undefined, isEdit: false })}
+              ref={connectionTypesTooltipRef}
             >
               Create connection
             </Button>
+            {enabledConnectionTypes.length === 0 && (
+              <Tooltip
+                id="no-connection-types-tooltip"
+                content="No connection types available"
+                triggerRef={connectionTypesTooltipRef}
+              />
+            )}
           </FlexItem>
         </Flex>
       }

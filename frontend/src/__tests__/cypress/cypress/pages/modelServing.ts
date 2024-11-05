@@ -185,6 +185,14 @@ class ServingRuntimeModal extends Modal {
     return this.find().findByTestId('serving-runtime-template-selection');
   }
 
+  findPredefinedArgsButton() {
+    return this.find().findByTestId('view-predefined-args-button');
+  }
+
+  findPredefinedArgsList() {
+    return cy.findByTestId('predefined-args-list');
+  }
+
   findAuthenticationSection() {
     return this.find().findByTestId('auth-section');
   }

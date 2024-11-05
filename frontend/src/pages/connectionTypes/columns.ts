@@ -42,19 +42,20 @@ export const connectionTypeColumns: SortableData<ConnectionTypeConfigMapObj>[] =
     label: 'Name',
     field: 'name',
     sortable: sorter,
-    width: 20,
+    width: 25,
   },
   {
     label: 'Category',
     field: 'category',
     sortable: false,
-    width: 20,
+    width: 15,
   },
   {
-    label: 'Compatibility',
+    label: 'Model serving compatibility',
     field: 'compatibility',
     sortable: false,
     width: 15,
+    modifier: 'wrap',
   },
   {
     label: 'Creator',

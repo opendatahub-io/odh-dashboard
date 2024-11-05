@@ -4,6 +4,9 @@ import {
   BreadcrumbItem,
   Form,
   FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
   PageSection,
   Stack,
   StackItem,
@@ -17,11 +20,12 @@ import FormSection from '~/components/pf-overrides/FormSection';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { modelRegistryUrl, registeredModelUrl } from '~/pages/modelRegistry/screens/routeUtils';
 import { useRegisterModelData } from './useRegisterModelData';
-import { isRegisterModelSubmitDisabled, registerModel } from './utils';
+import { isNameValid, isRegisterModelSubmitDisabled, registerModel } from './utils';
 import RegistrationCommonFormSections from './RegistrationCommonFormSections';
 import { useRegistrationCommonState } from './useRegistrationCommonState';
 import PrefilledModelRegistryField from './PrefilledModelRegistryField';
 import RegistrationFormFooter from './RegistrationFormFooter';
+import { MR_CHARACTER_LIMIT } from './const';
 
 const RegisterModel: React.FC = () => {
   const { modelRegistry: mrName } = useParams();
@@ -31,6 +35,7 @@ const RegisterModel: React.FC = () => {
     useRegistrationCommonState();
 
   const [formData, setData] = useRegisterModelData();
+  const isModelNameValid = isNameValid(formData.modelName);
   const isSubmitDisabled = isSubmitting || isRegisterModelSubmitDisabled(formData);
   const { modelName, modelDescription } = formData;
 
@@ -75,7 +80,17 @@ const RegisterModel: React.FC = () => {
                     name="model-name"
                     value={modelName}
                     onChange={(_e, value) => setData('modelName', value)}
+                    validated={isModelNameValid ? 'default' : 'error'}
                   />
+                  {!isModelNameValid && (
+                    <FormHelperText>
+                      <HelperText>
+                        <HelperTextItem variant="error">
+                          Cannot exceed {MR_CHARACTER_LIMIT} characters
+                        </HelperTextItem>
+                      </HelperText>
+                    </FormHelperText>
+                  )}
                 </FormGroup>
                 <FormGroup label="Model description" fieldId="model-description">
                   <TextArea

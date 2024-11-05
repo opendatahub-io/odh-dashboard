@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Label } from '@patternfly/react-core';
-import { CompatibleTypes } from '~/concepts/connectionTypes/utils';
+import { ModelServingCompatibleTypes } from '~/concepts/connectionTypes/utils';
 
 type Props = {
-  type: CompatibleTypes;
+  type: ModelServingCompatibleTypes;
 };
 
 const CompatibilityLabel: React.FC<Props> = ({ type }) => <Label color="blue">{type}</Label>;

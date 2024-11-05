@@ -12,10 +12,11 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
+  Skeleton,
 } from '@patternfly/react-core';
+import TruncatedText from '~/components/TruncatedText';
 
 import './SimpleSelect.scss';
-import TruncatedText from '~/components/TruncatedText';
 
 export type SimpleSelectOption = {
   key: string;
@@ -36,6 +37,7 @@ export type SimpleGroupSelectOption = {
 
 type SimpleSelectProps = {
   options?: SimpleSelectOption[];
+  isLoadingOptions?: boolean;
   groupedOptions?: SimpleGroupSelectOption[];
   value?: string;
   toggleLabel?: React.ReactNode;
@@ -47,6 +49,7 @@ type SimpleSelectProps = {
   icon?: React.ReactNode;
   dataTestId?: string;
   previewDescription?: boolean;
+  isSkeleton?: boolean;
 } & Omit<
   React.ComponentProps<typeof Select>,
   'isOpen' | 'toggle' | 'dropdownItems' | 'onChange' | 'selected'
@@ -56,6 +59,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
   isDisabled,
   onChange,
   options,
+  isLoadingOptions = false,
   groupedOptions,
   placeholder = 'Select...',
   value,
@@ -66,6 +70,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
   toggleProps,
   previewDescription = true,
   popperProps,
+  isSkeleton,
   ...props
 }) => {
   const [open, setOpen] = React.useState(false);
@@ -88,14 +93,27 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
   );
 
   // If there is only one option, call the onChange function
-  const totalOptionsKey = totalOptions.length === 1 ? totalOptions[0].key : null;
   React.useEffect(() => {
-    if (totalOptionsKey) {
-      onChange(totalOptionsKey, false);
+    const singleOptionKey = totalOptions.length === 1 ? totalOptions[0].key : null;
+    if (singleOptionKey && !isLoadingOptions) {
+      onChange(singleOptionKey, false);
     }
     // We don't want the callback function to be a dependency
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totalOptionsKey]);
+  }, [totalOptions, isLoadingOptions]);
+
+  if (isSkeleton) {
+    return (
+      <Skeleton
+        style={{
+          height:
+            // Skeleton height = Select padding top + Select padding bottom + Select font line height
+            // In App.scss we override the form font size from --pf-v5-global--FontSize--md to --pf-v5-global--FontSize--sm
+            'calc(calc(var(--pf-v5-global--spacer--form-element) * 2) + calc(var(--pf-v5-global--LineHeight--md) * var(--pf-v5-global--FontSize--sm)))',
+        }}
+      />
+    );
+  }
 
   return (
     <>
