@@ -9,7 +9,6 @@ import { getLabels, mergeUpdatedLabels } from '~/pages/modelRegistry/screens/uti
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
-import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
 import { uriToObjectStorageFields } from '~/concepts/modelRegistry/utils';
 import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
 
@@ -195,9 +194,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
         <DescriptionList isFillColumns style={{ marginTop: '2em' }}>
           <DashboardDescriptionListGroup
             title="Author"
-            tooltip={
-              <DashboardHelpTooltip content="The author is the user who registered the model version." />
-            }
+            popover="The author is the user who registered the model version."
           >
             {mv.author}
           </DashboardDescriptionListGroup>
