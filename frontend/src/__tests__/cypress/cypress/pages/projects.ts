@@ -184,8 +184,8 @@ class ProjectDetails {
     this.wait();
   }
 
-  visitSection(project: string, section: string) {
-    cy.visitWithLogin(`/projects/${project}?section=${section}`);
+  visitSection(project: string, section: string, extraUrlParams = '') {
+    cy.visitWithLogin(`/projects/${project}?section=${section}${extraUrlParams}`);
     this.wait(section);
   }
 
@@ -249,9 +249,23 @@ class ProjectDetails {
   }
 
   findSelectPlatformButton(platform: string) {
-    return this.findModelServingPlatform(platform).findByTestId(
-      `${platform}-serving-select-button`,
-    );
+    return cy.findByTestId(`${platform}-serving-select-button`);
+  }
+
+  findResetPlatformButton() {
+    return cy.findByTestId('change-serving-platform-button');
+  }
+
+  findErrorSelectingPlatform() {
+    return cy.findByTestId('error-selecting-serving-platform');
+  }
+
+  findDeployModelDropdown() {
+    return cy.findByTestId('deploy-model-dropdown');
+  }
+
+  findBackToRegistryButton() {
+    return cy.findByTestId('deploy-from-registry');
   }
 
   findTopLevelDeployModelButton() {

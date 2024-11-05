@@ -18,6 +18,7 @@ const ModelServingPlatformSelectErrorAlert: React.FC<ModelServingPlatformSelectE
     actionClose={<AlertActionCloseButton onClose={clearError} />}
     isExpandable
     className={alignment.textAlignLeft}
+    data-testid="error-selecting-serving-platform"
   >
     <p>{error.message}</p>
   </Alert>
