@@ -69,6 +69,12 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
     [connectionTypes],
   );
 
+  const allCategories = React.useMemo(
+    () =>
+      new Set([...categoryOptions, ...connectionTypes.map((ct) => ct.data?.category ?? []).flat()]),
+    [connectionTypes],
+  );
+
   const [isDrawerExpanded, setIsDrawerExpanded] = React.useState(false);
 
   const initialValues = React.useMemo<ConnectionTypeFormData>(() => {
@@ -100,11 +106,12 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
 
   const categoryItems = React.useMemo<SelectionOptions[]>(
     () =>
-      category
-        .filter((c) => !categoryOptions.includes(c))
-        .concat(categoryOptions)
-        .map((c) => ({ id: c, name: c, selected: category.includes(c) })),
-    [category],
+      [...new Set([...allCategories, ...category])].toSorted().map((c) => ({
+        id: c,
+        name: c,
+        selected: category.includes(c),
+      })),
+    [category, allCategories],
   );
 
   const connectionTypeObj = React.useMemo(
