@@ -3,7 +3,7 @@ import { AcceleratorProfileKind } from '~/k8sTypes';
 import { ResponseStatus } from '~/types';
 
 export const createAcceleratorProfile = (
-  acceleratorProfile: AcceleratorProfileKind['spec'],
+  acceleratorProfile: { name?: string } & AcceleratorProfileKind['spec'],
 ): Promise<ResponseStatus> => {
   const url = '/api/accelerator-profiles';
   return axios
