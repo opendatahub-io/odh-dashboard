@@ -12,7 +12,14 @@ const DuplicateConnectionTypePage: React.FC = () => {
   const [existingConnectionType, isLoaded, error] = useConnectionType(name);
 
   if (!isLoaded || error) {
-    return <ApplicationsPage loaded={isLoaded} loadError={error} empty />;
+    return (
+      <ApplicationsPage
+        loaded={isLoaded}
+        loadError={error}
+        empty
+        errorMessage="Unable to load connection type"
+      />
+    );
   }
 
   const connectionType = stateConnectionType || existingConnectionType;
