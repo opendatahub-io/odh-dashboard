@@ -34,7 +34,9 @@ it('Connection types should be hidden by feature flag', () => {
     }),
   );
 
+  cy.interceptOdh('GET /api/connection-types', []);
   connectionTypesPage.visit();
+  connectionTypesPage.shouldBeEmpty();
 });
 
 describe('Connection types', () => {
@@ -48,6 +50,12 @@ describe('Connection types', () => {
       }),
     );
     cy.interceptOdh('GET /api/connection-types', [
+      {
+        ...mockConnectionTypeConfigMap({
+          name: 'corrupt',
+        }),
+        data: { category: '[[', fields: '{{' },
+      },
       mockConnectionTypeConfigMap({}),
       mockConnectionTypeConfigMap({
         name: 'no-display-name',
@@ -73,6 +81,8 @@ describe('Connection types', () => {
 
   it('should show the correct column values', () => {
     connectionTypesPage.visit();
+
+    connectionTypesPage.findTable().find('tbody tr').should('have.length', 3);
 
     const row = connectionTypesPage.getConnectionTypeRow('Test display name');
     row.shouldHaveDescription('Test description');

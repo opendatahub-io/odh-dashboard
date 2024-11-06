@@ -37,15 +37,21 @@ export const getConnectionTypeRef = (connection: Connection | undefined): string
 
 export const toConnectionTypeConfigMapObj = (
   configMap: ConnectionTypeConfigMap,
-): ConnectionTypeConfigMapObj => ({
-  ...configMap,
-  data: configMap.data
-    ? {
-        category: configMap.data.category ? JSON.parse(configMap.data.category) : undefined,
-        fields: configMap.data.fields ? JSON.parse(configMap.data.fields) : undefined,
-      }
-    : undefined,
-});
+): ConnectionTypeConfigMapObj => {
+  try {
+    return {
+      ...configMap,
+      data: configMap.data
+        ? {
+            category: configMap.data.category ? JSON.parse(configMap.data.category) : undefined,
+            fields: configMap.data.fields ? JSON.parse(configMap.data.fields) : undefined,
+          }
+        : undefined,
+    };
+  } catch (e) {
+    throw new Error('Failed to parse connection type data.');
+  }
+};
 
 export const toConnectionTypeConfigMap = (
   obj: ConnectionTypeConfigMapObj,
