@@ -6,9 +6,9 @@ interface EditableLabelsProps {
   labels: string[];
   onLabelsChange: (labels: string[]) => Promise<void>;
   isArchive?: boolean;
-  allExistingKeys?: string[];
   title?: string;
   contentWhenEmpty?: string;
+  allExistingKeys: string[];
 }
 
 export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> = ({
@@ -17,26 +17,53 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
   labels,
   onLabelsChange,
   isArchive,
-  allExistingKeys = labels,
+  allExistingKeys,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSavingEdits, setIsSavingEdits] = useState(false);
   const [unsavedLabels, setUnsavedLabels] = useState(labels);
   const [labelErrors, setLabelErrors] = useState<{ [key: string]: string }>({});
 
-  const reservedKeys = [
-    ...allExistingKeys.filter((key) => !labels.includes(key)),
-    ...unsavedLabels,
-  ];
+  const validateLabel = (text: string, currentLabel?: string): string | null => {
+    if (currentLabel === text) {
+      return null;
+    }
 
-  const validateLabel = (text: string): string | null => {
-    if (reservedKeys.includes(text)) {
+    const isDuplicate =
+      unsavedLabels.some((key) => key !== currentLabel && key === text) ||
+      allExistingKeys.some((key) => key !== currentLabel && key === text);
+
+    if (isDuplicate) {
       return `"${text}" already exists. Use a unique name that doesn't match any existing key or property`;
     }
     if (text.length > 63) {
       return "Label text can't exceed 63 characters";
     }
     return null;
+  };
+
+  const handleEditComplete = (
+    _event: MouseEvent | KeyboardEvent,
+    newText: string,
+    currentLabel?: string,
+  ) => {
+    const error = validateLabel(newText, currentLabel);
+    if (error) {
+      setLabelErrors({ [newText]: error });
+      setUnsavedLabels((prev) => {
+        const filtered = prev.filter((label) => label !== currentLabel);
+        return [...filtered, newText];
+      });
+    } else if (newText) {
+      setUnsavedLabels((prev) => {
+        if (currentLabel) {
+          return [...prev, newText];
+        }
+        const filtered = prev.filter((label) => label !== currentLabel);
+        return [...filtered, newText];
+      });
+      setLabelErrors({});
+    }
   };
 
   const removeUnsavedLabel = (text: string) => {
@@ -46,24 +73,20 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
     setUnsavedLabels(unsavedLabels.filter((label) => label !== text));
   };
 
-  const handleEditComplete = (_event: MouseEvent | KeyboardEvent, newText: string) => {
-    const error = validateLabel(newText);
-    if (error) {
-      setLabelErrors((prev) => ({ ...prev, [newText]: error }));
-    } else if (newText) {
-      setUnsavedLabels((prev) => {
-        const filtered = prev.filter((label) => label !== 'New Label');
-        return [...filtered, newText];
-      });
-      setLabelErrors({});
-    }
-  };
-
   const addNewLabel = () => {
     if (isSavingEdits) {
       return;
     }
-    setUnsavedLabels((prev) => [...prev, 'New Label']);
+    const baseLabel = 'New Label';
+    let counter = 1;
+    let newLabel = baseLabel;
+
+    while (unsavedLabels.includes(newLabel)) {
+      newLabel = `${baseLabel} ${counter}`;
+      counter++;
+    }
+
+    setUnsavedLabels((prev) => [...prev, newLabel]);
   };
 
   return (
@@ -85,20 +108,20 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
             expandedText="Show Less"
             collapsedText="Show More"
           >
-            {unsavedLabels.map((label) => (
+            {unsavedLabels.map((label, index, array) => (
               <Label
                 data-testid={`editable-label-${label}`}
-                key={`${label}-${labelErrors[label] ? 'error' : 'normal'}`}
-                color={labelErrors[label] ? 'red' : 'blue'}
+                key={label + index}
+                color={labelErrors[label] && index === array.lastIndexOf(label) ? 'red' : 'blue'}
                 isEditable={!isSavingEdits}
                 onClose={() => removeUnsavedLabel(label)}
                 closeBtnProps={{
                   isDisabled: isSavingEdits,
                   'data-testid': `remove-label-${label}`,
                 }}
-                onEditComplete={(_event, newText) => handleEditComplete(_event, newText)}
+                onEditComplete={(event, newText) => handleEditComplete(event, newText, label)}
                 editableProps={{
-                  defaultValue: '',
+                  defaultValue: label,
                   'aria-label': 'Edit label',
                   'data-testid': `edit-label-input-${label}`,
                 }}
