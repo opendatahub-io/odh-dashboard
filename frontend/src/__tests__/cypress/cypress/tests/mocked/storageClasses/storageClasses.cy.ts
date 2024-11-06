@@ -434,5 +434,21 @@ describe('Storage classes', () => {
       toolbar.fillSearchInput('test');
       storageClassesTable.findRows().should('have.length', 1);
     });
+
+    it('should not show no default alert when there is an OpenShift default storage class', () => {
+      storageClassesPage.mockGetStorageClasses([openshiftDefaultStorageClass]);
+      storageClassesTable.mockUpdateStorageClass(openshiftDefaultStorageClass.metadata.name, 1);
+      storageClassesPage.visit();
+
+      storageClassesPage.findNoDefaultAlert().should('not.exist');
+    });
+
+    it('should show no default alert when there is no OpenShift default storage classes', () => {
+      storageClassesPage.mockGetStorageClasses([otherStorageClass]);
+      storageClassesTable.mockUpdateStorageClass(otherStorageClass.metadata.name, 1);
+      storageClassesPage.visit();
+
+      storageClassesPage.findNoDefaultAlert().should('exist');
+    });
   });
 });

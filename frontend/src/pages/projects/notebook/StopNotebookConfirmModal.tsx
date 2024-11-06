@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Button, Checkbox, Flex, FlexItem, Modal, Stack, StackItem } from '@patternfly/react-core';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import NotebookRouteLink from './NotebookRouteLink';
 import useStopNotebookModalAvailability from './useStopNotebookModalAvailability';
 import { NotebookState } from './types';
@@ -47,14 +48,20 @@ const StopNotebookConfirmModal: React.FC<StopNotebookConfirmProps> = ({
     >
       <Stack hasGutter>
         <StackItem>
-          Are you sure you want to stop the workbench? Any changes without saving will be erased.
+          Any unsaved changes to the <strong>{getDisplayNameFromK8sResource(notebook)}</strong>{' '}
+          workbench will be lost.
         </StackItem>
         {isRunning && (
           <StackItem>
             <Flex>
-              <FlexItem spacer={{ default: 'spacerXs' }}>To save changes, access your</FlexItem>
+              <FlexItem spacer={{ default: 'spacerXs' }}>To save changes, </FlexItem>
               <FlexItem spacer={{ default: 'spacerNone' }}>
-                <NotebookRouteLink label="workbench" notebook={notebook} isRunning isLarge />
+                <NotebookRouteLink
+                  label="open the workbench"
+                  notebook={notebook}
+                  isRunning
+                  isLarge
+                />
               </FlexItem>
               <FlexItem spacer={{ default: 'spacerNone' }}>.</FlexItem>
             </Flex>

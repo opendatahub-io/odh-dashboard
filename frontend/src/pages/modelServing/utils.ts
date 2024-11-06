@@ -274,6 +274,17 @@ export const getKServeContainerArgs = (
   return kserveContainer ? kserveContainer.args ?? [] : undefined;
 };
 
+// will return `undefined` if no kserve container, force empty array if there is kserve with no vars
+export const getKServeContainerEnvVarStrs = (
+  servingRuntime?: ServingRuntimeKind,
+): string[] | undefined => {
+  const kserveContainer = getKServeContainer(servingRuntime);
+  if (!kserveContainer) {
+    return undefined;
+  }
+  return kserveContainer.env?.map((ev) => `${ev.name}=${ev.value}`) || [];
+};
+
 export const getServingRuntimeSize = (
   sizes: ModelServingSize[],
   servingRuntime?: ServingRuntimeKind,

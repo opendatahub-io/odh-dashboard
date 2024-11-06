@@ -89,6 +89,7 @@ const StorageClassesPage: React.FC = () => {
                 isInline
                 title="Review default storage class"
                 actionClose={<AlertActionCloseButton onClose={() => setIsAlertOpen(false)} />}
+                data-testid="no-default-storage-class-alert"
               >
                 Some OpenShift AI features won&apos;t work without a default storage class. No
                 OpenShift default exists, so an OpenShift AI default was set automatically. Review

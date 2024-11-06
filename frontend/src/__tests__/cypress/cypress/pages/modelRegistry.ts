@@ -87,6 +87,10 @@ class ModelRegistry {
     return cy.findByTestId('empty-model-registries-state');
   }
 
+  findModelRegistryEmptyTableState() {
+    return cy.findByTestId('dashboard-empty-table-state');
+  }
+
   shouldregisteredModelsEmpty() {
     cy.findByTestId('empty-registered-models').should('exist');
   }

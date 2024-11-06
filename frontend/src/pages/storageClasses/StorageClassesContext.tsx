@@ -138,7 +138,7 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
         if (successResponses.length) {
           await refresh();
 
-          if (!defaultStorageClassName) {
+          if (!openshiftDefaultScName) {
             setIsAutoDefaultAlertOpen(true);
           }
         }

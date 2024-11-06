@@ -124,6 +124,7 @@ const initIntercepts = ({
           displayName: 'Caikit',
           platforms: [ServingRuntimePlatform.SINGLE],
           containerName: 'kserve-container',
+          containerEnvVars: [{ name: 'HF_HOME', value: '/tmp/hf_home' }],
         }),
         mockServingRuntimeTemplateK8sResource({
           name: 'template-3',
@@ -526,10 +527,32 @@ describe('Model Serving Global', () => {
     kserveModal.shouldBeOpen();
     kserveModal.findPredefinedArgsButton().click();
     kserveModal.findPredefinedArgsList().should('not.exist');
+    kserveModal.findPredefinedArgsTooltip().should('exist');
     kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
     kserveModal.findPredefinedArgsButton().click();
     kserveModal.findPredefinedArgsList().should('exist');
+    kserveModal.findPredefinedArgsTooltip().should('not.exist');
     kserveModal.findPredefinedArgsList().should('include.text', '--port=8001');
+  });
+
+  it('View predefined vars popover populates', () => {
+    initIntercepts({
+      projectEnableModelMesh: false,
+      disableServingRuntimeParamsConfig: false,
+    });
+    modelServingGlobal.visit('test-project');
+
+    modelServingGlobal.findDeployModelButton().click();
+
+    kserveModal.shouldBeOpen();
+    kserveModal.findPredefinedVarsButton().click();
+    kserveModal.findPredefinedVarsList().should('not.exist');
+    kserveModal.findPredefinedVarsTooltip().should('exist');
+    kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+    kserveModal.findPredefinedVarsButton().click();
+    kserveModal.findPredefinedVarsList().should('exist');
+    kserveModal.findPredefinedVarsTooltip().should('not.exist');
+    kserveModal.findPredefinedVarsList().should('include.text', 'HF_HOME=/tmp/hf_home');
   });
 
   it('Navigate to kserve model metrics page only if enabled', () => {
