@@ -1,4 +1,4 @@
-import type { CommandLineResult } from '~/__tests__/cypress/cypress/types';
+import type { CommandLineResult, DashboardConfig } from '~/__tests__/cypress/cypress/types';
 import { handleOCCommandResult } from '~/__tests__/cypress/cypress/utils/errorHandling';
 
 /**
@@ -112,3 +112,61 @@ export const verifyOpenShiftProjectExists = (projectName: string): Cypress.Chain
     return cy.wrap(projectExists);
   });
 };
+
+/**
+ * Retrieves the DashboardConfig from OpenShift and returns either the full config or a specific value.
+ *
+ * @param key Optional. The specific config key to retrieve (use dot notation for nested properties).
+ * @returns A Cypress.Chainable that resolves to the requested config value or the full config object.
+ */
+export const getDashboardConfig = (key?: string): Cypress.Chainable<unknown> => {
+  const command = `oc get OdhDashboardConfig -A -o json | jq '.items[].spec'`;
+
+  return cy.exec(command).then((result) => {
+    if (result.code !== 0) {
+      throw new Error(`Failed to get DashboardConfig: ${result.stderr}`);
+    }
+    const config = JSON.parse(result.stdout) as DashboardConfig;
+
+    if (key) {
+      // If a specific key is requested, return that value
+      return Cypress.Promise.resolve(getNestedProperty(config, key));
+    }
+    // Otherwise, return the full config
+    return Cypress.Promise.resolve(config);
+  });
+};
+
+/**
+ * Retrieves the Notebook Controller Config from OpenShift and returns either the full config or a specific value.
+ *
+ * @param key Optional. The specific config key to retrieve (use dot notation for nested properties).
+ * @returns A Cypress.Chainable that resolves to the requested config value or the full config object.
+ */
+export const getNotebookControllerConfig = (key?: string): Cypress.Chainable<unknown> => {
+  const command = `oc get configmaps -l app=notebook-controller -A -o jsonpath='{.items[0].data}' | jq .`;
+
+  return cy.exec(command).then((result) => {
+    if (result.code !== 0) {
+      throw new Error(`Failed to get Notebook Controller Config: ${result.stderr}`);
+    }
+
+    const config = JSON.parse(result.stdout) as Record<string, unknown>; // Adjust type as needed
+
+    if (key) {
+      return Cypress.Promise.resolve(getNestedProperty(config, key));
+    }
+
+    return Cypress.Promise.resolve(config); // Ensure this returns a promise
+  });
+};
+
+// Helper function to safely get nested properties
+function getNestedProperty(obj: Record<string, unknown>, path: string): unknown {
+  return path.split('.').reduce((current: unknown, key: string) => {
+    if (current && typeof current === 'object') {
+      return (current as Record<string, unknown>)[key];
+    }
+    return undefined;
+  }, obj);
+}

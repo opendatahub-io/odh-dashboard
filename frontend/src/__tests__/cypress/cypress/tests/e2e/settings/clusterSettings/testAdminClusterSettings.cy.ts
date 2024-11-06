@@ -1,29 +1,35 @@
-import yaml from 'js-yaml';
 import { ADMIN_USER, TEST_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
   clusterSettings,
-  cullerSettings,
-  notebookTolerationSettings,
-  pvcSizeSettings,
   telemetrySettings,
-  modelServingSettings,
 } from '~/__tests__/cypress/cypress/pages/clusterSettings';
 import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
-import type { SettingsTestData } from '~/__tests__/cypress/cypress/types';
+import type { DashboardConfig, NotebookControllerConfig } from '~/__tests__/cypress/cypress/types';
+import {
+  validateModelServingPlatforms,
+  validatePVCSize,
+  validateStopIdleNotebooks,
+  validateNotebookPodTolerations,
+} from '~/__tests__/cypress/cypress/utils/clusterSettingsUtils';
 
 describe('Verify that only the Cluster Admin can access Cluster Settings', () => {
-  let testData: SettingsTestData;
+  let dashboardConfig: DashboardConfig;
+  let notebookControllerConfig: NotebookControllerConfig;
 
-  // Setup: Load test data and ensure clean state
   before(() => {
-    return cy
-      .fixture('e2e/settings/clusterSettings/clusterSettings.yaml', 'utf8')
-      .then((yamlContent: string) => {
-        testData = yaml.load(yamlContent) as SettingsTestData;
-      });
+    // Retrieve the dashboard configuration
+    cy.getDashboardConfig().then((config) => {
+      dashboardConfig = config as DashboardConfig;
+      cy.log('Dashboard Config:', JSON.stringify(dashboardConfig, null, 2));
+    });
+    // Retrieve the Notebook controller configuration
+    cy.getNotebookControllerConfig().then((config) => {
+      notebookControllerConfig = config as NotebookControllerConfig;
+      cy.log('Controller Config:', JSON.stringify(notebookControllerConfig, null, 2));
+    });
   });
 
-  it('Admin - Access Cluster Settings and validate fields', () => {
+  it('Admin should access Cluster Settings and see UI fields matching OpenShift configurations', () => {
     // Authentication and navigation
     cy.step('Log into the application');
     cy.visitWithLogin('/', ADMIN_USER);
@@ -31,39 +37,36 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
     cy.step('Navigate to Cluster Settings');
     clusterSettings.visit();
 
-    // Verify Cluster Settings UI Fields
+    // Validate model serving displays based on OpenShift command to 'get OdhDashboardConfig' to validate configuration
     cy.step('Validate Model Serving Platforms display and are checked');
-    modelServingSettings.findSinglePlatformCheckbox().should('be.checked');
-    modelServingSettings.findMultiPlatformCheckbox().should('be.checked');
+    validateModelServingPlatforms(dashboardConfig);
 
-    cy.step('Validate PVC Size displays and 20GiB default displays');
-    pvcSizeSettings
-      .findInput()
-      .should('exist')
-      .and('be.visible')
-      .and('have.value', testData.pvcDefaultSize);
+    // Validate pvc size based on OpenShift command to 'get OdhDashboardConfig' to validate configuration
+    cy.step('Validate PVC Size displays and default displays');
+    validatePVCSize(dashboardConfig);
 
+    // Validate Stop idle notebooks based on OpenShift command to 'notebook-controller' to validate configuration
     cy.step('Validate Stop idle notebooks displays and fields are enabled/disabled');
-    cullerSettings.findStopIdleNotebooks().should('exist');
-    cullerSettings.findLimitedOption().click();
-    cullerSettings.findSubmitButton().should('be.enabled');
-    cullerSettings.findUnlimitedOption().click();
-    cullerSettings.findSubmitButton().should('be.disabled');
+    validateStopIdleNotebooks(notebookControllerConfig);
 
+    // Validate Usage data collection displays
+    // TODO - Implement backend checks here also
     cy.step('Validate Usage data collection displays');
     telemetrySettings.findUsageDataCollectionText().should('exist');
 
+    // Validate notebook pod tolerations displays based on OpenShift command to 'get OdhDashboardConfig' to validate configuration
     cy.step('Validate Notebook pod tolerations displays and fields are enabled/disabled');
-    notebookTolerationSettings.findNotebookPodTolerationsText().should('exist');
+    validateNotebookPodTolerations(dashboardConfig);
   });
   it('Test User - should not have access rights to view the Cluster Settings tab', () => {
-    // Authentication and attempt to navigate to Cluster Settings
     cy.step('Log into the application');
     cy.visitWithLogin('/', TEST_USER);
 
     cy.step('Navigate to the Cluster Settings');
     clusterSettings.visit(false);
+
     pageNotfound.findPage().should('exist');
+
     clusterSettings.findNavItem().should('not.exist');
   });
 });
