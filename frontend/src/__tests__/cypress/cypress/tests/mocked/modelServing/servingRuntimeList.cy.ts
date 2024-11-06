@@ -297,6 +297,16 @@ const initIntercepts = ({
       namespace: 'test-project',
     }),
   ).as('updateServingRuntime');
+  cy.interceptK8s(
+    'PUT',
+    InferenceServiceModel,
+    mockInferenceServiceK8sResource({
+      name: 'llama-service',
+      path: 'test-model/',
+      displayName: 'Llama service',
+      isModelMesh: false,
+    }),
+  ).as('updateInferenceService');
   cy.interceptK8s(ODHDashboardConfigModel, mockDashboardConfig({}));
   cy.interceptK8s(
     RouteModel,
@@ -693,7 +703,7 @@ describe('Serving Runtime List', () => {
   });
 
   describe('KServe', () => {
-    it.only('Deploy KServe model', () => {
+    it('Deploy KServe model', () => {
       initIntercepts({
         disableModelMeshConfig: false,
         disableKServeConfig: false,
@@ -734,9 +744,11 @@ describe('Serving Runtime List', () => {
       kserveModal.findLocationEndpointInput().type('test-endpoint');
       kserveModal.findLocationBucketInput().type('test-bucket');
       kserveModal.findLocationPathInput().type('test-model/');
-      kserveModal.findServingRuntimeArgumentsSectionInput().should('exist');
+      kserveModal.findConfigurationParamsSection().should('exist');
       kserveModal.findServingRuntimeArgumentsSectionInput().type('--arg=value');
-      // kserveModal.findServingRuntimeEnvVarsSection().should('be.visible');
+      kserveModal.findServingRuntimeEnvVarsSectionAddButton().click();
+      kserveModal.findServingRuntimeEnvVarsName('0').type('test-name');
+      kserveModal.findServingRuntimeEnvVarsValue('0').type('test-value');
       kserveModal.findSubmitButton().should('be.enabled');
 
       // test submitting form, the modal should close to indicate success.
@@ -931,17 +943,20 @@ describe('Serving Runtime List', () => {
       });
     });
 
-    it('Successfully submit KServe Modal on edit', () => {
+    it.only('Successfully submit KServe Modal on edit', () => {
       initIntercepts({
         projectEnableModelMesh: false,
         disableKServeConfig: true,
         disableModelMeshConfig: true,
+        disableServingRuntimeParams: false,
         inferenceServices: [
           mockInferenceServiceK8sResource({
             name: 'llama-service',
             displayName: 'Llama Service',
             modelName: 'llama-service',
             isModelMesh: false,
+            args: ['--arg=value'],
+            env: [{ name: 'test-name', value: 'test-value' }],
           }),
         ],
         servingRuntimes: [
@@ -959,6 +974,9 @@ describe('Serving Runtime List', () => {
       modelServingSection.getKServeRow('Llama Service').find().findKebabAction('Edit').click();
 
       kserveModalEdit.shouldBeOpen();
+
+      kserveModalEdit.findServingRuntimeArgumentsSectionInput().clear().type('--arg=value1');
+      kserveModalEdit.findServingRuntimeEnvVarsName('0').clear().type('test-name1');
 
       // Submit button should be enabled
       kserveModalEdit.findSubmitButton().should('be.enabled');
@@ -992,6 +1010,45 @@ describe('Serving Runtime List', () => {
 
       cy.get('@updateServingRuntime.all').then((interceptions) => {
         expect(interceptions).to.have.length(2); // 1 dry run request and 1 actual request
+      });
+
+      cy.wait('@updateInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body).to.eql({
+          apiVersion: 'serving.kserve.io/v1beta1',
+          kind: 'InferenceService',
+          namespace: 'test-project',
+          metadata: {
+            name: 'llama-service',
+            namespace: 'test-project',
+            labels: { name: 'llama-service', 'opendatahub.io/dashboard': 'true' },
+            annotations: {
+              'openshift.io/display-name': 'Llama Service',
+            },
+          },
+          spec: {
+            predictor: {
+              maxReplicas: 1,
+              minReplicas: 1,
+              model: {
+                modelFormat: { name: 'onnx', version: '1' },
+                runtime: 'llama-service',
+                storage: { key: 'test-secret', path: 'path/to/model/' },
+                args: ['--arg=value1'],
+                env: [{ name: 'test-name1', value: 'test-value' }],
+              },
+            },
+          },
+        } satisfies InferenceServiceKind);
+      });
+
+      // Actual request
+      cy.wait('@updateInferenceService').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
+      cy.get('@updateInferenceService.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); // 1 dry run request and 1 actaul request
       });
     });
 

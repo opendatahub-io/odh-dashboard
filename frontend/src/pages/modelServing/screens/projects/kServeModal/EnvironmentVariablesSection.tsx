@@ -125,7 +125,6 @@ const EnvironmentVariablesSection: React.FC<EnvironmentVariablesSectionType> = (
         </Popover>
       }
       fieldId="serving-runtime-environment-variables"
-      data-testid="serving-runtime-environment-variables"
     >
       <Stack hasGutter>
         {data.servingRuntimeEnvVars?.map((envVar, index) => (
@@ -155,6 +154,7 @@ const EnvironmentVariablesSection: React.FC<EnvironmentVariablesSectionType> = (
             </SplitItem>
             <SplitItem>
               <Button
+                aria-label="remove-environment-variable"
                 onClick={() => removeEnvVar(index)}
                 variant="plain"
                 icon={<MinusCircleIcon />}
@@ -164,6 +164,7 @@ const EnvironmentVariablesSection: React.FC<EnvironmentVariablesSectionType> = (
         ))}
         <Button
           isInline
+          data-testid="add-environment-variable"
           variant="link"
           onClick={addEnvVar}
           icon={<PlusCircleIcon />}

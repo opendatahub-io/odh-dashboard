@@ -94,7 +94,6 @@ const ServingRuntimeArgsSection: React.FC<ServingRuntimeArgsSectionType> = ({
         </Popover>
       }
       fieldId="serving-runtime-arguments"
-      // data-testid="serving-runtime-arguments"
     >
       <TextArea
         id="serving-runtime-arguments"
