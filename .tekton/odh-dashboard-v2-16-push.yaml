@@ -151,8 +151,14 @@ spec:
         - description: Notification text to be posted to slack
           name: slack-message-failure-text
         steps:
-        - image: alpine
+        - image: quay.io/rhoai-konflux/alpine:latest
           name: rhoai-init
+          env:
+          - name: slack_message
+            valueFrom:
+              secretKeyRef:
+                name: rhoai-konflux-secret
+                key: slack-component-failure-notification
           script: |
             pipelinerun_name=$(params.pipelinerun-name)
             target_branch={{target_branch}}
@@ -168,16 +174,13 @@ spec:
             KONFLUX_SERVER="https://konflux.apps.stone-prod-p02.hjvn.p1.openshiftapps.com"
             build_url="${KONFLUX_SERVER}/application-pipeline/workspaces/rhoai/applications/${application_name}/pipelineruns/${pipelinerun_name}/logs"
 
-            alertEmoji=":alert:"
-            statusText="Failed"
-            statusEmoji=":failed:"
-
             build_time="$(date +%Y-%m-%dT%H:%M:%S)"
-            slack_message="${alertEmoji} <${build_url}|${pipelinerun_name}> - ${build_time}"
-            slack_message=$(echo -e "${slack_message}\nStatus: ${statusText} ${statusEmoji}")
-            slack_message=$(echo -e "${slack_message}\nCC - <@S05B904NQ6L>")
 
-            echo -n "${slack_message}" > "$(results.slack-message-failure-text.path)"
+            slack_message=${slack_message/__BUILD__URL__/$build_url}
+            slack_message=${slack_message/__PIPELINERUN__NAME__/$pipelinerun_name}
+            slack_message=${slack_message/__BUILD__TIME__/$build_time}
+
+            echo -en "${slack_message}" > "$(results.slack-message-failure-text.path)"
     - name: init
       params:
       - name: image-url
