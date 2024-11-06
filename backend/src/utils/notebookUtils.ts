@@ -196,7 +196,7 @@ export const assembleNotebook = async (
   const tolerations: Toleration[] = [];
 
   const affinity: NotebookAffinity = {};
-  if (data.acceleratorProfile?.count > 0 && data.acceleratorProfile.acceleratorProfile) {
+  if (data.acceleratorProfile?.count > 0) {
     if (!resources.limits) {
       resources.limits = {};
     }
@@ -274,7 +274,7 @@ export const assembleNotebook = async (
         'opendatahub.io/username': username,
         'kubeflow-resource-stopped': null,
         'opendatahub.io/accelerator-name':
-          data.acceleratorProfile?.acceleratorProfile?.metadata.name || '',
+          data.acceleratorProfile?.acceleratorProfile.metadata.name || '',
       },
       name: name,
       namespace: namespace,
