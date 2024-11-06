@@ -6,8 +6,11 @@ const ResourceNameDefinitionTooltip: React.FC = () => (
   <FieldGroupHelpLabelIcon
     content={
       <Stack hasGutter>
-        <StackItem>Resource names are what your resources are labeled in OpenShift.</StackItem>
-        <StackItem>Resource names are not editable after creation.</StackItem>
+        <StackItem>
+          The resource name is used to identify your resource in OpenShift, and is generated based
+          on the name you enter.
+        </StackItem>
+        <StackItem>The resource name cannot be edited after creation.</StackItem>
       </Stack>
     }
   />
