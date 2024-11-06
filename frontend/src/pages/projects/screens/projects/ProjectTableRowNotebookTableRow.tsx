@@ -77,7 +77,7 @@ const ProjectTableRowNotebookTableRow: React.FC<ProjectTableRowNotebookTableRowP
         />
       </Td>
       <Td dataLabel="Status">
-        <NotebookStateStatus notebookState={notebookState} stopNotebook={handleStop} />
+        <NotebookStateStatus notebookState={notebookState} stopNotebook={onStop} />
       </Td>
       <Td>
         <NotebookStateAction

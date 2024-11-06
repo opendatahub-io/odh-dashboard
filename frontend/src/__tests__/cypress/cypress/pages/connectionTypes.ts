@@ -171,11 +171,6 @@ class ConnectionTypeRow extends TableRow {
     return this;
   }
 
-  shouldHaveModelServingCompatibility() {
-    this.findConnectionTypeCompatibility().should('have.text', 'Model serving');
-    return this;
-  }
-
   shouldHaveCreator(creator: string) {
     this.findConnectionTypeCreator().should('have.text', creator);
     return this;

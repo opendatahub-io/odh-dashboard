@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useParams } from 'react-router-dom';
 import { Table } from '~/components/table';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
@@ -22,9 +23,8 @@ const ModelVersionsTable: React.FC<ModelVersionsTableProps> = ({
   isArchiveModel,
   refresh,
 }) => {
-  const inferenceServices = useMakeFetchObject(
-    useInferenceServices(undefined, modelVersions[0].registeredModelId),
-  );
+  const { registeredModelId } = useParams();
+  const inferenceServices = useMakeFetchObject(useInferenceServices(undefined, registeredModelId));
   const hasDeploys = (mvId: string) =>
     !!inferenceServices.data.some(
       (s) => s.metadata.labels?.[KnownLabels.MODEL_VERSION_ID] === mvId,

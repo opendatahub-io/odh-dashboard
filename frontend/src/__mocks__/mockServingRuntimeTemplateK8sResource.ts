@@ -9,6 +9,8 @@ type MockResourceConfigType = {
   platforms?: ServingRuntimePlatform[];
   apiProtocol?: ServingRuntimeAPIProtocol;
   isModelmesh?: boolean;
+  containerName?: string;
+  containerEnvVars?: { name: string; value: string }[];
 };
 
 export const mockServingRuntimeTemplateK8sResource = ({
@@ -19,6 +21,8 @@ export const mockServingRuntimeTemplateK8sResource = ({
   isModelmesh = false,
   apiProtocol = ServingRuntimeAPIProtocol.REST,
   platforms,
+  containerName = 'ovms',
+  containerEnvVars = undefined,
 }: MockResourceConfigType): TemplateKind => ({
   apiVersion: 'template.openshift.io/v1',
   kind: 'Template',
@@ -64,9 +68,10 @@ export const mockServingRuntimeTemplateK8sResource = ({
               '--rest_bind_address=127.0.0.1',
               '--target_device=NVIDIA',
             ],
+            ...(containerEnvVars && { env: containerEnvVars }),
             image:
               'quay.io/modh/openvino-model-server@sha256:c89f76386bc8b59f0748cf173868e5beef21ac7d2f78dada69089c4d37c44116',
-            name: 'ovms',
+            name: containerName,
             resources: {
               limits: {
                 cpu: '0',

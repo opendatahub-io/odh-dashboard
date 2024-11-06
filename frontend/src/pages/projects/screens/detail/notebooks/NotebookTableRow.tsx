@@ -191,7 +191,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
           </Td>
         ) : null}
         <Td dataLabel="Status">
-          <NotebookStateStatus notebookState={obj} stopNotebook={handleStop} />
+          <NotebookStateStatus notebookState={obj} stopNotebook={onStop} />
         </Td>
         <Td>
           <NotebookStateAction

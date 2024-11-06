@@ -8,13 +8,18 @@ import {
   EmptyStateBody,
   EmptyStateHeader,
   EmptyStateIcon,
+  EmptyStateVariant,
   Spinner,
   Stack,
   Text,
   TextContent,
 } from '@patternfly/react-core';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { CreatePipelineServerButton, usePipelinesAPI } from '~/concepts/pipelines/context';
+import {
+  CreatePipelineServerButton,
+  PipelineServerTimedOut,
+  usePipelinesAPI,
+} from '~/concepts/pipelines/context';
 import { useSafePipelines } from '~/concepts/pipelines/apiHooks/usePipelines';
 import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
@@ -80,9 +85,17 @@ const PipelinesCard: React.FC = () => {
       );
     }
 
+    if (pipelinesServer.timedOut && pipelinesServer.compatible) {
+      return (
+        <CardBody>
+          <PipelineServerTimedOut />
+        </CardBody>
+      );
+    }
+
     return (
       <EnsureAPIAvailability>
-        <EnsureCompatiblePipelineServer>
+        <EnsureCompatiblePipelineServer emptyStateVariant={EmptyStateVariant.xs}>
           <PipelinesCardMetrics />
         </EnsureCompatiblePipelineServer>
       </EnsureAPIAvailability>

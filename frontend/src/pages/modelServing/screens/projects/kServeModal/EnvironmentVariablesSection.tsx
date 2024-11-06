@@ -3,11 +3,14 @@ import {
   Button,
   FormGroup,
   Icon,
+  List,
+  ListItem,
   Popover,
   Split,
   SplitItem,
   Stack,
   TextInput,
+  Tooltip,
 } from '@patternfly/react-core';
 import {
   MinusCircleIcon,
@@ -18,11 +21,13 @@ import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
 
 type EnvironmentVariablesSectionType = {
+  predefinedVars?: string[];
   data: CreatingInferenceServiceObject;
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
 };
 
 const EnvironmentVariablesSection: React.FC<EnvironmentVariablesSectionType> = ({
+  predefinedVars,
   data,
   setData,
 }) => {
@@ -53,9 +58,58 @@ const EnvironmentVariablesSection: React.FC<EnvironmentVariablesSectionType> = (
     }
   };
 
+  const labelInfo = () => {
+    const button = (
+      <Button
+        data-testid="view-predefined-vars-button"
+        variant="link"
+        isAriaDisabled={!predefinedVars}
+      >
+        View predefined variables
+      </Button>
+    );
+    if (!predefinedVars) {
+      return (
+        <Tooltip
+          data-testid="predefined-vars-tooltip"
+          content={
+            <div>Select a serving runtime to view its predefined environment variables.</div>
+          }
+        >
+          {button}
+        </Tooltip>
+      );
+    }
+    return (
+      <Popover
+        headerContent="Predefined variables of the selected serving runtime"
+        bodyContent={
+          <List isPlain data-testid="predefined-vars-list">
+            {!predefinedVars.length ? (
+              <ListItem key="0">No predefined variables</ListItem>
+            ) : (
+              predefinedVars.map((arg: string, index: number) => (
+                <ListItem key={index}>{arg}</ListItem>
+              ))
+            )}
+          </List>
+        }
+        footerContent={
+          <div>
+            To <strong>overwrite</strong> a predefined variable, specify a new value in the{' '}
+            <strong>Additional environment variables</strong> field.
+          </div>
+        }
+      >
+        {button}
+      </Popover>
+    );
+  };
+
   return (
     <FormGroup
       label="Additional environment variables"
+      labelInfo={labelInfo()}
       labelIcon={
         <Popover
           bodyContent={

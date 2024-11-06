@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Popover } from '@patternfly/react-core';
+import { Button, Popover, Tooltip } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
@@ -34,6 +34,8 @@ const ConnectionsList: React.FC = () => {
     isEdit?: boolean;
   }>();
 
+  const tooltipRef = React.useRef<HTMLButtonElement>();
+
   return (
     <>
       <DetailsSection
@@ -49,17 +51,29 @@ const ConnectionsList: React.FC = () => {
           </Popover>
         }
         actions={[
-          <Button
-            key={`action-${ProjectSectionID.CONNECTIONS}`}
-            data-testid="add-connection-button"
-            variant="primary"
-            onClick={() => {
-              setManageConnectionModal({});
-            }}
-            isDisabled={enabledConnectionTypes.length === 0}
-          >
-            Add connection
-          </Button>,
+          <>
+            <Button
+              data-testid="add-connection-button"
+              variant="primary"
+              onClick={() => {
+                setManageConnectionModal({});
+              }}
+              aria-describedby={
+                enabledConnectionTypes.length === 0 ? 'no-connection-types-tooltip' : undefined
+              }
+              isAriaDisabled={enabledConnectionTypes.length === 0}
+              ref={tooltipRef}
+            >
+              Add connection
+            </Button>
+            {enabledConnectionTypes.length === 0 && (
+              <Tooltip
+                id="no-connection-types-tooltip"
+                content="No connection types available"
+                triggerRef={tooltipRef}
+              />
+            )}
+          </>,
         ]}
         isLoading={!loaded || !connectionTypesLoaded}
         isEmpty={connections.length === 0}
@@ -71,17 +85,29 @@ const ConnectionsList: React.FC = () => {
             iconImage={typedEmptyImage(ProjectObjectType.connections)}
             imageAlt="create a connection"
             createButton={
-              <Button
-                key={`action-${ProjectSectionID.CONNECTIONS}`}
-                variant="primary"
-                data-testid="create-connection-button"
-                onClick={() => {
-                  setManageConnectionModal({});
-                }}
-                isDisabled={enabledConnectionTypes.length === 0}
-              >
-                Create connection
-              </Button>
+              <>
+                <Button
+                  variant="primary"
+                  data-testid="create-connection-button"
+                  aria-describedby={
+                    enabledConnectionTypes.length === 0 ? 'no-connection-types-tooltip' : undefined
+                  }
+                  isAriaDisabled={enabledConnectionTypes.length === 0}
+                  onClick={() => {
+                    setManageConnectionModal({});
+                  }}
+                  ref={tooltipRef}
+                >
+                  Create connection
+                </Button>
+                {enabledConnectionTypes.length === 0 && (
+                  <Tooltip
+                    id="no-connection-types-tooltip"
+                    content="No connection types available"
+                    triggerRef={tooltipRef}
+                  />
+                )}
+              </>
             }
           />
         }
