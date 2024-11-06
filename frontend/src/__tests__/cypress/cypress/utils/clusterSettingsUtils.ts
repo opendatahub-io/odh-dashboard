@@ -81,7 +81,6 @@ export const validateNotebookPodTolerations = (dashboardConfig: DashboardConfig)
     JSON.stringify(
       {
         controllerEnabled: dashboardConfig.notebookController.enabled,
-        tolerationEnabled: dashboardConfig.notebookController.notebookTolerationSettings.enabled,
       },
       null,
       2,
@@ -89,9 +88,7 @@ export const validateNotebookPodTolerations = (dashboardConfig: DashboardConfig)
   );
 
   // Determine if Notebook Pod Tolerations should appear
-  const shouldShowTolerations =
-    dashboardConfig.notebookController.enabled &&
-    !dashboardConfig.notebookController.notebookTolerationSettings.enabled;
+  const shouldShowTolerations = dashboardConfig.notebookController.enabled;
 
   if (shouldShowTolerations) {
     cy.log('Notebook Pod Tolerations should be visible.');
