@@ -51,6 +51,8 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
             labels={getLabels(rm.customProperties)}
             isArchive={isArchiveModel}
             allExistingKeys={Object.keys(rm.customProperties)}
+            title="Labels"
+            contentWhenEmpty="No labels"
             onLabelsChange={(editedLabels) =>
               apiState.api
                 .patchRegisteredModel(
@@ -62,6 +64,7 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
                 )
                 .then(refresh)
             }
+            data-testid="model-labels"
           />
           <ModelPropertiesDescriptionListGroup
             isArchive={isArchiveModel}

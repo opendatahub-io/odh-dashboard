@@ -61,6 +61,8 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             labels={getLabels(mv.customProperties)}
             isArchive={isArchiveVersion}
             allExistingKeys={Object.keys(mv.customProperties)}
+            title="Labels"
+            contentWhenEmpty="No labels"
             onLabelsChange={(editedLabels) =>
               apiState.api
                 .patchModelVersion(
@@ -72,6 +74,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                 )
                 .then(refresh)
             }
+            data-testid="model-version-labels"
           />
           <ModelPropertiesDescriptionListGroup
             isArchive={isArchiveVersion}

@@ -26,6 +26,7 @@ type EditableProps = {
   editButtonTestId?: string;
   saveButtonTestId?: string;
   cancelButtonTestId?: string;
+  discardButtonTestId?: string;
 };
 
 export type DashboardDescriptionListGroupProps = {
