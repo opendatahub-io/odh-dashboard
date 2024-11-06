@@ -106,7 +106,7 @@ export const addSupportServingPlatformProject = (
       const applied = response.data?.applied ?? false;
       if (!applied) {
         throw new Error(
-          `Unable to enable model serving platform in your project. Ask a ${ODH_PRODUCT_NAME} admin for assistance.`,
+          `Unable to select a model serving platform in your project. Ask a ${ODH_PRODUCT_NAME} admin for assistance.`,
         );
       }
       return name;

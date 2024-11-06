@@ -117,6 +117,10 @@ export type ServingPlatformStatuses = {
     enabled: boolean;
     installed: boolean;
   };
+  nim: {
+    available: boolean;
+  };
+  numServingPlatformsAvailable: number;
 };
 
 export type LabeledDataConnection = {

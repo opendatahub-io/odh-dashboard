@@ -14,10 +14,11 @@ import {
   FlexItem,
   Label,
   Spinner,
+  Stack,
   Text,
   TextContent,
 } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
@@ -33,6 +34,9 @@ import { InferenceServiceKind } from '~/k8sTypes';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import ModelServingContextProvider from '~/pages/modelServing/ModelServingContext';
 import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
+import { NamespaceApplicationCase } from '~/pages/projects/types';
+import ModelServingPlatformSelectButton from '~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
+import ModelServingPlatformSelectErrorAlert from '~/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
 import DeployedModelsCard from './DeployedModelsCard';
 
 interface DeployedModelsSectionProps {
@@ -40,7 +44,7 @@ interface DeployedModelsSectionProps {
 }
 
 const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPlatform }) => {
-  const navigate = useNavigate();
+  const [queryParams, setQueryParams] = useSearchParams();
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const {
     inferenceServices: { data: inferenceServices, loaded: inferenceServicesLoaded },
@@ -48,6 +52,7 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
   } = React.useContext(ProjectDetailsContext);
 
   const servingPlatformStatuses = useServingPlatformStatuses();
+  const { numServingPlatformsAvailable } = servingPlatformStatuses;
   const { error: platformError } = getProjectModelServingPlatform(
     currentProject,
     servingPlatformStatuses,
@@ -55,6 +60,8 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
   const [deployedModels, setDeployedModels] = React.useState<InferenceServiceKind[]>([]);
 
   const isKServeNIMEnabled = isProjectNIMSupported(currentProject);
+
+  const [errorSelectingPlatform, setErrorSelectingPlatform] = React.useState<Error>();
 
   React.useEffect(() => {
     if (!inferenceServicesLoaded || !modelServersLoaded) {
@@ -108,29 +115,53 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
     }
 
     if (isMultiPlatform && modelServers.length && deployedModels.length === 0) {
-      const navToModels = () =>
-        navigate(
-          `/projects/${currentProject.metadata.name}?section=${ProjectSectionID.MODEL_SERVER}`,
-        );
+      const navToModels = () => {
+        // Instead of calling navigate(), change tabs by changing the section query param to retain other query params.
+        // This is how the GenericHorizontalBar component changes tabs internally.
+        queryParams.set('section', ProjectSectionID.MODEL_SERVER);
+        setQueryParams(queryParams);
+      };
 
       return (
         <OverviewCard
           objectType={ProjectObjectType.deployedModels}
           sectionType={SectionType.serving}
           title="Deployed models"
-          headerInfo={<Label>Multi-model serving enabled</Label>}
+          headerInfo={
+            <Flex gap={{ default: 'gapSm' }}>
+              <Label>Multi-model serving enabled</Label>
+              {numServingPlatformsAvailable > 1 && (
+                <ModelServingPlatformSelectButton
+                  namespace={currentProject.metadata.name}
+                  servingPlatform={NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}
+                  setError={setErrorSelectingPlatform}
+                  variant="link"
+                  isInline
+                  data-testid="change-serving-platform-button"
+                />
+              )}
+            </Flex>
+          }
         >
           <CardBody>
-            <TextContent>
-              <Text component="small">
-                Multiple models can be deployed from a single model server. Manage model servers and
-                and deploy models from the{' '}
-                <Button component="a" isInline variant="link" onClick={navToModels}>
-                  Models
-                </Button>{' '}
-                tab.
-              </Text>
-            </TextContent>
+            <Stack hasGutter>
+              {errorSelectingPlatform && (
+                <ModelServingPlatformSelectErrorAlert
+                  error={errorSelectingPlatform}
+                  clearError={() => setErrorSelectingPlatform(undefined)}
+                />
+              )}
+              <TextContent>
+                <Text component="small">
+                  Multiple models can be deployed from a single model server. Manage model servers
+                  and and deploy models from the{' '}
+                  <Button component="a" isInline variant="link" onClick={navToModels}>
+                    Models
+                  </Button>{' '}
+                  tab.
+                </Text>
+              </TextContent>
+            </Stack>
           </CardBody>
           <CardFooter>
             <Flex gap={{ default: 'gapLg' }}>
@@ -159,25 +190,45 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
           sectionType={isMultiPlatform ? SectionType.setup : SectionType.serving}
           title={isMultiPlatform ? 'No model servers' : 'Deployed models'}
           headerInfo={
-            <Label>
-              {isMultiPlatform ? 'Multi-model serving enabled' : 'Single-model serving enabled'}
-            </Label>
+            <Flex gap={{ default: 'gapSm' }}>
+              <Label>
+                {isMultiPlatform ? 'Multi-model serving enabled' : 'Single-model serving enabled'}
+              </Label>
+              {numServingPlatformsAvailable > 1 && (
+                <ModelServingPlatformSelectButton
+                  namespace={currentProject.metadata.name}
+                  servingPlatform={NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}
+                  setError={setErrorSelectingPlatform}
+                  variant="link"
+                  isInline
+                  data-testid="change-serving-platform-button"
+                />
+              )}
+            </Flex>
           }
         >
           <CardBody>
-            {platformError ? (
-              <Alert isInline title="Loading error" variant="danger">
-                {platformError.message}
-              </Alert>
-            ) : (
-              <TextContent>
-                <Text component="small">
-                  {isMultiPlatform
-                    ? 'Before deploying a model, you must first add a model server.'
-                    : 'Each model is deployed on its own model server.'}
-                </Text>
-              </TextContent>
-            )}
+            <Stack hasGutter>
+              {errorSelectingPlatform && (
+                <ModelServingPlatformSelectErrorAlert
+                  error={errorSelectingPlatform}
+                  clearError={() => setErrorSelectingPlatform(undefined)}
+                />
+              )}
+              {platformError ? (
+                <Alert isInline title="Loading error" variant="danger">
+                  {platformError.message}
+                </Alert>
+              ) : (
+                <TextContent>
+                  <Text component="small">
+                    {isMultiPlatform
+                      ? 'Before deploying a model, you must first add a model server.'
+                      : 'Each model is deployed on its own model server.'}
+                  </Text>
+                </TextContent>
+              )}
+            </Stack>
           </CardBody>
           {!platformError ? <AddModelFooter isNIM={isKServeNIMEnabled} /> : null}
         </OverviewCard>

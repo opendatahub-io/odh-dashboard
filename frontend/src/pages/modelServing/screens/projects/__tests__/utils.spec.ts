@@ -66,6 +66,7 @@ const getMockServingPlatformStatuses = ({
   kServeInstalled = true,
   modelMeshEnabled = true,
   modelMeshInstalled = true,
+  nimAvailable = true,
 }): ServingPlatformStatuses => ({
   kServe: {
     enabled: kServeEnabled,
@@ -75,6 +76,11 @@ const getMockServingPlatformStatuses = ({
     enabled: modelMeshEnabled,
     installed: modelMeshInstalled,
   },
+  nim: {
+    available: nimAvailable,
+  },
+  numServingPlatformsAvailable: [kServeEnabled, modelMeshEnabled, nimAvailable].filter(Boolean)
+    .length,
 });
 
 describe('getProjectModelServingPlatform', () => {
