@@ -42,7 +42,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
   const [deleteInferenceService, setDeleteInferenceService] =
     React.useState<InferenceServiceKind>();
   const [editInferenceService, setEditInferenceService] = React.useState<InferenceServiceKind>();
-  const project = projects.find(byName(inferenceServices[0].metadata.namespace)) ?? null;
+  const project = projects.find(byName(inferenceServices[0]?.metadata.namespace)) ?? null;
   const isKServeNIMEnabled = !!project && isProjectNIMSupported(project);
   const mappedColumns = React.useMemo(() => {
     const columns = getColumns?.(projects);
