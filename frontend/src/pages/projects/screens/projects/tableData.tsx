@@ -9,11 +9,11 @@ const WorkBenchDescription = (
   <div>
     <div>
       <PlayIcon className="pf-v5-u-mr-xs" />
-      Indicates number of running or starting workbenches.
+      The total number of running or starting workbenches in the project.
     </div>
     <div>
       <OffIcon className="pf-v5-u-mr-xs" />
-      Indicates number of stopped workbenches.
+      The total number of stopped workbenches in the project.
     </div>
   </div>
 );
@@ -38,7 +38,7 @@ export const columns: SortableData<ProjectKind>[] = [
     sortable: false,
     width: 30,
     info: {
-      popoverProps: { headerContent: 'Workbench counts', hasAutoWidth: true },
+      popoverProps: { hasAutoWidth: true },
       popover: WorkBenchDescription,
     },
   },

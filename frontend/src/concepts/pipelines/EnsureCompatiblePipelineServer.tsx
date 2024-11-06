@@ -20,10 +20,12 @@ const DOCS_LINK =
 
 type EnsureCompatiblePipelineServerProps = {
   children: React.ReactNode;
+  emptyStateVariant?: EmptyStateVariant;
 };
 
 const EnsureCompatiblePipelineServer: React.FC<EnsureCompatiblePipelineServerProps> = ({
   children,
+  emptyStateVariant = EmptyStateVariant.lg,
 }) => {
   const { pipelinesServer } = usePipelinesAPI();
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -44,7 +46,7 @@ const EnsureCompatiblePipelineServer: React.FC<EnsureCompatiblePipelineServerPro
     return (
       <>
         <Bullseye data-testid="incompatible-pipelines-server">
-          <EmptyState variant={EmptyStateVariant.lg}>
+          <EmptyState variant={emptyStateVariant}>
             <EmptyStateHeader
               data-testid="incompatible-pipelines-server-title"
               titleText="Unsupported pipeline and pipeline server version"

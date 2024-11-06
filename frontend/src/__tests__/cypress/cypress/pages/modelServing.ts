@@ -193,6 +193,22 @@ class ServingRuntimeModal extends Modal {
     return cy.findByTestId('predefined-args-list');
   }
 
+  findPredefinedArgsTooltip() {
+    return cy.findByTestId('predefined-args-tooltip');
+  }
+
+  findPredefinedVarsButton() {
+    return this.find().findByTestId('view-predefined-vars-button');
+  }
+
+  findPredefinedVarsList() {
+    return cy.findByTestId('predefined-vars-list');
+  }
+
+  findPredefinedVarsTooltip() {
+    return cy.findByTestId('predefined-vars-tooltip');
+  }
+
   findAuthenticationSection() {
     return this.find().findByTestId('auth-section');
   }
