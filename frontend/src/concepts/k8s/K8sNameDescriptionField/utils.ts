@@ -43,6 +43,7 @@ export const setupDefaults = ({
   initialData,
   limitNameResourceType,
   safePrefix,
+  isStaticPrefix,
 }: UseK8sNameDescriptionDataConfiguration): K8sNameDescriptionFieldData => {
   let initialName = '';
   let initialDescription = '';
@@ -74,6 +75,7 @@ export const setupDefaults = ({
         invalidLength: false,
         maxLength: configuredMaxLength,
         safePrefix,
+        isStaticPrefix,
         touched: false,
       },
     },
@@ -90,13 +92,15 @@ export const handleUpdateLogic =
       case 'name': {
         changedData.name = value;
 
-        const { touched, immutable, maxLength, safePrefix } = existingData.k8sName.state;
+        const { touched, immutable, maxLength, safePrefix, isStaticPrefix } =
+          existingData.k8sName.state;
         // When name changes, we want to update resource name if applicable
         if (!touched && !immutable) {
           // Update the generated name
           const k8sValue = translateDisplayNameForK8s(value, {
             maxLength,
             safeK8sPrefix: safePrefix,
+            isStaticPrefix,
           });
           changedData.k8sName = {
             value: k8sValue,
