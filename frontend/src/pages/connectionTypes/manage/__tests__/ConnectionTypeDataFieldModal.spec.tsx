@@ -286,4 +286,28 @@ describe('ConnectionTypeDataFieldModal', () => {
 
     expect(submitButton).not.toBeDisabled();
   });
+
+  it('should unset required if default value is read-only', () => {
+    const field: ShortTextField = {
+      type: 'short-text',
+      name: 'test',
+      envVar: 'test_envvar',
+      required: true,
+      properties: {
+        defaultValue: 'default value',
+        defaultReadOnly: false,
+      },
+    };
+    render(
+      <ConnectionTypeDataFieldModal onClose={onClose} onSubmit={onSubmit} isEdit field={field} />,
+    );
+    const requiredCheckbox = screen.getByTestId('field-required-checkbox');
+    expect(requiredCheckbox).toBeChecked();
+    const readOnlyCheckbox = screen.getByTestId('field-default-value-readonly-checkbox');
+    expect(readOnlyCheckbox).not.toBeChecked();
+    act(() => {
+      fireEvent.click(requiredCheckbox);
+    });
+    expect(requiredCheckbox).not.toBeChecked();
+  });
 });

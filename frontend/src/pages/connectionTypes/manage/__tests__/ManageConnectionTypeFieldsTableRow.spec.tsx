@@ -66,4 +66,20 @@ describe('ManageConnectionTypeFieldsTableRow', () => {
     expect(hasValidationIssueMock).toHaveBeenCalledTimes(1);
     expect(hasValidationIssueMock).toHaveBeenCalledWith(['fields', 0, 'envVar'], 'envVar_conflict');
   });
+
+  it('should not be able to set required if default value is read-only', () => {
+    const field: ShortTextField = {
+      type: 'short-text',
+      name: 'test',
+      envVar: 'test_envvar',
+      properties: {
+        defaultValue: 'default value',
+        defaultReadOnly: true,
+      },
+    };
+    render(renderRow({ row: field, fields: [field] }));
+    const requiredSwitch = screen.getByTestId('field-required');
+    expect(requiredSwitch).not.toBeChecked();
+    expect(requiredSwitch).toBeDisabled();
+  });
 });

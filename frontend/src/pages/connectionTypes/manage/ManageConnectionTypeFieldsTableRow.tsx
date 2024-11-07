@@ -174,7 +174,12 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
           aria-label="toggle field required"
           isChecked={row.required || false}
           data-testid="field-required"
-          onChange={() => onChange({ ...row, required: !row.required })}
+          isDisabled={row.properties.defaultReadOnly}
+          onChange={
+            !row.properties.defaultReadOnly
+              ? () => onChange({ ...row, required: !row.required })
+              : undefined
+          }
         />
       </Td>
       <Td isActionCell>

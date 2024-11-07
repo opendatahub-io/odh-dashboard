@@ -233,7 +233,12 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
         </FormGroup>
         <DataFieldPropertiesForm
           field={newField}
-          onChange={(value) => setData('properties', value)}
+          onChange={(value) => {
+            setData('properties', value);
+            if (value.defaultReadOnly && newField.required) {
+              setData('required', false);
+            }
+          }}
           onValidate={setPropertiesValid}
         />
         <FormGroup fieldId="isRequired">
@@ -241,6 +246,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
             id="isRequired"
             data-testid="field-required-checkbox"
             label="Field is required"
+            isDisabled={properties.defaultReadOnly}
             isChecked={required || false}
             onChange={(_ev, checked) => {
               setData('required', checked);
