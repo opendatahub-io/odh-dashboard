@@ -30,14 +30,13 @@ The following are a list of features that are supported, along with there defaul
 | disableKServeMetrics         | false   | Disables the ability to see KServe Metrics.                                                          |
 | disableModelMesh             | false   | Disables the ability to select ModelMesh as a Serving Platform.                                      |
 | disableAcceleratorProfiles   | false   | Disables Accelerator profiles from the Admin Panel.                                                  |
-| disableTrustyBiasMetrics           | false   | Disables Model Bias tab from Model Serving metrics.                                                  |
+| disableTrustyBiasMetrics     | false   | Disables Model Bias tab from Model Serving metrics.                                                  |
 | disablePerformanceMetrics    | false   | Disables Endpoint Performance tab from Model Serving metrics.                                        |
 | disableDistributedWorkloads  | false   | Disables Distributed Workload Metrics from the dashboard.                                            |
 | disableModelRegistry         | false   | Disables Model Registry from the dashboard.                                                          |
-| disableServingRuntimeParams  | false    | Disables Serving Runtime params from the dashboard.                                                  |
-| disableConnectionTypes       | true    | Disables creating custom data connection types from the dashboard.                                   |
-| disableStorageClasses        | false    | Disables storage classes settings nav item from the dashboard.                                       |
-| disableNIMModelServing       | true    | Disables components of NIM Model UI from the dashboard.   
+| disableServingRuntimeParams  | false   | Disables Serving Runtime params from the dashboard.                                                  |
+| disableStorageClasses        | false   | Disables storage classes settings nav item from the dashboard.                                       |
+| disableNIMModelServing       | true    | Disables components of NIM Model UI from the dashboard.                                              |
 
 ## Defaults
 
@@ -66,7 +65,6 @@ spec:
     disableTrustyBiasMetrics: false
     disablePerformanceMetrics: false
     disableDistributedWorkloads: false
-    disableConnectionTypes: false
     disableStorageClasses: false
     disableNIMModelServing: true
 ```
