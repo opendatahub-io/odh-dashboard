@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { FormGroup, HelperText, TextInput, ValidatedOptions } from '@patternfly/react-core';
+import {
+  FormGroup,
+  HelperText,
+  InputGroup,
+  InputGroupItem,
+  InputGroupText,
+  TextInput,
+  ValidatedOptions,
+} from '@patternfly/react-core';
 import ResourceNameDefinitionTooltip from '~/concepts/k8s/ResourceNameDefinitionTooltip';
 import {
   HelperTextItemMaxLength,
@@ -45,17 +53,34 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
     validated = ValidatedOptions.success;
   }
 
+  const usePrefix = k8sName.state.staticPrefix && !!k8sName.state.safePrefix;
+  const textInput = (
+    <TextInput
+      id={`${dataTestId}-resourceName`}
+      data-testid={`${dataTestId}-resourceName`}
+      name={`${dataTestId}-resourceName`}
+      isRequired
+      value={
+        usePrefix
+          ? k8sName.value.replace(new RegExp(`^${k8sName.state.safePrefix}`), '')
+          : k8sName.value
+      }
+      onChange={(event, value) =>
+        onDataChange?.('k8sName', usePrefix ? `${k8sName.state.safePrefix}${value}` : value)
+      }
+      validated={validated}
+    />
+  );
   return (
     <FormGroup {...formGroupProps} isRequired>
-      <TextInput
-        id={`${dataTestId}-resourceName`}
-        data-testid={`${dataTestId}-resourceName`}
-        name={`${dataTestId}-resourceName`}
-        isRequired
-        value={k8sName.value}
-        onChange={(event, value) => onDataChange?.('k8sName', value)}
-        validated={validated}
-      />
+      {usePrefix ? (
+        <InputGroup>
+          <InputGroupText>{k8sName.state.safePrefix}</InputGroupText>
+          <InputGroupItem isFill>{textInput}</InputGroupItem>
+        </InputGroup>
+      ) : (
+        textInput
+      )}
       <HelperText>
         <HelperTextItemMaxLength k8sName={k8sName} />
         <HelperTextItemValidCharacters k8sName={k8sName} />
