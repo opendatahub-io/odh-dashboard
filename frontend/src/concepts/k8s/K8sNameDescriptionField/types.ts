@@ -22,7 +22,7 @@ export type K8sNameDescriptionFieldData = {
        * If the safe prefix is to be statically applied
        * @see AdditionalCriteriaForTranslation
        */
-      isStaticPrefix?: boolean;
+      staticPrefix?: boolean;
       /** Max length for the K8s name */
       maxLength: number;
       /** The user is now in control of the value; do not auto generate */
@@ -51,7 +51,7 @@ export type UseK8sNameDescriptionDataConfiguration = {
    * If the safe prefix is to be statically applied
    * @see AdditionalCriteriaForTranslation
    */
-  isStaticPrefix?: boolean;
+  staticPrefix?: boolean;
 };
 
 type K8sNameDescriptionFieldUpdateFunctionTemplate<T> = (

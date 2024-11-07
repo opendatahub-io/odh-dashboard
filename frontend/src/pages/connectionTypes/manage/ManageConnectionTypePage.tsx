@@ -101,7 +101,7 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
     useK8sNameDescriptionFieldData({
       initialData: prefill,
       safePrefix: 'ct-',
-      isStaticPrefix: true,
+      staticPrefix: true,
     });
 
   const isDataDirty = React.useRef(data).current !== data;

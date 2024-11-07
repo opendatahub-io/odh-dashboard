@@ -53,7 +53,7 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
     validated = ValidatedOptions.success;
   }
 
-  const usePrefix = k8sName.state.isStaticPrefix && !!k8sName.state.safePrefix;
+  const usePrefix = k8sName.state.staticPrefix && !!k8sName.state.safePrefix;
   const textInput = (
     <TextInput
       id={`${dataTestId}-resourceName`}

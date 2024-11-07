@@ -81,7 +81,7 @@ describe('ResourceNameField', () => {
             maxLength: 0,
             touched: false,
             safePrefix: 'wb-',
-            isStaticPrefix: true,
+            staticPrefix: true,
           },
         }}
       />,
