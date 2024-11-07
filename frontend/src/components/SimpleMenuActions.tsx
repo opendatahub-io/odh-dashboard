@@ -6,6 +6,7 @@ import {
   Divider,
   DropdownList,
   TooltipProps,
+  MenuToggleProps,
 } from '@patternfly/react-core';
 import { EllipsisVIcon } from '@patternfly/react-icons';
 
@@ -23,6 +24,7 @@ type SimpleDropdownProps = {
   dropdownItems: (Item | Spacer)[];
   testId?: string;
   toggleLabel?: string;
+  toggleProps?: Partial<MenuToggleProps>;
   variant?: React.ComponentProps<typeof MenuToggle>['variant'];
 } & Omit<
   React.ComponentProps<typeof Dropdown>,
@@ -33,6 +35,7 @@ const SimpleMenuActions: React.FC<SimpleDropdownProps> = ({
   dropdownItems,
   testId,
   toggleLabel,
+  toggleProps,
   variant,
   ...props
 }) => {
@@ -51,6 +54,7 @@ const SimpleMenuActions: React.FC<SimpleDropdownProps> = ({
           ref={toggleRef}
           onClick={() => setOpen(!open)}
           isExpanded={open}
+          {...toggleProps}
         >
           {toggleLabel ?? <EllipsisVIcon />}
         </MenuToggle>

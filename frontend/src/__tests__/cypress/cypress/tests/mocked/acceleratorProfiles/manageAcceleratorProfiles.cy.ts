@@ -50,9 +50,32 @@ describe('Manage Accelerator Profile', () => {
     createAcceleratorProfile.findSubmitButton().should('be.disabled');
 
     // test required fields
-    createAcceleratorProfile.findAcceleratorNameInput().fill('test-accelerator');
+    createAcceleratorProfile.k8sNameDescription.findDisplayNameInput().fill('test-accelerator');
     createAcceleratorProfile.findSubmitButton().should('be.disabled');
     createAcceleratorProfile.findIdentifierInput().fill('nvidia.com/gpu');
+    createAcceleratorProfile.findSubmitButton().should('be.enabled');
+
+    // test resource name validation
+    createAcceleratorProfile.k8sNameDescription.findResourceEditLink().click();
+    createAcceleratorProfile.k8sNameDescription
+      .findResourceNameInput()
+      .should('have.attr', 'aria-invalid', 'false');
+    createAcceleratorProfile.k8sNameDescription
+      .findResourceNameInput()
+      .should('have.value', 'test-accelerator');
+    // Invalid character k8s names fail
+    createAcceleratorProfile.k8sNameDescription
+      .findResourceNameInput()
+      .clear()
+      .type('InVaLiD vAlUe!');
+    createAcceleratorProfile.k8sNameDescription
+      .findResourceNameInput()
+      .should('have.attr', 'aria-invalid', 'true');
+    createAcceleratorProfile.findSubmitButton().should('be.disabled');
+    createAcceleratorProfile.k8sNameDescription
+      .findResourceNameInput()
+      .clear()
+      .type('test-accelerator-name');
     createAcceleratorProfile.findSubmitButton().should('be.enabled');
 
     // test tolerations
@@ -127,7 +150,9 @@ describe('Manage Accelerator Profile', () => {
 
     cy.wait('@createAccelerator').then((interception) => {
       expect(interception.request.body).to.be.eql({
+        name: 'test-accelerator-name',
         displayName: 'test-accelerator',
+        description: '',
         identifier: 'nvidia.com/gpu',
         enabled: true,
         tolerations: [],
@@ -138,9 +163,13 @@ describe('Manage Accelerator Profile', () => {
   it('edit page has expected values', () => {
     initIntercepts({});
     editAcceleratorProfile.visit('test-accelerator');
-    editAcceleratorProfile.findAcceleratorNameInput().should('have.value', 'Test Accelerator');
+    editAcceleratorProfile.k8sNameDescription
+      .findDisplayNameInput()
+      .should('have.value', 'Test Accelerator');
     editAcceleratorProfile.findIdentifierInput().should('have.value', 'nvidia.com/gpu');
-    editAcceleratorProfile.findDescriptionInput().should('have.value', 'Test description');
+    editAcceleratorProfile.k8sNameDescription
+      .findDescriptionInput()
+      .should('have.value', 'Test description');
     editAcceleratorProfile
       .getRow('nvidia.com/gpu')
       .shouldHaveEffect('NoSchedule')
@@ -153,10 +182,11 @@ describe('Manage Accelerator Profile', () => {
       { path: { name: 'test-accelerator' } },
       { success: true },
     ).as('updatedAccelerator');
-    editAcceleratorProfile.findDescriptionInput().fill('Updated description');
+    editAcceleratorProfile.k8sNameDescription.findDescriptionInput().fill('Updated description');
     editAcceleratorProfile.findSubmitButton().click();
     cy.wait('@updatedAccelerator').then((interception) => {
       expect(interception.request.body).to.eql({
+        name: 'test-accelerator',
         displayName: 'Test Accelerator',
         identifier: 'nvidia.com/gpu',
         enabled: true,

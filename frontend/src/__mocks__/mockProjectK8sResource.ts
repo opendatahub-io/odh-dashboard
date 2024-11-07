@@ -10,6 +10,7 @@ type MockResourceConfigType = {
   k8sName?: string;
   creationTimestamp?: string;
   enableModelMesh?: boolean;
+  enableNIM?: boolean;
   isDSProject?: boolean;
   phase?: 'Active' | 'Terminating';
 };
@@ -21,6 +22,7 @@ export const mockProjectK8sResource = ({
   k8sName = 'test-project',
   creationTimestamp = '2023-02-14T21:43:59Z',
   enableModelMesh,
+  enableNIM = false,
   description = '',
   isDSProject = true,
   phase = 'Active',
@@ -35,6 +37,9 @@ export const mockProjectK8sResource = ({
       'kubernetes.io/metadata.name': k8sName,
       ...(enableModelMesh !== undefined && {
         [KnownLabels.MODEL_SERVING_PROJECT]: enableModelMesh ? 'true' : 'false',
+      }),
+      ...(enableNIM && {
+        'opendatahub.io/nim-support': 'true',
       }),
       ...(isDSProject && { [KnownLabels.DASHBOARD_RESOURCE]: 'true' }),
     },

@@ -48,6 +48,7 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
   return (
     <FormGroup {...formGroupProps} isRequired>
       <TextInput
+        id={`${dataTestId}-resourceName`}
         data-testid={`${dataTestId}-resourceName`}
         name={`${dataTestId}-resourceName`}
         isRequired

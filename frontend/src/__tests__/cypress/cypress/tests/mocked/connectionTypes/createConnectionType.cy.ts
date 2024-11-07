@@ -22,6 +22,7 @@ describe('create', () => {
       mockConnectionTypeConfigMap({
         displayName: 'URI - v1',
         name: 'uri-v1',
+        category: ['existing-category'],
         fields: [
           {
             type: 'uri',
@@ -49,15 +50,16 @@ describe('create', () => {
 
     createConnectionTypePage.findConnectionTypeName().type('hello');
     categorySection.findCategoryTable();
-    categorySection.findMultiGroupSelectButton('Object-storage');
+    categorySection.findMultiGroupSelectButton('existing-category').should('exist');
+    categorySection.findMultiGroupSelectButton('Object-storage').click();
     createConnectionTypePage.findSubmitButton().should('be.enabled');
 
     categorySection.findMultiGroupInput().type('Database');
-    categorySection.findMultiGroupSelectButton('Database');
+    categorySection.findMultiGroupSelectButton('Database').click();
 
     categorySection.findMultiGroupInput().type('New category');
 
-    categorySection.findMultiGroupSelectButton('Option');
+    categorySection.findMultiGroupSelectButton('Option').click();
     categorySection.findChipItem('New category').should('exist');
     categorySection.findMultiGroupInput().type('{esc}');
 
@@ -88,7 +90,7 @@ describe('create', () => {
 
     createConnectionTypePage.findConnectionTypeName().type('hello');
     categorySection.findCategoryTable();
-    categorySection.findMultiGroupSelectButton('Object-storage');
+    categorySection.findMultiGroupSelectButton('Object-storage').click();
     createConnectionTypePage.findSubmitButton().should('be.enabled').click();
 
     createConnectionTypePage.findFooterError().should('contain.text', 'returned error message');

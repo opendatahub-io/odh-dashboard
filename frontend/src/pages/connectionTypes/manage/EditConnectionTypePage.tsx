@@ -18,7 +18,14 @@ const EditConnectionTypePage: React.FC = () => {
   }
 
   if (!isLoaded || error) {
-    return <ApplicationsPage loaded={isLoaded} loadError={error} empty />;
+    return (
+      <ApplicationsPage
+        loaded={isLoaded}
+        loadError={error}
+        empty
+        errorMessage="Unable to load connection type"
+      />
+    );
   }
 
   return (

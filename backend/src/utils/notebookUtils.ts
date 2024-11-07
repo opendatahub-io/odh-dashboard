@@ -160,7 +160,7 @@ export const assembleNotebook = async (
   envName: string,
   tolerationSettings: NotebookTolerationSettings,
 ): Promise<Notebook> => {
-  const { notebookSizeName, imageName, imageTagName, acceleratorProfile, envVars } = data;
+  const { notebookSizeName, imageName, imageTagName, envVars } = data;
 
   const notebookSize = getNotebookSize(notebookSizeName);
 
@@ -196,17 +196,17 @@ export const assembleNotebook = async (
   const tolerations: Toleration[] = [];
 
   const affinity: NotebookAffinity = {};
-  if (acceleratorProfile.count > 0 && acceleratorProfile.acceleratorProfile) {
+  if (data.acceleratorProfile?.count > 0) {
     if (!resources.limits) {
       resources.limits = {};
     }
     if (!resources.requests) {
       resources.requests = {};
     }
-    resources.limits[acceleratorProfile.acceleratorProfile.spec.identifier] =
-      acceleratorProfile.count;
-    resources.requests[acceleratorProfile.acceleratorProfile.spec.identifier] =
-      acceleratorProfile.count;
+    resources.limits[data.acceleratorProfile.acceleratorProfile.spec.identifier] =
+      data.acceleratorProfile.count;
+    resources.requests[data.acceleratorProfile.acceleratorProfile.spec.identifier] =
+      data.acceleratorProfile.count;
   } else {
     // step type down to string to avoid type errors
     const containerResourceKeys: string[] = Object.values(ContainerResourceAttributes);
@@ -224,8 +224,8 @@ export const assembleNotebook = async (
     });
   }
 
-  if (acceleratorProfile.acceleratorProfile?.spec.tolerations) {
-    tolerations.push(...acceleratorProfile.acceleratorProfile.spec.tolerations);
+  if (data.acceleratorProfile?.acceleratorProfile?.spec.tolerations) {
+    tolerations.push(...data.acceleratorProfile.acceleratorProfile.spec.tolerations);
   }
 
   if (tolerationSettings?.enabled) {
@@ -274,7 +274,7 @@ export const assembleNotebook = async (
         'opendatahub.io/username': username,
         'kubeflow-resource-stopped': null,
         'opendatahub.io/accelerator-name':
-          acceleratorProfile.acceleratorProfile?.metadata.name || '',
+          data.acceleratorProfile?.acceleratorProfile.metadata.name || '',
       },
       name: name,
       namespace: namespace,
