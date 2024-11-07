@@ -124,13 +124,14 @@ const EnvironmentVariablesSection: React.FC<EnvironmentVariablesSectionType> = (
           </Icon>
         </Popover>
       }
-      fieldId="environment-variables"
+      fieldId="serving-runtime-environment-variables"
     >
       <Stack hasGutter>
         {data.servingRuntimeEnvVars?.map((envVar, index) => (
           <Split hasGutter key={index}>
             <SplitItem isFilled>
               <TextInput
+                data-testid={`serving-runtime-environment-variables-input-name ${index}`}
                 aria-label="env var name"
                 value={envVar.name}
                 onChange={(_event: React.FormEvent<HTMLInputElement>, value: string) =>
@@ -143,6 +144,7 @@ const EnvironmentVariablesSection: React.FC<EnvironmentVariablesSectionType> = (
             </SplitItem>
             <SplitItem isFilled>
               <TextInput
+                data-testid={`serving-runtime-environment-variables-input-value ${index}`}
                 aria-label="env var value"
                 value={envVar.value}
                 onChange={(_event: React.FormEvent<HTMLInputElement>, value: string) =>
@@ -152,6 +154,7 @@ const EnvironmentVariablesSection: React.FC<EnvironmentVariablesSectionType> = (
             </SplitItem>
             <SplitItem>
               <Button
+                aria-label="remove-environment-variable"
                 onClick={() => removeEnvVar(index)}
                 variant="plain"
                 icon={<MinusCircleIcon />}
@@ -161,6 +164,7 @@ const EnvironmentVariablesSection: React.FC<EnvironmentVariablesSectionType> = (
         ))}
         <Button
           isInline
+          data-testid="add-environment-variable"
           variant="link"
           onClick={addEnvVar}
           icon={<PlusCircleIcon />}
