@@ -16,6 +16,7 @@ const ConnectionTypesPage: React.FC = () => {
       emptyStatePage={<EmptyConnectionTypes />}
       title="Connection types"
       description="Create and manage connection types for users in your organization. Connection types include customizable fields and optional default values to decrease the time required to add connections to data sources and sinks."
+      errorMessage="Unable to load connection types"
     >
       <PageSection isFilled variant="light">
         <ConnectionTypesTable connectionTypes={connectionTypes} onUpdate={refresh} />

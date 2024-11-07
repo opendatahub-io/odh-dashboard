@@ -139,7 +139,7 @@ class CategorySection extends Contextual<HTMLElement> {
   }
 
   findMultiGroupSelectButton(name: string) {
-    return cy.findByTestId(`select-multi-typeahead-${name}`).click();
+    return cy.findByTestId(`select-multi-typeahead-${name}`);
   }
 }
 

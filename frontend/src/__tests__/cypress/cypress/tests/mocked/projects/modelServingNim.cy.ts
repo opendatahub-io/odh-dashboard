@@ -19,15 +19,11 @@ import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/Delete
 
 describe('NIM Model Serving', () => {
   describe('Deploying a model from an existing Project', () => {
-    it('should be disabled if the modal is empty', () => {
-      initInterceptsToEnableNim({ hasAllModels: true });
+    it('should be disabled if the modal is empty (NIM already selected for project)', () => {
+      initInterceptsToEnableNim({ hasAllModels: false });
 
       projectDetails.visitSection('test-project', 'model-server');
-      // For multiple cards use case
-      projectDetails
-        .findModelServingPlatform('nvidia-nim-model')
-        .findByTestId('nim-serving-deploy-button')
-        .click();
+      cy.findByTestId('deploy-button').click();
 
       // test that you can not submit on empty
       nimDeployModal.shouldBeOpen();
@@ -168,7 +164,7 @@ describe('NIM Model Serving', () => {
         nimDeployModal.shouldBeOpen();
       });
 
-      it("should allow deploying NIM from a Project's Overview tab when multiple platforms exist", () => {
+      it("should allow selecting NIM from a Project's Overview tab when multiple platforms exist", () => {
         initInterceptorsValidatingNimEnablement({
           disableKServe: false,
           disableModelMesh: false,
@@ -177,8 +173,14 @@ describe('NIM Model Serving', () => {
         projectDetailsOverviewTab.visit('test-project');
         projectDetailsOverviewTab
           .findModelServingPlatform('nvidia-nim')
-          .findByTestId('model-serving-platform-button')
-          .click();
+          .findByTestId('nim-serving-select-button')
+          .should('be.enabled');
+      });
+
+      it("should allow deploying NIM from a Project's Overview tab when NIM is selected", () => {
+        initInterceptsToEnableNim({ hasAllModels: false });
+        projectDetailsOverviewTab.visit('test-project');
+        cy.findByTestId('model-serving-platform-button').click();
         nimDeployModal.shouldBeOpen();
       });
 
@@ -189,7 +191,7 @@ describe('NIM Model Serving', () => {
         nimDeployModal.shouldBeOpen();
       });
 
-      it("should allow deploying NIM from a Project's Models tab when multiple platforms exist", () => {
+      it("should allow selecting NIM from a Project's Models tab when multiple platforms exist", () => {
         initInterceptorsValidatingNimEnablement({
           disableKServe: false,
           disableModelMesh: false,
@@ -198,8 +200,14 @@ describe('NIM Model Serving', () => {
         projectDetails.visitSection('test-project', 'model-server');
         projectDetails
           .findModelServingPlatform('nvidia-nim-model')
-          .findByTestId('nim-serving-deploy-button')
-          .click();
+          .findByTestId('nim-serving-select-button')
+          .should('be.enabled');
+      });
+
+      it("should allow deploying NIM from a Project's Models tab when NIM is selected", () => {
+        initInterceptsToEnableNim({ hasAllModels: false });
+        projectDetails.visitSection('test-project', 'model-server');
+        cy.get('button[data-testid=deploy-button]').click();
         nimDeployModal.shouldBeOpen();
       });
     });
@@ -244,7 +252,7 @@ describe('NIM Model Serving', () => {
         });
         projectDetails.visitSection('test-project', 'model-server');
         projectDetails.findModelServingPlatform('nvidia-nim-model').should('not.exist');
-        cy.findByTestId('nim-serving-deploy-button').should('not.exist');
+        cy.findByTestId('nim-serving-select-button').should('not.exist');
       });
     });
 
@@ -300,7 +308,7 @@ describe('NIM Model Serving', () => {
         );
         projectDetails.visitSection('test-project', 'model-server');
         projectDetails.findModelServingPlatform('nvidia-nim-model').should('not.exist');
-        cy.findByTestId('nim-serving-deploy-button').should('not.exist');
+        cy.findByTestId('nim-serving-select-button').should('not.exist');
       });
     });
   });

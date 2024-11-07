@@ -5,7 +5,6 @@ import { createRoleBinding, getRoleBinding } from '~/services/roleBindingService
 import {
   EnvVarReducedTypeKeyValues,
   EventStatus,
-  K8sEvent,
   Notebook,
   NotebookControllerUserState,
   NotebookStatus,
@@ -19,8 +18,8 @@ import { EMPTY_USER_STATE } from '~/pages/notebookController/const';
 import useNamespaces from '~/pages/notebookController/useNamespaces';
 import { useAppContext } from '~/app/AppContext';
 import { getRoute } from '~/services/routeService';
-import { RoleBindingKind } from '~/k8sTypes';
-import { useWatchNotebookEvents } from './useWatchNotebookEvents';
+import { EventKind, RoleBindingKind } from '~/k8sTypes';
+import { useWatchNotebookEvents } from '~/api';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 
 export const usernameTranslate = (username: string): string => {
@@ -236,13 +235,13 @@ export const useNotebookRedirectLink = (): (() => Promise<string>) => {
   }, [notebookNamespace, routeName, currentUserNotebookLink]);
 };
 
-export const getEventTimestamp = (event: K8sEvent): string =>
+export const getEventTimestamp = (event: EventKind): string =>
   event.lastTimestamp || event.eventTime;
 
 const filterEvents = (
-  allEvents: K8sEvent[],
+  allEvents: EventKind[],
   lastActivity: Date,
-): [filterEvents: K8sEvent[], thisInstanceEvents: K8sEvent[], gracePeroid: boolean] => {
+): [filterEvents: EventKind[], thisInstanceEvents: EventKind[], gracePeroid: boolean] => {
   const thisInstanceEvents = allEvents
     .filter((event) => new Date(getEventTimestamp(event)) >= lastActivity)
     .toSorted((a, b) => getEventTimestamp(a).localeCompare(getEventTimestamp(b)));
@@ -301,17 +300,17 @@ const useLastActivity = (annotationValue?: string): Date | null => {
 
 export const useNotebookStatus = (
   spawnInProgress: boolean,
-): [status: NotebookStatus | null, events: K8sEvent[]] => {
+): [status: NotebookStatus | null, events: EventKind[]] => {
   const {
     currentUserNotebook: notebook,
     currentUserNotebookIsRunning: isNotebookRunning,
     currentUserNotebookPodUID,
   } = React.useContext(NotebookControllerContext);
 
-  const events = useWatchNotebookEvents(
-    notebook,
+  const [events] = useWatchNotebookEvents(
+    notebook?.metadata.namespace ?? '',
+    notebook?.metadata.name ?? '',
     currentUserNotebookPodUID,
-    spawnInProgress && !isNotebookRunning,
   );
 
   const lastActivity =

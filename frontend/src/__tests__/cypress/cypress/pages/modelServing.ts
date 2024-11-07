@@ -2,7 +2,6 @@ import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 import { mixin } from '~/__tests__/cypress/cypress/utils/mixin';
-import { Contextual } from './components/Contextual';
 import { TableToolbar } from './components/TableToolbar';
 
 class ModelServingToolbar extends TableToolbar {}
@@ -356,22 +355,10 @@ class InferenceServiceRow extends TableRow {
     return this.find().find(`[data-label=Project]`);
   }
 }
-class ServingPlatformCard extends Contextual<HTMLElement> {
-  findDeployModelButton() {
-    return this.find().findByTestId('single-serving-deploy-button');
-  }
 
-  findAddModelServerButton() {
-    return this.find().findByTestId('multi-serving-add-server-button');
-  }
-}
 class ModelServingSection {
   find() {
     return cy.findByTestId('section-model-server');
-  }
-
-  getServingPlatformCard(name: string) {
-    return new ServingPlatformCard(() => cy.findAllByTestId(`${name}-platform-card`));
   }
 
   private findKServeTable() {

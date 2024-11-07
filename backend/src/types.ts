@@ -834,7 +834,7 @@ export type NotebookData = {
   notebookSizeName: string;
   imageName: string;
   imageTagName: string;
-  acceleratorProfile: AcceleratorProfileState;
+  acceleratorProfile?: AcceleratorProfileState;
   envVars: EnvVarReducedTypeKeyValues;
   state: NotebookState;
   username?: string;
@@ -842,7 +842,7 @@ export type NotebookData = {
 };
 
 export type AcceleratorProfileState = {
-  acceleratorProfile?: AcceleratorProfileKind;
+  acceleratorProfile: AcceleratorProfileKind;
   count: number;
 };
 

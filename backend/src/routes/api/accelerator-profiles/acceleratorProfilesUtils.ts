@@ -10,13 +10,14 @@ export const postAcceleratorProfile = async (
 ): Promise<{ success: boolean; error: string }> => {
   const { customObjectsApi } = fastify.kube;
   const { namespace } = fastify.kube;
-  const body = request.body as AcceleratorProfileKind['spec'];
+  const requestBody = request.body as { name?: string } & AcceleratorProfileKind['spec'];
+  const { name, ...body } = requestBody;
 
   const payload: AcceleratorProfileKind = {
     apiVersion: 'dashboard.opendatahub.io/v1',
     kind: 'AcceleratorProfile',
     metadata: {
-      name: translateDisplayNameForK8s(body.displayName),
+      name: name || translateDisplayNameForK8s(body.displayName),
       namespace,
       annotations: {
         'opendatahub.io/modified-date': new Date().toISOString(),

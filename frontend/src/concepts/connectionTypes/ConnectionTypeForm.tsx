@@ -40,7 +40,7 @@ const createSelectOption = (
             <Truncate content={description} />
           </FlexItem>
         )}
-        {connectionType.data?.category?.length && (
+        {!!connectionType.data?.category?.length && (
           <FlexItem>
             <Truncate content={`Category: ${connectionType.data.category.join(', ')}`} />
           </FlexItem>

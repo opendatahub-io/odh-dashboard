@@ -274,7 +274,7 @@ describe('addSupportServingPlatformProject', () => {
     await expect(
       addSupportServingPlatformProject(name, NamespaceApplicationCase.MODEL_MESH_PROMOTION),
     ).rejects.toThrow(
-      `Unable to enable model serving platform in your project. Ask a ${ODH_PRODUCT_NAME} admin for assistance.`,
+      `Unable to select a model serving platform in your project. Ask a ${ODH_PRODUCT_NAME} admin for assistance.`,
     );
     expect(mockedAxios).toHaveBeenCalledTimes(1);
     expect(mockedAxios).toHaveBeenCalledWith('/api/namespaces/test/1', { params: {} });
@@ -285,7 +285,7 @@ describe('addSupportServingPlatformProject', () => {
     await expect(
       addSupportServingPlatformProject(name, NamespaceApplicationCase.MODEL_MESH_PROMOTION),
     ).rejects.toThrow(
-      `Unable to enable model serving platform in your project. Ask a ${ODH_PRODUCT_NAME} admin for assistance.`,
+      `Unable to select a model serving platform in your project. Ask a ${ODH_PRODUCT_NAME} admin for assistance.`,
     );
     expect(mockedAxios).toHaveBeenCalledTimes(1);
     expect(mockedAxios).toHaveBeenCalledWith('/api/namespaces/test/1', { params: {} });

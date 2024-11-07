@@ -696,11 +696,12 @@ describe('Serving Runtime List', () => {
         disableKServeConfig: false,
         servingRuntimes: [],
         requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
+        projectEnableModelMesh: false,
       });
 
       projectDetails.visitSection('test-project', 'model-server');
 
-      modelServingSection.getServingPlatformCard('single-serving').findDeployModelButton().click();
+      modelServingSection.findDeployModelButton().click();
 
       kserveModal.shouldBeOpen();
 
@@ -806,11 +807,12 @@ describe('Serving Runtime List', () => {
         disableKServeConfig: false,
         disableKServeAuthConfig: true,
         servingRuntimes: [],
+        projectEnableModelMesh: false,
       });
 
       projectDetails.visitSection('test-project', 'model-server');
 
-      modelServingSection.getServingPlatformCard('single-serving').findDeployModelButton().click();
+      modelServingSection.findDeployModelButton().click();
 
       kserveModal.shouldBeOpen();
 
@@ -833,11 +835,12 @@ describe('Serving Runtime List', () => {
         disableKServeAuthConfig: false,
         servingRuntimes: [],
         requiredCapabilities: [],
+        projectEnableModelMesh: false,
       });
 
       projectDetails.visitSection('test-project', 'model-server');
 
-      modelServingSection.getServingPlatformCard('single-serving').findDeployModelButton().click();
+      modelServingSection.findDeployModelButton().click();
 
       kserveModal.shouldBeOpen();
 
@@ -852,11 +855,12 @@ describe('Serving Runtime List', () => {
         disableKServeAuthConfig: false,
         servingRuntimes: [],
         requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
+        projectEnableModelMesh: false,
       });
 
       projectDetails.visitSection('test-project', 'model-server');
 
-      modelServingSection.getServingPlatformCard('single-serving').findDeployModelButton().click();
+      modelServingSection.findDeployModelButton().click();
 
       kserveModal.shouldBeOpen();
 
@@ -864,9 +868,10 @@ describe('Serving Runtime List', () => {
       kserveModal.findAuthenticationCheckbox().should('exist');
     });
 
-    it('Do not deploy KServe model when user cannot edit namespace', () => {
+    it('Do not deploy KServe model when user cannot edit namespace (only one serving platform enabled)', () => {
+      // If only one platform is enabled, project platform selection has not happened yet and patching the namespace with the platform happens at deploy time.
       initIntercepts({
-        disableModelMeshConfig: false,
+        disableModelMeshConfig: true,
         disableKServeConfig: false,
         servingRuntimes: [],
         rejectAddSupportServingPlatformProject: true,
@@ -874,7 +879,7 @@ describe('Serving Runtime List', () => {
 
       projectDetails.visitSection('test-project', 'model-server');
 
-      modelServingSection.getServingPlatformCard('single-serving').findDeployModelButton().click();
+      modelServingSection.findDeployModelButton().click();
 
       kserveModal.shouldBeOpen();
 
@@ -1094,10 +1099,11 @@ describe('Serving Runtime List', () => {
         disableModelMeshConfig: false,
         disableKServeConfig: false,
         servingRuntimes: [],
+        projectEnableModelMesh: false,
       });
       projectDetails.visitSection('test-project', 'model-server');
 
-      modelServingSection.getServingPlatformCard('single-serving').findDeployModelButton().click();
+      modelServingSection.findDeployModelButton().click();
 
       kserveModal.shouldBeOpen();
 
@@ -1146,10 +1152,11 @@ describe('Serving Runtime List', () => {
         disableKServeConfig: false,
         servingRuntimes: [],
         requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
+        projectEnableModelMesh: false,
       });
       projectDetails.visitSection('test-project', 'model-server');
 
-      modelServingSection.getServingPlatformCard('single-serving').findDeployModelButton().click();
+      modelServingSection.findDeployModelButton().click();
 
       kserveModal.shouldBeOpen();
 
@@ -1345,18 +1352,15 @@ describe('Serving Runtime List', () => {
       });
     });
 
-    it('Successfully add model server when user can edit namespace', () => {
+    it('Successfully add model server when user can edit namespace (only one serving platform enabled)', () => {
+      // If only one platform is enabled, project platform selection has not happened yet and patching the namespace with the platform happens at deploy time.
       initIntercepts({
-        projectEnableModelMesh: undefined,
-        disableKServeConfig: false,
+        disableKServeConfig: true,
         disableModelMeshConfig: false,
       });
       projectDetails.visitSection('test-project', 'model-server');
 
-      modelServingSection
-        .getServingPlatformCard('multi-serving')
-        .findAddModelServerButton()
-        .click();
+      modelServingSection.findAddModelServerButton().click();
 
       createServingRuntimeModal.shouldBeOpen();
 
@@ -1401,19 +1405,16 @@ describe('Serving Runtime List', () => {
       });
     });
 
-    it('Do not add model server when user cannot edit namespace', () => {
+    it('Do not add model server when user cannot edit namespace (only one serving platform enabled)', () => {
+      // If only one platform is enabled, project platform selection has not happened yet and patching the namespace with the platform happens at deploy time.
       initIntercepts({
-        projectEnableModelMesh: undefined,
-        disableKServeConfig: false,
+        disableKServeConfig: true,
         disableModelMeshConfig: false,
         rejectAddSupportServingPlatformProject: true,
       });
       projectDetails.visitSection('test-project', 'model-server');
 
-      modelServingSection
-        .getServingPlatformCard('multi-serving')
-        .findAddModelServerButton()
-        .click();
+      modelServingSection.findAddModelServerButton().click();
 
       createServingRuntimeModal.shouldBeOpen();
 
@@ -1457,16 +1458,13 @@ describe('Serving Runtime List', () => {
   describe('Model server with SericeAccount and RoleBinding', () => {
     it('Add model server - do not create ServiceAccount or RoleBinding if token auth is not selected', () => {
       initIntercepts({
-        projectEnableModelMesh: undefined,
+        projectEnableModelMesh: true,
         disableKServeConfig: false,
         disableModelMeshConfig: false,
       });
       projectDetails.visitSection('test-project', 'model-server');
 
-      modelServingSection
-        .getServingPlatformCard('multi-serving')
-        .findAddModelServerButton()
-        .click();
+      modelServingSection.findAddModelServerButton().click();
 
       createServingRuntimeModal.shouldBeOpen();
 
@@ -1523,16 +1521,13 @@ describe('Serving Runtime List', () => {
 
     it('Add model server - create ServiceAccount and RoleBinding if token auth is selected', () => {
       initIntercepts({
-        projectEnableModelMesh: undefined,
+        projectEnableModelMesh: true,
         disableKServeConfig: false,
         disableModelMeshConfig: false,
       });
       projectDetails.visitSection('test-project', 'model-server');
 
-      modelServingSection
-        .getServingPlatformCard('multi-serving')
-        .findAddModelServerButton()
-        .click();
+      modelServingSection.findAddModelServerButton().click();
 
       createServingRuntimeModal.shouldBeOpen();
 
@@ -1597,7 +1592,7 @@ describe('Serving Runtime List', () => {
 
     it('Add model server - do not create ServiceAccount or RoleBinding if they already exist', () => {
       initIntercepts({
-        projectEnableModelMesh: undefined,
+        projectEnableModelMesh: true,
         disableKServeConfig: false,
         disableModelMeshConfig: false,
         serviceAccountAlreadyExists: true,
@@ -1606,10 +1601,7 @@ describe('Serving Runtime List', () => {
       });
       projectDetails.visitSection('test-project', 'model-server');
 
-      modelServingSection
-        .getServingPlatformCard('multi-serving')
-        .findAddModelServerButton()
-        .click();
+      modelServingSection.findAddModelServerButton().click();
 
       createServingRuntimeModal.shouldBeOpen();
 

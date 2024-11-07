@@ -22,12 +22,23 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const [storages, loaded, loadError] = useProjectPvcs(currentProject.metadata.name);
 
+  const selectDescription = (size: string, description?: string) => (
+    <div>
+      <div>Size: {size}</div>
+      {description && <div>Description: {description}</div>}
+    </div>
+  );
+
   const selectOptions = React.useMemo(
     () =>
       loaded
         ? storages.map((pvc) => ({
             value: pvc.metadata.name,
             content: getDisplayNameFromK8sResource(pvc),
+            description: selectDescription(
+              pvc.spec.resources.requests.storage,
+              pvc.metadata.annotations?.['openshift.io/description'],
+            ),
           }))
         : [],
     [loaded, storages],
@@ -44,7 +55,7 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
   let placeholderText: string;
 
   if (!loaded) {
-    placeholderText = 'Loading storages...';
+    placeholderText = 'Loading storages';
   } else if (storages.length === 0) {
     placeholderText = 'No existing storages available';
   } else {
@@ -66,6 +77,7 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
         noOptionsFoundMessage={(filter) => `No persistent storage was found for "${filter}"`}
         popperProps={{ direction: selectDirection, appendTo: menuAppendTo }}
         isDisabled={!loaded || storages.length === 0}
+        data-testid="persistent-storage-typeahead"
       />
     </FormGroup>
   );

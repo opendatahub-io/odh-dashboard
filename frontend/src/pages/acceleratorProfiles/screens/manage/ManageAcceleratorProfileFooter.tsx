@@ -13,21 +13,22 @@ import {
   createAcceleratorProfile,
   updateAcceleratorProfile,
 } from '~/services/acceleratorProfileService';
+import { AcceleratorProfileFormData } from '~/pages/acceleratorProfiles/screens/manage/types';
 
 type ManageAcceleratorProfileFooterProps = {
-  state: AcceleratorProfileKind['spec'];
+  state: AcceleratorProfileFormData;
   existingAcceleratorProfile?: AcceleratorProfileKind;
+  validFormData: boolean;
 };
 
 export const ManageAcceleratorProfileFooter: React.FC<ManageAcceleratorProfileFooterProps> = ({
   state,
   existingAcceleratorProfile,
+  validFormData,
 }) => {
   const [errorMessage, setErrorMessage] = React.useState<string>('');
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const navigate = useNavigate();
-
-  const isButtonDisabled = !state.displayName || !state.identifier;
 
   const onCreateAcceleratorProfile = async () => {
     setIsLoading(true);
@@ -86,7 +87,7 @@ export const ManageAcceleratorProfileFooter: React.FC<ManageAcceleratorProfileFo
         <ActionList>
           <ActionListItem>
             <Button
-              isDisabled={isButtonDisabled || isLoading}
+              isDisabled={!validFormData || isLoading}
               isLoading={isLoading}
               variant="primary"
               id="create-button"

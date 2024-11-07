@@ -1,4 +1,5 @@
 import * as _ from 'lodash-es';
+import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
@@ -10,6 +11,7 @@ import { RecursivePartial } from '~/typeHelpers';
 import {
   K8sNameDescriptionFieldData,
   K8sNameDescriptionFieldUpdateFunctionInternal,
+  K8sNameDescriptionType,
   UseK8sNameDescriptionDataConfiguration,
 } from './types';
 
@@ -33,6 +35,10 @@ export enum LimitNameResourceType {
 /** K8s max DNS subdomain name length */
 const MAX_RESOURCE_NAME_LENGTH = 253;
 
+export const isK8sNameDescriptionType = (
+  x?: K8sNameDescriptionType | K8sResourceCommon,
+): x is K8sNameDescriptionType => !!x && 'k8sName' in x;
+
 export const setupDefaults = ({
   initialData,
   limitNameResourceType,
@@ -43,11 +49,16 @@ export const setupDefaults = ({
   let initialK8sNameValue = '';
   let configuredMaxLength = MAX_RESOURCE_NAME_LENGTH;
 
-  if (isK8sDSGResource(initialData)) {
+  if (isK8sNameDescriptionType(initialData)) {
+    initialName = initialData.name || '';
+    initialDescription = initialData.description || '';
+    initialK8sNameValue = initialData.k8sName || '';
+  } else if (isK8sDSGResource(initialData)) {
     initialName = getDisplayNameFromK8sResource(initialData);
     initialDescription = getDescriptionFromK8sResource(initialData);
     initialK8sNameValue = initialData.metadata.name;
   }
+
   if (limitNameResourceType != null) {
     configuredMaxLength = ROUTE_BASED_NAME_LENGTH;
   }
