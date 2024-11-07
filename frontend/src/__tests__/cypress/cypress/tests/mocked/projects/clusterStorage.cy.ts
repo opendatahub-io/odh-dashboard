@@ -51,6 +51,11 @@ const initInterceptors = ({ isEmpty = false, storageClassName }: HandlersProps) 
         : [
             mockPVCK8sResource({ uid: 'test-id', storageClassName }),
             mockPVCK8sResource({ displayName: 'Another Cluster Storage', storageClassName }),
+            mockPVCK8sResource({
+              displayName: 'Unbound storage',
+              storageClassName,
+              status: { phase: 'Pending' },
+            }),
           ],
     ),
   );
@@ -412,7 +417,7 @@ describe('ClusterStorage', () => {
     updateClusterStorageModal.findNameInput().should('have.value', 'Test Storage');
     updateClusterStorageModal.findPVSizeInput().should('have.value', '5');
     updateClusterStorageModal.shouldHavePVSizeSelectValue('GiB');
-    updateClusterStorageModal.findPersistentStorageWarning().should('exist');
+    updateClusterStorageModal.findPersistentStorageWarningCanOnlyIncrease().should('exist');
     updateClusterStorageModal.findSubmitButton().should('be.enabled');
     updateClusterStorageModal.findNameInput().fill('test-updated');
 
@@ -444,6 +449,17 @@ describe('ClusterStorage', () => {
     cy.get('@editClusterStorage.all').then((interceptions) => {
       expect(interceptions).to.have.length(2);
     });
+  });
+
+  it('should disable size field when editing unbound storage', () => {
+    initInterceptors({});
+    clusterStorage.visit('test-project');
+    const clusterStorageRow = clusterStorage.getClusterStorageRow('Unbound storage');
+    clusterStorageRow.findKebabAction('Edit storage').click();
+    updateClusterStorageModal.findNameInput().should('have.value', 'Unbound storage');
+    updateClusterStorageModal.findPVSizeInput().should('have.value', '5').should('be.disabled');
+    updateClusterStorageModal.shouldHavePVSizeSelectValue('GiB').should('be.disabled');
+    updateClusterStorageModal.findPersistentStorageWarningCanNotEdit().should('exist');
   });
 
   it('Delete cluster storage', () => {

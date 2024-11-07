@@ -8,6 +8,7 @@ type MockResourceConfigType = {
   storageClassName?: string;
   displayName?: string;
   uid?: string;
+  status?: PersistentVolumeClaimKind['status'];
 };
 
 export const mockPVCK8sResource = ({
@@ -17,6 +18,13 @@ export const mockPVCK8sResource = ({
   storageClassName = 'gp3',
   displayName = 'Test Storage',
   uid = genUID('pvc'),
+  status = {
+    phase: 'Bound',
+    accessModes: ['ReadWriteOnce'],
+    capacity: {
+      storage,
+    },
+  },
 }: MockResourceConfigType): PersistentVolumeClaimKind => ({
   kind: 'PersistentVolumeClaim',
   apiVersion: 'v1',
@@ -43,11 +51,5 @@ export const mockPVCK8sResource = ({
     storageClassName,
     volumeMode: 'Filesystem',
   },
-  status: {
-    phase: 'Bound',
-    accessModes: ['ReadWriteOnce'],
-    capacity: {
-      storage,
-    },
-  },
+  status,
 });
