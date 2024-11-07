@@ -184,8 +184,8 @@ class ProjectDetails {
     this.wait();
   }
 
-  visitSection(project: string, section: string) {
-    cy.visitWithLogin(`/projects/${project}?section=${section}`);
+  visitSection(project: string, section: string, extraUrlParams = '') {
+    cy.visitWithLogin(`/projects/${project}?section=${section}${extraUrlParams}`);
     this.wait(section);
   }
 
@@ -248,12 +248,32 @@ class ProjectDetails {
     return cy.findByTestId('import-pipeline-button', { timeout });
   }
 
-  findSingleModelDeployButton() {
-    return this.findModelServingPlatform('single').findByTestId('single-serving-deploy-button');
+  findSelectPlatformButton(platform: string) {
+    return cy.findByTestId(`${platform}-serving-select-button`);
   }
 
-  findMultiModelButton() {
-    return this.findModelServingPlatform('multi').findByTestId('multi-serving-add-server-button');
+  findResetPlatformButton() {
+    return cy.findByTestId('change-serving-platform-button');
+  }
+
+  findErrorSelectingPlatform() {
+    return cy.findByTestId('error-selecting-serving-platform');
+  }
+
+  findDeployModelDropdown() {
+    return cy.findByTestId('deploy-model-dropdown');
+  }
+
+  findBackToRegistryButton() {
+    return cy.findByTestId('deploy-from-registry');
+  }
+
+  findTopLevelDeployModelButton() {
+    return cy.findByTestId('deploy-button');
+  }
+
+  findTopLevelAddModelServerButton() {
+    return cy.findByTestId('add-server-button');
   }
 
   findDeployModelTooltip() {
