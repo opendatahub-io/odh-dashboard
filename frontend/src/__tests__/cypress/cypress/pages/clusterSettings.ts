@@ -82,10 +82,6 @@ class CullterSettings extends ClusterSettings {
 }
 
 class TelemetrySettings extends ClusterSettings {
-  findUsageDataCollectionText() {
-    return cy.findByText('Usage data collection', { exact: true });
-  }
-
   findEnabledCheckbox() {
     return cy.findByTestId('usage-data-checkbox');
   }

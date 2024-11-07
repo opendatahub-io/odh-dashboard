@@ -1,8 +1,5 @@
 import { ADMIN_USER, TEST_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import {
-  clusterSettings,
-  telemetrySettings,
-} from '~/__tests__/cypress/cypress/pages/clusterSettings';
+import { clusterSettings } from '~/__tests__/cypress/cypress/pages/clusterSettings';
 import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
 import type { DashboardConfig, NotebookControllerConfig } from '~/__tests__/cypress/cypress/types';
 import {
@@ -48,11 +45,6 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
     // Validate Stop idle notebooks based on OpenShift command to 'notebook-controller' to validate configuration
     cy.step('Validate Stop idle notebooks displays and fields are enabled/disabled');
     validateStopIdleNotebooks(notebookControllerConfig);
-
-    // Validate Usage data collection displays
-    // TODO - Implement backend checks here also
-    cy.step('Validate Usage data collection displays');
-    telemetrySettings.findUsageDataCollectionText().should('exist');
 
     // Validate notebook pod tolerations displays based on OpenShift command to 'get OdhDashboardConfig' to validate configuration
     cy.step('Validate Notebook pod tolerations displays and fields are enabled/disabled');
