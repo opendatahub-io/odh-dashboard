@@ -24,6 +24,7 @@ import {
 } from '~/pages/projects/types';
 import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
 import { ConfigMapKind, NotebookKind, SecretKind } from '~/k8sTypes';
+import { Connection } from '~/concepts/connectionTypes/types';
 import { getVolumesByStorageData } from './spawnerUtils';
 import { fetchNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
 import { getDeletedConfigMapOrSecretVariables } from './environmentVariables/utils';
@@ -194,12 +195,17 @@ export const updateConfigMapsAndSecretsForNotebook = async (
   envVariables: EnvVariable[],
   dataConnection?: DataConnectionData,
   existingDataConnection?: DataConnection,
+  connections?: Connection[],
   dryRun = false,
 ): Promise<EnvironmentFromVariable[]> => {
   const existingEnvVars = await fetchNotebookEnvVariables(notebook);
   const { deletedConfigMaps, deletedSecrets } = getDeletedConfigMapOrSecretVariables(
     notebook,
     existingEnvVars,
+    [
+      existingDataConnection?.data.metadata.name || '',
+      ...(connections || []).map((connection) => connection.metadata.name),
+    ],
   );
   const newDataConnection =
     dataConnection?.enabled && dataConnection.type === 'creating' && dataConnection.creating
