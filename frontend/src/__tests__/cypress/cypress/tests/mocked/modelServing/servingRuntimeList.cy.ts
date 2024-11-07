@@ -943,7 +943,7 @@ describe('Serving Runtime List', () => {
       });
     });
 
-    it.only('Successfully submit KServe Modal on edit', () => {
+    it('Successfully submit KServe Modal on edit', () => {
       initIntercepts({
         projectEnableModelMesh: false,
         disableKServeConfig: true,
@@ -1017,7 +1017,6 @@ describe('Serving Runtime List', () => {
         expect(interception.request.body).to.eql({
           apiVersion: 'serving.kserve.io/v1beta1',
           kind: 'InferenceService',
-          namespace: 'test-project',
           metadata: {
             name: 'llama-service',
             namespace: 'test-project',
