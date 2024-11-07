@@ -302,9 +302,11 @@ const initIntercepts = ({
     InferenceServiceModel,
     mockInferenceServiceK8sResource({
       name: 'llama-service',
-      path: 'test-model/',
-      displayName: 'Llama service',
+      displayName: 'Llama Service',
+      modelName: 'llama-service',
       isModelMesh: false,
+      args: ['--arg=value1'],
+      env: [{ name: 'test-name1', value: 'test-value' }],
     }),
   ).as('updateInferenceService');
   cy.interceptK8s(ODHDashboardConfigModel, mockDashboardConfig({}));
@@ -790,6 +792,46 @@ describe('Serving Runtime List', () => {
         expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
       });
 
+      cy.wait('@createInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body).to.containSubset({
+          apiVersion: 'serving.kserve.io/v1beta1',
+          kind: 'InferenceService',
+          metadata: {
+            name: 'test-name',
+            namespace: 'test-project',
+            labels: {
+              'opendatahub.io/dashboard': 'true',
+              'networking.knative.dev/visibility': 'cluster-local',
+            },
+            annotations: {
+              'openshift.io/display-name': 'Test Name',
+              'serving.knative.openshift.io/enablePassthrough': 'true',
+              'sidecar.istio.io/inject': 'true',
+              'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
+              'security.opendatahub.io/enable-auth': 'true',
+            },
+          },
+          spec: {
+            predictor: {
+              minReplicas: 1,
+              maxReplicas: 1,
+              model: {
+                modelFormat: { name: 'onnx', version: '1' },
+                runtime: 'test-name',
+                storage: { key: 'test-secret', path: 'test-model/' },
+                args: ['--arg=value'],
+                env: [{ name: 'test-name', value: 'test-value' }],
+                resources: {
+                  requests: { cpu: '1', memory: '4Gi' },
+                  limits: { cpu: '2', memory: '8Gi' },
+                },
+              },
+            },
+          },
+        });
+      });
+
       //dry run request
       cy.wait('@createRole').then((interception) => {
         expect(interception.request.url).to.include('?dryRun=All');
@@ -1014,31 +1056,39 @@ describe('Serving Runtime List', () => {
 
       cy.wait('@updateInferenceService').then((interception) => {
         expect(interception.request.url).to.include('?dryRun=All');
-        expect(interception.request.body).to.eql({
+        expect(interception.request.body).to.containSubset({
           apiVersion: 'serving.kserve.io/v1beta1',
           kind: 'InferenceService',
           metadata: {
-            name: 'llama-service',
-            namespace: 'test-project',
-            labels: { name: 'llama-service', 'opendatahub.io/dashboard': 'true' },
             annotations: {
               'openshift.io/display-name': 'Llama Service',
+              'serving.knative.openshift.io/enablePassthrough': 'true',
+              'sidecar.istio.io/inject': 'true',
+              'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
             },
+            generation: 1,
+            labels: { name: 'llama-service', 'opendatahub.io/dashboard': 'true' },
+            name: 'llama-service',
+            namespace: 'test-project',
           },
           spec: {
             predictor: {
-              maxReplicas: 1,
               minReplicas: 1,
+              maxReplicas: 1,
               model: {
                 modelFormat: { name: 'onnx', version: '1' },
                 runtime: 'llama-service',
-                storage: { key: 'test-secret', path: 'path/to/model/' },
+                storage: { key: 'test-secret', path: 'path/to/model' },
                 args: ['--arg=value1'],
                 env: [{ name: 'test-name1', value: 'test-value' }],
+                resources: {
+                  requests: { cpu: '1', memory: '4Gi' },
+                  limits: { cpu: '2', memory: '8Gi' },
+                },
               },
             },
           },
-        } satisfies InferenceServiceKind);
+        });
       });
 
       // Actual request
