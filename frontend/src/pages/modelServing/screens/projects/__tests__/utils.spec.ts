@@ -3,6 +3,7 @@ import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import {
   createNIMPVC,
   createNIMSecret,
+  fetchInferenceServiceCount,
   fetchNIMModelNames,
   filterOutConnectionsWithoutBucket,
   getCreateInferenceServiceLabels,
@@ -12,7 +13,7 @@ import {
 import { LabeledDataConnection, ServingPlatformStatuses } from '~/pages/modelServing/screens/types';
 import { ServingRuntimePlatform } from '~/types';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { createPvc, createSecret } from '~/api';
+import { createPvc, createSecret, getInferenceServiceContext } from '~/api';
 import { PersistentVolumeClaimKind, ServingRuntimeKind } from '~/k8sTypes';
 import {
   getNGCSecretType,
@@ -25,6 +26,7 @@ jest.mock('~/api', () => ({
   getSecret: jest.fn(),
   createSecret: jest.fn(),
   createPvc: jest.fn(),
+  getInferenceServiceContext: jest.fn(),
 }));
 
 jest.mock('~/pages/modelServing/screens/projects/nimUtils', () => ({
@@ -540,5 +542,35 @@ describe('updateServingRuntimeTemplate', () => {
     const result = updateServingRuntimeTemplate(servingRuntimeWithoutVolumeMounts, pvcName);
 
     expect(result.spec.containers[0].volumeMounts).toBeUndefined();
+  });
+});
+
+describe('fetchInferenceServiceCount', () => {
+  const namespace = 'test-namespace';
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should return the count of inference services when they are retrieved successfully', async () => {
+    (getInferenceServiceContext as jest.Mock).mockResolvedValue([
+      { name: 'service1' },
+      { name: 'service2' },
+      { name: 'service3' },
+    ]);
+
+    const count = await fetchInferenceServiceCount(namespace);
+
+    expect(getInferenceServiceContext).toHaveBeenCalledWith(namespace);
+    expect(count).toBe(3);
+  });
+
+  it('should return 0 if an error is thrown while fetching inference services', async () => {
+    (getInferenceServiceContext as jest.Mock).mockRejectedValue(new Error('Fetch error'));
+
+    const count = await fetchInferenceServiceCount(namespace);
+
+    expect(getInferenceServiceContext).toHaveBeenCalledWith(namespace);
+    expect(count).toBe(0);
   });
 });

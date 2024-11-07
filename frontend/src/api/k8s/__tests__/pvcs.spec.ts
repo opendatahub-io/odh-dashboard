@@ -1,13 +1,21 @@
 import {
-  K8sStatus,
   k8sCreateResource,
   k8sDeleteResource,
+  k8sGetResource,
   k8sListResourceItems,
+  K8sStatus,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { mock200Status, mock404Error } from '~/__mocks__/mockK8sStatus';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
-import { assemblePvc, createPvc, deletePvc, getDashboardPvcs, updatePvc } from '~/api/k8s/pvcs';
+import {
+  assemblePvc,
+  createPvc,
+  deletePvc,
+  getDashboardPvcs,
+  getPvc,
+  updatePvc,
+} from '~/api/k8s/pvcs';
 import { PVCModel } from '~/api/models/k8s';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import { CreatingStorageObject } from '~/pages/projects/types';
@@ -25,6 +33,7 @@ const k8sListResourceItemsMock = jest.mocked(k8sListResourceItems<PersistentVolu
 const k8sCreateResourceMock = jest.mocked(k8sCreateResource<PersistentVolumeClaimKind>);
 const k8sUpdateResourceMock = jest.mocked(k8sUpdateResource<PersistentVolumeClaimKind>);
 const k8sDeleteResourceMock = jest.mocked(k8sDeleteResource<PersistentVolumeClaimKind, K8sStatus>);
+const k8sGetResourceMock = jest.mocked(k8sGetResource<PersistentVolumeClaimKind>);
 
 const data: CreatingStorageObject = {
   nameDesc: {
@@ -190,6 +199,33 @@ describe('deletePvc', () => {
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
       model: PVCModel,
       queryOptions: { name: 'pvcName', ns: 'namespace' },
+    });
+  });
+});
+
+describe('getPvc', () => {
+  it('should fetch and return PVC', async () => {
+    k8sGetResourceMock.mockResolvedValue(pvcMock);
+    const result = await getPvc('projectName', 'pvcName');
+
+    expect(k8sGetResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: PVCModel,
+      queryOptions: { name: 'pvcName', ns: 'projectName', queryParams: {} },
+    });
+    expect(k8sGetResourceMock).toHaveBeenCalledTimes(1);
+    expect(result).toStrictEqual(pvcMock);
+  });
+
+  it('should handle errors and rethrow', async () => {
+    k8sGetResourceMock.mockRejectedValue(new Error('error1'));
+
+    await expect(getPvc('projectName', 'pvcName')).rejects.toThrow('error1');
+    expect(k8sGetResourceMock).toHaveBeenCalledTimes(1);
+    expect(k8sGetResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: PVCModel,
+      queryOptions: { name: 'pvcName', ns: 'projectName', queryParams: {} },
     });
   });
 });
