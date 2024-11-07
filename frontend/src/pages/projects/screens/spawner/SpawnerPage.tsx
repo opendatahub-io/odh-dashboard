@@ -38,7 +38,11 @@ import ContainerSizeSelector from './deploymentSize/ContainerSizeSelector';
 import StorageField from './storage/StorageField';
 import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
 import { useStorageDataObject } from './storage/utils';
-import { getCompatibleAcceleratorIdentifiers, useMergeDefaultPVCName } from './spawnerUtils';
+import {
+  getCompatibleAcceleratorIdentifiers,
+  getRootVolumeName,
+  useMergeDefaultPVCName,
+} from './spawnerUtils';
 import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
 import DataConnectionField from './dataConnection/DataConnectionField';
 import { useNotebookDataConnection } from './dataConnection/useNotebookDataConnection';
@@ -234,7 +238,11 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                 isInline
                 title="Cluster storage will mount to /"
               />
-              <StorageField storageData={storageData} setStorageData={setStorageData} />
+              <StorageField
+                storageData={storageData}
+                setStorageData={setStorageData}
+                editStorage={getRootVolumeName(existingNotebook)}
+              />
             </FormSection>
             {isConnectionTypesEnabled ? (
               <ConnectionsFormSection
