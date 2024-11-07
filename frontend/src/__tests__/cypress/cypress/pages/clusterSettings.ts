@@ -56,6 +56,10 @@ class PVCSizeSettings extends ClusterSettings {
 }
 
 class CullterSettings extends ClusterSettings {
+  findStopIdleNotebooks() {
+    return cy.findByText('Stop idle notebooks', { exact: true });
+  }
+
   findHint() {
     return cy.findByTestId('culler-timeout-helper-text');
   }
@@ -84,6 +88,10 @@ class TelemetrySettings extends ClusterSettings {
 }
 
 class NotebookTolerationSettings extends ClusterSettings {
+  findNotebookPodTolerationsText() {
+    return cy.findByText('Notebook pod tolerations', { exact: true });
+  }
+
   findEnabledCheckbox() {
     return cy.findByTestId('tolerations-enabled-checkbox');
   }
