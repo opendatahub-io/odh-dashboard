@@ -565,12 +565,12 @@ describe('fetchInferenceServiceCount', () => {
     expect(count).toBe(3);
   });
 
-  it('should return 0 if an error is thrown while fetching inference services', async () => {
+  it('should throw an error if an error is thrown while fetching inference services', async () => {
     (getInferenceServiceContext as jest.Mock).mockRejectedValue(new Error('Fetch error'));
 
-    const count = await fetchInferenceServiceCount(namespace);
-
+    await expect(fetchInferenceServiceCount(namespace)).rejects.toThrow(
+      'Failed to fetch inference services for namespace "test-namespace": Fetch error',
+    );
     expect(getInferenceServiceContext).toHaveBeenCalledWith(namespace);
-    expect(count).toBe(0);
   });
 });
