@@ -142,17 +142,16 @@ export const getNIMResourcesToDelete = async (
     let nimSecretName: string | undefined;
     let imagePullSecretName: string | undefined;
 
-    servingRuntime.spec.containers.some((container) =>
-      container.env?.some((env) => {
+    servingRuntime.spec.containers.forEach((container) => {
+      container.env?.forEach((env) => {
         const secretName = env.valueFrom?.secretKeyRef?.name;
-        if (secretName === NIM_SECRET_NAME) {
+        if (secretName === 'nim-secret') {
           nimSecretName = secretName;
-        } else if (secretName === NIM_NGC_SECRET_NAME) {
+        } else if (secretName === 'nim-ngc-secret') {
           imagePullSecretName = secretName;
         }
-        return nimSecretName && imagePullSecretName;
-      }),
-    );
+      });
+    });
 
     if (pvcName) {
       resourcesToDelete.push(deletePvc(pvcName, projectName).then(() => undefined));
