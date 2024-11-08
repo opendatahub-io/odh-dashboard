@@ -88,9 +88,6 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     defaultStorageClassName,
   );
 
-  const [envVariables, setEnvVariables, envVariablesLoaded, deletedConfigMaps, deletedSecrets] =
-    useNotebookEnvVariables(existingNotebook);
-
   const [dataConnectionData, setDataConnectionData] = useNotebookDataConnection(
     dataConnections.data,
     existingNotebook,
@@ -102,6 +99,12 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
       ? getConnectionsFromNotebook(existingNotebook, projectConnections)
       : [],
   );
+
+  const [envVariables, setEnvVariables, envVariablesLoaded, deletedConfigMaps, deletedSecrets] =
+    useNotebookEnvVariables(existingNotebook, [
+      ...notebookConnections.map((connection) => connection.metadata.name),
+      dataConnectionData.existing?.secretRef.name || '',
+    ]);
 
   const restartNotebooks = useWillNotebooksRestart([existingNotebook?.metadata.name || '']);
 

@@ -23,6 +23,8 @@ type MockResourceConfigType = {
   statusPredictor?: Record<string, string>;
   kserveInternalLabel?: boolean;
   additionalLabels?: Record<string, string>;
+  args?: string[];
+  env?: Array<{ name: string; value: string }>;
 };
 
 type InferenceServicek8sError = K8sStatus & {
@@ -82,6 +84,8 @@ export const mockInferenceServiceK8sResource = ({
   kserveInternalUrl = '',
   kserveInternalLabel = false,
   additionalLabels = {},
+  args = [],
+  env = [],
 }: MockResourceConfigType): InferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1beta1',
   kind: 'InferenceService',
@@ -137,8 +141,8 @@ export const mockInferenceServiceK8sResource = ({
           key: secretName,
           path,
         },
-        args: [],
-        env: [],
+        args,
+        env,
       },
     },
   },

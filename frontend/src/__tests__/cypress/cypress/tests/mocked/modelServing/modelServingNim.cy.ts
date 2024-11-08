@@ -40,13 +40,13 @@ describe('NIM Models Deployments', () => {
       .should('have.text', 'REST');
   });
 
-  it('should only be allowed to be deleted, no edit', () => {
+  it('should be allowed to be deleted and edit', () => {
     initInterceptsToEnableNim({});
     cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([mockNimInferenceService()]));
     cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([mockNimServingRuntime()]));
 
     modelServingGlobal.visit('test-project');
-    modelServingGlobal.getModelRow('Test Name').findKebabAction('Edit').should('not.exist');
+    modelServingGlobal.getModelRow('Test Name').findKebabAction('Edit').should('exist');
     modelServingGlobal.getModelRow('Test Name').findKebabAction('Delete').should('exist');
   });
 });

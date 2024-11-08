@@ -1,7 +1,11 @@
 import type { MatcherOptions } from '@testing-library/cypress';
 import type { Matcher, MatcherOptions as DTLMatcherOptions } from '@testing-library/dom';
-import type { UserAuthConfig } from '~/__tests__/cypress/cypress/types';
+import type { UserAuthConfig, DashboardConfig } from '~/__tests__/cypress/cypress/types';
 import { TEST_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import {
+  getDashboardConfig,
+  getNotebookControllerConfig,
+} from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 
 /* eslint-disable @typescript-eslint/no-namespace */
 declare global {
@@ -116,6 +120,30 @@ declare global {
        */
       // eslint-disable-next-line @typescript-eslint/method-signature-style
       findAllByTestId(id: Matcher | Matcher[], options?: MatcherOptions): Chainable<JQuery>;
+
+      /**
+       * Retrieves the DashboardConfig from OpenShift and returns either the full config or a specific value.
+       *
+       * When no key is provided, returns the entire DashboardConfig object.
+       * When a key is provided, returns the specific value for that key.
+       *
+       * @param key Optional. The specific config key to retrieve. Use dot notation for nested properties.
+       *
+       * @returns A Cypress.Chainable that resolves to the requested config value or the full config object.
+       */
+      getDashboardConfig: (key?: string) => Cypress.Chainable<DashboardConfig | unknown>;
+
+      /**
+       * Retrieves the Notebook Controller Config from OpenShift and returns either the full config or a specific value.
+       *
+       * When no key is provided, returns the entire Notebook Controller Config object.
+       * When a key is provided, returns the specific value for that key.
+       *
+       * @param key Optional. The specific config key to retrieve. Use dot notation for nested properties.
+       *
+       * @returns A Cypress.Chainable that resolves to the requested config value or the full config object.
+       */
+      getNotebookControllerConfig: (key?: string) => Cypress.Chainable<DashboardConfig | unknown>;
     }
   }
 }
@@ -236,6 +264,8 @@ Cypress.Commands.overwriteQuery('findByTestId', function findByTestId(...args) {
 Cypress.Commands.overwriteQuery('findAllByTestId', function findAllByTestId(...args) {
   return enhancedFindByTestId(this, ...args);
 });
+Cypress.Commands.add('getNotebookControllerConfig', getNotebookControllerConfig);
+Cypress.Commands.add('getDashboardConfig', getDashboardConfig);
 
 const enhancedFindByTestId = (
   command: Cypress.Command,

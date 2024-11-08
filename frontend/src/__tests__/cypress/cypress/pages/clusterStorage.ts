@@ -84,7 +84,7 @@ class ClusterStorageModal extends Modal {
 
   shouldHavePVSizeSelectValue(name: string) {
     this.findPVSizeSelectButton().contains(name).should('exist');
-    return this;
+    return this.findPVSizeSelectButton();
   }
 
   private findPVSizeField() {
@@ -95,8 +95,12 @@ class ClusterStorageModal extends Modal {
     return this.findPVSizeField().findByRole('button', { name: 'Minus' });
   }
 
-  findPersistentStorageWarning() {
-    return this.find().findByTestId('persistent-storage-warning');
+  findPersistentStorageWarningCanNotEdit() {
+    return this.find().findByTestId('persistent-storage-warning-can-not-edit');
+  }
+
+  findPersistentStorageWarningCanOnlyIncrease() {
+    return this.find().findByTestId('persistent-storage-warning-can-only-increase');
   }
 
   findPVSizeInput() {

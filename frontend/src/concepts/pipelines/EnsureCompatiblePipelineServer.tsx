@@ -16,7 +16,7 @@ import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { DeleteServerModal, usePipelinesAPI } from './context';
 
 const DOCS_LINK =
-  'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/2.13/html/release_notes/support-removals_relnotes';
+  'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/2-latest/html/release_notes/support-removals_relnotes';
 
 type EnsureCompatiblePipelineServerProps = {
   children: React.ReactNode;
