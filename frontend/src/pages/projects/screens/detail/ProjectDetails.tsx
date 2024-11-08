@@ -53,72 +53,6 @@ const ProjectDetails: React.FC = () => {
 
   useCheckLogoutParams();
 
-  const content = () => (
-    <GenericHorizontalBar
-      activeKey={state}
-      sections={[
-        { id: ProjectSectionID.OVERVIEW, title: 'Overview', component: <ProjectOverview /> },
-        { id: ProjectSectionID.WORKBENCHES, title: 'Workbenches', component: <NotebookList /> },
-        ...(pipelinesEnabled
-          ? [
-              {
-                id: ProjectSectionID.PIPELINES,
-                title: 'Pipelines',
-                component: <PipelinesSection />,
-              },
-            ]
-          : []),
-        ...(modelServingEnabled
-          ? [
-              {
-                id: ProjectSectionID.MODEL_SERVER,
-                title: 'Models',
-                component: <ModelServingPlatform />,
-              },
-            ]
-          : []),
-        {
-          id: ProjectSectionID.CLUSTER_STORAGES,
-          title: 'Cluster storage',
-          component: <StorageList />,
-        },
-        ...(connectionTypesEnabled
-          ? [
-              {
-                id: ProjectSectionID.CONNECTIONS,
-                title: 'Connections',
-                component: <ConnectionsList />,
-              },
-            ]
-          : [
-              {
-                id: ProjectSectionID.DATA_CONNECTIONS,
-                title: 'Data connections',
-                component: <DataConnectionsList />,
-              },
-            ]),
-        ...(projectSharingEnabled && allowCreate
-          ? [
-              {
-                id: ProjectSectionID.PERMISSIONS,
-                title: 'Permissions',
-                component: <ProjectSharing />,
-              },
-            ]
-          : []),
-        ...(biasMetricsAreaAvailable && allowCreate
-          ? [
-              {
-                id: ProjectSectionID.SETTINGS,
-                title: 'Settings',
-                component: <ProjectSettingsPage />,
-              },
-            ]
-          : []),
-      ]}
-    />
-  );
-
   return (
     <ApplicationsPage
       title={
@@ -142,7 +76,69 @@ const ProjectDetails: React.FC = () => {
       empty={false}
       headerAction={<ProjectActions project={currentProject} />}
     >
-      {content()}
+      <GenericHorizontalBar
+        activeKey={state}
+        sections={[
+          { id: ProjectSectionID.OVERVIEW, title: 'Overview', component: <ProjectOverview /> },
+          { id: ProjectSectionID.WORKBENCHES, title: 'Workbenches', component: <NotebookList /> },
+          ...(pipelinesEnabled
+            ? [
+                {
+                  id: ProjectSectionID.PIPELINES,
+                  title: 'Pipelines',
+                  component: <PipelinesSection />,
+                },
+              ]
+            : []),
+          ...(modelServingEnabled
+            ? [
+                {
+                  id: ProjectSectionID.MODEL_SERVER,
+                  title: 'Models',
+                  component: <ModelServingPlatform />,
+                },
+              ]
+            : []),
+          {
+            id: ProjectSectionID.CLUSTER_STORAGES,
+            title: 'Cluster storage',
+            component: <StorageList />,
+          },
+          ...(connectionTypesEnabled
+            ? [
+                {
+                  id: ProjectSectionID.CONNECTIONS,
+                  title: 'Connections',
+                  component: <ConnectionsList />,
+                },
+              ]
+            : [
+                {
+                  id: ProjectSectionID.DATA_CONNECTIONS,
+                  title: 'Data connections',
+                  component: <DataConnectionsList />,
+                },
+              ]),
+          ...(projectSharingEnabled && allowCreate
+            ? [
+                {
+                  id: ProjectSectionID.PERMISSIONS,
+                  title: 'Permissions',
+                  component: <ProjectSharing />,
+                },
+              ]
+            : []),
+          ...(biasMetricsAreaAvailable && allowCreate
+            ? [
+                {
+                  id: ProjectSectionID.SETTINGS,
+                  title: 'Settings',
+                  component: <ProjectSettingsPage />,
+                },
+              ]
+            : []),
+        ]}
+      />
     </ApplicationsPage>
   );
 };

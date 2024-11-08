@@ -14,11 +14,15 @@ import ClusterStorageModal from './ClusterStorageModal';
 const StorageList: React.FC = () => {
   const [isOpen, setOpen] = React.useState(false);
   const {
-    pvcs: { data: pvcs, loaded, error: loadError },
-    refreshAllProjectData: refresh,
+    notebooks: { refresh: refreshNotebooks },
+    pvcs: { data: pvcs, loaded: pvcsLoaded, error: pvcsError, refresh: refreshPvcs },
   } = React.useContext(ProjectDetailsContext);
-
   const isPvcsEmpty = pvcs.length === 0;
+
+  const refresh = () => {
+    refreshPvcs();
+    refreshNotebooks();
+  };
 
   return (
     <>
@@ -47,9 +51,9 @@ const StorageList: React.FC = () => {
             Add cluster storage
           </Button>,
         ]}
-        isLoading={!loaded}
+        isLoading={!pvcsLoaded}
         isEmpty={isPvcsEmpty}
-        loadError={loadError}
+        loadError={pvcsError}
         emptyState={
           <EmptyDetailsView
             title="Start by adding cluster storage"
