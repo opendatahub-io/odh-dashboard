@@ -2,7 +2,8 @@
 
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { ProjectKind, SecretKind, ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
-import { getTemplate } from '~/api';
+import { deletePvc, deleteSecret, getTemplate } from '~/api';
+import { fetchInferenceServiceCount } from '~/pages/modelServing/screens/projects/utils';
 
 const NIM_SECRET_NAME = 'nvidia-nim-access';
 const NIM_NGC_SECRET_NAME = 'nvidia-nim-image-pull';
@@ -122,4 +123,37 @@ export const updateServingRuntimeTemplate = (
     updatedServingRuntime.spec.volumes = updatedVolumes;
   }
   return updatedServingRuntime;
+};
+
+export const getNIMResourcesToDelete = async (
+  projectName: string,
+  servingRuntime: ServingRuntimeKind,
+): Promise<Promise<void>[]> => {
+  const resourcesToDelete: Promise<void>[] = [];
+
+  const count = await fetchInferenceServiceCount(projectName);
+  const pvcName = servingRuntime.spec.volumes?.find((vol) => vol.persistentVolumeClaim?.claimName)
+    ?.persistentVolumeClaim?.claimName;
+
+  const containerWithEnv = servingRuntime.spec.containers.find(
+    (container) => container.env && container.env.some((env) => env.valueFrom?.secretKeyRef?.name),
+  );
+
+  const nimSecretName = containerWithEnv?.env?.find((env) => env.valueFrom?.secretKeyRef?.name)
+    ?.valueFrom?.secretKeyRef?.name;
+
+  const imagePullSecretName = servingRuntime.spec.imagePullSecrets?.[0]?.name ?? undefined;
+
+  if (pvcName) {
+    resourcesToDelete.push(deletePvc(pvcName, projectName).then(() => undefined));
+  }
+
+  if (nimSecretName && imagePullSecretName && count === 1) {
+    resourcesToDelete.push(
+      deleteSecret(projectName, nimSecretName).then(() => undefined),
+      deleteSecret(projectName, imagePullSecretName).then(() => undefined),
+    );
+  }
+
+  return resourcesToDelete;
 };

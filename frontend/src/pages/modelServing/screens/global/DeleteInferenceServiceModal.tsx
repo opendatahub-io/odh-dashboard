@@ -1,11 +1,13 @@
 import * as React from 'react';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import { deleteInferenceService, deletePvc, deleteSecret, deleteServingRuntime } from '~/api';
+import { deleteInferenceService, deleteServingRuntime } from '~/api';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
-import { fetchInferenceServiceCount } from '~/pages/modelServing/screens/projects/utils';
+import {
+  getNIMResourcesToDelete,
+  isProjectNIMSupported,
+} from '~/pages/modelServing/screens/projects/nimUtils';
 
 type DeleteInferenceServiceModalProps = {
   inferenceService?: InferenceServiceKind;
@@ -42,33 +44,9 @@ const DeleteInferenceServiceModal: React.FC<DeleteInferenceServiceModalProps> = 
 
     setIsDeleting(true);
     try {
-      const count = project ? await fetchInferenceServiceCount(project.metadata.name) : 0;
-
-      const pvcName = servingRuntime?.spec.volumes?.find(
-        (vol) => vol.persistentVolumeClaim?.claimName,
-      )?.persistentVolumeClaim?.claimName;
-
-      const containerWithEnv = servingRuntime?.spec.containers.find(
-        (container) =>
-          container.env && container.env.some((env) => env.valueFrom?.secretKeyRef?.name),
-      );
-
-      const nimSecretName = containerWithEnv?.env?.find((env) => env.valueFrom?.secretKeyRef?.name)
-        ?.valueFrom?.secretKeyRef?.name;
-
-      const imagePullSecretName = servingRuntime?.spec.imagePullSecrets?.[0]?.name ?? '';
-
-      const secretsToDelete =
-        isKServeNIMEnabled &&
-        project &&
-        nimSecretName &&
-        nimSecretName.length > 0 &&
-        imagePullSecretName.length > 0 &&
-        count === 1
-          ? [
-              deleteSecret(project.metadata.name, nimSecretName),
-              deleteSecret(project.metadata.name, imagePullSecretName),
-            ]
+      const nimResourcesToDelete =
+        isKServeNIMEnabled && project && servingRuntime
+          ? await getNIMResourcesToDelete(project.metadata.name, servingRuntime)
           : [];
 
       await Promise.all([
@@ -76,10 +54,7 @@ const DeleteInferenceServiceModal: React.FC<DeleteInferenceServiceModalProps> = 
         ...(servingRuntime
           ? [deleteServingRuntime(servingRuntime.metadata.name, servingRuntime.metadata.namespace)]
           : []),
-        ...(isKServeNIMEnabled && pvcName
-          ? [deletePvc(pvcName, inferenceService.metadata.namespace)]
-          : []),
-        ...secretsToDelete,
+        ...nimResourcesToDelete,
       ]);
 
       onBeforeClose(true);
