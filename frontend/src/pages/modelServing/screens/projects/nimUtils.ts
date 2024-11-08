@@ -130,29 +130,53 @@ export const getNIMResourcesToDelete = async (
   servingRuntime: ServingRuntimeKind,
 ): Promise<Promise<void>[]> => {
   const resourcesToDelete: Promise<void>[] = [];
+  try {
+    const count = await fetchInferenceServiceCount(projectName);
+    if (count === 0) {
+      return resourcesToDelete;
+    }
+    const pvcName = servingRuntime.spec.volumes?.find((vol) =>
+      vol.persistentVolumeClaim?.claimName.startsWith('nim-pvc'),
+    )?.persistentVolumeClaim?.claimName;
 
-  const count = await fetchInferenceServiceCount(projectName);
-  const pvcName = servingRuntime.spec.volumes?.find((vol) => vol.persistentVolumeClaim?.claimName)
-    ?.persistentVolumeClaim?.claimName;
+    let nimSecretName: string | undefined;
+    let imagePullSecretName: string | undefined;
 
-  const containerWithEnv = servingRuntime.spec.containers.find(
-    (container) => container.env && container.env.some((env) => env.valueFrom?.secretKeyRef?.name),
-  );
-
-  const nimSecretName = containerWithEnv?.env?.find((env) => env.valueFrom?.secretKeyRef?.name)
-    ?.valueFrom?.secretKeyRef?.name;
-
-  const imagePullSecretName = servingRuntime.spec.imagePullSecrets?.[0]?.name ?? undefined;
-
-  if (pvcName) {
-    resourcesToDelete.push(deletePvc(pvcName, projectName).then(() => undefined));
-  }
-
-  if (nimSecretName && imagePullSecretName && count === 1) {
-    resourcesToDelete.push(
-      deleteSecret(projectName, nimSecretName).then(() => undefined),
-      deleteSecret(projectName, imagePullSecretName).then(() => undefined),
+    servingRuntime.spec.containers.some((container) =>
+      container.env?.some((env) => {
+        const secretName = env.valueFrom?.secretKeyRef?.name;
+        if (secretName === NIM_SECRET_NAME) {
+          nimSecretName = secretName;
+        } else if (secretName === NIM_NGC_SECRET_NAME) {
+          imagePullSecretName = secretName;
+        }
+        return nimSecretName && imagePullSecretName;
+      }),
     );
+
+    if (pvcName) {
+      resourcesToDelete.push(deletePvc(pvcName, projectName).then(() => undefined));
+    }
+
+    if (nimSecretName && imagePullSecretName && count === 1) {
+      resourcesToDelete.push(
+        deleteSecret(projectName, nimSecretName).then(() => undefined),
+        deleteSecret(projectName, imagePullSecretName).then(() => undefined),
+      );
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `Failed to fetch inference service count for project "${projectName}": ${error.message}`,
+      );
+    } else {
+      // eslint-disable-next-line no-console
+      console.error(
+        `Failed to fetch inference service count for project "${projectName}": ${error}`,
+      );
+    }
+    return [];
   }
 
   return resourcesToDelete;
