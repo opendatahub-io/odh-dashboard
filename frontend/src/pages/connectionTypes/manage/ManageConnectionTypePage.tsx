@@ -98,7 +98,11 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
   const { category, enabled, fields, username } = data;
 
   const { data: connectionNameDesc, onDataChange: setConnectionNameDesc } =
-    useK8sNameDescriptionFieldData({ initialData: prefill });
+    useK8sNameDescriptionFieldData({
+      initialData: prefill,
+      safePrefix: 'ct-',
+      staticPrefix: true,
+    });
 
   const isDataDirty = React.useRef(data).current !== data;
   const isNameDirty = React.useRef(connectionNameDesc).current !== connectionNameDesc;

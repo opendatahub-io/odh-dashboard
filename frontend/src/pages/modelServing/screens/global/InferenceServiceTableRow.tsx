@@ -107,17 +107,13 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
           <ResourceActionsColumn
             resource={inferenceService}
             items={[
-              ...(isKServeNIMEnabled
-                ? []
-                : [
-                    {
-                      title: 'Edit',
-                      onClick: () => {
-                        onEditInferenceService(inferenceService);
-                      },
-                    },
-                    { isSeparator: true },
-                  ]),
+              {
+                title: 'Edit',
+                onClick: () => {
+                  onEditInferenceService(inferenceService);
+                },
+              },
+              { isSeparator: true },
               {
                 title: 'Delete',
                 onClick: () => {

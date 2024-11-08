@@ -75,6 +75,7 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
 
 export const useNotebookEnvVariables = (
   notebook?: NotebookKind,
+  excludedResources: string[] = [],
 ): [
   envVariables: EnvVariable[],
   setEnvVariables: (envVars: EnvVariable[]) => void,
@@ -96,6 +97,7 @@ export const useNotebookEnvVariables = (
   const { deletedConfigMaps, deletedSecrets } = getDeletedConfigMapOrSecretVariables(
     notebook,
     existingEnvVariables,
+    excludedResources,
   );
   React.useEffect(() => {
     setEnvVariables(existingEnvVariables);

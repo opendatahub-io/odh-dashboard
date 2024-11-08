@@ -2,6 +2,7 @@ import * as _ from 'lodash-es';
 import {
   k8sCreateResource,
   k8sDeleteResource,
+  k8sGetResource,
   k8sListResourceItems,
   K8sStatus,
   k8sUpdateResource,
@@ -99,3 +100,18 @@ export const deletePvc = (pvcName: string, namespace: string): Promise<K8sStatus
     model: PVCModel,
     queryOptions: { name: pvcName, ns: namespace },
   });
+
+export const getPvc = (
+  projectName: string,
+  pvcName: string,
+  opts?: K8sAPIOptions,
+): Promise<PersistentVolumeClaimKind> =>
+  k8sGetResource<PersistentVolumeClaimKind>(
+    applyK8sAPIOptions(
+      {
+        model: PVCModel,
+        queryOptions: { name: pvcName, ns: projectName },
+      },
+      opts,
+    ),
+  );

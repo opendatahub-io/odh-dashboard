@@ -441,7 +441,11 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
               </FormSection>
             )}
             {servingRuntimeParamsEnabled && (
-              <FormSection title="Configuration parameters" id="configuration-params">
+              <FormSection
+                title="Configuration parameters"
+                id="configuration-params"
+                data-testid="configuration-params"
+              >
                 <ServingRuntimeArgsSection
                   predefinedArgs={getKServeContainerArgs(servingRuntimeSelected)}
                   data={createDataInferenceService}

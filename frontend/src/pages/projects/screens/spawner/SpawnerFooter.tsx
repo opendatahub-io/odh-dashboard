@@ -154,6 +154,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       envVariables,
       dataConnection,
       existingNotebookDataConnection,
+      connections,
       dryRun,
     );
 

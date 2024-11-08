@@ -97,3 +97,36 @@ export type NimServingResponse = {
     body: ConfigMapKind | SecretKind;
   };
 };
+
+export type SettingsTestData = {
+  pvcDefaultSize: number;
+};
+
+export type NotebookTolerationSettings = {
+  enabled: boolean;
+};
+
+export type NotebookController = {
+  enabled: boolean;
+  pvcSize: string;
+  notebookTolerationSettings: NotebookTolerationSettings;
+};
+
+export type DashboardConfig = {
+  dashboardConfig: {
+    disableModelServing: boolean;
+  };
+  notebookController: NotebookController;
+  [key: string]: unknown;
+};
+
+export type NotebookControllerConfig = {
+  ADD_FSGROUP: string;
+  CLUSTER_DOMAIN: string;
+  CULL_IDLE_TIME: string;
+  ENABLE_CULLING: string;
+  IDLENESS_CHECK_PERIOD: string;
+  ISTIO_GATEWAY: string;
+  ISTIO_HOST: string;
+  USE_ISTIO: string;
+};

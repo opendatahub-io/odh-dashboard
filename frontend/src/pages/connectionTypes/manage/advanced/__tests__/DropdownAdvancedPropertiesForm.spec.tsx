@@ -201,4 +201,24 @@ describe('DropdownFieldAdvancedPropertiesForm', () => {
     expect(screen.getByText('a already exists.')).toBeVisible();
     expect(screen.getByText('b already exists.')).toBeVisible();
   });
+
+  it('should validate to true with empty rows', async () => {
+    render(
+      <DropdownAdvancedPropertiesForm
+        properties={{
+          variant: 'single',
+          items: [
+            { label: '', value: 'v1' },
+            { label: '', value: '' },
+            { label: '', value: 'v2' },
+          ],
+        }}
+        field={field}
+        onChange={onChange}
+        onValidate={onValidate}
+      />,
+    );
+
+    expect(onValidate).toHaveBeenCalledWith(true);
+  });
 });
