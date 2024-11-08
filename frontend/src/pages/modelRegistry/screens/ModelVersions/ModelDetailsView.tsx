@@ -87,7 +87,10 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
               {rm.id}
             </ClipboardCopy>
           </DashboardDescriptionListGroup>
-          <DashboardDescriptionListGroup title="Owner">
+          <DashboardDescriptionListGroup
+            title="Owner"
+            popover="The owner is the user who registered the model."
+          >
             <Text data-testid="registered-model-owner">{rm.owner || '-'}</Text>
           </DashboardDescriptionListGroup>
           <DashboardDescriptionListGroup

@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
 import {
   Button,
-  Icon,
+  Popover,
   Split,
   SplitItem,
   Text,
@@ -20,6 +20,7 @@ import { ProjectKind, RoleBindingKind, RoleBindingSubject } from '~/k8sTypes';
 import { relativeTime } from '~/utilities/time';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { projectDisplayNameToNamespace } from '~/concepts/projects/utils';
+import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import { castRoleBindingPermissionsRoleType, firstSubject, roleLabel } from './utils';
 import { RoleBindingPermissionsRoleType } from './types';
 import RoleBindingPermissionsNameInput from './RoleBindingPermissionsNameInput';
@@ -94,18 +95,19 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
               {roleBindingName}
               {` `}
               {isDefaultGroup && (
-                <Tooltip
-                  content={
+                <Popover
+                  bodyContent={
                     <div>
                       This group is created by default. You can add users to this group in OpenShift
                       user management, or ask the cluster admin to do so.
                     </div>
                   }
                 >
-                  <Icon>
-                    <OutlinedQuestionCircleIcon />
-                  </Icon>
-                </Tooltip>
+                  <DashboardPopupIconButton
+                    icon={<OutlinedQuestionCircleIcon />}
+                    aria-label="More info"
+                  />
+                </Popover>
               )}
             </Text>
           )}
