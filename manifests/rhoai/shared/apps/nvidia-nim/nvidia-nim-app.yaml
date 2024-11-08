@@ -18,6 +18,7 @@ spec:
   docsLink: https://developer.nvidia.com/nim
   quickStart: ''
   getStartedLink: 'https://developer.nvidia.com/nim'
+  internalRoute: '/api/integrations/nim'
   enable:
     title: Enter NVIDIA AI Enterprise license key
     actionLabel: Submit

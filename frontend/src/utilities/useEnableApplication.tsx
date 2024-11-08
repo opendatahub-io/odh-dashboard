@@ -16,6 +16,7 @@ export const useEnableApplication = (
   appId: string,
   appName: string,
   enableValues: { [key: string]: string },
+  internalRoute?: string
 ): [EnableApplicationStatus, string] => {
   const [enableStatus, setEnableStatus] = React.useState<{
     status: EnableApplicationStatus;
@@ -91,29 +92,65 @@ export const useEnableApplication = (
   React.useEffect(() => {
     let closed = false;
     if (doEnable) {
-      postValidateIsv(appId, enableValues)
-        .then((response) => {
+      //check the internal route to see if there '/api', if yes, we call the api from internal route, otherwise use previous logic.
+      if (internalRoute && internalRoute.split('/')[1] === 'api') {
+        fetch(internalRoute, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(enableValues),
+        }).then((response) => {
           if (!closed) {
-            if (!response.complete) {
-              setEnableStatus({ status: EnableApplicationStatus.INPROGRESS, error: '' });
-              return;
+            if (response.ok) {
+              setEnableStatus({
+                status: EnableApplicationStatus.SUCCESS,
+                error: '',
+              });
+              dispatchResults(undefined);
+            } else {
+              response.json().then(data => {
+                setEnableStatus({
+                  status: EnableApplicationStatus.FAILED,
+                  error: data.message,
+                });
+                dispatchResults(data.message);
+              });
             }
-
-            setEnableStatus({
-              status: response.valid
-                ? EnableApplicationStatus.SUCCESS
-                : EnableApplicationStatus.FAILED,
-              error: response.valid ? '' : response.error,
-            });
           }
-          dispatchResults(response.valid ? undefined : response.error);
-        })
-        .catch((e) => {
+        }).catch((e) => {
           if (!closed) {
-            setEnableStatus({ status: EnableApplicationStatus.FAILED, error: e.m });
+            setEnableStatus({ status: EnableApplicationStatus.FAILED, error: e.message });
           }
           dispatchResults(e.message);
         });
+      } else {
+        postValidateIsv(appId, enableValues)
+          .then((response) => {
+            if (!closed) {
+              if (!response.complete) {
+                setEnableStatus({ status: EnableApplicationStatus.INPROGRESS, error: '' });
+                return;
+              }
+
+              setEnableStatus({
+                status: response.valid
+                  ? EnableApplicationStatus.SUCCESS
+                  : EnableApplicationStatus.FAILED,
+                error: response.valid ? '' : response.error,
+              });
+            }
+            dispatchResults(response.valid ? undefined : response.error);
+          })
+          .catch((e) => {
+            if (!closed) {
+              setEnableStatus({ status: EnableApplicationStatus.FAILED, error: e.m });
+            }
+            dispatchResults(e.message);
+          });
+      }
+
     }
 
     return () => {

@@ -1228,3 +1228,15 @@ export enum ServiceAddressAnnotation {
   EXTERNAL_REST = 'routing.opendatahub.io/external-address-rest',
   EXTERNAL_GRPC = 'routing.opendatahub.io/external-address-grpc',
 }
+
+export type NIMAccountKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    apiKeySecret: {
+      name: string;
+    };
+  };
+};
