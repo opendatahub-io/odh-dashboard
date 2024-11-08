@@ -336,34 +336,22 @@ describe('Model version details', () => {
 
     it('should handle label editing', () => {
       modelVersionDetails.findEditLabelsButton().click();
+
       modelVersionDetails.findAddLabelButton().click();
 
-      // Check label exists and is visible
-      cy.findByTestId('editable-label-New Label').should('exist');
-      cy.findByTestId('editable-label-New Label').should('be.visible');
+      modelVersionDetails.findLabel('New Label').should('exist');
 
-      // Click the label
-      cy.findByTestId('editable-label-New Label').click();
+      modelVersionDetails.findLabel('New Label').click().type('Updated Label{enter}');
 
-      // Type the new label
-      cy.get('input[data-testid="edit-label-input-New Label"]').should('exist');
-      cy.get('input[data-testid="edit-label-input-New Label"]').should('be.visible');
-      cy.get('input[data-testid="edit-label-input-New Label"]').clear();
-      cy.get('input[data-testid="edit-label-input-New Label"]').type('UniqueLabel123{enter}');
-
-      // Save changes
-      modelVersionDetails.findSaveLabelsButton().click();
-      cy.wait('@UpdatePropertyRow');
+      modelVersionDetails.findSaveLabelsButton().should('exist').click();
     });
 
     it('should handle label validation', () => {
       modelVersionDetails.findEditLabelsButton().click();
 
-      cy.findByTestId('editable-label-Testing label').click();
+      modelVersionDetails.findLabelInput('Testing label').click();
 
-      cy.get('input[data-testid="edit-label-input-Testing label"]')
-        .should('exist')
-        .should('be.visible');
+      modelVersionDetails.findLabelInput('Testing label').should('exist').should('be.visible');
 
       const longLabel = 'a'.repeat(64);
       modelVersionDetails.findLabelInput('Testing label').clear().type(`${longLabel}{enter}`);

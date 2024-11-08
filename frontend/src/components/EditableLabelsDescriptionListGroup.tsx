@@ -91,10 +91,8 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
 
   return (
     <DashboardDescriptionListGroup
-      data-testid="editable-labels-group"
       editButtonTestId="editable-labels-group-edit"
       saveButtonTestId="editable-labels-group-save"
-      discardButtonTestId="editable-labels-group-discard"
       title={title}
       isEmpty={labels.length === 0}
       contentWhenEmpty={contentWhenEmpty}

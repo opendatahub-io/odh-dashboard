@@ -64,7 +64,6 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
                 )
                 .then(refresh)
             }
-            data-testid="model-labels"
           />
           <ModelPropertiesDescriptionListGroup
             isArchive={isArchiveModel}

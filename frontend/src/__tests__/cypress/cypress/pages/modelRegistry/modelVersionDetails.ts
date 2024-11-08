@@ -143,20 +143,12 @@ class ModelVersionDetails {
     return cy.findByTestId(`editable-label-${label}`);
   }
 
-  findRemoveLabelButton(label: string) {
-    return cy.findByTestId(`remove-label-${label}`);
-  }
-
   findLabelErrorAlert() {
     return cy.findByTestId('label-error-alert');
   }
 
   findSaveLabelsButton() {
     return cy.findByTestId('editable-labels-group-save');
-  }
-
-  findDiscardLabelsButton() {
-    return cy.findByTestId('editable-labels-group-discard');
   }
 }
 
