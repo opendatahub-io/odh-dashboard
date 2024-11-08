@@ -93,7 +93,7 @@ export const useEnableApplication = (
     let closed = false;
     if (doEnable) {
       //check the internal route to see if there '/api', if yes, we call the api from internal route, otherwise use previous logic.
-      if (internalRoute && internalRoute.split('/')[1] === 'api') {
+      if (internalRoute && internalRoute.startsWith('/api')) {
         fetch(internalRoute, {
           method: 'POST',
           headers: {

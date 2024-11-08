@@ -6,8 +6,8 @@ import { isString } from 'lodash';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
     const { namespace } = fastify.kube;
-    const NIM_SECRET_NAME = 'nvidia-nim-access-new';
-    const NIM_ACCOUNT_NAME = 'odh-nim-account-new';
+    const NIM_SECRET_NAME = 'nvidia-nim-access';
+    const NIM_ACCOUNT_NAME = 'odh-nim-account';
     const PAGE_NOT_FOUND_MESSAGE = '404 page not found';
 
     fastify.get(
@@ -26,6 +26,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
                         'accounts',
                         NIM_ACCOUNT_NAME,
                     );
+                    //check CR status.
                     return response.body;
                 } catch (e) {
                     if (e.response?.statusCode === 404) {
@@ -83,6 +84,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
                     await coreV1Api.createNamespacedSecret(namespace, nimSecret).then(async () => {
                         fastify.log.info(`Successfully created NIM secret`);
 
+                        //check if the account already exists, if not create it, otherwise do nothing.
                         try {
                             const response = await fastify.kube.customObjectsApi.createNamespacedCustomObject(
                                 'nim.opendatahub.io',
