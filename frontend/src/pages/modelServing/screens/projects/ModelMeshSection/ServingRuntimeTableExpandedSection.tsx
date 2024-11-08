@@ -28,8 +28,7 @@ const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSe
   obj,
 }) => {
   const {
-    inferenceServices: { data: inferenceServices },
-    refreshAllProjectData,
+    inferenceServices: { data: inferenceServices, refresh: refreshInferenceServices },
   } = React.useContext(ProjectDetailsContext);
 
   const modelInferenceServices = getInferenceServiceFromServingRuntime(inferenceServices, obj);
@@ -55,7 +54,7 @@ const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSe
               inferenceServices={modelInferenceServices}
               servingRuntimes={[obj]}
               refresh={() => {
-                refreshAllProjectData();
+                refreshInferenceServices();
                 onClose();
               }}
             />
