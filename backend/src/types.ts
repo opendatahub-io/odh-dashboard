@@ -1239,4 +1239,7 @@ export type NIMAccountKind = K8sResourceCommon & {
       name: string;
     };
   };
+  status?: {
+    conditions?: K8sCondition[];
+  }
 };

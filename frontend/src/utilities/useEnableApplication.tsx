@@ -1,8 +1,10 @@
 import * as React from 'react';
 import { AlertVariant } from '@patternfly/react-core';
 import { getValidationStatus, postValidateIsv } from '~/services/validateIsvService';
+import { enableIntegrationApp } from '~/services/integrationAppService';
 import { addNotification, forceComponentsUpdate } from '~/redux/actions/actions';
 import { useAppDispatch } from '~/redux/hooks';
+import { isInternalRouteStartsWithSlashAPI } from './utils';
 
 export enum EnableApplicationStatus {
   INPROGRESS,
@@ -93,38 +95,29 @@ export const useEnableApplication = (
     let closed = false;
     if (doEnable) {
       //check the internal route to see if there '/api', if yes, we call the api from internal route, otherwise use previous logic.
-      if (internalRoute && internalRoute.startsWith('/api')) {
-        fetch(internalRoute, {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(enableValues),
-        }).then((response) => {
+      if (internalRoute && isInternalRouteStartsWithSlashAPI(internalRoute)) {
+        enableIntegrationApp(internalRoute, enableValues).then((response) => {
           if (!closed) {
-            if (response.ok) {
-              setEnableStatus({
-                status: EnableApplicationStatus.SUCCESS,
-                error: '',
-              });
-              dispatchResults(undefined);
-            } else {
-              response.json().then(data => {
-                setEnableStatus({
-                  status: EnableApplicationStatus.FAILED,
-                  error: data.message,
-                });
-                dispatchResults(data.message);
-              });
+            if (!response.isAppEnabled) {
+              setEnableStatus({ status: EnableApplicationStatus.INPROGRESS, error: '' });
+              return;
             }
+
+            setEnableStatus({
+              status: response.isAppEnabled
+                ? EnableApplicationStatus.SUCCESS
+                : EnableApplicationStatus.FAILED,
+              error: response.error ? '' : response.error,
+            });
           }
-        }).catch((e) => {
-          if (!closed) {
-            setEnableStatus({ status: EnableApplicationStatus.FAILED, error: e.message });
-          }
-          dispatchResults(e.message);
-        });
+          dispatchResults(response.isAppEnabled ? undefined : response.error);
+        })
+          .catch((e) => {
+            if (!closed) {
+              setEnableStatus({ status: EnableApplicationStatus.FAILED, error: e.m });
+            }
+            dispatchResults(e.message);
+          });
       } else {
         postValidateIsv(appId, enableValues)
           .then((response) => {

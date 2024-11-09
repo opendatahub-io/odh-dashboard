@@ -21,7 +21,9 @@ import MarkdownView from '~/components/MarkdownView';
 import { markdownConverter } from '~/utilities/markdown';
 import { useAppContext } from '~/app/AppContext';
 import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { isObject, isString } from 'lodash-es';
+import { isObject } from 'lodash-es';
+import { isInternalRouteStartsWithSlashAPI } from '~/utilities/utils';
+import { getIntegrationAppEnablementStatus } from '~/services/integrationAppService';
 
 const DEFAULT_BETA_TEXT =
   'This application is available for early access prior to official ' +
@@ -41,15 +43,12 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
   const [isEnableButtonHidden, setIsEnableButtonHidden] = React.useState(false);
 
   React.useEffect(() => {
-    if (selectedApp?.spec?.internalRoute !== undefined) {
-      fetch(selectedApp.spec?.internalRoute).then((response) => {
-        if (response.status === 404) {
+    if (selectedApp?.spec?.internalRoute && isInternalRouteStartsWithSlashAPI(selectedApp?.spec?.internalRoute)) {
+      getIntegrationAppEnablementStatus(selectedApp?.spec?.internalRoute).then((response) => {
+        if (response.error) {
           setIsEnableButtonDisabled(true);
         }
-        setIsEnableButtonHidden(false);
-        return response.json();
-      }).then((data) => {
-        if (isObject(data) && (data as Error).message === undefined) {
+        if (response.isAppEnabled) {
           setIsEnableButtonHidden(true);
         }
       }).catch((error) => { console.error(error); });
@@ -61,9 +60,9 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
   }
 
   const renderEnableButton = () => {
-    if (!selectedApp.spec.enable || selectedApp.spec.isEnabled || isEnableButtonHidden) {
-      return null;
-    }
+    // if (!selectedApp.spec.enable || selectedApp.spec.isEnabled || isEnableButtonHidden) {
+    //   return null;
+    // }
     const button = (
       <Button variant={ButtonVariant.secondary} onClick={onEnable} isDisabled={!enablement || isEnableButtonDisabled}>
         Enable
