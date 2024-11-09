@@ -1,6 +1,7 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { secureAdminRoute } from '../../../utils/route-security';
 import { KubeFastifyInstance, ModelRegistryKind, RecursivePartial } from '../../../types';
+import createError from 'http-errors';
 import {
   createModelRegistryAndSecret,
   deleteModelRegistryAndSecret,
@@ -61,7 +62,9 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
             modelRegistryNamespace,
             databasePassword,
             !!dryRun,
-          );
+          ).catch((e) => {
+            throw createError(e.statusCode, e?.body?.message);
+          });
         } catch (e) {
           fastify.log.error(
             `ModelRegistry ${modelRegistry.metadata.name} could not be created, ${
