@@ -13,12 +13,21 @@ import DataConnectionsTable from './DataConnectionsTable';
 
 const DataConnectionsList: React.FC = () => {
   const {
-    dataConnections: { data: connections, loaded, error },
-    refreshAllProjectData,
+    notebooks: { refresh: refreshNotebooks },
+    dataConnections: {
+      data: dataConnections,
+      loaded: dataConnectionsLoaded,
+      error: dataConnectionsError,
+      refresh: refreshDataConnections,
+    },
   } = React.useContext(ProjectDetailsContext);
   const [open, setOpen] = React.useState(false);
+  const isDataConnectionsEmpty = dataConnections.length === 0;
 
-  const isDataConnectionsEmpty = connections.length === 0;
+  const refresh = () => {
+    refreshDataConnections();
+    refreshNotebooks();
+  };
 
   return (
     <>
@@ -55,9 +64,9 @@ const DataConnectionsList: React.FC = () => {
               ]
             : undefined
         }
-        isLoading={!loaded}
+        isLoading={!dataConnectionsLoaded}
         isEmpty={isDataConnectionsEmpty}
-        loadError={error}
+        loadError={dataConnectionsError}
         emptyState={
           <EmptyDetailsView
             title="Start by adding a data connection"
@@ -77,15 +86,15 @@ const DataConnectionsList: React.FC = () => {
           />
         }
       >
-        {!isDataConnectionsEmpty ? (
-          <DataConnectionsTable connections={connections} refreshData={refreshAllProjectData} />
-        ) : null}
+        {!isDataConnectionsEmpty && (
+          <DataConnectionsTable connections={dataConnections} refreshData={refresh} />
+        )}
       </DetailsSection>
       {open ? (
         <ManageDataConnectionModal
           onClose={(submitted) => {
             if (submitted) {
-              refreshAllProjectData();
+              refresh();
             }
             setOpen(false);
           }}
