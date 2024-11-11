@@ -326,6 +326,7 @@ export type OdhApplication = {
     displayName: string;
     docsLink: string;
     hidden?: boolean | null;
+    internalRoute?: string;
     enable?: {
       actionLabel: string;
       description?: string;
@@ -1241,5 +1242,5 @@ export type NIMAccountKind = K8sResourceCommon & {
   };
   status?: {
     conditions?: K8sCondition[];
-  }
+  };
 };

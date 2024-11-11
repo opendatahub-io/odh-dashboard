@@ -184,11 +184,8 @@ export const isEnumMember = <T extends object>(
   return false;
 };
 
-export const isInternalRouteStartsWithSlashAPI = (internalRoute: string): boolean => {
-  return internalRoute.startsWith('/api');
-};
+export const isInternalRouteStartsWithSlashAPI = (internalRoute: string): boolean =>
+  internalRoute.startsWith('/api');
 
-export const isIntegrationApp = (app: OdhApplication): boolean => {
-  return app.spec.internalRoute !== undefined && app.spec.internalRoute.startsWith('/api');
-}
-
+export const isIntegrationApp = (app: OdhApplication): boolean =>
+  app.spec.internalRoute !== undefined && app.spec.internalRoute.startsWith('/api');

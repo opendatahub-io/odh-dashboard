@@ -31,7 +31,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
     selectedApp.metadata.name,
     selectedApp.spec.displayName,
     enableValues,
-    selectedApp.spec.internalRoute
+    selectedApp.spec.internalRoute,
   );
   const focusRef = (element: HTMLElement | null) => {
     if (element) {

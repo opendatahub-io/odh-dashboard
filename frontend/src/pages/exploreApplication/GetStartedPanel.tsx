@@ -21,7 +21,6 @@ import MarkdownView from '~/components/MarkdownView';
 import { markdownConverter } from '~/utilities/markdown';
 import { useAppContext } from '~/app/AppContext';
 import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { isObject } from 'lodash-es';
 import { isInternalRouteStartsWithSlashAPI } from '~/utilities/utils';
 import { getIntegrationAppEnablementStatus } from '~/services/integrationAppService';
 
@@ -43,15 +42,22 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
   const [isEnableButtonHidden, setIsEnableButtonHidden] = React.useState(false);
 
   React.useEffect(() => {
-    if (selectedApp?.spec?.internalRoute && isInternalRouteStartsWithSlashAPI(selectedApp?.spec?.internalRoute)) {
-      getIntegrationAppEnablementStatus(selectedApp?.spec?.internalRoute).then((response) => {
-        if (response.error) {
-          setIsEnableButtonDisabled(true);
-        }
-        if (response.isAppEnabled) {
-          setIsEnableButtonHidden(true);
-        }
-      }).catch((error) => { console.error(error); });
+    if (
+      selectedApp?.spec.internalRoute &&
+      isInternalRouteStartsWithSlashAPI(selectedApp.spec.internalRoute)
+    ) {
+      getIntegrationAppEnablementStatus(selectedApp.spec.internalRoute)
+        .then((response) => {
+          if (response.error) {
+            setIsEnableButtonDisabled(true);
+          }
+          if (response.isAppEnabled) {
+            setIsEnableButtonHidden(true);
+          }
+        })
+        .catch((error) => {
+          console.error(error);
+        });
     }
   }, [selectedApp]);
 
@@ -60,11 +66,15 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
   }
 
   const renderEnableButton = () => {
-    // if (!selectedApp.spec.enable || selectedApp.spec.isEnabled || isEnableButtonHidden) {
-    //   return null;
-    // }
+    if (!selectedApp.spec.enable || selectedApp.spec.isEnabled || isEnableButtonHidden) {
+      return null;
+    }
     const button = (
-      <Button variant={ButtonVariant.secondary} onClick={onEnable} isDisabled={!enablement || isEnableButtonDisabled}>
+      <Button
+        variant={ButtonVariant.secondary}
+        onClick={onEnable}
+        isDisabled={!enablement || isEnableButtonDisabled}
+      >
         Enable
       </Button>
     );
