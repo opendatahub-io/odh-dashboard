@@ -25,7 +25,6 @@ import {
 } from '~/api/k8s/inferenceServices';
 import { InferenceServiceModel, ProjectModel } from '~/api/models';
 import { InferenceServiceKind, ProjectKind } from '~/k8sTypes';
-import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { ModelServingSize } from '~/pages/modelServing/screens/types';
 import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
@@ -141,14 +140,15 @@ describe('assembleInferenceService', () => {
 
   it('should handle name and display name', async () => {
     const displayName = 'Llama model';
+    const resourceName = 'llama-model';
 
     const inferenceService = assembleInferenceService(
-      mockInferenceServiceModalData({ name: displayName }),
+      mockInferenceServiceModalData({ name: displayName, servingRuntimeName: resourceName }),
     );
 
     expect(inferenceService.metadata.annotations).toBeDefined();
     expect(inferenceService.metadata.annotations?.['openshift.io/display-name']).toBe(displayName);
-    expect(inferenceService.metadata.name).toBe(translateDisplayNameForK8s(displayName));
+    expect(inferenceService.metadata.name).toBe(resourceName);
   });
 
   it('should have right annotations when inference is present', async () => {

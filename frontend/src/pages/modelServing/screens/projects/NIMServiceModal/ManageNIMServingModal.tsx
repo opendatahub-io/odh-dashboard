@@ -223,10 +223,13 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
       false,
     );
 
+    const inferenceServiceName = translateDisplayNameForK8s(createDataInferenceService.name);
+
     const submitInferenceServiceResource = getSubmitInferenceServiceResourceFn(
       createDataInferenceService,
       editInfo?.inferenceServiceEditInfo,
       servingRuntimeName,
+      inferenceServiceName,
       false,
       initialAcceleratorProfileState,
       selectedAcceleratorProfile,
