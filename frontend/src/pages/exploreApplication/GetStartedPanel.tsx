@@ -39,7 +39,6 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
   const { dashboardConfig } = useAppContext();
   const { enablement } = dashboardConfig.spec.dashboardConfig;
   const [isEnableButtonDisabled, setIsEnableButtonDisabled] = React.useState(false);
-  const [isEnableButtonHidden, setIsEnableButtonHidden] = React.useState(false);
 
   React.useEffect(() => {
     if (
@@ -50,9 +49,6 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
         .then((response) => {
           if (response.error) {
             setIsEnableButtonDisabled(true);
-          }
-          if (response.isAppEnabled) {
-            setIsEnableButtonHidden(true);
           }
         })
         .catch((error) => {
@@ -66,7 +62,7 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
   }
 
   const renderEnableButton = () => {
-    if (!selectedApp.spec.enable || selectedApp.spec.isEnabled || isEnableButtonHidden) {
+    if (!selectedApp.spec.enable || selectedApp.spec.isEnabled) {
       return null;
     }
     const button = (

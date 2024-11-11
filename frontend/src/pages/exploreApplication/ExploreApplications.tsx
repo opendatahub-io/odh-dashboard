@@ -20,6 +20,7 @@ import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUti
 import GetStartedPanel from './GetStartedPanel';
 
 import './ExploreApplications.scss';
+import { useWatchIntegrationComponents } from '~/utilities/useWatchIntegrationComponents';
 
 const description = `Add optional applications to your ${ODH_PRODUCT_NAME} instance.`;
 const disabledDescription = `View optional applications for your ${ODH_PRODUCT_NAME} instance. Contact an administrator to install these applications.`;
@@ -98,10 +99,12 @@ const ExploreApplications: React.FC = () => {
   const selectedId = queryParams.get('selectId');
   const [selectedComponent, setSelectedComponent] = React.useState<OdhApplication>();
   const isEmpty = components.length === 0;
+  const { checkedComponents, isIntegrationComponentsChecked } =
+      useWatchIntegrationComponents(components);
 
   const updateSelection = React.useCallback(
     (currentSelectedId?: string | null): void => {
-      const selection = components.find(
+      const selection = checkedComponents.find(
         (c) => c.metadata.name && c.metadata.name === currentSelectedId,
       );
       if (currentSelectedId && selection) {
@@ -114,26 +117,26 @@ const ExploreApplications: React.FC = () => {
       removeQueryArgument(navigate, 'selectId');
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [components],
+    [checkedComponents],
   );
 
   const exploreComponents = React.useMemo<OdhApplication[]>(
     () =>
-      _.cloneDeep(components)
+      _.cloneDeep(checkedComponents)
         .filter((component) => !component.spec.hidden)
         .toSorted((a, b) => a.spec.displayName.localeCompare(b.spec.displayName)),
-    [components],
+    [checkedComponents],
   );
 
   React.useEffect(() => {
-    if (components.length > 0) {
+    if (checkedComponents.length > 0) {
       updateSelection(selectedId);
     }
-  }, [updateSelection, selectedId, components]);
+  }, [updateSelection, selectedId, checkedComponents]);
 
   return (
     <ExploreApplicationsInner
-      loaded={loaded}
+      loaded={loaded && isIntegrationComponentsChecked}
       isEmpty={isEmpty}
       loadError={loadError}
       exploreComponents={exploreComponents}
