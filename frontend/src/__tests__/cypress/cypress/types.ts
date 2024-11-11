@@ -90,6 +90,10 @@ export type DataScienceProjectData = {
   dsProjectName: string;
   dsProjectDescription: string;
   dsOCProjectName: string;
+  dsProjectPermissionsName: string;
+  dsProjectPermissionsDescription: string;
+  dsOCProjectPermissionsName: string;
+  dsOCProjectPermissionsContributorName: string;
 };
 
 export type NimServingResponse = {

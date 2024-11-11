@@ -1,4 +1,12 @@
 # testProjectCreation.cy.ts Test Data #
 dsProjectName: "Cypress Test Project 1"
 dsProjectDescription: "Cypress Test project 1 description."
-dsOCProjectName: "cypress-test-project-1"
+dsOCProjectName: "cypress-test-project-1" 
+
+# testProjectAdminPermissions.cy.ts Test Data #
+dsProjectPermissionsName: "'Cypress User Permissions Test Project'"
+dsProjectPermissionsDescription: "Cypress User Permissions Test Project description."
+dsOCProjectPermissionsName: "cypress-user-permissions-test-project" 
+
+# testProjectContributorPermissions.cy.ts Test Data #
+dsOCProjectPermissionsContributorName: "cypress-user-permissions-contributor-test-project" 
