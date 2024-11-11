@@ -4,12 +4,13 @@ import { CreatingStorageObject, UpdateObjectAtPropAndValue } from '~/pages/proje
 import PVSizeField from '~/pages/projects/components/PVSizeField';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import StorageClassSelect from './StorageClassSelect';
 
 type CreateNewStorageSectionProps<D extends CreatingStorageObject> = {
   data: D;
   setData: UpdateObjectAtPropAndValue<D>;
-  currentSize?: string;
+  currentStatus?: PersistentVolumeClaimKind['status'];
   autoFocusName?: boolean;
   menuAppendTo?: HTMLElement;
   disableStorageClassSelect?: boolean;
@@ -18,7 +19,7 @@ type CreateNewStorageSectionProps<D extends CreatingStorageObject> = {
 const CreateNewStorageSection = <D extends CreatingStorageObject>({
   data,
   setData,
-  currentSize,
+  currentStatus,
   menuAppendTo,
   autoFocusName,
   disableStorageClassSelect,
@@ -50,7 +51,7 @@ const CreateNewStorageSection = <D extends CreatingStorageObject>({
         <PVSizeField
           menuAppendTo={menuAppendTo}
           fieldID="create-new-storage-size"
-          currentSize={currentSize}
+          currentStatus={currentStatus}
           size={data.size}
           setSize={(size) => setData('size', size)}
         />

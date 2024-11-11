@@ -8,13 +8,20 @@ import {
   DescriptionListTerm,
   Flex,
   FlexItem,
+  Popover,
   Split,
   SplitItem,
 } from '@patternfly/react-core';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
-import { CheckIcon, PencilAltIcon, TimesIcon } from '@patternfly/react-icons';
+import {
+  CheckIcon,
+  PencilAltIcon,
+  TimesIcon,
+  OutlinedQuestionCircleIcon,
+} from '@patternfly/react-icons';
 
 import './DashboardDescriptionListGroup.scss';
+import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 
 type EditableProps = {
   isEditing: boolean;
@@ -30,7 +37,7 @@ type EditableProps = {
 
 export type DashboardDescriptionListGroupProps = {
   title: React.ReactNode;
-  tooltip?: React.ReactNode;
+  popover?: React.ReactNode;
   action?: React.ReactNode;
   isEmpty?: boolean;
   contentWhenEmpty?: React.ReactNode;
@@ -41,7 +48,7 @@ export type DashboardDescriptionListGroupProps = {
 const DashboardDescriptionListGroup: React.FC<DashboardDescriptionListGroupProps> = (props) => {
   const {
     title,
-    tooltip,
+    popover,
     action,
     isEmpty,
     contentWhenEmpty,
@@ -110,11 +117,18 @@ const DashboardDescriptionListGroup: React.FC<DashboardDescriptionListGroupProps
       ) : (
         <DescriptionListTerm>
           <Flex
-            spaceItems={{ default: 'spaceItemsSm' }}
+            spaceItems={{ default: 'spaceItemsNone' }}
             alignItems={{ default: 'alignItemsCenter' }}
           >
             <FlexItem>{title}</FlexItem>
-            {tooltip}
+            {popover && (
+              <Popover bodyContent={popover}>
+                <DashboardPopupIconButton
+                  icon={<OutlinedQuestionCircleIcon />}
+                  aria-label="More info"
+                />
+              </Popover>
+            )}
           </Flex>
         </DescriptionListTerm>
       )}

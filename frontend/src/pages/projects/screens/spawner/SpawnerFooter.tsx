@@ -64,13 +64,12 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   } = useAppContext();
   const tolerationSettings = notebookController?.notebookTolerationSettings;
   const {
-    notebooks: { data },
-    dataConnections: { data: existingDataConnections },
-    connections: { data: projectConnections },
-    refreshAllProjectData,
+    notebooks: { data: notebooks, refresh: refreshNotebooks },
+    dataConnections: { data: existingDataConnections, refresh: refreshDataConnections },
+    connections: { data: projectConnections, refresh: refreshConnections },
   } = React.useContext(ProjectDetailsContext);
   const { notebookName } = useParams();
-  const notebookState = data.find(
+  const notebookState = notebooks.find(
     (currentNotebookState) => currentNotebookState.notebook.metadata.name === notebookName,
   );
   const editNotebook = notebookState?.notebook;
@@ -118,8 +117,13 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       outcome: TrackingOutcome.submit,
       success: true,
     };
+
     fireFormTrackingEvent(`Workbench ${type === 'created' ? 'Created' : 'Updated'}`, tep);
-    refreshAllProjectData();
+
+    refreshNotebooks();
+    refreshDataConnections();
+    refreshConnections();
+
     navigate(`/projects/${projectName}?section=${ProjectSectionID.WORKBENCHES}`);
   };
   const handleError = (e: K8sStatusError) => {
@@ -154,6 +158,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       envVariables,
       dataConnection,
       existingNotebookDataConnection,
+      connections,
       dryRun,
     );
 

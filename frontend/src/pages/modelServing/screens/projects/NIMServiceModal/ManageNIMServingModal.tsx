@@ -33,13 +33,17 @@ import ServingRuntimeSizeSection from '~/pages/modelServing/screens/projects/Ser
 import NIMModelListSection from '~/pages/modelServing/screens/projects/NIMServiceModal/NIMModelListSection';
 import NIMModelDeploymentNameSection from '~/pages/modelServing/screens/projects/NIMServiceModal/NIMModelDeploymentNameSection';
 import ProjectSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSection';
-import { DataConnection, NamespaceApplicationCase } from '~/pages/projects/types';
+import {
+  CreatingStorageObject,
+  DataConnection,
+  NamespaceApplicationCase,
+} from '~/pages/projects/types';
 import {
   getDisplayNameFromK8sResource,
   translateDisplayNameForK8s,
   translateDisplayNameForK8sAndReport,
 } from '~/concepts/k8s/utils';
-import { useAccessReview } from '~/api';
+import { updatePvc, useAccessReview } from '~/api';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import KServeAutoscalerReplicaSection from '~/pages/modelServing/screens/projects/kServeModal/KServeAutoscalerReplicaSection';
 import NIMPVCSizeSection from '~/pages/modelServing/screens/projects/NIMServiceModal/NIMPVCSizeSection';
@@ -49,6 +53,7 @@ import {
 } from '~/pages/modelServing/screens/projects/nimUtils';
 import { useDashboardNamespace } from '~/redux/selectors';
 import { getServingRuntimeFromTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
+import { useNIMPVC } from '~/pages/modelServing/screens/projects/NIMServiceModal/useNIMPVC';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
 const NIM_NGC_SECRET_NAME = 'ngc-secret';
@@ -59,7 +64,7 @@ const accessReviewResource: AccessReviewResourceAttributes = {
   verb: 'create',
 };
 
-type DeployNIMServiceModalProps = {
+type ManageNIMServingModalProps = {
   onClose: (submit: boolean) => void;
 } & EitherOrNone<
   {
@@ -77,7 +82,7 @@ type DeployNIMServiceModalProps = {
   }
 >;
 
-const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
+const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   onClose,
   projectContext,
   editInfo,
@@ -122,7 +127,10 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const [alertVisible, setAlertVisible] = React.useState(true);
-  const [pvcSize, setPvcSize] = React.useState<string>('30Gi');
+  const { pvcSize, setPvcSize, pvc } = useNIMPVC(
+    editInfo?.inferenceServiceEditInfo?.metadata.namespace,
+    editInfo?.servingRuntimeEditInfo?.servingRuntime,
+  );
 
   React.useEffect(() => {
     if (currentProjectName) {
@@ -149,12 +157,16 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
   const { dashboardNamespace } = useDashboardNamespace();
 
   React.useEffect(() => {
-    const fetchNIMServingRuntimeTemplate = async () => {
-      const nimTemplate = await getNIMServingRuntimeTemplate(dashboardNamespace);
-      setServingRuntimeSelected(getServingRuntimeFromTemplate(nimTemplate));
-    };
+    if (editInfo?.servingRuntimeEditInfo?.servingRuntime) {
+      setServingRuntimeSelected(editInfo.servingRuntimeEditInfo.servingRuntime);
+    } else {
+      const fetchNIMServingRuntimeTemplate = async () => {
+        const nimTemplate = await getNIMServingRuntimeTemplate(dashboardNamespace);
+        setServingRuntimeSelected(getServingRuntimeFromTemplate(nimTemplate));
+      };
 
-    fetchNIMServingRuntimeTemplate();
+      fetchNIMServingRuntimeTemplate();
+    }
   }, [dashboardNamespace, editInfo]);
 
   const onBeforeClose = (submitted: boolean) => {
@@ -186,13 +198,13 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
       translateDisplayNameForK8s(createDataInferenceService.name, { safeK8sPrefix: 'nim-' });
 
     const nimPVCName = getUniqueId('nim-pvc');
-
-    const updatedServingRuntime = servingRuntimeSelected
-      ? updateServingRuntimeTemplate(servingRuntimeSelected, nimPVCName)
-      : undefined;
+    const finalServingRuntime =
+      !editInfo && servingRuntimeSelected
+        ? updateServingRuntimeTemplate(servingRuntimeSelected, nimPVCName)
+        : servingRuntimeSelected;
 
     const submitServingRuntimeResources = getSubmitServingRuntimeResourcesFn(
-      updatedServingRuntime,
+      finalServingRuntime,
       createDataServingRuntime,
       customServingRuntimesEnabled,
       namespace,
@@ -222,15 +234,32 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
       submitServingRuntimeResources({ dryRun: true }),
       submitInferenceServiceResource({ dryRun: true }),
     ])
-      .then(() =>
-        Promise.all([
-          submitServingRuntimeResources({ dryRun: false }),
-          submitInferenceServiceResource({ dryRun: false }),
-          createNIMSecret(namespace, NIM_SECRET_NAME, false, false),
-          createNIMSecret(namespace, NIM_NGC_SECRET_NAME, true, false),
-          createNIMPVC(namespace, nimPVCName, pvcSize, false),
-        ]),
-      )
+      .then(async () => {
+        const promises: Promise<void>[] = [
+          submitServingRuntimeResources({ dryRun: false }).then(() => undefined),
+          submitInferenceServiceResource({ dryRun: false }).then(() => undefined),
+        ];
+        if (!editInfo) {
+          promises.push(
+            createNIMSecret(namespace, NIM_SECRET_NAME, false, false).then(() => undefined),
+            createNIMSecret(namespace, NIM_NGC_SECRET_NAME, true, false).then(() => undefined),
+            createNIMPVC(namespace, nimPVCName, pvcSize, false).then(() => undefined),
+          );
+        } else if (pvc && pvc.spec.resources.requests.storage !== pvcSize) {
+          const createData: CreatingStorageObject = {
+            size: pvcSize, // New size
+            nameDesc: {
+              name: pvc.metadata.name,
+              description: pvc.metadata.annotations?.description || '',
+            },
+            storageClassName: pvc.spec.storageClassName,
+          };
+          promises.push(
+            updatePvc(createData, pvc, namespace, { dryRun: false }).then(() => undefined),
+          );
+        }
+        return Promise.all(promises);
+      })
       .then(() => onSuccess())
       .catch((e) => {
         setErrorModal(e);
@@ -246,14 +275,14 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
 
   return (
     <Modal
-      title="Deploy model with NVIDIA NIM"
+      title={`${editInfo ? 'Edit' : 'Deploy'} model with NVIDIA NIM`}
       description="Configure properties for deploying your model using an NVIDIA NIM."
       variant="medium"
       isOpen
       onClose={() => onBeforeClose(false)}
       footer={
         <DashboardModalFooter
-          submitLabel="Deploy"
+          submitLabel={editInfo ? 'Redeploy' : 'Deploy'}
           onSubmit={submit}
           onCancel={() => onBeforeClose(false)}
           isSubmitDisabled={isDisabledServingRuntime || isDisabledInferenceService}
@@ -337,4 +366,4 @@ const DeployNIMServiceModal: React.FC<DeployNIMServiceModalProps> = ({
   );
 };
 
-export default DeployNIMServiceModal;
+export default ManageNIMServingModal;

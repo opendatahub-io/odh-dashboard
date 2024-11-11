@@ -103,7 +103,7 @@ const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
             <CreateNewStorageSection
               data={createData}
               setData={setCreateData}
-              currentSize={existingData?.status?.capacity?.storage}
+              currentStatus={existingData?.status}
               autoFocusName
               disableStorageClassSelect={!!existingData}
             />

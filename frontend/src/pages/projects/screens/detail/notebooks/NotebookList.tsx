@@ -16,21 +16,25 @@ import NotebookTable from './NotebookTable';
 const NotebookList: React.FC = () => {
   const {
     currentProject,
-    notebooks: { data: notebookStates, loaded, error: loadError },
-    refreshAllProjectData: refresh,
+    notebooks: {
+      data: notebooks,
+      loaded: notebooksLoaded,
+      error: notebooksError,
+      refresh: refreshNotebooks,
+    },
   } = React.useContext(ProjectDetailsContext);
   const navigate = useNavigate();
   const projectName = currentProject.metadata.name;
-  const isNotebooksEmpty = notebookStates.length === 0;
+  const isNotebooksEmpty = notebooks.length === 0;
 
   useRefreshInterval(FAST_POLL_INTERVAL, () =>
-    notebookStates
+    notebooks
       .filter((notebookState) => notebookState.isStarting || notebookState.isStopping)
       .forEach((notebookState) => notebookState.refresh()),
   );
 
   useRefreshInterval(POLL_INTERVAL, () =>
-    notebookStates
+    notebooks
       .filter((notebookState) => !notebookState.isStarting && !notebookState.isStopping)
       .forEach((notebookState) => notebookState.refresh()),
   );
@@ -63,8 +67,8 @@ const NotebookList: React.FC = () => {
           Create workbench
         </Button>,
       ]}
-      isLoading={!loaded}
-      loadError={loadError}
+      isLoading={!notebooksLoaded}
+      loadError={notebooksError}
       isEmpty={isNotebooksEmpty}
       emptyState={
         <EmptyDetailsView
@@ -86,7 +90,7 @@ const NotebookList: React.FC = () => {
       }
     >
       {!isNotebooksEmpty ? (
-        <NotebookTable notebookStates={notebookStates} refresh={refresh} />
+        <NotebookTable notebookStates={notebooks} refresh={refreshNotebooks} />
       ) : null}
     </DetailsSection>
   );

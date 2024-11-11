@@ -23,6 +23,7 @@ export const isStringKeyValuePairObject = (object: unknown): object is Record<st
 export const getDeletedConfigMapOrSecretVariables = (
   notebook: NotebookKind | undefined,
   envVariables: EnvVariable[],
+  excludedResources: string[] = [],
 ): {
   deletedSecrets: string[];
   deletedConfigMaps: string[];
@@ -32,10 +33,18 @@ export const getDeletedConfigMapOrSecretVariables = (
   const deletedSecrets: string[] = [];
 
   (notebook?.spec.template.spec.containers[0].envFrom || []).forEach((env) => {
-    if (env.configMapRef && !existingEnvVariables.has(env.configMapRef.name)) {
+    if (
+      env.configMapRef &&
+      !existingEnvVariables.has(env.configMapRef.name) &&
+      !excludedResources.includes(env.configMapRef.name)
+    ) {
       deletedConfigMaps.push(env.configMapRef.name);
     }
-    if (env.secretRef && !existingEnvVariables.has(env.secretRef.name)) {
+    if (
+      env.secretRef &&
+      !existingEnvVariables.has(env.secretRef.name) &&
+      !excludedResources.includes(env.secretRef.name)
+    ) {
       deletedSecrets.push(env.secretRef.name);
     }
   });

@@ -119,7 +119,7 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
                   onAddField={() => {
                     const nextSectionIndex = index + findSectionFields(index, fields).length;
                     if (nextSectionIndex >= 0) {
-                      setModalField({ index: nextSectionIndex });
+                      setModalField({ index: nextSectionIndex + 1 });
                     } else {
                       setModalField({});
                     }
