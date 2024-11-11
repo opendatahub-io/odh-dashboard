@@ -388,7 +388,7 @@ describe('getConnectionModelServingCompatibleTypes', () => {
           },
         }),
       ),
-    ).toEqual([ModelServingCompatibleTypes.OCI, ModelServingCompatibleTypes.URI]);
+    ).toEqual([ModelServingCompatibleTypes.URI]);
     expect(
       getConnectionModelServingCompatibleTypes(
         mockConnection({
@@ -401,11 +401,7 @@ describe('getConnectionModelServingCompatibleTypes', () => {
           },
         }),
       ),
-    ).toEqual([
-      ModelServingCompatibleTypes.S3ObjectStorage,
-      ModelServingCompatibleTypes.OCI,
-      ModelServingCompatibleTypes.URI,
-    ]);
+    ).toEqual([ModelServingCompatibleTypes.S3ObjectStorage, ModelServingCompatibleTypes.URI]);
   });
 });
 
@@ -423,8 +419,6 @@ describe('isModelServingTypeCompatible', () => {
         ModelServingCompatibleTypes.S3ObjectStorage,
       ),
     ).toBe(true);
-    expect(isModelServingTypeCompatible(['invalid'], ModelServingCompatibleTypes.OCI)).toBe(false);
-    expect(isModelServingTypeCompatible(['URI'], ModelServingCompatibleTypes.OCI)).toBe(true);
     expect(isModelServingTypeCompatible(['invalid'], ModelServingCompatibleTypes.URI)).toBe(false);
     expect(isModelServingTypeCompatible(['URI'], ModelServingCompatibleTypes.URI)).toBe(true);
   });
