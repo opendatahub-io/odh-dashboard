@@ -100,7 +100,7 @@ const ExploreApplications: React.FC = () => {
   const [selectedComponent, setSelectedComponent] = React.useState<OdhApplication>();
   const isEmpty = components.length === 0;
   const { checkedComponents, isIntegrationComponentsChecked } =
-      useWatchIntegrationComponents(components);
+    useWatchIntegrationComponents(components);
 
   const updateSelection = React.useCallback(
     (currentSelectedId?: string | null): void => {

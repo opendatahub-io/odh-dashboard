@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { cloneDeep, remove } from 'lodash-es';
+import { cloneDeep } from 'lodash-es';
 import { useAppSelector } from '~/redux/hooks';
 import { OdhApplication } from '~/types';
 import { getIntegrationAppEnablementStatus } from '~/services/integrationAppService';
