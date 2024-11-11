@@ -17,10 +17,10 @@ import { removeQueryArgument, setQueryArgument } from '~/utilities/router';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { useAppContext } from '~/app/AppContext';
 import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { useWatchIntegrationComponents } from '~/utilities/useWatchIntegrationComponents';
 import GetStartedPanel from './GetStartedPanel';
 
 import './ExploreApplications.scss';
-import { useWatchIntegrationComponents } from '~/utilities/useWatchIntegrationComponents';
 
 const description = `Add optional applications to your ${ODH_PRODUCT_NAME} instance.`;
 const disabledDescription = `View optional applications for your ${ODH_PRODUCT_NAME} instance. Contact an administrator to install these applications.`;
