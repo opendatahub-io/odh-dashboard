@@ -3,7 +3,6 @@ import React from 'react';
 import { Label, Popover, Stack, StackItem } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
-  DegradedIcon,
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
   InProgressIcon,
@@ -71,8 +70,8 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
       !popoverMessages.some((message) => message.includes('ContainerCreating'))
     ) {
       statusLabel = ModelRegistryStatusLabel.Unavailable;
-      icon = <ExclamationCircleIcon />;
-      color = 'red';
+      icon = <ExclamationTriangleIcon />;
+      color = 'gold';
     }
     // Available
     else if (availableCondition?.status === ConditionStatus.True) {
@@ -83,14 +82,14 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
     // Progressing
     else if (progressCondition?.status === ConditionStatus.True) {
       statusLabel = ModelRegistryStatusLabel.Progressing;
-      icon = <InProgressIcon />;
+      icon = <InProgressIcon className="odh-u-spin" />;
       color = 'blue';
     }
     // Degrading
     else if (degradedCondition?.status === ConditionStatus.True) {
       statusLabel = ModelRegistryStatusLabel.Degrading;
-      icon = <DegradedIcon />;
-      color = 'gold';
+      icon = <InProgressIcon className="odh-u-spin" />;
+      color = 'grey';
       popoverTitle = 'Service is degrading';
     }
   }
