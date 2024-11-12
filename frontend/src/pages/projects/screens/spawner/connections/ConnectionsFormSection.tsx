@@ -20,6 +20,7 @@ import { Connection, ConnectionTypeConfigMapObj } from '~/concepts/connectionTyp
 import {
   filterEnabledConnectionTypes,
   getConnectionTypeDisplayName,
+  isConnection,
 } from '~/concepts/connectionTypes/utils';
 import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
 import { useNotebooksStates } from '~/pages/projects/notebook/useNotebooksStates';
@@ -264,12 +265,23 @@ export const ConnectionsFormSection: React.FC<Props> = ({
               refreshProjectConnections();
             }
           }}
-          onSubmit={(connection: Connection) => {
+          onSubmit={async (connection: Connection) => {
             if (manageConnectionModal.isEdit) {
-              return replaceSecret(connection);
+              const response = await replaceSecret(connection);
+              if (isConnection(response)) {
+                setSelectedConnections(
+                  selectedConnections.map((c) =>
+                    c.metadata.name === response.metadata.name ? response : c,
+                  ),
+                );
+              }
+              return response;
             }
-            setSelectedConnections([...selectedConnections, connection]);
-            return createSecret(connection);
+            const response = await createSecret(connection);
+            if (isConnection(response)) {
+              setSelectedConnections([...selectedConnections, response]);
+            }
+            return response;
           }}
           isEdit={manageConnectionModal.isEdit}
         />
