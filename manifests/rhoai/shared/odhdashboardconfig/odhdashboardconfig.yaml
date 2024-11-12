@@ -29,7 +29,6 @@ spec:
     disableDistributedWorkloads: false
     disableModelRegistry: false
     disableServingRuntimeParams: false
-    disableConnectionTypes: true
     disableStorageClasses: false
     disableNIMModelServing: true
   groupsConfig:

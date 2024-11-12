@@ -73,8 +73,6 @@ spec:
                       type: boolean
                     disableServingRuntimeParams:
                       type: boolean
-                    disableConnectionTypes:
-                      type: boolean
                     disableStorageClasses:
                       type: boolean
                     disableNIMModelServing:
