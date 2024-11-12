@@ -7,7 +7,7 @@ import {
 } from '~/services/integrationAppService';
 import { addNotification, forceComponentsUpdate } from '~/redux/actions/actions';
 import { useAppDispatch } from '~/redux/hooks';
-import { isInternalRouteStartsWithSlashAPI } from './utils';
+import { isInternalRouteIntegrationsApp } from './utils';
 
 export enum EnableApplicationStatus {
   INPROGRESS,
@@ -65,18 +65,20 @@ export const useEnableApplication = (
     let watchHandle: ReturnType<typeof setTimeout>;
     if (enableStatus.status === EnableApplicationStatus.INPROGRESS) {
       const watchStatus = () => {
-        if (internalRoute && isInternalRouteStartsWithSlashAPI(internalRoute)) {
+        if (internalRoute && isInternalRouteIntegrationsApp(internalRoute)) {
           getIntegrationAppEnablementStatus(internalRoute)
             .then((response) => {
-              if (!response.isAppEnabled) {
+              if (!response.isAppEnabled && response.canEnable) {
                 watchHandle = setTimeout(watchStatus, 10 * 1000);
                 return;
               }
-              setEnableStatus({
-                status: EnableApplicationStatus.SUCCESS,
-                error: '',
-              });
-              dispatchResults(undefined);
+              if (response.isAppEnabled && !response.canEnable) {
+                setEnableStatus({
+                  status: EnableApplicationStatus.SUCCESS,
+                  error: '',
+                });
+                dispatchResults(undefined);
+              }
             })
             .catch((e) => {
               if (!cancelled) {
@@ -118,20 +120,21 @@ export const useEnableApplication = (
   React.useEffect(() => {
     let closed = false;
     if (doEnable) {
-      //check the internal route to see if there '/api', if yes, we call the api from internal route, otherwise use previous logic.
-      if (internalRoute && isInternalRouteStartsWithSlashAPI(internalRoute)) {
+      if (internalRoute && isInternalRouteIntegrationsApp(internalRoute)) {
         enableIntegrationApp(internalRoute, enableValues)
           .then((response) => {
             if (!closed) {
-              if (!response.isAppEnabled) {
+              if (!response.isAppEnabled && response.canEnable) {
                 setEnableStatus({ status: EnableApplicationStatus.INPROGRESS, error: '' });
                 return;
               }
 
-              setEnableStatus({
-                status: EnableApplicationStatus.SUCCESS,
-                error: response.error ? '' : response.error,
-              });
+              if (response.isAppEnabled && !response.canEnable) {
+                setEnableStatus({
+                  status: EnableApplicationStatus.SUCCESS,
+                  error: response.error ? '' : response.error,
+                });
+              }
             }
             dispatchResults(response.isAppEnabled ? undefined : response.error);
           })

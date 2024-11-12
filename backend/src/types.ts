@@ -1241,6 +1241,15 @@ export type NIMAccountKind = K8sResourceCommon & {
     };
   };
   status?: {
+    nimConfig?: {
+      name: string;
+    },
+    runtimeTemplate?: {
+      name: string;
+    },
+    nimPullSecret?: {
+      name: string;
+    }
     conditions?: K8sCondition[];
   };
 };

@@ -21,7 +21,7 @@ import MarkdownView from '~/components/MarkdownView';
 import { markdownConverter } from '~/utilities/markdown';
 import { useAppContext } from '~/app/AppContext';
 import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { isInternalRouteStartsWithSlashAPI } from '~/utilities/utils';
+import { isInternalRouteIntegrationsApp } from '~/utilities/utils';
 import { getIntegrationAppEnablementStatus } from '~/services/integrationAppService';
 
 const DEFAULT_BETA_TEXT =
@@ -41,9 +41,8 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
   const [isEnableButtonDisabled, setIsEnableButtonDisabled] = React.useState(false);
 
   React.useEffect(() => {
-    if (
-      selectedApp?.spec.internalRoute &&
-      isInternalRouteStartsWithSlashAPI(selectedApp.spec.internalRoute)
+    if (selectedApp?.spec.internalRoute &&
+      isInternalRouteIntegrationsApp(selectedApp.spec.internalRoute)
     ) {
       getIntegrationAppEnablementStatus(selectedApp.spec.internalRoute)
         .then((response) => {
@@ -52,7 +51,8 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
           }
         })
         .catch((error) => {
-          console.error(error);
+          // eslint-disable-next-line no-console  
+          console.error('Error getting integration App Enablement Status', error);
         });
     }
   }, [selectedApp]);

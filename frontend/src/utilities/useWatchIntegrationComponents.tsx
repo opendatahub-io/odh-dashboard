@@ -28,7 +28,6 @@ export const useWatchIntegrationComponents = (
       if (component.spec.internalRoute) {
         getIntegrationAppEnablementStatus(component.spec.internalRoute).then((response) => {
           if (response.error) {
-            // Show error on the application card if there is an error
             setNewComponents(newComponentsList);
           } else {
             newComponentsList[componentList.indexOf(component)].spec.isEnabled =

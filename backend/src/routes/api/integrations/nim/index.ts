@@ -51,7 +51,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
         const enableValues = request.body;
 
         await createNIMSecret(fastify, namespace, enableValues)
-          .then(() =>
+          .then(() => {
             createNIMAccount(fastify, namespace)
               .then((response) => {
                 if (isAppEnabled(response)) {
@@ -72,7 +72,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
               fastify.log.error(`NIM secret already exists, skipping creation.`);
               reply.status(409).send(new Error(`NIM secret already exists, skipping creation.`));
             } else {
-              fastify.log.error(`Failed to create NIM secret.`);
+              fastify.log.error(`Failed to create NIM secret. ${e.response?.body?.message}`);
               reply
                 .status(e.response.statusCode)
                 .send(new Error(`Failed to create NIM secret, ${e.response?.body?.message}`));
