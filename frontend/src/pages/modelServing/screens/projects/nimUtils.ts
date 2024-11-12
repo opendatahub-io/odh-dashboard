@@ -108,7 +108,7 @@ export const updateServingRuntimeTemplate = (
 
   if (updatedServingRuntime.spec.volumes) {
     const updatedVolumes = updatedServingRuntime.spec.volumes.map((volume) => {
-      if (volume.name === 'nim-pvc') {
+      if (volume.name.startsWith('nim-pvc')) {
         return {
           ...volume,
           name: pvcName,
@@ -132,9 +132,7 @@ export const getNIMResourcesToDelete = async (
   const resourcesToDelete: Promise<void>[] = [];
   try {
     const count = await fetchInferenceServiceCount(projectName);
-    if (count === 0) {
-      return resourcesToDelete;
-    }
+
     const pvcName = servingRuntime.spec.volumes?.find((vol) =>
       vol.persistentVolumeClaim?.claimName.startsWith('nim-pvc'),
     )?.persistentVolumeClaim?.claimName;
