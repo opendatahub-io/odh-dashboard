@@ -51,8 +51,8 @@ module.exports = async (fastify: KubeFastifyInstance) => {
         const enableValues = request.body;
 
         await createNIMSecret(fastify, namespace, enableValues)
-          .then(async () => {
-            await createNIMAccount(fastify, namespace)
+          .then(() =>
+            createNIMAccount(fastify, namespace)
               .then((response) => {
                 if (isAppEnabled(response)) {
                   reply.send({ isAppEnabled: true, canEnable: false, error: '' });
