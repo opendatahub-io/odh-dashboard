@@ -134,7 +134,6 @@ export const S3ConnectionTypeKeys = [
 
 export enum ModelServingCompatibleTypes {
   S3ObjectStorage = 'S3 compatible object storage',
-  OCI = 'OCI compliant registry',
   URI = 'URI',
 }
 
@@ -152,11 +151,6 @@ const modelServingCompatibleTypesMetadata: Record<
     resource: 's3',
     envVars: S3ConnectionTypeKeys,
     managedType: 's3',
-  },
-  [ModelServingCompatibleTypes.OCI]: {
-    name: ModelServingCompatibleTypes.OCI,
-    resource: 'oci-compliant-registry-v1',
-    envVars: ['URI'],
   },
   [ModelServingCompatibleTypes.URI]: {
     name: ModelServingCompatibleTypes.URI,
