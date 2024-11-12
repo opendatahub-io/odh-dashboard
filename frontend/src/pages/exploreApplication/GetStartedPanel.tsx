@@ -1,19 +1,19 @@
 import * as React from 'react';
 import {
+  ActionList,
+  ActionListItem,
   Alert,
   Button,
   ButtonVariant,
-  DrawerPanelBody,
-  DrawerHead,
-  DrawerPanelContent,
+  Divider,
   DrawerActions,
   DrawerCloseButton,
-  Tooltip,
+  DrawerHead,
+  DrawerPanelBody,
+  DrawerPanelContent,
   Text,
   TextContent,
-  ActionList,
-  ActionListItem,
-  Divider,
+  Tooltip,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhApplication } from '~/types';
@@ -41,7 +41,8 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
   const [isEnableButtonDisabled, setIsEnableButtonDisabled] = React.useState(false);
 
   React.useEffect(() => {
-    if (selectedApp?.spec.internalRoute &&
+    if (
+      selectedApp?.spec.internalRoute &&
       isInternalRouteIntegrationsApp(selectedApp.spec.internalRoute)
     ) {
       getIntegrationAppEnablementStatus(selectedApp.spec.internalRoute)
@@ -51,7 +52,7 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
           }
         })
         .catch((error) => {
-          // eslint-disable-next-line no-console  
+          // eslint-disable-next-line no-console
           console.error('Error getting integration App Enablement Status', error);
         });
     }
