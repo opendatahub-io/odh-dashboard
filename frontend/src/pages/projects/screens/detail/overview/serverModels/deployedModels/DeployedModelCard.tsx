@@ -11,6 +11,7 @@ import {
   TextListItem,
   TextListItemVariants,
   TextListVariants,
+  Truncate,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { ProjectObjectType } from '~/concepts/design/utils';
@@ -64,7 +65,7 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
                   <Link
                     to={`/projects/${inferenceService.metadata.namespace}/metrics/model/${inferenceService.metadata.name}`}
                   >
-                    {inferenceServiceDisplayName}
+                    <Truncate content={inferenceServiceDisplayName} />
                   </Link>
                 ) : (
                   inferenceServiceDisplayName
