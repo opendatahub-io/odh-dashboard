@@ -142,13 +142,16 @@ export const getNIMResourcesToDelete = async (
     let nimSecretName: string | undefined;
     let imagePullSecretName: string | undefined;
 
+    const pullNGCSecret = servingRuntime.spec.imagePullSecrets?.[0]?.name ?? '';
+    if (pullNGCSecret === 'ngc-secret') {
+      imagePullSecretName = pullNGCSecret;
+    }
+
     servingRuntime.spec.containers.forEach((container) => {
       container.env?.forEach((env) => {
         const secretName = env.valueFrom?.secretKeyRef?.name;
-        if (secretName === 'nim-secret') {
+        if (secretName === 'nvidia-nim-secrets') {
           nimSecretName = secretName;
-        } else if (secretName === 'nim-ngc-secret') {
-          imagePullSecretName = secretName;
         }
       });
     });
