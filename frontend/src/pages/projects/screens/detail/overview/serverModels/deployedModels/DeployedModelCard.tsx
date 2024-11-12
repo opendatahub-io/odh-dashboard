@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Button,
   CardBody,
   CardFooter,
   CardHeader,
@@ -13,7 +14,7 @@ import {
   TextListVariants,
   Truncate,
 } from '@patternfly/react-core';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ProjectObjectType } from '~/concepts/design/utils';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import InferenceServiceStatus from '~/pages/modelServing/screens/global/InferenceServiceStatus';
@@ -37,6 +38,7 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
   servingRuntime,
 }) => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
+  const navigate = useNavigate();
   const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
   const modelMesh = isModelMesh(inferenceService);
   const { currentProject } = React.useContext(ProjectDetailsContext);
@@ -62,11 +64,18 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
             <FlexItem>
               <ResourceNameTooltip resource={inferenceService}>
                 {modelMetricsSupported ? (
-                  <Link
-                    to={`/projects/${inferenceService.metadata.namespace}/metrics/model/${inferenceService.metadata.name}`}
+                  <Button
+                    variant="link"
+                    isInline
+                    onClick={() => {
+                      navigate(
+                        `/projects/${inferenceService.metadata.namespace}/metrics/model/${inferenceService.metadata.name}`,
+                      );
+                    }}
+                    style={{ fontSize: 'var(--pf-v5-global--FontSize--md)' }}
                   >
                     <Truncate content={inferenceServiceDisplayName} />
-                  </Link>
+                  </Button>
                 ) : (
                   inferenceServiceDisplayName
                 )}
