@@ -42,6 +42,9 @@ export const createNIMAccount = async (
     metadata: {
       name: NIM_ACCOUNT_NAME,
       namespace,
+      annotations: {    
+        'opendatahub.io/managed': 'true',
+      },
     },
     spec: {
       apiKeySecret: {
@@ -75,6 +78,9 @@ export const createNIMSecret = async (
     metadata: {
       name: NIM_SECRET_NAME,
       namespace,
+      annotations: {    
+        'opendatahub.io/managed': 'true',
+      },
     },
     type: 'Opaque',
     stringData: enableValues,
