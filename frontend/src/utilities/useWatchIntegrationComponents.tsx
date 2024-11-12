@@ -22,17 +22,17 @@ export const useWatchIntegrationComponents = (
     integrationComponentList: OdhApplication[],
     componentList: OdhApplication[],
   ) => {
-    const newComponentsList = cloneDeep(componentList);
-
     integrationComponentList.forEach((component) => {
       if (component.spec.internalRoute) {
         getIntegrationAppEnablementStatus(component.spec.internalRoute).then((response) => {
           if (response.error) {
-            setNewComponents(newComponentsList);
+            setNewComponents(componentList);
           } else {
-            newComponentsList[componentList.indexOf(component)].spec.isEnabled =
-              response.isAppEnabled;
-            setNewComponents(newComponentsList);
+            setNewComponents((componentList) => {
+              const updatedComponents = cloneDeep(componentList);
+              updatedComponents[componentList.indexOf(component)].spec.isEnabled = response.isAppEnabled;
+              return updatedComponents;
+            });
           }
         });
       }
