@@ -3,7 +3,6 @@ import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import {
   createNIMPVC,
   createNIMSecret,
-  fetchInferenceServiceCount,
   fetchNIMModelNames,
   filterOutConnectionsWithoutBucket,
   getCreateInferenceServiceLabels,
@@ -13,19 +12,12 @@ import {
 import { LabeledDataConnection, ServingPlatformStatuses } from '~/pages/modelServing/screens/types';
 import { ServingRuntimePlatform } from '~/types';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import {
-  createPvc,
-  createSecret,
-  deletePvc,
-  deleteSecret,
-  getInferenceServiceContext,
-} from '~/api';
+import { createPvc, createSecret } from '~/api';
 import { PersistentVolumeClaimKind, ServingRuntimeKind } from '~/k8sTypes';
 import {
   getNGCSecretType,
   getNIMData,
   getNIMResource,
-  getNIMResourcesToDelete,
   updateServingRuntimeTemplate,
 } from '~/pages/modelServing/screens/projects/nimUtils';
 
@@ -34,12 +26,6 @@ jest.mock('~/api', () => ({
   createSecret: jest.fn(),
   createPvc: jest.fn(),
   getInferenceServiceContext: jest.fn(),
-  deletePvc: jest.fn(),
-  deleteSecret: jest.fn(),
-}));
-
-jest.mock('~/pages/modelServing/screens/projects/utils', () => ({
-  fetchInferenceServiceCount: jest.fn(),
 }));
 
 jest.mock('~/pages/modelServing/screens/projects/nimUtils', () => ({
@@ -555,137 +541,5 @@ describe('updateServingRuntimeTemplate', () => {
     const result = updateServingRuntimeTemplate(servingRuntimeWithoutVolumeMounts, pvcName);
 
     expect(result.spec.containers[0].volumeMounts).toBeUndefined();
-  });
-});
-
-describe('fetchInferenceServiceCount', () => {
-  const namespace = 'test-namespace';
-
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('should return the count of inference services when they are retrieved successfully', async () => {
-    (getInferenceServiceContext as jest.Mock).mockResolvedValue([
-      { name: 'service1' },
-      { name: 'service2' },
-      { name: 'service3' },
-    ]);
-
-    const count = await fetchInferenceServiceCount(namespace);
-
-    expect(getInferenceServiceContext).toHaveBeenCalledWith(namespace);
-    expect(count).toBe(3);
-  });
-
-  it('should throw an error if an error is thrown while fetching inference services', async () => {
-    (getInferenceServiceContext as jest.Mock).mockRejectedValue(new Error('Fetch error'));
-
-    await expect(fetchInferenceServiceCount(namespace)).rejects.toThrow(
-      'Failed to fetch inference services for namespace "test-namespace": Fetch error',
-    );
-    expect(getInferenceServiceContext).toHaveBeenCalledWith(namespace);
-  });
-});
-
-describe('getNIMResourcesToDelete', () => {
-  const projectName = 'test-project';
-  const servingRuntimeMock: ServingRuntimeKind = {
-    apiVersion: 'serving.kserve.io/v1alpha1',
-    kind: 'ServingRuntime',
-    metadata: {
-      name: 'test-serving-runtime',
-      namespace: 'test-namespace',
-    },
-    spec: {
-      volumes: [
-        {
-          name: 'nim-pvc-volume',
-          persistentVolumeClaim: { claimName: 'nim-pvc-123' },
-        },
-      ],
-      imagePullSecrets: [{ name: 'ngc-secret' }],
-      containers: [
-        {
-          name: 'test-container',
-          env: [
-            {
-              name: 'nvidia-nim-secrets',
-              valueFrom: {
-                secretKeyRef: {
-                  name: 'nvidia-nim-secrets',
-                  key: 'some-key',
-                },
-              },
-            },
-          ],
-        },
-      ],
-    },
-  };
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('should return an empty array if count is 0', async () => {
-    (fetchInferenceServiceCount as jest.Mock).mockResolvedValue(0);
-
-    const result = await getNIMResourcesToDelete(projectName, servingRuntimeMock);
-
-    expect(fetchInferenceServiceCount).toHaveBeenCalledWith(projectName);
-    expect(result).toEqual([]);
-  });
-
-  it('should include deletePvc if pvcName exists', async () => {
-    (fetchInferenceServiceCount as jest.Mock).mockResolvedValue(0);
-    (deletePvc as jest.Mock).mockResolvedValue(undefined);
-
-    const result = await getNIMResourcesToDelete(projectName, servingRuntimeMock);
-
-    expect(fetchInferenceServiceCount).toHaveBeenCalledWith(projectName);
-    expect(deletePvc).toHaveBeenCalledWith('nim-pvc-123', projectName);
-    expect(result.length).toBe(1);
-  });
-
-  it('should include deletePvc and deleteSecret if pvcName, nimSecretName, and imagePullSecretName exist and count is 1', async () => {
-    (fetchInferenceServiceCount as jest.Mock).mockResolvedValue(1);
-    (deletePvc as jest.Mock).mockResolvedValue(undefined);
-    (deleteSecret as jest.Mock).mockResolvedValue(undefined);
-
-    const result = await getNIMResourcesToDelete(projectName, servingRuntimeMock);
-
-    expect(fetchInferenceServiceCount).toHaveBeenCalledWith(projectName);
-    expect(deletePvc).toHaveBeenCalledWith('nim-pvc-123', projectName);
-    expect(deleteSecret).toHaveBeenCalledWith(projectName, 'nvidia-nim-secrets');
-    expect(deleteSecret).toHaveBeenCalledWith(projectName, 'ngc-secret');
-    expect(result.length).toBe(3);
-  });
-
-  it('should not include deleteSecret if count is not 1', async () => {
-    (fetchInferenceServiceCount as jest.Mock).mockResolvedValue(2);
-    (deletePvc as jest.Mock).mockResolvedValue(undefined);
-
-    const result = await getNIMResourcesToDelete(projectName, servingRuntimeMock);
-
-    expect(fetchInferenceServiceCount).toHaveBeenCalledWith(projectName);
-    expect(deletePvc).toHaveBeenCalledWith('nim-pvc-123', projectName);
-    expect(deleteSecret).not.toHaveBeenCalled();
-    expect(result.length).toBe(1);
-  });
-
-  it('should return an empty array if an error occurs in fetchInferenceServiceCount', async () => {
-    (fetchInferenceServiceCount as jest.Mock).mockRejectedValue(new Error('Fetch error'));
-
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-
-    const result = await getNIMResourcesToDelete(projectName, servingRuntimeMock);
-
-    expect(consoleSpy).toHaveBeenCalledWith(
-      `Failed to fetch inference service count for project "test-project": Fetch error`,
-    );
-    expect(result).toEqual([]);
-
-    consoleSpy.mockRestore();
   });
 });

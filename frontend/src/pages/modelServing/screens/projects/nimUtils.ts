@@ -130,40 +130,11 @@ export const getNIMResourcesToDelete = async (
   servingRuntime: ServingRuntimeKind,
 ): Promise<Promise<void>[]> => {
   const resourcesToDelete: Promise<void>[] = [];
+
+  let inferenceCount = 0;
+
   try {
-    const count = await fetchInferenceServiceCount(projectName);
-
-    const pvcName = servingRuntime.spec.volumes?.find((vol) =>
-      vol.persistentVolumeClaim?.claimName.startsWith('nim-pvc'),
-    )?.persistentVolumeClaim?.claimName;
-
-    let nimSecretName: string | undefined;
-    let imagePullSecretName: string | undefined;
-
-    const pullNGCSecret = servingRuntime.spec.imagePullSecrets?.[0]?.name ?? '';
-    if (pullNGCSecret === 'ngc-secret') {
-      imagePullSecretName = pullNGCSecret;
-    }
-
-    servingRuntime.spec.containers.forEach((container) => {
-      container.env?.forEach((env) => {
-        const secretName = env.valueFrom?.secretKeyRef?.name;
-        if (secretName === 'nvidia-nim-secrets') {
-          nimSecretName = secretName;
-        }
-      });
-    });
-
-    if (pvcName) {
-      resourcesToDelete.push(deletePvc(pvcName, projectName).then(() => undefined));
-    }
-
-    if (nimSecretName && imagePullSecretName && count === 1) {
-      resourcesToDelete.push(
-        deleteSecret(projectName, nimSecretName).then(() => undefined),
-        deleteSecret(projectName, imagePullSecretName).then(() => undefined),
-      );
-    }
+    inferenceCount = await fetchInferenceServiceCount(projectName);
   } catch (error) {
     if (error instanceof Error) {
       // eslint-disable-next-line no-console
@@ -176,7 +147,38 @@ export const getNIMResourcesToDelete = async (
         `Failed to fetch inference service count for project "${projectName}": ${error}`,
       );
     }
-    return [];
+  }
+
+  const pvcName = servingRuntime.spec.volumes?.find((vol) =>
+    vol.persistentVolumeClaim?.claimName.startsWith('nim-pvc'),
+  )?.persistentVolumeClaim?.claimName;
+
+  if (pvcName) {
+    resourcesToDelete.push(deletePvc(pvcName, projectName).then(() => undefined));
+  }
+
+  let nimSecretName: string | undefined;
+  let imagePullSecretName: string | undefined;
+
+  const pullNGCSecret = servingRuntime.spec.imagePullSecrets?.[0]?.name ?? '';
+  if (pullNGCSecret === 'ngc-secret') {
+    imagePullSecretName = pullNGCSecret;
+  }
+
+  servingRuntime.spec.containers.forEach((container) => {
+    container.env?.forEach((env) => {
+      const secretName = env.valueFrom?.secretKeyRef?.name;
+      if (secretName === 'nvidia-nim-secrets') {
+        nimSecretName = secretName;
+      }
+    });
+  });
+
+  if (nimSecretName && imagePullSecretName && inferenceCount === 1) {
+    resourcesToDelete.push(
+      deleteSecret(projectName, nimSecretName).then(() => undefined),
+      deleteSecret(projectName, imagePullSecretName).then(() => undefined),
+    );
   }
 
   return resourcesToDelete;
