@@ -33,11 +33,7 @@ import ServingRuntimeSizeSection from '~/pages/modelServing/screens/projects/Ser
 import NIMModelListSection from '~/pages/modelServing/screens/projects/NIMServiceModal/NIMModelListSection';
 import NIMModelDeploymentNameSection from '~/pages/modelServing/screens/projects/NIMServiceModal/NIMModelDeploymentNameSection';
 import ProjectSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSection';
-import {
-  CreatingStorageObject,
-  DataConnection,
-  NamespaceApplicationCase,
-} from '~/pages/projects/types';
+import { DataConnection, NamespaceApplicationCase } from '~/pages/projects/types';
 import {
   getDisplayNameFromK8sResource,
   translateDisplayNameForK8s,
@@ -262,12 +258,10 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
           }
           promises.push(createNIMPVC(namespace, nimPVCName, pvcSize, false).then(() => undefined));
         } else if (pvc && pvc.spec.resources.requests.storage !== pvcSize) {
-          const updatePvcData: CreatingStorageObject = {
+          const updatePvcData = {
             size: pvcSize, // New size
-            nameDesc: {
-              name: pvc.metadata.name,
-              description: pvc.metadata.annotations?.description || '',
-            },
+            name: pvc.metadata.name,
+            description: pvc.metadata.annotations?.description || '',
             storageClassName: pvc.spec.storageClassName,
           };
           promises.push(

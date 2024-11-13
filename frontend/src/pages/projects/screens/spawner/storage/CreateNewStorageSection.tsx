@@ -1,28 +1,33 @@
 import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
-import { CreatingStorageObject, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
+import { StorageData, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import PVSizeField from '~/pages/projects/components/PVSizeField';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
+import { DuplicateNameHelperText } from '~/concepts/pipelines/content/DuplicateNameHelperText';
 import StorageClassSelect from './StorageClassSelect';
 
-type CreateNewStorageSectionProps<D extends CreatingStorageObject> = {
+type CreateNewStorageSectionProps<D extends StorageData> = {
   data: D;
   setData: UpdateObjectAtPropAndValue<D>;
   currentStatus?: PersistentVolumeClaimKind['status'];
   autoFocusName?: boolean;
   menuAppendTo?: HTMLElement;
   disableStorageClassSelect?: boolean;
+  onNameChange?: (value: string) => void;
+  hasDuplicateName?: boolean;
 };
 
-const CreateNewStorageSection = <D extends CreatingStorageObject>({
+const CreateNewStorageSection = <D extends StorageData>({
   data,
   setData,
   currentStatus,
   menuAppendTo,
   autoFocusName,
   disableStorageClassSelect,
+  onNameChange,
+  hasDuplicateName,
 }: CreateNewStorageSectionProps<D>): React.ReactNode => {
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
 
@@ -32,8 +37,16 @@ const CreateNewStorageSection = <D extends CreatingStorageObject>({
         <NameDescriptionField
           nameFieldId="create-new-storage-name"
           descriptionFieldId="create-new-storage-description"
-          data={data.nameDesc}
-          setData={(newData) => setData('nameDesc', newData)}
+          data={{ name: data.name, description: data.description || '' }}
+          setData={(newData) => {
+            setData('name', newData.name);
+            setData('description', newData.description);
+          }}
+          onNameChange={onNameChange}
+          hasNameError={hasDuplicateName}
+          nameHelperText={
+            hasDuplicateName ? <DuplicateNameHelperText isError name={data.name} /> : undefined
+          }
           autoFocusName={autoFocusName}
         />
       </StackItem>
@@ -52,7 +65,7 @@ const CreateNewStorageSection = <D extends CreatingStorageObject>({
           menuAppendTo={menuAppendTo}
           fieldID="create-new-storage-size"
           currentStatus={currentStatus}
-          size={data.size}
+          size={String(data.size)}
           setSize={(size) => setData('size', size)}
         />
       </StackItem>

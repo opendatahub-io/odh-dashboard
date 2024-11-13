@@ -675,10 +675,8 @@ export const createNIMPVC = (
 ): Promise<PersistentVolumeClaimKind> =>
   createPvc(
     {
-      nameDesc: {
-        name: pvcName,
-        description: '',
-      },
+      name: pvcName,
+      description: '',
       size: pvcSize,
     },
     projectName,

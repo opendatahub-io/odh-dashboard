@@ -7,6 +7,7 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
+  Skeleton,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import React from 'react';
@@ -117,7 +118,9 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
         )}
       </FormHelperText>
     </FormGroup>
-  ) : null;
+  ) : (
+    <Skeleton />
+  );
 };
 
 export default StorageClassSelect;
