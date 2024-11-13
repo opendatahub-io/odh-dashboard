@@ -43,7 +43,7 @@ import {
   translateDisplayNameForK8s,
   translateDisplayNameForK8sAndReport,
 } from '~/concepts/k8s/utils';
-import { updatePvc, useAccessReview } from '~/api';
+import { getSecret, updatePvc, useAccessReview } from '~/api';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import KServeAutoscalerReplicaSection from '~/pages/modelServing/screens/projects/kServeModal/KServeAutoscalerReplicaSection';
 import NIMPVCSizeSection from '~/pages/modelServing/screens/projects/NIMServiceModal/NIMPVCSizeSection';
@@ -169,6 +169,15 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     }
   }, [dashboardNamespace, editInfo]);
 
+  const isSecretNeeded = async (ns: string, secretName: string): Promise<boolean> => {
+    try {
+      await getSecret(ns, secretName);
+      return false; // Secret exists, no need to create
+    } catch {
+      return true; // Secret does not exist, needs to be created
+    }
+  };
+
   const onBeforeClose = (submitted: boolean) => {
     onClose(submitted);
     setError(undefined);
@@ -239,14 +248,21 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
           submitServingRuntimeResources({ dryRun: false }).then(() => undefined),
           submitInferenceServiceResource({ dryRun: false }).then(() => undefined),
         ];
+
         if (!editInfo) {
-          promises.push(
-            createNIMSecret(namespace, NIM_SECRET_NAME, false, false).then(() => undefined),
-            createNIMSecret(namespace, NIM_NGC_SECRET_NAME, true, false).then(() => undefined),
-            createNIMPVC(namespace, nimPVCName, pvcSize, false).then(() => undefined),
-          );
+          if (await isSecretNeeded(namespace, NIM_SECRET_NAME)) {
+            promises.push(
+              createNIMSecret(namespace, NIM_SECRET_NAME, false, false).then(() => undefined),
+            );
+          }
+          if (await isSecretNeeded(namespace, NIM_NGC_SECRET_NAME)) {
+            promises.push(
+              createNIMSecret(namespace, NIM_NGC_SECRET_NAME, true, false).then(() => undefined),
+            );
+          }
+          promises.push(createNIMPVC(namespace, nimPVCName, pvcSize, false).then(() => undefined));
         } else if (pvc && pvc.spec.resources.requests.storage !== pvcSize) {
-          const createData: CreatingStorageObject = {
+          const updatePvcData: CreatingStorageObject = {
             size: pvcSize, // New size
             nameDesc: {
               name: pvc.metadata.name,
@@ -255,7 +271,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
             storageClassName: pvc.spec.storageClassName,
           };
           promises.push(
-            updatePvc(createData, pvc, namespace, { dryRun: false }).then(() => undefined),
+            updatePvc(updatePvcData, pvc, namespace, { dryRun: false }).then(() => undefined),
           );
         }
         return Promise.all(promises);

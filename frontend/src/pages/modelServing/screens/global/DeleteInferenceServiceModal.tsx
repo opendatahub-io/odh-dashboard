@@ -1,10 +1,13 @@
 import * as React from 'react';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import { deleteInferenceService, deletePvc, deleteSecret, deleteServingRuntime } from '~/api';
+import { deleteInferenceService, deleteServingRuntime } from '~/api';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
+import {
+  getNIMResourcesToDelete,
+  isProjectNIMSupported,
+} from '~/pages/modelServing/screens/projects/nimUtils';
 
 type DeleteInferenceServiceModalProps = {
   inferenceService?: InferenceServiceKind;
@@ -34,62 +37,43 @@ const DeleteInferenceServiceModal: React.FC<DeleteInferenceServiceModalProps> = 
     ? getDisplayNameFromK8sResource(inferenceService)
     : 'this deployed model';
 
+  const onDelete = async () => {
+    if (!inferenceService) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const nimResourcesToDelete =
+        isKServeNIMEnabled && project && servingRuntime
+          ? await getNIMResourcesToDelete(project.metadata.name, servingRuntime)
+          : [];
+
+      await Promise.all([
+        deleteInferenceService(inferenceService.metadata.name, inferenceService.metadata.namespace),
+        ...(servingRuntime
+          ? [deleteServingRuntime(servingRuntime.metadata.name, servingRuntime.metadata.namespace)]
+          : []),
+        ...nimResourcesToDelete,
+      ]);
+
+      onBeforeClose(true);
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        setError(e);
+      } else {
+        setError(new Error('An unknown error occurred'));
+      }
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <DeleteModal
       title="Delete deployed model?"
       onClose={() => onBeforeClose(false)}
       submitButtonLabel="Delete deployed model"
-      onDelete={() => {
-        if (inferenceService) {
-          setIsDeleting(true);
-          const pvcName = servingRuntime?.spec.volumes?.find(
-            (vol) => vol.persistentVolumeClaim?.claimName,
-          )?.persistentVolumeClaim?.claimName;
-          const containerWithEnv = servingRuntime?.spec.containers.find(
-            (container) =>
-              container.env && container.env.some((env) => env.valueFrom?.secretKeyRef?.name),
-          );
-          const nimSecretName = containerWithEnv?.env?.find(
-            (env) => env.valueFrom?.secretKeyRef?.name,
-          )?.valueFrom?.secretKeyRef?.name;
-          const imagePullSecretName = servingRuntime?.spec.imagePullSecrets?.[0]?.name ?? '';
-          Promise.all([
-            deleteInferenceService(
-              inferenceService.metadata.name,
-              inferenceService.metadata.namespace,
-            ),
-            ...(servingRuntime
-              ? [
-                  deleteServingRuntime(
-                    servingRuntime.metadata.name,
-                    servingRuntime.metadata.namespace,
-                  ),
-                ]
-              : []),
-            ...(isKServeNIMEnabled && pvcName
-              ? [deletePvc(pvcName, inferenceService.metadata.namespace)]
-              : []),
-            ...(isKServeNIMEnabled &&
-            project &&
-            nimSecretName &&
-            nimSecretName.length > 0 &&
-            imagePullSecretName.length > 0
-              ? [
-                  deleteSecret(project.metadata.name, nimSecretName),
-                  deleteSecret(project.metadata.name, imagePullSecretName),
-                ]
-              : []),
-          ])
-
-            .then(() => {
-              onBeforeClose(true);
-            })
-            .catch((e) => {
-              setError(e);
-              setIsDeleting(false);
-            });
-        }
-      }}
+      onDelete={onDelete}
       deleting={isDeleting}
       error={error}
       deleteName={displayName}
@@ -98,5 +82,4 @@ const DeleteInferenceServiceModal: React.FC<DeleteInferenceServiceModalProps> = 
     </DeleteModal>
   );
 };
-
 export default DeleteInferenceServiceModal;

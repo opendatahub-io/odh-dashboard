@@ -41,6 +41,7 @@ import {
   createPvc,
   createSecret,
   createServingRuntime,
+  getInferenceServiceContext,
   updateInferenceService,
   updateServingRuntime,
 } from '~/api';
@@ -709,3 +710,16 @@ export const getCreateInferenceServiceLabels = (
 
 export const isConnectionPathValid = (path: string): boolean =>
   !(containsOnlySlashes(path) || !isS3PathValid(path) || path === '');
+
+export const fetchInferenceServiceCount = async (namespace: string): Promise<number> => {
+  try {
+    const inferenceServices = await getInferenceServiceContext(namespace);
+    return inferenceServices.length;
+  } catch (error) {
+    throw new Error(
+      `Failed to fetch inference services for namespace "${namespace}": ${
+        error instanceof Error ? error.message : error
+      }`,
+    );
+  }
+};
