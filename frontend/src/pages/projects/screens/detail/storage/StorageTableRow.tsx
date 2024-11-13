@@ -15,7 +15,6 @@ import {
   Text,
   TextVariants,
   Tooltip,
-  Truncate,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon, HddIcon } from '@patternfly/react-icons';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
@@ -108,13 +107,14 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
               alignItems={{ default: 'alignItemsCenter' }}
             >
               <FlexItem>
-                <Truncate
-                  content={
+                <TableRowTitleDescription
+                  title={
                     storageClassConfig?.displayName ??
                     obj.storageClass?.metadata.name ??
                     obj.pvc.spec.storageClassName ??
                     ''
                   }
+                  resource={obj.storageClass}
                 />
               </FlexItem>
               {storageClassesLoaded && (

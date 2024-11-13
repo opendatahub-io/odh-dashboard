@@ -36,6 +36,18 @@ class ClusterStorageRow extends TableRow {
     this.find().siblings().find('[data-label=Size]').contains(name).should('exist');
     return this;
   }
+
+  showStorageClassDetails() {
+    return this.findStorageClassColumn().findByTestId('resource-name-icon-button').click();
+  }
+
+  findStorageClassResourceNameText() {
+    return cy.findByTestId('resource-name-text');
+  }
+
+  findStorageClassResourceKindText() {
+    return cy.findByTestId('resource-kind-text');
+  }
 }
 
 class ClusterStorageModal extends Modal {
