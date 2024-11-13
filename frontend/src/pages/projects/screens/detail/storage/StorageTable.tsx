@@ -87,7 +87,7 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
       />
       {editPVC ? (
         <ClusterStorageModal
-          existingData={editPVC}
+          existingPvc={editPVC}
           onClose={(updated) => {
             if (updated) {
               refresh();

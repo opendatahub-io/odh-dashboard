@@ -433,10 +433,8 @@ describe('createNIMPVC', () => {
 
     expect(createPvc).toHaveBeenCalledWith(
       {
-        nameDesc: {
-          name: pvcName,
-          description: '',
-        },
+        name: pvcName,
+        description: '',
         size: pvcSize,
       },
       projectName,
@@ -452,10 +450,8 @@ describe('createNIMPVC', () => {
 
     expect(createPvc).toHaveBeenCalledWith(
       {
-        nameDesc: {
-          name: pvcName,
-          description: '',
-        },
+        name: pvcName,
+        description: '',
         size: pvcSize,
       },
       projectName,

@@ -1,3 +1,7 @@
+import { getDisplayNameFromK8sResource, getDescriptionFromK8sResource } from '~/concepts/k8s/utils';
+import { PersistentVolumeClaimKind } from '~/k8sTypes';
+import { StorageData } from '~/pages/projects/types';
+
 type Status = 'error' | 'warning' | 'info' | null;
 export const getFullStatusFromPercentage = (percentageFull: number): Status => {
   if (percentageFull === 100) {
@@ -11,3 +15,12 @@ export const getFullStatusFromPercentage = (percentageFull: number): Status => {
   }
   return null;
 };
+
+export const isPvcUpdateRequired = (
+  existingPvc: PersistentVolumeClaimKind,
+  storageData: StorageData,
+): boolean =>
+  getDisplayNameFromK8sResource(existingPvc) !== storageData.name ||
+  getDescriptionFromK8sResource(existingPvc) !== storageData.description ||
+  existingPvc.spec.resources.requests.storage !== storageData.size ||
+  existingPvc.spec.storageClassName !== storageData.storageClassName;

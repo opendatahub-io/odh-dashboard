@@ -1,19 +1,16 @@
 import * as React from 'react';
 import {
-  CreatingStorageObject,
   CreatingStorageObjectForNotebook,
   ExistingStorageObjectForNotebook,
   StorageData,
-  StorageType,
   UpdateObjectAtPropAndValue,
 } from '~/pages/projects/types';
-import { NotebookKind, PersistentVolumeClaimKind } from '~/k8sTypes';
+import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import {
   useRelatedNotebooks,
   ConnectedNotebookContext,
 } from '~/pages/projects/notebook/useRelatedNotebooks';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
-import { getRootVolumeName } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import useDefaultPvcSize from './useDefaultPvcSize';
 import { MountPathFormat } from './types';
@@ -21,34 +18,33 @@ import { MOUNT_PATH_PREFIX } from './const';
 
 export const useCreateStorageObject = (
   existingData?: PersistentVolumeClaimKind,
+  formData?: StorageData,
 ): [
-  data: CreatingStorageObject,
-  setData: UpdateObjectAtPropAndValue<CreatingStorageObject>,
+  data: StorageData,
+  setData: UpdateObjectAtPropAndValue<StorageData>,
   resetDefaults: () => void,
 ] => {
   const size = useDefaultPvcSize();
-  const createDataState = useGenericObjectState<CreatingStorageObject>({
-    nameDesc: {
-      name: '',
-      k8sName: undefined,
-      description: '',
-    },
+  const createDataState = useGenericObjectState<StorageData>({
+    name: '',
+    description: '',
     size,
   });
-
   const [, setCreateData] = createDataState;
 
-  const existingName = existingData ? getDisplayNameFromK8sResource(existingData) : '';
-  const existingDescription = existingData ? getDescriptionFromK8sResource(existingData) : '';
-  const existingSize = existingData ? existingData.spec.resources.requests.storage : size;
-  const existingStorageClassName = existingData?.spec.storageClassName;
+  const existingName =
+    formData?.name || (existingData ? getDisplayNameFromK8sResource(existingData) : '');
+  const existingDescription =
+    formData?.description || (existingData ? getDescriptionFromK8sResource(existingData) : '');
+  const existingSize =
+    formData?.size || (existingData ? existingData.spec.resources.requests.storage : size);
+  const existingStorageClassName =
+    formData?.storageClassName || existingData?.spec.storageClassName;
 
   React.useEffect(() => {
     if (existingName) {
-      setCreateData('nameDesc', {
-        name: existingName,
-        description: existingDescription,
-      });
+      setCreateData('name', existingName);
+      setCreateData('description', existingDescription);
       setCreateData('size', existingSize);
       setCreateData('storageClassName', existingStorageClassName);
     }
@@ -64,15 +60,13 @@ export const useCreateStorageObjectForNotebook = (
   setData: UpdateObjectAtPropAndValue<CreatingStorageObjectForNotebook>,
   resetDefaults: () => void,
 ] => {
-  const size = useDefaultPvcSize();
+  const defaultSize = useDefaultPvcSize();
 
   const createDataState = useGenericObjectState<CreatingStorageObjectForNotebook>({
-    nameDesc: {
-      name: '',
-      k8sName: undefined,
-      description: '',
-    },
-    size,
+    name: '',
+    k8sName: undefined,
+    description: '',
+    size: defaultSize,
     forNotebook: {
       name: '',
       mountPath: {
@@ -87,7 +81,7 @@ export const useCreateStorageObjectForNotebook = (
 
   const existingName = existingData ? getDisplayNameFromK8sResource(existingData) : '';
   const existingDescription = existingData ? getDescriptionFromK8sResource(existingData) : '';
-  const existingSize = existingData ? existingData.spec.resources.requests.storage : size;
+  const existingSize = existingData ? existingData.spec.resources.requests.storage : defaultSize;
   const existingStorageClassName = existingData?.spec.storageClassName;
   const { notebooks: relatedNotebooks } = useRelatedNotebooks(
     ConnectedNotebookContext.REMOVABLE_PVC,
@@ -98,10 +92,8 @@ export const useCreateStorageObjectForNotebook = (
 
   React.useEffect(() => {
     if (existingName) {
-      setCreateData('nameDesc', {
-        name: existingName,
-        description: existingDescription,
-      });
+      setCreateData('name', existingName);
+      setCreateData('description', existingDescription);
       setCreateData('hasExistingNotebookConnections', hasExistingNotebookConnections);
       setCreateData('size', existingSize);
       setCreateData('storageClassName', existingStorageClassName);
@@ -131,37 +123,14 @@ export const useExistingStorageDataObjectForNotebook = (): [
     },
   });
 
-export const useStorageDataObject = (
-  notebook?: NotebookKind,
-): [
-  data: StorageData,
-  setData: UpdateObjectAtPropAndValue<StorageData>,
-  resetDefaults: () => void,
-] => {
-  const size = useDefaultPvcSize();
-  return useGenericObjectState<StorageData>({
-    storageType: notebook ? StorageType.EXISTING_PVC : StorageType.NEW_PVC,
-    creating: {
-      nameDesc: {
-        name: '',
-        description: '',
-      },
-      size,
-      storageClassName: '',
-    },
-    existing: {
-      storage: getRootVolumeName(notebook),
-    },
-  });
-};
-
 // Returns the initial mount path format based on the isCreate and mountPath props.
 export const useMountPathFormat = (
   isCreate: boolean,
   mountPath: string,
+  initialFormat?: MountPathFormat,
 ): [MountPathFormat, React.Dispatch<React.SetStateAction<MountPathFormat>>] => {
   const getInitialFormat = React.useCallback(() => {
-    if (isCreate) {
+    if (isCreate && !mountPath) {
       return MountPathFormat.STANDARD;
     }
     return mountPath.startsWith(MOUNT_PATH_PREFIX)
@@ -169,7 +138,7 @@ export const useMountPathFormat = (
       : MountPathFormat.CUSTOM;
   }, [isCreate, mountPath]);
 
-  const [format, setFormat] = React.useState(getInitialFormat);
+  const [format, setFormat] = React.useState(initialFormat || getInitialFormat());
 
   React.useEffect(() => {
     if (!isCreate) {
@@ -180,16 +149,16 @@ export const useMountPathFormat = (
     }
   }, [isCreate, mountPath]);
 
-  return [format, setFormat] as const;
+  return [format, setFormat];
 };
 
 // Validates the mount path for a storage object.
-export const validateMountPath = (
-  value: string,
-  inUseMountPaths: string[],
-  format: MountPathFormat,
-): string => {
-  if (value.length === 0 && format === MountPathFormat.CUSTOM) {
+export const validateMountPath = (value: string, inUseMountPaths: string[]): string => {
+  const format = value.startsWith(MOUNT_PATH_PREFIX)
+    ? MountPathFormat.STANDARD
+    : MountPathFormat.CUSTOM;
+
+  if (!value.length && format === MountPathFormat.CUSTOM) {
     return 'Enter a path to a model or folder. This path cannot point to a root folder.';
   }
 
@@ -203,8 +172,14 @@ export const validateMountPath = (
     return 'Must only consist of lowercase letters, dashes, and slashes.';
   }
 
-  if (inUseMountPaths.includes(`/${value}`)) {
+  if (
+    inUseMountPaths.includes(value) ||
+    (format === MountPathFormat.STANDARD &&
+      inUseMountPaths.includes(`${MOUNT_PATH_PREFIX}${value}`)) ||
+    (format === MountPathFormat.CUSTOM && inUseMountPaths.includes(`/${value}`))
+  ) {
     return 'Mount folder is already in use for this workbench.';
   }
+
   return '';
 };
