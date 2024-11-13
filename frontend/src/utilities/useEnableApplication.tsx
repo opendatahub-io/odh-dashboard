@@ -134,7 +134,7 @@ export const useEnableApplication = (
                   status: EnableApplicationStatus.SUCCESS,
                   error: response.error ? '' : response.error,
                 });
-                dispatchResults(response.isAppEnabled ? undefined : response.error);
+                dispatchResults(undefined);
               }
             }
           })

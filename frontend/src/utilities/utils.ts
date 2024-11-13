@@ -185,7 +185,7 @@ export const isEnumMember = <T extends object>(
 };
 
 export const isInternalRouteIntegrationsApp = (internalRoute?: string): boolean =>
-  internalRoute ? internalRoute.startsWith('/api') : false;
+  internalRoute ? internalRoute.startsWith('/api/') : false;
 
 export const isIntegrationApp = (app: OdhApplication): boolean =>
-  app.spec.internalRoute != null && app.spec.internalRoute.startsWith('/api');
+  app.spec.internalRoute != null && app.spec.internalRoute.startsWith('/api/');

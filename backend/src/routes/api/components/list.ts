@@ -24,8 +24,7 @@ export const listComponents = async (
     if (isIntegrationApp(app)) {
       // Include all integration apps -- Client can check if it's enabled
       installedComponents.push(app);
-    }
-    else if (app.spec.shownOnEnabledPage) {
+    } else if (app.spec.shownOnEnabledPage) {
       const newApp = {
         ...app,
         spec: {

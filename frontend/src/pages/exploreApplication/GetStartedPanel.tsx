@@ -21,8 +21,7 @@ import MarkdownView from '~/components/MarkdownView';
 import { markdownConverter } from '~/utilities/markdown';
 import { useAppContext } from '~/app/AppContext';
 import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { isInternalRouteIntegrationsApp } from '~/utilities/utils';
-import { getIntegrationAppEnablementStatus } from '~/services/integrationAppService';
+import { useWatchIntegrationApp } from '~/utilities/useWatchIntegrationApp';
 
 const DEFAULT_BETA_TEXT =
   'This application is available for early access prior to official ' +
@@ -38,24 +37,8 @@ type GetStartedPanelProps = {
 const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose, onEnable }) => {
   const { dashboardConfig } = useAppContext();
   const { enablement } = dashboardConfig.spec.dashboardConfig;
-  const [isEnableButtonDisabled, setIsEnableButtonDisabled] = React.useState(false);
-
-  React.useEffect(() => {
-    if (selectedApp?.spec.internalRoute &&
-      isInternalRouteIntegrationsApp(selectedApp.spec.internalRoute)
-    ) {
-      getIntegrationAppEnablementStatus(selectedApp.spec.internalRoute)
-        .then((response) => {
-          if (response.error) {
-            setIsEnableButtonDisabled(true);
-          }
-        })
-        .catch((error) => {
-          // eslint-disable-next-line no-console  
-          console.error('Error getting integration App Enablement Status', error);
-        });
-    }
-  }, [selectedApp]);
+  const { isIntegrationAppInstalled, isintegrationAppChecked } =
+    useWatchIntegrationApp(selectedApp);
 
   if (!selectedApp) {
     return null;
@@ -69,7 +52,7 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
       <Button
         variant={ButtonVariant.secondary}
         onClick={onEnable}
-        isDisabled={!enablement || isEnableButtonDisabled}
+        isDisabled={!enablement || (isIntegrationAppInstalled && isintegrationAppChecked)}
       >
         Enable
       </Button>

@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { cloneDeep } from 'lodash-es';
 import { useAppSelector } from '~/redux/hooks';
 import { OdhApplication } from '~/types';
 import { getIntegrationAppEnablementStatus } from '~/services/integrationAppService';
@@ -28,11 +27,19 @@ export const useWatchIntegrationComponents = (
           if (response.error) {
             setNewComponents(componentList);
           } else {
-            setNewComponents((componentList) => {
-              const updatedComponents = cloneDeep(componentList);
-              updatedComponents[componentList.indexOf(component)].spec.isEnabled = response.isAppEnabled;
-              return updatedComponents;
-            });
+            setNewComponents(
+              componentList.map((app) =>
+                app.metadata.name === component.metadata.name
+                  ? {
+                      ...app,
+                      spec: {
+                        ...app.spec,
+                        isAppEnabled: response.isAppEnabled,
+                      },
+                    }
+                  : app,
+              ),
+            );
           }
         });
       }
