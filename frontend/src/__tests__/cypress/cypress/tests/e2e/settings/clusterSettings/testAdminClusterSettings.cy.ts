@@ -1,4 +1,4 @@
-import { ADMIN_USER, TEST_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import { ADMIN_USER, CONTRIBUTOR_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { clusterSettings } from '~/__tests__/cypress/cypress/pages/clusterSettings';
 import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
 import type { DashboardConfig, NotebookControllerConfig } from '~/__tests__/cypress/cypress/types';
@@ -8,6 +8,7 @@ import {
   validateStopIdleNotebooks,
   validateNotebookPodTolerations,
 } from '~/__tests__/cypress/cypress/utils/clusterSettingsUtils';
+import cypress from 'cypress';
 
 describe('Verify that only the Cluster Admin can access Cluster Settings', () => {
   let dashboardConfig: DashboardConfig;
@@ -52,7 +53,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
   });
   it('Test User - should not have access rights to view the Cluster Settings tab', () => {
     cy.step('Log into the application');
-    cy.visitWithLogin('/', TEST_USER);
+    cy.visitWithLogin('/', CONTRIBUTOR_USER);
 
     cy.step('Navigate to the Cluster Settings');
     clusterSettings.visit(false);
