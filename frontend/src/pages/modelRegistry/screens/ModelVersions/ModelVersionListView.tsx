@@ -172,7 +172,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
               <>
                 <ToolbarItem>
                   <Button
-                    variant="secondary"
+                    variant="primary"
                     onClick={() => {
                       navigate(
                         registerVersionForModelUrl(rm?.id, preferredModelRegistry?.metadata.name),

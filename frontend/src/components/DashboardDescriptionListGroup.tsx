@@ -105,7 +105,7 @@ const DashboardDescriptionListGroup: React.FC<DashboardDescriptionListGroupProps
                     isInline
                     variant="link"
                     icon={<PencilAltIcon />}
-                    iconPosition="end"
+                    iconPosition="start"
                     onClick={onEditClick}
                   >
                     Edit
