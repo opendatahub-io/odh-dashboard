@@ -25,6 +25,7 @@ jest.mock('~/api', () => ({
   getSecret: jest.fn(),
   createSecret: jest.fn(),
   createPvc: jest.fn(),
+  getInferenceServiceContext: jest.fn(),
 }));
 
 jest.mock('~/pages/modelServing/screens/projects/nimUtils', () => ({
