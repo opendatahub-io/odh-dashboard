@@ -8,7 +8,6 @@ import {
   validateStopIdleNotebooks,
   validateNotebookPodTolerations,
 } from '~/__tests__/cypress/cypress/utils/clusterSettingsUtils';
-import cypress from 'cypress';
 
 describe('Verify that only the Cluster Admin can access Cluster Settings', () => {
   let dashboardConfig: DashboardConfig;
