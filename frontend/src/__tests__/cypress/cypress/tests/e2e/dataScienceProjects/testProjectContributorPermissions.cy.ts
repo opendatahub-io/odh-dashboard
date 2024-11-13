@@ -1,13 +1,10 @@
-import yaml from 'js-yaml';
-import {
-  verifyOpenShiftProjectExists,
-  deleteOpenShiftProject,
-  createOpenShiftProject,
-} from '~/__tests__/cypress/cypress/utils/oc_commands/project';
+import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import type { DataScienceProjectData } from '~/__tests__/cypress/cypress/types';
 import { permissions } from '~/__tests__/cypress/cypress/pages/permissions';
 import { ADMIN_USER, TEST_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import { loadFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
+import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
 
 describe('Verify that users can provide contributor project permissions to non-admin users', () => {
   let testData: DataScienceProjectData;
@@ -15,30 +12,20 @@ describe('Verify that users can provide contributor project permissions to non-a
 
   // Setup: Load test data and ensure clean state
   before(() => {
-    cy.fixture('e2e/dataScienceProjects/dataScienceProject.yaml', 'utf8')
-      .then((yamlContent: string) => {
-        testData = yaml.load(yamlContent) as DataScienceProjectData;
-        projectName = testData.dsOCProjectPermissionsContributorName;
-
+    return loadFixture('e2e/dataScienceProjects/testProjectContributorPermissions.yaml')
+      .then((fixtureData: DataScienceProjectData) => {
+        testData = fixtureData;
+        projectName = testData.projectContributorResourceName;
         if (!projectName) {
-          throw new Error('Project name is undefined or empty');
+          throw new Error('Project name is undefined or empty in the loaded fixture');
         }
-
-        return verifyOpenShiftProjectExists(projectName);
+        cy.log(`Loaded project name: ${projectName}`);
+        return createCleanProject(projectName);
       })
-      .then((exists: boolean) => {
-        if (exists) {
-          cy.log(`Project ${projectName} exists. Deleting before test.`);
-          return deleteOpenShiftProject(projectName).then(() => {
-            cy.log(`Creating project ${projectName} after deletion.`);
-            return createOpenShiftProject(projectName);
-          });
-        }
-        cy.log(`Project ${projectName} does not exist. Creating it now.`);
-        return createOpenShiftProject(projectName);
+      .then(() => {
+        cy.log(`Project ${projectName} confirmed to be created and verified successfully`);
       });
   });
-
   after(() => {
     // Delete provisioned Project
     if (projectName) {
@@ -54,11 +41,11 @@ describe('Verify that users can provide contributor project permissions to non-a
 
     // Project navigation, add user and provide contributor permissions
     cy.step(
-      `Navigate to the Project list tab and search for ${testData.dsOCProjectPermissionsContributorName}`,
+      `Navigate to the Project list tab and search for ${testData.projectContributorResourceName}`,
     );
     projectListPage.navigate();
-    projectListPage.filterProjectByName(testData.dsOCProjectPermissionsContributorName);
-    projectListPage.findProjectLink(testData.dsOCProjectPermissionsContributorName).click();
+    projectListPage.filterProjectByName(testData.projectContributorResourceName);
+    projectListPage.findProjectLink(testData.projectContributorResourceName).click();
     projectDetails.findSectionTab('permissions').click();
 
     cy.step('Assign contributor user Project Permissions');
@@ -83,8 +70,8 @@ describe('Verify that users can provide contributor project permissions to non-a
     // Project navigation and validate permissions tab is accessible
     cy.step('Verify that the user has access to the created project but cannot access Permissions');
     projectListPage.navigate();
-    projectListPage.filterProjectByName(testData.dsOCProjectPermissionsContributorName);
-    projectListPage.findProjectLink(testData.dsOCProjectPermissionsContributorName).click();
+    projectListPage.filterProjectByName(testData.projectContributorResourceName);
+    projectListPage.findProjectLink(testData.projectContributorResourceName).click();
     cy.log('Attempting to find permissions tab which should not be visible');
     projectDetails.findSectionTab('permissions').should('not.exist');
   });
