@@ -65,7 +65,7 @@ describe('useGetPipelineRunContextByExecution', () => {
       getContextsList: () => [mockContext],
     } as GetContextsByExecutionResponse);
 
-    const renderResult = testHook(useGetPipelineRunContextByExecution)(mockExecution);
+    const renderResult = testHook(useGetPipelineRunContextByExecution)(mockExecution.getId());
 
     expect(renderResult.result.current).toStrictEqual(standardUseFetchState(null));
     expect(renderResult).hookToHaveUpdateCount(1);
@@ -85,7 +85,7 @@ describe('useGetPipelineRunContextByExecution', () => {
     const error = new Error('Cannot fetch contexts');
     mockGetContextsByExecution.mockRejectedValue(error);
 
-    const renderResult = testHook(useGetPipelineRunContextByExecution)(mockExecution);
+    const renderResult = testHook(useGetPipelineRunContextByExecution)(mockExecution.getId());
 
     expect(renderResult.result.current).toStrictEqual(standardUseFetchState(null));
     expect(renderResult).hookToHaveUpdateCount(1);

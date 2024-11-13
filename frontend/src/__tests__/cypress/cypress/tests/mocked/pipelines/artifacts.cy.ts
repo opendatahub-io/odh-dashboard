@@ -11,11 +11,14 @@ import {
 } from '~/__mocks__/mlmd/mockGetArtifacts';
 import {
   buildMockPipeline,
+  buildMockRunKF,
   mockMetricsVisualizationRun,
   mockMetricsVisualizationVersion,
 } from '~/__mocks__';
 import { pipelineRunDetails } from '~/__tests__/cypress/cypress/pages/pipelines';
 import { mockArtifactStorage } from '~/__mocks__/mockArtifactStorage';
+import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
+import { RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
 import { configIntercept, dspaIntercepts, projectsIntercept } from './intercepts';
 import { initMlmdIntercepts } from './mlmdUtils';
 
@@ -24,6 +27,14 @@ const projectName = 'test-project-name';
 const mockPipeline = buildMockPipeline({
   pipeline_id: 'metrics-pipeline',
   display_name: 'metrics-pipeline',
+});
+
+const mockRuns = buildMockRunKF({
+  display_name: 'Test run',
+  run_id: 'test-run',
+  experiment_id: 'test-experiment-1',
+  created_at: '2024-02-10T00:00:00Z',
+  state: RuntimeStateKF.SUCCEEDED,
 });
 
 describe('Artifacts', () => {
@@ -178,6 +189,11 @@ describe('Artifacts', () => {
         .findCustomPropItemByLabel('display_name')
         .next()
         .should('have.text', 'scalar metrics');
+      artifactDetails.findReferenceTable().should('exist');
+      artifactDetails.findPipelineLink('runs/details/test-run');
+      artifactDetails.findExecutionLink('execution/211');
+      artifactDetails.findExecutionLink('execution/211').click();
+      verifyRelativeURL('/executions/test-project-name/211');
     });
   });
 
@@ -266,6 +282,17 @@ export const initIntercepts = (): void => {
       },
     },
     mockMetricsVisualizationVersion,
+  );
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
+    {
+      path: {
+        namespace: projectName,
+        serviceName: 'dspa',
+        runId: mockRuns.run_id,
+      },
+    },
+    mockRuns,
   );
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
