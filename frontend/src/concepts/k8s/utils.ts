@@ -117,8 +117,10 @@ export const translateDisplayNameForK8s = (
   additionalCriteria: AdditionalCriteriaForTranslation = {},
 ): string => translateDisplayNameForK8sAndReport(name, additionalCriteria)[0];
 
-export const isValidK8sName = (name?: string): boolean =>
-  name === undefined || (name.length > 0 && /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/.test(name));
+export const isValidK8sName = (
+  name?: string,
+  regExp = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/,
+): boolean => name === undefined || (name.length > 0 && regExp.test(name));
 
 type ResourceWithConditions = K8sResourceCommon & { status?: { conditions?: K8sCondition[] } };
 
