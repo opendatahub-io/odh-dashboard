@@ -1,7 +1,7 @@
 import type { MatcherOptions } from '@testing-library/cypress';
 import type { Matcher, MatcherOptions as DTLMatcherOptions } from '@testing-library/dom';
 import type { UserAuthConfig, DashboardConfig } from '~/__tests__/cypress/cypress/types';
-import { CONTRIBUTOR_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import { ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
   getDashboardConfig,
   getNotebookControllerConfig,
@@ -148,7 +148,7 @@ declare global {
   }
 }
 
-Cypress.Commands.add('visitWithLogin', (url, user = CONTRIBUTOR_USER) => {
+Cypress.Commands.add('visitWithLogin', (url, user = ADMIN_USER) => {
   if (Cypress.env('MOCK')) {
     cy.visit(url);
   } else {
