@@ -1,0 +1,2 @@
+# testProjectAdminPermissions.cy.ts Test Data #
+projectPermissionResourceName: "cypress-user-perm-test" 
