@@ -18,14 +18,27 @@ export const getNIMAccount = async (
 ): Promise<NIMAccountKind> => {
   const { customObjectsApi } = fastify.kube;
   try {
-    const response = await customObjectsApi.getNamespacedCustomObject(
+    const response = await customObjectsApi.listNamespacedCustomObject(
       'nim.opendatahub.io',
       'v1',
       namespace,
       'accounts',
-      NIM_ACCOUNT_NAME,
     );
-    return Promise.resolve(response.body as NIMAccountKind);
+    // Get the list of accounts from the response
+    const accounts = response.body as {
+      items: NIMAccountKind[];
+    };
+
+    if (!accounts.items || accounts.items.length === 0) {
+      const error: any = new Error('NIM account does not exist');
+      error.response = {
+        statusCode: 404,
+        body: { message: 'NIM account does not exist' },
+      };
+      return Promise.reject(error);
+    }
+    // Return the first account
+    return Promise.resolve(accounts.items[0]);
   } catch (e) {
     return Promise.reject(e);
   }
