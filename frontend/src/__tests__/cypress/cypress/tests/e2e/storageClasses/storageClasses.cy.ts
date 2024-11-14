@@ -1,4 +1,4 @@
-import { ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
   verifyStorageClassConfig,
   provisionStorageClassFeature,
@@ -26,7 +26,7 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
   });
 
   it('An admin user can enable a disabled Storage Class', () => {
-    cy.visitWithLogin('/', ADMIN_USER);
+    cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
     storageClassesPage.navigate();
     const scDisabledName = `${scName}-disabled-non-default`;
     // SC row exist
@@ -51,7 +51,7 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
   });
 
   it('An admin user can disable an enabled Storage Class', () => {
-    cy.visitWithLogin('/', ADMIN_USER);
+    cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
     storageClassesPage.navigate();
     const scEnabledName = `${scName}-enabled-non-default`;
     // SC row exist
@@ -76,7 +76,7 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
   });
 
   it('An admin user can set an enabled Storage Class as the default one', () => {
-    cy.visitWithLogin('/', ADMIN_USER);
+    cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
     storageClassesPage.navigate();
     const scToDefaultName = `${scName}-enabled-to-default`;
     const scToDefaultRow = storageClassesTable.getRowByConfigName(scToDefaultName);
