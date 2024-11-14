@@ -1,9 +1,11 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Alert,
   Breadcrumb,
   BreadcrumbItem,
+  Button,
+  Flex,
+  FlexItem,
   Form,
   FormSection,
   PageSection,
@@ -30,15 +32,17 @@ import { LimitNameResourceType } from '~/concepts/k8s/K8sNameDescriptionField/ut
 import useConnectionTypesEnabled from '~/concepts/connectionTypes/useConnectionTypesEnabled';
 import { Connection } from '~/concepts/connectionTypes/types';
 import useNotebookAcceleratorProfileFormState from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileFormState';
+import { StorageData, StorageType } from '~/pages/projects/types';
+import useNotebookPVCItems from '~/pages/projects/pvc/useNotebookPVCItems';
+import { getNotebookPVCMountPathMap } from '~/pages/projects/notebook/utils';
+import { getNotebookPVCNames } from '~/pages/projects/pvc/utils';
 import { SpawnerPageSectionID } from './types';
 import { ScrollableSelectorID, SpawnerPageSectionTitles } from './const';
 import SpawnerFooter from './SpawnerFooter';
 import ImageSelectorField from './imageSelector/ImageSelectorField';
 import ContainerSizeSelector from './deploymentSize/ContainerSizeSelector';
-import StorageField from './storage/StorageField';
 import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
-import { useStorageDataObject } from './storage/utils';
-import { getCompatibleAcceleratorIdentifiers, useMergeDefaultPVCName } from './spawnerUtils';
+import { getCompatibleAcceleratorIdentifiers } from './spawnerUtils';
 import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
 import DataConnectionField from './dataConnection/DataConnectionField';
 import { useNotebookDataConnection } from './dataConnection/useNotebookDataConnection';
@@ -48,6 +52,12 @@ import usePreferredStorageClass from './storage/usePreferredStorageClass';
 import { ConnectionsFormSection } from './connections/ConnectionsFormSection';
 import { getConnectionsFromNotebook } from './connections/utils';
 import AlertWarningText from './environmentVariables/AlertWarningText';
+import { ClusterStorageTable } from './storage/ClusterStorageTable';
+import useDefaultPvcSize from './storage/useDefaultPvcSize';
+import { defaultClusterStorage } from './storage/constants';
+import { ClusterStorageEmptyState } from './storage/ClusterStorageEmptyState';
+import AttachExistingStorageModal from './storage/AttachExistingStorageModal';
+import WorkbenchStorageModal from './storage/WorkbenchStorageModal';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
@@ -58,6 +68,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     currentProject,
     dataConnections,
     connections: { data: projectConnections, refresh: refreshProjectConnections },
+    notebooks: { data: notebooks },
   } = React.useContext(ProjectDetailsContext);
   const displayName = getDisplayNameFromK8sResource(currentProject);
 
@@ -66,6 +77,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     limitNameResourceType: LimitNameResourceType.WORKBENCH,
     safePrefix: 'wb-',
   });
+  const [isAttachStorageModalOpen, setIsAttachStorageModalOpen] = React.useState(false);
+  const [isCreateStorageModalOpen, setIsCreateStorageModalOpen] = React.useState(false);
   const [selectedImage, setSelectedImage] = React.useState<ImageStreamAndVersion>({
     imageStream: undefined,
     imageVersion: undefined,
@@ -74,19 +87,46 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const [supportedAcceleratorProfiles, setSupportedAcceleratorProfiles] = React.useState<
     string[] | undefined
   >();
-  const [storageDataWithoutDefault, setStorageData] = useStorageDataObject(existingNotebook);
-
   const [defaultStorageClass] = useDefaultStorageClass();
   const preferredStorageClass = usePreferredStorageClass();
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const defaultStorageClassName = isStorageClassesAvailable
     ? defaultStorageClass?.metadata.name
     : preferredStorageClass?.metadata.name;
-  const storageData = useMergeDefaultPVCName(
-    storageDataWithoutDefault,
-    k8sNameDescriptionData.data.name,
-    defaultStorageClassName,
+  const defaultNotebookSize = useDefaultPvcSize();
+
+  const [existingPvcs] = useNotebookPVCItems(existingNotebook);
+  const [storageData, setStorageData] = React.useState<StorageData[]>(
+    existingNotebook
+      ? existingPvcs.map((existingPvc) => ({
+          storageType: StorageType.EXISTING_PVC,
+          existingPvc,
+          name:
+            existingPvc.metadata.annotations?.['openshift.io/display-name'] ||
+            existingPvc.metadata.name,
+          description: existingPvc.metadata.annotations?.['openshift.io/description'],
+          size: existingPvc.spec.resources.requests.storage,
+          storageClassName: existingPvc.spec.storageClassName,
+          mountPath: getNotebookPVCMountPathMap(existingNotebook)[existingPvc.metadata.name],
+        }))
+      : [
+          {
+            storageType: StorageType.NEW_PVC,
+            name: k8sNameDescriptionData.data.name || defaultClusterStorage.name,
+            description: defaultClusterStorage.description,
+            size: defaultClusterStorage.size || defaultNotebookSize,
+            storageClassName: defaultStorageClassName,
+            mountPath: defaultClusterStorage.mountPath,
+          },
+        ],
   );
+
+  const existingMountPaths = storageData.reduce(
+    (acc: string[], storageDataEntry) =>
+      storageDataEntry.mountPath ? acc.concat(storageDataEntry.mountPath) : acc,
+    [],
+  );
+  const existingStorageNames = storageData.map((storageDataEntry) => storageDataEntry.name);
 
   const [dataConnectionData, setDataConnectionData] = useNotebookDataConnection(
     dataConnections.data,
@@ -106,7 +146,24 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
       dataConnectionData.existing?.secretRef.name || '',
     ]);
 
-  const restartNotebooks = useWillNotebooksRestart([existingNotebook?.metadata.name || '']);
+  const notebooksUsingPVCsWithSizeChanges = React.useMemo(() => {
+    const attachedPVCs = storageData.filter((storage) => storage.existingPvc !== undefined);
+
+    return attachedPVCs.flatMap((storage) =>
+      notebooks
+        .filter(
+          ({ notebook }) =>
+            getNotebookPVCNames(notebook).includes(storage.existingPvc?.metadata.name || '') &&
+            storage.existingPvc?.spec.resources.requests.storage !== storage.size,
+        )
+        .map(({ notebook }) => notebook.metadata.name),
+    );
+  }, [storageData, notebooks]);
+
+  const restartNotebooks = useWillNotebooksRestart([
+    existingNotebook?.metadata.name || '',
+    ...notebooksUsingPVCsWithSizeChanges,
+  ]);
 
   const [data, loaded, loadError] = useNotebookImageData(existingNotebook);
   React.useEffect(() => {
@@ -225,19 +282,46 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               <EnvironmentVariables envVariables={envVariables} setEnvVariables={setEnvVariables} />
             </FormSection>
             <FormSection
-              title={SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
+              title={
+                <Flex
+                  spaceItems={{ default: 'spaceItemsMd' }}
+                  alignItems={{ default: 'alignItemsCenter' }}
+                >
+                  <FlexItem spacer={{ default: 'spacerLg' }}>
+                    {SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
+                  </FlexItem>
+
+                  <Button
+                    variant="secondary"
+                    data-testid="existing-storage-button"
+                    onClick={() => setIsAttachStorageModalOpen(true)}
+                  >
+                    Attach existing storage
+                  </Button>
+
+                  <Button
+                    variant="secondary"
+                    data-testid="create-storage-button"
+                    onClick={() => setIsCreateStorageModalOpen(true)}
+                  >
+                    Create storage
+                  </Button>
+                </Flex>
+              }
               id={SpawnerPageSectionID.CLUSTER_STORAGE}
               aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
             >
-              <Alert
-                data-testid="cluster-storage-alert"
-                component="h2"
-                variant="info"
-                isPlain
-                isInline
-                title="Cluster storage will mount to /"
-              />
-              <StorageField storageData={storageData} setStorageData={setStorageData} />
+              {storageData.length ? (
+                <ClusterStorageTable
+                  storageData={storageData.map((formData, index) => ({ ...formData, id: index }))}
+                  existingStorageNames={existingStorageNames}
+                  existingMountPaths={existingMountPaths}
+                  setStorageData={setStorageData}
+                  workbenchName={k8sNameDescriptionData.data.k8sName.value}
+                />
+              ) : (
+                <ClusterStorageEmptyState />
+              )}
             </FormSection>
             {isConnectionTypesEnabled ? (
               <ConnectionsFormSection
@@ -268,7 +352,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
         <Stack hasGutter>
           {restartNotebooks.length !== 0 && (
             <StackItem>
-              <NotebookRestartAlert notebooks={restartNotebooks} isCurrent />
+              <NotebookRestartAlert notebooks={restartNotebooks} />
             </StackItem>
           )}
           <StackItem>
@@ -299,6 +383,52 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
           </StackItem>
         </Stack>
       </PageSection>
+
+      {isAttachStorageModalOpen && (
+        <AttachExistingStorageModal
+          existingMountPaths={existingMountPaths}
+          existingStorageNames={existingStorageNames}
+          onClose={(submit, attachData) => {
+            if (submit && attachData?.storage) {
+              setStorageData((prevData) =>
+                prevData.concat([
+                  {
+                    storageType: StorageType.EXISTING_PVC,
+                    id: storageData.length + 1,
+                    name: attachData.storage,
+                    existingPvc: attachData.pvc,
+                    mountPath: attachData.mountPath.value,
+                    description: attachData.pvc?.metadata.annotations?.['openshift.io/description'],
+                    size: attachData.pvc?.spec.resources.requests.storage,
+                    storageClassName: attachData.pvc?.spec.storageClassName,
+                  },
+                ]),
+              );
+            }
+
+            setIsAttachStorageModalOpen(false);
+          }}
+        />
+      )}
+
+      {isCreateStorageModalOpen && (
+        <WorkbenchStorageModal
+          onSubmit={(newStorageData) =>
+            setStorageData((prevData) =>
+              prevData.concat([
+                {
+                  ...newStorageData,
+                  storageType: StorageType.NEW_PVC,
+                  id: storageData.length + 1,
+                },
+              ]),
+            )
+          }
+          existingStorageNames={existingStorageNames}
+          existingMountPaths={existingMountPaths}
+          onClose={() => setIsCreateStorageModalOpen(false)}
+        />
+      )}
     </ApplicationsPage>
   );
 };

@@ -87,9 +87,11 @@ export type TestConfig = {
 };
 
 export type DataScienceProjectData = {
-  dsProjectName: string;
-  dsProjectDescription: string;
-  dsOCProjectName: string;
+  projectDisplayName: string;
+  projectDescription: string;
+  projectResourceName: string;
+  projectPermissionResourceName: string;
+  projectContributorResourceName: string;
 };
 
 export type NimServingResponse = {

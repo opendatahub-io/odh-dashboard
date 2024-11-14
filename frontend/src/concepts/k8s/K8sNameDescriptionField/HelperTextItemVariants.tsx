@@ -33,8 +33,8 @@ export const HelperTextItemValidCharacters: HelperTextItemType = ({ k8sName }) =
 
   return (
     <HelperTextItem variant={variant} hasIcon>
-      Must start and end with a letter or number. Valid characters include lowercase letters,
-      numbers, and hyphens (-).
+      {k8sName.state.invalidCharsMessage ||
+        'Must start and end with a letter or number. Valid characters include lowercase letters, numbers, and hyphens (-).'}
     </HelperTextItem>
   );
 };

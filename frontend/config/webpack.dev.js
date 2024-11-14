@@ -2,6 +2,7 @@ const { execSync } = require('child_process');
 const path = require('path');
 const { merge } = require('webpack-merge');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 
@@ -146,7 +147,10 @@ module.exports = smp.wrap(
           },
         ],
       },
-      plugins: [new ReactRefreshWebpackPlugin({ overlay: false })],
+      plugins: [
+        new ForkTsCheckerWebpackPlugin(),
+        new ReactRefreshWebpackPlugin({ overlay: false }),
+      ],
     },
   ),
 );

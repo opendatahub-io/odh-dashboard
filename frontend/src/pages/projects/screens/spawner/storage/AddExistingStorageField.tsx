@@ -3,7 +3,7 @@ import { Alert, FormGroup } from '@patternfly/react-core';
 import { ExistingStorageObject } from '~/pages/projects/types';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import TypeaheadSelect from '~/components/TypeaheadSelect';
+import TypeaheadSelect, { TypeaheadSelectOption } from '~/components/TypeaheadSelect';
 import useProjectPvcs from '~/pages/projects/screens/detail/storage/useProjectPvcs';
 
 type AddExistingStorageFieldProps = {
@@ -11,6 +11,7 @@ type AddExistingStorageFieldProps = {
   setData: (data: ExistingStorageObject) => void;
   selectDirection?: 'up' | 'down';
   menuAppendTo?: HTMLElement;
+  existingStorageNames?: string[];
 };
 
 const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
@@ -18,6 +19,7 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
   setData,
   selectDirection,
   menuAppendTo,
+  existingStorageNames,
 }) => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const [storages, loaded, loadError] = useProjectPvcs(currentProject.metadata.name);
@@ -32,16 +34,22 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
   const selectOptions = React.useMemo(
     () =>
       loaded
-        ? storages.map((pvc) => ({
-            value: pvc.metadata.name,
-            content: getDisplayNameFromK8sResource(pvc),
-            description: selectDescription(
-              pvc.spec.resources.requests.storage,
-              pvc.metadata.annotations?.['openshift.io/description'],
-            ),
-          }))
+        ? storages.reduce((acc: TypeaheadSelectOption[], pvc) => {
+            if (!existingStorageNames?.includes(pvc.metadata.name)) {
+              acc.push({
+                value: pvc.metadata.name,
+                content: getDisplayNameFromK8sResource(pvc),
+                description: selectDescription(
+                  pvc.spec.resources.requests.storage,
+                  pvc.metadata.annotations?.['openshift.io/description'],
+                ),
+              });
+            }
+
+            return acc;
+          }, [])
         : [],
-    [loaded, storages],
+    [existingStorageNames, loaded, storages],
   );
 
   if (loadError) {
@@ -72,7 +80,15 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
       <TypeaheadSelect
         selectOptions={selectOptions}
         selected={data.storage}
-        onSelect={(_ev, storage) => setData({ ...data, storage: String(storage) || '' })}
+        onSelect={(_, storage) => {
+          const pvc = storages.find((pvcData) => pvcData.metadata.name === storage);
+
+          setData({
+            ...data,
+            pvc,
+            storage: String(storage) || '',
+          });
+        }}
         placeholder={placeholderText}
         noOptionsFoundMessage={(filter) => `No persistent storage was found for "${filter}"`}
         popperProps={{ direction: selectDirection, appendTo: menuAppendTo }}

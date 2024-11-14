@@ -42,7 +42,7 @@ const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
             popperProps={{ position: 'end' }}
             toggle={(toggleRef) => (
               <MenuToggle
-                variant="primary"
+                variant="secondary"
                 ref={toggleRef}
                 onClick={() => setOpen(!isOpen)}
                 isExpanded={isOpen}

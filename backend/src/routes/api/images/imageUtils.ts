@@ -264,9 +264,10 @@ export const postImage = async (
     'opendatahub.io/dashboard': 'true',
   };
   const imageStreams = (await getImageStreams(fastify, labels)) as ImageStream[];
-  const validName = imageStreams.filter((is) => is.metadata.name === body.name);
+  const name = body.name || `custom-${translateDisplayNameForK8s(body.display_name)}`;
+  const existingImage = imageStreams.find((is) => is.metadata.name === name);
 
-  if (validName.length > 0) {
+  if (existingImage) {
     fastify.log.error('Duplicate name unable to add notebook image');
     return {
       success: false,
@@ -287,7 +288,7 @@ export const postImage = async (
           body.recommendedAcceleratorIdentifiers ?? [],
         ),
       },
-      name: `custom-${translateDisplayNameForK8s(body.display_name)}`,
+      name,
       namespace: namespace,
       labels: labels,
     },
