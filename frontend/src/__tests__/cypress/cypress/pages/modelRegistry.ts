@@ -95,6 +95,22 @@ class ModelRegistry {
     cy.findByTestId('empty-registered-models').should('exist');
   }
 
+  findViewDetailsButton() {
+    return cy.findByTestId('view-details-button');
+  }
+
+  findDetailsPopover() {
+    return cy.findByTestId('mr-details-popover');
+  }
+
+  findHelpContentButton() {
+    return cy.findByTestId('model-registry-help-button');
+  }
+
+  findHelpContentPopover() {
+    return cy.findByTestId('model-registry-help-content');
+  }
+
   shouldmodelVersionsEmpty() {
     cy.findByTestId('empty-model-versions').should('exist');
   }
