@@ -43,12 +43,16 @@ export const ManageRunsPageInternal: React.FC<ManageRunsPageInternalProps> = ({ 
   const { namespace, project } = usePipelinesAPI();
   const [[{ items: runs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
     usePipelineActiveRunsTable();
-  const { onClearFilters, ...filterProps } = usePipelineFilter(tableProps.setFilter, {
-    [FilterOptions.EXPERIMENT]: {
-      label: experiment.display_name,
-      value: experiment.experiment_id,
+  const { onClearFilters, ...filterProps } = usePipelineFilter(
+    tableProps.setFilter,
+    {
+      [FilterOptions.EXPERIMENT]: {
+        label: experiment.display_name,
+        value: experiment.experiment_id,
+      },
     },
-  });
+    true,
+  );
   const selectedRunIds = searchParams.get(CompareRunsSearchParam.RUNS)?.split(',') ?? [];
 
   if (error) {

@@ -45,7 +45,7 @@ const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
 }) => {
   const { refreshAllAPI } = usePipelinesAPI();
   const { experimentId, pipelineVersionId } = useParams();
-  const { onClearFilters, ...filterToolbarProps } = usePipelineFilter(setFilter);
+  const { onClearFilters, ...filterToolbarProps } = usePipelineFilter(setFilter, undefined, true);
   const {
     selections,
     tableProps: checkboxTableProps,
