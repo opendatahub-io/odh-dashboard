@@ -159,8 +159,6 @@ export type OdhApplication = {
     betaText?: string | null;
     shownOnEnabledPage: boolean | null;
     isEnabled: boolean | null;
-    isInstalled: boolean | null;
-    canInstall: boolean | null;
     kfdefApplications?: string[];
     csvName?: string;
     enable?: {
@@ -178,6 +176,16 @@ export type OdhApplication = {
     };
     featureFlag?: string;
     internalRoute?: string;
+  };
+};
+
+/**
+ * An OdhApplication that uses integration api to determine status.
+ * @see isIntegrationApp
+ */
+export type OdhIntegrationApplication = OdhApplication & {
+  spec: {
+    internalRoute: string; // starts with `/api/`
   };
 };
 

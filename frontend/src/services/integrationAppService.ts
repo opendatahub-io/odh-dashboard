@@ -1,15 +1,10 @@
 import axios from '~/utilities/axios';
+import { IntegrationAppStatus } from '~/types';
 
-type IntegrationAppStatus = {
-  isInstalled: boolean;
-  isEnabled: boolean;
-  canInstall: boolean;
-  error: string;
-};
 export const enableIntegrationApp = (
   internalRoute: string,
   enableValues: { [key: string]: string },
-): Promise<{ isAppEnabled: boolean; canEnable: boolean; error: string }> => {
+): Promise<IntegrationAppStatus> => {
   const body = JSON.stringify(enableValues);
   const headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
   return axios

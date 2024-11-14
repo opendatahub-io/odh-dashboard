@@ -1,12 +1,10 @@
 import * as React from 'react';
 import { useAppSelector } from '~/redux/hooks';
-import { OdhApplication } from '~/types';
+import { IntegrationAppStatus, OdhApplication, OdhIntegrationApplication } from '~/types';
 import { getIntegrationAppEnablementStatus } from '~/services/integrationAppService';
 import { allSettledPromises } from '~/utilities/allSettledPromises';
 import { POLL_INTERVAL } from './const';
 import { isIntegrationApp } from './utils';
-
-type OdhIntegrationApplication = OdhApplication & { spec: { internalRoute: string } };
 
 export const useWatchIntegrationComponents = (
   components?: OdhApplication[],
@@ -15,10 +13,7 @@ export const useWatchIntegrationComponents = (
   const forceUpdate = useAppSelector((state) => state.forceComponentsUpdate);
   const initForce = React.useRef<number>(forceUpdate);
   const integrationComponents = React.useMemo(
-    () =>
-      components?.filter((component): component is OdhIntegrationApplication =>
-        isIntegrationApp(component),
-      ),
+    () => components?.filter(isIntegrationApp),
     [components],
   );
   const [newComponents, setNewComponents] = React.useState<OdhApplication[]>([]);
@@ -29,12 +24,13 @@ export const useWatchIntegrationComponents = (
   ): Promise<void> => {
     const updatePromises = integrationComponentList.map(async (component) => {
       const response = await getIntegrationAppEnablementStatus(component.spec.internalRoute).catch(
-        (e) => ({
-          isInstalled: false,
-          isEnabled: false,
-          canInstall: false,
-          error: e.message ?? e.error, // might be an error from the server, might be an error in the network call itself
-        }),
+        (e) =>
+          ({
+            isInstalled: false,
+            isEnabled: false,
+            canInstall: false,
+            error: e.message ?? e.error, // might be an error from the server, might be an error in the network call itself
+          } satisfies IntegrationAppStatus),
       );
 
       if (response.error) {

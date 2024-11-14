@@ -120,19 +120,19 @@ export const useEnableApplication = (
   React.useEffect(() => {
     let closed = false;
     if (doEnable) {
-      if (internalRoute && isInternalRouteIntegrationsApp(internalRoute)) {
+      if (isInternalRouteIntegrationsApp(internalRoute)) {
         enableIntegrationApp(internalRoute, enableValues)
           .then((response) => {
             if (!closed) {
-              if (!response.isAppEnabled && response.canEnable) {
+              if (!response.isInstalled && response.canInstall) {
                 setEnableStatus({ status: EnableApplicationStatus.INPROGRESS, error: '' });
                 return;
               }
 
-              if (response.isAppEnabled && !response.canEnable) {
+              if (response.isInstalled) {
                 setEnableStatus({
                   status: EnableApplicationStatus.SUCCESS,
-                  error: response.error ? '' : response.error,
+                  error: response.error,
                 });
                 dispatchResults(undefined);
               }

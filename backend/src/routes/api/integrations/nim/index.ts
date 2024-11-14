@@ -40,7 +40,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
             }
           } else {
             fastify.log.error(`An unexpected error occurred: ${e.message || e}`);
-            reply.status(500).send({
+            reply.send({
               isInstalled: false,
               isAppEnabled: false,
               canInstall: false,
@@ -67,16 +67,21 @@ module.exports = async (fastify: KubeFastifyInstance) => {
             await createNIMAccount(fastify, namespace)
               .then((response) => {
                 if (isAppEnabled(response)) {
-                  reply.send({ isAppEnabled: true, canEnable: false, error: '' });
+                  const isEnabled = isAppEnabled(response);
+                  reply.send({
+                    isInstalled: true,
+                    isEnabled: isEnabled,
+                    canInstall: false,
+                    error: '',
+                  });
                 } else {
-                  reply.send({ isAppEnabled: false, canEnable: true, error: '' });
+                  reply.send({ isInstalled: false, isEnabled: false, canInstall: true, error: '' });
                 }
               })
               .catch((e) => {
-                fastify.log.error(`Failed to create NIM account.`);
-                reply
-                  .status(e.response.statusCode)
-                  .send(new Error(`Failed to create NIM account, ${e.response?.body?.message}`));
+                const message = `Failed to create NIM account, ${e.response?.body?.message}`;
+                fastify.log.error(message);
+                reply.status(e.response.statusCode).send(new Error(message));
               });
           })
           .catch((e) => {

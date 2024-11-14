@@ -29,8 +29,6 @@ export const mockComponents = (): OdhApplication[] => [
       shownOnEnabledPage: true,
       isEnabled: true,
       link: null,
-      isInstalled: false,
-      canInstall: true,
     },
   },
   {
@@ -54,8 +52,6 @@ export const mockComponents = (): OdhApplication[] => [
       quickStart: '',
       shownOnEnabledPage: true,
       isEnabled: true,
-      isInstalled: false,
-      canInstall: true,
     },
   },
 ];

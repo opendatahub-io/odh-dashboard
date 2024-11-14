@@ -1,5 +1,11 @@
 import { LabelProps } from '@patternfly/react-core';
-import { ContainerResources, OdhApplication, OdhDocument, OdhDocumentType } from '~/types';
+import {
+  ContainerResources,
+  OdhApplication,
+  OdhDocument,
+  OdhDocumentType,
+  OdhIntegrationApplication,
+} from '~/types';
 import { AcceleratorProfileKind } from '~/k8sTypes';
 import { CATEGORY_ANNOTATION, DASHBOARD_MAIN_CONTAINER_ID, ODH_PRODUCT_NAME } from './const';
 
@@ -187,5 +193,5 @@ export const isEnumMember = <T extends object>(
 export const isInternalRouteIntegrationsApp = (internalRoute?: string): internalRoute is string =>
   internalRoute?.startsWith('/api/') ?? false;
 
-export const isIntegrationApp = (app: OdhApplication): boolean =>
+export const isIntegrationApp = (app: OdhApplication): app is OdhIntegrationApplication =>
   isInternalRouteIntegrationsApp(app.spec.internalRoute);
