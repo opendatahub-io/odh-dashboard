@@ -2,7 +2,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import { secureAdminRoute } from '../../../../utils/route-security';
 import { KubeFastifyInstance } from '../../../../types';
 import { isString } from 'lodash';
-import { isAppEnabled, getNIMAccount, createNIMAccount, createNIMSecret } from './nimUtils';
+import { createNIMAccount, createNIMSecret, getNIMAccount, isAppEnabled } from './nimUtils';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
   const { namespace } = fastify.kube;
@@ -13,10 +13,14 @@ module.exports = async (fastify: KubeFastifyInstance) => {
     secureAdminRoute(fastify)(async (request: FastifyRequest, reply: FastifyReply) => {
       await getNIMAccount(fastify, namespace)
         .then((response) => {
-          if (isAppEnabled(response)) {
-            reply.send({ isAppEnabled: true, canEnable: false, error: '' });
+          if (response) {
+            // installed
+            const isEnabled = isAppEnabled(response);
+            reply.send({ isInstalled: true, isEnabled: isEnabled, canInstall: false, error: '' });
           } else {
-            reply.send({ isAppEnabled: false, canEnable: true, error: '' });
+            // Not installed
+            fastify.log.info(`NIM account does not exist`);
+            reply.send({ isInstalled: false, isEnabled: false, canInstall: true, error: '' });
           }
         })
         .catch((e) => {
@@ -27,13 +31,21 @@ module.exports = async (fastify: KubeFastifyInstance) => {
               e.response.body.trim() === PAGE_NOT_FOUND_MESSAGE.trim()
             ) {
               fastify.log.error(`NIM not installed, ${e.response?.body}`);
-              reply
-                .status(404)
-                .send({ isAppEnabled: false, canEnable: false, error: 'NIM not installed' });
-            } else {
-              fastify.log.error(`NIM account does not exist, ${e.response.body.message}`);
-              reply.send({ isAppEnabled: false, canEnable: true, error: '' });
+              reply.status(404).send({
+                isInstalled: false,
+                isAppEnabled: false,
+                canInstall: false,
+                error: 'NIM not installed',
+              });
             }
+          } else {
+            fastify.log.error(`An unexpected error occurred: ${e.message || e}`);
+            reply.status(500).send({
+              isInstalled: false,
+              isAppEnabled: false,
+              canInstall: false,
+              error: 'An unexpected error occurred. Please try again later.',
+            });
           }
         });
     }),

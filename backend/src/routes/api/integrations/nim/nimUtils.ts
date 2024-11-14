@@ -15,7 +15,7 @@ export const isAppEnabled = (app: NIMAccountKind): boolean => {
 export const getNIMAccount = async (
   fastify: KubeFastifyInstance,
   namespace: string,
-): Promise<NIMAccountKind> => {
+): Promise<NIMAccountKind | undefined> => {
   const { customObjectsApi } = fastify.kube;
   try {
     const response = await customObjectsApi.listNamespacedCustomObject(
@@ -29,16 +29,7 @@ export const getNIMAccount = async (
       items: NIMAccountKind[];
     };
 
-    if (!accounts.items || accounts.items.length === 0) {
-      const error: any = new Error('NIM account does not exist');
-      error.response = {
-        statusCode: 404,
-        body: { message: 'NIM account does not exist' },
-      };
-      return Promise.reject(error);
-    }
-    // Return the first account
-    return Promise.resolve(accounts.items[0]);
+    return accounts.items[0] || undefined;
   } catch (e) {
     return Promise.reject(e);
   }

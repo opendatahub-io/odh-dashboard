@@ -17,33 +17,37 @@ export const useWatchIntegrationComponents = (
   );
   const [newComponents, setNewComponents] = React.useState<OdhApplication[]>([]);
 
-  const updateComponentEnablementStatus = (
+  const updateComponentEnablementStatus = async (
     integrationComponentList: OdhApplication[],
     componentList: OdhApplication[],
-  ) => {
-    integrationComponentList.forEach((component) => {
+  ): Promise<void> => {
+    const updatePromises = integrationComponentList.map(async (component) => {
       if (component.spec.internalRoute) {
-        getIntegrationAppEnablementStatus(component.spec.internalRoute).then((response) => {
-          if (response.error) {
-            setNewComponents(componentList);
-          } else {
-            setNewComponents(
-              componentList.map((app) =>
-                app.metadata.name === component.metadata.name
-                  ? {
-                      ...app,
-                      spec: {
-                        ...app.spec,
-                        isAppEnabled: response.isAppEnabled,
-                      },
-                    }
-                  : app,
-              ),
+        const response = await getIntegrationAppEnablementStatus(component.spec.internalRoute);
+
+        if (response.error) {
+          setNewComponents(componentList);
+        } else {
+          const updatedComponents = componentList
+            .filter(
+              (app) => !(app.metadata.name === component.metadata.name && !response.isInstalled),
+            )
+            .map((app) =>
+              app.metadata.name === component.metadata.name
+                ? {
+                    ...app,
+                    spec: {
+                      ...app.spec,
+                      isEnabled: response.isEnabled,
+                    },
+                  }
+                : app,
             );
-          }
-        });
+          setNewComponents(updatedComponents);
+        }
       }
     });
+    await Promise.all(updatePromises);
   };
 
   React.useEffect(() => {
@@ -52,9 +56,10 @@ export const useWatchIntegrationComponents = (
       setIsIntegrationComponentsChecked(true);
     } else {
       const watchComponents = () => {
-        updateComponentEnablementStatus(integrationComponents, components);
-        setIsIntegrationComponentsChecked(true);
-        watchHandle = setTimeout(watchComponents, POLL_INTERVAL);
+        updateComponentEnablementStatus(integrationComponents, components).then(() => {
+          setIsIntegrationComponentsChecked(true);
+          watchHandle = setTimeout(watchComponents, POLL_INTERVAL);
+        });
       };
       watchComponents();
     }
@@ -69,8 +74,9 @@ export const useWatchIntegrationComponents = (
       if (integrationComponents.length === 0) {
         setIsIntegrationComponentsChecked(true);
       } else {
-        updateComponentEnablementStatus(integrationComponents, components);
-        setIsIntegrationComponentsChecked(true);
+        updateComponentEnablementStatus(integrationComponents, components).then(() => {
+          setIsIntegrationComponentsChecked(true);
+        });
       }
     }
   }, [forceUpdate, components, integrationComponents]);

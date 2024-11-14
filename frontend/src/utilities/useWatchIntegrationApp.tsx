@@ -25,7 +25,7 @@ export const useWatchIntegrationApp = (
             setIsIntegrationAppInstalled(false);
             setLoadError(new Error(response.error));
           }
-          if (response.isAppEnabled) {
+          if (response.isEnabled) {
             setIsIntegrationAppEnabled(true);
           }
         })

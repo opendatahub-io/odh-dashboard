@@ -68,11 +68,11 @@ export const useEnableApplication = (
         if (internalRoute && isInternalRouteIntegrationsApp(internalRoute)) {
           getIntegrationAppEnablementStatus(internalRoute)
             .then((response) => {
-              if (!response.isAppEnabled && response.canEnable) {
+              if (!response.isEnabled && response.canInstall) {
                 watchHandle = setTimeout(watchStatus, 10 * 1000);
                 return;
               }
-              if (response.isAppEnabled && !response.canEnable) {
+              if (response.isEnabled && !response.canInstall) {
                 setEnableStatus({
                   status: EnableApplicationStatus.SUCCESS,
                   error: '',

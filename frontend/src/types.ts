@@ -159,6 +159,8 @@ export type OdhApplication = {
     betaText?: string | null;
     shownOnEnabledPage: boolean | null;
     isEnabled: boolean | null;
+    isInstalled: boolean | null;
+    canInstall: boolean | null;
     kfdefApplications?: string[];
     csvName?: string;
     enable?: {
@@ -637,4 +639,11 @@ export enum ServingRuntimeAPIProtocol {
 export type KeyValuePair = {
   key: string;
   value: string;
+};
+
+export type IntegrationAppStatus = {
+  isInstalled: boolean;
+  isEnabled: boolean;
+  canInstall: boolean;
+  error: string;
 };

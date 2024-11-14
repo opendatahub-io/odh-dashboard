@@ -21,7 +21,7 @@ import MarkdownView from '~/components/MarkdownView';
 import { markdownConverter } from '~/utilities/markdown';
 import { useAppContext } from '~/app/AppContext';
 import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { useWatchIntegrationApp } from '~/utilities/useWatchIntegrationApp';
+import { useIntegratedAppStatus } from '~/pages/exploreApplication/useIntegratedAppStatus';
 
 const DEFAULT_BETA_TEXT =
   'This application is available for early access prior to official ' +
@@ -37,22 +37,22 @@ type GetStartedPanelProps = {
 const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose, onEnable }) => {
   const { dashboardConfig } = useAppContext();
   const { enablement } = dashboardConfig.spec.dashboardConfig;
-  const { isIntegrationAppInstalled, isintegrationAppChecked } =
-    useWatchIntegrationApp(selectedApp);
+  const [{ isInstalled, canInstall, error }, loaded] = useIntegratedAppStatus(selectedApp);
 
   if (!selectedApp) {
     return null;
   }
 
   const renderEnableButton = () => {
-    if (!selectedApp.spec.enable || selectedApp.spec.isEnabled) {
+    if (!selectedApp.spec.enable || selectedApp.spec.isEnabled || isInstalled) {
       return null;
     }
     const button = (
       <Button
         variant={ButtonVariant.secondary}
         onClick={onEnable}
-        isDisabled={!enablement || (isIntegrationAppInstalled && isintegrationAppChecked)}
+        isDisabled={!enablement || !canInstall}
+        isLoading={!loaded && !error}
       >
         Enable
       </Button>
