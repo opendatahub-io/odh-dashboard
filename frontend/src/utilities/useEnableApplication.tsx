@@ -72,7 +72,7 @@ export const useEnableApplication = (
                 watchHandle = setTimeout(watchStatus, 10 * 1000);
                 return;
               }
-              if (response.isInstalled && !response.canInstall) {
+              if (response.isInstalled) {
                 setEnableStatus({
                   status: EnableApplicationStatus.SUCCESS,
                   error: '',
