@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { PipelinesFilterOp, PipelinesFilterPredicate } from '~/concepts/pipelines/kfTypes';
 
 import { PipelinesFilter } from '~/concepts/pipelines/types';
@@ -43,14 +43,13 @@ const usePipelineFilter = (
   // extract filters set in URL
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [filterData, setFilterData] = React.useState(() => {
     const urlFilterData = {
       ...defaultFilterData,
       ...initialFilterData,
     };
-
-    // console.log(searchParams);
 
     // Only parse URL search params if useSearchParams is true
     if (persistInUrl) {
@@ -145,7 +144,7 @@ const usePipelineFilter = (
       // Only update URL if useSearchParams is true
       if (persistInUrl) {
         // Get current search params
-        const currentSearchParams = new URLSearchParams(window.location.search);
+        const currentSearchParams = new URLSearchParams(location.search);
 
         // Remove any existing filter params
         currentSearchParams.delete('name');
@@ -161,7 +160,7 @@ const usePipelineFilter = (
 
         navigate(
           {
-            pathname: window.location.pathname,
+            pathname: location.pathname,
             search: currentSearchParams.toString() ? `?${currentSearchParams.toString()}` : '',
           },
           { replace: true },
@@ -176,7 +175,7 @@ const usePipelineFilter = (
           : undefined,
       );
     },
-    [navigate, setFilter, persistInUrl],
+    [persistInUrl, setFilter, location.search, location.pathname, navigate],
   );
 
   const doSetFilterDebounced = useDebounceCallback(doSetFilter);
