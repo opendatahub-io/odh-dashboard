@@ -1,4 +1,7 @@
-import { ADMIN_USER, CONTRIBUTOR_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import {
+  HTPASSWD_CLUSTER_ADMIN_USER,
+  LDAP_CONTRIBUTOR_USER,
+} from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { clusterSettings } from '~/__tests__/cypress/cypress/pages/clusterSettings';
 import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
 import type { DashboardConfig, NotebookControllerConfig } from '~/__tests__/cypress/cypress/types';
@@ -29,7 +32,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
   it('Admin should access Cluster Settings and see UI fields matching OpenShift configurations', () => {
     // Authentication and navigation
     cy.step('Log into the application');
-    cy.visitWithLogin('/', ADMIN_USER);
+    cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
     cy.step('Navigate to Cluster Settings');
     clusterSettings.visit();
@@ -52,7 +55,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
   });
   it('Test User - should not have access rights to view the Cluster Settings tab', () => {
     cy.step('Log into the application');
-    cy.visitWithLogin('/', CONTRIBUTOR_USER);
+    cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
     cy.step('Navigate to the Cluster Settings');
     clusterSettings.visit(false);

@@ -1,4 +1,4 @@
-import { CONTRIBUTOR_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import { LDAP_CONTRIBUTOR_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
   provisionClusterStorageSCFeature,
   tearDownClusterStorageSCFeature,
@@ -12,7 +12,7 @@ const dspName = 'qe-cluster-storage-sc-dsp';
 
 describe('Regular Users can make use of the Storage Classes in the Cluster Storage tab from DSP ', () => {
   before(() => {
-    provisionClusterStorageSCFeature(dspName, CONTRIBUTOR_USER.USERNAME);
+    provisionClusterStorageSCFeature(dspName, LDAP_CONTRIBUTOR_USER.USERNAME);
   });
 
   after(() => {
@@ -20,7 +20,7 @@ describe('Regular Users can make use of the Storage Classes in the Cluster Stora
   });
 
   it('If all SC are disabled except one, the SC dropdown should be disabled', () => {
-    cy.visitWithLogin('/projects', CONTRIBUTOR_USER);
+    cy.visitWithLogin('/projects', LDAP_CONTRIBUTOR_USER);
     // Open the project
     projectListPage.filterProjectByName(dspName);
     projectListPage.findProjectLink(dspName).click();

@@ -27,13 +27,13 @@ const testConfig: TestConfig | undefined = env.CY_TEST_CONFIG
 
 export const BASE_URL = testConfig?.ODH_DASHBOARD_URL || env.BASE_URL || '';
 
-const CONTRIBUTOR_USER: UserAuthConfig = testConfig?.TEST_USER_3 ?? {
+const LDAP_CONTRIBUTOR_USER: UserAuthConfig = testConfig?.TEST_USER_3 ?? {
   AUTH_TYPE: env.TEST_USER_3_AUTH_TYPE || '',
   USERNAME: env.TEST_USER_3_USERNAME || '',
   PASSWORD: env.TEST_USER_3_PASSWORD || '',
 };
 
-const ADMIN_USER: UserAuthConfig = testConfig?.OCP_ADMIN_USER ?? {
+const HTPASSWD_CLUSTER_ADMIN_USER: UserAuthConfig = testConfig?.OCP_ADMIN_USER ?? {
   AUTH_TYPE: env.ADMIN_USER_AUTH_TYPE || '',
   USERNAME: env.ADMIN_USER_USERNAME || '',
   PASSWORD: env.ADMIN_USER_PASSWORD || '',
@@ -54,8 +54,8 @@ const AWS_PIPELINES: AWSS3Buckets = {
 
 // spread the cypressEnv variables into the cypress config
 export const cypressEnv = {
-  CONTRIBUTOR_USER,
-  ADMIN_USER,
+  LDAP_CONTRIBUTOR_USER,
+  HTPASSWD_CLUSTER_ADMIN_USER,
   AWS_PIPELINES,
 };
 
