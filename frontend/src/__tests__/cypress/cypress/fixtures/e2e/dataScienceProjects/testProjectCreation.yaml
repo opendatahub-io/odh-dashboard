@@ -1,0 +1,4 @@
+# testProjectCreation.cy.ts Test Data #
+projectDisplayName: "Cypress Test Project"
+projectDescription: "Cypress Test project description."
+projectResourceName: "cypress-test-project" 

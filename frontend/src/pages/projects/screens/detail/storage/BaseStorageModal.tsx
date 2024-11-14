@@ -7,7 +7,12 @@ import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
 import useDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 import { useCreateStorageObject } from '~/pages/projects/screens/spawner/storage/utils';
-import { CreatingStorageObject } from '~/pages/projects/types';
+import { StorageData } from '~/pages/projects/types';
+
+type CreateStorageObjectData = Pick<
+  StorageData,
+  'name' | 'description' | 'size' | 'storageClassName'
+>;
 
 export type BaseStorageModalProps = {
   submitLabel?: string;
@@ -15,12 +20,16 @@ export type BaseStorageModalProps = {
   description?: string;
   children: React.ReactNode;
   isValid: boolean;
-  onSubmit: (data: CreatingStorageObject) => Promise<void>;
-  existingData?: PersistentVolumeClaimKind;
+  onSubmit: (data: CreateStorageObjectData) => Promise<void>;
+  hasDuplicateName?: boolean;
+  onNameChange?: (value: string) => void;
+  existingData?: CreateStorageObjectData;
+  existingPvc?: PersistentVolumeClaimKind;
   onClose: (submitted: boolean) => void;
 };
 
 const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
+  existingPvc,
   existingData,
   onSubmit,
   submitLabel = 'Add storage',
@@ -28,16 +37,19 @@ const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
   description = 'Add storage and optionally connect it with an existing workbench.',
   children,
   isValid,
+  hasDuplicateName,
   onClose,
+  onNameChange,
 }) => {
-  const [createData, setCreateData, resetData] = useCreateStorageObject(existingData);
+  const [createData, setCreateData, resetData] = useCreateStorageObject(existingPvc, existingData);
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const preferredStorageClass = usePreferredStorageClass();
   const [defaultStorageClass] = useDefaultStorageClass();
   const [error, setError] = React.useState<Error | undefined>();
   const [actionInProgress, setActionInProgress] = React.useState(false);
+
   React.useEffect(() => {
-    if (!existingData) {
+    if (!existingPvc) {
       if (isStorageClassesAvailable) {
         setCreateData('storageClassName', defaultStorageClass?.metadata.name);
       } else {
@@ -48,7 +60,7 @@ const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
     isStorageClassesAvailable,
     defaultStorageClass,
     preferredStorageClass,
-    existingData,
+    existingPvc,
     setCreateData,
   ]);
 
@@ -59,7 +71,7 @@ const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
     resetData();
   };
 
-  const canCreate = !actionInProgress && createData.nameDesc.name.trim().length > 0 && isValid;
+  const canCreate = !actionInProgress && createData.name.trim().length > 0 && isValid;
 
   const submit = () => {
     setError(undefined);
@@ -103,9 +115,11 @@ const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
             <CreateNewStorageSection
               data={createData}
               setData={setCreateData}
-              currentStatus={existingData?.status}
+              currentStatus={existingPvc?.status}
               autoFocusName
-              disableStorageClassSelect={!!existingData}
+              onNameChange={onNameChange}
+              hasDuplicateName={hasDuplicateName}
+              disableStorageClassSelect={!!existingPvc}
             />
           </StackItem>
           {children}

@@ -131,6 +131,24 @@ describe('Notebook image settings', () => {
 
     importNotebookImageModal.findSaveResourceButton('Software').click();
     importNotebookImageModal.findSubmitButton().should('be.enabled');
+
+    // test resource name validation
+    importNotebookImageModal.k8sNameDescription.findResourceEditLink().click();
+    importNotebookImageModal.k8sNameDescription
+      .findResourceNameInput()
+      .should('have.attr', 'aria-invalid', 'false');
+    // Invalid character k8s names fail
+    importNotebookImageModal.k8sNameDescription
+      .findResourceNameInput()
+      .clear()
+      .type('InVaLiD vAlUe!');
+    importNotebookImageModal.k8sNameDescription
+      .findResourceNameInput()
+      .should('have.attr', 'aria-invalid', 'true');
+    importNotebookImageModal.findSubmitButton().should('be.disabled');
+    importNotebookImageModal.k8sNameDescription.findResourceNameInput().clear().type('image');
+    importNotebookImageModal.findSubmitButton().should('be.enabled');
+
     let notebookImageTabRow = importNotebookImageModal.getSoftwareRow('software');
     notebookImageTabRow.shouldHaveVersionColumn('version');
 
@@ -198,6 +216,7 @@ describe('Notebook image settings', () => {
       expect(interception.request.body).to.eql({
         /* eslint-disable-next-line camelcase */
         display_name: 'image',
+        name: 'image',
         url: 'image:latest',
         description: '',
         recommendedAcceleratorIdentifiers: [],
