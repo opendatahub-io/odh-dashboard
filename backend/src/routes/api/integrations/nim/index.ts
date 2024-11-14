@@ -66,17 +66,13 @@ module.exports = async (fastify: KubeFastifyInstance) => {
           .then(async () => {
             await createNIMAccount(fastify, namespace)
               .then((response) => {
-                if (isAppEnabled(response)) {
-                  const isEnabled = isAppEnabled(response);
-                  reply.send({
-                    isInstalled: true,
-                    isEnabled: isEnabled,
-                    canInstall: false,
-                    error: '',
-                  });
-                } else {
-                  reply.send({ isInstalled: false, isEnabled: false, canInstall: true, error: '' });
-                }
+                const isEnabled = isAppEnabled(response);
+                reply.send({
+                  isInstalled: true,
+                  isEnabled: isEnabled,
+                  canInstall: false,
+                  error: '',
+                });
               })
               .catch((e) => {
                 const message = `Failed to create NIM account, ${e.response?.body?.message}`;
