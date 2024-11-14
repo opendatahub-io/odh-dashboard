@@ -14,7 +14,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
       await getNIMAccount(fastify, namespace)
         .then((response) => {
           if (response) {
-            // installed
+            // Installed
             const isEnabled = isAppEnabled(response);
             reply.send({ isInstalled: true, isEnabled: isEnabled, canInstall: false, error: '' });
           } else {
@@ -30,10 +30,10 @@ module.exports = async (fastify: KubeFastifyInstance) => {
               isString(e.response.body) &&
               e.response.body.trim() === PAGE_NOT_FOUND_MESSAGE.trim()
             ) {
-              fastify.log.error(`NIM not installed, ${e.response?.body}`);
-              reply.status(404).send({
+              fastify.log.info(`NIM not installed, ${e.response?.body}`);
+              reply.send({
                 isInstalled: false,
-                isAppEnabled: false,
+                isEnabled: false,
                 canInstall: false,
                 error: 'NIM not installed',
               });

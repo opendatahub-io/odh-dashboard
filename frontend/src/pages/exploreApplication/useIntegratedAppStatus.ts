@@ -21,10 +21,14 @@ export const useIntegratedAppStatus = (app?: OdhApplication): FetchState<Integra
     return getIntegrationAppEnablementStatus(app.spec.internalRoute);
   }, [app]);
 
-  return useFetchState(callback, {
-    isInstalled: false,
-    isEnabled: false,
-    canInstall: false,
-    error: '',
-  });
+  return useFetchState(
+    callback,
+    {
+      isInstalled: false,
+      isEnabled: false,
+      canInstall: false,
+      error: '',
+    },
+    { initialPromisePurity: true },
+  );
 };

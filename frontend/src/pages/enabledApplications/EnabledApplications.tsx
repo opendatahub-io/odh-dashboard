@@ -22,8 +22,9 @@ let enabledComponents: OdhApplication[] = [];
 export const EnabledApplicationsInner: React.FC<EnabledApplicationsInnerProps> = React.memo(
   ({ loaded, loadError, components }) => {
     const isEmpty = components.length === 0;
-    const { checkedComponents, isIntegrationComponentsChecked } =
-      useWatchIntegrationComponents(components);
+    const { checkedComponents, isIntegrationComponentsChecked } = useWatchIntegrationComponents(
+      loaded ? components : undefined,
+    );
 
     return (
       <ApplicationsPage

@@ -65,14 +65,14 @@ export const useEnableApplication = (
     let watchHandle: ReturnType<typeof setTimeout>;
     if (enableStatus.status === EnableApplicationStatus.INPROGRESS) {
       const watchStatus = () => {
-        if (internalRoute && isInternalRouteIntegrationsApp(internalRoute)) {
+        if (isInternalRouteIntegrationsApp(internalRoute)) {
           getIntegrationAppEnablementStatus(internalRoute)
             .then((response) => {
-              if (!response.isEnabled && response.canInstall) {
+              if (!response.isInstalled && response.canInstall) {
                 watchHandle = setTimeout(watchStatus, 10 * 1000);
                 return;
               }
-              if (response.isEnabled && !response.canInstall) {
+              if (response.isInstalled && !response.canInstall) {
                 setEnableStatus({
                   status: EnableApplicationStatus.SUCCESS,
                   error: '',
