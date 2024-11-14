@@ -1,14 +1,18 @@
 import React, { act } from 'react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
-import { renderHook, testHook } from '~/__tests__/unit/testUtils/hooks';
+import { renderHook } from '~/__tests__/unit/testUtils/hooks';
 import usePipelineFilter, {
   FilterOptions,
 } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import { PipelinesFilterOp } from '~/concepts/pipelines/kfTypes';
 
 describe('usePipelineFilter', () => {
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <MemoryRouter initialEntries={['/']}>{children}</MemoryRouter>
+  );
+
   it('should update filter data', () => {
-    const renderResult = testHook(usePipelineFilter)(jest.fn());
+    const renderResult = renderHook(() => usePipelineFilter(jest.fn()), { wrapper });
     expect(renderResult.result.current.filterData).toEqual({
       [FilterOptions.NAME]: '',
       [FilterOptions.CREATED_AT]: '',
@@ -42,7 +46,7 @@ describe('usePipelineFilter', () => {
 
   it('should notify callback on filter data change', () => {
     const setFilterMock = jest.fn();
-    const renderResult = testHook(usePipelineFilter)(setFilterMock);
+    const renderResult = renderHook(() => usePipelineFilter(setFilterMock), { wrapper });
     setFilterMock.mockClear();
     act(() => {
       renderResult.result.current.onFilterUpdate(FilterOptions.STATUS, 'success');
@@ -63,7 +67,7 @@ describe('usePipelineFilter', () => {
   it('should notify only once on first render', () => {
     jest.useFakeTimers();
     const setFilterMock = jest.fn();
-    testHook(usePipelineFilter)(setFilterMock);
+    renderHook(() => usePipelineFilter(setFilterMock), { wrapper });
     jest.runAllTimers();
     expect(setFilterMock).toHaveBeenCalledTimes(1);
   });
@@ -71,7 +75,7 @@ describe('usePipelineFilter', () => {
   it('should notify name change on debounce', () => {
     jest.useFakeTimers();
     const setFilterMock = jest.fn();
-    const renderResult = testHook(usePipelineFilter)(setFilterMock);
+    const renderResult = renderHook(() => usePipelineFilter(setFilterMock), { wrapper });
     setFilterMock.mockClear();
     act(() => {
       renderResult.result.current.onFilterUpdate(FilterOptions.NAME, 'f');
@@ -94,7 +98,7 @@ describe('usePipelineFilter', () => {
   });
 
   it('should provide stable callbacks', async () => {
-    const renderResult = testHook(usePipelineFilter)(jest.fn());
+    const renderResult = renderHook(() => usePipelineFilter(jest.fn()), { wrapper });
     act(() => {
       renderResult.result.current.onFilterUpdate(FilterOptions.NAME, 'test');
     });
