@@ -1,18 +1,10 @@
 import * as React from 'react';
-import {
-  Tooltip,
-  Divider,
-  Dropdown,
-  DropdownItem,
-  MenuToggle,
-  DropdownList,
-} from '@patternfly/react-core';
-
+import { Divider, Dropdown, DropdownItem, MenuToggle, DropdownList } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import useNotification from '~/utilities/useNotification';
 import { PipelineRunKF, RuntimeStateKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
-import { duplicateRunRoute, experimentsCompareRunsRoute } from '~/routes';
+import { compareRunsRoute, duplicateRunRoute } from '~/routes';
 import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
 import { getDashboardMainContainer } from '~/utilities/utils';
 
@@ -38,19 +30,41 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({
   const isExperimentActive = experiment?.storage_state === StorageStateKF.AVAILABLE;
   const { experimentId, pipelineId, pipelineVersionId } = useParams();
 
-  const RestoreDropdownItem = (
+  if (!run) {
+    return null;
+  }
+
+  const restoreDropdownItem = (
     <DropdownItem
-      isDisabled={!isExperimentActive}
+      isAriaDisabled={!isExperimentActive}
       key="restore-run"
       onClick={() =>
-        run &&
         api
           .unarchivePipelineRun({}, run.run_id)
           .catch((e) => notification.error('Unable to restore pipeline run', e.message))
           .then(() => refreshAllAPI())
       }
+      tooltipProps={
+        !isExperimentActive
+          ? {
+              position: 'left',
+              content:
+                'Archived runs cannot be restored until its associated experiment is restored.',
+            }
+          : undefined
+      }
     >
       Restore
+    </DropdownItem>
+  );
+
+  const isGlobal = !experimentId && !pipelineId && !pipelineVersionId;
+  const compareRunsItem = (
+    <DropdownItem
+      key="compare-runs"
+      onClick={() => navigate(compareRunsRoute(namespace, [run.run_id], experimentId))}
+    >
+      Compare runs
     </DropdownItem>
   );
 
@@ -75,99 +89,68 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({
       popperProps={{ position: 'right', appendTo: getDashboardMainContainer() }}
     >
       <DropdownList>
-        {!run
-          ? []
-          : [
-              ...(isPipelineSupported
-                ? [
-                    <DropdownItem
-                      key="retry-run"
-                      isDisabled={run.state !== RuntimeStateKF.FAILED || !!run.error}
-                      onClick={() =>
-                        api
-                          .retryPipelineRun({}, run.run_id)
-                          .catch((e) =>
-                            notification.error('Unable to retry pipeline run', e.message),
-                          )
-                      }
-                    >
-                      Retry
-                    </DropdownItem>,
-                    <DropdownItem
-                      key="duplicate-run"
-                      onClick={() =>
-                        navigate(
-                          duplicateRunRoute(
-                            namespace,
-                            run.run_id,
-                            experimentId,
-                            pipelineId,
-                            pipelineVersionId,
-                          ),
-                        )
-                      }
-                    >
-                      Duplicate
-                    </DropdownItem>,
-                    <DropdownItem
-                      key="stop-run"
-                      isDisabled={run.state !== RuntimeStateKF.RUNNING}
-                      onClick={() =>
-                        api
-                          .stopPipelineRun({}, run.run_id)
-                          .catch((e) =>
-                            notification.error('Unable to stop pipeline run', e.message),
-                          )
-                      }
-                    >
-                      Stop
-                    </DropdownItem>,
-                    experimentId && isRunActive ? (
+        {[
+          ...(isPipelineSupported
+            ? [
+                <DropdownItem
+                  key="retry-run"
+                  isDisabled={run.state !== RuntimeStateKF.FAILED || !!run.error}
+                  onClick={() =>
+                    api
+                      .retryPipelineRun({}, run.run_id)
+                      .catch((e) => notification.error('Unable to retry pipeline run', e.message))
+                  }
+                >
+                  Retry
+                </DropdownItem>,
+                <DropdownItem
+                  key="duplicate-run"
+                  onClick={() =>
+                    navigate(
+                      duplicateRunRoute(
+                        namespace,
+                        run.run_id,
+                        experimentId,
+                        pipelineId,
+                        pipelineVersionId,
+                      ),
+                    )
+                  }
+                >
+                  Duplicate
+                </DropdownItem>,
+                ...(isRunActive
+                  ? [
                       <DropdownItem
-                        key="compare-runs"
+                        key="stop-run"
+                        isDisabled={run.state !== RuntimeStateKF.RUNNING}
                         onClick={() =>
-                          navigate(
-                            experimentsCompareRunsRoute(namespace, run.experiment_id, [run.run_id]),
-                          )
+                          api
+                            .stopPipelineRun({}, run.run_id)
+                            .catch((e) =>
+                              notification.error('Unable to stop pipeline run', e.message),
+                            )
                         }
                       >
-                        Compare runs
-                      </DropdownItem>
-                    ) : (
-                      <React.Fragment key="compare-runs" />
-                    ),
-                    !isRunActive ? (
-                      !isExperimentActive ? (
-                        <Tooltip
-                          position="left"
-                          content={
-                            <div>
-                              Archived runs cannot be restored until its associated experiment is
-                              restored.
-                            </div>
-                          }
-                        >
-                          {RestoreDropdownItem}
-                        </Tooltip>
-                      ) : (
-                        RestoreDropdownItem
-                      )
-                    ) : (
-                      <React.Fragment key="restore-run" />
-                    ),
-                    <Divider key="separator" />,
-                  ]
-                : []),
-              !isRunActive ? (
-                <React.Fragment key="delete-run">
-                  <DropdownItem onClick={() => onDelete()}>Delete</DropdownItem>
-                </React.Fragment>
-              ) : (
-                <React.Fragment key="archive-run">
-                  <DropdownItem onClick={() => onArchive()}>Archive</DropdownItem>
-                </React.Fragment>
-              ),
-            ]}
+                        Stop
+                      </DropdownItem>,
+                    ]
+                  : []),
+                ...((isGlobal || experimentId) && isRunActive ? [compareRunsItem] : []),
+                ...(!isRunActive ? [restoreDropdownItem] : []),
+                <Divider key="separator" />,
+              ]
+            : []),
+          !isRunActive ? (
+            <DropdownItem key="delete-run" onClick={() => onDelete()}>
+              Delete
+            </DropdownItem>
+          ) : (
+            <DropdownItem key="archive-run" onClick={() => onArchive()}>
+              Archive
+            </DropdownItem>
+          ),
+        ]}
       </DropdownList>
     </Dropdown>
   );

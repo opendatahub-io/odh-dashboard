@@ -66,14 +66,6 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
           descriptionAsMarkdown
         />
       </Td>
-      {!experimentId && (
-        <Td modifier="truncate" dataLabel="Experiment">
-          <PipelineRunTableRowExperiment
-            experiment={pipelineRecurringExperiment}
-            loaded={pipelineRecurringExperimentLoaded}
-          />
-        </Td>
-      )}
       {!pipelineVersionId && (
         <Td modifier="truncate" dataLabel="Pipeline">
           <PipelineVersionLink
@@ -81,6 +73,14 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
             version={version}
             error={error}
             loaded={loaded}
+          />
+        </Td>
+      )}
+      {!experimentId && (
+        <Td modifier="truncate" dataLabel="Experiment">
+          <PipelineRunTableRowExperiment
+            experiment={pipelineRecurringExperiment}
+            loaded={pipelineRecurringExperimentLoaded}
           />
         </Td>
       )}

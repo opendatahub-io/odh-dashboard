@@ -96,14 +96,14 @@ export const pipelineRunColumns: SortableData<PipelineRunKF>[] = [
     sortable: true,
   },
   {
-    label: 'Experiment',
-    field: 'experiment',
+    label: 'Pipeline version',
+    field: 'pipeline_version',
     sortable: false,
     width: 15,
   },
   {
-    label: 'Pipeline version',
-    field: 'pipeline_version',
+    label: 'Experiment',
+    field: 'experiment',
     sortable: false,
     width: 15,
   },
@@ -126,6 +126,45 @@ export const pipelineRunColumns: SortableData<PipelineRunKF>[] = [
     width: 10,
   },
   kebabTableColumn(),
+];
+
+export const compareRunColumns: SortableData<PipelineRunKF>[] = [
+  checkboxTableColumn(),
+  {
+    label: 'Run',
+    field: 'name',
+    sortable: (a, b) => a.display_name.localeCompare(b.display_name),
+  },
+  {
+    label: 'Pipeline version',
+    field: 'pipeline_version',
+    sortable: false,
+    width: 15,
+  },
+  {
+    label: 'Experiment',
+    field: 'experiment',
+    sortable: false,
+    width: 15,
+  },
+  {
+    label: 'Started',
+    field: 'created_at',
+    sortable: true,
+    width: 15,
+  },
+  {
+    label: 'Duration',
+    field: 'duration',
+    sortable: false,
+    width: 15,
+  },
+  {
+    label: 'Status',
+    field: 'status',
+    sortable: (a, b) => a.state.localeCompare(b.state),
+    width: 10,
+  },
 ];
 
 export function getExperimentRunColumns(
@@ -184,14 +223,14 @@ export const pipelineRecurringRunColumns: SortableData<PipelineRecurringRunKF>[]
     sortable: true,
   },
   {
-    label: 'Experiment',
-    field: 'experiment',
+    label: 'Pipeline version',
+    field: 'pipeline_version',
     sortable: false,
     width: 15,
   },
   {
-    label: 'Pipeline version',
-    field: 'pipeline_version',
+    label: 'Experiment',
+    field: 'experiment',
     sortable: false,
     width: 15,
   },

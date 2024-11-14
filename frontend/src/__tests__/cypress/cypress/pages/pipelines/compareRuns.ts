@@ -26,7 +26,7 @@ class CompareRunsListTable {
 
   getRowByName(name: string) {
     return new CompareRunsListTableRow(() =>
-      this.find().find(`[data-label=Run]`).contains(name).parents('tr'),
+      this.find().find(`[data-label=Name]`).contains(name).parents('tr'),
     );
   }
 

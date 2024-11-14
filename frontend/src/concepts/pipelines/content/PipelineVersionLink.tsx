@@ -23,16 +23,16 @@ export const PipelineVersionLink: React.FC<PipelineVersionLinkProps> = ({
 }) => {
   const { namespace } = usePipelinesAPI();
 
-  if (!loaded && !error) {
-    return loadingIndicator || <Skeleton />;
-  }
-
   if (error) {
     return (
       <Tooltip content={error.message} position="right">
         <div className="pf-v5-u-disabled-color-100 pf-v5-c-truncate__start">{displayName}</div>
       </Tooltip>
     );
+  }
+
+  if (!loaded) {
+    return loadingIndicator || <Skeleton />;
   }
 
   if (!version) {

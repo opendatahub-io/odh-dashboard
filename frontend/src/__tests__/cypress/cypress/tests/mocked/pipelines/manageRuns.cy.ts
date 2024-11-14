@@ -43,10 +43,6 @@ describe('Manage runs', () => {
     manageRunsTable.getRowByName('Test run 1').find();
   });
 
-  it('has param experiment filter by default', () => {
-    cy.findByTestId('experiment-filter-chip').should('have.text', 'Default');
-  });
-
   it('has param run IDs checked by default', () => {
     manageRunsTable.getRowByName('Test run 1').findCheckbox().should('be.checked');
     manageRunsTable.getRowByName('Test run 2').findCheckbox().should('be.checked');

@@ -123,7 +123,6 @@ const PipelineRunDetails: React.FC<
           run?.description ? <MarkdownView conciseDisplay markdown={run.description} /> : ''
         }
         loaded={loaded}
-        loadError={error}
         breadcrumb={
           <Breadcrumb>
             {breadcrumbPath}

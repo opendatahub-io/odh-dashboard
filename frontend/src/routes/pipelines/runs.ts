@@ -13,6 +13,9 @@ import {
   experimentsDuplicateRunRoute,
   experimentsCreateRecurringRunRoute,
   experimentsCreateRunRoute,
+  generateCompareRunsQueryString,
+  experimentsCompareRunsRoute,
+  experimentsManageCompareRunsRoute,
 } from './experiments';
 
 export const duplicateRecurringRunRoute = (
@@ -24,12 +27,14 @@ export const duplicateRecurringRunRoute = (
 ): string =>
   experimentId
     ? experimentsDuplicateRecurringRunRoute(namespace, experimentId, recurringRunId)
-    : pipelineVersionDuplicateRecurringRunRoute(
+    : pipelineId && pipelineVersionId
+    ? pipelineVersionDuplicateRecurringRunRoute(
         namespace,
         pipelineId,
         pipelineVersionId,
         recurringRunId,
-      );
+      )
+    : globalDuplicatePipelineRecurringRunRoute(namespace, recurringRunId);
 
 export const createRecurringRunRoute = (
   namespace: string | undefined,
@@ -39,7 +44,9 @@ export const createRecurringRunRoute = (
 ): string =>
   experimentId
     ? experimentsCreateRecurringRunRoute(namespace, experimentId)
-    : pipelineVersionCreateRecurringRunRoute(namespace, pipelineId, pipelineVersionId);
+    : pipelineId && pipelineVersionId
+    ? pipelineVersionCreateRecurringRunRoute(namespace, pipelineId, pipelineVersionId)
+    : globalCreatePipelineRecurringRunRoute(namespace);
 
 export const createRunRoute = (
   namespace: string | undefined,
@@ -49,7 +56,9 @@ export const createRunRoute = (
 ): string =>
   experimentId
     ? experimentsCreateRunRoute(namespace, experimentId)
-    : pipelineVersionCreateRunRoute(namespace, pipelineId, pipelineVersionId);
+    : pipelineId && pipelineVersionId
+    ? pipelineVersionCreateRunRoute(namespace, pipelineId, pipelineVersionId)
+    : globalCreatePipelineRunRoute(namespace);
 
 export const recurringRunDetailsRoute = (
   namespace: string,
@@ -60,12 +69,14 @@ export const recurringRunDetailsRoute = (
 ): string =>
   experimentId
     ? experimentRecurringRunDetailsRoute(namespace, experimentId, recurringRunId)
-    : pipelineVersionRecurringRunDetailsRoute(
+    : pipelineId && pipelineVersionId
+    ? pipelineVersionRecurringRunDetailsRoute(
         namespace,
         pipelineId,
         pipelineVersionId,
         recurringRunId,
-      );
+      )
+    : globalPipelineRecurringRunDetailsRoute(namespace, recurringRunId);
 
 export const runDetailsRoute = (
   namespace: string,
@@ -76,7 +87,9 @@ export const runDetailsRoute = (
 ): string =>
   experimentId
     ? experimentRunDetailsRoute(namespace, experimentId, runId)
-    : pipelineVersionRunDetailsRoute(namespace, pipelineId, pipelineVersionId, runId);
+    : pipelineId && pipelineVersionId
+    ? pipelineVersionRunDetailsRoute(namespace, pipelineId, pipelineVersionId, runId)
+    : globalPipelineRunDetailsRoute(namespace, runId);
 
 export const duplicateRunRoute = (
   namespace: string,
@@ -87,4 +100,69 @@ export const duplicateRunRoute = (
 ): string =>
   experimentId
     ? experimentsDuplicateRunRoute(namespace, experimentId, runId)
-    : pipelineVersionDuplicateRunRoute(namespace, pipelineId, pipelineVersionId, runId);
+    : pipelineId && pipelineVersionId
+    ? pipelineVersionDuplicateRunRoute(namespace, pipelineId, pipelineVersionId, runId)
+    : globalDuplicatePipelineRunRoute(namespace, runId);
+
+export const compareRunsRoute = (
+  namespace: string,
+  runIds: string[],
+  experimentId: string | undefined,
+): string =>
+  experimentId
+    ? experimentsCompareRunsRoute(namespace, experimentId, runIds)
+    : globalCompareRunsRoute(namespace, runIds);
+
+export const manageCompareRunsRoute = (
+  namespace: string,
+  runIds: string[],
+  experimentId: string | undefined,
+): string =>
+  experimentId
+    ? experimentsManageCompareRunsRoute(namespace, experimentId, runIds)
+    : globalManageCompareRunsRoute(namespace, runIds);
+
+export const pipelineRunsRootPath = '/pipelineRuns';
+export const globPipelineRunsAll = `${pipelineRunsRootPath}/*`;
+
+export const pipelineRunsBaseRoute = (namespace?: string): string =>
+  !namespace ? pipelineRunsRootPath : `${pipelineRunsRootPath}/${namespace}`;
+
+export const globalPipelineRunsRoute = (namespace: string | undefined): string =>
+  `${pipelineRunsBaseRoute(namespace)}/runs`;
+
+export const globalArchivedPipelineRunsRoute = (namespace: string | undefined): string =>
+  `${globalPipelineRunsRoute(namespace)}/archived`;
+
+export const globalPipelineRecurringRunsRoute = (namespace: string | undefined): string =>
+  `${pipelineRunsBaseRoute(namespace)}/schedules`;
+
+export const globalPipelineRunDetailsRoute = (namespace: string, runId: string): string =>
+  `${globalPipelineRunsRoute(namespace)}/${runId}`;
+
+export const globalPipelineRecurringRunDetailsRoute = (
+  namespace: string,
+  recurringRunId: string,
+): string => `${globalPipelineRecurringRunsRoute(namespace)}/${recurringRunId}`;
+
+export const globalCompareRunsRoute = (namespace: string, runIds: string[]): string =>
+  `${pipelineRunsBaseRoute(namespace)}/compareRuns${generateCompareRunsQueryString(runIds)}`;
+
+export const globalManageCompareRunsRoute = (namespace: string, runIds: string[]): string =>
+  `${pipelineRunsBaseRoute(namespace)}/compareRuns/add${generateCompareRunsQueryString(runIds)}`;
+
+export const globalCreatePipelineRunRoute = (namespace: string | undefined): string =>
+  `${globalPipelineRunsRoute(namespace)}/create`;
+
+export const globalDuplicatePipelineRunRoute = (
+  namespace: string | undefined,
+  runId: string,
+): string => `${globalPipelineRunsRoute(namespace)}/duplicate/${runId}`;
+
+export const globalCreatePipelineRecurringRunRoute = (namespace: string | undefined): string =>
+  `${globalPipelineRecurringRunsRoute(namespace)}/create`;
+
+export const globalDuplicatePipelineRecurringRunRoute = (
+  namespace: string | undefined,
+  recurringRunId: string,
+): string => `${globalPipelineRecurringRunsRoute(namespace)}/duplicate/${recurringRunId}`;
