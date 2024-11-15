@@ -12,13 +12,13 @@ import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
 import {
   ExperimentContext,
-  useContextExperimentArchived,
+  useContextExperimentArchivedOrDeleted,
 } from '~/pages/pipelines/global/experiments/ExperimentContext';
 import { experimentsBaseRoute } from '~/routes';
 
 const ExperimentPipelineRuns: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) => {
   const { experiment } = React.useContext(ExperimentContext);
-  const isArchived = useContextExperimentArchived();
+  const { isExperimentArchived } = useContextExperimentArchivedOrDeleted();
 
   return (
     <PipelineCoreApplicationPage
@@ -38,7 +38,7 @@ const ExperimentPipelineRuns: PipelineCoreDetailsPageComponent = ({ breadcrumbPa
               className="truncate-no-min-width"
             />
           </BreadcrumbItem>
-          {isArchived && <Label>Archived</Label>}
+          {isExperimentArchived && <Label>Archived</Label>}
         </Breadcrumb>
       }
     >

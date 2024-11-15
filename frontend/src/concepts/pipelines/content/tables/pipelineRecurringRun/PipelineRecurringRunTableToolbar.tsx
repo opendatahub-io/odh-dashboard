@@ -6,7 +6,7 @@ import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFi
 import PipelineVersionSelect from '~/concepts/pipelines/content/pipelineSelector/CustomPipelineVersionSelect';
 import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 import CreateScheduleButton from '~/pages/pipelines/global/runs/CreateScheduleButton';
-import { useContextExperimentArchived as useIsExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import { useContextExperimentArchivedOrDeleted as useIsExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
 
 export type FilterProps = Pick<
   React.ComponentProps<typeof PipelineFilterBar>,
@@ -22,7 +22,7 @@ const PipelineRecurringRunTableToolbar: React.FC<PipelineRecurringRunTableToolba
   ...toolbarProps
 }) => {
   const { versions } = React.useContext(PipelineRunVersionsContext);
-  const isExperimentArchived = useIsExperimentArchived();
+  const { isExperimentArchived } = useIsExperimentArchived();
   const { pipelineVersionId } = useParams();
 
   const options = {

@@ -24,7 +24,7 @@ import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
 import { useSetVersionFilter } from '~/concepts/pipelines/content/tables/useSetVersionFilter';
 import { compareRunsRoute, createRunRoute } from '~/routes';
-import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import { useContextExperimentArchivedOrDeleted } from '~/pages/pipelines/global/experiments/ExperimentContext';
 import { CustomMetricsColumnsModal } from './CustomMetricsColumnsModal';
 import { UnavailableMetricValue } from './UnavailableMetricValue';
 import { useMetricColumns } from './useMetricColumns';
@@ -84,7 +84,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     return acc;
   }, []);
   const restoreButtonTooltipRef = React.useRef(null);
-  const isExperimentArchived = useContextExperimentArchived();
+  const { isExperimentArchived } = useContextExperimentArchivedOrDeleted();
   const isGlobal = !experimentId && !pipelineId && !pipelineVersionId;
 
   const primaryToolbarAction = React.useMemo(() => {

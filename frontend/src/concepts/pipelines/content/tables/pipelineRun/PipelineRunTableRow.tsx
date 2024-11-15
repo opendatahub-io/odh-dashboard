@@ -18,7 +18,7 @@ import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
 import { compareRunsRoute, duplicateRunRoute } from '~/routes';
 import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 import PipelineRunTableRowExperiment from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowExperiment';
-import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import { useContextExperimentArchivedOrDeleted } from '~/pages/pipelines/global/experiments/ExperimentContext';
 import { getDashboardMainContainer } from '~/utilities/utils';
 import usePipelineRunExperimentInfo from '~/concepts/pipelines/content/tables/usePipelineRunExperimentInfo';
 
@@ -51,8 +51,8 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   } = usePipelineRunExperimentInfo(run);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
-  const isExperimentArchived = useContextExperimentArchived();
-  const isExperimentDeleted = !experiment && !experimentId;
+  const { isExperimentArchived, isExperimentDeleted } =
+    useContextExperimentArchivedOrDeleted(experiment);
 
   const actions: IAction[] = React.useMemo(() => {
     const isGlobal = !experimentId && !pipelineId && !pipelineVersionId;
