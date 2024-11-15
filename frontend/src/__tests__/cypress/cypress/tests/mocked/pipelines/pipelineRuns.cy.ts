@@ -204,8 +204,9 @@ describe('Pipeline runs', () => {
           expect(interception.request.query).to.eql({
             sort_by: 'created_at desc',
             page_size: '10',
-            filter:
+            filter: encodeURIComponent(
               '{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"AVAILABLE"},{"key":"pipeline_version_id","operation":"EQUALS","string_value":"test-version"}]}',
+            ),
           });
         });
         activeRunsTable.findRows().should('have.length', 10);
@@ -231,8 +232,9 @@ describe('Pipeline runs', () => {
           expect(interception.request.query).to.eql({
             sort_by: 'created_at desc',
             page_size: '10',
-            filter:
+            filter: encodeURIComponent(
               '{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"AVAILABLE"},{"key":"pipeline_version_id","operation":"EQUALS","string_value":"test-version"}]}',
+            ),
             page_token: 'page-2-token',
           });
         });
@@ -827,8 +829,9 @@ describe('Pipeline runs', () => {
 
         cy.wait('@getScheduledRuns').then((interception) => {
           expect(interception.request.query).to.eql({
-            filter:
+            filter: encodeURIComponent(
               '{"predicates":[{"key":"pipeline_version_id","operation":"EQUALS","string_value":"test-version"}]}',
+            ),
             sort_by: 'created_at desc',
             page_size: '10',
           });
@@ -855,8 +858,9 @@ describe('Pipeline runs', () => {
 
         cy.wait('@refreshScheduledRuns').then((interception) => {
           expect(interception.request.query).to.eql({
-            filter:
+            filter: encodeURIComponent(
               '{"predicates":[{"key":"pipeline_version_id","operation":"EQUALS","string_value":"test-version"}]}',
+            ),
             sort_by: 'created_at desc',
             page_size: '10',
             page_token: 'page-2-token',
@@ -902,8 +906,9 @@ describe('Pipeline runs', () => {
 
         cy.wait('@refreshPipelineRecurringRuns').then((interception) => {
           expect(interception.request.query).to.eql({
-            filter:
+            filter: encodeURIComponent(
               '{"predicates":[{"key":"pipeline_version_id","operation":"EQUALS","string_value":"test-version"}]}',
+            ),
             sort_by: 'created_at desc',
             page_size: '10',
             page_token: 'new-page-token',
