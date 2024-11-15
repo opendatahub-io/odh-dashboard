@@ -65,6 +65,7 @@ export const useWatchIntegrationComponents = (
     if (integrationComponents && components) {
       if (integrationComponents.length === 0) {
         setIsIntegrationComponentsChecked(true);
+        setNewComponents(components);
       } else {
         const watchComponents = () => {
           updateComponentEnablementStatus(integrationComponents, components).then(() => {
@@ -86,6 +87,7 @@ export const useWatchIntegrationComponents = (
       if (integrationComponents && components) {
         if (integrationComponents.length === 0) {
           setIsIntegrationComponentsChecked(true);
+          setNewComponents(components);
         } else {
           updateComponentEnablementStatus(integrationComponents, components).then(() => {
             setIsIntegrationComponentsChecked(true);

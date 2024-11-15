@@ -2,14 +2,15 @@ import * as React from 'react';
 import { IntegrationAppStatus, OdhApplication } from '~/types';
 import useFetchState, { FetchState, NotReadyError } from '~/utilities/useFetchState';
 import { getIntegrationAppEnablementStatus } from '~/services/integrationAppService';
+import { isIntegrationApp } from '~/utilities/utils';
 
 export const useIntegratedAppStatus = (app?: OdhApplication): FetchState<IntegrationAppStatus> => {
   const callback = React.useCallback(() => {
     if (!app) {
       return Promise.reject(new NotReadyError('Need an app to check'));
     }
-    if (!app.spec.internalRoute) {
-      // Silently ignore apps who don't have an internal route -- the logic is not needed
+    if (!isIntegrationApp(app)) {
+      // Silently ignore apps who aren't an integration app -- the logic is not needed
       return Promise.resolve({
         isInstalled: false,
         isEnabled: false,
