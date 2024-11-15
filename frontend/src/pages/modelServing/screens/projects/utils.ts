@@ -298,13 +298,19 @@ export const getProjectModelServingPlatform = (
 ): { platform?: ServingRuntimePlatform; error?: Error } => {
   const {
     kServe: { enabled: kServeEnabled, installed: kServeInstalled },
+    kServeNIM: { enabled: nimEnabled },
     modelMesh: { enabled: modelMeshEnabled, installed: modelMeshInstalled },
+    platformEnabledCount,
   } = platformStatuses;
+
   if (!project) {
+    // Likely temporary or a bad usage of the hook
     return {};
   }
+
   if (project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT] === undefined) {
-    if ((kServeEnabled && modelMeshEnabled) || (!kServeEnabled && !modelMeshEnabled)) {
+    // Auto-select logic
+    if (platformEnabledCount !== 1) {
       return {};
     }
     if (modelMeshEnabled) {
@@ -313,13 +319,21 @@ export const getProjectModelServingPlatform = (
     if (kServeEnabled) {
       return { platform: ServingRuntimePlatform.SINGLE };
     }
-  }
-  if (project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT] === 'true') {
+    if (nimEnabled) {
+      // TODO: this is weird, it relies on KServe today... so it's never "only installed"
+      return { platform: ServingRuntimePlatform.SINGLE };
+    }
+
+    // TODO: unreachable code unless adding a new platform? probably should throw an error
+  } else if (project.metadata.labels[KnownLabels.MODEL_SERVING_PROJECT] === 'true') {
+    // Model mesh logic
     return {
       platform: ServingRuntimePlatform.MULTI,
       error: modelMeshInstalled ? undefined : new Error('Multi-model platform is not installed'),
     };
   }
+
+  // KServe logic
   return {
     platform: ServingRuntimePlatform.SINGLE,
     error: kServeInstalled ? undefined : new Error('Single-model platform is not installed'),
