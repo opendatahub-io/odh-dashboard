@@ -24,6 +24,11 @@ class PipelineRecurringRunTableRow extends PipelineRunsRow {
     return this.find().findByTestId('recurring-run-status-switch');
   }
 
+  shouldHaveToggleEnabled() {
+    this.findStatusSwitchByRowName().find('input').should('not.have.attr', 'disabled');
+    return this;
+  }
+
   shouldHaveToggleDisabled() {
     this.findStatusSwitchByRowName().find('input').should('have.attr', 'disabled');
     return this;

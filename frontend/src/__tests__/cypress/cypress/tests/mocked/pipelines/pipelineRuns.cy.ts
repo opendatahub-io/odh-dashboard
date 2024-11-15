@@ -11,6 +11,7 @@ import {
   buildMockPipeline,
   buildMockExperimentKF,
   buildMockRecurringRunKF,
+  buildMockExperiments,
 } from '~/__mocks__';
 import {
   activeRunsTable,
@@ -54,7 +55,7 @@ const mockActiveRuns = [
       pipeline_id: pipelineId,
       pipeline_version_id: 'test-version-2',
     },
-    experiment_id: 'test-experiment-2',
+    experiment_id: 'test-experiment-3',
     created_at: '2024-02-05T00:00:00Z',
     state: RuntimeStateKF.SUCCEEDED,
   }),
@@ -71,7 +72,34 @@ const mockActiveRuns = [
   }),
 ];
 
-const mockExperimentIds = [...new Set(mockActiveRuns.map((mockRun) => mockRun.experiment_id))];
+const mockArchivedRuns = [
+  buildMockRunKF({
+    display_name: 'Test archived run 1',
+    run_id: 'archived-run-1',
+    pipeline_version_reference: {
+      pipeline_id: pipelineId,
+      pipeline_version_id: 'test-version-1',
+    },
+    experiment_id: 'test-experiment-1',
+    created_at: '2024-02-05T00:00:00Z',
+    state: RuntimeStateKF.SUCCEEDED,
+  }),
+  buildMockRunKF({
+    display_name: 'Test archived run 2',
+    run_id: 'archived-run-2',
+    pipeline_version_reference: {
+      pipeline_id: pipelineId,
+      pipeline_version_id: 'test-version-2',
+    },
+    experiment_id: 'test-experiment-2',
+    created_at: '2024-02-20T00:00:00Z',
+    state: RuntimeStateKF.SUCCEEDED,
+  }),
+];
+
+const mockExperimentIds = [
+  ...new Set([...mockActiveRuns, ...mockArchivedRuns].map((mockRun) => mockRun.experiment_id)),
+];
 const mockVersionIds = [
   ...new Set(
     mockActiveRuns.map((mockRun) => mockRun.pipeline_version_reference?.pipeline_version_id),
@@ -119,31 +147,6 @@ const mockRecurringRuns = [
       pipeline_id: pipelineId,
       pipeline_version_id: 'test-version-2',
     },
-  }),
-];
-
-const mockArchivedRuns = [
-  buildMockRunKF({
-    display_name: 'Test archived run 1',
-    run_id: 'archived-run-1',
-    pipeline_version_reference: {
-      pipeline_id: pipelineId,
-      pipeline_version_id: 'test-version-1',
-    },
-    experiment_id: 'test-experiment-1',
-    created_at: '2024-02-05T00:00:00Z',
-    state: RuntimeStateKF.SUCCEEDED,
-  }),
-  buildMockRunKF({
-    display_name: 'Test archived run 2',
-    run_id: 'archived-run-2',
-    pipeline_version_reference: {
-      pipeline_id: pipelineId,
-      pipeline_version_id: 'test-version-2',
-    },
-    experiment_id: 'test-experiment-1',
-    created_at: '2024-02-20T00:00:00Z',
-    state: RuntimeStateKF.SUCCEEDED,
   }),
 ];
 
@@ -676,9 +679,8 @@ describe('Pipeline runs', () => {
           pipelineRunFilterBar.selectExperimentByName('Test Experiment 1');
 
           // Verify only rows with selected experiment exist
-          archivedRunsTable.findRows().should('have.length', 2);
+          archivedRunsTable.findRows().should('have.length', 1);
           archivedRunsTable.getRowByName('Test archived run 1').find().should('exist');
-          archivedRunsTable.getRowByName('Test archived run 2').find().should('exist');
         });
 
         it('filter by created after', () => {
@@ -979,26 +981,12 @@ describe('Pipeline runs', () => {
       });
 
       it('schedules toggle should be disabled for the schedules with archived experiment', () => {
-        const mockArchivedExperiment = buildMockExperimentKF({
-          display_name: 'Test experiment 1',
-          experiment_id: 'test-experiment-1',
-          last_run_created_at: '1970-01-01T00:00:00Z',
-          storage_state: StorageStateKF.ARCHIVED,
-        });
-        cy.interceptOdh(
-          'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments/:experimentId',
-          {
-            path: {
-              namespace: projectName,
-              serviceName: 'dspa',
-              experimentId: 'test-experiment-1',
-            },
-          },
-          mockArchivedExperiment,
-        );
         pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'scheduled');
         pipelineRecurringRunTable
           .getRowByName(mockRecurringRuns[0].display_name)
+          .shouldHaveToggleEnabled();
+        pipelineRecurringRunTable
+          .getRowByName(mockRecurringRuns[1].display_name)
           .shouldHaveToggleDisabled();
       });
 
@@ -1127,5 +1115,21 @@ const initIntercepts = () => {
       },
     },
     buildMockPipelineVersion({ pipeline_id: pipelineId, pipeline_version_id: pipelineVersionId }),
+  );
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments',
+    {
+      path: {
+        namespace: projectName,
+        serviceName: 'dspa',
+      },
+    },
+    buildMockExperiments([
+      ...mockExperiments.map((e) =>
+        e.experiment_id === 'test-experiment-2'
+          ? { ...e, storage_state: StorageStateKF.ARCHIVED }
+          : e,
+      ),
+    ]),
   );
 };
