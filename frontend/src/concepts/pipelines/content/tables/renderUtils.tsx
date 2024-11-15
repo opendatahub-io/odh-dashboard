@@ -140,7 +140,7 @@ export const RecurringRunScheduled: RecurringRunUtil = ({ recurringRun }) => {
 
 export const RecurringRunStatus: RecurringRunUtil<{
   onToggle: (value: boolean) => Promise<void>;
-  experiment: ExperimentKF | null;
+  experiment?: ExperimentKF | null;
 }> = ({ recurringRun, onToggle, experiment }) => {
   const [error, setError] = React.useState<Error | null>(null);
   const [isChangingFlag, setIsChangingFlag] = React.useState(false);

@@ -52,6 +52,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const isExperimentArchived = useContextExperimentArchived();
+  const isExperimentDeleted = !experiment && !experimentId;
 
   const actions: IAction[] = React.useMemo(() => {
     const isGlobal = !experimentId && !pipelineId && !pipelineVersionId;
@@ -76,11 +77,12 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
         {
           title: 'Restore',
           onClick: () => setIsRestoreModalOpen(true),
-          isAriaDisabled: isExperimentArchived,
-          ...(isExperimentArchived && {
+          isAriaDisabled: isExperimentArchived || isExperimentDeleted,
+          ...((isExperimentArchived || isExperimentDeleted) && {
             tooltipProps: {
-              content:
-                'Archived runs cannot be restored until its associated experiment is restored.',
+              content: isExperimentArchived
+                ? 'Archived runs cannot be restored until its associated experiment is restored.'
+                : 'Archived runs cannot be restored because its associated experiment is deleted.',
             },
           }),
         },
@@ -119,20 +121,21 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       },
     ];
   }, [
+    experimentId,
+    pipelineId,
+    pipelineVersionId,
     runType,
     run.state,
     run.run_id,
     version,
+    navigate,
+    namespace,
     isExperimentArchived,
+    isExperimentDeleted,
     onDelete,
     api,
     refreshAllAPI,
     notification,
-    navigate,
-    namespace,
-    experimentId,
-    pipelineId,
-    pipelineVersionId,
   ]);
 
   return (
@@ -152,18 +155,12 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       </Td>
       {!pipelineVersionId && (
         <Td modifier="truncate" dataLabel="Pipeline">
-          <PipelineVersionLink
-            displayName={version?.display_name}
-            version={version}
-            error={versionError}
-            loaded={isVersionLoaded}
-          />
+          <PipelineVersionLink version={version} error={versionError} loaded={isVersionLoaded} />
         </Td>
       )}
       {!experimentId && (
         <Td modifier="truncate" dataLabel="Experiment">
           <PipelineRunTableRowExperiment
-            displayName={experiment?.display_name}
             experiment={experiment}
             error={experimentError}
             loaded={isExperimentLoaded}

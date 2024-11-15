@@ -14,7 +14,7 @@ import {
   RecurringRunTrigger,
 } from '~/concepts/pipelines/content/tables/renderUtils';
 import PipelineRunTableRowExperiment from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowExperiment';
-import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
+import usePipelineRunExperimentInfo from '~/concepts/pipelines/content/tables/usePipelineRunExperimentInfo';
 
 type PipelineRecurringRunTableRowProps = {
   isChecked: boolean;
@@ -34,11 +34,16 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
   const navigate = useNavigate();
   const { experimentId, pipelineId, pipelineVersionId } = useParams();
   const { namespace, api } = usePipelinesAPI();
-  const { version, loaded, error } = usePipelineRunVersionInfo(recurringRun);
-  const pipelineRecurringExperimentId = !experimentId ? recurringRun.experiment_id : '';
-  const [pipelineRecurringExperiment, pipelineRecurringExperimentLoaded] = useExperimentById(
-    pipelineRecurringExperimentId,
-  );
+  const {
+    version,
+    loaded: isVersionLoaded,
+    error: versionError,
+  } = usePipelineRunVersionInfo(recurringRun);
+  const {
+    experiment,
+    loaded: isExperimentLoaded,
+    error: experimentError,
+  } = usePipelineRunExperimentInfo(recurringRun);
 
   return (
     <Tr>
@@ -68,19 +73,15 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
       </Td>
       {!pipelineVersionId && (
         <Td modifier="truncate" dataLabel="Pipeline">
-          <PipelineVersionLink
-            displayName={version?.display_name}
-            version={version}
-            error={error}
-            loaded={loaded}
-          />
+          <PipelineVersionLink version={version} error={versionError} loaded={isVersionLoaded} />
         </Td>
       )}
       {!experimentId && (
         <Td modifier="truncate" dataLabel="Experiment">
           <PipelineRunTableRowExperiment
-            experiment={pipelineRecurringExperiment}
-            loaded={pipelineRecurringExperimentLoaded}
+            experiment={experiment}
+            error={experimentError}
+            loaded={isExperimentLoaded}
           />
         </Td>
       )}
@@ -92,7 +93,7 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
       </Td>
       <Td dataLabel="Status">
         <RecurringRunStatus
-          experiment={pipelineRecurringExperiment}
+          experiment={experiment}
           recurringRun={recurringRun}
           onToggle={(checked) =>
             api
