@@ -1,6 +1,10 @@
 import { FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, OdhApplication } from '../../../types';
-import { getApplications, updateApplications } from '../../../utils/resourceUtils';
+import {
+  getApplications,
+  updateApplications,
+  isIntegrationApp,
+} from '../../../utils/resourceUtils';
 import { checkJupyterEnabled, getRouteForApplication } from '../../../utils/componentUtils';
 
 export const listComponents = async (
@@ -17,7 +21,10 @@ export const listComponents = async (
     return Promise.resolve(applications);
   }
   for (const app of applications) {
-    if (app.spec.shownOnEnabledPage) {
+    if (isIntegrationApp(app)) {
+      // Include all integration apps -- Client can check if it's enabled
+      installedComponents.push(app);
+    } else if (app.spec.shownOnEnabledPage) {
       const newApp = {
         ...app,
         spec: {

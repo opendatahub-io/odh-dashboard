@@ -25,6 +25,7 @@ jest.mock('~/api', () => ({
   getSecret: jest.fn(),
   createSecret: jest.fn(),
   createPvc: jest.fn(),
+  getInferenceServiceContext: jest.fn(),
 }));
 
 jest.mock('~/pages/modelServing/screens/projects/nimUtils', () => ({
@@ -66,21 +67,22 @@ const getMockServingPlatformStatuses = ({
   kServeInstalled = true,
   modelMeshEnabled = true,
   modelMeshInstalled = true,
-  nimAvailable = true,
+  nimEnabled = false,
+  nimInstalled = false,
 }): ServingPlatformStatuses => ({
   kServe: {
     enabled: kServeEnabled,
     installed: kServeInstalled,
   },
+  kServeNIM: {
+    enabled: nimEnabled,
+    installed: nimInstalled,
+  },
   modelMesh: {
     enabled: modelMeshEnabled,
     installed: modelMeshInstalled,
   },
-  nim: {
-    available: nimAvailable,
-  },
-  numServingPlatformsAvailable: [kServeEnabled, modelMeshEnabled, nimAvailable].filter(Boolean)
-    .length,
+  platformEnabledCount: [kServeEnabled, nimEnabled, modelMeshEnabled].filter(Boolean).length,
 });
 
 describe('getProjectModelServingPlatform', () => {

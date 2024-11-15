@@ -179,6 +179,16 @@ export type OdhApplication = {
   };
 };
 
+/**
+ * An OdhApplication that uses integration api to determine status.
+ * @see isIntegrationApp
+ */
+export type OdhIntegrationApplication = OdhApplication & {
+  spec: {
+    internalRoute: string; // starts with `/api/`
+  };
+};
+
 export enum OdhApplicationCategory {
   RedHatManaged = 'Red Hat managed',
   PartnerManaged = 'Partner managed',
@@ -637,4 +647,11 @@ export enum ServingRuntimeAPIProtocol {
 export type KeyValuePair = {
   key: string;
   value: string;
+};
+
+export type IntegrationAppStatus = {
+  isInstalled: boolean;
+  isEnabled: boolean;
+  canInstall: boolean;
+  error: string;
 };
