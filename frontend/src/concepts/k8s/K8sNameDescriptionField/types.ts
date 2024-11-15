@@ -60,6 +60,8 @@ export type UseK8sNameDescriptionDataConfiguration = {
   regexp?: RegExp;
   /** Optional invalid characters message */
   invalidCharsMessage?: string;
+  /** allow the k8sName value to be edited even though it is pre-set */
+  editableK8sName?: boolean;
 };
 
 type K8sNameDescriptionFieldUpdateFunctionTemplate<T> = (

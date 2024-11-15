@@ -2,7 +2,6 @@ import * as React from 'react';
 import {
   Button,
   FormGroup,
-  FormHelperText,
   HelperText,
   HelperTextItem,
   TextArea,
@@ -75,29 +74,31 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
           value={name}
           onChange={(event, value) => onDataChange?.('name', value)}
         />
-        {!showK8sField && !k8sName.state.immutable && (
-          <FormHelperText>
-            <HelperText>
-              {nameHelperText}
-              {k8sName.value && (
+        {nameHelperText || (!showK8sField && !k8sName.state.immutable) ? (
+          <HelperText>
+            {nameHelperText && <HelperTextItem>{nameHelperText}</HelperTextItem>}
+            {!showK8sField && !k8sName.state.immutable && (
+              <>
+                {k8sName.value && (
+                  <HelperTextItem>
+                    The resource name will be <b>{k8sName.value}</b>.
+                  </HelperTextItem>
+                )}
                 <HelperTextItem>
-                  The resource name will be <b>{k8sName.value}</b>.
+                  <Button
+                    data-testid={`${dataTestId}-editResourceLink`}
+                    variant="link"
+                    isInline
+                    onClick={() => setShowK8sField(true)}
+                  >
+                    Edit resource name
+                  </Button>{' '}
+                  <ResourceNameDefinitionTooltip />
                 </HelperTextItem>
-              )}
-              <HelperTextItem>
-                <Button
-                  data-testid={`${dataTestId}-editResourceLink`}
-                  variant="link"
-                  isInline
-                  onClick={() => setShowK8sField(true)}
-                >
-                  Edit resource name
-                </Button>{' '}
-                <ResourceNameDefinitionTooltip />
-              </HelperTextItem>
-            </HelperText>
-          </FormHelperText>
-        )}
+              </>
+            )}
+          </HelperText>
+        ) : null}
       </FormGroup>
       <ResourceNameField
         allowEdit={showK8sField}

@@ -60,6 +60,7 @@ export enum StorageType {
 
 export type StorageData = {
   name: string;
+  k8sName?: string;
   size?: string;
   storageType?: StorageType;
   description?: string;

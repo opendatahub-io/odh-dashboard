@@ -1,4 +1,4 @@
-import { getDisplayNameFromK8sResource, getDescriptionFromK8sResource } from '~/concepts/k8s/utils';
+import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import { StorageData } from '~/pages/projects/types';
 
