@@ -1,5 +1,5 @@
 import { servingRuntimes } from '~/__tests__/cypress/cypress/pages/servingRuntimes';
-import { ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { getSingleModelPath } from '~/__tests__/cypress/cypress/utils/fileImportUtils';
 import { getSingleModelServingRuntimeInfo } from '~/__tests__/cypress/cypress/utils/fileParserUtil';
 
@@ -31,7 +31,7 @@ describe('Verify Admins Can Import and Delete a Custom Single-Model Serving Runt
   it('Admin should access serving runtimes, import a yaml file and then delete', () => {
     // Authentication and navigation
     cy.step('Log into the application');
-    cy.visitWithLogin('/', ADMIN_USER);
+    cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
     // Navigate to serving runtimes and import a multi-model serving yaml
     cy.step('Navigate to Serving Runtimes and add a new serving runtime').then(() => {
