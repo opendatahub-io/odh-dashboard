@@ -100,8 +100,6 @@ const usePipelineFilter = (
     }, [persistInUrl, navigate]),
   };
 
-  const cleanPredicateValue = (value: string) => encodeURIComponent(value.replace(/\\/g, '\\\\'));
-
   const doSetFilter = React.useCallback(
     (data: FilterProps['filterData']) => {
       const predicates: PipelinesFilterPredicate[] = [];
@@ -118,7 +116,7 @@ const usePipelineFilter = (
         predicates.push({
           key: 'name',
           operation: PipelinesFilterOp.IS_SUBSTRING,
-          string_value: cleanPredicateValue(runName),
+          string_value: runName,
         });
         urlSearchParams.set(FilterOptions.NAME, runName);
       }
