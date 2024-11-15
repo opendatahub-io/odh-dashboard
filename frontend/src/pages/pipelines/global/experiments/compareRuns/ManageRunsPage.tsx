@@ -125,23 +125,25 @@ export const ManageRunsPageInternal: React.FC<ManageRunsPageInternalProps> = ({ 
       provideChildrenPadding
       removeChildrenTopPadding
     >
-      <PipelineRunVersionsContextProvider>
-        <ManageRunsTable
-          runs={runs}
-          experiment={experiment}
-          filterProps={filterProps}
-          onClearFilters={onClearFilters}
-          selectedRunIds={selectedRunIds}
-          loading={!loaded}
-          totalSize={totalSize}
-          {...tableProps}
-        />
-      </PipelineRunVersionsContextProvider>
+      <ManageRunsTable
+        runs={runs}
+        experiment={experiment}
+        filterProps={filterProps}
+        onClearFilters={onClearFilters}
+        selectedRunIds={selectedRunIds}
+        loading={!loaded}
+        totalSize={totalSize}
+        {...tableProps}
+      />
     </ApplicationsPage>
   );
 };
 
 export const ManageRunsPage: React.FC = () => {
   const { experiment } = React.useContext(ExperimentContext);
-  return experiment ? <ManageRunsPageInternal experiment={experiment} /> : null;
+  return experiment ? (
+    <PipelineRunVersionsContextProvider>
+      <ManageRunsPageInternal experiment={experiment} />
+    </PipelineRunVersionsContextProvider>
+  ) : null;
 };

@@ -6,6 +6,8 @@ import { PipelinesFilterOp, PipelinesFilterPredicate } from '~/concepts/pipeline
 import { PipelinesFilter } from '~/concepts/pipelines/types';
 import useDebounceCallback from '~/utilities/useDebounceCallback';
 import FilterToolbar from '~/components/FilterToolbar';
+import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 
 export enum FilterOptions {
   NAME = 'name',
@@ -43,6 +45,8 @@ const usePipelineFilter = (
   // extract filters set in URL
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { api } = usePipelinesAPI();
+  const { versions, loaded: versionsLoaded } = React.useContext(PipelineRunVersionsContext);
 
   const [filterData, setFilterData] = React.useState(() => {
     const urlFilterData = {
@@ -63,16 +67,88 @@ const usePipelineFilter = (
         urlFilterData[FilterOptions.STATUS] = searchParams.get(FilterOptions.STATUS) || '';
       }
       if (searchParams.has(FilterOptions.EXPERIMENT)) {
-        urlFilterData[FilterOptions.EXPERIMENT] = searchParams.get(FilterOptions.EXPERIMENT) || '';
+        const experimentId = searchParams.get(FilterOptions.EXPERIMENT) || '';
+        urlFilterData[FilterOptions.EXPERIMENT] = experimentId;
+        // Fetch experiment name and update filter data
+        if (experimentId) {
+          api.getExperiment({}, experimentId).then((experiment) => {
+            setFilterData((prev) => ({
+              ...prev,
+              [FilterOptions.EXPERIMENT]: {
+                value: experimentId,
+                label: experiment.display_name,
+              },
+            }));
+          });
+        }
       }
       if (searchParams.has(FilterOptions.PIPELINE_VERSION)) {
-        urlFilterData[FilterOptions.PIPELINE_VERSION] =
-          searchParams.get(FilterOptions.PIPELINE_VERSION) || '';
+        const versionId = searchParams.get(FilterOptions.PIPELINE_VERSION) || '';
+        urlFilterData[FilterOptions.PIPELINE_VERSION] = versionId;
+        // Fetch pipeline version name and update filter data
+        if (versionId) {
+          const pipelineVersion = versions.find((v) => v.pipeline_version_id === versionId);
+          if (pipelineVersion) {
+            setFilterData((prev) => ({
+              ...prev,
+              [FilterOptions.PIPELINE_VERSION]: {
+                value: versionId,
+                label: pipelineVersion.display_name,
+              },
+            }));
+          }
+        }
       }
     }
 
     return urlFilterData;
   });
+
+  const experimentLabelUpdateAttempted = React.useRef(false);
+  const pipelineVersionLabelUpdateAttempted = React.useRef(false);
+
+  // update labels for experiments and pipeline versions if they are missing on load
+  React.useEffect(() => {
+    // update experiment label
+    if (
+      filterData[FilterOptions.EXPERIMENT] &&
+      typeof filterData[FilterOptions.EXPERIMENT] === 'string' &&
+      !experimentLabelUpdateAttempted.current
+    ) {
+      api.getExperiment({}, filterData[FilterOptions.EXPERIMENT]).then((experiment) => {
+        setFilterData((prev) => ({
+          ...prev,
+          [FilterOptions.EXPERIMENT]: {
+            value: experiment.experiment_id,
+            label: experiment.display_name,
+          },
+        }));
+      });
+      experimentLabelUpdateAttempted.current = true;
+    }
+
+    // update pipeline version label
+    if (
+      filterData[FilterOptions.PIPELINE_VERSION] &&
+      typeof filterData[FilterOptions.PIPELINE_VERSION] === 'string' &&
+      !pipelineVersionLabelUpdateAttempted.current &&
+      versionsLoaded
+    ) {
+      const pipelineVersion = versions.find(
+        (v) => v.pipeline_version_id === filterData[FilterOptions.PIPELINE_VERSION],
+      );
+      if (pipelineVersion) {
+        setFilterData((prev) => ({
+          ...prev,
+          [FilterOptions.PIPELINE_VERSION]: {
+            value: pipelineVersion.pipeline_version_id,
+            label: pipelineVersion.display_name,
+          },
+        }));
+      }
+      pipelineVersionLabelUpdateAttempted.current = true;
+    }
+  }, [filterData, api, versions, versionsLoaded]);
 
   const toolbarProps: FilterProps = {
     filterData,
