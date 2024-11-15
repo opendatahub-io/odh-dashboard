@@ -2,7 +2,10 @@ import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_com
 import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import type { DataScienceProjectData } from '~/__tests__/cypress/cypress/types';
 import { permissions } from '~/__tests__/cypress/cypress/pages/permissions';
-import { ADMIN_USER, TEST_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import {
+  HTPASSWD_CLUSTER_ADMIN_USER,
+  LDAP_CONTRIBUTOR_USER,
+} from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { loadFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
 
@@ -37,7 +40,7 @@ describe('Verify that users can provide contributor project permissions to non-a
   it('Verify that user can be added as a Contributor for a Project', () => {
     // Authentication and navigation
     cy.step('Log into the application');
-    cy.visitWithLogin('/', ADMIN_USER);
+    cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
     // Project navigation, add user and provide contributor permissions
     cy.step(
@@ -50,22 +53,25 @@ describe('Verify that users can provide contributor project permissions to non-a
 
     cy.step('Assign contributor user Project Permissions');
     permissions.findAddUserButton().click();
-    permissions.getUserTable().findAddInput().type(TEST_USER.USERNAME);
+    permissions.getUserTable().findAddInput().type(LDAP_CONTRIBUTOR_USER.USERNAME);
     cy.debug();
     permissions
       .getUserTable()
-      .selectPermission(TEST_USER.USERNAME, 'Contributor View and edit the project components');
+      .selectPermission(
+        LDAP_CONTRIBUTOR_USER.USERNAME,
+        'Contributor View and edit the project components',
+      );
 
     cy.step(
-      `Save the user and validate that ${TEST_USER.USERNAME} has been saved with Contributor permissions`,
+      `Save the user and validate that ${LDAP_CONTRIBUTOR_USER.USERNAME} has been saved with Contributor permissions`,
     );
     permissions.getUserTable().findSaveNewButton().should('exist').and('be.visible').click();
-    cy.contains(TEST_USER.USERNAME).should('exist');
+    cy.contains(LDAP_CONTRIBUTOR_USER.USERNAME).should('exist');
   });
   it('Verify that user can access the created project as a Contributor', () => {
     // Authentication and navigation
-    cy.step(`Log into the application with ${TEST_USER.USERNAME}`);
-    cy.visitWithLogin('/', TEST_USER);
+    cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
+    cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
     // Project navigation and validate permissions tab is accessible
     cy.step('Verify that the user has access to the created project but cannot access Permissions');

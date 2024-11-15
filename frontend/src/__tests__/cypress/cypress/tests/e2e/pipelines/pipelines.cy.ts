@@ -1,5 +1,5 @@
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
-import { ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import { pipelineImportModal } from '~/__tests__/cypress/cypress/pages/pipelines/pipelineImportModal';
 import { createRunPage } from '~/__tests__/cypress/cypress/pages/pipelines/createRunPage';
@@ -27,7 +27,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
 
   it('An admin User can Import and Run a Pipeline', () => {
     // Login as an admin
-    cy.visitWithLogin('/', ADMIN_USER);
+    cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
     /**
      * Import Pipeline by URL from Project Details view

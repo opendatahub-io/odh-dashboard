@@ -3,6 +3,10 @@ TEST_USER:
   AUTH_TYPE: foo-auth
   USERNAME: foo-user
   PASSWORD: foo-passwd
+TEST_USER_3:
+  AUTH_TYPE: contributor-auth
+  USERNAME: contributor-username
+  PASSWORD: contributor-passwd
 OCP_ADMIN_USER:
   AUTH_TYPE: adm-auth
   USERNAME: adminuser

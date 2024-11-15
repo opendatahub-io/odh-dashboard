@@ -1,5 +1,5 @@
 import yaml from 'js-yaml';
-import { ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
   projectListPage,
   createProjectModal,
@@ -45,7 +45,7 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
   it('Create and Delete a Data Science Project in RHOAI', () => {
     // Authentication and navigation
     cy.step('Log into the application');
-    cy.visitWithLogin('/', ADMIN_USER);
+    cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
     projectListPage.navigate();
 
     // Initiate project creation

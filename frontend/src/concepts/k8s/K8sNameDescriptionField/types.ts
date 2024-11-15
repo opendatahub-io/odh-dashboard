@@ -13,6 +13,10 @@ export type K8sNameDescriptionFieldData = {
       invalidCharacters: boolean;
       /** If the maxLength is exceeded */
       invalidLength: boolean;
+      /** Optional regexp for the resource name */
+      regexp?: RegExp;
+      /** Optional invalid characters message */
+      invalidCharsMessage?: string;
       /**
        * Optional safe prefix for translation.
        * @see AdditionalCriteriaForTranslation
@@ -52,6 +56,10 @@ export type UseK8sNameDescriptionDataConfiguration = {
    * @see AdditionalCriteriaForTranslation
    */
   staticPrefix?: boolean;
+  /** Optional regexp for the resource name */
+  regexp?: RegExp;
+  /** Optional invalid characters message */
+  invalidCharsMessage?: string;
 };
 
 type K8sNameDescriptionFieldUpdateFunctionTemplate<T> = (

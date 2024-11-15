@@ -46,7 +46,7 @@ class ClusterStorageModal extends Modal {
   findWorkbenchConnectionSelect() {
     return this.find()
       .findByTestId('connect-existing-workbench-group')
-      .findByRole('button', { name: 'Typeahead menu toggle' });
+      .findByRole('button', { name: 'Typeahead menu toggle', hidden: true });
   }
 
   findMountField() {
@@ -79,7 +79,7 @@ class ClusterStorageModal extends Modal {
 
   selectPVSize(name: string) {
     this.findPVSizeSelectButton().click();
-    cy.findByRole('menuitem', { name }).click();
+    cy.findByRole('menuitem', { name, hidden: true }).click();
   }
 
   shouldHavePVSizeSelectValue(name: string) {
@@ -92,7 +92,7 @@ class ClusterStorageModal extends Modal {
   }
 
   findPVSizeMinusButton() {
-    return this.findPVSizeField().findByRole('button', { name: 'Minus' });
+    return this.findPVSizeField().findByRole('button', { name: 'Minus', hidden: true });
   }
 
   findPersistentStorageWarningCanNotEdit() {
@@ -108,7 +108,7 @@ class ClusterStorageModal extends Modal {
   }
 
   findPVSizePlusButton() {
-    return this.findPVSizeField().findByRole('button', { name: 'Plus' });
+    return this.findPVSizeField().findByRole('button', { name: 'Plus', hidden: true });
   }
 
   findStorageClassSelect() {

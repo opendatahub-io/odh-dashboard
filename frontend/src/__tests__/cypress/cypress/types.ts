@@ -81,7 +81,7 @@ export type CommandLineResult = {
 
 export type TestConfig = {
   ODH_DASHBOARD_URL: string;
-  TEST_USER: UserAuthConfig;
+  TEST_USER_3: UserAuthConfig;
   OCP_ADMIN_USER: UserAuthConfig;
   S3: AWSS3Buckets;
 };

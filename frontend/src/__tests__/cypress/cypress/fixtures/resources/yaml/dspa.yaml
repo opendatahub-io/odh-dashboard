@@ -1,8 +1,8 @@
-apiVersion: datasciencepipelinesapplications.opendatahub.io/v1alpha1
+apiVersion: datasciencepipelinesapplications.opendatahub.io/v1
 kind: DataSciencePipelinesApplication
 metadata:
   name: dspa
-  namespace: {{NAMESPACE}}
+  namespace: { { NAMESPACE } }
 spec:
   apiServer:
     caBundleFileMountPath: ''
@@ -32,14 +32,14 @@ spec:
     enableExternalRoute: false
     externalStorage:
       basePath: ''
-      bucket: {{AWS_S3_BUCKET}}
+      bucket: { { AWS_S3_BUCKET } }
       host: s3.amazonaws.com
       port: ''
       region: us-east-1
       s3CredentialsSecret:
         accessKey: AWS_ACCESS_KEY_ID
         secretKey: AWS_SECRET_ACCESS_KEY
-        secretName: {{DSPA_SECRET_NAME}}
+        secretName: { { DSPA_SECRET_NAME } }
       scheme: https
   persistenceAgent:
     deploy: true

@@ -300,22 +300,11 @@ describe('Workbench page', () => {
     environmentVariableField.uploadConfigYaml(configYamlPath);
     environmentVariableField.findRemoveEnvironmentVariableButton().should('be.enabled');
 
-    //cluster storage
-    createSpawnerPage.shouldHaveClusterStorageAlert();
-
-    //add new cluster storage
-    createSpawnerPage.findNewStorageRadio().click();
-    createSpawnerPage.findClusterStorageInput().should('have.value', 'test-project');
-    createSpawnerPage.findClusterStorageDescriptionInput().fill('test-description');
-    createSpawnerPage.findPVSizeMinusButton().click();
-    createSpawnerPage.findPVSizeInput().should('have.value', '19');
-    createSpawnerPage.findPVSizePlusButton().click();
-    createSpawnerPage.findPVSizeInput().should('have.value', '20');
-    createSpawnerPage.selectPVSize('MiB');
-
-    //add existing cluster storage
-    createSpawnerPage.findExistingStorageRadio().click();
-    createSpawnerPage.selectExistingPersistentStorage('Test Storage');
+    // cluster storage
+    const storageTableRow = createSpawnerPage.getStorageTable().getRowById(0);
+    storageTableRow.findNameValue().should('have.text', 'test-project-storage');
+    storageTableRow.findStorageSizeValue().should('have.text', 'Max 20Gi');
+    storageTableRow.findMountPathValue().should('have.text', '/opt/app-root/src/');
 
     //add data connection
     createSpawnerPage.findDataConnectionCheckbox().check();
@@ -351,15 +340,6 @@ describe('Workbench page', () => {
           },
           name: 'test-project',
           namespace: 'test-project',
-        },
-        spec: {
-          template: {
-            spec: {
-              volumes: [
-                { name: 'test-storage-1', persistentVolumeClaim: { claimName: 'test-storage-1' } },
-              ],
-            },
-          },
         },
       });
     });
@@ -693,7 +673,11 @@ describe('Workbench page', () => {
     editSpawnerPage.k8sNameDescription.findDisplayNameInput().should('have.value', 'Test Notebook');
     editSpawnerPage.shouldHaveNotebookImageSelectInput('Test Image');
     editSpawnerPage.shouldHaveContainerSizeInput('Small');
-    editSpawnerPage.shouldHavePersistentStorage('Test Storage');
+    editSpawnerPage
+      .getStorageTable()
+      .getRowById(0)
+      .findNameValue()
+      .should('have.text', 'Test Storage');
     editSpawnerPage.findSubmitButton().should('be.enabled');
     editSpawnerPage.k8sNameDescription.findDisplayNameInput().fill('Updated Notebook');
 
@@ -704,7 +688,9 @@ describe('Workbench page', () => {
 
     cy.interceptK8s('PUT', NotebookModel, mockNotebookK8sResource({})).as('editWorkbenchDryRun');
     cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('editWorkbench');
+
     editSpawnerPage.findSubmitButton().click();
+
     cy.wait('@editWorkbenchDryRun').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
       expect(interception.request.body).to.containSubset({
