@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PipelinesFilterOp, PipelinesFilterPredicate } from '~/concepts/pipelines/kfTypes';
 
 import { PipelinesFilter } from '~/concepts/pipelines/types';
@@ -43,7 +43,6 @@ const usePipelineFilter = (
   // extract filters set in URL
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const location = useLocation();
 
   const [filterData, setFilterData] = React.useState(() => {
     const urlFilterData = {
@@ -81,8 +80,27 @@ const usePipelineFilter = (
       (key, value) => setFilterData((oldValues) => ({ ...oldValues, [key]: value })),
       [],
     ),
-    onClearFilters: React.useCallback(() => setFilterData(defaultFilterData), []),
+    onClearFilters: React.useCallback(() => {
+      setFilterData(defaultFilterData);
+      if (persistInUrl) {
+        const currentSearchParams = new URLSearchParams(window.location.search);
+        currentSearchParams.delete(FilterOptions.NAME);
+        currentSearchParams.delete(FilterOptions.CREATED_AT);
+        currentSearchParams.delete(FilterOptions.STATUS);
+        currentSearchParams.delete(FilterOptions.EXPERIMENT);
+        currentSearchParams.delete(FilterOptions.PIPELINE_VERSION);
+        navigate(
+          {
+            pathname: window.location.pathname,
+            search: currentSearchParams.toString(),
+          },
+          { replace: true },
+        );
+      }
+    }, [persistInUrl, navigate]),
   };
+
+  const cleanPredicateValue = (value: string) => encodeURIComponent(value.replace(/\\/g, '\\\\'));
 
   const doSetFilter = React.useCallback(
     (data: FilterProps['filterData']) => {
@@ -100,9 +118,9 @@ const usePipelineFilter = (
         predicates.push({
           key: 'name',
           operation: PipelinesFilterOp.IS_SUBSTRING,
-          string_value: runName,
+          string_value: cleanPredicateValue(runName),
         });
-        urlSearchParams.set('name', runName);
+        urlSearchParams.set(FilterOptions.NAME, runName);
       }
 
       if (startedDateTime) {
@@ -111,7 +129,7 @@ const usePipelineFilter = (
           operation: PipelinesFilterOp.GREATER_THAN_EQUALS,
           timestamp_value: new Date(startedDateTime).toISOString(),
         });
-        urlSearchParams.set('created_at', startedDateTime);
+        urlSearchParams.set(FilterOptions.CREATED_AT, startedDateTime);
       }
 
       if (state) {
@@ -120,7 +138,7 @@ const usePipelineFilter = (
           operation: PipelinesFilterOp.EQUALS,
           string_value: state,
         });
-        urlSearchParams.set('status', state);
+        urlSearchParams.set(FilterOptions.STATUS, state);
       }
 
       if (experimentId) {
@@ -129,7 +147,7 @@ const usePipelineFilter = (
           operation: PipelinesFilterOp.EQUALS,
           string_value: experimentId,
         });
-        urlSearchParams.set('experiment', experimentId);
+        urlSearchParams.set(FilterOptions.EXPERIMENT, experimentId);
       }
 
       if (pipelineVersionId) {
@@ -138,20 +156,20 @@ const usePipelineFilter = (
           operation: PipelinesFilterOp.EQUALS,
           string_value: pipelineVersionId,
         });
-        urlSearchParams.set('pipeline_version', pipelineVersionId);
+        urlSearchParams.set(FilterOptions.PIPELINE_VERSION, pipelineVersionId);
       }
 
       // Only update URL if useSearchParams is true
       if (persistInUrl) {
         // Get current search params
-        const currentSearchParams = new URLSearchParams(location.search);
+        const currentSearchParams = new URLSearchParams(window.location.search);
 
         // Remove any existing filter params
-        currentSearchParams.delete('name');
-        currentSearchParams.delete('created_at');
-        currentSearchParams.delete('status');
-        currentSearchParams.delete('experiment');
-        currentSearchParams.delete('pipeline_version');
+        currentSearchParams.delete(FilterOptions.NAME);
+        currentSearchParams.delete(FilterOptions.CREATED_AT);
+        currentSearchParams.delete(FilterOptions.STATUS);
+        currentSearchParams.delete(FilterOptions.EXPERIMENT);
+        currentSearchParams.delete(FilterOptions.PIPELINE_VERSION);
 
         // Add new filter params
         for (const [key, value] of urlSearchParams.entries()) {
@@ -160,8 +178,8 @@ const usePipelineFilter = (
 
         navigate(
           {
-            pathname: location.pathname,
-            search: currentSearchParams.toString() ? `?${currentSearchParams.toString()}` : '',
+            pathname: window.location.pathname,
+            search: currentSearchParams.toString(),
           },
           { replace: true },
         );
@@ -175,7 +193,7 @@ const usePipelineFilter = (
           : undefined,
       );
     },
-    [persistInUrl, setFilter, location.search, location.pathname, navigate],
+    [persistInUrl, setFilter, navigate],
   );
 
   const doSetFilterDebounced = useDebounceCallback(doSetFilter);

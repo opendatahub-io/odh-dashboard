@@ -119,6 +119,7 @@ const LocationDisplay = ({ setSearch }: { setSearch: (search: string) => void })
 
 describe('usePipelineFilter with URL persistence', () => {
   beforeEach(() => {
+    window.history.pushState({}, '', '/');
     jest.useFakeTimers();
   });
 
@@ -184,6 +185,7 @@ describe('usePipelineFilter with URL persistence', () => {
   it('should clear URL params when filters are cleared', () => {
     const setFilterMock = jest.fn();
     let currentSearch = '';
+    window.history.pushState({}, '', '/?name=test&status=success');
 
     const { result } = renderHook(() => usePipelineFilter(setFilterMock, undefined, true), {
       wrapper: ({ children }) => (
@@ -198,6 +200,8 @@ describe('usePipelineFilter with URL persistence', () => {
       ),
     });
 
+    expect(currentSearch).toBe('?name=test&status=success');
+
     act(() => {
       result.current.onClearFilters();
     });
@@ -208,6 +212,7 @@ describe('usePipelineFilter with URL persistence', () => {
   it('should preserve other URL params when updating filters', () => {
     const setFilterMock = jest.fn();
     let currentSearch = '';
+    window.history.pushState({}, '', '/?otherParam=value');
 
     const { result } = renderHook(() => usePipelineFilter(setFilterMock, undefined, true), {
       wrapper: ({ children }) => (
@@ -221,6 +226,8 @@ describe('usePipelineFilter with URL persistence', () => {
         </MemoryRouter>
       ),
     });
+
+    expect(currentSearch).toBe('?otherParam=value');
 
     act(() => {
       result.current.onFilterUpdate(FilterOptions.NAME, 'test');
