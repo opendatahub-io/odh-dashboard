@@ -6,6 +6,7 @@ import { OdhApplication } from '~/types';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import OdhAppCard from '~/components/OdhAppCard';
 import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { useWatchIntegrationComponents } from '~/utilities/useWatchIntegrationComponents';
 
 const description = `Launch your enabled applications, view documentation, or get started with quick start instructions and tasks.`;
 
@@ -21,18 +22,21 @@ let enabledComponents: OdhApplication[] = [];
 export const EnabledApplicationsInner: React.FC<EnabledApplicationsInnerProps> = React.memo(
   ({ loaded, loadError, components }) => {
     const isEmpty = components.length === 0;
+    const { checkedComponents, isIntegrationComponentsChecked } = useWatchIntegrationComponents(
+      loaded ? components : undefined,
+    );
 
     return (
       <ApplicationsPage
         title="Enabled"
         description={description}
-        loaded={loaded}
+        loaded={loaded && isIntegrationComponentsChecked}
         empty={isEmpty}
         loadError={loadError}
       >
         <PageSection isFilled data-testid="enabled-application">
           <Gallery maxWidths={{ default: '330px' }} role="list" hasGutter>
-            {components.map((c) => (
+            {checkedComponents.map((c) => (
               <OdhAppCard key={c.metadata.name} odhApp={c} />
             ))}
           </Gallery>

@@ -332,33 +332,38 @@ export const fetchApplications = async (
     .then((result) => result.body)
     .catch(() => null);
   for (const appDef of applicationDefs) {
-    appDef.spec.shownOnEnabledPage = enabledAppsCM?.data?.[appDef.metadata.name] === 'true';
-    appDef.spec.isEnabled = await getIsAppEnabled(fastify, appDef).catch((e) => {
-      fastify.log.warn(
-        `"${
-          appDef.metadata.name
-        }" OdhApplication is being disabled due to an error determining if it's enabled. ${
-          e.response?.body?.message || e.message
-        }`,
-      );
+    if (isIntegrationApp(appDef)) {
+      // Ignore logic for apps that use internal routes for status information
+      applications.push(appDef);
+    } else {
+      appDef.spec.shownOnEnabledPage = enabledAppsCM?.data?.[appDef.metadata.name] === 'true';
+      appDef.spec.isEnabled = await getIsAppEnabled(fastify, appDef).catch((e) => {
+        fastify.log.warn(
+          `"${
+            appDef.metadata.name
+          }" OdhApplication is being disabled due to an error determining if it's enabled. ${
+            e.response?.body?.message || e.message
+          }`,
+        );
 
-      return false;
-    });
-    if (appDef.spec.isEnabled) {
-      if (!appDef.spec.shownOnEnabledPage) {
-        changed = true;
-        enabledAppsCMData[appDef.metadata.name] = 'true';
-        appDef.spec.shownOnEnabledPage = true;
+        return false;
+      });
+      if (appDef.spec.isEnabled) {
+        if (!appDef.spec.shownOnEnabledPage) {
+          changed = true;
+          enabledAppsCMData[appDef.metadata.name] = 'true';
+          appDef.spec.shownOnEnabledPage = true;
+        }
       }
+      applications.push({
+        ...appDef,
+        spec: {
+          ...appDef.spec,
+          getStartedLink: getRouteForClusterId(fastify, appDef.spec.getStartedLink),
+          link: appDef.spec.isEnabled ? await getRouteForApplication(fastify, appDef) : undefined,
+        },
+      });
     }
-    applications.push({
-      ...appDef,
-      spec: {
-        ...appDef.spec,
-        getStartedLink: getRouteForClusterId(fastify, appDef.spec.getStartedLink),
-        link: appDef.spec.isEnabled ? await getRouteForApplication(fastify, appDef) : undefined,
-      },
-    });
   }
   if (changed) {
     // write enabled apps configmap
@@ -1037,3 +1042,5 @@ export const translateDisplayNameForK8s = (name: string): string =>
     .toLowerCase()
     .replace(/\s/g, '-')
     .replace(/[^A-Za-z0-9-]/g, '');
+export const isIntegrationApp = (app: OdhApplication): boolean =>
+  app.spec.internalRoute?.startsWith('/api/');

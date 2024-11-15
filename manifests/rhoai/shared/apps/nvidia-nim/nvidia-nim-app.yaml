@@ -18,6 +18,7 @@ spec:
   docsLink: https://developer.nvidia.com/nim
   quickStart: ''
   getStartedLink: 'https://developer.nvidia.com/nim'
+  internalRoute: '/api/integrations/nim'
   enable:
     title: Enter NVIDIA AI Enterprise license key
     actionLabel: Submit
@@ -28,9 +29,6 @@ spec:
       api_key: NVIDIA AI Enterprise license key
     variableHelpText:
       api_key: This key is given to you by NVIDIA
-    validationJob: nvidia-nim-periodic-validator
-    validationSecret: nvidia-nim-access
-    validationConfigMap: nvidia-nim-validation-result
   getStartedMarkDown: |-
     # **NVIDIA NIM**
     NVIDIA NIM, part of NVIDIA AI Enterprise, is a set of easy-to-use
