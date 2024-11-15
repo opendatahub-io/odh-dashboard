@@ -10,22 +10,22 @@ import DeployedModelsSection from './deployedModels/DeployedModelsSection';
 const ServeModelsSection: React.FC = () => {
   const servingPlatformStatuses = useServingPlatformStatuses();
   const {
-    numServingPlatformsAvailable,
     modelMesh: { enabled: modelMeshEnabled },
   } = servingPlatformStatuses;
 
   const { currentProject } = React.useContext(ProjectDetailsContext);
 
-  const { platform: currentProjectServingPlatform } = getProjectModelServingPlatform(
-    currentProject,
-    servingPlatformStatuses,
-  );
+  const {
+    platform: currentProjectServingPlatform,
+    noPlatformsActive,
+    hasMultiplePlatformOptions,
+  } = getProjectModelServingPlatform(currentProject, servingPlatformStatuses);
 
-  if (numServingPlatformsAvailable > 1 && !currentProjectServingPlatform) {
+  if (hasMultiplePlatformOptions && !currentProjectServingPlatform) {
     return <PlatformSelectSection />;
   }
 
-  if (numServingPlatformsAvailable === 0) {
+  if (noPlatformsActive) {
     return <NoProjectServingEnabledSection />;
   }
 

@@ -295,32 +295,61 @@ export const useCreateInferenceServiceObject = (
 export const getProjectModelServingPlatform = (
   project: ProjectKind | null,
   platformStatuses: ServingPlatformStatuses,
-): { platform?: ServingRuntimePlatform; error?: Error } => {
+): {
+  platform?: ServingRuntimePlatform;
+  hasMultiplePlatformOptions?: boolean;
+  noPlatformsActive?: boolean;
+  error?: Error;
+} => {
   const {
     kServe: { enabled: kServeEnabled, installed: kServeInstalled },
+    kServeNIM: { enabled: nimEnabled, installed: nimInstalled },
     modelMesh: { enabled: modelMeshEnabled, installed: modelMeshInstalled },
   } = platformStatuses;
+
   if (!project) {
+    // Likely temporary or a bad usage of the hook
     return {};
   }
+
+  const allProjectsEnabledState = [kServeEnabled, modelMeshEnabled, nimEnabled];
+  const hasMultiplePlatformOptions = allProjectsEnabledState.filter(Boolean).length >= 2;
+  const noPlatformsActive = allProjectsEnabledState.filter(Boolean).length === 0;
+
+  const data: ReturnType<typeof getProjectModelServingPlatform> = {
+    hasMultiplePlatformOptions,
+    noPlatformsActive,
+  };
+
   if (project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT] === undefined) {
-    if ((kServeEnabled && modelMeshEnabled) || (!kServeEnabled && !modelMeshEnabled)) {
-      return {};
+    // Auto-select logic
+    if (hasMultiplePlatformOptions || noPlatformsActive) {
+      return data;
     }
     if (modelMeshEnabled) {
-      return { platform: ServingRuntimePlatform.MULTI };
+      return { ...data, platform: ServingRuntimePlatform.MULTI };
     }
     if (kServeEnabled) {
-      return { platform: ServingRuntimePlatform.SINGLE };
+      return { ...data, platform: ServingRuntimePlatform.SINGLE };
     }
-  }
-  if (project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT] === 'true') {
+    if (nimEnabled) {
+      // TODO: this is weird, it relies on KServe today... so it's never "only installed"
+      return { ...data, platform: ServingRuntimePlatform.SINGLE };
+    }
+
+    // TODO: unreachable code unless adding a new platform? probably should throw an error
+  } else if (project.metadata.labels[KnownLabels.MODEL_SERVING_PROJECT] === 'true') {
+    // Model mesh logic
     return {
+      ...data,
       platform: ServingRuntimePlatform.MULTI,
       error: modelMeshInstalled ? undefined : new Error('Multi-model platform is not installed'),
     };
   }
+
+  // KServe logic
   return {
+    ...data,
     platform: ServingRuntimePlatform.SINGLE,
     error: kServeInstalled ? undefined : new Error('Single-model platform is not installed'),
   };

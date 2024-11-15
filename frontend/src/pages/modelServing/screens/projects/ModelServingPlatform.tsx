@@ -63,12 +63,9 @@ const ModelServingPlatform: React.FC = () => {
   const deployingFromRegistry = !!(modelRegistryName && registeredModelId && modelVersionId);
 
   const servingPlatformStatuses = useServingPlatformStatuses();
-  const {
-    kServe: { enabled: kServeEnabled },
-    modelMesh: { enabled: modelMeshEnabled },
-    nim: { available: isNIMAvailable },
-    numServingPlatformsAvailable,
-  } = servingPlatformStatuses;
+  const kServeEnabled = servingPlatformStatuses.kServe.enabled;
+  const isNIMAvailable = servingPlatformStatuses.kServeNIM.enabled;
+  const modelMeshEnabled = servingPlatformStatuses.modelMesh.enabled;
 
   const {
     servingRuntimes: {
@@ -96,12 +93,15 @@ const ModelServingPlatform: React.FC = () => {
   const emptyTemplates = templatesEnabled.length === 0;
   const emptyModelServer = servingRuntimes.length === 0;
 
-  const { platform: currentProjectServingPlatform, error: platformError } =
-    getProjectModelServingPlatform(currentProject, servingPlatformStatuses);
+  const {
+    platform: currentProjectServingPlatform,
+    hasMultiplePlatformOptions,
+    noPlatformsActive,
+    error: platformError,
+  } = getProjectModelServingPlatform(currentProject, servingPlatformStatuses);
 
   const shouldShowPlatformSelection =
-    ((kServeEnabled && modelMeshEnabled) || (!kServeEnabled && !modelMeshEnabled)) &&
-    !currentProjectServingPlatform;
+    (!!hasMultiplePlatformOptions || !!noPlatformsActive) && !currentProjectServingPlatform;
 
   const isProjectModelMesh = currentProjectServingPlatform === ServingRuntimePlatform.MULTI;
 
@@ -259,7 +259,7 @@ const ModelServingPlatform: React.FC = () => {
         isEmpty={shouldShowPlatformSelection}
         loadError={platformError || servingRuntimeError || templateError}
         emptyState={
-          kServeEnabled && modelMeshEnabled ? (
+          hasMultiplePlatformOptions ? (
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapLg' }}>
               <FlexItem
                 flex={{ default: 'flex_1' }}
@@ -281,16 +281,20 @@ const ModelServingPlatform: React.FC = () => {
                   </StackItem>
                   <StackItem>
                     <Gallery hasGutter>
-                      <GalleryItem>
-                        <EmptySingleModelServingCard
-                          setErrorSelectingPlatform={setErrorSelectingPlatform}
-                        />
-                      </GalleryItem>
-                      <GalleryItem>
-                        <EmptyMultiModelServingCard
-                          setErrorSelectingPlatform={setErrorSelectingPlatform}
-                        />
-                      </GalleryItem>
+                      {kServeEnabled && (
+                        <GalleryItem>
+                          <EmptySingleModelServingCard
+                            setErrorSelectingPlatform={setErrorSelectingPlatform}
+                          />
+                        </GalleryItem>
+                      )}
+                      {modelMeshEnabled && (
+                        <GalleryItem>
+                          <EmptyMultiModelServingCard
+                            setErrorSelectingPlatform={setErrorSelectingPlatform}
+                          />
+                        </GalleryItem>
+                      )}
                       {isNIMAvailable && (
                         <GalleryItem>
                           <EmptyNIMModelServingCard
@@ -330,7 +334,7 @@ const ModelServingPlatform: React.FC = () => {
                       ? 'Multi-model serving enabled'
                       : 'Single-model serving enabled'}
                   </Label>
-                  {emptyModelServer && numServingPlatformsAvailable > 1 && (
+                  {emptyModelServer && hasMultiplePlatformOptions && (
                     <ModelServingPlatformSelectButton
                       namespace={currentProject.metadata.name}
                       servingPlatform={NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}

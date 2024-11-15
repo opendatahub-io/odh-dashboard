@@ -122,5 +122,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.NIM_MODEL]: {
     featureFlags: ['disableNIMModelServing'],
+    reliantAreas: [SupportedArea.K_SERVE],
   },
 };
