@@ -11,21 +11,21 @@ const ServeModelsSection: React.FC = () => {
   const servingPlatformStatuses = useServingPlatformStatuses();
   const {
     modelMesh: { enabled: modelMeshEnabled },
+    platformEnabledCount,
   } = servingPlatformStatuses;
 
   const { currentProject } = React.useContext(ProjectDetailsContext);
 
-  const {
-    platform: currentProjectServingPlatform,
-    noPlatformsActive,
-    hasMultiplePlatformOptions,
-  } = getProjectModelServingPlatform(currentProject, servingPlatformStatuses);
+  const { platform: currentProjectServingPlatform } = getProjectModelServingPlatform(
+    currentProject,
+    servingPlatformStatuses,
+  );
 
-  if (hasMultiplePlatformOptions && !currentProjectServingPlatform) {
+  if (platformEnabledCount > 1 && !currentProjectServingPlatform) {
     return <PlatformSelectSection />;
   }
 
-  if (noPlatformsActive) {
+  if (platformEnabledCount === 0) {
     return <NoProjectServingEnabledSection />;
   }
 

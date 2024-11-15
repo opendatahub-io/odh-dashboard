@@ -93,15 +93,11 @@ const ModelServingPlatform: React.FC = () => {
   const emptyTemplates = templatesEnabled.length === 0;
   const emptyModelServer = servingRuntimes.length === 0;
 
-  const {
-    platform: currentProjectServingPlatform,
-    hasMultiplePlatformOptions,
-    noPlatformsActive,
-    error: platformError,
-  } = getProjectModelServingPlatform(currentProject, servingPlatformStatuses);
+  const { platform: currentProjectServingPlatform, error: platformError } =
+    getProjectModelServingPlatform(currentProject, servingPlatformStatuses);
 
   const shouldShowPlatformSelection =
-    (!!hasMultiplePlatformOptions || !!noPlatformsActive) && !currentProjectServingPlatform;
+    servingPlatformStatuses.platformEnabledCount !== 1 && !currentProjectServingPlatform;
 
   const isProjectModelMesh = currentProjectServingPlatform === ServingRuntimePlatform.MULTI;
 
@@ -259,7 +255,7 @@ const ModelServingPlatform: React.FC = () => {
         isEmpty={shouldShowPlatformSelection}
         loadError={platformError || servingRuntimeError || templateError}
         emptyState={
-          hasMultiplePlatformOptions ? (
+          servingPlatformStatuses.platformEnabledCount > 1 ? (
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapLg' }}>
               <FlexItem
                 flex={{ default: 'flex_1' }}
@@ -334,7 +330,7 @@ const ModelServingPlatform: React.FC = () => {
                       ? 'Multi-model serving enabled'
                       : 'Single-model serving enabled'}
                   </Label>
-                  {emptyModelServer && hasMultiplePlatformOptions && (
+                  {emptyModelServer && servingPlatformStatuses.platformEnabledCount > 1 && (
                     <ModelServingPlatformSelectButton
                       namespace={currentProject.metadata.name}
                       servingPlatform={NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}

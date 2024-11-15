@@ -52,7 +52,7 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
   } = React.useContext(ProjectDetailsContext);
 
   const servingPlatformStatuses = useServingPlatformStatuses();
-  const { hasMultiplePlatformOptions, error: platformError } = getProjectModelServingPlatform(
+  const { error: platformError } = getProjectModelServingPlatform(
     currentProject,
     servingPlatformStatuses,
   );
@@ -129,7 +129,7 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
           headerInfo={
             <Flex gap={{ default: 'gapSm' }}>
               <Label>Multi-model serving enabled</Label>
-              {hasMultiplePlatformOptions && (
+              {servingPlatformStatuses.platformEnabledCount > 1 && (
                 <ModelServingPlatformSelectButton
                   namespace={currentProject.metadata.name}
                   servingPlatform={NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}
@@ -193,7 +193,7 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
               <Label>
                 {isMultiPlatform ? 'Multi-model serving enabled' : 'Single-model serving enabled'}
               </Label>
-              {hasMultiplePlatformOptions && (
+              {servingPlatformStatuses.platformEnabledCount > 1 && (
                 <ModelServingPlatformSelectButton
                   namespace={currentProject.metadata.name}
                   servingPlatform={NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}

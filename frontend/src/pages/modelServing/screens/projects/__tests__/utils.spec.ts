@@ -82,6 +82,7 @@ const getMockServingPlatformStatuses = ({
     enabled: modelMeshEnabled,
     installed: modelMeshInstalled,
   },
+  platformEnabledCount: [kServeEnabled, nimEnabled, modelMeshEnabled].filter(Boolean).length,
 });
 
 describe('getProjectModelServingPlatform', () => {
@@ -91,10 +92,7 @@ describe('getProjectModelServingPlatform', () => {
         mockProjectK8sResource({}),
         getMockServingPlatformStatuses({ kServeEnabled: false, modelMeshEnabled: false }),
       ),
-    ).toStrictEqual({
-      hasMultiplePlatformOptions: false,
-      noPlatformsActive: true,
-    });
+    ).toStrictEqual({});
   });
   it('should return undefined if both KServe and ModelMesh are enabled, and project has no platform label', () => {
     expect(
@@ -102,10 +100,7 @@ describe('getProjectModelServingPlatform', () => {
         mockProjectK8sResource({}),
         getMockServingPlatformStatuses({}),
       ),
-    ).toStrictEqual({
-      hasMultiplePlatformOptions: true,
-      noPlatformsActive: false,
-    });
+    ).toStrictEqual({});
   });
   it('should return Single Platform if has platform label set to false and KServe is installed', () => {
     expect(
@@ -113,23 +108,13 @@ describe('getProjectModelServingPlatform', () => {
         mockProjectK8sResource({ enableModelMesh: false }),
         getMockServingPlatformStatuses({}),
       ),
-    ).toStrictEqual({
-      platform: ServingRuntimePlatform.SINGLE,
-      hasMultiplePlatformOptions: true,
-      noPlatformsActive: false,
-      error: undefined,
-    });
+    ).toStrictEqual({ platform: ServingRuntimePlatform.SINGLE, error: undefined });
     expect(
       getProjectModelServingPlatform(
         mockProjectK8sResource({ enableModelMesh: false }),
         getMockServingPlatformStatuses({ kServeEnabled: false }),
       ),
-    ).toStrictEqual({
-      platform: ServingRuntimePlatform.SINGLE,
-      hasMultiplePlatformOptions: false,
-      noPlatformsActive: false,
-      error: undefined,
-    });
+    ).toStrictEqual({ platform: ServingRuntimePlatform.SINGLE, error: undefined });
   });
   it('should give error if has platform label set to false and KServe is not installed', () => {
     expect(
@@ -145,23 +130,13 @@ describe('getProjectModelServingPlatform', () => {
         mockProjectK8sResource({ enableModelMesh: true }),
         getMockServingPlatformStatuses({}),
       ),
-    ).toStrictEqual({
-      platform: ServingRuntimePlatform.MULTI,
-      hasMultiplePlatformOptions: true,
-      noPlatformsActive: false,
-      error: undefined,
-    });
+    ).toStrictEqual({ platform: ServingRuntimePlatform.MULTI, error: undefined });
     expect(
       getProjectModelServingPlatform(
         mockProjectK8sResource({ enableModelMesh: true }),
         getMockServingPlatformStatuses({ modelMeshEnabled: false }),
       ),
-    ).toStrictEqual({
-      platform: ServingRuntimePlatform.MULTI,
-      hasMultiplePlatformOptions: false,
-      noPlatformsActive: false,
-      error: undefined,
-    });
+    ).toStrictEqual({ platform: ServingRuntimePlatform.MULTI, error: undefined });
   });
   it('should give error if has platform label set to true and ModelMesh is not installed', () => {
     expect(
@@ -177,11 +152,7 @@ describe('getProjectModelServingPlatform', () => {
         mockProjectK8sResource({}),
         getMockServingPlatformStatuses({ modelMeshEnabled: false }),
       ),
-    ).toStrictEqual({
-      platform: ServingRuntimePlatform.SINGLE,
-      hasMultiplePlatformOptions: false,
-      noPlatformsActive: false,
-    });
+    ).toStrictEqual({ platform: ServingRuntimePlatform.SINGLE });
   });
   it('should return Multi Platform if only ModelMesh is enabled, and project has no platform label', () => {
     expect(
@@ -189,11 +160,7 @@ describe('getProjectModelServingPlatform', () => {
         mockProjectK8sResource({}),
         getMockServingPlatformStatuses({ kServeEnabled: false }),
       ),
-    ).toStrictEqual({
-      platform: ServingRuntimePlatform.MULTI,
-      hasMultiplePlatformOptions: false,
-      noPlatformsActive: false,
-    });
+    ).toStrictEqual({ platform: ServingRuntimePlatform.MULTI });
   });
 });
 

@@ -116,6 +116,7 @@ export type ServingPlatformStatuses = {
   kServe: PlatformStatus;
   kServeNIM: PlatformStatus;
   modelMesh: PlatformStatus;
+  platformEnabledCount: number;
 };
 
 export type LabeledDataConnection = {

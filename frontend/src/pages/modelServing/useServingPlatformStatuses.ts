@@ -25,6 +25,7 @@ const useServingPlatformStatuses = (): ServingPlatformStatuses => {
       enabled: modelMeshEnabled,
       installed: modelMeshInstalled,
     },
+    platformEnabledCount: [kServeEnabled, isNIMAvailable, modelMeshEnabled].filter(Boolean).length,
   };
 };
 
