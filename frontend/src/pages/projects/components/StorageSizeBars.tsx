@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {
   Bullseye,
+  Popover,
   Progress,
   ProgressMeasureLocation,
   Spinner,
@@ -9,11 +10,12 @@ import {
   Text,
   Tooltip,
 } from '@patternfly/react-core';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { ExclamationCircleIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
-import { getPvcTotalSize } from '~/pages/projects/utils';
+import { getPvcRequestSize, getPvcTotalSize } from '~/pages/projects/utils';
 import { usePVCFreeAmount } from '~/api';
 import { bytesAsRoundedGiB } from '~/utilities/number';
+import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 
 type StorageSizeBarProps = {
   pvc: PersistentVolumeClaimKind;
@@ -22,6 +24,7 @@ type StorageSizeBarProps = {
 const StorageSizeBar: React.FC<StorageSizeBarProps> = ({ pvc }) => {
   const [inUseInBytes, loaded, error] = usePVCFreeAmount(pvc);
   const maxValue = getPvcTotalSize(pvc);
+  const requestedValue = getPvcRequestSize(pvc);
 
   if (!error && Number.isNaN(inUseInBytes)) {
     return (
@@ -29,6 +32,25 @@ const StorageSizeBar: React.FC<StorageSizeBarProps> = ({ pvc }) => {
         <Tooltip content="No active storage information at this time, check back later">
           <Text component="small">Max {maxValue}</Text>
         </Tooltip>
+      </div>
+    );
+  }
+
+  if (pvc.status?.conditions?.find((c) => c.type === 'FileSystemResizePending')) {
+    return (
+      <div>
+        <Text component="small">Max {requestedValue}</Text>
+        <Popover
+          bodyContent="To complete the storage size update, you must connect and run a workbench."
+          data-testid="size-warning-popover-text"
+        >
+          <DashboardPopupIconButton
+            icon={<ExclamationTriangleIcon />}
+            aria-label="Size warning"
+            iconStatus="warning"
+            data-testid="size-warning-popover"
+          />
+        </Popover>
       </div>
     );
   }
