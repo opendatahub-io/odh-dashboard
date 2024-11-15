@@ -326,6 +326,7 @@ export type OdhApplication = {
     displayName: string;
     docsLink: string;
     hidden?: boolean | null;
+    internalRoute?: string;
     enable?: {
       actionLabel: string;
       description?: string;
@@ -1228,3 +1229,27 @@ export enum ServiceAddressAnnotation {
   EXTERNAL_REST = 'routing.opendatahub.io/external-address-rest',
   EXTERNAL_GRPC = 'routing.opendatahub.io/external-address-grpc',
 }
+
+export type NIMAccountKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    apiKeySecret: {
+      name: string;
+    };
+  };
+  status?: {
+    nimConfig?: {
+      name: string;
+    };
+    runtimeTemplate?: {
+      name: string;
+    };
+    nimPullSecret?: {
+      name: string;
+    };
+    conditions?: K8sCondition[];
+  };
+};

@@ -3,7 +3,6 @@ kind: Kustomization
 resources:
   - ../../../core-bases/base
   - anaconda-ce-validator-cron.yaml
-  - nvidia-nim-validator-cron.yaml
 patchesJson6902:
   - path: service-account.yaml
     target:
