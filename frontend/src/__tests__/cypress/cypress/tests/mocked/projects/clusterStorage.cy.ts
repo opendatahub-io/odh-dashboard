@@ -110,6 +110,11 @@ describe('ClusterStorage', () => {
       clusterStorage.visit('test-project');
       const clusterStorageRow = clusterStorage.getClusterStorageRow('Test Storage');
       clusterStorageRow.findStorageClassColumn().should('exist');
+      clusterStorageRow.showStorageClassDetails();
+      clusterStorageRow
+        .findStorageClassResourceNameText()
+        .should('have.text', 'openshift-default-sc');
+      clusterStorageRow.findStorageClassResourceKindText().should('have.text', 'StorageClass');
     });
 
     it('Check whether the Storage class is deprecated', () => {
