@@ -17,6 +17,7 @@ type InferenceServiceFrameworkSectionProps = {
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
   modelContext?: SupportedModelFormats[];
   registeredModelFormat?: string;
+  servingRuntimeName?: string;
 };
 
 const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectionProps> = ({
@@ -24,6 +25,7 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
   setData,
   modelContext,
   registeredModelFormat,
+  servingRuntimeName,
 }) => {
   const [modelsContextLoaded, loaded, loadError] = useModelFramework(
     modelContext ? undefined : data.servingRuntimeName,
@@ -56,12 +58,12 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
             ? `${framework.name} - ${framework.version}`
             : `${framework.name}`;
           return {
+            optionKey: `${servingRuntimeName}-${name}`,
             key: name,
             label: name,
           };
         })}
         isSkeleton={!modelContext && !loaded && data.servingRuntimeName !== ''}
-        isLoadingOptions={!modelContext && !loaded}
         isFullWidth
         toggleLabel={
           dataFormatVersion
