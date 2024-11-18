@@ -67,14 +67,14 @@ describe('Verify Admins Can Import and Delete a Custom Multi-Model Serving Runti
       .getRowById(modelServingName)
       .find()
       .within(() => {
-        servingRuntimes.editModel().click();
-        servingRuntimes.deleteModel().click();
+        servingRuntimes.findEditModel().click();
+        servingRuntimes.findDeleteModel().click();
       });
 
-    servingRuntimes.deleteModal().should('be.visible').type(metadataDisplayName);
+    servingRuntimes.findDeleteModal().should('be.visible').type(metadataDisplayName);
 
     cy.step(`Delete the model ${modelServingName}`);
-    servingRuntimes.deleteModelServingButton().click();
+    servingRuntimes.findDeleteModelServingButton().click();
     servingRuntimes.getRowById(modelServingName).find().should('not.exist');
   });
 });

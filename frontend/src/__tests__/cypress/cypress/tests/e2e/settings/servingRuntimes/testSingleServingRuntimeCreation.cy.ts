@@ -72,14 +72,14 @@ describe('Verify Admins Can Import and Delete a Custom Single-Model Serving Runt
       .getRowById(modelServingSingleName)
       .find()
       .within(() => {
-        servingRuntimes.editModel().click();
-        servingRuntimes.deleteModel().click();
+        servingRuntimes.findEditModel().click();
+        servingRuntimes.findDeleteModel().click();
       });
 
-    servingRuntimes.deleteModal().should('be.visible').type(metadataSingleDisplayName);
+    servingRuntimes.findDeleteModal().should('be.visible').type(metadataSingleDisplayName);
 
     cy.step(`Delete the model ${modelServingSingleName}`);
-    servingRuntimes.deleteModelServingButton().click();
+    servingRuntimes.findDeleteModelServingButton().click();
     servingRuntimes.getRowById(modelServingSingleName).find().should('not.exist');
   });
 });
