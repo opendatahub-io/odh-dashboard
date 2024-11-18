@@ -28,7 +28,7 @@ const PopoverListContent: React.FC<PopoverListContentProps> = ({
   <TextContent {...props}>
     {leadText ? <ContentText>{leadText}</ContentText> : null}
     {listHeading ? <Text component="h4">{listHeading}</Text> : null}
-    <TextList>
+    <TextList style={{ margin: 0 }}>
       {listItems.map((item, index) => (
         <TextListItem key={index}>
           <ContentText>{item}</ContentText>

@@ -10,8 +10,10 @@ import {
   FlexItem,
   Icon,
   Popover,
+  PopoverPosition,
   Tooltip,
 } from '@patternfly/react-core';
+import text from '@patternfly/react-styles/css/utilities/Text/text';
 import truncateStyles from '@patternfly/react-styles/css/components/Truncate/truncate';
 import { InfoCircleIcon, BlueprintIcon } from '@patternfly/react-icons';
 import { useBrowserStorage } from '~/components/browserStorage';
@@ -19,6 +21,9 @@ import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/M
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { ServiceKind } from '~/k8sTypes';
 import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
+import WhosMyAdministrator from '~/components/WhosMyAdministrator';
+import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
+import { getServerAddress } from './utils';
 
 const MODEL_REGISTRY_FAVORITE_STORAGE_KEY = 'odh.dashboard.model.registry.favorite';
 
@@ -133,29 +138,62 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
   }
 
   return (
-    <Flex spaceItems={{ default: 'spaceItemsXs' }} alignItems={{ default: 'alignItemsCenter' }}>
-      <Icon>
-        <BlueprintIcon />
-      </Icon>
-      <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+    <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+      <FlexItem>
+        <Icon>
+          <BlueprintIcon />
+        </Icon>
+      </FlexItem>
+      <FlexItem>
+        <Bullseye>Model registry</Bullseye>
+      </FlexItem>
+      <FlexItem>{selector}</FlexItem>
+      {selection && (
         <FlexItem>
-          <Bullseye>Model registry</Bullseye>
+          <Popover
+            aria-label="Model registry description popover"
+            data-testid="mr-details-popover"
+            position="right"
+            headerContent={`${getDisplayNameFromK8sResource(selection)} details`}
+            bodyContent={
+              <DescriptionList>
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Description</DescriptionListTerm>
+                  <DescriptionListDescription
+                    className={
+                      !getDescriptionFromK8sResource(selection) ? text.disabledColor_100 : ''
+                    }
+                  >
+                    {getDescriptionFromK8sResource(selection) || 'No description'}
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Server URL</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <InlineTruncatedClipboardCopy
+                      textToCopy={`https://${getServerAddress(selection)}`}
+                    />
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              </DescriptionList>
+            }
+          >
+            <Button variant="link" icon={<InfoCircleIcon />} data-testid="view-details-button">
+              View details
+            </Button>
+          </Popover>
         </FlexItem>
-        <FlexItem>{selector}</FlexItem>
-        {selection && getDescriptionFromK8sResource(selection) && (
-          <FlexItem>
-            <Popover
-              aria-label="Model registry description popover"
-              headerContent={getDisplayNameFromK8sResource(selection)}
-              bodyContent={getDescriptionFromK8sResource(selection)}
-            >
-              <Button variant="link" icon={<InfoCircleIcon />}>
-                View Description
-              </Button>
-            </Popover>
-          </FlexItem>
-        )}
-      </Flex>
+      )}
+      <FlexItem align={{ default: 'alignRight' }}>
+        <WhosMyAdministrator
+          buttonLabel="Need another registry?"
+          headerContent="Need another registry?"
+          leadText="To request access to a new or existing model registry, contact your administrator."
+          contentTestId="model-registry-help-content"
+          linkTestId="model-registry-help-button"
+          popoverPosition={PopoverPosition.left}
+        />
+      </FlexItem>
     </Flex>
   );
 };

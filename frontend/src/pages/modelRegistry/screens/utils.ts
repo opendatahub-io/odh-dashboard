@@ -6,6 +6,7 @@ import {
   ModelVersion,
   RegisteredModel,
 } from '~/concepts/modelRegistry/types';
+import { ServiceKind } from '~/k8sTypes';
 import { KeyValuePair } from '~/types';
 
 // Retrieves the labels from customProperties that have non-empty string_value.
@@ -153,3 +154,6 @@ export const filterRegisteredModels = (
     }
   });
 };
+
+export const getServerAddress = (resource: ServiceKind): string =>
+  resource.metadata.annotations?.['routing.opendatahub.io/external-address-rest'] || '';

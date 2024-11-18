@@ -3,17 +3,26 @@ import { ServiceKind } from '~/k8sTypes';
 type MockServiceType = {
   name?: string;
   namespace?: string;
+  description?: string;
+  serverUrl?: string;
 };
 
 export const mockModelRegistryService = ({
   name = 'modelregistry-sample',
   namespace = 'odh-model-registries',
+  description = 'Model registry description',
+  serverUrl = 'modelregistry-sample-rest.com:443',
 }: MockServiceType): ServiceKind => ({
   kind: 'Service',
   apiVersion: 'v1',
   metadata: {
     name,
     namespace,
+    annotations: {
+      'openshift.io/description': description,
+      'openshift.io/display-name': name,
+      'routing.opendatahub.io/external-address-rest': serverUrl,
+    },
   },
   spec: {
     selector: {

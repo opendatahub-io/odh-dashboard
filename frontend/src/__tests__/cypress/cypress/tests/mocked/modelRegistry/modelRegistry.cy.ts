@@ -38,7 +38,11 @@ const initIntercepts = ({
   disableModelRegistryFeature = false,
   modelRegistries = [
     mockModelRegistryService({ name: 'modelregistry-sample' }),
-    mockModelRegistryService({ name: 'modelregistry-sample-2' }),
+    mockModelRegistryService({
+      name: 'modelregistry-sample-2',
+      serverUrl: 'modelregistry-sample-2-rest.com:443',
+      description: '',
+    }),
   ],
   registeredModels = [
     mockRegisteredModel({
@@ -228,6 +232,34 @@ describe('Model Registry core', () => {
     modelRegistry.navigate();
     modelRegistry.shouldModelRegistrySelectorExist();
     modelRegistry.shouldregisteredModelsEmpty();
+
+    modelRegistry.findViewDetailsButton().click();
+    modelRegistry.findDetailsPopover().should('exist');
+    modelRegistry.findDetailsPopover().findByText('Model registry description').should('exist');
+    modelRegistry
+      .findDetailsPopover()
+      .findByText('https://modelregistry-sample-rest.com:443')
+      .should('exist');
+
+    // Model registry with no description
+    modelRegistry.findModelRegistry().findSelectOption('modelregistry-sample-2').click();
+    modelRegistry.findViewDetailsButton().click();
+    modelRegistry.findDetailsPopover().should('exist');
+    modelRegistry.findDetailsPopover().findByText('No description').should('exist');
+    modelRegistry
+      .findDetailsPopover()
+      .findByText('https://modelregistry-sample-2-rest.com:443')
+      .should('exist');
+
+    //  Model registry help content
+    modelRegistry.findHelpContentButton().click();
+    modelRegistry.findHelpContentPopover().should('exist');
+    modelRegistry
+      .findHelpContentPopover()
+      .findByText(
+        'To request access to a new or existing model registry, contact your administrator.',
+      )
+      .should('exist');
   });
 
   describe('Registered model table', () => {
