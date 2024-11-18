@@ -12,16 +12,16 @@ import { FieldProps } from '~/concepts/connectionTypes/fields/types';
 import DefaultValueTextRenderer from '~/concepts/connectionTypes/fields/DefaultValueTextRenderer';
 
 const rangeString = (min?: number, max?: number) => {
-  if (min === undefined && max === undefined) {
-    return '';
+  if (min !== undefined && max !== undefined) {
+    return `(${min}-${max})`;
   }
-  if (min === undefined) {
+  if (max !== undefined) {
     return `(less than or equal to ${max})`;
   }
-  if (max === undefined) {
+  if (min !== undefined) {
     return `(greater than or equal to ${min})`;
   }
-  return `(${min}-${max})`;
+  return '';
 };
 
 const NumericFormField: React.FC<FieldProps<NumericField>> = ({

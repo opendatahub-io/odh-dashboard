@@ -40,7 +40,7 @@ class PipelineRunsTable {
 
   protected emptyStateTestId = '';
 
-  constructor(tab?: 'active-runs' | 'archived-runs' | 'schedules') {
+  constructor(tab: 'active-runs' | 'archived-runs' | 'schedules') {
     this.testId = `${tab}-table`;
     this.emptyStateTestId = `${tab}-empty-state`;
   }

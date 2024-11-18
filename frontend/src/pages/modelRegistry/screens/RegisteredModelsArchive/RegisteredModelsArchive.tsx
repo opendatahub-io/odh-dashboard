@@ -43,7 +43,7 @@ const RegisteredModelsArchive: React.FC<RegisteredModelsArchiveProps> = ({ ...pa
           </BreadcrumbItem>
         </Breadcrumb>
       }
-      title={`Archived models of ${preferredModelRegistry?.metadata.name}`}
+      title={`Archived models of ${preferredModelRegistry?.metadata.name ?? ''}`}
       loadError={loadError}
       loaded={loaded}
       provideChildrenPadding

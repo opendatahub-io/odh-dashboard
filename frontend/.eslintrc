@@ -167,6 +167,13 @@
     "@typescript-eslint/explicit-module-boundary-types": "error",
     "react/self-closing-comp": "error",
     "@typescript-eslint/no-unnecessary-condition": "error",
+    "@typescript-eslint/restrict-template-expressions": [
+      "error",
+      {
+        "allowNullish": false,
+        "allowArray": true
+      }
+    ],
     "react-hooks/exhaustive-deps": "error",
     "prefer-destructuring": [
       "error",

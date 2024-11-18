@@ -57,7 +57,7 @@ const ModelRegistriesManagePermissions: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title={`Manage ${mrName} permissions`}
+      title={`Manage ${mrName ?? ''} permissions`}
       description="Manage access to this model registry for individual users and user groups, and for service accounts in a project."
       breadcrumb={
         <Breadcrumb>
@@ -96,7 +96,7 @@ const ModelRegistriesManagePermissions: React.FC = () => {
           <TabContentBody>
             <RoleBindingPermissions
               ownerReference={ownerReference}
-              defaultRoleBindingName={`${mrName}-users`}
+              defaultRoleBindingName={`${mrName ?? ''}-users`}
               isGroupFirst
               permissionOptions={[
                 {
@@ -105,7 +105,7 @@ const ModelRegistriesManagePermissions: React.FC = () => {
                 },
               ]}
               roleRefKind="Role"
-              roleRefName={`registry-user-${mrName}`}
+              roleRefName={`registry-user-${mrName ?? ''}`}
               labels={{
                 [KnownLabels.DASHBOARD_RESOURCE]: 'true',
                 app: mrName || '',
@@ -145,7 +145,7 @@ const ModelRegistriesManagePermissions: React.FC = () => {
                 },
               ]}
               description="To enable access for all service accounts in a project, add the project name to the projects list."
-              roleRefName={`registry-user-${mrName}`}
+              roleRefName={`registry-user-${mrName ?? ''}`}
               labels={{
                 [KnownLabels.DASHBOARD_RESOURCE]: 'true',
                 [KnownLabels.PROJECT_SUBJECT]: 'true',

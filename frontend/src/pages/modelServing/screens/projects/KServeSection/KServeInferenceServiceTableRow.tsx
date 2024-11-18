@@ -45,7 +45,7 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
     servingRuntimes: { data: servingRuntimes },
   } = React.useContext(ProjectDetailsContext);
 
-  const frameworkName = obj.spec.predictor.model?.modelFormat?.name;
+  const frameworkName = obj.spec.predictor.model?.modelFormat?.name || '';
   const frameworkVersion = obj.spec.predictor.model?.modelFormat?.version;
 
   const servingRuntime = servingRuntimes.find(

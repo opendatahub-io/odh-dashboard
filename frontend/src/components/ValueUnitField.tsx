@@ -64,7 +64,7 @@ const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
             })
           }
           onChange={(value) => {
-            onChange(`${value || minAsNumber}${currentUnitOption.unit}`);
+            onChange(`${value || minAsNumber || ''}${currentUnitOption.unit}`);
           }}
           isDisabled={isDisabled}
         />
