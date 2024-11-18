@@ -190,7 +190,7 @@ export class CreateRunPage {
           }
         }
         if (filter) {
-          const { predicates } = JSON.parse(filter.toString());
+          const { predicates } = JSON.parse(decodeURIComponent(filter.toString()));
 
           if (predicates.length > 0) {
             predicates.forEach((predicate: { key: string; string_value: string }) => {

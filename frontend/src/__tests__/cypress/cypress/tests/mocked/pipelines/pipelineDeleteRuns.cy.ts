@@ -153,8 +153,9 @@ describe('Pipeline runs', () => {
         expect(interception.request.query).to.eql({
           sort_by: 'created_at desc',
           page_size: '10',
-          filter:
+          filter: encodeURIComponent(
             '{"predicates":[{"key":"pipeline_version_id","operation":"EQUALS","string_value":"version_id"}]}',
+          ),
         });
 
         pipelineRecurringRunTable.findEmptyState().should('not.exist');
@@ -214,8 +215,9 @@ describe('Pipeline runs', () => {
         expect(interception.request.query).to.eql({
           sort_by: 'created_at desc',
           page_size: '10',
-          filter:
+          filter: encodeURIComponent(
             '{"predicates":[{"key":"pipeline_version_id","operation":"EQUALS","string_value":"version_id"}]}',
+          ),
         });
       });
       pipelineRecurringRunTable.findEmptyState().should('exist');
@@ -259,8 +261,9 @@ describe('Pipeline runs', () => {
         expect(interception.request.query).to.eql({
           sort_by: 'created_at desc',
           page_size: '10',
-          filter:
+          filter: encodeURIComponent(
             '{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"AVAILABLE"},{"key":"pipeline_version_id","operation":"EQUALS","string_value":"version_id"}]}',
+          ),
         });
       });
       archivedRunsTable.findEmptyState().should('not.exist');
@@ -315,8 +318,9 @@ describe('Pipeline runs', () => {
         expect(interception.request.query).to.eql({
           sort_by: 'created_at desc',
           page_size: '10',
-          filter:
+          filter: encodeURIComponent(
             '{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"AVAILABLE"},{"key":"pipeline_version_id","operation":"EQUALS","string_value":"version_id"}]}',
+          ),
         });
       });
       archivedRunsTable.findEmptyState().should('exist');

@@ -43,12 +43,16 @@ export const ManageRunsPageInternal: React.FC<ManageRunsPageInternalProps> = ({ 
   const { namespace, project } = usePipelinesAPI();
   const [[{ items: runs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
     usePipelineActiveRunsTable();
-  const { onClearFilters, ...filterProps } = usePipelineFilter(tableProps.setFilter, {
-    [FilterOptions.EXPERIMENT]: {
-      label: experiment.display_name,
-      value: experiment.experiment_id,
+  const { onClearFilters, ...filterProps } = usePipelineFilter(
+    tableProps.setFilter,
+    {
+      [FilterOptions.EXPERIMENT]: {
+        label: experiment.display_name,
+        value: experiment.experiment_id,
+      },
     },
-  });
+    true,
+  );
   const selectedRunIds = searchParams.get(CompareRunsSearchParam.RUNS)?.split(',') ?? [];
 
   if (error) {
@@ -121,23 +125,25 @@ export const ManageRunsPageInternal: React.FC<ManageRunsPageInternalProps> = ({ 
       provideChildrenPadding
       removeChildrenTopPadding
     >
-      <PipelineRunVersionsContextProvider>
-        <ManageRunsTable
-          runs={runs}
-          experiment={experiment}
-          filterProps={filterProps}
-          onClearFilters={onClearFilters}
-          selectedRunIds={selectedRunIds}
-          loading={!loaded}
-          totalSize={totalSize}
-          {...tableProps}
-        />
-      </PipelineRunVersionsContextProvider>
+      <ManageRunsTable
+        runs={runs}
+        experiment={experiment}
+        filterProps={filterProps}
+        onClearFilters={onClearFilters}
+        selectedRunIds={selectedRunIds}
+        loading={!loaded}
+        totalSize={totalSize}
+        {...tableProps}
+      />
     </ApplicationsPage>
   );
 };
 
 export const ManageRunsPage: React.FC = () => {
   const { experiment } = React.useContext(ExperimentContext);
-  return experiment ? <ManageRunsPageInternal experiment={experiment} /> : null;
+  return experiment ? (
+    <PipelineRunVersionsContextProvider>
+      <ManageRunsPageInternal experiment={experiment} />
+    </PipelineRunVersionsContextProvider>
+  ) : null;
 };

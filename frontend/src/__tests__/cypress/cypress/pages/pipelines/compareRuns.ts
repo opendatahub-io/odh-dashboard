@@ -4,7 +4,7 @@ import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Context
 class CompareRunsGlobal {
   visit(projectName: string, experimentId: string, runIds: string[] = []) {
     cy.visitWithLogin(
-      `/experiments/${projectName}/${experimentId}/compareRuns?runs=${runIds.join(',')}`,
+      `/experiments/${projectName}/${experimentId}/compareRuns?compareRuns=${runIds.join(',')}`,
     );
   }
 
