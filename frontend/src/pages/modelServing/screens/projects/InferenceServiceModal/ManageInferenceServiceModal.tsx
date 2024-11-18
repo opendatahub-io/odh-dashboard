@@ -203,6 +203,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
                 <InferenceServiceFrameworkSection
                   data={createData}
                   setData={setCreateData}
+                  servingRuntimeName={projectContext?.currentServingRuntime?.metadata.name}
                   modelContext={projectContext?.currentServingRuntime?.spec.supportedModelFormats}
                   registeredModelFormat={registeredModelDeployInfo?.modelFormat}
                 />

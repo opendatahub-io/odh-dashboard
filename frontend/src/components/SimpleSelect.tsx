@@ -27,6 +27,7 @@ export type SimpleSelectOption = {
   isDisabled?: boolean;
   isFavorited?: boolean;
   dataTestId?: string;
+  optionKey?: string; // Used to differentiate the only option with the same key to trigger the one-option hook in the component
 };
 
 export type SimpleGroupSelectOption = {
@@ -37,7 +38,6 @@ export type SimpleGroupSelectOption = {
 
 type SimpleSelectProps = {
   options?: SimpleSelectOption[];
-  isLoadingOptions?: boolean;
   groupedOptions?: SimpleGroupSelectOption[];
   value?: string;
   toggleLabel?: React.ReactNode;
@@ -59,7 +59,6 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
   isDisabled,
   onChange,
   options,
-  isLoadingOptions = false,
   groupedOptions,
   placeholder = 'Select...',
   value,
@@ -92,15 +91,16 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
     [options, groupedOptionsFlat],
   );
 
+  const singleOptionKey =
+    totalOptions.length === 1 ? totalOptions[0].optionKey || totalOptions[0].key : null;
   // If there is only one option, call the onChange function
   React.useEffect(() => {
-    const singleOptionKey = totalOptions.length === 1 ? totalOptions[0].key : null;
-    if (singleOptionKey && !isLoadingOptions) {
-      onChange(singleOptionKey, false);
+    if (singleOptionKey && !isSkeleton) {
+      onChange(totalOptions[0].key, false);
     }
     // We don't want the callback function to be a dependency
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totalOptions, isLoadingOptions]);
+  }, [singleOptionKey, isSkeleton]);
 
   if (isSkeleton) {
     return (
