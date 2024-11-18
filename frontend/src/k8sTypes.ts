@@ -1097,7 +1097,11 @@ export type SelfSubjectRulesReviewKind = K8sResourceCommon & {
 
 export type ServiceKind = K8sResourceCommon & {
   metadata: {
-    annotations?: DisplayNameAnnotations;
+    annotations?: DisplayNameAnnotations &
+      Partial<{
+        'routing.opendatahub.io/external-address-rest': string;
+        'routing.opendatahub.io/external-address-grpc': string;
+      }>;
     name: string;
     namespace: string;
     labels?: Partial<{
