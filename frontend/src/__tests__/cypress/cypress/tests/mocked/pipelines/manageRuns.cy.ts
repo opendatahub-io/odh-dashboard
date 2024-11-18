@@ -69,7 +69,7 @@ describe('Manage runs', () => {
       'equal',
       `/experiments/${projectName}/${experimentId}/compareRuns`,
     );
-    cy.location('search').should('equal', '?runs=test-run-1,test-run-2');
+    cy.location('search').should('equal', '?compareRuns=test-run-1,test-run-2');
   });
 
   it('navigates to "Compare runs" page when "Compare runs" breadcrumb is clicked', () => {
@@ -78,7 +78,7 @@ describe('Manage runs', () => {
       'equal',
       `/experiments/${projectName}/${experimentId}/compareRuns`,
     );
-    cy.location('search').should('equal', '?runs=test-run-1,test-run-2');
+    cy.location('search').should('equal', '?compareRuns=test-run-1,test-run-2');
   });
 
   it('navigates to experiment runs page when the experiment name breadcrumb is clicked', () => {
@@ -109,7 +109,7 @@ describe('Manage runs', () => {
       'equal',
       `/experiments/${projectName}/${experimentId}/compareRuns`,
     );
-    cy.location('search').should('equal', '?runs=test-run-1,test-run-2,test-run-3');
+    cy.location('search').should('equal', '?compareRuns=test-run-1,test-run-2,test-run-3');
   });
 });
 

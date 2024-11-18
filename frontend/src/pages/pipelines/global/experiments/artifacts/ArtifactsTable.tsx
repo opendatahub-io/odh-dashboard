@@ -74,9 +74,9 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
       let filterQuery = '';
 
       if (filterData[FilterOptions.Artifact]) {
-        const artifactNameQuery = `custom_properties.display_name.string_value LIKE '%${
-          filterData[FilterOptions.Artifact]
-        }%'`;
+        const artifactNameQuery = `custom_properties.display_name.string_value LIKE '%${encodeURIComponent(
+          filterData[FilterOptions.Artifact],
+        )}%'`;
         filterQuery += filterQuery.length ? ` AND ${artifactNameQuery}` : artifactNameQuery;
       }
 

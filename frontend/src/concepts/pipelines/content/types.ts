@@ -13,5 +13,5 @@ export enum PipelineRunSearchParam {
 }
 
 export enum CompareRunsSearchParam {
-  RUNS = 'runs',
+  RUNS = 'compareRuns',
 }

@@ -74,7 +74,7 @@ const PipelineRunTableInternal: React.FC<PipelineRunTableInternalProps> = ({
   const navigate = useNavigate();
   const { experimentId, pipelineVersionId, pipelineId } = useParams();
   const { namespace, refreshAllAPI } = usePipelinesAPI();
-  const { onClearFilters, ...filterToolbarProps } = usePipelineFilter(setFilter);
+  const { onClearFilters, ...filterToolbarProps } = usePipelineFilter(setFilter, undefined, true);
   const {
     selections: selectedIds,
     tableProps: checkboxTableProps,

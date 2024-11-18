@@ -42,7 +42,7 @@ const commonPipelineQueryParams = (params?: PipelineParams) => ({
   // eslint-disable-next-line camelcase
   page_token: params?.pageToken,
   filter: params?.filter?.predicates
-    ? JSON.stringify({ predicates: params.filter.predicates })
+    ? encodeURIComponent(JSON.stringify({ predicates: params.filter.predicates }))
     : undefined,
 });
 

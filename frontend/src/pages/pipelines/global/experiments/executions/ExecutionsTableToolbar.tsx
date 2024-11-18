@@ -31,9 +31,9 @@ const ExecutionsTableToolbar: React.FC<ExecutionsTableToolbarProps> = ({
       let filterQuery = '';
 
       if (filterData[FilterOptions.Execution]) {
-        const executionNameQuery = `custom_properties.display_name.string_value LIKE '%${
-          filterData[FilterOptions.Execution]
-        }%'`;
+        const executionNameQuery = `custom_properties.display_name.string_value LIKE '%${encodeURIComponent(
+          filterData[FilterOptions.Execution],
+        )}%'`;
         filterQuery += filterQuery.length ? ` AND ${executionNameQuery}` : executionNameQuery;
       }
 
