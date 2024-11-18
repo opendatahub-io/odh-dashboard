@@ -77,7 +77,8 @@ const generatePrometheusHostURL = (
 ): string => {
   if (DEV_MODE) {
     const apiPath = fastify.kube.config.getCurrentCluster().server;
-    const namedHost = apiPath.slice('https://api.'.length).split(':')[0];
+    const namedHost =
+      process.env.CONSOLE_LINK_DOMAIN || apiPath.slice('https://api.'.length).split(':')[0];
     return `https://${instanceName}-${namespace}.apps.${namedHost}`;
   }
   return `https://${instanceName}.${namespace}.svc.cluster.local:${port}`;

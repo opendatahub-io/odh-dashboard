@@ -1,8 +1,13 @@
 import * as React from 'react';
 import { AlertVariant } from '@patternfly/react-core';
 import { getValidationStatus, postValidateIsv } from '~/services/validateIsvService';
+import {
+  enableIntegrationApp,
+  getIntegrationAppEnablementStatus,
+} from '~/services/integrationAppService';
 import { addNotification, forceComponentsUpdate } from '~/redux/actions/actions';
 import { useAppDispatch } from '~/redux/hooks';
+import { isInternalRouteIntegrationsApp } from './utils';
 
 export enum EnableApplicationStatus {
   INPROGRESS,
@@ -16,6 +21,7 @@ export const useEnableApplication = (
   appId: string,
   appName: string,
   enableValues: { [key: string]: string },
+  internalRoute?: string,
 ): [EnableApplicationStatus, string] => {
   const [enableStatus, setEnableStatus] = React.useState<{
     status: EnableApplicationStatus;
@@ -59,26 +65,49 @@ export const useEnableApplication = (
     let watchHandle: ReturnType<typeof setTimeout>;
     if (enableStatus.status === EnableApplicationStatus.INPROGRESS) {
       const watchStatus = () => {
-        getValidationStatus(appId)
-          .then((response) => {
-            if (!response.complete) {
-              watchHandle = setTimeout(watchStatus, 10 * 1000);
-              return;
-            }
-            setEnableStatus({
-              status: response.valid
-                ? EnableApplicationStatus.SUCCESS
-                : EnableApplicationStatus.FAILED,
-              error: response.valid ? '' : response.error,
+        if (isInternalRouteIntegrationsApp(internalRoute)) {
+          getIntegrationAppEnablementStatus(internalRoute)
+            .then((response) => {
+              if (!response.isInstalled && response.canInstall) {
+                watchHandle = setTimeout(watchStatus, 10 * 1000);
+                return;
+              }
+              if (response.isInstalled) {
+                setEnableStatus({
+                  status: EnableApplicationStatus.SUCCESS,
+                  error: '',
+                });
+                dispatchResults(undefined);
+              }
+            })
+            .catch((e) => {
+              if (!cancelled) {
+                setEnableStatus({ status: EnableApplicationStatus.FAILED, error: e.message });
+              }
+              dispatchResults(e.message);
             });
-            dispatchResults(response.valid ? undefined : response.error);
-          })
-          .catch((e) => {
-            if (!cancelled) {
-              setEnableStatus({ status: EnableApplicationStatus.FAILED, error: e.message });
-            }
-            dispatchResults(e.message);
-          });
+        } else {
+          getValidationStatus(appId)
+            .then((response) => {
+              if (!response.complete) {
+                watchHandle = setTimeout(watchStatus, 10 * 1000);
+                return;
+              }
+              setEnableStatus({
+                status: response.valid
+                  ? EnableApplicationStatus.SUCCESS
+                  : EnableApplicationStatus.FAILED,
+                error: response.valid ? '' : response.error,
+              });
+              dispatchResults(response.valid ? undefined : response.error);
+            })
+            .catch((e) => {
+              if (!cancelled) {
+                setEnableStatus({ status: EnableApplicationStatus.FAILED, error: e.message });
+              }
+              dispatchResults(e.message);
+            });
+        }
       };
       watchStatus();
     }
@@ -86,39 +115,65 @@ export const useEnableApplication = (
       cancelled = true;
       clearTimeout(watchHandle);
     };
-  }, [appId, dispatchResults, enableStatus.status]);
+  }, [appId, dispatchResults, enableStatus.status, internalRoute]);
 
   React.useEffect(() => {
     let closed = false;
     if (doEnable) {
-      postValidateIsv(appId, enableValues)
-        .then((response) => {
-          if (!closed) {
-            if (!response.complete) {
-              setEnableStatus({ status: EnableApplicationStatus.INPROGRESS, error: '' });
-              return;
-            }
+      if (isInternalRouteIntegrationsApp(internalRoute)) {
+        enableIntegrationApp(internalRoute, enableValues)
+          .then((response) => {
+            if (!closed) {
+              if (!response.isInstalled && response.canInstall) {
+                setEnableStatus({ status: EnableApplicationStatus.INPROGRESS, error: '' });
+                return;
+              }
 
-            setEnableStatus({
-              status: response.valid
-                ? EnableApplicationStatus.SUCCESS
-                : EnableApplicationStatus.FAILED,
-              error: response.valid ? '' : response.error,
-            });
-          }
-          dispatchResults(response.valid ? undefined : response.error);
-        })
-        .catch((e) => {
-          if (!closed) {
-            setEnableStatus({ status: EnableApplicationStatus.FAILED, error: e.m });
-          }
-          dispatchResults(e.message);
-        });
+              if (response.isInstalled) {
+                setEnableStatus({
+                  status: EnableApplicationStatus.SUCCESS,
+                  error: response.error,
+                });
+                dispatchResults(undefined);
+              }
+            }
+          })
+          .catch((e) => {
+            if (!closed) {
+              setEnableStatus({ status: EnableApplicationStatus.FAILED, error: e.m });
+            }
+            dispatchResults(e.message);
+          });
+      } else {
+        postValidateIsv(appId, enableValues)
+          .then((response) => {
+            if (!closed) {
+              if (!response.complete) {
+                setEnableStatus({ status: EnableApplicationStatus.INPROGRESS, error: '' });
+                return;
+              }
+
+              setEnableStatus({
+                status: response.valid
+                  ? EnableApplicationStatus.SUCCESS
+                  : EnableApplicationStatus.FAILED,
+                error: response.valid ? '' : response.error,
+              });
+            }
+            dispatchResults(response.valid ? undefined : response.error);
+          })
+          .catch((e) => {
+            if (!closed) {
+              setEnableStatus({ status: EnableApplicationStatus.FAILED, error: e.m });
+            }
+            dispatchResults(e.message);
+          });
+      }
     }
 
     return () => {
       closed = true;
     };
-  }, [appId, appName, dispatch, dispatchResults, doEnable, enableValues]);
+  }, [appId, appName, dispatch, dispatchResults, doEnable, enableValues, internalRoute]);
   return [enableStatus.status, enableStatus.error];
 };
