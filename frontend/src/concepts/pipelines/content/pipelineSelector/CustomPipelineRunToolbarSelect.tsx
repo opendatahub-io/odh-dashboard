@@ -16,31 +16,43 @@ import {
 } from '@patternfly/react-core';
 import useDebounceCallback from '~/utilities/useDebounceCallback';
 import PipelineSelectorTableRow from '~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
-import { Table } from '~/components/table';
-import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-import { pipelineVersionSelectorColumns } from '~/concepts/pipelines/content/pipelineSelector/columns';
+import { SortableData, Table } from '~/components/table';
+import { ExperimentKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
+import { experimentSelectorColumns } from '~/concepts/pipelines/content/experiment/columns';
+import { pipelineVersionSelectorColumns } from '~/concepts/pipelines/content/pipelineSelector/columns';
 
-type CustomPipelineVersionSelectProps = {
-  versions: PipelineVersionKF[];
+type FilterSelectorProps<T> = {
+  resources: T[];
   selection: string | undefined;
-  onSelect: (version: PipelineVersionKF) => void;
+  onSelect: (resource: T) => void;
 };
 
+type CustomPipelineRunToolbarSelectProps<T> = {
+  resourceName: string;
+  columns: SortableData<T>[];
+  toggleTestId: string;
+  tableTestId: string;
+} & FilterSelectorProps<T>;
+
 /**
- * Select dropdown with custom list of versions, which uses client-side sorting & filtering. This component
- * should mimic the presentation of PipelineVersionSelector for a consistent user experience.
+ * Select dropdown with custom list of experiments/pipeline versions, which uses client-side sorting & filtering. This component
+ * should mimic the presentation of PipelineSelector for a consistent user experience.
  */
-const CustomPipelineVersionSelect: React.FC<CustomPipelineVersionSelectProps> = ({
-  versions,
+const InnerCustomPipelineRunToolbarSelect = <T extends PipelineVersionKF | ExperimentKF>({
+  resources,
   selection,
   onSelect,
-}) => {
+  resourceName,
+  columns,
+  toggleTestId,
+  tableTestId,
+}: CustomPipelineRunToolbarSelectProps<T>): React.ReactNode => {
   const [isOpen, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState('');
-  const [filteredVersions, setFilteredVersions] = React.useState<PipelineVersionKF[]>(versions);
+  const [filteredResources, setFilteredResources] = React.useState<T[]>(resources);
   const [visibleLength, setVisibleLength] = React.useState(10);
-  const placeholder = versions.length === 0 ? 'No versions available' : 'Select...';
+  const placeholder = resources.length === 0 ? `No ${resourceName} available` : 'Select...';
 
   const toggleRef = React.useRef(null);
   const menuRef = React.useRef(null);
@@ -49,36 +61,36 @@ const CustomPipelineVersionSelect: React.FC<CustomPipelineVersionSelectProps> = 
 
   React.useEffect(() => {
     if (search) {
-      setFilteredVersions(
-        versions.filter((option) =>
+      setFilteredResources(
+        resources.filter((option) =>
           option.display_name.toLowerCase().includes(search.toLowerCase()),
         ),
       );
     } else {
-      setFilteredVersions(versions);
+      setFilteredResources(resources);
     }
     setVisibleLength(10);
-  }, [search, versions]);
+  }, [search, resources]);
 
   const menu = (
-    <Menu data-id="pipeline-version-selector-menu" ref={menuRef} isScrollable>
+    <Menu ref={menuRef} isScrollable>
       <MenuContent>
         <MenuSearch>
           <MenuSearchInput>
             <SearchInput
               value={search}
-              aria-label="Filter pipeline versions"
+              aria-label={`Filter pipeline ${resourceName}`}
               onChange={(_event, value) => doSetSearchDebounced(value)}
             />
           </MenuSearchInput>
           <HelperText>
-            <HelperTextItem variant="indeterminate">{`Type a name to search your ${versions.length} versions.`}</HelperTextItem>
+            <HelperTextItem variant="indeterminate">{`Type a name to search your ${resources.length} ${resourceName}.`}</HelperTextItem>
           </HelperText>
         </MenuSearch>
         <MenuList>
           <div role="menuitem">
             <Table
-              data-testid="pipeline-version-selector-table-list"
+              data-testid={tableTestId}
               emptyTableView={
                 <DashboardEmptyTableView
                   hasIcon={false}
@@ -88,8 +100,8 @@ const CustomPipelineVersionSelect: React.FC<CustomPipelineVersionSelectProps> = 
               }
               borders={false}
               variant="compact"
-              columns={pipelineVersionSelectorColumns}
-              data={filteredVersions}
+              columns={columns}
+              data={filteredResources}
               truncateRenderingAt={visibleLength}
               rowRenderer={(row, index) => (
                 <PipelineSelectorTableRow
@@ -103,7 +115,7 @@ const CustomPipelineVersionSelect: React.FC<CustomPipelineVersionSelectProps> = 
               )}
             />
           </div>
-          {visibleLength < filteredVersions.length && (
+          {visibleLength < filteredResources.length && (
             <MenuItem
               isLoadButton
               onClick={(e) => {
@@ -113,7 +125,7 @@ const CustomPipelineVersionSelect: React.FC<CustomPipelineVersionSelectProps> = 
             >
               <>
                 View more
-                <Badge isRead>{`Showing ${visibleLength}/${filteredVersions.length}`}</Badge>
+                <Badge isRead>{`Showing ${visibleLength}/${filteredResources.length}`}</Badge>
               </>
             </MenuItem>
           )}
@@ -128,24 +140,42 @@ const CustomPipelineVersionSelect: React.FC<CustomPipelineVersionSelectProps> = 
       toggleRef={toggleRef}
       toggle={
         <MenuToggle
-          id="pipeline-version-selector"
           ref={toggleRef}
-          style={{ minWidth: '300px' }}
+          style={{ minWidth: '300px', maxWidth: '500px' }}
           onClick={() => setOpen(!isOpen)}
           isExpanded={isOpen}
-          isDisabled={!versions.length}
+          isDisabled={!filteredResources.length}
           isFullWidth
-          data-testid="pipeline-version-toggle-button"
+          data-testid={toggleTestId}
         >
           {selection || placeholder}
         </MenuToggle>
       }
       menu={menu}
       menuRef={menuRef}
-      popperProps={{ maxWidth: 'trigger' }}
       onOpenChange={(open) => setOpen(open)}
     />
   );
 };
 
-export default CustomPipelineVersionSelect;
+export const ExperimentFilterSelector: React.FC<FilterSelectorProps<ExperimentKF>> = (props) => (
+  <InnerCustomPipelineRunToolbarSelect
+    resourceName="experiments"
+    toggleTestId="experiment-toggle-button"
+    tableTestId="experiment-selector-table-list"
+    columns={experimentSelectorColumns}
+    {...props}
+  />
+);
+
+export const PipelineVersionFilterSelector: React.FC<FilterSelectorProps<PipelineVersionKF>> = (
+  props,
+) => (
+  <InnerCustomPipelineRunToolbarSelect
+    resourceName="versions"
+    toggleTestId="pipeline-version-toggle-button"
+    tableTestId="pipeline-version-selector-table-list"
+    columns={pipelineVersionSelectorColumns}
+    {...props}
+  />
+);

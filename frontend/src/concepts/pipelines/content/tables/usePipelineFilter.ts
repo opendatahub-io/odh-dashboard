@@ -8,6 +8,7 @@ import useDebounceCallback from '~/utilities/useDebounceCallback';
 import FilterToolbar from '~/components/FilterToolbar';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
+import { PipelineRunExperimentsContext } from '~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
 
 export enum FilterOptions {
   NAME = 'name',
@@ -34,7 +35,7 @@ const defaultFilterData: FilterProps['filterData'] = {
   [FilterOptions.CREATED_AT]: '',
   [FilterOptions.STATUS]: '',
   [FilterOptions.EXPERIMENT]: undefined,
-  [FilterOptions.PIPELINE_VERSION]: '',
+  [FilterOptions.PIPELINE_VERSION]: undefined,
 };
 
 const usePipelineFilter = (
@@ -47,6 +48,9 @@ const usePipelineFilter = (
   const navigate = useNavigate();
   const { api } = usePipelinesAPI();
   const { versions, loaded: versionsLoaded } = React.useContext(PipelineRunVersionsContext);
+  const { experiments, loaded: experimentsLoaded } = React.useContext(
+    PipelineRunExperimentsContext,
+  );
 
   const [filterData, setFilterData] = React.useState(() => {
     const urlFilterData = {
@@ -67,37 +71,11 @@ const usePipelineFilter = (
         urlFilterData[FilterOptions.STATUS] = searchParams.get(FilterOptions.STATUS) || '';
       }
       if (searchParams.has(FilterOptions.EXPERIMENT)) {
-        const experimentId = searchParams.get(FilterOptions.EXPERIMENT) || '';
-        urlFilterData[FilterOptions.EXPERIMENT] = experimentId;
-        // Fetch experiment name and update filter data
-        if (experimentId) {
-          api.getExperiment({}, experimentId).then((experiment) => {
-            setFilterData((prev) => ({
-              ...prev,
-              [FilterOptions.EXPERIMENT]: {
-                value: experimentId,
-                label: experiment.display_name,
-              },
-            }));
-          });
-        }
+        urlFilterData[FilterOptions.EXPERIMENT] = searchParams.get(FilterOptions.EXPERIMENT) || '';
       }
       if (searchParams.has(FilterOptions.PIPELINE_VERSION)) {
-        const versionId = searchParams.get(FilterOptions.PIPELINE_VERSION) || '';
-        urlFilterData[FilterOptions.PIPELINE_VERSION] = versionId;
-        // Fetch pipeline version name and update filter data
-        if (versionId) {
-          const pipelineVersion = versions.find((v) => v.pipeline_version_id === versionId);
-          if (pipelineVersion) {
-            setFilterData((prev) => ({
-              ...prev,
-              [FilterOptions.PIPELINE_VERSION]: {
-                value: versionId,
-                label: pipelineVersion.display_name,
-              },
-            }));
-          }
-        }
+        urlFilterData[FilterOptions.PIPELINE_VERSION] =
+          searchParams.get(FilterOptions.PIPELINE_VERSION) || '';
       }
     }
 
@@ -113,17 +91,21 @@ const usePipelineFilter = (
     if (
       filterData[FilterOptions.EXPERIMENT] &&
       typeof filterData[FilterOptions.EXPERIMENT] === 'string' &&
-      !experimentLabelUpdateAttempted.current
+      !experimentLabelUpdateAttempted.current &&
+      experimentsLoaded
     ) {
-      api.getExperiment({}, filterData[FilterOptions.EXPERIMENT]).then((experiment) => {
-        setFilterData((prev) => ({
-          ...prev,
-          [FilterOptions.EXPERIMENT]: {
-            value: experiment.experiment_id,
-            label: experiment.display_name,
-          },
-        }));
-      });
+      const experiment = experiments.find(
+        (e) => e.experiment_id === filterData[FilterOptions.EXPERIMENT],
+      );
+      setFilterData((prev) => ({
+        ...prev,
+        [FilterOptions.EXPERIMENT]: experiment
+          ? {
+              value: experiment.experiment_id,
+              label: experiment.display_name,
+            }
+          : undefined,
+      }));
       experimentLabelUpdateAttempted.current = true;
     }
 
@@ -137,18 +119,18 @@ const usePipelineFilter = (
       const pipelineVersion = versions.find(
         (v) => v.pipeline_version_id === filterData[FilterOptions.PIPELINE_VERSION],
       );
-      if (pipelineVersion) {
-        setFilterData((prev) => ({
-          ...prev,
-          [FilterOptions.PIPELINE_VERSION]: {
-            value: pipelineVersion.pipeline_version_id,
-            label: pipelineVersion.display_name,
-          },
-        }));
-      }
+      setFilterData((prev) => ({
+        ...prev,
+        [FilterOptions.PIPELINE_VERSION]: pipelineVersion
+          ? {
+              value: pipelineVersion.pipeline_version_id,
+              label: pipelineVersion.display_name,
+            }
+          : undefined,
+      }));
       pipelineVersionLabelUpdateAttempted.current = true;
     }
-  }, [filterData, api, versions, versionsLoaded]);
+  }, [filterData, api, versions, versionsLoaded, experimentsLoaded, experiments]);
 
   const toolbarProps: FilterProps = {
     filterData,
@@ -195,6 +177,8 @@ const usePipelineFilter = (
           string_value: runName,
         });
         urlSearchParams.set(FilterOptions.NAME, runName);
+      } else {
+        urlSearchParams.delete(FilterOptions.NAME);
       }
 
       if (startedDateTime) {
@@ -204,6 +188,8 @@ const usePipelineFilter = (
           timestamp_value: new Date(startedDateTime).toISOString(),
         });
         urlSearchParams.set(FilterOptions.CREATED_AT, startedDateTime);
+      } else {
+        urlSearchParams.delete(FilterOptions.CREATED_AT);
       }
 
       if (state) {
@@ -213,6 +199,8 @@ const usePipelineFilter = (
           string_value: state,
         });
         urlSearchParams.set(FilterOptions.STATUS, state);
+      } else {
+        urlSearchParams.delete(FilterOptions.STATUS);
       }
 
       if (experimentId) {
@@ -222,6 +210,8 @@ const usePipelineFilter = (
           string_value: experimentId,
         });
         urlSearchParams.set(FilterOptions.EXPERIMENT, experimentId);
+      } else {
+        urlSearchParams.delete(FilterOptions.EXPERIMENT);
       }
 
       if (pipelineVersionId) {
@@ -231,6 +221,8 @@ const usePipelineFilter = (
           string_value: pipelineVersionId,
         });
         urlSearchParams.set(FilterOptions.PIPELINE_VERSION, pipelineVersionId);
+      } else {
+        urlSearchParams.delete(FilterOptions.PIPELINE_VERSION);
       }
 
       // Only update URL if useSearchParams is true

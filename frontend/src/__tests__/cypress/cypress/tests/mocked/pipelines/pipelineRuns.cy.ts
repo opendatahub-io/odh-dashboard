@@ -419,9 +419,6 @@ describe('Pipeline runs', () => {
           pipelineRunsGlobal
             .findActiveRunsToolbar()
             .within(() => pipelineRunsGlobal.selectFilterByName('Experiment'));
-          pipelineRunsGlobal
-            .findActiveRunsToolbar()
-            .within(() => pipelineRunFilterBar.findExperimentInput().type('Test Experiment 1'));
 
           // Mock runs (filtered by selected experiment)
           activeRunsTable.mockGetActiveRuns(
@@ -664,9 +661,6 @@ describe('Pipeline runs', () => {
           pipelineRunsGlobal
             .findArchivedRunsToolbar()
             .within(() => pipelineRunsGlobal.selectFilterByName('Experiment'));
-          pipelineRunsGlobal
-            .findArchivedRunsToolbar()
-            .within(() => pipelineRunFilterBar.findExperimentInput().type('Test Experiment 1'));
 
           // Mock runs (filtered by selected experiment)
           archivedRunsTable.mockGetArchivedRuns(

@@ -11,8 +11,8 @@ class PipelineRunFilterBar extends PipelineFilterBar {
     return cy.findByTestId('search-for-run-name');
   }
 
-  findExperimentInput() {
-    return cy.findByTestId('pipeline-filter-text-field').find('#experiment-search-input');
+  findExperimentSelect() {
+    return cy.findByTestId('experiment-toggle-button');
   }
 
   findPipelineVersionSelect() {
@@ -65,8 +65,14 @@ class PipelineRunFilterBar extends PipelineFilterBar {
       .click();
   }
 
-  selectExperimentByName(name: string) {
-    cy.findByTestId('experiment-search-select').findSelectOption(name).click();
+  selectExperimentByName(name: string): Cypress.Chainable<JQuery<HTMLTableCellElement>> {
+    return this.findExperimentSelect()
+      .click()
+      .parents()
+      .findByTestId('experiment-selector-table-list')
+      .find('td')
+      .contains(name)
+      .click();
   }
 
   mockExperiments(experiments: ExperimentKF[], namespace: string) {

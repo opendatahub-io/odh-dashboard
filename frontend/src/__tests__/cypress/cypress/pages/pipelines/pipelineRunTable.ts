@@ -179,10 +179,6 @@ class PipelineRecurringRunTable extends PipelineRunsTable {
     return cy.findByTestId('schedules-table-toolbar').findByTestId('pipeline-filter-text-field');
   }
 
-  findExperimentFilterSelect() {
-    return cy.findByTestId('experiment-search-select');
-  }
-
   mockGetRecurringRuns(recurringRuns: PipelineRecurringRunKF[], namespace: string) {
     return cy.interceptOdh(
       'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',

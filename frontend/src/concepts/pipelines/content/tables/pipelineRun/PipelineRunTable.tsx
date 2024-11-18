@@ -22,7 +22,6 @@ import usePipelineFilter from '~/concepts/pipelines/content/tables/usePipelineFi
 import SimpleMenuActions from '~/components/SimpleMenuActions';
 import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
-import { useSetVersionFilter } from '~/concepts/pipelines/content/tables/useSetVersionFilter';
 import { compareRunsRoute, createRunRoute } from '~/routes';
 import { useContextExperimentArchivedOrDeleted } from '~/pages/pipelines/global/experiments/ExperimentContext';
 import { CustomMetricsColumnsModal } from './CustomMetricsColumnsModal';
@@ -174,8 +173,6 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
       ]}
     />
   );
-
-  useSetVersionFilter(filterToolbarProps.onFilterUpdate);
 
   const getColumns = () => {
     let columns = experimentId ? getExperimentRunColumns(metricsColumnNames) : pipelineRunColumns;
