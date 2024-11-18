@@ -105,7 +105,7 @@ class PipelineRunsTable {
       (req) => {
         const {
           predicates: [{ string_value: runState }],
-        } = JSON.parse(req.query.filter.toString());
+        } = JSON.parse(decodeURIComponent(req.query.filter.toString()));
 
         if (runState === 'ARCHIVED') {
           req.reply({ runs: archivedRuns, total_size: archivedRuns.length });
