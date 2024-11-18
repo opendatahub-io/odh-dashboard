@@ -35,22 +35,14 @@ describe('Verify Admins Can Import and Delete a Custom Single-Model Serving Runt
 
     // Navigate to serving runtimes and import a multi-model serving yaml
     cy.step('Navigate to Serving Runtimes and add a new serving runtime').then(() => {
-      // TODO: Remove extended timeout once '/servingruntimes' performance is optimized
+      // TODO: Remove extended timeout once '/servingruntimes' performance is optimized - RHOAIENG-15914
       // Current workaround for ODH page loading performance issues
+      cy.log('⚠️ Note: RHOAIENG-15914 may cause intermittent failures at this step ⚠️');
       return cy.wrap(servingRuntimes.navigate(), { timeout: 100000 });
     });
 
-    cy.log('Navigation completed, looking for Add button');
-    cy.then(() => {
-      return servingRuntimes.findAddButton();
-    })
-      .should('exist')
-      .should('exist', { timeout: 100000 })
-      .and('be.visible')
-      .and('be.enabled')
-      .click();
-
-    cy.log('Add button clicked successfully');
+    cy.log('Navigation successful | Searching for Add button');
+    servingRuntimes.findAddButton().should('exist').and('be.visible').and('be.enabled').click();
 
     cy.step('Select Single from Dropdown');
     servingRuntimes.selectPlatform('Single-model serving platform');

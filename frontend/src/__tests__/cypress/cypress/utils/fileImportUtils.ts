@@ -3,11 +3,11 @@ import * as path from 'path';
 // File path constants
 export const MODEL_SERVING_PATHS = {
   MULTI_MODEL: {
-    OVMS_SERVING_RUNTIME: 'resources/files/modelServing/multiModel/ovms_servingruntime.yaml',
+    OVMS_SERVING_RUNTIME: 'resources/modelServing/multiModel/ovms_servingruntime.yaml',
   },
   SINGLE_MODEL: {
     SINGLE_SERVING_KSERVE_RUNTIME:
-      'resources/files/modelServing/singleModel/kserve_singleservingruntime.yaml',
+      'resources/modelServing/singleModel/kserve_singleservingruntime.yaml',
   },
 };
 
