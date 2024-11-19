@@ -182,13 +182,14 @@ export const relativeTime = (current: number, previous: number): string => {
 
 /** Function to convert time strings like "2Hour" to seconds */
 export const convertPeriodicTimeToSeconds = (timeString: string): number => {
-  let numericValue = parseInt(timeString, 10);
+  const numericMatch = timeString.match(/^[\d.eE+-]+/);
+  let numericValue = numericMatch ? parseFloat(numericMatch[0]) : 1;
 
   if (Number.isNaN(numericValue)) {
     numericValue = 1;
   }
 
-  const unit = timeString.toLowerCase().replace(/\d+/g, '');
+  const unit = timeString.replace(/^[\d.eE+-]+/, '').toLowerCase();
 
   switch (unit) {
     case 'hour':

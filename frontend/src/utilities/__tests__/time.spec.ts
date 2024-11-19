@@ -224,6 +224,13 @@ describe('convertPeriodicTimeToSeconds', () => {
   it('should default to 0 seconds for unrecognized units', () => {
     expect(convertPeriodicTimeToSeconds('3Weeks')).toBe(0);
   });
+
+  it('should convert exponential time to seconds', () => {
+    const timeString = '5.2341124234234124123e+68Hour';
+    const numericValue = parseFloat('5.2341124234234124123e+68');
+    const expectedSeconds = numericValue * 60 * 60; // Convert hours to seconds
+    expect(convertPeriodicTimeToSeconds(timeString)).toBe(expectedSeconds);
+  });
 });
 
 describe('convertSecondsToPeriodicTime', () => {
