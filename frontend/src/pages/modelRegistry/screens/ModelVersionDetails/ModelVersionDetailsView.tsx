@@ -1,5 +1,12 @@
 import * as React from 'react';
-import { DescriptionList, Flex, FlexItem, TextVariants, Title } from '@patternfly/react-core';
+import {
+  DescriptionList,
+  Divider,
+  Flex,
+  FlexItem,
+  TextVariants,
+  Title,
+} from '@patternfly/react-core';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
 import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
 import EditableTextDescriptionListGroup from '~/components/EditableTextDescriptionListGroup';
@@ -93,10 +100,10 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             <InlineTruncatedClipboardCopy testId="model-version-id" textToCopy={mv.id} />
           </DashboardDescriptionListGroup>
         </DescriptionList>
-        <Title style={{ marginTop: '1em' }} headingLevel={TextVariants.h3}>
+        <Title style={{ margin: '1em 0' }} headingLevel={TextVariants.h3}>
           Model location
         </Title>
-        <DescriptionList isFillColumns>
+        <DescriptionList>
           {storageFields && (
             <>
               <DashboardDescriptionListGroup
@@ -156,10 +163,11 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             </>
           )}
         </DescriptionList>
-        <Title style={{ marginTop: '1em' }} headingLevel={TextVariants.h3}>
+        <Divider style={{ marginTop: '1em' }} />
+        <Title style={{ margin: '1em 0' }} headingLevel={TextVariants.h3}>
           Source model format
         </Title>
-        <DescriptionList isFillColumns>
+        <DescriptionList>
           <EditableTextDescriptionListGroup
             editableVariant="TextInput"
             baseTestId="source-model-format"
@@ -199,7 +207,8 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             contentWhenEmpty="No source model format version"
           />
         </DescriptionList>
-        <DescriptionList isFillColumns style={{ marginTop: '2em' }}>
+        <Divider style={{ marginTop: '1em' }} />
+        <DescriptionList isFillColumns style={{ marginTop: '1em' }}>
           <DashboardDescriptionListGroup
             title="Author"
             popover="The author is the user who registered the model version."
