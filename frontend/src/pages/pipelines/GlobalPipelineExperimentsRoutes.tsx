@@ -23,9 +23,12 @@ import PipelineAvailabilityLoader from '~/pages/pipelines/global/pipelines/Pipel
 import ExperimentDuplicateRunPage from '~/pages/pipelines/global/experiments/ExperimentDuplicateRunPage';
 import ExperimentDuplicateRecurringRunPage from '~/pages/pipelines/global/experiments/ExperimentDuplicateRecurringRunPage';
 import { ExperimentCoreDetails } from './global/GlobalPipelineCoreDetails';
-import GlobalComparePipelineRunsLoader from './global/experiments/compareRuns/GlobalComparePipelineRunsLoader';
+import {
+  ExperimentComparePipelineRunsLoader,
+  ExperimentManagePipelineRunsLoader,
+} from './global/experiments/compareRuns/GlobalComparePipelineRunsLoader';
 import CompareRunsPage from './global/experiments/compareRuns/CompareRunsPage';
-import { ManageRunsPage } from './global/experiments/compareRuns/ManageRunsPage';
+import ManageRunsPage from './global/experiments/compareRuns/ManageRunsPage';
 
 const GlobalPipelineExperimentsRoutes: React.FC = () => (
   <ProjectsRoutes>
@@ -108,15 +111,17 @@ const GlobalPipelineExperimentsRoutes: React.FC = () => (
               }
             />
           </Route>
-          <Route path="compareRuns" element={<GlobalComparePipelineRunsLoader />}>
-            <Route
-              index
-              element={<ExperimentCoreDetails BreadcrumbDetailsComponent={CompareRunsPage} />}
-            />
-          </Route>
+          <Route
+            path="compareRuns"
+            element={
+              <ExperimentComparePipelineRunsLoader BreadcrumbDetailsComponent={CompareRunsPage} />
+            }
+          />
           <Route
             path="compareRuns/add"
-            element={<ExperimentCoreDetails BreadcrumbDetailsComponent={ManageRunsPage} />}
+            element={
+              <ExperimentManagePipelineRunsLoader BreadcrumbDetailsComponent={ManageRunsPage} />
+            }
           />
           <Route path="*" element={<Navigate to="./runs" />} />
         </Route>

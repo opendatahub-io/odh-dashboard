@@ -10,22 +10,20 @@ import { pipelineRunColumns } from '~/concepts/pipelines/content/tables/columns'
 import PipelineRunTable from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
 import PipelineRunTableRow from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
 import PipelineRunTableToolbar from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
-import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
-import { ExperimentKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import { experimentsCompareRunsRoute } from '~/routes';
+import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+import { compareRunsRoute } from '~/routes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { FilterProps } from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbarBase';
+import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
 
 type ManageRunsTableProps = Omit<React.ComponentProps<typeof PipelineRunTable>, 'runType'> & {
   filterProps: FilterProps;
   selectedRunIds: string[];
-  experiment: ExperimentKF | null;
   onClearFilters: () => void;
 };
 
 export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
   runs,
-  experiment,
   selectedRunIds,
   loading,
   totalSize,
@@ -40,13 +38,13 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
   const pageRunIds = runs.map(({ run_id: runId }) => runId);
+  const { experiment } = React.useContext(ExperimentContext);
 
   const {
     selections,
     tableProps: checkboxTableProps,
     toggleSelection,
   } = useCheckboxTable(pageRunIds, selectedRunIds, true);
-  const experimentId = experiment?.experiment_id ?? '';
 
   const rowRenderer = React.useCallback(
     (run: PipelineRunKF) => {
@@ -85,22 +83,16 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
         onPerPageSelect={(_, newSize) => setPageSize(newSize)}
         itemCount={totalSize}
         data={runs}
-        columns={pipelineRunColumns}
+        columns={
+          experiment
+            ? pipelineRunColumns.filter((column) => column.field !== 'experiment')
+            : pipelineRunColumns
+        }
         enablePagination="compact"
         emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
         onClearFilters={onClearFilters}
         toolbarContent={
-          <PipelineRunTableToolbar
-            data-testid="manage-runs-table-toolbar"
-            filterOptions={{
-              [FilterOptions.NAME]: 'Run',
-              [FilterOptions.EXPERIMENT]: 'Experiment',
-              [FilterOptions.PIPELINE_VERSION]: 'Pipeline version',
-              [FilterOptions.CREATED_AT]: 'Created after',
-              [FilterOptions.STATUS]: 'Status',
-            }}
-            {...filterProps}
-          />
+          <PipelineRunTableToolbar data-testid="manage-runs-table-toolbar" {...filterProps} />
         }
         rowRenderer={rowRenderer}
         variant={TableVariant.compact}
@@ -112,21 +104,20 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
                 <Button
                   data-testid="manage-runs-update-button"
                   onClick={() =>
-                    navigate(experimentsCompareRunsRoute(namespace, experimentId, selections))
+                    navigate(compareRunsRoute(namespace, selections, experiment?.experiment_id))
                   }
-                  isAriaDisabled={selections.length < 1}
+                  isAriaDisabled={selections.length < 1 || selections.length > 10}
                 >
                   Update
                 </Button>
               </Tooltip>
             </ToolbarItem>
-
             <ToolbarItem>
               <Button
                 data-testid="manage-runs-cancel-button"
                 variant="secondary"
                 onClick={() =>
-                  navigate(experimentsCompareRunsRoute(namespace, experimentId, selectedRunIds))
+                  navigate(compareRunsRoute(namespace, selectedRunIds, experiment?.experiment_id))
                 }
               >
                 Cancel

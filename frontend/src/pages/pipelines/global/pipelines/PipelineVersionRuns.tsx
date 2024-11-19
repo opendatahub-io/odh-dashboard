@@ -10,6 +10,7 @@ import { pipelinesBaseRoute } from '~/routes';
 import { ProjectObjectType } from '~/concepts/design/utils';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
+import PipelineRunExperimentsContextProvider from '~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
 import PipelineVersionDetailsBreadcrumb from './PipelineVersionDetailsBreadcrumb';
 
 const PipelineVersionRuns: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) => (
@@ -28,7 +29,9 @@ const PipelineVersionRuns: PipelineCoreDetailsPageComponent = ({ breadcrumbPath 
       </Breadcrumb>
     }
   >
-    <Outlet />
+    <PipelineRunExperimentsContextProvider>
+      <Outlet />
+    </PipelineRunExperimentsContextProvider>
   </PipelineCoreApplicationPage>
 );
 

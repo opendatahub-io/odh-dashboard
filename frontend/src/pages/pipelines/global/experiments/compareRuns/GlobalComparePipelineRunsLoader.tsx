@@ -1,16 +1,49 @@
 import * as React from 'react';
-import { Outlet } from 'react-router-dom';
-import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import { CompareRunsContextProvider } from '~/concepts/pipelines/content/compareRuns/CompareRunsContext';
+import {
+  ExperimentCoreDetails,
+  GlobalPipelineCoreDetailsProps,
+  PipelineRunCoreDetails,
+} from '~/pages/pipelines/global/GlobalPipelineCoreDetails';
+import PipelineRunExperimentsContextProvider from '~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
 import PipelineRunVersionsContextProvider from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 
-const GlobalComparePipelineRunsLoader: React.FC = () => (
-  <EnsureAPIAvailability>
-    <CompareRunsContextProvider>
+export const GlobalComparePipelineRunsLoader: React.FC<
+  Pick<GlobalPipelineCoreDetailsProps, 'BreadcrumbDetailsComponent'>
+> = (props) => (
+  <CompareRunsContextProvider>
+    <PipelineRunExperimentsContextProvider>
       <PipelineRunVersionsContextProvider>
-        <Outlet />
+        <PipelineRunCoreDetails {...props} />
       </PipelineRunVersionsContextProvider>
-    </CompareRunsContextProvider>
-  </EnsureAPIAvailability>
+    </PipelineRunExperimentsContextProvider>
+  </CompareRunsContextProvider>
 );
-export default GlobalComparePipelineRunsLoader;
+
+export const ExperimentComparePipelineRunsLoader: React.FC<
+  Pick<GlobalPipelineCoreDetailsProps, 'BreadcrumbDetailsComponent'>
+> = (props) => (
+  <CompareRunsContextProvider>
+    <PipelineRunVersionsContextProvider>
+      <ExperimentCoreDetails {...props} />
+    </PipelineRunVersionsContextProvider>
+  </CompareRunsContextProvider>
+);
+
+export const GlobalManagePipelineRunsLoader: React.FC<
+  Pick<GlobalPipelineCoreDetailsProps, 'BreadcrumbDetailsComponent'>
+> = (props) => (
+  <PipelineRunExperimentsContextProvider>
+    <PipelineRunVersionsContextProvider>
+      <PipelineRunCoreDetails {...props} />
+    </PipelineRunVersionsContextProvider>
+  </PipelineRunExperimentsContextProvider>
+);
+
+export const ExperimentManagePipelineRunsLoader: React.FC<
+  Pick<GlobalPipelineCoreDetailsProps, 'BreadcrumbDetailsComponent'>
+> = (props) => (
+  <PipelineRunVersionsContextProvider>
+    <ExperimentCoreDetails {...props} />
+  </PipelineRunVersionsContextProvider>
+);

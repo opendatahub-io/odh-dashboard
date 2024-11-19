@@ -10,7 +10,6 @@ import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 import { PipelinesFilter } from '~/concepts/pipelines/types';
 import usePipelineFilter from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import SimpleMenuActions from '~/components/SimpleMenuActions';
-import { useSetVersionFilter } from '~/concepts/pipelines/content/tables/useSetVersionFilter';
 import { pipelineRecurringRunColumns } from '~/concepts/pipelines/content/tables/columns';
 import PipelineRecurringRunTableRow from './PipelineRecurringRunTableRow';
 import PipelineRecurringRunTableToolbar from './PipelineRecurringRunTableToolbar';
@@ -54,8 +53,6 @@ const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
     // eslint-disable-next-line camelcase
   } = useCheckboxTable(recurringRuns.map(({ recurring_run_id }) => recurring_run_id));
   const [deleteResources, setDeleteResources] = React.useState<PipelineRecurringRunKF[]>([]);
-
-  useSetVersionFilter(filterToolbarProps.onFilterUpdate);
 
   const getColumns = () => {
     let columns = pipelineRecurringRunColumns;

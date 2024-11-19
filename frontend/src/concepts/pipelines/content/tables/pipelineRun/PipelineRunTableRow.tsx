@@ -15,26 +15,24 @@ import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePi
 import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
-import { duplicateRunRoute } from '~/routes';
+import { compareRunsRoute, duplicateRunRoute } from '~/routes';
 import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 import PipelineRunTableRowExperiment from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowExperiment';
-import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import { useContextExperimentArchivedOrDeleted } from '~/pages/pipelines/global/experiments/ExperimentContext';
 import { getDashboardMainContainer } from '~/utilities/utils';
-import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
+import usePipelineRunExperimentInfo from '~/concepts/pipelines/content/tables/usePipelineRunExperimentInfo';
 
 type PipelineRunTableRowProps = {
   checkboxProps: Omit<React.ComponentProps<typeof CheckboxTd>, 'id'>;
   onDelete?: () => void;
   run: PipelineRunKF;
   customCells?: React.ReactNode;
-  hasExperiments?: boolean;
   hasRowActions?: boolean;
   runType?: PipelineRunType;
 };
 
 const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   hasRowActions = true,
-  hasExperiments = true,
   checkboxProps,
   customCells,
   onDelete,
@@ -46,13 +44,18 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   const notification = useNotification();
   const navigate = useNavigate();
   const { version, loaded: isVersionLoaded, error: versionError } = usePipelineRunVersionInfo(run);
+  const {
+    experiment,
+    loaded: isExperimentLoaded,
+    error: experimentError,
+  } = usePipelineRunExperimentInfo(run);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
-  const isExperimentArchived = useContextExperimentArchived();
-  const pipelineRunExperimentId = hasExperiments ? run.experiment_id : '';
-  const [pipelineRunExperiment, pipelineRunExperimentLoaded] =
-    useExperimentById(pipelineRunExperimentId);
+  const { isExperimentArchived, isExperimentDeleted } =
+    useContextExperimentArchivedOrDeleted(experiment);
+
   const actions: IAction[] = React.useMemo(() => {
+    const isGlobal = !experimentId && !pipelineId && !pipelineVersionId;
     const duplicateAction: IAction = {
       title: 'Duplicate',
       onClick: () => {
@@ -62,16 +65,24 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       },
     };
 
+    const compareAction: IAction = {
+      title: 'Compare runs',
+      onClick: () => {
+        navigate(compareRunsRoute(namespace, [run.run_id], experimentId));
+      },
+    };
+
     if (runType === PipelineRunType.ARCHIVED) {
       return [
         {
           title: 'Restore',
           onClick: () => setIsRestoreModalOpen(true),
-          isAriaDisabled: isExperimentArchived,
-          ...(isExperimentArchived && {
+          isAriaDisabled: isExperimentArchived || isExperimentDeleted,
+          ...((isExperimentArchived || isExperimentDeleted) && {
             tooltipProps: {
-              content:
-                'Archived runs cannot be restored until its associated experiment is restored.',
+              content: isExperimentArchived
+                ? 'Archived runs cannot be restored until its associated experiment is restored.'
+                : 'Archived runs cannot be restored because its associated experiment is deleted.',
             },
           }),
         },
@@ -99,6 +110,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
             .catch((e) => notification.error('Unable to stop the pipeline run.', e.message));
         },
       },
+      ...(isGlobal || experimentId ? [compareAction] : []),
       ...(!version && experimentId ? [] : [duplicateAction]),
       {
         isSeparator: true,
@@ -109,20 +121,21 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       },
     ];
   }, [
+    experimentId,
+    pipelineId,
+    pipelineVersionId,
     runType,
     run.state,
     run.run_id,
     version,
+    navigate,
+    namespace,
     isExperimentArchived,
+    isExperimentDeleted,
     onDelete,
     api,
     refreshAllAPI,
     notification,
-    navigate,
-    namespace,
-    experimentId,
-    pipelineId,
-    pipelineVersionId,
   ]);
 
   return (
@@ -140,19 +153,17 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       >
         <PipelineRunTableRowTitle run={run} />
       </Td>
-      {hasExperiments && (
-        <PipelineRunTableRowExperiment
-          experiment={pipelineRunExperiment}
-          loaded={pipelineRunExperimentLoaded}
-        />
-      )}
       {!pipelineVersionId && (
         <Td modifier="truncate" dataLabel="Pipeline">
-          <PipelineVersionLink
-            displayName={version?.display_name}
-            version={version}
-            error={versionError}
-            loaded={isVersionLoaded}
+          <PipelineVersionLink version={version} error={versionError} loaded={isVersionLoaded} />
+        </Td>
+      )}
+      {!experimentId && (
+        <Td modifier="truncate" dataLabel="Experiment">
+          <PipelineRunTableRowExperiment
+            experiment={experiment}
+            error={experimentError}
+            loaded={isExperimentLoaded}
           />
         </Td>
       )}

@@ -3,11 +3,14 @@ import { TextInput } from '@patternfly/react-core';
 import PipelineFilterBar from '~/concepts/pipelines/content/tables/PipelineFilterBar';
 import SimpleSelect from '~/components/SimpleSelect';
 import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
-import ExperimentSearchInput from '~/concepts/pipelines/content/tables/ExperimentSearchInput';
 import { RuntimeStateKF, runtimeStateLabels } from '~/concepts/pipelines/kfTypes';
 import DashboardDatePicker from '~/components/DashboardDatePicker';
-import PipelineVersionSelect from '~/concepts/pipelines/content/pipelineSelector/CustomPipelineVersionSelect';
 import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
+import { PipelineRunExperimentsContext } from '~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
+import {
+  ExperimentFilterSelector,
+  PipelineVersionFilterSelector,
+} from '~/concepts/pipelines/content/pipelineSelector/CustomPipelineRunToolbarSelect';
 
 export type FilterProps = Pick<
   React.ComponentProps<typeof PipelineFilterBar>,
@@ -27,6 +30,7 @@ const PipelineRunTableToolbarBase: React.FC<PipelineRunTableToolbarBaseProps> = 
   ...toolbarProps
 }) => {
   const { versions } = React.useContext(PipelineRunVersionsContext);
+  const { experiments } = React.useContext(PipelineRunExperimentsContext);
   /* eslint-disable @typescript-eslint/no-unused-vars */
   const {
     [RuntimeStateKF.RUNTIME_STATE_UNSPECIFIED]: unspecifiedState,
@@ -50,15 +54,16 @@ const PipelineRunTableToolbarBase: React.FC<PipelineRunTableToolbarBaseProps> = 
             onChange={(_event, value) => onChange(value)}
           />
         ),
-        [FilterOptions.EXPERIMENT]: ({ onChange, value, label }) => (
-          <ExperimentSearchInput
-            onChange={(data) => onChange(data?.value, data?.label)}
-            selected={value && label ? { value, label } : undefined}
+        [FilterOptions.EXPERIMENT]: ({ onChange, label }) => (
+          <ExperimentFilterSelector
+            resources={experiments}
+            selection={label}
+            onSelect={(experiment) => onChange(experiment.experiment_id, experiment.display_name)}
           />
         ),
         [FilterOptions.PIPELINE_VERSION]: ({ onChange, label }) => (
-          <PipelineVersionSelect
-            versions={versions}
+          <PipelineVersionFilterSelector
+            resources={versions}
             selection={label}
             onSelect={(version) => onChange(version.pipeline_version_id, version.display_name)}
           />

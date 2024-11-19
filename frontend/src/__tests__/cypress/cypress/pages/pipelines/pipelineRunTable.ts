@@ -24,6 +24,11 @@ class PipelineRecurringRunTableRow extends PipelineRunsRow {
     return this.find().findByTestId('recurring-run-status-switch');
   }
 
+  shouldHaveToggleEnabled() {
+    this.findStatusSwitchByRowName().find('input').should('not.have.attr', 'disabled');
+    return this;
+  }
+
   shouldHaveToggleDisabled() {
     this.findStatusSwitchByRowName().find('input').should('have.attr', 'disabled');
     return this;
@@ -172,10 +177,6 @@ class PipelineRecurringRunTable extends PipelineRunsTable {
 
   findFilterTextField() {
     return cy.findByTestId('schedules-table-toolbar').findByTestId('pipeline-filter-text-field');
-  }
-
-  findExperimentFilterSelect() {
-    return cy.findByTestId('experiment-search-select');
   }
 
   mockGetRecurringRuns(recurringRuns: PipelineRecurringRunKF[], namespace: string) {

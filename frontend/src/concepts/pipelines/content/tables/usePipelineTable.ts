@@ -57,13 +57,9 @@ export function useCreatePipelineRunTable<T extends PipelineCoreResourceKF>(
   additionalOptions?: PipelineRunOptions,
   limit?: number,
 ): [FetchState<PipelineListPaged<T>>, TableProps] {
-  return createUsePipelineTable<T>((options) => {
-    const experimentId = options.filter?.predicates?.find(
-      (predicate) => predicate.key === 'experiment_id',
-    )?.string_value;
-
-    return fetchState({ ...options, experimentId, ...additionalOptions });
-  })(limit);
+  return createUsePipelineTable<T>((options) => fetchState({ ...options, ...additionalOptions }))(
+    limit,
+  );
 }
 
 const createUsePipelineTable =

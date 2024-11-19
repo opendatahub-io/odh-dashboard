@@ -14,7 +14,7 @@ import { CubesIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import PipelineRunTable from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
 import { usePipelineActiveRunsTable } from '~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunTable';
 import { createRunRoute } from '~/routes';
-import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import { useContextExperimentArchivedOrDeleted } from '~/pages/pipelines/global/experiments/ExperimentContext';
 import { EmptyRunsState } from '~/concepts/pipelines/content/tables/pipelineRun/EmptyRunsState';
 import { PipelineRunTabTitle, PipelineRunType } from './types';
 
@@ -22,7 +22,7 @@ export const ActiveRuns: React.FC = () => {
   const { namespace, experimentId, pipelineVersionId, pipelineId } = useParams();
   const [[{ items: runs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
     usePipelineActiveRunsTable({ experimentId, pipelineVersionId });
-  const isExperimentArchived = useContextExperimentArchived();
+  const { isExperimentArchived } = useContextExperimentArchivedOrDeleted();
 
   if (isExperimentArchived) {
     return (

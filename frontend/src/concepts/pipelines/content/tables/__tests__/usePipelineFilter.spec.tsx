@@ -18,7 +18,7 @@ describe('usePipelineFilter', () => {
       [FilterOptions.CREATED_AT]: '',
       [FilterOptions.STATUS]: '',
       [FilterOptions.EXPERIMENT]: undefined,
-      [FilterOptions.PIPELINE_VERSION]: '',
+      [FilterOptions.PIPELINE_VERSION]: undefined,
     });
 
     act(() => {
@@ -29,7 +29,7 @@ describe('usePipelineFilter', () => {
       [FilterOptions.CREATED_AT]: '',
       [FilterOptions.STATUS]: '',
       [FilterOptions.EXPERIMENT]: undefined,
-      [FilterOptions.PIPELINE_VERSION]: '',
+      [FilterOptions.PIPELINE_VERSION]: undefined,
     });
 
     act(() => {
@@ -40,7 +40,7 @@ describe('usePipelineFilter', () => {
       [FilterOptions.CREATED_AT]: '',
       [FilterOptions.STATUS]: '',
       [FilterOptions.EXPERIMENT]: undefined,
-      [FilterOptions.PIPELINE_VERSION]: '',
+      [FilterOptions.PIPELINE_VERSION]: undefined,
     });
   });
 
@@ -140,7 +140,7 @@ describe('usePipelineFilter with URL persistence', () => {
       [FilterOptions.CREATED_AT]: '',
       [FilterOptions.STATUS]: 'success',
       [FilterOptions.EXPERIMENT]: undefined,
-      [FilterOptions.PIPELINE_VERSION]: '',
+      [FilterOptions.PIPELINE_VERSION]: undefined,
     });
   });
 
