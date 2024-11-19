@@ -50,6 +50,7 @@ const ProjectDetails: React.FC = () => {
     ...accessReviewResource,
     namespace: currentProject.metadata.name,
   });
+  const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
 
   useCheckLogoutParams();
 
@@ -80,7 +81,15 @@ const ProjectDetails: React.FC = () => {
         activeKey={state}
         sections={[
           { id: ProjectSectionID.OVERVIEW, title: 'Overview', component: <ProjectOverview /> },
-          { id: ProjectSectionID.WORKBENCHES, title: 'Workbenches', component: <NotebookList /> },
+          ...(workbenchEnabled
+            ? [
+                {
+                  id: ProjectSectionID.WORKBENCHES,
+                  title: 'Workbenches',
+                  component: <NotebookList />,
+                },
+              ]
+            : []),
           ...(pipelinesEnabled
             ? [
                 {

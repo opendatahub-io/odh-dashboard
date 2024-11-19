@@ -23,6 +23,7 @@ import { addNotification, forceComponentsUpdate } from '~/redux/actions/actions'
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { useAppContext } from '~/app/AppContext';
 import { useAppDispatch } from '~/redux/hooks';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 import SupportedAppTitle from './SupportedAppTitle';
 import BrandImage from './BrandImage';
@@ -40,6 +41,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     odhApp.spec.quickStart,
     odhApp.metadata.name,
   );
+  const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
   const disabled = !odhApp.spec.isEnabled;
   const { dashboardConfig } = useAppContext();
   const dispatch = useAppDispatch();
@@ -97,7 +99,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
 
   const launchClasses = classNames('odh-card__footer__link', {
     'm-hidden': !odhApp.spec.link,
-    'm-disabled': disabled,
+    'm-disabled': disabled || !workbenchEnabled,
   });
 
   const cardFooter = (
@@ -107,7 +109,9 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
           <Link
             data-testid="jupyter-app-link"
             to="/notebookController"
-            className="odh-card__footer__link"
+            className={classNames('odh-card__footer__link', {
+              'm-disabled': !workbenchEnabled,
+            })}
           >
             Launch application
           </Link>
