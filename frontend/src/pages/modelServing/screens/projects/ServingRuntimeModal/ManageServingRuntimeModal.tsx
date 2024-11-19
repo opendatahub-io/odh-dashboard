@@ -23,10 +23,13 @@ import {
   FormTrackingEventProperties,
   TrackingOutcome,
 } from '~/concepts/analyticsTracking/trackingProperties';
+import K8sNameDescriptionField, {
+  useK8sNameDescriptionFieldData,
+} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import ServingRuntimeReplicaSection from './ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from './ServingRuntimeSizeSection';
 import ServingRuntimeTemplateSection from './ServingRuntimeTemplateSection';
-import ServingRuntimeNameSection from './ServingRuntimeNameSection';
 import AuthServingRuntimeSection from './AuthServingRuntimeSection';
 
 type ManageServingRuntimeModalProps = {
@@ -47,13 +50,14 @@ const accessReviewResource: AccessReviewResourceAttributes = {
 
 const modelServerAddedName = 'Model Server Added';
 const modelServerEditName = 'Model Server Modified';
+
 const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   onClose,
   currentProject,
   servingRuntimeTemplates,
   editInfo,
 }) => {
-  const [createData, setCreateData, resetData, sizes] = useCreateServingRuntimeObject(editInfo);
+  const [createData, setCreateData, , sizes] = useCreateServingRuntimeObject(editInfo);
   const {
     formData: selectedAcceleratorProfile,
     setFormData: setSelectedAcceleratorProfile,
@@ -64,6 +68,13 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   const [error, setError] = React.useState<Error | undefined>();
 
   const customServingRuntimesEnabled = useCustomServingRuntimesEnabled();
+
+  const { data: modelServerNameDesc, onDataChange: setModelServerNameDesc } =
+    useK8sNameDescriptionFieldData({
+      initialData: editInfo?.servingRuntime,
+      safePrefix: !customServingRuntimesEnabled ? 'model-server' : undefined,
+      staticPrefix: !customServingRuntimesEnabled,
+    });
 
   const namespace = currentProject.metadata.name;
 
@@ -85,6 +96,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     : baseInputValueValid;
   const isDisabled =
     actionInProgress ||
+    !isK8sNameDescriptionDataValid(modelServerNameDesc) ||
     tokenErrors ||
     !inputValueValid ||
     !isModelServerEditInfoChanged(
@@ -102,6 +114,11 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     [editInfo, servingRuntimeTemplates, createData.servingRuntimeTemplateName],
   );
 
+  React.useEffect(() => {
+    setCreateData('name', modelServerNameDesc.name);
+    setCreateData('k8sName', modelServerNameDesc.k8sName.value);
+  }, [modelServerNameDesc, setCreateData]);
+
   const onBeforeClose = (submitted: boolean) => {
     if (!submitted) {
       fireFormTrackingEvent(editInfo ? modelServerEditName : modelServerAddedName, {
@@ -110,9 +127,6 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     }
 
     onClose(submitted);
-    setError(undefined);
-    setActionInProgress(false);
-    resetData();
   };
 
   const setErrorModal = (e: Error) => {
@@ -188,7 +202,13 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
       >
         <Stack hasGutter>
           <StackItem>
-            <ServingRuntimeNameSection data={createData} setData={setCreateData} />
+            <K8sNameDescriptionField
+              data={modelServerNameDesc}
+              onDataChange={setModelServerNameDesc}
+              dataTestId="serving-runtime"
+              nameLabel="Model server name"
+              hideDescription
+            />
           </StackItem>
           <StackItem>
             <ServingRuntimeTemplateSection

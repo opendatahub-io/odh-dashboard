@@ -105,6 +105,7 @@ export const useCreateServingRuntimeObject = (existingData?: {
 
   const createModelState = useGenericObjectState<CreatingServingRuntimeObject>({
     name: '',
+    k8sName: '',
     servingRuntimeTemplateName: '',
     numReplicas: 1,
     modelSize: sizes[0],
@@ -166,6 +167,7 @@ export const useCreateServingRuntimeObject = (existingData?: {
 
 export const defaultInferenceService: CreatingInferenceServiceObject = {
   name: '',
+  k8sName: '',
   project: '',
   servingRuntimeName: '',
   modelSize: {
@@ -514,7 +516,6 @@ export const getSubmitServingRuntimeResourcesFn = (
     existingTolerations: servingRuntimeSelected.spec.tolerations || [],
     ...(name !== undefined && { name }),
   };
-  const servingRuntimeName = translateDisplayNameForK8s(servingRuntimeData.name);
   const createTokenAuth = servingRuntimeData.tokenAuth && allowCreate;
 
   const controlledState: AcceleratorProfileFormData = isGpuDisabled(servingRuntimeSelected)
@@ -552,7 +553,7 @@ export const getSubmitServingRuntimeResourcesFn = (
             }),
             setUpTokenAuth(
               servingRuntimeData,
-              servingRuntimeName,
+              createData.k8sName,
               namespace,
               createTokenAuth,
               editInfo.servingRuntime,
@@ -578,7 +579,7 @@ export const getSubmitServingRuntimeResourcesFn = (
             }).then((servingRuntime) =>
               setUpTokenAuth(
                 servingRuntimeData,
-                servingRuntimeName,
+                createData.k8sName,
                 namespace,
                 createTokenAuth,
                 servingRuntime,

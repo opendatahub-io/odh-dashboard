@@ -41,6 +41,7 @@ type K8sNameDescriptionFieldProps = {
   descriptionLabel?: string;
   nameLabel?: string;
   onDataChange?: UseK8sNameDescriptionFieldData['onDataChange'];
+  hideDescription?: boolean;
 };
 
 /**
@@ -54,6 +55,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   descriptionLabel = 'Description',
   onDataChange,
   nameLabel = 'Name',
+  hideDescription,
 }) => {
   const [showK8sField, setShowK8sField] = React.useState(false);
 
@@ -103,17 +105,19 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
         k8sName={k8sName}
         onDataChange={onDataChange}
       />
-      <FormGroup label={descriptionLabel} fieldId={`${dataTestId}-description`}>
-        <TextArea
-          aria-readonly={!onDataChange}
-          data-testid={`${dataTestId}-description`}
-          id={`${dataTestId}-description`}
-          name={`${dataTestId}-description`}
-          value={description}
-          onChange={(event, value) => onDataChange?.('description', value)}
-          resizeOrientation="vertical"
-        />
-      </FormGroup>
+      {!hideDescription ? (
+        <FormGroup label={descriptionLabel} fieldId={`${dataTestId}-description`}>
+          <TextArea
+            aria-readonly={!onDataChange}
+            data-testid={`${dataTestId}-description`}
+            id={`${dataTestId}-description`}
+            name={`${dataTestId}-description`}
+            value={description}
+            onChange={(event, value) => onDataChange?.('description', value)}
+            resizeOrientation="vertical"
+          />
+        </FormGroup>
+      ) : null}
     </FormSection>
   );
 };

@@ -2,6 +2,7 @@ import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 import { mixin } from '~/__tests__/cypress/cypress/utils/mixin';
+import { K8sNameDescriptionField } from '~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
 import { TableToolbar } from './components/TableToolbar';
 
 class ModelServingToolbar extends TableToolbar {}
@@ -180,16 +181,14 @@ class InferenceServiceModal extends Modal {
 }
 
 class ServingRuntimeModal extends Modal {
+  k8sNameDescription = new K8sNameDescriptionField('serving-runtime');
+
   constructor(private edit = false) {
     super(`${edit ? 'Edit' : 'Add'} model server`);
   }
 
   findSubmitButton() {
     return this.findFooter().findByTestId('modal-submit-button');
-  }
-
-  findModelServerNameInput() {
-    return this.find().findByTestId('serving-runtime-name-input');
   }
 
   findModelServerSizeValue() {

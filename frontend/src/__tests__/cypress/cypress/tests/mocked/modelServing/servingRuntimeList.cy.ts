@@ -1319,11 +1319,34 @@ describe('Serving Runtime List', () => {
       createServingRuntimeModal.findSubmitButton().should('be.disabled');
 
       // test filling in minimum required fields
-      createServingRuntimeModal.findModelServerNameInput().type('Test Name');
+      createServingRuntimeModal.k8sNameDescription.findDisplayNameInput().type('Test Name');
       createServingRuntimeModal
         .findServingRuntimeTemplateDropdown()
         .findSelectOption('New OVMS Server')
         .click();
+      createServingRuntimeModal.findSubmitButton().should('be.enabled');
+
+      // test invalid resource name
+      createServingRuntimeModal.k8sNameDescription.findResourceEditLink().click();
+      createServingRuntimeModal.k8sNameDescription
+        .findResourceNameInput()
+        .should('have.attr', 'aria-invalid', 'false');
+      createServingRuntimeModal.k8sNameDescription
+        .findResourceNameInput()
+        .should('have.value', 'test-name');
+      // Invalid character k8s names fail
+      createServingRuntimeModal.k8sNameDescription
+        .findResourceNameInput()
+        .clear()
+        .type('InVaLiD vAlUe!');
+      createServingRuntimeModal.k8sNameDescription
+        .findResourceNameInput()
+        .should('have.attr', 'aria-invalid', 'true');
+      createServingRuntimeModal.findSubmitButton().should('be.disabled');
+      createServingRuntimeModal.k8sNameDescription
+        .findResourceNameInput()
+        .clear()
+        .type('test-name');
       createServingRuntimeModal.findSubmitButton().should('be.enabled');
 
       // test the if the alert is visible when route is external while token is not set
@@ -1417,11 +1440,11 @@ describe('Serving Runtime List', () => {
 
       // test name field
       editServingRuntimeModal.findSubmitButton().should('be.disabled');
-      editServingRuntimeModal.findModelServerNameInput().clear();
-      editServingRuntimeModal.findModelServerNameInput().type('New name');
+      editServingRuntimeModal.k8sNameDescription.findDisplayNameInput().clear();
+      editServingRuntimeModal.k8sNameDescription.findDisplayNameInput().type('New name');
       editServingRuntimeModal.findSubmitButton().should('be.enabled');
-      editServingRuntimeModal.findModelServerNameInput().clear();
-      editServingRuntimeModal.findModelServerNameInput().type('test-model-legacy');
+      editServingRuntimeModal.k8sNameDescription.findDisplayNameInput().clear();
+      editServingRuntimeModal.k8sNameDescription.findDisplayNameInput().type('test-model-legacy');
       editServingRuntimeModal.findSubmitButton().should('be.disabled');
       // test replicas field
       editServingRuntimeModal.findModelServerReplicasPlusButton().click();
@@ -1478,7 +1501,7 @@ describe('Serving Runtime List', () => {
       createServingRuntimeModal.shouldBeOpen();
 
       // fill in minimum required fields
-      createServingRuntimeModal.findModelServerNameInput().type('Test Name');
+      createServingRuntimeModal.k8sNameDescription.findDisplayNameInput().type('Test Name');
       createServingRuntimeModal
         .findServingRuntimeTemplateDropdown()
         .findSelectOption('New OVMS Server')
@@ -1532,7 +1555,7 @@ describe('Serving Runtime List', () => {
       createServingRuntimeModal.shouldBeOpen();
 
       // fill in minimum required fields
-      createServingRuntimeModal.findModelServerNameInput().type('Test Name');
+      createServingRuntimeModal.k8sNameDescription.findDisplayNameInput().type('Test Name');
       createServingRuntimeModal
         .findServingRuntimeTemplateDropdown()
         .findSelectOption('New OVMS Server')
@@ -1582,7 +1605,7 @@ describe('Serving Runtime List', () => {
       createServingRuntimeModal.shouldBeOpen();
 
       // fill in minimum required fields
-      createServingRuntimeModal.findModelServerNameInput().type('Test Name');
+      createServingRuntimeModal.k8sNameDescription.findDisplayNameInput().type('Test Name');
       createServingRuntimeModal
         .findServingRuntimeTemplateDropdown()
         .findSelectOption('New OVMS Server')
@@ -1645,7 +1668,7 @@ describe('Serving Runtime List', () => {
       createServingRuntimeModal.shouldBeOpen();
 
       // fill in minimum required fields
-      createServingRuntimeModal.findModelServerNameInput().type('Test Name');
+      createServingRuntimeModal.k8sNameDescription.findDisplayNameInput().type('Test Name');
       createServingRuntimeModal
         .findServingRuntimeTemplateDropdown()
         .findSelectOption('New OVMS Server')
@@ -1719,7 +1742,7 @@ describe('Serving Runtime List', () => {
       createServingRuntimeModal.shouldBeOpen();
 
       // fill in minimum required fields
-      createServingRuntimeModal.findModelServerNameInput().type('Test Name');
+      createServingRuntimeModal.k8sNameDescription.findDisplayNameInput().type('Test Name');
       createServingRuntimeModal
         .findServingRuntimeTemplateDropdown()
         .findSelectOption('New OVMS Server')
