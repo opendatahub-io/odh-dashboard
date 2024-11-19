@@ -47,7 +47,7 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
     }
 
     if (!workbenchEnabled) {
-      storageColumns = storageColumns.filter((column) => column.field !== 'workbench');
+      storageColumns = storageColumns.filter((column) => column.field !== 'connected');
     }
 
     return storageColumns;
