@@ -58,7 +58,7 @@ const PlatformSelectSection: React.FC = () => {
         <Alert
           isInline
           variant="info"
-          title="The model serving type can be changed until the first model is deployed from this project. After that, if you want to use a different model serving type, you must create a new project."
+          title="You can change the model serving type before the first model is deployed from this project. After deployment, switching types requires deleting all models and servers."
         />
       </Stack>
     </CollapsibleSection>
