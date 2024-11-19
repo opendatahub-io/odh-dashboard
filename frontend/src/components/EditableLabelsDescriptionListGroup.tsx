@@ -22,24 +22,36 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
   const [isEditing, setIsEditing] = useState(false);
   const [isSavingEdits, setIsSavingEdits] = useState(false);
   const [unsavedLabels, setUnsavedLabels] = useState(labels);
-  const [labelErrors, setLabelErrors] = useState<{ [key: string]: string }>({});
 
-  const validateLabel = (text: string, currentLabel?: string): string | null => {
-    if (currentLabel === text) {
-      return null;
-    }
+  const validateLabels = (labels: string[]): string[] => {
+    const errors: string[] = [];
+    const duplicateLabels = new Set<string>();
+    
+    const seenLabels = new Set<string>();
+    labels.forEach(label => {
+      if (seenLabels.has(label)) {
+        duplicateLabels.add(label);
+      }
+      seenLabels.add(label);
+    });
+    
+    duplicateLabels.forEach(label => {
+      errors.push(`"${label}" appears multiple times. Labels must be unique.`);
+    });
 
-    const isDuplicate =
-      unsavedLabels.some((key) => key !== currentLabel && key === text) ||
-      allExistingKeys.some((key) => key !== currentLabel && key === text);
+    labels.forEach(label => {
+      if (!labels.includes(label) && allExistingKeys.includes(label)) {
+        errors.push(`"${label}" already exists. Use a unique name that doesn't match any existing key or property`);
+      }
+    });
 
-    if (isDuplicate) {
-      return `"${text}" already exists. Use a unique name that doesn't match any existing key or property`;
-    }
-    if (text.length > 63) {
-      return "Label text can't exceed 63 characters";
-    }
-    return null;
+    labels.forEach(label => {
+      if (label.length > 63) {
+        errors.push(`"${label}" exceeds 63 characters`);
+      }
+    });
+
+    return errors;
   };
 
   const handleEditComplete = (
@@ -47,23 +59,16 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
     newText: string,
     currentLabel?: string,
   ) => {
-    const error = validateLabel(newText, currentLabel);
-    if (error) {
-      setLabelErrors({ [newText]: error });
-      setUnsavedLabels((prev) => {
-        const filtered = prev.filter((label) => label !== currentLabel);
+    if (!newText) return;
+
+    setUnsavedLabels(prev => {
+      if (currentLabel) {
+        const filtered = prev.filter(label => label !== currentLabel);
         return [...filtered, newText];
-      });
-    } else if (newText) {
-      setUnsavedLabels((prev) => {
-        if (currentLabel) {
-          return [...prev, newText];
-        }
-        const filtered = prev.filter((label) => label !== currentLabel);
-        return [...filtered, newText];
-      });
-      setLabelErrors({});
-    }
+      } else {
+        return [...prev, newText];
+      }
+    });
   };
 
   const removeUnsavedLabel = (text: string) => {
@@ -89,6 +94,20 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
     setUnsavedLabels((prev) => [...prev, newLabel]);
   };
 
+  const labelErrors = validateLabels(unsavedLabels);
+
+  const shouldBeRed = (label: string, index: number): boolean => {
+    const firstIndex = unsavedLabels.findIndex(l => l === label);
+    
+    if (firstIndex !== index) {
+      return true;
+    }
+
+    return labelErrors.some(error => 
+      error.includes(`"${label}"`) && !error.includes('appears multiple times')
+    );
+  };
+
   return (
     <DashboardDescriptionListGroup
       editButtonTestId="editable-labels-group-edit"
@@ -99,7 +118,7 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
       isEditable={!isArchive}
       isEditing={isEditing}
       isSavingEdits={isSavingEdits}
-      isSaveDisabled={Object.keys(labelErrors).length > 0}
+      isSaveDisabled={labelErrors.length > 0}
       contentWhenEditing={
         <>
           <LabelGroup
@@ -113,7 +132,7 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
               <Label
                 data-testid={`editable-label-${label}`}
                 key={label + index}
-                color={labelErrors[label] && index === array.lastIndexOf(label) ? 'red' : 'blue'}
+                color={shouldBeRed(label, index) ? 'red' : 'blue'}
                 isEditable={!isSavingEdits}
                 onClose={() => removeUnsavedLabel(label)}
                 closeBtnProps={{
@@ -145,25 +164,30 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
               Add label
             </Button>
           </LabelGroup>
-          {Object.keys(labelErrors).length > 0 && (
+          {labelErrors.length > 0 && (
             <Alert
               data-testid="label-error-alert"
               variant={AlertVariant.danger}
               isInline
-              title={Object.values(labelErrors)[0]}
+              title="Label validation errors:"
               aria-live="polite"
               isPlain
-            />
+            >
+              <ul>
+                {labelErrors.map((error, index) => (
+                  <li key={index}>{error}</li>
+                ))}
+              </ul>
+            </Alert>
           )}
         </>
       }
       onEditClick={() => {
         setUnsavedLabels(labels);
-        setLabelErrors({});
         setIsEditing(true);
       }}
       onSaveEditsClick={async () => {
-        if (Object.keys(labelErrors).length > 0) {
+        if (labelErrors.length > 0) {
           return;
         }
         setIsSavingEdits(true);
