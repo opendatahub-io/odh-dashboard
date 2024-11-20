@@ -46,6 +46,10 @@ class Resources {
   findLeaveButton() {
     return cy.findByRole('button', { name: 'Leave' });
   }
+
+  findResetButton() {
+    return cy.get('[aria-label="Reset"]');
+  }
 }
 
 class Card extends Contextual<HTMLElement> {

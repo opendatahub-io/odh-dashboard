@@ -132,3 +132,22 @@ export type NotebookControllerConfig = {
   ISTIO_HOST: string;
   USE_ISTIO: string;
 };
+
+export type ResourceData = {
+  namespace: string;
+  kind: string;
+  labelSelector: string;
+  createdName: string;
+  metaDataName: string;
+  description: string;
+  yamlPath: string;
+};
+
+export type ResourcesData = {
+  resources: {
+    CustomQuickStart: ResourceData[];
+    CustomApplication: ResourceData[];
+    CustomHowTo: ResourceData[];
+    CustomTutorial: ResourceData[];
+  };
+};

@@ -1,0 +1,18 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  annotations:
+    opendatahub.io/categories: 'Package management,Notebook environments,Getting started,Testing'
+  name: custom-doc-tutorial-test
+  namespace: redhat-ods-applications
+  labels:
+    app: custom-odsci-app
+spec:
+  img: images/red-hat.svg
+  appName: custom-odsci-app
+  description: Custom Tutorial is a test item created by ODS-CI suite in order to test creation of custom how-to document resources.
+  displayName: TEST - Custom Tutorial Documentation
+  durationMinutes: 15
+  type: tutorial
+  url: >-
+    https://github.com/red-hat-data-services/ods-ci
