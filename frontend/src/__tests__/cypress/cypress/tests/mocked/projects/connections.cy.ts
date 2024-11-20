@@ -162,7 +162,7 @@ describe('Connections', () => {
     projectDetails.visitSection('test-project', 'connections');
 
     connectionsPage.getConnectionRow('test2').findKebabAction('Edit').click();
-    cy.findByTestId(['field_env']).fill('new data');
+    cy.findByTestId(['field', 'field_env']).fill('new data');
     cy.findByTestId('modal-submit-button').click();
 
     cy.wait('@editConnection').then((interception) => {
