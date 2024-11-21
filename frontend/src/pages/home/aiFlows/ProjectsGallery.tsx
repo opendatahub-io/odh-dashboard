@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Text, TextContent } from '@patternfly/react-core';
-import { ProjectObjectType, SectionType, typedObjectImage } from '~/concepts/design/utils';
+import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
 import InfoGalleryItem from '~/concepts/design/InfoGalleryItem';
 import { SupportedArea } from '~/concepts/areas';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
@@ -52,7 +52,7 @@ const ProjectsGallery: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       key="projects"
       data-testid="ai-flows-projects-info"
       title="Data science projects"
-      imgSrc={typedObjectImage(ProjectObjectType.project)}
+      resourceType={ProjectObjectType.project}
       sectionType={SectionType.organize}
       description={
         <TextContent>
@@ -73,7 +73,7 @@ const ProjectsGallery: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         key="connections"
         data-testid="ai-flows-connections-info"
         title="Connections"
-        imgSrc={typedObjectImage(ProjectObjectType.dataConnection)}
+        resourceType={ProjectObjectType.dataConnection}
         sectionType={SectionType.organize}
         description={
           <TextContent>
@@ -92,7 +92,7 @@ const ProjectsGallery: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         key="data-connections"
         data-testid="ai-flows-connections-info"
         title="Data connections"
-        imgSrc={typedObjectImage(ProjectObjectType.dataConnection)}
+        resourceType={ProjectObjectType.dataConnection}
         sectionType={SectionType.organize}
         description={
           <TextContent>
@@ -109,7 +109,7 @@ const ProjectsGallery: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       key="storage"
       data-testid="ai-flows-storage-info"
       title="Cluster storage"
-      imgSrc={typedObjectImage(ProjectObjectType.clusterStorage)}
+      resourceType={ProjectObjectType.clusterStorage}
       sectionType={SectionType.organize}
       description={
         <TextContent>
