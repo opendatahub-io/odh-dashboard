@@ -8,16 +8,21 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { SectionType, sectionTypeBackgroundColor } from '~/concepts/design/utils';
+import {
+  ProjectObjectType,
+  SectionType,
+  sectionTypeBackgroundColor,
+} from '~/concepts/design/utils';
 import DividedGalleryItem from '~/concepts/design/DividedGalleryItem';
+import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
 
 const HEADER_ICON_SIZE = 40;
 const HEADER_ICON_PADDING = 2;
 
 type InfoGalleryItemProps = {
   title: string;
-  imgSrc: string;
   sectionType: SectionType;
+  resourceType: ProjectObjectType;
   description: React.ReactNode;
   isOpen: boolean;
   onClick?: () => void;
@@ -26,7 +31,7 @@ type InfoGalleryItemProps = {
 
 const InfoGalleryItem: React.FC<InfoGalleryItemProps> = ({
   title,
-  imgSrc,
+  resourceType,
   sectionType,
   description,
   isOpen,
@@ -52,11 +57,12 @@ const InfoGalleryItem: React.FC<InfoGalleryItemProps> = ({
               background: sectionTypeBackgroundColor(sectionType),
             }}
           >
-            <img
-              width={HEADER_ICON_SIZE - HEADER_ICON_PADDING * 2}
-              height={HEADER_ICON_SIZE - HEADER_ICON_PADDING * 2}
-              src={imgSrc}
-              alt=""
+            <TypedObjectIcon
+              resourceType={resourceType}
+              style={{
+                width: HEADER_ICON_SIZE - HEADER_ICON_PADDING * 2,
+                height: HEADER_ICON_SIZE - HEADER_ICON_PADDING * 2,
+              }}
             />
           </FlexItem>
           {onClick ? (
