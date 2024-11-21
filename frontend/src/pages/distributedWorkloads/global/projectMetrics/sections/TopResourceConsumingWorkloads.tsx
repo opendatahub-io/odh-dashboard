@@ -61,7 +61,13 @@ const TopResourceConsumingWorkloadsChart: React.FC<TopResourceConsumingWorkloads
       <ChartDonut
         constrainToVisibleArea
         labelRadius={50}
-        labelComponent={<ChartTooltip center={{ x: 150, y: 0 }} />}
+        labelComponent={
+          <ChartTooltip
+            center={{ x: 225, y: 0 }}
+            constrainToVisibleArea
+            pointerOrientation="left"
+          />
+        }
         height={chartHeight}
         ariaTitle={`${metricLabel} chart`}
         data={
