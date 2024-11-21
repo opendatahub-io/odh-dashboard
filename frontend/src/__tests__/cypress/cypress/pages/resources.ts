@@ -20,7 +20,10 @@ class Resources {
   }
 
   getCardView() {
-    return new CardView(() => cy.findByTestId('learning-center-card-view'));
+    return new CardView(() =>
+      // When using custom resources it can take up to 3 minutes to show in view due to polling
+      cy.findByTestId('learning-center-card-view', { timeout: 180000 }).should('exist'),
+    );
   }
 
   getListView() {
