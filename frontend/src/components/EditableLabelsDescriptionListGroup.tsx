@@ -59,7 +59,7 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
         );
       }
       if (label.length > 63) {
-        errors.push(`**${label}** exceeds 63 characters`);
+        errors.push(`**${label}** can't exceed 63 characters`);
       }
     });
 
