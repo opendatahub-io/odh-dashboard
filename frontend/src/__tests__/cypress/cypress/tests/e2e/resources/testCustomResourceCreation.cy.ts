@@ -7,6 +7,7 @@ import {
   getResourceValues,
   cleanupCustomResources,
 } from '~/__tests__/cypress/cypress/utils/resourceUtils';
+import { waitAndCheckResources } from '~/__tests__/cypress/cypress/utils/resourceCheckUtils';
 
 describe('Create a custom resource Quickstart by using Dashboard CRDs', () => {
   let resourcesData: ResourcesData;
@@ -17,9 +18,14 @@ describe('Create a custom resource Quickstart by using Dashboard CRDs', () => {
       resourcesData = data;
       resourceNames = getResourceValues(resourcesData);
       cy.log(`Loaded resources data: ${JSON.stringify(resourcesData, null, 2)}`);
+
+      const quickStartResource = resourcesData.resources.CustomQuickStart[0];
+      cy.log(`YAML path for CustomQuickStart: ${quickStartResource.yamlPath}`);
+
       return setupCustomResources(resourcesData);
     });
   });
+
   after(() => {
     return cleanupCustomResources(resourcesData);
   });
@@ -31,68 +37,28 @@ describe('Create a custom resource Quickstart by using Dashboard CRDs', () => {
     cy.step('Navigate to Resources tab and search for the Custom Resources');
     resources.visit();
 
-    //TODO: Remove this and add a more reliable mechanism to verify resource creation
-    //Currently investigating how to do this via an 'oc' command 
-    cy.wait(50000);
-
-    cy.step(`Search for the newly created custom resource: ${resourceNames.quickStartName}`);
-    resources.getLearningCenterToolbar().findSearchInput().type(resourceNames.quickStartName);
-    resources
-      .getCardView()
-      .getCard(resourceNames.quickStartMetaDataName)
-      .find()
-      .within(() => {
-        cy.contains(resourceNames.quickStartDescription)
-          .should('be.visible')
-          .then(() => {
-            cy.log(`✅ Resource found: ${resourceNames.quickStartDescription}`);
-          });
-      });
-    resources.findResetButton().click();
-
-    cy.step(`Search for the newly created custom resource: ${resourceNames.applicationName}`);
-    resources.getLearningCenterToolbar().findSearchInput().type(resourceNames.applicationName);
-    resources
-      .getCardView()
-      .getCard(resourceNames.customAppMetaDataName)
-      .find()
-      .within(() => {
-        cy.contains(resourceNames.customAppDescription)
-          .should('be.visible')
-          .then(() => {
-            cy.log(`✅ Resource found: ${resourceNames.customAppMetaDataName}`);
-          });
-      });
-    resources.findResetButton().click();
-
-    cy.step(`Search for the newly created custom resource: ${resourceNames.howToName}`);
-    resources.getLearningCenterToolbar().findSearchInput().type(resourceNames.howToName);
-    resources
-      .getCardView()
-      .getCard(resourceNames.howToMetaDataName)
-      .find()
-      .within(() => {
-        cy.contains(resourceNames.howToDescription)
-          .should('be.visible')
-          .then(() => {
-            cy.log(`✅ Resource found: ${resourceNames.howToMetaDataName}`);
-          });
-      });
-    resources.findResetButton().click();
-
-    cy.step(`Search for the newly created custom resource: ${resourceNames.tutorialName}`);
-    resources.getLearningCenterToolbar().findSearchInput().type(resourceNames.tutorialName);
-    resources
-      .getCardView()
-      .getCard(resourceNames.tutorialMetaDataName)
-      .find()
-      .within(() => {
-        cy.contains(resourceNames.tutorialDescription)
-          .should('be.visible')
-          .then(() => {
-            cy.log(`✅ Resource found: ${resourceNames.tutorialMetaDataName}`);
-          });
-      });
-    resources.findResetButton().click();
+    cy.step('Check for newly created resources');
+    waitAndCheckResources([
+      {
+        name: resourceNames.quickStartName,
+        metaDataName: resourceNames.quickStartMetaDataName,
+        description: resourceNames.quickStartDescription,
+      },
+      {
+        name: resourceNames.applicationName,
+        metaDataName: resourceNames.customAppMetaDataName,
+        description: resourceNames.customAppDescription,
+      },
+      {
+        name: resourceNames.howToName,
+        metaDataName: resourceNames.howToMetaDataName,
+        description: resourceNames.howToDescription,
+      },
+      {
+        name: resourceNames.tutorialName,
+        metaDataName: resourceNames.tutorialMetaDataName,
+        description: resourceNames.tutorialDescription,
+      },
+    ]);
   });
 });

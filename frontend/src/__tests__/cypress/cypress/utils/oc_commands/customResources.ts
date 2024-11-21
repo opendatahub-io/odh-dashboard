@@ -10,11 +10,30 @@ import type { CommandLineResult } from '~/__tests__/cypress/cypress/types';
  */
 export const createCustomResource = (
   resourceNamespace: string,
-  customYaml: string,
+  customYamlPath: string,
 ): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc apply -f "${customYaml}" -n ${resourceNamespace}`;
-  cy.log(`Executing command: ${ocCommand}`);
-  return cy.exec(ocCommand, { failOnNonZeroExit: false });
+  return cy.fixture(customYamlPath).then((yamlContent) => {
+    // Write the YAML content to a temporary file
+    const tempFilePath = `/tmp/temp_${Date.now()}.yaml`;
+    cy.writeFile(tempFilePath, yamlContent);
+
+    const ocCommand = `oc apply -f "${tempFilePath}" -n ${resourceNamespace}`;
+    cy.log(`Executing command: ${ocCommand}`);
+
+    return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+      if (result.code !== 0) {
+        cy.log(`Error executing command: ${ocCommand}`);
+        cy.log(`Error output: ${result.stderr}`);
+      } else {
+        cy.log(`Command executed successfully: ${result.stdout}`);
+      }
+
+      // Clean up the temporary file
+      cy.exec(`rm ${tempFilePath}`);
+
+      return cy.wrap(result);
+    });
+  });
 };
 
 /**
