@@ -49,13 +49,8 @@ class PipelineRunsTable {
     return cy.findByTestId(this.testId);
   }
 
-  shouldRowNotBeVisible(name: string) {
-    this.find()
-      .parents()
-      .find('tr')
-      .find(`[data-label=Name]`)
-      .contains(name)
-      .should('not.be.visible');
+  shouldRowNotExist(name: string) {
+    this.find().parents().find('tr').find(`[data-label=Name]`).contains(name).should('not.exist');
     return this;
   }
 

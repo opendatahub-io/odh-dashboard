@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import { asEnumMember } from '~/utilities/utils';
 import {
@@ -20,21 +20,35 @@ type GlobalPipelineRunsTabsProps = {
 const GlobalPipelineRunsTabs: React.FC<GlobalPipelineRunsTabsProps> = ({ tab, basePath }) => {
   const navigate = useNavigate();
 
+  // This is used to record the most recent search params for each tab
+  // so when you switch between tabs, it can record the filters
+  const [searchParams] = useSearchParams();
+  const searchParamsRef = React.useRef<Partial<Record<PipelineRunType, URLSearchParams>>>({});
+  searchParamsRef.current[tab] = searchParams;
+
   return (
     <Tabs
       activeKey={tab}
       onSelect={(_event, tabId) => {
         const enumValue = asEnumMember(tabId, PipelineRunType);
-        navigate(
-          `${basePath}/${
-            enumValue === PipelineRunType.SCHEDULED ? 'schedules' : `runs/${enumValue}`
-          }`,
-        );
+        if (enumValue) {
+          navigate(
+            `${basePath}/${
+              enumValue === PipelineRunType.SCHEDULED ? 'schedules' : `runs/${enumValue}`
+            }${
+              searchParamsRef.current[enumValue]
+                ? `?${searchParamsRef.current[enumValue].toString()}`
+                : ''
+            }`,
+          );
+        }
       }}
       aria-label="Pipeline run page tabs"
       role="region"
       className="odh-pipeline-runs-page-tabs"
       data-testid="pipeline-runs-global-tabs"
+      mountOnEnter
+      unmountOnExit
     >
       <Tab
         eventKey={PipelineRunType.ACTIVE}
