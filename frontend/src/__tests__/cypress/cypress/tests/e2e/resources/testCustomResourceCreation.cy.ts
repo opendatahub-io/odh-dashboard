@@ -7,7 +7,7 @@ import {
   getResourceValues,
   cleanupCustomResources,
 } from '~/__tests__/cypress/cypress/utils/resourceUtils';
-import { waitAndCheckResources } from '~/__tests__/cypress/cypress/utils/resourceCheckUtils';
+import { checkResources } from '~/__tests__/cypress/cypress/utils/resourceCheckUtils';
 
 describe('Create a custom resource Quickstart by using Dashboard CRDs', () => {
   let resourcesData: ResourcesData;
@@ -26,9 +26,9 @@ describe('Create a custom resource Quickstart by using Dashboard CRDs', () => {
     });
   });
 
-  // after(() => {
-  //   return cleanupCustomResources(resourcesData);
-  // });
+  after(() => {
+    return cleanupCustomResources(resourcesData);
+  });
 
   it('Upload custom resource and verify', () => {
     cy.step('Log into the application');
@@ -38,7 +38,7 @@ describe('Create a custom resource Quickstart by using Dashboard CRDs', () => {
     resources.visit();
 
     cy.step('Check for newly created resources');
-    waitAndCheckResources([
+    checkResources([
       {
         name: resourceNames.quickStartName,
         metaDataName: resourceNames.quickStartMetaDataName,
