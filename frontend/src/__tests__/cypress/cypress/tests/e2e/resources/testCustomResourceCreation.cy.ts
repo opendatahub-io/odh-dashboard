@@ -26,9 +26,9 @@ describe('Create a custom resource Quickstart by using Dashboard CRDs', () => {
     });
   });
 
-  after(() => {
-    return cleanupCustomResources(resourcesData);
-  });
+  // after(() => {
+  //   return cleanupCustomResources(resourcesData);
+  // });
 
   it('Upload custom resource and verify', () => {
     cy.step('Log into the application');
