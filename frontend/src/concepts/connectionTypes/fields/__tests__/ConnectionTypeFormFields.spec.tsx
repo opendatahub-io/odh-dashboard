@@ -42,16 +42,21 @@ describe('ConnectionTypeFormFields', () => {
   it('should render sectioned fields', () => {
     const result = render(<ConnectionTypeFormFields fields={testFields} isPreview />);
 
-    const section1 = result.getByRole('group', { name: 'section-1' });
-    const section2 = result.getByRole('group', { name: 'section-2' });
+    const [section1, section2] = result.getAllByTestId('fields-section');
 
-    // test unground
-    within(result.container).getByTestId('field boolean boolean_1');
-    expect(within(section1).queryByTestId('field boolean boolean_1')).toBe(null);
-    expect(within(section2).queryByTestId('field boolean boolean_1')).toBe(null);
+    // test ungrouped fields
+    within(result.container).getByTestId('field-group boolean boolean_1');
+    expect(within(section1).queryByTestId('field-group boolean boolean_1')).toBe(null);
+    expect(within(section2).queryByTestId('field-group boolean boolean_1')).toBe(null);
 
-    within(section1).getByTestId('field text text_1');
-    within(section1).getByTestId('field text text_2');
-    within(section2).getByTestId('field numeric numeric_1');
+    within(section1).getByTestId('field-group text text_1');
+    expect(within(section1).getByTestId('field text_1')).toHaveAttribute('id', 'field-text_1');
+    within(section1).getByTestId('field-group text text_2');
+    expect(within(section1).getByTestId('field text_2')).toHaveAttribute('id', 'field-text_2');
+    expect(within(section2).getByTestId('field-group numeric numeric_1')).toBeInTheDocument();
+    expect(within(section2).getByTestId('field numeric_1')).toHaveAttribute(
+      'id',
+      'field-numeric_1',
+    );
   });
 });
