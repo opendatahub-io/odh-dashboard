@@ -6,6 +6,8 @@ import {
   Alert,
   Bullseye,
   Button,
+  Modal,
+  ModalVariant,
   Page,
   PageSection,
   Spinner,
