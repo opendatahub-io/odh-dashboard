@@ -124,7 +124,9 @@ describe('duplicate', () => {
       .findConnectionTypeName()
       .should(
         'have.value',
-        `Copy of ${existing.metadata.annotations?.['openshift.io/display-name']}`,
+        `Copy of ${
+          existing.metadata.annotations?.['openshift.io/display-name'] || existing.metadata.name
+        }`,
       );
     createConnectionTypePage
       .findConnectionTypeDesc()

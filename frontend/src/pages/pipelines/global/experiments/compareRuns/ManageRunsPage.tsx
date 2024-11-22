@@ -19,7 +19,6 @@ import { CompareRunsSearchParam, PathProps } from '~/concepts/pipelines/content/
 import { compareRunsRoute, createRunRoute, experimentRunsRoute } from '~/routes';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import usePipelineFilter from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
 import { EmptyRunsState } from '~/concepts/pipelines/content/tables/pipelineRun/EmptyRunsState';
 import { ManageRunsTable } from './ManageRunsTable';
@@ -30,11 +29,6 @@ const ManageRunsPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
   const { namespace } = usePipelinesAPI();
   const [[{ items: runs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
     usePipelineActiveRunsTable({ experimentId: experiment?.experiment_id });
-  const { onClearFilters, ...filterProps } = usePipelineFilter(
-    tableProps.setFilter,
-    undefined,
-    true,
-  );
   const selectedRunIds = searchParams.get(CompareRunsSearchParam.RUNS)?.split(',') ?? [];
 
   if (error) {
@@ -102,8 +96,6 @@ const ManageRunsPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
     >
       <ManageRunsTable
         runs={runs}
-        filterProps={filterProps}
-        onClearFilters={onClearFilters}
         selectedRunIds={selectedRunIds}
         loading={!loaded}
         totalSize={totalSize}

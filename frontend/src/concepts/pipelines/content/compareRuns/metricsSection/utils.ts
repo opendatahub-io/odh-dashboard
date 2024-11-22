@@ -129,9 +129,9 @@ export function getArtifactName(linkedArtifact: LinkedArtifact): string | undefi
 }
 
 export const getFullArtifactPathLabel = (fullArtifactPath: FullArtifactPath): string =>
-  `${getExecutionDisplayName(fullArtifactPath.execution)} > ${getArtifactName(
-    fullArtifactPath.linkedArtifact,
-  )}`;
+  `${getExecutionDisplayName(fullArtifactPath.execution) ?? ''} > ${
+    getArtifactName(fullArtifactPath.linkedArtifact) ?? ''
+  }`;
 
 export const getFullArtifactPaths = (runArtifacts: RunArtifact[]): FullArtifactPath[] =>
   runArtifacts.flatMap((runArtifact) =>

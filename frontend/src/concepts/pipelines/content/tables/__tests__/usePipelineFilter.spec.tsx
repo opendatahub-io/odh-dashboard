@@ -1,10 +1,15 @@
+/* eslint-disable camelcase */
 import React, { act } from 'react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
+import { buildMockExperimentKF, buildMockPipelineVersion } from '~/__mocks__';
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
 import usePipelineFilter, {
   FilterOptions,
+  usePipelineFilterSearchParams,
 } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import { PipelinesFilterOp } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunExperimentsContext } from '~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
+import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 
 describe('usePipelineFilter', () => {
   const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -117,7 +122,7 @@ const LocationDisplay = ({ setSearch }: { setSearch: (search: string) => void })
   return null;
 };
 
-describe('usePipelineFilter with URL persistence', () => {
+describe('usePipelineFilterSearchParams', () => {
   beforeEach(() => {
     window.history.pushState({}, '', '/');
     jest.useFakeTimers();
@@ -127,29 +132,105 @@ describe('usePipelineFilter with URL persistence', () => {
     jest.useRealTimers();
   });
 
-  it('should initialize filters from URL search params when persistInUrl is true', () => {
+  it('should initialize filters from URL search params', () => {
     const setFilterMock = jest.fn();
-    const { result } = renderHook(() => usePipelineFilter(setFilterMock, undefined, true), {
+    const { result } = renderHook(() => usePipelineFilterSearchParams(setFilterMock), {
       wrapper: ({ children }: { children: React.ReactNode }) => (
-        <MemoryRouter initialEntries={['/?name=test&status=success']}>{children}</MemoryRouter>
+        <MemoryRouter
+          initialEntries={[
+            '/?name=test&status=success&create_at=2024-11-21&experiment=test-experiment&pipeline_version=test-version',
+          ]}
+        >
+          {children}
+        </MemoryRouter>
       ),
     });
 
     expect(result.current.filterData).toEqual({
       [FilterOptions.NAME]: 'test',
-      [FilterOptions.CREATED_AT]: '',
+      [FilterOptions.CREATED_AT]: '2024-11-21',
       [FilterOptions.STATUS]: 'success',
+      [FilterOptions.EXPERIMENT]: 'test-experiment',
+      [FilterOptions.PIPELINE_VERSION]: 'test-version',
+    });
+  });
+
+  it('should set display name for experiments and pipeline versions if they are in the context', () => {
+    const setFilterMock = jest.fn();
+    const { result } = renderHook(() => usePipelineFilterSearchParams(setFilterMock), {
+      wrapper: ({ children }: { children: React.ReactNode }) => (
+        <PipelineRunVersionsContext.Provider
+          value={{
+            versions: [
+              buildMockPipelineVersion({
+                pipeline_version_id: 'test-version',
+                display_name: 'Test Version',
+              }),
+            ],
+            loaded: true,
+          }}
+        >
+          <PipelineRunExperimentsContext.Provider
+            value={{
+              experiments: [
+                buildMockExperimentKF({
+                  experiment_id: 'test-experiment',
+                  display_name: 'Test Experiment',
+                }),
+              ],
+              loaded: true,
+            }}
+          >
+            <MemoryRouter
+              initialEntries={[
+                '/?name=test&status=success&create_at=2024-11-21&experiment=test-experiment&pipeline_version=test-version',
+              ]}
+            >
+              {children}
+            </MemoryRouter>
+          </PipelineRunExperimentsContext.Provider>
+        </PipelineRunVersionsContext.Provider>
+      ),
+    });
+
+    expect(result.current.filterData).toEqual({
+      [FilterOptions.NAME]: 'test',
+      [FilterOptions.CREATED_AT]: '2024-11-21',
+      [FilterOptions.STATUS]: 'success',
+      [FilterOptions.EXPERIMENT]: {
+        label: 'Test Experiment',
+        value: 'test-experiment',
+      },
+      [FilterOptions.PIPELINE_VERSION]: {
+        label: 'Test Version',
+        value: 'test-version',
+      },
+    });
+  });
+
+  it('should not set anything if the search param keys do not match the options', () => {
+    const setFilterMock = jest.fn();
+    const { result } = renderHook(() => usePipelineFilterSearchParams(setFilterMock), {
+      wrapper: ({ children }: { children: React.ReactNode }) => (
+        <MemoryRouter initialEntries={['/?test=invalid&test2=invalid2']}>{children}</MemoryRouter>
+      ),
+    });
+
+    expect(result.current.filterData).toEqual({
+      [FilterOptions.NAME]: '',
+      [FilterOptions.CREATED_AT]: '',
+      [FilterOptions.STATUS]: '',
       [FilterOptions.EXPERIMENT]: undefined,
       [FilterOptions.PIPELINE_VERSION]: undefined,
     });
   });
 
-  it('should update URL when filters change and persistInUrl is true', () => {
+  it('should update URL when filter changes', () => {
     jest.useFakeTimers();
     const setFilterMock = jest.fn();
     let currentSearch = '';
 
-    const { result } = renderHook(() => usePipelineFilter(setFilterMock, undefined, true), {
+    const { result } = renderHook(() => usePipelineFilterSearchParams(setFilterMock), {
       wrapper: ({ children }) => (
         <MemoryRouter initialEntries={['/']}>
           {children}
@@ -187,7 +268,7 @@ describe('usePipelineFilter with URL persistence', () => {
     let currentSearch = '';
     window.history.pushState({}, '', '/?name=test&status=success');
 
-    const { result } = renderHook(() => usePipelineFilter(setFilterMock, undefined, true), {
+    const { result } = renderHook(() => usePipelineFilterSearchParams(setFilterMock), {
       wrapper: ({ children }) => (
         <MemoryRouter initialEntries={['/?name=test&status=success']}>
           {children}
@@ -214,7 +295,7 @@ describe('usePipelineFilter with URL persistence', () => {
     let currentSearch = '';
     window.history.pushState({}, '', '/?otherParam=value');
 
-    const { result } = renderHook(() => usePipelineFilter(setFilterMock, undefined, true), {
+    const { result } = renderHook(() => usePipelineFilterSearchParams(setFilterMock), {
       wrapper: ({ children }) => (
         <MemoryRouter initialEntries={['/?otherParam=value']}>
           {children}
@@ -238,34 +319,5 @@ describe('usePipelineFilter with URL persistence', () => {
     });
 
     expect(currentSearch).toBe('?otherParam=value&name=test');
-  });
-
-  it('should not update URL when persistInUrl is false', () => {
-    jest.useFakeTimers();
-    const setFilterMock = jest.fn();
-    let currentSearch = '';
-
-    const { result } = renderHook(() => usePipelineFilter(setFilterMock, undefined, false), {
-      wrapper: ({ children }) => (
-        <MemoryRouter initialEntries={['/']}>
-          {children}
-          <LocationDisplay
-            setSearch={(search) => {
-              currentSearch = search;
-            }}
-          />
-        </MemoryRouter>
-      ),
-    });
-
-    act(() => {
-      result.current.onFilterUpdate(FilterOptions.NAME, 'test');
-    });
-
-    act(() => {
-      jest.runAllTimers();
-    });
-
-    expect(currentSearch).toBe('');
   });
 });

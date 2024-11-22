@@ -111,7 +111,7 @@ export const ArtifactOverviewDetails: React.FC<ArtifactOverviewDetailsProps> = (
                   <Td dataLabel="Link">
                     {executionLoaded && execution ? (
                       <Link to={executionDetailsRoute(namespace, actualExecutionId?.toString())}>
-                        {`execution/${actualExecutionId}`}
+                        {`execution/${actualExecutionId ?? ''}`}
                       </Link>
                     ) : (
                       <Skeleton />

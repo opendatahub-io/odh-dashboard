@@ -60,7 +60,7 @@ export const RunStatus: RunUtil<{ hasNoLabel?: boolean; isCompact?: boolean }> =
     tooltipContent = (
       <Stack>
         <StackItem>{`Status: ${runtimeStateLabels[run.state]}`}</StackItem>
-        <StackItem>{`Started: ${createdAt}`}</StackItem>
+        <StackItem>{`Started: ${createdAt ?? ''}`}</StackItem>
       </Stack>
     );
   }
