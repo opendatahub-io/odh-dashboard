@@ -7,6 +7,7 @@ import { useGetPipelineRunContextByExecution } from '~/concepts/pipelines/apiHoo
 import { executionDetailsRoute, experimentRunDetailsRoute } from '~/routes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineRunById from '~/concepts/pipelines/apiHooks/usePipelineRunById';
+import { getOriginalExecutionId } from '~/pages/pipelines/global/experiments/executions/utils';
 
 type ExecutionDetailsReferenceSectionProps = {
   execution: Execution;
@@ -16,13 +17,9 @@ const ExecutionDetailsReferenceSection: React.FC<ExecutionDetailsReferenceSectio
   execution,
 }) => {
   const { namespace } = usePipelinesAPI();
-  const [context] = useGetPipelineRunContextByExecution(execution);
+  const [context] = useGetPipelineRunContextByExecution(execution.getId());
   const [run, runLoaded, runError] = usePipelineRunById(context?.getName());
-
-  const originalExecutionId = execution
-    .getCustomPropertiesMap()
-    .get('cached_execution_id')
-    ?.getStringValue();
+  const originalExecutionId = getOriginalExecutionId(execution);
 
   return (
     <Stack hasGutter>

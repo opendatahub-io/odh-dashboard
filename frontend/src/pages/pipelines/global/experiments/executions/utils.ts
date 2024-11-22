@@ -25,6 +25,9 @@ export const getMlmdMetadataValue = (value?: MlmdValue): MlmdMetadataValueType =
   }
 };
 
+export const getOriginalExecutionId = (execution: Execution | null): string | undefined =>
+  execution?.getCustomPropertiesMap().get('cached_execution_id')?.getStringValue();
+
 export const parseEventsByType = (response: Event[] | null): Record<Event.Type, Event[]> => {
   const events: Record<Event.Type, Event[]> = {
     [Event.Type.UNKNOWN]: [],

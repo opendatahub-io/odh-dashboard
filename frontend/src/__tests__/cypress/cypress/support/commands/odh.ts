@@ -551,12 +551,22 @@ declare global {
           response: OdhResponse<GrpcResponse>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetContextsByExecution`,
+          options: { path: { namespace: string; serviceName: string } },
+          response: OdhResponse<GrpcResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetArtifactsByContext`,
           options: { path: { namespace: string; serviceName: string } },
           response: OdhResponse<GrpcResponse>,
         ) => Cypress.Chainable<null>) &
         ((
           type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetExecutionsByContext`,
+          options: { path: { namespace: string; serviceName: string } },
+          response: OdhResponse<GrpcResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetContextType`,
           options: { path: { namespace: string; serviceName: string } },
           response: OdhResponse<GrpcResponse>,
         ) => Cypress.Chainable<null>) &
@@ -572,6 +582,11 @@ declare global {
         ) => Cypress.Chainable<null>) &
         ((
           type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetEventsByExecutionIDs`,
+          options: { path: { namespace: string; serviceName: string } },
+          response: OdhResponse<GrpcResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetEventsByArtifactIDs`,
           options: { path: { namespace: string; serviceName: string } },
           response: OdhResponse<GrpcResponse>,
         ) => Cypress.Chainable<null>) &

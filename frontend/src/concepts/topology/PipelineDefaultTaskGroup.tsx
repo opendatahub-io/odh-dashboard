@@ -16,6 +16,7 @@ import {
   LabelPosition,
 } from '@patternfly/react-topology';
 import { Flex, FlexItem, Popover, Stack, StackItem } from '@patternfly/react-core';
+import { BanIcon } from '@patternfly/react-icons';
 import { PipelineNodeModelExpanded, StandardTaskNodeData } from '~/concepts/topology/types';
 import NodeStatusIcon from '~/concepts/topology/NodeStatusIcon';
 import { ExecutionStateKF } from '~/concepts/pipelines/kfTypes';
@@ -68,14 +69,17 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
       }
     }, [state, runStatus]);
 
-    // TODO, Update canceled status icon with BanIcon when PF topology is updated
-    // https://issues.redhat.com/browse/RHOAIENG-14822
     const groupNode = (
       <DefaultTaskGroup
         element={element}
         collapsible
         recreateLayoutOnCollapseChange
-        GroupLabelComponent={TaskGroupPillLabel}
+        GroupLabelComponent={(props) => (
+          <TaskGroupPillLabel
+            {...props}
+            customStatusIcon={status === RunStatus.Cancelled ? <BanIcon /> : undefined}
+          />
+        )}
         selected={selected}
         onSelect={onSelect}
         hideDetailsAtMedium
@@ -83,6 +87,7 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
         labelPosition={LabelPosition.top}
         showStatusState
         scaleNode={hover && detailsLevel !== ScaleDetailsLevel.high}
+        customStatusIcon={status === RunStatus.Cancelled ? <BanIcon /> : undefined}
         showLabelOnHover
         status={status}
         hiddenDetailsShownStatuses={[
