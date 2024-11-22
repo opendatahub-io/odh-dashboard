@@ -1,4 +1,5 @@
 import type { Interception } from 'cypress/types/net-stubbing';
+import { mockGetEventsByArtifactIDs } from '~/__mocks__/mlmd/mockGetEventsByArtifactIDs';
 import { mockGetArtifactTypes } from '~/__mocks__/mlmd/mockGetArtifactTypes';
 import { mockGetArtifactsByContext } from '~/__mocks__/mlmd/mockGetArtifactsByContext';
 import { mockGetContextByTypeAndName } from '~/__mocks__/mlmd/mockGetContextByTypeAndName';
@@ -7,6 +8,8 @@ import { mockGetExecutions, mockGetNoExecutions } from '~/__mocks__/mlmd/mockGet
 import { mockGetExecutionsByContext } from '~/__mocks__/mlmd/mockGetExecutionsByContext';
 import { mockGetExecutionsByID } from '~/__mocks__/mlmd/mockGetExecutionsByID';
 import { GetExecutionsRequest } from '~/__mocks__/third_party/mlmd';
+import { mockGetContextsByExecution } from '~/__mocks__/mlmd/mockGetContextsByExecution';
+import { mockGetContextType } from '~/__mocks__/mlmd/mockGetContextType';
 
 export const initMlmdIntercepts = (
   projectName: string,
@@ -23,6 +26,13 @@ export const initMlmdIntercepts = (
     { path: { namespace: projectName, serviceName: 'dspa' } },
     mockGetContextByTypeAndName(),
   );
+
+  cy.interceptOdh(
+    'POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetContextsByExecution',
+    { path: { namespace: projectName, serviceName: 'dspa' } },
+    mockGetContextsByExecution(),
+  );
+
   cy.interceptOdh(
     'POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetArtifactsByContext',
     { path: { namespace: projectName, serviceName: 'dspa' } },
@@ -32,6 +42,11 @@ export const initMlmdIntercepts = (
     'POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetExecutionsByContext',
     { path: { namespace: projectName, serviceName: 'dspa' } },
     mockGetExecutionsByContext(),
+  );
+  cy.interceptOdh(
+    'POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetContextType',
+    { path: { namespace: projectName, serviceName: 'dspa' } },
+    mockGetContextType(),
   );
   cy.interceptOdh(
     'POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetExecutions',
@@ -47,6 +62,11 @@ export const initMlmdIntercepts = (
     'POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetEventsByExecutionIDs',
     { path: { namespace: projectName, serviceName: 'dspa' } },
     mockGetEventsByExecutionIDs(),
+  );
+  cy.interceptOdh(
+    'POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetEventsByArtifactIDs',
+    { path: { namespace: projectName, serviceName: 'dspa' } },
+    mockGetEventsByArtifactIDs(),
   );
 };
 
