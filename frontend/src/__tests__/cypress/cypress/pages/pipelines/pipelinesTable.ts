@@ -34,6 +34,10 @@ class PipelineVersionsTableRow extends TableRow {
   findPipelineVersionLink() {
     return this.find().findByTestId(`table-row-title`).find('a');
   }
+
+  findPipelineVersionViewRunLink() {
+    return this.find().findByTestId('runs-route-link');
+  }
 }
 
 export enum PipelineSort {

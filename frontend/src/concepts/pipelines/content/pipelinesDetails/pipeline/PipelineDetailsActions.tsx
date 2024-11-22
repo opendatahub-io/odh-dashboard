@@ -7,11 +7,11 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineVersionImportModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
 import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import {
+  globalPipelineRecurringRunsVersionRoute,
+  globalPipelineRunsVersionRoute,
   pipelineVersionCreateRecurringRunRoute,
   pipelineVersionCreateRunRoute,
   pipelineVersionDetailsRoute,
-  pipelineVersionRecurringRunsRoute,
-  pipelineVersionRunsRoute,
 } from '~/routes';
 import { getDashboardMainContainer } from '~/utilities/utils';
 import {
@@ -109,14 +109,10 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
                     key="view-runs"
                     onClick={() =>
                       navigate(
-                        pipelineVersionRunsRoute(
+                        globalPipelineRunsVersionRoute(
                           namespace,
-                          pipeline.pipeline_id,
                           pipelineVersion.pipeline_version_id,
                         ),
-                        {
-                          state: { lastVersion: pipelineVersion },
-                        },
                       )
                     }
                   >
@@ -126,9 +122,8 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
                     key="view-schedules"
                     onClick={() =>
                       navigate(
-                        pipelineVersionRecurringRunsRoute(
+                        globalPipelineRecurringRunsVersionRoute(
                           namespace,
-                          pipeline.pipeline_id,
                           pipelineVersion.pipeline_version_id,
                         ),
                       )
