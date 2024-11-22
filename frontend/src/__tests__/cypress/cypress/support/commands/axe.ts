@@ -45,8 +45,8 @@ Cypress.Commands.add('testA11y', { prevSubject: 'optional' }, (subject, context)
                 ({ nodes }, i) =>
                   `${i}. Affected elements:\n${nodes.map(
                     ({ target, failureSummary, ancestry }) =>
-                      `\t${failureSummary} - ${target
-                        .map((node) => `"${node}"\n${ancestry}`)
+                      `\t${failureSummary ?? ''} - ${target
+                        .map((node) => `"${node}"\n${ancestry ?? ''}`)
                         .join(', ')}`,
                   )}`,
               )

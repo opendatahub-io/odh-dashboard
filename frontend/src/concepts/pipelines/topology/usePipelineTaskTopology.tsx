@@ -62,8 +62,8 @@ const getInputArtifacts = (
       idForTaskArtifact(groupId, '', artifactKey),
       artifactKey,
       getArtifactPipelineTask(artifactKey, artifactType),
-      undefined,
       artifactType.schemaTitle,
+      undefined,
     ),
   );
 };
@@ -102,8 +102,8 @@ const getTaskArtifacts = (
       idForTaskArtifact(groupId, taskId, artifactKey),
       artifactKey,
       getArtifactPipelineTask(artifactKey, data, artifactData),
-      [taskId],
       data.schemaTitle,
+      [taskId],
     );
   });
 };

@@ -102,11 +102,19 @@ const NotebookServerDetails: React.FC = () => {
         </DescriptionListGroup>
         <DescriptionListGroup>
           <DescriptionListTerm>Limits</DescriptionListTerm>
-          <DescriptionListDescription>{`${container.resources?.limits?.cpu} CPU, ${container.resources?.limits?.memory} Memory`}</DescriptionListDescription>
+          <DescriptionListDescription>
+            {`${container.resources?.limits?.cpu ?? ''} CPU, ${
+              container.resources?.limits?.memory ?? ''
+            } Memory`}
+          </DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
           <DescriptionListTerm>Requests</DescriptionListTerm>
-          <DescriptionListDescription>{`${container.resources?.requests?.cpu} CPU, ${container.resources?.requests?.memory} Memory`}</DescriptionListDescription>
+          <DescriptionListDescription>
+            {`${container.resources?.requests?.cpu ?? ''} CPU, ${
+              container.resources?.requests?.memory ?? ''
+            } Memory`}
+          </DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
           <DescriptionListTerm>Accelerator</DescriptionListTerm>

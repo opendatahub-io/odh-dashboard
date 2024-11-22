@@ -1,17 +1,17 @@
-export const modelRegistryUrl = (preferredModelRegistry?: string): string =>
+export const modelRegistryUrl = (preferredModelRegistry = ''): string =>
   `/modelRegistry/${preferredModelRegistry}`;
 
 export const registeredModelsUrl = (preferredModelRegistry?: string): string =>
   `${modelRegistryUrl(preferredModelRegistry)}/registeredModels`;
 
-export const registeredModelUrl = (rmId?: string, preferredModelRegistry?: string): string =>
+export const registeredModelUrl = (rmId = '', preferredModelRegistry?: string): string =>
   `${registeredModelsUrl(preferredModelRegistry)}/${rmId}`;
 
 export const registeredModelArchiveUrl = (preferredModelRegistry?: string): string =>
   `${registeredModelsUrl(preferredModelRegistry)}/archive`;
 
 export const registeredModelArchiveDetailsUrl = (
-  rmId?: string,
+  rmId = '',
   preferredModelRegistry?: string,
 ): string => `${registeredModelArchiveUrl(preferredModelRegistry)}/${rmId}`;
 

@@ -36,7 +36,7 @@ import ModelVersionsTable from './ModelVersionsTable';
 
 type ModelVersionListViewProps = {
   modelVersions: ModelVersion[];
-  registeredModel?: RegisteredModel;
+  registeredModel: RegisteredModel;
   isArchiveModel?: boolean;
   refresh: () => void;
 };
@@ -64,7 +64,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
     React.useState(false);
 
   const filteredModelVersions = filterModelVersions(unfilteredModelVersions, search, searchType);
-  const date = rm?.lastUpdateTimeSinceEpoch && new Date(parseInt(rm.lastUpdateTimeSinceEpoch));
+  const date = rm.lastUpdateTimeSinceEpoch && new Date(parseInt(rm.lastUpdateTimeSinceEpoch));
 
   if (unfilteredModelVersions.length === 0) {
     if (isArchiveModel) {
@@ -78,7 +78,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
               alt="missing version"
             />
           )}
-          description={`${rm?.name} has no registered versions.`}
+          description={`${rm.name} has no registered versions.`}
         />
       );
     }
@@ -92,16 +92,16 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
             alt="missing version"
           />
         )}
-        description={`${rm?.name} has no registered versions. Register a version to this model.`}
+        description={`${rm.name} has no registered versions. Register a version to this model.`}
         primaryActionText="Register new version"
         primaryActionOnClick={() => {
-          navigate(registerVersionForModelUrl(rm?.id, preferredModelRegistry?.metadata.name));
+          navigate(registerVersionForModelUrl(rm.id, preferredModelRegistry?.metadata.name));
         }}
         secondaryActionText={
           archiveModelVersions.length !== 0 ? 'View archived versions' : undefined
         }
         secondaryActionOnClick={() => {
-          navigate(modelVersionArchiveUrl(rm?.id, preferredModelRegistry?.metadata.name));
+          navigate(modelVersionArchiveUrl(rm.id, preferredModelRegistry?.metadata.name));
         }}
       />
     );
@@ -175,7 +175,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
                     variant="primary"
                     onClick={() => {
                       navigate(
-                        registerVersionForModelUrl(rm?.id, preferredModelRegistry?.metadata.name),
+                        registerVersionForModelUrl(rm.id, preferredModelRegistry?.metadata.name),
                       );
                     }}
                   >
@@ -207,7 +207,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
                       <DropdownItem
                         onClick={() =>
                           navigate(
-                            modelVersionArchiveUrl(rm?.id, preferredModelRegistry?.metadata.name),
+                            modelVersionArchiveUrl(rm.id, preferredModelRegistry?.metadata.name),
                           )
                         }
                       >

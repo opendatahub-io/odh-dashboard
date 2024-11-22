@@ -11,7 +11,7 @@ import { Value } from '~/third_party/mlmd';
 import { MlmdPropertyDetailsValue } from '~/pages/pipelines/global/experiments/MlmdPropertyValue';
 
 interface ArtifactPropertyDescriptionListProps {
-  testId?: string;
+  testId: string;
   propertiesMap: [string, Value.AsObject][];
 }
 

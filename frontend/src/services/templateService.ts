@@ -7,7 +7,7 @@ import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
 import { addTypesToK8sListedResources } from '~/utilities/addTypesToK8sListedResources';
 
 export const listTemplatesBackend = async (
-  namespace?: string,
+  namespace: string,
   labelSelector?: string,
 ): Promise<TemplateKind[]> =>
   axios

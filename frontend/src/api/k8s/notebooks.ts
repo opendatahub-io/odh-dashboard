@@ -53,8 +53,12 @@ export const assembleNotebook = (
     description,
     k8sName: { value: notebookId },
   } = notebookData;
-  const imageUrl = `${image.imageStream?.status?.dockerImageRepository}:${image.imageVersion?.name}`;
-  const imageSelection = `${image.imageStream?.metadata.name}:${image.imageVersion?.name}`;
+  const imageUrl = `${image.imageStream?.status?.dockerImageRepository ?? ''}:${
+    image.imageVersion?.name ?? ''
+  }`;
+  const imageSelection = `${image.imageStream?.metadata.name ?? ''}:${
+    image.imageVersion?.name ?? ''
+  }`;
 
   const { affinity, tolerations, resources } = assemblePodSpecOptions(
     notebookSize.resources,

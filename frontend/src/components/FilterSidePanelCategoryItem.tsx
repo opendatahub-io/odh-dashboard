@@ -37,7 +37,9 @@ const FilterSidePanelCategoryItem: React.FunctionComponent<FilterSidePanelCatego
     <>
       {icon && <span className="item-icon">{icon}</span>}
       {children}
-      {Number.isInteger(count) && <span className="item-count">{`(${count})`}</span>}
+      {count !== null && Number.isInteger(count) && (
+        <span className="item-count">{`(${count})`}</span>
+      )}
     </>
   );
   return (
