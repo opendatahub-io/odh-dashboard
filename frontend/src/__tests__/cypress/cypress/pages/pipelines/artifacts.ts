@@ -102,6 +102,28 @@ class ArtifactDetails {
     return cy.findByTestId(`dataset-description-list-${label}`);
   }
 
+  findReferenceTable() {
+    return cy.findByTestId('artifact-details-reference-table');
+  }
+
+  findExecutionLink(name: string) {
+    return this.findReferenceTable()
+      .find(`[data-label=Name]`)
+      .contains('Original execution')
+      .parents('tr')
+      .find(`[data-label=Link]`)
+      .contains(name);
+  }
+
+  findPipelineLink(name: string) {
+    return this.findReferenceTable()
+      .find(`[data-label=Name]`)
+      .contains('Original run')
+      .parents('tr')
+      .find(`[data-label=Link]`)
+      .contains(name);
+  }
+
   findCustomPropItemByLabel(label: string) {
     return cy.findByTestId(`custom-props-description-list-${label}`);
   }
