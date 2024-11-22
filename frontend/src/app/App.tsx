@@ -2,14 +2,12 @@ import React from 'react';
 import '@patternfly/patternfly/patternfly.min.css';
 import '@patternfly/patternfly/patternfly-addons.css';
 import {
-  Alert,
   Bullseye,
   Button,
+  Modal,
+  ModalVariant,
   Page,
-  PageSection,
   Spinner,
-  Stack,
-  StackItem,
 } from '@patternfly/react-core';
 import ErrorBoundary from '~/components/error/ErrorBoundary';
 import ToastNotifications from '~/components/ToastNotifications';
@@ -70,29 +68,25 @@ const App: React.FC = () => {
   if (userError || fetchConfigError) {
     // There was an error fetching critical data
     return (
-      <Page>
-        <PageSection>
-          <Stack hasGutter>
-            <StackItem>
-              <Alert variant="danger" isInline title="General loading error">
-                <p>
-                  {(userError ? userError.message : fetchConfigError?.message) ||
-                    'Unknown error occurred during startup.'}
-                </p>
-                <p>Logging out and logging back in may solve the issue.</p>
-              </Alert>
-            </StackItem>
-            <StackItem>
-              <Button
-                variant="secondary"
-                onClick={() => logout().then(() => window.location.reload())}
-              >
-                Logout
-              </Button>
-            </StackItem>
-          </Stack>
-        </PageSection>
-      </Page>
+      <Modal
+        title="Session expired"
+        titleIconVariant="warning"
+        variant={ModalVariant.small}
+        isOpen
+        showClose={false}
+        actions={[
+          <Button
+            key="confirm"
+            variant="primary"
+            onClick={() => logout().then(() => window.location.reload())}
+          >
+            Log in
+          </Button>,
+        ]}
+        ouiaId="BasicModal"
+      >
+        Your session timed out. To continue working, log in.
+      </Modal>
     );
   }
 
