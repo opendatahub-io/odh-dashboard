@@ -13,13 +13,11 @@ import PipelineRunTableToolbar from '~/concepts/pipelines/content/tables/pipelin
 import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import { compareRunsRoute } from '~/routes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { FilterProps } from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbarBase';
 import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import { usePipelineFilterSearchParams } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 
 type ManageRunsTableProps = Omit<React.ComponentProps<typeof PipelineRunTable>, 'runType'> & {
-  filterProps: FilterProps;
   selectedRunIds: string[];
-  onClearFilters: () => void;
 };
 
 export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
@@ -31,14 +29,13 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
   pageSize,
   setPage,
   setPageSize,
-  filterProps,
-  onClearFilters,
   ...tableProps
 }) => {
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
   const pageRunIds = runs.map(({ run_id: runId }) => runId);
   const { experiment } = React.useContext(ExperimentContext);
+  const { onClearFilters, ...filterProps } = usePipelineFilterSearchParams(tableProps.setFilter);
 
   const {
     selections,
