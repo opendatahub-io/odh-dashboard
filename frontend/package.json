@@ -68,7 +68,7 @@
     "@patternfly/react-table": "^5.4.0",
     "@patternfly/react-templates": "^1.1.0",
     "@patternfly/react-tokens": "^5.4.0",
-    "@patternfly/react-topology": "^5.4.0",
+    "@patternfly/react-topology": "^5.4.1",
     "@patternfly/react-virtualized-extension": "^5.1.0",
     "@segment/analytics-next": "^1.72.0",
     "@types/classnames": "^2.3.1",
