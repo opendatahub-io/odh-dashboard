@@ -8,7 +8,7 @@ import {
 } from '@patternfly/react-icons';
 import { InferenceServiceKind } from '~/k8sTypes';
 import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
-import { getInferenceServiceActiveModelState, getInferenceServiceStatusMessage } from './utils';
+import { getInferenceServiceModelState, getInferenceServiceStatusMessage } from './utils';
 import { useModelStatus } from './useModelStatus';
 
 type InferenceServiceStatusProps = {
@@ -30,7 +30,7 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
 
   const state = modelStatus?.failedToSchedule
     ? 'FailedToLoad'
-    : getInferenceServiceActiveModelState(inferenceService);
+    : getInferenceServiceModelState(inferenceService);
 
   const statusIcon = () => {
     switch (state) {
