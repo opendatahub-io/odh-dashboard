@@ -1,20 +1,31 @@
 import * as React from 'react';
-import { FormGroup } from '@patternfly/react-core';
+import { Button, Stack, FormGroup, StackItem } from '@patternfly/react-core';
+import { PlusCircleIcon } from '@patternfly/react-icons';
 import { NotebookKind, PersistentVolumeClaimKind } from '~/k8sTypes';
-import { ForNotebookSelection, StorageData } from '~/pages/projects/types';
+import { ClusterStorageNotebookSelection, MountPath, StorageData } from '~/pages/projects/types';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { attachNotebookPVC, createPvc, removeNotebookPVC, restartNotebook, updatePvc } from '~/api';
+import {
+  attachNotebookPVC,
+  createPvc,
+  removeNotebookPVC,
+  restartNotebook,
+  updateNotebookPVC,
+  updatePvc,
+} from '~/api';
 import {
   ConnectedNotebookContext,
   useRelatedNotebooks,
 } from '~/pages/projects/notebook/useRelatedNotebooks';
-import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
-import StorageNotebookConnections from '~/pages/projects/notebook/StorageNotebookConnections';
 import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
+import { Table } from '~/components/table';
+import { getNotebookPVCMountPathMap } from '~/pages/projects/notebook/utils';
+import { MOUNT_PATH_PREFIX } from '~/pages/projects/screens/spawner/storage/const';
+import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
 import BaseStorageModal from './BaseStorageModal';
-import ExistingConnectedNotebooks from './ExistingConnectedNotebooks';
-import { isPvcUpdateRequired } from './utils';
+import { handleConnectedNotebooks, isPvcUpdateRequired } from './utils';
+import { storageColumns } from './clusterTableColumns';
+import ClusterStorageTableRow from './ClusterStorageTableRow';
 
 type ClusterStorageModalProps = {
   existingPvc?: PersistentVolumeClaimKind;
@@ -22,37 +33,84 @@ type ClusterStorageModalProps = {
 };
 
 const ClusterStorageModal: React.FC<ClusterStorageModalProps> = ({ existingPvc, onClose }) => {
-  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const {
+    currentProject,
+    notebooks: { data, loaded },
+  } = React.useContext(ProjectDetailsContext);
   const namespace = currentProject.metadata.name;
-  const [removedNotebooks, setRemovedNotebooks] = React.useState<string[]>([]);
-  const [notebookData, setNotebookData] = React.useState<ForNotebookSelection>({
-    name: '',
-    mountPath: { value: '', error: '' },
-  });
+  const allNotebooks = data.map((currentData) => currentData.notebook);
   const { notebooks: connectedNotebooks } = useRelatedNotebooks(
-    ConnectedNotebookContext.EXISTING_PVC,
+    ConnectedNotebookContext.REMOVABLE_PVC,
     existingPvc?.metadata.name,
   );
 
   const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
 
-  const {
-    notebooks: removableNotebooks,
-    loaded: removableNotebookLoaded,
-    error: removableNotebookError,
-  } = useRelatedNotebooks(ConnectedNotebookContext.REMOVABLE_PVC, existingPvc?.metadata.name);
+  const hasExistingNotebookConnections = connectedNotebooks.length > 0;
+  const [notebookData, setNotebookData] = React.useState<ClusterStorageNotebookSelection[]>([]);
+  const [newRowId, setNewRowId] = React.useState<number>(1);
 
-  const hasExistingNotebookConnections = removableNotebooks.length > 0;
+  React.useEffect(() => {
+    if (hasExistingNotebookConnections) {
+      const addData = connectedNotebooks.map((connectedNotebook) => ({
+        name: connectedNotebook.metadata.name,
+        mountPath: {
+          value: existingPvc
+            ? getNotebookPVCMountPathMap(connectedNotebook)[existingPvc.metadata.name]
+            : '',
+          error: '',
+        },
+        existingPvc: true,
+        isUpdatedValue: false,
+      }));
+      setNotebookData(addData);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingPvc, hasExistingNotebookConnections]);
 
-  const restartNotebooks = useWillNotebooksRestart([...removedNotebooks, notebookData.name]);
+  const availableNotebooks = React.useMemo(
+    () =>
+      allNotebooks.filter(
+        (currentNotebookData) =>
+          !notebookData.some(
+            (currentNotebook) => currentNotebook.name === currentNotebookData.metadata.name,
+          ),
+      ),
+    [allNotebooks, notebookData],
+  );
 
-  const handleSubmit = async (
-    storageData: StorageData,
-    attachNotebookData?: ForNotebookSelection,
-    dryRun?: boolean,
-  ) => {
+  const addEmptyRow = React.useCallback(() => {
+    setNotebookData(() => [
+      ...notebookData,
+      {
+        name: '',
+        mountPath: {
+          value: MOUNT_PATH_PREFIX,
+          error: '',
+        },
+        existingPvc: false,
+        isUpdatedValue: false,
+        newRowId,
+      },
+    ]);
+    setNewRowId((prev) => prev + 1);
+  }, [newRowId, notebookData]);
+
+  const { updatedNotebooks, removedNotebooks } = handleConnectedNotebooks(
+    notebookData,
+    connectedNotebooks,
+  );
+
+  const newNotebooks = notebookData.filter((notebook) => !notebook.existingPvc);
+
+  const restartNotebooks = useWillNotebooksRestart([
+    ...updatedNotebooks.map((updatedNotebook) => updatedNotebook.name),
+    ...removedNotebooks,
+    ...newNotebooks.map((newNotebook) => newNotebook.name),
+  ]);
+
+  const handleSubmit = async (storageData: StorageData, dryRun?: boolean) => {
     const promises: Promise<PersistentVolumeClaimKind | NotebookKind>[] = [];
-
     if (existingPvc) {
       const pvcName = existingPvc.metadata.name;
 
@@ -70,55 +128,94 @@ const ClusterStorageModal: React.FC<ClusterStorageModalProps> = ({ existingPvc, 
         );
       }
 
-      // Remove connections to notebooks that were removed
+      if (updatedNotebooks.length > 0) {
+        promises.push(
+          ...updatedNotebooks.map((nM) =>
+            updateNotebookPVC(nM.name, namespace, nM.mountPath.value, pvcName, { dryRun }),
+          ),
+        );
+      }
+
       if (removedNotebooks.length > 0) {
         promises.push(
           ...removedNotebooks.map((nM) => removeNotebookPVC(nM, namespace, pvcName, { dryRun })),
         );
       }
-
-      await Promise.all(promises);
-
-      if (attachNotebookData?.name) {
-        await attachNotebookPVC(
-          attachNotebookData.name,
-          namespace,
-          pvcName,
-          attachNotebookData.mountPath.value,
-          {
-            dryRun,
-          },
+      if (newNotebooks.length > 0) {
+        promises.push(
+          ...newNotebooks.map((nM) =>
+            attachNotebookPVC(nM.name, namespace, pvcName, nM.mountPath.value, { dryRun }),
+          ),
         );
       }
+      await Promise.all(promises);
       return;
     }
+
     // Create new PVC if it doesn't exist
     const createdPvc = await createPvc(storageData, namespace, { dryRun });
 
+    const newCreatedPVCPromises: Promise<PersistentVolumeClaimKind | NotebookKind>[] = [];
     // Attach the new PVC to a notebook if specified
-    if (attachNotebookData?.name) {
-      await attachNotebookPVC(
-        attachNotebookData.name,
-        namespace,
-        createdPvc.metadata.name,
-        attachNotebookData.mountPath.value,
-        { dryRun },
+
+    if (newNotebooks.length > 0) {
+      newCreatedPVCPromises.push(
+        ...newNotebooks.map((nM) =>
+          attachNotebookPVC(nM.name, namespace, createdPvc.metadata.name, nM.mountPath.value, {
+            dryRun,
+          }),
+        ),
       );
     }
+    await Promise.all(newCreatedPVCPromises);
   };
 
-  const submit = async (data: StorageData) =>
-    handleSubmit(data, notebookData, true).then(() => handleSubmit(data, notebookData, false));
+  const addNotebookData = React.useCallback(
+    (
+      rowIndex: number,
+      notebookName?: string,
+      mountPath?: MountPath,
+      isUpdatedValue?: boolean,
+      updatedExistingPvc?: boolean,
+    ) => {
+      const copiedArray = [...notebookData];
+      if (notebookName) {
+        copiedArray[rowIndex].name = notebookName;
+      }
+      if (isUpdatedValue !== undefined) {
+        copiedArray[rowIndex].isUpdatedValue = isUpdatedValue;
+      }
 
-  const hasValidNotebookRelationship = notebookData.name
-    ? !!notebookData.mountPath.value && !notebookData.mountPath.error
-    : true;
+      if (updatedExistingPvc) {
+        copiedArray[rowIndex].existingPvc = updatedExistingPvc;
+      }
+      if (mountPath) {
+        copiedArray[rowIndex].mountPath = mountPath;
+      }
 
-  const isValid = hasValidNotebookRelationship;
+      setNotebookData(copiedArray);
+    },
+    [notebookData],
+  );
+
+  const submit = async (dataSubmit: StorageData) =>
+    handleSubmit(dataSubmit, true).then(() => handleSubmit(dataSubmit, false));
+
+  const hasAllValidNotebookRelationship = React.useMemo(
+    () =>
+      notebookData.every((currentNotebookData) =>
+        currentNotebookData.name
+          ? !!currentNotebookData.mountPath.value && !currentNotebookData.mountPath.error
+          : false,
+      ),
+    [notebookData],
+  );
+
+  const isValid = hasAllValidNotebookRelationship;
 
   return (
     <BaseStorageModal
-      onSubmit={(data) => submit(data)}
+      onSubmit={(dataSubmit) => submit(dataSubmit)}
       title={existingPvc ? 'Update cluster storage' : 'Add cluster storage'}
       description={
         existingPvc
@@ -130,28 +227,73 @@ const ClusterStorageModal: React.FC<ClusterStorageModalProps> = ({ existingPvc, 
       onClose={(submitted) => onClose(submitted)}
       existingPvc={existingPvc}
     >
-      {workbenchEnabled && (
+      {(name) => (
         <>
-          {hasExistingNotebookConnections && (
-            <ExistingConnectedNotebooks
-              connectedNotebooks={removableNotebooks}
-              onNotebookRemove={(notebook: NotebookKind) =>
-                setRemovedNotebooks([...removedNotebooks, notebook.metadata.name])
-              }
-              loaded={removableNotebookLoaded}
-              error={removableNotebookError}
-            />
-          )}
-          <StorageNotebookConnections
-            setForNotebookData={(forNotebookData) => {
-              setNotebookData(forNotebookData);
-            }}
-            forNotebookData={notebookData}
-            connectedNotebooks={connectedNotebooks}
-          />
-          {restartNotebooks.length !== 0 && (
-            <FormGroup>
-              <NotebookRestartAlert notebooks={restartNotebooks} />
+          {workbenchEnabled && (
+            <FormGroup label="Workbench connections" fieldId="workbench-connections">
+              <Stack hasGutter>
+                <StackItem>
+                  <Table
+                    data-testid="workbench-connection-table"
+                    variant="compact"
+                    columns={storageColumns}
+                    data={notebookData}
+                    rowRenderer={(row, rowIndex) => (
+                      <ClusterStorageTableRow
+                        clusterStorageName={name}
+                        existingPvc={existingPvc}
+                        connectedNotebooks={connectedNotebooks}
+                        key={rowIndex}
+                        obj={row}
+                        availableNotebooks={{
+                          notebooks: [
+                            ...availableNotebooks,
+                            ...allNotebooks.filter(
+                              (currentData) => currentData.metadata.name === row.name,
+                            ),
+                          ],
+                          loaded,
+                        }}
+                        addNotebookData={(
+                          notebookName?: string,
+                          mountPath?: MountPath,
+                          isUpdatedValue?: boolean,
+                          updatedExistingPvc?: boolean,
+                        ) =>
+                          addNotebookData(
+                            rowIndex,
+                            notebookName,
+                            mountPath,
+                            isUpdatedValue,
+                            updatedExistingPvc,
+                          )
+                        }
+                        onDelete={() => {
+                          const copiedArray = [...notebookData];
+                          copiedArray.splice(rowIndex, 1);
+                          setNotebookData(copiedArray);
+                        }}
+                      />
+                    )}
+                  />
+                </StackItem>
+                <StackItem>
+                  <Button
+                    data-testid="add-workbench-button"
+                    variant="link"
+                    icon={<PlusCircleIcon />}
+                    onClick={addEmptyRow}
+                    isInline
+                  >
+                    Add Workbench
+                  </Button>
+                </StackItem>
+                <StackItem>
+                  {restartNotebooks.length !== 0 && (
+                    <NotebookRestartAlert notebooks={restartNotebooks} />
+                  )}
+                </StackItem>
+              </Stack>
             </FormGroup>
           )}
         </>
