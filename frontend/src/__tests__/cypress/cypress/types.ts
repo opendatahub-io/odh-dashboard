@@ -73,6 +73,12 @@ export type SCReplacements = {
   SC_IS_ENABLED: string;
 };
 
+export type PVCReplacements = {
+  NAMESPACE: string;
+  PVC_NAME: string;
+  PVC_DISPLAY_NAME: string;
+};
+
 export type CommandLineResult = {
   code: number;
   stdout: string;

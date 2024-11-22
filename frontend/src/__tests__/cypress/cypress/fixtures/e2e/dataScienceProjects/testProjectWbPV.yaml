@@ -1,0 +1,4 @@
+# workbenches.cy.ts Test Data #
+NAMESPACE: 'dsp-wb-test'
+PVC_NAME: 'pvc-test-name'
+PVC_DISPLAY_NAME: 'pvc-test-display-name'
