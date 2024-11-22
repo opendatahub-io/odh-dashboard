@@ -1,14 +1,7 @@
 import React from 'react';
 import '@patternfly/patternfly/patternfly.min.css';
 import '@patternfly/patternfly/patternfly-addons.css';
-import {
-  Bullseye,
-  Button,
-  Modal,
-  ModalVariant,
-  Page,
-  Spinner,
-} from '@patternfly/react-core';
+import { Bullseye, Button, Modal, ModalVariant, Page, Spinner } from '@patternfly/react-core';
 import ErrorBoundary from '~/components/error/ErrorBoundary';
 import ToastNotifications from '~/components/ToastNotifications';
 import { useWatchBuildStatus } from '~/utilities/useWatchBuildStatus';
