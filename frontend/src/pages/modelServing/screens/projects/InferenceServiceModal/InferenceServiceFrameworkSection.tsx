@@ -58,7 +58,7 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
             ? `${framework.name} - ${framework.version}`
             : `${framework.name}`;
           return {
-            optionKey: `${servingRuntimeName}-${name}`,
+            optionKey: `${servingRuntimeName ?? ''}-${name}`,
             key: name,
             label: name,
           };
