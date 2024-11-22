@@ -18,7 +18,7 @@ export type BaseStorageModalProps = {
   submitLabel?: string;
   title?: string;
   description?: string;
-  children: React.ReactNode;
+  children: ((opts: string) => React.ReactNode) | React.ReactNode;
   isValid: boolean;
   onSubmit: (data: CreateStorageObjectData) => Promise<void>;
   hasDuplicateName?: boolean;
@@ -118,7 +118,7 @@ const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
               editableK8sName={!existingPvc}
             />
           </StackItem>
-          {children}
+          {typeof children === 'function' ? children(createData.name) : children}
         </Stack>
       </Form>
     </Modal>
