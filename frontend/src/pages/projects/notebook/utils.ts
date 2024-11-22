@@ -1,6 +1,5 @@
 import { EventKind, NotebookKind } from '~/k8sTypes';
 import { EventStatus, NotebookSize, NotebookStatus } from '~/types';
-import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
@@ -23,9 +22,6 @@ export const getNotebookPVCVolumeNames = (notebook: NotebookKind): { [name: stri
       [volume.name]: volume.persistentVolumeClaim.claimName,
     };
   }, {});
-
-const relativeMountPath = (mountPath: string): string =>
-  mountPath.slice(ROOT_MOUNT_PATH.length) || '/';
 
 export const getNotebookPVCMountPathMap = (
   notebook?: NotebookKind,
@@ -50,20 +46,6 @@ export const getNotebookPVCMountPathMap = (
     }),
     {},
   );
-};
-
-export const getNotebookMountPaths = (notebook?: NotebookKind): string[] => {
-  if (!notebook) {
-    return [];
-  }
-
-  return notebook.spec.template.spec.containers
-    .map(
-      (container) =>
-        container.volumeMounts?.map((volumeMount) => relativeMountPath(volumeMount.mountPath)) ||
-        [],
-    )
-    .flat();
 };
 
 export const getEventTimestamp = (event: EventKind): string =>
