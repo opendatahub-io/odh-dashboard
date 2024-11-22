@@ -169,7 +169,7 @@ class NotebookRow extends TableRow {
     return this.find().findByTestId('notebook-route-link');
   }
 
-  findHaveNotebookStatusText(timeout: number = 10000) {
+  findHaveNotebookStatusText(timeout = 10000) {
     return this.find().findByTestId('notebook-status-text', { timeout });
   }
 
