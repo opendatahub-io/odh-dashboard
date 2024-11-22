@@ -39,7 +39,7 @@ describe('Create a custom resource Quickstart by using Dashboard CRDs', () => {
     cy.step('Navigate to Resources tab and search for the Custom Resources');
     resources.visit();
 
-    // Verify the resources have been created by iterating over the resources created in before method
+    // Verify the resources have been created by iterating over the resources created in the before method
     cy.step('Check for newly created resources');
     checkResources([
       {
