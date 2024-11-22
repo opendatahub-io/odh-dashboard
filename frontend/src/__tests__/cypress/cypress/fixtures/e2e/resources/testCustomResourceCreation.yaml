@@ -1,7 +1,6 @@
 resources:
   CustomQuickStart:
-    - namespace: "redhat-ods-applications"
-      kind: "OdhQuickStart"
+    - kind: "OdhQuickStart"
       labelSelector: "app=custom-odsci-app"
       createdName: "TEST - Custom Quick Start"
       metaDataName: "custom-quick-start-test"
@@ -9,8 +8,7 @@ resources:
       yamlPath: "resources/files/applications/custom_quickstart.yaml"
 
   CustomApplication:
-    - namespace: "redhat-ods-applications"
-      kind: "OdhApplication"
+    - kind: "OdhApplication"
       labelSelector: "app=custom-odsci-app"
       createdName: "TEST - Custom ODS-CI Application"
       metaDataName: "custom-odsci-app-doc"
@@ -18,7 +16,7 @@ resources:
       yamlPath: "resources/files/applications/custom_app.yaml"
 
   CustomHowTo:
-    - namespace: "redhat-ods-applications"
+    - namespace: "opendatahub"
       kind: "OdhDocument"
       labelSelector: "app=custom-odsci-app"
       createdName: "TEST - Custom How-To Documentation"
@@ -27,8 +25,7 @@ resources:
       yamlPath: "resources/files/applications/custom_doc_howto.yaml"
 
   CustomTutorial:
-    - namespace: "redhat-ods-applications"
-      kind: "OdhDocument"
+    - kind: "OdhDocument"
       labelSelector: "app=custom-odsci-app"
       createdName: "TEST - Custom Tutorial Documentation"
       metaDataName: "custom-doc-tutorial-test"

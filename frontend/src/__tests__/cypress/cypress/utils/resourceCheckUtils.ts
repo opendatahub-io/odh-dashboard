@@ -3,10 +3,11 @@ import { resources } from '~/__tests__/cypress/cypress/pages/resources';
 interface ResourceInfo {
   name: string;
   metaDataName: string;
-  description: string; // This can be retained if needed for logging, but we won't use it for assertions.
+  description: string; 
 }
 
-export const checkResources = (resourceInfoList: ResourceInfo[]) => {
+// Specify the return type of the function
+export const checkResources = (resourceInfoList: ResourceInfo[]): void => {
   cy.log(`Starting resource check for ${resourceInfoList.length} resources.`);
 
   resourceInfoList.forEach((resourceInfo) => {
@@ -14,9 +15,6 @@ export const checkResources = (resourceInfoList: ResourceInfo[]) => {
 
     // Clear the search input and type the resource name
     resources.getLearningCenterToolbar().findSearchInput().clear().type(resourceInfo.name);
-
-    // Wait for a moment to allow search results to load
-    cy.wait(1000); // Adjust this if necessary based on your app's response time
 
     // Check if the resource card is visible by looking for its metadata name
     resources

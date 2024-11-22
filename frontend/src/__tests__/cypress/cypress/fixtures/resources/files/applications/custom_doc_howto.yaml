@@ -4,7 +4,6 @@ metadata:
   annotations:
     opendatahub.io/categories: 'Package management,Notebook environments,Getting started,Testing'
   name: custom-doc-howto-test
-  namespace: redhat-ods-applications
   labels:
     app: custom-odsci-app
 spec:

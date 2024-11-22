@@ -134,7 +134,6 @@ export type NotebookControllerConfig = {
 };
 
 export type ResourceData = {
-  namespace: string;
   kind: string;
   labelSelector: string;
   createdName: string;
