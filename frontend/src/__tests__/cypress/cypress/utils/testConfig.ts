@@ -51,12 +51,15 @@ const AWS_PIPELINES: AWSS3Buckets = {
     testConfig?.S3.AWS_SECRET_ACCESS_KEY || env.AWS_PIPELINES_BUCKET_SECRET_ACCESS_KEY || '',
   BUCKET_2: AWS_PIPELINES_BUCKET_DETAILS,
 };
+//export const BASE_URL = testConfig?.ODH_DASHBOARD_URL || env.BASE_URL || '';
+const TEST_NAMESPACE = testConfig?.APPLICATIONS_NAMESPACE;
 
 // spread the cypressEnv variables into the cypress config
 export const cypressEnv = {
   LDAP_CONTRIBUTOR_USER,
   HTPASSWD_CLUSTER_ADMIN_USER,
   AWS_PIPELINES,
+  TEST_NAMESPACE,
 };
 
 // re-export the updated process env

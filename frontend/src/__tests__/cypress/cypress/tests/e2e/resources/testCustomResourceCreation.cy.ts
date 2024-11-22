@@ -13,6 +13,7 @@ describe('Create a custom resource Quickstart by using Dashboard CRDs', () => {
   let resourcesData: ResourcesData;
   let resourceNames: ReturnType<typeof getResourceValues>;
 
+  // Setup: Load test data and setup custom resources
   before(() => {
     return loadResourcesFixture('e2e/resources/testCustomResourceCreation.yaml').then((data) => {
       resourcesData = data;
@@ -25,18 +26,20 @@ describe('Create a custom resource Quickstart by using Dashboard CRDs', () => {
       return setupCustomResources(resourcesData);
     });
   });
-
-   after(() => {
-     return cleanupCustomResources(resourcesData);
-   });
+  // Delete custom resources
+  after(() => {
+    return cleanupCustomResources(resourcesData);
+  });
 
   it('Upload custom resource and verify', () => {
+    // Authentication and navigation
     cy.step('Log into the application');
     cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
     cy.step('Navigate to Resources tab and search for the Custom Resources');
     resources.visit();
 
+    // Verify the resources have been created by iterating over the resources created in before method
     cy.step('Check for newly created resources');
     checkResources([
       {

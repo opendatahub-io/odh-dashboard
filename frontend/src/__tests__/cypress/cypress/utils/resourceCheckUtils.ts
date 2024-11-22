@@ -3,7 +3,7 @@ import { resources } from '~/__tests__/cypress/cypress/pages/resources';
 interface ResourceInfo {
   name: string;
   metaDataName: string;
-  description: string; 
+  description: string;
 }
 
 // Specify the return type of the function

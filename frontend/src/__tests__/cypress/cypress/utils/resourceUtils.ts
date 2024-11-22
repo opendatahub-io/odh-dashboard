@@ -1,8 +1,7 @@
 import type { ResourcesData } from '~/__tests__/cypress/cypress/types';
 import { createCustomResource, deleteCustomResource } from './oc_commands/customResources';
 
-const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
-console.log('This is the ApplicationNamespace: ' + applicationNamespace);
+const applicationNamespace = Cypress.env('TEST_NAMESPACE');
 
 export const setupCustomResources = (resourcesData: ResourcesData): Cypress.Chainable<void> => {
   const resourceTypes: (keyof ResourcesData['resources'])[] = [
@@ -41,7 +40,7 @@ export const cleanupCustomResources = (resourcesData: ResourcesData): Cypress.Ch
 
   const cleanupPromises = resourceTypes.map((resourceType) => {
     const resource = resourcesData.resources[resourceType][0];
-    return deleteCustomResource(applicationNamespace, resource.kind, `app=custom-odsci-app`).then(
+    return deleteCustomResource(applicationNamespace, resource.kind, resource.labelSelector).then(
       (result) => {
         cy.log(`Command execution result: ${JSON.stringify(result)}`);
         expect(result.code).to.equal(0);

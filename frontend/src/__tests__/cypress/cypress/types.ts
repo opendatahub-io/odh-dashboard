@@ -84,6 +84,7 @@ export type TestConfig = {
   TEST_USER_3: UserAuthConfig;
   OCP_ADMIN_USER: UserAuthConfig;
   S3: AWSS3Buckets;
+  APPLICATIONS_NAMESPACE: NamespaceConfig;
 };
 
 export type DataScienceProjectData = {
@@ -149,4 +150,7 @@ export type ResourcesData = {
     CustomHowTo: ResourceData[];
     CustomTutorial: ResourceData[];
   };
+};
+export type NamespaceConfig = {
+  APPLICATIONS_NAMESPACE: string;
 };
