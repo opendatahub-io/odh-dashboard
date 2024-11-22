@@ -60,11 +60,11 @@ const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
           onBlur={
             onBlur &&
             ((value) => {
-              onBlur(`${Math.max(value || minAsNumber)}${currentUnitOption.unit}`);
+              onBlur(`${Math.max(value ?? minAsNumber)}${currentUnitOption.unit}`);
             })
           }
           onChange={(value) => {
-            onChange(`${value || minAsNumber || ''}${currentUnitOption.unit}`);
+            onChange(`${value ?? minAsNumber ?? ''}${currentUnitOption.unit}`);
           }}
           isDisabled={isDisabled}
         />
