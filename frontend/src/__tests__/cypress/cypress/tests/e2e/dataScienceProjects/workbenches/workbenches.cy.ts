@@ -53,10 +53,6 @@ describe('Workbench and PVSs tests', () => {
   });
 
   it('Verify users can create a workbench and connect an existent PersistentVolume', () => {
-    projectName = 'dsp-wb-test';
-    PVCName = 'pvc-test-name';
-    PVCDisplayName = 'pvc-test-display-name';
-
     const workbenchName = projectName.replace('dsp-', '');
 
     // Authentication and navigation
@@ -77,7 +73,7 @@ describe('Workbench and PVSs tests', () => {
     createSpawnerPage.selectExistingPersistentStorage(PVCDisplayName);
     createSpawnerPage.findSubmitButton().click();
 
-    cy.step(`Wait Workbench ${workbenchName} to have "Running" status`);
+    cy.step(`Wait for Workbench ${workbenchName} to display a "Running" status`);
     const notebookRow = workbenchPage.getNotebookRow(workbenchName);
     notebookRow.expectStatusLabelToBe('Running', 120000);
     notebookRow.shouldHaveNotebookImageName('Minimal Python');
