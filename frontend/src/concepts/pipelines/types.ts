@@ -109,8 +109,8 @@ export type GetPipelineRecurringRun = (
 ) => Promise<PipelineRecurringRunKF>;
 export type GetPipelineVersion = (
   opts: K8sAPIOptions,
-  pipelineId: string | undefined,
-  pipelineVersionId: string | undefined,
+  pipelineId: string,
+  pipelineVersionId: string,
 ) => Promise<PipelineVersionKF>;
 export type DeletePipeline = (opts: K8sAPIOptions, pipelineId: string) => Promise<void>;
 export type DeletePipelineRun = (opts: K8sAPIOptions, runId: string) => Promise<void>;

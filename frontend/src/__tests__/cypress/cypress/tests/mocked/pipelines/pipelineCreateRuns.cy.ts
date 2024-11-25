@@ -135,7 +135,7 @@ describe('Pipeline create runs', () => {
     it('creates an active run', () => {
       visitLegacyRunsPage();
 
-      const createRunParams: Partial<PipelineRunKF> = {
+      const createRunParams = {
         display_name: 'New run',
         description: 'New run description',
         run_id: 'new-run-id',
@@ -146,7 +146,7 @@ describe('Pipeline create runs', () => {
             standard_scaler: 'yes',
           },
         },
-      };
+      } satisfies Partial<PipelineRunKF>;
 
       // Mock experiments, pipelines & versions for form select dropdowns
       createRunPage.mockGetExperiments(projectName, mockExperiments);
@@ -179,7 +179,7 @@ describe('Pipeline create runs', () => {
       createRunPage.selectPipelineByName('Test pipeline');
       createRunPage.pipelineVersionSelect.findToggleButton().should('not.be.disabled');
 
-      const parameters = createRunParams.runtime_config?.parameters || {};
+      const { parameters } = createRunParams.runtime_config;
       const paramsSection = createRunPage.getParamsSection();
       paramsSection.findParamById('radio-min_max_scaler-false').click();
       paramsSection.fillParamInputById('neighbors', String(parameters.neighbors));
@@ -286,7 +286,7 @@ describe('Pipeline create runs', () => {
     it('create run with default and optional parameters', () => {
       visitLegacyRunsPage();
 
-      const createRunParams: Partial<PipelineRunKF> = {
+      const createRunParams = {
         display_name: 'New run',
         description: 'New run description',
         run_id: 'new-run-id',
@@ -300,7 +300,7 @@ describe('Pipeline create runs', () => {
             bool_param: true,
           },
         },
-      };
+      } satisfies Partial<PipelineRunKF>;
 
       // Mock experiments, pipelines & versions for form select dropdowns
       createRunPage.mockGetExperiments(projectName, mockExperiments);
@@ -415,7 +415,7 @@ describe('Pipeline create runs', () => {
     it('create run with all parameter types', () => {
       visitLegacyRunsPage();
 
-      const createRunParams: Partial<PipelineRunKF> = {
+      const createRunParams = {
         display_name: 'New run',
         description: 'New run description',
         run_id: 'new-run-id',
@@ -429,7 +429,7 @@ describe('Pipeline create runs', () => {
             bool_param: false,
           },
         },
-      };
+      } satisfies Partial<PipelineRunKF>;
 
       // Mock experiments, pipelines & versions for form select dropdowns
       createRunPage.mockGetExperiments(projectName, mockExperiments);
@@ -493,7 +493,7 @@ describe('Pipeline create runs', () => {
       createRunPage.selectPipelineByName('Test pipeline');
       createRunPage.pipelineVersionSelect.findToggleButton().should('not.be.disabled');
 
-      const parameters = createRunParams.runtime_config?.parameters || {};
+      const { parameters } = createRunParams.runtime_config;
       const paramsSection = createRunPage.getParamsSection();
       paramsSection.fillParamInputById('string_param', String(parameters.string_param));
       paramsSection.fillParamInputById('double_param', String(parameters.double_param));
@@ -933,7 +933,7 @@ const initIntercepts = () => {
   });
 };
 
-const createRecurringRunParams: Partial<PipelineRecurringRunKF> = {
+const createRecurringRunParams = {
   display_name: 'New recurring run',
   description: 'New recurring run description',
   recurring_run_id: 'new-recurring-run-id',
@@ -944,7 +944,7 @@ const createRecurringRunParams: Partial<PipelineRecurringRunKF> = {
       standard_scaler: 'no',
     },
   },
-};
+} satisfies Partial<PipelineRecurringRunKF>;
 
 const createScheduleRunCommonTest = () => {
   visitLegacyRunsPage();
@@ -971,7 +971,7 @@ const createScheduleRunCommonTest = () => {
   createSchedulePage.pipelineSelect.findToggleButton().should('not.be.disabled').click();
   createSchedulePage.selectPipelineByName('Test pipeline');
   createSchedulePage.pipelineVersionSelect.findToggleButton().should('not.be.disabled');
-  const parameters = createRecurringRunParams.runtime_config?.parameters || {};
+  const { parameters } = createRecurringRunParams.runtime_config;
   const paramsSection = createRunPage.getParamsSection();
   paramsSection.findParamById('radio-min_max_scaler-false').click();
   paramsSection.fillParamInputById('neighbors', String(parameters.neighbors));

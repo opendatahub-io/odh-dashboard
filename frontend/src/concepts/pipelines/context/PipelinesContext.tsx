@@ -108,7 +108,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
 
   const metadataStoreServiceClient = React.useMemo(() => {
     const client = new MetadataStoreServicePromiseClient(
-      `/api/service/mlmd/${namespace}/${dspaName}`,
+      `/api/service/mlmd/${namespace}/${dspaName ?? ''}`,
     );
     if (DEV_MODE) {
       // Enables the use of this browser extension: https://github.com/SafetyCulture/grpc-web-devtools

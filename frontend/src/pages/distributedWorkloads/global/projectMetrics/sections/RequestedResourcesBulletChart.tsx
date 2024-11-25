@@ -114,7 +114,7 @@ export const RequestedResourcesBulletChart: React.FC<RequestedResourcesBulletCha
           labels={({ datum }) => {
             const matchingDataItem = allData.find(({ name }) => name === datum.name);
             const { tooltip, name, tooltipValue } = matchingDataItem || {};
-            return tooltip || `${name}: ${tooltipValue} ${unitLabel}`;
+            return tooltip || `${name ?? ''}: ${tooltipValue ?? ''} ${unitLabel}`;
           }}
           primarySegmentedMeasureData={segmentedMeasureData.map(({ name, cappedValue }) => ({
             name,

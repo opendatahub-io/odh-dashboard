@@ -25,10 +25,14 @@ export const useDocFilterer = (
   return React.useCallback(
     (odhDocs: OdhDocument[]) =>
       odhDocs
-        .filter((odhDoc) => !enabled || enabled.includes(`${odhDoc.spec.appEnabled}`))
+        .filter((odhDoc) => !enabled || enabled.includes(`${odhDoc.spec.appEnabled ?? ''}`))
         .filter((odhDoc) => !docTypes || docTypes.includes(`${odhDoc.spec.type}`))
-        .filter((odhDoc) => !applications || applications.includes(`${odhDoc.spec.appDisplayName}`))
-        .filter((odhDoc) => !providerTypes || providerTypes.includes(`${odhDoc.spec.appCategory}`))
+        .filter(
+          (odhDoc) => !applications || applications.includes(`${odhDoc.spec.appDisplayName ?? ''}`),
+        )
+        .filter(
+          (odhDoc) => !providerTypes || providerTypes.includes(`${odhDoc.spec.appCategory ?? ''}`),
+        )
         .filter((odhDoc) => matchesCategories(odhDoc, category, favorites))
         .filter((odhDoc) => matchesSearch(odhDoc, searchQuery)),
     [enabled, docTypes, applications, providerTypes, category, favorites, searchQuery],

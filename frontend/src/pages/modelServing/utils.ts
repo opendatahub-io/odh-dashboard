@@ -282,7 +282,7 @@ export const getKServeContainerEnvVarStrs = (
   if (!kserveContainer) {
     return undefined;
   }
-  return kserveContainer.env?.map((ev) => `${ev.name}=${ev.value}`) || [];
+  return kserveContainer.env?.map((ev) => `${ev.name}=${ev.value ?? ''}`) || [];
 };
 
 export const getServingRuntimeSize = (

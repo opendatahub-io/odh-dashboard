@@ -301,7 +301,7 @@ describe('Pipeline runs', () => {
         activeRunsTable.mockGetRuns([mockActiveRuns[1]], [runToArchive], projectName);
         archiveRunModal.findConfirmInput().type(runToArchive.display_name);
         archiveRunModal.findSubmitButton().click();
-        activeRunsTable.shouldRowNotBeVisible(runToArchive.display_name);
+        activeRunsTable.shouldRowNotExist(runToArchive.display_name);
 
         pipelineRunsGlobal.findArchivedRunsTab().click();
         archivedRunsTable.getRowByName(runToArchive.display_name).find().should('exist');
@@ -603,7 +603,7 @@ describe('Pipeline runs', () => {
 
         archivedRunsTable.mockGetRuns([runToRestore], [mockArchivedRuns[1]], projectName);
         restoreRunModal.findSubmitButton().click();
-        archivedRunsTable.shouldRowNotBeVisible(runToRestore.display_name);
+        archivedRunsTable.shouldRowNotExist(runToRestore.display_name);
 
         pipelineRunsGlobal.findActiveRunsTab().click();
         activeRunsTable.getRowByName(runToRestore.display_name).find().should('exist');

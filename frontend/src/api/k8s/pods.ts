@@ -28,7 +28,7 @@ export const getPod = (namespace: string, name: string): Promise<PodKind> =>
 export const getPodContainerLogText = (
   namespace: string,
   podName: string,
-  containerName: string | undefined,
+  containerName: string,
   tail?: number,
 ): Promise<string> =>
   commonFetchText(

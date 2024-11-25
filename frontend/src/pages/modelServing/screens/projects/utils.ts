@@ -731,7 +731,7 @@ export const fetchInferenceServiceCount = async (namespace: string): Promise<num
   } catch (error) {
     throw new Error(
       `Failed to fetch inference services for namespace "${namespace}": ${
-        error instanceof Error ? error.message : error
+        error instanceof Error ? error.message : String(error)
       }`,
     );
   }
