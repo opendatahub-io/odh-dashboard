@@ -22,7 +22,8 @@ class Resources {
   getCardView(timeout: number = Cypress.config('defaultCommandTimeout')) {
     return new CardView(() =>
       // When using custom resources it can take time to show in view due to polling
-      cy.findByTestId('learning-center-card-view', { timeout }));
+      cy.findByTestId('learning-center-card-view', { timeout }),
+    );
   }
 
   getListView() {
