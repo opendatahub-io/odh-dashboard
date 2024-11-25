@@ -200,14 +200,14 @@ describe('Pipeline topology', () => {
       it('Test pipeline details view runs navigation', () => {
         pipelineDetails.selectActionDropdownItem('View runs');
         verifyRelativeURL(
-          `/pipelines/${projectId}/${mockVersion.pipeline_id}/${mockVersion.pipeline_version_id}/runs`,
+          `/pipelineRuns/${projectId}/runs/active?pipeline_version=${mockVersion.pipeline_version_id}`,
         );
       });
 
       it('navigates to "Schedules" on "View schedules" click', () => {
         pipelineDetails.selectActionDropdownItem('View schedules');
         verifyRelativeURL(
-          `/pipelines/${projectId}/${mockVersion.pipeline_id}/${mockVersion.pipeline_version_id}/schedules`,
+          `/pipelineRuns/${projectId}/schedules?pipeline_version=${mockVersion.pipeline_version_id}`,
         );
       });
     });
