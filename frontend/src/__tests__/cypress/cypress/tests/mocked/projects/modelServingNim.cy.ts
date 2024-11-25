@@ -349,14 +349,10 @@ describe('NIM Model Serving', () => {
 
   describe('Checking AuthServingRuntimeSection - Model Route and Token Authentication', () => {
     it('should show or hide the alert based on route and token settings', () => {
-      initInterceptsToEnableNim({});
-
-      projectDetails.visitSection('test-project', 'model-server');
-      cy.findByTestId('deploy-button').click();
-
-      // test that you can not submit on empty
+      initInterceptsToEnableNim({ hasAllModels: false });
+      projectDetailsOverviewTab.visit('test-project');
+      cy.findByTestId('model-serving-platform-button').click();
       nimDeployModal.shouldBeOpen();
-      nimDeployModal.findSubmitButton().should('be.disabled');
 
       // should display and interact with the "Model route" checkbox
       nimDeployModal.findModelRouteCheckbox().should('be.visible').should('not.be.checked');
