@@ -15,16 +15,18 @@ describe('Create a custom resource Quickstart by using Dashboard CRDs', () => {
 
   // Setup: Load test data and setup custom resources
   before(() => {
-    return loadResourcesFixture('e2e/resources/testCustomResourceCreation.yaml').then((data) => {
-      resourcesData = data;
-      resourceNames = getResourceValues(resourcesData);
-      cy.log(`Loaded resources data: ${JSON.stringify(resourcesData, null, 2)}`);
+    return loadResourcesFixture('e2e/learningResources/testCustomResourceCreation.yaml').then(
+      (data) => {
+        resourcesData = data;
+        resourceNames = getResourceValues(resourcesData);
+        cy.log(`Loaded resources data: ${JSON.stringify(resourcesData, null, 2)}`);
 
-      const quickStartResource = resourcesData.resources.CustomQuickStart[0];
-      cy.log(`YAML path for CustomQuickStart: ${quickStartResource.yamlPath}`);
+        const quickStartResource = resourcesData.resources.CustomQuickStart[0];
+        cy.log(`YAML path for CustomQuickStart: ${quickStartResource.yamlPath}`);
 
-      return setupCustomResources(resourcesData);
-    });
+        return setupCustomResources(resourcesData);
+      },
+    );
   });
   // Delete custom resources
   after(() => {
