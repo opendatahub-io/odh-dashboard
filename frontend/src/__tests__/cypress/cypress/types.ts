@@ -154,3 +154,6 @@ export type ResourcesData = {
 export type NamespaceConfig = {
   APPLICATIONS_NAMESPACE: string;
 };
+export type ApplicationsData = {
+  kind: string;
+}
