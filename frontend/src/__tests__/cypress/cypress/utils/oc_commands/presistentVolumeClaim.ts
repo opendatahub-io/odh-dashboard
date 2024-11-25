@@ -10,6 +10,7 @@ import { applyOpenShiftYaml } from './baseCommands';
  *                   NAMESPACE: string;
  *                   PVC_NAME: string;
  *                   PVC_DISPLAY_NAME: string;
+ *                   PVC_SIZE: string;
  *               };
  * @param yamlFilePath
  */

@@ -13,14 +13,15 @@ describe('Workbench and PVSs tests', () => {
   let projectName: string;
   let PVCName: string;
   let PVCDisplayName: string;
+  let PVCSize: string;
 
   before(() => {
     return loadPVCFixture('e2e/dataScienceProjects/testProjectWbPV.yaml')
       .then((fixtureData: PVCReplacements) => {
-        // testData = fixtureData;
         projectName = fixtureData.NAMESPACE;
         PVCName = fixtureData.PVC_NAME;
         PVCDisplayName = fixtureData.PVC_DISPLAY_NAME;
+        PVCSize = fixtureData.PVC_SIZE;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
@@ -31,9 +32,10 @@ describe('Workbench and PVSs tests', () => {
       .then(() => {
         cy.log(`Project ${projectName} confirmed to be created and verified successfully`);
         const pvcReplacements: PVCReplacements = {
-          NAMESPACE: projectName, // Assign projectName to NAMESPACE
-          PVC_NAME: PVCName, // Assign the appropriate value to PVC_NAME
-          PVC_DISPLAY_NAME: PVCDisplayName, // Assign the appropriate value to PVC_DISPLAY_NAME
+          NAMESPACE: projectName,
+          PVC_NAME: PVCName,
+          PVC_DISPLAY_NAME: PVCDisplayName,
+          PVC_SIZE: PVCSize,
         };
         return createPersistentVolumeClaim(pvcReplacements);
       })

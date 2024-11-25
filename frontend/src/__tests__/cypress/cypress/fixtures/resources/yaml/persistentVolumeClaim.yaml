@@ -15,7 +15,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 10Gi
+      storage: {{PVC_SIZE}}Gi
   storageClassName: standard-csi
   volumeMode: Filesystem
 status:
