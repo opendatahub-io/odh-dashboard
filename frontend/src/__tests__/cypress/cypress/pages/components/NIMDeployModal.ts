@@ -1,4 +1,3 @@
-import { ServingRuntimeModal } from '~/__tests__/cypress/cypress/pages/modelServing';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 
 class NIMDeployModal extends Modal {
