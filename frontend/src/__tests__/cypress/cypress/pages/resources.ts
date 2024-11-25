@@ -19,8 +19,11 @@ class Resources {
     return cy.findByTestId('clear-all-filters');
   }
 
-  getCardView() {
-    return new CardView(() => cy.findByTestId('learning-center-card-view'));
+  getCardView(timeout: number = Cypress.config('defaultCommandTimeout')) {
+    return new CardView(() =>
+      // When using custom resources it can take time to show in view due to polling
+      cy.findByTestId('learning-center-card-view', { timeout }),
+    );
   }
 
   getListView() {
@@ -45,6 +48,10 @@ class Resources {
 
   findLeaveButton() {
     return cy.findByRole('button', { name: 'Leave' });
+  }
+
+  findResetButton() {
+    return cy.get('[aria-label="Reset"]');
   }
 }
 
