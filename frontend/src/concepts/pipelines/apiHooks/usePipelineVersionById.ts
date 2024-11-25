@@ -15,6 +15,9 @@ const usePipelineVersionById = (
 
   const call = React.useCallback<FetchStateCallbackPromise<PipelineVersionKF | null>>(
     (opts) => {
+      if (!pipelineId) {
+        return Promise.reject(new NotReadyError('No pipeline id'));
+      }
       if (!pipelineVersionId) {
         return Promise.reject(new NotReadyError('No pipeline version id'));
       }

@@ -8,7 +8,7 @@ import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipeline
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 import { PipelinesFilter } from '~/concepts/pipelines/types';
-import usePipelineFilter from '~/concepts/pipelines/content/tables/usePipelineFilter';
+import { usePipelineFilterSearchParams } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import SimpleMenuActions from '~/components/SimpleMenuActions';
 import { pipelineRecurringRunColumns } from '~/concepts/pipelines/content/tables/columns';
 import PipelineRecurringRunTableRow from './PipelineRecurringRunTableRow';
@@ -44,7 +44,7 @@ const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
 }) => {
   const { refreshAllAPI } = usePipelinesAPI();
   const { experimentId, pipelineVersionId } = useParams();
-  const { onClearFilters, ...filterToolbarProps } = usePipelineFilter(setFilter, undefined, true);
+  const { onClearFilters, ...filterToolbarProps } = usePipelineFilterSearchParams(setFilter);
   const {
     selections,
     tableProps: checkboxTableProps,

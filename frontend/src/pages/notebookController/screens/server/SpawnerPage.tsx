@@ -260,7 +260,9 @@ const SpawnerPage: React.FC = () => {
         ? undefined
         : acceleratorProfileFormData.count,
       lastSelectedSize: selectedSize.name,
-      lastSelectedImage: `${selectedImageTag.image?.name}:${selectedImageTag.tag?.name}`,
+      lastSelectedImage: `${selectedImageTag.image?.name ?? ''}:${
+        selectedImageTag.tag?.name ?? ''
+      }`,
     });
   };
 
@@ -420,7 +422,7 @@ const SpawnerPage: React.FC = () => {
             spawnInProgress={startShown}
             onClose={() => {
               if (currentUserNotebook) {
-                const notebookName = currentUserNotebook.metadata.name;
+                const notebookName = currentUserNotebook.metadata.name ?? '';
                 stopNotebook(impersonatedUsername || undefined)
                   .then(() => requestNotebookRefresh())
                   .catch((e) =>

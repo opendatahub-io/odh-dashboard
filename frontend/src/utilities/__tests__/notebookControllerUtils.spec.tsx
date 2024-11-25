@@ -153,7 +153,7 @@ describe('useNotebookRedirectLink', () => {
   });
 
   it('should return successful without notebook link but with notebook', async () => {
-    const mockNotebook = mockNotebookK8sResource({}) as Notebook;
+    const mockNotebook = mockNotebookK8sResource({});
     const renderResult = renderHook(() => useNotebookRedirectLink(), {
       wrapper: ({ children }) => (
         <NotebookControllerContext.Provider

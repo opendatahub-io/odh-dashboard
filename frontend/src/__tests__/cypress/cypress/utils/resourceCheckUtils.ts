@@ -18,9 +18,10 @@ export const checkResources = (resourceInfoList: ResourceInfo[]): void => {
 
     // Check if the resource card is visible by looking for its metadata name
     resources
-      .getCardView()
+      .getCardView(180000)
       .getCard(resourceInfo.metaDataName)
       .find()
+      .should('exist')
       .then(($card) => {
         if ($card.length > 0 && $card.is(':visible')) {
           cy.log(`✅ Resource found: ${resourceInfo.name}`);

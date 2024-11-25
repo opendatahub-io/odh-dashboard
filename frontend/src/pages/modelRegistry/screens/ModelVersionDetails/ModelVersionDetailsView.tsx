@@ -175,11 +175,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             value={modelArtifact?.modelFormatName || ''}
             saveEditedValue={(value) =>
               apiState.api
-                .patchModelArtifact(
-                  {},
-                  { modelFormatName: value, artifactType: modelArtifact?.artifactType },
-                  modelArtifact?.id || '',
-                )
+                .patchModelArtifact({}, { modelFormatName: value }, modelArtifact?.id || '')
                 .then(() => {
                   refreshModelArtifacts();
                 })
@@ -194,11 +190,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             isArchive={isArchiveVersion}
             saveEditedValue={(newVersion) =>
               apiState.api
-                .patchModelArtifact(
-                  {},
-                  { modelFormatVersion: newVersion, artifactType: modelArtifact?.artifactType },
-                  modelArtifact?.id || '',
-                )
+                .patchModelArtifact({}, { modelFormatVersion: newVersion }, modelArtifact?.id || '')
                 .then(() => {
                   refreshModelArtifacts();
                 })

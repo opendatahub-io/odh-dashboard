@@ -28,18 +28,19 @@ const PipelineRecurringRunTableToolbar: React.FC<PipelineRecurringRunTableToolba
   const { experiments } = React.useContext(PipelineRunExperimentsContext);
   const { versions } = React.useContext(PipelineRunVersionsContext);
   const { isExperimentArchived } = useIsExperimentArchived();
-  const { pipelineVersionId, experimentId } = useParams();
-
-  const options = {
-    [FilterOptions.NAME]: 'Schedule',
-    ...(!experimentId && {
-      [FilterOptions.EXPERIMENT]: 'Experiment',
+  const { experimentId, pipelineVersionId } = useParams();
+  const options = React.useMemo(
+    () => ({
+      [FilterOptions.NAME]: 'Schedule',
+      ...(!experimentId && {
+        [FilterOptions.EXPERIMENT]: 'Experiment',
+      }),
+      ...(!pipelineVersionId && {
+        [FilterOptions.PIPELINE_VERSION]: 'Pipeline version',
+      }),
     }),
-    ...(!pipelineVersionId && {
-      [FilterOptions.PIPELINE_VERSION]: 'Pipeline version',
-    }),
-  };
-
+    [experimentId, pipelineVersionId],
+  );
   return (
     <PipelineFilterBar<keyof typeof options>
       {...toolbarProps}
