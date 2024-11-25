@@ -180,84 +180,84 @@ class InferenceServiceModal extends Modal {
   }
 }
 
-export class ServingRuntimeModal extends Modal {
+class ServingRuntimeModal extends Modal {
   k8sNameDescription = new K8sNameDescriptionField('serving-runtime');
 
   constructor(private edit = false) {
     super(`${edit ? 'Edit' : 'Add'} model server`);
   }
 
-  findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findSubmitButton() {
     return this.findFooter().findByTestId('modal-submit-button');
   }
 
-  findModelServerSizeValue(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findModelServerSizeValue() {
     return this.find().findByLabelText('Model server size');
   }
 
-  findServingRuntimeTemplateHelptext(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findServingRuntimeTemplateHelptext() {
     return this.find().findByTestId('serving-runtime-template-helptext');
   }
 
-  findServingRuntimeTemplateDropdown(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findServingRuntimeTemplateDropdown() {
     return this.find().findByTestId('serving-runtime-template-selection');
   }
 
-  findPredefinedArgsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findPredefinedArgsButton() {
     return this.find().findByTestId('view-predefined-args-button');
   }
 
-  findPredefinedArgsList(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findPredefinedArgsList() {
     return cy.findByTestId('predefined-args-list');
   }
 
-  findPredefinedArgsTooltip(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findPredefinedArgsTooltip() {
     return cy.findByTestId('predefined-args-tooltip');
   }
 
-  findPredefinedVarsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findPredefinedVarsButton() {
     return this.find().findByTestId('view-predefined-vars-button');
   }
 
-  findPredefinedVarsList(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findPredefinedVarsList() {
     return cy.findByTestId('predefined-vars-list');
   }
 
-  findPredefinedVarsTooltip(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findPredefinedVarsTooltip() {
     return cy.findByTestId('predefined-vars-tooltip');
   }
 
-  findAuthenticationSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findAuthenticationSection() {
     return this.find().findByTestId('auth-section');
   }
 
-  findModelRouteCheckbox(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findModelRouteCheckbox() {
     return this.find().findByTestId('alt-form-checkbox-route');
   }
 
-  findAuthenticationCheckbox(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findAuthenticationCheckbox() {
     return this.find().findByTestId('alt-form-checkbox-auth');
   }
 
-  findExternalRouteError(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findExternalRouteError() {
     return this.find().findByTestId('external-route-no-token-alert');
   }
 
-  findServiceAccountNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findServiceAccountNameInput() {
     return this.find().findByTestId('service-account-form-name');
   }
 
-  findModelServerSizeSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findModelServerSizeSelect() {
     return this.find().findByTestId('model-server-size-selection');
   }
 
-  findModelServerReplicasMinusButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findModelServerReplicasMinusButton() {
     return this.find()
       .findByTestId('model-server-replicas')
       .findByRole('button', { name: 'Minus' });
   }
 
-  findModelServerReplicasPlusButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findModelServerReplicasPlusButton() {
     return this.find().findByTestId('model-server-replicas').findByRole('button', { name: 'Plus' });
   }
 }

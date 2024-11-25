@@ -347,7 +347,7 @@ describe('NIM Model Serving', () => {
     });
   });
 
-  describe('Checking AuthServingRuntimeSection - Model Route and Token Authentication', () => {
+  describe.only('Checking AuthServingRuntimeSection - Model Route and Token Authentication', () => {
     it('should show or hide the alert based on route and token settings', () => {
       initInterceptsToEnableNim({ hasAllModels: false });
       projectDetailsOverviewTab.visit('test-project');

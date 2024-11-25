@@ -1,6 +1,7 @@
 import { ServingRuntimeModal } from '~/__tests__/cypress/cypress/pages/modelServing';
+import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 
-class NIMDeployModal extends ServingRuntimeModal {
+class NIMDeployModal extends Modal {
   constructor(private edit = false) {
     super(`${edit ? 'Edit' : 'Deploy'} model with NVIDIA NIM`);
   }
@@ -45,25 +46,25 @@ class NIMDeployModal extends ServingRuntimeModal {
     this.find().should('contain.text', msg);
   }
 
-  // findAuthenticationSection() {
-  //   return this.find().findByTestId('auth-section');
-  // }
-  //
-  // findModelRouteCheckbox() {
-  //   return this.find().findByTestId('alt-form-checkbox-route');
-  // }
-  //
-  // findAuthenticationCheckbox() {
-  //   return this.find().findByTestId('alt-form-checkbox-auth');
-  // }
-  //
-  // findExternalRouteError() {
-  //   return this.find().findByTestId('external-route-no-token-alert');
-  // }
-  //
-  // findServiceAccountNameInput() {
-  //   return this.find().findByTestId('service-account-form-name');
-  // }
+  findAuthenticationSection() {
+    return this.find().findByTestId('auth-section');
+  }
+
+  findModelRouteCheckbox() {
+    return this.find().findByTestId('alt-form-checkbox-route');
+  }
+
+  findAuthenticationCheckbox() {
+    return this.find().findByTestId('alt-form-checkbox-auth');
+  }
+
+  findExternalRouteError() {
+    return this.find().findByTestId('external-route-no-token-alert');
+  }
+
+  findServiceAccountNameInput() {
+    return this.find().findByTestId('service-account-form-name');
+  }
 }
 
 export const nimDeployModal = new NIMDeployModal();
