@@ -18,7 +18,7 @@ export const checkResources = (resourceInfoList: ResourceInfo[]): void => {
 
     // Check if the resource card is visible by looking for its metadata name
     resources
-      .getCardView()
+      .getCardView(180000)
       .getCard(resourceInfo.metaDataName)
       .find()
       .then(($card) => {

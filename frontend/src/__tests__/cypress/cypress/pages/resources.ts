@@ -19,10 +19,10 @@ class Resources {
     return cy.findByTestId('clear-all-filters');
   }
 
-  getCardView() {
+  getCardView(timeout: number = Cypress.config('defaultCommandTimeout')) {
     return new CardView(() =>
-      // When using custom resources it can take up to 3 minutes to show in view due to polling
-      cy.findByTestId('learning-center-card-view', { timeout: 180000 }).should('exist'),
+      // When using custom resources it can take time to show in view due to polling
+      cy.findByTestId('learning-center-card-view', { timeout }).should('exist'),
     );
   }
 
