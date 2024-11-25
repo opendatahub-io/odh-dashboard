@@ -36,7 +36,7 @@ type EditableProps = {
 };
 
 export type DashboardDescriptionListGroupProps = {
-  title: React.ReactNode;
+  title: string;
   popover?: React.ReactNode;
   action?: React.ReactNode;
   isEmpty?: boolean;

@@ -144,7 +144,7 @@ export const getNIMResourcesToDelete = async (
     } else {
       // eslint-disable-next-line no-console
       console.error(
-        `Failed to fetch inference service count for project "${projectName}": ${error}`,
+        `Failed to fetch inference service count for project "${projectName}": ${String(error)}`,
       );
     }
   }

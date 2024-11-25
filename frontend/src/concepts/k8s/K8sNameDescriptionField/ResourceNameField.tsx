@@ -61,12 +61,15 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
       name={`${dataTestId}-resourceName`}
       isRequired
       value={
-        usePrefix
+        usePrefix && k8sName.state.safePrefix
           ? k8sName.value.replace(new RegExp(`^${k8sName.state.safePrefix}`), '')
           : k8sName.value
       }
       onChange={(event, value) =>
-        onDataChange?.('k8sName', usePrefix ? `${k8sName.state.safePrefix}${value}` : value)
+        onDataChange?.(
+          'k8sName',
+          usePrefix && k8sName.state.safePrefix ? `${k8sName.state.safePrefix}${value}` : value,
+        )
       }
       validated={validated}
     />

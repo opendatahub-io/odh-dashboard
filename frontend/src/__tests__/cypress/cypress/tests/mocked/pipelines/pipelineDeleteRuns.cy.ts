@@ -262,7 +262,7 @@ describe('Pipeline runs', () => {
           sort_by: 'created_at desc',
           page_size: '10',
           filter: encodeURIComponent(
-            '{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"AVAILABLE"},{"key":"pipeline_version_id","operation":"EQUALS","string_value":"version_id"}]}',
+            '{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"ARCHIVED"},{"key":"pipeline_version_id","operation":"EQUALS","string_value":"version_id"}]}',
           ),
         });
       });
@@ -319,7 +319,7 @@ describe('Pipeline runs', () => {
           sort_by: 'created_at desc',
           page_size: '10',
           filter: encodeURIComponent(
-            '{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"AVAILABLE"},{"key":"pipeline_version_id","operation":"EQUALS","string_value":"version_id"}]}',
+            '{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"ARCHIVED"},{"key":"pipeline_version_id","operation":"EQUALS","string_value":"version_id"}]}',
           ),
         });
       });

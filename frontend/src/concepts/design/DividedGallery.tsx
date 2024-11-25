@@ -41,7 +41,7 @@ const DividedGallery: React.FC<DividedGalleryProps> = ({
             variant="plain"
             onClick={onClose}
           >
-            <TimesIcon alt={`close ${closeAlt}`} />
+            <TimesIcon alt={`close ${closeAlt ?? ''}`} />
           </Button>
         </div>
       ) : null}

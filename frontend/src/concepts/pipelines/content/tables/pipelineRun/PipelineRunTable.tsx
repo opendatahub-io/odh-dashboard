@@ -18,7 +18,7 @@ import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipeline
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 import { PipelinesFilter } from '~/concepts/pipelines/types';
-import usePipelineFilter from '~/concepts/pipelines/content/tables/usePipelineFilter';
+import { usePipelineFilterSearchParams } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import SimpleMenuActions from '~/components/SimpleMenuActions';
 import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
@@ -59,7 +59,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   const navigate = useNavigate();
   const { experimentId, pipelineVersionId, pipelineId } = useParams();
   const { namespace, refreshAllAPI } = usePipelinesAPI();
-  const { onClearFilters, ...filterToolbarProps } = usePipelineFilter(setFilter, undefined, true);
+  const { onClearFilters, ...filterToolbarProps } = usePipelineFilterSearchParams(setFilter);
   const { metricsColumnNames, runs, runArtifactsError, runArtifactsLoaded, metricsNames } =
     useMetricColumns(runWithoutMetrics, experimentId ?? '');
   const {

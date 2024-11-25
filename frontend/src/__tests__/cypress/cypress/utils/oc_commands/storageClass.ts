@@ -138,7 +138,11 @@ export const getDefaultEnabledStorageClass = (): Cypress.Chainable<string> => {
               }
               return checkStorageClass(index + 1);
             } catch (error) {
-              cy.log(`Error parsing config for ${scNames[index]}: ${error}`);
+              cy.log(
+                `Error parsing config for ${scNames[index]}: ${
+                  error instanceof Error ? error.toString() : 'unknown error'
+                }`,
+              );
               return checkStorageClass(index + 1);
             }
           });

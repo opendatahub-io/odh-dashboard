@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { ClipboardCopy, HelperText, HelperTextItem, Skeleton } from '@patternfly/react-core';
+import { HelperText, HelperTextItem, Skeleton } from '@patternfly/react-core';
 import { SecretKind } from '~/k8sTypes';
+import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
 
 type ServingRuntimeTokenDisplayProps = {
   token: SecretKind;
@@ -27,7 +28,13 @@ const ServingRuntimeTokenDisplay: React.FC<ServingRuntimeTokenDisplayProps> = ({
     );
   }
 
-  return <ClipboardCopy isReadOnly>{atob(token.data.token)}</ClipboardCopy>;
+  return (
+    <InlineTruncatedClipboardCopy
+      testId="token-secret"
+      textToCopy={atob(token.data.token)}
+      truncatePosition="middle"
+    />
+  );
 };
 
 export default ServingRuntimeTokenDisplay;

@@ -49,13 +49,13 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj, isvc
             <List isPlain>
               <ListItem>{size?.name || 'Custom'}</ListItem>
               <ListItem>
-                {`${resources.requests?.cpu} CPUs, ${formatMemory(
-                  resources.requests?.memory,
+                {`${resources.requests?.cpu ?? ''} CPUs, ${formatMemory(
+                  resources.requests?.memory ?? '',
                 )} Memory requested`}
               </ListItem>
               <ListItem>
-                {`${resources.limits?.cpu} CPUs, ${formatMemory(
-                  resources.limits?.memory,
+                {`${resources.limits?.cpu ?? ''} CPUs, ${formatMemory(
+                  resources.limits?.memory ?? '',
                 )} Memory limit`}
               </ListItem>
             </List>

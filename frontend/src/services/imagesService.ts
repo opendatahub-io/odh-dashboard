@@ -41,7 +41,9 @@ export const deleteBYONImage = (image: BYONImage): Promise<ResponseStatus> => {
     });
 };
 
-export const updateBYONImage = (image: Partial<BYONImage>): Promise<ResponseStatus> => {
+export const updateBYONImage = (
+  image: Pick<BYONImage, 'name'> & Partial<BYONImage>,
+): Promise<ResponseStatus> => {
   const url = `/api/images/${image.name}`;
   return axios
     .put(url, image)
