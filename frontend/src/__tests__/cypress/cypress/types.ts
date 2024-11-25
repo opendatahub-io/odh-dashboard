@@ -156,4 +156,4 @@ export type NamespaceConfig = {
 };
 export type ApplicationsData = {
   kind: string;
-}
+};

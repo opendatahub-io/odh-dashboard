@@ -1,4 +1,4 @@
-import { CommandLineResult } from "../../types";
+import type { CommandLineResult } from '~/__tests__/cypress/cypress/types';
 
 export const getOcResourceNames = (
   applicationNamespace: string,
@@ -8,7 +8,9 @@ export const getOcResourceNames = (
   cy.log(`Executing command: ${ocCommand}`);
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
     const jsonResponse = JSON.parse(result.stdout);
-    const metadataNames = jsonResponse.items.map((item: { metadata: { name: string } }) => item.metadata.name);
+    const metadataNames = jsonResponse.items.map(
+      (item: { metadata: { name: string } }) => item.metadata.name,
+    );
     return metadataNames;
   });
 };

@@ -1,6 +1,6 @@
-import { HTPASSWD_CLUSTER_ADMIN_USER } from "~/__tests__/cypress/cypress/utils/e2eUsers";
-import { explorePage } from "~/__tests__/cypress/cypress/pages/explore";
-import { getOcResourceNames } from "~/__tests__/cypress/cypress/utils/oc_commands/applications";
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import { explorePage } from '~/__tests__/cypress/cypress/pages/explore';
+import { getOcResourceNames } from '~/__tests__/cypress/cypress/utils/oc_commands/applications';
 
 const applicationNamespace = Cypress.env('TEST_NAMESPACE');
 
@@ -9,18 +9,29 @@ describe('Verify RHODS Explore Section Contains Only Expected ISVs', () => {
 
   before(() => {
     getOcResourceNames(applicationNamespace, 'OdhApplication').then((metadataNames) => {
-      expectedISVs = metadataNames;
-      cy.log(`Expected ISVs: ${expectedISVs.join(', ')}`);
+      // Filter out the 'rhoai' card from the expected ISVs which displays in RHOAI
+      expectedISVs = metadataNames.filter((isv) => isv !== 'rhoai');
+      cy.log(`Expected ISVs (excluding 'rhoai'): ${expectedISVs.join(', ')}`);
     });
   });
 
   it('Validate that default ISVs display in the Explore Section', () => {
+    // Authentication and navigation
     cy.step('Login to the application');
     cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
+    // Navigate to the Explore page and search for each ISV
     cy.step('Navigate to the Explore page');
     explorePage.visit();
 
-    //	locator('[data-testid="card aikit"] label')
+    cy.step('Searching for each ISV based on the oc command output');
+    expectedISVs.forEach((isv) => {
+      explorePage
+        .getCardLocator(isv)
+        .should('be.visible')
+        .then(() => {
+          cy.log(`✅ Application found: ${isv}`);
+        });
+    });
   });
 });
