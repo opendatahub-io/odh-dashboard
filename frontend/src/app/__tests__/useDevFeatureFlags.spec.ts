@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import useDevFeatureFlags from '~/app/useDevFeatureFlags';
 import { useBrowserStorage } from '~/components/browserStorage';
+import { allFeatureFlags } from '~/concepts/areas/const';
 import { DashboardCommonConfig, DashboardConfigKind } from '~/k8sTypes';
 import axios from '~/utilities/axios';
 
@@ -37,14 +38,17 @@ const mockSession = (sessionFlags: Partial<DashboardCommonConfig> | null) => {
   return { sessionFlags, setSessionFn };
 };
 
-const mockUseSearchParams = (queryFlags: { [key in string]: boolean } | null) => {
+const mockUseSearchParams = (queryFlags: { [key in string]: boolean } | null | boolean) => {
   const backing = new URLSearchParams({
     foo: 'bar',
-    ...(queryFlags
+    ...(queryFlags != null
       ? {
-          devFeatureFlags: Object.entries(queryFlags)
-            .map(([key, value]) => `${key}=${value}`)
-            .join(','),
+          devFeatureFlags:
+            typeof queryFlags === 'boolean'
+              ? queryFlags.toString()
+              : Object.entries(queryFlags)
+                  .map(([key, value]) => `${key}=${value}`)
+                  .join(','),
         }
       : {}),
   });
@@ -64,7 +68,9 @@ const mockUseSearchParams = (queryFlags: { [key in string]: boolean } | null) =>
 
 describe('useDevFeatureFlags', () => {
   it('should pass through dashboardConfig if no dev feature flags set', () => {
-    const dashboardConfig = {} as DashboardConfigKind;
+    const dashboardConfig = {
+      spec: { dashboardConfig: { disableAppLauncher: true } },
+    } as DashboardConfigKind;
     const renderResult = testHook(useDevFeatureFlags)(dashboardConfig);
     expect(renderResult.result.current.dashboardConfig).toBe(dashboardConfig);
     expect(renderResult.result.current).toEqual({
@@ -86,7 +92,7 @@ describe('useDevFeatureFlags', () => {
     } as DashboardConfigKind;
     const renderResult = testHook(useDevFeatureFlags)(dashboardConfig);
     expect(renderResult.result.current).toEqual({
-      dashboardConfig: merge(dashboardConfig, { spec: { dashboardConfig: sessionFlags } }),
+      dashboardConfig: merge({}, dashboardConfig, { spec: { dashboardConfig: sessionFlags } }),
       devFeatureFlags: sessionFlags,
       resetDevFeatureFlags: expect.any(Function),
       setDevFeatureFlag: expect.any(Function),
@@ -123,7 +129,7 @@ describe('useDevFeatureFlags', () => {
     } as DashboardConfigKind;
     const renderResult = testHook(useDevFeatureFlags)(dashboardConfig);
     expect(renderResult.result.current).toEqual({
-      dashboardConfig: merge(dashboardConfig, {
+      dashboardConfig: merge({}, dashboardConfig, {
         spec: {
           dashboardConfig: {
             disableAppLauncher: true,
@@ -152,6 +158,58 @@ describe('useDevFeatureFlags', () => {
       disableHome: true,
       enablement: true,
       disableInfo: true,
+    });
+  });
+
+  it('should load flags from query string with true', () => {
+    mockUseSearchParams(true);
+    const dashboardConfig = {
+      spec: { dashboardConfig: { disableAppLauncher: true } },
+    } as DashboardConfigKind;
+    const renderResult = testHook(useDevFeatureFlags)(dashboardConfig);
+    const expectedDevFeatureFlags = allFeatureFlags.reduce<{ [key: string]: boolean }>(
+      (acc, flag) => {
+        acc[flag] = false;
+        return acc;
+      },
+      {},
+    );
+    expect(renderResult.result.current).toEqual({
+      dashboardConfig: merge({}, dashboardConfig, {
+        spec: {
+          dashboardConfig: expectedDevFeatureFlags,
+        },
+      }),
+      devFeatureFlags: expectedDevFeatureFlags,
+      resetDevFeatureFlags: expect.any(Function),
+      setDevFeatureFlag: expect.any(Function),
+      setDevFeatureFlagQueryVisible: expect.any(Function),
+    });
+  });
+
+  it('should load flags from query string with true', () => {
+    mockUseSearchParams(false);
+    const dashboardConfig = {
+      spec: { dashboardConfig: { disableAppLauncher: false } },
+    } as DashboardConfigKind;
+    const renderResult = testHook(useDevFeatureFlags)(dashboardConfig);
+    const expectedDevFeatureFlags = allFeatureFlags.reduce<{ [key: string]: boolean }>(
+      (acc, flag) => {
+        acc[flag] = true;
+        return acc;
+      },
+      {},
+    );
+    expect(renderResult.result.current).toEqual({
+      dashboardConfig: merge({}, dashboardConfig, {
+        spec: {
+          dashboardConfig: expectedDevFeatureFlags,
+        },
+      }),
+      devFeatureFlags: expectedDevFeatureFlags,
+      resetDevFeatureFlags: expect.any(Function),
+      setDevFeatureFlag: expect.any(Function),
+      setDevFeatureFlagQueryVisible: expect.any(Function),
     });
   });
 });
