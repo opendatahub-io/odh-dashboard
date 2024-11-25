@@ -1,0 +1,68 @@
+apiVersion: console.openshift.io/v1
+kind: OdhQuickStart
+metadata:
+  name: custom-quick-start-test
+  annotations:
+    opendatahub.io/categories: 'Getting started,Jupyter notebook'
+  labels:
+    app: custom-odsci-app
+spec:
+  displayName: TEST - Custom Quick Start
+  appName: custom-odsci-app
+  durationMinutes: 8
+  icon: 'images/red-hat.svg'
+  # icon: 'images/jupyterhub.svg'
+  description: This quick start is a TEST!!!
+  introduction: |-
+    ### This quick start shows that it is possible to have a Custom Quick Start on RHODS!.
+  tasks:
+    - title: Launch JupyterHub
+      description: |-
+        ### To find the JupyterHub Launch action:
+        1. Click **Applications** &#x2192; **Enabled**.
+        2. Find the JupyterHub card.
+        3. Click **Launch** on the JupyterHub card to access the JupyterHub **Start a notebook server** page.
+        A new browser tab will open displaying the **Start a notebook server** page.
+      review:
+        instructions: |-
+          #### To verify you have launched JupyterHub:
+          Is a new **JupyterHub** browser tab visible with the **Start a notebook server** page open?
+        failedTaskHelp: This task is not verified yet. Try the task again.
+      summary:
+        success: You have launched JupyterHub.
+        failed: Try the steps again.
+    - title: Configure and start an environment
+      description: |-
+        ### Configuring and starting an environment:
+        1. Select a notebook image from the options provided.
+        2. Select a container size based on your computation needs.
+        3. Click the **Start server** button.
+
+        If you have not previously authorized the jupyterhub-hub service account to access your account, the **Authorize Access** page appears prompting you to provide authorization. Inspect the permissions selected by default, and click the **Allow selected permissions** button.
+        The **Start a notebook server** page will reload and indicate that the system is starting up.
+
+      review:
+        instructions: |-
+          #### To verify that you have launched the Jupyter notebook:
+          Do you see a message in the page that says **The server is starting up**?
+        failedTaskHelp: This task is not verified yet. Try the task again.
+      summary:
+        success: Your server has started and the JupyterLab interface will load shortly. When the page displays a **Stop** option, proceed to the next step.
+        failed: Try the steps again.
+    - title: Create your first notebook
+      description: |-
+        ### To create a notebook, follow these steps:
+        1. In the **Launcher** tab, under the **Notebook** heading, click the **Python 3** tile.
+        2. When the new Jupyter notebook opens, verify that you see `Python 3` in the upper right navigation bar.
+        You have now launched a Jupyter notebook and can begin writing Python.
+      review:
+        instructions: |-
+          #### Verify that your Jupyter notebook launched with a Python 3 kernel:
+          Is `Python 3` displaying in the upper right notification bar of your notebook?
+        failedTaskHelp:
+          This task is not verified yet. Try the task again.
+      summary:
+        success: IT'S A TEST!
+        failed: Try the steps again.
+  conclusion: You are now able to launch Jupyter notebooks and write Python code.  If you want to learn how to deploy a model written in Python, take the next quick start.
+  nextQuickStart: [deploy-python-model]

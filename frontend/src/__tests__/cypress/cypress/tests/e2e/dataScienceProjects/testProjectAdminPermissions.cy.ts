@@ -5,7 +5,7 @@ import {
   HTPASSWD_CLUSTER_ADMIN_USER,
   LDAP_CONTRIBUTOR_USER,
 } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { loadFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
+import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 
@@ -15,7 +15,7 @@ describe('Verify that users can provide admin project permissions to non-admin u
 
   // Setup: Load test data and ensure clean state
   before(() => {
-    return loadFixture('e2e/dataScienceProjects/testProjectAdminPermissions.yaml')
+    return loadDSPFixture('e2e/dataScienceProjects/testProjectAdminPermissions.yaml')
       .then((fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
         projectName = testData.projectPermissionResourceName;

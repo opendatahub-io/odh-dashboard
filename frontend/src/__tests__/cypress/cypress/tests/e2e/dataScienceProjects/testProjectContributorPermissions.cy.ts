@@ -6,7 +6,7 @@ import {
   HTPASSWD_CLUSTER_ADMIN_USER,
   LDAP_CONTRIBUTOR_USER,
 } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { loadFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
+import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
 
 describe('Verify that users can provide contributor project permissions to non-admin users', () => {
@@ -15,7 +15,7 @@ describe('Verify that users can provide contributor project permissions to non-a
 
   // Setup: Load test data and ensure clean state
   before(() => {
-    return loadFixture('e2e/dataScienceProjects/testProjectContributorPermissions.yaml')
+    return loadDSPFixture('e2e/dataScienceProjects/testProjectContributorPermissions.yaml')
       .then((fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
         projectName = testData.projectContributorResourceName;
