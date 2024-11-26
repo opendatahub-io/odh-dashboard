@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useParams } from 'react-router-dom';
 import {
   Bullseye,
   EmptyState,
@@ -11,13 +10,14 @@ import {
 import { CubesIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import PipelineRunTable from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
 import { usePipelineArchivedRunsTable } from '~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunTable';
+import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
 import { PipelineRunTabTitle, PipelineRunType } from './types';
 
 export const ArchivedRuns: React.FC = () => {
-  const { experimentId, pipelineVersionId } = useParams();
+  const { experiment } = React.useContext(ExperimentContext);
 
   const [[{ items: runs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
-    usePipelineArchivedRunsTable({ experimentId, pipelineVersionId });
+    usePipelineArchivedRunsTable({ experimentId: experiment?.experiment_id });
 
   if (error) {
     return (

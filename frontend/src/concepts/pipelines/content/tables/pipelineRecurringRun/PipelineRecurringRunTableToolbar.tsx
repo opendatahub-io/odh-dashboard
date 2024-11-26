@@ -1,11 +1,13 @@
 import * as React from 'react';
 import { TextInput, ToolbarItem } from '@patternfly/react-core';
-import { useParams } from 'react-router-dom';
 import PipelineFilterBar from '~/concepts/pipelines/content/tables/PipelineFilterBar';
 import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 import CreateScheduleButton from '~/pages/pipelines/global/runs/CreateScheduleButton';
-import { useContextExperimentArchivedOrDeleted as useIsExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import {
+  ExperimentContext,
+  useContextExperimentArchivedOrDeleted as useIsExperimentArchived,
+} from '~/pages/pipelines/global/experiments/ExperimentContext';
 import {
   ExperimentFilterSelector,
   PipelineVersionFilterSelector,
@@ -28,18 +30,16 @@ const PipelineRecurringRunTableToolbar: React.FC<PipelineRecurringRunTableToolba
   const { experiments } = React.useContext(PipelineRunExperimentsContext);
   const { versions } = React.useContext(PipelineRunVersionsContext);
   const { isExperimentArchived } = useIsExperimentArchived();
-  const { experimentId, pipelineVersionId } = useParams();
+  const { experiment } = React.useContext(ExperimentContext);
   const options = React.useMemo(
     () => ({
       [FilterOptions.NAME]: 'Schedule',
-      ...(!experimentId && {
+      ...(!experiment && {
         [FilterOptions.EXPERIMENT]: 'Experiment',
       }),
-      ...(!pipelineVersionId && {
-        [FilterOptions.PIPELINE_VERSION]: 'Pipeline version',
-      }),
+      [FilterOptions.PIPELINE_VERSION]: 'Pipeline version',
     }),
-    [experimentId, pipelineVersionId],
+    [experiment],
   );
   return (
     <PipelineFilterBar<keyof typeof options>
@@ -58,14 +58,14 @@ const PipelineRecurringRunTableToolbar: React.FC<PipelineRecurringRunTableToolba
           <ExperimentFilterSelector
             resources={experiments}
             selection={label}
-            onSelect={(experiment) => onChange(experiment.experiment_id, experiment.display_name)}
+            onSelect={(e) => onChange(e.experiment_id, e.display_name)}
           />
         ),
         [FilterOptions.PIPELINE_VERSION]: ({ onChange, label }) => (
           <PipelineVersionFilterSelector
             resources={versions}
             selection={label}
-            onSelect={(version) => onChange(version.pipeline_version_id, version.display_name)}
+            onSelect={(v) => onChange(v.pipeline_version_id, v.display_name)}
           />
         ),
       }}
@@ -75,7 +75,6 @@ const PipelineRecurringRunTableToolbar: React.FC<PipelineRecurringRunTableToolba
           <CreateScheduleButton />
         </ToolbarItem>
       )}
-
       <ToolbarItem data-testid="recurring-run-table-toolbar-item">{dropdownActions}</ToolbarItem>
     </PipelineFilterBar>
   );

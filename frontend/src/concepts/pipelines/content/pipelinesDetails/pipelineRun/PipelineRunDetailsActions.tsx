@@ -1,12 +1,13 @@
 import * as React from 'react';
 import { Divider, Dropdown, DropdownItem, MenuToggle, DropdownList } from '@patternfly/react-core';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import useNotification from '~/utilities/useNotification';
 import { PipelineRunKF, RuntimeStateKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 import { compareRunsRoute, duplicateRunRoute } from '~/routes';
 import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
 import { getDashboardMainContainer } from '~/utilities/utils';
+import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
 
 type PipelineRunDetailsActionsProps = {
   run?: PipelineRunKF | null;
@@ -28,45 +29,11 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({
   const isRunActive = run?.storage_state === StorageStateKF.AVAILABLE;
   const [experiment] = useExperimentById(run?.experiment_id);
   const isExperimentActive = experiment?.storage_state === StorageStateKF.AVAILABLE;
-  const { experimentId, pipelineId, pipelineVersionId } = useParams();
+  const { experiment: contextExperiment } = React.useContext(ExperimentContext);
 
   if (!run) {
     return null;
   }
-
-  const restoreDropdownItem = (
-    <DropdownItem
-      isAriaDisabled={!isExperimentActive}
-      key="restore-run"
-      onClick={() =>
-        api
-          .unarchivePipelineRun({}, run.run_id)
-          .catch((e) => notification.error('Unable to restore pipeline run', e.message))
-          .then(() => refreshAllAPI())
-      }
-      tooltipProps={
-        !isExperimentActive
-          ? {
-              position: 'left',
-              content:
-                'Archived runs cannot be restored until its associated experiment is restored.',
-            }
-          : undefined
-      }
-    >
-      Restore
-    </DropdownItem>
-  );
-
-  const isGlobal = !experimentId && !pipelineId && !pipelineVersionId;
-  const compareRunsItem = (
-    <DropdownItem
-      key="compare-runs"
-      onClick={() => navigate(compareRunsRoute(namespace, [run.run_id], experimentId))}
-    >
-      Compare runs
-    </DropdownItem>
-  );
 
   return (
     <Dropdown
@@ -107,13 +74,7 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({
                   key="duplicate-run"
                   onClick={() =>
                     navigate(
-                      duplicateRunRoute(
-                        namespace,
-                        run.run_id,
-                        experimentId,
-                        pipelineId,
-                        pipelineVersionId,
-                      ),
+                      duplicateRunRoute(namespace, run.run_id, contextExperiment?.experiment_id),
                     )
                   }
                 >
@@ -134,10 +95,46 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({
                       >
                         Stop
                       </DropdownItem>,
+                      <DropdownItem
+                        key="compare-runs"
+                        onClick={() =>
+                          navigate(
+                            compareRunsRoute(
+                              namespace,
+                              [run.run_id],
+                              contextExperiment?.experiment_id,
+                            ),
+                          )
+                        }
+                      >
+                        Compare runs
+                      </DropdownItem>,
                     ]
-                  : []),
-                ...((isGlobal || experimentId) && isRunActive ? [compareRunsItem] : []),
-                ...(!isRunActive ? [restoreDropdownItem] : []),
+                  : [
+                      <DropdownItem
+                        isAriaDisabled={!isExperimentActive}
+                        key="restore-run"
+                        onClick={() =>
+                          api
+                            .unarchivePipelineRun({}, run.run_id)
+                            .catch((e) =>
+                              notification.error('Unable to restore pipeline run', e.message),
+                            )
+                            .then(() => refreshAllAPI())
+                        }
+                        tooltipProps={
+                          !isExperimentActive
+                            ? {
+                                position: 'left',
+                                content:
+                                  'Archived runs cannot be restored until its associated experiment is restored.',
+                              }
+                            : undefined
+                        }
+                      >
+                        Restore
+                      </DropdownItem>,
+                    ]),
                 <Divider key="separator" />,
               ]
             : []),

@@ -59,15 +59,6 @@ describe('Manage runs', () => {
     manageRunsTable.getRowByName('Test run 2').findCheckbox().should('be.checked');
   });
 
-  it('navigates back to "Compare runs" page when "Cancel" toolbar action is clicked', () => {
-    manageRunsTable.findCancelButton().click();
-    cy.location('pathname').should(
-      'equal',
-      `/experiments/${projectName}/${experimentId}/compareRuns`,
-    );
-    cy.location('search').should('equal', '?compareRuns=test-run-1,test-run-2');
-  });
-
   it('navigates to "Compare runs" page when "Compare runs" breadcrumb is clicked', () => {
     manageRunsPage.findBreadcrumb().findByRole('link', { name: 'Compare runs' }).click();
     cy.location('pathname').should(

@@ -7,10 +7,10 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineVersionImportModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
 import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import {
+  createRecurringRunRoute,
+  createRunRoute,
   globalPipelineRecurringRunsVersionRoute,
   globalPipelineRunsVersionRoute,
-  pipelineVersionCreateRecurringRunRoute,
-  pipelineVersionCreateRunRoute,
   pipelineVersionDetailsRoute,
 } from '~/routes';
 import { getDashboardMainContainer } from '~/utilities/utils';
@@ -69,16 +69,9 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
               tooltipProps={{ content: PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR }}
               key="create-run"
               onClick={() =>
-                navigate(
-                  pipelineVersionCreateRunRoute(
-                    namespace,
-                    pipeline?.pipeline_id,
-                    pipelineVersion?.pipeline_version_id,
-                  ),
-                  {
-                    state: { lastPipeline: pipeline, lastVersion: pipelineVersion },
-                  },
-                )
+                navigate(createRunRoute(namespace), {
+                  state: { contextData: { pipeline, version: pipelineVersion } },
+                })
               }
             >
               Create run
@@ -88,16 +81,9 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
               tooltipProps={{ content: PIPELINE_CREATE_SCHEDULE_TOOLTIP_ARGO_ERROR }}
               key="create-schedule"
               onClick={() =>
-                navigate(
-                  pipelineVersionCreateRecurringRunRoute(
-                    namespace,
-                    pipeline?.pipeline_id,
-                    pipelineVersion?.pipeline_version_id,
-                  ),
-                  {
-                    state: { lastPipeline: pipeline, lastVersion: pipelineVersion },
-                  },
-                )
+                navigate(createRecurringRunRoute(namespace), {
+                  state: { contextData: { pipeline, version: pipelineVersion } },
+                })
               }
             >
               Create schedule

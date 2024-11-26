@@ -58,7 +58,7 @@ const RunPageFooter: React.FC<RunPageFooterProps> = ({ data, contextPath }) => {
             </Button>
           </SplitItem>
           <SplitItem>
-            <Button variant="secondary" onClick={() => navigate(contextPath)}>
+            <Button variant="secondary" onClick={() => history.back()}>
               Cancel
             </Button>
           </SplitItem>

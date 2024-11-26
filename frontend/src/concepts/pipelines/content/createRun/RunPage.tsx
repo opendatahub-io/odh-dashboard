@@ -1,15 +1,7 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
-
 import { PageSection } from '@patternfly/react-core';
-
-import {
-  ExperimentKF,
-  PipelineKF,
-  PipelineRecurringRunKF,
-  PipelineRunKF,
-  PipelineVersionKF,
-} from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF, PipelineRecurringRunKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import GenericSidebar from '~/components/GenericSidebar';
 import {
   CreateRunPageSections,
@@ -37,8 +29,6 @@ type RunPageProps = {
   testId?: string;
   runType: RunTypeOption;
   contextExperiment?: ExperimentKF | null;
-  contextPipeline?: PipelineKF | null;
-  contextPipelineVersion?: PipelineVersionKF | null;
 };
 
 const RunPage: React.FC<RunPageProps> = ({
@@ -47,10 +37,12 @@ const RunPage: React.FC<RunPageProps> = ({
   testId,
   runType,
   contextExperiment,
-  contextPipeline,
-  contextPipelineVersion,
 }) => {
   const location = useLocation();
+  // the data passed in when creating a run from a pipeline version
+  const { pipeline: contextPipeline, version: contextPipelineVersion } =
+    location.state?.contextData || {};
+  // the data passed in when switching between runs and schedules
   const {
     nameDesc: locationNameDesc,
     pipeline: locationPipeline,

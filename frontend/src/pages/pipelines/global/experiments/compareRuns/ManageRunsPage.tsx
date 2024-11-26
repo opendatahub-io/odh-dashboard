@@ -57,7 +57,7 @@ const ManageRunsPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
   if (loaded && totalSize === 0 && !tableProps.filter) {
     return (
       <EmptyRunsState
-        createRunRoute={createRunRoute(namespace, experiment?.experiment_id, undefined, undefined)}
+        createRunRoute={createRunRoute(namespace, experiment?.experiment_id)}
         dataTestId="runs-empty-state"
       />
     );

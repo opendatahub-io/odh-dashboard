@@ -199,12 +199,7 @@ describe('Artifacts', () => {
 
   describe('artifact in pipeline run details page', () => {
     it('url is clickable', () => {
-      pipelineRunDetails.visit(
-        projectName,
-        mockPipeline.pipeline_id,
-        mockMetricsVisualizationVersion.pipeline_version_id,
-        mockMetricsVisualizationRun.run_id,
-      );
+      pipelineRunDetails.visit(projectName, mockMetricsVisualizationRun.run_id);
 
       pipelineRunDetails.findTaskNode('markdown-visualization').click();
 
@@ -241,12 +236,7 @@ describe('Artifacts', () => {
     });
 
     it('check for visualization', () => {
-      pipelineRunDetails.visit(
-        projectName,
-        mockPipeline.pipeline_id,
-        mockMetricsVisualizationVersion.pipeline_version_id,
-        mockMetricsVisualizationRun.run_id,
-      );
+      pipelineRunDetails.visit(projectName, mockMetricsVisualizationRun.run_id);
       pipelineRunDetails.findArtifactNode('html-visualization.html_artifact').click();
       const artifactDrawer = pipelineRunDetails.findArtifactRightDrawer();
       artifactDrawer.findVisualizationTab().click();
