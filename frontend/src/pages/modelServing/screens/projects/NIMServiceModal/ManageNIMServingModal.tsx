@@ -44,6 +44,7 @@ import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import KServeAutoscalerReplicaSection from '~/pages/modelServing/screens/projects/kServeModal/KServeAutoscalerReplicaSection';
 import NIMPVCSizeSection from '~/pages/modelServing/screens/projects/NIMServiceModal/NIMPVCSizeSection';
 import {
+  fetchNIMAccountConstants,
   getNIMServingRuntimeTemplate,
   updateServingRuntimeTemplate,
 } from '~/pages/modelServing/screens/projects/nimUtils';
@@ -152,18 +153,39 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
 
   const { dashboardNamespace } = useDashboardNamespace();
 
+  const [constants, setConstants] = React.useState<{
+    nimSecretName: string;
+    nimNGCSecretName: string;
+    nimConfigMapName: string;
+    templateName: string;
+  } | null>(null);
+
+  React.useEffect(() => {
+    const fetchConstants = async () => {
+      const fetchedConstants = await fetchNIMAccountConstants(dashboardNamespace);
+      setConstants(fetchedConstants);
+    };
+
+    fetchConstants();
+  }, [dashboardNamespace]);
+
   React.useEffect(() => {
     if (editInfo?.servingRuntimeEditInfo?.servingRuntime) {
       setServingRuntimeSelected(editInfo.servingRuntimeEditInfo.servingRuntime);
     } else {
       const fetchNIMServingRuntimeTemplate = async () => {
-        const nimTemplate = await getNIMServingRuntimeTemplate(dashboardNamespace);
-        setServingRuntimeSelected(getServingRuntimeFromTemplate(nimTemplate));
+        if (constants?.templateName) {
+          const nimTemplate = await getNIMServingRuntimeTemplate(
+            dashboardNamespace,
+            constants.templateName,
+          );
+          setServingRuntimeSelected(getServingRuntimeFromTemplate(nimTemplate));
+        }
       };
 
       fetchNIMServingRuntimeTemplate();
     }
-  }, [dashboardNamespace, editInfo]);
+  }, [constants, dashboardNamespace, editInfo]);
 
   const isSecretNeeded = async (ns: string, secretName: string): Promise<boolean> => {
     try {
@@ -248,15 +270,31 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
         ];
 
         if (!editInfo) {
-          if (await isSecretNeeded(namespace, NIM_SECRET_NAME)) {
-            promises.push(
-              createNIMSecret(namespace, NIM_SECRET_NAME, false, false).then(() => undefined),
-            );
-          }
-          if (await isSecretNeeded(namespace, NIM_NGC_SECRET_NAME)) {
-            promises.push(
-              createNIMSecret(namespace, NIM_NGC_SECRET_NAME, true, false).then(() => undefined),
-            );
+          if (constants?.nimSecretName && constants.nimNGCSecretName) {
+            if (await isSecretNeeded(namespace, NIM_SECRET_NAME)) {
+              promises.push(
+                createNIMSecret(
+                  namespace,
+                  NIM_SECRET_NAME,
+                  constants.nimSecretName,
+                  constants.nimNGCSecretName,
+                  false,
+                  false,
+                ).then(() => undefined),
+              );
+            }
+            if (await isSecretNeeded(namespace, NIM_NGC_SECRET_NAME)) {
+              promises.push(
+                createNIMSecret(
+                  namespace,
+                  NIM_NGC_SECRET_NAME,
+                  constants.nimSecretName,
+                  constants.nimNGCSecretName,
+                  true,
+                  false,
+                ).then(() => undefined),
+              );
+            }
           }
           promises.push(createNIMPVC(namespace, nimPVCName, pvcSize, false).then(() => undefined));
         } else if (pvc && pvc.spec.resources.requests.storage !== pvcSize) {

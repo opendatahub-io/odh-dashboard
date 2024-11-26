@@ -2,12 +2,8 @@
 
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { ProjectKind, SecretKind, ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
-import { deletePvc, deleteSecret, getTemplate } from '~/api';
+import { deletePvc, deleteSecret, getTemplate, listAccounts } from '~/api';
 import { fetchInferenceServiceCount } from '~/pages/modelServing/screens/projects/utils';
-
-const NIM_SECRET_NAME = 'nvidia-nim-access';
-const NIM_NGC_SECRET_NAME = 'nvidia-nim-image-pull';
-const TEMPLATE_NAME = 'nvidia-nim-serving-template';
 
 export const getNGCSecretType = (isNGC: boolean): string =>
   isNGC ? 'kubernetes.io/dockerconfigjson' : 'Opaque';
@@ -32,10 +28,14 @@ export const getNIMResource = async <T extends K8sResourceCommon = SecretKind>(
     throw new Error(`Failed to fetch the resource: ${resourceName}.`);
   }
 };
-export const getNIMData = async (isNGC: boolean): Promise<Record<string, string> | undefined> => {
+export const getNIMData = async (
+  isNGC: boolean,
+  nimSecretName: string,
+  nimNGCSecretName: string,
+): Promise<Record<string, string> | undefined> => {
   const nimSecretData: SecretKind = isNGC
-    ? await getNIMResource(NIM_NGC_SECRET_NAME)
-    : await getNIMResource(NIM_SECRET_NAME);
+    ? await getNIMResource(nimNGCSecretName)
+    : await getNIMResource(nimSecretName);
 
   if (!nimSecretData.data) {
     throw new Error(`Error retrieving NIM ${isNGC ? 'NGC' : ''} secret data`);
@@ -62,7 +62,8 @@ export const isNIMServingRuntimeTemplateAvailable = async (
   dashboardNamespace: string,
 ): Promise<boolean> => {
   try {
-    await getTemplate(TEMPLATE_NAME, dashboardNamespace);
+    const { templateName } = await fetchNIMAccountConstants(dashboardNamespace);
+    await getTemplate(templateName, dashboardNamespace);
     return true;
   } catch (error) {
     return false;
@@ -71,9 +72,10 @@ export const isNIMServingRuntimeTemplateAvailable = async (
 
 export const getNIMServingRuntimeTemplate = async (
   dashboardNamespace: string,
+  templateName: string,
 ): Promise<TemplateKind | undefined> => {
   try {
-    const template = await getTemplate(TEMPLATE_NAME, dashboardNamespace);
+    const template = await getTemplate(templateName, dashboardNamespace);
     return template;
   } catch (error) {
     return undefined;
@@ -182,4 +184,38 @@ export const getNIMResourcesToDelete = async (
   }
 
   return resourcesToDelete;
+};
+
+export const fetchNIMAccountConstants = async (
+  dashboardNamespace: string,
+): Promise<{
+  nimSecretName: string;
+  nimNGCSecretName: string;
+  nimConfigMapName: string;
+  templateName: string;
+}> => {
+  const accounts = await listAccounts(dashboardNamespace);
+  if (accounts.length === 0) {
+    throw new Error('NIM account does not exist.');
+  }
+
+  const nimAccount = accounts[0];
+  const nimSecretName = nimAccount.spec.apiKeySecret.name;
+
+  if (!nimSecretName || !nimAccount.status) {
+    throw new Error('Failed to retrieve NIM account details.');
+  }
+
+  const { nimPullSecret, nimConfig, runtimeTemplate } = nimAccount.status;
+
+  if (!nimPullSecret?.name || !nimConfig?.name || !runtimeTemplate?.name) {
+    throw new Error('Required NIM account fields are missing.');
+  }
+
+  return {
+    nimSecretName,
+    nimNGCSecretName: nimPullSecret.name,
+    nimConfigMapName: nimConfig.name,
+    templateName: runtimeTemplate.name,
+  };
 };
