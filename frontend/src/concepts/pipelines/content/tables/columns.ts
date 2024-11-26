@@ -56,6 +56,12 @@ export const pipelineVersionColumns: SortableData<PipelineVersionKF>[] = [
     sortable: (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
     width: 20,
   },
+  {
+    label: '',
+    sortable: false,
+    field: 'view_runs',
+    width: 20,
+  },
   kebabTableColumn(),
 ];
 

@@ -1181,12 +1181,12 @@ describe('Pipelines', () => {
     pipelineRow.findExpandButton().click();
     pipelineRow
       .getPipelineVersionRowById(initialMockPipelineVersion.pipeline_version_id)
-      .findKebabAction('View runs')
+      .findPipelineVersionViewRunLink()
       .click();
 
     cy.url().should(
       'include',
-      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/runs`,
+      `/pipelineRuns/${projectName}/runs/active?pipeline_version=${initialMockPipelineVersion.pipeline_id}`,
     );
   });
 
@@ -1204,7 +1204,7 @@ describe('Pipelines', () => {
 
     cy.url().should(
       'include',
-      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/schedules`,
+      `/pipelineRuns/${projectName}/schedules?pipeline_version=${initialMockPipelineVersion.pipeline_id}`,
     );
   });
 

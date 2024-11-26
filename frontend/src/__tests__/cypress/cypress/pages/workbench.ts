@@ -169,8 +169,12 @@ class NotebookRow extends TableRow {
     return this.find().findByTestId('notebook-route-link');
   }
 
-  findHaveNotebookStatusText() {
-    return this.find().findByTestId('notebook-status-text');
+  findHaveNotebookStatusText(timeout = 10000) {
+    return this.find().findByTestId('notebook-status-text', { timeout });
+  }
+
+  expectStatusLabelToBe(statusValue: string, timeout?: number) {
+    this.findHaveNotebookStatusText(timeout).should('have.text', statusValue);
   }
 
   findNotebookStart() {
@@ -247,12 +251,20 @@ class CreateSpawnerPage {
     return new StorageTable();
   }
 
+  getNameInput() {
+    return cy.findByTestId('workbench-name');
+  }
+
   private findPVSizeField() {
     return cy.findByTestId('create-new-storage-size');
   }
 
   private findPVSizeSelectButton() {
     return cy.findByTestId('value-unit-select');
+  }
+
+  findExsistingPersistentStorageRadio() {
+    return cy.findByTestId('persistent-existing-storage-type-radio');
   }
 
   selectExistingPersistentStorage(name: string) {

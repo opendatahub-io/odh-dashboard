@@ -1,16 +1,17 @@
 import * as React from 'react';
 import { ActionsColumn, TableText, Td, Tr } from '@patternfly/react-table';
 import { Link, useNavigate } from 'react-router-dom';
+import { Button } from '@patternfly/react-core';
 import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd, TableRowTitleDescription } from '~/components/table';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
 import {
+  globalPipelineRecurringRunsVersionRoute,
+  globalPipelineRunsVersionRoute,
   pipelineVersionCreateRecurringRunRoute,
   pipelineVersionCreateRunRoute,
   pipelineVersionDetailsRoute,
-  pipelineVersionRecurringRunsRoute,
-  pipelineVersionRunsRoute,
 } from '~/routes';
 import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
 import {
@@ -70,6 +71,19 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
       <Td>
         <PipelinesTableRowTime date={createdDate} />
       </Td>
+      <Td>
+        <Button
+          component="a"
+          isInline
+          data-testid="runs-route-link"
+          variant="link"
+          onClick={() =>
+            navigate(globalPipelineRunsVersionRoute(namespace, version.pipeline_version_id))
+          }
+        >
+          View runs
+        </Button>
+      </Td>
       <Td isActionCell>
         <ActionsColumn
           items={[
@@ -109,26 +123,10 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
               isSeparator: true,
             },
             {
-              title: 'View runs',
-              onClick: () => {
-                navigate(
-                  pipelineVersionRunsRoute(
-                    namespace,
-                    pipeline.pipeline_id,
-                    version.pipeline_version_id,
-                  ),
-                );
-              },
-            },
-            {
               title: 'View schedules',
               onClick: () => {
                 navigate(
-                  pipelineVersionRecurringRunsRoute(
-                    namespace,
-                    pipeline.pipeline_id,
-                    version.pipeline_version_id,
-                  ),
+                  globalPipelineRecurringRunsVersionRoute(namespace, version.pipeline_version_id),
                 );
               },
             },
