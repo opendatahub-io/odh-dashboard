@@ -451,6 +451,26 @@ describe('Serving Runtime List', () => {
       inferenceServiceModal.findLocationPathInput().type('test-model/');
       inferenceServiceModal.findSubmitButton().should('be.enabled');
 
+      // test invalid resource name
+      inferenceServiceModal.k8sNameDescription.findResourceEditLink().click();
+      inferenceServiceModal.k8sNameDescription
+        .findResourceNameInput()
+        .should('have.attr', 'aria-invalid', 'false');
+      inferenceServiceModal.k8sNameDescription
+        .findResourceNameInput()
+        .should('have.value', 'test-name');
+      // Invalid character k8s names fail
+      inferenceServiceModal.k8sNameDescription
+        .findResourceNameInput()
+        .clear()
+        .type('InVaLiD vAlUe!');
+      inferenceServiceModal.k8sNameDescription
+        .findResourceNameInput()
+        .should('have.attr', 'aria-invalid', 'true');
+      inferenceServiceModal.findSubmitButton().should('be.disabled');
+      inferenceServiceModal.k8sNameDescription.findResourceNameInput().clear().type('test-name');
+      inferenceServiceModal.findSubmitButton().should('be.enabled');
+
       inferenceServiceModal.findSubmitButton().click();
 
       // dry run request
@@ -470,7 +490,7 @@ describe('Serving Runtime List', () => {
             predictor: {
               model: {
                 modelFormat: { name: 'onnx', version: '1' },
-                runtime: 'test-model-legacy',
+                runtime: 'test-name',
                 storage: { key: 'test-secret', path: 'test-model/' },
               },
             },

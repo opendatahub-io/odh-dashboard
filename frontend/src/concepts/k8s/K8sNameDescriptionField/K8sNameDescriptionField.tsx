@@ -3,7 +3,6 @@ import {
   Button,
   FormGroup,
   FormHelperText,
-  FormSection,
   HelperText,
   HelperTextItem,
   TextArea,
@@ -40,6 +39,7 @@ type K8sNameDescriptionFieldProps = {
   dataTestId: string;
   descriptionLabel?: string;
   nameLabel?: string;
+  nameHelperText?: React.ReactNode;
   onDataChange?: UseK8sNameDescriptionFieldData['onDataChange'];
   hideDescription?: boolean;
 };
@@ -55,6 +55,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   descriptionLabel = 'Description',
   onDataChange,
   nameLabel = 'Name',
+  nameHelperText,
   hideDescription,
 }) => {
   const [showK8sField, setShowK8sField] = React.useState(false);
@@ -62,7 +63,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   const { name, description, k8sName } = data;
 
   return (
-    <FormSection style={{ margin: 0 }}>
+    <>
       <FormGroup label={nameLabel} isRequired fieldId={`${dataTestId}-name`}>
         <TextInput
           aria-readonly={!onDataChange}
@@ -76,14 +77,13 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
         />
         {!showK8sField && !k8sName.state.immutable && (
           <FormHelperText>
-            {k8sName.value && (
-              <HelperText>
+            <HelperText>
+              {nameHelperText}
+              {k8sName.value && (
                 <HelperTextItem>
                   The resource name will be <b>{k8sName.value}</b>.
                 </HelperTextItem>
-              </HelperText>
-            )}
-            <HelperText>
+              )}
               <HelperTextItem>
                 <Button
                   data-testid={`${dataTestId}-editResourceLink`}
@@ -118,7 +118,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
           />
         </FormGroup>
       ) : null}
-    </FormSection>
+    </>
   );
 };
 

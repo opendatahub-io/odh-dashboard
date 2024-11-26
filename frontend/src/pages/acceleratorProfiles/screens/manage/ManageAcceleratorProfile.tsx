@@ -1,14 +1,6 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  Form,
-  FormSection,
-  PageSection,
-  Stack,
-  StackItem,
-} from '@patternfly/react-core';
+import { Breadcrumb, BreadcrumbItem, Form, FormSection, PageSection } from '@patternfly/react-core';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import GenericSidebar from '~/components/GenericSidebar';
@@ -107,16 +99,12 @@ const ManageAcceleratorProfile: React.FC<ManageAcceleratorProfileProps> = ({
                 ManageAcceleratorProfileSectionTitles[ManageAcceleratorProfileSectionID.DETAILS]
               }
             >
-              <Stack hasGutter>
-                <StackItem>
-                  <K8sNameDescriptionField
-                    data={profileNameDesc}
-                    onDataChange={setProfileNameDesc}
-                    dataTestId="accelerator-profile"
-                  />
-                </StackItem>
-                <ManageAcceleratorProfileDetailsSection state={state} setState={setState} />
-              </Stack>
+              <K8sNameDescriptionField
+                data={profileNameDesc}
+                onDataChange={setProfileNameDesc}
+                dataTestId="accelerator-profile"
+              />
+              <ManageAcceleratorProfileDetailsSection state={state} setState={setState} />
             </FormSection>
             <ManageAcceleratorProfileTolerationsSection
               tolerations={state.tolerations ?? []}

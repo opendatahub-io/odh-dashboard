@@ -1,13 +1,5 @@
 import * as React from 'react';
-import {
-  Alert,
-  AlertActionCloseButton,
-  Form,
-  FormSection,
-  Modal,
-  Stack,
-  StackItem,
-} from '@patternfly/react-core';
+import { Alert, AlertActionCloseButton, Form, FormSection, Modal } from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
   getCreateInferenceServiceLabels,
@@ -44,10 +36,9 @@ import ProjectSection from '~/pages/modelServing/screens/projects/InferenceServi
 import { DataConnection, NamespaceApplicationCase } from '~/pages/projects/types';
 import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
-import InferenceServiceNameSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/InferenceServiceNameSection';
 import InferenceServiceFrameworkSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/InferenceServiceFrameworkSection';
 import DataConnectionSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/DataConnectionSection';
-import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import AuthServingRuntimeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
 import { useAccessReview } from '~/api';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
@@ -61,6 +52,10 @@ import {
 import useConnectionTypesEnabled from '~/concepts/connectionTypes/useConnectionTypesEnabled';
 import { Connection } from '~/concepts/connectionTypes/types';
 import { ConnectionSection } from '~/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionSection';
+import K8sNameDescriptionField, {
+  useK8sNameDescriptionFieldData,
+} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 import EnvironmentVariablesSection from './EnvironmentVariablesSection';
 import ServingRuntimeArgsSection from './ServingRuntimeArgsSection';
@@ -102,14 +97,17 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   registeredModelDeployInfo,
   shouldFormHidden: hideForm,
 }) => {
-  const [createDataServingRuntime, setCreateDataServingRuntime, resetDataServingRuntime, sizes] =
+  const [createDataServingRuntime, setCreateDataServingRuntime, , sizes] =
     useCreateServingRuntimeObject(editInfo?.servingRuntimeEditInfo);
-  const [createDataInferenceService, setCreateDataInferenceService, resetDataInferenceService] =
+  const [createDataInferenceService, setCreateDataInferenceService] =
     useCreateInferenceServiceObject(
       editInfo?.inferenceServiceEditInfo,
       editInfo?.servingRuntimeEditInfo?.servingRuntime,
       editInfo?.secrets,
     );
+  const { data: kServeNameDesc, onDataChange: setKserveNameDesc } = useK8sNameDescriptionFieldData({
+    initialData: editInfo?.inferenceServiceEditInfo,
+  });
   const [dataConnections, dataConnectionsLoaded, dataConnectionsLoadError] =
     usePrefillDeployModalFromModelRegistry(
       projectContext,
@@ -125,14 +123,11 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const isAuthorinoEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status;
   const currentProjectName = projectContext?.currentProject.metadata.name;
   const namespace = currentProjectName || createDataInferenceService.project;
-  const isInferenceServiceNameWithinLimit =
-    translateDisplayNameForK8s(createDataInferenceService.name).length <= 253;
 
   const {
     initialState: initialAcceleratorProfileState,
     formData: selectedAcceleratorProfile,
     setFormData: setSelectedAcceleratorProfile,
-    resetFormData: resetSelectedAcceleratorProfile,
   } = useServingAcceleratorProfileFormState(
     editInfo?.servingRuntimeEditInfo?.servingRuntime,
     editInfo?.inferenceServiceEditInfo,
@@ -156,6 +151,22 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       setCreateDataInferenceService('project', currentProjectName);
     }
   }, [currentProjectName, setCreateDataInferenceService]);
+
+  React.useEffect(() => {
+    setCreateDataInferenceService('name', kServeNameDesc.name);
+    setCreateDataInferenceService('k8sName', kServeNameDesc.k8sName.value);
+  }, [kServeNameDesc, setCreateDataInferenceService]);
+
+  React.useEffect(() => {
+    if (
+      createDataInferenceService.name &&
+      createDataInferenceService.name !== kServeNameDesc.name
+    ) {
+      setKserveNameDesc('name', createDataInferenceService.name);
+    }
+    // Don't update if kServeNameDesc changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createDataInferenceService.name, setKserveNameDesc]);
 
   // Serving Runtime Validation
   const isDisabledServingRuntime = namespace === '' || actionInProgress;
@@ -191,10 +202,9 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
 
   const isDisabledInferenceService =
     actionInProgress ||
-    createDataInferenceService.name.trim() === '' ||
+    !isK8sNameDescriptionDataValid(kServeNameDesc) ||
     createDataInferenceService.project === '' ||
     createDataInferenceService.format.name === '' ||
-    !isInferenceServiceNameWithinLimit ||
     !storageCanCreate() ||
     !baseInputValueValid;
 
@@ -215,12 +225,6 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       outcome: TrackingOutcome.cancel,
     });
     onClose(submitted);
-    setError(undefined);
-    setActionInProgress(false);
-    resetDataServingRuntime();
-    resetDataInferenceService();
-    resetSelectedAcceleratorProfile();
-    setAlertVisible(true);
   };
 
   const setErrorModal = (e: Error) => {
@@ -240,7 +244,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
 
     const servingRuntimeName =
       editInfo?.inferenceServiceEditInfo?.spec.predictor.model?.runtime ||
-      translateDisplayNameForK8s(createDataInferenceService.name);
+      createDataInferenceService.k8sName;
 
     const submitServingRuntimeResources = getSubmitServingRuntimeResourcesFn(
       servingRuntimeSelected,
@@ -257,6 +261,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       false,
     );
 
+    const inferenceServiceName = servingRuntimeName;
+
     const submitInferenceServiceResource = getSubmitInferenceServiceResourceFn(
       {
         ...createDataInferenceService,
@@ -264,6 +270,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       },
       editInfo?.inferenceServiceEditInfo,
       servingRuntimeName,
+      inferenceServiceName,
       false,
       initialAcceleratorProfileState,
       selectedAcceleratorProfile,
@@ -324,144 +331,142 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       }
       showClose
     >
+      {!isAuthorinoEnabled && alertVisible && (
+        <Alert
+          id="no-authorino-installed-alert"
+          className="pf-v5-u-mb-md"
+          data-testid="no-authorino-installed-alert"
+          isExpandable
+          isInline
+          variant="warning"
+          title="Token authentication service not installed"
+          actionClose={<AlertActionCloseButton onClose={() => setAlertVisible(false)} />}
+        >
+          <p>
+            The single model serving platform used by this project allows deployed models to be
+            accessible via external routes. It is recommended that token authentication be enabled
+            to protect these routes. The serving platform requires the Authorino operator be
+            installed on the cluster for token authentication. Contact a cluster administrator to
+            install the operator.
+          </p>
+        </Alert>
+      )}
       <Form
         onSubmit={(e) => {
           e.preventDefault();
           submit();
         }}
       >
-        <Stack hasGutter>
-          {!isAuthorinoEnabled && alertVisible && (
-            <StackItem>
-              <Alert
-                id="no-authorino-installed-alert"
-                data-testid="no-authorino-installed-alert"
-                isExpandable
-                isInline
-                variant="warning"
-                title="Token authentication service not installed"
-                actionClose={<AlertActionCloseButton onClose={() => setAlertVisible(false)} />}
-              >
-                <p>
-                  The single model serving platform used by this project allows deployed models to
-                  be accessible via external routes. It is recommended that token authentication be
-                  enabled to protect these routes. The serving platform requires the Authorino
-                  operator be installed on the cluster for token authentication. Contact a cluster
-                  administrator to install the operator.
-                </p>
-              </Alert>
-            </StackItem>
+        <FormSection title="Model deployment">
+          {projectSection || (
+            <ProjectSection
+              projectName={
+                (projectContext?.currentProject &&
+                  getDisplayNameFromK8sResource(projectContext.currentProject)) ||
+                editInfo?.inferenceServiceEditInfo?.metadata.namespace ||
+                ''
+              }
+            />
           )}
-          <StackItem>
-            <FormSection title="Model deployment">
-              {projectSection || (
-                <ProjectSection
-                  projectName={
-                    (projectContext?.currentProject &&
-                      getDisplayNameFromK8sResource(projectContext.currentProject)) ||
-                    editInfo?.inferenceServiceEditInfo?.metadata.namespace ||
-                    ''
-                  }
-                />
-              )}
-              {!hideForm && (
-                <>
-                  <InferenceServiceNameSection
-                    data={createDataInferenceService}
-                    setData={setCreateDataInferenceService}
-                    isNameValid={isInferenceServiceNameWithinLimit}
-                  />
-                  <ServingRuntimeTemplateSection
-                    data={createDataServingRuntime}
-                    onConfigureParamsClick={
-                      servingRuntimeParamsEnabled
-                        ? () =>
-                            requestAnimationFrame(() => {
-                              servingRuntimeArgsInputRef.current?.focus();
-                            })
-                        : undefined
-                    }
-                    setData={setCreateDataServingRuntime}
-                    templates={servingRuntimeTemplates || []}
-                    isEditing={!!editInfo}
-                    selectedAcceleratorProfile={selectedAcceleratorProfile}
-                    resetModelFormat={() => setCreateDataInferenceService('format', { name: '' })}
-                  />
-                  <InferenceServiceFrameworkSection
-                    data={createDataInferenceService}
-                    setData={setCreateDataInferenceService}
-                    servingRuntimeName={servingRuntimeSelected?.metadata.name}
-                    modelContext={servingRuntimeSelected?.spec.supportedModelFormats}
-                    registeredModelFormat={registeredModelDeployInfo?.modelFormat}
-                  />
-                  <KServeAutoscalerReplicaSection
-                    data={createDataInferenceService}
-                    setData={setCreateDataInferenceService}
-                    infoContent="Consider network traffic and failover scenarios when specifying the number of model
+          {!hideForm && (
+            <>
+              <K8sNameDescriptionField
+                data={kServeNameDesc}
+                onDataChange={setKserveNameDesc}
+                dataTestId="inference-service"
+                nameLabel="Model deployment name"
+                nameHelperText="This is the name of the inference service created when the model is deployed"
+                hideDescription
+              />
+              <ServingRuntimeTemplateSection
+                data={createDataServingRuntime}
+                onConfigureParamsClick={
+                  servingRuntimeParamsEnabled
+                    ? () =>
+                        requestAnimationFrame(() => {
+                          servingRuntimeArgsInputRef.current?.focus();
+                        })
+                    : undefined
+                }
+                setData={setCreateDataServingRuntime}
+                templates={servingRuntimeTemplates || []}
+                isEditing={!!editInfo}
+                selectedAcceleratorProfile={selectedAcceleratorProfile}
+                resetModelFormat={() => setCreateDataInferenceService('format', { name: '' })}
+              />
+              <InferenceServiceFrameworkSection
+                data={createDataInferenceService}
+                setData={setCreateDataInferenceService}
+                servingRuntimeName={servingRuntimeSelected?.metadata.name}
+                modelContext={servingRuntimeSelected?.spec.supportedModelFormats}
+                registeredModelFormat={registeredModelDeployInfo?.modelFormat}
+              />
+              <KServeAutoscalerReplicaSection
+                data={createDataInferenceService}
+                setData={setCreateDataInferenceService}
+                infoContent="Consider network traffic and failover scenarios when specifying the number of model
                 server replicas."
-                  />
-                  <ServingRuntimeSizeSection
-                    data={createDataInferenceService}
-                    setData={setCreateDataInferenceService}
-                    sizes={sizes}
-                    servingRuntimeSelected={servingRuntimeSelected}
-                    acceleratorProfileState={initialAcceleratorProfileState}
-                    selectedAcceleratorProfile={selectedAcceleratorProfile}
-                    setSelectedAcceleratorProfile={setSelectedAcceleratorProfile}
-                    infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
-                  />
-                  {isAuthorinoEnabled && (
-                    <AuthServingRuntimeSection
-                      data={createDataInferenceService}
-                      setData={setCreateDataInferenceService}
-                      allowCreate={allowCreate}
-                      publicRoute
-                    />
-                  )}
-                </>
+              />
+              <ServingRuntimeSizeSection
+                data={createDataInferenceService}
+                setData={setCreateDataInferenceService}
+                sizes={sizes}
+                servingRuntimeSelected={servingRuntimeSelected}
+                acceleratorProfileState={initialAcceleratorProfileState}
+                selectedAcceleratorProfile={selectedAcceleratorProfile}
+                setSelectedAcceleratorProfile={setSelectedAcceleratorProfile}
+                infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
+              />
+              {isAuthorinoEnabled && (
+                <AuthServingRuntimeSection
+                  data={createDataInferenceService}
+                  setData={setCreateDataInferenceService}
+                  allowCreate={allowCreate}
+                  publicRoute
+                />
               )}
-            </FormSection>
-            {!hideForm && (
-              <FormSection title="Source model location" id="model-location">
-                {isConnectionTypesEnabled ? (
-                  <ConnectionSection
-                    data={createDataInferenceService}
-                    setData={setCreateDataInferenceService}
-                    setConnection={setConnection}
-                    setIsConnectionValid={setIsConnectionValid}
-                  />
-                ) : (
-                  <DataConnectionSection
-                    data={createDataInferenceService}
-                    setData={setCreateDataInferenceService}
-                    loaded={!!projectContext?.dataConnections || dataConnectionsLoaded}
-                    loadError={dataConnectionsLoadError}
-                    dataConnections={dataConnections}
-                  />
-                )}
-              </FormSection>
+            </>
+          )}
+        </FormSection>
+        {!hideForm && (
+          <FormSection title="Source model location" id="model-location">
+            {isConnectionTypesEnabled ? (
+              <ConnectionSection
+                data={createDataInferenceService}
+                setData={setCreateDataInferenceService}
+                setConnection={setConnection}
+                setIsConnectionValid={setIsConnectionValid}
+              />
+            ) : (
+              <DataConnectionSection
+                data={createDataInferenceService}
+                setData={setCreateDataInferenceService}
+                loaded={!!projectContext?.dataConnections || dataConnectionsLoaded}
+                loadError={dataConnectionsLoadError}
+                dataConnections={dataConnections}
+              />
             )}
-            {servingRuntimeParamsEnabled && (
-              <FormSection
-                title="Configuration parameters"
-                id="configuration-params"
-                data-testid="configuration-params"
-              >
-                <ServingRuntimeArgsSection
-                  predefinedArgs={getKServeContainerArgs(servingRuntimeSelected)}
-                  data={createDataInferenceService}
-                  setData={setCreateDataInferenceService}
-                  inputRef={servingRuntimeArgsInputRef}
-                />
-                <EnvironmentVariablesSection
-                  predefinedVars={getKServeContainerEnvVarStrs(servingRuntimeSelected)}
-                  data={createDataInferenceService}
-                  setData={setCreateDataInferenceService}
-                />
-              </FormSection>
-            )}
-          </StackItem>
-        </Stack>
+          </FormSection>
+        )}
+        {servingRuntimeParamsEnabled && (
+          <FormSection
+            title="Configuration parameters"
+            id="configuration-params"
+            data-testid="configuration-params"
+          >
+            <ServingRuntimeArgsSection
+              predefinedArgs={getKServeContainerArgs(servingRuntimeSelected)}
+              data={createDataInferenceService}
+              setData={setCreateDataInferenceService}
+              inputRef={servingRuntimeArgsInputRef}
+            />
+            <EnvironmentVariablesSection
+              predefinedVars={getKServeContainerEnvVarStrs(servingRuntimeSelected)}
+              data={createDataInferenceService}
+              setData={setCreateDataInferenceService}
+            />
+          </FormSection>
+        )}
       </Form>
     </Modal>
   );
