@@ -12,9 +12,10 @@ import {
 import { LabeledDataConnection, ServingPlatformStatuses } from '~/pages/modelServing/screens/types';
 import { ServingRuntimePlatform } from '~/types';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { createPvc, createSecret } from '~/api';
+import { createPvc, createSecret, listAccounts } from '~/api';
 import { PersistentVolumeClaimKind, ServingRuntimeKind } from '~/k8sTypes';
 import {
+  fetchNIMAccountConstants,
   getNGCSecretType,
   getNIMData,
   getNIMResource,
@@ -26,6 +27,7 @@ jest.mock('~/api', () => ({
   createSecret: jest.fn(),
   createPvc: jest.fn(),
   getInferenceServiceContext: jest.fn(),
+  listAccounts: jest.fn(),
 }));
 
 jest.mock('~/pages/modelServing/screens/projects/nimUtils', () => ({
@@ -239,6 +241,8 @@ describe('createNIMSecret', () => {
   const projectName = 'test-project';
   const secretName = 'test-secret';
   const dryRun = false;
+  const nimSecretName = 'nvidia-nim-access';
+  const nimNGCSecretName = 'nvidia-nim-image-pull';
 
   const nimSecretMock = {
     apiVersion: 'v1',
@@ -269,7 +273,14 @@ describe('createNIMSecret', () => {
     (getNIMData as jest.Mock).mockResolvedValueOnce(nimSecretDataNGC);
     (createSecret as jest.Mock).mockResolvedValueOnce(nimSecretMock);
 
-    const result = await createNIMSecret(projectName, secretName, true, dryRun);
+    const result = await createNIMSecret(
+      projectName,
+      secretName,
+      nimSecretName,
+      nimNGCSecretName,
+      true,
+      dryRun,
+    );
 
     expect(getNIMData).toHaveBeenCalledWith(true);
     expect(getNGCSecretType).toHaveBeenCalledWith(true);
@@ -295,7 +306,14 @@ describe('createNIMSecret', () => {
     (getNIMData as jest.Mock).mockResolvedValueOnce(nimSecretDataNonNGC);
     (createSecret as jest.Mock).mockResolvedValueOnce(nimSecretMock);
 
-    const result = await createNIMSecret(projectName, secretName, false, dryRun);
+    const result = await createNIMSecret(
+      projectName,
+      secretName,
+      nimSecretName,
+      nimNGCSecretName,
+      false,
+      dryRun,
+    );
 
     expect(getNIMData).toHaveBeenCalledWith(false);
     expect(getNGCSecretType).toHaveBeenCalledWith(false);
@@ -320,13 +338,14 @@ describe('createNIMSecret', () => {
   it('should reject if getNIMData throws an error', async () => {
     (getNIMData as jest.Mock).mockRejectedValueOnce(new Error('Error retrieving secret data'));
 
-    await expect(createNIMSecret(projectName, secretName, true, dryRun)).rejects.toThrow(
-      'Error creating NIM NGC secret',
-    );
+    await expect(
+      createNIMSecret(projectName, secretName, nimSecretName, nimNGCSecretName, true, dryRun),
+    ).rejects.toThrow('Error creating NIM NGC secret');
   });
 });
 describe('fetchNIMModelNames', () => {
   const NIM_CONFIGMAP_NAME = 'nvidia-nim-images-data';
+  const dashboardNamespace = 'redhat-ods-applications';
 
   const configMapMock = {
     data: {
@@ -356,7 +375,7 @@ describe('fetchNIMModelNames', () => {
   it('should return model infos when configMap has data', async () => {
     (getNIMResource as jest.Mock).mockResolvedValueOnce(configMapMock);
 
-    const result = await fetchNIMModelNames();
+    const result = await fetchNIMModelNames(dashboardNamespace);
 
     expect(getNIMResource).toHaveBeenCalledWith(NIM_CONFIGMAP_NAME);
     expect(result).toEqual([
@@ -384,7 +403,7 @@ describe('fetchNIMModelNames', () => {
   it('should return undefined if configMap has no data', async () => {
     (getNIMResource as jest.Mock).mockResolvedValueOnce({ data: {} });
 
-    const result = await fetchNIMModelNames();
+    const result = await fetchNIMModelNames(dashboardNamespace);
 
     expect(getNIMResource).toHaveBeenCalledWith(NIM_CONFIGMAP_NAME);
     expect(result).toBeUndefined();
@@ -393,7 +412,7 @@ describe('fetchNIMModelNames', () => {
   it('should return undefined if configMap.data is not defined', async () => {
     (getNIMResource as jest.Mock).mockResolvedValueOnce({ data: undefined });
 
-    const result = await fetchNIMModelNames();
+    const result = await fetchNIMModelNames(dashboardNamespace);
 
     expect(getNIMResource).toHaveBeenCalledWith(NIM_CONFIGMAP_NAME);
     expect(result).toBeUndefined();
@@ -538,5 +557,66 @@ describe('updateServingRuntimeTemplate', () => {
     const result = updateServingRuntimeTemplate(servingRuntimeWithoutVolumeMounts, pvcName);
 
     expect(result.spec.containers[0].volumeMounts).toBeUndefined();
+  });
+});
+
+describe('fetchNIMAccountConstants', () => {
+  const dashboardNamespace = 'redhat-ods-applications';
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should return the correct constants when a valid NIM account is present', async () => {
+    const mockAccount = {
+      status: {
+        nimPullSecret: { name: 'nvidia-nim-image-pull' },
+        nimConfig: { name: 'nvidia-nim-images-data' },
+        runtimeTemplate: { name: 'nvidia-nim-serving-template' },
+      },
+      spec: { apiKeySecret: { name: 'nvidia-nim-access' } },
+    };
+
+    (listAccounts as jest.Mock).mockResolvedValueOnce([mockAccount]);
+
+    const result = await fetchNIMAccountConstants(dashboardNamespace);
+
+    expect(result).toEqual({
+      nimSecretName: 'nvidia-nim-access',
+      nimNGCSecretName: 'nvidia-nim-image-pull',
+      nimConfigMapName: 'nvidia-nim-images-data',
+      templateName: 'nvidia-nim-serving-template',
+    });
+
+    expect(listAccounts).toHaveBeenCalledWith(dashboardNamespace);
+  });
+
+  it('should throw an error if no account exists', async () => {
+    (listAccounts as jest.Mock).mockResolvedValue([]);
+
+    await expect(fetchNIMAccountConstants(dashboardNamespace)).rejects.toThrow(
+      'NIM account does not exist.',
+    );
+  });
+
+  it('should throw an error if account details are missing', async () => {
+    (listAccounts as jest.Mock).mockResolvedValue([{ spec: { apiKeySecret: {} } }]);
+
+    await expect(fetchNIMAccountConstants(dashboardNamespace)).rejects.toThrow(
+      'Failed to retrieve NIM account details.',
+    );
+  });
+
+  it('should throw an error if required fields are missing', async () => {
+    (listAccounts as jest.Mock).mockResolvedValue([
+      {
+        spec: { apiKeySecret: { name: 'test-secret' } },
+        status: {},
+      },
+    ]);
+
+    await expect(fetchNIMAccountConstants(dashboardNamespace)).rejects.toThrow(
+      'Required NIM account fields are missing.',
+    );
   });
 });

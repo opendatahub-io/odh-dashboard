@@ -1,4 +1,5 @@
 // Normal SDK/pass-through network API calls
+export * from './k8s/accounts';
 export * from './k8s/builds';
 export * from './k8s/configMaps';
 export * from './k8s/events';
