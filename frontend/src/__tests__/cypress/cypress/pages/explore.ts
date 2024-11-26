@@ -9,7 +9,7 @@ class ExplorePage {
     cy.testA11y();
   }
 
-  getCardLocator(cardName: string) {
+  findCardLocator(cardName: string) {
     return cy.get(`[data-testid="card ${cardName}"] label`);
   }
 }

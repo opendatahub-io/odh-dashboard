@@ -28,7 +28,7 @@ describe('Verify RHODS Explore Section Contains Only Expected ISVs', () => {
     cy.step('Searching for each ISV based on the oc command output');
     expectedISVs.forEach((isv) => {
       explorePage
-        .getCardLocator(isv)
+        .findCardLocator(isv)
         .should('be.visible')
         .then(() => {
           cy.log(`✅ Application found: ${isv}`);
