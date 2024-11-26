@@ -12,13 +12,17 @@ declare global {
   namespace Cypress {
     interface Chainable {
       /**
-       * Visits the URL and performs a login if necessary.
-       * Uses credentials supplied by environment variables if not provided.
+       * Visits relative URL (page) and performs a login if necessary.
+       * If relativeUrl is '/' or empty string, uses base URL with query parameters (i.e. DevFeatureFlags).
+       * If User credentials not provided, uses Admin credentials supplied by environment variables.
        *
-       * @param url the URL to visit
+       * @param relativeUrl the page to visit.
        * @param credentials login credentials
        */
-      visitWithLogin: (url: string, user?: UserAuthConfig) => Cypress.Chainable<void>;
+      visitWithLogin: (
+        relativeUrl: string,
+        credentials?: UserAuthConfig,
+      ) => Cypress.Chainable<void>;
 
       /**
        * Find a patternfly kebab toggle button.
@@ -148,31 +152,34 @@ declare global {
   }
 }
 
-Cypress.Commands.add('visitWithLogin', (url, user = HTPASSWD_CLUSTER_ADMIN_USER) => {
+Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUSTER_ADMIN_USER) => {
   if (Cypress.env('MOCK')) {
-    cy.visit(url);
+    cy.visit(relativeUrl);
   } else {
-    cy.intercept('GET', url, { log: false }).as('visitWithLogin');
-
-    cy.visit(url, { failOnStatusCode: false });
-
-    cy.wait('@visitWithLogin', { log: false }).then((interception) => {
-      if (interception.response?.statusCode === 403) {
-        cy.log('Do login');
-        // do login
+    let fullUrl: string;
+    if (relativeUrl.replace(/\//g, '')) {
+      fullUrl = new URL(relativeUrl, Cypress.config('baseUrl') || '').href;
+    } else {
+      fullUrl = new URL(Cypress.config('baseUrl') || '').href;
+    }
+    cy.step(`Navigate to: ${fullUrl}`);
+    cy.intercept('GET', fullUrl, { log: false }).as('page');
+    cy.visit(fullUrl, { failOnStatusCode: false });
+    cy.wait('@page', { log: false }).then((interception) => {
+      const statusCode = interception.response?.statusCode;
+      if (statusCode === 403) {
+        cy.log('Log in');
         cy.get('form[action="/oauth/start"]').submit();
-        cy.findAllByRole('link', user.AUTH_TYPE ? { name: user.AUTH_TYPE } : {})
+        cy.findAllByRole('link', credentials.AUTH_TYPE ? { name: credentials.AUTH_TYPE } : {})
           .last()
-          .click();
-        cy.get('input[name=username]').type(user.USERNAME);
-        cy.get('input[name=password]').type(user.PASSWORD);
+          .then(($link) => {
+            cy.wrap($link).click();
+          });
+        cy.get('input[name=username]').fill(credentials.USERNAME);
+        cy.get('input[name=password]').fill(credentials.PASSWORD);
         cy.get('form').submit();
-      } else if (interception.response?.statusCode !== 200) {
-        throw new Error(
-          `Failed to visit '${url}'. Status code: ${
-            interception.response?.statusCode || 'unknown'
-          }`,
-        );
+      } else if (!interception.response || statusCode !== 200) {
+        throw new Error(`Failed to visit '${fullUrl}'. Status code: ${statusCode || 'unknown'}`);
       }
     });
   }
