@@ -126,6 +126,30 @@ class ModelVersionDetails {
       this.findTable().find(`[data-label=Key]`).contains(name).parents('tr'),
     );
   }
+
+  findEditLabelsButton() {
+    return cy.findByTestId('editable-labels-group-edit');
+  }
+
+  findAddLabelButton() {
+    return cy.findByTestId('add-label-button');
+  }
+
+  findLabelInput(label: string) {
+    return cy.findByTestId(`edit-label-input-${label}`);
+  }
+
+  findLabel(label: string) {
+    return cy.findByTestId(`editable-label-${label}`);
+  }
+
+  findLabelErrorAlert() {
+    return cy.findByTestId('label-error-alert');
+  }
+
+  findSaveLabelsButton() {
+    return cy.findByTestId('editable-labels-group-save');
+  }
 }
 
 class PropertyRow extends TableRow {}

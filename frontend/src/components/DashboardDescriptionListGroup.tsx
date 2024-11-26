@@ -33,6 +33,7 @@ type EditableProps = {
   editButtonTestId?: string;
   saveButtonTestId?: string;
   cancelButtonTestId?: string;
+  discardButtonTestId?: string;
 };
 
 export type DashboardDescriptionListGroupProps = {
@@ -43,6 +44,7 @@ export type DashboardDescriptionListGroupProps = {
   contentWhenEmpty?: React.ReactNode;
   children: React.ReactNode;
   groupTestId?: string;
+  isSaveDisabled?: boolean;
 } & (({ isEditable: true } & EditableProps) | ({ isEditable?: false } & Partial<EditableProps>));
 
 const DashboardDescriptionListGroup: React.FC<DashboardDescriptionListGroupProps> = (props) => {
@@ -64,6 +66,7 @@ const DashboardDescriptionListGroup: React.FC<DashboardDescriptionListGroupProps
     editButtonTestId,
     saveButtonTestId,
     cancelButtonTestId,
+    isSaveDisabled,
   } = props;
   return (
     <DescriptionListGroup data-testid={groupTestId}>
@@ -81,7 +84,7 @@ const DashboardDescriptionListGroup: React.FC<DashboardDescriptionListGroupProps
                         aria-label={`Save edits to ${title}`}
                         variant="link"
                         onClick={onSaveEditsClick}
-                        isDisabled={isSavingEdits}
+                        isDisabled={isSavingEdits || isSaveDisabled}
                       >
                         <CheckIcon />
                       </Button>

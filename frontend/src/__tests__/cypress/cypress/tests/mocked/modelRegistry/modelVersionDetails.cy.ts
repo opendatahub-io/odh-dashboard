@@ -238,19 +238,6 @@ describe('Model version details', () => {
     it('Model version details tab', () => {
       modelVersionDetails.findVersionId().contains('1');
       modelVersionDetails.findDescription().should('have.text', 'Description of model version');
-      modelVersionDetails.findMoreLabelsButton().contains('6 more');
-      modelVersionDetails.findMoreLabelsButton().click();
-      modelVersionDetails.shouldContainsModalLabels([
-        'Testing label',
-        'Financial',
-        'Financial data',
-        'Fraud detection',
-        'Machine learning',
-        'Next data to be overflow',
-        'Label x',
-        'Label y',
-        'Label z',
-      ]);
       modelVersionDetails.findStorageEndpoint().contains('test-endpoint');
       modelVersionDetails.findStorageRegion().contains('test-region');
       modelVersionDetails.findStorageBucket().contains('test-bucket');
@@ -345,6 +332,82 @@ describe('Model version details', () => {
       modelVersionDetails.findModelVersionDropdownSearch().fill('Version 2');
       modelVersionDetails.findModelVersionDropdownItem('Version 2').click();
       modelVersionDetails.findVersionId().contains('2');
+    });
+
+    it('should handle label editing', () => {
+      modelVersionDetails.findEditLabelsButton().click();
+
+      modelVersionDetails.findAddLabelButton().click();
+      cy.findByTestId('editable-label-group')
+        .should('exist')
+        .within(() => {
+          cy.contains('New Label').should('exist').click();
+          cy.focused().type('First Label{enter}');
+        });
+
+      modelVersionDetails.findAddLabelButton().click();
+      cy.findByTestId('editable-label-group')
+        .should('exist')
+        .within(() => {
+          cy.contains('New Label').should('exist').click();
+          cy.focused().type('Second Label{enter}');
+        });
+
+      cy.findByTestId('editable-label-group').within(() => {
+        cy.contains('First Label').should('exist').click();
+        cy.focused().type('Updated First Label{enter}');
+      });
+
+      cy.findByTestId('editable-label-group').within(() => {
+        cy.contains('Second Label').parent().find('[data-testid^="remove-label-"]').click();
+      });
+
+      modelVersionDetails.findSaveLabelsButton().should('exist').click();
+    });
+
+    it('should validate label length', () => {
+      modelVersionDetails.findEditLabelsButton().click();
+
+      const longLabel = 'a'.repeat(64);
+      modelVersionDetails.findAddLabelButton().click();
+      cy.findByTestId('editable-label-group')
+        .should('exist')
+        .within(() => {
+          cy.contains('New Label').should('exist').click();
+          cy.focused().type(`${longLabel}{enter}`);
+        });
+
+      cy.findByTestId('label-error-alert')
+        .should('be.visible')
+        .within(() => {
+          cy.contains(`can't exceed 63 characters`).should('exist');
+        });
+    });
+
+    it('should validate duplicate labels', () => {
+      modelVersionDetails.findEditLabelsButton().click();
+
+      modelVersionDetails.findAddLabelButton().click();
+      cy.findByTestId('editable-label-group')
+        .should('exist')
+        .within(() => {
+          cy.get('[data-testid^="editable-label-"]').last().click();
+          cy.focused().type('{selectall}{backspace}Testing label{enter}');
+        });
+
+      modelVersionDetails.findAddLabelButton().click();
+      cy.findByTestId('editable-label-group')
+        .should('exist')
+        .within(() => {
+          cy.get('[data-testid^="editable-label-"]').last().click();
+          cy.focused().type('{selectall}{backspace}Testing label{enter}');
+        });
+
+      cy.findByTestId('label-error-alert')
+        .should('be.visible')
+        .within(() => {
+          cy.contains('Testing label already exists').should('exist');
+        });
     });
   });
 

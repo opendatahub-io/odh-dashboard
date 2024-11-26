@@ -10,7 +10,7 @@ import {
 import { ModelVersion } from '~/concepts/modelRegistry/types';
 import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
 import EditableTextDescriptionListGroup from '~/components/EditableTextDescriptionListGroup';
-import EditableLabelsDescriptionListGroup from '~/components/EditableLabelsDescriptionListGroup';
+import { EditableLabelsDescriptionListGroup } from '~/components/EditableLabelsDescriptionListGroup';
 import ModelPropertiesDescriptionListGroup from '~/pages/modelRegistry/screens/ModelPropertiesDescriptionListGroup';
 import { getLabels, mergeUpdatedLabels } from '~/pages/modelRegistry/screens/utils';
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
@@ -67,7 +67,9 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             labels={getLabels(mv.customProperties)}
             isArchive={isArchiveVersion}
             allExistingKeys={Object.keys(mv.customProperties)}
-            saveEditedLabels={(editedLabels) =>
+            title="Labels"
+            contentWhenEmpty="No labels"
+            onLabelsChange={(editedLabels) =>
               apiState.api
                 .patchModelVersion(
                   {},
@@ -78,6 +80,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                 )
                 .then(refresh)
             }
+            data-testid="model-version-labels"
           />
           <ModelPropertiesDescriptionListGroup
             isArchive={isArchiveVersion}
