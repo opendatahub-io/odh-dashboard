@@ -21,7 +21,7 @@ describe('Verify RHODS Explore Section Contains Only Expected ISVs', () => {
     cy.step('Login to the application');
     cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
-    // Navigate to the Explore page and search for each ISV
+    // Navigate to the Explore page and search for each ISV.
     cy.step('Navigate to the Explore page');
     explorePage.visit();
 
