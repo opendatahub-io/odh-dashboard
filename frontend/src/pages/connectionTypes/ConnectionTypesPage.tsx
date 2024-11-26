@@ -4,6 +4,8 @@ import ConnectionTypesTable from '~/pages/connectionTypes/ConnectionTypesTable';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
 import EmptyConnectionTypes from '~/pages/connectionTypes/EmptyConnectionTypes';
+import TitleWithIcon from '~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '~/concepts/design/utils';
 
 const ConnectionTypesPage: React.FC = () => {
   const [connectionTypes, loaded, loadError, refresh] = useWatchConnectionTypes();
@@ -14,7 +16,9 @@ const ConnectionTypesPage: React.FC = () => {
       loadError={loadError}
       empty={loaded && !connectionTypes.length}
       emptyStatePage={<EmptyConnectionTypes />}
-      title="Connection types"
+      title={
+        <TitleWithIcon title="Connection types" objectType={ProjectObjectType.dataConnection} />
+      }
       description="Create and manage connection types for users in your organization. Connection types include customizable fields and optional default values to decrease the time required to add connections to data sources and sinks."
       errorMessage="Unable to load connection types"
     >

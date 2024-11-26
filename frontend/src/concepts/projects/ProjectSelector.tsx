@@ -98,7 +98,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
 
   if (showTitle) {
     return (
-      <Flex spaceItems={{ default: 'spaceItemsXs' }} alignItems={{ default: 'alignItemsCenter' }}>
+      <Flex spaceItems={{ default: 'spaceItemsNone' }} alignItems={{ default: 'alignItemsCenter' }}>
         <img
           src={typedObjectImage(ProjectObjectType.project)}
           alt=""

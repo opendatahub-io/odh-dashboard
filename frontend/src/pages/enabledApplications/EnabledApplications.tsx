@@ -7,6 +7,8 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import OdhAppCard from '~/components/OdhAppCard';
 import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { useWatchIntegrationComponents } from '~/utilities/useWatchIntegrationComponents';
+import TitleWithIcon from '~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '~/concepts/design/utils';
 
 const description = `Launch your enabled applications, view documentation, or get started with quick start instructions and tasks.`;
 
@@ -28,7 +30,7 @@ export const EnabledApplicationsInner: React.FC<EnabledApplicationsInnerProps> =
 
     return (
       <ApplicationsPage
-        title="Enabled"
+        title={<TitleWithIcon title="Enabled" objectType={ProjectObjectType.enabledApplications} />}
         description={description}
         loaded={loaded && isIntegrationComponentsChecked}
         empty={isEmpty}
