@@ -79,6 +79,8 @@ class ModelServingGlobal {
 }
 
 class InferenceServiceModal extends Modal {
+  k8sNameDescription = new K8sNameDescriptionField('inference-service');
+
   constructor(private edit = false) {
     super(`${edit ? 'Edit' : 'Deploy'} model`);
   }
@@ -88,7 +90,7 @@ class InferenceServiceModal extends Modal {
   }
 
   findModelNameInput() {
-    return this.find().findByTestId('inference-service-name-input');
+    return this.k8sNameDescription.findDisplayNameInput();
   }
 
   findServingRuntimeSelect() {

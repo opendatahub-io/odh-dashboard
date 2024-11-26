@@ -25,7 +25,7 @@ import { DEFAULT_MODEL_SERVER_SIZES } from '~/pages/modelServing/screens/const';
 import { useAppContext } from '~/app/AppContext';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
-import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
 import {
   getInferenceServiceSize,
@@ -429,8 +429,9 @@ const createInferenceServiceAndDataConnection = async (
 
 export const getSubmitInferenceServiceResourceFn = (
   createData: CreatingInferenceServiceObject,
-  editInfo?: InferenceServiceKind,
-  servingRuntimeName?: string,
+  editInfo: InferenceServiceKind | undefined,
+  servingRuntimeName: string,
+  inferenceServiceName: string,
   isModelMesh?: boolean,
   initialAcceleratorProfile?: AcceleratorProfileState,
   selectedAcceleratorProfile?: AcceleratorProfileFormData,
@@ -441,9 +442,7 @@ export const getSubmitInferenceServiceResourceFn = (
 ): ((opts: { dryRun?: boolean }) => Promise<void>) => {
   const inferenceServiceData = {
     ...createData,
-    ...(servingRuntimeName !== undefined && {
-      servingRuntimeName: translateDisplayNameForK8s(servingRuntimeName),
-    }),
+    servingRuntimeName,
     ...{
       storage: {
         ...createData.storage,
@@ -453,7 +452,6 @@ export const getSubmitInferenceServiceResourceFn = (
   };
 
   const createTokenAuth = createData.tokenAuth && !!allowCreate;
-  const inferenceServiceName = translateDisplayNameForK8s(inferenceServiceData.name);
 
   return ({ dryRun = false }) =>
     createInferenceServiceAndDataConnection(
