@@ -10,9 +10,7 @@ describe('Verify RHODS Explore Section Contains Only Expected ISVs', () => {
   before(() => {
     // Setup: Retrieve the names of OdhApplication resources in the specified namespace.
     getOcResourceNames(applicationNamespace, 'OdhApplication').then((metadataNames) => {
-      // Filter out the 'rhoai' card from the expected ISVs which displays in RHOAI
       expectedISVs = metadataNames.filter((isv) => isv);
-      //TODO:
       cy.log(
         `Expected ISVs which should display as Cards in Explore Section: ${expectedISVs.join(
           ', ',
