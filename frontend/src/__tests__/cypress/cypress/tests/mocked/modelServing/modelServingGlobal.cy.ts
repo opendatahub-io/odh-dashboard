@@ -415,7 +415,7 @@ describe('Model Serving Global', () => {
           predictor: {
             model: {
               modelFormat: { name: 'onnx', version: '1' },
-              runtime: 'test-model',
+              runtime: 'test-name',
               storage: { key: 'test-secret', path: 'test-model/' },
               args: [],
               env: [],
@@ -480,7 +480,7 @@ describe('Model Serving Global', () => {
           predictor: {
             model: {
               modelFormat: { name: 'onnx', version: '1' },
-              runtime: 'test-model',
+              runtime: 'trigger-error',
               storage: { key: 'test-secret', path: 'test-model/test-model/' },
               args: [],
               env: [],
