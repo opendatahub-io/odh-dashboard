@@ -58,7 +58,7 @@ const ProjectDetails: React.FC = () => {
     <ApplicationsPage
       title={
         <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-          <HeaderIcon type={ProjectObjectType.projectContext} sectionType={SectionType.organize} />
+          <HeaderIcon type={ProjectObjectType.projectContext} sectionType={SectionType.general} />
           <FlexItem>
             <ResourceNameTooltip resource={currentProject} wrap={false}>
               {displayName}
