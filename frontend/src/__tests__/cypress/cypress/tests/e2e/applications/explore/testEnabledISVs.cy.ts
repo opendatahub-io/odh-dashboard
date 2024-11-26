@@ -11,12 +11,17 @@ describe('Verify RHODS Explore Section Contains Only Expected ISVs', () => {
     // Setup: Retrieve the names of OdhApplication resources in the specified namespace.
     getOcResourceNames(applicationNamespace, 'OdhApplication').then((metadataNames) => {
       // Filter out the 'rhoai' card from the expected ISVs which displays in RHOAI
-      expectedISVs = metadataNames.filter((isv) => isv !== 'rhoai');
-      cy.log(`Expected ISVs (excluding 'rhoai'): ${expectedISVs.join(', ')}`);
+      expectedISVs = metadataNames.filter((isv) => isv);
+      //TODO:
+      cy.log(
+        `Expected ISVs which should display as Cards in Explore Section: ${expectedISVs.join(
+          ', ',
+        )}`,
+      );
     });
   });
 
-  it('Validate that default ISVs display in the Explore Section', () => {
+  it('Validate that configured ISVs display in the Explore Section', () => {
     // Authentication and navigation
     cy.step('Login to the application');
     cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -25,7 +30,9 @@ describe('Verify RHODS Explore Section Contains Only Expected ISVs', () => {
     cy.step('Navigate to the Explore page');
     explorePage.visit();
 
-    cy.step('Searching for each ISV based on the oc command output');
+    cy.step(
+      'Searching for each ISV based on the oc command output - 🐛 RHOAIENG-16226 will fail this issue in RHOAI',
+    );
     expectedISVs.forEach((isv) => {
       explorePage
         .findCardLocator(isv)
