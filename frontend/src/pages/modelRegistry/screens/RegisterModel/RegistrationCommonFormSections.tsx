@@ -15,7 +15,11 @@ import {
 } from '@patternfly/react-core';
 import { OptimizeIcon } from '@patternfly/react-icons';
 import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
-import { DataConnection, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
+import {
+  DataConnection,
+  DataConnectionType,
+  UpdateObjectAtPropAndValue,
+} from '~/pages/projects/types';
 import { convertAWSSecretData } from '~/pages/projects/screens/detail/data-connections/utils';
 import FormSection from '~/components/pf-overrides/FormSection';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
@@ -23,6 +27,8 @@ import { ModelLocationType, RegistrationCommonFormData } from './useRegisterMode
 import { ConnectionModal } from './ConnectionModal';
 import { MR_CHARACTER_LIMIT } from './const';
 import { isNameValid } from './utils';
+import { Connection } from '~/concepts/connectionTypes/types';
+import DataConnectionField from '~/pages/projects/screens/spawner/dataConnection/DataConnectionField';
 
 type RegistrationCommonFormSectionsProps<D extends RegistrationCommonFormData> = {
   formData: D;
@@ -56,6 +62,10 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
     convertAWSSecretData(connection).forEach((dataItem) => {
       setData(connectionDataMap[dataItem.key], dataItem.value);
     });
+  };
+
+  const fillURIByConnection = (connection: Connection) => {
+    setData('modelLocationURI', connection?.data?.URI);
   };
 
   const {
@@ -227,35 +237,57 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
             </FormGroup>
           </>
         )}
-        <Radio
-          isChecked={modelLocationType === ModelLocationType.URI}
-          name="location-type-uri"
-          onChange={() => {
-            setData('modelLocationType', ModelLocationType.URI);
-          }}
-          label="URI"
-          id="location-type-uri"
-          body={
-            modelLocationType === ModelLocationType.URI && (
-              <FormGroup label="URI" isRequired fieldId="location-uri">
-                <TextInput
-                  isRequired
-                  type="text"
-                  id="location-uri"
-                  name="location-uri"
-                  value={modelLocationURI}
-                  onChange={(_e, value) => setData('modelLocationURI', value)}
-                />
-              </FormGroup>
-            )
-          }
-        />
+        <Split>
+          <SplitItem isFilled>
+            <Radio
+              isChecked={modelLocationType === ModelLocationType.URI}
+              name="location-type-uri"
+              onChange={() => {
+                setData('modelLocationType', ModelLocationType.URI);
+              }}
+              label="URI"
+              id="location-type-uri"
+              body={
+                modelLocationType === ModelLocationType.URI && (
+                  <FormGroup label="URI" isRequired fieldId="location-uri">
+                    <TextInput
+                      isRequired
+                      type="text"
+                      id="location-uri"
+                      name="location-uri"
+                      value={modelLocationURI}
+                      onChange={(_e, value) => setData('modelLocationURI', value)}
+                    />
+                  </FormGroup>
+                )
+              }
+            />
+          </SplitItem>
+          {modelLocationType === ModelLocationType.URI && (
+            <SplitItem>
+              <Button
+                data-testid="uri-autofill-button"
+                variant="link"
+                isInline
+                icon={<OptimizeIcon />}
+                onClick={() => setAutofillModalOpen(true)}
+              >
+                Autofill from data connection
+              </Button>
+            </SplitItem>
+          )}
+        </Split>
       </FormSection>
       {isAutofillModalOpen ? (
         <ConnectionModal
+          type={modelLocationType}
           onClose={() => setAutofillModalOpen(false)}
           onSubmit={(connection) => {
-            fillObjectStorageByConnection(connection);
+            if (modelLocationType === ModelLocationType.ObjectStorage) {
+              fillObjectStorageByConnection(connection);
+            } else {
+              fillURIByConnection(connection);
+            }
             setAutofillModalOpen(false);
           }}
         />
