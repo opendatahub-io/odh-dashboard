@@ -1,4 +1,4 @@
-import { StackItem, FormGroup, Switch, Popover } from '@patternfly/react-core';
+import { FormGroup, Switch, Popover } from '@patternfly/react-core';
 import React from 'react';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { useSearchParams } from 'react-router-dom';
@@ -25,36 +25,32 @@ export const ManageAcceleratorProfileDetailsSection: React.FC<
 
   return (
     <>
-      <StackItem>
-        <FormGroup
-          label="Identifier"
-          isRequired
-          labelIcon={
-            <Popover bodyContent="An identifier is a unique string that names a specific hardware accelerator resource.">
-              <DashboardPopupIconButton
-                icon={<OutlinedQuestionCircleIcon />}
-                aria-label="More info for identifier field"
-              />
-            </Popover>
-          }
-        >
-          <IdentifierSelectField
-            value={state.identifier}
-            onChange={(identifier) => setState('identifier', identifier)}
-            identifierOptions={acceleratorIdentifiers}
-          />
-        </FormGroup>
-      </StackItem>
-      <StackItem>
-        <FormGroup label="Enabled">
-          <Switch
-            id="accelerator-enabled"
-            isChecked={state.enabled}
-            onChange={(_, enabled) => setState('enabled', enabled)}
-            aria-label="Enabled"
-          />
-        </FormGroup>
-      </StackItem>
+      <FormGroup
+        label="Identifier"
+        isRequired
+        labelIcon={
+          <Popover bodyContent="An identifier is a unique string that names a specific hardware accelerator resource.">
+            <DashboardPopupIconButton
+              icon={<OutlinedQuestionCircleIcon />}
+              aria-label="More info for identifier field"
+            />
+          </Popover>
+        }
+      >
+        <IdentifierSelectField
+          value={state.identifier}
+          onChange={(identifier) => setState('identifier', identifier)}
+          identifierOptions={acceleratorIdentifiers}
+        />
+      </FormGroup>
+      <FormGroup label="Enabled">
+        <Switch
+          id="accelerator-enabled"
+          isChecked={state.enabled}
+          onChange={(_, enabled) => setState('enabled', enabled)}
+          aria-label="Enabled"
+        />
+      </FormGroup>
     </>
   );
 };
