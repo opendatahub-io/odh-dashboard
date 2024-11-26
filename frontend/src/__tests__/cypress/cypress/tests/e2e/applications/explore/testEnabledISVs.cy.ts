@@ -12,7 +12,7 @@ describe('Verify RHODS Explore Section Contains Only Configured ISVs', () => {
     getOcResourceNames(applicationNamespace, 'OdhApplication').then((metadataNames) => {
       expectedISVs = metadataNames.filter((isv) => isv);
       cy.log(
-        `Expected ISVs which should display as Cards in Explore Section: ${expectedISVs.join(
+        `Configured ISVs which should display as Cards in Explore Section: ${expectedISVs.join(
           ', ',
         )}`,
       );
