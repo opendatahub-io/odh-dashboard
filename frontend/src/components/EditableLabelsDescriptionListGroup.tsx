@@ -41,11 +41,10 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
 
     if (duplicateLabels.length > 0) {
       if (duplicateLabels.length === 1) {
-        errors.push(
-          `**${duplicateLabels[0]}** already exists as a label. Ensure that each label is unique.`,
-        );
+        const label = duplicateLabels[0] ?? '';
+        errors.push(`**${label}** already exists as a label. Ensure that each label is unique.`);
       } else {
-        const lastLabel = duplicateLabels.pop();
+        const lastLabel = duplicateLabels.pop() ?? '';
         const formattedLabels = duplicateLabels.map((label) => `**${label}**`).join(', ');
         errors.push(
           `${formattedLabels} and **${lastLabel}** already exist as labels. Ensure that each label is unique.`,
