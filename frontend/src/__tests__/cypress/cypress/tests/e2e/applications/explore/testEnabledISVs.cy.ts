@@ -4,7 +4,7 @@ import { getOcResourceNames } from '~/__tests__/cypress/cypress/utils/oc_command
 
 const applicationNamespace = Cypress.env('TEST_NAMESPACE');
 
-describe('Verify RHODS Explore Section Contains Only Expected ISVs', () => {
+describe('Verify RHODS Explore Section Contains Only Configured ISVs', () => {
   let expectedISVs: string[];
 
   before(() => {
