@@ -50,6 +50,7 @@ import {
 import { useDashboardNamespace } from '~/redux/selectors';
 import { getServingRuntimeFromTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
 import { useNIMPVC } from '~/pages/modelServing/screens/projects/NIMServiceModal/useNIMPVC';
+import AuthServingRuntimeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
 const NIM_NGC_SECRET_NAME = 'ngc-secret';
@@ -370,6 +371,14 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
             setSelectedAcceleratorProfile={setSelectedAcceleratorProfile}
             infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
           />
+          {isAuthorinoEnabled && (
+            <AuthServingRuntimeSection
+              data={createDataInferenceService}
+              setData={setCreateDataInferenceService}
+              allowCreate={allowCreate}
+              publicRoute
+            />
+          )}
         </Stack>
       </Form>
     </Modal>

@@ -131,11 +131,21 @@ export const pipelineRunsBaseRoute = (namespace?: string): string =>
 export const globalPipelineRunsRoute = (namespace: string | undefined): string =>
   `${pipelineRunsBaseRoute(namespace)}/runs`;
 
+export const globalPipelineRunsVersionRoute = (
+  namespace: string | undefined,
+  pipelineVersionId: string,
+): string => `${globalPipelineRunsRoute(namespace)}/active?pipeline_version=${pipelineVersionId}`;
+
 export const globalArchivedPipelineRunsRoute = (namespace: string | undefined): string =>
   `${globalPipelineRunsRoute(namespace)}/archived`;
 
 export const globalPipelineRecurringRunsRoute = (namespace: string | undefined): string =>
   `${pipelineRunsBaseRoute(namespace)}/schedules`;
+
+export const globalPipelineRecurringRunsVersionRoute = (
+  namespace: string | undefined,
+  pipelineVersionId: string,
+): string => `${globalPipelineRecurringRunsRoute(namespace)}?pipeline_version=${pipelineVersionId}`;
 
 export const globalPipelineRunDetailsRoute = (namespace: string, runId: string): string =>
   `${globalPipelineRunsRoute(namespace)}/${runId}`;
