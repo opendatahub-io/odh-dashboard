@@ -22,6 +22,7 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSavingEdits, setIsSavingEdits] = useState(false);
+  const [hasSavedEdits, setHasSavedEdits] = useState(false);
   const [unsavedLabels, setUnsavedLabels] = useState(labels);
 
   const validateLabels = (): string[] => {
@@ -222,6 +223,7 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
         try {
           await onLabelsChange(unsavedLabels);
         } finally {
+          setHasSavedEdits(true);
           setIsSavingEdits(false);
           setIsEditing(false);
         }
@@ -231,7 +233,11 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
         setIsEditing(false);
       }}
     >
-      <LabelGroup data-testid="display-label-group">
+      <LabelGroup
+        data-testid="display-label-group"
+        defaultIsOpen={hasSavedEdits}
+        key={String(hasSavedEdits)} // Force this to fully remount when we change defaultIsOpen
+      >
         {labels.map((label) => (
           <Label key={label} color="blue" data-testid="label">
             {label}
