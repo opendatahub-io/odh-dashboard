@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Label, LabelGroup, Alert, AlertVariant, Button } from '@patternfly/react-core';
+import { Label, LabelGroup, Alert, AlertVariant } from '@patternfly/react-core';
+import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
 import DashboardDescriptionListGroup from './DashboardDescriptionListGroup';
 
 interface EditableLabelsProps {
@@ -23,11 +24,11 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
   const [isSavingEdits, setIsSavingEdits] = useState(false);
   const [unsavedLabels, setUnsavedLabels] = useState(labels);
 
-  const validateLabels = (labelsList: string[]): string[] => {
+  const validateLabels = (): string[] => {
     const errors: string[] = [];
 
     const duplicatesMap = new Map<string, number>();
-    labelsList.forEach((label) => {
+    unsavedLabels.forEach((label) => {
       duplicatesMap.set(label, (duplicatesMap.get(label) || 0) + 1);
     });
 
@@ -41,21 +42,20 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
     if (duplicateLabels.length > 0) {
       if (duplicateLabels.length === 1) {
         errors.push(
-          `**${duplicateLabels[0]}** already exists. Ensure that each label is unique and does not match any existing property key.`,
+          `**${duplicateLabels[0]}** already exists as a label. Ensure that each label is unique.`,
         );
       } else {
         const lastLabel = duplicateLabels.pop();
         const formattedLabels = duplicateLabels.map((label) => `**${label}**`).join(', ');
         errors.push(
-          `${formattedLabels} and **${lastLabel}** already exist. Ensure that each label is unique and does not match any existing property key.`,
+          `${formattedLabels} and **${lastLabel}** already exist as labels. Ensure that each label is unique.`,
         );
       }
     }
-
-    labelsList.forEach((label) => {
-      if (!labelsList.includes(label) && allExistingKeys.includes(label)) {
+    unsavedLabels.forEach((label) => {
+      if (allExistingKeys.includes(label) && !labels.includes(label)) {
         errors.push(
-          `**${label}** already exists. Use a unique name that doesn't match any existing key or property`,
+          `**${label}** already exists as a property key. Labels cannot use the same name as existing properties.`,
         );
       }
       if (label.length > 63) {
@@ -110,11 +110,13 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
       counter++;
     }
 
-    setUnsavedLabels((prev) => [...prev, newLabel]);
+    setUnsavedLabels((prev) => {
+      const updated = [...prev, newLabel];
+      return updated;
+    });
   };
 
-  const labelErrors = validateLabels(unsavedLabels);
-
+  const labelErrors = validateLabels();
   const shouldBeRed = (label: string, index: number): boolean => {
     const firstIndex = unsavedLabels.findIndex((l) => l === label);
 
@@ -122,9 +124,11 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
       return true;
     }
 
-    return labelErrors.some(
-      (error) => error.includes(`"${label}"`) && !error.includes('appears multiple times'),
-    );
+    if (allExistingKeys.includes(label) && !labels.includes(label)) {
+      return true;
+    }
+
+    return false;
   };
 
   // Add a ref for the alert
@@ -148,6 +152,19 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
             numLabels={10}
             expandedText="Show Less"
             collapsedText="Show More"
+            addLabelControl={
+              !isSavingEdits ? (
+                <Label
+                  variant="outline"
+                  color="blue"
+                  isOverflowLabel
+                  onClick={addNewLabel}
+                  data-testid="add-label-button"
+                >
+                  Add label
+                </Label>
+              ) : undefined
+            }
           >
             {unsavedLabels.map((label, index) => (
               <Label
@@ -170,20 +187,6 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
                 {label}
               </Label>
             ))}
-            <Button
-              data-testid="add-label-button"
-              variant="plain"
-              className="pf-v5-c-label pf-m-outline"
-              onClick={addNewLabel}
-              isDisabled={isSavingEdits}
-              style={{
-                border: '2px solid #d2d2d2',
-                color: '#0066CC',
-                backgroundColor: 'transparent',
-              }}
-            >
-              Add label
-            </Button>
           </LabelGroup>
           {labelErrors.length > 0 && (
             <Alert
@@ -195,7 +198,7 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
               aria-live="polite"
               isPlain
               tabIndex={-1}
-              style={{ marginTop: '16px' }}
+              className={spacing.mtMd}
             >
               <ul>
                 {labelErrors.map((error, index) => (

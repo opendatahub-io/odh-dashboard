@@ -338,25 +338,76 @@ describe('Model version details', () => {
       modelVersionDetails.findEditLabelsButton().click();
 
       modelVersionDetails.findAddLabelButton().click();
+      cy.findByTestId('editable-label-group')
+        .should('exist')
+        .within(() => {
+          cy.contains('New Label').should('exist').click();
+          cy.focused().type('First Label{enter}');
+        });
 
-      modelVersionDetails.findLabel('New Label').should('exist');
+      modelVersionDetails.findAddLabelButton().click();
+      cy.findByTestId('editable-label-group')
+        .should('exist')
+        .within(() => {
+          cy.contains('New Label').should('exist').click();
+          cy.focused().type('Second Label{enter}');
+        });
 
-      modelVersionDetails.findLabel('New Label').click().type('Updated Label{enter}');
+      cy.findByTestId('editable-label-group').within(() => {
+        cy.contains('First Label').should('exist').click();
+        cy.focused().type('Updated First Label{enter}');
+      });
+
+      cy.findByTestId('editable-label-group').within(() => {
+        cy.contains('Second Label').parent().find('[data-testid^="remove-label-"]').click();
+      });
 
       modelVersionDetails.findSaveLabelsButton().should('exist').click();
     });
 
-    it('should handle label validation', () => {
+    it('should validate label length', () => {
       modelVersionDetails.findEditLabelsButton().click();
 
-      modelVersionDetails.findLabelInput('Testing label').click();
-
-      modelVersionDetails.findLabelInput('Testing label').should('exist').should('be.visible');
-
       const longLabel = 'a'.repeat(64);
-      modelVersionDetails.findLabelInput('Testing label').clear().type(`${longLabel}{enter}`);
-      modelVersionDetails.findLabelErrorAlert().should('contain', "can't exceed 63 characters");
-      modelVersionDetails.findLabel('New Label').should('not.exist');
+      modelVersionDetails.findAddLabelButton().click();
+      cy.findByTestId('editable-label-group')
+        .should('exist')
+        .within(() => {
+          cy.contains('New Label').should('exist').click();
+          cy.focused().type(`${longLabel}{enter}`);
+        });
+
+      cy.findByTestId('label-error-alert')
+        .should('be.visible')
+        .within(() => {
+          cy.contains(`can't exceed 63 characters`).should('exist');
+        });
+    });
+
+    it('should validate duplicate labels', () => {
+      modelVersionDetails.findEditLabelsButton().click();
+
+      modelVersionDetails.findAddLabelButton().click();
+      cy.findByTestId('editable-label-group')
+        .should('exist')
+        .within(() => {
+          cy.get('[data-testid^="editable-label-"]').last().click();
+          cy.focused().type('{selectall}{backspace}Testing label{enter}');
+        });
+
+      modelVersionDetails.findAddLabelButton().click();
+      cy.findByTestId('editable-label-group')
+        .should('exist')
+        .within(() => {
+          cy.get('[data-testid^="editable-label-"]').last().click();
+          cy.focused().type('{selectall}{backspace}Testing label{enter}');
+        });
+
+      cy.findByTestId('label-error-alert')
+        .should('be.visible')
+        .within(() => {
+          cy.contains('Testing label already exists').should('exist');
+        });
     });
   });
 
