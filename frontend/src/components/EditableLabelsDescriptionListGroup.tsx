@@ -148,9 +148,7 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
           <LabelGroup
             data-testid="editable-label-group"
             isEditable={!isSavingEdits}
-            numLabels={10}
-            expandedText="Show Less"
-            collapsedText="Show More"
+            numLabels={unsavedLabels.length}
             addLabelControl={
               !isSavingEdits ? (
                 <Label
