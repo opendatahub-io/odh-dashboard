@@ -190,6 +190,27 @@ class NotebookRow extends TableRow {
   }
 }
 
+class AttachExistingStorageModal extends Modal {
+  constructor() {
+    super('Attach Existing Storage');
+  }
+
+  selectExistingPersistentStorage(name: string) {
+    cy.findByTestId('persistent-storage-group')
+      .findByPlaceholderText('Select a persistent storage')
+      .click();
+    cy.findByTestId('persistent-storage-group').contains('button.pf-v5-c-menu__item', name).click();
+  }
+
+  findStandardPathInput() {
+    return cy.findByTestId('mount-path-folder-value');
+  }
+
+  findAttachButton() {
+    return cy.findByTestId('modal-submit-button');
+  }
+}
+
 class AttachConnectionModal extends Modal {
   constructor() {
     super('Attach existing connections');
@@ -263,15 +284,8 @@ class CreateSpawnerPage {
     return cy.findByTestId('value-unit-select');
   }
 
-  findExsistingPersistentStorageRadio() {
-    return cy.findByTestId('persistent-existing-storage-type-radio');
-  }
-
-  selectExistingPersistentStorage(name: string) {
-    cy.findByTestId('persistent-storage-group')
-      .findByRole('button', { name: 'Typeahead menu toggle' })
-      .click();
-    cy.get('[id="dashboard-page-main"]').contains('button.pf-v5-c-menu__item', name).click();
+  findAttachExistingStorageButton() {
+    return cy.findByTestId('existing-storage-button');
   }
 
   selectPVSize(name: string) {
@@ -451,3 +465,4 @@ export const editSpawnerPage = new EditSpawnerPage();
 export const storageModal = new StorageModal();
 export const notFoundSpawnerPage = new NotFoundSpawnerPage();
 export const attachConnectionModal = new AttachConnectionModal();
+export const attachExistingStorageModal = new AttachExistingStorageModal();
