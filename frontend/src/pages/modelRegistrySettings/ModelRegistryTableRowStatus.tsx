@@ -73,6 +73,13 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
       icon = <ExclamationTriangleIcon />;
       color = 'gold';
     }
+    // Degrading
+    else if (degradedCondition?.status === ConditionStatus.True) {
+      statusLabel = ModelRegistryStatusLabel.Degrading;
+      icon = <InProgressIcon className="odh-u-spin" />;
+      color = 'grey';
+      popoverTitle = 'Service is degrading';
+    }
     // Available
     else if (availableCondition?.status === ConditionStatus.True) {
       statusLabel = ModelRegistryStatusLabel.Available;
@@ -84,13 +91,6 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
       statusLabel = ModelRegistryStatusLabel.Progressing;
       icon = <InProgressIcon className="odh-u-spin" />;
       color = 'blue';
-    }
-    // Degrading
-    else if (degradedCondition?.status === ConditionStatus.True) {
-      statusLabel = ModelRegistryStatusLabel.Degrading;
-      icon = <InProgressIcon className="odh-u-spin" />;
-      color = 'grey';
-      popoverTitle = 'Service is degrading';
     }
   }
   // Handle popover logic for Unavailable status
