@@ -22,7 +22,13 @@ import {
   SecretModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mockSuccessGoogleRpcStatus } from '~/__mocks__/mockGoogleRpcStatusKF';
-import { buildMockPipeline, buildMockPipelineVersion, buildMockRecurringRunKF } from '~/__mocks__';
+import {
+  buildMockPipeline,
+  buildMockPipelines,
+  buildMockPipelineVersion,
+  buildMockPipelineVersions,
+  buildMockRecurringRunKF,
+} from '~/__mocks__';
 
 const initIntercepts = () => {
   cy.interceptOdh(
@@ -78,252 +84,234 @@ const initIntercepts = () => {
   cy.interceptK8sList(NotebookModel, mockK8sResourceList([mockNotebookK8sResource({})]));
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
   cy.interceptOdh(
-    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId',
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines',
     {
       path: {
         namespace: 'test-project',
         serviceName: 'dspa',
-        pipelineId: 'pipeline_id',
       },
     },
-    buildMockPipeline({
-      pipeline_id: 'pipeline-id',
-    }),
+    buildMockPipelines([
+      buildMockPipeline({
+        pipeline_id: 'pipeline-id',
+      }),
+    ]),
   );
   cy.interceptOdh(
-    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId',
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
     {
       path: {
         namespace: 'test-project',
         serviceName: 'dspa',
         pipelineId: 'pipeline_id',
-        pipelineVersionId: 'version_id',
       },
     },
-    buildMockPipelineVersion({
-      pipeline_id: 'pipeline_id',
-      pipeline_version_id: 'version_id',
-    }),
+    buildMockPipelineVersions([
+      buildMockPipelineVersion({
+        pipeline_id: 'pipeline_id',
+        pipeline_version_id: 'version_id',
+      }),
+    ]),
   );
 };
 
-describe('Pipeline runs', () => {
-  describe('Test deleting runs', () => {
-    it('Test delete a single schedule', () => {
-      initIntercepts();
+describe('Test deleting runs', () => {
+  beforeEach(() => {
+    initIntercepts();
+    pipelineRunsGlobal.visit('test-project');
+    pipelineRunsGlobal.isApiAvailable();
+  });
 
-      pipelineRunsGlobal.visit('test-project', 'pipeline_id', 'version_id');
-      pipelineRunsGlobal.isApiAvailable();
+  it('Test delete a single schedule', () => {
+    pipelineRunsGlobal.findSchedulesTab().click();
+    pipelineRecurringRunTable.getRowByName('test-pipeline').findKebabAction('Delete').click();
 
-      pipelineRunsGlobal.findSchedulesTab().click();
-      pipelineRecurringRunTable.getRowByName('test-pipeline').findKebabAction('Delete').click();
+    schedulesDeleteModal.shouldBeOpen();
+    schedulesDeleteModal.findSubmitButton().should('be.disabled');
+    schedulesDeleteModal.findInput().type('test-pipeline');
+    schedulesDeleteModal.findSubmitButton().should('be.enabled');
+    cy.interceptOdh(
+      'DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
+      {
+        path: { namespace: 'test-project', serviceName: 'dspa', recurringRunId: 'test-pipeline' },
+      },
+      mockSuccessGoogleRpcStatus({}),
+    ).as('deleteRecurringRunPipeline');
 
-      schedulesDeleteModal.shouldBeOpen();
-      schedulesDeleteModal.findSubmitButton().should('be.disabled');
-      schedulesDeleteModal.findInput().type('test-pipeline');
-      schedulesDeleteModal.findSubmitButton().should('be.enabled');
-      cy.interceptOdh(
-        'DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
-        {
-          path: { namespace: 'test-project', serviceName: 'dspa', recurringRunId: 'test-pipeline' },
+    cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
+      {
+        path: { namespace: 'test-project', serviceName: 'dspa' },
+      },
+      {
+        recurringRuns: [
+          buildMockRecurringRunKF({
+            recurring_run_id: 'other-pipeline',
+            display_name: 'other-pipeline',
+          }),
+        ],
+      },
+    ).as('getRuns');
+
+    schedulesDeleteModal.findSubmitButton().click();
+
+    cy.wait('@deleteRecurringRunPipeline');
+
+    cy.wait('@getRuns').then((interception) => {
+      expect(interception.request.query).to.eql({
+        sort_by: 'created_at desc',
+        page_size: '10',
+        filter: encodeURIComponent('{"predicates":[]}'),
+      });
+
+      pipelineRecurringRunTable.findEmptyState().should('not.exist');
+    });
+  });
+
+  it('Test delete multiple schedules', () => {
+    pipelineRunsGlobal.findSchedulesTab().click();
+    pipelineRecurringRunTable.getRowByName('test-pipeline').findCheckbox().click();
+    pipelineRecurringRunTable.getRowByName('other-pipeline').findCheckbox().click();
+
+    pipelineRecurringRunTable.findActionsKebab().findDropdownItem('Delete').click();
+
+    schedulesDeleteModal.shouldBeOpen();
+    schedulesDeleteModal.findSubmitButton().should('be.disabled');
+    schedulesDeleteModal.findInput().type('Delete 2 schedules');
+    schedulesDeleteModal.findSubmitButton().should('be.enabled');
+    cy.interceptOdh(
+      'DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
+      {
+        path: { namespace: 'test-project', serviceName: 'dspa', recurringRunId: 'test-pipeline' },
+      },
+      mockSuccessGoogleRpcStatus({}),
+    ).as('deleteRecurringRunPipeline-1');
+
+    cy.interceptOdh(
+      'DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
+      {
+        path: {
+          namespace: 'test-project',
+          serviceName: 'dspa',
+          recurringRunId: 'other-pipeline',
         },
-        mockSuccessGoogleRpcStatus({}),
-      ).as('deleteRecurringRunPipeline');
+      },
+      mockSuccessGoogleRpcStatus({}),
+    ).as('deleteRecurringRunPipeline-2');
 
-      cy.interceptOdh(
-        'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
-        {
-          path: { namespace: 'test-project', serviceName: 'dspa' },
-        },
-        {
-          recurringRuns: [
-            buildMockRecurringRunKF({
-              recurring_run_id: 'other-pipeline',
-              display_name: 'other-pipeline',
-            }),
-          ],
-        },
-      ).as('getRuns');
+    cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
+      {
+        path: { namespace: 'test-project', serviceName: 'dspa' },
+      },
+      { recurringRuns: [] },
+    ).as('getRuns');
 
-      schedulesDeleteModal.findSubmitButton().click();
+    schedulesDeleteModal.findSubmitButton().click();
 
-      cy.wait('@deleteRecurringRunPipeline');
+    cy.wait('@deleteRecurringRunPipeline-1');
+    cy.wait('@deleteRecurringRunPipeline-2');
 
-      cy.wait('@getRuns').then((interception) => {
-        expect(interception.request.query).to.eql({
-          sort_by: 'created_at desc',
-          page_size: '10',
-          filter: encodeURIComponent(
-            '{"predicates":[{"key":"pipeline_version_id","operation":"EQUALS","string_value":"version_id"}]}',
-          ),
-        });
-
-        pipelineRecurringRunTable.findEmptyState().should('not.exist');
+    cy.wait('@getRuns').then((interception) => {
+      expect(interception.request.query).to.eql({
+        sort_by: 'created_at desc',
+        page_size: '10',
+        filter: encodeURIComponent('{"predicates":[]}'),
       });
     });
+    pipelineRecurringRunTable.findEmptyState().should('exist');
+  });
 
-    it('Test delete multiple schedules', () => {
-      initIntercepts();
+  it('Test delete a single archived run', () => {
+    pipelineRunsGlobal.findArchivedRunsTab().click();
+    archivedRunsTable.getRowByName('test-pipeline').findKebabAction('Delete').click();
 
-      pipelineRunsGlobal.visit('test-project', 'pipeline_id', 'version_id');
-      pipelineRunsGlobal.isApiAvailable();
+    runsDeleteModal.shouldBeOpen();
+    runsDeleteModal.findSubmitButton().should('be.disabled');
+    runsDeleteModal.findInput().type('test-pipeline');
+    runsDeleteModal.findSubmitButton().should('be.enabled');
 
-      pipelineRunsGlobal.findSchedulesTab().click();
-      pipelineRecurringRunTable.getRowByName('test-pipeline').findCheckbox().click();
-      pipelineRecurringRunTable.getRowByName('other-pipeline').findCheckbox().click();
+    cy.interceptOdh(
+      'DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
+      {
+        path: { namespace: 'test-project', serviceName: 'dspa', runId: 'test-pipeline' },
+      },
+      mockSuccessGoogleRpcStatus({}),
+    ).as('deleteRunPipeline');
 
-      pipelineRecurringRunTable.findActionsKebab().findDropdownItem('Delete').click();
+    cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs',
+      {
+        path: { namespace: 'test-project', serviceName: 'dspa' },
+      },
+      { runs: [buildMockRunKF({ run_id: 'other-pipeline', display_name: 'other-pipeline' })] },
+    ).as('getRuns');
 
-      schedulesDeleteModal.shouldBeOpen();
-      schedulesDeleteModal.findSubmitButton().should('be.disabled');
-      schedulesDeleteModal.findInput().type('Delete 2 schedules');
-      schedulesDeleteModal.findSubmitButton().should('be.enabled');
-      cy.interceptOdh(
-        'DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
-        {
-          path: { namespace: 'test-project', serviceName: 'dspa', recurringRunId: 'test-pipeline' },
-        },
-        mockSuccessGoogleRpcStatus({}),
-      ).as('deleteRecurringRunPipeline-1');
+    runsDeleteModal.findSubmitButton().click();
 
-      cy.interceptOdh(
-        'DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
-        {
-          path: {
-            namespace: 'test-project',
-            serviceName: 'dspa',
-            recurringRunId: 'other-pipeline',
-          },
-        },
-        mockSuccessGoogleRpcStatus({}),
-      ).as('deleteRecurringRunPipeline-2');
+    cy.wait('@deleteRunPipeline');
 
-      cy.interceptOdh(
-        'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',
-        {
-          path: { namespace: 'test-project', serviceName: 'dspa' },
-        },
-        { recurringRuns: [] },
-      ).as('getRuns');
-
-      schedulesDeleteModal.findSubmitButton().click();
-
-      cy.wait('@deleteRecurringRunPipeline-1');
-      cy.wait('@deleteRecurringRunPipeline-2');
-
-      cy.wait('@getRuns').then((interception) => {
-        expect(interception.request.query).to.eql({
-          sort_by: 'created_at desc',
-          page_size: '10',
-          filter: encodeURIComponent(
-            '{"predicates":[{"key":"pipeline_version_id","operation":"EQUALS","string_value":"version_id"}]}',
-          ),
-        });
+    cy.wait('@getRuns').then((interception) => {
+      expect(interception.request.query).to.eql({
+        sort_by: 'created_at desc',
+        page_size: '10',
+        filter: encodeURIComponent(
+          '{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"ARCHIVED"}]}',
+        ),
       });
-      pipelineRecurringRunTable.findEmptyState().should('exist');
     });
+    archivedRunsTable.findEmptyState().should('not.exist');
+  });
 
-    it('Test delete a single archived run', () => {
-      initIntercepts();
+  it('Test delete multiple archived runs', () => {
+    pipelineRunsGlobal.findArchivedRunsTab().click();
+    archivedRunsTable.getRowByName('test-pipeline').findCheckbox().click();
+    archivedRunsTable.getRowByName('other-pipeline').findCheckbox().click();
 
-      pipelineRunsGlobal.visit('test-project', 'pipeline_id', 'version_id');
-      pipelineRunsGlobal.isApiAvailable();
+    archivedRunsTable.findActionsKebab().findDropdownItem('Delete').click();
 
-      pipelineRunsGlobal.findArchivedRunsTab().click();
-      archivedRunsTable.getRowByName('test-pipeline').findKebabAction('Delete').click();
+    runsDeleteModal.shouldBeOpen();
+    runsDeleteModal.findSubmitButton().should('be.disabled');
+    runsDeleteModal.findInput().type('Delete 2 runs');
+    runsDeleteModal.findSubmitButton().should('be.enabled');
+    cy.interceptOdh(
+      'DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
+      {
+        path: { namespace: 'test-project', serviceName: 'dspa', runId: 'test-pipeline' },
+      },
+      mockSuccessGoogleRpcStatus({}),
+    ).as('deleteRunPipeline-1');
 
-      runsDeleteModal.shouldBeOpen();
-      runsDeleteModal.findSubmitButton().should('be.disabled');
-      runsDeleteModal.findInput().type('test-pipeline');
-      runsDeleteModal.findSubmitButton().should('be.enabled');
+    cy.interceptOdh(
+      'DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
+      {
+        path: { namespace: 'test-project', serviceName: 'dspa', runId: 'other-pipeline' },
+      },
+      mockSuccessGoogleRpcStatus({}),
+    ).as('deleteRunPipeline-2');
+    cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs',
+      {
+        path: { namespace: 'test-project', serviceName: 'dspa' },
+      },
+      { runs: [] },
+    ).as('getRuns');
 
-      cy.interceptOdh(
-        'DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
-        {
-          path: { namespace: 'test-project', serviceName: 'dspa', runId: 'test-pipeline' },
-        },
-        mockSuccessGoogleRpcStatus({}),
-      ).as('deleteRunPipeline');
+    runsDeleteModal.findSubmitButton().click();
 
-      cy.interceptOdh(
-        'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs',
-        {
-          path: { namespace: 'test-project', serviceName: 'dspa' },
-        },
-        { runs: [buildMockRunKF({ run_id: 'other-pipeline', display_name: 'other-pipeline' })] },
-      ).as('getRuns');
+    cy.wait('@deleteRunPipeline-1');
 
-      runsDeleteModal.findSubmitButton().click();
+    cy.wait('@deleteRunPipeline-2');
 
-      cy.wait('@deleteRunPipeline');
-
-      cy.wait('@getRuns').then((interception) => {
-        expect(interception.request.query).to.eql({
-          sort_by: 'created_at desc',
-          page_size: '10',
-          filter: encodeURIComponent(
-            '{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"ARCHIVED"},{"key":"pipeline_version_id","operation":"EQUALS","string_value":"version_id"}]}',
-          ),
-        });
+    cy.wait('@getRuns').then((interception) => {
+      expect(interception.request.query).to.eql({
+        sort_by: 'created_at desc',
+        page_size: '10',
+        filter: encodeURIComponent(
+          '{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"ARCHIVED"}]}',
+        ),
       });
-      archivedRunsTable.findEmptyState().should('not.exist');
     });
-
-    it('Test delete multiple archived runs', () => {
-      initIntercepts();
-
-      pipelineRunsGlobal.visit('test-project', 'pipeline_id', 'version_id');
-      pipelineRunsGlobal.isApiAvailable();
-
-      pipelineRunsGlobal.findArchivedRunsTab().click();
-      archivedRunsTable.getRowByName('test-pipeline').findCheckbox().click();
-      archivedRunsTable.getRowByName('other-pipeline').findCheckbox().click();
-
-      archivedRunsTable.findActionsKebab().findDropdownItem('Delete').click();
-
-      runsDeleteModal.shouldBeOpen();
-      runsDeleteModal.findSubmitButton().should('be.disabled');
-      runsDeleteModal.findInput().type('Delete 2 runs');
-      runsDeleteModal.findSubmitButton().should('be.enabled');
-      cy.interceptOdh(
-        'DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
-        {
-          path: { namespace: 'test-project', serviceName: 'dspa', runId: 'test-pipeline' },
-        },
-        mockSuccessGoogleRpcStatus({}),
-      ).as('deleteRunPipeline-1');
-
-      cy.interceptOdh(
-        'DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
-        {
-          path: { namespace: 'test-project', serviceName: 'dspa', runId: 'other-pipeline' },
-        },
-        mockSuccessGoogleRpcStatus({}),
-      ).as('deleteRunPipeline-2');
-      cy.interceptOdh(
-        'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs',
-        {
-          path: { namespace: 'test-project', serviceName: 'dspa' },
-        },
-        { runs: [] },
-      ).as('getRuns');
-
-      runsDeleteModal.findSubmitButton().click();
-
-      cy.wait('@deleteRunPipeline-1');
-
-      cy.wait('@deleteRunPipeline-2');
-
-      cy.wait('@getRuns').then((interception) => {
-        expect(interception.request.query).to.eql({
-          sort_by: 'created_at desc',
-          page_size: '10',
-          filter: encodeURIComponent(
-            '{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"ARCHIVED"},{"key":"pipeline_version_id","operation":"EQUALS","string_value":"version_id"}]}',
-          ),
-        });
-      });
-      archivedRunsTable.findEmptyState().should('exist');
-    });
+    archivedRunsTable.findEmptyState().should('exist');
   });
 });

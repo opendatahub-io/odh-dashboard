@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 import { Button, Skeleton, Tooltip } from '@patternfly/react-core';
 import { TableVariant, Td } from '@patternfly/react-table';
@@ -23,7 +23,10 @@ import SimpleMenuActions from '~/components/SimpleMenuActions';
 import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
 import { compareRunsRoute, createRunRoute } from '~/routes';
-import { useContextExperimentArchivedOrDeleted } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import {
+  ExperimentContext,
+  useContextExperimentArchivedOrDeleted,
+} from '~/pages/pipelines/global/experiments/ExperimentContext';
 import { CustomMetricsColumnsModal } from './CustomMetricsColumnsModal';
 import { UnavailableMetricValue } from './UnavailableMetricValue';
 import { useMetricColumns } from './useMetricColumns';
@@ -57,11 +60,11 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   ...tableProps
 }) => {
   const navigate = useNavigate();
-  const { experimentId, pipelineVersionId, pipelineId } = useParams();
+  const { experiment } = React.useContext(ExperimentContext);
   const { namespace, refreshAllAPI } = usePipelinesAPI();
   const { onClearFilters, ...filterToolbarProps } = usePipelineFilterSearchParams(setFilter);
   const { metricsColumnNames, runs, runArtifactsError, runArtifactsLoaded, metricsNames } =
-    useMetricColumns(runWithoutMetrics, experimentId ?? '');
+    useMetricColumns(runWithoutMetrics, experiment?.experiment_id ?? '');
   const {
     selections: selectedIds,
     tableProps: checkboxTableProps,
@@ -84,7 +87,6 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   }, []);
   const restoreButtonTooltipRef = React.useRef(null);
   const { isExperimentArchived } = useContextExperimentArchivedOrDeleted();
-  const isGlobal = !experimentId && !pipelineId && !pipelineVersionId;
 
   const primaryToolbarAction = React.useMemo(() => {
     if (runType === PipelineRunType.ARCHIVED) {
@@ -115,9 +117,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
         key="create-run"
         data-testid="create-run-button"
         variant="primary"
-        onClick={() =>
-          navigate(createRunRoute(namespace, experimentId, pipelineId, pipelineVersionId))
-        }
+        onClick={() => navigate(createRunRoute(namespace, experiment?.experiment_id))}
       >
         Create run
       </Button>
@@ -128,20 +128,20 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     selectedIds.length,
     navigate,
     namespace,
-    experimentId,
-    pipelineId,
-    pipelineVersionId,
+    experiment?.experiment_id,
   ]);
 
   const compareRunsAction =
-    (isGlobal || (experimentId && !isExperimentArchived)) && runType === PipelineRunType.ACTIVE ? (
+    !isExperimentArchived && runType === PipelineRunType.ACTIVE ? (
       <Tooltip content="Select up to 10 runs to compare.">
         <Button
           key="compare-runs"
           data-testid="compare-runs-button"
           variant="secondary"
           isAriaDisabled={selectedIds.length === 0 || selectedIds.length > 10}
-          onClick={() => navigate(compareRunsRoute(namespace, selectedIds, experimentId))}
+          onClick={() =>
+            navigate(compareRunsRoute(namespace, selectedIds, experiment?.experiment_id))
+          }
         >
           Compare runs
         </Button>
@@ -174,20 +174,13 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     />
   );
 
-  const getColumns = () => {
-    let columns = experimentId ? getExperimentRunColumns(metricsColumnNames) : pipelineRunColumns;
-    if (pipelineVersionId) {
-      columns = columns.filter((column) => column.field !== 'pipeline_version');
-    }
-
-    return columns;
-  };
+  const columns = experiment ? getExperimentRunColumns(metricsColumnNames) : pipelineRunColumns;
 
   return (
     <>
       <TableBase
         {...checkboxTableProps}
-        {...(experimentId && { hasStickyColumns: true })}
+        {...(experiment && { hasStickyColumns: true })}
         loading={loading}
         page={page}
         perPage={pageSize}
@@ -199,7 +192,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
         onPerPageSelect={(_, newSize) => setPageSize(newSize)}
         itemCount={totalSize}
         data={runs}
-        columns={getColumns()}
+        columns={columns}
         enablePagination="compact"
         emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
         onClearFilters={onClearFilters}
@@ -211,7 +204,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
               primaryToolbarAction,
               ...(compareRunsAction ? [compareRunsAction] : []),
               toolbarDropdownAction,
-              experimentId
+              experiment
                 ? [
                     <Tooltip
                       key="custom-metrics-columns"
@@ -244,7 +237,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
             checkboxProps={{
               isChecked: isSelected(run.run_id),
               onToggle: () => toggleSelection(run.run_id),
-              isStickyColumn: !!experimentId,
+              isStickyColumn: !!experiment,
               stickyMinWidth: '45px',
             }}
             onDelete={() => {
@@ -268,7 +261,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
         )}
         variant={TableVariant.compact}
         getColumnSort={getTableColumnSort({
-          columns: getColumns(),
+          columns,
           ...tableProps,
         })}
         data-testid={`${runType}-runs-table`}
@@ -308,7 +301,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
       {isCustomColModalOpen && (
         <CustomMetricsColumnsModal
           key={metricsNames.size}
-          experimentId={experimentId}
+          experimentId={experiment?.experiment_id}
           columns={[...new Set([...metricsColumnNames, ...metricsNames])].map((metricName) => ({
             id: metricName,
             content: metricName,

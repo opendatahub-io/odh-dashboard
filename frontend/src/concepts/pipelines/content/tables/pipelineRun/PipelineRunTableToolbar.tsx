@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ToolbarItem } from '@patternfly/react-core';
-import { useParams } from 'react-router-dom';
 import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
+import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
 import PipelineRunTableToolbarBase, { FilterProps } from './PipelineRunTableToolbarBase';
 
 interface PipelineRunTableToolbarProps extends FilterProps {
@@ -14,21 +14,19 @@ const PipelineRunTableToolbar: React.FC<PipelineRunTableToolbarProps> = ({
   filterOptions,
   ...toolbarProps
 }) => {
-  const { experimentId, pipelineVersionId } = useParams();
+  const { experiment } = React.useContext(ExperimentContext);
 
   const defaultFilterOptions = React.useMemo(
     () => ({
       [FilterOptions.NAME]: 'Run',
-      ...(!experimentId && {
+      ...(!experiment && {
         [FilterOptions.EXPERIMENT]: 'Experiment',
       }),
-      ...(!pipelineVersionId && {
-        [FilterOptions.PIPELINE_VERSION]: 'Pipeline version',
-      }),
+      [FilterOptions.PIPELINE_VERSION]: 'Pipeline version',
       [FilterOptions.CREATED_AT]: 'Created after',
       [FilterOptions.STATUS]: 'Status',
     }),
-    [experimentId, pipelineVersionId],
+    [experiment],
   );
 
   return (

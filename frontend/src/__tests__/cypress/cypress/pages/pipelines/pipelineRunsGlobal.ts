@@ -1,14 +1,9 @@
 import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 
 class PipelineRunsGlobal {
-  visit(
-    projectName: string,
-    pipelineId: string,
-    versionId: string,
-    runType?: 'active' | 'archived' | 'scheduled',
-  ) {
+  visit(projectName: string, runType?: 'active' | 'archived' | 'scheduled') {
     cy.visitWithLogin(
-      `/pipelines/${projectName}/${pipelineId}/${versionId}${
+      `/pipelineRuns/${projectName}${
         runType === 'scheduled' ? '/schedules' : `/runs${runType ? `/${runType}` : ''}`
       }`,
     );

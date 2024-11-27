@@ -10,7 +10,6 @@ const usePipelineRecurringRuns = (
 ): FetchState<PipelineListPaged<PipelineRecurringRunKF>> => {
   const { api } = usePipelinesAPI();
   const experimentId = options?.experimentId;
-  const pipelineVersionId = options?.pipelineVersionId;
 
   return usePipelineQuery<PipelineRecurringRunKF>(
     React.useCallback(
@@ -19,10 +18,9 @@ const usePipelineRecurringRuns = (
           .listPipelineRecurringRuns(opts, {
             ...params,
             ...(experimentId && { experimentId }),
-            ...(pipelineVersionId && { pipelineVersionId }),
           })
           .then((result) => ({ ...result, items: result.recurringRuns })),
-      [api, experimentId, pipelineVersionId],
+      [api, experimentId],
     ),
     options,
   );

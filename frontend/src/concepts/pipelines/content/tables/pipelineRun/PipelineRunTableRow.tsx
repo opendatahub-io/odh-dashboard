@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { PipelineRunKF, RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd } from '~/components/table';
 import {
@@ -18,7 +18,10 @@ import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
 import { compareRunsRoute, duplicateRunRoute } from '~/routes';
 import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 import PipelineRunTableRowExperiment from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowExperiment';
-import { useContextExperimentArchivedOrDeleted } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import {
+  ExperimentContext,
+  useContextExperimentArchivedOrDeleted,
+} from '~/pages/pipelines/global/experiments/ExperimentContext';
 import { getDashboardMainContainer } from '~/utilities/utils';
 import usePipelineRunExperimentInfo from '~/concepts/pipelines/content/tables/usePipelineRunExperimentInfo';
 
@@ -39,7 +42,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   run,
   runType,
 }) => {
-  const { experimentId, pipelineId, pipelineVersionId } = useParams();
+  const { experiment: contextExperiment } = React.useContext(ExperimentContext);
   const { namespace, api, refreshAllAPI } = usePipelinesAPI();
   const notification = useNotification();
   const navigate = useNavigate();
@@ -55,20 +58,10 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
     useContextExperimentArchivedOrDeleted(experiment);
 
   const actions: IAction[] = React.useMemo(() => {
-    const isGlobal = !experimentId && !pipelineId && !pipelineVersionId;
     const duplicateAction: IAction = {
       title: 'Duplicate',
       onClick: () => {
-        navigate(
-          duplicateRunRoute(namespace, run.run_id, experimentId, pipelineId, pipelineVersionId),
-        );
-      },
-    };
-
-    const compareAction: IAction = {
-      title: 'Compare runs',
-      onClick: () => {
-        navigate(compareRunsRoute(namespace, [run.run_id], experimentId));
+        navigate(duplicateRunRoute(namespace, run.run_id, contextExperiment?.experiment_id));
       },
     };
 
@@ -86,7 +79,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
             },
           }),
         },
-        ...(!version && experimentId ? [] : [duplicateAction]),
+        ...(!version ? [] : [duplicateAction]),
         {
           isSeparator: true,
         },
@@ -110,8 +103,13 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
             .catch((e) => notification.error('Unable to stop the pipeline run.', e.message));
         },
       },
-      ...(isGlobal || experimentId ? [compareAction] : []),
-      ...(!version && experimentId ? [] : [duplicateAction]),
+      {
+        title: 'Compare runs',
+        onClick: () => {
+          navigate(compareRunsRoute(namespace, [run.run_id], contextExperiment?.experiment_id));
+        },
+      },
+      ...(!version ? [] : [duplicateAction]),
       {
         isSeparator: true,
       },
@@ -121,9 +119,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       },
     ];
   }, [
-    experimentId,
-    pipelineId,
-    pipelineVersionId,
+    contextExperiment?.experiment_id,
     runType,
     run.state,
     run.run_id,
@@ -143,7 +139,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       <CheckboxTd id={run.run_id} {...checkboxProps} />
       <Td
         dataLabel="Name"
-        {...(experimentId &&
+        {...(contextExperiment &&
           customCells && {
             isStickyColumn: true,
             hasRightBorder: true,
@@ -153,12 +149,10 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       >
         <PipelineRunTableRowTitle run={run} />
       </Td>
-      {!pipelineVersionId && (
-        <Td modifier="truncate" dataLabel="Pipeline">
-          <PipelineVersionLink version={version} error={versionError} loaded={isVersionLoaded} />
-        </Td>
-      )}
-      {!experimentId && (
+      <Td modifier="truncate" dataLabel="Pipeline">
+        <PipelineVersionLink version={version} error={versionError} loaded={isVersionLoaded} />
+      </Td>
+      {!contextExperiment && (
         <Td modifier="truncate" dataLabel="Experiment">
           <PipelineRunTableRowExperiment
             experiment={experiment}

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ActionsColumn, TableText, Td, Tr } from '@patternfly/react-table';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { PipelineRecurringRunKF } from '~/concepts/pipelines/kfTypes';
 import { TableRowTitleDescription, CheckboxTd } from '~/components/table';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
@@ -15,6 +15,7 @@ import {
 } from '~/concepts/pipelines/content/tables/renderUtils';
 import PipelineRunTableRowExperiment from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowExperiment';
 import usePipelineRunExperimentInfo from '~/concepts/pipelines/content/tables/usePipelineRunExperimentInfo';
+import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
 
 type PipelineRecurringRunTableRowProps = {
   isChecked: boolean;
@@ -32,7 +33,7 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
   recurringRun,
 }) => {
   const navigate = useNavigate();
-  const { experimentId, pipelineId, pipelineVersionId } = useParams();
+  const { experiment: contextExperiment } = React.useContext(ExperimentContext);
   const { namespace, api } = usePipelinesAPI();
   const {
     version,
@@ -59,9 +60,7 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
               to={recurringRunDetailsRoute(
                 namespace,
                 recurringRun.recurring_run_id,
-                experimentId,
-                pipelineId,
-                pipelineVersionId,
+                contextExperiment?.experiment_id,
               )}
             >
               <TableText wrapModifier="truncate">{recurringRun.display_name}</TableText>
@@ -71,12 +70,10 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
           descriptionAsMarkdown
         />
       </Td>
-      {!pipelineVersionId && (
-        <Td modifier="truncate" dataLabel="Pipeline">
-          <PipelineVersionLink version={version} error={versionError} loaded={isVersionLoaded} />
-        </Td>
-      )}
-      {!experimentId && (
+      <Td modifier="truncate" dataLabel="Pipeline">
+        <PipelineVersionLink version={version} error={versionError} loaded={isVersionLoaded} />
+      </Td>
+      {!contextExperiment && (
         <Td modifier="truncate" dataLabel="Experiment">
           <PipelineRunTableRowExperiment
             experiment={experiment}
@@ -108,7 +105,7 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
       <Td isActionCell dataLabel="Kebab">
         <ActionsColumn
           items={[
-            ...(!version && experimentId
+            ...(!version
               ? []
               : [
                   {
@@ -118,9 +115,7 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
                         duplicateRecurringRunRoute(
                           namespace,
                           recurringRun.recurring_run_id,
-                          experimentId,
-                          pipelineId,
-                          pipelineVersionId,
+                          contextExperiment?.experiment_id,
                         ),
                       );
                     },

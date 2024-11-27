@@ -159,7 +159,7 @@ describe('Pipeline runs', () => {
     describe('empty state', () => {
       beforeEach(() => {
         activeRunsTable.mockGetActiveRuns([], projectName);
-        pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
+        pipelineRunsGlobal.visit(projectName, 'active');
       });
 
       it('shows empty state', () => {
@@ -168,9 +168,7 @@ describe('Pipeline runs', () => {
 
       it('navigate to create run page', () => {
         pipelineRunsGlobal.findCreateRunButton().click();
-        verifyRelativeURL(
-          `/pipelines/${projectName}/${pipelineId}/${pipelineVersionId}/runs/create`,
-        );
+        verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
       });
     });
 
@@ -201,14 +199,14 @@ describe('Pipeline runs', () => {
           },
         ).as('getActiveRuns');
 
-        pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
+        pipelineRunsGlobal.visit(projectName, 'active');
 
         cy.wait('@getActiveRuns').then((interception) => {
           expect(interception.request.query).to.eql({
             sort_by: 'created_at desc',
             page_size: '10',
             filter: encodeURIComponent(
-              '{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"AVAILABLE"},{"key":"pipeline_version_id","operation":"EQUALS","string_value":"test-version"}]}',
+              '{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"AVAILABLE"}]}',
             ),
           });
         });
@@ -236,7 +234,7 @@ describe('Pipeline runs', () => {
             sort_by: 'created_at desc',
             page_size: '10',
             filter: encodeURIComponent(
-              '{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"AVAILABLE"},{"key":"pipeline_version_id","operation":"EQUALS","string_value":"test-version"}]}',
+              '{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"AVAILABLE"}]}',
             ),
             page_token: 'page-2-token',
           });
@@ -287,12 +285,12 @@ describe('Pipeline runs', () => {
       });
 
       it('renders the page with table data', () => {
-        pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
+        pipelineRunsGlobal.visit(projectName, 'active');
         activeRunsTable.getRowByName('Test active run 1').find().should('exist');
       });
 
       it('archive a single run', () => {
-        pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
+        pipelineRunsGlobal.visit(projectName, 'active');
         const [runToArchive] = mockActiveRuns;
 
         activeRunsTable.mockArchiveRun(runToArchive.run_id, projectName);
@@ -308,7 +306,7 @@ describe('Pipeline runs', () => {
       });
 
       it('archive multiple runs', () => {
-        pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
+        pipelineRunsGlobal.visit(projectName, 'active');
         mockActiveRuns.forEach((activeRun) => {
           activeRunsTable.mockArchiveRun(activeRun.run_id, projectName);
           activeRunsTable.getRowByName(activeRun.display_name).findCheckbox().click();
@@ -328,11 +326,9 @@ describe('Pipeline runs', () => {
 
       describe('Navigation', () => {
         it('navigate to create run page', () => {
-          pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
+          pipelineRunsGlobal.visit(projectName, 'active');
           pipelineRunsGlobal.findCreateRunButton().click();
-          verifyRelativeURL(
-            `/pipelines/${projectName}/${pipelineId}/${pipelineVersionId}/runs/create`,
-          );
+          verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
         });
 
         it('navigate to duplicate run page', () => {
@@ -351,37 +347,29 @@ describe('Pipeline runs', () => {
         });
 
         it('navigate between tabs', () => {
-          pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
+          pipelineRunsGlobal.visit(projectName, 'active');
           pipelineRunsGlobal.findArchivedRunsTab().click();
-          verifyRelativeURL(
-            `/pipelines/${projectName}/${pipelineId}/${pipelineVersionId}/runs/archived`,
-          );
+          verifyRelativeURL(`/pipelineRuns/${projectName}/runs/archived`);
           pipelineRunsGlobal.findActiveRunsTab().click();
-          verifyRelativeURL(
-            `/pipelines/${projectName}/${pipelineId}/${pipelineVersionId}/runs/active`,
-          );
+          verifyRelativeURL(`/pipelineRuns/${projectName}/runs/active`);
           pipelineRunsGlobal.findSchedulesTab().click();
-          verifyRelativeURL(
-            `/pipelines/${projectName}/${pipelineId}/${pipelineVersionId}/schedules`,
-          );
+          verifyRelativeURL(`/pipelineRuns/${projectName}/schedules`);
         });
 
         it('navigate to run details page', () => {
-          pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
+          pipelineRunsGlobal.visit(projectName, 'active');
           activeRunsTable
             .getRowByName(mockActiveRuns[0].display_name)
             .findColumnName(mockActiveRuns[0].display_name)
             .click();
 
-          verifyRelativeURL(
-            `/pipelines/${projectName}/${pipelineId}/${pipelineVersionId}/runs/${mockActiveRuns[0].run_id}`,
-          );
+          verifyRelativeURL(`/pipelineRuns/${projectName}/runs/${mockActiveRuns[0].run_id}`);
         });
       });
 
       describe('Table filter', () => {
         it('filter by name', () => {
-          pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
+          pipelineRunsGlobal.visit(projectName, 'active');
 
           // Verify initial run rows exist
           activeRunsTable.findRows().should('have.length', 3);
@@ -407,7 +395,7 @@ describe('Pipeline runs', () => {
         });
 
         it('filter by experiment', () => {
-          pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
+          pipelineRunsGlobal.visit(projectName, 'active');
 
           // Mock initial list of experiments
           pipelineRunFilterBar.mockExperiments(mockExperiments, projectName);
@@ -437,7 +425,7 @@ describe('Pipeline runs', () => {
         });
 
         it('filter by created after', () => {
-          pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
+          pipelineRunsGlobal.visit(projectName, 'active');
 
           // Verify initial run rows exist
           activeRunsTable.findRows().should('have.length', 3);
@@ -482,7 +470,7 @@ describe('Pipeline runs', () => {
         });
 
         it('filter by status', () => {
-          pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
+          pipelineRunsGlobal.visit(projectName, 'active');
 
           // Verify initial run rows exist
           activeRunsTable.findRows().should('have.length', 3);
@@ -562,7 +550,7 @@ describe('Pipeline runs', () => {
         });
 
         it('Sort by Name', () => {
-          pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'active');
+          pipelineRunsGlobal.visit(projectName, 'active');
 
           pipelineRunFilterBar.findSortButtonForActive('Run').click();
           pipelineRunFilterBar.findSortButtonForActive('Run').should(be.sortAscending);
@@ -576,14 +564,14 @@ describe('Pipeline runs', () => {
   describe('Archived runs', () => {
     it('shows empty state', () => {
       archivedRunsTable.mockGetArchivedRuns([], projectName);
-      pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'archived');
+      pipelineRunsGlobal.visit(projectName, 'archived');
       archivedRunsTable.findEmptyState().should('exist');
     });
 
     describe('with data', () => {
       beforeEach(() => {
         archivedRunsTable.mockGetArchivedRuns(mockArchivedRuns, projectName);
-        pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'archived');
+        pipelineRunsGlobal.visit(projectName, 'archived');
       });
 
       it('renders the page with table data', () => {
@@ -775,7 +763,7 @@ describe('Pipeline runs', () => {
     describe('empty state', () => {
       beforeEach(() => {
         pipelineRecurringRunTable.mockGetRecurringRuns([], projectName);
-        pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'scheduled');
+        pipelineRunsGlobal.visit(projectName, 'scheduled');
       });
 
       it('shows empty state', () => {
@@ -784,15 +772,13 @@ describe('Pipeline runs', () => {
 
       it('navigate to create schedule page', () => {
         pipelineRunsGlobal.findScheduleRunButton().click();
-        verifyRelativeURL(
-          `/pipelines/${projectName}/${pipelineId}/${pipelineVersionId}/schedules/create`,
-        );
+        verifyRelativeURL(`/pipelineRuns/${projectName}/schedules/create`);
       });
     });
 
     it('shows empty state', () => {
       pipelineRecurringRunTable.mockGetRecurringRuns([], projectName);
-      pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'scheduled');
+      pipelineRunsGlobal.visit(projectName, 'scheduled');
       pipelineRecurringRunTable.findEmptyState().should('exist');
     });
 
@@ -821,13 +807,11 @@ describe('Pipeline runs', () => {
             next_page_token: 'page-2-token',
           },
         ).as('getScheduledRuns');
-        pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'scheduled');
+        pipelineRunsGlobal.visit(projectName, 'scheduled');
 
         cy.wait('@getScheduledRuns').then((interception) => {
           expect(interception.request.query).to.eql({
-            filter: encodeURIComponent(
-              '{"predicates":[{"key":"pipeline_version_id","operation":"EQUALS","string_value":"test-version"}]}',
-            ),
+            filter: encodeURIComponent('{"predicates":[]}'),
             sort_by: 'created_at desc',
             page_size: '10',
           });
@@ -854,9 +838,7 @@ describe('Pipeline runs', () => {
 
         cy.wait('@refreshScheduledRuns').then((interception) => {
           expect(interception.request.query).to.eql({
-            filter: encodeURIComponent(
-              '{"predicates":[{"key":"pipeline_version_id","operation":"EQUALS","string_value":"test-version"}]}',
-            ),
+            filter: encodeURIComponent('{"predicates":[]}'),
             sort_by: 'created_at desc',
             page_size: '10',
             page_token: 'page-2-token',
@@ -902,9 +884,7 @@ describe('Pipeline runs', () => {
 
         cy.wait('@refreshPipelineRecurringRuns').then((interception) => {
           expect(interception.request.query).to.eql({
-            filter: encodeURIComponent(
-              '{"predicates":[{"key":"pipeline_version_id","operation":"EQUALS","string_value":"test-version"}]}',
-            ),
+            filter: encodeURIComponent('{"predicates":[]}'),
             sort_by: 'created_at desc',
             page_size: '10',
             page_token: 'new-page-token',
@@ -955,7 +935,7 @@ describe('Pipeline runs', () => {
       });
 
       it('renders the page with table rows', () => {
-        pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'scheduled');
+        pipelineRunsGlobal.visit(projectName, 'scheduled');
         pipelineRecurringRunTable.find().should('exist');
         pipelineRecurringRunTable.getRowByName('test-pipeline').find().should('exist');
         pipelineRecurringRunTable.getRowByName('other-pipeline').find().should('exist');
@@ -963,7 +943,7 @@ describe('Pipeline runs', () => {
       });
 
       it('can disable a recurring run', () => {
-        pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'scheduled');
+        pipelineRunsGlobal.visit(projectName, 'scheduled');
         pipelineRecurringRunTable
           .mockDisableRecurringRun(mockRecurringRuns[0], projectName)
           .as('disableRecurringRun');
@@ -975,7 +955,7 @@ describe('Pipeline runs', () => {
       });
 
       it('schedules toggle should be disabled for the schedules with archived experiment', () => {
-        pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'scheduled');
+        pipelineRunsGlobal.visit(projectName, 'scheduled');
         pipelineRecurringRunTable
           .getRowByName(mockRecurringRuns[0].display_name)
           .shouldHaveToggleEnabled();
@@ -986,11 +966,9 @@ describe('Pipeline runs', () => {
 
       describe('Navigation', () => {
         it('navigate to create scheduled run page', () => {
-          pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'scheduled');
+          pipelineRunsGlobal.visit(projectName, 'scheduled');
           pipelineRunsGlobal.findScheduleRunButton().click();
-          verifyRelativeURL(
-            `/pipelines/${projectName}/${pipelineId}/${pipelineVersionId}/schedules/create`,
-          );
+          verifyRelativeURL(`/pipelineRuns/${projectName}/schedules/create`);
         });
 
         it('navigate to duplicate scheduled run page', () => {
@@ -1010,21 +988,21 @@ describe('Pipeline runs', () => {
         });
 
         it('navigate to scheduled run details page', () => {
-          pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'scheduled');
+          pipelineRunsGlobal.visit(projectName, 'scheduled');
           pipelineRunsGlobal.findSchedulesTab().click();
           pipelineRecurringRunTable
             .getRowByName(mockRecurringRuns[0].display_name)
             .findColumnName(mockRecurringRuns[0].display_name)
             .click();
           verifyRelativeURL(
-            `/pipelines/${projectName}/${pipelineId}/${pipelineVersionId}/schedules/${mockRecurringRuns[0].recurring_run_id}`,
+            `/pipelineRuns/${projectName}/schedules/${mockRecurringRuns[0].recurring_run_id}`,
           );
         });
       });
 
       describe('Table filter', () => {
         it('filter by name', () => {
-          pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'scheduled');
+          pipelineRunsGlobal.visit(projectName, 'scheduled');
           pipelineRunsGlobal.findSchedulesTab().click();
 
           // Verify initial recurring run rows exist
@@ -1048,7 +1026,7 @@ describe('Pipeline runs', () => {
         });
 
         it('Sort by Name', () => {
-          pipelineRunsGlobal.visit(projectName, pipelineId, pipelineVersionId, 'scheduled');
+          pipelineRunsGlobal.visit(projectName, 'scheduled');
           pipelineRunsGlobal.findSchedulesTab().click();
 
           pipelineRunFilterBar.findSortButtonforSchedules('Schedule').click();

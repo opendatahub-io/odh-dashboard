@@ -113,9 +113,7 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
               <Button
                 data-testid="manage-runs-cancel-button"
                 variant="secondary"
-                onClick={() =>
-                  navigate(compareRunsRoute(namespace, selectedRunIds, experiment?.experiment_id))
-                }
+                onClick={() => history.back()}
               >
                 Cancel
               </Button>

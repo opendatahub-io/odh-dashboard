@@ -59,7 +59,7 @@ class PipelineRunsTable {
   }
 
   findActionsKebab() {
-    return cy.findByRole('button', { name: 'Actions' });
+    return cy.findByTestId('run-table-toolbar-actions');
   }
 
   findEmptyState() {

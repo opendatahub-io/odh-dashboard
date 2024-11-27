@@ -32,6 +32,7 @@ import {
 } from '~/__tests__/cypress/cypress/utils/models';
 import type { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { tablePagination } from '~/__tests__/cypress/cypress/pages/components/Pagination';
+import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipeline({ display_name: 'Test pipeline' });
@@ -532,10 +533,10 @@ describe('Pipelines', () => {
   it('selects a different project', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
-    cy.url().should('include', '/pipelines/test-project-name');
+    verifyRelativeURL('/pipelines/test-project-name');
 
     pipelinesGlobal.projectDropdown.selectItem('Test Project 2');
-    cy.url().should('include', '/pipelines/test-project-name-2');
+    verifyRelativeURL('/pipelines/test-project-name-2');
   });
 
   it('imports a new pipeline', () => {
@@ -602,8 +603,7 @@ describe('Pipelines', () => {
     cy.wait('@getPipeline');
     cy.wait('@getPipelineVersion');
 
-    cy.url().should(
-      'include',
+    verifyRelativeURL(
       `/pipelines/${projectName}/${uploadedMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
     );
   });
@@ -695,8 +695,7 @@ describe('Pipelines', () => {
     cy.wait('@getPipeline');
     cy.wait('@getPipelineVersion');
 
-    cy.url().should(
-      'include',
+    verifyRelativeURL(
       `/pipelines/${projectName}/${createdMockPipeline.pipeline_id}/${createdVersion.pipeline_version_id}/view`,
     );
   });
@@ -944,8 +943,7 @@ describe('Pipelines', () => {
       .findPipelineVersionLink()
       .click();
 
-    cy.url().should(
-      'include',
+    verifyRelativeURL(
       `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
     );
   });
@@ -958,8 +956,7 @@ describe('Pipelines', () => {
     const pipelineRow = pipelinesTable.getRowById(initialMockPipeline.pipeline_id);
     pipelineRow.findPipelineNameLink(initialMockPipeline.display_name).click();
 
-    cy.url().should(
-      'include',
+    verifyRelativeURL(
       `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
     );
   });
@@ -1050,10 +1047,7 @@ describe('Pipelines', () => {
       .findKebabAction('Create run')
       .click();
 
-    cy.url().should(
-      'include',
-      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/runs/create`,
-    );
+    verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
   });
 
   it('run and schedule dropdown action should be disabled when pipeline and pipeline version is not supported', () => {
@@ -1128,10 +1122,7 @@ describe('Pipelines', () => {
       .findKebabAction('Create schedule')
       .click();
 
-    cy.url().should(
-      'include',
-      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/schedules/create`,
-    );
+    verifyRelativeURL(`/pipelineRuns/${projectName}/schedules/create`);
   });
 
   it('navigate to create run page from pipeline version row', () => {
@@ -1147,10 +1138,7 @@ describe('Pipelines', () => {
       .findKebabAction('Create run')
       .click();
 
-    cy.url().should(
-      'include',
-      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/runs/create`,
-    );
+    verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
   });
 
   it('navigates to "Schedule run" page from pipeline version row', () => {
@@ -1165,10 +1153,7 @@ describe('Pipelines', () => {
       .findKebabAction('Create schedule')
       .click();
 
-    cy.url().should(
-      'include',
-      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/schedules/create`,
-    );
+    verifyRelativeURL(`/pipelineRuns/${projectName}/schedules/create`);
   });
 
   it('navigate to view runs page from pipeline version row', () => {
@@ -1184,9 +1169,8 @@ describe('Pipelines', () => {
       .findPipelineVersionViewRunLink()
       .click();
 
-    cy.url().should(
-      'include',
-      `/pipelineRuns/${projectName}/runs/active?pipeline_version=${initialMockPipelineVersion.pipeline_id}`,
+    verifyRelativeURL(
+      `/pipelineRuns/${projectName}/runs/active?pipeline_version=${initialMockPipelineVersion.pipeline_version_id}`,
     );
   });
 
@@ -1202,9 +1186,8 @@ describe('Pipelines', () => {
       .findKebabAction('View schedules')
       .click();
 
-    cy.url().should(
-      'include',
-      `/pipelineRuns/${projectName}/schedules?pipeline_version=${initialMockPipelineVersion.pipeline_id}`,
+    verifyRelativeURL(
+      `/pipelineRuns/${projectName}/schedules?pipeline_version=${initialMockPipelineVersion.pipeline_version_id}`,
     );
   });
 

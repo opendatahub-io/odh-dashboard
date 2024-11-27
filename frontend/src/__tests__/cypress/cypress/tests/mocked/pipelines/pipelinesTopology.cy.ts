@@ -19,7 +19,7 @@ import {
 } from '~/__tests__/cypress/cypress/pages/pipelines';
 import { buildMockRunKF } from '~/__mocks__/mockRunKF';
 import { mockPipelinePodK8sResource } from '~/__mocks__/mockPipelinePodK8sResource';
-import { buildMockPipeline } from '~/__mocks__';
+import { buildMockExperimentKF, buildMockPipeline } from '~/__mocks__';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import {
   DataSciencePipelineApplicationModel,
@@ -62,6 +62,7 @@ const mockRecurringRun = buildMockRecurringRunKF({
     pipeline_id: mockPipeline.pipeline_id,
     pipeline_version_id: mockVersion.pipeline_version_id,
   },
+  experiment_id: 'test-experiment',
 });
 
 const initIntercepts = () => {
@@ -149,6 +150,17 @@ const initIntercepts = () => {
     },
     mockVersion,
   );
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments/:experimentId',
+    {
+      path: {
+        namespace: projectId,
+        serviceName: 'dspa',
+        experimentId: 'test-experiment',
+      },
+    },
+    buildMockExperimentKF({ experiment_id: 'test-experiment' }),
+  );
   cy.interceptK8s(
     PodModel,
     mockPipelinePodK8sResource({
@@ -185,16 +197,12 @@ describe('Pipeline topology', () => {
     describe('Navigation', () => {
       it('Test pipeline details create run navigation', () => {
         pipelineDetails.selectActionDropdownItem('Create run');
-        verifyRelativeURL(
-          `/pipelines/${projectId}/${mockVersion.pipeline_id}/${mockVersion.pipeline_version_id}/runs/create`,
-        );
+        verifyRelativeURL(`/pipelineRuns/${projectId}/runs/create`);
       });
 
       it('navigates to "Schedule run" page on "Schedule run" click', () => {
         pipelineDetails.selectActionDropdownItem('Create schedule');
-        verifyRelativeURL(
-          `/pipelines/${projectId}/${mockVersion.pipeline_id}/${mockVersion.pipeline_version_id}/schedules/create`,
-        );
+        verifyRelativeURL(`/pipelineRuns/${projectId}/schedules/create`);
       });
 
       it('Test pipeline details view runs navigation', () => {
@@ -320,38 +328,21 @@ describe('Pipeline topology', () => {
       });
 
       it('Test pipeline run duplicate navigation', () => {
-        pipelineRunDetails.visit(
-          projectId,
-          mockVersion.pipeline_id,
-          mockVersion.pipeline_version_id,
-          mockRun.run_id,
-        );
+        pipelineRunDetails.visit(projectId, mockRun.run_id);
         pipelineRunDetails.selectActionDropdownItem('Duplicate');
-        verifyRelativeURL(
-          `/pipelines/${projectId}/${mockVersion.pipeline_id}/${mockVersion.pipeline_version_id}/runs/duplicate/${mockRun.run_id}`,
-        );
+        verifyRelativeURL(`/pipelineRuns/${projectId}/runs/duplicate/${mockRun.run_id}`);
       });
 
       it('Test pipeline recurring run duplicate navigation', () => {
-        pipelineRecurringRunDetails.visit(
-          projectId,
-          mockVersion.pipeline_id,
-          mockVersion.pipeline_version_id,
-          mockRecurringRun.recurring_run_id,
-        );
+        pipelineRecurringRunDetails.visit(projectId, mockRecurringRun.recurring_run_id);
         pipelineRecurringRunDetails.selectActionDropdownItem('Duplicate');
         verifyRelativeURL(
-          `/pipelines/${projectId}/${mockVersion.pipeline_id}/${mockVersion.pipeline_version_id}/schedules/duplicate/${mockRecurringRun.recurring_run_id}`,
+          `/pipelineRuns/${projectId}/schedules/duplicate/${mockRecurringRun.recurring_run_id}`,
         );
       });
 
       it('Test pipeline recurring run delete navigation', () => {
-        pipelineRecurringRunDetails.visit(
-          projectId,
-          mockVersion.pipeline_id,
-          mockVersion.pipeline_version_id,
-          mockRecurringRun.recurring_run_id,
-        );
+        pipelineRecurringRunDetails.visit(projectId, mockRecurringRun.recurring_run_id);
         pipelineRecurringRunDetails.selectActionDropdownItem('Delete');
         deleteModal.shouldBeOpen();
         deleteModal.findInput().type(mockPipeline.display_name);
@@ -373,12 +364,7 @@ describe('Pipeline topology', () => {
       });
 
       it('Test pipeline recurring run details project navigation', () => {
-        pipelineRecurringRunDetails.visit(
-          projectId,
-          mockVersion.pipeline_id,
-          mockVersion.pipeline_version_id,
-          mockRecurringRun.recurring_run_id,
-        );
+        pipelineRecurringRunDetails.visit(projectId, mockRecurringRun.recurring_run_id);
 
         pipelineRecurringRunDetails.findDetailsTab().click();
         pipelineRecurringRunDetails.findDetailItem('Project').findValue().find('a').click();
@@ -386,12 +372,7 @@ describe('Pipeline topology', () => {
       });
 
       it('Test pipeline recurring run details pipeline version navigation', () => {
-        pipelineRecurringRunDetails.visit(
-          projectId,
-          mockVersion.pipeline_id,
-          mockVersion.pipeline_version_id,
-          mockRecurringRun.recurring_run_id,
-        );
+        pipelineRecurringRunDetails.visit(projectId, mockRecurringRun.recurring_run_id);
 
         pipelineRecurringRunDetails.findDetailsTab().click();
         pipelineRecurringRunDetails
@@ -408,12 +389,7 @@ describe('Pipeline topology', () => {
     it('Test pipeline recurring run tab parameters', () => {
       initIntercepts();
 
-      pipelineRecurringRunDetails.visit(
-        projectId,
-        mockVersion.pipeline_id,
-        mockVersion.pipeline_version_id,
-        mockRecurringRun.recurring_run_id,
-      );
+      pipelineRecurringRunDetails.visit(projectId, mockRecurringRun.recurring_run_id);
       pipelineRecurringRunDetails.findDetailsTab().click();
       pipelineRecurringRunDetails.findInputParameterTab().click();
       pipelineRecurringRunDetails.findDetailItem('min_max_scaler').findValue().contains('False');
@@ -423,12 +399,7 @@ describe('Pipeline topology', () => {
     it('Test pipeline recurring run tab details', () => {
       initIntercepts();
 
-      pipelineRecurringRunDetails.visit(
-        projectId,
-        mockVersion.pipeline_id,
-        mockVersion.pipeline_version_id,
-        mockRecurringRun.recurring_run_id,
-      );
+      pipelineRecurringRunDetails.visit(projectId, mockRecurringRun.recurring_run_id);
 
       pipelineRecurringRunDetails.findDetailsTab().click();
       pipelineRecurringRunDetails
@@ -460,12 +431,7 @@ describe('Pipeline topology', () => {
     it('Ensure that clicking on a node will open a right-side drawer', () => {
       initIntercepts();
 
-      pipelineRecurringRunDetails.visit(
-        projectId,
-        mockVersion.pipeline_id,
-        mockVersion.pipeline_version_id,
-        mockRecurringRun.recurring_run_id,
-      );
+      pipelineRecurringRunDetails.visit(projectId, mockRecurringRun.recurring_run_id);
 
       pipelineDetails.findTaskNode('create-dataset').click();
       const taskDrawer = pipelineDetails.getTaskDrawer();
@@ -483,12 +449,7 @@ describe('Pipeline topology', () => {
     it('Test pipeline triggered run tab details', () => {
       initIntercepts();
 
-      pipelineRunDetails.visit(
-        projectId,
-        mockVersion.pipeline_id,
-        mockVersion.pipeline_version_id,
-        mockRun.run_id,
-      );
+      pipelineRunDetails.visit(projectId, mockRun.run_id);
 
       pipelineRecurringRunDetails.findPipelineSpecTab();
       pipelineRunDetails.findDetailsTab().click();
@@ -511,12 +472,7 @@ describe('Pipeline topology', () => {
 
     it('Test pipeline triggered run tab parameters', () => {
       initIntercepts();
-      pipelineRunDetails.visit(
-        projectId,
-        mockVersion.pipeline_id,
-        mockVersion.pipeline_version_id,
-        mockRun.run_id,
-      );
+      pipelineRunDetails.visit(projectId, mockRun.run_id);
       pipelineRunDetails.findInputParameterTab().click();
       pipelineRunDetails.findDetailItem('min_max_scaler').findValue().contains('False');
       pipelineRunDetails.findDetailItem('neighbors').findValue().contains('1');
@@ -524,12 +480,7 @@ describe('Pipeline topology', () => {
 
     it('Test pipeline triggered run YAML output', () => {
       initIntercepts();
-      pipelineRunDetails.visit(
-        projectId,
-        mockVersion.pipeline_id,
-        mockVersion.pipeline_version_id,
-        mockRun.run_id,
-      );
+      pipelineRunDetails.visit(projectId, mockRun.run_id);
 
       pipelineRunDetails.findPipelineSpecTab().click();
       pipelineRunDetails.findYamlOutput().click();
@@ -547,12 +498,7 @@ describe('Pipeline topology', () => {
 
     it('disables recurring run from action dropdown', () => {
       pipelineRecurringRunDetails.mockDisableRecurringRun(mockRecurringRun, projectId);
-      pipelineRecurringRunDetails.visit(
-        projectId,
-        mockRecurringRun.recurring_run_id,
-        mockVersion.pipeline_version_id,
-        mockRecurringRun.recurring_run_id,
-      );
+      pipelineRecurringRunDetails.visit(projectId, mockRecurringRun.recurring_run_id);
 
       pipelineRecurringRunDetails.selectActionDropdownItem('Disable');
 
@@ -575,12 +521,7 @@ describe('Pipeline topology', () => {
         mockDisabledRecurringRun,
       );
       pipelineRecurringRunDetails.mockEnableRecurringRun(mockDisabledRecurringRun, projectId);
-      pipelineRecurringRunDetails.visit(
-        projectId,
-        mockDisabledRecurringRun.recurring_run_id,
-        mockVersion.pipeline_version_id,
-        mockRecurringRun.recurring_run_id,
-      );
+      pipelineRecurringRunDetails.visit(projectId, mockRecurringRun.recurring_run_id);
 
       pipelineRecurringRunDetails.selectActionDropdownItem('Enable');
 
@@ -594,12 +535,7 @@ describe('Pipeline topology', () => {
   describe('Pipeline run Input/Output', () => {
     beforeEach(() => {
       initIntercepts();
-      pipelineRunDetails.visit(
-        projectId,
-        mockVersion.pipeline_id,
-        mockVersion.pipeline_version_id,
-        mockRun.run_id,
-      );
+      pipelineRunDetails.visit(projectId, mockRun.run_id);
     });
 
     it('Test with input/output artifacts', () => {
@@ -626,12 +562,7 @@ describe('Pipeline topology', () => {
   describe('Pipeline run Details', () => {
     beforeEach(() => {
       initIntercepts();
-      pipelineRunDetails.visit(
-        projectId,
-        mockVersion.pipeline_id,
-        mockVersion.pipeline_version_id,
-        mockRun.run_id,
-      );
+      pipelineRunDetails.visit(projectId, mockRun.run_id);
     });
 
     it('Test with the details', () => {
@@ -656,12 +587,7 @@ describe('Pipeline topology', () => {
   describe('Pipeline run volume mounts', () => {
     beforeEach(() => {
       initIntercepts();
-      pipelineRunDetails.visit(
-        projectId,
-        mockVersion.pipeline_id,
-        mockVersion.pipeline_version_id,
-        mockRun.run_id,
-      );
+      pipelineRunDetails.visit(projectId, mockRun.run_id);
     });
 
     it('Test node with no volume mounts', () => {
@@ -693,12 +619,7 @@ describe('Pipeline topology', () => {
 
   describe('Pipelines logs', () => {
     const navigateToLogsTab = () => {
-      pipelineRunDetails.visit(
-        projectId,
-        mockVersion.pipeline_id,
-        mockVersion.pipeline_version_id,
-        mockRun.run_id,
-      );
+      pipelineRunDetails.visit(projectId, mockRun.run_id);
       pipelineRunDetails.findTaskNode('create-dataset').click();
       const rightDrawer = pipelineRunDetails.findRightDrawer();
       rightDrawer.findRightDrawerDetailsTab().should('be.visible');

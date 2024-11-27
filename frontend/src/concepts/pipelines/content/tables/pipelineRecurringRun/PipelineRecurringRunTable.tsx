@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { TableVariant } from '@patternfly/react-table';
-import { useParams } from 'react-router-dom';
 import { PipelineRecurringRunKF } from '~/concepts/pipelines/kfTypes';
 import { getTableColumnSort, useCheckboxTable, TableBase } from '~/components/table';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
@@ -11,6 +10,7 @@ import { PipelinesFilter } from '~/concepts/pipelines/types';
 import { usePipelineFilterSearchParams } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import SimpleMenuActions from '~/components/SimpleMenuActions';
 import { pipelineRecurringRunColumns } from '~/concepts/pipelines/content/tables/columns';
+import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
 import PipelineRecurringRunTableRow from './PipelineRecurringRunTableRow';
 import PipelineRecurringRunTableToolbar from './PipelineRecurringRunTableToolbar';
 
@@ -43,7 +43,7 @@ const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
   ...tableProps
 }) => {
   const { refreshAllAPI } = usePipelinesAPI();
-  const { experimentId, pipelineVersionId } = useParams();
+  const { experiment } = React.useContext(ExperimentContext);
   const { onClearFilters, ...filterToolbarProps } = usePipelineFilterSearchParams(setFilter);
   const {
     selections,
@@ -57,12 +57,8 @@ const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
   const getColumns = () => {
     let columns = pipelineRecurringRunColumns;
 
-    if (experimentId) {
+    if (experiment) {
       columns = columns.filter((column) => column.field !== 'experiment');
-    }
-
-    if (pipelineVersionId) {
-      columns = columns.filter((column) => column.field !== 'pipeline_version');
     }
 
     return columns;

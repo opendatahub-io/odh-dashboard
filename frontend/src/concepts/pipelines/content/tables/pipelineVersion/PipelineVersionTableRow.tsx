@@ -7,10 +7,10 @@ import { CheckboxTd, TableRowTitleDescription } from '~/components/table';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
 import {
+  createRecurringRunRoute,
+  createRunRoute,
   globalPipelineRecurringRunsVersionRoute,
   globalPipelineRunsVersionRoute,
-  pipelineVersionCreateRecurringRunRoute,
-  pipelineVersionCreateRunRoute,
   pipelineVersionDetailsRoute,
 } from '~/routes';
 import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
@@ -90,13 +90,9 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
             {
               title: 'Create run',
               onClick: () => {
-                navigate(
-                  pipelineVersionCreateRunRoute(
-                    namespace,
-                    pipeline.pipeline_id,
-                    version.pipeline_version_id,
-                  ),
-                );
+                navigate(createRunRoute(namespace), {
+                  state: { contextData: { pipeline, version } },
+                });
               },
               isAriaDisabled: isCreateDisabled,
               tooltipProps: isCreateDisabled
@@ -106,13 +102,9 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
             {
               title: 'Create schedule',
               onClick: () => {
-                navigate(
-                  pipelineVersionCreateRecurringRunRoute(
-                    namespace,
-                    pipeline.pipeline_id,
-                    version.pipeline_version_id,
-                  ),
-                );
+                navigate(createRecurringRunRoute(namespace), {
+                  state: { contextData: { pipeline, version } },
+                });
               },
               isAriaDisabled: isCreateDisabled,
               tooltipProps: isCreateDisabled
