@@ -14,7 +14,7 @@ export const getInferenceServiceStatusMessage = (is: InferenceServiceKind): stri
   const activeModelState = is.status?.modelStatus?.states?.activeModelState;
   const targetModelState = is.status?.modelStatus?.states?.targetModelState;
 
-  const stateMessage = targetModelState || activeModelState || 'Unknown';
+  const stateMessage = (targetModelState || activeModelState) ?? 'Unknown';
 
   if (
     activeModelState === InferenceServiceModelState.FAILED_TO_LOAD ||

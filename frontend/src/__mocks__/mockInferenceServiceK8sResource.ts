@@ -11,7 +11,9 @@ type MockResourceConfigType = {
   secretName?: string;
   deleted?: boolean;
   isModelMesh?: boolean;
+  missingStatus?: boolean;
   activeModelState?: string;
+  targetModelState?: string;
   url?: string;
   path?: string;
   acceleratorIdentifier?: string;
@@ -72,7 +74,9 @@ export const mockInferenceServiceK8sResource = ({
   secretName = 'test-secret',
   deleted = false,
   isModelMesh = false,
+  missingStatus = false,
   activeModelState = 'Pending',
+  targetModelState = '',
   url = '',
   acceleratorIdentifier = '',
   path = 'path/to/model',
@@ -146,45 +150,47 @@ export const mockInferenceServiceK8sResource = ({
       },
     },
   },
-  status: {
-    components: {
-      ...(statusPredictor && { predictor: statusPredictor }),
-    },
-    url,
-    conditions: [
-      {
-        lastTransitionTime: '2023-03-17T16:12:41Z',
-        status: 'False',
-        type: 'PredictorReady',
+  status: missingStatus
+    ? undefined
+    : {
+        components: {
+          ...(statusPredictor && { predictor: statusPredictor }),
+        },
+        url,
+        conditions: [
+          {
+            lastTransitionTime: '2023-03-17T16:12:41Z',
+            status: 'False',
+            type: 'PredictorReady',
+          },
+          {
+            lastTransitionTime: '2023-03-17T16:12:41Z',
+            status: 'False',
+            type: 'Ready',
+          },
+        ],
+        modelStatus: {
+          copies: {
+            failedCopies: 0,
+            totalCopies: 0,
+          },
+          lastFailureInfo: {
+            message: lastFailureInfoMessage,
+            modelRevisionName: 'model-size__isvc-59ce37c85b',
+            reason: 'RuntimeUnhealthy',
+            location: '',
+            time: '',
+          },
+          states: {
+            activeModelState,
+            targetModelState,
+          },
+          transitionStatus: '',
+        },
+        ...(kserveInternalUrl && {
+          address: {
+            url: kserveInternalUrl,
+          },
+        }),
       },
-      {
-        lastTransitionTime: '2023-03-17T16:12:41Z',
-        status: 'False',
-        type: 'Ready',
-      },
-    ],
-    modelStatus: {
-      copies: {
-        failedCopies: 0,
-        totalCopies: 0,
-      },
-      lastFailureInfo: {
-        message: lastFailureInfoMessage,
-        modelRevisionName: 'model-size__isvc-59ce37c85b',
-        reason: 'RuntimeUnhealthy',
-        location: '',
-        time: '',
-      },
-      states: {
-        activeModelState,
-        targetModelState: '',
-      },
-      transitionStatus: '',
-    },
-    ...(kserveInternalUrl && {
-      address: {
-        url: kserveInternalUrl,
-      },
-    }),
-  },
 });
