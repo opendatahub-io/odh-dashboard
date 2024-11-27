@@ -7,6 +7,11 @@ import NotebooksCard from './NotebooksCard';
 
 const TrainModelsSection: React.FC = () => {
   const pipelinesEnabled = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
+  const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
+
+  if (!workbenchEnabled && !pipelinesEnabled) {
+    return null;
+  }
 
   return (
     <CollapsibleSection title="Train models">
@@ -15,7 +20,7 @@ const TrainModelsSection: React.FC = () => {
         minWidths={{ default: '100%', lg: pipelinesEnabled ? 'calc(50% - 1rem / 2)' : '100%' }}
         maxWidths={{ default: '100%', lg: pipelinesEnabled ? 'calc(50% - 1rem / 2)' : '100%' }}
       >
-        <NotebooksCard />
+        {workbenchEnabled ? <NotebooksCard /> : null}
         {pipelinesEnabled ? <PipelinesCard /> : null}
       </Gallery>
     </CollapsibleSection>

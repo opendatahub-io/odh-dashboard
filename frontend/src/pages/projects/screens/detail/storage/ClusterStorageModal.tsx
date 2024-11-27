@@ -11,6 +11,7 @@ import {
 import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
 import StorageNotebookConnections from '~/pages/projects/notebook/StorageNotebookConnections';
 import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
+import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 import BaseStorageModal from './BaseStorageModal';
 import ExistingConnectedNotebooks from './ExistingConnectedNotebooks';
 import { isPvcUpdateRequired } from './utils';
@@ -32,6 +33,8 @@ const ClusterStorageModal: React.FC<ClusterStorageModalProps> = ({ existingPvc, 
     ConnectedNotebookContext.EXISTING_PVC,
     existingPvc?.metadata.name,
   );
+
+  const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
 
   const {
     notebooks: removableNotebooks,
@@ -127,34 +130,36 @@ const ClusterStorageModal: React.FC<ClusterStorageModalProps> = ({ existingPvc, 
       onClose={(submitted) => onClose(submitted)}
       existingPvc={existingPvc}
     >
-      <>
-        {hasExistingNotebookConnections && (
+      {workbenchEnabled && (
+        <>
+          {hasExistingNotebookConnections && (
+            <StackItem>
+              <ExistingConnectedNotebooks
+                connectedNotebooks={removableNotebooks}
+                onNotebookRemove={(notebook: NotebookKind) =>
+                  setRemovedNotebooks([...removedNotebooks, notebook.metadata.name])
+                }
+                loaded={removableNotebookLoaded}
+                error={removableNotebookError}
+              />
+            </StackItem>
+          )}
           <StackItem>
-            <ExistingConnectedNotebooks
-              connectedNotebooks={removableNotebooks}
-              onNotebookRemove={(notebook: NotebookKind) =>
-                setRemovedNotebooks([...removedNotebooks, notebook.metadata.name])
-              }
-              loaded={removableNotebookLoaded}
-              error={removableNotebookError}
+            <StorageNotebookConnections
+              setForNotebookData={(forNotebookData) => {
+                setNotebookData(forNotebookData);
+              }}
+              forNotebookData={notebookData}
+              connectedNotebooks={connectedNotebooks}
             />
           </StackItem>
-        )}
-        <StackItem>
-          <StorageNotebookConnections
-            setForNotebookData={(forNotebookData) => {
-              setNotebookData(forNotebookData);
-            }}
-            forNotebookData={notebookData}
-            connectedNotebooks={connectedNotebooks}
-          />
-        </StackItem>
-        {restartNotebooks.length !== 0 && (
-          <StackItem>
-            <NotebookRestartAlert notebooks={restartNotebooks} />
-          </StackItem>
-        )}
-      </>
+          {restartNotebooks.length !== 0 && (
+            <StackItem>
+              <NotebookRestartAlert notebooks={restartNotebooks} />
+            </StackItem>
+          )}
+        </>
+      )}
     </BaseStorageModal>
   );
 };

@@ -37,6 +37,7 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
     [storageClassesLoaded, storageTableData],
   );
   const shouldShowAlert = isDeprecatedAlert && !alertDismissed && isStorageClassesAvailable;
+  const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
 
   const getStorageColumns = () => {
     let storageColumns = columns;
@@ -44,6 +45,11 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
     if (!isStorageClassesAvailable) {
       storageColumns = columns.filter((column) => column.field !== 'storage');
     }
+
+    if (!workbenchEnabled) {
+      storageColumns = storageColumns.filter((column) => column.field !== 'connected');
+    }
+
     return storageColumns;
   };
 

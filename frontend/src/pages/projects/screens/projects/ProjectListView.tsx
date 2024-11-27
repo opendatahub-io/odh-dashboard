@@ -12,6 +12,7 @@ import {
   initialProjectsFilterData,
   ProjectsFilterDataType,
 } from '~/pages/projects/screens/projects/const';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { columns } from './tableData';
 import DeleteProjectModal from './DeleteProjectModal';
 import ManageProjectModal from './ManageProjectModal';
@@ -60,6 +61,11 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
   const [deleteData, setDeleteData] = React.useState<ProjectKind | undefined>();
   const [editData, setEditData] = React.useState<ProjectKind | undefined>();
   const [refreshIds, setRefreshIds] = React.useState<string[]>([]);
+  const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
+
+  const filteredColumns = workbenchEnabled
+    ? columns
+    : columns.filter((column) => column.field !== 'Workbenches');
 
   return (
     <>
@@ -69,7 +75,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
         variant="compact"
         defaultSortColumn={0}
         data={filteredProjects}
-        columns={columns}
+        columns={filteredColumns}
         emptyTableView={<DashboardEmptyTableView onClearFilters={resetFilters} />}
         data-testid="project-view-table"
         disableRowRenderSupport

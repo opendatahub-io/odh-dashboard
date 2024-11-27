@@ -13,7 +13,7 @@ import {
   SelfSubjectAccessReviewModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mock200Status } from '~/__mocks__/mockK8sStatus';
-import { mockNotebookK8sResource, mockRouteK8sResource } from '~/__mocks__';
+import { mockDscStatus, mockNotebookK8sResource, mockRouteK8sResource } from '~/__mocks__';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
 import { mockSelfSubjectAccessReview } from '~/__mocks__/mockSelfSubjectAccessReview';
 import { asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
@@ -357,6 +357,43 @@ describe('Data science projects details', () => {
     });
     notebookRow.findNotebookStatusText().should('have.text', 'Stopped');
     notebookRow.findNotebookRouteLink().should('have.attr', 'aria-disabled', 'true');
+  });
+
+  describe('Workbench disabled', () => {
+    beforeEach(() => {
+      cy.interceptOdh(
+        'GET /api/dsc/status',
+        mockDscStatus({
+          installedComponents: {
+            workbenches: false,
+            'data-science-pipelines-operator': true,
+            kserve: true,
+            'model-mesh': true,
+            'model-registry-operator': true,
+          },
+        }),
+      );
+      initIntercepts();
+    });
+
+    it('should hide workbench column when workbenches are disabled', () => {
+      projectListPage.visit();
+
+      // Verify workbench column is not present
+      cy.get('th').contains('Workbenches').should('not.exist');
+
+      // Verify workbench status indicators are not shown
+      const projectTableRow = projectListPage.getProjectRow('Test Project');
+      projectTableRow.findNotebookColumnExpander().should('not.exist');
+    });
+
+    it('should not show workbench count or details', () => {
+      projectListPage.visit();
+
+      // Verify no workbench info is shown
+      cy.get('[data-label="Workbenches"]').should('not.exist');
+      cy.get('.pf-v5-c-table__expandable-row-content').should('not.exist');
+    });
   });
 });
 
