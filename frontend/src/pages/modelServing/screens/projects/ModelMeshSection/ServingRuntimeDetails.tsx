@@ -39,7 +39,7 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj, isvc
       <DescriptionListGroup>
         <DescriptionListTerm>Model server replicas</DescriptionListTerm>
         <DescriptionListDescription>
-          {isvc?.spec.predictor.minReplicas || obj.spec.replicas || 'Unknown'}
+          {isvc?.spec.predictor.minReplicas ?? obj.spec.replicas ?? 'Unknown'}
         </DescriptionListDescription>
       </DescriptionListGroup>
       {resources && (

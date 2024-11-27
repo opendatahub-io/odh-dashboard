@@ -226,9 +226,9 @@ export const useCreateInferenceServiceObject = (
   const existingFormat =
     useDeepCompareMemoize(existingData?.spec.predictor.model?.modelFormat) || undefined;
   const existingMinReplicas =
-    existingData?.spec.predictor.minReplicas || existingServingRuntimeData?.spec.replicas || 1;
+    existingData?.spec.predictor.minReplicas ?? existingServingRuntimeData?.spec.replicas ?? 1;
   const existingMaxReplicas =
-    existingData?.spec.predictor.maxReplicas || existingServingRuntimeData?.spec.replicas || 1;
+    existingData?.spec.predictor.maxReplicas ?? existingServingRuntimeData?.spec.replicas ?? 1;
 
   const existingExternalRoute =
     existingData?.metadata.labels?.['networking.knative.dev/visibility'] !== 'cluster-local';
