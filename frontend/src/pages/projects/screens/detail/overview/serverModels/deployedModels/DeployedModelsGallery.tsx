@@ -20,7 +20,7 @@ import { isModelMesh } from '~/pages/modelServing/utils';
 import { getPodsForKserve, getPodsForModelMesh } from '~/api';
 import {
   checkModelStatus,
-  getInferenceServiceActiveModelState,
+  getInferenceServiceModelState,
 } from '~/pages/modelServing/screens/global/utils';
 import { InferenceServiceModelState, ModelStatus } from '~/pages/modelServing/screens/types';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
@@ -58,7 +58,7 @@ const DeployedModelsGallery: React.FC<DeployedModelsGalleryProps> = ({
     const updateServiceState = (inferenceService: InferenceServiceKind, status?: ModelStatus) => {
       const state = status?.failedToSchedule
         ? InferenceServiceModelState.FAILED_TO_LOAD
-        : getInferenceServiceActiveModelState(inferenceService);
+        : getInferenceServiceModelState(inferenceService);
 
       setInferenceServiceStates((prev) => {
         const states = { ...prev };
