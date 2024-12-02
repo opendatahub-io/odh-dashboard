@@ -18,6 +18,7 @@ import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { NameDescType } from '~/pages/projects/types';
 import FormSection from '~/components/pf-overrides/FormSection';
 import { AreaContext } from '~/concepts/areas/AreaContext';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 type CreateModalProps = {
   onClose: () => void;
@@ -44,6 +45,9 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
   const [isDatabaseTouched, setIsDatabaseTouched] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
   const { dscStatus } = React.useContext(AreaContext);
+  const secureDbEnabled = true || useIsAreaAvailable(
+    SupportedArea.MODEL_REGISTRY_SECURE_DB
+  ).status;
 
   const onBeforeClose = () => {
     setIsSubmitting(false);
@@ -257,6 +261,11 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
               </HelperText>
             )}
           </FormGroup>
+          {secureDbEnabled && (
+            <>
+              SECURE DB STUFF
+            </>
+          )}
         </FormSection>
       </Form>
     </Modal>
