@@ -282,7 +282,7 @@ describe('createNIMSecret', () => {
       dryRun,
     );
 
-    expect(getNIMData).toHaveBeenCalledWith(true);
+    expect(getNIMData).toHaveBeenCalledWith(true, 'nvidia-nim-access', 'nvidia-nim-image-pull');
     expect(getNGCSecretType).toHaveBeenCalledWith(true);
     expect(createSecret).toHaveBeenCalledWith(
       {
@@ -315,7 +315,7 @@ describe('createNIMSecret', () => {
       dryRun,
     );
 
-    expect(getNIMData).toHaveBeenCalledWith(false);
+    expect(getNIMData).toHaveBeenCalledWith(false, 'nvidia-nim-access', 'nvidia-nim-image-pull');
     expect(getNGCSecretType).toHaveBeenCalledWith(false);
     expect(createSecret).toHaveBeenCalledWith(
       {
@@ -344,7 +344,7 @@ describe('createNIMSecret', () => {
   });
 });
 describe('fetchNIMModelNames', () => {
-  const NIM_CONFIGMAP_NAME = 'nvidia-nim-images-data';
+  // const NIM_CONFIGMAP_NAME = 'nvidia-nim-images-data';
   const dashboardNamespace = 'redhat-ods-applications';
 
   const configMapMock = {
@@ -370,6 +370,16 @@ describe('fetchNIMModelNames', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    const mockAccount = {
+      status: {
+        nimPullSecret: { name: 'nvidia-nim-image-pull' },
+        nimConfig: { name: 'nvidia-nim-images-data' },
+        runtimeTemplate: { name: 'nvidia-nim-serving-template' },
+      },
+      spec: { apiKeySecret: { name: 'nvidia-nim-access' } },
+    };
+
+    (listAccounts as jest.Mock).mockResolvedValueOnce([mockAccount]);
   });
 
   it('should return model infos when configMap has data', async () => {
@@ -377,7 +387,7 @@ describe('fetchNIMModelNames', () => {
 
     const result = await fetchNIMModelNames(dashboardNamespace);
 
-    expect(getNIMResource).toHaveBeenCalledWith(NIM_CONFIGMAP_NAME);
+    expect(getNIMResource).toHaveBeenCalledWith('nvidia-nim-images-data');
     expect(result).toEqual([
       {
         name: 'model1',
@@ -405,7 +415,7 @@ describe('fetchNIMModelNames', () => {
 
     const result = await fetchNIMModelNames(dashboardNamespace);
 
-    expect(getNIMResource).toHaveBeenCalledWith(NIM_CONFIGMAP_NAME);
+    expect(getNIMResource).toHaveBeenCalledWith('nvidia-nim-images-data');
     expect(result).toBeUndefined();
   });
 
@@ -414,7 +424,7 @@ describe('fetchNIMModelNames', () => {
 
     const result = await fetchNIMModelNames(dashboardNamespace);
 
-    expect(getNIMResource).toHaveBeenCalledWith(NIM_CONFIGMAP_NAME);
+    expect(getNIMResource).toHaveBeenCalledWith('nvidia-nim-images-data');
     expect(result).toBeUndefined();
   });
 });
