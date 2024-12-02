@@ -38,6 +38,13 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
   const modelArtifact = modelArtifacts.items.length ? modelArtifacts.items[0] : null;
   const { apiState } = React.useContext(ModelRegistryContext);
   const storageFields = uriToObjectStorageFields(modelArtifact?.uri || '');
+  if (!modelArtifactsLoaded) {
+    return (
+      <Bullseye>
+        <Spinner size="xl" />
+      </Bullseye>
+    );
+  }
   return (
     <Flex
       direction={{ default: 'column', md: 'row' }}
@@ -96,28 +103,24 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
         </DescriptionList>
       </FlexItem>
       <FlexItem flex={{ default: 'flex_1' }}>
-        {!modelArtifactsLoaded ? (
-          <Bullseye>
-            <Spinner size="xl" />
-          </Bullseye>
-        ) : modelArtifactsLoadError ? (
+        <DescriptionList isFillColumns>
+          <DashboardDescriptionListGroup
+            title="Version ID"
+            isEmpty={!mv.id}
+            contentWhenEmpty="No model ID"
+          >
+            <InlineTruncatedClipboardCopy testId="model-version-id" textToCopy={mv.id} />
+          </DashboardDescriptionListGroup>
+        </DescriptionList>
+        <Title style={{ margin: '1em 0' }} headingLevel={TextVariants.h3}>
+          Model location
+        </Title>
+        {modelArtifactsLoadError ? (
           <Alert variant="danger" isInline title={modelArtifactsLoadError.name}>
             {modelArtifactsLoadError.message}
           </Alert>
         ) : (
           <>
-            <DescriptionList isFillColumns>
-              <DashboardDescriptionListGroup
-                title="Version ID"
-                isEmpty={!mv.id}
-                contentWhenEmpty="No model ID"
-              >
-                <InlineTruncatedClipboardCopy testId="model-version-id" textToCopy={mv.id} />
-              </DashboardDescriptionListGroup>
-            </DescriptionList>
-            <Title style={{ margin: '1em 0' }} headingLevel={TextVariants.h3}>
-              Model location
-            </Title>
             <DescriptionList>
               {storageFields && (
                 <>
@@ -218,31 +221,31 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                 contentWhenEmpty="No source model format version"
               />
             </DescriptionList>
-            <Divider style={{ marginTop: '1em' }} />
-            <DescriptionList isFillColumns style={{ marginTop: '1em' }}>
-              <DashboardDescriptionListGroup
-                title="Author"
-                popover="The author is the user who registered the model version."
-              >
-                {mv.author}
-              </DashboardDescriptionListGroup>
-              <DashboardDescriptionListGroup
-                title="Last modified at"
-                isEmpty={!mv.lastUpdateTimeSinceEpoch}
-                contentWhenEmpty="Unknown"
-              >
-                <ModelTimestamp timeSinceEpoch={mv.lastUpdateTimeSinceEpoch} />
-              </DashboardDescriptionListGroup>
-              <DashboardDescriptionListGroup
-                title="Registered"
-                isEmpty={!mv.createTimeSinceEpoch}
-                contentWhenEmpty="Unknown"
-              >
-                <ModelTimestamp timeSinceEpoch={mv.createTimeSinceEpoch} />
-              </DashboardDescriptionListGroup>
-            </DescriptionList>
           </>
         )}
+        <Divider style={{ marginTop: '1em' }} />
+        <DescriptionList isFillColumns style={{ marginTop: '1em' }}>
+          <DashboardDescriptionListGroup
+            title="Author"
+            popover="The author is the user who registered the model version."
+          >
+            {mv.author}
+          </DashboardDescriptionListGroup>
+          <DashboardDescriptionListGroup
+            title="Last modified at"
+            isEmpty={!mv.lastUpdateTimeSinceEpoch}
+            contentWhenEmpty="Unknown"
+          >
+            <ModelTimestamp timeSinceEpoch={mv.lastUpdateTimeSinceEpoch} />
+          </DashboardDescriptionListGroup>
+          <DashboardDescriptionListGroup
+            title="Registered"
+            isEmpty={!mv.createTimeSinceEpoch}
+            contentWhenEmpty="Unknown"
+          >
+            <ModelTimestamp timeSinceEpoch={mv.createTimeSinceEpoch} />
+          </DashboardDescriptionListGroup>
+        </DescriptionList>
       </FlexItem>
     </Flex>
   );
