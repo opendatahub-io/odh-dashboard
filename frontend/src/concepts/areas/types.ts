@@ -66,6 +66,9 @@ export enum SupportedArea {
 
   /* Alter parameters areas */
   SERVING_RUNTIME_PARAMS = 'serving-runtime-params',
+
+  /* Alter secure db areas */
+  MODEL_REGISTRY_SECURE_DB = 'model-registry-secure-db',
 }
 
 /** Components deployed by the Operator. Part of the DSC Status. */
