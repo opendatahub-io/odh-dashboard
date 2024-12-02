@@ -41,7 +41,8 @@ const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
   onClose,
   onNameChange,
 }) => {
-  const [createData, setCreateData, resetData] = useCreateStorageObject(existingPvc, existingData);
+  const [createData, setCreateData] = useCreateStorageObject(existingPvc, existingData);
+  const [nameDescValid, setNameDescValid] = React.useState<boolean>();
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const preferredStorageClass = usePreferredStorageClass();
   const [defaultStorageClass] = useDefaultStorageClass();
@@ -64,21 +65,14 @@ const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
     setCreateData,
   ]);
 
-  const onBeforeClose = (submitted: boolean) => {
-    onClose(submitted);
-    setError(undefined);
-    setActionInProgress(false);
-    resetData();
-  };
-
-  const canCreate = !actionInProgress && createData.name.trim().length > 0 && isValid;
+  const canCreate = !actionInProgress && nameDescValid && isValid;
 
   const submit = () => {
     setError(undefined);
     setActionInProgress(true);
 
     onSubmit(createData)
-      .then(() => onBeforeClose(true))
+      .then(() => onClose(true))
       .catch((err) => {
         setError(err);
         setActionInProgress(false);
@@ -91,13 +85,13 @@ const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
       description={description}
       variant="medium"
       isOpen
-      onClose={() => onBeforeClose(false)}
+      onClose={() => onClose(false)}
       showClose
       footer={
         <DashboardModalFooter
           submitLabel={submitLabel}
           onSubmit={submit}
-          onCancel={() => onBeforeClose(false)}
+          onCancel={() => onClose(false)}
           isSubmitDisabled={!canCreate}
           error={error}
           alertTitle="Error creating storage"
@@ -118,8 +112,10 @@ const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
               currentStatus={existingPvc?.status}
               autoFocusName
               onNameChange={onNameChange}
+              setValid={setNameDescValid}
               hasDuplicateName={hasDuplicateName}
               disableStorageClassSelect={!!existingPvc}
+              editableK8sName={!existingPvc}
             />
           </StackItem>
           {children}

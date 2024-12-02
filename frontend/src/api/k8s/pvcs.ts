@@ -21,7 +21,7 @@ export const assemblePvc = (
   hideFromUI?: boolean,
 ): PersistentVolumeClaimKind => {
   const { name: pvcName, description, size, storageClassName } = data;
-  const name = editName || translateDisplayNameForK8s(pvcName);
+  const name = editName || data.k8sName || translateDisplayNameForK8s(pvcName);
 
   return {
     apiVersion: 'v1',
@@ -85,8 +85,13 @@ export const updatePvc = (
 ): Promise<PersistentVolumeClaimKind> => {
   const pvc = assemblePvc(data, namespace, existingData.metadata.name);
 
+  const pvcResource = _.merge({}, existingData, pvc);
+  if (!data.description && pvcResource.metadata.annotations?.['openshift.io/description']) {
+    pvcResource.metadata.annotations['openshift.io/description'] = undefined;
+  }
+
   return k8sUpdateResource<PersistentVolumeClaimKind>(
-    applyK8sAPIOptions({ model: PVCModel, resource: _.merge({}, existingData, pvc) }, opts),
+    applyK8sAPIOptions({ model: PVCModel, resource: pvcResource }, opts),
   );
 };
 

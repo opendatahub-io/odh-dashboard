@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { StackItem } from '@patternfly/react-core';
+import { FormGroup } from '@patternfly/react-core';
 import { NotebookKind, PersistentVolumeClaimKind } from '~/k8sTypes';
 import { ForNotebookSelection, StorageData } from '~/pages/projects/types';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
@@ -133,30 +133,26 @@ const ClusterStorageModal: React.FC<ClusterStorageModalProps> = ({ existingPvc, 
       {workbenchEnabled && (
         <>
           {hasExistingNotebookConnections && (
-            <StackItem>
-              <ExistingConnectedNotebooks
-                connectedNotebooks={removableNotebooks}
-                onNotebookRemove={(notebook: NotebookKind) =>
-                  setRemovedNotebooks([...removedNotebooks, notebook.metadata.name])
-                }
-                loaded={removableNotebookLoaded}
-                error={removableNotebookError}
-              />
-            </StackItem>
-          )}
-          <StackItem>
-            <StorageNotebookConnections
-              setForNotebookData={(forNotebookData) => {
-                setNotebookData(forNotebookData);
-              }}
-              forNotebookData={notebookData}
-              connectedNotebooks={connectedNotebooks}
+            <ExistingConnectedNotebooks
+              connectedNotebooks={removableNotebooks}
+              onNotebookRemove={(notebook: NotebookKind) =>
+                setRemovedNotebooks([...removedNotebooks, notebook.metadata.name])
+              }
+              loaded={removableNotebookLoaded}
+              error={removableNotebookError}
             />
-          </StackItem>
+          )}
+          <StorageNotebookConnections
+            setForNotebookData={(forNotebookData) => {
+              setNotebookData(forNotebookData);
+            }}
+            forNotebookData={notebookData}
+            connectedNotebooks={connectedNotebooks}
+          />
           {restartNotebooks.length !== 0 && (
-            <StackItem>
+            <FormGroup>
               <NotebookRestartAlert notebooks={restartNotebooks} />
-            </StackItem>
+            </FormGroup>
           )}
         </>
       )}
