@@ -604,17 +604,15 @@ describe('fetchNIMAccountConstants', () => {
   it('should throw an error if no account exists', async () => {
     (listAccounts as jest.Mock).mockResolvedValue([]);
 
-    await expect(fetchNIMAccountConstants(dashboardNamespace)).rejects.toThrow(
-      'NIM account does not exist.',
-    );
+    const result = await fetchNIMAccountConstants(dashboardNamespace);
+    expect(result).toBeNull();
   });
 
   it('should throw an error if account details are missing', async () => {
     (listAccounts as jest.Mock).mockResolvedValue([{ spec: { apiKeySecret: {} } }]);
 
-    await expect(fetchNIMAccountConstants(dashboardNamespace)).rejects.toThrow(
-      'Failed to retrieve NIM account details.',
-    );
+    const result = await fetchNIMAccountConstants(dashboardNamespace);
+    expect(result).toBeNull();
   });
 
   it('should throw an error if required fields are missing', async () => {
@@ -625,8 +623,7 @@ describe('fetchNIMAccountConstants', () => {
       },
     ]);
 
-    await expect(fetchNIMAccountConstants(dashboardNamespace)).rejects.toThrow(
-      'Required NIM account fields are missing.',
-    );
+    const result = await fetchNIMAccountConstants(dashboardNamespace);
+    expect(result).toBeNull();
   });
 });
