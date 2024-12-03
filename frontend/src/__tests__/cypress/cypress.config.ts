@@ -138,7 +138,7 @@ export default defineConfig({
       // Apply retries only for tests in the "e2e" folder
       return {
         ...config,
-        retries: config.specPattern.includes('/e2e/') ? 2 : config.retries,
+        retries: !env.CY_MOCK && !env.CY_RECORD ? 2 : config.retries,
       };
     },
   },
