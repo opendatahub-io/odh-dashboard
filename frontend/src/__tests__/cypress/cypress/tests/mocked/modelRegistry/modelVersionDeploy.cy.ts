@@ -8,6 +8,7 @@ import {
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
 import {
+  AccountModel,
   ProjectModel,
   SecretModel,
   ServiceModel,
@@ -30,6 +31,7 @@ import {
 import { ServingRuntimePlatform } from '~/types';
 import { kserveModal } from '~/__tests__/cypress/cypress/pages/modelServing';
 import { mockModelArtifact } from '~/__mocks__/mockModelArtifact';
+import { mockNimAccount } from '~/__mocks__/mockNimAccount';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 
@@ -177,6 +179,8 @@ const initIntercepts = ({
       { namespace: 'opendatahub' },
     ),
   );
+
+  cy.interceptK8sList(AccountModel, mockK8sResourceList([mockNimAccount({})]));
 };
 
 describe('Deploy model version', () => {
