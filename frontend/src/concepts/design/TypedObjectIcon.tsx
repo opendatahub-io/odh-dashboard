@@ -27,6 +27,9 @@ import {
   ModelIcon,
   SingleModelIcon,
   MultiModelIcon,
+  PermissionsIcon,
+  ExperimentIcon,
+  ResourcesIcon,
 } from '~/images/icons';
 
 type TypedObjectIconProps = SVGIconProps & {
@@ -63,6 +66,9 @@ const TypedObjectIcon: React.FC<TypedObjectIconProps> = ({
     case ProjectObjectType.pipelineRun:
       Icon = PipelineRunIcon;
       break;
+    case ProjectObjectType.pipelineExperiment:
+      Icon = ExperimentIcon;
+      break;
     case ProjectObjectType.pipelineExecution:
       Icon = PipelineExecutionIcon;
       break;
@@ -85,6 +91,7 @@ const TypedObjectIcon: React.FC<TypedObjectIconProps> = ({
       Icon = ModelServerIcon;
       break;
     case ProjectObjectType.registeredModels:
+    case ProjectObjectType.modelRegistrySettings:
       Icon = RegisteredModelIcon;
       break;
     case ProjectObjectType.deployedModels:
@@ -107,6 +114,9 @@ const TypedObjectIcon: React.FC<TypedObjectIconProps> = ({
     case ProjectObjectType.acceleratorProfile:
       Icon = AcceleratorProfileIcon;
       break;
+    case ProjectObjectType.permissions:
+      Icon = PermissionsIcon;
+      break;
     case ProjectObjectType.user:
       Icon = UserIcon;
       break;
@@ -121,6 +131,9 @@ const TypedObjectIcon: React.FC<TypedObjectIconProps> = ({
       break;
     case ProjectObjectType.exploreApplications:
       Icon = ExploreApplicationsIcon;
+      break;
+    case ProjectObjectType.resources:
+      Icon = ResourcesIcon;
       break;
     default:
       return null;

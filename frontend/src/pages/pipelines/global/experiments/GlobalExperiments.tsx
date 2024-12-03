@@ -21,7 +21,10 @@ const GlobalExperiments: React.FC<GlobalExperimentsParams> = ({ tab }) => {
   return (
     <PipelineCoreApplicationPage
       title={
-        <TitleWithIcon title={experimentsPageTitle} objectType={ProjectObjectType.pipelineRun} />
+        <TitleWithIcon
+          title={experimentsPageTitle}
+          objectType={ProjectObjectType.pipelineExperiment}
+        />
       }
       description={experimentsPageDescription}
       headerAction={<PipelineServerActions isDisabled={!pipelinesAPI.pipelinesServer.installed} />}

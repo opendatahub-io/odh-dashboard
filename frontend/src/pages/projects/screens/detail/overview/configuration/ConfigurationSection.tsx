@@ -114,7 +114,7 @@ const ConfigurationSection: React.FC = () => {
           <InfoGalleryItem
             sectionType={SectionType.setup}
             title="Permissions"
-            resourceType={ProjectObjectType.group}
+            resourceType={ProjectObjectType.permissions}
             description={
               <TextContent>
                 <Text component="small">Add users and groups to share access to your project.</Text>

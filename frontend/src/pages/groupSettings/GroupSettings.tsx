@@ -67,7 +67,7 @@ const GroupSettings: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title={<TitleWithIcon title="User management" objectType={ProjectObjectType.group} />}
+      title={<TitleWithIcon title="User management" objectType={ProjectObjectType.permissions} />}
       description="Define OpenShift group membership for Data Science administrators and users."
       loaded={loaded}
       empty={false}

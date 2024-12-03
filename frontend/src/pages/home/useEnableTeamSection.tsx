@@ -111,7 +111,7 @@ export const useEnableTeamSection = (): React.ReactNode => {
         isOpen={resourcesOpen}
         title="User management"
         onClick={() => trackAndNavigate('user-management', '/groupSettings')}
-        resourceType={ProjectObjectType.user}
+        resourceType={ProjectObjectType.permissions}
         sectionType={SectionType.setup}
         description={
           <TextContent>
