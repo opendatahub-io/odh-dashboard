@@ -13,6 +13,7 @@ import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 
 export const DATA_CONNECTION_PREFIX = 'aws-connection';
+export const SECRET_PREFIX = 'secret-';
 
 export const assembleSecret = (
   projectName: string,
@@ -26,7 +27,7 @@ export const assembleSecret = (
   const annotations: Record<string, string> = {};
 
   let stringData = data;
-  let name = `secret-${genRandomChars()}`;
+  let name = `${SECRET_PREFIX}${genRandomChars()}`;
 
   if (type === 'aws') {
     const { Name, ...secretBody } = data;
