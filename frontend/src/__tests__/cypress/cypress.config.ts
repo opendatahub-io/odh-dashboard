@@ -137,7 +137,7 @@ export default defineConfig({
 
       if (config.specPattern.includes('/e2e/')) {
         // Apply retries only for tests in the "e2e" folder
-        config.retries = 3;
+        config.retries = 2;
       }
       return config;
     },
