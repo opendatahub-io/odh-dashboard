@@ -20,7 +20,8 @@ import useLocalQueues from './useLocalQueues';
 import useWorkloads from './useWorkloads';
 
 type DistributedWorkloadsContextType = {
-  clusterQueue: FetchStateObject<ClusterQueueKind | undefined>;
+  clusterQueues: FetchStateObject<ClusterQueueKind[]>;
+  cqNames: string[];
   localQueues: FetchStateObject<LocalQueueKind[]>;
   workloads: FetchStateObject<WorkloadKind[]>;
   projectCurrentMetrics: DWProjectCurrentMetrics;
@@ -35,7 +36,8 @@ type DistributedWorkloadsContextProviderProps = {
 };
 
 export const DistributedWorkloadsContext = React.createContext<DistributedWorkloadsContextType>({
-  clusterQueue: DEFAULT_VALUE_FETCH_STATE,
+  clusterQueues: DEFAULT_LIST_FETCH_STATE,
+  cqNames: [],
   localQueues: DEFAULT_LIST_FETCH_STATE,
   workloads: DEFAULT_LIST_FETCH_STATE,
   projectCurrentMetrics: DEFAULT_DW_PROJECT_CURRENT_METRICS,
@@ -59,6 +61,12 @@ export const DistributedWorkloadsContextProvider =
 
     // TODO mturley implement lazy loading, let the context consumers tell us what data they need and make the other ones throw a NotReadyError
 
+    const localQueues = useMakeFetchObject<LocalQueueKind[]>(
+      useLocalQueues(namespace, refreshRate),
+    );
+
+    const cqNames = localQueues.data.map((lq) => String(lq.spec.clusterQueueName));
+
     const clusterQueues = useMakeFetchObject<ClusterQueueKind[]>(useClusterQueues(refreshRate));
     // We only support one ClusterQueue, but if the user has created multiple we use the first one with resourceGroups
     const clusterQueue: FetchStateObject<ClusterQueueKind | undefined> = {
@@ -66,9 +74,6 @@ export const DistributedWorkloadsContextProvider =
       data: clusterQueues.data.find((cq) => cq.spec.resourceGroups?.length),
     };
 
-    const localQueues = useMakeFetchObject<LocalQueueKind[]>(
-      useLocalQueues(namespace, refreshRate),
-    );
 
     const workloads = useMakeFetchObject<WorkloadKind[]>(useWorkloads(namespace, refreshRate));
 
@@ -115,7 +120,8 @@ export const DistributedWorkloadsContextProvider =
     return (
       <DistributedWorkloadsContext.Provider
         value={{
-          clusterQueue,
+          clusterQueues,
+          cqNames,
           localQueues,
           workloads,
           projectCurrentMetrics,
