@@ -62,7 +62,13 @@ export const isNIMServingRuntimeTemplateAvailable = async (
   dashboardNamespace: string,
 ): Promise<boolean> => {
   try {
-    const { templateName } = await fetchNIMAccountConstants(dashboardNamespace);
+    const constants = await fetchNIMAccountConstants(dashboardNamespace);
+    if (!constants) {
+      // eslint-disable-next-line no-console
+      console.error('No NIM account constants available.');
+      return false;
+    }
+    const { templateName } = constants;
     await getTemplate(templateName, dashboardNamespace);
     return true;
   } catch (error) {
@@ -193,29 +199,41 @@ export const fetchNIMAccountConstants = async (
   nimNGCSecretName: string;
   nimConfigMapName: string;
   templateName: string;
-}> => {
-  const accounts = await listAccounts(dashboardNamespace);
-  if (accounts.length === 0) {
-    throw new Error('NIM account does not exist.');
+} | null> => {
+  try {
+    const accounts = await listAccounts(dashboardNamespace);
+    if (accounts.length === 0) {
+      // eslint-disable-next-line no-console
+      console.error('NIM account does not exist.');
+      return null;
+    }
+
+    const nimAccount = accounts[0];
+    const nimSecretName = nimAccount.spec.apiKeySecret.name;
+
+    if (!nimSecretName || !nimAccount.status) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to retrieve NIM account details.');
+      return null;
+    }
+
+    const { nimPullSecret, nimConfig, runtimeTemplate } = nimAccount.status;
+
+    if (!nimPullSecret?.name || !nimConfig?.name || !runtimeTemplate?.name) {
+      // eslint-disable-next-line no-console
+      console.error('Required NIM account fields are missing.');
+      return null;
+    }
+
+    return {
+      nimSecretName,
+      nimNGCSecretName: nimPullSecret.name,
+      nimConfigMapName: nimConfig.name,
+      templateName: runtimeTemplate.name,
+    };
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(`Error fetching NIM account constants`);
+    return null;
   }
-
-  const nimAccount = accounts[0];
-  const nimSecretName = nimAccount.spec.apiKeySecret.name;
-
-  if (!nimSecretName || !nimAccount.status) {
-    throw new Error('Failed to retrieve NIM account details.');
-  }
-
-  const { nimPullSecret, nimConfig, runtimeTemplate } = nimAccount.status;
-
-  if (!nimPullSecret?.name || !nimConfig?.name || !runtimeTemplate?.name) {
-    throw new Error('Required NIM account fields are missing.');
-  }
-
-  return {
-    nimSecretName,
-    nimNGCSecretName: nimPullSecret.name,
-    nimConfigMapName: nimConfig.name,
-    templateName: runtimeTemplate.name,
-  };
 };

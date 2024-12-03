@@ -642,7 +642,13 @@ export interface ModelInfo {
 export const fetchNIMModelNames = async (
   dashboardNamespace: string,
 ): Promise<ModelInfo[] | undefined> => {
-  const { nimConfigMapName } = await fetchNIMAccountConstants(dashboardNamespace);
+  const constants = await fetchNIMAccountConstants(dashboardNamespace);
+  if (!constants) {
+    // eslint-disable-next-line no-console
+    console.error('No NIM account constants available.');
+    return undefined;
+  }
+  const { nimConfigMapName } = constants;
   const configMap = await getNIMResource<ConfigMapKind>(nimConfigMapName);
   if (configMap.data && Object.keys(configMap.data).length > 0) {
     const modelInfos: ModelInfo[] = [];
