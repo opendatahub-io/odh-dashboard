@@ -25,8 +25,9 @@ const DeployAndMonitorGallery: React.FC<{ onClose: () => void }> = ({ onClose })
         description={
           <TextContent>
             <Text component="small">
-              Model registries provide a structured and organized way to store, version, deploy, and track models,
-              ensuring that they are easily accessible and managable throughout their lifecycle.
+              Model registries provide a structured and organized way to store, version, deploy, and
+              track models, ensuring that they are easily accessible and managable throughout their
+              lifecycle.
             </Text>
           </TextContent>
         }
@@ -67,8 +68,9 @@ const DeployAndMonitorGallery: React.FC<{ onClose: () => void }> = ({ onClose })
         description={
           <TextContent>
             <Text component="small">
-              Deploy models to test them and integrate them into applications. Deploying a model makes
-              it accessible via an API, enabling you to return predictions based on data inputs.
+              Deploy models to test them and integrate them into applications. Deploying a model
+              makes it accessible via an API, enabling you to return predictions based on data
+              inputs.
             </Text>
           </TextContent>
         }
