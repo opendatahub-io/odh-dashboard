@@ -36,6 +36,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableKServeMetrics: boolean;
       disableModelMesh: boolean;
       disableAcceleratorProfiles: boolean;
+      disableHardwareProfiles: boolean;
       disableDistributedWorkloads: boolean;
       disableModelRegistry: boolean;
       disableServingRuntimeParams: boolean;
@@ -963,6 +964,19 @@ export enum TolerationEffect {
   NO_EXECUTE = 'NoExecute',
 }
 
+export type Identifier = {
+  displayName: string;
+  identifier: string;
+  minCount: number | string;
+  maxCount: number | string;
+  defaultCount: number | string;
+};
+
+export type NodeSelector = {
+  key: string;
+  value: string;
+};
+
 export type Toleration = {
   key: string;
   operator?: TolerationOperator;
@@ -984,6 +998,20 @@ export type AcceleratorProfileKind = K8sResourceCommon & {
     identifier: string;
     description?: string;
     tolerations?: Toleration[];
+  };
+};
+
+export type HardwareProfileKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+  };
+  spec: {
+    displayName: string;
+    enabled: boolean;
+    description?: string;
+    tolerations?: Toleration[];
+    identifiers?: Identifier[];
+    nodeSelectors?: NodeSelector[];
   };
 };
 

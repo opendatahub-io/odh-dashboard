@@ -22,6 +22,7 @@ spec:
     disableTrustyBiasMetrics: false
     disablePerformanceMetrics: false
     disableAcceleratorProfiles: false
+    disableHardwareProfiles: false
     disableKServe: false
     disableKServeAuth: false
     disableKServeMetrics: false
