@@ -1254,3 +1254,8 @@ export type NIMAccountKind = K8sResourceCommon & {
     conditions?: K8sCondition[];
   };
 };
+
+export type ResourceAccessReviewResponse = {
+  groups?: string[];
+  users?: string[];
+};
