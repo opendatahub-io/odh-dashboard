@@ -20,24 +20,26 @@ import {
 } from '~/__tests__/cypress/cypress/pages/projects';
 import { ServingRuntimePlatform } from '~/types';
 import {
+  AccountModel,
   DataSciencePipelineApplicationModel,
   ImageStreamModel,
+  InferenceServiceModel,
   NotebookModel,
-  PVCModel,
   PodModel,
   ProjectModel,
+  PVCModel,
   RouteModel,
   SecretModel,
   ServiceAccountModel,
-  TemplateModel,
-  InferenceServiceModel,
   ServingRuntimeModel,
+  TemplateModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
 import { asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import { mockNimServingRuntimeTemplate } from '~/__mocks__/mockNimResource';
+import { mockNimAccount } from '~/__mocks__/mockNimAccount';
 
 type HandlersProps = {
   isEmpty?: boolean;
@@ -271,6 +273,8 @@ const initIntercepts = ({
     },
     buildMockPipelines(isEmpty ? [] : [mockPipelineKF({})]),
   );
+
+  cy.interceptK8sList(AccountModel, mockK8sResourceList([mockNimAccount({})]));
 };
 
 describe('Project Details', () => {
