@@ -135,12 +135,11 @@ export default defineConfig({
         await mergeFiles(outputFile, inputFiles);
       });
 
-      const updatedConfig = { ...config };
-      if (config.specPattern.includes('/e2e/')) {
-        // Apply retries only for tests in the "e2e" folder
-        updatedConfig.retries = 2;
-      }
-      return updatedConfig;
+      // Apply retries only for tests in the "e2e" folder
+      return {
+        ...config,
+        retries: config.specPattern.includes('/e2e/') ? 2 : config.retries,
+      };
     },
   },
 });
