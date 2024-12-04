@@ -15,7 +15,6 @@ import {
   Text,
   TextVariants,
   Tooltip,
-  Truncate,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon, HddIcon } from '@patternfly/react-icons';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
@@ -51,6 +50,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
   const isRootVolume = useIsRootVolume(obj.pvc);
 
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
+  const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
   const storageClassConfig = obj.storageClass && getStorageClassConfig(obj.storageClass);
 
   const actions: IAction[] = [
@@ -108,13 +108,14 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
               alignItems={{ default: 'alignItemsCenter' }}
             >
               <FlexItem>
-                <Truncate
-                  content={
+                <TableRowTitleDescription
+                  title={
                     storageClassConfig?.displayName ??
                     obj.storageClass?.metadata.name ??
                     obj.pvc.spec.storageClassName ??
                     ''
                   }
+                  resource={obj.storageClass}
                 />
               </FlexItem>
               {storageClassesLoaded && (
@@ -165,12 +166,14 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
             </Flex>
           </Text>
         </Td>
-        <Td dataLabel="Connected workbenches">
-          <ConnectedNotebookNames
-            context={ConnectedNotebookContext.EXISTING_PVC}
-            relatedResourceName={obj.pvc.metadata.name}
-          />
-        </Td>
+        {workbenchEnabled && (
+          <Td dataLabel="Connected workbenches">
+            <ConnectedNotebookNames
+              context={ConnectedNotebookContext.EXISTING_PVC}
+              relatedResourceName={obj.pvc.metadata.name}
+            />
+          </Td>
+        )}
         <Td isActionCell>
           <ActionsColumn items={actions} />
         </Td>

@@ -29,6 +29,7 @@ type NameDescriptionFieldProps = {
   maxLengthName?: number;
   maxLengthDesc?: number;
   nameHelperText?: React.ReactNode;
+  hasNameError?: boolean;
   onNameChange?: (value: string) => void;
 };
 
@@ -50,6 +51,7 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
   maxLengthName,
   maxLengthDesc,
   nameHelperText,
+  hasNameError,
   onNameChange,
 }) => {
   const k8sName = React.useMemo(() => {
@@ -81,10 +83,10 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
                 : undefined
             }
             maxLength={maxLengthName}
+            validated={hasNameError ? 'error' : 'default'}
           />
-
-          {maxLengthName && <CharLimitHelperText limit={maxLengthName} />}
           {nameHelperText}
+          {maxLengthName && <CharLimitHelperText limit={maxLengthName} />}
         </FormGroup>
       </StackItem>
       {showK8sName && (

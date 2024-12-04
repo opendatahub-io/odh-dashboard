@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { TableVariant } from '@patternfly/react-table';
-import { useParams } from 'react-router-dom';
 import { PipelineRecurringRunKF } from '~/concepts/pipelines/kfTypes';
 import { getTableColumnSort, useCheckboxTable, TableBase } from '~/components/table';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
@@ -8,10 +7,10 @@ import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipeline
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 import { PipelinesFilter } from '~/concepts/pipelines/types';
-import usePipelineFilter from '~/concepts/pipelines/content/tables/usePipelineFilter';
+import { usePipelineFilterSearchParams } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import SimpleMenuActions from '~/components/SimpleMenuActions';
-import { useSetVersionFilter } from '~/concepts/pipelines/content/tables/useSetVersionFilter';
 import { pipelineRecurringRunColumns } from '~/concepts/pipelines/content/tables/columns';
+import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
 import PipelineRecurringRunTableRow from './PipelineRecurringRunTableRow';
 import PipelineRecurringRunTableToolbar from './PipelineRecurringRunTableToolbar';
 
@@ -44,8 +43,8 @@ const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
   ...tableProps
 }) => {
   const { refreshAllAPI } = usePipelinesAPI();
-  const { experimentId, pipelineVersionId } = useParams();
-  const { onClearFilters, ...filterToolbarProps } = usePipelineFilter(setFilter);
+  const { experiment } = React.useContext(ExperimentContext);
+  const { onClearFilters, ...filterToolbarProps } = usePipelineFilterSearchParams(setFilter);
   const {
     selections,
     tableProps: checkboxTableProps,
@@ -55,17 +54,11 @@ const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
   } = useCheckboxTable(recurringRuns.map(({ recurring_run_id }) => recurring_run_id));
   const [deleteResources, setDeleteResources] = React.useState<PipelineRecurringRunKF[]>([]);
 
-  useSetVersionFilter(filterToolbarProps.onFilterUpdate);
-
   const getColumns = () => {
     let columns = pipelineRecurringRunColumns;
 
-    if (experimentId) {
+    if (experiment) {
       columns = columns.filter((column) => column.field !== 'experiment');
-    }
-
-    if (pipelineVersionId) {
-      columns = columns.filter((column) => column.field !== 'pipeline_version');
     }
 
     return columns;

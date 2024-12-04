@@ -4,7 +4,7 @@ import { RegisteredModel } from '~/concepts/modelRegistry/types';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
 import EditableTextDescriptionListGroup from '~/components/EditableTextDescriptionListGroup';
-import EditableLabelsDescriptionListGroup from '~/components/EditableLabelsDescriptionListGroup';
+import { EditableLabelsDescriptionListGroup } from '~/components/EditableLabelsDescriptionListGroup';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
 import { getLabels, mergeUpdatedLabels } from '~/pages/modelRegistry/screens/utils';
 import ModelPropertiesDescriptionListGroup from '~/pages/modelRegistry/screens/ModelPropertiesDescriptionListGroup';
@@ -51,7 +51,9 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
             labels={getLabels(rm.customProperties)}
             isArchive={isArchiveModel}
             allExistingKeys={Object.keys(rm.customProperties)}
-            saveEditedLabels={(editedLabels) =>
+            title="Labels"
+            contentWhenEmpty="No labels"
+            onLabelsChange={(editedLabels) =>
               apiState.api
                 .patchRegisteredModel(
                   {},

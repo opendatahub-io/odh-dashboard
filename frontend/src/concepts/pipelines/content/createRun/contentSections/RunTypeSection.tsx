@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { Alert, AlertActionCloseButton, FormSection } from '@patternfly/react-core';
-import { useParams, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 import { PipelineRunTabTitle } from '~/pages/pipelines/global/runs';
 import {
@@ -10,6 +10,8 @@ import {
 } from '~/concepts/pipelines/content/createRun/const';
 import { createRecurringRunRoute, createRunRoute } from '~/routes';
 import { RunFormData, RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
+import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
 
 interface RunTypeSectionProps {
   data: RunFormData;
@@ -17,7 +19,8 @@ interface RunTypeSectionProps {
 }
 
 export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ data, isDuplicated }) => {
-  const { namespace, experimentId, pipelineId, pipelineVersionId } = useParams();
+  const { namespace } = usePipelinesAPI();
+  const { experiment } = React.useContext(ExperimentContext);
   const [isAlertOpen, setIsAlertOpen] = React.useState(true);
 
   let runTypeValue = 'Run once immediately after creation';
@@ -25,9 +28,10 @@ export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ data, isDuplicat
     <>
       To create a schedule that executes recurring runs,{' '}
       <Link
-        to={createRecurringRunRoute(namespace, experimentId, pipelineId, pipelineVersionId)}
+        to={createRecurringRunRoute(namespace, experiment?.experiment_id)}
         state={{ locationData: data }}
         data-testid="run-type-section-alert-link"
+        replace
       >
         go to the {PipelineRunTabTitle.SCHEDULES} tab
       </Link>
@@ -41,9 +45,10 @@ export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ data, isDuplicat
       <>
         To create a non-recurring run,{' '}
         <Link
-          to={createRunRoute(namespace, experimentId, pipelineId, pipelineVersionId)}
+          to={createRunRoute(namespace, experiment?.experiment_id)}
           state={{ locationData: data }}
           data-testid="run-type-section-alert-link"
+          replace
         >
           go to the {PipelineRunTabTitle.ACTIVE} tab
         </Link>

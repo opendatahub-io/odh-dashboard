@@ -115,6 +115,7 @@ describe('setUpTokenAuth', () => {
 
   const fillData: Parameters<typeof setUpTokenAuth>[0] = {
     name: 'test-name-sa',
+    k8sName: 'test-name-sa',
     servingRuntimeTemplateName: '',
     numReplicas: 1,
     modelSize: {

@@ -5,13 +5,11 @@ import RunPage from '~/concepts/pipelines/content/createRun/RunPage';
 import { PathProps } from '~/concepts/pipelines/content/types';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
-import { ExperimentKF, PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
 
 type CreateRunPageProps = {
   runType: RunTypeOption;
   contextExperiment?: ExperimentKF | null;
-  contextPipeline?: PipelineKF | null;
-  contextPipelineVersion?: PipelineVersionKF | null;
 };
 
 const CreateRunPage: React.FC<PathProps & CreateRunPageProps> = ({

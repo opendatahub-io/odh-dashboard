@@ -8,7 +8,7 @@ import {
 
 type LogsTabStatusProps = {
   podError?: Error;
-  podName?: string;
+  podName: string;
   podStatus?: PodStatus | null;
   error?: Error;
   isCached: boolean;

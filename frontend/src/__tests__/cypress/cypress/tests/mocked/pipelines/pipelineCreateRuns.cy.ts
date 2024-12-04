@@ -60,20 +60,13 @@ const initialMockRecurringRuns = [
   }),
 ];
 
-const visitLegacyRunsPage = (pipelineId?: string, versionId?: string) =>
-  pipelineRunsGlobal.visit(
-    projectName,
-    pipelineId || mockPipelineVersion.pipeline_id,
-    versionId || mockPipelineVersion.pipeline_version_id,
-  );
-
 describe('Pipeline create runs', () => {
   beforeEach(() => {
     initIntercepts();
   });
 
   it('renders the page with scheduled and active runs table data', () => {
-    visitLegacyRunsPage();
+    pipelineRunsGlobal.visit(projectName);
 
     pipelineRunsGlobal.findSchedulesTab().click();
     pipelineRecurringRunTable.getRowByName('Test recurring run').find().should('exist');
@@ -84,7 +77,7 @@ describe('Pipeline create runs', () => {
 
   describe('Runs', () => {
     it('switches to scheduled runs from triggered', () => {
-      visitLegacyRunsPage();
+      pipelineRunsGlobal.visit(projectName);
 
       // Mock experiments, pipelines & versions for form select dropdowns
       createRunPage.mockGetExperiments(projectName, mockExperiments);
@@ -97,18 +90,14 @@ describe('Pipeline create runs', () => {
 
       // Navigate to the 'Create run' page
       pipelineRunsGlobal.findCreateRunButton().click();
-      verifyRelativeURL(
-        `/pipelines/${projectName}/${mockPipelineVersion.pipeline_id}/${mockPipelineVersion.pipeline_version_id}/runs/create`,
-      );
+      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
       createRunPage.find();
       createRunPage.findRunTypeSwitchLink().click();
-      verifyRelativeURL(
-        `/pipelines/${projectName}/${mockPipelineVersion.pipeline_id}/${mockPipelineVersion.pipeline_version_id}/schedules/create`,
-      );
+      verifyRelativeURL(`/pipelineRuns/${projectName}/schedules/create`);
     });
 
     it('Unsupported pipeline should not be displayed', () => {
-      visitLegacyRunsPage();
+      pipelineRunsGlobal.visit(projectName);
 
       // Mock experiments, pipelines & versions for form select dropdowns
       createRunPage.mockGetExperiments(projectName, mockExperiments);
@@ -121,9 +110,7 @@ describe('Pipeline create runs', () => {
 
       // Navigate to the 'Create run' page
       pipelineRunsGlobal.findCreateRunButton().click();
-      verifyRelativeURL(
-        `/pipelines/${projectName}/${mockArgoPipelineVersion.pipeline_id}/${mockArgoPipelineVersion.pipeline_version_id}/runs/create`,
-      );
+      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
       createRunPage.find();
 
       createRunPage.pipelineSelect.findToggleButton().should('not.be.disabled').click();
@@ -133,9 +120,9 @@ describe('Pipeline create runs', () => {
     });
 
     it('creates an active run', () => {
-      visitLegacyRunsPage();
+      pipelineRunsGlobal.visit(projectName);
 
-      const createRunParams: Partial<PipelineRunKF> = {
+      const createRunParams = {
         display_name: 'New run',
         description: 'New run description',
         run_id: 'new-run-id',
@@ -146,7 +133,7 @@ describe('Pipeline create runs', () => {
             standard_scaler: 'yes',
           },
         },
-      };
+      } satisfies Partial<PipelineRunKF>;
 
       // Mock experiments, pipelines & versions for form select dropdowns
       createRunPage.mockGetExperiments(projectName, mockExperiments);
@@ -159,9 +146,7 @@ describe('Pipeline create runs', () => {
 
       // Navigate to the 'Create run' page
       pipelineRunsGlobal.findCreateRunButton().click();
-      verifyRelativeURL(
-        `/pipelines/${projectName}/${mockPipelineVersion.pipeline_id}/${mockPipelineVersion.pipeline_version_id}/runs/create`,
-      );
+      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
       createRunPage.find();
 
       const veryLongDesc = 'Test description'.repeat(30); // A string over 255 characters
@@ -179,7 +164,7 @@ describe('Pipeline create runs', () => {
       createRunPage.selectPipelineByName('Test pipeline');
       createRunPage.pipelineVersionSelect.findToggleButton().should('not.be.disabled');
 
-      const parameters = createRunParams.runtime_config?.parameters || {};
+      const { parameters } = createRunParams.runtime_config;
       const paramsSection = createRunPage.getParamsSection();
       paramsSection.findParamById('radio-min_max_scaler-false').click();
       paramsSection.fillParamInputById('neighbors', String(parameters.neighbors));
@@ -206,9 +191,7 @@ describe('Pipeline create runs', () => {
       });
 
       // Should be redirected to the run details page
-      verifyRelativeURL(
-        `/pipelines/${projectName}/${mockPipelineVersion.pipeline_id}/${mockPipelineVersion.pipeline_version_id}/runs/${createRunParams.run_id}`,
-      );
+      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/${createRunParams.run_id}`);
     });
 
     it('duplicates an active run', () => {
@@ -284,9 +267,9 @@ describe('Pipeline create runs', () => {
     });
 
     it('create run with default and optional parameters', () => {
-      visitLegacyRunsPage();
+      pipelineRunsGlobal.visit(projectName);
 
-      const createRunParams: Partial<PipelineRunKF> = {
+      const createRunParams = {
         display_name: 'New run',
         description: 'New run description',
         run_id: 'new-run-id',
@@ -300,7 +283,7 @@ describe('Pipeline create runs', () => {
             bool_param: true,
           },
         },
-      };
+      } satisfies Partial<PipelineRunKF>;
 
       // Mock experiments, pipelines & versions for form select dropdowns
       createRunPage.mockGetExperiments(projectName, mockExperiments);
@@ -359,9 +342,7 @@ describe('Pipeline create runs', () => {
 
       // Navigate to the 'Create run' page
       pipelineRunsGlobal.findCreateRunButton().click();
-      verifyRelativeURL(
-        `/pipelines/${projectName}/${mockPipelineVersion.pipeline_id}/${mockPipelineVersion.pipeline_version_id}/runs/create`,
-      );
+      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
       createRunPage.find();
 
       // Fill required fields
@@ -407,15 +388,13 @@ describe('Pipeline create runs', () => {
       });
 
       // Should be redirected to the run details page
-      verifyRelativeURL(
-        `/pipelines/${projectName}/${mockPipelineVersion.pipeline_id}/${mockPipelineVersion.pipeline_version_id}/runs/${createRunParams.run_id}`,
-      );
+      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/${createRunParams.run_id}`);
     });
 
     it('create run with all parameter types', () => {
-      visitLegacyRunsPage();
+      pipelineRunsGlobal.visit(projectName);
 
-      const createRunParams: Partial<PipelineRunKF> = {
+      const createRunParams = {
         display_name: 'New run',
         description: 'New run description',
         run_id: 'new-run-id',
@@ -429,7 +408,7 @@ describe('Pipeline create runs', () => {
             bool_param: false,
           },
         },
-      };
+      } satisfies Partial<PipelineRunKF>;
 
       // Mock experiments, pipelines & versions for form select dropdowns
       createRunPage.mockGetExperiments(projectName, mockExperiments);
@@ -480,9 +459,7 @@ describe('Pipeline create runs', () => {
 
       // Navigate to the 'Create run' page
       pipelineRunsGlobal.findCreateRunButton().click();
-      verifyRelativeURL(
-        `/pipelines/${projectName}/${mockPipelineVersion.pipeline_id}/${mockPipelineVersion.pipeline_version_id}/runs/create`,
-      );
+      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
       createRunPage.find();
 
       // Fill out the form with all input parameters
@@ -493,7 +470,7 @@ describe('Pipeline create runs', () => {
       createRunPage.selectPipelineByName('Test pipeline');
       createRunPage.pipelineVersionSelect.findToggleButton().should('not.be.disabled');
 
-      const parameters = createRunParams.runtime_config?.parameters || {};
+      const { parameters } = createRunParams.runtime_config;
       const paramsSection = createRunPage.getParamsSection();
       paramsSection.fillParamInputById('string_param', String(parameters.string_param));
       paramsSection.fillParamInputById('double_param', String(parameters.double_param));
@@ -525,15 +502,13 @@ describe('Pipeline create runs', () => {
         });
       });
       // Should be redirected to the run details page
-      verifyRelativeURL(
-        `/pipelines/${projectName}/${mockPipelineVersion.pipeline_id}/${mockPipelineVersion.pipeline_version_id}/runs/${createRunParams.run_id}`,
-      );
+      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/${createRunParams.run_id}`);
     });
   });
 
   describe('Schedules', () => {
     it('switches to scheduled runs from triggered', () => {
-      visitLegacyRunsPage();
+      pipelineRunsGlobal.visit(projectName);
       pipelineRunsGlobal.findSchedulesTab().click();
 
       // Mock experiments, pipelines & versions for form select dropdowns
@@ -547,14 +522,10 @@ describe('Pipeline create runs', () => {
 
       // Navigate to the 'Create run' page
       pipelineRunsGlobal.findScheduleRunButton().click();
-      verifyRelativeURL(
-        `/pipelines/${projectName}/${mockPipelineVersion.pipeline_id}/${mockPipelineVersion.pipeline_version_id}/schedules/create`,
-      );
+      verifyRelativeURL(`/pipelineRuns/${projectName}/schedules/create`);
       createSchedulePage.find();
       createSchedulePage.findRunTypeSwitchLink().click();
-      verifyRelativeURL(
-        `/pipelines/${projectName}/${mockPipelineVersion.pipeline_id}/${mockPipelineVersion.pipeline_version_id}/runs/create`,
-      );
+      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
     });
 
     it('creates a schedule', () => {
@@ -593,7 +564,7 @@ describe('Pipeline create runs', () => {
       // Navigate to the 'Create run' page
 
       verifyRelativeURL(
-        `/pipelines/${projectName}/${mockPipelineVersion.pipeline_id}/${mockPipelineVersion.pipeline_version_id}/schedules/${createRecurringRunParams.recurring_run_id}`,
+        `/pipelineRuns/${projectName}/schedules/${createRecurringRunParams.recurring_run_id}`,
       );
     });
 
@@ -631,7 +602,7 @@ describe('Pipeline create runs', () => {
 
       // Should be redirected to the schedule details page
       verifyRelativeURL(
-        `/pipelines/${projectName}/${mockPipelineVersion.pipeline_id}/${mockPipelineVersion.pipeline_version_id}/schedules/${createRecurringRunParams.recurring_run_id}`,
+        `/pipelineRuns/${projectName}/schedules/${createRecurringRunParams.recurring_run_id}`,
       );
     });
 
@@ -785,7 +756,7 @@ describe('Pipeline create runs', () => {
     });
 
     it('shows cron & periodic fields', () => {
-      visitLegacyRunsPage();
+      pipelineRunsGlobal.visit(projectName);
 
       pipelineRunsGlobal.findSchedulesTab().click();
       pipelineRunsGlobal.findScheduleRunButton().click();
@@ -802,7 +773,7 @@ describe('Pipeline create runs', () => {
     });
 
     it('should start concurrent at the max, 10', () => {
-      visitLegacyRunsPage();
+      pipelineRunsGlobal.visit(projectName);
 
       pipelineRunsGlobal.findSchedulesTab().click();
       pipelineRunsGlobal.findScheduleRunButton().click();
@@ -813,7 +784,7 @@ describe('Pipeline create runs', () => {
     });
 
     it('should allow the concurrency to update via +/-', () => {
-      visitLegacyRunsPage();
+      pipelineRunsGlobal.visit(projectName);
 
       pipelineRunsGlobal.findSchedulesTab().click();
       pipelineRunsGlobal.findScheduleRunButton().click();
@@ -827,7 +798,7 @@ describe('Pipeline create runs', () => {
     });
 
     it('should not allow concurrency to go under or above the bounds', () => {
-      visitLegacyRunsPage();
+      pipelineRunsGlobal.visit(projectName);
 
       pipelineRunsGlobal.findSchedulesTab().click();
       pipelineRunsGlobal.findScheduleRunButton().click();
@@ -840,7 +811,7 @@ describe('Pipeline create runs', () => {
     });
 
     it('should hide and show date toggles', () => {
-      visitLegacyRunsPage();
+      pipelineRunsGlobal.visit(projectName);
 
       pipelineRunsGlobal.findSchedulesTab().click();
       pipelineRunsGlobal.findScheduleRunButton().click();
@@ -859,7 +830,7 @@ describe('Pipeline create runs', () => {
     });
 
     it('should see catch up is enabled by default', () => {
-      visitLegacyRunsPage();
+      pipelineRunsGlobal.visit(projectName);
 
       pipelineRunsGlobal.findSchedulesTab().click();
       pipelineRunsGlobal.findScheduleRunButton().click();
@@ -933,7 +904,7 @@ const initIntercepts = () => {
   });
 };
 
-const createRecurringRunParams: Partial<PipelineRecurringRunKF> = {
+const createRecurringRunParams = {
   display_name: 'New recurring run',
   description: 'New recurring run description',
   recurring_run_id: 'new-recurring-run-id',
@@ -944,10 +915,10 @@ const createRecurringRunParams: Partial<PipelineRecurringRunKF> = {
       standard_scaler: 'no',
     },
   },
-};
+} satisfies Partial<PipelineRecurringRunKF>;
 
 const createScheduleRunCommonTest = () => {
-  visitLegacyRunsPage();
+  pipelineRunsGlobal.visit(projectName);
   pipelineRunsGlobal.findSchedulesTab().click();
   // Mock experiments, pipelines & versions for form select dropdowns
   createSchedulePage.mockGetExperiments(projectName, mockExperiments);
@@ -960,9 +931,7 @@ const createScheduleRunCommonTest = () => {
 
   // Navigate to the 'Create run' page
   pipelineRunsGlobal.findScheduleRunButton().click();
-  verifyRelativeURL(
-    `/pipelines/${projectName}/${mockPipelineVersion.pipeline_id}/${mockPipelineVersion.pipeline_version_id}/schedules/create`,
-  );
+  verifyRelativeURL(`/pipelineRuns/${projectName}/schedules/create`);
   createSchedulePage.find();
   createRunPage.fillName(initialMockRecurringRuns[0].display_name);
   cy.findByTestId('duplicate-name-help-text').should('be.visible');
@@ -971,7 +940,7 @@ const createScheduleRunCommonTest = () => {
   createSchedulePage.pipelineSelect.findToggleButton().should('not.be.disabled').click();
   createSchedulePage.selectPipelineByName('Test pipeline');
   createSchedulePage.pipelineVersionSelect.findToggleButton().should('not.be.disabled');
-  const parameters = createRecurringRunParams.runtime_config?.parameters || {};
+  const { parameters } = createRecurringRunParams.runtime_config;
   const paramsSection = createRunPage.getParamsSection();
   paramsSection.findParamById('radio-min_max_scaler-false').click();
   paramsSection.fillParamInputById('neighbors', String(parameters.neighbors));

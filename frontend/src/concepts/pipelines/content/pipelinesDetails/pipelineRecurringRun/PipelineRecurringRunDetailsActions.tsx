@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 import {
   Divider,
@@ -10,9 +10,15 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineRecurringRunKF, RecurringRunStatus } from '~/concepts/pipelines/kfTypes';
+import {
+  PipelineRecurringRunKF,
+  RecurringRunStatus,
+  StorageStateKF,
+} from '~/concepts/pipelines/kfTypes';
 import { duplicateRecurringRunRoute } from '~/routes';
 import { getDashboardMainContainer } from '~/utilities/utils';
+import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
 
 type PipelineRecurringRunDetailsActionsProps = {
   recurringRun?: PipelineRecurringRunKF;
@@ -26,13 +32,15 @@ const PipelineRecurringRunDetailsActions: React.FC<PipelineRecurringRunDetailsAc
   isPipelineSupported,
 }) => {
   const navigate = useNavigate();
-  const { experimentId, pipelineId, pipelineVersionId } = useParams();
   const { namespace, api, refreshAllAPI } = usePipelinesAPI();
   const [open, setOpen] = React.useState(false);
   const [isEnabled, setIsEnabled] = React.useState(
     recurringRun?.status === RecurringRunStatus.ENABLED,
   );
   const [isStatusUpdating, setIsStatusUpdating] = React.useState(false);
+  const [experiment] = useExperimentById(recurringRun?.experiment_id);
+  const isExperimentActive = experiment?.storage_state === StorageStateKF.AVAILABLE;
+  const { experiment: contextExperiment } = React.useContext(ExperimentContext);
 
   const updateStatus = React.useCallback(async () => {
     if (recurringRun?.recurring_run_id) {
@@ -95,7 +103,7 @@ const PipelineRecurringRunDetailsActions: React.FC<PipelineRecurringRunDetailsAc
                     <DropdownItem
                       key="update-schedule-status"
                       onClick={updateStatus}
-                      isAriaDisabled={isStatusUpdating}
+                      isAriaDisabled={isStatusUpdating || !isExperimentActive}
                       {...(isStatusUpdating && {
                         icon: <Spinner isInline />,
                         tooltip: 'Updating status...',
@@ -110,9 +118,7 @@ const PipelineRecurringRunDetailsActions: React.FC<PipelineRecurringRunDetailsAc
                           duplicateRecurringRunRoute(
                             namespace,
                             recurringRun.recurring_run_id,
-                            experimentId,
-                            pipelineId,
-                            pipelineVersionId,
+                            contextExperiment?.experiment_id,
                           ),
                         )
                       }

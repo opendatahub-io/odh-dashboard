@@ -1,15 +1,5 @@
 import * as React from 'react';
-import {
-  Alert,
-  Button,
-  Form,
-  FormGroup,
-  Modal,
-  Stack,
-  StackItem,
-  TextArea,
-  TextInput,
-} from '@patternfly/react-core';
+import { Alert, Button, Form, FormGroup, Modal, Stack, StackItem } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
@@ -17,9 +7,12 @@ import { DuplicateNameHelperText } from '~/concepts/pipelines/content/DuplicateN
 import {
   PIPELINE_IMPORT_ARGO_ERROR_TEXT,
   PIPELINE_ARGO_ERROR,
+  NAME_CHARACTER_LIMIT,
+  DESCRIPTION_CHARACTER_LIMIT,
 } from '~/concepts/pipelines/content/const';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import useDebounceCallback from '~/utilities/useDebounceCallback';
+import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { PipelineUploadOption, extractKindFromPipelineYAML } from './utils';
 import PipelineUploadRadio from './PipelineUploadRadio';
 import { PipelineImportData } from './useImportModalData';
@@ -57,6 +50,7 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
   const isImportButtonDisabled =
     !apiAvailable ||
     importing ||
+    hasDuplicateName ||
     !name ||
     (uploadOption === PipelineUploadOption.URL_IMPORT ? !pipelineUrl : !fileContents);
 
@@ -80,15 +74,6 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
       [checkForDuplicateName],
     ),
     500,
-  );
-
-  const handleNameChange = React.useCallback(
-    async (value: string) => {
-      setHasDuplicateName(false);
-      setData('name', value);
-      debouncedCheckForDuplicateName(value);
-    },
-    [debouncedCheckForDuplicateName, setData],
   );
 
   const onSubmit = () => {
@@ -142,30 +127,27 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
           </StackItem>
           {children}
           <StackItem>
-            <FormGroup label="Pipeline name" isRequired fieldId="pipeline-name">
-              <TextInput
-                isRequired
-                type="text"
-                id="pipeline-name"
-                data-testid="pipeline-name"
-                name="pipeline-name"
-                value={name}
-                onChange={(_e, value) => handleNameChange(value)}
-              />
-              {hasDuplicateName && <DuplicateNameHelperText name={name} />}
-            </FormGroup>
-          </StackItem>
-          <StackItem>
-            <FormGroup label="Pipeline description" fieldId="pipeline-description">
-              <TextArea
-                type="text"
-                id="pipeline-description"
-                data-testid="pipeline-description"
-                name="pipeline-description"
-                value={description}
-                onChange={(_e, value) => setData('description', value)}
-              />
-            </FormGroup>
+            <NameDescriptionField
+              nameFieldId="pipeline-name"
+              nameFieldLabel="Pipeline name"
+              descriptionFieldLabel="Pipeline description"
+              descriptionFieldId="pipeline-description"
+              data={{ name, description: description || '' }}
+              hasNameError={hasDuplicateName}
+              setData={(newData) => {
+                setData('name', newData.name);
+                setData('description', newData.description);
+              }}
+              maxLengthName={NAME_CHARACTER_LIMIT}
+              maxLengthDesc={DESCRIPTION_CHARACTER_LIMIT}
+              onNameChange={(value) => {
+                setHasDuplicateName(false);
+                debouncedCheckForDuplicateName(value);
+              }}
+              nameHelperText={
+                hasDuplicateName ? <DuplicateNameHelperText isError name={name} /> : undefined
+              }
+            />
           </StackItem>
           <StackItem>
             <PipelineUploadRadio

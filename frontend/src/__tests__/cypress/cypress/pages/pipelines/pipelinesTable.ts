@@ -34,6 +34,10 @@ class PipelineVersionsTableRow extends TableRow {
   findPipelineVersionLink() {
     return this.find().findByTestId(`table-row-title`).find('a');
   }
+
+  findPipelineVersionViewRunLink() {
+    return this.find().findByTestId('runs-route-link');
+  }
 }
 
 export enum PipelineSort {
@@ -226,7 +230,9 @@ class PipelinesTable {
       },
       (req) => {
         const { filter } = req.query;
-        const predicates = filter ? JSON.parse(filter.toString())?.predicates : [];
+        const predicates = filter
+          ? JSON.parse(decodeURIComponent(filter.toString()))?.predicates
+          : [];
         const filterName = predicates?.[0]?.string_value;
 
         if (!filterName) {
@@ -253,7 +259,9 @@ class PipelinesTable {
       { path: { namespace, serviceName: 'dspa', pipelineId }, times },
       (req) => {
         const { filter } = req.query;
-        const predicates = filter ? JSON.parse(filter.toString())?.predicates : [];
+        const predicates = filter
+          ? JSON.parse(decodeURIComponent(filter.toString()))?.predicates
+          : [];
         const filterName = predicates?.[0]?.string_value;
 
         if (!filterName) {

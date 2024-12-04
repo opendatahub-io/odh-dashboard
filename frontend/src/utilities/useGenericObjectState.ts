@@ -11,7 +11,12 @@ const useGenericObjectState = <T>(defaultData: T | (() => T)): GenericObjectStat
   const [value, setValue] = React.useState<T>(defaultData);
 
   const setPropValue = React.useCallback<UpdateObjectAtPropAndValue<T>>((propKey, propValue) => {
-    setValue((oldValue) => ({ ...oldValue, [propKey]: propValue }));
+    setValue((oldValue) => {
+      if (oldValue[propKey] !== propValue) {
+        return { ...oldValue, [propKey]: propValue };
+      }
+      return oldValue;
+    });
   }, []);
 
   const defaultDataRef = React.useRef(value);

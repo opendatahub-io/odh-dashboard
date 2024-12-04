@@ -36,15 +36,15 @@ const EditableTextDescriptionListGroup: React.FC<EditableTextDescriptionListGrou
       isEditable={!isArchive}
       isEditing={isEditing}
       isSavingEdits={isSavingEdits}
-      groupTestId={`${baseTestId}-group`}
-      editButtonTestId={`${baseTestId}-edit`}
-      saveButtonTestId={`${baseTestId}-save`}
-      cancelButtonTestId={`${baseTestId}-cancel`}
+      groupTestId={baseTestId && `${baseTestId}-group`}
+      editButtonTestId={baseTestId && `${baseTestId}-edit`}
+      saveButtonTestId={baseTestId && `${baseTestId}-save`}
+      cancelButtonTestId={baseTestId && `${baseTestId}-cancel`}
       contentWhenEditing={
         editableVariant === 'TextInput' ? (
           <TextInput
             autoFocus
-            data-testid={`${baseTestId}-input`}
+            data-testid={baseTestId && `${baseTestId}-input`}
             aria-label={`Text input for editing ${title}`}
             value={unsavedValue}
             onChange={(_event, v) => setUnsavedValue(v)}
@@ -53,7 +53,7 @@ const EditableTextDescriptionListGroup: React.FC<EditableTextDescriptionListGrou
         ) : (
           <TextArea
             autoFocus
-            data-testid={`${baseTestId}-input`}
+            data-testid={baseTestId && `${baseTestId}-input`}
             aria-label={`Text box for editing ${title}`}
             value={unsavedValue}
             onChange={(_event, v) => setUnsavedValue(v)}

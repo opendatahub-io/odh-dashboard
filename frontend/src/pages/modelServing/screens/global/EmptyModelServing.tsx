@@ -2,15 +2,12 @@ import * as React from 'react';
 import { Button } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
-import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/projects/utils';
-import { ServingRuntimePlatform } from '~/types';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import EmptyDetailsView from '~/components/EmptyDetailsView';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import ServeModelButton from '~/pages/modelServing/screens/global/ServeModelButton';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
 
 const EmptyModelServing: React.FC = () => {
   const navigate = useNavigate();
@@ -19,14 +16,9 @@ const EmptyModelServing: React.FC = () => {
     project,
   } = React.useContext(ModelServingContext);
   const servingPlatformStatuses = useServingPlatformStatuses();
-  const isKServeNIMEnabled = project ? isProjectNIMSupported(project) : false;
 
-  if (
-    (getProjectModelServingPlatform(project, servingPlatformStatuses).platform !==
-      ServingRuntimePlatform.SINGLE ||
-      isKServeNIMEnabled) &&
-    servingRuntimes.length === 0
-  ) {
+  if (servingPlatformStatuses.modelMesh.enabled && servingRuntimes.length === 0) {
+    // Server needed -- must deploy from the project
     return (
       <EmptyDetailsView
         title="No deployed models"

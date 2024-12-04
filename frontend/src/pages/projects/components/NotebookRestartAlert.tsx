@@ -9,7 +9,10 @@ type NotebookRestartAlertProps = {
 };
 
 const NotebookRestartAlert: React.FC<NotebookRestartAlertProps> = ({ notebooks, isCurrent }) => {
-  const runningNotebooks = notebooks.filter((notebookState) => notebookState.isRunning);
+  const runningNotebooks = notebooks.filter(
+    (notebookState) => notebookState.isRunning || notebookState.isStarting,
+  );
+
   return (
     <Alert
       data-testid="notebook-restart-alert"

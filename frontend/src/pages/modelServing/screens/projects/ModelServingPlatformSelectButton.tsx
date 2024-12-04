@@ -28,7 +28,6 @@ const ModelServingPlatformSelectButton: React.FC<ModelServingPlatformSelectButto
   ...buttonProps
 }) => {
   const [isLoading, setIsLoading] = React.useState(false);
-
   const isResetAction = servingPlatform === NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM;
 
   return (
@@ -45,10 +44,9 @@ const ModelServingPlatformSelectButton: React.FC<ModelServingPlatformSelectButto
           await addSupportServingPlatformProject(namespace, servingPlatform);
         } catch (e) {
           if (e instanceof Error) {
+            setIsLoading(false);
             setError(e);
           }
-        } finally {
-          setIsLoading(false);
         }
       }}
     >

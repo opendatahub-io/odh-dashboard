@@ -179,7 +179,10 @@ describe('Model Versions', () => {
     });
 
     modelRegistry.visit();
-    modelRegistry.findModelRegistry().findSelectOption('modelregistry-sample').click();
+    modelRegistry
+      .findModelRegistry()
+      .findSelectOption('modelregistry-sample Model registry description')
+      .click();
     cy.reload();
     const registeredModelRow = modelRegistry.getRow('Fraud detection model');
     registeredModelRow.findName().contains('Fraud detection model').click();

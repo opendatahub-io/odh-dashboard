@@ -71,7 +71,7 @@ const createParam = (data: Record<string, string> = {}): PipelineParams => ({
 });
 
 const createQuery = () => ({
-  filter: '{"predicates":[]}',
+  filter: encodeURIComponent('{"predicates":[]}'),
   page_size: 2,
   page_token: 'token',
   sort_by: 'created_at asc',

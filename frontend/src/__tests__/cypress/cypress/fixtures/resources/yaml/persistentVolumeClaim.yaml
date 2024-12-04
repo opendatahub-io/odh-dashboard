@@ -1,0 +1,22 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{PVC_NAME}}
+  namespace: {{NAMESPACE}}
+  labels:
+    opendatahub.io/dashboard: 'true'
+  annotations:
+    openshift.io/description: ''
+    openshift.io/display-name: {{PVC_DISPLAY_NAME}}
+  finalizers:
+    - kubernetes.io/pvc-protection
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{PVC_SIZE}}Gi
+  storageClassName: standard-csi
+  volumeMode: Filesystem
+status:
+  phase: Pending

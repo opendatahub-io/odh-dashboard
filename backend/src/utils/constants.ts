@@ -64,7 +64,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableDistributedWorkloads: false,
       disableModelRegistry: false,
       disableServingRuntimeParams: false,
-      disableConnectionTypes: true,
+      disableConnectionTypes: false,
       disableStorageClasses: false,
       disableNIMModelServing: true,
     },

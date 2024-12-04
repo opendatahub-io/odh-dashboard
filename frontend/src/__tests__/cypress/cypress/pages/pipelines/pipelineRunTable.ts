@@ -24,6 +24,11 @@ class PipelineRecurringRunTableRow extends PipelineRunsRow {
     return this.find().findByTestId('recurring-run-status-switch');
   }
 
+  shouldHaveToggleEnabled() {
+    this.findStatusSwitchByRowName().find('input').should('not.have.attr', 'disabled');
+    return this;
+  }
+
   shouldHaveToggleDisabled() {
     this.findStatusSwitchByRowName().find('input').should('have.attr', 'disabled');
     return this;
@@ -35,7 +40,7 @@ class PipelineRunsTable {
 
   protected emptyStateTestId = '';
 
-  constructor(tab?: 'active-runs' | 'archived-runs' | 'schedules') {
+  constructor(tab: 'active-runs' | 'archived-runs' | 'schedules') {
     this.testId = `${tab}-table`;
     this.emptyStateTestId = `${tab}-empty-state`;
   }
@@ -44,13 +49,8 @@ class PipelineRunsTable {
     return cy.findByTestId(this.testId);
   }
 
-  shouldRowNotBeVisible(name: string) {
-    this.find()
-      .parents()
-      .find('tr')
-      .find(`[data-label=Name]`)
-      .contains(name)
-      .should('not.be.visible');
+  shouldRowNotExist(name: string) {
+    this.find().parents().find('tr').find(`[data-label=Name]`).contains(name).should('not.exist');
     return this;
   }
 
@@ -59,7 +59,7 @@ class PipelineRunsTable {
   }
 
   findActionsKebab() {
-    return cy.findByRole('button', { name: 'Actions' });
+    return cy.findByTestId('run-table-toolbar-actions');
   }
 
   findEmptyState() {
@@ -105,7 +105,7 @@ class PipelineRunsTable {
       (req) => {
         const {
           predicates: [{ string_value: runState }],
-        } = JSON.parse(req.query.filter.toString());
+        } = JSON.parse(decodeURIComponent(req.query.filter.toString()));
 
         if (runState === 'ARCHIVED') {
           req.reply({ runs: archivedRuns, total_size: archivedRuns.length });
@@ -172,10 +172,6 @@ class PipelineRecurringRunTable extends PipelineRunsTable {
 
   findFilterTextField() {
     return cy.findByTestId('schedules-table-toolbar').findByTestId('pipeline-filter-text-field');
-  }
-
-  findExperimentFilterSelect() {
-    return cy.findByTestId('experiment-search-select');
   }
 
   mockGetRecurringRuns(recurringRuns: PipelineRecurringRunKF[], namespace: string) {

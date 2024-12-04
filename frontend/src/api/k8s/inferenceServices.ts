@@ -10,7 +10,6 @@ import {
 import { InferenceServiceModel } from '~/api/models';
 import { InferenceServiceKind, K8sAPIOptions, KnownLabels } from '~/k8sTypes';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
-import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { ContainerResources } from '~/types';
 import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
@@ -41,7 +40,7 @@ export const assembleInferenceService = (
     servingRuntimeArgs,
     servingRuntimeEnvVars,
   } = data;
-  const name = editName || translateDisplayNameForK8s(data.name);
+  const name = editName || servingRuntimeName;
   const { path, dataConnection, uri } = storage;
   const dataConnectionKey = secretKey || dataConnection;
 

@@ -73,6 +73,7 @@ export type CreatingInferenceServiceObject = CreatingModelServingObjectCommon & 
 
 export type CreatingModelServingObjectCommon = {
   name: string;
+  k8sName: string;
   modelSize: ModelServingSize;
   externalRoute: boolean;
   tokenAuth: boolean;
@@ -108,19 +109,15 @@ export type ServingRuntimeEditInfo = {
   secrets: SecretKind[];
 };
 
+type PlatformStatus = {
+  enabled: boolean;
+  installed: boolean;
+};
 export type ServingPlatformStatuses = {
-  kServe: {
-    enabled: boolean;
-    installed: boolean;
-  };
-  modelMesh: {
-    enabled: boolean;
-    installed: boolean;
-  };
-  nim: {
-    available: boolean;
-  };
-  numServingPlatformsAvailable: number;
+  kServe: PlatformStatus;
+  kServeNIM: PlatformStatus;
+  modelMesh: PlatformStatus;
+  platformEnabledCount: number;
 };
 
 export type LabeledDataConnection = {

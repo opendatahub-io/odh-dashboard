@@ -48,7 +48,9 @@ const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
             alt="missing model"
           />
         )}
-        description={`${preferredModelRegistry?.metadata.name} has no active registered models. Register a model in this registry, or select a different registry.`}
+        description={`${
+          preferredModelRegistry?.metadata.name ?? ''
+        } has no active registered models. Register a model in this registry, or select a different registry.`}
         primaryActionText="Register model"
         secondaryActionText={
           archiveRegisteredModels.length !== 0 ? 'View archived models' : undefined

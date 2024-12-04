@@ -44,6 +44,9 @@ export const setupDefaults = ({
   limitNameResourceType,
   safePrefix,
   staticPrefix,
+  regexp,
+  invalidCharsMessage,
+  editableK8sName,
 }: UseK8sNameDescriptionDataConfiguration): K8sNameDescriptionFieldData => {
   let initialName = '';
   let initialDescription = '';
@@ -70,13 +73,18 @@ export const setupDefaults = ({
     k8sName: {
       value: initialK8sNameValue,
       state: {
-        immutable: initialK8sNameValue !== '',
+        immutable: !editableK8sName && initialK8sNameValue !== '',
         invalidCharacters: false,
         invalidLength: false,
         maxLength: configuredMaxLength,
         safePrefix,
         staticPrefix,
-        touched: false,
+        regexp,
+        invalidCharsMessage,
+        touched:
+          !!editableK8sName &&
+          initialK8sNameValue !== '' &&
+          initialK8sNameValue !== translateDisplayNameForK8s(initialName),
       },
     },
   })('name', initialName) satisfies K8sNameDescriptionFieldData;
@@ -111,7 +119,8 @@ export const handleUpdateLogic =
       case 'k8sName':
         changedData.k8sName = {
           state: {
-            invalidCharacters: value.length > 0 ? !isValidK8sName(value) : false,
+            invalidCharacters:
+              value.length > 0 ? !isValidK8sName(value, existingData.k8sName.state.regexp) : false,
             invalidLength: value.length > existingData.k8sName.state.maxLength,
             touched: true,
           },
@@ -130,7 +139,7 @@ export const isK8sNameDescriptionDataValid = ({
   name,
   k8sName: {
     value,
-    state: { invalidCharacters, invalidLength },
+    state: { invalidCharacters, invalidLength, regexp },
   },
 }: K8sNameDescriptionFieldData): boolean =>
-  name.trim().length > 0 && isValidK8sName(value) && !invalidLength && !invalidCharacters;
+  name.trim().length > 0 && isValidK8sName(value, regexp) && !invalidLength && !invalidCharacters;

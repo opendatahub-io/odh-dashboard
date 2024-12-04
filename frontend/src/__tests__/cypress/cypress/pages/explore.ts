@@ -8,6 +8,10 @@ class ExplorePage {
     cy.findByTestId('explore-applications').should('be.visible');
     cy.testA11y();
   }
+
+  findCardLocator(cardName: string) {
+    return cy.get(`[data-testid="card ${cardName}"] label`);
+  }
 }
 
 export const explorePage = new ExplorePage();

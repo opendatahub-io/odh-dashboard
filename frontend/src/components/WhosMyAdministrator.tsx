@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Popover } from '@patternfly/react-core';
+import { Button, Popover, PopoverPosition } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import PopoverListContent from '~/components/PopoverListContent';
 import { FindAdministratorOptions } from '~/pages/projects/screens/projects/const';
@@ -11,6 +11,7 @@ type Props = {
   isInline?: boolean;
   contentTestId?: string;
   linkTestId?: string;
+  popoverPosition?: PopoverPosition;
 };
 
 const WhosMyAdministrator: React.FC<Props> = ({
@@ -20,10 +21,11 @@ const WhosMyAdministrator: React.FC<Props> = ({
   isInline,
   contentTestId,
   linkTestId,
+  popoverPosition = PopoverPosition.bottom,
 }) => (
   <Popover
     showClose
-    position="bottom"
+    position={popoverPosition}
     headerContent={headerContent || 'Your administrator might be:'}
     hasAutoWidth
     maxWidth="370px"

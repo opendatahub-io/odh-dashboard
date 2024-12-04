@@ -1,6 +1,7 @@
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
+import { K8sNameDescriptionField } from '~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
 import { DeleteModal } from './components/DeleteModal';
 import { TableToolbar } from './components/TableToolbar';
 
@@ -86,6 +87,8 @@ class NotebookImageDeleteModal extends DeleteModal {
 }
 
 class ImportUpdateNotebookImageModal extends Modal {
+  k8sNameDescription = new K8sNameDescriptionField('byon-image');
+
   constructor(private edit = false) {
     super(`${edit ? 'Update' : 'Import'} notebook image`);
   }
@@ -99,11 +102,11 @@ class ImportUpdateNotebookImageModal extends Modal {
   }
 
   findNameInput() {
-    return this.find().findByTestId('byon-image-name-input');
+    return this.k8sNameDescription.findDisplayNameInput();
   }
 
   findDescriptionInput() {
-    return this.find().findByTestId('byon-image-description-input');
+    return this.k8sNameDescription.findDescriptionInput();
   }
 
   // Software tab

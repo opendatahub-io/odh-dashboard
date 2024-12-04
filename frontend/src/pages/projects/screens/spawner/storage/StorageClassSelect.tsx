@@ -7,6 +7,7 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
+  Skeleton,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import React from 'react';
@@ -61,7 +62,13 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
     return {
       key: sc.metadata.name,
       label: config?.displayName || sc.metadata.name,
-      description: config?.description,
+      description: (
+        <>
+          Resource name: {sc.metadata.name}
+          <br />
+          {config?.description && `Description: ${config.description}`}
+        </>
+      ),
       isDisabled: !config?.isEnabled,
       dropdownLabel: (
         <Split>
@@ -95,6 +102,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
         isDisabled={disableStorageClassSelect || !storageClassesLoaded}
         placeholder="Select storage class"
         popperProps={{ appendTo: menuAppendTo }}
+        previewDescription={false}
       />
       <FormHelperText>
         {selectedStorageClassConfig && !selectedStorageClassConfig.isEnabled ? (
@@ -117,7 +125,9 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
         )}
       </FormHelperText>
     </FormGroup>
-  ) : null;
+  ) : (
+    <Skeleton />
+  );
 };
 
 export default StorageClassSelect;

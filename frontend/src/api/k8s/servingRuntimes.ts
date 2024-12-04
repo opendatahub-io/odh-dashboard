@@ -38,6 +38,7 @@ export const assembleServingRuntime = (
 ): ServingRuntimeKind => {
   const {
     name: displayName,
+    k8sName,
     numReplicas,
     modelSize,
     externalRoute,
@@ -46,7 +47,7 @@ export const assembleServingRuntime = (
     supportedModelFormatsInfo,
   } = data;
   const createName = isCustomServingRuntimesEnabled
-    ? translateDisplayNameForK8s(displayName)
+    ? k8sName || translateDisplayNameForK8s(displayName)
     : getModelServingRuntimeName(namespace);
   const updatedServingRuntime = { ...servingRuntime };
 

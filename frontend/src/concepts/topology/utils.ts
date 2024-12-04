@@ -34,11 +34,11 @@ export const createArtifactNode = (
   id: string,
   label: string,
   pipelineTask: PipelineTask,
+  artifactType: string,
   runAfterTasks?: string[],
-  artifactType?: string,
 ): PipelineNodeModelExpanded => ({
   id,
-  label: `${label} (Type: ${artifactType?.slice(7)})`,
+  label: `${label} (Type: ${artifactType.slice(7)})`,
   type: ICON_TASK_NODE_TYPE,
   width: ARTIFACT_NODE_WIDTH,
   height: ARTIFACT_NODE_HEIGHT,

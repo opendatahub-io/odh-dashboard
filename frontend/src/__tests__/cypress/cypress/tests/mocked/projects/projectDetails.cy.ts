@@ -58,6 +58,7 @@ type HandlersProps = {
   pipelineServerInitializing?: boolean;
   pipelineServerErrorMessage?: string;
   rejectAddSupportServingPlatformProject?: boolean;
+  disableWorkbenches?: boolean;
 };
 
 const initIntercepts = ({
@@ -79,6 +80,7 @@ const initIntercepts = ({
   pipelineServerInitializing,
   pipelineServerErrorMessage,
   rejectAddSupportServingPlatformProject = false,
+  disableWorkbenches = false,
 }: HandlersProps) => {
   cy.interceptK8sList(
     { model: SecretModel, ns: 'test-project' },
@@ -96,7 +98,7 @@ const initIntercepts = ({
     'GET /api/dsc/status',
     mockDscStatus({
       installedComponents: {
-        workbenches: true,
+        workbenches: !disableWorkbenches,
         'data-science-pipelines-operator': true,
         kserve: true,
         'model-mesh': true,
@@ -828,6 +830,30 @@ describe('Project Details', () => {
         'include',
         '/modelRegistry/modelregistry-sample/registeredModels/1/versions/2',
       );
+    });
+  });
+
+  describe('Workbench disabled', () => {
+    beforeEach(() => {
+      initIntercepts({
+        disableWorkbenches: true,
+      });
+    });
+
+    it('should hide workbench tab when workbenches are disabled', () => {
+      projectDetails.visit('test-project');
+      projectDetails.findTab('Workbenches').should('not.exist');
+    });
+
+    it('should hide workbench card in overview when workbenches are disabled', () => {
+      projectDetails.visitSection('test-project', 'overview');
+      cy.get('h2').contains('Workbench').should('not.exist');
+    });
+
+    it('should hide workbench references in storage table when workbenches are disabled', () => {
+      projectDetails.visitSection('test-project', 'cluster-storages');
+
+      cy.get('th').contains('Connected workbenches').should('not.exist');
     });
   });
 });

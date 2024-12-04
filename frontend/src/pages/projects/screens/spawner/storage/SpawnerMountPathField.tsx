@@ -1,3 +1,5 @@
+import React, { useCallback } from 'react';
+
 import {
   Flex,
   FlexItem,
@@ -12,75 +14,59 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core';
-import React from 'react';
+
 import FieldGroupHelpLabelIcon from '~/components/FieldGroupHelpLabelIcon';
-import { useMountPathFormat, validateMountPath } from './utils';
+import { MountPath } from '~/pages/projects/types';
+import { validateMountPath } from './utils';
 import { MountPathFormat } from './types';
 import { MOUNT_PATH_PREFIX } from './const';
 
-interface MountPath {
-  value: string;
-  error: string;
-}
-
 interface SpawnerMountPathFieldProps {
-  isCreate: boolean;
+  isDisabled?: boolean;
   mountPath: MountPath;
   inUseMountPaths?: string[];
   onChange: (path: MountPath) => void;
 }
 
 const SpawnerMountPathField: React.FC<SpawnerMountPathFieldProps> = ({
-  isCreate,
+  isDisabled = false,
   mountPath,
-  inUseMountPaths,
+  inUseMountPaths = [],
   onChange,
 }) => {
-  const [format, setFormat] = useMountPathFormat(isCreate, mountPath.value);
-  const [shouldShowValidation, setShouldShowValidation] = React.useState(false);
+  const initialValidationRef = React.useRef(false);
 
-  const pathSuffix = React.useMemo(() => {
-    const prefix = format === MountPathFormat.STANDARD ? MOUNT_PATH_PREFIX : '/';
-    return mountPath.value.startsWith(prefix)
-      ? mountPath.value.slice(prefix.length)
-      : mountPath.value;
-  }, [mountPath.value, format]);
+  const suffix = mountPath.value.startsWith(MOUNT_PATH_PREFIX)
+    ? mountPath.value.slice(MOUNT_PATH_PREFIX.length)
+    : mountPath.value.slice(1);
 
-  React.useEffect(() => {
-    const initialValue = format === MountPathFormat.STANDARD ? MOUNT_PATH_PREFIX : '/';
-    onChange({ value: initialValue, error: '' });
-    // Only run on initial mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const format = mountPath.value.startsWith(MOUNT_PATH_PREFIX)
+    ? MountPathFormat.STANDARD
+    : MountPathFormat.CUSTOM;
 
-  const validateAndUpdate = React.useCallback(
-    (suffix: string, newFormat: MountPathFormat = format) => {
-      const prefix = newFormat === MountPathFormat.STANDARD ? MOUNT_PATH_PREFIX : '/';
-      const newValue = `${prefix}${suffix}`;
+  const validateAndUpdate = useCallback(
+    (value: string, newFormat?: MountPathFormat) => {
+      const prefix = (newFormat ?? format) === MountPathFormat.STANDARD ? MOUNT_PATH_PREFIX : '/';
+      const newValue = `${prefix}${value}`;
 
-      // Only validate after the field has been touched
-      if (!shouldShowValidation && !suffix.trim()) {
-        onChange({ value: newValue, error: '' });
-        return;
-      }
-
-      const error = validateMountPath(suffix, inUseMountPaths || [], newFormat);
-      onChange({ value: newValue, error });
+      onChange({
+        value: newValue,
+        error: validateMountPath(newValue, inUseMountPaths) || '',
+      });
     },
-    [format, inUseMountPaths, onChange, shouldShowValidation],
+    [inUseMountPaths, format, onChange],
   );
 
   const handleFormatChange = (newFormat: MountPathFormat) => {
-    setFormat(newFormat);
-    validateAndUpdate(pathSuffix, newFormat);
+    validateAndUpdate(suffix, newFormat);
   };
 
-  const handleSuffixChange = (suffix: string) => {
-    if (!shouldShowValidation) {
-      setShouldShowValidation(true);
+  React.useEffect(() => {
+    if (!initialValidationRef.current) {
+      initialValidationRef.current = true;
+      validateAndUpdate(suffix);
     }
-    validateAndUpdate(suffix);
-  };
+  }, [suffix, validateAndUpdate]);
 
   return (
     <FormGroup
@@ -100,7 +86,7 @@ const SpawnerMountPathField: React.FC<SpawnerMountPathFieldProps> = ({
       }
     >
       <Stack hasGutter>
-        {isCreate ? (
+        {!isDisabled ? (
           <>
             <StackItem>
               <Flex>
@@ -137,23 +123,26 @@ const SpawnerMountPathField: React.FC<SpawnerMountPathFieldProps> = ({
                     data-testid="mount-path-folder-value"
                     aria-label="Mount path suffix"
                     type="text"
-                    value={pathSuffix}
-                    onChange={(_, value) => handleSuffixChange(value)}
+                    value={suffix}
+                    onChange={(_, value) => validateAndUpdate(value)}
                     isRequired
                     validated={
-                      mountPath.error ? 'error' : pathSuffix.length > 0 ? 'success' : 'default'
+                      mountPath.error ? 'error' : suffix.length > 0 ? 'success' : 'default'
                     }
+                    onBlur={() => validateAndUpdate(suffix)}
                   />
                 </InputGroupItem>
               </InputGroup>
               <HelperText>
-                <HelperTextItem
-                  variant={mountPath.error ? 'error' : 'indeterminate'}
-                  data-testid="mount-path-folder-helper-text"
-                >
-                  {mountPath.error ||
-                    'Must only consist of lowercase letters, dashes, and slashes.'}
-                </HelperTextItem>
+                {mountPath.error && (
+                  <HelperTextItem
+                    variant={mountPath.error ? 'error' : 'indeterminate'}
+                    data-testid="mount-path-folder-helper-text"
+                  >
+                    {mountPath.error}
+                  </HelperTextItem>
+                )}
+
                 {format === MountPathFormat.CUSTOM && (
                   <HelperTextItem variant="warning" hasIcon>
                     Depending on the workbench type, this location may not be visible or accessible.

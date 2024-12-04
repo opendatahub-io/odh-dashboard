@@ -28,7 +28,7 @@ import {
 } from '~/concepts/pipelines/content/tables/utils';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
-import { useContextExperimentArchived as useIsExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import { useContextExperimentArchivedOrDeleted as useIsExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
 
 export const NoRunContent = (): React.JSX.Element => <>-</>;
 
@@ -60,7 +60,7 @@ export const RunStatus: RunUtil<{ hasNoLabel?: boolean; isCompact?: boolean }> =
     tooltipContent = (
       <Stack>
         <StackItem>{`Status: ${runtimeStateLabels[run.state]}`}</StackItem>
-        <StackItem>{`Started: ${createdAt}`}</StackItem>
+        <StackItem>{`Started: ${createdAt ?? ''}`}</StackItem>
       </Stack>
     );
   }
@@ -140,11 +140,11 @@ export const RecurringRunScheduled: RecurringRunUtil = ({ recurringRun }) => {
 
 export const RecurringRunStatus: RecurringRunUtil<{
   onToggle: (value: boolean) => Promise<void>;
-  experiment: ExperimentKF | null;
+  experiment?: ExperimentKF | null;
 }> = ({ recurringRun, onToggle, experiment }) => {
   const [error, setError] = React.useState<Error | null>(null);
   const [isChangingFlag, setIsChangingFlag] = React.useState(false);
-  const isExperimentArchived = useIsExperimentArchived(experiment);
+  const { isExperimentArchived, isExperimentDeleted } = useIsExperimentArchived(experiment);
 
   const isEnabled = recurringRun.status === RecurringRunStatusType.ENABLED;
   React.useEffect(() => {
@@ -158,7 +158,7 @@ export const RecurringRunStatus: RecurringRunUtil<{
         <Switch
           id={`${recurringRun.recurring_run_id}-toggle`}
           aria-label={`Toggle switch; ${isEnabled ? 'Enabled' : 'Disabled'}`}
-          isDisabled={isChangingFlag || isExperimentArchived}
+          isDisabled={isChangingFlag || isExperimentArchived || isExperimentDeleted}
           onChange={(e, checked) => {
             setIsChangingFlag(true);
             setError(null);

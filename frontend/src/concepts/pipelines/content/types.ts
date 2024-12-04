@@ -8,10 +8,14 @@ export type PathProps = {
 
 export type PipelineCoreDetailsPageComponent = React.FC<PathProps>;
 
+export type BreadcrumbDetailsComponentProps = React.FC<
+  PathProps & { setHomePath: React.Dispatch<React.SetStateAction<string>> }
+>;
+
 export enum PipelineRunSearchParam {
   TriggerType = 'triggerType',
 }
 
 export enum CompareRunsSearchParam {
-  RUNS = 'runs',
+  RUNS = 'compareRuns',
 }

@@ -73,6 +73,13 @@ export type SCReplacements = {
   SC_IS_ENABLED: string;
 };
 
+export type PVCReplacements = {
+  NAMESPACE: string;
+  PVC_NAME: string;
+  PVC_DISPLAY_NAME: string;
+  PVC_SIZE: string;
+};
+
 export type CommandLineResult = {
   code: number;
   stdout: string;
@@ -81,15 +88,18 @@ export type CommandLineResult = {
 
 export type TestConfig = {
   ODH_DASHBOARD_URL: string;
-  TEST_USER: UserAuthConfig;
+  TEST_USER_3: UserAuthConfig;
   OCP_ADMIN_USER: UserAuthConfig;
   S3: AWSS3Buckets;
+  APPLICATIONS_NAMESPACE: NamespaceConfig;
 };
 
 export type DataScienceProjectData = {
-  dsProjectName: string;
-  dsProjectDescription: string;
-  dsOCProjectName: string;
+  projectDisplayName: string;
+  projectDescription: string;
+  projectResourceName: string;
+  projectPermissionResourceName: string;
+  projectContributorResourceName: string;
 };
 
 export type NimServingResponse = {
@@ -129,4 +139,25 @@ export type NotebookControllerConfig = {
   ISTIO_GATEWAY: string;
   ISTIO_HOST: string;
   USE_ISTIO: string;
+};
+
+export type ResourceData = {
+  kind: string;
+  labelSelector: string;
+  createdName: string;
+  metaDataName: string;
+  description: string;
+  yamlPath: string;
+};
+
+export type ResourcesData = {
+  resources: {
+    CustomQuickStart: ResourceData[];
+    CustomApplication: ResourceData[];
+    CustomHowTo: ResourceData[];
+    CustomTutorial: ResourceData[];
+  };
+};
+export type NamespaceConfig = {
+  APPLICATIONS_NAMESPACE: string;
 };

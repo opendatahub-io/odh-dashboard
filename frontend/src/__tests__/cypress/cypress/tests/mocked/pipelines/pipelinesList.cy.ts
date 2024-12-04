@@ -27,6 +27,7 @@ import {
   RouteModel,
   SecretModel,
 } from '~/__tests__/cypress/cypress/utils/models';
+import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import type { PipelineKF } from '~/concepts/pipelines/kfTypes';
 
 const projectName = 'test-project-name';
@@ -164,8 +165,7 @@ describe('PipelinesList', () => {
       .findPipelineVersionLink()
       .click();
 
-    cy.url().should(
-      'include',
+    verifyRelativeURL(
       `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
     );
   });
@@ -199,10 +199,7 @@ describe('PipelinesList', () => {
       .findKebabAction('Create run')
       .click();
 
-    cy.url().should(
-      'include',
-      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/runs/create`,
-    );
+    verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
   });
 
   it('navigates to "Schedule run" page from pipeline row', () => {
@@ -215,10 +212,7 @@ describe('PipelinesList', () => {
       .findKebabAction('Create schedule')
       .click();
 
-    cy.url().should(
-      'include',
-      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/schedules/create`,
-    );
+    verifyRelativeURL(`/pipelineRuns/${projectName}/schedules/create`);
   });
 });
 

@@ -58,13 +58,13 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({ run, work
       key: 'Project',
       value: <Link to={`/projects/${namespace}`}>{getDisplayNameFromK8sResource(project)}</Link>,
     },
-    ...(version
-      ? [
+    ...(versionError
+      ? [{ key: 'Pipeline version', value: 'No pipeline version' }]
+      : [
           {
             key: 'Pipeline version',
             value: (
               <PipelineVersionLink
-                displayName={version.display_name}
                 loadingIndicator={<Spinner size="sm" />}
                 loaded={versionLoaded}
                 version={version}
@@ -72,10 +72,7 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({ run, work
               />
             ),
           },
-        ]
-      : versionError
-      ? [{ key: 'Pipeline version', value: 'No pipeline version' }]
-      : []),
+        ]),
     ...(pipeline
       ? [
           {

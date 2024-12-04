@@ -47,7 +47,7 @@ const createSelectOption = (
         )}
       </Flex>
     ),
-    data: `${description} ${connectionType.data?.category?.join(' ')}`,
+    data: `${description} ${connectionType.data?.category?.join(' ') ?? ''}`,
     isSelected,
   };
 };

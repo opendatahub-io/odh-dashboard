@@ -15,7 +15,7 @@ const useBiasChartSelections = (
   const isPristine = React.useRef(true);
 
   const [selectedBiasConfigs, setSelectedBiasConfigs] = useBrowserStorage<BiasMetricConfig[]>(
-    `${SELECTED_CHARTS_STORAGE_KEY_PREFIX}-${project ?? namespace}-${inferenceService}`,
+    `${SELECTED_CHARTS_STORAGE_KEY_PREFIX}-${project ?? namespace ?? ''}-${inferenceService ?? ''}`,
     [],
     true,
     true,

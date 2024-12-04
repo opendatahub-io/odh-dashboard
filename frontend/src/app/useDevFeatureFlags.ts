@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useBrowserStorage } from '~/components/browserStorage';
+import { allFeatureFlags } from '~/concepts/areas/const';
 import { isFeatureFlag } from '~/concepts/areas/utils';
 import { DashboardCommonConfig, DashboardConfigKind } from '~/k8sTypes';
 import { DevFeatureFlags } from '~/types';
@@ -19,6 +20,8 @@ const capitalize = (v: string) => v.charAt(0).toUpperCase() + v.slice(1);
  *  - disableHome = false
  *  - disableAppLauncher = false
  *  - disableSupport = false
+ *
+ * Use `?devFeatureFlags=true` to enable all feature flags and `?devFeatureFlags=false` to disable all feature flags.
  */
 const useDevFeatureFlags = (
   dashboardConfig?: DashboardConfigKind | null,
@@ -64,6 +67,15 @@ const useDevFeatureFlags = (
       ? (() => {
           const devFlagsParam = searchParams.get(PARAM_NAME);
           if (devFlagsParam != null) {
+            if (devFlagsParam === 'true' || devFlagsParam === 'false') {
+              const value = devFlagsParam === 'false';
+              return allFeatureFlags.reduce<Partial<DashboardCommonConfig>>((acc, v) => {
+                if (isFeatureFlag(v)) {
+                  acc[v] = value;
+                }
+                return acc;
+              }, {});
+            }
             return devFlagsParam.split(',').reduce<Partial<DashboardCommonConfig>>((acc, v) => {
               const [name, bool] = v.split('=');
               if (isFeatureFlag(name)) {

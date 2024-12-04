@@ -15,40 +15,20 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 
 import { usePipelineActiveRunsTable } from '~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunTable';
-import { CompareRunsSearchParam } from '~/concepts/pipelines/content/types';
-import {
-  experimentRunsRoute,
-  experimentsBaseRoute,
-  experimentsCompareRunsRoute,
-  experimentsCreateRunRoute,
-} from '~/routes';
+import { CompareRunsSearchParam, PathProps } from '~/concepts/pipelines/content/types';
+import { compareRunsRoute, createRunRoute, experimentRunsRoute } from '~/routes';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import usePipelineFilter, {
-  FilterOptions,
-} from '~/concepts/pipelines/content/tables/usePipelineFilter';
-import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
-import PipelineRunVersionsContextProvider from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { EmptyRunsState } from '~/concepts/pipelines/content/tables/pipelineRun/EmptyRunsState';
 import { ManageRunsTable } from './ManageRunsTable';
 
-interface ManageRunsPageInternalProps {
-  experiment: ExperimentKF;
-}
-
-export const ManageRunsPageInternal: React.FC<ManageRunsPageInternalProps> = ({ experiment }) => {
+const ManageRunsPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
   const [searchParams] = useSearchParams();
-  const { namespace, project } = usePipelinesAPI();
+  const { experiment } = React.useContext(ExperimentContext);
+  const { namespace } = usePipelinesAPI();
   const [[{ items: runs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
-    usePipelineActiveRunsTable();
-  const { onClearFilters, ...filterProps } = usePipelineFilter(tableProps.setFilter, {
-    [FilterOptions.EXPERIMENT]: {
-      label: experiment.display_name,
-      value: experiment.experiment_id,
-    },
-  });
+    usePipelineActiveRunsTable({ experimentId: experiment?.experiment_id });
   const selectedRunIds = searchParams.get(CompareRunsSearchParam.RUNS)?.split(',') ?? [];
 
   if (error) {
@@ -77,7 +57,7 @@ export const ManageRunsPageInternal: React.FC<ManageRunsPageInternalProps> = ({ 
   if (loaded && totalSize === 0 && !tableProps.filter) {
     return (
       <EmptyRunsState
-        createRunRoute={experimentsCreateRunRoute(namespace, experiment.experiment_id)}
+        createRunRoute={createRunRoute(namespace, experiment?.experiment_id)}
         dataTestId="runs-empty-state"
       />
     );
@@ -90,54 +70,39 @@ export const ManageRunsPageInternal: React.FC<ManageRunsPageInternalProps> = ({ 
       empty={!runs}
       breadcrumb={
         <Breadcrumb data-testid="manage-runs-page-breadcrumb">
-          <BreadcrumbItem key="experiments">
-            <Link to={experimentsBaseRoute(namespace)}>
-              Experiments - {getDisplayNameFromK8sResource(project)}
-            </Link>
-          </BreadcrumbItem>
-
-          <BreadcrumbItem key="experiment">
-            {experiment.display_name ? (
-              <Link to={experimentRunsRoute(namespace, experiment.experiment_id)}>
-                {/* TODO: Remove the custom className after upgrading to PFv6 */}
-                <Truncate content={experiment.display_name} className="truncate-no-min-width" />
-              </Link>
-            ) : (
-              'Loading...'
-            )}
-          </BreadcrumbItem>
-
+          {breadcrumbPath}
+          {experiment ? (
+            <BreadcrumbItem key="experiment">
+              {experiment.display_name ? (
+                <Link to={experimentRunsRoute(namespace, experiment.experiment_id)}>
+                  {/* TODO: Remove the custom className after upgrading to PFv6 */}
+                  <Truncate content={experiment.display_name} className="truncate-no-min-width" />
+                </Link>
+              ) : (
+                'Loading...'
+              )}
+            </BreadcrumbItem>
+          ) : null}
           <BreadcrumbItem key="compare-runs">
-            <Link
-              to={experimentsCompareRunsRoute(namespace, experiment.experiment_id, selectedRunIds)}
-            >
+            <Link to={compareRunsRoute(namespace, selectedRunIds, experiment?.experiment_id)}>
               Compare runs
             </Link>
           </BreadcrumbItem>
-
           <BreadcrumbItem key="manage-runs">Manage runs</BreadcrumbItem>
         </Breadcrumb>
       }
       provideChildrenPadding
       removeChildrenTopPadding
     >
-      <PipelineRunVersionsContextProvider>
-        <ManageRunsTable
-          runs={runs}
-          experiment={experiment}
-          filterProps={filterProps}
-          onClearFilters={onClearFilters}
-          selectedRunIds={selectedRunIds}
-          loading={!loaded}
-          totalSize={totalSize}
-          {...tableProps}
-        />
-      </PipelineRunVersionsContextProvider>
+      <ManageRunsTable
+        runs={runs}
+        selectedRunIds={selectedRunIds}
+        loading={!loaded}
+        totalSize={totalSize}
+        {...tableProps}
+      />
     </ApplicationsPage>
   );
 };
 
-export const ManageRunsPage: React.FC = () => {
-  const { experiment } = React.useContext(ExperimentContext);
-  return experiment ? <ManageRunsPageInternal experiment={experiment} /> : null;
-};
+export default ManageRunsPage;

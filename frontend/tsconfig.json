@@ -22,7 +22,8 @@
       "~/*": ["./*"]
     },
     "importHelpers": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "noErrorTruncation": true
   },
   "include": ["**/*.ts", "**/*.tsx", "**/*.jsx", "**/*.js"],
   "exclude": ["node_modules", "public", "public-cypress", "src/__tests__/cypress"]

@@ -7,11 +7,11 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineVersionImportModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
 import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import {
-  pipelineVersionCreateRecurringRunRoute,
-  pipelineVersionCreateRunRoute,
+  createRecurringRunRoute,
+  createRunRoute,
+  globalPipelineRecurringRunsVersionRoute,
+  globalPipelineRunsVersionRoute,
   pipelineVersionDetailsRoute,
-  pipelineVersionRecurringRunsRoute,
-  pipelineVersionRunsRoute,
 } from '~/routes';
 import { getDashboardMainContainer } from '~/utilities/utils';
 import {
@@ -69,16 +69,9 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
               tooltipProps={{ content: PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR }}
               key="create-run"
               onClick={() =>
-                navigate(
-                  pipelineVersionCreateRunRoute(
-                    namespace,
-                    pipeline?.pipeline_id,
-                    pipelineVersion?.pipeline_version_id,
-                  ),
-                  {
-                    state: { lastPipeline: pipeline, lastVersion: pipelineVersion },
-                  },
-                )
+                navigate(createRunRoute(namespace), {
+                  state: { contextData: { pipeline, version: pipelineVersion } },
+                })
               }
             >
               Create run
@@ -88,16 +81,9 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
               tooltipProps={{ content: PIPELINE_CREATE_SCHEDULE_TOOLTIP_ARGO_ERROR }}
               key="create-schedule"
               onClick={() =>
-                navigate(
-                  pipelineVersionCreateRecurringRunRoute(
-                    namespace,
-                    pipeline?.pipeline_id,
-                    pipelineVersion?.pipeline_version_id,
-                  ),
-                  {
-                    state: { lastPipeline: pipeline, lastVersion: pipelineVersion },
-                  },
-                )
+                navigate(createRecurringRunRoute(namespace), {
+                  state: { contextData: { pipeline, version: pipelineVersion } },
+                })
               }
             >
               Create schedule
@@ -109,14 +95,10 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
                     key="view-runs"
                     onClick={() =>
                       navigate(
-                        pipelineVersionRunsRoute(
+                        globalPipelineRunsVersionRoute(
                           namespace,
-                          pipeline.pipeline_id,
                           pipelineVersion.pipeline_version_id,
                         ),
-                        {
-                          state: { lastVersion: pipelineVersion },
-                        },
                       )
                     }
                   >
@@ -126,9 +108,8 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
                     key="view-schedules"
                     onClick={() =>
                       navigate(
-                        pipelineVersionRecurringRunsRoute(
+                        globalPipelineRecurringRunsVersionRoute(
                           namespace,
-                          pipeline.pipeline_id,
                           pipelineVersion.pipeline_version_id,
                         ),
                       )

@@ -25,7 +25,7 @@ import { DEFAULT_MODEL_SERVER_SIZES } from '~/pages/modelServing/screens/const';
 import { useAppContext } from '~/app/AppContext';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
-import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
 import {
   getInferenceServiceSize,
@@ -41,6 +41,7 @@ import {
   createPvc,
   createSecret,
   createServingRuntime,
+  getInferenceServiceContext,
   updateInferenceService,
   updateServingRuntime,
 } from '~/api';
@@ -104,6 +105,7 @@ export const useCreateServingRuntimeObject = (existingData?: {
 
   const createModelState = useGenericObjectState<CreatingServingRuntimeObject>({
     name: '',
+    k8sName: '',
     servingRuntimeTemplateName: '',
     numReplicas: 1,
     modelSize: sizes[0],
@@ -165,6 +167,7 @@ export const useCreateServingRuntimeObject = (existingData?: {
 
 export const defaultInferenceService: CreatingInferenceServiceObject = {
   name: '',
+  k8sName: '',
   project: '',
   servingRuntimeName: '',
   modelSize: {
@@ -223,9 +226,9 @@ export const useCreateInferenceServiceObject = (
   const existingFormat =
     useDeepCompareMemoize(existingData?.spec.predictor.model?.modelFormat) || undefined;
   const existingMinReplicas =
-    existingData?.spec.predictor.minReplicas || existingServingRuntimeData?.spec.replicas || 1;
+    existingData?.spec.predictor.minReplicas ?? existingServingRuntimeData?.spec.replicas ?? 1;
   const existingMaxReplicas =
-    existingData?.spec.predictor.maxReplicas || existingServingRuntimeData?.spec.replicas || 1;
+    existingData?.spec.predictor.maxReplicas ?? existingServingRuntimeData?.spec.replicas ?? 1;
 
   const existingExternalRoute =
     existingData?.metadata.labels?.['networking.knative.dev/visibility'] !== 'cluster-local';
@@ -297,13 +300,19 @@ export const getProjectModelServingPlatform = (
 ): { platform?: ServingRuntimePlatform; error?: Error } => {
   const {
     kServe: { enabled: kServeEnabled, installed: kServeInstalled },
+    kServeNIM: { enabled: nimEnabled },
     modelMesh: { enabled: modelMeshEnabled, installed: modelMeshInstalled },
+    platformEnabledCount,
   } = platformStatuses;
+
   if (!project) {
+    // Likely temporary or a bad usage of the hook
     return {};
   }
+
   if (project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT] === undefined) {
-    if ((kServeEnabled && modelMeshEnabled) || (!kServeEnabled && !modelMeshEnabled)) {
+    // Auto-select logic
+    if (platformEnabledCount !== 1) {
       return {};
     }
     if (modelMeshEnabled) {
@@ -312,13 +321,21 @@ export const getProjectModelServingPlatform = (
     if (kServeEnabled) {
       return { platform: ServingRuntimePlatform.SINGLE };
     }
-  }
-  if (project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT] === 'true') {
+    if (nimEnabled) {
+      // TODO: this is weird, it relies on KServe today... so it's never "only installed"
+      return { platform: ServingRuntimePlatform.SINGLE };
+    }
+
+    // TODO: unreachable code unless adding a new platform? probably should throw an error
+  } else if (project.metadata.labels[KnownLabels.MODEL_SERVING_PROJECT] === 'true') {
+    // Model mesh logic
     return {
       platform: ServingRuntimePlatform.MULTI,
       error: modelMeshInstalled ? undefined : new Error('Multi-model platform is not installed'),
     };
   }
+
+  // KServe logic
   return {
     platform: ServingRuntimePlatform.SINGLE,
     error: kServeInstalled ? undefined : new Error('Single-model platform is not installed'),
@@ -412,8 +429,9 @@ const createInferenceServiceAndDataConnection = async (
 
 export const getSubmitInferenceServiceResourceFn = (
   createData: CreatingInferenceServiceObject,
-  editInfo?: InferenceServiceKind,
-  servingRuntimeName?: string,
+  editInfo: InferenceServiceKind | undefined,
+  servingRuntimeName: string,
+  inferenceServiceName: string,
   isModelMesh?: boolean,
   initialAcceleratorProfile?: AcceleratorProfileState,
   selectedAcceleratorProfile?: AcceleratorProfileFormData,
@@ -424,9 +442,7 @@ export const getSubmitInferenceServiceResourceFn = (
 ): ((opts: { dryRun?: boolean }) => Promise<void>) => {
   const inferenceServiceData = {
     ...createData,
-    ...(servingRuntimeName !== undefined && {
-      servingRuntimeName: translateDisplayNameForK8s(servingRuntimeName),
-    }),
+    servingRuntimeName,
     ...{
       storage: {
         ...createData.storage,
@@ -436,7 +452,6 @@ export const getSubmitInferenceServiceResourceFn = (
   };
 
   const createTokenAuth = createData.tokenAuth && !!allowCreate;
-  const inferenceServiceName = translateDisplayNameForK8s(inferenceServiceData.name);
 
   return ({ dryRun = false }) =>
     createInferenceServiceAndDataConnection(
@@ -499,7 +514,6 @@ export const getSubmitServingRuntimeResourcesFn = (
     existingTolerations: servingRuntimeSelected.spec.tolerations || [],
     ...(name !== undefined && { name }),
   };
-  const servingRuntimeName = translateDisplayNameForK8s(servingRuntimeData.name);
   const createTokenAuth = servingRuntimeData.tokenAuth && allowCreate;
 
   const controlledState: AcceleratorProfileFormData = isGpuDisabled(servingRuntimeSelected)
@@ -537,7 +551,7 @@ export const getSubmitServingRuntimeResourcesFn = (
             }),
             setUpTokenAuth(
               servingRuntimeData,
-              servingRuntimeName,
+              createData.k8sName,
               namespace,
               createTokenAuth,
               editInfo.servingRuntime,
@@ -563,7 +577,7 @@ export const getSubmitServingRuntimeResourcesFn = (
             }).then((servingRuntime) =>
               setUpTokenAuth(
                 servingRuntimeData,
-                servingRuntimeName,
+                createData.k8sName,
                 namespace,
                 createTokenAuth,
                 servingRuntime,
@@ -674,10 +688,8 @@ export const createNIMPVC = (
 ): Promise<PersistentVolumeClaimKind> =>
   createPvc(
     {
-      nameDesc: {
-        name: pvcName,
-        description: '',
-      },
+      name: pvcName,
+      description: '',
       size: pvcSize,
     },
     projectName,
@@ -709,3 +721,16 @@ export const getCreateInferenceServiceLabels = (
 
 export const isConnectionPathValid = (path: string): boolean =>
   !(containsOnlySlashes(path) || !isS3PathValid(path) || path === '');
+
+export const fetchInferenceServiceCount = async (namespace: string): Promise<number> => {
+  try {
+    const inferenceServices = await getInferenceServiceContext(namespace);
+    return inferenceServices.length;
+  } catch (error) {
+    throw new Error(
+      `Failed to fetch inference services for namespace "${namespace}": ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+};

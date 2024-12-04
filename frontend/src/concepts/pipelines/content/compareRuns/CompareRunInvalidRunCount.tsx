@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   PageSection,
   EmptyState,
@@ -10,11 +11,11 @@ import {
   Button,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import React from 'react';
-import { useParams } from 'react-router';
 import { useNavigate } from 'react-router-dom';
-import { experimentsBaseRoute, experimentsManageCompareRunsRoute } from '~/routes';
+import { manageCompareRunsRoute } from '~/routes';
 import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
 
 type CompareRunsInvalidRunCountProps = {
   runs: PipelineRunKF[];
@@ -22,12 +23,8 @@ type CompareRunsInvalidRunCountProps = {
 
 export const CompareRunsInvalidRunCount: React.FC<CompareRunsInvalidRunCountProps> = ({ runs }) => {
   const navigate = useNavigate();
-  const { namespace, experimentId } = useParams();
-
-  if (!namespace || !experimentId) {
-    navigate(experimentsBaseRoute(namespace));
-    return null;
-  }
+  const { namespace } = usePipelinesAPI();
+  const { experiment } = React.useContext(ExperimentContext);
 
   const title =
     runs.length > 10 ? 'Too many runs selected' : runs.length === 0 ? 'No runs selected' : null;
@@ -57,10 +54,10 @@ export const CompareRunsInvalidRunCount: React.FC<CompareRunsInvalidRunCountProp
               variant="primary"
               onClick={() =>
                 navigate(
-                  experimentsManageCompareRunsRoute(
+                  manageCompareRunsRoute(
                     namespace,
-                    experimentId,
                     runs.map((r) => r.run_id),
+                    experiment?.experiment_id,
                   ),
                 )
               }

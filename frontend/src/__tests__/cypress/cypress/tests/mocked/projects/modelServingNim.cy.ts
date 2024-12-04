@@ -346,4 +346,47 @@ describe('NIM Model Serving', () => {
       cy.wait('@deleteRuntime');
     });
   });
+
+  describe('Checking AuthServingRuntimeSection - Model Route and Token Authentication', () => {
+    it('should show or hide the alert based on route and token settings', () => {
+      initInterceptsToEnableNim({ hasAllModels: false });
+      projectDetailsOverviewTab.visit('test-project');
+      cy.findByTestId('model-serving-platform-button').click();
+      nimDeployModal.shouldBeOpen();
+
+      // should display and interact with the "Model route" checkbox
+      nimDeployModal.findModelRouteCheckbox().should('be.visible').should('not.be.checked');
+      nimDeployModal.findModelRouteCheckbox().check();
+      nimDeployModal.findModelRouteCheckbox().should('be.checked');
+      nimDeployModal.findModelRouteCheckbox().uncheck();
+      nimDeployModal.findModelRouteCheckbox().should('not.be.checked');
+
+      // should enable the "Authentication" checkbox when "Model route" is checked
+      nimDeployModal.findModelRouteCheckbox().check();
+      nimDeployModal.findAuthenticationCheckbox().should('be.checked');
+
+      // should display a warning alert if "Model route" is checked but "Authentication" is unchecked
+      nimDeployModal.findModelRouteCheckbox().check();
+      nimDeployModal.findAuthenticationCheckbox().uncheck();
+      nimDeployModal.findExternalRouteError().should('exist');
+
+      // Check external route
+      nimDeployModal.findModelRouteCheckbox().check();
+      nimDeployModal.findAuthenticationCheckbox().uncheck();
+      nimDeployModal.findExternalRouteError().should('exist');
+
+      // Uncheck external route
+      nimDeployModal.findModelRouteCheckbox().uncheck();
+      nimDeployModal.findExternalRouteError().should('not.exist');
+
+      // Re-enable authentication
+      nimDeployModal.findModelRouteCheckbox().check();
+      nimDeployModal.findAuthenticationCheckbox().check();
+      nimDeployModal.findExternalRouteError().should('not.exist');
+
+      // should display the default service account name when "Model route" is checked
+      nimDeployModal.findModelRouteCheckbox().check();
+      nimDeployModal.findServiceAccountNameInput().should('have.value', 'default-name');
+    });
+  });
 });

@@ -500,8 +500,8 @@ describe('createServingRuntime', () => {
   const MocksevingRuntime = mockServingRuntimeK8sResource({
     auth: false,
     route: false,
-    displayName: 'my-inference-service',
-    name: 'my-inference-service',
+    displayName: 'My Inference Service',
+    name: 'my-inference-service-test',
   });
   const existingData = assembleServingRuntime(
     mockServingRuntimeModalData({}),

@@ -1,6 +1,4 @@
 import React from 'react';
-import { useParams } from 'react-router-dom';
-
 import {
   Bullseye,
   EmptyState,
@@ -10,19 +8,23 @@ import {
   EmptyStateHeader,
 } from '@patternfly/react-core';
 import { CubesIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
-
 import PipelineRunTable from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
 import { usePipelineActiveRunsTable } from '~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunTable';
 import { createRunRoute } from '~/routes';
-import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import {
+  ExperimentContext,
+  useContextExperimentArchivedOrDeleted,
+} from '~/pages/pipelines/global/experiments/ExperimentContext';
 import { EmptyRunsState } from '~/concepts/pipelines/content/tables/pipelineRun/EmptyRunsState';
+import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineRunTabTitle, PipelineRunType } from './types';
 
 export const ActiveRuns: React.FC = () => {
-  const { namespace, experimentId, pipelineVersionId, pipelineId } = useParams();
+  const { experiment } = React.useContext(ExperimentContext);
+  const { namespace } = usePipelinesAPI();
   const [[{ items: runs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
-    usePipelineActiveRunsTable({ experimentId, pipelineVersionId });
-  const isExperimentArchived = useContextExperimentArchived();
+    usePipelineActiveRunsTable({ experimentId: experiment?.experiment_id });
+  const { isExperimentArchived } = useContextExperimentArchivedOrDeleted();
 
   if (isExperimentArchived) {
     return (
@@ -68,7 +70,7 @@ export const ActiveRuns: React.FC = () => {
   if (loaded && totalSize === 0 && !tableProps.filter) {
     return (
       <EmptyRunsState
-        createRunRoute={createRunRoute(namespace, experimentId, pipelineId, pipelineVersionId)}
+        createRunRoute={createRunRoute(namespace, experiment?.experiment_id)}
         dataTestId="active-runs-empty-state"
       />
     );

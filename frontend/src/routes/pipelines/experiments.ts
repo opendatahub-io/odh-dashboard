@@ -1,3 +1,5 @@
+import { CompareRunsSearchParam } from '~/concepts/pipelines/content/types';
+
 export const experimentsRootPath = '/experiments';
 export const globExperimentsAll = `${experimentsRootPath}/*`;
 
@@ -75,8 +77,8 @@ export const experimentRecurringRunDetailsRoute = (
     ? experimentsBaseRoute(namespace)
     : `${experimentRecurringRunsRoute(namespace, experimentId)}/${recurringRunId}`;
 
-const generateCompareRunsQueryString = (runIds: string[]) =>
-  runIds.length > 0 ? `?runs=${runIds.join(',')}` : '';
+export const generateCompareRunsQueryString = (runIds: string[]): string =>
+  runIds.length > 0 ? `?${CompareRunsSearchParam.RUNS}=${runIds.join(',')}` : '';
 
 export const experimentsCompareRunsRoute = (
   namespace: string,

@@ -15,13 +15,13 @@ import { ProjectObjectType } from '~/concepts/design/utils';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 
 const GlobalPipelines: React.FC = () => {
-  const pipelinesAPi = usePipelinesAPI();
+  const pipelinesAPI = usePipelinesAPI();
 
   return (
     <PipelineCoreApplicationPage
       title={<TitleWithIcon title={pipelinesPageTitle} objectType={ProjectObjectType.pipeline} />}
       description={pipelinesPageDescription}
-      headerAction={<PipelineServerActions isDisabled={!pipelinesAPi.pipelinesServer.installed} />}
+      headerAction={<PipelineServerActions isDisabled={!pipelinesAPI.pipelinesServer.installed} />}
       getRedirectPath={pipelinesBaseRoute}
     >
       <EnsureAPIAvailability>

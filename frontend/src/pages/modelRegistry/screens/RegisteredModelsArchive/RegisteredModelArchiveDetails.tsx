@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { Button, Flex, FlexItem, Label, Text, Truncate } from '@patternfly/react-core';
+import { Button, Flex, FlexItem, Label, Truncate } from '@patternfly/react-core';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { registeredModelUrl } from '~/pages/modelRegistry/screens/routeUtils';
@@ -52,13 +52,9 @@ const RegisteredModelsArchiveDetails: React.FC<RegisteredModelsArchiveDetailsPro
         }
         title={
           rm && (
-            <Flex>
-              <FlexItem>
-                <Text>{rm.name}</Text>
-              </FlexItem>
-              <FlexItem>
-                <Label>Archived</Label>
-              </FlexItem>
+            <Flex alignItems={{ default: 'alignItemsCenter' }}>
+              <FlexItem>{rm.name}</FlexItem>
+              <Label>Archived</Label>
             </Flex>
           )
         }

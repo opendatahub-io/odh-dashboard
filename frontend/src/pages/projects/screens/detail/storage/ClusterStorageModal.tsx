@@ -1,26 +1,27 @@
 import * as React from 'react';
-import { StackItem } from '@patternfly/react-core';
+import { FormGroup } from '@patternfly/react-core';
 import { NotebookKind, PersistentVolumeClaimKind } from '~/k8sTypes';
-import { CreatingStorageObject, ForNotebookSelection, StorageData } from '~/pages/projects/types';
+import { ForNotebookSelection, StorageData } from '~/pages/projects/types';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { attachNotebookPVC, createPvc, removeNotebookPVC, restartNotebook, updatePvc } from '~/api';
 import {
   ConnectedNotebookContext,
   useRelatedNotebooks,
 } from '~/pages/projects/notebook/useRelatedNotebooks';
-import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
 import StorageNotebookConnections from '~/pages/projects/notebook/StorageNotebookConnections';
 import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
+import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 import BaseStorageModal from './BaseStorageModal';
 import ExistingConnectedNotebooks from './ExistingConnectedNotebooks';
+import { isPvcUpdateRequired } from './utils';
 
 type ClusterStorageModalProps = {
-  existingData?: PersistentVolumeClaimKind;
+  existingPvc?: PersistentVolumeClaimKind;
   onClose: (submit: boolean) => void;
 };
 
-const ClusterStorageModal: React.FC<ClusterStorageModalProps> = (props) => {
+const ClusterStorageModal: React.FC<ClusterStorageModalProps> = ({ existingPvc, onClose }) => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const namespace = currentProject.metadata.name;
   const [removedNotebooks, setRemovedNotebooks] = React.useState<string[]>([]);
@@ -30,51 +31,42 @@ const ClusterStorageModal: React.FC<ClusterStorageModalProps> = (props) => {
   });
   const { notebooks: connectedNotebooks } = useRelatedNotebooks(
     ConnectedNotebookContext.EXISTING_PVC,
-    props.existingData?.metadata.name,
-  );
-  const { notebooks: relatedNotebooks } = useRelatedNotebooks(
-    ConnectedNotebookContext.REMOVABLE_PVC,
-    props.existingData?.metadata.name,
+    existingPvc?.metadata.name,
   );
 
-  const hasExistingNotebookConnections = relatedNotebooks.length > 0;
+  const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
 
   const {
     notebooks: removableNotebooks,
     loaded: removableNotebookLoaded,
     error: removableNotebookError,
-  } = useRelatedNotebooks(
-    ConnectedNotebookContext.REMOVABLE_PVC,
-    props.existingData?.metadata.name,
-  );
+  } = useRelatedNotebooks(ConnectedNotebookContext.REMOVABLE_PVC, existingPvc?.metadata.name);
+
+  const hasExistingNotebookConnections = removableNotebooks.length > 0;
 
   const restartNotebooks = useWillNotebooksRestart([...removedNotebooks, notebookData.name]);
 
   const handleSubmit = async (
-    storageData: StorageData['creating'],
+    storageData: StorageData,
     attachNotebookData?: ForNotebookSelection,
     dryRun?: boolean,
   ) => {
     const promises: Promise<PersistentVolumeClaimKind | NotebookKind>[] = [];
-    const { existingData } = props;
 
-    if (existingData) {
-      const pvcName = existingData.metadata.name;
+    if (existingPvc) {
+      const pvcName = existingPvc.metadata.name;
 
       // Check if PVC needs to be updated (name, description, size, storageClass)
-      if (
-        getDisplayNameFromK8sResource(existingData) !== storageData.nameDesc.name ||
-        getDescriptionFromK8sResource(existingData) !== storageData.nameDesc.description ||
-        existingData.spec.resources.requests.storage !== storageData.size ||
-        existingData.spec.storageClassName !== storageData.storageClassName
-      ) {
-        promises.push(updatePvc(storageData, existingData, namespace, { dryRun }));
+      if (isPvcUpdateRequired(existingPvc, storageData)) {
+        promises.push(updatePvc(storageData, existingPvc, namespace, { dryRun }));
       }
 
       // Restart notebooks if the PVC size has changed
-      if (existingData.spec.resources.requests.storage !== storageData.size) {
-        connectedNotebooks.map((connectedNotebook) =>
-          promises.push(restartNotebook(connectedNotebook.metadata.name, namespace, { dryRun })),
+      if (existingPvc.spec.resources.requests.storage !== storageData.size) {
+        restartNotebooks.map((connectedNotebook) =>
+          promises.push(
+            restartNotebook(connectedNotebook.notebook.metadata.name, namespace, { dryRun }),
+          ),
         );
       }
 
@@ -115,17 +107,8 @@ const ClusterStorageModal: React.FC<ClusterStorageModalProps> = (props) => {
     }
   };
 
-  const submit = async (data: CreatingStorageObject) => {
-    const storageData: CreatingStorageObject = {
-      nameDesc: data.nameDesc,
-      size: data.size,
-      storageClassName: data.storageClassName,
-    };
-
-    return handleSubmit(storageData, notebookData, true).then(() =>
-      handleSubmit(storageData, notebookData, false),
-    );
-  };
+  const submit = async (data: StorageData) =>
+    handleSubmit(data, notebookData, true).then(() => handleSubmit(data, notebookData, false));
 
   const hasValidNotebookRelationship = notebookData.name
     ? !!notebookData.mountPath.value && !notebookData.mountPath.error
@@ -135,21 +118,21 @@ const ClusterStorageModal: React.FC<ClusterStorageModalProps> = (props) => {
 
   return (
     <BaseStorageModal
-      {...props}
       onSubmit={(data) => submit(data)}
-      title={props.existingData ? 'Update cluster storage' : 'Add cluster storage'}
+      title={existingPvc ? 'Update cluster storage' : 'Add cluster storage'}
       description={
-        props.existingData
+        existingPvc
           ? 'Make changes to cluster storage, or connect it to additional workspaces.'
           : 'Add storage and optionally connect it with an existing workbench.'
       }
-      submitLabel={props.existingData ? 'Update' : 'Add storage'}
+      submitLabel={existingPvc ? 'Update' : 'Add storage'}
       isValid={isValid}
-      onClose={(submitted) => props.onClose(submitted)}
+      onClose={(submitted) => onClose(submitted)}
+      existingPvc={existingPvc}
     >
-      <>
-        {hasExistingNotebookConnections && (
-          <StackItem>
+      {workbenchEnabled && (
+        <>
+          {hasExistingNotebookConnections && (
             <ExistingConnectedNotebooks
               connectedNotebooks={removableNotebooks}
               onNotebookRemove={(notebook: NotebookKind) =>
@@ -158,9 +141,7 @@ const ClusterStorageModal: React.FC<ClusterStorageModalProps> = (props) => {
               loaded={removableNotebookLoaded}
               error={removableNotebookError}
             />
-          </StackItem>
-        )}
-        <StackItem>
+          )}
           <StorageNotebookConnections
             setForNotebookData={(forNotebookData) => {
               setNotebookData(forNotebookData);
@@ -168,13 +149,13 @@ const ClusterStorageModal: React.FC<ClusterStorageModalProps> = (props) => {
             forNotebookData={notebookData}
             connectedNotebooks={connectedNotebooks}
           />
-        </StackItem>
-        {restartNotebooks.length !== 0 && (
-          <StackItem>
-            <NotebookRestartAlert notebooks={restartNotebooks} />
-          </StackItem>
-        )}
-      </>
+          {restartNotebooks.length !== 0 && (
+            <FormGroup>
+              <NotebookRestartAlert notebooks={restartNotebooks} />
+            </FormGroup>
+          )}
+        </>
+      )}
     </BaseStorageModal>
   );
 };

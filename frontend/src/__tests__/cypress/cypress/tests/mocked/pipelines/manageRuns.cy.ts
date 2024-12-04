@@ -43,10 +43,6 @@ describe('Manage runs', () => {
     manageRunsTable.getRowByName('Test run 1').find();
   });
 
-  it('has param experiment filter by default', () => {
-    cy.findByTestId('experiment-filter-chip').should('have.text', 'Default');
-  });
-
   it('has param run IDs checked by default', () => {
     manageRunsTable.getRowByName('Test run 1').findCheckbox().should('be.checked');
     manageRunsTable.getRowByName('Test run 2').findCheckbox().should('be.checked');
@@ -63,22 +59,13 @@ describe('Manage runs', () => {
     manageRunsTable.getRowByName('Test run 2').findCheckbox().should('be.checked');
   });
 
-  it('navigates back to "Compare runs" page when "Cancel" toolbar action is clicked', () => {
-    manageRunsTable.findCancelButton().click();
-    cy.location('pathname').should(
-      'equal',
-      `/experiments/${projectName}/${experimentId}/compareRuns`,
-    );
-    cy.location('search').should('equal', '?runs=test-run-1,test-run-2');
-  });
-
   it('navigates to "Compare runs" page when "Compare runs" breadcrumb is clicked', () => {
     manageRunsPage.findBreadcrumb().findByRole('link', { name: 'Compare runs' }).click();
     cy.location('pathname').should(
       'equal',
       `/experiments/${projectName}/${experimentId}/compareRuns`,
     );
-    cy.location('search').should('equal', '?runs=test-run-1,test-run-2');
+    cy.location('search').should('equal', '?compareRuns=test-run-1,test-run-2');
   });
 
   it('navigates to experiment runs page when the experiment name breadcrumb is clicked', () => {
@@ -109,7 +96,7 @@ describe('Manage runs', () => {
       'equal',
       `/experiments/${projectName}/${experimentId}/compareRuns`,
     );
-    cy.location('search').should('equal', '?runs=test-run-1,test-run-2,test-run-3');
+    cy.location('search').should('equal', '?compareRuns=test-run-1,test-run-2,test-run-3');
   });
 });
 

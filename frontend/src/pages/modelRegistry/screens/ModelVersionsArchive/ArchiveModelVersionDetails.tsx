@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { Button, Flex, FlexItem, Label, Text, Tooltip, Truncate } from '@patternfly/react-core';
+import { Button, Flex, FlexItem, Label, Tooltip, Truncate } from '@patternfly/react-core';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import useModelVersionById from '~/concepts/modelRegistry/apiHooks/useModelVersionById';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
@@ -53,13 +53,9 @@ const ArchiveModelVersionDetails: React.FC<ArchiveModelVersionDetailsProps> = ({
       }
       title={
         mv && (
-          <Flex>
-            <FlexItem>
-              <Text>{mv.name}</Text>
-            </FlexItem>
-            <FlexItem>
-              <Label>Archived</Label>
-            </FlexItem>
+          <Flex alignItems={{ default: 'alignItemsCenter' }}>
+            <FlexItem>{mv.name}</FlexItem>
+            <Label>Archived</Label>
           </Flex>
         )
       }

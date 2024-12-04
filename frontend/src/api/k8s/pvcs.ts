@@ -12,21 +12,16 @@ import { PVCModel } from '~/api/models';
 import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '~/const';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { CreatingStorageObject } from '~/pages/projects/types';
+import { StorageData } from '~/pages/projects/types';
 
 export const assemblePvc = (
-  data: CreatingStorageObject,
+  data: StorageData,
   namespace: string,
   editName?: string,
   hideFromUI?: boolean,
 ): PersistentVolumeClaimKind => {
-  const {
-    nameDesc: { name: pvcName, description },
-    size,
-    storageClassName,
-  } = data;
-
-  const name = editName || translateDisplayNameForK8s(pvcName);
+  const { name: pvcName, description, size, storageClassName } = data;
+  const name = editName || data.k8sName || translateDisplayNameForK8s(pvcName);
 
   return {
     apiVersion: 'v1',
@@ -41,14 +36,14 @@ export const assemblePvc = (
       }),
       annotations: {
         'openshift.io/display-name': pvcName.trim(),
-        'openshift.io/description': description,
+        ...(description && { 'openshift.io/description': description }),
       },
     },
     spec: {
       accessModes: ['ReadWriteOnce'],
       resources: {
         requests: {
-          storage: size,
+          storage: String(size),
         },
       },
       storageClassName,
@@ -70,7 +65,7 @@ export const getDashboardPvcs = (projectName: string): Promise<PersistentVolumeC
   });
 
 export const createPvc = (
-  data: CreatingStorageObject,
+  data: StorageData,
   namespace: string,
   opts?: K8sAPIOptions,
   hideFromUI?: boolean,
@@ -83,15 +78,20 @@ export const createPvc = (
 };
 
 export const updatePvc = (
-  data: CreatingStorageObject,
+  data: StorageData,
   existingData: PersistentVolumeClaimKind,
   namespace: string,
   opts?: K8sAPIOptions,
 ): Promise<PersistentVolumeClaimKind> => {
   const pvc = assemblePvc(data, namespace, existingData.metadata.name);
 
+  const pvcResource = _.merge({}, existingData, pvc);
+  if (!data.description && pvcResource.metadata.annotations?.['openshift.io/description']) {
+    pvcResource.metadata.annotations['openshift.io/description'] = undefined;
+  }
+
   return k8sUpdateResource<PersistentVolumeClaimKind>(
-    applyK8sAPIOptions({ model: PVCModel, resource: _.merge({}, existingData, pvc) }, opts),
+    applyK8sAPIOptions({ model: PVCModel, resource: pvcResource }, opts),
   );
 };
 

@@ -9,7 +9,7 @@ import {
   Volume,
   VolumeMount,
 } from '~/types';
-import { AWSSecretKind } from '~/k8sTypes';
+import { AWSSecretKind, PersistentVolumeClaimKind } from '~/k8sTypes';
 import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
 import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
 import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
@@ -26,12 +26,6 @@ export type NameDescType = {
   description: string;
 };
 
-export type CreatingStorageObject = {
-  nameDesc: NameDescType;
-  size: string;
-  storageClassName?: string;
-};
-
 export type MountPath = {
   /** Suffix to the root path */
   value: string;
@@ -44,15 +38,19 @@ export type ForNotebookSelection = {
   mountPath: MountPath;
 };
 
-export type CreatingStorageObjectForNotebook = CreatingStorageObject & {
+export type CreatingStorageObjectForNotebook = NameDescType & {
+  size: string;
   forNotebook: ForNotebookSelection;
   hasExistingNotebookConnections: boolean;
+  storageClassName?: string;
+  mountPath?: string;
 };
 
 export type ExistingStorageObjectForNotebook = ForNotebookSelection;
 
 export type ExistingStorageObject = {
   storage: string;
+  pvc?: PersistentVolumeClaimKind;
 };
 
 export enum StorageType {
@@ -61,9 +59,16 @@ export enum StorageType {
 }
 
 export type StorageData = {
-  storageType: StorageType;
-  creating: CreatingStorageObject;
-  existing: ExistingStorageObject;
+  name: string;
+  k8sName?: string;
+  size?: string;
+  storageType?: StorageType;
+  description?: string;
+  storageClassName?: string;
+  mountPath?: string;
+  existingName?: string;
+  existingPvc?: PersistentVolumeClaimKind;
+  id?: number;
 };
 
 export type StartNotebookData = {

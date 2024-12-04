@@ -21,6 +21,7 @@ import { useAppContext } from '~/app/AppContext';
 import { useWatchImages } from '~/utilities/useWatchImages';
 import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
 import useNotebookAcceleratorProfileFormState from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileFormState';
+import { formatMemory } from '~/utilities/valueUnits';
 import { getNotebookSizes } from './usePreferredNotebookSize';
 
 const NotebookServerDetails: React.FC = () => {
@@ -102,11 +103,19 @@ const NotebookServerDetails: React.FC = () => {
         </DescriptionListGroup>
         <DescriptionListGroup>
           <DescriptionListTerm>Limits</DescriptionListTerm>
-          <DescriptionListDescription>{`${container.resources?.limits?.cpu} CPU, ${container.resources?.limits?.memory} Memory`}</DescriptionListDescription>
+          <DescriptionListDescription>
+            {`${container.resources?.limits?.cpu ?? ''} CPU, ${
+              formatMemory(container.resources?.limits?.memory) ?? ''
+            } Memory`}
+          </DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
           <DescriptionListTerm>Requests</DescriptionListTerm>
-          <DescriptionListDescription>{`${container.resources?.requests?.cpu} CPU, ${container.resources?.requests?.memory} Memory`}</DescriptionListDescription>
+          <DescriptionListDescription>
+            {`${container.resources?.requests?.cpu ?? ''} CPU, ${
+              formatMemory(container.resources?.requests?.memory) ?? ''
+            } Memory`}
+          </DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
           <DescriptionListTerm>Accelerator</DescriptionListTerm>

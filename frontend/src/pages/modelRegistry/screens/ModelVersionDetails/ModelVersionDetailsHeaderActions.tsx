@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { Dropdown, DropdownList, MenuToggle, DropdownItem, Divider } from '@patternfly/react-core';
+import {
+  Dropdown,
+  DropdownList,
+  MenuToggle,
+  DropdownItem,
+  Button,
+  ButtonVariant,
+  ActionList,
+} from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
 import { ArchiveModelVersionModal } from '~/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
@@ -32,7 +40,16 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
   const tooltipRef = React.useRef<HTMLButtonElement>(null);
 
   return (
-    <>
+    <ActionList>
+      <Button
+        id="deploy-button"
+        aria-label="Deploy version"
+        ref={tooltipRef}
+        variant={ButtonVariant.primary}
+        onClick={() => setIsDeployModalOpen(true)}
+      >
+        Deploy
+      </Button>
       <Dropdown
         isOpen={isOpenActionDropdown}
         onSelect={() => setOpenActionDropdown(false)}
@@ -40,7 +57,7 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
         popperProps={{ position: 'right' }}
         toggle={(toggleRef) => (
           <MenuToggle
-            variant="primary"
+            variant={ButtonVariant.secondary}
             ref={toggleRef}
             onClick={() => setOpenActionDropdown(!isOpenActionDropdown)}
             isExpanded={isOpenActionDropdown}
@@ -52,16 +69,6 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
         )}
       >
         <DropdownList>
-          <DropdownItem
-            id="deploy-button"
-            aria-label="Deploy version"
-            key="deploy-button"
-            onClick={() => setIsDeployModalOpen(true)}
-            ref={tooltipRef}
-          >
-            Deploy
-          </DropdownItem>
-          <Divider key="separator" />
           <DropdownItem
             isAriaDisabled={hasDeployment}
             id="archive-version-button"
@@ -114,7 +121,7 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
           modelVersionName={mv.name}
         />
       ) : null}
-    </>
+    </ActionList>
   );
 };
 

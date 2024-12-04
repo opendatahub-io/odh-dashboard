@@ -11,11 +11,12 @@ const PlatformSelectSection: React.FC = () => {
   const [errorSelectingPlatform, setErrorSelectingPlatform] = React.useState<Error>();
 
   const servingPlatformStatuses = useServingPlatformStatuses();
-  const {
-    nim: { available: isNIMAvailable },
-  } = servingPlatformStatuses;
+  const kServeEnabled = servingPlatformStatuses.kServe.enabled;
+  const isNIMAvailable = servingPlatformStatuses.kServeNIM.enabled;
+  const modelMeshEnabled = servingPlatformStatuses.modelMesh.enabled;
 
-  const galleryWidths = isNIMAvailable
+  const threeEnabled = [kServeEnabled, modelMeshEnabled, isNIMAvailable].every((v) => v);
+  const galleryWidths = threeEnabled
     ? {
         minWidths: { default: '100%', lg: 'calc(33.33% - 1rem / 3 * 2)' },
         maxWidths: { default: '100%', lg: 'calc(33.33% - 1rem / 3 * 2)' },
@@ -38,8 +39,12 @@ const PlatformSelectSection: React.FC = () => {
           </Text>
         </TextContent>
         <Gallery hasGutter {...galleryWidths}>
-          <SelectSingleModelCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
-          <SelectMultiModelCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
+          {kServeEnabled && (
+            <SelectSingleModelCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
+          )}
+          {modelMeshEnabled && (
+            <SelectMultiModelCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
+          )}
           {isNIMAvailable && (
             <SelectNIMCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
           )}
@@ -53,7 +58,7 @@ const PlatformSelectSection: React.FC = () => {
         <Alert
           isInline
           variant="info"
-          title="The model serving type can be changed until the first model is deployed from this project. After that, if you want to use a different model serving type, you must create a new project."
+          title="You can change the model serving type before the first model is deployed from this project. After deployment, switching types requires deleting all models and servers."
         />
       </Stack>
     </CollapsibleSection>

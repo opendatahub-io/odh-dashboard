@@ -17,11 +17,12 @@ const { DOC_LINK } = process.env;
 const { COMMUNITY_LINK } = process.env;
 const { SUPPORT_LINK } = process.env;
 const ODH_LOGO = process.env.ODH_LOGO || 'odh-logo.svg';
-const { ODH_PRODUCT_NAME } = process.env;
+const ODH_PRODUCT_NAME = process.env.ODH_PRODUCT_NAME ?? '';
 const { ODH_NOTEBOOK_REPO } = process.env;
 const DASHBOARD_CONFIG = process.env.DASHBOARD_CONFIG || 'odh-dashboard-config';
 const { EXT_CLUSTER } = process.env;
-const { INTERNAL_DASHBOARD_VERSION } = process.env;
+const INTERNAL_DASHBOARD_VERSION = process.env.INTERNAL_DASHBOARD_VERSION || '';
+const { CONSOLE_LINK_DOMAIN } = process.env;
 
 export {
   DEV_MODE,
@@ -39,6 +40,7 @@ export {
   WS_HOSTNAME,
   EXT_CLUSTER,
   INTERNAL_DASHBOARD_VERSION,
+  CONSOLE_LINK_DOMAIN,
 };
 
 export const DOC_TYPE_TOOLTIPS = {

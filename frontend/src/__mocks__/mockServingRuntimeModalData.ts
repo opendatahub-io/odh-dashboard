@@ -3,7 +3,8 @@ import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types
 type MockResourceConfigType = Partial<CreatingServingRuntimeObject>;
 
 export const mockServingRuntimeModalData = ({
-  name = 'my-inference-service',
+  name = 'My Inference Service',
+  k8sName = 'my-inference-service-test',
   servingRuntimeTemplateName = 'caikit',
   numReplicas = 1,
   modelSize = {
@@ -24,6 +25,7 @@ export const mockServingRuntimeModalData = ({
   tokens = [],
 }: MockResourceConfigType): CreatingServingRuntimeObject => ({
   name,
+  k8sName,
   servingRuntimeTemplateName,
   numReplicas,
   modelSize,
