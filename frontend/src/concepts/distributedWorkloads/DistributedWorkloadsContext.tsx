@@ -21,7 +21,6 @@ import useWorkloads from './useWorkloads';
 
 type DistributedWorkloadsContextType = {
   clusterQueues: FetchStateObject<ClusterQueueKind[]>;
-  cqNames: string[];
   localQueues: FetchStateObject<LocalQueueKind[]>;
   workloads: FetchStateObject<WorkloadKind[]>;
   projectCurrentMetrics: DWProjectCurrentMetrics;
@@ -37,7 +36,6 @@ type DistributedWorkloadsContextProviderProps = {
 
 export const DistributedWorkloadsContext = React.createContext<DistributedWorkloadsContextType>({
   clusterQueues: DEFAULT_LIST_FETCH_STATE,
-  cqNames: [],
   localQueues: DEFAULT_LIST_FETCH_STATE,
   workloads: DEFAULT_LIST_FETCH_STATE,
   projectCurrentMetrics: DEFAULT_DW_PROJECT_CURRENT_METRICS,
@@ -65,14 +63,8 @@ export const DistributedWorkloadsContextProvider =
       useLocalQueues(namespace, refreshRate),
     );
 
-    const cqNames = localQueues.data.map((lq) => String(lq.spec.clusterQueueName));
-
     const clusterQueues = useMakeFetchObject<ClusterQueueKind[]>(useClusterQueues(refreshRate));
     // We only support one ClusterQueue, but if the user has created multiple we use the first one with resourceGroups
-    const clusterQueue: FetchStateObject<ClusterQueueKind | undefined> = {
-      ...clusterQueues,
-      data: clusterQueues.data.find((cq) => cq.spec.resourceGroups?.length),
-    };
 
 
     const workloads = useMakeFetchObject<WorkloadKind[]>(useWorkloads(namespace, refreshRate));
@@ -121,7 +113,6 @@ export const DistributedWorkloadsContextProvider =
       <DistributedWorkloadsContext.Provider
         value={{
           clusterQueues,
-          cqNames,
           localQueues,
           workloads,
           projectCurrentMetrics,
