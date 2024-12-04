@@ -36,6 +36,8 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
           const mrNamespace = getModelRegistryNamespace(fastify);
           return createModelRegistryRoleBinding(fastify, rbRequest, mrNamespace);
         } catch (e) {
+          reply.send(new Error(JSON.stringify(e, undefined, 2)));
+
           if (e.response?.statusCode === 409) {
             fastify.log.warn(`Rolebinding already present, skipping creation.`);
             return {};
@@ -44,7 +46,6 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
           fastify.log.error(
             `rolebinding could not be created: ${e.response?.body?.message || e.message}`,
           );
-          reply.send(new Error(e.response?.body?.message));
         }
       },
     ),
