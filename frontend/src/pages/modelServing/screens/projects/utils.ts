@@ -463,20 +463,23 @@ export const getSubmitInferenceServiceResourceFn = (
       dryRun,
       isStorageNeeded,
       connection,
-    ).then((inferenceService) =>
-      setUpTokenAuth(
-        createData,
-        inferenceServiceName,
-        createData.project,
-        createTokenAuth,
-        inferenceService,
-        isModelMesh,
-        secrets || [],
-        {
-          dryRun,
-        },
-      ),
-    );
+    ).then((inferenceService) => {
+      if (!isModelMesh) {
+        return setUpTokenAuth(
+          createData,
+          inferenceServiceName,
+          createData.project,
+          createTokenAuth,
+          inferenceService,
+          isModelMesh,
+          secrets || [],
+          {
+            dryRun,
+          },
+        );
+      }
+      return Promise.resolve();
+    });
 };
 
 export const submitInferenceServiceResourceWithDryRun = async (
@@ -514,6 +517,7 @@ export const getSubmitServingRuntimeResourcesFn = (
     existingTolerations: servingRuntimeSelected.spec.tolerations || [],
     ...(name !== undefined && { name }),
   };
+
   const createTokenAuth = servingRuntimeData.tokenAuth && allowCreate;
 
   const controlledState: AcceleratorProfileFormData = isGpuDisabled(servingRuntimeSelected)
@@ -549,18 +553,22 @@ export const getSubmitServingRuntimeResourcesFn = (
               initialAcceleratorProfile,
               isModelMesh,
             }),
-            setUpTokenAuth(
-              servingRuntimeData,
-              createData.k8sName,
-              namespace,
-              createTokenAuth,
-              editInfo.servingRuntime,
-              isModelMesh,
-              editInfo.secrets,
-              {
-                dryRun,
-              },
-            ),
+            ...(isModelMesh
+              ? [
+                  setUpTokenAuth(
+                    servingRuntimeData,
+                    createData.k8sName,
+                    namespace,
+                    createTokenAuth,
+                    editInfo.servingRuntime,
+                    isModelMesh,
+                    editInfo.secrets,
+                    {
+                      dryRun,
+                    },
+                  ),
+                ]
+              : []),
           ]
         : [
             createServingRuntime({
@@ -574,20 +582,23 @@ export const getSubmitServingRuntimeResourcesFn = (
               selectedAcceleratorProfile: controlledState,
               initialAcceleratorProfile,
               isModelMesh,
-            }).then((servingRuntime) =>
-              setUpTokenAuth(
-                servingRuntimeData,
-                createData.k8sName,
-                namespace,
-                createTokenAuth,
-                servingRuntime,
-                isModelMesh,
-                editInfo?.secrets,
-                {
-                  dryRun,
-                },
-              ),
-            ),
+            }).then((servingRuntime) => {
+              if (isModelMesh) {
+                return setUpTokenAuth(
+                  servingRuntimeData,
+                  createData.k8sName,
+                  namespace,
+                  createTokenAuth,
+                  servingRuntime,
+                  isModelMesh,
+                  [],
+                  {
+                    dryRun,
+                  },
+                );
+              }
+              return Promise.resolve();
+            }),
           ]),
     ]);
 };
