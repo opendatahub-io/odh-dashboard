@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Bullseye, Alert, Spinner } from '@patternfly/react-core';
 import { ClusterQueueKind, LocalQueueKind, WorkloadKind } from '~/k8sTypes';
 import { FetchStateObject } from '~/types';
-import { DEFAULT_LIST_FETCH_STATE, DEFAULT_VALUE_FETCH_STATE } from '~/utilities/const';
+import { DEFAULT_LIST_FETCH_STATE } from '~/utilities/const';
 import { SupportedArea, conditionalArea } from '~/concepts/areas';
 import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
 import { ProjectsContext, byName } from '~/concepts/projects/ProjectsContext';
@@ -65,7 +65,6 @@ export const DistributedWorkloadsContextProvider =
 
     const clusterQueues = useMakeFetchObject<ClusterQueueKind[]>(useClusterQueues(refreshRate));
     // We only support one ClusterQueue, but if the user has created multiple we use the first one with resourceGroups
-
 
     const workloads = useMakeFetchObject<WorkloadKind[]>(useWorkloads(namespace, refreshRate));
 
