@@ -64,7 +64,6 @@ export const DistributedWorkloadsContextProvider =
     );
 
     const clusterQueues = useMakeFetchObject<ClusterQueueKind[]>(useClusterQueues(refreshRate));
-    // We only support one ClusterQueue, but if the user has created multiple we use the first one with resourceGroups
 
     const workloads = useMakeFetchObject<WorkloadKind[]>(useWorkloads(namespace, refreshRate));
 
