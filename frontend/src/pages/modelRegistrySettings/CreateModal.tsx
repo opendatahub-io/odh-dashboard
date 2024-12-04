@@ -6,6 +6,8 @@ import {
   FormGroup,
   HelperText,
   HelperTextItem,
+  MenuGroup,
+  MenuItem,
   Radio,
   TextInput,
 } from '@patternfly/react-core';
@@ -21,6 +23,7 @@ import { NameDescType } from '~/pages/projects/types';
 import FormSection from '~/components/pf-overrides/FormSection';
 import { AreaContext } from '~/concepts/areas/AreaContext';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import SearchSelector from '~/components/searchSelector/SearchSelector';
 
 type CreateModalProps = {
   onClose: () => void;
@@ -61,6 +64,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
     configMap: '',
     key: '',
   });
+  const [searchValue, setSearchValue] = React.useState('');
   const [isHostTouched, setIsHostTouched] = React.useState(false);
   const [isPortTouched, setIsPortTouched] = React.useState(false);
   const [isUsernameTouched, setIsUsernameTouched] = React.useState(false);
@@ -69,6 +73,56 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
   const [showPassword, setShowPassword] = React.useState(false);
   const { dscStatus } = React.useContext(AreaContext);
   const secureDbEnabled = true || useIsAreaAvailable(SupportedArea.MODEL_REGISTRY_SECURE_DB).status;
+
+  const modelRegistryNamespace = dscStatus?.components?.modelregistry?.registriesNamespace;
+  const existingCertConfigMaps = [
+    'config-service-cabundle',
+    'odh-trusted-ca-bundle',
+    'foo-ca-bundle',
+  ];
+  const existingCertSecrets = ['builder-dockercfg-b7gdr', 'builder-token-hwsps', 'foo-secret'];
+  const existingCertKeys = ['service-ca.crt', 'foo-ca.crt'];
+
+  const getFilteredExistingCAResources = () => {
+    const filteredConfigMaps = existingCertConfigMaps.filter((item) =>
+      item.toLowerCase().includes(searchValue.toLowerCase()),
+    );
+    const filteredSecrets = existingCertSecrets.filter((item) =>
+      item.toLowerCase().includes(searchValue.toLowerCase()),
+    );
+    return (
+      <>
+        {filteredConfigMaps.length > 0 && (
+          <MenuGroup label="ConfigMaps">
+            {filteredConfigMaps.map((item) => (
+              <MenuItem
+                onClick={() => {
+                  setSearchValue('');
+                  setSecureDBInfo({ ...secureDBInfo, configMap: item });
+                }}
+              >
+                {item}
+              </MenuItem>
+            ))}
+          </MenuGroup>
+        )}
+        {filteredSecrets.length > 0 && (
+          <MenuGroup label="Secrets">
+            {filteredSecrets.map((item) => (
+              <MenuItem
+                onClick={() => {
+                  setSearchValue('');
+                  setSecureDBInfo({ ...secureDBInfo, configMap: item });
+                }}
+              >
+                {item}
+              </MenuItem>
+            ))}
+          </MenuGroup>
+        )}
+      </>
+    );
+  };
 
   const onBeforeClose = () => {
     setIsSubmitting(false);
@@ -298,7 +352,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
                 />
               </FormGroup>
               {addSecureDB && (
-                <FormGroup fieldId="mr-ca-certificate">
+                <>
                   <Radio
                     isChecked={secureDBInfo.radio === SecureDBRadios.CLUSTER_WIDE}
                     name="cluster-wide-ca"
@@ -332,12 +386,61 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
                     label="Choose from existing certificates"
                     description={
                       <>
-                        You can select the key of any ConfigMap or Secret in the
-                        <strong>rhoai-model-registries</strong> namespace.
+                        You can select the key of any ConfigMap or Secret in the{' '}
+                        <strong>{modelRegistryNamespace}</strong> namespace.
                       </>
                     }
                     id="existing-ca"
                   ></Radio>
+                  {secureDBInfo.radio === SecureDBRadios.EXISTING && (
+                    <>
+                      <FormGroup
+                        label="Resource"
+                        isRequired
+                        fieldId="existing-ca-resource"
+                        style={{ marginLeft: 'var(--pf-v5-global--spacer--lg)' }}
+                      >
+                        <SearchSelector
+                          isFullWidth
+                          children={getFilteredExistingCAResources()}
+                          dataTestId={'existing-ca-resource-selector'}
+                          onSearchChange={(newValue) => setSearchValue(newValue)}
+                          onSearchClear={() => setSearchValue('')}
+                          searchValue={searchValue}
+                          toggleText={secureDBInfo?.configMap || 'Select a ConfigMap or a Secret'}
+                        />
+                      </FormGroup>
+                      <FormGroup
+                        label="Key"
+                        isRequired
+                        fieldId="existing-ca-key"
+                        style={{ marginLeft: 'var(--pf-v5-global--spacer--lg)' }}
+                      >
+                        <SearchSelector
+                          isFullWidth
+                          children={existingCertKeys
+                            .filter((item) =>
+                              item.toLowerCase().includes(searchValue.toLowerCase()),
+                            )
+                            .map((item) => (
+                              <MenuItem
+                                onClick={() => {
+                                  setSearchValue('');
+                                  setSecureDBInfo({ ...secureDBInfo, key: item });
+                                }}
+                              >
+                                {item}
+                              </MenuItem>
+                            ))}
+                          dataTestId={'existing-ca-key-selector'}
+                          onSearchChange={(newValue) => setSearchValue(newValue)}
+                          onSearchClear={() => setSearchValue('')}
+                          searchValue={searchValue}
+                          toggleText={secureDBInfo?.key || 'Select a key'}
+                        />
+                      </FormGroup>
+                    </>
+                  )}
                   <Radio
                     isChecked={secureDBInfo.radio === SecureDBRadios.NEW}
                     name="new-ca"
@@ -345,7 +448,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
                     label="Upload new certificate"
                     id="new-ca"
                   ></Radio>
-                </FormGroup>
+                </>
               )}
             </>
           )}
