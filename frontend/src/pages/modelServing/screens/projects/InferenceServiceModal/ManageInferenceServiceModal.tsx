@@ -135,7 +135,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
         ...getCreateInferenceServiceLabels(registeredModelDeployInfo),
       },
       editInfo,
-      createData.k8sName,
+      createData.servingRuntimeName,
       createData.k8sName,
       true,
       undefined,
