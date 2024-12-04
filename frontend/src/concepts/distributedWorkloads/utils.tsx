@@ -244,23 +244,23 @@ export const getTotalSharedQuota = (
   clusterQueues?: ClusterQueueKind[],
 ): WorkloadRequestedResources => {
   const sumFromResourceGroups = (units: UnitOption[], attribute: ContainerResourceAttributes) =>
-  (clusterQueues || []).map(
-    (clusterQueue) =>
-      (clusterQueue?.spec.resourceGroups || []).reduce(
-        (resourceGroupsTotal, resourceGroup) =>
-          resourceGroupsTotal +
-          resourceGroup.flavors.reduce((flavorsTotal, flavor) => {
-            const [value, unit] = convertToUnit(
-              String(flavor.resources.find(({ name }) => name === attribute)?.nominalQuota || 0),
-              units,
-              '',
-            );
-            return unit.unit === '' ? flavorsTotal + value : flavorsTotal;
-          }, 0),
-        0,
+    (clusterQueues || [])
+      .map((clusterQueue) =>
+        (clusterQueue.spec.resourceGroups || []).reduce(
+          (resourceGroupsTotal, resourceGroup) =>
+            resourceGroupsTotal +
+            resourceGroup.flavors.reduce((flavorsTotal, flavor) => {
+              const [value, unit] = convertToUnit(
+                String(flavor.resources.find(({ name }) => name === attribute)?.nominalQuota || 0),
+                units,
+                '',
+              );
+              return unit.unit === '' ? flavorsTotal + value : flavorsTotal;
+            }, 0),
+          0,
+        ),
       )
-    ).reduce((total, current) => total + current, 0
-  );
+      .reduce((total, current) => total + current, 0);
   return {
     cpuCoresRequested: sumFromResourceGroups(CPU_UNITS, ContainerResourceAttributes.CPU),
     memoryBytesRequested: sumFromResourceGroups(
