@@ -1,10 +1,12 @@
 import * as React from 'react';
 import {
   Button,
+  Checkbox,
   Form,
   FormGroup,
   HelperText,
   HelperTextItem,
+  Radio,
   TextInput,
 } from '@patternfly/react-core';
 import { Modal } from '@patternfly/react-core/deprecated';
@@ -25,6 +27,20 @@ type CreateModalProps = {
   refresh: () => Promise<unknown>;
 };
 
+enum SecureDBRadios {
+  CLUSTER_WIDE = 'cluster-wide',
+  OPENSHIFT = 'openshift',
+  EXISTING = 'existing',
+  NEW = 'new',
+}
+
+type SecureDBInfo = {
+  radio: SecureDBRadios;
+  nameSpace: string;
+  configMap: string;
+  key: string;
+};
+
 const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<Error>();
@@ -38,6 +54,13 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
   const [username, setUsername] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [database, setDatabase] = React.useState('');
+  const [addSecureDB, setAddSecureDB] = React.useState(false);
+  const [secureDBInfo, setSecureDBInfo] = React.useState<SecureDBInfo>({
+    radio: SecureDBRadios.CLUSTER_WIDE,
+    nameSpace: '',
+    configMap: '',
+    key: '',
+  });
   const [isHostTouched, setIsHostTouched] = React.useState(false);
   const [isPortTouched, setIsPortTouched] = React.useState(false);
   const [isUsernameTouched, setIsUsernameTouched] = React.useState(false);
@@ -45,9 +68,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
   const [isDatabaseTouched, setIsDatabaseTouched] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
   const { dscStatus } = React.useContext(AreaContext);
-  const secureDbEnabled = true || useIsAreaAvailable(
-    SupportedArea.MODEL_REGISTRY_SECURE_DB
-  ).status;
+  const secureDbEnabled = true || useIsAreaAvailable(SupportedArea.MODEL_REGISTRY_SECURE_DB).status;
 
   const onBeforeClose = () => {
     setIsSubmitting(false);
@@ -125,6 +146,10 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
     hasContent(port) &&
     hasContent(username) &&
     hasContent(database);
+
+  const handleSecureDBTypeChange = (type: SecureDBRadios) => {
+    setSecureDBInfo({ radio: type, nameSpace: '', key: '', configMap: '' });
+  };
 
   return (
     <Modal
@@ -263,7 +288,65 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
           </FormGroup>
           {secureDbEnabled && (
             <>
-              SECURE DB STUFF
+              <FormGroup>
+                <Checkbox
+                  label="Add CA certificate to secure database connection"
+                  isChecked={addSecureDB}
+                  onChange={(_e, value) => setAddSecureDB(value)}
+                  id="add-secure-db"
+                  name="add-secure-db"
+                />
+              </FormGroup>
+              {addSecureDB && (
+                <FormGroup fieldId="mr-ca-certificate">
+                  <Radio
+                    isChecked={secureDBInfo.radio === SecureDBRadios.CLUSTER_WIDE}
+                    name="cluster-wide-ca"
+                    onChange={() => handleSecureDBTypeChange(SecureDBRadios.CLUSTER_WIDE)}
+                    label="Use cluster-wide CA bundle"
+                    description={
+                      <>
+                        Use the <strong>ca-bundle.crt</strong> bundle in the{' '}
+                        <strong>odh-trusted-ca-bundle</strong> ConfigMap. {secureDBInfo.radio}
+                      </>
+                    }
+                    id="cluster-wide-ca"
+                  ></Radio>
+                  <Radio
+                    isChecked={secureDBInfo.radio === SecureDBRadios.OPENSHIFT}
+                    name="openshift-ca"
+                    onChange={() => handleSecureDBTypeChange(SecureDBRadios.OPENSHIFT)}
+                    label="Use OpenShift AI CA bundle"
+                    description={
+                      <>
+                        Use the <strong>odh-ca-bundle.crt</strong> bundle in the{' '}
+                        <strong>odh-trusted-ca-bundle</strong> ConfigMap.
+                      </>
+                    }
+                    id="openshift-ca"
+                  ></Radio>
+                  <Radio
+                    isChecked={secureDBInfo.radio === SecureDBRadios.EXISTING}
+                    name="existing-ca"
+                    onChange={() => handleSecureDBTypeChange(SecureDBRadios.EXISTING)}
+                    label="Choose from existing certificates"
+                    description={
+                      <>
+                        You can select the key of any ConfigMap or Secret in the
+                        <strong>rhoai-model-registries</strong> namespace.
+                      </>
+                    }
+                    id="existing-ca"
+                  ></Radio>
+                  <Radio
+                    isChecked={secureDBInfo.radio === SecureDBRadios.NEW}
+                    name="new-ca"
+                    onChange={() => handleSecureDBTypeChange(SecureDBRadios.NEW)}
+                    label="Upload new certificate"
+                    id="new-ca"
+                  ></Radio>
+                </FormGroup>
+              )}
             </>
           )}
         </FormSection>
