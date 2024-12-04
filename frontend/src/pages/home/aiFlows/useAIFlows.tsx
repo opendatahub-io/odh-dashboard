@@ -17,6 +17,7 @@ export const useAIFlows = (): React.ReactNode => {
   const { status: pipelinesAvailable } = useIsAreaAvailable(SupportedArea.DS_PIPELINES);
   const { status: projectsAvailable } = useIsAreaAvailable(SupportedArea.DS_PROJECTS_VIEW);
   const { status: modelServingAvailable } = useIsAreaAvailable(SupportedArea.MODEL_SERVING);
+  const { status: modelRegistryAvailable } = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY);
   const [selected, setSelected] = React.useState<string | undefined>();
 
   return React.useMemo(() => {
@@ -55,12 +56,12 @@ export const useAIFlows = (): React.ReactNode => {
         />,
       );
     }
-    if (modelServingAvailable) {
+    if (modelServingAvailable || modelRegistryAvailable) {
       cards.push(
         <AIFlowCard
           key="models"
           data-testid="ai-flow-models-card"
-          title="Deploy and monitor models"
+          title="Manage models"
           image={
             <ChartImage
               style={{ color: sectionTypeBorderColor(SectionType.serving), width: 42, height: 42 }}
@@ -100,6 +101,7 @@ export const useAIFlows = (): React.ReactNode => {
     );
   }, [
     modelServingAvailable,
+    modelRegistryAvailable,
     pipelinesAvailable,
     projectsAvailable,
     selected,
