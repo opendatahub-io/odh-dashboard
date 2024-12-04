@@ -11,8 +11,7 @@ import { LoadingState } from '~/pages/distributedWorkloads/components/LoadingSta
 import { RequestedResourcesBulletChart } from './RequestedResourcesBulletChart';
 
 export const RequestedResources: React.FC = () => {
-  const { localQueues, clusterQueues, cqNames } = React.useContext(DistributedWorkloadsContext);
-  const clusterQueuesFiltered = clusterQueues.data?.filter((cq) => cq.metadata?.name ? cqNames.includes(cq.metadata.name) : false);
+  const { localQueues, clusterQueues } = React.useContext(DistributedWorkloadsContext);
   const requiredFetches = [localQueues, clusterQueues];
   const error = requiredFetches.find((f) => !!f.error)?.error;
   const loaded = requiredFetches.every((f) => f.loaded);
@@ -26,8 +25,8 @@ export const RequestedResources: React.FC = () => {
   }
 
   const requestedByThisProject = getQueueRequestedResources(localQueues.data);
-  const requestedByAllProjects = getQueueRequestedResources(clusterQueuesFiltered);
-  const totalSharedQuota = getTotalSharedQuota(clusterQueuesFiltered);
+  const requestedByAllProjects = getQueueRequestedResources(clusterQueues.data);
+  const totalSharedQuota = getTotalSharedQuota(clusterQueues.data);
 
   return (
     <CardBody>
