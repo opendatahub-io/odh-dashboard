@@ -938,7 +938,7 @@ describe('Workbench page', () => {
       envFrom: [
         {
           secretRef: {
-            name: 'secret-1',
+            name: 'secret-123456',
           },
         },
         {
@@ -948,7 +948,7 @@ describe('Workbench page', () => {
         },
         {
           configMapRef: {
-            name: 'configmap-2',
+            name: 'configmap-123456',
           },
         },
         {
@@ -962,7 +962,7 @@ describe('Workbench page', () => {
       {
         model: SecretModel,
         ns: 'test-project',
-        name: 'secret-1',
+        name: 'secret-123456',
       },
       {
         statusCode: 404,
@@ -973,7 +973,7 @@ describe('Workbench page', () => {
       {
         model: ConfigMapModel,
         ns: 'test-project',
-        name: 'configmap-2',
+        name: 'configmap-123456',
       },
       {
         statusCode: 404,
@@ -992,16 +992,16 @@ describe('Workbench page', () => {
 
     cy.interceptK8s(
       'DELETE',
-      { model: SecretModel, ns: 'test-project', name: 'secret-1' },
+      { model: SecretModel, ns: 'test-project', name: 'secret-123456' },
       mock200Status({}),
     ).as('deleteSecret1');
     cy.interceptK8s(
       'DELETE',
-      { model: ConfigMapModel, ns: 'test-project', name: 'configmap-2' },
+      { model: ConfigMapModel, ns: 'test-project', name: 'configmap-123456' },
       mock200Status({}),
     ).as('deleteSecret2');
 
-    // Intercept any DELETE requests for custom-secret and custom-configmap to verify they don't happen
+    // Intercept any DELETE requests for resources that should not be deleted
     cy.interceptK8s(
       'DELETE',
       { model: ConfigMapModel, ns: 'test-project', name: 'custom-configmap' },

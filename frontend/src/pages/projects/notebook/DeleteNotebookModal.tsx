@@ -45,13 +45,15 @@ const DeleteNotebookModal: React.FC<DeleteNotebookModalProps> = ({ notebook, onC
         const configMapNames = nonDataConnectionVariables
           .filter(
             (envName): envName is ConfigMapRef =>
-              !!envName.configMapRef && envName.configMapRef.name.startsWith(CONFIGMAP_PREFIX),
+              !!envName.configMapRef &&
+              Boolean(envName.configMapRef.name.match(new RegExp(`^${CONFIGMAP_PREFIX}.{6}$`))),
           )
           .map((data) => data.configMapRef.name);
         const secretNames = nonDataConnectionVariables
           .filter(
             (envName): envName is SecretRef =>
-              !!envName.secretRef && envName.secretRef.name.startsWith(SECRET_PREFIX),
+              !!envName.secretRef &&
+              Boolean(envName.secretRef.name.match(new RegExp(`^${SECRET_PREFIX}.{6}$`))),
           )
           .map((data) => data.secretRef.name);
 
