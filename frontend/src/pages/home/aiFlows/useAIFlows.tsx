@@ -4,9 +4,7 @@ import { SectionType, sectionTypeBorderColor } from '~/concepts/design/utils';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
 import { SupportedArea } from '~/concepts/areas';
 import EvenlySpacedGallery from '~/components/EvenlySpacedGallery';
-import ProjectImage from './flowImages/ProjectImage';
-import BranchImage from './flowImages/BranchImage';
-import ChartImage from './flowImages/ChartImage';
+import { CreateAndTrainIcon, ModelIcon, ProjectIcon } from '~/images/icons';
 import ProjectsGallery from './ProjectsGallery';
 import CreateAndTrainGallery from './CreateAndTrainGallery';
 import DeployAndMonitorGallery from './DeployAndMonitorGallery';
@@ -28,7 +26,7 @@ export const useAIFlows = (): React.ReactNode => {
           data-testid="ai-flow-projects-card"
           title="Organize your work with projects"
           image={
-            <ProjectImage
+            <ProjectIcon
               style={{ color: sectionTypeBorderColor(SectionType.organize), width: 42, height: 42 }}
             />
           }
@@ -45,7 +43,7 @@ export const useAIFlows = (): React.ReactNode => {
           data-testid="ai-flow-train-card"
           title="Create and train models"
           image={
-            <BranchImage
+            <CreateAndTrainIcon
               style={{ color: sectionTypeBorderColor(SectionType.training), width: 42, height: 42 }}
             />
           }
@@ -62,7 +60,7 @@ export const useAIFlows = (): React.ReactNode => {
           data-testid="ai-flow-models-card"
           title="Deploy and monitor models"
           image={
-            <ChartImage
+            <ModelIcon
               style={{ color: sectionTypeBorderColor(SectionType.serving), width: 42, height: 42 }}
             />
           }

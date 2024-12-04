@@ -16,7 +16,7 @@ const SelectMultiModelCard: React.FC<SelectMultiModelCardProps> = ({
   const { currentProject } = React.useContext(ProjectDetailsContext);
   return (
     <OverviewCard
-      objectType={ProjectObjectType.modelServer}
+      objectType={ProjectObjectType.multiModel}
       sectionType={SectionType.serving}
       title="Multi-model serving platform"
       data-testid="multi-serving-platform-card"

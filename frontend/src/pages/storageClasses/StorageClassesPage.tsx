@@ -13,6 +13,7 @@ import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import useStorageClasses from '~/concepts/k8s/useStorageClasses';
 import WhosMyAdministrator from '~/components/WhosMyAdministrator';
+import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { StorageClassesTable } from './StorageClassesTable';
 import { StorageClassContextProvider, useStorageClassContext } from './StorageClassesContext';
 
@@ -31,7 +32,9 @@ const StorageClassesPageInternal: React.FC<StorageClassesPageInternalProps> = ({
 
   return (
     <ApplicationsPage
-      title="Storage classes"
+      title={
+        <TitleWithIcon title="Storage classes" objectType={ProjectObjectType.storageClasses} />
+      }
       description="Manage your organization's OpenShift cluster storage class settings for usage within OpenShift AI. These settings do not impact the storage classes within OpenShift."
       loaded={loaded && !isUpdatingConfigs}
       empty={storageClasses.length === 0}

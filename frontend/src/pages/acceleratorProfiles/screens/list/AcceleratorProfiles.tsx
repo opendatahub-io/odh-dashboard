@@ -17,6 +17,8 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import useAcceleratorProfiles from '~/pages/notebookController/screens/server/useAcceleratorProfiles';
 import { useDashboardNamespace } from '~/redux/selectors';
 import AcceleratorProfilesTable from '~/pages/acceleratorProfiles/screens/list/AcceleratorProfilesTable';
+import TitleWithIcon from '~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '~/concepts/design/utils';
 
 const description = `Manage accelerator profile settings for users in your organization`;
 
@@ -58,7 +60,12 @@ const AcceleratorProfiles: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="Accelerator profiles"
+      title={
+        <TitleWithIcon
+          title="Accelerator profiles"
+          objectType={ProjectObjectType.acceleratorProfile}
+        />
+      }
       description={description}
       loaded={loaded}
       empty={isEmpty}

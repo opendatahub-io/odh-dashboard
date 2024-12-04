@@ -34,7 +34,7 @@ const ConnectedResources: React.FC<Props> = ({ connection }) => {
       {connectedNotebooks.map((notebook) => (
         <ResourceLabel
           key={notebook.metadata.name}
-          resourceType={ProjectObjectType.notebook}
+          resourceType={ProjectObjectType.build}
           title={getDisplayNameFromK8sResource(notebook)}
         />
       ))}

@@ -2,11 +2,7 @@ import * as React from 'react';
 import { PageSection, Text, TextContent, TextVariants } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import CollapsibleSection from '~/concepts/design/CollapsibleSection';
-import { SectionType, sectionTypeBorderColor } from '~/concepts/design/utils';
-import notebookImagesImage from '~/images/UI_icon-Red_Hat-Notebook-Images-RGB.svg';
-import servingRuntimesImage from '~/images/Icon-Red_Hat-Sys_admin-A-Black-RGB.svg';
-import clusterSettingsImage from '~/images/Icon-Red_Hat-Storage-A-Black-RGB.svg';
-import userImage from '~/images/UI_icon-Red_Hat-User-RGB.svg';
+import { ProjectObjectType, SectionType, sectionTypeBorderColor } from '~/concepts/design/utils';
 import DividedGallery from '~/concepts/design/DividedGallery';
 import { useUser } from '~/redux/selectors';
 import InfoGalleryItem from '~/concepts/design/InfoGalleryItem';
@@ -52,7 +48,7 @@ export const useEnableTeamSection = (): React.ReactNode => {
         isOpen={resourcesOpen}
         title="Notebook images"
         onClick={() => trackAndNavigate('notebook-images', '/notebookImages')}
-        imgSrc={notebookImagesImage}
+        resourceType={ProjectObjectType.notebookImage}
         sectionType={SectionType.setup}
         description={
           <TextContent>
@@ -73,7 +69,7 @@ export const useEnableTeamSection = (): React.ReactNode => {
         isOpen={resourcesOpen}
         title="Serving runtimes"
         onClick={() => trackAndNavigate('serving-runtimes', '/servingRuntimes')}
-        imgSrc={servingRuntimesImage}
+        resourceType={ProjectObjectType.servingRuntime}
         sectionType={SectionType.setup}
         description={
           <TextContent>
@@ -94,7 +90,7 @@ export const useEnableTeamSection = (): React.ReactNode => {
         isOpen={resourcesOpen}
         title="Cluster settings"
         onClick={() => trackAndNavigate('cluster-settings', '/clusterSettings')}
-        imgSrc={clusterSettingsImage}
+        resourceType={ProjectObjectType.clusterSettings}
         sectionType={SectionType.setup}
         description={
           <TextContent>
@@ -115,7 +111,7 @@ export const useEnableTeamSection = (): React.ReactNode => {
         isOpen={resourcesOpen}
         title="User management"
         onClick={() => trackAndNavigate('user-management', '/groupSettings')}
-        imgSrc={userImage}
+        resourceType={ProjectObjectType.permissions}
         sectionType={SectionType.setup}
         description={
           <TextContent>

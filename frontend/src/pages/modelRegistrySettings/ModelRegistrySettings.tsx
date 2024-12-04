@@ -40,7 +40,7 @@ const ModelRegistrySettings: React.FC = () => {
         title={
           <TitleWithIcon
             title="Model Registry Settings"
-            objectType={ProjectObjectType.registeredModels}
+            objectType={ProjectObjectType.modelRegistrySettings}
           />
         }
         description="Manage model registry settings for all users in your organization."

@@ -13,6 +13,8 @@ import { isGroupEmpty } from '~/utilities/utils';
 import SettingSection from '~/components/SettingSection';
 import { MultiSelection, SelectionOptions } from '~/components/MultiSelection';
 import { useWatchGroups } from '~/utilities/useWatchGroups';
+import TitleWithIcon from '~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '~/concepts/design/utils';
 import { GroupsConfigField } from './groupTypes';
 
 const GroupSettings: React.FC = () => {
@@ -65,7 +67,7 @@ const GroupSettings: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="User management"
+      title={<TitleWithIcon title="User management" objectType={ProjectObjectType.permissions} />}
       description="Define OpenShift group membership for Data Science administrators and users."
       loaded={loaded}
       empty={false}

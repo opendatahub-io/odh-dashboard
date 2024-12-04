@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Text, TextContent } from '@patternfly/react-core';
-import { ProjectObjectType, SectionType, typedObjectImage } from '~/concepts/design/utils';
+import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
 import InfoGalleryItem from '~/concepts/design/InfoGalleryItem';
 import { SupportedArea } from '~/concepts/areas';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
@@ -18,7 +18,7 @@ const CreateAndTrainGallery: React.FC<{ onClose: () => void }> = ({ onClose }) =
         key="workbenches"
         data-testid="ai-flows-workbenches-info"
         title="Workbenches"
-        imgSrc={typedObjectImage(ProjectObjectType.notebook)}
+        resourceType={ProjectObjectType.notebook}
         sectionType={SectionType.training}
         description={
           <TextContent>
@@ -50,7 +50,7 @@ const CreateAndTrainGallery: React.FC<{ onClose: () => void }> = ({ onClose }) =
         key="piplelines"
         data-testid="ai-flows-pipelines-info"
         title="Pipelines"
-        imgSrc={typedObjectImage(ProjectObjectType.pipeline)}
+        resourceType={ProjectObjectType.pipeline}
         sectionType={SectionType.training}
         description={
           <TextContent>
@@ -66,7 +66,7 @@ const CreateAndTrainGallery: React.FC<{ onClose: () => void }> = ({ onClose }) =
         key="runs"
         data-testid="ai-flows-runs-info"
         title="Runs"
-        imgSrc={typedObjectImage(ProjectObjectType.pipelineRun)}
+        resourceType={ProjectObjectType.pipelineRun}
         sectionType={SectionType.training}
         description={
           <TextContent>

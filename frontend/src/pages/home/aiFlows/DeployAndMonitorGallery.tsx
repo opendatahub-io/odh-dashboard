@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Text, TextContent } from '@patternfly/react-core';
-import { ProjectObjectType, SectionType, typedObjectImage } from '~/concepts/design/utils';
+import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
 import InfoGalleryItem from '~/concepts/design/InfoGalleryItem';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import InfoGallery from './InfoGallery';
@@ -17,7 +17,7 @@ const DeployAndMonitorGallery: React.FC<{ onClose: () => void }> = ({ onClose })
         key="model-servers"
         data-testid="ai-flows-model-servers-info"
         title="Model servers"
-        imgSrc={typedObjectImage(ProjectObjectType.modelServer)}
+        resourceType={ProjectObjectType.modelServer}
         sectionType={SectionType.serving}
         description={
           <TextContent>
@@ -39,7 +39,7 @@ const DeployAndMonitorGallery: React.FC<{ onClose: () => void }> = ({ onClose })
       key="model-deploy"
       data-testid="ai-flows-model-deploy-info"
       title="Deploying models"
-      imgSrc={typedObjectImage(ProjectObjectType.deployingModels)}
+      resourceType={ProjectObjectType.deployingModels}
       sectionType={SectionType.serving}
       description={
         <TextContent>

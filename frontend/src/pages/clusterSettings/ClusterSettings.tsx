@@ -18,6 +18,8 @@ import TelemetrySettings from '~/pages/clusterSettings/TelemetrySettings';
 import TolerationSettings from '~/pages/clusterSettings/TolerationSettings';
 import ModelServingPlatformSettings from '~/pages/clusterSettings/ModelServingPlatformSettings';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import TitleWithIcon from '~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '~/concepts/design/utils';
 import {
   DEFAULT_CONFIG,
   DEFAULT_PVC_SIZE,
@@ -132,7 +134,9 @@ const ClusterSettings: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="Cluster settings"
+      title={
+        <TitleWithIcon title="Cluster settings" objectType={ProjectObjectType.clusterSettings} />
+      }
       description="Manage global settings for all users."
       loaded={loaded}
       empty={false}
