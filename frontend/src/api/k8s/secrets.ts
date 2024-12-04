@@ -15,6 +15,10 @@ import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 export const DATA_CONNECTION_PREFIX = 'aws-connection';
 export const SECRET_PREFIX = 'secret-';
 
+export const getGeneratedSecretName = (): string => `${SECRET_PREFIX}${genRandomChars()}`;
+export const isGeneratedSecretName = (name: string): boolean =>
+  Boolean(name.match(new RegExp(`^${SECRET_PREFIX}[a-z0-9]{6}$`)));
+
 export const assembleSecret = (
   projectName: string,
   data: Record<string, string>,
@@ -27,7 +31,7 @@ export const assembleSecret = (
   const annotations: Record<string, string> = {};
 
   let stringData = data;
-  let name = `${SECRET_PREFIX}${genRandomChars()}`;
+  let name = secretName || getGeneratedSecretName();
 
   if (type === 'aws') {
     const { Name, ...secretBody } = data;

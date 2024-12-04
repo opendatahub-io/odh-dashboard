@@ -2,12 +2,12 @@ import * as React from 'react';
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { NotebookKind } from '~/k8sTypes';
 import {
-  CONFIGMAP_PREFIX,
   DATA_CONNECTION_PREFIX,
   deleteConfigMap,
   deleteNotebook,
   deleteSecret,
-  SECRET_PREFIX,
+  isGeneratedConfigMapName,
+  isGeneratedSecretName,
 } from '~/api';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { getEnvFromList } from '~/pages/projects/pvc/utils';
@@ -45,15 +45,13 @@ const DeleteNotebookModal: React.FC<DeleteNotebookModalProps> = ({ notebook, onC
         const configMapNames = nonDataConnectionVariables
           .filter(
             (envName): envName is ConfigMapRef =>
-              !!envName.configMapRef &&
-              Boolean(envName.configMapRef.name.match(new RegExp(`^${CONFIGMAP_PREFIX}.{6}$`))),
+              !!envName.configMapRef && isGeneratedConfigMapName(envName.configMapRef.name),
           )
           .map((data) => data.configMapRef.name);
         const secretNames = nonDataConnectionVariables
           .filter(
             (envName): envName is SecretRef =>
-              !!envName.secretRef &&
-              Boolean(envName.secretRef.name.match(new RegExp(`^${SECRET_PREFIX}.{6}$`))),
+              !!envName.secretRef && isGeneratedSecretName(envName.secretRef.name),
           )
           .map((data) => data.secretRef.name);
 
