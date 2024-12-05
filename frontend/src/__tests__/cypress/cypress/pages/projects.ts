@@ -134,7 +134,7 @@ class ProjectListPage {
   }
 
   findEmptyResults() {
-    return cy.findByTestId('no-result-found-title');
+    return cy.findByTestId('dashboard-empty-table-state');
   }
 
   findSortButton(name: string) {
