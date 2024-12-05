@@ -31,7 +31,7 @@ export const assembleSecret = (
   const annotations: Record<string, string> = {};
 
   let stringData = data;
-  let name = secretName || getGeneratedSecretName();
+  let name = getGeneratedSecretName();
 
   if (type === 'aws') {
     const { Name, ...secretBody } = data;
@@ -46,7 +46,7 @@ export const assembleSecret = (
     apiVersion: 'v1',
     kind: 'Secret',
     metadata: {
-      name,
+      name: secretName || name,
       namespace: projectName,
       annotations,
       labels,
