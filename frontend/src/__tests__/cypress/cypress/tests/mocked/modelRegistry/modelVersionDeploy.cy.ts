@@ -8,7 +8,7 @@ import {
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
 import {
-  AccountModel,
+  NIMAccountModel,
   ProjectModel,
   SecretModel,
   ServiceModel,
@@ -180,7 +180,7 @@ const initIntercepts = ({
     ),
   );
 
-  cy.interceptK8sList(AccountModel, mockK8sResourceList([mockNimAccount({})]));
+  cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
 };
 
 describe('Deploy model version', () => {

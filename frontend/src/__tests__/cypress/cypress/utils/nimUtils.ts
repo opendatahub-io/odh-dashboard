@@ -9,9 +9,9 @@ import {
 } from '~/__mocks__';
 import {
   AcceleratorProfileModel,
-  AccountModel,
   ConfigMapModel,
   InferenceServiceModel,
+  NIMAccountModel,
   ProjectModel,
   PVCModel,
   SecretModel,
@@ -80,7 +80,7 @@ export const initInterceptsToEnableNim = ({ hasAllModels = false }: EnableNimCon
     allocated: { 'nvidia.com/gpu': 1 },
   });
 
-  cy.interceptK8sList(AccountModel, mockK8sResourceList([mockNimAccount({})]));
+  cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
 };
 
 // intercept all APIs required for deploying new NIM models in existing projects
@@ -93,24 +93,24 @@ export const initInterceptsToDeployModel = (nimInferenceService: InferenceServic
 
   cy.interceptOdh(
     `GET /api/nim-serving/:resource`,
-    { path: { resource: 'nvidia-nim-images-data' } },
+    { path: { resource: 'mock-nvidia-nim-images-data' } },
     mockNimServingResource(mockNimImages()),
   );
 
   cy.interceptOdh(
     `GET /api/nim-serving/:resource`,
-    { path: { resource: 'nvidia-nim-access' } },
+    { path: { resource: 'mock-nvidia-nim-access' } },
     mockNimServingResource(mockNvidiaNimAccessSecret()),
   );
 
   cy.interceptOdh(
     `GET /api/nim-serving/:resource`,
-    { path: { resource: 'nvidia-nim-image-pull' } },
+    { path: { resource: 'mock-nvidia-nim-image-pull' } },
     mockNimServingResource(mockNvidiaNimImagePullSecret()),
   );
 
   cy.interceptK8s('POST', PVCModel, mockNimModelPVC());
-  cy.interceptK8s('GET', AccountModel, mockNimAccount({}));
+  cy.interceptK8s('GET', NIMAccountModel, mockNimAccount({}));
 };
 
 // intercept all APIs required for deleting an existing NIM models
@@ -160,5 +160,5 @@ export const initInterceptorsValidatingNimEnablement = (
     mockK8sResourceList([mockProjectK8sResource({ hasAnnotations: true })]),
   );
 
-  cy.interceptK8sList(AccountModel, mockK8sResourceList([mockNimAccount({})]));
+  cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
 };

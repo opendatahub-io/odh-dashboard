@@ -10,16 +10,16 @@ import type {
   RegisteredModelList,
 } from '~/concepts/modelRegistry/types';
 import type {
+  ConsoleLinkKind,
   DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
+  ModelRegistryKind,
+  NotebookKind,
   OdhQuickStart,
   RoleBindingKind,
   ServingRuntimeKind,
   TemplateKind,
-  NotebookKind,
-  ModelRegistryKind,
-  ConsoleLinkKind,
 } from '~/k8sTypes';
 
 import type { StartNotebookData } from '~/pages/projects/types';
@@ -675,7 +675,10 @@ declare global {
           type: 'GET /api/nim-serving/:resource',
           options: {
             path: {
-              resource: 'nvidia-nim-images-data' | 'nvidia-nim-access' | 'nvidia-nim-image-pull';
+              resource:
+                | 'mock-nvidia-nim-images-data'
+                | 'mock-nvidia-nim-access'
+                | 'mock-nvidia-nim-image-pull';
             };
           },
           response: OdhResponse<NimServingResponse>,

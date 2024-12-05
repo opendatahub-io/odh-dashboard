@@ -42,7 +42,7 @@ export const InferenceServiceModel: K8sModelCommon = {
   plural: 'inferenceservices',
 };
 
-export const AccountModel: K8sModelCommon = {
+export const NIMAccountModel: K8sModelCommon = {
   apiVersion: 'v1',
   apiGroup: 'nim.opendatahub.io',
   kind: 'Account',

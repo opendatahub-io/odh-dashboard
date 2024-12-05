@@ -20,6 +20,7 @@ import {
 import {
   AccessReviewResourceAttributes,
   InferenceServiceKind,
+  PersistentVolumeClaimKind,
   ProjectKind,
   SecretKind,
   ServingRuntimeKind,
@@ -44,7 +45,6 @@ import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import KServeAutoscalerReplicaSection from '~/pages/modelServing/screens/projects/kServeModal/KServeAutoscalerReplicaSection';
 import NIMPVCSizeSection from '~/pages/modelServing/screens/projects/NIMServiceModal/NIMPVCSizeSection';
 import {
-  fetchNIMAccountConstants,
   getNIMServingRuntimeTemplate,
   updateServingRuntimeTemplate,
 } from '~/pages/modelServing/screens/projects/nimUtils';
@@ -52,6 +52,7 @@ import { useDashboardNamespace } from '~/redux/selectors';
 import { getServingRuntimeFromTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
 import { useNIMPVC } from '~/pages/modelServing/screens/projects/NIMServiceModal/useNIMPVC';
 import AuthServingRuntimeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
+import { useNIMAccountConstants } from '~/pages/modelServing/screens/projects/useNIMAccountConstants';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
 const NIM_NGC_SECRET_NAME = 'ngc-secret';
@@ -152,22 +153,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     !baseInputValueValid;
 
   const { dashboardNamespace } = useDashboardNamespace();
-
-  const [constants, setConstants] = React.useState<{
-    nimSecretName: string;
-    nimNGCSecretName: string;
-    nimConfigMapName: string;
-    templateName: string;
-  } | null>(null);
-
-  React.useEffect(() => {
-    const fetchConstants = async () => {
-      const fetchedConstants = await fetchNIMAccountConstants(dashboardNamespace);
-      setConstants(fetchedConstants);
-    };
-
-    fetchConstants();
-  }, [dashboardNamespace]);
+  const constants = useNIMAccountConstants(dashboardNamespace);
 
   React.useEffect(() => {
     if (editInfo?.servingRuntimeEditInfo?.servingRuntime) {
@@ -264,7 +250,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
       submitInferenceServiceResource({ dryRun: true }),
     ])
       .then(async () => {
-        const promises: Promise<void>[] = [
+        const promises: Promise<void | SecretKind | PersistentVolumeClaimKind>[] = [
           submitServingRuntimeResources({ dryRun: false }).then(() => undefined),
           submitInferenceServiceResource({ dryRun: false }).then(() => undefined),
         ];
@@ -272,31 +258,13 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
         if (!editInfo) {
           if (constants?.nimSecretName && constants.nimNGCSecretName) {
             if (await isSecretNeeded(namespace, NIM_SECRET_NAME)) {
-              promises.push(
-                createNIMSecret(
-                  namespace,
-                  NIM_SECRET_NAME,
-                  constants.nimSecretName,
-                  constants.nimNGCSecretName,
-                  false,
-                  false,
-                ).then(() => undefined),
-              );
+              promises.push(createNIMSecret(namespace, constants.nimSecretName, false, false));
             }
             if (await isSecretNeeded(namespace, NIM_NGC_SECRET_NAME)) {
-              promises.push(
-                createNIMSecret(
-                  namespace,
-                  NIM_NGC_SECRET_NAME,
-                  constants.nimSecretName,
-                  constants.nimNGCSecretName,
-                  true,
-                  false,
-                ).then(() => undefined),
-              );
+              promises.push(createNIMSecret(namespace, constants.nimNGCSecretName, true, false));
             }
           }
-          promises.push(createNIMPVC(namespace, nimPVCName, pvcSize, false).then(() => undefined));
+          promises.push(createNIMPVC(namespace, nimPVCName, pvcSize, false));
         } else if (pvc && pvc.spec.resources.requests.storage !== pvcSize) {
           const updatePvcData = {
             size: pvcSize, // New size
@@ -304,9 +272,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
             description: pvc.metadata.annotations?.description || '',
             storageClassName: pvc.spec.storageClassName,
           };
-          promises.push(
-            updatePvc(updatePvcData, pvc, namespace, { dryRun: false }).then(() => undefined),
-          );
+          promises.push(updatePvc(updatePvcData, pvc, namespace, { dryRun: false }));
         }
         return Promise.all(promises);
       })
