@@ -50,7 +50,6 @@ import { containsOnlySlashes, isS3PathValid, removeLeadingSlash } from '~/utilit
 import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 import {
   fetchNIMAccountConstants,
-  getNGCSecretType,
   getNIMData,
   getNIMResource,
 } from '~/pages/modelServing/screens/projects/nimUtils';
@@ -677,27 +676,26 @@ export const fetchNIMModelNames = async (
 export const createNIMSecret = async (
   projectName: string,
   secretName: string,
-  nimSecretName: string,
-  nimNGCSecretName: string,
   isNGC: boolean,
   dryRun: boolean,
 ): Promise<SecretKind> => {
   try {
-    const data = await getNIMData(isNGC, nimSecretName, nimNGCSecretName);
+    const data = await getNIMData(secretName, isNGC);
 
     const newSecret = {
       apiVersion: 'v1',
       kind: 'Secret',
       metadata: {
-        name: secretName,
+        name: isNGC ? 'ngc-secret' : 'nvidia-nim-secrets',
         namespace: projectName,
       },
       data,
-      type: getNGCSecretType(isNGC),
+      type: isNGC ? 'kubernetes.io/dockerconfigjson' : 'Opaque',
     };
+
     return await createSecret(newSecret, { dryRun });
   } catch (e) {
-    return Promise.reject(new Error(`Error creating NIM ${isNGC ? 'NGC' : ''} secret`));
+    return Promise.reject(new Error(`Error creating ${isNGC ? 'NGC' : 'NIM'} secret`));
   }
 };
 

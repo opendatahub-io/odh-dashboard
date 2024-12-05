@@ -20,10 +20,10 @@ import {
 } from '~/__tests__/cypress/cypress/pages/projects';
 import { ServingRuntimePlatform } from '~/types';
 import {
-  AccountModel,
   DataSciencePipelineApplicationModel,
   ImageStreamModel,
   InferenceServiceModel,
+  NIMAccountModel,
   NotebookModel,
   PodModel,
   ProjectModel,
@@ -274,7 +274,7 @@ const initIntercepts = ({
     buildMockPipelines(isEmpty ? [] : [mockPipelineKF({})]),
   );
 
-  cy.interceptK8sList(AccountModel, mockK8sResourceList([mockNimAccount({})]));
+  cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
 };
 
 describe('Project Details', () => {
