@@ -20,7 +20,6 @@ import useLocalQueues from './useLocalQueues';
 import useWorkloads from './useWorkloads';
 
 type DistributedWorkloadsContextType = {
-  availableCQNames: string[];
   clusterQueues: FetchStateObject<ClusterQueueKind[]>;
   localQueues: FetchStateObject<LocalQueueKind[]>;
   workloads: FetchStateObject<WorkloadKind[]>;
@@ -36,7 +35,6 @@ type DistributedWorkloadsContextProviderProps = {
 };
 
 export const DistributedWorkloadsContext = React.createContext<DistributedWorkloadsContextType>({
-  availableCQNames: [],
   clusterQueues: DEFAULT_LIST_FETCH_STATE,
   localQueues: DEFAULT_LIST_FETCH_STATE,
   workloads: DEFAULT_LIST_FETCH_STATE,
@@ -65,9 +63,14 @@ export const DistributedWorkloadsContextProvider =
       useLocalQueues(namespace, refreshRate),
     );
 
-    const availableCQNames = localQueues.data?.map((lq) => String(lq.spec.clusterQueueName)) ?? [];
+    const allClusterQueues = useMakeFetchObject<ClusterQueueKind[]>(useClusterQueues(refreshRate));
 
-    const clusterQueues = useMakeFetchObject<ClusterQueueKind[]>(useClusterQueues(refreshRate));
+    const clusterQueues = {
+      ...allClusterQueues,
+      data: allClusterQueues.data.filter((cq) =>
+        localQueues.data.some((lq) => lq.spec?.clusterQueueName === cq.metadata?.name),
+      ),
+    }
 
     const workloads = useMakeFetchObject<WorkloadKind[]>(useWorkloads(namespace, refreshRate));
 
@@ -114,7 +117,6 @@ export const DistributedWorkloadsContextProvider =
     return (
       <DistributedWorkloadsContext.Provider
         value={{
-          availableCQNames,
           clusterQueues,
           localQueues,
           workloads,
