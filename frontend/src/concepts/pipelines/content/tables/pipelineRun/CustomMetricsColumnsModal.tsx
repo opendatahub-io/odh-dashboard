@@ -29,7 +29,7 @@ export const CustomMetricsColumnsModal: React.FC<CustomMetricsColumnsModalProps>
 }) => {
   const [columns, setColumns] = React.useState(defaultColumns);
   const [filteredColumns, setFilteredColumns] = React.useState<DraggableObject[]>(defaultColumns);
-  const metricsColumnsLocalStorageKey = getMetricsColumnsLocalStorageKey(experimentId ?? '');
+  const metricsColumnsLocalStorageKey = getMetricsColumnsLocalStorageKey(experimentId);
   const selectedColumnNames = Object.values(columns).reduce((acc: string[], column) => {
     if (column.props.checked) {
       acc.push(String(column.id));

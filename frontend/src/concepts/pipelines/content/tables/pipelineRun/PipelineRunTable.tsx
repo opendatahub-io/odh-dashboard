@@ -7,10 +7,7 @@ import { ColumnsIcon } from '@patternfly/react-icons';
 
 import { TableBase, getTableColumnSort, useCheckboxTable } from '~/components/table';
 import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import {
-  getExperimentRunColumns,
-  pipelineRunColumns,
-} from '~/concepts/pipelines/content/tables/columns';
+import { getPipelineRunColumns } from '~/concepts/pipelines/content/tables/columns';
 import PipelineRunTableRow from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import PipelineRunTableToolbar from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
@@ -64,7 +61,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   const { namespace, refreshAllAPI } = usePipelinesAPI();
   const { onClearFilters, ...filterToolbarProps } = usePipelineFilterSearchParams(setFilter);
   const { metricsColumnNames, runs, runArtifactsError, runArtifactsLoaded, metricsNames } =
-    useMetricColumns(runWithoutMetrics, experiment?.experiment_id ?? '');
+    useMetricColumns(runWithoutMetrics, experiment?.experiment_id);
   const {
     selections: selectedIds,
     tableProps: checkboxTableProps,
@@ -174,13 +171,15 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     />
   );
 
-  const columns = experiment ? getExperimentRunColumns(metricsColumnNames) : pipelineRunColumns;
+  const columns = experiment
+    ? getPipelineRunColumns(metricsColumnNames).filter((column) => column.field !== 'experiment')
+    : getPipelineRunColumns(metricsColumnNames);
 
   return (
     <>
       <TableBase
         {...checkboxTableProps}
-        {...(experiment && { hasStickyColumns: true })}
+        hasStickyColumns
         loading={loading}
         page={page}
         perPage={pageSize}
@@ -204,30 +203,28 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
               primaryToolbarAction,
               ...(compareRunsAction ? [compareRunsAction] : []),
               toolbarDropdownAction,
-              experiment
-                ? [
-                    <Tooltip
-                      key="custom-metrics-columns"
-                      content={
-                        !runArtifactsLoaded
-                          ? 'Customize metrics columns: Loading metrics...'
-                          : !(metricsColumnNames.length || metricsNames.size)
-                          ? 'Customize metrics columns: No metrics available'
-                          : 'Customize metrics columns'
-                      }
-                    >
-                      <Button
-                        variant="plain"
-                        aria-label="Customize metrics column button"
-                        isAriaDisabled={
-                          !runArtifactsLoaded || !(metricsColumnNames.length || metricsNames.size)
-                        }
-                        onClick={() => setIsCustomColModalOpen(true)}
-                        icon={<ColumnsIcon />}
-                      />
-                    </Tooltip>,
-                  ]
-                : [],
+              [
+                <Tooltip
+                  key="custom-metrics-columns"
+                  content={
+                    !runArtifactsLoaded
+                      ? 'Customize metrics columns: Loading metrics...'
+                      : !(metricsColumnNames.length || metricsNames.size)
+                      ? 'Customize metrics columns: No metrics available'
+                      : 'Customize metrics columns'
+                  }
+                >
+                  <Button
+                    variant="plain"
+                    aria-label="Customize metrics column button"
+                    isAriaDisabled={
+                      !runArtifactsLoaded || !(metricsColumnNames.length || metricsNames.size)
+                    }
+                    onClick={() => setIsCustomColModalOpen(true)}
+                    icon={<ColumnsIcon />}
+                  />
+                </Tooltip>,
+              ],
             ]}
           />
         }
@@ -237,7 +234,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
             checkboxProps={{
               isChecked: isSelected(run.run_id),
               onToggle: () => toggleSelection(run.run_id),
-              isStickyColumn: !!experiment,
+              isStickyColumn: true,
               stickyMinWidth: '45px',
             }}
             onDelete={() => {
@@ -267,7 +264,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
         data-testid={`${runType}-runs-table`}
         id={`${runType}-runs-table`}
       />
-      {isArchiveModalOpen ? (
+      {isArchiveModalOpen && (
         <ArchiveRunModal
           runs={selectedRuns}
           onCancel={() => {
@@ -275,8 +272,8 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
             setSelectedIds([]);
           }}
         />
-      ) : null}
-      {isRestoreModalOpen ? (
+      )}
+      {isRestoreModalOpen && (
         <RestoreRunModal
           runs={selectedRuns}
           onCancel={() => {
@@ -284,7 +281,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
             setSelectedIds([]);
           }}
         />
-      ) : null}
+      )}
       {isDeleteModalOpen && (
         <DeletePipelineRunsModal
           toDeleteResources={selectedRuns}
