@@ -17,7 +17,7 @@ export const SECRET_PREFIX = 'secret-';
 
 export const getGeneratedSecretName = (): string => `${SECRET_PREFIX}${genRandomChars()}`;
 export const isGeneratedSecretName = (name: string): boolean =>
-  Boolean(name.match(new RegExp(`^${SECRET_PREFIX}[a-z0-9]{6}$`)));
+  new RegExp(`^${SECRET_PREFIX}[a-z0-9]{6}$`).test(name);
 
 export const assembleSecret = (
   projectName: string,

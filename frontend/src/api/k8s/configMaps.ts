@@ -14,7 +14,7 @@ export const CONFIGMAP_PREFIX = 'configmap-';
 
 export const getGeneratedConfigMapName = (): string => `${CONFIGMAP_PREFIX}${genRandomChars()}`;
 export const isGeneratedConfigMapName = (name: string): boolean =>
-  Boolean(name.match(new RegExp(`^${CONFIGMAP_PREFIX}[a-z0-9]{6}$`)));
+  new RegExp(`^${CONFIGMAP_PREFIX}[a-z0-9]{6}$`).test(name);
 
 export const assembleConfigMap = (
   projectName: string,
