@@ -139,13 +139,12 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       <CheckboxTd id={run.run_id} {...checkboxProps} />
       <Td
         dataLabel="Name"
-        {...(contextExperiment &&
-          customCells && {
-            isStickyColumn: true,
-            hasRightBorder: true,
-            stickyMinWidth: '200px',
-            stickyLeftOffset: '45px',
-          })}
+        {...(customCells && {
+          isStickyColumn: true,
+          hasRightBorder: true,
+          stickyMinWidth: '200px',
+          stickyLeftOffset: '45px',
+        })}
       >
         <PipelineRunTableRowTitle run={run} />
       </Td>
