@@ -10,7 +10,7 @@ import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
 import { useQueryParams } from '~/utilities/useQueryParams';
 import ModelServingPlatform from '~/pages/modelServing/screens/projects/ModelServingPlatform';
-import { ProjectObjectType } from '~/concepts/design/utils';
+import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { AccessReviewResourceAttributes } from '~/k8sTypes';
 import { useAccessReview } from '~/api';
@@ -58,7 +58,7 @@ const ProjectDetails: React.FC = () => {
     <ApplicationsPage
       title={
         <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-          <HeaderIcon type={ProjectObjectType.projectContext} />
+          <HeaderIcon type={ProjectObjectType.projectContext} sectionType={SectionType.general} />
           <FlexItem>
             <ResourceNameTooltip resource={currentProject} wrap={false}>
               {displayName}

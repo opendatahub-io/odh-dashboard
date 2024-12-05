@@ -8,8 +8,9 @@ import {
   Text,
   TextContent,
 } from '@patternfly/react-core';
-import { ProjectObjectType, SectionType, typedObjectImage } from '~/concepts/design/utils';
+import { SectionType } from '~/concepts/design/utils';
 import TypeBorderedCard from '~/concepts/design/TypeBorderedCard';
+import { ProjectIcon } from '~/images/icons';
 
 interface CreateProjectCardProps {
   allowCreate: boolean;
@@ -25,11 +26,8 @@ const CreateProjectCard: React.FC<CreateProjectCardProps> = ({ allowCreate, onCr
       <Bullseye>
         <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }}>
           <FlexItem>
-            <img
-              src={typedObjectImage(ProjectObjectType.project)}
-              alt="Add project"
-              width={54}
-              height={54}
+            <ProjectIcon
+              style={{ width: 54, height: 54, color: 'var(--pf-v5-global--palette--black-500)' }}
             />
           </FlexItem>
           {allowCreate ? (

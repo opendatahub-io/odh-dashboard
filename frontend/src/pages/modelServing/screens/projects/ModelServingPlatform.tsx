@@ -211,7 +211,7 @@ const ModelServingPlatform: React.FC = () => {
   return (
     <>
       <DetailsSection
-        objectType={!emptyModelServer ? ProjectObjectType.deployedModels : undefined}
+        objectType={!emptyModelServer ? ProjectObjectType.model : undefined}
         id={ProjectSectionID.MODEL_SERVER}
         title={!emptyModelServer ? ProjectSectionTitles[ProjectSectionID.MODEL_SERVER] : undefined}
         actions={

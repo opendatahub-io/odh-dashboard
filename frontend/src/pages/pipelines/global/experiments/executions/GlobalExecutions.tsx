@@ -11,13 +11,20 @@ import {
   executionsPageTitle,
 } from '~/pages/pipelines/global/experiments/executions/const';
 import ExecutionsList from '~/pages/pipelines/global/experiments/executions/ExecutionsList';
+import TitleWithIcon from '~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '~/concepts/design/utils';
 
 const GlobalExecutions: React.FC = () => {
   const pipelinesAPI = usePipelinesAPI();
 
   return (
     <PipelineCoreApplicationPage
-      title={executionsPageTitle}
+      title={
+        <TitleWithIcon
+          title={executionsPageTitle}
+          objectType={ProjectObjectType.pipelineExecution}
+        />
+      }
       description={executionsPageDescription}
       headerAction={<PipelineServerActions isDisabled={!pipelinesAPI.pipelinesServer.installed} />}
       getRedirectPath={executionsBaseRoute}

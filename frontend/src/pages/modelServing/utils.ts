@@ -121,8 +121,7 @@ export const setUpTokenAuth = async (
       ? Promise.all([
           createServiceAccountIfMissing(serviceAccount, namespace, opts),
           ...(role ? [createRoleIfMissing(role, namespace, opts)] : []),
-          createRoleBindingIfMissing(roleBinding, namespace, opts),
-        ])
+        ]).then(() => createRoleBindingIfMissing(roleBinding, namespace, opts))
       : Promise.resolve()
   )
     .then(() => createSecrets(fillData, deployedModelName, namespace, existingSecrets, opts))
@@ -160,7 +159,14 @@ export const createRoleBindingIfMissing = async (
 ): Promise<RoleBindingKind> =>
   getRoleBinding(namespace, rolebinding.metadata.name).catch((e) => {
     if (e.statusObject?.code === 404) {
-      return createRoleBinding(rolebinding, opts);
+      return createRoleBinding(rolebinding, opts).catch((error) => {
+        if (error.statusObject?.code === 404 && opts?.dryRun) {
+          // If dryRun is enabled and the user is not Cluster Admin it seems that there's a k8s error
+          // that raises a 404 trying to find the role, which is missing since it's a dryRun.
+          return Promise.resolve(rolebinding);
+        }
+        return Promise.reject(error);
+      });
     }
     return Promise.reject(e);
   });

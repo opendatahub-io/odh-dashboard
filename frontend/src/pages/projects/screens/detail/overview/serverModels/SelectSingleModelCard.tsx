@@ -16,7 +16,7 @@ const SelectSingleModelCard: React.FC<SelectSingleModelCardProps> = ({
   const { currentProject } = React.useContext(ProjectDetailsContext);
   return (
     <OverviewCard
-      objectType={ProjectObjectType.modelServer}
+      objectType={ProjectObjectType.singleModel}
       sectionType={SectionType.serving}
       title="Single-model serving platform"
       data-testid="single-serving-platform-card"
