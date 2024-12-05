@@ -28,17 +28,15 @@ export const getNIMResource = async <T extends K8sResourceCommon = SecretKind>(
     throw new Error(`Failed to fetch the resource: ${resourceName}.`);
   }
 };
+
 export const getNIMData = async (
+  secretName: string,
   isNGC: boolean,
-  nimSecretName: string,
-  nimNGCSecretName: string,
 ): Promise<Record<string, string> | undefined> => {
-  const nimSecretData: SecretKind = isNGC
-    ? await getNIMResource(nimNGCSecretName)
-    : await getNIMResource(nimSecretName);
+  const nimSecretData = await getNIMResource(secretName);
 
   if (!nimSecretData.data) {
-    throw new Error(`Error retrieving NIM ${isNGC ? 'NGC' : ''} secret data`);
+    throw new Error(`Error retrieving ${isNGC ? 'NGC' : 'NIM'} secret data`);
   }
 
   const data: Record<string, string> = {};
@@ -194,35 +192,32 @@ export const getNIMResourcesToDelete = async (
 
 export const fetchNIMAccountConstants = async (
   dashboardNamespace: string,
-): Promise<{
-  nimSecretName: string;
-  nimNGCSecretName: string;
-  nimConfigMapName: string;
-  templateName: string;
-} | null> => {
+): Promise<
+  | {
+      nimSecretName: string;
+      nimNGCSecretName: string;
+      nimConfigMapName: string;
+      templateName: string;
+    }
+  | undefined
+> => {
   try {
     const accounts = await listAccounts(dashboardNamespace);
     if (accounts.length === 0) {
-      // eslint-disable-next-line no-console
-      console.error('NIM account does not exist.');
-      return null;
+      throw new Error('NIM account does not exist.');
     }
 
     const nimAccount = accounts[0];
     const nimSecretName = nimAccount.spec.apiKeySecret.name;
 
     if (!nimSecretName || !nimAccount.status) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to retrieve NIM account details.');
-      return null;
+      throw new Error('Failed to retrieve NIM account details.');
     }
 
     const { nimPullSecret, nimConfig, runtimeTemplate } = nimAccount.status;
 
     if (!nimPullSecret?.name || !nimConfig?.name || !runtimeTemplate?.name) {
-      // eslint-disable-next-line no-console
-      console.error('Required NIM account fields are missing.');
-      return null;
+      throw new Error('Required NIM account fields are missing.');
     }
 
     return {
@@ -232,8 +227,13 @@ export const fetchNIMAccountConstants = async (
       templateName: runtimeTemplate.name,
     };
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error(`Error fetching NIM account constants`);
-    return null;
+    if (e instanceof Error) {
+      // eslint-disable-next-line no-console
+      console.error(`Error fetching NIM account constants: ${e.message}`);
+    } else {
+      // eslint-disable-next-line no-console
+      console.error(`Error fetching NIM account constants: ${String(e)}`);
+    }
+    return undefined;
   }
 };

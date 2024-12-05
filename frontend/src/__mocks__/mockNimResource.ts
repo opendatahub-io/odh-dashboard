@@ -19,7 +19,7 @@ import { mockPVCK8sResource } from './mockPVCK8sResource';
 
 export const mockNimImages = (): ConfigMapKind =>
   mockConfigMap({
-    name: 'nvidia-nim-images-data',
+    name: 'mock-nvidia-nim-images-data',
     namespace: 'opendatahub',
     data: {
       alphafold2: JSON.stringify({
@@ -86,7 +86,7 @@ export const mockNimServingRuntime = (): ServingRuntimeKind => {
 
 export const mockNimServingRuntimeTemplate = (): TemplateKind => {
   const templateMock = mockServingRuntimeTemplateK8sResource({
-    name: 'nvidia-nim-serving-template',
+    name: 'mock-nvidia-nim-serving-template',
     displayName: 'NVIDIA NIM',
     platforms: [ServingRuntimePlatform.SINGLE],
     apiProtocol: ServingRuntimeAPIProtocol.REST,
@@ -101,7 +101,7 @@ export const mockNimServingRuntimeTemplate = (): TemplateKind => {
 
 export const mockNvidiaNimAccessSecret = (): SecretKind => {
   const secret = mockSecretK8sResource({
-    name: 'nvidia-nim-access',
+    name: 'mock-nvidia-nim-access',
   });
   delete secret.data;
   secret.data = {};
@@ -113,7 +113,7 @@ export const mockNvidiaNimAccessSecret = (): SecretKind => {
 
 export const mockNvidiaNimImagePullSecret = (): SecretKind => {
   const secret = mockSecretK8sResource({
-    name: 'nvidia-nim-image-pull',
+    name: 'mock-nvidia-nim-image-pull',
   });
   delete secret.data;
   secret.data = {};
