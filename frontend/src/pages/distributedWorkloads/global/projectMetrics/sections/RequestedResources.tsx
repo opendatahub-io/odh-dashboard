@@ -11,12 +11,10 @@ import { LoadingState } from '~/pages/distributedWorkloads/components/LoadingSta
 import { RequestedResourcesBulletChart } from './RequestedResourcesBulletChart';
 
 export const RequestedResources: React.FC = () => {
-  const { localQueues, clusterQueues, availableCQNames } = React.useContext(DistributedWorkloadsContext);
+  const { localQueues, clusterQueues } = React.useContext(DistributedWorkloadsContext);
   const requiredFetches = [localQueues, clusterQueues];
   const error = requiredFetches.find((f) => !!f.error)?.error;
   const loaded = requiredFetches.every((f) => f.loaded);
-
-  const filteredClusterQueues = clusterQueues.data.filter((cq) => cq.metadata?.name? availableCQNames.includes(cq.metadata.name) : false);
 
   if (error) {
     return <EmptyStateErrorMessage title="Error loading workloads" bodyText={error.message} />;
@@ -27,8 +25,8 @@ export const RequestedResources: React.FC = () => {
   }
 
   const requestedByThisProject = getQueueRequestedResources(localQueues.data);
-  const requestedByAllProjects = getQueueRequestedResources(filteredClusterQueues);
-  const totalSharedQuota = getTotalSharedQuota(filteredClusterQueues);
+  const requestedByAllProjects = getQueueRequestedResources(clusterQueues.data);
+  const totalSharedQuota = getTotalSharedQuota(clusterQueues.data);
 
   return (
     <CardBody>
