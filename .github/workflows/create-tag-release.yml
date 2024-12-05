@@ -1,0 +1,48 @@
+name: Create new Quay tag from latest main-tag for ODH release
+on:
+  workflow_dispatch:
+    inputs:
+      existingTag:
+        description: Source tag
+        required: true
+        type: string
+      releaseTag:
+        description: Destination tag
+        required: true
+        type: string
+
+env:
+  QUAY_ODH_DASHBOARD_IMAGE_REPO: ${{ secrets.QUAY_ODH_DASHBOARD_IMAGE_REPO }}
+
+jobs:
+  delete-pr-quay-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: '0'
+      - name: Install podman
+        shell: bash
+        run: |
+          sudo apt-get -y update
+          sudo apt-get -y install podman
+      - name: Pull Quay repository
+        shell: bash
+        run: |
+          podman pull docker://${QUAY_ODH_DASHBOARD_IMAGE_REPO}
+      - name: Create new release tag off of latest main-tag
+        shell: bash
+        run: |
+          podman tag ${QUAY_ODH_DASHBOARD_IMAGE_REPO}:${{ github.event.inputs.existingTag }} docker://${QUAY_ODH_DASHBOARD_IMAGE_REPO}:${{ github.event.inputs.releaseTag }}
+      - name: Login to quay.io
+        shell: bash
+        env:
+          QUAY_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}
+          QUAY_ROBOT_USERNAME: ${{ secrets.QUAY_ROBOT_USERNAME }}
+        run: |
+          podman login quay.io -u ${QUAY_ROBOT_USERNAME} -p ${QUAY_TOKEN}
+      - name: Push the latest release tag to Quay
+        shell: bash
+        run: |
+          podman push docker://${QUAY_ODH_DASHBOARD_IMAGE_REPO}:${{ github.event.inputs.releaseTag }}
