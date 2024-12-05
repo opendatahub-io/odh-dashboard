@@ -46,7 +46,7 @@ export const assembleSecret = (
     apiVersion: 'v1',
     kind: 'Secret',
     metadata: {
-      name: secretName || name,
+      name,
       namespace: projectName,
       annotations,
       labels,
