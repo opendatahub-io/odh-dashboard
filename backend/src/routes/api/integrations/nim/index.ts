@@ -5,13 +5,12 @@ import { isString } from 'lodash';
 import { createNIMAccount, createNIMSecret, getNIMAccount, isAppEnabled } from './nimUtils';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
-  const { namespace } = fastify.kube;
   const PAGE_NOT_FOUND_MESSAGE = '404 page not found';
 
   fastify.get(
     '/',
     secureAdminRoute(fastify)(async (request: FastifyRequest, reply: FastifyReply) => {
-      await getNIMAccount(fastify, namespace)
+      await getNIMAccount(fastify)
         .then((response) => {
           if (response) {
             // Installed
@@ -62,9 +61,9 @@ module.exports = async (fastify: KubeFastifyInstance) => {
       ) => {
         const enableValues = request.body;
         try {
-          const { createdNew } = await createNIMSecret(fastify, namespace, enableValues);
+          const { createdNew } = await createNIMSecret(fastify, enableValues);
           if (createdNew) {
-            const response = await createNIMAccount(fastify, namespace);
+            const response = await createNIMAccount(fastify);
             const isEnabled = isAppEnabled(response);
             reply.send({
               isInstalled: true,
@@ -74,7 +73,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
             });
           } else {
             // Secret was updated, so we skip creating the NIM account but still need to get the status.
-            const account = await getNIMAccount(fastify, namespace);
+            const account = await getNIMAccount(fastify);
             if (account) {
               const isEnabled = isAppEnabled(account);
               reply.send({
