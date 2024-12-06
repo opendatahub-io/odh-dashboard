@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, ButtonProps, Icon } from '@patternfly/react-core';
 
-type DashboardPopupIconButtonProps = Omit<ButtonProps, 'variant' | 'isInline' | 'style'> & {
+type DashboardPopupIconButtonProps = Omit<ButtonProps, 'variant' | 'isInline'> & {
   icon: React.ReactNode;
 };
 

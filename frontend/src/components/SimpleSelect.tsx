@@ -103,16 +103,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
   }, [singleOptionKey, isSkeleton]);
 
   if (isSkeleton) {
-    return (
-      <Skeleton
-        style={{
-          height:
-            // Skeleton height = Select padding top + Select padding bottom + Select font line height
-            // In App.scss we override the form font size from --pf-v5-global--FontSize--md to --pf-v5-global--FontSize--sm
-            'var(--pf-t--global--spacer--xs)',
-        }}
-      />
-    );
+    return <Skeleton style={{ minWidth: 100 }} />;
   }
 
   return (

@@ -20,6 +20,7 @@ const NotebookStateAction: React.FC<Props> = ({ notebookState, onStart, onStop, 
       variant="link"
       isDisabled={actionDisabled}
       onClick={onStop}
+      style={{ paddingTop: 0, paddingBottom: 0 }}
     >
       Stop
     </Button>
@@ -29,6 +30,7 @@ const NotebookStateAction: React.FC<Props> = ({ notebookState, onStart, onStop, 
       variant="link"
       isDisabled={actionDisabled}
       onClick={onStart}
+      style={{ paddingTop: 0, paddingBottom: 0 }}
     >
       Start
     </Button>

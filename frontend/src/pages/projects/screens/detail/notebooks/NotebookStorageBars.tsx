@@ -54,7 +54,12 @@ const NotebookStorageBars: React.FC<NotebookStorageBarsProps> = ({ notebook }) =
                   flexWrap={{ default: 'nowrap' }}
                 >
                   <FlexItem>
-                    <HeaderIcon display="block" type={ProjectObjectType.clusterStorage} size={20} />
+                    <HeaderIcon
+                      display="block"
+                      type={ProjectObjectType.clusterStorage}
+                      size={20}
+                      padding={2}
+                    />
                   </FlexItem>
                   <FlexItem>
                     <Content>{getDisplayNameFromK8sResource(pvc)}</Content>
