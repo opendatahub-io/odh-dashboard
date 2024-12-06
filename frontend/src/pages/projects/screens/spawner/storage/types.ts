@@ -1,4 +1,4 @@
 export enum MountPathFormat {
-  STANDARD = 'standard',
-  CUSTOM = 'custom',
+  STANDARD = 'Standard',
+  CUSTOM = 'Custom',
 }
