@@ -1,9 +1,12 @@
 import * as React from 'react';
 import {
+  Alert,
   Button,
   Checkbox,
+  FileUpload,
   Form,
   FormGroup,
+  FormHelperText,
   HelperText,
   HelperTextItem,
   MenuGroup,
@@ -448,6 +451,35 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
                     label="Upload new certificate"
                     id="new-ca"
                   ></Radio>
+                  {secureDBInfo.radio === SecureDBRadios.NEW && (
+                    <>
+                      <Alert isInline title="Note" variant="info" style={{ marginLeft: 'var(--pf-v5-global--spacer--lg)' }}>
+                        Uploading a certificate below creates the{' '}
+                        <strong>{translateDisplayNameForK8s(nameDesc.name)}-db-credential</strong> ConfigMap with the{' '}
+                        <strong>ca.crt</strong> key. If you'd like to upload the certificate as a
+                        Secret instead, see the documentation for more details.
+                      </Alert>
+                      <FormGroup label="Certificate" required style={{ marginLeft: 'var(--pf-v5-global--spacer--lg)' }}>
+                        <FileUpload id={''} 
+                          type='text'
+                          filenamePlaceholder='Drag and drop a file or upload one'
+                          dropzoneProps={{
+                            accept: { 'text/pem': ['.pem'] },
+                            maxSize: 1024,
+                            onDropRejected: (e) => {console.log({e})}
+                          }}
+                          browseButtonText="Upload"
+                        />
+                                <FormHelperText>
+          <HelperText>
+            <HelperTextItem variant={'default'}>
+              {'Upload a PEM file'}
+            </HelperTextItem>
+          </HelperText>
+        </FormHelperText>
+                      </FormGroup>
+                    </>
+                  )}
                 </>
               )}
             </>
