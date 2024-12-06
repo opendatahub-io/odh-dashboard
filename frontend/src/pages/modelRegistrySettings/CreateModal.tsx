@@ -3,10 +3,8 @@ import {
   Alert,
   Button,
   Checkbox,
-  FileUpload,
   Form,
   FormGroup,
-  FormHelperText,
   HelperText,
   HelperTextItem,
   MenuGroup,
@@ -78,7 +76,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
   const [isDatabaseTouched, setIsDatabaseTouched] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
   const { dscStatus } = React.useContext(AreaContext);
-  const secureDbEnabled = true || useIsAreaAvailable(SupportedArea.MODEL_REGISTRY_SECURE_DB).status;
+  const secureDbEnabled = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY_SECURE_DB).status;
 
   const modelRegistryNamespace = dscStatus?.components?.modelregistry?.registriesNamespace;
   const existingCertConfigMaps = [
@@ -100,8 +98,9 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
       <>
         {filteredConfigMaps.length > 0 && (
           <MenuGroup label="ConfigMaps">
-            {filteredConfigMaps.map((item) => (
+            {filteredConfigMaps.map((item, index) => (
               <MenuItem
+                key={`config-map-${index}`}
                 onClick={() => {
                   setSearchValue('');
                   setSecureDBInfo({ ...secureDBInfo, configMap: item });
@@ -114,8 +113,9 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
         )}
         {filteredSecrets.length > 0 && (
           <MenuGroup label="Secrets">
-            {filteredSecrets.map((item) => (
+            {filteredSecrets.map((item, index) => (
               <MenuItem
+                key={`secret-${index}`}
                 onClick={() => {
                   setSearchValue('');
                   setSecureDBInfo({ ...secureDBInfo, configMap: item });
@@ -216,16 +216,13 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
       return true;
     }
     if (secureDBInfo.radio === SecureDBRadios.EXISTING) {
-      return (
-        hasContent(secureDBInfo.configMap) &&
-        hasContent(secureDBInfo.key)
-      );
+      return hasContent(secureDBInfo.configMap) && hasContent(secureDBInfo.key);
     }
     if (secureDBInfo.radio === SecureDBRadios.NEW) {
       return hasContent(secureDBInfo.certificate);
     }
     return false;
-  }
+  };
 
   const handleSecureDBTypeChange = (type: SecureDBRadios) => {
     setSecureDBInfo({ radio: type, nameSpace: '', key: '', configMap: '', certificate: '' });
@@ -391,7 +388,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
                       </>
                     }
                     id="cluster-wide-ca"
-                  ></Radio>
+                  />
                   <Radio
                     isChecked={secureDBInfo.radio === SecureDBRadios.OPENSHIFT}
                     name="openshift-ca"
@@ -404,7 +401,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
                       </>
                     }
                     id="openshift-ca"
-                  ></Radio>
+                  />
                   <Radio
                     isChecked={secureDBInfo.radio === SecureDBRadios.EXISTING}
                     name="existing-ca"
@@ -417,39 +414,47 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
                       </>
                     }
                     id="existing-ca"
-                  ></Radio>
+                  />
                   {secureDBInfo.radio === SecureDBRadios.EXISTING && (
                     <>
                       <FormGroup
                         label="Resource"
                         isRequired
                         fieldId="existing-ca-resource"
-                        style={{ marginLeft: 'var(--pf-v5-global--spacer--lg)' }}
+                        style={{ marginLeft: 'var(--pf-v6-global--spacer--lg)' }}
                       >
                         <SearchSelector
                           isFullWidth
-                          children={getFilteredExistingCAResources()}
-                          dataTestId={'existing-ca-resource-selector'}
+                          dataTestId="existing-ca-resource-selector"
                           onSearchChange={(newValue) => setSearchValue(newValue)}
                           onSearchClear={() => setSearchValue('')}
                           searchValue={searchValue}
-                          toggleText={secureDBInfo?.configMap || 'Select a ConfigMap or a Secret'}
-                        />
+                          toggleText={secureDBInfo.configMap || 'Select a ConfigMap or a Secret'}
+                        >
+                          {getFilteredExistingCAResources()}
+                        </SearchSelector>
                       </FormGroup>
                       <FormGroup
                         label="Key"
                         isRequired
                         fieldId="existing-ca-key"
-                        style={{ marginLeft: 'var(--pf-v5-global--spacer--lg)' }}
+                        style={{ marginLeft: 'var(--pf-v6-global--spacer--lg)' }}
                       >
                         <SearchSelector
                           isFullWidth
-                          children={existingCertKeys
+                          dataTestId="existing-ca-key-selector"
+                          onSearchChange={(newValue) => setSearchValue(newValue)}
+                          onSearchClear={() => setSearchValue('')}
+                          searchValue={searchValue}
+                          toggleText={secureDBInfo.key || 'Select a key'}
+                        >
+                          {existingCertKeys
                             .filter((item) =>
                               item.toLowerCase().includes(searchValue.toLowerCase()),
                             )
-                            .map((item) => (
+                            .map((item, index) => (
                               <MenuItem
+                                key={`key-${index}`}
                                 onClick={() => {
                                   setSearchValue('');
                                   setSecureDBInfo({ ...secureDBInfo, key: item });
@@ -458,12 +463,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
                                 {item}
                               </MenuItem>
                             ))}
-                          dataTestId={'existing-ca-key-selector'}
-                          onSearchChange={(newValue) => setSearchValue(newValue)}
-                          onSearchClear={() => setSearchValue('')}
-                          searchValue={searchValue}
-                          toggleText={secureDBInfo?.key || 'Select a key'}
-                        />
+                        </SearchSelector>
                       </FormGroup>
                     </>
                   )}
@@ -473,26 +473,30 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
                     onChange={() => handleSecureDBTypeChange(SecureDBRadios.NEW)}
                     label="Upload new certificate"
                     id="new-ca"
-                  ></Radio>
+                  />
                   {secureDBInfo.radio === SecureDBRadios.NEW && (
                     <>
                       <Alert
                         isInline
                         title="Note"
                         variant="info"
-                        style={{ marginLeft: 'var(--pf-v5-global--spacer--lg)' }}
+                        style={{ marginLeft: 'var(--pf-v6-global--spacer--lg)' }}
                       >
                         Uploading a certificate below creates the{' '}
                         <strong>{translateDisplayNameForK8s(nameDesc.name)}-db-credential</strong>{' '}
-                        ConfigMap with the <strong>ca.crt</strong> key. If you'd like to upload the
-                        certificate as a Secret instead, see the documentation for more details.
+                        ConfigMap with the <strong>ca.crt</strong> key. If you&apos;d like to upload
+                        the certificate as a Secret instead, see the documentation for more details.
                       </Alert>
                       <FormGroup
                         label="Certificate"
                         required
-                        style={{ marginLeft: 'var(--pf-v5-global--spacer--lg)' }}
+                        style={{ marginLeft: 'var(--pf-v6-global--spacer--lg)' }}
                       >
-                        <PemFileUpload onChange={(value) => setSecureDBInfo({...secureDBInfo, certificate: value})} />
+                        <PemFileUpload
+                          onChange={(value) =>
+                            setSecureDBInfo({ ...secureDBInfo, certificate: value })
+                          }
+                        />
                       </FormGroup>
                     </>
                   )}

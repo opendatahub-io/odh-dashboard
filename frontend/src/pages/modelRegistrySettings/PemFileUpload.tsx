@@ -7,7 +7,7 @@ import {
 } from '@patternfly/react-core';
 import React from 'react';
 
-export const PemFileUpload: React.FC<{onChange: (value: string) => void}> = ({onChange}) => {
+export const PemFileUpload: React.FC<{ onChange: (value: string) => void }> = ({ onChange }) => {
   const [value, setValue] = React.useState('');
   const [filename, setFilename] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
@@ -17,16 +17,16 @@ export const PemFileUpload: React.FC<{onChange: (value: string) => void}> = ({on
     setFilename(file.name);
   };
 
-  const handleTextChange = (_event: React.ChangeEvent<HTMLTextAreaElement>, value: string) => {
-    setValue(value);
+  const handleTextChange = (_event: React.ChangeEvent<HTMLTextAreaElement>, val: string) => {
+    setValue(val);
   };
 
-  const handleDataChange = (_event: DropEvent, value: string) => {
-    onChange(value);
-    setValue(value);
+  const handleDataChange = (_event: DropEvent, val: string) => {
+    onChange(val);
+    setValue(val);
   };
 
-  const handleClear = (_event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+  const handleClear = () => {
     setFilename('');
     setValue('');
     setIsRejected(false);
@@ -36,11 +36,11 @@ export const PemFileUpload: React.FC<{onChange: (value: string) => void}> = ({on
     setIsRejected(true);
   };
 
-  const handleFileReadStarted = (_event: DropEvent, _fileHandle: File) => {
+  const handleFileReadStarted = () => {
     setIsLoading(true);
   };
 
-  const handleFileReadFinished = (_event: DropEvent, _fileHandle: File) => {
+  const handleFileReadFinished = () => {
     setIsLoading(false);
   };
 
