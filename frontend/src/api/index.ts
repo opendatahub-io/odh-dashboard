@@ -19,6 +19,7 @@ export * from './k8s/groups';
 export * from './k8s/templates';
 export * from './k8s/dashboardConfig';
 export * from './k8s/acceleratorProfiles';
+export * from './k8s/hardwareProfiles';
 export * from './k8s/clusterQueues';
 export * from './k8s/localQueues';
 export * from './k8s/workloads';

@@ -25,6 +25,7 @@ export const allFeatureFlags: string[] = Object.keys({
   disableKServeRaw: true,
   disableModelMesh: false,
   disableAcceleratorProfiles: false,
+  disableHardwareProfiles: false,
   disableDistributedWorkloads: false,
   disableModelRegistry: false,
   disableServingRuntimeParams: false,
@@ -39,6 +40,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.ACCELERATOR_PROFILES]: {
     featureFlags: ['disableAcceleratorProfiles'],
+  },
+  [SupportedArea.HARDWARE_PROFILES]: {
+    featureFlags: ['disableHardwareProfiles'],
   },
   [SupportedArea.CLUSTER_SETTINGS]: {
     featureFlags: ['disableClusterManager'],
