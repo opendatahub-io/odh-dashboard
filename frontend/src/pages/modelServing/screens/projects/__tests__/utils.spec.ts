@@ -368,7 +368,7 @@ describe('fetchNIMModelNames', () => {
 
     const result = await fetchNIMModelNames(dashboardNamespace);
 
-    expect(getNIMResource).toHaveBeenCalledWith('nvidia-nim-images-data');
+    expect(getNIMResource).toHaveBeenCalledWith('nimConfig');
     expect(result).toEqual([
       {
         name: 'model1',
@@ -396,7 +396,7 @@ describe('fetchNIMModelNames', () => {
 
     const result = await fetchNIMModelNames(dashboardNamespace);
 
-    expect(getNIMResource).toHaveBeenCalledWith('nvidia-nim-images-data');
+    expect(getNIMResource).toHaveBeenCalledWith('nimConfig');
     expect(result).toBeUndefined();
   });
 
@@ -405,7 +405,7 @@ describe('fetchNIMModelNames', () => {
 
     const result = await fetchNIMModelNames(dashboardNamespace);
 
-    expect(getNIMResource).toHaveBeenCalledWith('nvidia-nim-images-data');
+    expect(getNIMResource).toHaveBeenCalledWith('nimConfig');
     expect(result).toBeUndefined();
   });
 });
@@ -571,9 +571,9 @@ describe('fetchNIMAccountConstants', () => {
     const result = await fetchNIMAccountConstants(dashboardNamespace);
 
     expect(result).toEqual({
-      nimSecretName: 'nvidia-nim-access',
-      nimNGCSecretName: 'nvidia-nim-image-pull',
-      nimConfigMapName: 'nvidia-nim-images-data',
+      nimSecretKey: 'apiKeySecret',
+      nimNGCSecretKey: 'nimPullSecret',
+      nimConfigMapKey: 'nimConfig',
       templateName: 'nvidia-nim-serving-template',
     });
 
