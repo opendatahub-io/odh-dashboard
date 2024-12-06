@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Text, Icon, Tooltip } from '@patternfly/react-core';
+import { Icon, Tooltip } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { BYONImage } from '~/types';
 
@@ -12,7 +12,7 @@ const ImageErrorStatus: React.FC<ImageErrorStatusProps> = ({ image }) => {
     return null;
   }
   return (
-    <Tooltip role="none" content={<Text>{image.error}</Text>}>
+    <Tooltip role="none" content={image.error}>
       <Icon role="button" aria-label="error icon" status="danger" isInline tabIndex={0}>
         <ExclamationCircleIcon />
       </Icon>

@@ -10,8 +10,8 @@ import {
   Card,
   CardBody,
   Divider,
-  DrawerContentBody,
   Form,
+  DrawerPanelBody,
 } from '@patternfly/react-core';
 import ConnectionTypeForm from '~/concepts/connectionTypes/ConnectionTypeForm';
 import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
@@ -26,33 +26,26 @@ type Props = {
 const ConnectionTypePreviewDrawer: React.FC<Props> = ({ children, isExpanded, onClose, obj }) => {
   const panelContent = (
     <DrawerPanelContent isResizable>
-      <DrawerContentBody>
-        <DrawerHead hasNoPadding>
-          <Title headingLevel="h2" size="xl">
-            Preview connection type
-          </Title>
-          <DrawerActions>
-            <DrawerCloseButton onClick={() => onClose()} />
-          </DrawerActions>
-        </DrawerHead>
-        <div
-          style={{
-            fontSize: 'var(--pf-v5-global--FontSize--sm)',
-            paddingTop: 'var(--pf-v5-global--spacer--sm)',
-          }}
-        >
-          This preview shows the user view of the connection type form, and is for reference only.
-          Updates in the developer view are automatically rendered in the user view.
-        </div>
-      </DrawerContentBody>
+      <DrawerHead>
+        <Title headingLevel="h2" size="xl">
+          Preview connection type
+        </Title>
+        <DrawerActions>
+          <DrawerCloseButton onClick={() => onClose()} />
+        </DrawerActions>
+      </DrawerHead>
+      <DrawerPanelBody>
+        This preview shows the user view of the connection type form, and is for reference only.
+        Updates in the developer view are automatically rendered in the user view.
+      </DrawerPanelBody>
       <Divider />
-      <DrawerContentBody
+      <DrawerPanelBody
         style={{
-          backgroundColor: 'var(--pf-v5-global--BackgroundColor--200)',
+          backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
           overflow: 'auto',
         }}
       >
-        <Card isFlat isRounded>
+        <Card>
           <CardBody>
             <Form>
               <Title headingLevel="h1">Add connection</Title>
@@ -60,7 +53,7 @@ const ConnectionTypePreviewDrawer: React.FC<Props> = ({ children, isExpanded, on
             </Form>
           </CardBody>
         </Card>
-      </DrawerContentBody>
+      </DrawerPanelBody>
     </DrawerPanelContent>
   );
 

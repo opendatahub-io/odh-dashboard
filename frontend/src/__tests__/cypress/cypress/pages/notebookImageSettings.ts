@@ -47,7 +47,7 @@ class NotebookImageSettings {
   }
 
   findEmptyResults() {
-    return cy.findByTestId('no-result-found-title');
+    return cy.findByTestId('dashboard-empty-table-state');
   }
 
   private findTable() {

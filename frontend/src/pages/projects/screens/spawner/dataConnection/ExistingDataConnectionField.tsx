@@ -56,6 +56,7 @@ const ExistingDataConnectionField: React.FC<ExistingDataConnectionFieldProps> = 
       data-testid="data-connection-group"
     >
       <TypeaheadSelect
+        id="select-connection"
         selectOptions={selectOptions}
         selected={selectedDataConnection}
         onSelect={(_ev, selection) => setDataConnection(String(selection))}

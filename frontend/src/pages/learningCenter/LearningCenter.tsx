@@ -138,7 +138,12 @@ const LearningCenter: React.FC = () => {
       loadError={loadError}
       empty={false}
     >
-      <div className="odh-dashboard__page-content" data-id="page-content" ref={observe}>
+      <div
+        style={{ height: '100%' }}
+        className="odh-dashboard__page-content"
+        data-id="page-content"
+        ref={observe}
+      >
         <LearningCenterFilters
           docApps={docs}
           collapsible={filtersCollapsible}

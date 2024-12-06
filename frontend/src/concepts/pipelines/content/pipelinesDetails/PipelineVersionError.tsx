@@ -1,11 +1,4 @@
-import {
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateHeader,
-  EmptyStateIcon,
-  EmptyStateVariant,
-  PageSection,
-} from '@patternfly/react-core';
+import { EmptyState, EmptyStateBody, EmptyStateVariant, PageSection } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import React from 'react';
 
@@ -20,19 +13,15 @@ const PipelineVersionError: React.FC<PipelineVersionErrorProps> = ({
   description,
   testId,
 }) => (
-  <PageSection className="pf-v5-u-h-100">
-    <EmptyState variant={EmptyStateVariant.lg} isFullHeight>
-      <EmptyStateHeader
-        data-testid={testId}
-        titleText={title}
-        icon={
-          <EmptyStateIcon
-            color="var(--pf-v5-global--warning-color--100)"
-            icon={ExclamationTriangleIcon}
-          />
-        }
-        headingLevel="h2"
-      />
+  <PageSection hasBodyWrapper={false} className="pf-v6-u-h-100">
+    <EmptyState
+      data-testid={testId}
+      headingLevel="h2"
+      icon={ExclamationTriangleIcon}
+      titleText={title}
+      variant={EmptyStateVariant.lg}
+      isFullHeight
+    >
       <EmptyStateBody>{description}</EmptyStateBody>
     </EmptyState>
   </PageSection>

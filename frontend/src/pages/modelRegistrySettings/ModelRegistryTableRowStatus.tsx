@@ -71,7 +71,7 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
     ) {
       statusLabel = ModelRegistryStatusLabel.Unavailable;
       icon = <ExclamationTriangleIcon />;
-      color = 'gold';
+      color = 'orangered';
     }
     // Degrading
     else if (degradedCondition?.status === ConditionStatus.True) {
@@ -126,7 +126,7 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
       {...(isClickable
         ? {
             onClick: () => {
-              /* intentional no-op - Click event is handled by the Popover parent, 
+              /* intentional no-op - Click event is handled by the Popover parent,
               this prop enables clickable styles in the PatternFly Label */
             },
           }

@@ -42,6 +42,7 @@ const ServingRuntimeTable: React.FC = () => {
   return (
     <>
       <Table
+        variant="compact"
         data-testid="serving-runtime-table"
         data={modelServers}
         columns={columns}

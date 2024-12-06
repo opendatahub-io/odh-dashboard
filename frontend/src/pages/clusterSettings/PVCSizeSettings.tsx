@@ -81,8 +81,7 @@ all users."
           <HelperText>
             <HelperTextItem
               data-testid="pvc-size-helper-text"
-              variant={!pvcSize ? 'error' : 'indeterminate'}
-              hasIcon={!pvcSize}
+              variant={!pvcSize ? 'error' : 'default'}
             >
               Note: PVC size must be between 1 GiB and 16384 GiB.
             </HelperTextItem>

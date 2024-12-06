@@ -1,4 +1,5 @@
-import { Form, Modal, Stack, StackItem } from '@patternfly/react-core';
+import { Form, Stack, StackItem } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import React from 'react';
 import { ExistingStorageObject, MountPath } from '~/pages/projects/types';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';

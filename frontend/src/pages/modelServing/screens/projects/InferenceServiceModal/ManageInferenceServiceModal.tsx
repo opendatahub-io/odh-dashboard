@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Form, FormSection, HelperTextItem, Modal } from '@patternfly/react-core';
+import { Form, FormSection, HelperTextItem } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
   getCreateInferenceServiceLabels,

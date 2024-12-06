@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
   ActionList,
   ActionListItem,
+  ActionListGroup,
   Alert,
   Button,
   ButtonProps,
@@ -43,29 +44,31 @@ const DashboardModalFooter: React.FC<DashboardModalFooterProps> = ({
     )}
     <StackItem>
       <ActionList>
-        <ActionListItem>
-          <Button
-            key="submit"
-            variant={submitButtonVariant}
-            isDisabled={isSubmitDisabled}
-            onClick={onSubmit}
-            isLoading={isSubmitLoading}
-            data-testid="modal-submit-button"
-          >
-            {submitLabel}
-          </Button>
-        </ActionListItem>
-        <ActionListItem>
-          <Button
-            key="cancel"
-            variant="link"
-            isDisabled={isCancelDisabled}
-            onClick={onCancel}
-            data-testid="modal-cancel-button"
-          >
-            Cancel
-          </Button>
-        </ActionListItem>
+        <ActionListGroup>
+          <ActionListItem>
+            <Button
+              key="submit"
+              variant={submitButtonVariant}
+              isDisabled={isSubmitDisabled}
+              onClick={onSubmit}
+              isLoading={isSubmitLoading}
+              data-testid="modal-submit-button"
+            >
+              {submitLabel}
+            </Button>
+          </ActionListItem>
+          <ActionListItem>
+            <Button
+              key="cancel"
+              variant="link"
+              isDisabled={isCancelDisabled}
+              onClick={onCancel}
+              data-testid="modal-cancel-button"
+            >
+              Cancel
+            </Button>
+          </ActionListItem>
+        </ActionListGroup>
       </ActionList>
     </StackItem>
   </Stack>

@@ -34,7 +34,7 @@ export const ExecutionStatus: React.FC<ExecutionStatusProps> = ({ status, isComp
       label = 'Cached';
       break;
     case Execution.State.CANCELED:
-      color = 'gold';
+      color = 'orangered';
       icon = <BanIcon />;
       label = 'Canceled';
       break;

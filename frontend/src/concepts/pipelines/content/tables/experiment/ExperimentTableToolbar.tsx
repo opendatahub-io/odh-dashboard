@@ -75,10 +75,12 @@ export const ActiveExperimentTableToolbar: React.FC<ActiveExperimentTableToolbar
             key: 'archive',
             label: 'Archive',
             onClick: onArchiveAll,
-            isDisabled: !archiveAllEnabled,
-            tooltip: {
-              content: 'Select one or more experiments to archive.',
-            },
+            isAriaDisabled: !archiveAllEnabled,
+            tooltip: !archiveAllEnabled
+              ? {
+                  content: 'Select one or more experiments to archive.',
+                }
+              : undefined,
           },
         ]}
       />

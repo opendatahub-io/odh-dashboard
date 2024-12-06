@@ -44,13 +44,12 @@ export const ResetCorruptConfigValueAlert: React.FC<ResetCorruptConfigValueAlert
       errorText={error}
       action={
         <Button
+          icon={<SyncAltIcon />}
           variant="plain"
           aria-label="Corrupt metadata default reset button"
           isDisabled={isUpdating}
           onClick={onClick}
-        >
-          <SyncAltIcon />
-        </Button>
+        />
       }
     />
   );

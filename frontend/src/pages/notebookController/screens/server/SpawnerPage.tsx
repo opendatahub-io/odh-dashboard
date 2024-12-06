@@ -4,7 +4,6 @@ import {
   Alert,
   Button,
   EmptyState,
-  EmptyStateHeader,
   EmptyStateVariant,
   Form,
   FormGroup,
@@ -317,9 +316,13 @@ const SpawnerPage: React.FC = () => {
         provideChildrenPadding
         loaded={loaded}
         loadingContent={
-          <EmptyState variant={EmptyStateVariant.lg} data-id="loading-empty-state">
+          <EmptyState
+            headingLevel="h1"
+            titleText="Loading"
+            variant={EmptyStateVariant.lg}
+            data-id="loading-empty-state"
+          >
             <Spinner size="xl" />
-            <EmptyStateHeader titleText="Loading" headingLevel="h1" />
           </EmptyState>
         }
         loadError={loadError}
@@ -362,12 +365,12 @@ const SpawnerPage: React.FC = () => {
           <FormSection title="Environment variables" className="odh-notebook-controller__env-var">
             {renderEnvironmentVariableRows()}
             <Button
+              icon={<PlusCircleIcon />}
               className="odh-notebook-controller__env-var-add-button"
               isInline
               variant="link"
               onClick={addEnvironmentVariableRow}
             >
-              <PlusCircleIcon />
               {` Add more variables`}
             </Button>
           </FormSection>

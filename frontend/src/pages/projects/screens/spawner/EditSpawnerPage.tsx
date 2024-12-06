@@ -5,9 +5,7 @@ import {
   Button,
   EmptyState,
   EmptyStateBody,
-  EmptyStateIcon,
   Spinner,
-  EmptyStateHeader,
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
@@ -34,12 +32,11 @@ const EditSpawnerPage: React.FC = () => {
   if (error) {
     return (
       <Bullseye>
-        <EmptyState>
-          <EmptyStateHeader
-            titleText="Problem loading project details"
-            icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-            headingLevel="h4"
-          />
+        <EmptyState
+          headingLevel="h4"
+          icon={ExclamationCircleIcon}
+          titleText="Problem loading project details"
+        >
           <EmptyStateBody>{error.message}</EmptyStateBody>
           <EmptyStateFooter>
             <Button variant="primary" onClick={() => navigate('/projects')}>
@@ -62,13 +59,12 @@ const EditSpawnerPage: React.FC = () => {
   if (!ref.current) {
     return (
       <Bullseye>
-        <EmptyState>
-          <EmptyStateHeader
-            data-testid="error-message-title"
-            titleText="Unable to edit workbench"
-            icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-            headingLevel="h4"
-          />
+        <EmptyState
+          data-testid="error-message-title"
+          headingLevel="h4"
+          icon={ExclamationCircleIcon}
+          titleText="Unable to edit workbench"
+        >
           <EmptyStateBody>
             We were unable to find a notebook by this name in your project{' '}
             {getDisplayNameFromK8sResource(currentProject)}.

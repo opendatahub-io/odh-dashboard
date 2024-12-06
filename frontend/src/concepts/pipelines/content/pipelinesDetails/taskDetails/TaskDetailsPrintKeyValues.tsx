@@ -19,7 +19,7 @@ const TaskDetailsPrintKeyValues: React.FC<TaskDetailsPrintKeyValuesProps> = ({ i
     }}
   >
     {items.map((result, i) => (
-      <DescriptionListGroup key={`item-${i}`}>
+      <DescriptionListGroup style={{ alignItems: 'start' }} key={`item-${i}`}>
         <DescriptionListTerm>{result.label}</DescriptionListTerm>
         <DescriptionListDescription data-testid={`${result.label}-item`}>
           {result.value}

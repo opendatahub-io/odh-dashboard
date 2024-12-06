@@ -17,7 +17,7 @@ export const HelperTextItemMaxLength: HelperTextItemType = ({ k8sName }) => {
   }
 
   return (
-    <HelperTextItem variant={variant} hasIcon>
+    <HelperTextItem variant={variant}>
       Cannot exceed {k8sName.state.maxLength} characters
     </HelperTextItem>
   );
@@ -32,7 +32,7 @@ export const HelperTextItemValidCharacters: HelperTextItemType = ({ k8sName }) =
   }
 
   return (
-    <HelperTextItem variant={variant} hasIcon>
+    <HelperTextItem variant={variant}>
       {k8sName.state.invalidCharsMessage ||
         'Must start and end with a letter or number. Valid characters include lowercase letters, numbers, and hyphens (-).'}
     </HelperTextItem>

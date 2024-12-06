@@ -116,14 +116,14 @@ describe('ConnectionsFormSection', () => {
     expect(within(attachModal).getByRole('combobox', { name: 'Type to filter' })).toHaveValue('');
 
     await act(async () => result.getByRole('button', { name: 'Connections' }).click());
-    expect(within(attachModal).queryByRole('option', { name: 's3 connection 1' })).toBeFalsy(); // don't show attached connections
-    expect(within(attachModal).getByRole('option', { name: 's3 connection 2' })).toBeTruthy();
-    expect(within(attachModal).getByRole('option', { name: 's3 connection 3' })).toBeTruthy();
+    expect(result.queryByRole('option', { name: 's3 connection 1' })).toBeFalsy(); // don't show attached connections
+    expect(result.getByRole('option', { name: 's3 connection 2' })).toBeTruthy();
+    expect(result.getByRole('option', { name: 's3 connection 3' })).toBeTruthy();
 
     await act(async () => result.getByRole('option', { name: 's3 connection 3' }).click());
-    expect(
-      within(attachModal).getByRole('group', { name: 'Current selections' }),
-    ).toHaveTextContent('s3 connection 3');
+    expect(result.getByRole('list', { name: 'Current selections' })).toHaveTextContent(
+      's3 connection 3',
+    );
 
     await act(async () => result.getByRole('button', { name: 'Attach' }).click());
     expect(result.queryByRole('dialog', { name: 'Attach existing connections' })).toBeFalsy();

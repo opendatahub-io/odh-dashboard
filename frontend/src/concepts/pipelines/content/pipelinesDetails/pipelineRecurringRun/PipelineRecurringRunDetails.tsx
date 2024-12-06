@@ -3,7 +3,6 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   EmptyState,
-  EmptyStateIcon,
   EmptyStateVariant,
   EmptyStateBody,
   Title,
@@ -65,11 +64,16 @@ const PipelineRecurringRunDetails: PipelineCoreDetailsPageComponent = ({
 
   if (error) {
     return (
-      <EmptyState variant={EmptyStateVariant.lg} data-id="error-empty-state">
-        <EmptyStateIcon icon={ExclamationCircleIcon} />
-        <Title headingLevel="h4" size="lg">
-          Error loading pipeline schedule details
-        </Title>
+      <EmptyState
+        titleText={
+          <Title headingLevel="h4" size="lg">
+            Error loading pipeline schedule details
+          </Title>
+        }
+        icon={ExclamationCircleIcon}
+        variant={EmptyStateVariant.lg}
+        data-id="error-empty-state"
+      >
         <EmptyStateBody>{error.message}</EmptyStateBody>
       </EmptyState>
     );

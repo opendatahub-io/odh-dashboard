@@ -195,7 +195,7 @@ class PipelinesTable {
   }
 
   findEmptyResults() {
-    return cy.findByTestId('no-result-found-title');
+    return cy.findByTestId('dashboard-empty-table-state');
   }
 
   mockDeletePipeline(pipeline: PipelineKF, namespace: string) {

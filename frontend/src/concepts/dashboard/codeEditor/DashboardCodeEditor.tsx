@@ -18,7 +18,7 @@ const DashboardCodeEditor: React.FC<Partial<DashboardCodeEditorProps>> = ({
   ...props
 }) => (
   <div data-testid={props.testId} style={{ height, padding: '14px' }}>
-    <CodeEditor height="100%" className="odh-dashboard__code-editor" {...props} />
+    <CodeEditor height="400px" className="odh-dashboard__code-editor" {...props} />
   </div>
 );
 

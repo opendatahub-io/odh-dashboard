@@ -76,7 +76,7 @@ const ModelVersionSelector: React.FC<ModelVersionSelectorProps> = ({
             />
           </MenuSearchInput>
           <HelperText style={{ paddingTop: '0.5rem' }}>
-            <HelperTextItem variant="indeterminate">
+            <HelperTextItem>
               {`Type a name to search your ${liveModelVersions.length} versions.`}
             </HelperTextItem>
           </HelperText>

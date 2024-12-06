@@ -44,12 +44,12 @@ const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({
           target="_blank"
           variant={variant || 'link'}
           icon={!error && <ExternalLinkAltIcon />}
-          iconPosition="right"
+          iconPosition="end"
           style={{
             whiteSpace: 'nowrap',
             fontSize: isLarge
-              ? 'var(--pf-v5-global--FontSize--md)'
-              : 'var(--pf-v5-global--FontSize--sm)',
+              ? 'var(--pf-t--global--font--size--body--default)'
+              : 'var(--pf-t--global--font--size--body--sm)',
           }}
           onClick={() => {
             fireMiscTrackingEvent('Workbench Opened', {

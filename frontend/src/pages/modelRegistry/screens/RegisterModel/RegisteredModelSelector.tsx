@@ -49,7 +49,7 @@ const RegisteredModelSelector: React.FC<RegisteredModelSelectorProps> = ({
     <TypeaheadSelect
       id="model-name"
       onClearSelection={() => setRegisteredModelId('')}
-      selectOptions={options}
+      initialOptions={options}
       placeholder="Select a registered model"
       noOptionsFoundMessage={(filter) => `No results found for "${filter}"`}
       onSelect={(_event, selection) => {

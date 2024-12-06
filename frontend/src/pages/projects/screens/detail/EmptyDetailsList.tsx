@@ -2,8 +2,6 @@ import * as React from 'react';
 import {
   EmptyState,
   EmptyStateBody,
-  EmptyStateIcon,
-  EmptyStateHeader,
   EmptyStateActions,
   EmptyStateFooter,
 } from '@patternfly/react-core';
@@ -25,13 +23,7 @@ const EmptyDetailsList: React.FC<EmptyDetailsListProps> = ({
   actions,
   secondaryActions,
 }) => (
-  <EmptyState isFullHeight variant={variant}>
-    <EmptyStateHeader
-      data-testid="empty-state-title"
-      titleText={title}
-      icon={icon && <EmptyStateIcon icon={icon} />}
-      headingLevel="h3"
-    />
+  <EmptyState headingLevel="h3" titleText={title} isFullHeight variant={variant} icon={icon}>
     <EmptyStateBody>{description}</EmptyStateBody>
     {actions || secondaryActions ? (
       <EmptyStateFooter>
