@@ -27,6 +27,7 @@ import FormSection from '~/components/pf-overrides/FormSection';
 import { AreaContext } from '~/concepts/areas/AreaContext';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import SearchSelector from '~/components/searchSelector/SearchSelector';
+import { PemFileUpload } from './PemFileUpload';
 
 type CreateModalProps = {
   onClose: () => void;
@@ -44,6 +45,7 @@ type SecureDBInfo = {
   radio: SecureDBRadios;
   nameSpace: string;
   configMap: string;
+  certificate: string;
   key: string;
 };
 
@@ -65,6 +67,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
     radio: SecureDBRadios.CLUSTER_WIDE,
     nameSpace: '',
     configMap: '',
+    certificate: '',
     key: '',
   });
   const [searchValue, setSearchValue] = React.useState('');
@@ -202,10 +205,30 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
     hasContent(password) &&
     hasContent(port) &&
     hasContent(username) &&
-    hasContent(database);
+    hasContent(database) &&
+    validSecureDBOptions();
+
+  const validSecureDBOptions = () => {
+    if (!addSecureDB) {
+      return true;
+    }
+    if ([SecureDBRadios.CLUSTER_WIDE, SecureDBRadios.OPENSHIFT].includes(secureDBInfo.radio)) {
+      return true;
+    }
+    if (secureDBInfo.radio === SecureDBRadios.EXISTING) {
+      return (
+        hasContent(secureDBInfo.configMap) &&
+        hasContent(secureDBInfo.key)
+      );
+    }
+    if (secureDBInfo.radio === SecureDBRadios.NEW) {
+      return hasContent(secureDBInfo.certificate);
+    }
+    return false;
+  }
 
   const handleSecureDBTypeChange = (type: SecureDBRadios) => {
-    setSecureDBInfo({ radio: type, nameSpace: '', key: '', configMap: '' });
+    setSecureDBInfo({ radio: type, nameSpace: '', key: '', configMap: '', certificate: '' });
   };
 
   return (
@@ -453,30 +476,23 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
                   ></Radio>
                   {secureDBInfo.radio === SecureDBRadios.NEW && (
                     <>
-                      <Alert isInline title="Note" variant="info" style={{ marginLeft: 'var(--pf-v5-global--spacer--lg)' }}>
+                      <Alert
+                        isInline
+                        title="Note"
+                        variant="info"
+                        style={{ marginLeft: 'var(--pf-v5-global--spacer--lg)' }}
+                      >
                         Uploading a certificate below creates the{' '}
-                        <strong>{translateDisplayNameForK8s(nameDesc.name)}-db-credential</strong> ConfigMap with the{' '}
-                        <strong>ca.crt</strong> key. If you'd like to upload the certificate as a
-                        Secret instead, see the documentation for more details.
+                        <strong>{translateDisplayNameForK8s(nameDesc.name)}-db-credential</strong>{' '}
+                        ConfigMap with the <strong>ca.crt</strong> key. If you'd like to upload the
+                        certificate as a Secret instead, see the documentation for more details.
                       </Alert>
-                      <FormGroup label="Certificate" required style={{ marginLeft: 'var(--pf-v5-global--spacer--lg)' }}>
-                        <FileUpload id={''} 
-                          type='text'
-                          filenamePlaceholder='Drag and drop a file or upload one'
-                          dropzoneProps={{
-                            accept: { 'text/pem': ['.pem'] },
-                            maxSize: 1024,
-                            onDropRejected: (e) => {console.log({e})}
-                          }}
-                          browseButtonText="Upload"
-                        />
-                                <FormHelperText>
-          <HelperText>
-            <HelperTextItem variant={'default'}>
-              {'Upload a PEM file'}
-            </HelperTextItem>
-          </HelperText>
-        </FormHelperText>
+                      <FormGroup
+                        label="Certificate"
+                        required
+                        style={{ marginLeft: 'var(--pf-v5-global--spacer--lg)' }}
+                      >
+                        <PemFileUpload onChange={(value) => setSecureDBInfo({...secureDBInfo, certificate: value})} />
                       </FormGroup>
                     </>
                   )}
