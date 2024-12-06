@@ -60,8 +60,9 @@ const PVSizeField: React.FC<PVSizeFieldProps> = ({
                 variant="warning"
                 icon={<ExclamationTriangleIcon />}
               >
-                Storage size can only be increased. If you do so, the workbench will restart and be
-                unavailable for a period of time that is usually proportional to the size change.
+                {currentStatus.conditions?.find((c) => c.type === 'FileSystemResizePending')
+                  ? 'Storage size can only be increased. To complete the storage size update, you must connect to and run a workbench.'
+                  : 'Storage size can only be increased. If you do so, the workbench will restart and be unavailable for a period of time that is usually proportional to the size change.'}
               </HelperTextItem>
             )}
           </HelperText>
