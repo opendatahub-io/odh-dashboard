@@ -29,6 +29,10 @@ export const getAdminUserList = async (fastify: KubeFastifyInstance): Promise<st
     .split(',')
     .filter((groupName) => groupName && !groupName.startsWith('system:')); // Handle edge-cases and ignore k8s defaults
 
+  return getGroupUserList(fastify, adminGroupsList);
+};
+
+export const getClusterAdminUserList = async (fastify: KubeFastifyInstance): Promise<string[]> => {
   // fetch all the users and groups who have cluster-admin role and put them into the admin user list
   const { notebookNamespace } = getNamespaces(fastify);
   const clusterAdminUsersAndGroups = await fastify.kube.customObjectsApi
@@ -50,11 +54,10 @@ export const getAdminUserList = async (fastify: KubeFastifyInstance): Promise<st
   const clusterAdminUsers = clusterAdminUsersAndGroups.users || [];
   const clusterAdminGroups = clusterAdminUsersAndGroups.groups || [];
   const filteredClusterAdminGroups = clusterAdminGroups.filter(
-    (group) => !group.startsWith('system:') && !adminGroupsList.includes(group),
+    (group) => !group.startsWith('system:'),
   );
   const filteredClusterAdminUsers = clusterAdminUsers.filter((user) => !user.startsWith('system:'));
-  adminGroupsList.push(...filteredClusterAdminGroups);
-  return getGroupUserList(fastify, adminGroupsList, filteredClusterAdminUsers);
+  return getGroupUserList(fastify, filteredClusterAdminGroups, filteredClusterAdminUsers);
 };
 
 export const getAllowedUserList = async (fastify: KubeFastifyInstance): Promise<string[]> => {

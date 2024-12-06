@@ -4,6 +4,7 @@ import { getUserInfo } from '../../../utils/userUtils';
 import {
   getAdminUserList,
   getAllowedUserList,
+  getClusterAdminUserList,
   isUserAdmin,
   KUBE_SAFE_PREFIX,
 } from '../../../utils/adminUtils';
@@ -77,22 +78,34 @@ export const getAllowedUsers = async (
     return [];
   }
 
-  const adminUsers = await getAdminUserList(fastify);
-  const allowedUsers = await getAllowedUserList(fastify);
   const activityMap = await getUserActivityFromNotebook(fastify, namespace);
 
+  const withNotebookUsers = Object.keys(activityMap);
+  const adminUsers = await getAdminUserList(fastify);
+  const allowedUsers = await getAllowedUserList(fastify);
+  // get cluster admins that have a notebook
+  const clusterAdminUsers = (await getClusterAdminUserList(fastify)).filter((user) =>
+    withNotebookUsers.includes(user),
+  );
+
   const usersWithNotebooksMap: AllowedUserMap = convertUserListToMap(
-    Object.keys(activityMap),
+    withNotebookUsers,
     'User',
     activityMap,
   );
   const allowedUsersMap: AllowedUserMap = convertUserListToMap(allowedUsers, 'User', activityMap);
   const adminUsersMap: AllowedUserMap = convertUserListToMap(adminUsers, 'Admin', activityMap);
+  const clusterAdminUsersMap: AllowedUserMap = convertUserListToMap(
+    clusterAdminUsers,
+    'Admin',
+    activityMap,
+  );
 
   const returnUsers: AllowedUserMap = {
     ...usersWithNotebooksMap,
     ...allowedUsersMap,
     ...adminUsersMap,
+    ...clusterAdminUsersMap,
   };
   return Object.values(returnUsers);
 };
