@@ -44,6 +44,30 @@ class NotebookServer {
   findAcceleratorProfileSelect() {
     return cy.findByTestId('accelerator-profile-select');
   }
+
+  findOpenInNewTabButton() {
+    return cy.findByRole('button', { name: 'Open in new tab' });
+  }
+
+  findSuccessAlert() {
+    return cy.findByText('Success', { timeout: 120000 });
+  }
+
+  findMinimalPythonImage() {
+    return cy.get(
+      '[data-testid="radio jupyter-minimal-notebook"], [data-testid="radio s2i-minimal-notebook"]',
+    );
+  }
+
+  findPythonVersionsButton() {
+    return cy.get('button[aria-controls*="expandable-section-content"]').contains('Versions');
+  }
+
+  findPythonVersion20241() {
+    return cy.get(
+      'input[data-id="jupyter-minimal-notebook:2024.1"], input[data-id="s2i-minimal-notebook:2024.1"]',
+    );
+  }
 }
 
 export const notebookServer = new NotebookServer();

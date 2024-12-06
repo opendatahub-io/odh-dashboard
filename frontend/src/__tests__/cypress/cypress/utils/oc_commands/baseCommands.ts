@@ -51,3 +51,22 @@ export const patchOpenShiftResource = (
     return result;
   });
 };
+
+/**
+ * Wait for a specific pod to become ready across all namespaces.
+ *
+ * @param podNameContains A substring to partially match against the pod name (e.g., "jupyter-nb").
+ * @returns A Cypress chainable that waits for the pod to be ready.
+ */
+export const waitForPodReady = (podNameContains: string): Cypress.Chainable<CommandLineResult> => {
+  const ocCommand = `oc get pods -A --no-headers | awk '$2 ~ /^${podNameContains}/ {print $1, $2}' | xargs -tn2 oc wait --for=condition=Ready pod --timeout=400s -n`;
+
+  cy.log(ocCommand);
+
+  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
+    if (result.code !== 0) {
+      throw new Error(`Pod readiness check failed: ${result.stderr}`);
+    }
+    cy.log(`Pod is ready: ${result.stdout}`);
+  });
+};
