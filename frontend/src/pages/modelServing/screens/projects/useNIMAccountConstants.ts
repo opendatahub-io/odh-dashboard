@@ -1,16 +1,10 @@
 import * as React from 'react';
 import { fetchNIMAccountConstants } from '~/pages/modelServing/screens/projects/nimUtils';
+import { useDashboardNamespace } from '~/redux/selectors';
+import { NIMAccountConstants } from '~/types';
 
-type NIMAccountConstants = {
-  nimSecretName: string;
-  nimNGCSecretName: string;
-  nimConfigMapName: string;
-  templateName: string;
-};
-
-export const useNIMAccountConstants = (
-  dashboardNamespace: string,
-): NIMAccountConstants | undefined => {
+export const useNIMAccountConstants = (): NIMAccountConstants | undefined => {
+  const { dashboardNamespace } = useDashboardNamespace();
   const [constants, setConstants] = React.useState<NIMAccountConstants>();
 
   React.useEffect(() => {

@@ -4,15 +4,16 @@ import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { ProjectKind, SecretKind, ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
 import { deletePvc, deleteSecret, getTemplate, listAccounts } from '~/api';
 import { fetchInferenceServiceCount } from '~/pages/modelServing/screens/projects/utils';
+import { NIMAccountConstants } from '~/types';
 
 export const getNGCSecretType = (isNGC: boolean): string =>
   isNGC ? 'kubernetes.io/dockerconfigjson' : 'Opaque';
 
 export const getNIMResource = async <T extends K8sResourceCommon = SecretKind>(
-  resourceName: string,
+  resourceRef: string,
 ): Promise<T> => {
   try {
-    const response = await fetch(`/api/nim-serving/${resourceName}`, {
+    const response = await fetch(`/api/nim-serving/${resourceRef}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -25,15 +26,15 @@ export const getNIMResource = async <T extends K8sResourceCommon = SecretKind>(
     const resourceData = await response.json();
     return resourceData.body;
   } catch (error) {
-    throw new Error(`Failed to fetch the resource: ${resourceName}.`);
+    throw new Error(`Failed to fetch the resource: ${resourceRef}.`);
   }
 };
 
 export const getNIMData = async (
-  secretName: string,
+  secretKey: string,
   isNGC: boolean,
 ): Promise<Record<string, string> | undefined> => {
-  const nimSecretData = await getNIMResource(secretName);
+  const nimSecretData = await getNIMResource(secretKey);
 
   if (!nimSecretData.data) {
     throw new Error(`Error retrieving ${isNGC ? 'NGC' : 'NIM'} secret data`);
@@ -192,15 +193,7 @@ export const getNIMResourcesToDelete = async (
 
 export const fetchNIMAccountConstants = async (
   dashboardNamespace: string,
-): Promise<
-  | {
-      nimSecretName: string;
-      nimNGCSecretName: string;
-      nimConfigMapName: string;
-      templateName: string;
-    }
-  | undefined
-> => {
+): Promise<NIMAccountConstants | undefined> => {
   try {
     const accounts = await listAccounts(dashboardNamespace);
     if (accounts.length === 0) {
@@ -221,9 +214,9 @@ export const fetchNIMAccountConstants = async (
     }
 
     return {
-      nimSecretName,
-      nimNGCSecretName: nimPullSecret.name,
-      nimConfigMapName: nimConfig.name,
+      nimSecretKey: 'apiKeySecret',
+      nimNGCSecretKey: 'nimPullSecret',
+      nimConfigMapKey: 'nimConfig',
       templateName: runtimeTemplate.name,
     };
   } catch (e) {

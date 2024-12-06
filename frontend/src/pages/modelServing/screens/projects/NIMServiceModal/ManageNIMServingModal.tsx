@@ -153,7 +153,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     !baseInputValueValid;
 
   const { dashboardNamespace } = useDashboardNamespace();
-  const constants = useNIMAccountConstants(dashboardNamespace);
+  const constants = useNIMAccountConstants();
 
   React.useEffect(() => {
     if (editInfo?.servingRuntimeEditInfo?.servingRuntime) {
@@ -256,12 +256,12 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
         ];
 
         if (!editInfo) {
-          if (constants?.nimSecretName && constants.nimNGCSecretName) {
+          if (constants?.nimSecretKey && constants.nimNGCSecretKey) {
             if (await isSecretNeeded(namespace, NIM_SECRET_NAME)) {
-              promises.push(createNIMSecret(namespace, constants.nimSecretName, false, false));
+              promises.push(createNIMSecret(namespace, constants.nimSecretKey, false, false));
             }
             if (await isSecretNeeded(namespace, NIM_NGC_SECRET_NAME)) {
-              promises.push(createNIMSecret(namespace, constants.nimNGCSecretName, true, false));
+              promises.push(createNIMSecret(namespace, constants.nimNGCSecretKey, true, false));
             }
           }
           promises.push(createNIMPVC(namespace, nimPVCName, pvcSize, false));

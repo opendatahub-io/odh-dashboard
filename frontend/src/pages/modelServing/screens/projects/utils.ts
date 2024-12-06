@@ -647,8 +647,8 @@ export const fetchNIMModelNames = async (
     console.error('No NIM account constants available.');
     return undefined;
   }
-  const { nimConfigMapName } = constants;
-  const configMap = await getNIMResource<ConfigMapKind>(nimConfigMapName);
+  const { nimConfigMapKey } = constants;
+  const configMap = await getNIMResource<ConfigMapKind>(nimConfigMapKey);
   if (configMap.data && Object.keys(configMap.data).length > 0) {
     const modelInfos: ModelInfo[] = [];
     for (const [key, value] of Object.entries(configMap.data)) {
@@ -675,12 +675,12 @@ export const fetchNIMModelNames = async (
 
 export const createNIMSecret = async (
   projectName: string,
-  secretName: string,
+  secretKey: string,
   isNGC: boolean,
   dryRun: boolean,
 ): Promise<SecretKind> => {
   try {
-    const data = await getNIMData(secretName, isNGC);
+    const data = await getNIMData(secretKey, isNGC);
 
     const newSecret = {
       apiVersion: 'v1',
