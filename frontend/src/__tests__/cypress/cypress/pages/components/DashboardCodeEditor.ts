@@ -6,6 +6,6 @@ export class DashboardCodeEditor extends Contextual<HTMLElement> {
   }
 
   findUpload(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('.pf-v5-c-code-editor__main input[type="file"]');
+    return this.find().find('input[type="file"]');
   }
 }

@@ -129,7 +129,7 @@ class ServingRuntimes {
   }
 
   findDeleteModel() {
-    return cy.findByRole('menuitem', { name: 'Delete' });
+    return cy.contains('button', 'Delete');
   }
 
   findDeleteModal() {

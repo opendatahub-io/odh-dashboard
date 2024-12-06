@@ -68,8 +68,8 @@ describe('Verify Admins Can Import and Delete a Custom Multi-Model Serving Runti
       .find()
       .within(() => {
         servingRuntimes.findEditModel().click();
-        servingRuntimes.findDeleteModel().click();
       });
+    servingRuntimes.findDeleteModel().click();
 
     servingRuntimes.findDeleteModal().should('be.visible').type(metadataDisplayName);
 
