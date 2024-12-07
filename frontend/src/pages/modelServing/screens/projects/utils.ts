@@ -49,14 +49,12 @@ import { isDataConnectionAWS } from '~/pages/projects/screens/detail/data-connec
 import { containsOnlySlashes, isS3PathValid, removeLeadingSlash } from '~/utilities/string';
 import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 import {
-  getNGCSecretType,
+  fetchNIMAccountConstants,
   getNIMData,
   getNIMResource,
 } from '~/pages/modelServing/screens/projects/nimUtils';
 import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import { Connection } from '~/concepts/connectionTypes/types';
-
-const NIM_CONFIGMAP_NAME = 'nvidia-nim-images-data';
 
 export const getServingRuntimeSizes = (config: DashboardConfigKind): ModelServingSize[] => {
   let sizes = config.spec.modelServerSizes || [];
@@ -640,8 +638,17 @@ export interface ModelInfo {
   updatedDate: string;
 }
 
-export const fetchNIMModelNames = async (): Promise<ModelInfo[] | undefined> => {
-  const configMap = await getNIMResource<ConfigMapKind>(NIM_CONFIGMAP_NAME);
+export const fetchNIMModelNames = async (
+  dashboardNamespace: string,
+): Promise<ModelInfo[] | undefined> => {
+  const constants = await fetchNIMAccountConstants(dashboardNamespace);
+  if (!constants) {
+    // eslint-disable-next-line no-console
+    console.error('No NIM account constants available.');
+    return undefined;
+  }
+  const { nimConfigMapKey } = constants;
+  const configMap = await getNIMResource<ConfigMapKind>(nimConfigMapKey);
   if (configMap.data && Object.keys(configMap.data).length > 0) {
     const modelInfos: ModelInfo[] = [];
     for (const [key, value] of Object.entries(configMap.data)) {
@@ -668,26 +675,27 @@ export const fetchNIMModelNames = async (): Promise<ModelInfo[] | undefined> => 
 
 export const createNIMSecret = async (
   projectName: string,
-  secretName: string,
+  secretKey: string,
   isNGC: boolean,
   dryRun: boolean,
 ): Promise<SecretKind> => {
   try {
-    const data = await getNIMData(isNGC);
+    const data = await getNIMData(secretKey, isNGC);
 
     const newSecret = {
       apiVersion: 'v1',
       kind: 'Secret',
       metadata: {
-        name: secretName,
+        name: isNGC ? 'ngc-secret' : 'nvidia-nim-secrets',
         namespace: projectName,
       },
       data,
-      type: getNGCSecretType(isNGC),
+      type: isNGC ? 'kubernetes.io/dockerconfigjson' : 'Opaque',
     };
+
     return await createSecret(newSecret, { dryRun });
   } catch (e) {
-    return Promise.reject(new Error(`Error creating NIM ${isNGC ? 'NGC' : ''} secret`));
+    return Promise.reject(new Error(`Error creating ${isNGC ? 'NGC' : 'NIM'} secret`));
   }
 };
 
