@@ -675,10 +675,7 @@ declare global {
           type: 'GET /api/nim-serving/:resource',
           options: {
             path: {
-              resource:
-                | 'mock-nvidia-nim-images-data'
-                | 'mock-nvidia-nim-access'
-                | 'mock-nvidia-nim-image-pull';
+              resource: string;
             };
           },
           response: OdhResponse<NimServingResponse>,

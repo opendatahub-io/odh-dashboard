@@ -93,19 +93,19 @@ export const initInterceptsToDeployModel = (nimInferenceService: InferenceServic
 
   cy.interceptOdh(
     `GET /api/nim-serving/:resource`,
-    { path: { resource: 'mock-nvidia-nim-images-data' } },
+    { path: { resource: 'nimConfig' } },
     mockNimServingResource(mockNimImages()),
   );
 
   cy.interceptOdh(
     `GET /api/nim-serving/:resource`,
-    { path: { resource: 'mock-nvidia-nim-access' } },
+    { path: { resource: 'apiKeySecret' } },
     mockNimServingResource(mockNvidiaNimAccessSecret()),
   );
 
   cy.interceptOdh(
     `GET /api/nim-serving/:resource`,
-    { path: { resource: 'mock-nvidia-nim-image-pull' } },
+    { path: { resource: 'nimPullSecret' } },
     mockNimServingResource(mockNvidiaNimImagePullSecret()),
   );
 
