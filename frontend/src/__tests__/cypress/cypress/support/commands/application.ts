@@ -47,6 +47,13 @@ declare global {
        *
        * @param name the name of the item
        */
+      findMenuItem: (name: string | RegExp) => Cypress.Chainable<JQuery>;
+
+      /**
+       * Finds a patternfly dropdown item by first opening the dropdown if not already opened.
+       *
+       * @param name the name of the item
+       */
       findDropdownItem: (name: string | RegExp) => Cypress.Chainable<JQuery>;
 
       /**
@@ -204,7 +211,7 @@ Cypress.Commands.add(
         if ($el.attr('aria-expanded') === 'false') {
           cy.wrap($el).click();
         }
-        return cy.wrap($el.parent()).findByRole('menuitem', { name });
+        return cy.get('[data-ouia-component-type="PF6/Dropdown"]').findByRole('menuitem', { name });
       });
   },
 );
@@ -215,7 +222,17 @@ Cypress.Commands.add('findDropdownItem', { prevSubject: 'element' }, (subject, n
     if ($el.attr('aria-expanded') === 'false') {
       cy.wrap($el).click();
     }
-    return cy.wrap($el).parent().findByRole('menuitem', { name });
+    return cy.get('[data-ouia-component-type="PF6/Dropdown"]').findByRole('menuitem', { name });
+  });
+});
+
+Cypress.Commands.add('findMenuItem', { prevSubject: 'element' }, (subject, name) => {
+  Cypress.log({ displayName: 'findMenuItem', message: name });
+  return cy.wrap(subject).then(($el) => {
+    if ($el.attr('aria-expanded') === 'false') {
+      cy.wrap($el).click();
+    }
+    return cy.get('[data-ouia-component-type="PF6/Menu"]').findByRole('menuitem', { name });
   });
 });
 

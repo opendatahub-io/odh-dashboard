@@ -1,4 +1,4 @@
-import _ from 'lodash-es';
+import * as _ from 'lodash-es';
 import { ImageStreamKind } from '~/k8sTypes';
 import { RecursivePartial } from '~/typeHelpers';
 

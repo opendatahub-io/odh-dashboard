@@ -57,7 +57,7 @@ const GlobalPipelineRunsTabs: React.FC<GlobalPipelineRunsTabsProps> = ({ tab, ba
         className="odh-pipeline-runs-page-tabs__content"
         data-testid="active-runs-tab"
       >
-        <PageSection isFilled variant="light">
+        <PageSection hasBodyWrapper={false} isFilled>
           <ActiveRuns />
         </PageSection>
       </Tab>
@@ -69,7 +69,7 @@ const GlobalPipelineRunsTabs: React.FC<GlobalPipelineRunsTabsProps> = ({ tab, ba
         className="odh-pipeline-runs-page-tabs__content"
         data-testid="archived-runs-tab"
       >
-        <PageSection isFilled variant="light">
+        <PageSection hasBodyWrapper={false} isFilled>
           <ArchivedRuns />
         </PageSection>
       </Tab>
@@ -81,7 +81,7 @@ const GlobalPipelineRunsTabs: React.FC<GlobalPipelineRunsTabsProps> = ({ tab, ba
         className="odh-pipeline-runs-page-tabs__content"
         data-testid="schedules-tab"
       >
-        <PageSection isFilled variant="light">
+        <PageSection hasBodyWrapper={false} isFilled>
           <ScheduledRuns />
         </PageSection>
       </Tab>

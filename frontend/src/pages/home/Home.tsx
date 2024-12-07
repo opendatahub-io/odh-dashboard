@@ -1,13 +1,5 @@
 import * as React from 'react';
-import {
-  Bullseye,
-  EmptyState,
-  EmptyStateHeader,
-  EmptyStateIcon,
-  Page,
-  PageSection,
-  PageSectionVariants,
-} from '@patternfly/react-core';
+import { Bullseye, EmptyState, PageSection, PageSectionVariants } from '@patternfly/react-core';
 import { HomeIcon } from '@patternfly/react-icons';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
@@ -25,18 +17,21 @@ const Home: React.FC = () => {
   const enableTeamSection = useEnableTeamSection();
 
   return (
-    <Page data-testid="home-page">
+    <div data-testid="home-page">
       <HomeHint />
       {!projectsAvailable && !aiFlows && !resourcesSection && !enableTeamSection ? (
-        <PageSection data-testid="home-page-empty" variant={PageSectionVariants.default}>
+        <PageSection
+          hasBodyWrapper={false}
+          data-testid="home-page-empty"
+          variant={PageSectionVariants.default}
+        >
           <Bullseye>
-            <EmptyState variant="full">
-              <EmptyStateHeader
-                titleText={`Welcome to ${ODH_PRODUCT_NAME}`}
-                headingLevel="h4"
-                icon={<EmptyStateIcon icon={HomeIcon} />}
-              />
-            </EmptyState>
+            <EmptyState
+              headingLevel="h4"
+              icon={HomeIcon}
+              titleText={`Welcome to ${ODH_PRODUCT_NAME}`}
+              variant="full"
+            />
           </Bullseye>
         </PageSection>
       ) : (
@@ -47,7 +42,7 @@ const Home: React.FC = () => {
           {enableTeamSection}
         </>
       )}
-    </Page>
+    </div>
   );
 };
 

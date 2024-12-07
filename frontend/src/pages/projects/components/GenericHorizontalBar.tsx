@@ -1,13 +1,6 @@
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
-import {
-  Tabs,
-  Tab,
-  TabTitleIcon,
-  TabTitleText,
-  PageSection,
-  PageSectionVariants,
-} from '@patternfly/react-core';
+import { Tabs, Tab, TabTitleIcon, TabTitleText, PageSection } from '@patternfly/react-core';
 import { SVGIconProps } from '@patternfly/react-icons/dist/esm/createIcon';
 
 type GenericHorizontalBarProps = {
@@ -35,7 +28,7 @@ const GenericHorizontalBar: React.FC<GenericHorizontalBarProps> = ({ activeKey, 
   return (
     <>
       <PageSection
-        variant={PageSectionVariants.light}
+        hasBodyWrapper={false}
         type="tabs"
         isFilled
         padding={{ default: 'noPadding' }}
@@ -48,7 +41,7 @@ const GenericHorizontalBar: React.FC<GenericHorizontalBarProps> = ({ activeKey, 
             setQueryParams(queryParams);
           }}
           aria-label="Horizontal bar"
-          style={{ paddingInlineStart: 'var(--pf-v5-global--spacer--lg' }}
+          style={{ paddingInlineStart: 'var(--pf-t--global--spacer--lg' }}
         >
           {sections.map((section) => (
             <Tab

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import classNames from 'classnames';
 import { Button, ButtonVariant } from '@patternfly/react-core';
+import { FilterSidePanel } from '@patternfly/react-catalog-view-extension';
 import { TimesIcon } from '@patternfly/react-icons';
 import { OdhDocument } from '~/types';
 import { useQueryParams } from '~/utilities/useQueryParams';
@@ -38,19 +39,20 @@ const LearningCenterFilters: React.FC<LearningCenterFilterProps> = ({
     <div className={classes} data-testid="learning-center-filters">
       {collapsible ? (
         <Button
+          icon={<TimesIcon />}
           className="odh-learning-paths__filter-panel__collapse-button"
           variant={ButtonVariant.plain}
           aria-label="Close filters"
           onClick={onCollapse}
-        >
-          <TimesIcon />
-        </Button>
+        />
       ) : null}
       <CategoryFilters docApps={docApps} favorites={favorites} />
-      <EnabledFilters categoryApps={categoryApps} />
-      <DocTypeFilters categoryApps={categoryApps} />
-      <ApplicationFilters docApps={docApps} categoryApps={categoryApps} />
-      <ProviderTypeFilters docApps={docApps} categoryApps={categoryApps} />
+      <FilterSidePanel>
+        <EnabledFilters categoryApps={categoryApps} />
+        <DocTypeFilters categoryApps={categoryApps} />
+        <ApplicationFilters docApps={docApps} categoryApps={categoryApps} />
+        <ProviderTypeFilters docApps={docApps} categoryApps={categoryApps} />
+      </FilterSidePanel>
     </div>
   );
 };

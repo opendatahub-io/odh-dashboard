@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FormGroup, Text } from '@patternfly/react-core';
+import { FormGroup, Content } from '@patternfly/react-core';
 
 type ProjectSectionType = {
   projectName: string;
@@ -7,7 +7,7 @@ type ProjectSectionType = {
 
 const ProjectSection: React.FC<ProjectSectionType> = ({ projectName }) => (
   <FormGroup label="Project">
-    <Text>{projectName}</Text>
+    <Content component="p">{projectName}</Content>
   </FormGroup>
 );
 

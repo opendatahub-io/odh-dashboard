@@ -93,7 +93,7 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
         <StackItem>
           <FormGroup
             label={K8sLabelName}
-            labelIcon={<ResourceNameDefinitionTooltip />}
+            labelHelp={<ResourceNameDefinitionTooltip />}
             isRequired
             fieldId={`resource-${nameFieldId}`}
           >

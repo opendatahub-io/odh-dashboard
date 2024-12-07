@@ -50,13 +50,13 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         );
       }
       return (
-        <div className="pf-v5-u-p-lg" data-testid="error-boundary">
+        <div className="pf-v6-u-p-lg" data-testid="error-boundary">
           <Split>
             <SplitItem isFilled>
-              <Title headingLevel="h1" className="pf-v5-u-mb-sm">
+              <Title headingLevel="h1" className="pf-v6-u-mb-sm">
                 An error occurred
               </Title>
-              <p className="pf-v5-u-mb-md">
+              <p className="pf-v6-u-mb-md">
                 Try{' '}
                 <Button
                   data-testid="reload-link"
@@ -71,15 +71,14 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
             </SplitItem>
             <SplitItem>
               <Button
+                icon={<TimesIcon />}
                 data-testid="close-error-button"
                 variant="plain"
                 aria-label="Close"
                 onClick={() => {
                   this.setState({ hasError: false });
                 }}
-              >
-                <TimesIcon />
-              </Button>
+              />
             </SplitItem>
           </Split>
           <ErrorDetails

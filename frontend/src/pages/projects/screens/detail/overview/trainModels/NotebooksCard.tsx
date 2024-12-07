@@ -6,13 +6,10 @@ import {
   CardBody,
   EmptyState,
   EmptyStateBody,
-  EmptyStateHeader,
-  EmptyStateIcon,
   Flex,
   FlexItem,
   Spinner,
-  Text,
-  TextContent,
+  Content,
 } from '@patternfly/react-core';
 import { ArrowRightIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
@@ -48,11 +45,7 @@ const NotebooksCard: React.FC = () => {
 
   if (!loaded) {
     return (
-      <EmptyState variant="xs">
-        <EmptyStateHeader
-          icon={<EmptyStateIcon icon={() => <Spinner size="lg" />} />}
-          headingLevel="h3"
-        />
+      <EmptyState headingLevel="h3" icon={() => <Spinner size="lg" />} variant="xs">
         <EmptyStateBody>Loading...</EmptyStateBody>
       </EmptyState>
     );
@@ -60,23 +53,19 @@ const NotebooksCard: React.FC = () => {
 
   if (error) {
     return (
-      <EmptyState variant="xs">
-        <EmptyStateHeader
-          icon={
-            <EmptyStateIcon
-              icon={() => (
-                <ExclamationCircleIcon
-                  style={{
-                    color: 'var(--pf-v5-global--danger-color--100)',
-                    width: '32px',
-                    height: '32px',
-                  }}
-                />
-              )}
-            />
-          }
-          headingLevel="h3"
-        />
+      <EmptyState
+        headingLevel="h3"
+        icon={() => (
+          <ExclamationCircleIcon
+            style={{
+              color: 'var(--pf-t--global--icon--color--status--danger--default)',
+              width: '32px',
+              height: '32px',
+            }}
+          />
+        )}
+        variant="xs"
+      >
         <EmptyStateBody>{error.message}</EmptyStateBody>
       </EmptyState>
     );
@@ -103,13 +92,13 @@ const NotebooksCard: React.FC = () => {
             </FlexItem>
             <FlexItem flex={{ default: 'flex_1' }}>
               <Flex gap={{ default: 'gapMd' }}>
-                <TextContent>
-                  <Text component="small">
+                <Content>
+                  <Content component="small">
                     A workbench is an isolated area where you can work with models in your preferred
                     IDE, such as a Jupyter notebook. You can add accelerators and data connections,
                     create pipelines, and configure cluster storage in your workbench.
-                  </Text>
-                </TextContent>
+                  </Content>
+                </Content>
                 <Button
                   variant={ButtonVariant.primary}
                   onClick={() => navigate(`/projects/${currentProject.metadata.name}/spawner`)}

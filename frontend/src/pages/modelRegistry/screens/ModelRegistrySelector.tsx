@@ -161,7 +161,7 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
                   <DescriptionListTerm>Description</DescriptionListTerm>
                   <DescriptionListDescription
                     className={
-                      !getDescriptionFromK8sResource(selection) ? text.disabledColor_100 : ''
+                      !getDescriptionFromK8sResource(selection) ? text.textColorDisabled : ''
                     }
                   >
                     {getDescriptionFromK8sResource(selection) || 'No description'}

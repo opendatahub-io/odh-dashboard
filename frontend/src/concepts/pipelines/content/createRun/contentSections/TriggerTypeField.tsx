@@ -63,6 +63,8 @@ const TriggerTypeField: React.FC<TriggerTypeFieldProps> = ({ data, onChange }) =
             </SplitItem>
             <SplitItem>
               <SimpleSelect
+                popperProps={{ maxWidth: undefined }}
+                isFullWidth
                 options={Object.values(PeriodicOptions).map((v) => ({
                   key: v,
                   label: v,
@@ -115,6 +117,7 @@ const TriggerTypeField: React.FC<TriggerTypeFieldProps> = ({ data, onChange }) =
 
               onChange({ ...data, triggerType, value });
             }}
+            popperProps={{ appendTo: 'inline' }}
           />
         </FormGroup>
       </StackItem>

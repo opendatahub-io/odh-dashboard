@@ -94,9 +94,7 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
           <FormHelperText>
             {latestVersion && (
               <HelperText>
-                <HelperTextItem variant="indeterminate">
-                  Current version is {latestVersion.name}
-                </HelperTextItem>
+                <HelperTextItem>Current version is {latestVersion.name}</HelperTextItem>
               </HelperText>
             )}
             {!isVersionNameValid && (
@@ -159,7 +157,6 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
               <Button
                 data-testid="object-storage-autofill-button"
                 variant="link"
-                isInline
                 icon={<OptimizeIcon />}
                 onClick={() => setAutofillModalOpen(true)}
               >

@@ -8,11 +8,11 @@ import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 const WorkBenchDescription = (
   <div>
     <div>
-      <PlayIcon className="pf-v5-u-mr-xs" />
+      <PlayIcon className="pf-v6-u-mr-xs" />
       The total number of running or starting workbenches in the project.
     </div>
     <div>
-      <OffIcon className="pf-v5-u-mr-xs" />
+      <OffIcon className="pf-v6-u-mr-xs" />
       The total number of stopped workbenches in the project.
     </div>
   </div>

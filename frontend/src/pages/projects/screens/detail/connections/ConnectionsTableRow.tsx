@@ -44,7 +44,7 @@ const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
           boldTitle={false}
           titleIcon={
             showWarningIcon ? (
-              <Icon status="warning" className="pf-v5-u-pl-lg">
+              <Icon status="warning" className="pf-v6-u-pl-lg">
                 <ExclamationTriangleIcon />
               </Icon>
             ) : undefined

@@ -9,8 +9,6 @@ import {
   TabContentBody,
   EmptyState,
   EmptyStateBody,
-  EmptyStateHeader,
-  EmptyStateIcon,
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import { WrenchIcon } from '@patternfly/react-icons';
@@ -61,12 +59,7 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
       : 'Configure the queue for this project, or select a different project.';
 
     return (
-      <EmptyState>
-        <EmptyStateHeader
-          titleText={title}
-          headingLevel="h4"
-          icon={<EmptyStateIcon icon={WrenchIcon} />}
-        />
+      <EmptyState headingLevel="h4" icon={WrenchIcon} titleText={title}>
         <EmptyStateBody>{message}</EmptyStateBody>
         {nonAdmin ? (
           <EmptyStateFooter>
@@ -79,7 +72,7 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
 
   return (
     <>
-      <PageSection variant="light" type="tabs">
+      <PageSection hasBodyWrapper={false} type="tabs">
         <Tabs
           activeKey={activeTabId}
           onSelect={(_, tabId) => {
@@ -106,7 +99,7 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
         </Tabs>
       </PageSection>
       {activeTab ? <MetricsPageToolbar hasTimeRangeSelect={false} /> : null}
-      <PageSection isFilled>
+      <PageSection hasBodyWrapper={false} isFilled>
         {tabs
           .filter((tab) => tab.isAvailable)
           .map((tab) => {

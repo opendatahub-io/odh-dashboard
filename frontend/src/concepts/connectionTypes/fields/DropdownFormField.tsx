@@ -93,7 +93,7 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
             <>
               {menuToggleText()}
               {isMulti && (
-                <Badge className="pf-v5-u-ml-xs">
+                <Badge className="pf-v6-u-ml-xs">
                   {(isPreview ? field.properties.defaultValue?.length : value?.length) ?? 0}{' '}
                   selected
                 </Badge>

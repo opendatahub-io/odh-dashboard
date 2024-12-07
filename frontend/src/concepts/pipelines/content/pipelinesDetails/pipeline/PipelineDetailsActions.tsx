@@ -63,10 +63,14 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
             <DropdownItem key="upload-version" onClick={() => setIsVersionImportModalOpen(true)}>
               Upload new version
             </DropdownItem>,
-            <Divider key="separator-create" />,
+            <Divider component="li" key="separator-create" />,
             <DropdownItem
               isAriaDisabled={!isPipelineSupported}
-              tooltipProps={{ content: PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR }}
+              tooltipProps={
+                !isPipelineSupported
+                  ? { content: PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR }
+                  : undefined
+              }
               key="create-run"
               onClick={() =>
                 navigate(createRunRoute(namespace), {
@@ -78,7 +82,11 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
             </DropdownItem>,
             <DropdownItem
               isAriaDisabled={!isPipelineSupported}
-              tooltipProps={{ content: PIPELINE_CREATE_SCHEDULE_TOOLTIP_ARGO_ERROR }}
+              tooltipProps={
+                !isPipelineSupported
+                  ? { content: PIPELINE_CREATE_SCHEDULE_TOOLTIP_ARGO_ERROR }
+                  : undefined
+              }
               key="create-schedule"
               onClick={() =>
                 navigate(createRecurringRunRoute(namespace), {
@@ -90,7 +98,7 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
             </DropdownItem>,
             ...(pipeline && pipelineVersion
               ? [
-                  <Divider key="separator-view" />,
+                  <Divider component="li" key="separator-view" />,
                   <DropdownItem
                     key="view-runs"
                     onClick={() =>
@@ -119,7 +127,7 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
                   </DropdownItem>,
                 ]
               : []),
-            <Divider key="separator-delete" />,
+            <Divider component="li" key="separator-delete" />,
             <DropdownItem key="delete-pipeline-version" onClick={() => onDelete()}>
               Delete pipeline version
             </DropdownItem>,

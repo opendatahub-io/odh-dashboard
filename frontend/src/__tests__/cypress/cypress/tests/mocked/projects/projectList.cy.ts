@@ -384,15 +384,7 @@ describe('Data science projects details', () => {
 
       // Verify workbench status indicators are not shown
       const projectTableRow = projectListPage.getProjectRow('Test Project');
-      projectTableRow.findNotebookColumnExpander().should('not.exist');
-    });
-
-    it('should not show workbench count or details', () => {
-      projectListPage.visit();
-
-      // Verify no workbench info is shown
-      cy.get('[data-label="Workbenches"]').should('not.exist');
-      cy.get('.pf-v5-c-table__expandable-row-content').should('not.exist');
+      projectTableRow.findNotebookColumn().should('not.exist');
     });
   });
 });

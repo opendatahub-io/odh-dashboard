@@ -16,7 +16,8 @@ const SERVER_TIMEOUT = process.env.SERVER_TIMEOUT ? parseInt(process.env.SERVER_
 const { DOC_LINK } = process.env;
 const { COMMUNITY_LINK } = process.env;
 const { SUPPORT_LINK } = process.env;
-const ODH_LOGO = process.env.ODH_LOGO || 'odh-logo.svg';
+const ODH_LOGO = process.env.ODH_LOGO || 'odh-logo-light-theme.svg';
+const ODH_LOGO_DARK = process.env.ODH_LOGO_DARK || 'odh-logo-dark-theme.svg';
 const ODH_PRODUCT_NAME = process.env.ODH_PRODUCT_NAME ?? '';
 const { ODH_NOTEBOOK_REPO } = process.env;
 const DASHBOARD_CONFIG = process.env.DASHBOARD_CONFIG || 'odh-dashboard-config';
@@ -34,6 +35,7 @@ export {
   COMMUNITY_LINK,
   SUPPORT_LINK,
   ODH_LOGO,
+  ODH_LOGO_DARK,
   ODH_PRODUCT_NAME,
   ODH_NOTEBOOK_REPO,
   DASHBOARD_CONFIG,
@@ -80,4 +82,4 @@ export const DASHBOARD_MAIN_CONTAINER_ID = 'dashboard-page-main';
 
 // Quick starts drawer creates a new scroll container within its DrawerContentBody.
 // Not an ideal selector but components such as JumpLinks require the use of a selector instead of a direct node reference.
-export const DASHBOARD_SCROLL_CONTAINER_SELECTOR = `#${DASHBOARD_MAIN_CONTAINER_ID} > .pf-v5-c-drawer > .pf-v5-c-drawer__main > .pf-v5-c-drawer__content`;
+export const DASHBOARD_SCROLL_CONTAINER_SELECTOR = `#${DASHBOARD_MAIN_CONTAINER_ID} > .pf-v6-c-drawer > .pf-v6-c-drawer__main > .pf-v6-c-drawer__content`;

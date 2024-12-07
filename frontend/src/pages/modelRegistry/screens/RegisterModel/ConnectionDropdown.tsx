@@ -84,6 +84,7 @@ export const ConnectionDropdown = ({
         </MenuToggle>
       )}
       isOpen={isOpen}
+      popperProps={{ appendTo: 'inline' }}
     >
       <Menu onSelect={onSelectConnection} isScrollable isPlain>
         <MenuContent>

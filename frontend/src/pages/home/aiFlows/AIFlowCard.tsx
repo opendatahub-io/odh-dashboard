@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Bullseye, CardBody, CardProps, Stack, Text, TextContent } from '@patternfly/react-core';
+import { Bullseye, CardBody, CardHeader, CardProps, Stack, Content } from '@patternfly/react-core';
 import TypeBorderedCard from '~/concepts/design/TypeBorderedCard';
 import { SectionType } from '~/concepts/design/utils';
 
@@ -19,30 +19,23 @@ const AIFlowCard: React.FC<AIFlowCardProps> = ({
   onSelect,
   ...rest
 }) => (
-  <TypeBorderedCard
-    sectionType={sectionType}
-    selectable
-    selected={selected}
-    onClick={() => onSelect()}
-    onKeyDown={(event) => {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        event.stopPropagation();
-        onSelect();
-      }
-    }}
-    tabIndex={0}
-    {...rest}
-  >
+  <TypeBorderedCard sectionType={sectionType} selectable selected={selected} {...rest}>
+    <CardHeader
+      selectableActions={{
+        onClickAction: onSelect,
+        selectableActionAriaLabel: title,
+        selectableActionProps: { 'aria-expanded': selected },
+      }}
+    />
     <CardBody>
       <Stack hasGutter>
         <Bullseye>{image}</Bullseye>
         <Bullseye>
-          <TextContent>
-            <Text component="p" style={{ textAlign: 'center' }}>
+          <Content>
+            <Content component="p" style={{ textAlign: 'center' }}>
               {title}
-            </Text>
-          </TextContent>
+            </Content>
+          </Content>
         </Bullseye>
       </Stack>
     </CardBody>

@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { Card, CardTitle, CardHeader, Divider, Popover } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+import { Card, CardTitle, CardHeader, Divider, Flex } from '@patternfly/react-core';
+import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
 
 export const DWSectionCard: React.FC<{
   title: string;
@@ -12,15 +11,9 @@ export const DWSectionCard: React.FC<{
   <Card isFullHeight>
     <CardHeader>
       <CardTitle>
-        {title}
-        {helpTooltip ? (
-          <Popover bodyContent={helpTooltip}>
-            <DashboardPopupIconButton
-              icon={<OutlinedQuestionCircleIcon />}
-              aria-label="More info"
-            />
-          </Popover>
-        ) : null}
+        <Flex gap={{ default: 'gapMd' }}>
+          {title} {helpTooltip ? <DashboardHelpTooltip content={helpTooltip} /> : null}
+        </Flex>
       </CardTitle>
     </CardHeader>
     {hasDivider && <Divider />}

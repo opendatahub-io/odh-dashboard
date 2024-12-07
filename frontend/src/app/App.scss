@@ -7,80 +7,44 @@ body,
 #dashboard-page-main {
   // Establish positioning relative to the top left of the main container.
   position: relative;
+  overflow-y: auto;
 }
 
 .odh-dashboard {
   &__page-content {
-    border: 1px solid var(--pf-v5-global--BorderColor--100);
+    border: 1px solid var(--pf-t--global--border--color--default);
     display: flex;
     flex: 1;
-    margin: var(--pf-v5-global--spacer--md);
-  }
-
-  .pf-v5-c-app-launcher__group-title {
-    font-size: 13px;
+    margin: var(--pf-t--global--spacer--md);
   }
 
   &__brand {
     height: 36px;
   }
-
-  // Decrease the height of toggles when in table rows so they align better with text
-  // This requires decreasing the width and the size of the toggle as well
-  td,
-  li {
-    .pf-v5-c-switch__toggle {
-      height: 18px;
-      margin-top: -1px;
-      &:before {
-        height: 10px;
-        width: 10px;
-        inset-block-start: 4px;
-      }
-    }
-    .pf-v5-c-switch__input:checked ~ .pf-v5-c-switch__toggle::before {
-      inset-inline-start: 12px;
-    }
-  }
 }
 
 .odh-u-spin {
-  animation: pf-v5-c-spinner-animation-rotate 3s linear infinite;
-}
-
-// specificity targeting form elements to override --pf-v5-global--FontSize--md
-.pf-v5-c-page,
-.pf-v5-c-modal-box {
-  .pf-v5-c-app-launcher,
-  .pf-v5-c-button,
-  .pf-v5-c-dropdown,
-  .pf-v5-c-dropdown__menu-item,
-  .pf-v5-c-dropdown__toggle,
-  .pf-v5-c-menu-toggle,
-  .pf-v5-c-menu__item,
-  .pf-v5-c-select,
-  .pf-v5-c-select__menu-item,
-  .pf-v5-c-select__toggle,
-  .pf-v5-c-text-input-group,
-  .pf-v5-c-form-control {
-    font-size: var(--pf-v5-global--FontSize--sm);
-    height: auto;
-  }
+  animation: pf-v6-c-spinner-animation-rotate 3s linear infinite;
 }
 
 // TODO: Remove when PF bug is fixed. See https://github.com/patternfly/patternfly-react/issues/9769
 // Override to prevent drawer body content from taking over scroll container
-.pf-v5-c-drawer__body {
+.pf-v6-c-drawer__body {
   min-height: 0;
 }
 
-.pf-v5-c-truncate {
-  --pf-v5-c-truncate--MinWidth: 0;
-  --pf-v5-c-truncate__start--MinWidth: 0;
+.pf-v6-c-truncate {
+  --pf-v6-c-truncate--MinWidth: 0;
+  --pf-v6-c-truncate__start--MinWidth: 0;
+}
+
+// TODO: Remove when PF bug is fixed. https://github.com/patternfly/patternfly-react/issues/11314
+.pf-v6-c-table__text.pf-m-truncate {
+  min-width: max(100%, 5ch);
 }
 
 // FIXME https://github.com/patternfly/patternfly/issues/7104
-.pf-v5-c-label-group {
+.pf-v6-c-label-group {
   max-width: 100%;
 
   &__main,
@@ -90,7 +54,7 @@ body,
   }
 }
 
-.pf-v5-c-popover.odh-u-scrollable .pf-v5-c-popover__body {
+.pf-v6-c-popover.odh-u-scrollable .pf-v6-c-popover__body {
   max-height: 65vh;
   overflow: auto;
 }

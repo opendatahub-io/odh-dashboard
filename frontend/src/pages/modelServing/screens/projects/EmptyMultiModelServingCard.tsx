@@ -5,9 +5,8 @@ import {
   CardBody,
   CardFooter,
   CardTitle,
-  Text,
-  TextContent,
-  TextVariants,
+  Content,
+  ContentVariants,
 } from '@patternfly/react-core';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import ModelServingPlatformSelectButton from '~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
@@ -25,15 +24,15 @@ const EmptyMultiModelServingCard: React.FC<EmptyMultiModelServingCardProps> = ({
     <Card
       style={{
         height: '100%',
-        border: '1px solid var(--pf-v5-global--BorderColor--100)',
+        border: '1px solid var(--pf-t--global--border--color--default)',
         borderRadius: 16,
       }}
       data-testid="multi-serving-platform-card"
     >
       <CardTitle>
-        <TextContent>
-          <Text component={TextVariants.h2}>Multi-model serving platform</Text>
-        </TextContent>
+        <Content>
+          <Content component={ContentVariants.h2}>Multi-model serving platform</Content>
+        </Content>
       </CardTitle>
       <CardBody>
         Multiple models can be deployed on one shared model server. Choose this option when you want

@@ -5,8 +5,6 @@ import {
   Button,
   EmptyState,
   EmptyStateBody,
-  EmptyStateIcon,
-  EmptyStateHeader,
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
@@ -32,12 +30,11 @@ const CustomServingRuntimeEditTemplate: React.FC = () => {
   if (!ref.current) {
     return (
       <Bullseye>
-        <EmptyState>
-          <EmptyStateHeader
-            titleText="Unable to edit serving runtime"
-            icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-            headingLevel="h2"
-          />
+        <EmptyState
+          headingLevel="h2"
+          icon={ExclamationCircleIcon}
+          titleText="Unable to edit serving runtime"
+        >
           <EmptyStateBody>We were unable to find a serving runtime by this name</EmptyStateBody>
           <EmptyStateFooter>
             <Button variant="primary" onClick={() => navigate(`/servingRuntimes`)}>

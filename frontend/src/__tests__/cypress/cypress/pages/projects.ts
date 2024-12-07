@@ -30,7 +30,7 @@ class NotebookRow extends TableRow {
   }
 
   shouldHaveNotebookImageName(name: string) {
-    return cy.findByTestId('image-display-name').should('have.text', name);
+    return cy.findByTestId('image-display-name').should('contain.text', name);
   }
 
   findOutdatedElyraInfo() {
@@ -66,7 +66,7 @@ class ProjectRow extends TableRow {
   }
 
   findNotebookColumnExpander() {
-    return this.find().findByTestId('notebook-column-count');
+    return this.find().findByTestId('notebook-column-expand').find('button');
   }
 
   findNotebookTable() {
@@ -134,7 +134,7 @@ class ProjectListPage {
   }
 
   findEmptyResults() {
-    return cy.findByTestId('no-result-found-title');
+    return cy.findByTestId('dashboard-empty-table-state');
   }
 
   findSortButton(name: string) {

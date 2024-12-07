@@ -20,7 +20,7 @@ export const ArtifactPropertyDescriptionList: React.FC<ArtifactPropertyDescripti
   testId,
 }) => (
   <DescriptionList isHorizontal data-testid={testId}>
-    <DescriptionListGroup>
+    <DescriptionListGroup style={{ alignItems: 'start' }}>
       {propertiesMap.map(([propKey, propValues]) => (
         <React.Fragment key={propKey}>
           <DescriptionListTerm data-testid={`${testId}-${propKey}`}>{propKey}</DescriptionListTerm>

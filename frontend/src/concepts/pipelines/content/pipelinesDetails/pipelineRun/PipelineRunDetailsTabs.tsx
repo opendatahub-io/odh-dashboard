@@ -46,10 +46,10 @@ export const PipelineRunDetailsTabs: React.FC<PipelineRunDetailsTabsProps> = ({
 
   return (
     <PageSection
+      hasBodyWrapper={false}
       isFilled
       padding={{ default: 'noPadding' }}
       style={{ flexBasis: 0, overflowY: 'hidden' }}
-      variant="light"
     >
       <Flex
         direction={{ default: 'column' }}
@@ -105,11 +105,11 @@ export const PipelineRunDetailsTabs: React.FC<PipelineRunDetailsTabsProps> = ({
           <TabContent
             id={DetailsTabKey.Graph}
             eventKey={DetailsTabKey.Graph}
-            className="pf-v5-u-h-100"
+            className="pf-v6-u-h-100"
             data-testid="pipeline-graph-tab"
             hidden={activeKey !== DetailsTabKey.Graph}
           >
-            <TabContentBody className="pf-v5-u-h-100">{graphContent}</TabContentBody>
+            <TabContentBody className="pf-v6-u-h-100">{graphContent}</TabContentBody>
           </TabContent>
 
           <TabContent
@@ -117,10 +117,10 @@ export const PipelineRunDetailsTabs: React.FC<PipelineRunDetailsTabsProps> = ({
             eventKey={DetailsTabKey.Spec}
             hidden={activeKey !== DetailsTabKey.Spec}
             style={{ flex: 1 }}
-            className="pf-v5-u-h-100"
+            className="pf-v6-u-h-100"
             data-testid="pipeline-spec-tab"
           >
-            <TabContentBody className="pf-v5-u-h-100" hasPadding>
+            <TabContentBody className="pf-v6-u-h-100" hasPadding>
               <PipelineDetailsYAML
                 filename={run?.display_name}
                 content={pipelineSpec}

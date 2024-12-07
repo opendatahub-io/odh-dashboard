@@ -55,7 +55,7 @@ describe('hook test utils', () => {
     const renderResult = renderHook(({ who, showCount }: Props) => useSayHello(who, showCount), {
       initialProps: {
         who: 'world',
-      },
+      } as Props,
     });
 
     expect(renderResult).hookToHaveUpdateCount(1);

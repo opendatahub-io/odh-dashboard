@@ -10,7 +10,7 @@ export class SearchSelector extends SubComponentBase {
   }
 
   findItem(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findToggleButton().findDropdownItem(name);
+    return this.findToggleButton().findMenuItem(name);
   }
 
   selectItem(name: string): void {
