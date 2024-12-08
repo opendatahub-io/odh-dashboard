@@ -16,6 +16,29 @@ const CONSOLE_CONFIG_YAML_FIELD = 'console-config.yaml';
 const kc = new k8s.KubeConfig();
 kc.loadFromDefault();
 
+const normalizeServerUrl = (url: string): string => {
+  const parsedUrl = new URL(url);
+  const hostname = parsedUrl.hostname;
+
+  // Add brackets for IPv6 and remove trailing slashes
+  const formattedHost = hostname.includes(':') && !hostname.startsWith('[')
+    ? `[${hostname}]`
+    : hostname;
+  parsedUrl.hostname = formattedHost;
+  return parsedUrl.toString().replace(/\/+$/, ''); // Remove trailing slashes
+};
+
+// Normalize all cluster server URLs
+kc.clusters = kc.clusters.map((cluster) => {
+  if (cluster.server) {
+    return {
+      ...cluster,
+      server: normalizeServerUrl(cluster.server),
+    };
+  }
+  return cluster;
+});
+
 const currentContext = kc.getCurrentContext();
 const customObjectsApi = kc.makeApiClient(k8s.CustomObjectsApi);
 const coreV1Api = kc.makeApiClient(k8s.CoreV1Api);
