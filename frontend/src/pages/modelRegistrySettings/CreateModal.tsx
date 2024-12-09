@@ -421,7 +421,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
                         label="Resource"
                         isRequired
                         fieldId="existing-ca-resource"
-                        style={{ marginLeft: 'var(--pf-v6-global--spacer--lg)' }}
+                        style={{ marginLeft: 'var(--pf-t--global--spacer--lg)' }}
                       >
                         <SearchSelector
                           isFullWidth
@@ -438,7 +438,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
                         label="Key"
                         isRequired
                         fieldId="existing-ca-key"
-                        style={{ marginLeft: 'var(--pf-v6-global--spacer--lg)' }}
+                        style={{ marginLeft: 'var(--pf-t--global--spacer--lg)' }}
                       >
                         <SearchSelector
                           isFullWidth
@@ -480,7 +480,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
                         isInline
                         title="Note"
                         variant="info"
-                        style={{ marginLeft: 'var(--pf-v6-global--spacer--lg)' }}
+                        style={{ marginLeft: 'var(--pf-t--global--spacer--lg)' }}
                       >
                         Uploading a certificate below creates the{' '}
                         <strong>{translateDisplayNameForK8s(nameDesc.name)}-db-credential</strong>{' '}
@@ -490,7 +490,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
                       <FormGroup
                         label="Certificate"
                         required
-                        style={{ marginLeft: 'var(--pf-v6-global--spacer--lg)' }}
+                        style={{ marginLeft: 'var(--pf-t--global--spacer--lg)' }}
                       >
                         <PemFileUpload
                           onChange={(value) =>
