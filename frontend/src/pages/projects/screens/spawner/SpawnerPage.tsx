@@ -335,9 +335,9 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               />
             ) : (
               <FormSection
-                title={SpawnerPageSectionTitles[SpawnerPageSectionID.DATA_CONNECTIONS]}
-                id={SpawnerPageSectionID.DATA_CONNECTIONS}
-                aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.DATA_CONNECTIONS]}
+                title={SpawnerPageSectionTitles[SpawnerPageSectionID.CONNECTIONS]}
+                id={SpawnerPageSectionID.CONNECTIONS}
+                aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.CONNECTIONS]}
               >
                 <DataConnectionField
                   dataConnectionData={dataConnectionData}
