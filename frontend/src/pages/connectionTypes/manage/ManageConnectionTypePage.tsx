@@ -4,6 +4,7 @@ import {
   AlertActionLink,
   Button,
   Checkbox,
+  Content,
   Flex,
   FlexItem,
   Form,
@@ -11,10 +12,6 @@ import {
   FormSection,
   PageSection,
   Popover,
-  Stack,
-  StackItem,
-  Text,
-  TextContent,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
 import { OpenDrawerRightIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
@@ -146,6 +143,11 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
   };
 
   const pageName = isEdit ? 'Edit connection type' : 'Create connection type';
+  const hasValidationIssue = validation.hasValidationIssue(
+    ['fields'],
+    ValidationErrorCodes.FIELDS_ENV_VAR_CONFLICT,
+  );
+
   return (
     <ValidationContext.Provider value={validation}>
       <ConnectionTypePreviewDrawer
@@ -173,7 +175,7 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
           }
         >
           {isEdit && prefill ? (
-            <PageSection variant="light" className="pf-v5-u-pt-0">
+            <PageSection hasBodyWrapper={false} className="pf-v6-u-pt-0">
               <Alert
                 isInline
                 variant="warning"
@@ -198,7 +200,7 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
               </Alert>
             </PageSection>
           ) : undefined}
-          <PageSection isFilled variant="light" className="pf-v5-u-pt-0">
+          <PageSection hasBodyWrapper={false} isFilled className="pf-v6-u-pt-0">
             <Form>
               <FormSection title="Type details" style={{ maxWidth: 625 }}>
                 <K8sNameDescriptionField
@@ -238,7 +240,7 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
                 />
               </FormGroup>
               <FormSection
-                className="pf-v5-u-mt-0"
+                className="pf-v6-u-mt-0"
                 title={
                   <Flex gap={{ default: 'gapSm' }}>
                     <FlexItem>Fields</FlexItem>
@@ -270,17 +272,17 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
                           <Popover
                             headerContent="Model serving compatible types "
                             bodyContent={
-                              <TextContent>
-                                <Text>
+                              <>
+                                <Content>
                                   Model serving compatible connection types can be used for model
                                   serving. A connection can use one of multiple different methods,
                                   such as S3 compatible storage or URI, for serving models.
-                                </Text>
-                                <Text>
+                                </Content>
+                                <Content>
                                   Select a type to automatically add the fields required to use its
                                   corresponding model serving method.
-                                </Text>
-                              </TextContent>
+                                </Content>
+                              </>
                             }
                           >
                             <DashboardPopupIconButton
@@ -295,36 +297,35 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
                 }
               >
                 <FormGroup>
-                  <Stack hasGutter>
-                    {modelServingCompatibleTypes.length > 0 ? (
-                      <StackItem>
-                        <Alert
-                          data-testid="compatible-model-serving-types-alert"
-                          isInline
-                          variant="info"
-                          title={`This connection type is compatible with ${joinWithCommaAnd(
-                            modelServingCompatibleTypes,
-                            {
-                              singlePrefix: 'the ',
-                              singleSuffix: ' model serving type.',
-                              multiSuffix: ' model serving types.',
-                            },
-                          )}`}
-                        />
-                      </StackItem>
-                    ) : undefined}
-                    {validation.hasValidationIssue(
-                      ['fields'],
-                      ValidationErrorCodes.FIELDS_ENV_VAR_CONFLICT,
-                    ) ? (
-                      <StackItem>
-                        <Alert isInline variant="danger" title="Environment variables conflict">
-                          Two or more fields are using the same environment variable. Ensure that
-                          each field uses a unique environment variable to proceed.
-                        </Alert>
-                      </StackItem>
-                    ) : undefined}
-                  </Stack>
+                  {modelServingCompatibleTypes.length > 0 || hasValidationIssue ? (
+                    <Flex gap={{ default: 'gapMd' }} direction={{ default: 'column' }}>
+                      {modelServingCompatibleTypes.length > 0 ? (
+                        <FlexItem>
+                          <Alert
+                            data-testid="compatible-model-serving-types-alert"
+                            isInline
+                            variant="info"
+                            title={`This connection type is compatible with ${joinWithCommaAnd(
+                              modelServingCompatibleTypes,
+                              {
+                                singlePrefix: 'the ',
+                                singleSuffix: ' model serving type.',
+                                multiSuffix: ' model serving types.',
+                              },
+                            )}`}
+                          />
+                        </FlexItem>
+                      ) : undefined}
+                      {hasValidationIssue ? (
+                        <FlexItem>
+                          <Alert isInline variant="danger" title="Environment variables conflict">
+                            Two or more fields are using the same environment variable. Ensure that
+                            each field uses a unique environment variable to proceed.
+                          </Alert>
+                        </FlexItem>
+                      ) : undefined}
+                    </Flex>
+                  ) : null}
                   <ManageConnectionTypeFieldsTable
                     fields={fields}
                     onFieldsChange={(value) => setData('fields', value)}
@@ -334,8 +335,8 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
             </Form>
           </PageSection>
           <PageSection
+            hasBodyWrapper={false}
             stickyOnBreakpoint={{ default: 'bottom' }}
-            variant="light"
             style={{ flexGrow: 0 }}
           >
             <CreateConnectionTypeFooter

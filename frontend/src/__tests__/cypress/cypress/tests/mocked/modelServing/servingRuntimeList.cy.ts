@@ -478,7 +478,7 @@ describe('Serving Runtime List', () => {
         expect(interception.request.url).to.include('?dryRun=All');
         expect(interception.request.body).to.containSubset({
           metadata: {
-            name: 'test-name',
+            name: 'test-model-legacy',
             namespace: 'test-project',
             labels: { 'opendatahub.io/dashboard': 'true' },
             annotations: {
@@ -490,7 +490,7 @@ describe('Serving Runtime List', () => {
             predictor: {
               model: {
                 modelFormat: { name: 'onnx', version: '1' },
-                runtime: 'test-name',
+                runtime: 'test-model-legacy',
                 storage: { key: 'test-secret', path: 'test-model/' },
               },
             },

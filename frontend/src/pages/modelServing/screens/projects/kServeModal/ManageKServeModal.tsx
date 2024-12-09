@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Alert, AlertActionCloseButton, Form, FormSection, Modal } from '@patternfly/react-core';
+import { Alert, AlertActionCloseButton, Form, FormSection } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
   getCreateInferenceServiceLabels,
@@ -334,7 +335,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       {!isAuthorinoEnabled && alertVisible && (
         <Alert
           id="no-authorino-installed-alert"
-          className="pf-v5-u-mb-md"
+          className="pf-v6-u-mb-md"
           data-testid="no-authorino-installed-alert"
           isExpandable
           isInline

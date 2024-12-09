@@ -84,6 +84,7 @@ const PipelineVersionSelector: React.FC<PipelineVersionSelectorProps> = ({
           data={supportedVersions}
           rowRenderer={(row) => (
             <PipelineSelectorTableRow
+              isRowSelected={row.display_name === selection}
               key={row.pipeline_version_id}
               obj={row}
               onClick={() => {

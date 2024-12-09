@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { FormSection, HelperTextItem } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { StorageData, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import PVSizeField from '~/pages/projects/components/PVSizeField';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
@@ -15,7 +16,7 @@ type CreateNewStorageSectionProps<D extends StorageData> = {
   setData: UpdateObjectAtPropAndValue<D>;
   currentStatus?: PersistentVolumeClaimKind['status'];
   autoFocusName?: boolean;
-  menuAppendTo?: HTMLElement;
+  menuAppendTo?: HTMLElement | 'inline';
   disableStorageClassSelect?: boolean;
   onNameChange?: (value: string) => void;
   setValid?: (isValid: boolean) => void;
@@ -65,7 +66,7 @@ const CreateNewStorageSection = <D extends StorageData>({
         autoFocusName={autoFocusName}
         nameHelperText={
           hasDuplicateName ? (
-            <HelperTextItem variant="error" hasIcon>
+            <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
               <b>{data.name}</b> already exists. Try a different name.
             </HelperTextItem>
           ) : undefined
@@ -80,7 +81,6 @@ const CreateNewStorageSection = <D extends StorageData>({
         />
       )}
       <PVSizeField
-        menuAppendTo={menuAppendTo}
         fieldID="create-new-storage-size"
         currentStatus={currentStatus}
         size={String(data.size)}

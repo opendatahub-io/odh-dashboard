@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ChartDonut, ChartLegend } from '@patternfly/react-charts';
+import { ChartDonut, ChartLegend, ChartContainer } from '@patternfly/react-charts/victory';
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
 import { DistributedWorkloadsContext } from '~/concepts/distributedWorkloads/DistributedWorkloadsContext';
 import {
@@ -39,11 +39,12 @@ export const DWStatusOverviewDonutChart: React.FC = () => {
     );
   }
   return (
-    <div style={{ height: '250px', paddingBottom: '12px' }}>
+    <div style={{ height: '250px', minWidth: '620px', paddingBottom: '12px' }}>
       <ChartDonut
         ariaDesc="Distributed workload status overview"
         ariaTitle="Status overview donut chart"
         constrainToVisibleArea
+        containerComponent={<ChartContainer style={{ height: '100%' }} />}
         data={statusTypesIncludedInChart.map((statusType) => ({
           x: statusType,
           y: statusCounts[statusType],

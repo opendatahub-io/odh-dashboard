@@ -74,10 +74,12 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
     return (
       <>
         <Popover
+          alertSeverityVariant={isError ? 'danger' : 'custom'}
           data-testid="notebook-status-popover"
           shouldClose={() => setPopoverVisible(false)}
           isVisible={isPopoverVisible}
           headerContent="Workbench status"
+          headerIcon={isError ? <ExclamationCircleIcon /> : <InProgressIcon />}
           bodyContent={
             events[events.length - 1]
               ? getEventFullMessage(events[events.length - 1])

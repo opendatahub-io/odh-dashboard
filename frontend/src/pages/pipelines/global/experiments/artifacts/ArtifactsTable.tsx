@@ -132,6 +132,7 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
               }))}
               onChange={(v) => onChange(v)}
               data-testid="artifact-type-filter-select"
+              popperProps={{ maxWidth: undefined }}
             />
           ),
         }}

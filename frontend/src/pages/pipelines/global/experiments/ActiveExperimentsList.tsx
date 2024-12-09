@@ -4,8 +4,6 @@ import {
   EmptyState,
   EmptyStateBody,
   EmptyStateFooter,
-  EmptyStateHeader,
-  EmptyStateIcon,
   Spinner,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
@@ -33,12 +31,12 @@ const ActiveExperimentsList: React.FC = () => {
 
   if (loaded && totalSize === 0 && !tableProps.filter) {
     return (
-      <EmptyState data-testid="global-no-experiments">
-        <EmptyStateHeader
-          titleText="No active experiments"
-          icon={<EmptyStateIcon icon={PlusCircleIcon} />}
-          headingLevel="h4"
-        />
+      <EmptyState
+        headingLevel="h4"
+        icon={PlusCircleIcon}
+        titleText="No active experiments"
+        data-testid="global-no-experiments"
+      >
         <EmptyStateBody>Click the button below to create a new active experiment.</EmptyStateBody>
         <EmptyStateFooter>
           <CreateExperimentButton />

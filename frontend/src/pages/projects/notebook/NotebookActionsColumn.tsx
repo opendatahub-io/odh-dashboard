@@ -20,6 +20,7 @@ export const NotebookActionsColumn: React.FC<Props> = ({
 
   return (
     <ActionsColumn
+      id="notebook-actions"
       items={[
         {
           isDisabled: isStarting || isStopping,

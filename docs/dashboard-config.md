@@ -28,6 +28,7 @@ The following are a list of features that are supported, along with there defaul
 | disableKServe                | false   | Disables the ability to select KServe as a Serving Platform.                                         |
 | disableKServeAuth            | false   | Disables the ability to use auth in KServe.                                                          |
 | disableKServeMetrics         | false   | Disables the ability to see KServe Metrics.                                                          |
+| disableKServeRaw             | true    | Disables the option to deploy in raw instead of serverless.                                          |
 | disableModelMesh             | false   | Disables the ability to select ModelMesh as a Serving Platform.                                      |
 | disableAcceleratorProfiles   | false   | Disables Accelerator profiles from the Admin Panel.                                                  |
 | disableTrustyBiasMetrics     | false   | Disables Model Bias tab from Model Serving metrics.                                                  |

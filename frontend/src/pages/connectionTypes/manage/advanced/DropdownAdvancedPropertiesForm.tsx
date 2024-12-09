@@ -169,7 +169,7 @@ const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>
               >
                 <div>
                   Dropdown item values
-                  <span aria-hidden="true" className={text.dangerColor_100}>
+                  <span aria-hidden="true" className={text.textColorStatusDanger}>
                     {' *'}
                   </span>
                 </div>
@@ -243,6 +243,7 @@ const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>
                 </Td>
                 <Td>
                   <Button
+                    icon={<MinusCircleIcon />}
                     data-testid={`dropdown-item-row-remove-${i}`}
                     variant="plain"
                     aria-label="Remove item"
@@ -254,9 +255,7 @@ const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>
                         setDropdownItems(dropdownItems.filter((_, index) => i !== index));
                       }
                     }}
-                  >
-                    <MinusCircleIcon />
-                  </Button>
+                  />
                 </Td>
               </Tr>
             ))}

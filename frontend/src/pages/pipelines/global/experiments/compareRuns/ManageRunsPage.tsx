@@ -5,9 +5,7 @@ import {
   Bullseye,
   EmptyState,
   EmptyStateBody,
-  EmptyStateIcon,
   Spinner,
-  EmptyStateHeader,
   Breadcrumb,
   BreadcrumbItem,
   Truncate,
@@ -34,12 +32,11 @@ const ManageRunsPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
   if (error) {
     return (
       <Bullseye>
-        <EmptyState>
-          <EmptyStateHeader
-            titleText="There was an issue loading runs"
-            icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-            headingLevel="h2"
-          />
+        <EmptyState
+          headingLevel="h2"
+          icon={ExclamationCircleIcon}
+          titleText="There was an issue loading runs"
+        >
           <EmptyStateBody>{error.message}</EmptyStateBody>
         </EmptyState>
       </Bullseye>

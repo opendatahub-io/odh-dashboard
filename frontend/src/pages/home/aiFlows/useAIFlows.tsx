@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { PageSection, Stack, Text, TextContent } from '@patternfly/react-core';
+import { PageSection, Stack, Content } from '@patternfly/react-core';
 import { SectionType, sectionTypeBorderColor } from '~/concepts/design/utils';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
 import { SupportedArea } from '~/concepts/areas';
@@ -27,6 +27,7 @@ export const useAIFlows = (): React.ReactNode => {
           title="Organize your work with projects"
           image={
             <ProjectIcon
+              aria-hidden="true"
               style={{ color: sectionTypeBorderColor(SectionType.organize), width: 42, height: 42 }}
             />
           }
@@ -44,6 +45,7 @@ export const useAIFlows = (): React.ReactNode => {
           title="Create and train models"
           image={
             <CreateAndTrainIcon
+              aria-hidden="true"
               style={{ color: sectionTypeBorderColor(SectionType.training), width: 42, height: 42 }}
             />
           }
@@ -61,6 +63,7 @@ export const useAIFlows = (): React.ReactNode => {
           title="Deploy and monitor models"
           image={
             <ModelIcon
+              aria-hidden="true"
               style={{ color: sectionTypeBorderColor(SectionType.serving), width: 42, height: 42 }}
             />
           }
@@ -76,11 +79,11 @@ export const useAIFlows = (): React.ReactNode => {
     }
 
     return (
-      <PageSection data-testid="home-page-ai-flows" variant="light">
+      <PageSection hasBodyWrapper={false} data-testid="home-page-ai-flows">
         <Stack hasGutter>
-          <TextContent>
-            <Text component="h1">Train, serve, monitor, and manage AI/ML models</Text>
-          </TextContent>
+          <Content>
+            <Content component="h1">Train, serve, monitor, and manage AI/ML models</Content>
+          </Content>
           <EvenlySpacedGallery itemCount={cards.length} hasGutter>
             {cards}
           </EvenlySpacedGallery>

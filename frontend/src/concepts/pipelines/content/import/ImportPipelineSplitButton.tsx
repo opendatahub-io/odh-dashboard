@@ -48,24 +48,22 @@ const ImportPipelineSplitButton: React.FC<ImportPipelineSplitButtonProps> = ({
             onClick={() => setDropdownOpen(!isDropdownOpen)}
             isExpanded={isDropdownOpen}
             isDisabled={!apiAvailable || disable}
-            splitButtonOptions={{
-              variant: 'action',
-              items: [
-                <MenuToggleAction
-                  id="import-pipeline-button"
-                  key="import-pipeline-button"
-                  data-testid="import-pipeline-button"
-                  aria-label="Import pipeline"
-                  onClick={() => setPipelineModalOpen(true)}
-                >
-                  Import pipeline
-                </MenuToggleAction>,
-              ],
-            }}
+            splitButtonItems={[
+              <MenuToggleAction
+                id="import-pipeline-button"
+                key="import-pipeline-button"
+                data-testid="import-pipeline-button"
+                aria-label="Import pipeline"
+                onClick={() => setPipelineModalOpen(true)}
+              >
+                Import pipeline
+              </MenuToggleAction>,
+            ]}
             aria-label="Import pipeline and pipeline version button"
             data-testid="import-pipeline-split-button"
           />
         )}
+        popperProps={{ appendTo: 'inline' }}
       >
         <DropdownList>
           {disableUploadVersion && (

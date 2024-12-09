@@ -22,6 +22,7 @@ export const allFeatureFlags: string[] = Object.keys({
   disableKServe: false,
   disableKServeAuth: false,
   disableKServeMetrics: false,
+  disableKServeRaw: true,
   disableModelMesh: false,
   disableAcceleratorProfiles: false,
   disableDistributedWorkloads: false,
@@ -77,6 +78,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.K_SERVE_METRICS]: {
     featureFlags: ['disableKServeMetrics'],
+    reliantAreas: [SupportedArea.K_SERVE, SupportedArea.MODEL_SERVING],
+  },
+  [SupportedArea.K_SERVE_RAW]: {
+    featureFlags: ['disableKServeRaw'],
     reliantAreas: [SupportedArea.K_SERVE, SupportedArea.MODEL_SERVING],
   },
   [SupportedArea.MODEL_MESH]: {

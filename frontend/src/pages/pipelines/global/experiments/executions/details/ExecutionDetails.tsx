@@ -4,13 +4,13 @@ import {
   Bullseye,
   EmptyState,
   EmptyStateBody,
-  EmptyStateHeader,
-  EmptyStateIcon,
   Spinner,
   Split,
   SplitItem,
   Stack,
   StackItem,
+  Flex,
+  FlexItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
@@ -51,12 +51,11 @@ const ExecutionDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, co
   if (error) {
     return (
       <Bullseye>
-        <EmptyState>
-          <EmptyStateHeader
-            titleText="There was an issue loading execution details"
-            icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-            headingLevel="h2"
-          />
+        <EmptyState
+          headingLevel="h2"
+          icon={ExclamationCircleIcon}
+          titleText="There was an issue loading execution details"
+        >
           <EmptyStateBody>{error.message}</EmptyStateBody>
         </EmptyState>
       </Bullseye>
@@ -100,52 +99,88 @@ const ExecutionDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, co
       empty={false}
       provideChildrenPadding
     >
-      <Stack hasGutter>
-        <StackItem>
-          <ExecutionDetailsIDSection execution={execution} />
-        </StackItem>
-        <StackItem>
-          <ExecutionDetailsReferenceSection execution={execution} />
-        </StackItem>
-        <StackItem>
-          <ExecutionDetailsPropertiesSection execution={execution} />
-        </StackItem>
-        <StackItem>
-          <ExecutionDetailsCustomPropertiesSection execution={execution} />
-        </StackItem>
-        <StackItem>
-          <ExecutionDetailsInputOutputSection
-            title={inputOutputSectionTitle[Event.Type.DECLARED_INPUT]}
-            events={allEvents[Event.Type.DECLARED_INPUT]}
-            isLoaded={artifactTypesLoaded}
-            artifactTypeMap={artifactTypeMap}
-          />
-        </StackItem>
-        <StackItem>
-          <ExecutionDetailsInputOutputSection
-            title={inputOutputSectionTitle[Event.Type.INPUT]}
-            events={allEvents[Event.Type.INPUT]}
-            isLoaded={artifactTypesLoaded}
-            artifactTypeMap={artifactTypeMap}
-          />
-        </StackItem>
-        <StackItem>
-          <ExecutionDetailsInputOutputSection
-            title={inputOutputSectionTitle[Event.Type.DECLARED_OUTPUT]}
-            events={allEvents[Event.Type.DECLARED_OUTPUT]}
-            isLoaded={artifactTypesLoaded}
-            artifactTypeMap={artifactTypeMap}
-          />
-        </StackItem>
-        <StackItem>
-          <ExecutionDetailsInputOutputSection
-            title={inputOutputSectionTitle[Event.Type.OUTPUT]}
-            events={allEvents[Event.Type.OUTPUT]}
-            isLoaded={artifactTypesLoaded}
-            artifactTypeMap={artifactTypeMap}
-          />
-        </StackItem>
-      </Stack>
+      <Flex
+        spaceItems={{ default: 'spaceItems2xl' }}
+        direction={{ default: 'column' }}
+        // className="pf-v6-u-pt-lg pf-v6-u-pb-lg"
+      >
+        <FlexItem>
+          <Stack hasGutter>
+            <StackItem>
+              <ExecutionDetailsIDSection execution={execution} />
+            </StackItem>
+          </Stack>
+        </FlexItem>
+        <FlexItem>
+          <Stack>
+            <StackItem>
+              <ExecutionDetailsReferenceSection execution={execution} />
+            </StackItem>
+          </Stack>
+        </FlexItem>
+        <FlexItem>
+          <Stack>
+            <StackItem>
+              <ExecutionDetailsPropertiesSection execution={execution} />
+            </StackItem>
+          </Stack>
+        </FlexItem>
+        <FlexItem>
+          <Stack>
+            <StackItem>
+              <ExecutionDetailsCustomPropertiesSection execution={execution} />
+            </StackItem>
+          </Stack>
+        </FlexItem>
+        <FlexItem>
+          <Stack>
+            <StackItem>
+              <ExecutionDetailsInputOutputSection
+                title={inputOutputSectionTitle[Event.Type.DECLARED_INPUT]}
+                events={allEvents[Event.Type.DECLARED_INPUT]}
+                isLoaded={artifactTypesLoaded}
+                artifactTypeMap={artifactTypeMap}
+              />
+            </StackItem>
+          </Stack>
+        </FlexItem>
+        <FlexItem>
+          <Stack>
+            <StackItem>
+              <ExecutionDetailsInputOutputSection
+                title={inputOutputSectionTitle[Event.Type.INPUT]}
+                events={allEvents[Event.Type.INPUT]}
+                isLoaded={artifactTypesLoaded}
+                artifactTypeMap={artifactTypeMap}
+              />
+            </StackItem>
+          </Stack>
+        </FlexItem>
+        <FlexItem>
+          <Stack>
+            <StackItem>
+              <ExecutionDetailsInputOutputSection
+                title={inputOutputSectionTitle[Event.Type.DECLARED_OUTPUT]}
+                events={allEvents[Event.Type.DECLARED_OUTPUT]}
+                isLoaded={artifactTypesLoaded}
+                artifactTypeMap={artifactTypeMap}
+              />
+            </StackItem>
+          </Stack>
+        </FlexItem>
+        <FlexItem>
+          <Stack>
+            <StackItem>
+              <ExecutionDetailsInputOutputSection
+                title={inputOutputSectionTitle[Event.Type.OUTPUT]}
+                events={allEvents[Event.Type.OUTPUT]}
+                isLoaded={artifactTypesLoaded}
+                artifactTypeMap={artifactTypeMap}
+              />
+            </StackItem>
+          </Stack>
+        </FlexItem>
+      </Flex>
     </ApplicationsPage>
   );
 };

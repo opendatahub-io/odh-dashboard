@@ -3,13 +3,11 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   EmptyState,
-  EmptyStateIcon,
   EmptyStateVariant,
   EmptyStateBody,
   Bullseye,
   Spinner,
   Truncate,
-  EmptyStateHeader,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
@@ -77,12 +75,13 @@ const PipelineRunDetails: React.FC<
 
   if (error) {
     return (
-      <EmptyState variant={EmptyStateVariant.lg} data-id="error-empty-state">
-        <EmptyStateHeader
-          titleText="Error loading pipeline run details"
-          icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-          headingLevel="h4"
-        />
+      <EmptyState
+        headingLevel="h4"
+        icon={ExclamationCircleIcon}
+        titleText="Error loading pipeline run details"
+        variant={EmptyStateVariant.lg}
+        data-id="error-empty-state"
+      >
         <EmptyStateBody>{error.message}</EmptyStateBody>
       </EmptyState>
     );

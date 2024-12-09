@@ -124,7 +124,7 @@ const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = ({
           Not seeing what you&apos;re looking for?
         </Button>
       </Popover>
-      <FormGroup label="Connection" isRequired className="pf-v5-u-mb-lg">
+      <FormGroup label="Connection" isRequired className="pf-v6-u-mb-lg">
         <TypeaheadSelect
           selectOptions={options}
           onSelect={(_, value) => {
@@ -136,6 +136,7 @@ const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = ({
             }
           }}
           isDisabled={projectConnections.length === 0}
+          popperProps={{ appendTo: 'inline' }}
         />
         {selectedConnection && (
           <ConnectionDetailsHelperText
@@ -346,7 +347,7 @@ export const ConnectionSection: React.FC<Props> = ({
         id="new-connection-radio"
         data-testid="new-connection-radio"
         label="Create connection"
-        className="pf-v5-u-mb-lg"
+        className="pf-v6-u-mb-lg"
         isChecked={data.storage.type === InferenceServiceStorageType.NEW_STORAGE}
         onChange={() => {
           setConnection(undefined);

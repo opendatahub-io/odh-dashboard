@@ -163,8 +163,10 @@ describe('ClusterStorage', () => {
     addClusterStorageModal.find().findByText('openshift-default-sc').should('exist');
 
     // select storage class
-    addClusterStorageModal.findStorageClassSelect().click();
-    addClusterStorageModal.find().findByText('Test SC 1').click();
+    addClusterStorageModal
+      .findStorageClassSelect()
+      .findSelectOption(/Test SC 1/)
+      .click();
     addClusterStorageModal.findSubmitButton().should('be.enabled');
     addClusterStorageModal.findDescriptionInput().fill('description');
     addClusterStorageModal.findPVSizeMinusButton().click();
@@ -174,35 +176,37 @@ describe('ClusterStorage', () => {
     addClusterStorageModal.selectPVSize('MiB');
 
     //connect workbench
-    addClusterStorageModal.findWorkbenchConnectionSelect().click();
-    addClusterStorageModal.find().findByText('Test Notebook').click();
+    addClusterStorageModal
+      .findWorkbenchConnectionSelect()
+      .findSelectOption('Test Notebook')
+      .click();
 
     // don't allow duplicate path
     addClusterStorageModal.findMountField().clear();
     addClusterStorageModal.findMountField().fill('test-dupe');
     addClusterStorageModal
       .findMountFieldHelperText()
-      .should('have.text', 'Mount folder is already in use for this workbench.');
+      .should('contain.text', 'Mount folder is already in use for this workbench.');
 
     // don't allow number in the path
     addClusterStorageModal.findMountField().clear();
     addClusterStorageModal.findMountField().fill('test2');
     addClusterStorageModal
       .findMountFieldHelperText()
-      .should('have.text', 'Must only consist of lowercase letters and dashes.');
+      .should('contain.text', 'Must only consist of lowercase letters and dashes.');
 
     // Allow trailing slash
     addClusterStorageModal.findMountField().clear();
     addClusterStorageModal.findMountField().fill('test/');
     addClusterStorageModal
       .findMountFieldHelperText()
-      .should('have.text', 'Must consist of lowercase letters and dashes.');
+      .should('contain.text', 'Must consist of lowercase letters and dashes.');
 
     addClusterStorageModal.findMountField().clear();
     addClusterStorageModal
       .findMountFieldHelperText()
       .should(
-        'have.text',
+        'contain.text',
         'Enter a path to a model or folder. This path cannot point to a root folder.',
       );
     addClusterStorageModal.findMountField().fill('data');
@@ -278,8 +282,10 @@ describe('ClusterStorage', () => {
     clusterStorageRow.findKebabAction('Edit storage').click();
 
     // Connect to 'Another Notebook'
-    updateClusterStorageModal.findWorkbenchConnectionSelect().click();
-    updateClusterStorageModal.find().findByText('Another Notebook').click();
+    updateClusterStorageModal
+      .findWorkbenchConnectionSelect()
+      .findSelectOption('Another Notebook')
+      .click();
 
     updateClusterStorageModal.findMountField().fill('new-data');
 

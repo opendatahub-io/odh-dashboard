@@ -53,26 +53,19 @@ class PipelineRunFilterBar extends PipelineFilterBar {
 
   selectStatusByName(name: string) {
     this.findStatusSelect().findSelectOption(name).click();
+    return this;
   }
 
-  selectPipelineVersionByName(name: string): void {
-    this.findPipelineVersionSelect()
-      .click()
-      .parents()
-      .findByTestId('pipeline-version-selector-table-list')
-      .find('td')
-      .contains(name)
-      .click();
+  selectPipelineVersionByName(name: string) {
+    this.findPipelineVersionSelect().click();
+    cy.findByTestId('pipeline-version-selector-table-list').find('td').contains(name).click();
+    return this;
   }
 
-  selectExperimentByName(name: string): Cypress.Chainable<JQuery<HTMLTableCellElement>> {
-    return this.findExperimentSelect()
-      .click()
-      .parents()
-      .findByTestId('experiment-selector-table-list')
-      .find('td')
-      .contains(name)
-      .click();
+  selectExperimentByName(name: string) {
+    this.findExperimentSelect().click();
+    cy.findByTestId('experiment-selector-table-list').find('td').contains(name).click();
+    return this;
   }
 
   mockExperiments(experiments: ExperimentKF[], namespace: string) {

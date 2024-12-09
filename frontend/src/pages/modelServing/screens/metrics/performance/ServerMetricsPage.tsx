@@ -19,7 +19,7 @@ const ServerMetricsPage = (): ReactElement => (
       <StackItem>
         <MetricsPageToolbar />
       </StackItem>
-      <PageSection isFilled>
+      <PageSection hasBodyWrapper={false} isFilled>
         <ServerGraphs />
       </PageSection>
     </Stack>

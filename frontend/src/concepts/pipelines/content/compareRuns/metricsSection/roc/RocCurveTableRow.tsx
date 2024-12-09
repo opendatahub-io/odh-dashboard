@@ -1,6 +1,6 @@
 import React from 'react';
 import { Td, Tr } from '@patternfly/react-table';
-import { ChartLegend } from '@patternfly/react-charts';
+import { ChartLegend } from '@patternfly/react-charts/victory';
 import { CheckboxTd } from '~/components/table';
 import { RocCurveChartColorScale } from '~/concepts/pipelines/content/artifacts/charts/ROCCurve';
 import {

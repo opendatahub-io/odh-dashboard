@@ -1,12 +1,15 @@
 import React from 'react';
-import { useGetArtifactsByRunsForExperiment } from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactsByRuns';
+import { useGetArtifactsByRuns } from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactsByRuns';
 import { ArtifactType, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import { getArtifactProperties } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
 import { ArtifactProperty } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/types';
 import { RunWithMetrics } from '~/concepts/pipelines/content/tables/pipelineRun/types';
 import { getMetricsColumnsLocalStorageKey } from './utils';
 
-export const useMetricColumnNames = (experimentId: string, metricsNames: Set<string>): string[] => {
+export const useMetricColumnNames = (
+  metricsNames: Set<string>,
+  experimentId?: string,
+): string[] => {
   const metricsColumnsLocalStorageKey = getMetricsColumnsLocalStorageKey(experimentId);
   const metricsColumnsLocalStorageItem = localStorage.getItem(metricsColumnsLocalStorageKey) ?? '';
   const storedMetricsColumnNames: string[] | undefined = metricsColumnsLocalStorageItem
@@ -22,9 +25,7 @@ export const useMetricColumnNames = (experimentId: string, metricsNames: Set<str
     ],
     [firstDefaultMetricColumn, secondDefaultMetricColumn],
   );
-  const metricsColumnNames = experimentId
-    ? storedMetricsColumnNames ?? defaultMetricsColumnNames
-    : [];
+  const metricsColumnNames = storedMetricsColumnNames ?? defaultMetricsColumnNames;
 
   // Set default metric columns in localStorage when no prior stored
   // columns exist and at least 1 metric exists to use as a default.
@@ -46,7 +47,7 @@ export const useMetricColumnNames = (experimentId: string, metricsNames: Set<str
 
 export const useMetricColumns = (
   runs: PipelineRunKF[],
-  experimentId: string,
+  experimentId?: string,
 ): {
   runs: RunWithMetrics[];
   metricsColumnNames: string[];
@@ -54,10 +55,7 @@ export const useMetricColumns = (
   runArtifactsError: Error | undefined;
   metricsNames: Set<string>;
 } => {
-  const [runArtifacts, runArtifactsLoaded, runArtifactsError] = useGetArtifactsByRunsForExperiment(
-    runs,
-    experimentId,
-  );
+  const [runArtifacts, runArtifactsLoaded, runArtifactsError] = useGetArtifactsByRuns(runs);
   const metricsNames = new Set<string>();
 
   const runsWithMetrics: RunWithMetrics[] = runs.map((run) => ({
@@ -80,7 +78,7 @@ export const useMetricColumns = (
     }, []),
   }));
 
-  const metricsColumnNames = useMetricColumnNames(experimentId, metricsNames);
+  const metricsColumnNames = useMetricColumnNames(metricsNames, experimentId);
 
   return {
     runs: runsWithMetrics,

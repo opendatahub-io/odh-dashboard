@@ -10,14 +10,14 @@ describe('useMetricColumnNames', () => {
   });
 
   it('returns first metric as default value when only 1 metric exists', () => {
-    const renderResult = testHook(useMetricColumnNames)(experimentId, new Set(['metric-1']));
+    const renderResult = testHook(useMetricColumnNames)(new Set(['metric-1']), experimentId);
     expect(renderResult.result.current).toEqual(['metric-1']);
   });
 
   it('returns first 2 metrics as default values', () => {
     const renderResult = testHook(useMetricColumnNames)(
-      experimentId,
       new Set(['metric-1', 'metric-2', 'metric-3']),
+      experimentId,
     );
 
     expect(renderResult.result.current).toEqual(['metric-1', 'metric-2']);
@@ -25,13 +25,13 @@ describe('useMetricColumnNames', () => {
 
   it('returns no metrics if localStorage columns are set as empty for the experiment', () => {
     localStorageGetItemSpy.mockReturnValue('[]');
-    const renderResult = testHook(useMetricColumnNames)(experimentId, new Set(['metric-1']));
+    const renderResult = testHook(useMetricColumnNames)(new Set(['metric-1']), experimentId);
 
     expect(renderResult.result.current).toEqual([]);
   });
 
   it('returns no metrics if no defaults are available to choose from', () => {
-    const renderResult = testHook(useMetricColumnNames)(experimentId, new Set([]));
+    const renderResult = testHook(useMetricColumnNames)(new Set([]), experimentId);
     expect(renderResult.result.current).toEqual([]);
   });
 });

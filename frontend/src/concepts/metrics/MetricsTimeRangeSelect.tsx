@@ -20,7 +20,11 @@ export const MetricsTimeRangeSelect: React.FC = () => {
         label: value,
       }))}
       toggleLabel={currentTimeframe}
+      toggleProps={{
+        style: { width: '15ch' },
+      }}
       data-testid="metrics-toolbar-time-range-select"
+      popperProps={{ maxWidth: undefined }}
     />
   );
 };

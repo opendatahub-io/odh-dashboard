@@ -12,8 +12,11 @@ import {
   DropdownItem,
   Dropdown,
   DropdownList,
+  ToggleGroup,
+  ToggleGroupItem,
+  Icon,
 } from '@patternfly/react-core';
-import { ExternalLinkAltIcon, QuestionCircleIcon } from '@patternfly/react-icons';
+import { QuestionCircleIcon, MoonIcon, SunIcon } from '@patternfly/react-icons';
 import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK, DEV_MODE, EXT_CLUSTER } from '~/utilities/const';
 import useNotification from '~/utilities/useNotification';
 import { updateImpersonateSettings } from '~/services/impersonateService';
@@ -22,6 +25,7 @@ import { useAppSelector } from '~/redux/hooks';
 import AboutDialog from '~/app/AboutDialog';
 import AppLauncher from './AppLauncher';
 import { useAppContext } from './AppContext';
+import { useThemeContext } from './ThemeContext';
 import { logout } from './appUtils';
 
 interface HeaderToolsProps {
@@ -36,7 +40,17 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
   const userName: string = useAppSelector((state) => state.user || '');
   const isImpersonating: boolean = useAppSelector((state) => state.isImpersonating || false);
   const { dashboardConfig } = useAppContext();
+  const { theme, setTheme } = useThemeContext();
   const notification = useNotification();
+
+  React.useEffect(() => {
+    const htmlElement = document.getElementsByTagName('html')[0];
+    if (theme === 'dark') {
+      htmlElement.classList.add('pf-v6-theme-dark');
+    } else {
+      htmlElement.classList.remove('pf-v6-theme-dark');
+    }
+  }, [theme]);
 
   const newNotifications = React.useMemo(
     () => notifications.filter((currentNotification) => !currentNotification.read).length,
@@ -86,8 +100,9 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
         to={DOC_LINK}
         target="_blank"
         rel="noopener noreferrer"
+        isExternalLink
       >
-        Documentation <ExternalLinkAltIcon />
+        Documentation
       </DropdownItem>,
     );
   }
@@ -99,8 +114,9 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
         to={SUPPORT_LINK}
         target="_blank"
         rel="noopener noreferrer"
+        isExternalLink
       >
-        Support <ExternalLinkAltIcon />
+        Support
       </DropdownItem>,
     );
   }
@@ -112,8 +128,9 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
         to={COMMUNITY_LINK}
         target="_blank"
         rel="noopener noreferrer"
+        isExternalLink
       >
-        Community <ExternalLinkAltIcon />
+        Community
       </DropdownItem>,
     );
   }
@@ -134,12 +151,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
   return (
     <Toolbar isFullHeight>
       <ToolbarContent>
-        <ToolbarGroup variant="icon-button-group" align={{ default: 'alignRight' }}>
-          {!dashboardConfig.spec.dashboardConfig.disableAppLauncher ? (
-            <ToolbarItem data-testid="application-launcher">
-              <AppLauncher />
-            </ToolbarItem>
-          ) : null}
+        <ToolbarGroup variant="action-group-plain" align={{ default: 'alignEnd' }}>
           <ToolbarItem>
             <NotificationBadge
               aria-label="Notification drawer"
@@ -148,6 +160,11 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
               onClick={onNotificationsClick}
             />
           </ToolbarItem>
+          {!dashboardConfig.spec.dashboardConfig.disableAppLauncher ? (
+            <ToolbarItem data-testid="application-launcher">
+              <AppLauncher />
+            </ToolbarItem>
+          ) : null}
           <ToolbarItem>
             <Dropdown
               popperProps={{ position: 'right' }}
@@ -168,6 +185,34 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
             >
               <DropdownList>{helpMenuItems}</DropdownList>
             </Dropdown>
+          </ToolbarItem>
+          <ToolbarItem>
+            <ToggleGroup aria-label="Theme toggle group">
+              <ToggleGroupItem
+                aria-label="light theme"
+                icon={
+                  <Icon size="md">
+                    <SunIcon />
+                  </Icon>
+                }
+                isSelected={theme === 'light'}
+                onChange={() => {
+                  setTheme('light');
+                }}
+              />
+              <ToggleGroupItem
+                aria-label="dark theme"
+                icon={
+                  <Icon size="md">
+                    <MoonIcon />
+                  </Icon>
+                }
+                isSelected={theme === 'dark'}
+                onChange={() => {
+                  setTheme('dark');
+                }}
+              />
+            </ToggleGroup>
           </ToolbarItem>
         </ToolbarGroup>
         {DEV_MODE && isImpersonating && (
@@ -194,7 +239,6 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
             onOpenChange={(isOpen) => setUserMenuOpen(isOpen)}
             toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
               <MenuToggle
-                variant="plainText"
                 aria-label="User menu"
                 id="user-menu-toggle"
                 ref={toggleRef}
