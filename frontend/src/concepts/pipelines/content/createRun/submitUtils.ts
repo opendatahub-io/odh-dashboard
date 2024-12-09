@@ -82,7 +82,9 @@ const createRecurringRun = async (
       periodic_schedule:
         formData.runType.data.triggerType === ScheduledType.PERIODIC
           ? {
-              interval_second: periodicScheduleIntervalTime.toString(),
+              interval_second: periodicScheduleIntervalTime.toLocaleString('fullwide', {
+                useGrouping: false,
+              }),
               start_time: startDate,
               end_time: endDate,
             }
