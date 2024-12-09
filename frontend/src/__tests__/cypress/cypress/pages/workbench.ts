@@ -190,14 +190,34 @@ class NotebookRow extends TableRow {
   }
 }
 
+class AttachExistingStorageModal extends Modal {
+  constructor() {
+    super('Attach Existing Storage');
+  }
+
+  selectExistingPersistentStorage(name: string) {
+    cy.findByTestId('persistent-storage-group')
+      .findByPlaceholderText('Select a persistent storage')
+      .click();
+    cy.findByTestId('persistent-storage-group').contains('button.pf-v6-c-menu__item', name).click();
+  }
+
+  findStandardPathInput() {
+    return cy.findByTestId('mount-path-folder-value');
+  }
+
+  findAttachButton() {
+    return cy.findByTestId('modal-submit-button');
+  }
+}
+
 class AttachConnectionModal extends Modal {
   constructor() {
     super('Attach existing connections');
   }
 
   selectConnectionOption(name: string) {
-    this.find().findByRole('button', { name: 'Connections' }).click();
-    this.find().findByRole('option', { name }).click();
+    this.find().findByRole('button', { name: 'Connections' }).findSelectOption(name).click();
     this.find().findByRole('button', { name: 'Connections' }).click();
   }
 
@@ -263,15 +283,8 @@ class CreateSpawnerPage {
     return cy.findByTestId('value-unit-select');
   }
 
-  findExsistingPersistentStorageRadio() {
-    return cy.findByTestId('persistent-existing-storage-type-radio');
-  }
-
-  selectExistingPersistentStorage(name: string) {
-    cy.findByTestId('persistent-storage-group')
-      .findByRole('button', { name: 'Typeahead menu toggle' })
-      .click();
-    cy.get('[id="dashboard-page-main"]').contains('button.pf-v5-c-menu__item', name).click();
+  findAttachExistingStorageButton() {
+    return cy.findByTestId('existing-storage-button');
   }
 
   selectPVSize(name: string) {
@@ -343,8 +356,8 @@ class CreateSpawnerPage {
   selectExistingDataConnection(name: string) {
     cy.findByTestId('data-connection-group')
       .findByRole('button', { name: 'Typeahead menu toggle' })
+      .findSelectOption(name)
       .click();
-    cy.get('[id="dashboard-page-main"]').findByRole('option', { name }).click();
   }
 
   findAwsNameInput() {
@@ -435,7 +448,7 @@ class NotFoundSpawnerPage {
   }
 
   shouldHaveErrorMessageTitle(name: string) {
-    cy.findByTestId('error-message-title').should('have.text', name);
+    cy.findByTestId('error-message-title').should('contain.text', name);
     return this;
   }
 
@@ -451,3 +464,4 @@ export const editSpawnerPage = new EditSpawnerPage();
 export const storageModal = new StorageModal();
 export const notFoundSpawnerPage = new NotFoundSpawnerPage();
 export const attachConnectionModal = new AttachConnectionModal();
+export const attachExistingStorageModal = new AttachExistingStorageModal();

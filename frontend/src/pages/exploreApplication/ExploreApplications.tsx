@@ -17,6 +17,8 @@ import { removeQueryArgument, setQueryArgument } from '~/utilities/router';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { useAppContext } from '~/app/AppContext';
 import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import TitleWithIcon from '~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '~/concepts/design/utils';
 import GetStartedPanel from './GetStartedPanel';
 
 import './ExploreApplications.scss';
@@ -56,13 +58,20 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
         >
           <DrawerContentBody className="odh-explore-applications__drawer-body-content">
             <ApplicationsPage
-              title="Explore"
+              title={
+                <TitleWithIcon title="Explore" objectType={ProjectObjectType.exploreApplications} />
+              }
               description={disableInfo ? disabledDescription : description}
               loaded={loaded}
               empty={isEmpty}
               loadError={loadError}
             >
-              <PageSection isFilled data-id="page-content">
+              <PageSection
+                style={{ height: '100%' }}
+                hasBodyWrapper={false}
+                isFilled
+                data-id="page-content"
+              >
                 <Gallery maxWidths={{ default: '330px' }} role="list" hasGutter>
                   {exploreComponents.map((c) => (
                     <OdhExploreCard

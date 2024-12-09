@@ -251,10 +251,8 @@ class PipelineDetails extends PipelinesTopology {
 }
 
 class PipelineRecurringRunDetails extends RunDetails {
-  visit(namespace: string, pipelineId: string, pipelineVersionId: string, recurringRunId = '') {
-    cy.visitWithLogin(
-      `/pipelines/${namespace}/${pipelineId}/${pipelineVersionId}/schedules/${recurringRunId}`,
-    );
+  visit(namespace: string, recurringRunId = '') {
+    cy.visitWithLogin(`/pipelineRuns/${namespace}/schedules/${recurringRunId}`);
     this.wait();
   }
 
@@ -299,8 +297,8 @@ class PipelineRecurringRunDetails extends RunDetails {
 }
 
 class PipelineRunDetails extends RunDetails {
-  visit(namespace: string, pipelineId: string, pipelineVersionId: string, runId = '') {
-    cy.visitWithLogin(`/pipelines/${namespace}/${pipelineId}/${pipelineVersionId}/runs/${runId}`);
+  visit(namespace: string, runId = '') {
+    cy.visitWithLogin(`/pipelineRuns/${namespace}/runs/${runId}`);
     this.wait();
   }
 

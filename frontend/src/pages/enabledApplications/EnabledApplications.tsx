@@ -7,6 +7,8 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import OdhAppCard from '~/components/OdhAppCard';
 import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { useWatchIntegrationComponents } from '~/utilities/useWatchIntegrationComponents';
+import TitleWithIcon from '~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '~/concepts/design/utils';
 
 const description = `Launch your enabled applications, view documentation, or get started with quick start instructions and tasks.`;
 
@@ -28,13 +30,18 @@ export const EnabledApplicationsInner: React.FC<EnabledApplicationsInnerProps> =
 
     return (
       <ApplicationsPage
-        title="Enabled"
+        title={<TitleWithIcon title="Enabled" objectType={ProjectObjectType.enabledApplications} />}
         description={description}
         loaded={loaded && isIntegrationComponentsChecked}
         empty={isEmpty}
         loadError={loadError}
       >
-        <PageSection isFilled data-testid="enabled-application">
+        <PageSection
+          style={{ height: '100%' }}
+          hasBodyWrapper={false}
+          isFilled
+          data-testid="enabled-application"
+        >
           <Gallery maxWidths={{ default: '330px' }} role="list" hasGutter>
             {checkedComponents.map((c) => (
               <OdhAppCard key={c.metadata.name} odhApp={c} />

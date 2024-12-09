@@ -10,11 +10,7 @@ import PipelineVersionUploadModal from '~/concepts/pipelines/content/import/Pipe
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
 import usePipelineTableRowData from '~/concepts/pipelines/content/tables/pipeline/usePipelineTableRowData';
 import { PipelineAndVersionContext } from '~/concepts/pipelines/content/PipelineAndVersionContext';
-import {
-  pipelineVersionCreateRunRoute,
-  pipelineVersionCreateRecurringRunRoute,
-  pipelineVersionDetailsRoute,
-} from '~/routes';
+import { pipelineVersionDetailsRoute, createRunRoute, createRecurringRunRoute } from '~/routes';
 import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
 import {
   PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR,
@@ -91,7 +87,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
             isDisabled={disableDelete}
             tooltip={disableDelete ? DISABLE_TOOLTIP : undefined}
           />
-          <Td>
+          <Td modifier="truncate">
             <TableRowTitleDescription
               title={
                 loading ? (
@@ -104,10 +100,10 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                       version.pipeline_version_id,
                     )}
                   >
-                    <TableText wrapModifier="truncate">{pipeline.display_name}</TableText>
+                    <TableText>{pipeline.display_name}</TableText>
                   </Link>
                 ) : (
-                  <TableText wrapModifier="truncate">{pipeline.display_name}</TableText>
+                  <TableText>{pipeline.display_name}</TableText>
                 )
               }
               description={pipeline.description}
@@ -134,13 +130,9 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                 {
                   title: 'Create run',
                   onClick: () => {
-                    navigate(
-                      pipelineVersionCreateRunRoute(
-                        namespace,
-                        version?.pipeline_id,
-                        version?.pipeline_version_id,
-                      ),
-                    );
+                    navigate(createRunRoute(namespace), {
+                      state: { contextData: { pipeline, version } },
+                    });
                   },
                   isAriaDisabled: isCreateDisabled,
                   tooltipProps: isArgoWorkflow(version?.pipeline_spec)
@@ -150,13 +142,9 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                 {
                   title: 'Create schedule',
                   onClick: () => {
-                    navigate(
-                      pipelineVersionCreateRecurringRunRoute(
-                        namespace,
-                        version?.pipeline_id,
-                        version?.pipeline_version_id,
-                      ),
-                    );
+                    navigate(createRecurringRunRoute(namespace), {
+                      state: { contextData: { pipeline, version } },
+                    });
                   },
                   isAriaDisabled: isCreateDisabled,
                   tooltipProps: isArgoWorkflow(version?.pipeline_spec)

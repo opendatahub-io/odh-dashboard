@@ -33,6 +33,7 @@ type EditableProps = {
   editButtonTestId?: string;
   saveButtonTestId?: string;
   cancelButtonTestId?: string;
+  discardButtonTestId?: string;
 };
 
 export type DashboardDescriptionListGroupProps = {
@@ -43,6 +44,7 @@ export type DashboardDescriptionListGroupProps = {
   contentWhenEmpty?: React.ReactNode;
   children: React.ReactNode;
   groupTestId?: string;
+  isSaveDisabled?: boolean;
 } & (({ isEditable: true } & EditableProps) | ({ isEditable?: false } & Partial<EditableProps>));
 
 const DashboardDescriptionListGroup: React.FC<DashboardDescriptionListGroupProps> = (props) => {
@@ -64,6 +66,7 @@ const DashboardDescriptionListGroup: React.FC<DashboardDescriptionListGroupProps
     editButtonTestId,
     saveButtonTestId,
     cancelButtonTestId,
+    isSaveDisabled,
   } = props;
   return (
     <DescriptionListGroup data-testid={groupTestId}>
@@ -78,31 +81,28 @@ const DashboardDescriptionListGroup: React.FC<DashboardDescriptionListGroupProps
                     <ActionListItem>
                       <Button
                         data-testid={saveButtonTestId}
+                        icon={<CheckIcon />}
                         aria-label={`Save edits to ${title}`}
                         variant="link"
                         onClick={onSaveEditsClick}
-                        isDisabled={isSavingEdits}
-                      >
-                        <CheckIcon />
-                      </Button>
+                        isDisabled={isSavingEdits || isSaveDisabled}
+                      />
                     </ActionListItem>
                     <ActionListItem>
                       <Button
                         data-testid={cancelButtonTestId}
+                        icon={<TimesIcon />}
                         aria-label={`Discard edits to ${title} `}
                         variant="plain"
                         onClick={onDiscardEditsClick}
                         isDisabled={isSavingEdits}
-                      >
-                        <TimesIcon />
-                      </Button>
+                      />
                     </ActionListItem>
                   </ActionList>
                 ) : (
                   <Button
                     data-testid={editButtonTestId}
                     aria-label={`Edit ${title}`}
-                    isInline
                     variant="link"
                     icon={<PencilAltIcon />}
                     iconPosition="start"
@@ -132,7 +132,10 @@ const DashboardDescriptionListGroup: React.FC<DashboardDescriptionListGroupProps
           </Flex>
         </DescriptionListTerm>
       )}
-      <DescriptionListDescription className={isEmpty && !isEditing ? text.disabledColor_100 : ''}>
+      <DescriptionListDescription
+        className={isEmpty && !isEditing ? text.textColorDisabled : ''}
+        aria-disabled={!!(isEmpty && !isEditing)}
+      >
         {isEditing ? contentWhenEditing : isEmpty ? contentWhenEmpty : children}
       </DescriptionListDescription>
     </DescriptionListGroup>

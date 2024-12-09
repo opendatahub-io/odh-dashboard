@@ -34,6 +34,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableKServe: boolean;
       disableKServeAuth: boolean;
       disableKServeMetrics: boolean;
+      disableKServeRaw: boolean;
       disableModelMesh: boolean;
       disableAcceleratorProfiles: boolean;
       disableDistributedWorkloads: boolean;

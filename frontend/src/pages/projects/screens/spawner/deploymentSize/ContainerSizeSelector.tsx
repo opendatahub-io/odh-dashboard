@@ -32,7 +32,7 @@ const ContainerSizeSelector: React.FC<ContainerSizeSelectorProps> = ({
     {value.notUserDefined ? (
       <FormHelperText>
         <HelperText>
-          <HelperTextItem variant="warning" hasIcon>
+          <HelperTextItem variant="warning">
             Your last selected size was no longer available, we have set the size to the default
             one.
           </HelperTextItem>

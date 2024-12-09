@@ -2,8 +2,6 @@ import * as React from 'react';
 import {
   Button,
   FormGroup,
-  FormHelperText,
-  FormSection,
   HelperText,
   HelperTextItem,
   TextArea,
@@ -40,6 +38,7 @@ type K8sNameDescriptionFieldProps = {
   dataTestId: string;
   descriptionLabel?: string;
   nameLabel?: string;
+  nameHelperText?: React.ReactNode;
   onDataChange?: UseK8sNameDescriptionFieldData['onDataChange'];
   hideDescription?: boolean;
 };
@@ -55,6 +54,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   descriptionLabel = 'Description',
   onDataChange,
   nameLabel = 'Name',
+  nameHelperText,
   hideDescription,
 }) => {
   const [showK8sField, setShowK8sField] = React.useState(false);
@@ -62,7 +62,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   const { name, description, k8sName } = data;
 
   return (
-    <FormSection style={{ margin: 0 }}>
+    <>
       <FormGroup label={nameLabel} isRequired fieldId={`${dataTestId}-name`}>
         <TextInput
           aria-readonly={!onDataChange}
@@ -74,30 +74,31 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
           value={name}
           onChange={(event, value) => onDataChange?.('name', value)}
         />
-        {!showK8sField && !k8sName.state.immutable && (
-          <FormHelperText>
-            {k8sName.value && (
-              <HelperText>
+        {nameHelperText || (!showK8sField && !k8sName.state.immutable) ? (
+          <HelperText>
+            {nameHelperText && <HelperTextItem>{nameHelperText}</HelperTextItem>}
+            {!showK8sField && !k8sName.state.immutable && (
+              <>
+                {k8sName.value && (
+                  <HelperTextItem>
+                    The resource name will be <b>{k8sName.value}</b>.
+                  </HelperTextItem>
+                )}
                 <HelperTextItem>
-                  The resource name will be <b>{k8sName.value}</b>.
+                  <Button
+                    data-testid={`${dataTestId}-editResourceLink`}
+                    variant="link"
+                    isInline
+                    onClick={() => setShowK8sField(true)}
+                  >
+                    Edit resource name
+                  </Button>{' '}
+                  <ResourceNameDefinitionTooltip />
                 </HelperTextItem>
-              </HelperText>
+              </>
             )}
-            <HelperText>
-              <HelperTextItem>
-                <Button
-                  data-testid={`${dataTestId}-editResourceLink`}
-                  variant="link"
-                  isInline
-                  onClick={() => setShowK8sField(true)}
-                >
-                  Edit resource name
-                </Button>{' '}
-                <ResourceNameDefinitionTooltip />
-              </HelperTextItem>
-            </HelperText>
-          </FormHelperText>
-        )}
+          </HelperText>
+        ) : null}
       </FormGroup>
       <ResourceNameField
         allowEdit={showK8sField}
@@ -118,7 +119,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
           />
         </FormGroup>
       ) : null}
-    </FormSection>
+    </>
   );
 };
 

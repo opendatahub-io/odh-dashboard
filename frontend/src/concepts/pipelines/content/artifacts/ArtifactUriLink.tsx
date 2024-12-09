@@ -42,8 +42,6 @@ export const ArtifactUriLink: React.FC<ArtifactUriLinkProps> = ({ artifact }) =>
           href={uri}
           component="a"
           iconPosition="end"
-          // TODO: remove this style override after upgrading to PFv6
-          style={{ display: 'inline-flex' }}
           onClick={(e) => {
             e.preventDefault();
             setLoading(true);

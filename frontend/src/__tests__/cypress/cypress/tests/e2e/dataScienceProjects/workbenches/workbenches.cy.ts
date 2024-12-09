@@ -1,6 +1,10 @@
 import type { PVCReplacements } from '~/__tests__/cypress/cypress/types';
 import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
-import { workbenchPage, createSpawnerPage } from '~/__tests__/cypress/cypress/pages/workbench';
+import {
+  workbenchPage,
+  createSpawnerPage,
+  attachExistingStorageModal,
+} from '~/__tests__/cypress/cypress/pages/workbench';
 import { clusterStorage } from '~/__tests__/cypress/cypress/pages/clusterStorage';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { loadPVCFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
@@ -69,8 +73,10 @@ describe('Workbench and PVSs tests', () => {
     workbenchPage.findCreateButton().click();
     createSpawnerPage.getNameInput().fill(workbenchName);
     createSpawnerPage.findNotebookImage('s2i-minimal-notebook').click();
-    createSpawnerPage.findExsistingPersistentStorageRadio().click();
-    createSpawnerPage.selectExistingPersistentStorage(PVCDisplayName);
+    createSpawnerPage.findAttachExistingStorageButton().click();
+    attachExistingStorageModal.selectExistingPersistentStorage(PVCDisplayName);
+    attachExistingStorageModal.findStandardPathInput().fill(workbenchName);
+    attachExistingStorageModal.findAttachButton().click();
     createSpawnerPage.findSubmitButton().click();
 
     cy.step(`Wait for Workbench ${workbenchName} to display a "Running" status`);
@@ -81,7 +87,9 @@ describe('Workbench and PVSs tests', () => {
 
     cy.step(`Check the cluster storage ${PVCDisplayName} is now connected to ${workbenchName}`);
     projectDetails.findSectionTab('cluster-storages').click();
-    const csRow = clusterStorage.getClusterStorageRow(PVCDisplayName);
+    // TODO: Bug RHOAIENG-16239
+    // const csRow = clusterStorage.getClusterStorageRow(PVCDisplayName);
+    const csRow = clusterStorage.getClusterStorageRow(PVCName);
     csRow.findConnectedWorkbenches().should('have.text', workbenchName);
   });
 });

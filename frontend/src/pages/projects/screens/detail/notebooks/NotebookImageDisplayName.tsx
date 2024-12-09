@@ -4,11 +4,11 @@ import {
   Flex,
   FlexItem,
   Label,
-  Text,
+  Content,
   Alert,
   AlertProps,
   LabelProps,
-  TextVariants,
+  ContentVariants,
   HelperText,
   HelperTextItem,
 } from '@patternfly/react-core';
@@ -34,7 +34,7 @@ export const NotebookImageDisplayName = ({
   if (loadError) {
     return (
       <HelperText>
-        <HelperTextItem variant="indeterminate">Unknown</HelperTextItem>
+        <HelperTextItem variant="error">Unknown</HelperTextItem>
       </HelperText>
     );
   }
@@ -119,7 +119,9 @@ export const NotebookImageDisplayName = ({
         <HelperText>
           <HelperTextItem>{notebookImage.imageDisplayName}</HelperTextItem>
         </HelperText>
-        {isExpanded && <Text component={TextVariants.small}>{notebookImage.tagSoftware}</Text>}
+        {isExpanded && (
+          <Content component={ContentVariants.small}>{notebookImage.tagSoftware}</Content>
+        )}
       </>
     );
   }
@@ -159,7 +161,7 @@ export const NotebookImageDisplayName = ({
         </FlexItem>
       </Flex>
       {isExpanded && notebookImage.imageAvailability !== NotebookImageAvailability.DELETED && (
-        <Text component={TextVariants.small}>{notebookImage.tagSoftware}</Text>
+        <Content component={ContentVariants.small}>{notebookImage.tagSoftware}</Content>
       )}
     </>
   );

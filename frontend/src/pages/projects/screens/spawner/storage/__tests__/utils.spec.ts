@@ -1,4 +1,4 @@
-import { renderHook, act } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
 import {
   useCreateStorageObject,
   useMountPathFormat,
@@ -49,8 +49,10 @@ describe('useCreateStorageObject', () => {
     const [data] = result.current;
     expect(data).toEqual({
       name: '',
+      k8sName: '',
       description: '',
       size: '1Gi',
+      storageClassName: undefined,
     });
   });
 
@@ -62,21 +64,6 @@ describe('useCreateStorageObject', () => {
     expect(data.description).toBe('Test PVC Description');
     expect(data.size).toBe('2Gi');
     expect(data.storageClassName).toBe('test-storage-class');
-  });
-
-  it('should reset to default values when resetDefaults is called', () => {
-    const { result } = renderHook(() => useCreateStorageObject(existingData));
-    const [, , resetDefaults] = result.current;
-
-    act(() => {
-      resetDefaults();
-    });
-
-    const [data] = result.current;
-    expect(data.name).toBe('');
-    expect(data.description).toBe('');
-    expect(data.size).toBe('1Gi'); // Default size from mock
-    expect(data.storageClassName).toBeUndefined();
   });
 });
 

@@ -7,10 +7,10 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineVersionImportModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
 import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import {
+  createRecurringRunRoute,
+  createRunRoute,
   globalPipelineRecurringRunsVersionRoute,
   globalPipelineRunsVersionRoute,
-  pipelineVersionCreateRecurringRunRoute,
-  pipelineVersionCreateRunRoute,
   pipelineVersionDetailsRoute,
 } from '~/routes';
 import { getDashboardMainContainer } from '~/utilities/utils';
@@ -63,48 +63,42 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
             <DropdownItem key="upload-version" onClick={() => setIsVersionImportModalOpen(true)}>
               Upload new version
             </DropdownItem>,
-            <Divider key="separator-create" />,
+            <Divider component="li" key="separator-create" />,
             <DropdownItem
               isAriaDisabled={!isPipelineSupported}
-              tooltipProps={{ content: PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR }}
+              tooltipProps={
+                !isPipelineSupported
+                  ? { content: PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR }
+                  : undefined
+              }
               key="create-run"
               onClick={() =>
-                navigate(
-                  pipelineVersionCreateRunRoute(
-                    namespace,
-                    pipeline?.pipeline_id,
-                    pipelineVersion?.pipeline_version_id,
-                  ),
-                  {
-                    state: { lastPipeline: pipeline, lastVersion: pipelineVersion },
-                  },
-                )
+                navigate(createRunRoute(namespace), {
+                  state: { contextData: { pipeline, version: pipelineVersion } },
+                })
               }
             >
               Create run
             </DropdownItem>,
             <DropdownItem
               isAriaDisabled={!isPipelineSupported}
-              tooltipProps={{ content: PIPELINE_CREATE_SCHEDULE_TOOLTIP_ARGO_ERROR }}
+              tooltipProps={
+                !isPipelineSupported
+                  ? { content: PIPELINE_CREATE_SCHEDULE_TOOLTIP_ARGO_ERROR }
+                  : undefined
+              }
               key="create-schedule"
               onClick={() =>
-                navigate(
-                  pipelineVersionCreateRecurringRunRoute(
-                    namespace,
-                    pipeline?.pipeline_id,
-                    pipelineVersion?.pipeline_version_id,
-                  ),
-                  {
-                    state: { lastPipeline: pipeline, lastVersion: pipelineVersion },
-                  },
-                )
+                navigate(createRecurringRunRoute(namespace), {
+                  state: { contextData: { pipeline, version: pipelineVersion } },
+                })
               }
             >
               Create schedule
             </DropdownItem>,
             ...(pipeline && pipelineVersion
               ? [
-                  <Divider key="separator-view" />,
+                  <Divider component="li" key="separator-view" />,
                   <DropdownItem
                     key="view-runs"
                     onClick={() =>
@@ -133,7 +127,7 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
                   </DropdownItem>,
                 ]
               : []),
-            <Divider key="separator-delete" />,
+            <Divider component="li" key="separator-delete" />,
             <DropdownItem key="delete-pipeline-version" onClick={() => onDelete()}>
               Delete pipeline version
             </DropdownItem>,

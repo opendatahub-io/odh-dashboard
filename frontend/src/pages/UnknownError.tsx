@@ -2,11 +2,9 @@ import React from 'react';
 import {
   EmptyState,
   EmptyStateVariant,
-  EmptyStateIcon,
   EmptyStateBody,
   PageSection,
   PageSectionVariants,
-  EmptyStateHeader,
 } from '@patternfly/react-core';
 import { ErrorCircleOIcon } from '@patternfly/react-icons';
 
@@ -22,13 +20,13 @@ const UnknownError: React.FC<UnauthorizedErrorProps> = ({
   error,
   testId,
 }) => (
-  <PageSection isFilled variant={variant} data-testid={testId}>
-    <EmptyState variant={EmptyStateVariant.lg}>
-      <EmptyStateHeader
-        titleText={titleText}
-        icon={<EmptyStateIcon icon={ErrorCircleOIcon} />}
-        headingLevel="h5"
-      />
+  <PageSection hasBodyWrapper={false} isFilled variant={variant} data-testid={testId}>
+    <EmptyState
+      headingLevel="h5"
+      icon={ErrorCircleOIcon}
+      titleText={titleText}
+      variant={EmptyStateVariant.lg}
+    >
       <EmptyStateBody>{error.message}</EmptyStateBody>
     </EmptyState>
   </PageSection>

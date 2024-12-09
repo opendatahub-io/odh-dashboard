@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Flex, FlexItem } from '@patternfly/react-core';
 import { ProjectObjectType, typedBackgroundColor, typedObjectImage } from '~/concepts/design/utils';
+import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
 
 interface TitleWithIconProps {
   title: React.ReactNode;
@@ -26,7 +27,11 @@ const TitleWithIcon: React.FC<TitleWithIconProps> = ({
           height: iconSize,
         }}
       >
-        <img style={{ height: iconSize - padding * 2 }} src={typedObjectImage(objectType)} alt="" />
+        <TypedObjectIcon
+          resourceType={objectType}
+          style={{ width: iconSize - padding * 2, height: iconSize - padding * 2 }}
+          src={typedObjectImage(objectType)}
+        />
       </div>
     </FlexItem>
     <FlexItem>{title}</FlexItem>

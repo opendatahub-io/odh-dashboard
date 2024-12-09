@@ -46,6 +46,7 @@ export const setupDefaults = ({
   staticPrefix,
   regexp,
   invalidCharsMessage,
+  editableK8sName,
 }: UseK8sNameDescriptionDataConfiguration): K8sNameDescriptionFieldData => {
   let initialName = '';
   let initialDescription = '';
@@ -72,7 +73,7 @@ export const setupDefaults = ({
     k8sName: {
       value: initialK8sNameValue,
       state: {
-        immutable: initialK8sNameValue !== '',
+        immutable: !editableK8sName && initialK8sNameValue !== '',
         invalidCharacters: false,
         invalidLength: false,
         maxLength: configuredMaxLength,
@@ -80,7 +81,10 @@ export const setupDefaults = ({
         staticPrefix,
         regexp,
         invalidCharsMessage,
-        touched: false,
+        touched:
+          !!editableK8sName &&
+          initialK8sNameValue !== '' &&
+          initialK8sNameValue !== translateDisplayNameForK8s(initialName),
       },
     },
   })('name', initialName) satisfies K8sNameDescriptionFieldData;

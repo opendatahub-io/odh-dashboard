@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { Spinner, Text, TextVariants, Timestamp } from '@patternfly/react-core';
-import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
+import { Spinner, Content, ContentVariants, Timestamp } from '@patternfly/react-core';
+import { ActionsColumn, Tbody, Td, Tr, ExpandableRowContent } from '@patternfly/react-table';
 import { OffIcon, PlayIcon } from '@patternfly/react-icons';
 import { ProjectKind } from '~/k8sTypes';
 import useProjectTableRowItems from '~/pages/projects/screens/projects/useProjectTableRowItems';
@@ -12,6 +12,7 @@ import { getDescriptionFromK8sResource } from '~/concepts/k8s/utils';
 import useProjectNotebookStates from '~/pages/projects/notebook/useProjectNotebookStates';
 import { FAST_POLL_INTERVAL, POLL_INTERVAL } from '~/utilities/const';
 import useRefreshInterval from '~/utilities/useRefreshInterval';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import ProjectLink from './ProjectLink';
 
 // Plans to add other expandable columns in the future
@@ -63,20 +64,17 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
       .forEach((notebookState) => notebookState.refresh()),
   );
 
+  const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
+
   return (
     <Tbody isExpanded={!!expandColumn}>
-      <Tr>
+      <Tr isControlRow>
         <Td dataLabel="Name">
           <TableRowTitleDescription
+            boldTitle={false}
             title={
               <ResourceNameTooltip resource={project}>
-                <ProjectLink
-                  project={project}
-                  style={{
-                    fontSize: 'var(--pf-v5-global--FontSize--md)',
-                    fontWeight: 'var(--pf-v5-global--FontWeight--normal)',
-                  }}
-                />
+                <ProjectLink project={project} />
               </ResourceNameTooltip>
             }
             description={getDescriptionFromK8sResource(project)}
@@ -84,7 +82,7 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
             subtitle={
               owner ? (
                 <div>
-                  <Text component={TextVariants.small}>{owner}</Text>
+                  <Content component={ContentVariants.small}>{owner}</Content>
                 </div>
               ) : undefined
             }
@@ -97,31 +95,34 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
             'Unknown'
           )}
         </Td>
-        <Td
-          dataLabel="Workbenches"
-          compoundExpand={
-            notebookStates.length
-              ? {
-                  isExpanded: expandColumn === ExpandableColumns.WORKBENCHES,
-                  columnIndex: ExpandableColumns.WORKBENCHES,
-                  expandId: `expand-table-row-${project.metadata.name}-workbenches`,
-                  onToggle: (_, __, column) => toggleExpandColumn(column),
-                }
-              : undefined
-          }
-          data-testid="notebook-column-expand"
-        >
-          {!loaded ? (
-            <Spinner size="sm" />
-          ) : (
-            <div data-testid="notebook-column-count">
-              <PlayIcon className="pf-v5-u-mr-xs" />
-              {runningCount}
-              <OffIcon className="pf-v5-u-ml-sm pf-v5-u-mr-xs" />
-              {stoppedCount}
-            </div>
-          )}
-        </Td>
+        {workbenchEnabled && (
+          <Td
+            dataLabel="Workbenches"
+            compoundExpand={
+              notebookStates.length
+                ? {
+                    isExpanded: expandColumn === ExpandableColumns.WORKBENCHES,
+                    columnIndex: ExpandableColumns.WORKBENCHES,
+                    rowIndex: 1,
+                    expandId: `expand-table-row`,
+                    onToggle: (_, __, column) => toggleExpandColumn(column),
+                  }
+                : undefined
+            }
+            data-testid="notebook-column-expand"
+          >
+            {!loaded ? (
+              <Spinner size="sm" />
+            ) : (
+              <div data-testid="notebook-column-count">
+                <PlayIcon className="pf-v6-u-mr-xs" />
+                {runningCount}
+                <OffIcon className="pf-v6-u-ml-sm pf-v6-u-mr-xs" />
+                {stoppedCount}
+              </div>
+            )}
+          </Td>
+        )}
         <Td
           className="odh-project-table__action-column"
           isActionCell
@@ -138,14 +139,16 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
             style={{
               borderTopWidth: 1,
               borderTopStyle: 'solid',
-              borderTopColor: 'var(--pf-v5-global--BorderColor--100)',
+              borderTopColor: 'var(--pf-t--global--border--color--default)',
             }}
           >
-            <ProjectTableRowNotebookTable
-              obj={project}
-              notebookStates={notebookStates}
-              refresh={refresh}
-            />
+            <ExpandableRowContent>
+              <ProjectTableRowNotebookTable
+                obj={project}
+                notebookStates={notebookStates}
+                refresh={refresh}
+              />
+            </ExpandableRowContent>
           </Td>
         </Tr>
       ) : null}

@@ -451,6 +451,26 @@ describe('Serving Runtime List', () => {
       inferenceServiceModal.findLocationPathInput().type('test-model/');
       inferenceServiceModal.findSubmitButton().should('be.enabled');
 
+      // test invalid resource name
+      inferenceServiceModal.k8sNameDescription.findResourceEditLink().click();
+      inferenceServiceModal.k8sNameDescription
+        .findResourceNameInput()
+        .should('have.attr', 'aria-invalid', 'false');
+      inferenceServiceModal.k8sNameDescription
+        .findResourceNameInput()
+        .should('have.value', 'test-name');
+      // Invalid character k8s names fail
+      inferenceServiceModal.k8sNameDescription
+        .findResourceNameInput()
+        .clear()
+        .type('InVaLiD vAlUe!');
+      inferenceServiceModal.k8sNameDescription
+        .findResourceNameInput()
+        .should('have.attr', 'aria-invalid', 'true');
+      inferenceServiceModal.findSubmitButton().should('be.disabled');
+      inferenceServiceModal.k8sNameDescription.findResourceNameInput().clear().type('test-name');
+      inferenceServiceModal.findSubmitButton().should('be.enabled');
+
       inferenceServiceModal.findSubmitButton().click();
 
       // dry run request
@@ -458,7 +478,7 @@ describe('Serving Runtime List', () => {
         expect(interception.request.url).to.include('?dryRun=All');
         expect(interception.request.body).to.containSubset({
           metadata: {
-            name: 'test-name',
+            name: 'test-model-legacy',
             namespace: 'test-project',
             labels: { 'opendatahub.io/dashboard': 'true' },
             annotations: {

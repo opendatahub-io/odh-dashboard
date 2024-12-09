@@ -4,6 +4,7 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { sdkStore, store } from './redux/store/store';
 import App from './app/App';
+import { ThemeProvider } from './app/ThemeContext';
 import SDKInitialize from './SDKInitialize';
 import { BrowserStorageContextProvider } from './components/browserStorage/BrowserStorageContext';
 import ErrorBoundary from './components/error/ErrorBoundary';
@@ -25,7 +26,9 @@ root.render(
           <Router>
             <SDKInitialize>
               <BrowserStorageContextProvider>
-                <App />
+                <ThemeProvider>
+                  <App />
+                </ThemeProvider>
               </BrowserStorageContextProvider>
             </SDKInitialize>
           </Router>

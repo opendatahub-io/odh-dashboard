@@ -74,6 +74,7 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
           const [name, version] = option.split(' - ');
           setData('format', { name, version });
         }}
+        popperProps={{ appendTo: 'inline' }}
       />
       {registeredModelFormat && models.length !== 0 && (
         <FormHelperText>

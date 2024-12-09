@@ -17,7 +17,7 @@ const ExternalLink: React.FC<ExternalLinkProps> = ({ text, to }) => (
       fireLinkTrackingEvent('ExternalLink Clicked', { href: to, from: window.location.pathname });
     }}
     icon={<ExternalLinkAltIcon />}
-    iconPosition="right"
+    iconPosition="end"
   >
     {text}
   </Button>

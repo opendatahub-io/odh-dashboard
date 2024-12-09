@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { StackItem } from '@patternfly/react-core';
 import { MountPath, StorageData } from '~/pages/projects/types';
 import BaseStorageModal from '~/pages/projects/screens/detail/storage/BaseStorageModal';
 import SpawnerMountPathField from './SpawnerMountPathField';
@@ -60,13 +59,11 @@ const WorkbenchStorageModal: React.FC<WorkbenchStorageModalProps> = ({
       isValid={!actionInProgress && !mountPath.error && !hasDuplicateName}
       onClose={onClose}
     >
-      <StackItem>
-        <SpawnerMountPathField
-          mountPath={mountPath}
-          inUseMountPaths={existingMountPaths}
-          onChange={setMountPath}
-        />
-      </StackItem>
+      <SpawnerMountPathField
+        mountPath={mountPath}
+        inUseMountPaths={existingMountPaths}
+        onChange={setMountPath}
+      />
     </BaseStorageModal>
   );
 };

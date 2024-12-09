@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { PathProps } from '~/concepts/pipelines/content/types';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
-import { experimentRecurringRunDetailsRoute, experimentRecurringRunsRoute } from '~/routes';
+import { experimentRecurringRunsRoute, recurringRunDetailsRoute } from '~/routes';
 import DuplicateRecurringRunPage from '~/concepts/pipelines/content/createRun/DuplicateRecurringRunPage';
 
 const ExperimentDuplicateRecurringRunPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
@@ -29,7 +29,7 @@ const ExperimentDuplicateRecurringRunPage: React.FC<PathProps> = ({ breadcrumbPa
       contextPath={experimentRecurringRunsRoute(namespace, experiment?.experiment_id)}
       contextExperiment={experiment}
       detailsRedirect={(recurringRunId) =>
-        experimentRecurringRunDetailsRoute(namespace, experiment?.experiment_id, recurringRunId)
+        recurringRunDetailsRoute(namespace, recurringRunId, experiment?.experiment_id)
       }
     />
   );

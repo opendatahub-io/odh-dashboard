@@ -1,12 +1,5 @@
 import React from 'react';
-import {
-  EmptyState,
-  EmptyStateHeader,
-  EmptyStateIcon,
-  PageSection,
-  Stack,
-  StackItem,
-} from '@patternfly/react-core';
+import { EmptyState, PageSection, Stack, StackItem } from '@patternfly/react-core';
 import { WarningTriangleIcon } from '@patternfly/react-icons';
 import { InferenceServiceKind } from '~/k8sTypes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
@@ -26,15 +19,13 @@ const PerformanceTab: React.FC<PerformanceTabsProps> = ({ model }) => {
     return (
       <Stack data-testid="performance-metrics-loaded">
         <StackItem>
-          <EmptyState variant="full">
-            <EmptyStateHeader
-              titleText="Single-model serving platform model metrics are not enabled."
-              headingLevel="h4"
-              icon={<EmptyStateIcon icon={WarningTriangleIcon} />}
-              alt=""
-              data-testid="kserve-metrics-disabled"
-            />
-          </EmptyState>
+          <EmptyState
+            data-testid="kserve-metrics-disabled"
+            headingLevel="h4"
+            icon={WarningTriangleIcon}
+            titleText="Single-model serving platform model metrics are not enabled."
+            variant="full"
+          />
         </StackItem>
       </Stack>
     );
@@ -45,7 +36,7 @@ const PerformanceTab: React.FC<PerformanceTabsProps> = ({ model }) => {
       <StackItem>
         <MetricsPageToolbar />
       </StackItem>
-      <PageSection isFilled>
+      <PageSection hasBodyWrapper={false} isFilled>
         <ModelGraphs model={model} />
       </PageSection>
     </Stack>

@@ -71,7 +71,14 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
     ) {
       statusLabel = ModelRegistryStatusLabel.Unavailable;
       icon = <ExclamationTriangleIcon />;
-      color = 'gold';
+      color = 'orangered';
+    }
+    // Degrading
+    else if (degradedCondition?.status === ConditionStatus.True) {
+      statusLabel = ModelRegistryStatusLabel.Degrading;
+      icon = <InProgressIcon className="odh-u-spin" />;
+      color = 'grey';
+      popoverTitle = 'Service is degrading';
     }
     // Available
     else if (availableCondition?.status === ConditionStatus.True) {
@@ -84,13 +91,6 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
       statusLabel = ModelRegistryStatusLabel.Progressing;
       icon = <InProgressIcon className="odh-u-spin" />;
       color = 'blue';
-    }
-    // Degrading
-    else if (degradedCondition?.status === ConditionStatus.True) {
-      statusLabel = ModelRegistryStatusLabel.Degrading;
-      icon = <InProgressIcon className="odh-u-spin" />;
-      color = 'grey';
-      popoverTitle = 'Service is degrading';
     }
   }
   // Handle popover logic for Unavailable status
@@ -126,7 +126,7 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
       {...(isClickable
         ? {
             onClick: () => {
-              /* intentional no-op - Click event is handled by the Popover parent, 
+              /* intentional no-op - Click event is handled by the Popover parent,
               this prop enables clickable styles in the PatternFly Label */
             },
           }

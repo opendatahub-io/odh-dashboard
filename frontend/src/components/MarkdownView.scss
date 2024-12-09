@@ -2,10 +2,10 @@
   word-break: break-word;
 
   &--with-padding {
-    padding-bottom: var(--pf-v5-global--spacer--md);
+    padding-bottom: var(--pf-t--global--spacer--md);
 
     p {
-      margin-bottom: var(--pf-v5-global--spacer--sm);
+      margin-bottom: var(--pf-t--global--spacer--sm);
     }
   }
 
@@ -15,35 +15,46 @@
   h4,
   h5,
   h6 {
-    font-family: var(--pf-v5-global--FontFamily--heading--sans-serif);
-    font-weight: var(--pf-v5-global--FontWeight--normal);
-    margin-top: var(--pf-v5-global--spacer--md);
-    margin-bottom: var(--pf-v5-global--spacer--sm);
+    font-family: var(--pf-t--global--font--family--heading);
+    font-weight: var(--pf-t--global--font--weight--heading--default);
+    margin-top: var(--pf-t--global--spacer--md);
+    margin-bottom: var(--pf-t--global--spacer--sm);
   }
 
   h1 {
-    font-size: var(--pf-v5-global--FontSize--2xl);
+    font-size: var(--pf-t--global--font--size--heading--h1);
   }
 
   h2 {
-    font-size: var(--pf-v5-global--FontSize--xl);
+    font-size: var(--pf-t--global--font--size--heading--h2);
   }
 
   h3 {
-    font-size: var(--pf-v5-global--FontSize--lg);
+    font-size: var(--pf-t--global--font--size--heading--h3);
   }
 
   h4,
   h5,
   h6 {
-    font-size: var(--pf-v5-global--FontSize--md);
-    margin-top: var(--pf-v5-global--spacer--sm);
+    margin-top: var(--pf-t--global--spacer--sm);
+  }
+
+  h4 {
+    font-size: var(--pf-t--global--font--size--heading--h4);
+  }
+
+  h5 {
+    font-size: var(--pf-t--global--font--size--heading--h5);
+  }
+
+  h6 {
+    font-size: var(--pf-t--global--font--size--heading--h6);
   }
 
   ul,
   ol {
     margin-top: 0;
-    margin-bottom: var(--pf-v5-global--spacer--sm);
+    margin-bottom: var(--pf-t--global--spacer--sm);
   }
 
   ul {
@@ -51,33 +62,38 @@
   }
 
   li {
-    margin-left: var(--pf-v5-global--spacer--lg);
+    margin-left: var(--pf-t--global--spacer--lg);
   }
 
   code,
   pre {
-    font-family: Menlo, Monaco, Consolas, 'Courier New', monospace;
-    background-color: var(--pf-v5-global--BackgroundColor--200);
-    border-radius: var(--pf-v5-global--BorderRadius--sm);
+    font-family: var(
+      --pf-t--global--font--family--mono
+    ); // V5 didn't have a mono font-family token, v6 does; seek input from RHOAI design
+    background-color: var(--pf-t--global--background--color--secondary--default);
+    border-radius: var(--pf-t--global--border--radius--small);
   }
 
   code {
     padding: 2px 4px;
     font-size: 85%;
-    color: var(--pf-v5-global--danger-color--100);
+    color: var(--pf-t--global--color--nonstatus--red--default);
   }
 
   pre {
     display: block;
-    padding: var(--pf-v5-global--spacer--sm);
-    margin-bottom: var(--pf-v5-global--spacer--sm);
-    font-size: var(--pf-v5-global--FontSize--sm);
-    color: var(--pf-v5-global--Color--300);
+    padding: var(--pf-t--global--spacer--sm);
+    margin-bottom: var(--pf-t--global--spacer--sm);
+    font-size: var(--pf-t--global--font--size--body--sm);
+    color: var(
+      --pf-t--global--text--color--regular
+    ); // Could use --pf-t--global--text--color--subtle for a slightly lighter gray
     word-break: break-all;
     word-wrap: break-word;
-    background-color: var(--pf-v5-global--BackgroundColor--200);
-    border: var(--pf-v5-global--BorderWidth--sm) solid var(--pf-v5-global--Color--light-300);
-    border-radius: var(--pf-v5-global--BorderRadius--sm);
+    background-color: var(--pf-t--global--background--color--secondary--default);
+    border: var(--pf-t--global--border--width--regular) solid
+      var(--pf-t--global--border--color--default);
+    border-radius: var(--pf-t--global--border--radius--small);
     code {
       padding: 0;
       font-size: inherit;

@@ -85,16 +85,15 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
             maxLength={maxLengthName}
             validated={hasNameError ? 'error' : 'default'}
           />
-
-          {maxLengthName && <CharLimitHelperText limit={maxLengthName} />}
           {nameHelperText}
+          {maxLengthName && <CharLimitHelperText limit={maxLengthName} />}
         </FormGroup>
       </StackItem>
       {showK8sName && (
         <StackItem>
           <FormGroup
             label={K8sLabelName}
-            labelIcon={<ResourceNameDefinitionTooltip />}
+            labelHelp={<ResourceNameDefinitionTooltip />}
             isRequired
             fieldId={`resource-${nameFieldId}`}
           >

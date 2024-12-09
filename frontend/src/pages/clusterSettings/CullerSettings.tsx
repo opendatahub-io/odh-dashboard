@@ -136,7 +136,7 @@ const CullerSettings: React.FC<CullerSettingsProps> = ({
                     <InputGroupItem>
                       <TextInput
                         id="minute-input"
-                        style={{ maxWidth: '40px' }}
+                        style={{ maxWidth: '60px' }}
                         name="minute"
                         data-testid="minute-input"
                         type="text"
@@ -173,8 +173,7 @@ const CullerSettings: React.FC<CullerSettingsProps> = ({
           <HelperText>
             <HelperTextItem
               data-testid="culler-timeout-helper-text"
-              variant={cullerTimeout < MIN_CULLER_TIMEOUT ? 'error' : 'indeterminate'}
-              hasIcon={cullerTimeout < MIN_CULLER_TIMEOUT}
+              variant={cullerTimeout < MIN_CULLER_TIMEOUT ? 'error' : 'default'}
             >
               Note: Notebook culler timeout must be between 10 minutes and 1000 hours.
             </HelperTextItem>

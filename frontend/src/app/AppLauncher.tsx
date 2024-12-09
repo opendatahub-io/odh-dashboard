@@ -150,7 +150,7 @@ const AppLauncher: React.FC = () => {
   return (
     <Dropdown
       aria-label="Application launcher"
-      popperProps={{ position: 'right' }}
+      popperProps={{ position: 'right', appendTo: 'inline' }}
       onOpenChange={(isOpenChange) => setIsOpen(isOpenChange)}
       onSelect={onSelect}
       toggle={(toggleRef) => (

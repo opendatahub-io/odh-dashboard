@@ -63,7 +63,7 @@ describe('Cluster Settings', () => {
     pvcSizeSettings.findSubmitButton().should('be.disabled');
     pvcSizeSettings.findHint().should(be.error);
     pvcSizeSettings.findRestoreDefaultsButton().click();
-    pvcSizeSettings.findHint().should(be.indeterminate);
+    pvcSizeSettings.findHint().should(be.default);
 
     // // check culler field
     cullerSettings.findLimitedOption().click();
@@ -73,7 +73,7 @@ describe('Cluster Settings', () => {
     cullerSettings.findHint().should(be.error);
     cullerSettings.findMinutesInput().type('20');
     cullerSettings.findSubmitButton().should('be.enabled');
-    cullerSettings.findHint().should(be.indeterminate);
+    cullerSettings.findHint().should(be.default);
     cullerSettings.findUnlimitedOption().click();
     cullerSettings.findSubmitButton().should('be.disabled');
 

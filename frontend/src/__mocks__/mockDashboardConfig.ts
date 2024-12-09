@@ -18,6 +18,7 @@ export type MockDashboardConfigType = {
   disableKServe?: boolean;
   disableKServeAuth?: boolean;
   disableKServeMetrics?: boolean;
+  disableKServeRaw?: boolean;
   disableModelMesh?: boolean;
   disableAcceleratorProfiles?: boolean;
   disablePerformanceMetrics?: boolean;
@@ -49,6 +50,7 @@ export const mockDashboardConfig = ({
   disableKServe = false,
   disableKServeAuth = false,
   disableKServeMetrics = true,
+  disableKServeRaw = true,
   disableModelMesh = false,
   disableAcceleratorProfiles = false,
   disablePerformanceMetrics = false,
@@ -159,6 +161,7 @@ export const mockDashboardConfig = ({
       disableKServe,
       disableKServeAuth,
       disableKServeMetrics,
+      disableKServeRaw,
       disableModelMesh,
       disableAcceleratorProfiles,
       disableDistributedWorkloads,

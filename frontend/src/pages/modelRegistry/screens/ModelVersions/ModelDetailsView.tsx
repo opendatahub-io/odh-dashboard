@@ -1,10 +1,10 @@
 import * as React from 'react';
-import { ClipboardCopy, DescriptionList, Flex, FlexItem, Text } from '@patternfly/react-core';
+import { ClipboardCopy, DescriptionList, Flex, FlexItem, Content } from '@patternfly/react-core';
 import { RegisteredModel } from '~/concepts/modelRegistry/types';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
 import EditableTextDescriptionListGroup from '~/components/EditableTextDescriptionListGroup';
-import EditableLabelsDescriptionListGroup from '~/components/EditableLabelsDescriptionListGroup';
+import { EditableLabelsDescriptionListGroup } from '~/components/EditableLabelsDescriptionListGroup';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
 import { getLabels, mergeUpdatedLabels } from '~/pages/modelRegistry/screens/utils';
 import ModelPropertiesDescriptionListGroup from '~/pages/modelRegistry/screens/ModelPropertiesDescriptionListGroup';
@@ -51,7 +51,9 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
             labels={getLabels(rm.customProperties)}
             isArchive={isArchiveModel}
             allExistingKeys={Object.keys(rm.customProperties)}
-            saveEditedLabels={(editedLabels) =>
+            title="Labels"
+            contentWhenEmpty="No labels"
+            onLabelsChange={(editedLabels) =>
               apiState.api
                 .patchRegisteredModel(
                   {},
@@ -91,7 +93,9 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
             title="Owner"
             popover="The owner is the user who registered the model."
           >
-            <Text data-testid="registered-model-owner">{rm.owner || '-'}</Text>
+            <Content component="p" data-testid="registered-model-owner">
+              {rm.owner || '-'}
+            </Content>
           </DashboardDescriptionListGroup>
           <DashboardDescriptionListGroup
             title="Last modified at"

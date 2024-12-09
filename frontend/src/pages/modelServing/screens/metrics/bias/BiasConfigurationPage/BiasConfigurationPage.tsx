@@ -1,11 +1,5 @@
 import * as React from 'react';
-import {
-  Breadcrumb,
-  Button,
-  EmptyStateVariant,
-  PageSection,
-  PageSectionVariants,
-} from '@patternfly/react-core';
+import { Breadcrumb, Button, EmptyStateVariant, PageSection } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { BreadcrumbItemType } from '~/types';
@@ -62,7 +56,7 @@ const BiasConfigurationPage: React.FC<BiasConfigurationPageProps> = ({
         provideChildrenPadding
         empty={biasMetricConfigs.length === 0}
         emptyStatePage={
-          <PageSection isFilled variant={PageSectionVariants.light}>
+          <PageSection hasBodyWrapper={false} isFilled>
             <BiasConfigurationEmptyState
               actionButton={<Button onClick={() => setOpen(true)}>Configure metric</Button>}
               variant={EmptyStateVariant.lg}

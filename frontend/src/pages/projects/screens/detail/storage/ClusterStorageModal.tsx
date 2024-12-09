@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { StackItem } from '@patternfly/react-core';
+import { FormGroup } from '@patternfly/react-core';
 import { NotebookKind, PersistentVolumeClaimKind } from '~/k8sTypes';
 import { ForNotebookSelection, StorageData } from '~/pages/projects/types';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
@@ -11,6 +11,7 @@ import {
 import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
 import StorageNotebookConnections from '~/pages/projects/notebook/StorageNotebookConnections';
 import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
+import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 import BaseStorageModal from './BaseStorageModal';
 import ExistingConnectedNotebooks from './ExistingConnectedNotebooks';
 import { isPvcUpdateRequired } from './utils';
@@ -32,6 +33,8 @@ const ClusterStorageModal: React.FC<ClusterStorageModalProps> = ({ existingPvc, 
     ConnectedNotebookContext.EXISTING_PVC,
     existingPvc?.metadata.name,
   );
+
+  const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
 
   const {
     notebooks: removableNotebooks,
@@ -127,9 +130,9 @@ const ClusterStorageModal: React.FC<ClusterStorageModalProps> = ({ existingPvc, 
       onClose={(submitted) => onClose(submitted)}
       existingPvc={existingPvc}
     >
-      <>
-        {hasExistingNotebookConnections && (
-          <StackItem>
+      {workbenchEnabled && (
+        <>
+          {hasExistingNotebookConnections && (
             <ExistingConnectedNotebooks
               connectedNotebooks={removableNotebooks}
               onNotebookRemove={(notebook: NotebookKind) =>
@@ -138,9 +141,7 @@ const ClusterStorageModal: React.FC<ClusterStorageModalProps> = ({ existingPvc, 
               loaded={removableNotebookLoaded}
               error={removableNotebookError}
             />
-          </StackItem>
-        )}
-        <StackItem>
+          )}
           <StorageNotebookConnections
             setForNotebookData={(forNotebookData) => {
               setNotebookData(forNotebookData);
@@ -148,13 +149,13 @@ const ClusterStorageModal: React.FC<ClusterStorageModalProps> = ({ existingPvc, 
             forNotebookData={notebookData}
             connectedNotebooks={connectedNotebooks}
           />
-        </StackItem>
-        {restartNotebooks.length !== 0 && (
-          <StackItem>
-            <NotebookRestartAlert notebooks={restartNotebooks} />
-          </StackItem>
-        )}
-      </>
+          {restartNotebooks.length !== 0 && (
+            <FormGroup>
+              <NotebookRestartAlert notebooks={restartNotebooks} />
+            </FormGroup>
+          )}
+        </>
+      )}
     </BaseStorageModal>
   );
 };

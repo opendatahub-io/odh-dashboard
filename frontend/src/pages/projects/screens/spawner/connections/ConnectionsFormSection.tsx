@@ -4,8 +4,6 @@ import {
   Button,
   EmptyState,
   EmptyStateBody,
-  EmptyStateHeader,
-  EmptyStateIcon,
   Flex,
   FlexItem,
   FormSection,
@@ -212,12 +210,7 @@ export const ConnectionsFormSection: React.FC<Props> = ({
         />
       ) : (
         <Bullseye>
-          <EmptyState>
-            <EmptyStateHeader
-              icon={<EmptyStateIcon icon={PlusCircleIcon} />}
-              titleText="No connections"
-              headingLevel="h2"
-            />
+          <EmptyState headingLevel="h2" icon={PlusCircleIcon} titleText="No connections">
             <EmptyStateBody>
               Connections enable you to store and retrieve information that typically should not be
               stored in code. For example, you can store details (including credentials) for object

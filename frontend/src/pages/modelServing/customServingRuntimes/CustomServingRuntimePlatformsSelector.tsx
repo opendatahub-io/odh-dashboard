@@ -59,6 +59,7 @@ const CustomServingRuntimePlatformsSelector: React.FC<
             setSelectedPlatforms([key]);
           }
         }}
+        popperProps={{ maxWidth: undefined }}
       />
     </FormGroup>
   );

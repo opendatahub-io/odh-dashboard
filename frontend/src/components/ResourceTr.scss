@@ -1,5 +1,5 @@
 .odh-resource-tr--deleting {
   opacity: 0.5;
-  transition: var(--pf-v5-global-Transition);
+  transition: all 250ms cubic-bezier(0.42, 0, 0.58, 1); // No transition tokens exist yet, this was the value of the v5 token
   transition-property: opacity;
 }

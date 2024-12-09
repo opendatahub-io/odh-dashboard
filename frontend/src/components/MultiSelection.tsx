@@ -1,5 +1,7 @@
 import * as React from 'react';
 import {
+  Label,
+  LabelGroup,
   /**
    * The Select component is used to build another generic component here
    */
@@ -12,15 +14,15 @@ import {
   TextInputGroup,
   TextInputGroupMain,
   TextInputGroupUtilities,
-  ChipGroup,
-  Chip,
   Button,
   HelperText,
   HelperTextItem,
   SelectGroup,
   Divider,
   SelectOptionProps,
+  SelectPopperProps,
 } from '@patternfly/react-core';
+
 import { TimesIcon } from '@patternfly/react-icons/dist/esm/icons/times-icon';
 
 export type SelectionOptions = Omit<SelectOptionProps, 'id'> & {
@@ -55,6 +57,7 @@ type MultiSelectionProps = {
   /** Message to display to create a new option */
   createOptionMessage?: string | ((newValue: string) => string);
   filterFunction?: (filterText: string, options: SelectionOptions[]) => SelectionOptions[];
+  popperProps?: SelectPopperProps;
 };
 
 const defaultCreateOptionMessage = (newValue: string) => `Create "${newValue}"`;
@@ -78,6 +81,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   isCreateOptionOnTop = false,
   createOptionMessage = defaultCreateOptionMessage,
   filterFunction = defaultFilterFunction,
+  popperProps,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState<string>('');
@@ -278,23 +282,25 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
           aria-controls="select-multi-typeahead-listbox"
           placeholder={placeholder}
         >
-          <ChipGroup aria-label="Current selections">
+          <LabelGroup aria-label="Current selections">
             {selected.map((selection, index) => (
-              <Chip
+              <Label
+                variant="outline"
                 key={index}
-                onClick={(ev) => {
+                onClose={(ev) => {
                   ev.stopPropagation();
                   onSelect(selection);
                 }}
               >
                 {selection.name}
-              </Chip>
+              </Label>
             ))}
-          </ChipGroup>
+          </LabelGroup>
         </TextInputGroupMain>
         <TextInputGroupUtilities>
           {selected.length > 0 && (
             <Button
+              icon={<TimesIcon aria-hidden />}
               variant="plain"
               onClick={() => {
                 setInputValue('');
@@ -302,9 +308,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
                 textInputRef.current?.focus();
               }}
               aria-label="Clear input value"
-            >
-              <TimesIcon aria-hidden />
-            </Button>
+            />
           )}
         </TextInputGroupUtilities>
       </TextInputGroup>
@@ -323,6 +327,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
         }}
         onOpenChange={() => setOpen(false)}
         toggle={toggle}
+        popperProps={popperProps}
       >
         {createOption && isCreateOptionOnTop && groupOptions.length > 0 ? (
           <SelectList isAriaMultiselectable>
@@ -391,7 +396,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
       </Select>
       {noSelectedItems && selectionRequired && (
         <HelperText isLiveRegion>
-          <HelperTextItem variant="error" hasIcon data-testid="group-selection-error-text">
+          <HelperTextItem variant="error" data-testid="group-selection-error-text">
             {noSelectedOptionsMessage}
           </HelperTextItem>
         </HelperText>

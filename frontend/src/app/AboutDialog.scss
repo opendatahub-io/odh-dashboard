@@ -1,9 +1,0 @@
-// TODO: Remove when PF provides a fix for https://github.com/patternfly/patternfly/issues/6871
-// Override for about box height, reduce to fit the content instead of a fixed height
-// Override to use the full width of the dialog rather than wrapping early
-.odh-about-dialog {
-  height: fit-content;
-  .pf-v5-c-about-modal-box__content {
-    grid-column-end: -1;
-  }
-}

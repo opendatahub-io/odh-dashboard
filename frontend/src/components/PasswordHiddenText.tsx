@@ -1,4 +1,4 @@
-import { Button, Flex, FlexItem, Text } from '@patternfly/react-core';
+import { Button, Flex, FlexItem, Content } from '@patternfly/react-core';
 import { EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
 import React from 'react';
 
@@ -19,16 +19,15 @@ const PasswordHiddenText: React.FC<PasswordHiddenTextProps> = ({ password }) => 
       flexWrap={{ default: 'nowrap' }}
     >
       <FlexItem>
-        <Text>{passwordText}</Text>
+        <Content component="p">{passwordText}</Content>
       </FlexItem>
       <FlexItem>
         <Button
+          icon={isHidden ? <EyeSlashIcon /> : <EyeIcon />}
           variant="plain"
           onClick={() => setIsHidden(!isHidden)}
           data-testid="password-hidden-button"
-        >
-          {isHidden ? <EyeSlashIcon /> : <EyeIcon />}
-        </Button>
+        />
       </FlexItem>
     </Flex>
   );

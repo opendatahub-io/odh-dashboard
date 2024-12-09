@@ -5,8 +5,6 @@ import {
   EmptyStateActions,
   EmptyStateBody,
   EmptyStateFooter,
-  EmptyStateHeader,
-  EmptyStateIcon,
   EmptyStateVariant,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
@@ -40,7 +38,7 @@ const ModelRegistrySettings: React.FC = () => {
         title={
           <TitleWithIcon
             title="Model Registry Settings"
-            objectType={ProjectObjectType.registeredModels}
+            objectType={ProjectObjectType.modelRegistrySettings}
           />
         }
         description="Manage model registry settings for all users in your organization."
@@ -49,12 +47,13 @@ const ModelRegistrySettings: React.FC = () => {
         errorMessage="Unable to load model registries."
         empty={modelRegistries.length === 0}
         emptyStatePage={
-          <EmptyState variant={EmptyStateVariant.lg} data-testid="mr-settings-empty-state">
-            <EmptyStateHeader
-              titleText="No model registries"
-              icon={<EmptyStateIcon icon={PlusCircleIcon} />}
-              headingLevel="h5"
-            />
+          <EmptyState
+            headingLevel="h5"
+            icon={PlusCircleIcon}
+            titleText="No model registries"
+            variant={EmptyStateVariant.lg}
+            data-testid="mr-settings-empty-state"
+          >
             <EmptyStateBody>
               To get started, create a model registry. You can manage permissions after creation.
             </EmptyStateBody>

@@ -4,13 +4,13 @@ import {
   Divider,
   Flex,
   FlexItem,
-  TextVariants,
+  ContentVariants,
   Title,
 } from '@patternfly/react-core';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
 import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
 import EditableTextDescriptionListGroup from '~/components/EditableTextDescriptionListGroup';
-import EditableLabelsDescriptionListGroup from '~/components/EditableLabelsDescriptionListGroup';
+import { EditableLabelsDescriptionListGroup } from '~/components/EditableLabelsDescriptionListGroup';
 import ModelPropertiesDescriptionListGroup from '~/pages/modelRegistry/screens/ModelPropertiesDescriptionListGroup';
 import { getLabels, mergeUpdatedLabels } from '~/pages/modelRegistry/screens/utils';
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
@@ -67,7 +67,9 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             labels={getLabels(mv.customProperties)}
             isArchive={isArchiveVersion}
             allExistingKeys={Object.keys(mv.customProperties)}
-            saveEditedLabels={(editedLabels) =>
+            title="Labels"
+            contentWhenEmpty="No labels"
+            onLabelsChange={(editedLabels) =>
               apiState.api
                 .patchModelVersion(
                   {},
@@ -78,6 +80,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                 )
                 .then(refresh)
             }
+            data-testid="model-version-labels"
           />
           <ModelPropertiesDescriptionListGroup
             isArchive={isArchiveVersion}
@@ -100,7 +103,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             <InlineTruncatedClipboardCopy testId="model-version-id" textToCopy={mv.id} />
           </DashboardDescriptionListGroup>
         </DescriptionList>
-        <Title style={{ margin: '1em 0' }} headingLevel={TextVariants.h3}>
+        <Title style={{ margin: '1em 0' }} headingLevel={ContentVariants.h3}>
           Model location
         </Title>
         <DescriptionList>
@@ -164,7 +167,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
           )}
         </DescriptionList>
         <Divider style={{ marginTop: '1em' }} />
-        <Title style={{ margin: '1em 0' }} headingLevel={TextVariants.h3}>
+        <Title style={{ margin: '1em 0' }} headingLevel={ContentVariants.h3}>
           Source model format
         </Title>
         <DescriptionList>

@@ -8,8 +8,8 @@ import {
   DescriptionListTerm,
   ExpandableSection,
   Spinner,
-  Text,
-  TextVariants,
+  Content,
+  ContentVariants,
 } from '@patternfly/react-core';
 import { PodContainer } from '~/types';
 import {
@@ -21,6 +21,7 @@ import { useAppContext } from '~/app/AppContext';
 import { useWatchImages } from '~/utilities/useWatchImages';
 import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
 import useNotebookAcceleratorProfileFormState from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileFormState';
+import { formatMemory } from '~/utilities/valueUnits';
 import { getNotebookSizes } from './usePreferredNotebookSize';
 
 const NotebookServerDetails: React.FC = () => {
@@ -76,7 +77,7 @@ const NotebookServerDetails: React.FC = () => {
         <>
           <div className="odh-notebook-controller__server-details-image-name">
             <p>{image.display_name}</p>
-            {tagSoftware && <Text component={TextVariants.small}>{tagSoftware}</Text>}
+            {tagSoftware && <Content component={ContentVariants.small}>{tagSoftware}</Content>}
           </div>
           <DescriptionList>
             <DescriptionListGroup>
@@ -104,7 +105,7 @@ const NotebookServerDetails: React.FC = () => {
           <DescriptionListTerm>Limits</DescriptionListTerm>
           <DescriptionListDescription>
             {`${container.resources?.limits?.cpu ?? ''} CPU, ${
-              container.resources?.limits?.memory ?? ''
+              formatMemory(container.resources?.limits?.memory) ?? ''
             } Memory`}
           </DescriptionListDescription>
         </DescriptionListGroup>
@@ -112,7 +113,7 @@ const NotebookServerDetails: React.FC = () => {
           <DescriptionListTerm>Requests</DescriptionListTerm>
           <DescriptionListDescription>
             {`${container.resources?.requests?.cpu ?? ''} CPU, ${
-              container.resources?.requests?.memory ?? ''
+              formatMemory(container.resources?.requests?.memory) ?? ''
             } Memory`}
           </DescriptionListDescription>
         </DescriptionListGroup>

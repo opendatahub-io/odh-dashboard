@@ -1,40 +1,42 @@
 .odh-list-item {
+  // Need context from product for this custom styling/component usage. If it's a Card then should use default
+  // Card disabled styling for selectable/actionable
   &.m-disabled {
-    background-color: var(--pf-v5-global--BackgroundColor--light-200);
+    background-color: var(--pf-t--global--background--color--primary--default);
     position: relative;
     &:before {
       position: absolute;
       top: 0;
       right: 0;
       left: 0;
-      height: var(--pf-v5-c-card--m-selectable--m-selected--before--Height);
+      // Removing height styling as there is no height var for Cards except for full height cards
       content: '';
-      background-color: var(--pf-v5-global--disabled-color--200);
+      background-color: var(--pf-t--global--background--color--disabled--default);
     }
   }
   &__doc-text {
-    color: var(--pf-v5-global--Color--100);
-    font-size: var(--pf-v5-global--FontSize--sm);
+    color: var(--pf-t--global--text--color--regular);
+    font-size: var(--pf-t--global--font--size--body--sm);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   &__doc-title {
-    color: var(--pf-v5-global--Color--100);
+    color: var(--pf-t--global--text--color--regular);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   &__doc-description {
-    color: var(--pf-v5-global--Color--200);
+    color: var(--pf-t--global--text--color--subtle);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   &__link {
-    font-size: var(--pf-v5-global--FontSize--sm) !important;
+    font-size: var(--pf-t--global--font--size--body--sm) !important;
     svg {
-      font-size: var(--pf-v5-global--FontSize--xs) !important;
+      font-size: var(--pf-t--global--icon--size--font--xs) !important;
     }
   }
 
@@ -44,20 +46,20 @@
   }
 
   &__partner-badge-container {
-    margin-top: calc(var(--pf-v5-global--spacer--sm) * -1);
-    margin-bottom: var(--pf-v5-global--spacer--sm);
+    margin-top: calc(var(--pf-t--global--spacer--sm) * -1);
+    margin-bottom: var(--pf-t--global--spacer--sm);
   }
 
   &__partner-badge {
-    background-color: var(--pf-v5-global--BackgroundColor--light-300);
-    border-color: var(--pf-v5-global--BorderColor--200);
+    background-color: var(--pf-t--global--background--color--secondary--default);
+    border-color: var(--pf-t--global--border--color--on-secondary);
     border-style: solid;
     border-width: 1px;
-    border-radius: var(--pf-v5-global--spacer--md);
-    font-size: var(--pf-v5-global--FontSize--xs);
-    font-weight: var(--pf-v5-global--FontWeight--normal);
-    margin-bottom: var(--pf-v5-global--spacer--sm);
-    padding: 0 var(--pf-v5-global--spacer--sm);
+    border-radius: var(--pf-t--global--spacer--md);
+    font-size: var(--pf-t--global--font--size--body--sm);
+    font-weight: var(--pf-t--global--font--weight--body--default);
+    margin-bottom: var(--pf-t--global--spacer--sm);
+    padding: 0 var(--pf-t--global--spacer--sm);
     width: fit-content;
 
     &.m-hidden {
@@ -65,64 +67,44 @@
     }
 
     &.odh-m-doc {
-      border-color: var(--pf-v5-global--BackgroundColor--light-300);
+      border-color: var(--pf-t--global--border--color--default);
       display: flex;
       align-items: center;
 
       > svg {
-        margin-right: var(--pf-v5-global--spacer--xs);
+        margin-right: var(--pf-t--global--spacer--xs);
       }
       &.m-hidden {
         display: none;
       }
-      &.odh-m-documentation {
-        background-color: var(--pf-v5-global--palette--gold-50);
-        border-color: var(--pf-v5-global--palette--orange-100);
-        color: var(--pf-v5-global--palette--gold-700);
-      }
 
-      &.odh-m-how-to {
-        background-color: var(--pf-v5-global--palette--black-150);
-        border-color: var(--pf-v5-global--BorderColor--100);
-        color: var(--pf-v5-global--Color--100);
-      }
-
-      &.odh-m-tutorial {
-        background-color: var(--pf-v5-global--palette--cyan-50);
-        border-color: var(--pf-v5-global--palette--cyan-100);
-        color: var(--pf-v5-global--default-color--300);
-      }
-
-      &.odh-m-quick-start {
-        background-color: var(--pf-v5-global--palette--green-50);
-        border-color: var(--pf-v5-global--palette--green-100);
-        color: var(--pf-v5-global--success-color--200);
-      }
-
+      // Note for RHOAI: This class isn't applied to anything in the codebase
       &.odh-m-in-progress {
-        background-color: var(--pf-v5-global--palette--purple-50);
-        border-color: var(--pf-v5-global--palette--purple-100);
-        color: var(--pf-v5-global--palette--purple-700);
+        background-color: var(--pf-t--global--color--nonstatus--purple--default);
+        border-color: var(--pf-t--global--border--color--nonstatus--purple--default);
+        color: var(--pf-t--global--text--color--nonstatus--on-purple--default);
         > svg {
-          color: var(--pf-v5-global--palette--purple-500);
+          color: var(--pf-t--global--icon--color--nonstatus--on-purple--default);
         }
       }
 
+      // Note for RHOAI: This class isn't applied to anything in the codebase
       &.odh-m-complete {
-        background-color: var(--pf-v5-global--BackgroundColor--100);
-        border-color: var(--pf-v5-global--palette--purple-100);
-        color: var(--pf-v5-global--palette--green-500);
+        background-color: var(--pf-t--global--background--color--primary--default);
+        border-color: var(--pf-t--global--border--color--nonstatus--purple--default);
+        color: var(--pf-t--global--text--color--status--success--default);
       }
 
+      // Note for RHOAI: This class isn't applied to anything in the codebase
       &.odh-m-duration {
-        background-color: var(--pf-v5-global--BackgroundColor--100);
-        border-color: var(--pf-v5-global--BorderColor--100);
-        color: var(--pf-v5-global--Color--100);
+        background-color: var(--pf-t--global--background--color--primary--default);
+        border-color: var(--pf-t--global--border--color--nonstatus--gray--default);
+        color: var(--pf-t--global--text--color--regular);
       }
     }
   }
 
-  .pf-v5-c-card__header {
+  .pf-v6-c-card__header {
     align-items: flex-start;
     justify-content: space-between;
   }

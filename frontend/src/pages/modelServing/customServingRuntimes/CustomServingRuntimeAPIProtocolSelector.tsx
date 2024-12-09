@@ -50,6 +50,7 @@ const CustomServingRuntimeAPIProtocolSelector: React.FC<
             setSelectedAPIProtocol(enumValue);
           }
         }}
+        popperProps={{ maxWidth: undefined }}
       />
     </FormGroup>
   );

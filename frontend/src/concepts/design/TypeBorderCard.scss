@@ -1,8 +1,5 @@
 .odh-type-bordered-card {
   position: relative;
-  border-radius: 16px;
-  border: 1px solid var(--pf-v5-global--BorderColor--100);
-  padding: 1px;
   --border-color: transparent;
 
   &:after {
@@ -20,21 +17,22 @@
       display: none;
       top: unset;
       bottom: 0;
-      transform: rotate( -180deg );
+      transform: rotate(-180deg);
     }
-    &:hover {
-      cursor: pointer;
+    &:hover,
+    &:has(button:focus-within) {
+      --pf-v6-c-card--BorderColor: var(--border-color);
     }
-    &:hover, &.m-is-selected {
-      border-color: var(--selected-color);
+    &:hover,
+    &:has(button:focus-within),
+    &.m-is-selected {
       &:after {
         display: block;
         background: var(--selected-color);
       }
     }
     &.m-is-selected {
-      border-width: 2px;
-      padding: 0;
+      --pf-v6-c-card--m-clickable--m-current--BorderColor: var(--selected-color);
     }
   }
   &.project,

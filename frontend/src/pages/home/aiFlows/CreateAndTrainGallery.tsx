@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { Text, TextContent } from '@patternfly/react-core';
-import { ProjectObjectType, SectionType, typedObjectImage } from '~/concepts/design/utils';
+import { Content } from '@patternfly/react-core';
+import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
 import InfoGalleryItem from '~/concepts/design/InfoGalleryItem';
 import { SupportedArea } from '~/concepts/areas';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
@@ -18,11 +18,11 @@ const CreateAndTrainGallery: React.FC<{ onClose: () => void }> = ({ onClose }) =
         key="workbenches"
         data-testid="ai-flows-workbenches-info"
         title="Workbenches"
-        imgSrc={typedObjectImage(ProjectObjectType.notebook)}
+        resourceType={ProjectObjectType.notebook}
         sectionType={SectionType.training}
         description={
-          <TextContent>
-            <Text component="small">
+          <Content>
+            <Content component="small">
               A workbench is an instance of your development and experimentation environment.
               Specify your preferred IDE for model development and training, such as Jupyter
               Notebook; connect to data sources; add persistent storage for data retention;{' '}
@@ -36,8 +36,8 @@ const CreateAndTrainGallery: React.FC<{ onClose: () => void }> = ({ onClose }) =
                   and assign accelerators to optimize performance.
                 </span>
               )}
-            </Text>
-          </TextContent>
+            </Content>
+          </Content>
         }
         isOpen
       />,
@@ -50,15 +50,15 @@ const CreateAndTrainGallery: React.FC<{ onClose: () => void }> = ({ onClose }) =
         key="piplelines"
         data-testid="ai-flows-pipelines-info"
         title="Pipelines"
-        imgSrc={typedObjectImage(ProjectObjectType.pipeline)}
+        resourceType={ProjectObjectType.pipeline}
         sectionType={SectionType.training}
         description={
-          <TextContent>
-            <Text component="small">
+          <Content>
+            <Content component="small">
               Pipelines streamline and automate your machine learning workflows, enabling you to
               manage and reproduce complex tasks.
-            </Text>
-          </TextContent>
+            </Content>
+          </Content>
         }
         isOpen
       />,
@@ -66,15 +66,15 @@ const CreateAndTrainGallery: React.FC<{ onClose: () => void }> = ({ onClose }) =
         key="runs"
         data-testid="ai-flows-runs-info"
         title="Runs"
-        imgSrc={typedObjectImage(ProjectObjectType.pipelineRun)}
+        resourceType={ProjectObjectType.pipelineRun}
         sectionType={SectionType.training}
         description={
-          <TextContent>
-            <Text component="small">
+          <Content>
+            <Content component="small">
               A run represents a single execution of all steps in a pipeline until it is complete,
               or until a failure occurs.
-            </Text>
-          </TextContent>
+            </Content>
+          </Content>
         }
         isOpen
       />,

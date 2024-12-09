@@ -403,7 +403,7 @@ describe('Model Serving Global', () => {
         apiVersion: 'serving.kserve.io/v1beta1',
         kind: 'InferenceService',
         metadata: {
-          name: 'test-name',
+          name: 'test-model',
           namespace: 'test-project',
           labels: { 'opendatahub.io/dashboard': 'true' },
           annotations: {
@@ -468,7 +468,7 @@ describe('Model Serving Global', () => {
         apiVersion: 'serving.kserve.io/v1beta1',
         kind: 'InferenceService',
         metadata: {
-          name: 'trigger-error',
+          name: 'test-model',
           namespace: 'test-project',
           labels: { 'opendatahub.io/dashboard': 'true' },
           annotations: {

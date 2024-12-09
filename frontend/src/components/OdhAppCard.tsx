@@ -13,6 +13,7 @@ import {
   DropdownItem,
   MenuToggle,
   DropdownList,
+  Label,
 } from '@patternfly/react-core';
 import { EllipsisVIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhApplication } from '~/types';
@@ -23,6 +24,7 @@ import { addNotification, forceComponentsUpdate } from '~/redux/actions/actions'
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { useAppContext } from '~/app/AppContext';
 import { useAppDispatch } from '~/redux/hooks';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 import SupportedAppTitle from './SupportedAppTitle';
 import BrandImage from './BrandImage';
@@ -40,6 +42,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     odhApp.spec.quickStart,
     odhApp.metadata.name,
   );
+  const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
   const disabled = !odhApp.spec.isEnabled;
   const { dashboardConfig } = useAppContext();
   const dispatch = useAppDispatch();
@@ -82,8 +85,14 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   };
 
   const dropdownItems = [
-    <DropdownItem key="docs" to={odhApp.spec.docsLink} target="_blank" rel="noopener noreferrer">
-      View documentation <ExternalLinkAltIcon />
+    <DropdownItem
+      isExternalLink
+      key="docs"
+      to={odhApp.spec.docsLink}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      View documentation
     </DropdownItem>,
   ];
 
@@ -97,7 +106,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
 
   const launchClasses = classNames('odh-card__footer__link', {
     'm-hidden': !odhApp.spec.link,
-    'm-disabled': disabled,
+    'm-disabled': disabled || !workbenchEnabled,
   });
 
   const cardFooter = (
@@ -107,7 +116,9 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
           <Link
             data-testid="jupyter-app-link"
             to="/notebookController"
-            className="odh-card__footer__link"
+            className={classNames('odh-card__footer__link', {
+              'm-disabled': !workbenchEnabled,
+            })}
           >
             Launch application
           </Link>
@@ -127,7 +138,9 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   );
 
   const cardClasses = classNames('odh-card', {
-    'm-disabled': disabled,
+    // Using PF native class to prevent needing custom styling; RHOAI feel free to delete this comment
+    'pf-m-disabled': disabled,
+    'pf-m-current': selected,
   });
 
   const popoverBodyContent = (hide: () => void) => (
@@ -164,6 +177,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       bodyContent={popoverBodyContent}
       position="bottom"
     >
+      {/* Note from PatternFly: this implementation is not accessible and should use a button/interactive element instead of a plain span */}
       <span className="odh-card__disabled-text">Disabled</span>
     </Popover>
   );
@@ -175,9 +189,6 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       id={odhApp.metadata.name}
       role="listitem"
       className={cardClasses}
-      isSelected={selected}
-      isSelectable={!disabled}
-      isClickable
     >
       <CardHeader
         actions={{
@@ -208,9 +219,8 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
           hasNoOffset: true,
           className: undefined,
         }}
-        style={{ paddingRight: 0 }}
       >
-        <BrandImage src={odhApp.spec.img} alt={odhApp.spec.displayName} data-testid="brand-image" />
+        <BrandImage src={odhApp.spec.img} alt="" data-testid="brand-image" />
       </CardHeader>
       <SupportedAppTitle odhApp={odhApp} />
       <CardBody>
@@ -219,7 +229,9 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
         odhApp.spec.support !== ODH_PRODUCT_NAME ? (
           <div className="odh-card__partner-badge-container">
             <span className="odh-card__partner-badge" data-testid="partner-badge">
-              {odhApp.spec.category}
+              <Label className={disabled ? 'pf-m-disabled' : undefined} variant="outline">
+                {odhApp.spec.category}
+              </Label>
             </span>
           </div>
         ) : null}

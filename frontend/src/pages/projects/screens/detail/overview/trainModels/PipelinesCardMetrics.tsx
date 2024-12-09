@@ -4,11 +4,8 @@ import {
   CardFooter,
   EmptyState,
   EmptyStateBody,
-  EmptyStateHeader,
-  EmptyStateIcon,
   Spinner,
-  Text,
-  TextContent,
+  Content,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
@@ -88,23 +85,19 @@ const PipelinesCardMetrics: React.FC = () => {
 
   if (loadError) {
     return (
-      <EmptyState variant="xs">
-        <EmptyStateHeader
-          icon={
-            <EmptyStateIcon
-              icon={() => (
-                <ExclamationCircleIcon
-                  style={{
-                    color: 'var(--pf-v5-global--danger-color--100)',
-                    width: '32px',
-                    height: '32px',
-                  }}
-                />
-              )}
-            />
-          }
-          headingLevel="h3"
-        />
+      <EmptyState
+        headingLevel="h3"
+        icon={() => (
+          <ExclamationCircleIcon
+            style={{
+              color: 'var(--pf-t--global--icon--color--status--danger--default)',
+              width: '32px',
+              height: '32px',
+            }}
+          />
+        )}
+        variant="xs"
+      >
         <EmptyStateBody>{loadError.message}</EmptyStateBody>
       </EmptyState>
     );
@@ -112,11 +105,7 @@ const PipelinesCardMetrics: React.FC = () => {
 
   if (!loaded) {
     return (
-      <EmptyState variant="xs">
-        <EmptyStateHeader
-          icon={<EmptyStateIcon icon={() => <Spinner size="lg" />} />}
-          headingLevel="h3"
-        />
+      <EmptyState headingLevel="h3" icon={() => <Spinner size="lg" />} variant="xs">
         <EmptyStateBody>Loading...</EmptyStateBody>
       </EmptyState>
     );
@@ -145,13 +134,13 @@ const PipelinesCardMetrics: React.FC = () => {
       ) : (
         <>
           <CardBody>
-            <TextContent>
-              <Text component="small">
+            <Content>
+              <Content component="small">
                 Pipelines are platforms for building and deploying portable and scalable
                 machine-learning (ML) workflows. You can import a pipeline or create one in a
                 workbench.
-              </Text>
-            </TextContent>
+              </Content>
+            </Content>
           </CardBody>
           <CardFooter>
             <ImportPipelineButton variant="link" isInline />

@@ -19,38 +19,21 @@ import { MOUNT_PATH_PREFIX } from './const';
 export const useCreateStorageObject = (
   existingData?: PersistentVolumeClaimKind,
   formData?: StorageData,
-): [
-  data: StorageData,
-  setData: UpdateObjectAtPropAndValue<StorageData>,
-  resetDefaults: () => void,
-] => {
+): [data: StorageData, setData: UpdateObjectAtPropAndValue<StorageData>] => {
   const size = useDefaultPvcSize();
-  const createDataState = useGenericObjectState<StorageData>({
-    name: '',
-    description: '',
-    size,
-  });
-  const [, setCreateData] = createDataState;
 
-  const existingName =
-    formData?.name || (existingData ? getDisplayNameFromK8sResource(existingData) : '');
-  const existingDescription =
-    formData?.description || (existingData ? getDescriptionFromK8sResource(existingData) : '');
-  const existingSize =
-    formData?.size || (existingData ? existingData.spec.resources.requests.storage : size);
-  const existingStorageClassName =
-    formData?.storageClassName || existingData?.spec.storageClassName;
+  const createStorageData = {
+    name: formData?.name || (existingData ? getDisplayNameFromK8sResource(existingData) : ''),
+    k8sName: formData?.k8sName || (existingData ? existingData.metadata.name : ''),
+    description:
+      formData?.description || (existingData ? getDescriptionFromK8sResource(existingData) : ''),
+    size: formData?.size || (existingData ? existingData.spec.resources.requests.storage : size),
+    storageClassName: formData?.storageClassName || existingData?.spec.storageClassName,
+  };
 
-  React.useEffect(() => {
-    if (existingName) {
-      setCreateData('name', existingName);
-      setCreateData('description', existingDescription);
-      setCreateData('size', existingSize);
-      setCreateData('storageClassName', existingStorageClassName);
-    }
-  }, [existingName, existingDescription, setCreateData, existingSize, existingStorageClassName]);
+  const [data, setData] = useGenericObjectState<StorageData>(createStorageData);
 
-  return createDataState;
+  return [data, setData];
 };
 
 export const useCreateStorageObjectForNotebook = (
