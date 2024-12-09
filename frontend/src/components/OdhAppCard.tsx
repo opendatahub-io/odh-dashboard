@@ -24,12 +24,12 @@ import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { useAppContext } from '~/app/AppContext';
 import { useAppDispatch } from '~/redux/hooks';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { isInternalRouteIntegrationsApp } from '~/utilities/utils';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 import SupportedAppTitle from './SupportedAppTitle';
 import BrandImage from './BrandImage';
 
 import './OdhCard.scss';
-import { isInternalRouteIntegrationsApp } from '~/utilities/utils';
 
 type OdhAppCardProps = {
   odhApp: OdhApplication;
@@ -148,7 +148,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       >
         here
       </Button>
-      {!isInternalRouteIntegrationsApp(odhApp.spec.internalRoute) ?
+      {!isInternalRouteIntegrationsApp(odhApp.spec.internalRoute) ? (
         <>
           . To remove card click&nbsp;
           <Button
@@ -162,7 +162,8 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
             here
           </Button>
           .
-        </> : null}
+        </>
+      ) : null}
     </div>
   );
 
@@ -223,8 +224,8 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       <SupportedAppTitle odhApp={odhApp} />
       <CardBody>
         {!dashboardConfig.spec.dashboardConfig.disableISVBadges &&
-          odhApp.spec.category &&
-          odhApp.spec.support !== ODH_PRODUCT_NAME ? (
+        odhApp.spec.category &&
+        odhApp.spec.support !== ODH_PRODUCT_NAME ? (
           <div className="odh-card__partner-badge-container">
             <span className="odh-card__partner-badge" data-testid="partner-badge">
               {odhApp.spec.category}

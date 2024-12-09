@@ -14,7 +14,7 @@ import {
   Text,
   TextContent,
   Tooltip,
-  Skeleton
+  Skeleton,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhApplication } from '~/types';
@@ -59,9 +59,11 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
       </Button>
     );
     if (!enablement || !canInstall) {
-      return <Tooltip content="This feature has been disabled by an administrator.">
-        <span>{button}</span>
-      </Tooltip>;
+      return (
+        <Tooltip content="This feature has been disabled by an administrator.">
+          <span>{button}</span>
+        </Tooltip>
+      );
     }
     return button;
   };
@@ -88,27 +90,30 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
       </DrawerHead>
       {selectedApp.spec.getStartedLink && (
         <DrawerPanelBody>
-          {!loaded ? <Skeleton /> : <ActionList>
-            <ActionListItem>
-              <Button
-                icon={<ExternalLinkAltIcon />}
-                onClick={() =>
-                  fireMiscTrackingEvent('Explore card get started clicked', {
-                    name: selectedApp.metadata.name,
-                  })
-                }
-                iconPosition="right"
-                href={selectedApp.spec.getStartedLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                component="a"
-              >
-                Get started
-              </Button>
-            </ActionListItem>
-            <ActionListItem>{renderEnableButton()}</ActionListItem>
-          </ActionList>}
-
+          {!loaded ? (
+            <Skeleton />
+          ) : (
+            <ActionList>
+              <ActionListItem>
+                <Button
+                  icon={<ExternalLinkAltIcon />}
+                  onClick={() =>
+                    fireMiscTrackingEvent('Explore card get started clicked', {
+                      name: selectedApp.metadata.name,
+                    })
+                  }
+                  iconPosition="right"
+                  href={selectedApp.spec.getStartedLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  component="a"
+                >
+                  Get started
+                </Button>
+              </ActionListItem>
+              <ActionListItem>{renderEnableButton()}</ActionListItem>
+            </ActionList>
+          )}
         </DrawerPanelBody>
       )}
       <Divider />

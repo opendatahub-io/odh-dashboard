@@ -10,12 +10,12 @@ import {
   TextInputTypes,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { isEmpty, values } from 'lodash-es';
 import { OdhApplication } from '~/types';
 import { EnableApplicationStatus, useEnableApplication } from '~/utilities/useEnableApplication';
 import { asEnumMember } from '~/utilities/utils';
 import EnableVariable from './EnableVariable';
 import './EnableModal.scss';
-import { isEmpty, values } from 'lodash-es';
 
 type EnableModalProps = {
   selectedApp: OdhApplication;
@@ -46,7 +46,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
       ...enableValues,
       [key]: value,
     };
-    if (values(updatedValues).some(value => isEmpty(value))) {
+    if (values(updatedValues).some((val) => isEmpty(val))) {
       setIsEnableValuesHasEmptyValue(true);
     } else {
       setIsEnableValuesHasEmptyValue(false);
@@ -68,7 +68,8 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
       selectedApp.spec.shownOnEnabledPage = true;
       /* eslint-enable no-param-reassign */
 
-      handleClose();
+      setIsEnableValuesHasEmptyValue(true);
+      onClose();
     }
     if (validationInProgress && validationStatus === EnableApplicationStatus.FAILED) {
       setValidationInProgress(false);
@@ -89,7 +90,6 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
   const handleClose = () => {
     if (!validationInProgress) {
       setEnableValues({});
-      setIsEnableValuesHasEmptyValue(true);
     }
     onClose();
   };
