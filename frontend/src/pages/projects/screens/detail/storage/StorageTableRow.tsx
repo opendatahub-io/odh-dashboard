@@ -167,7 +167,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
           </Content>
         </Td>
         {workbenchEnabled && (
-          <Td dataLabel="Connected workbenches">
+          <Td dataLabel="Workbench connections">
             <ConnectedNotebookNames
               context={ConnectedNotebookContext.EXISTING_PVC}
               relatedResourceName={obj.pvc.metadata.name}
