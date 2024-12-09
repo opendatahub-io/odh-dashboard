@@ -15,8 +15,7 @@ export const isAppEnabled = (app: NIMAccountKind): boolean => {
 export const getNIMAccount = async (
   fastify: KubeFastifyInstance,
 ): Promise<NIMAccountKind | undefined> => {
-  const { customObjectsApi } = fastify.kube;
-  const { namespace } = fastify.kube;
+  const { customObjectsApi, namespace } = fastify.kube;
   try {
     const response = await customObjectsApi.listNamespacedCustomObject(
       'nim.opendatahub.io',
@@ -36,8 +35,7 @@ export const getNIMAccount = async (
 };
 
 export const createNIMAccount = async (fastify: KubeFastifyInstance): Promise<NIMAccountKind> => {
-  const { customObjectsApi } = fastify.kube;
-  const { namespace } = fastify.kube;
+  const { customObjectsApi, namespace } = fastify.kube;
   const account = {
     apiVersion: 'nim.opendatahub.io/v1',
     kind: 'Account',
@@ -68,8 +66,7 @@ export const createNIMSecret = async (
   fastify: KubeFastifyInstance,
   enableValues: { [key: string]: string },
 ): Promise<{ secret: SecretKind; createdNew: boolean }> => {
-  const { coreV1Api } = fastify.kube;
-  const { namespace } = fastify.kube;
+  const { coreV1Api, namespace } = fastify.kube;
   const nimSecret = {
     apiVersion: 'v1',
     kind: 'Secret',
