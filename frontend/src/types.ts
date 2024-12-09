@@ -668,10 +668,3 @@ export type IntegrationAppStatus = {
   canInstall: boolean;
   error: string;
 };
-
-export type NIMAccountConstants = {
-  nimSecretKey: string;
-  nimNGCSecretKey: string;
-  nimConfigMapKey: string;
-  templateName: string;
-};
