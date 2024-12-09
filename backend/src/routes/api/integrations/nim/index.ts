@@ -60,9 +60,43 @@ module.exports = async (fastify: KubeFastifyInstance) => {
         reply: FastifyReply,
       ) => {
         const enableValues = request.body;
+
         try {
           const { createdNew } = await createNIMSecret(fastify, enableValues);
-          if (createdNew) {
+          // If the secret already exists, ensure the account is created or retrieved
+          if (!createdNew) {
+            try {
+              const account = await getNIMAccount(fastify);
+              if (!account) {
+                // If the account does not exist, create it
+                const response = await createNIMAccount(fastify);
+                const isEnabled = isAppEnabled(response);
+                reply.send({
+                  isInstalled: true,
+                  isEnabled: isEnabled,
+                  canInstall: false,
+                  error: '',
+                });
+              } else {
+                // If the account exists, get its status
+                const isEnabled = isAppEnabled(account);
+                reply.send({
+                  isInstalled: true,
+                  isEnabled: isEnabled,
+                  canInstall: false,
+                  error: '',
+                });
+              }
+            } catch (accountError: any) {
+              const message =
+                accountError.response?.statusCode === 409
+                  ? 'NIM account already exists.'
+                  : `Failed to create or retrieve NIM account: ${accountError.response?.body?.message}`;
+              fastify.log.error(message);
+              reply.status(accountError.response?.statusCode || 500).send(new Error(message));
+            }
+          } else {
+            // If the secret is newly created, ensure the account is created
             try {
               const response = await createNIMAccount(fastify);
               const isEnabled = isAppEnabled(response);
@@ -73,37 +107,9 @@ module.exports = async (fastify: KubeFastifyInstance) => {
                 error: '',
               });
             } catch (accountError: any) {
-              if (accountError.response?.statusCode === 409) {
-                fastify.log.error(`NIM account already exists, skipping creation.`);
-                reply.status(409).send(new Error(`NIM account already exists, skipping creation.`));
-              } else {
-                fastify.log.error(
-                  `Failed to create NIM account. ${accountError.response?.body?.message}`,
-                );
-                reply
-                  .status(accountError.response?.statusCode || 500)
-                  .send(
-                    new Error(
-                      `Failed to create NIM account, ${accountError.response?.body?.message}`,
-                    ),
-                  );
-              }
-            }
-          } else {
-            // Secret was updated, so we skip creating the NIM account but still need to get the status.
-            const account = await getNIMAccount(fastify);
-            if (account) {
-              const isEnabled = isAppEnabled(account);
-              reply.send({
-                isInstalled: true,
-                isEnabled: isEnabled,
-                canInstall: false,
-                error: '',
-              });
-            } else {
-              // Account not found after the secret was updated
-              fastify.log.error(`NIM account not found after updating secret.`);
-              reply.status(404).send(new Error('NIM account not found.'));
+              const message = `Failed to create NIM account: ${accountError.response?.body?.message}`;
+              fastify.log.error(message);
+              reply.status(accountError.response?.statusCode || 500).send(new Error(message));
             }
           }
         } catch (secretError: any) {
@@ -115,7 +121,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
               `Failed to create NIM secret. ${secretError.response?.body?.message}`,
             );
             reply
-              .status(secretError.response.statusCode)
+              .status(secretError.response?.statusCode || 500)
               .send(
                 new Error(`Failed to create NIM secret, ${secretError.response?.body?.message}`),
               );
