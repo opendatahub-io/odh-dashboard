@@ -45,7 +45,7 @@ describe('Verify a Jupyter Notebook can be launched directly from the Data Scien
 
     // Verify that the server is running
     cy.step('Verify the Jupyter Notebook pod is ready');
-    waitForPodReady('jupyter-nb');
+    waitForPodReady('jupyter-nb', '40s');
 
     // Expand  the log
     cy.step('Expand the Event log');
