@@ -4,7 +4,6 @@ import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { ProjectKind, SecretKind, ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
 import { deletePvc, deleteSecret, getTemplate, listAccounts } from '~/api';
 import { fetchInferenceServiceCount } from '~/pages/modelServing/screens/projects/utils';
-import { NIMAccountConstants } from '~/types';
 
 export const getNGCSecretType = (isNGC: boolean): string =>
   isNGC ? 'kubernetes.io/dockerconfigjson' : 'Opaque';
@@ -61,13 +60,12 @@ export const isNIMServingRuntimeTemplateAvailable = async (
   dashboardNamespace: string,
 ): Promise<boolean> => {
   try {
-    const constants = await fetchNIMAccountConstants(dashboardNamespace);
-    if (!constants) {
+    const templateName = await fetchNIMAccountTemplateName(dashboardNamespace);
+    if (!templateName) {
       // eslint-disable-next-line no-console
-      console.error('No NIM account constants available.');
+      console.error('No NIM account template available.');
       return false;
     }
-    const { templateName } = constants;
     await getTemplate(templateName, dashboardNamespace);
     return true;
   } catch (error) {
@@ -191,9 +189,9 @@ export const getNIMResourcesToDelete = async (
   return resourcesToDelete;
 };
 
-export const fetchNIMAccountConstants = async (
+export const fetchNIMAccountTemplateName = async (
   dashboardNamespace: string,
-): Promise<NIMAccountConstants | undefined> => {
+): Promise<string | undefined> => {
   try {
     const accounts = await listAccounts(dashboardNamespace);
     if (accounts.length === 0) {
@@ -201,31 +199,18 @@ export const fetchNIMAccountConstants = async (
     }
 
     const nimAccount = accounts[0];
-    const nimSecretName = nimAccount.spec.apiKeySecret.name;
-
-    if (!nimSecretName || !nimAccount.status) {
-      throw new Error('Failed to retrieve NIM account details.');
+    if (!nimAccount.status || !nimAccount.status.runtimeTemplate?.name) {
+      throw new Error('Failed to retrieve the NIM account template name.');
     }
 
-    const { nimPullSecret, nimConfig, runtimeTemplate } = nimAccount.status;
-
-    if (!nimPullSecret?.name || !nimConfig?.name || !runtimeTemplate?.name) {
-      throw new Error('Required NIM account fields are missing.');
-    }
-
-    return {
-      nimSecretKey: 'apiKeySecret',
-      nimNGCSecretKey: 'nimPullSecret',
-      nimConfigMapKey: 'nimConfig',
-      templateName: runtimeTemplate.name,
-    };
+    return nimAccount.status.runtimeTemplate.name;
   } catch (e) {
     if (e instanceof Error) {
       // eslint-disable-next-line no-console
-      console.error(`Error fetching NIM account constants: ${e.message}`);
+      console.error(`Error fetching NIM account template name: ${e.message}`);
     } else {
       // eslint-disable-next-line no-console
-      console.error(`Error fetching NIM account constants: ${String(e)}`);
+      console.error(`Error fetching NIM account template name: ${String(e)}`);
     }
     return undefined;
   }

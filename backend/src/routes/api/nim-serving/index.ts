@@ -31,7 +31,12 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         }
 
         // Get the resource name
-        const resourceName = resourceInfo.path.reduce((acc, key) => acc?.[key], account as any);
+        const resourceName = resourceInfo.path.reduce((acc, key) => {
+          if (acc && key in acc) {
+            return acc[key as keyof typeof acc];
+          }
+          return undefined;
+        }, account as Record<string, any> | undefined);
         if (!resourceName) {
           fastify.log.error(`Resource name for '${nimResource}' not found in account CR.`);
           throw createCustomError('Not found', `${nimResource} name not found in account`, 404);

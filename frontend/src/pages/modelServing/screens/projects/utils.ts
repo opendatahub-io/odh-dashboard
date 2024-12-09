@@ -48,11 +48,7 @@ import {
 import { isDataConnectionAWS } from '~/pages/projects/screens/detail/data-connections/utils';
 import { containsOnlySlashes, isS3PathValid, removeLeadingSlash } from '~/utilities/string';
 import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
-import {
-  fetchNIMAccountConstants,
-  getNIMData,
-  getNIMResource,
-} from '~/pages/modelServing/screens/projects/nimUtils';
+import { getNIMData, getNIMResource } from '~/pages/modelServing/screens/projects/nimUtils';
 import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import { Connection } from '~/concepts/connectionTypes/types';
 
@@ -638,17 +634,8 @@ export interface ModelInfo {
   updatedDate: string;
 }
 
-export const fetchNIMModelNames = async (
-  dashboardNamespace: string,
-): Promise<ModelInfo[] | undefined> => {
-  const constants = await fetchNIMAccountConstants(dashboardNamespace);
-  if (!constants) {
-    // eslint-disable-next-line no-console
-    console.error('No NIM account constants available.');
-    return undefined;
-  }
-  const { nimConfigMapKey } = constants;
-  const configMap = await getNIMResource<ConfigMapKind>(nimConfigMapKey);
+export const fetchNIMModelNames = async (): Promise<ModelInfo[] | undefined> => {
+  const configMap = await getNIMResource<ConfigMapKind>('nimConfig');
   if (configMap.data && Object.keys(configMap.data).length > 0) {
     const modelInfos: ModelInfo[] = [];
     for (const [key, value] of Object.entries(configMap.data)) {

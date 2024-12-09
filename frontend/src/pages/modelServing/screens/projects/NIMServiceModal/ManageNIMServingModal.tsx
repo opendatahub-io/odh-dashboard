@@ -52,7 +52,7 @@ import { useDashboardNamespace } from '~/redux/selectors';
 import { getServingRuntimeFromTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
 import { useNIMPVC } from '~/pages/modelServing/screens/projects/NIMServiceModal/useNIMPVC';
 import AuthServingRuntimeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
-import { useNIMAccountConstants } from '~/pages/modelServing/screens/projects/useNIMAccountConstants';
+import { useNIMTemplateName } from '~/pages/modelServing/screens/projects/useNIMTemplateName';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
 const NIM_NGC_SECRET_NAME = 'ngc-secret';
@@ -153,25 +153,22 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     !baseInputValueValid;
 
   const { dashboardNamespace } = useDashboardNamespace();
-  const constants = useNIMAccountConstants();
+  const templateName = useNIMTemplateName();
 
   React.useEffect(() => {
     if (editInfo?.servingRuntimeEditInfo?.servingRuntime) {
       setServingRuntimeSelected(editInfo.servingRuntimeEditInfo.servingRuntime);
     } else {
       const fetchNIMServingRuntimeTemplate = async () => {
-        if (constants?.templateName) {
-          const nimTemplate = await getNIMServingRuntimeTemplate(
-            dashboardNamespace,
-            constants.templateName,
-          );
+        if (templateName) {
+          const nimTemplate = await getNIMServingRuntimeTemplate(dashboardNamespace, templateName);
           setServingRuntimeSelected(getServingRuntimeFromTemplate(nimTemplate));
         }
       };
 
       fetchNIMServingRuntimeTemplate();
     }
-  }, [constants, dashboardNamespace, editInfo]);
+  }, [templateName, dashboardNamespace, editInfo]);
 
   const isSecretNeeded = async (ns: string, secretName: string): Promise<boolean> => {
     try {
@@ -256,13 +253,11 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
         ];
 
         if (!editInfo) {
-          if (constants?.nimSecretKey && constants.nimNGCSecretKey) {
-            if (await isSecretNeeded(namespace, NIM_SECRET_NAME)) {
-              promises.push(createNIMSecret(namespace, constants.nimSecretKey, false, false));
-            }
-            if (await isSecretNeeded(namespace, NIM_NGC_SECRET_NAME)) {
-              promises.push(createNIMSecret(namespace, constants.nimNGCSecretKey, true, false));
-            }
+          if (await isSecretNeeded(namespace, NIM_SECRET_NAME)) {
+            promises.push(createNIMSecret(namespace, 'apiKeySecret', false, false));
+          }
+          if (await isSecretNeeded(namespace, NIM_NGC_SECRET_NAME)) {
+            promises.push(createNIMSecret(namespace, 'nimPullSecret', true, false));
           }
           promises.push(createNIMPVC(namespace, nimPVCName, pvcSize, false));
         } else if (pvc && pvc.spec.resources.requests.storage !== pvcSize) {
