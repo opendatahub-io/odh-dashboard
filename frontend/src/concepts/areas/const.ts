@@ -27,7 +27,7 @@ export const allFeatureFlags: string[] = Object.keys({
   disableAcceleratorProfiles: false,
   disableDistributedWorkloads: false,
   disableModelRegistry: false,
-  disableModelRegistrySecureDB: true,
+  disableModelRegistrySecureDBEA: true,
   disableServingRuntimeParams: false,
   disableConnectionTypes: false,
   disableStorageClasses: false,
@@ -127,7 +127,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     reliantAreas: [SupportedArea.K_SERVE, SupportedArea.MODEL_SERVING],
   },
   [SupportedArea.MODEL_REGISTRY_SECURE_DB]: {
-    featureFlags: ['disableModelRegistrySecureDB'],
+    featureFlags: ['disableModelRegistrySecureDBEA'],
     reliantAreas: [SupportedArea.MODEL_REGISTRY],
   },
   [SupportedArea.NIM_MODEL]: {
