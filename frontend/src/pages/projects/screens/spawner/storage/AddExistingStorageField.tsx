@@ -92,7 +92,7 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
         placeholder={placeholderText}
         noOptionsFoundMessage={(filter) => `No persistent storage was found for "${filter}"`}
         popperProps={{ direction: selectDirection, appendTo: menuAppendTo }}
-        isDisabled={!loaded || storages.length === 0}
+        isDisabled={!loaded}
         data-testid="persistent-storage-typeahead"
       />
     </FormGroup>

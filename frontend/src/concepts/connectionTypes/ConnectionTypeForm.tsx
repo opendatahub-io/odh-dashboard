@@ -146,7 +146,7 @@ const ConnectionTypeForm: React.FC<Props> = ({
               setConnectionType?.(selection);
             }
           }}
-          isDisabled={isPreview || !options || options.length <= 1}
+          isDisabled={isPreview || !options}
           placeholder={
             isPreview && !connectionType?.metadata.annotations?.['openshift.io/display-name']
               ? 'Unspecified'
