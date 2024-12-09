@@ -1189,6 +1189,7 @@ export type DashboardCommonConfig = {
   disableAcceleratorProfiles: boolean;
   disableDistributedWorkloads: boolean;
   disableModelRegistry: boolean;
+  disableModelRegistrySecureDBEA: boolean;
   disableServingRuntimeParams: boolean;
   disableConnectionTypes: boolean;
   disableStorageClasses: boolean;

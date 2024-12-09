@@ -25,6 +25,7 @@ export type MockDashboardConfigType = {
   disableTrustyBiasMetrics?: boolean;
   disableDistributedWorkloads?: boolean;
   disableModelRegistry?: boolean;
+  disableModelRegistrySecureDBEA?: boolean;
   disableServingRuntimeParams?: boolean;
   disableConnectionTypes?: boolean;
   disableStorageClasses?: boolean;
@@ -57,6 +58,7 @@ export const mockDashboardConfig = ({
   disableTrustyBiasMetrics = false,
   disableDistributedWorkloads = false,
   disableModelRegistry = false,
+  disableModelRegistrySecureDBEA = true,
   disableServingRuntimeParams = false,
   disableConnectionTypes = true,
   disableStorageClasses = false,
@@ -166,6 +168,7 @@ export const mockDashboardConfig = ({
       disableAcceleratorProfiles,
       disableDistributedWorkloads,
       disableModelRegistry,
+      disableModelRegistrySecureDBEA,
       disableServingRuntimeParams,
       disableConnectionTypes,
       disableStorageClasses,
