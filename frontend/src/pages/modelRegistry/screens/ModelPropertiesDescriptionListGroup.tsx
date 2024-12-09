@@ -44,7 +44,7 @@ const ModelPropertiesDescriptionListGroup: React.FC<ModelPropertiesDescriptionLi
   const allExistingKeys = Object.keys(customProperties);
 
   const requiredAsterisk = (
-    <span aria-hidden="true" className={text.dangerColor_100}>
+    <span aria-hidden="true" className={text.textColorStatusDanger}>
       {' *'}
     </span>
   );
@@ -55,7 +55,6 @@ const ModelPropertiesDescriptionListGroup: React.FC<ModelPropertiesDescriptionLi
       action={
         !isArchive && (
           <Button
-            isInline
             variant="link"
             data-testid="add-property-button"
             icon={<PlusCircleIcon />}

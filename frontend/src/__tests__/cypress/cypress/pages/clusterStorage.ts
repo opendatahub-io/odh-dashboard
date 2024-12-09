@@ -86,12 +86,12 @@ class ClusterStorageModal extends Modal {
   }
 
   private findPVSizeSelectButton() {
-    return cy.findByTestId('value-unit-select');
+    return this.find().findByTestId('value-unit-select');
   }
 
   selectPVSize(name: string) {
-    this.findPVSizeSelectButton().click();
-    cy.findByRole('menuitem', { name, hidden: true }).click();
+    this.findPVSizeSelectButton().findDropdownItem(name).click();
+    return this;
   }
 
   shouldHavePVSizeSelectValue(name: string) {
@@ -125,6 +125,10 @@ class ClusterStorageModal extends Modal {
 
   findStorageClassSelect() {
     return this.find().findByTestId('storage-classes-selector');
+  }
+
+  findStorageClassOption(name: string) {
+    return cy.get('#storage-classes-selector').findByText(name);
   }
 
   findStorageClassDeprecatedWarning() {

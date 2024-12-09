@@ -8,6 +8,8 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import { DOC_LINK, ODH_PRODUCT_NAME } from '~/utilities/const';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 import { useDocResources } from '~/concepts/docResources/useDocResources';
+import { ProjectObjectType } from '~/concepts/design/utils';
+import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import {
   DOC_SORT_KEY,
   DOC_SORT_ORDER_KEY,
@@ -125,7 +127,7 @@ const LearningCenter: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="Resources"
+      title={<TitleWithIcon title="Resources" objectType={ProjectObjectType.resources} />}
       description={
         <>
           {description}
@@ -136,7 +138,12 @@ const LearningCenter: React.FC = () => {
       loadError={loadError}
       empty={false}
     >
-      <div className="odh-dashboard__page-content" data-id="page-content" ref={observe}>
+      <div
+        style={{ height: '100%' }}
+        className="odh-dashboard__page-content"
+        data-id="page-content"
+        ref={observe}
+      >
         <LearningCenterFilters
           docApps={docs}
           collapsible={filtersCollapsible}

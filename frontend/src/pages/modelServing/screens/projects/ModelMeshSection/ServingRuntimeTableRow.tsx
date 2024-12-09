@@ -90,7 +90,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
 
   return (
     <Tbody isExpanded={!!expandedColumn}>
-      <Tr>
+      <Tr isControlRow>
         <EmptyTableCellForAlignment />
         <Td
           dataLabel="Model Server Name"

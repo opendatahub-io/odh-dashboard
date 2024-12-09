@@ -1,14 +1,6 @@
 import * as React from 'react';
-import {
-  Alert,
-  Button,
-  Form,
-  FormAlert,
-  Modal,
-  ModalVariant,
-  Spinner,
-  TextInputTypes,
-} from '@patternfly/react-core';
+import { Alert, Button, Form, FormAlert, Spinner, TextInputTypes } from '@patternfly/react-core';
+import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { isEmpty, values } from 'lodash-es';
 import { OdhApplication } from '~/types';

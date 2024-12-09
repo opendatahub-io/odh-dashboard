@@ -54,7 +54,7 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
         isOpen={isOpenActionDropdown}
         onSelect={() => setOpenActionDropdown(false)}
         onOpenChange={(open) => setOpenActionDropdown(open)}
-        popperProps={{ position: 'right' }}
+        popperProps={{ position: 'right', appendTo: 'inline' }}
         toggle={(toggleRef) => (
           <MenuToggle
             variant={ButtonVariant.secondary}

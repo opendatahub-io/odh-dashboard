@@ -1,6 +1,7 @@
 import React from 'react';
 import '@patternfly/patternfly/patternfly.min.css';
 import '@patternfly/patternfly/patternfly-addons.css';
+import '@patternfly/patternfly/patternfly-charts.css';
 import {
   Alert,
   Bullseye,
@@ -71,7 +72,7 @@ const App: React.FC = () => {
     // There was an error fetching critical data
     return (
       <Page>
-        <PageSection>
+        <PageSection hasBodyWrapper={false}>
           <Stack hasGutter>
             <StackItem>
               <Alert variant="danger" isInline title="General loading error">
@@ -110,7 +111,8 @@ const App: React.FC = () => {
           <Page
             className="odh-dashboard"
             isManagedSidebar
-            header={
+            isContentFilled
+            masthead={
               <Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />
             }
             sidebar={isAllowed ? <NavSidebar /> : undefined}
@@ -120,12 +122,14 @@ const App: React.FC = () => {
             isNotificationDrawerExpanded={notificationsOpen}
             mainContainerId={DASHBOARD_MAIN_CONTAINER_ID}
             data-testid={DASHBOARD_MAIN_CONTAINER_ID}
-          >
-            <ErrorBoundary>
+            banner={
               <DevFeatureFlagsBanner
                 dashboardConfig={dashboardConfig.spec.dashboardConfig}
                 {...devFeatureFlagsProps}
               />
+            }
+          >
+            <ErrorBoundary>
               <ProjectsContextProvider>
                 <ModelRegistrySelectorContextProvider>
                   <QuickStarts>

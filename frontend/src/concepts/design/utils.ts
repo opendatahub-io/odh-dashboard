@@ -28,25 +28,43 @@ export enum SectionType {
   organize = 'organize',
   training = 'training',
   serving = 'serving',
+  general = 'general',
 }
 
 export enum ProjectObjectType {
   project = 'project',
   projectContext = 'projectContext',
   notebook = 'notebook',
+  notebookImage = 'notebookImage',
+  build = 'build',
   pipelineSetup = 'pipeline-setup',
   pipeline = 'pipeline',
   pipelineRun = 'pipeline-run',
+  pipelineExperiment = 'pipeline-experiment',
+  pipelineExecution = 'pipeline-execution',
+  pipelineArtifact = 'pipeline-artifact',
   clusterStorage = 'cluster-storage',
+  model = 'model',
+  singleModel = 'single-model',
+  multiModel = 'multi-model',
   modelServer = 'model-server',
   registeredModels = 'registered-models',
   deployedModels = 'deployed-models',
   deployingModels = 'deploying-models',
+  modelRegistrySettings = 'model-registry-settings',
+  servingRuntime = 'serving-runtime',
+  distributedWorkload = 'distributed-workload',
   dataConnection = 'data-connection',
   connections = 'connections',
+  clusterSettings = 'cluster-settings',
+  acceleratorProfile = 'accelerator-profile',
+  permissions = 'permissions',
   user = 'user',
   group = 'group',
   storageClasses = 'storageClasses',
+  enabledApplications = 'enabled-applications',
+  exploreApplications = 'explore-applications',
+  resources = 'resources',
 }
 
 export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
@@ -57,18 +75,29 @@ export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
       return 'var(--ai-project-context--BackgroundColor)';
     case ProjectObjectType.notebook:
       return 'var(--ai-notebook--BackgroundColor)';
+    case ProjectObjectType.notebookImage:
+      return 'var(--ai-set-up--BackgroundColor)';
     case ProjectObjectType.pipeline:
     case ProjectObjectType.pipelineRun:
+    case ProjectObjectType.pipelineExperiment:
+    case ProjectObjectType.pipelineExecution:
+    case ProjectObjectType.pipelineArtifact:
       return 'var(--ai-pipeline--BackgroundColor)';
     case ProjectObjectType.pipelineSetup:
       return 'var(--ai-set-up--BackgroundColor)';
     case ProjectObjectType.clusterStorage:
+    case ProjectObjectType.storageClasses:
       return 'var(--ai-cluster-storage--BackgroundColor)';
+    case ProjectObjectType.model:
+    case ProjectObjectType.singleModel:
+    case ProjectObjectType.multiModel:
     case ProjectObjectType.modelServer:
     case ProjectObjectType.registeredModels:
     case ProjectObjectType.deployedModels:
     case ProjectObjectType.deployingModels:
       return 'var(--ai-model-server--BackgroundColor)';
+    case ProjectObjectType.modelRegistrySettings:
+      return 'var(--ai-set-up--BackgroundColor)';
     case ProjectObjectType.dataConnection:
     case ProjectObjectType.connections:
       return 'var(--ai-data-connection--BackgroundColor)';
@@ -76,6 +105,20 @@ export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
       return 'var(--ai-user--BackgroundColor)';
     case ProjectObjectType.group:
       return 'var(--ai-group--BackgroundColor)';
+    case ProjectObjectType.permissions:
+      return 'var(--ai-set-up--BackgroundColor)';
+    case ProjectObjectType.enabledApplications:
+    case ProjectObjectType.exploreApplications:
+      return 'var(--ai-config--BackgroundColor)';
+    case ProjectObjectType.resources:
+      return 'var(--ai-general--BackgroundColor)';
+    case ProjectObjectType.distributedWorkload:
+      return 'var(--ai-serving--BackgroundColor)';
+    case ProjectObjectType.clusterSettings:
+    case ProjectObjectType.acceleratorProfile:
+      return 'var(--ai-set-up--BackgroundColor)';
+    case ProjectObjectType.servingRuntime:
+      return 'var(--ai-set-up--BackgroundColor)';
     default:
       return '';
   }
@@ -88,9 +131,14 @@ export const typedColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.projectContext:
       return 'var(--ai-project-context--Color)';
     case ProjectObjectType.notebook:
-      return 'var(--ai-notebook--Color)';
+    case ProjectObjectType.notebookImage:
+      return 'var(--ai-training--BackgroundColor)';
+    case ProjectObjectType.build:
+      return 'var(--ai-model-server--Color)';
     case ProjectObjectType.pipeline:
     case ProjectObjectType.pipelineRun:
+    case ProjectObjectType.pipelineExecution:
+    case ProjectObjectType.pipelineArtifact:
       return 'var(--ai-pipeline--Color)';
     case ProjectObjectType.pipelineSetup:
       return 'var(--ai-set-up--Color)';
@@ -101,6 +149,8 @@ export const typedColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.deployedModels:
     case ProjectObjectType.deployingModels:
       return 'var(--ai-model-server--Color)';
+    case ProjectObjectType.modelRegistrySettings:
+      return 'var(--ai-set-up--Color)';
     case ProjectObjectType.dataConnection:
     case ProjectObjectType.connections:
       return 'var(--ai-data-connection--Color)';
@@ -193,6 +243,8 @@ export const sectionTypeBackgroundColor = (sectionType: SectionType): string => 
       return 'var(--ai-training--BackgroundColor)';
     case SectionType.serving:
       return 'var(--ai-serving--BackgroundColor)';
+    case SectionType.general:
+      return 'var(--ai-general--BackgroundColor)';
     default:
       return '';
   }
@@ -208,6 +260,8 @@ export const sectionTypeBorderColor = (sectionType: SectionType): string => {
       return 'var(--ai-training--BorderColor)';
     case SectionType.serving:
       return 'var(--ai-serving--BorderColor)';
+    case SectionType.general:
+      return 'var(--ai-general--BorderColor)';
     default:
       return '';
   }

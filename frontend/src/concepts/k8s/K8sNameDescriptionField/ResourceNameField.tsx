@@ -34,7 +34,7 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
 }) => {
   const formGroupProps: React.ComponentProps<typeof FormGroup> = {
     label: 'Resource name',
-    labelIcon: <ResourceNameDefinitionTooltip />,
+    labelHelp: <ResourceNameDefinitionTooltip />,
     fieldId: `${dataTestId}-resourceName`,
   };
 

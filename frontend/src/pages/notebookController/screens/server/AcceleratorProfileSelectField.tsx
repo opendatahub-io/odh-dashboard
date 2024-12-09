@@ -154,7 +154,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
         <FormGroup
           label="Accelerator"
           fieldId="modal-notebook-accelerator"
-          labelIcon={
+          labelHelp={
             infoContent ? (
               <Popover bodyContent={<div>{infoContent}</div>}>
                 <Icon aria-label="Accelerator info" role="button">

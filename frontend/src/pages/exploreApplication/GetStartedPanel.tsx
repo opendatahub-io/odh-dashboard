@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
   ActionList,
   ActionListItem,
+  ActionListGroup,
   Alert,
   Button,
   ButtonVariant,
@@ -11,10 +12,9 @@ import {
   DrawerHead,
   DrawerPanelBody,
   DrawerPanelContent,
-  Text,
-  TextContent,
   Tooltip,
   Skeleton,
+  Content,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhApplication } from '~/types';
@@ -76,14 +76,14 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
       minSize="350px"
     >
       <DrawerHead>
-        <TextContent>
-          <Text component="h2" style={{ marginBottom: 0 }}>
+        <Content>
+          <Content component="h2" style={{ marginBottom: 0 }}>
             {selectedApp.spec.displayName}
-          </Text>
+          </Content>
           {selectedApp.spec.provider ? (
-            <Text component="small">by {selectedApp.spec.provider}</Text>
+            <Content component="small">by {selectedApp.spec.provider}</Content>
           ) : null}
-        </TextContent>
+        </Content>
         <DrawerActions>
           <DrawerCloseButton onClick={onClose} />
         </DrawerActions>
@@ -93,7 +93,8 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
           {!loaded ? (
             <Skeleton />
           ) : (
-            <ActionList>
+           <ActionList>
+            <ActionListGroup>
               <ActionListItem>
                 <Button
                   icon={<ExternalLinkAltIcon />}
@@ -102,7 +103,7 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
                       name: selectedApp.metadata.name,
                     })
                   }
-                  iconPosition="right"
+                  iconPosition="end"
                   href={selectedApp.spec.getStartedLink}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -112,8 +113,8 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
                 </Button>
               </ActionListItem>
               <ActionListItem>{renderEnableButton()}</ActionListItem>
-            </ActionList>
-          )}
+            </ActionListGroup>
+          </ActionList>)}
         </DrawerPanelBody>
       )}
       <Divider />

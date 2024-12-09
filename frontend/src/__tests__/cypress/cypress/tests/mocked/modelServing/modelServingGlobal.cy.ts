@@ -403,7 +403,7 @@ describe('Model Serving Global', () => {
         apiVersion: 'serving.kserve.io/v1beta1',
         kind: 'InferenceService',
         metadata: {
-          name: 'test-name',
+          name: 'test-model',
           namespace: 'test-project',
           labels: { 'opendatahub.io/dashboard': 'true' },
           annotations: {
@@ -415,7 +415,7 @@ describe('Model Serving Global', () => {
           predictor: {
             model: {
               modelFormat: { name: 'onnx', version: '1' },
-              runtime: 'test-name',
+              runtime: 'test-model',
               storage: { key: 'test-secret', path: 'test-model/' },
               args: [],
               env: [],
@@ -468,7 +468,7 @@ describe('Model Serving Global', () => {
         apiVersion: 'serving.kserve.io/v1beta1',
         kind: 'InferenceService',
         metadata: {
-          name: 'trigger-error',
+          name: 'test-model',
           namespace: 'test-project',
           labels: { 'opendatahub.io/dashboard': 'true' },
           annotations: {
@@ -480,7 +480,7 @@ describe('Model Serving Global', () => {
           predictor: {
             model: {
               modelFormat: { name: 'onnx', version: '1' },
-              runtime: 'trigger-error',
+              runtime: 'test-model',
               storage: { key: 'test-secret', path: 'test-model/test-model/' },
               args: [],
               env: [],

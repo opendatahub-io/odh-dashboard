@@ -1,5 +1,6 @@
 import React from 'react';
-import { Form, Modal } from '@patternfly/react-core';
+import { Form } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import ConnectionTypeForm from '~/concepts/connectionTypes/ConnectionTypeForm';
 import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
 

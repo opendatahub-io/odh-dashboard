@@ -4,9 +4,7 @@ import {
   Button,
   EmptyState,
   EmptyStateBody,
-  EmptyStateIcon,
   EmptyStateActions,
-  EmptyStateHeader,
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
@@ -17,12 +15,7 @@ const PipelineNotFound: React.FC = () => {
   const { namespace } = usePipelinesAPI();
   const navigate = useNavigate();
   return (
-    <EmptyState>
-      <EmptyStateHeader
-        titleText="Pipeline version not found"
-        icon={<EmptyStateIcon icon={CubesIcon} />}
-        headingLevel="h4"
-      />
+    <EmptyState headingLevel="h4" icon={CubesIcon} titleText="Pipeline version not found">
       <EmptyStateBody>To see more pipelines navigate to the pipelines page</EmptyStateBody>
       <EmptyStateFooter>
         <EmptyStateActions>

@@ -13,6 +13,8 @@ import { isGroupEmpty } from '~/utilities/utils';
 import SettingSection from '~/components/SettingSection';
 import { MultiSelection, SelectionOptions } from '~/components/MultiSelection';
 import { useWatchGroups } from '~/utilities/useWatchGroups';
+import TitleWithIcon from '~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '~/concepts/design/utils';
 import { GroupsConfigField } from './groupTypes';
 
 const GroupSettings: React.FC = () => {
@@ -65,7 +67,7 @@ const GroupSettings: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="User management"
+      title={<TitleWithIcon title="User management" objectType={ProjectObjectType.permissions} />}
       description="Define OpenShift group membership for Data Science administrators and users."
       loaded={loaded}
       empty={false}
@@ -101,6 +103,7 @@ const GroupSettings: React.FC = () => {
               setValue={(newState) => handleMenuItemSelection(newState, GroupsConfigField.ADMIN)}
               selectionRequired
               noSelectedOptionsMessage="One or more group must be selected"
+              popperProps={{ appendTo: 'inline' }}
             />
             {groupSettings.errorAdmin ? (
               <Alert
@@ -117,7 +120,7 @@ const GroupSettings: React.FC = () => {
               </Alert>
             ) : (
               <HelperText>
-                <HelperTextItem variant="indeterminate">
+                <HelperTextItem>
                   View, edit, or create groups in OpenShift under User Management
                 </HelperTextItem>
               </HelperText>
@@ -141,6 +144,7 @@ const GroupSettings: React.FC = () => {
               setValue={(newState) => handleMenuItemSelection(newState, GroupsConfigField.USER)}
               selectionRequired
               noSelectedOptionsMessage="One or more group must be selected"
+              popperProps={{ appendTo: 'inline' }}
             />
             {groupSettings.errorUser ? (
               <Alert
@@ -157,7 +161,7 @@ const GroupSettings: React.FC = () => {
               </Alert>
             ) : (
               <HelperText>
-                <HelperTextItem variant="indeterminate">
+                <HelperTextItem>
                   View, edit, or create groups in OpenShift under User Management
                 </HelperTextItem>
               </HelperText>

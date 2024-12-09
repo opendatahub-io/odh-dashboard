@@ -134,7 +134,7 @@ const RoleBindingPermissionsTableSection: React.FC<RoleBindingPermissionsTableSe
           icon={<PlusCircleIcon />}
           iconPosition="left"
           onClick={() => setAddField(true)}
-          style={{ paddingLeft: 'var(--pf-v5-global--spacer--lg)' }}
+          style={{ paddingLeft: 'var(--pf-t--global--spacer--lg)' }}
         >
           {isProjectSubject
             ? 'Add project'

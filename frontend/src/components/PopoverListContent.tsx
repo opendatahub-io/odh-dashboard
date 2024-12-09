@@ -1,22 +1,16 @@
 import * as React from 'react';
-import {
-  Text,
-  TextContent,
-  TextContentProps,
-  TextList,
-  TextListItem,
-} from '@patternfly/react-core';
+import { Content, ContentProps } from '@patternfly/react-core';
 
-type PopoverListContentProps = TextContentProps & {
+type PopoverListContentProps = ContentProps & {
   leadText?: React.ReactNode;
   listHeading?: React.ReactNode;
   listItems: React.ReactNode[];
 };
 
 const ContentText: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <Text component="small" style={{ color: 'var(--Text---pf-v5-global--Color--100)' }}>
+  <Content component="small" style={{ color: 'var(--pf-t--global--text--color--regular)' }}>
     {children}
-  </Text>
+  </Content>
 );
 
 const PopoverListContent: React.FC<PopoverListContentProps> = ({
@@ -25,17 +19,17 @@ const PopoverListContent: React.FC<PopoverListContentProps> = ({
   listItems,
   ...props
 }) => (
-  <TextContent {...props}>
+  <Content {...props}>
     {leadText ? <ContentText>{leadText}</ContentText> : null}
-    {listHeading ? <Text component="h4">{listHeading}</Text> : null}
-    <TextList style={{ margin: 0 }}>
+    {listHeading ? <Content component="h4">{listHeading}</Content> : null}
+    <Content component="ul" style={{ margin: 0 }}>
       {listItems.map((item, index) => (
-        <TextListItem key={index}>
+        <Content component="li" key={index}>
           <ContentText>{item}</ContentText>
-        </TextListItem>
+        </Content>
       ))}
-    </TextList>
-  </TextContent>
+    </Content>
+  </Content>
 );
 
 export default PopoverListContent;

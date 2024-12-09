@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { InputGroup, SearchInput, InputGroupItem } from '@patternfly/react-core';
+import { FilterIcon } from '@patternfly/react-icons';
 import SimpleSelect from '~/components/SimpleSelect';
 import { asEnumMember } from '~/utilities/utils';
 
@@ -37,7 +38,7 @@ const DashboardSearchField: React.FC<DashboardSearchFieldProps> = ({
   searchType,
   onSearchValueChange,
   onSearchTypeChange,
-  icon,
+  icon = <FilterIcon />,
 }) => (
   <InputGroup data-testid="dashboard-table-toolbar">
     <InputGroupItem>
@@ -56,6 +57,7 @@ const DashboardSearchField: React.FC<DashboardSearchFieldProps> = ({
           }
         }}
         icon={icon}
+        popperProps={{ appendTo: 'inline' }}
       />
     </InputGroupItem>
     <InputGroupItem>

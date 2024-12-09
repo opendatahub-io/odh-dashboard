@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { Spinner, Text, TextVariants, Timestamp } from '@patternfly/react-core';
-import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
+import { Spinner, Content, ContentVariants, Timestamp } from '@patternfly/react-core';
+import { ActionsColumn, Tbody, Td, Tr, ExpandableRowContent } from '@patternfly/react-table';
 import { OffIcon, PlayIcon } from '@patternfly/react-icons';
 import { ProjectKind } from '~/k8sTypes';
 import useProjectTableRowItems from '~/pages/projects/screens/projects/useProjectTableRowItems';
@@ -68,18 +68,13 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
 
   return (
     <Tbody isExpanded={!!expandColumn}>
-      <Tr>
+      <Tr isControlRow>
         <Td dataLabel="Name">
           <TableRowTitleDescription
+            boldTitle={false}
             title={
               <ResourceNameTooltip resource={project}>
-                <ProjectLink
-                  project={project}
-                  style={{
-                    fontSize: 'var(--pf-v5-global--FontSize--md)',
-                    fontWeight: 'var(--pf-v5-global--FontWeight--normal)',
-                  }}
-                />
+                <ProjectLink project={project} />
               </ResourceNameTooltip>
             }
             description={getDescriptionFromK8sResource(project)}
@@ -87,7 +82,7 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
             subtitle={
               owner ? (
                 <div>
-                  <Text component={TextVariants.small}>{owner}</Text>
+                  <Content component={ContentVariants.small}>{owner}</Content>
                 </div>
               ) : undefined
             }
@@ -108,7 +103,8 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
                 ? {
                     isExpanded: expandColumn === ExpandableColumns.WORKBENCHES,
                     columnIndex: ExpandableColumns.WORKBENCHES,
-                    expandId: `expand-table-row-${project.metadata.name}-workbenches`,
+                    rowIndex: 1,
+                    expandId: `expand-table-row`,
                     onToggle: (_, __, column) => toggleExpandColumn(column),
                   }
                 : undefined
@@ -119,9 +115,9 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
               <Spinner size="sm" />
             ) : (
               <div data-testid="notebook-column-count">
-                <PlayIcon className="pf-v5-u-mr-xs" />
+                <PlayIcon className="pf-v6-u-mr-xs" />
                 {runningCount}
-                <OffIcon className="pf-v5-u-ml-sm pf-v5-u-mr-xs" />
+                <OffIcon className="pf-v6-u-ml-sm pf-v6-u-mr-xs" />
                 {stoppedCount}
               </div>
             )}
@@ -143,14 +139,16 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
             style={{
               borderTopWidth: 1,
               borderTopStyle: 'solid',
-              borderTopColor: 'var(--pf-v5-global--BorderColor--100)',
+              borderTopColor: 'var(--pf-t--global--border--color--default)',
             }}
           >
-            <ProjectTableRowNotebookTable
-              obj={project}
-              notebookStates={notebookStates}
-              refresh={refresh}
-            />
+            <ExpandableRowContent>
+              <ProjectTableRowNotebookTable
+                obj={project}
+                notebookStates={notebookStates}
+                refresh={refresh}
+              />
+            </ExpandableRowContent>
           </Td>
         </Tr>
       ) : null}

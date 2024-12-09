@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { Text, TextContent } from '@patternfly/react-core';
-import { ProjectObjectType, SectionType, typedObjectImage } from '~/concepts/design/utils';
+import { Content } from '@patternfly/react-core';
+import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
 import InfoGalleryItem from '~/concepts/design/InfoGalleryItem';
 import { SupportedArea } from '~/concepts/areas';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
@@ -52,19 +52,19 @@ const ProjectsGallery: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       key="projects"
       data-testid="ai-flows-projects-info"
       title="Data science projects"
-      imgSrc={typedObjectImage(ProjectObjectType.project)}
+      resourceType={ProjectObjectType.project}
       sectionType={SectionType.organize}
       description={
-        <TextContent>
-          <Text component="small">
+        <Content>
+          <Content component="small">
             Data science projects allow you and your team to organize and collaborate on resources
             within separate namespaces.
-          </Text>
-          <Text component="small">
+          </Content>
+          <Content component="small">
             Within a project, you can create multiple workbenches, each with their own IDE, data
             connections, and cluster storage. {getProjectDescriptionAdditionalText()}
-          </Text>
-        </TextContent>
+          </Content>
+        </Content>
       }
       isOpen
     />,
@@ -73,17 +73,15 @@ const ProjectsGallery: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         key="connections"
         data-testid="ai-flows-connections-info"
         title="Connections"
-        imgSrc={typedObjectImage(ProjectObjectType.dataConnection)}
+        resourceType={ProjectObjectType.dataConnection}
         sectionType={SectionType.organize}
         description={
-          <TextContent>
-            <Text component="small">
-              Connections enable you to store and retrieve information that typically should not be
-              stored in code. For example, you can store details (including credentials) for object
-              storage, databases, and more. You can then attach the connections to artifacts in your
-              project, such as workbenches and model servers.
-            </Text>
-          </TextContent>
+          <Content component="small">
+            Connections enable you to store and retrieve information that typically should not be
+            stored in code. For example, you can store details (including credentials) for object
+            storage, databases, and more. You can then attach the connections to artifacts in your
+            project, such as workbenches and model servers.
+          </Content>
         }
         isOpen
       />
@@ -92,15 +90,13 @@ const ProjectsGallery: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         key="data-connections"
         data-testid="ai-flows-connections-info"
         title="Data connections"
-        imgSrc={typedObjectImage(ProjectObjectType.dataConnection)}
+        resourceType={ProjectObjectType.dataConnection}
         sectionType={SectionType.organize}
         description={
-          <TextContent>
-            <Text component="small">
-              You can add data connections to link your project and its workbenches to data sources,
-              and to object storage buckets which save data and models that you want to deploy.
-            </Text>
-          </TextContent>
+          <Content component="small">
+            You can add data connections to link your project and its workbenches to data sources,
+            and to object storage buckets which save data and models that you want to deploy.
+          </Content>
         }
         isOpen
       />
@@ -109,14 +105,12 @@ const ProjectsGallery: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       key="storage"
       data-testid="ai-flows-storage-info"
       title="Cluster storage"
-      imgSrc={typedObjectImage(ProjectObjectType.clusterStorage)}
+      resourceType={ProjectObjectType.clusterStorage}
       sectionType={SectionType.organize}
       description={
-        <TextContent>
-          <Text component="small">
-            Add cluster storage to a workbench for saving your project’s data to your cluster.
-          </Text>
-        </TextContent>
+        <Content component="small">
+          Add cluster storage to a workbench for saving your project’s data to your cluster.
+        </Content>
       }
       isOpen
     />,

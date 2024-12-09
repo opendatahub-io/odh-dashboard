@@ -92,7 +92,7 @@ const TolerationFields: React.FC<TolerationFieldsProps> = ({ toleration, onUpdat
       <FormGroup
         label="Toleration Seconds"
         fieldId="toleration-seconds"
-        labelIcon={
+        labelHelp={
           <Popover bodyContent="Toleration seconds specifies how long a pod can remain bound to a node before being evicted.">
             <DashboardPopupIconButton
               icon={<OutlinedQuestionCircleIcon />}

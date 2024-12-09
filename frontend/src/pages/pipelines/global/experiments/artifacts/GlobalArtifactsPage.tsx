@@ -6,6 +6,8 @@ import PipelineCoreApplicationPage from '~/pages/pipelines/global/PipelineCoreAp
 import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
 import { artifactsBaseRoute } from '~/routes';
+import TitleWithIcon from '~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '~/concepts/design/utils';
 import { ArtifactsList } from './ArtifactsList';
 
 export const GlobalArtifactsPage: React.FC = () => {
@@ -13,7 +15,7 @@ export const GlobalArtifactsPage: React.FC = () => {
 
   return (
     <PipelineCoreApplicationPage
-      title="Artifacts"
+      title={<TitleWithIcon title="Artifacts" objectType={ProjectObjectType.pipelineArtifact} />}
       description="View your artifacts and their metadata."
       headerAction={<PipelineServerActions isDisabled={!pipelinesAPI.pipelinesServer.installed} />}
       getRedirectPath={artifactsBaseRoute}

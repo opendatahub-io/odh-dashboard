@@ -10,6 +10,8 @@ import GlobalDistributedWorkloadsTabs from '~/pages/distributedWorkloads/global/
 import { MetricsCommonContextProvider } from '~/concepts/metrics/MetricsCommonContext';
 import { RefreshIntervalTitle } from '~/concepts/metrics/types';
 import ProjectSelectorNavigator from '~/concepts/projects/ProjectSelectorNavigator';
+import TitleWithIcon from '~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '~/concepts/design/utils';
 
 const title = 'Distributed Workload Metrics';
 const description = 'Monitor the metrics of your active resources.';
@@ -29,7 +31,8 @@ const GlobalDistributedWorkloads: React.FC<GlobalDistributedWorkloadsProps> = ({
   if (projects.length === 0) {
     return (
       <ApplicationsPage
-        {...{ title, description }}
+        title={<TitleWithIcon title={title} objectType={ProjectObjectType.distributedWorkload} />}
+        description={description}
         loaded
         empty
         emptyStatePage={<DistributedWorkloadsNoProjects />}
@@ -44,7 +47,8 @@ const GlobalDistributedWorkloads: React.FC<GlobalDistributedWorkloadsProps> = ({
     // The namespace in the URL is invalid
     return (
       <ApplicationsPage
-        {...{ title, description }}
+        title={<TitleWithIcon title={title} objectType={ProjectObjectType.distributedWorkload} />}
+        description={description}
         loaded
         empty
         emptyStatePage={
@@ -57,7 +61,8 @@ const GlobalDistributedWorkloads: React.FC<GlobalDistributedWorkloadsProps> = ({
   // We're all good, we have a namespace matching a known project
   return (
     <ApplicationsPage
-      {...{ title, description }}
+      title={<TitleWithIcon title={title} objectType={ProjectObjectType.distributedWorkload} />}
+      description={description}
       loaded
       empty={false}
       headerContent={

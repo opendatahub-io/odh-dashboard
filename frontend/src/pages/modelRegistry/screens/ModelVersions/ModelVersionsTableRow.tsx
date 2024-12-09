@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
-import { Text, TextVariants, Truncate, FlexItem } from '@patternfly/react-core';
+import { Content, ContentVariants, Truncate, FlexItem } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
 import { ModelVersion, ModelState } from '~/concepts/modelRegistry/types';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
@@ -93,9 +93,9 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
           </FlexItem>
         </div>
         {mv.description && (
-          <Text data-testid="model-version-description" component={TextVariants.small}>
+          <Content data-testid="model-version-description" component={ContentVariants.small}>
             <Truncate content={mv.description} />
-          </Text>
+          </Content>
         )}
       </Td>
       <Td dataLabel="Last modified">

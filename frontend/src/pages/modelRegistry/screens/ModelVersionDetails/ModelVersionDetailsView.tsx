@@ -4,7 +4,7 @@ import {
   Divider,
   Flex,
   FlexItem,
-  TextVariants,
+  ContentVariants,
   Title,
 } from '@patternfly/react-core';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
@@ -103,7 +103,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             <InlineTruncatedClipboardCopy testId="model-version-id" textToCopy={mv.id} />
           </DashboardDescriptionListGroup>
         </DescriptionList>
-        <Title style={{ margin: '1em 0' }} headingLevel={TextVariants.h3}>
+        <Title style={{ margin: '1em 0' }} headingLevel={ContentVariants.h3}>
           Model location
         </Title>
         <DescriptionList>
@@ -167,7 +167,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
           )}
         </DescriptionList>
         <Divider style={{ marginTop: '1em' }} />
-        <Title style={{ margin: '1em 0' }} headingLevel={TextVariants.h3}>
+        <Title style={{ margin: '1em 0' }} headingLevel={ContentVariants.h3}>
           Source model format
         </Title>
         <DescriptionList>

@@ -3,7 +3,6 @@ import {
   Button,
   ButtonVariant,
   EmptyState,
-  EmptyStateIcon,
   EmptyStateVariant,
   EmptyStateBody,
   PageSection,
@@ -17,6 +16,8 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import useAcceleratorProfiles from '~/pages/notebookController/screens/server/useAcceleratorProfiles';
 import { useDashboardNamespace } from '~/redux/selectors';
 import AcceleratorProfilesTable from '~/pages/acceleratorProfiles/screens/list/AcceleratorProfilesTable';
+import TitleWithIcon from '~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '~/concepts/design/utils';
 
 const description = `Manage accelerator profile settings for users in your organization`;
 
@@ -30,12 +31,17 @@ const AcceleratorProfiles: React.FC = () => {
   const isEmpty = acceleratorProfiles.length === 0;
 
   const noAcceleratorProfilePageSection = (
-    <PageSection isFilled>
-      <EmptyState variant={EmptyStateVariant.full} data-id="empty-empty-state">
-        <EmptyStateIcon icon={PlusCircleIcon} />
-        <Title data-testid="no-available-accelerator-profiles" headingLevel="h5" size="lg">
-          No available accelerator profiles yet
-        </Title>
+    <PageSection hasBodyWrapper={false} isFilled>
+      <EmptyState
+        titleText={
+          <Title data-testid="no-available-accelerator-profiles" headingLevel="h5" size="lg">
+            No available accelerator profiles yet
+          </Title>
+        }
+        icon={PlusCircleIcon}
+        variant={EmptyStateVariant.full}
+        data-id="empty-empty-state"
+      >
         <EmptyStateBody>
           You don&apos;t have any accelerator profiles yet. To get started, please ask your cluster
           administrator about the accelerator availability in your cluster and create corresponding
@@ -58,7 +64,12 @@ const AcceleratorProfiles: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="Accelerator profiles"
+      title={
+        <TitleWithIcon
+          title="Accelerator profiles"
+          objectType={ProjectObjectType.acceleratorProfile}
+        />
+      }
       description={description}
       loaded={loaded}
       empty={isEmpty}

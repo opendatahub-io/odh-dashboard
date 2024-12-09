@@ -68,7 +68,10 @@ const ProjectTableRowNotebookTableRow: React.FC<ProjectTableRowNotebookTableRowP
   }, [dontShowModalValue, handleStop]);
 
   return (
-    <Tr style={{ border: 'none' }} data-testid="project-notebooks-table-row">
+    <Tr
+      style={{ border: 'none', verticalAlign: 'middle' }}
+      data-testid="project-notebooks-table-row"
+    >
       <Td dataLabel="Name">
         <NotebookRouteLink
           label={getDisplayNameFromK8sResource(notebookState.notebook)}

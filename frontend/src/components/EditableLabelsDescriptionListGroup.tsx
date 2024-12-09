@@ -153,9 +153,8 @@ export const EditableLabelsDescriptionListGroup: React.FC<EditableLabelsProps> =
             addLabelControl={
               !isSavingEdits ? (
                 <Label
-                  variant="outline"
+                  variant="overflow"
                   color="blue"
-                  isOverflowLabel
                   onClick={addNewLabel}
                   data-testid="add-label-button"
                 >

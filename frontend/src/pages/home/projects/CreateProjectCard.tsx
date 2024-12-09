@@ -1,15 +1,8 @@
 import * as React from 'react';
-import {
-  Bullseye,
-  Button,
-  CardBody,
-  Flex,
-  FlexItem,
-  Text,
-  TextContent,
-} from '@patternfly/react-core';
-import { ProjectObjectType, SectionType, typedObjectImage } from '~/concepts/design/utils';
+import { Bullseye, Button, CardBody, Flex, FlexItem, Content } from '@patternfly/react-core';
+import { SectionType } from '~/concepts/design/utils';
 import TypeBorderedCard from '~/concepts/design/TypeBorderedCard';
+import { ProjectIcon } from '~/images/icons';
 
 interface CreateProjectCardProps {
   allowCreate: boolean;
@@ -25,11 +18,8 @@ const CreateProjectCard: React.FC<CreateProjectCardProps> = ({ allowCreate, onCr
       <Bullseye>
         <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }}>
           <FlexItem>
-            <img
-              src={typedObjectImage(ProjectObjectType.project)}
-              alt="Add project"
-              width={54}
-              height={54}
+            <ProjectIcon
+              style={{ width: 54, height: 54, color: 'var(--pf-t--global--icon--color--subtle)' }}
             />
           </FlexItem>
           {allowCreate ? (
@@ -41,16 +31,16 @@ const CreateProjectCard: React.FC<CreateProjectCardProps> = ({ allowCreate, onCr
           ) : (
             <>
               <FlexItem>
-                <TextContent>
-                  <Text component="h3">Need another project?</Text>
-                </TextContent>
+                <Content>
+                  <Content component="h3">Need another project?</Content>
+                </Content>
               </FlexItem>
               <FlexItem>
-                <TextContent>
-                  <Text component="small" style={{ textAlign: 'center' }}>
+                <Content>
+                  <Content component="small" style={{ textAlign: 'center' }}>
                     Contact your administrator to request a project creation for you.
-                  </Text>
-                </TextContent>
+                  </Content>
+                </Content>
               </FlexItem>
             </>
           )}

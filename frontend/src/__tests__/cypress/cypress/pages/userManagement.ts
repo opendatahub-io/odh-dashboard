@@ -30,7 +30,7 @@ class GroupSettingSection extends Contextual<HTMLElement> {
   removeChipItem(name: string) {
     this.findChipGroup()
       .find('li')
-      .findByRole('button', { name: `close ${name}` })
+      .findByRole('button', { name: `Close ${name}` })
       .click();
   }
 

@@ -10,6 +10,12 @@ import { ConfigMapModel } from '~/api/models';
 import { genRandomChars } from '~/utilities/string';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 
+export const CONFIGMAP_PREFIX = 'configmap-';
+
+export const getGeneratedConfigMapName = (): string => `${CONFIGMAP_PREFIX}${genRandomChars()}`;
+export const isGeneratedConfigMapName = (name: string): boolean =>
+  new RegExp(`^${CONFIGMAP_PREFIX}[a-z0-9]{6}$`).test(name);
+
 export const assembleConfigMap = (
   projectName: string,
   configMapData: Record<string, string>,
@@ -18,7 +24,7 @@ export const assembleConfigMap = (
   apiVersion: 'v1',
   kind: 'ConfigMap',
   metadata: {
-    name: configMapName || `configmap-${genRandomChars()}`,
+    name: configMapName || getGeneratedConfigMapName(),
     namespace: projectName,
     labels: {
       [KnownLabels.DASHBOARD_RESOURCE]: 'true',

@@ -7,9 +7,14 @@ import { relativeTime } from '~/utilities/time';
 type PipelineSelectorTableRowProps = {
   obj: PipelineKF | PipelineVersionKF | ExperimentKF;
   onClick: () => void;
+  isRowSelected?: boolean;
 };
 
-const PipelineSelectorTableRow: React.FC<PipelineSelectorTableRowProps> = ({ obj, onClick }) => {
+const PipelineSelectorTableRow: React.FC<PipelineSelectorTableRowProps> = ({
+  obj,
+  onClick,
+  isRowSelected = false,
+}) => {
   const tooltipRef = React.useRef(null);
 
   return (
@@ -35,7 +40,7 @@ const PipelineSelectorTableRow: React.FC<PipelineSelectorTableRowProps> = ({ obj
         }
         triggerRef={tooltipRef}
       />
-      <Tr ref={tooltipRef} onRowClick={onClick} isClickable>
+      <Tr isRowSelected={isRowSelected} ref={tooltipRef} onRowClick={onClick} isClickable>
         <Td width={70} modifier="truncate" tooltip={null}>
           {obj.display_name}
         </Td>

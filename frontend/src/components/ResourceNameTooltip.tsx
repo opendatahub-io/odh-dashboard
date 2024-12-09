@@ -68,6 +68,7 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({
             data-testid="resource-name-icon-button"
             icon={<OutlinedQuestionCircleIcon />}
             aria-label="More info"
+            style={{ paddingTop: 0, paddingBottom: 0 }}
           />
         </Popover>
       )}

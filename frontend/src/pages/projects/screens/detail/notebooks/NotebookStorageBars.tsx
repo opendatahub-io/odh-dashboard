@@ -8,7 +8,7 @@ import {
   Spinner,
   Stack,
   StackItem,
-  Text,
+  Content,
 } from '@patternfly/react-core';
 
 import { NotebookKind } from '~/k8sTypes';
@@ -54,16 +54,21 @@ const NotebookStorageBars: React.FC<NotebookStorageBarsProps> = ({ notebook }) =
                   flexWrap={{ default: 'nowrap' }}
                 >
                   <FlexItem>
-                    <HeaderIcon display="block" type={ProjectObjectType.clusterStorage} size={20} />
+                    <HeaderIcon
+                      display="block"
+                      type={ProjectObjectType.clusterStorage}
+                      size={20}
+                      padding={2}
+                    />
                   </FlexItem>
                   <FlexItem>
-                    <Text>{getDisplayNameFromK8sResource(pvc)}</Text>
+                    <Content>{getDisplayNameFromK8sResource(pvc)}</Content>
                     <Stack>
                       <StackItem>
                         <StorageSizeBar pvc={pvc} />
                       </StackItem>
                       <StackItem>
-                        <Text>
+                        <Content>
                           Mount path:{' '}
                           {mountFolderMap[pvc.metadata.name] ? (
                             <InlineTruncatedClipboardCopy
@@ -74,7 +79,7 @@ const NotebookStorageBars: React.FC<NotebookStorageBarsProps> = ({ notebook }) =
                           ) : (
                             'unknown'
                           )}
-                        </Text>
+                        </Content>
                       </StackItem>
                     </Stack>
                   </FlexItem>

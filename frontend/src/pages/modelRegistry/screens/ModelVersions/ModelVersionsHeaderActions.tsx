@@ -39,7 +39,7 @@ const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
             isOpen={isOpen}
             onSelect={() => setOpen(false)}
             onOpenChange={(open) => setOpen(open)}
-            popperProps={{ position: 'end' }}
+            popperProps={{ position: 'end', appendTo: 'inline' }}
             toggle={(toggleRef) => (
               <MenuToggle
                 variant="secondary"

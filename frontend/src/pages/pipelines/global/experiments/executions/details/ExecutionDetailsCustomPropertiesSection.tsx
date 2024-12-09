@@ -32,7 +32,7 @@ const ExecutionDetailsCustomPropertiesSection: React.FC<
         ) : (
           <DescriptionList isHorizontal isCompact>
             {propertiesMap.getEntryList().map((p) => (
-              <DescriptionListGroup key={p[0]}>
+              <DescriptionListGroup key={p[0]} style={{ alignItems: 'start' }}>
                 <DescriptionListTerm>{p[0]}</DescriptionListTerm>
                 <DescriptionListDescription>
                   <ExecutionDetailsPropertiesValue

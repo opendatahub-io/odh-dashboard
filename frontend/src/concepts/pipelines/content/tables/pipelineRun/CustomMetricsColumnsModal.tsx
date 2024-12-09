@@ -5,13 +5,11 @@ import {
   Flex,
   FlexItem,
   Label,
-  Modal,
-  ModalBoxBody,
-  ModalVariant,
   Stack,
   StackItem,
   Tooltip,
 } from '@patternfly/react-core';
+import { Modal, ModalBoxBody, ModalVariant } from '@patternfly/react-core/deprecated';
 import { DragDropSort, DraggableObject } from '@patternfly/react-drag-drop';
 import { getMetricsColumnsLocalStorageKey } from './utils';
 import { MetricColumnSearchInput } from './MetricColumnSearchInput';
@@ -29,7 +27,7 @@ export const CustomMetricsColumnsModal: React.FC<CustomMetricsColumnsModalProps>
 }) => {
   const [columns, setColumns] = React.useState(defaultColumns);
   const [filteredColumns, setFilteredColumns] = React.useState<DraggableObject[]>(defaultColumns);
-  const metricsColumnsLocalStorageKey = getMetricsColumnsLocalStorageKey(experimentId ?? '');
+  const metricsColumnsLocalStorageKey = getMetricsColumnsLocalStorageKey(experimentId);
   const selectedColumnNames = Object.values(columns).reduce((acc: string[], column) => {
     if (column.props.checked) {
       acc.push(String(column.id));
@@ -53,8 +51,8 @@ export const CustomMetricsColumnsModal: React.FC<CustomMetricsColumnsModalProps>
       variant={ModalVariant.small}
       title="Customize metrics columns"
       description={
-        <Stack hasGutter className="pf-v5-u-pb-md">
-          <StackItem className="pf-v5-u-mt-sm">
+        <Stack hasGutter className="pf-v6-u-pb-md">
+          <StackItem className="pf-v6-u-mt-sm">
             Select up to 10 metrics that will display as columns in the table. Drag and drop column
             names to reorder them.
           </StackItem>
@@ -94,7 +92,7 @@ export const CustomMetricsColumnsModal: React.FC<CustomMetricsColumnsModalProps>
       ]}
     >
       <ModalBoxBody
-        className="pf-v5-u-pt-0 pf-v5-u-pl-md pf-v5-u-pr-md"
+        className="pf-v6-u-pt-0 pf-v6-u-pl-md pf-v6-u-pr-md"
         style={{ maxHeight: '500px' }}
       >
         <DragDropSort
@@ -130,7 +128,7 @@ export const CustomMetricsColumnsModal: React.FC<CustomMetricsColumnsModalProps>
             return {
               id,
               content: (
-                <div className="pf-v5-u-display-inline-block">
+                <div className="pf-v6-u-display-inline-block">
                   <Flex
                     alignItems={{ default: 'alignItemsCenter' }}
                     flexWrap={{ default: 'nowrap' }}
@@ -152,7 +150,7 @@ export const CustomMetricsColumnsModal: React.FC<CustomMetricsColumnsModalProps>
               props: { checked },
             };
           })}
-          variant="defaultWithHandle"
+          variant="default"
           onDrop={(_, newColumns) => {
             setFilteredColumns(newColumns);
             setColumns(newColumns);
