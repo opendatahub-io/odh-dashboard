@@ -35,7 +35,7 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
     if (!isEditing) {
       const getModelNames = async () => {
         try {
-          const modelInfos = await fetchNIMModelNames(dashboardNamespace);
+          const modelInfos = await fetchNIMModelNames();
           if (modelInfos && modelInfos.length > 0) {
             const fetchedOptions = modelInfos.flatMap((modelInfo) =>
               modelInfo.tags.map((tag) => ({
