@@ -30,6 +30,6 @@ export const useIntegratedAppStatus = (app?: OdhApplication): FetchState<Integra
       canInstall: false,
       error: '',
     },
-    { initialPromisePurity: true },
+    { refreshRate: 5000, initialPromisePurity: true },
   );
 };

@@ -29,6 +29,7 @@ import SupportedAppTitle from './SupportedAppTitle';
 import BrandImage from './BrandImage';
 
 import './OdhCard.scss';
+import { isInternalRouteIntegrationsApp } from '~/utilities/utils';
 
 type OdhAppCardProps = {
   odhApp: OdhApplication;
@@ -147,18 +148,21 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       >
         here
       </Button>
-      . To remove card click&nbsp;
-      <Button
-        isInline
-        variant="link"
-        onClick={() => {
-          hide();
-          removeApplication();
-        }}
-      >
-        here
-      </Button>
-      .
+      {!isInternalRouteIntegrationsApp(odhApp.spec.internalRoute) ?
+        <>
+          . To remove card click&nbsp;
+          <Button
+            isInline
+            variant="link"
+            onClick={() => {
+              hide();
+              removeApplication();
+            }}
+          >
+            here
+          </Button>
+          .
+        </> : null}
     </div>
   );
 
@@ -219,8 +223,8 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       <SupportedAppTitle odhApp={odhApp} />
       <CardBody>
         {!dashboardConfig.spec.dashboardConfig.disableISVBadges &&
-        odhApp.spec.category &&
-        odhApp.spec.support !== ODH_PRODUCT_NAME ? (
+          odhApp.spec.category &&
+          odhApp.spec.support !== ODH_PRODUCT_NAME ? (
           <div className="odh-card__partner-badge-container">
             <span className="odh-card__partner-badge" data-testid="partner-badge">
               {odhApp.spec.category}

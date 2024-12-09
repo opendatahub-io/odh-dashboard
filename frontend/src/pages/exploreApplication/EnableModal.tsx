@@ -15,6 +15,7 @@ import { EnableApplicationStatus, useEnableApplication } from '~/utilities/useEn
 import { asEnumMember } from '~/utilities/utils';
 import EnableVariable from './EnableVariable';
 import './EnableModal.scss';
+import { isEmpty, values } from 'lodash-es';
 
 type EnableModalProps = {
   selectedApp: OdhApplication;
@@ -26,6 +27,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
   const [postError, setPostError] = React.useState('');
   const [validationInProgress, setValidationInProgress] = React.useState(false);
   const [enableValues, setEnableValues] = React.useState<{ [key: string]: string }>({});
+  const [isEnableValuesHasEmptyValue, setIsEnableValuesHasEmptyValue] = React.useState(true);
   const [validationStatus, validationErrorMessage] = useEnableApplication(
     validationInProgress,
     selectedApp.metadata.name,
@@ -44,6 +46,11 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
       ...enableValues,
       [key]: value,
     };
+    if (values(updatedValues).some(value => isEmpty(value))) {
+      setIsEnableValuesHasEmptyValue(true);
+    } else {
+      setIsEnableValuesHasEmptyValue(false);
+    }
     setEnableValues(updatedValues);
   };
 
@@ -61,7 +68,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
       selectedApp.spec.shownOnEnabledPage = true;
       /* eslint-enable no-param-reassign */
 
-      onClose();
+      handleClose();
     }
     if (validationInProgress && validationStatus === EnableApplicationStatus.FAILED) {
       setValidationInProgress(false);
@@ -82,6 +89,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
   const handleClose = () => {
     if (!validationInProgress) {
       setEnableValues({});
+      setIsEnableValuesHasEmptyValue(true);
     }
     onClose();
   };
@@ -105,7 +113,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
           key="confirm"
           variant="primary"
           onClick={onDoEnableApp}
-          isDisabled={validationInProgress}
+          isDisabled={validationInProgress || isEnableValuesHasEmptyValue}
         >
           {enable.actionLabel}
         </Button>,

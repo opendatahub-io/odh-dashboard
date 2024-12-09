@@ -14,6 +14,7 @@ import {
   Text,
   TextContent,
   Tooltip,
+  Skeleton
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhApplication } from '~/types';
@@ -57,14 +58,12 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
         Enable
       </Button>
     );
-    if (enablement) {
-      return button;
-    }
-    return (
-      <Tooltip content="This feature has been disabled by an administrator.">
+    if (!enablement || !canInstall) {
+      return <Tooltip content="This feature has been disabled by an administrator.">
         <span>{button}</span>
-      </Tooltip>
-    );
+      </Tooltip>;
+    }
+    return button;
   };
 
   return (
@@ -89,7 +88,7 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
       </DrawerHead>
       {selectedApp.spec.getStartedLink && (
         <DrawerPanelBody>
-          <ActionList>
+          {!loaded ? <Skeleton /> : <ActionList>
             <ActionListItem>
               <Button
                 icon={<ExternalLinkAltIcon />}
@@ -108,7 +107,8 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
               </Button>
             </ActionListItem>
             <ActionListItem>{renderEnableButton()}</ActionListItem>
-          </ActionList>
+          </ActionList>}
+
         </DrawerPanelBody>
       )}
       <Divider />
