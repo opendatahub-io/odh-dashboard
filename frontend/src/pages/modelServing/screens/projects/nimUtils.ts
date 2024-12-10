@@ -199,7 +199,7 @@ export const fetchNIMAccountTemplateName = async (
     }
 
     const nimAccount = accounts[0];
-    if (!nimAccount.status || !nimAccount.status.runtimeTemplate?.name) {
+    if (!nimAccount.status?.runtimeTemplate?.name) {
       throw new Error('Failed to retrieve the NIM account template name.');
     }
 
