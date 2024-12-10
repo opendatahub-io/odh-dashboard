@@ -65,7 +65,7 @@ export const createNIMAccount = async (fastify: KubeFastifyInstance): Promise<NI
 export const createNIMSecret = async (
   fastify: KubeFastifyInstance,
   enableValues: { [key: string]: string },
-): Promise<{ secret: SecretKind; createdNew: boolean }> => {
+): Promise<{ secret: SecretKind }> => {
   const { coreV1Api, namespace } = fastify.kube;
   const nimSecret = {
     apiVersion: 'v1',
@@ -84,7 +84,7 @@ export const createNIMSecret = async (
   try {
     // Try to create the secret
     const response = await coreV1Api.createNamespacedSecret(namespace, nimSecret);
-    return { secret: response.body as SecretKind, createdNew: true };
+    return { secret: response.body as SecretKind };
   } catch (e: any) {
     if (e.response?.statusCode === 409) {
       // Secret already exists, so update it (replace)
@@ -93,7 +93,7 @@ export const createNIMSecret = async (
         namespace,
         nimSecret,
       );
-      return { secret: updateResponse.body as SecretKind, createdNew: false };
+      return { secret: updateResponse.body as SecretKind };
     } else {
       throw e;
     }

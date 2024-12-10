@@ -62,42 +62,11 @@ module.exports = async (fastify: KubeFastifyInstance) => {
         const enableValues = request.body;
 
         try {
-          const { createdNew } = await createNIMSecret(fastify, enableValues);
-          // If the secret already exists, ensure the account is created or retrieved
-          if (!createdNew) {
-            try {
-              const account = await getNIMAccount(fastify);
-              if (!account) {
-                // If the account does not exist, create it
-                const response = await createNIMAccount(fastify);
-                const isEnabled = isAppEnabled(response);
-                reply.send({
-                  isInstalled: true,
-                  isEnabled: isEnabled,
-                  canInstall: false,
-                  error: '',
-                });
-              } else {
-                // If the account exists, get its status
-                const isEnabled = isAppEnabled(account);
-                reply.send({
-                  isInstalled: true,
-                  isEnabled: isEnabled,
-                  canInstall: false,
-                  error: '',
-                });
-              }
-            } catch (accountError: any) {
-              const message =
-                accountError.response?.statusCode === 409
-                  ? 'NIM account already exists.'
-                  : `Failed to create or retrieve NIM account: ${accountError.response?.body?.message}`;
-              fastify.log.error(message);
-              reply.status(accountError.response?.statusCode || 500).send(new Error(message));
-            }
-          } else {
-            // If the secret is newly created, ensure the account is created
-            try {
+          await createNIMSecret(fastify, enableValues);
+          // Ensure the account exists
+          try {
+            const account = await getNIMAccount(fastify);
+            if (!account) {
               const response = await createNIMAccount(fastify);
               const isEnabled = isAppEnabled(response);
               reply.send({
@@ -106,11 +75,22 @@ module.exports = async (fastify: KubeFastifyInstance) => {
                 canInstall: false,
                 error: '',
               });
-            } catch (accountError: any) {
-              const message = `Failed to create NIM account: ${accountError.response?.body?.message}`;
-              fastify.log.error(message);
-              reply.status(accountError.response?.statusCode || 500).send(new Error(message));
+            } else {
+              const isEnabled = isAppEnabled(account);
+              reply.send({
+                isInstalled: true,
+                isEnabled: isEnabled,
+                canInstall: false,
+                error: '',
+              });
             }
+          } catch (accountError: any) {
+            const message =
+              accountError.response?.statusCode === 409
+                ? 'NIM account already exists.'
+                : `Failed to create or retrieve NIM account: ${accountError.response?.body?.message}`;
+            fastify.log.error(message);
+            reply.status(accountError.response?.statusCode || 500).send(new Error(message));
           }
         } catch (secretError: any) {
           if (secretError.response?.statusCode === 409) {
