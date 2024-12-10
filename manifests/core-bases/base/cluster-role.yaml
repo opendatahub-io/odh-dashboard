@@ -219,3 +219,9 @@ rules:
       - delete
     resources:
       - accounts
+  - verbs:
+      - get
+    apiGroups:
+      - ''
+    resources:
+      - endpoints
