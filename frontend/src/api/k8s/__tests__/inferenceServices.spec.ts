@@ -140,10 +140,10 @@ describe('assembleInferenceService', () => {
 
   it('should handle name and display name', async () => {
     const displayName = 'Llama model';
-    const resourceName = 'my-inference-service-test';
+    const resourceName = 'llama-model';
 
     const inferenceService = assembleInferenceService(
-      mockInferenceServiceModalData({ name: displayName, servingRuntimeName: resourceName }),
+      mockInferenceServiceModalData({ name: displayName, k8sName: resourceName }),
     );
 
     expect(inferenceService.metadata.annotations).toBeDefined();
