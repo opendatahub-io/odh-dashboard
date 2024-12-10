@@ -73,8 +73,8 @@ describe('Verify Admins Can Import and Delete a Custom Single-Model Serving Runt
       .find()
       .within(() => {
         servingRuntimes.findEditModel().click();
-        servingRuntimes.findDeleteModel().click();
       });
+    servingRuntimes.findDeleteModel().click();
 
     servingRuntimes.findDeleteModal().should('be.visible').type(metadataSingleDisplayName);
 
