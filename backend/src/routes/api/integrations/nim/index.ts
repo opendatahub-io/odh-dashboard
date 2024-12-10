@@ -42,7 +42,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
             fastify.log.error(`An unexpected error occurred: ${e.response.body?.message}`);
             reply.send({
               isInstalled: false,
-              isAppEnabled: false,
+              isEnabled: false,
               canInstall: false,
               error: 'An unexpected error occurred. Please try again later.',
             });
