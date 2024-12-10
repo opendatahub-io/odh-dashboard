@@ -65,7 +65,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableHardwareProfiles: true,
       disableDistributedWorkloads: false,
       disableModelRegistry: false,
-      disableModelRegistrySecureDBEA: true,
+      disableModelRegistrySecureDB: true,
       disableServingRuntimeParams: false,
       disableConnectionTypes: false,
       disableStorageClasses: false,

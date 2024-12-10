@@ -28,7 +28,6 @@ spec:
     disableModelMesh: false
     disableDistributedWorkloads: false
     disableModelRegistry: false
-    disableModelRegistrySecureDBEA: true
     disableServingRuntimeParams: false
     disableStorageClasses: false
     disableNIMModelServing: true

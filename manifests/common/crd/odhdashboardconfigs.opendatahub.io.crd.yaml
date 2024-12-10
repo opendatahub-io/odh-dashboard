@@ -73,7 +73,7 @@ spec:
                       type: boolean
                     disableModelRegistry:
                       type: boolean
-                    disableModelRegistrySecureDBEA:
+                    disableModelRegistrySecureDB:
                       type: boolean
                     disableServingRuntimeParams:
                       type: boolean
