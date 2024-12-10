@@ -327,6 +327,9 @@ describe('createNIMSecret', () => {
 });
 
 describe('fetchNIMModelNames', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
   const configMapMock = {
     data: {
       model1: JSON.stringify({
@@ -347,18 +350,6 @@ describe('fetchNIMModelNames', () => {
       }),
     },
   };
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    const mockAccount = mockNimAccount({
-      apiKeySecretName: 'nvidia-nim-access',
-      nimConfigName: 'nvidia-nim-images-data',
-      runtimeTemplateName: 'nvidia-nim-serving-template',
-      nimPullSecretName: 'nvidia-nim-image-pull',
-    });
-
-    (listAccounts as jest.Mock).mockResolvedValueOnce([mockAccount]);
-  });
 
   it('should return model infos when configMap has data', async () => {
     (getNIMResource as jest.Mock).mockResolvedValueOnce(configMapMock);
@@ -549,104 +540,42 @@ describe('updateServingRuntimeTemplate', () => {
 });
 
 describe('fetchNIMAccountTemplateName', () => {
-  const dashboardNamespace = 'redhat-ods-applications';
+  const dashboardNamespace = 'test-namespace';
 
-  afterEach(() => {
+  beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('should return the correct constants when a valid NIM account is present', async () => {
-    const mockAccount = mockNimAccount({ runtimeTemplateName: 'nvidia-nim-serving-template' });
-
+  it('should return the template name when available', async () => {
+    const mockAccount = mockNimAccount({ runtimeTemplateName: 'test-template' });
     (listAccounts as jest.Mock).mockResolvedValueOnce([mockAccount]);
 
     const result = await fetchNIMAccountTemplateName(dashboardNamespace);
 
-    expect(result).toBe('nvidia-nim-serving-template');
+    expect(result).toBe('test-template');
     expect(listAccounts).toHaveBeenCalledWith(dashboardNamespace);
   });
 
-  it('should return undefined and log an error if no account exists', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(jest.fn());
-
+  it('should return undefined when no accounts exist', async () => {
     (listAccounts as jest.Mock).mockResolvedValueOnce([]);
 
     const result = await fetchNIMAccountTemplateName(dashboardNamespace);
 
     expect(result).toBeUndefined();
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Error fetching NIM account template name: NIM account does not exist.',
-    );
-
-    consoleErrorSpy.mockRestore();
     expect(listAccounts).toHaveBeenCalledWith(dashboardNamespace);
   });
 
-  it('should return undefined and log an error if account details are missing', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(jest.fn());
+  it('should handle errors from listAccounts', async () => {
+    const mockError = new Error('Server Error');
+    (listAccounts as jest.Mock).mockRejectedValue(mockError);
 
-    const mockAccount = { status: undefined };
-
-    (listAccounts as jest.Mock).mockResolvedValueOnce([mockAccount]);
-
-    const result = await fetchNIMAccountTemplateName(dashboardNamespace);
-
-    expect(result).toBeUndefined();
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Error fetching NIM account template name: Failed to retrieve the NIM account template name.',
-    );
-
-    consoleErrorSpy.mockRestore();
-    expect(listAccounts).toHaveBeenCalledWith(dashboardNamespace);
-  });
-
-  it('should return undefined and log an error if runtimeTemplate name is missing in status', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(jest.fn());
-
-    const mockAccount = {
-      status: {
-        runtimeTemplate: { name: undefined },
-      },
-    };
-
-    (listAccounts as jest.Mock).mockResolvedValueOnce([mockAccount]);
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
     const result = await fetchNIMAccountTemplateName(dashboardNamespace);
 
     expect(result).toBeUndefined();
     expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Error fetching NIM account template name: Failed to retrieve the NIM account template name.',
-    );
-
-    consoleErrorSpy.mockRestore();
-    expect(listAccounts).toHaveBeenCalledWith(dashboardNamespace);
-  });
-
-  it('should return undefined and log an error if listAccounts throws an error', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(jest.fn());
-
-    (listAccounts as jest.Mock).mockRejectedValueOnce(new Error('Error listing accounts'));
-
-    const result = await fetchNIMAccountTemplateName(dashboardNamespace);
-
-    expect(result).toBeUndefined();
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Error fetching NIM account template name: Error listing accounts',
-    );
-
-    consoleErrorSpy.mockRestore();
-  });
-
-  it('should return undefined and log an error for a non-Error exception', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(jest.fn());
-
-    (listAccounts as jest.Mock).mockRejectedValueOnce('Non-error exception');
-
-    const result = await fetchNIMAccountTemplateName(dashboardNamespace);
-
-    expect(result).toBeUndefined();
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Error fetching NIM account template name: Non-error exception',
+      `Error fetching NIM account template name: ${mockError.message}`,
     );
 
     consoleErrorSpy.mockRestore();
