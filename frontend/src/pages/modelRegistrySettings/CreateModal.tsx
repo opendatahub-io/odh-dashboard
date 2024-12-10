@@ -1,15 +1,11 @@
 import * as React from 'react';
 import {
-  Alert,
   Button,
   Checkbox,
   Form,
   FormGroup,
   HelperText,
   HelperTextItem,
-  MenuGroup,
-  MenuItem,
-  Radio,
   TextInput,
 } from '@patternfly/react-core';
 import { Modal } from '@patternfly/react-core/deprecated';
@@ -24,27 +20,11 @@ import { NameDescType } from '~/pages/projects/types';
 import FormSection from '~/components/pf-overrides/FormSection';
 import { AreaContext } from '~/concepts/areas/AreaContext';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import SearchSelector from '~/components/searchSelector/SearchSelector';
-import { PemFileUpload } from './PemFileUpload';
+import { CreateMRSecureDBSection, SecureDBInfo, SecureDBRType } from './CreateMRSecureDBSection';
 
 type CreateModalProps = {
   onClose: () => void;
   refresh: () => Promise<unknown>;
-};
-
-enum SecureDBRadios {
-  CLUSTER_WIDE = 'cluster-wide',
-  OPENSHIFT = 'openshift',
-  EXISTING = 'existing',
-  NEW = 'new',
-}
-
-type SecureDBInfo = {
-  radio: SecureDBRadios;
-  nameSpace: string;
-  configMap: string;
-  certificate: string;
-  key: string;
 };
 
 const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
@@ -62,13 +42,13 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
   const [database, setDatabase] = React.useState('');
   const [addSecureDB, setAddSecureDB] = React.useState(false);
   const [secureDBInfo, setSecureDBInfo] = React.useState<SecureDBInfo>({
-    radio: SecureDBRadios.CLUSTER_WIDE,
+    type: SecureDBRType.CLUSTER_WIDE,
     nameSpace: '',
     configMap: '',
     certificate: '',
     key: '',
+    isValid: true,
   });
-  const [searchValue, setSearchValue] = React.useState('');
   const [isHostTouched, setIsHostTouched] = React.useState(false);
   const [isPortTouched, setIsPortTouched] = React.useState(false);
   const [isUsernameTouched, setIsUsernameTouched] = React.useState(false);
@@ -78,7 +58,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
   const { dscStatus } = React.useContext(AreaContext);
   const secureDbEnabled = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY_SECURE_DB).status;
 
-  const modelRegistryNamespace = dscStatus?.components?.modelregistry?.registriesNamespace;
+  const modelRegistryNamespace = dscStatus?.components?.modelregistry?.registriesNamespace || '';
 
   // the 3 following consts are temporary hard-coded values to be replaced as part of RHOAIENG-15899
   const existingCertConfigMaps = [
@@ -88,49 +68,6 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
   ];
   const existingCertSecrets = ['builder-dockercfg-b7gdr', 'builder-token-hwsps', 'foo-secret'];
   const existingCertKeys = ['service-ca.crt', 'foo-ca.crt'];
-
-  const getFilteredExistingCAResources = () => {
-    const filteredConfigMaps = existingCertConfigMaps.filter((item) =>
-      item.toLowerCase().includes(searchValue.toLowerCase()),
-    );
-    const filteredSecrets = existingCertSecrets.filter((item) =>
-      item.toLowerCase().includes(searchValue.toLowerCase()),
-    );
-    return (
-      <>
-        {filteredConfigMaps.length > 0 && (
-          <MenuGroup label="ConfigMaps">
-            {filteredConfigMaps.map((item, index) => (
-              <MenuItem
-                key={`config-map-${index}`}
-                onClick={() => {
-                  setSearchValue('');
-                  setSecureDBInfo({ ...secureDBInfo, configMap: item });
-                }}
-              >
-                {item}
-              </MenuItem>
-            ))}
-          </MenuGroup>
-        )}
-        {filteredSecrets.length > 0 && (
-          <MenuGroup label="Secrets">
-            {filteredSecrets.map((item, index) => (
-              <MenuItem
-                key={`secret-${index}`}
-                onClick={() => {
-                  setSearchValue('');
-                  setSecureDBInfo({ ...secureDBInfo, configMap: item });
-                }}
-              >
-                {item}
-              </MenuItem>
-            ))}
-          </MenuGroup>
-        )}
-      </>
-    );
-  };
 
   const onBeforeClose = () => {
     setIsSubmitting(false);
@@ -208,27 +145,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
     hasContent(port) &&
     hasContent(username) &&
     hasContent(database) &&
-    validSecureDBOptions();
-
-  const validSecureDBOptions = () => {
-    if (!addSecureDB) {
-      return true;
-    }
-    if ([SecureDBRadios.CLUSTER_WIDE, SecureDBRadios.OPENSHIFT].includes(secureDBInfo.radio)) {
-      return true;
-    }
-    if (secureDBInfo.radio === SecureDBRadios.EXISTING) {
-      return hasContent(secureDBInfo.configMap) && hasContent(secureDBInfo.key);
-    }
-    if (secureDBInfo.radio === SecureDBRadios.NEW) {
-      return hasContent(secureDBInfo.certificate);
-    }
-    return false;
-  };
-
-  const handleSecureDBTypeChange = (type: SecureDBRadios) => {
-    setSecureDBInfo({ radio: type, nameSpace: '', key: '', configMap: '', certificate: '' });
-  };
+    (!addSecureDB || secureDBInfo.isValid);
 
   return (
     <Modal
@@ -365,7 +282,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
               </HelperText>
             )}
           </FormGroup>
-          {secureDbEnabled && (
+          {!secureDbEnabled && (
             <>
               <FormGroup>
                 <Checkbox
@@ -377,132 +294,15 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
                 />
               </FormGroup>
               {addSecureDB && (
-                <>
-                  <Radio
-                    isChecked={secureDBInfo.radio === SecureDBRadios.CLUSTER_WIDE}
-                    name="cluster-wide-ca"
-                    onChange={() => handleSecureDBTypeChange(SecureDBRadios.CLUSTER_WIDE)}
-                    label="Use cluster-wide CA bundle"
-                    description={
-                      <>
-                        Use the <strong>ca-bundle.crt</strong> bundle in the{' '}
-                        <strong>odh-trusted-ca-bundle</strong> ConfigMap.
-                      </>
-                    }
-                    id="cluster-wide-ca"
-                  />
-                  <Radio
-                    isChecked={secureDBInfo.radio === SecureDBRadios.OPENSHIFT}
-                    name="openshift-ca"
-                    onChange={() => handleSecureDBTypeChange(SecureDBRadios.OPENSHIFT)}
-                    label="Use OpenShift AI CA bundle"
-                    description={
-                      <>
-                        Use the <strong>odh-ca-bundle.crt</strong> bundle in the{' '}
-                        <strong>odh-trusted-ca-bundle</strong> ConfigMap.
-                      </>
-                    }
-                    id="openshift-ca"
-                  />
-                  <Radio
-                    isChecked={secureDBInfo.radio === SecureDBRadios.EXISTING}
-                    name="existing-ca"
-                    onChange={() => handleSecureDBTypeChange(SecureDBRadios.EXISTING)}
-                    label="Choose from existing certificates"
-                    description={
-                      <>
-                        You can select the key of any ConfigMap or Secret in the{' '}
-                        <strong>{modelRegistryNamespace}</strong> namespace.
-                      </>
-                    }
-                    id="existing-ca"
-                  />
-                  {secureDBInfo.radio === SecureDBRadios.EXISTING && (
-                    <>
-                      <FormGroup
-                        label="Resource"
-                        isRequired
-                        fieldId="existing-ca-resource"
-                        style={{ marginLeft: 'var(--pf-t--global--spacer--lg)' }}
-                      >
-                        <SearchSelector
-                          isFullWidth
-                          dataTestId="existing-ca-resource-selector"
-                          onSearchChange={(newValue) => setSearchValue(newValue)}
-                          onSearchClear={() => setSearchValue('')}
-                          searchValue={searchValue}
-                          toggleText={secureDBInfo.configMap || 'Select a ConfigMap or a Secret'}
-                        >
-                          {getFilteredExistingCAResources()}
-                        </SearchSelector>
-                      </FormGroup>
-                      <FormGroup
-                        label="Key"
-                        isRequired
-                        fieldId="existing-ca-key"
-                        style={{ marginLeft: 'var(--pf-t--global--spacer--lg)' }}
-                      >
-                        <SearchSelector
-                          isFullWidth
-                          dataTestId="existing-ca-key-selector"
-                          onSearchChange={(newValue) => setSearchValue(newValue)}
-                          onSearchClear={() => setSearchValue('')}
-                          searchValue={searchValue}
-                          toggleText={secureDBInfo.key || 'Select a key'}
-                        >
-                          {existingCertKeys
-                            .filter((item) =>
-                              item.toLowerCase().includes(searchValue.toLowerCase()),
-                            )
-                            .map((item, index) => (
-                              <MenuItem
-                                key={`key-${index}`}
-                                onClick={() => {
-                                  setSearchValue('');
-                                  setSecureDBInfo({ ...secureDBInfo, key: item });
-                                }}
-                              >
-                                {item}
-                              </MenuItem>
-                            ))}
-                        </SearchSelector>
-                      </FormGroup>
-                    </>
-                  )}
-                  <Radio
-                    isChecked={secureDBInfo.radio === SecureDBRadios.NEW}
-                    name="new-ca"
-                    onChange={() => handleSecureDBTypeChange(SecureDBRadios.NEW)}
-                    label="Upload new certificate"
-                    id="new-ca"
-                  />
-                  {secureDBInfo.radio === SecureDBRadios.NEW && (
-                    <>
-                      <Alert
-                        isInline
-                        title="Note"
-                        variant="info"
-                        style={{ marginLeft: 'var(--pf-t--global--spacer--lg)' }}
-                      >
-                        Uploading a certificate below creates the{' '}
-                        <strong>{translateDisplayNameForK8s(nameDesc.name)}-db-credential</strong>{' '}
-                        ConfigMap with the <strong>ca.crt</strong> key. If you&apos;d like to upload
-                        the certificate as a Secret instead, see the documentation for more details.
-                      </Alert>
-                      <FormGroup
-                        label="Certificate"
-                        required
-                        style={{ marginLeft: 'var(--pf-t--global--spacer--lg)' }}
-                      >
-                        <PemFileUpload
-                          onChange={(value) =>
-                            setSecureDBInfo({ ...secureDBInfo, certificate: value })
-                          }
-                        />
-                      </FormGroup>
-                    </>
-                  )}
-                </>
+                <CreateMRSecureDBSection
+                  secureDBInfo={secureDBInfo}
+                  modelRegistryNamespace={modelRegistryNamespace}
+                  nameDesc={nameDesc}
+                  existingCertKeys={existingCertKeys}
+                  existingCertConfigMaps={existingCertConfigMaps}
+                  existingCertSecrets={existingCertSecrets}
+                  setSecureDBInfo={setSecureDBInfo}
+                />
               )}
             </>
           )}
