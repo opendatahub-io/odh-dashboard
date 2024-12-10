@@ -2,7 +2,6 @@ import React from 'react';
 import { Button, FormGroup, HelperText, Form, FormHelperText } from '@patternfly/react-core';
 import { Modal } from '@patternfly/react-core/deprecated';
 import ProjectSelector from '~/concepts/projects/ProjectSelector';
-import { DataConnection } from '~/pages/projects/types';
 import { Connection } from '~/concepts/connectionTypes/types';
 import { ConnectionDropdown } from './ConnectionDropdown';
 import { ModelLocationType } from './useRegisterModelData';
@@ -10,10 +9,10 @@ import { ModelLocationType } from './useRegisterModelData';
 export const ConnectionModal: React.FC<{
   type: ModelLocationType;
   onClose: () => void;
-  onSubmit: (connection: DataConnection | Connection) => void;
+  onSubmit: (connection: Connection) => void;
 }> = ({ type, onClose, onSubmit }) => {
   const [project, setProject] = React.useState<string | undefined>(undefined);
-  const [connection, setConnection] = React.useState<DataConnection | undefined>(undefined);
+  const [connection, setConnection] = React.useState<Connection | undefined>(undefined);
   const modelLocationType = type === ModelLocationType.ObjectStorage ? 'object storage' : 'URI';
 
   return (

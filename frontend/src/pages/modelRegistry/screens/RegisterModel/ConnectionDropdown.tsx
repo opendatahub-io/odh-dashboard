@@ -8,15 +8,14 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import React from 'react';
-import { DataConnection } from '~/pages/projects/types';
-import { getDataConnectionDisplayName } from '~/pages/projects/screens/detail/data-connections/utils';
-// TODO: temporarily importing across pages so not to interfere with ongoing dataconnection work
-import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
+import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
+import { Connection } from '~/concepts/connectionTypes/types';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 
 type ConnectionDropdownProps = {
-  onSelect: (connectionInfo: DataConnection) => void;
+  onSelect: (connectionInfo: Connection) => void;
   project?: string;
-  selectedConnection?: DataConnection;
+  selectedConnection?: Connection;
 };
 export const ConnectionDropdown = ({
   onSelect,
@@ -24,13 +23,13 @@ export const ConnectionDropdown = ({
   selectedConnection,
 }: ConnectionDropdownProps): React.JSX.Element => {
   const [isOpen, setIsOpen] = React.useState(false);
-  const [connections, connectionsLoaded, connectionsLoadError] = useDataConnections(project);
+  const [connections, connectionsLoaded, connectionsLoadError] = useConnections(project);
 
   const onToggle = () => {
     setIsOpen(!isOpen);
   };
 
-  const filteredConnections = connections.filter((c) => c.data.data?.AWS_S3_BUCKET);
+  const filteredConnections = connections.filter((c) => c.data?.AWS_S3_BUCKET);
 
   const getToggleContent = () => {
     if (!project) {
@@ -50,7 +49,7 @@ export const ConnectionDropdown = ({
       return 'No available data connections';
     }
     if (selectedConnection) {
-      return getDataConnectionDisplayName(selectedConnection);
+      return getDisplayNameFromK8sResource(selectedConnection);
     }
     return 'Select data connection';
   };
@@ -61,7 +60,7 @@ export const ConnectionDropdown = ({
   ) => {
     setIsOpen(false);
     if (typeof option === 'string') {
-      const value = connections.find((d) => d.data.metadata.name === option);
+      const value = connections.find((d) => d.metadata.name === option);
       if (!value) {
         return;
       }
@@ -90,8 +89,8 @@ export const ConnectionDropdown = ({
         <MenuContent>
           <MenuList>
             {filteredConnections.map((dataItem) => (
-              <MenuItem key={dataItem.data.metadata.name} itemId={dataItem.data.metadata.name}>
-                {getDataConnectionDisplayName(dataItem)}
+              <MenuItem key={dataItem.metadata.name} itemId={dataItem.metadata.name}>
+                {getDisplayNameFromK8sResource(dataItem)}
               </MenuItem>
             ))}
           </MenuList>
