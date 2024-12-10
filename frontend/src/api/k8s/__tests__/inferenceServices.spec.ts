@@ -140,7 +140,7 @@ describe('assembleInferenceService', () => {
 
   it('should handle name and display name', async () => {
     const displayName = 'Llama model';
-    const resourceName = 'llama-model';
+    const resourceName = 'my-inference-service-test';
 
     const inferenceService = assembleInferenceService(
       mockInferenceServiceModalData({ name: displayName, servingRuntimeName: resourceName }),
