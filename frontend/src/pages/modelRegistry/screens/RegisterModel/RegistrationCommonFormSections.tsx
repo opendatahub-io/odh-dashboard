@@ -15,11 +15,7 @@ import {
 } from '@patternfly/react-core';
 import { OptimizeIcon } from '@patternfly/react-icons';
 import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
-import {
-  DataConnection,
-  DataConnectionType,
-  UpdateObjectAtPropAndValue,
-} from '~/pages/projects/types';
+import { DataConnection, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { convertAWSSecretData } from '~/pages/projects/screens/detail/data-connections/utils';
 import FormSection from '~/components/pf-overrides/FormSection';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
@@ -28,7 +24,6 @@ import { ConnectionModal } from './ConnectionModal';
 import { MR_CHARACTER_LIMIT } from './const';
 import { isNameValid } from './utils';
 import { Connection } from '~/concepts/connectionTypes/types';
-import DataConnectionField from '~/pages/projects/screens/spawner/dataConnection/DataConnectionField';
 
 type RegistrationCommonFormSectionsProps<D extends RegistrationCommonFormData> = {
   formData: D;
@@ -62,10 +57,6 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
     convertAWSSecretData(connection).forEach((dataItem) => {
       setData(connectionDataMap[dataItem.key], dataItem.value);
     });
-  };
-
-  const fillURIByConnection = (connection: Connection) => {
-    setData('modelLocationURI', connection?.data?.URI);
   };
 
   const {
@@ -285,8 +276,6 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
           onSubmit={(connection) => {
             if (modelLocationType === ModelLocationType.ObjectStorage) {
               fillObjectStorageByConnection(connection);
-            } else {
-              fillURIByConnection(connection);
             }
             setAutofillModalOpen(false);
           }}
