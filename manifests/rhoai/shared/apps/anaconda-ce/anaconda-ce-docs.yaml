@@ -10,7 +10,7 @@ spec:
   displayName: Exploring Anaconda for data science
   description: |-
     Learn about Anaconda, a freemium open source distribution of the Python and R programming languages.
-  url: https://anaconda.org/training/anaconda_introduction/notebook
+  url: https://learning.anaconda.cloud
   durationMinutes: 5
 ---
 apiVersion: dashboard.opendatahub.io/v1
@@ -96,12 +96,12 @@ metadata:
     opendatahub.io/categories: 'Model development,Getting started'
 spec:
   appName: anaconda-ce
-  type: tutorial
+  type: how-to
   displayName: Building machine learning models with scikit-learn
   description: |-
     Learn how to build machine learning models with scikit-learn for supervised learning, unsupervised learning, and classification problems.
   url: https://scikit-learn.org/stable/getting_started.html
-  durationMinutes: 90
+  durationMinutes: 15
 ---
 apiVersion: dashboard.opendatahub.io/v1
 kind: OdhDocument
