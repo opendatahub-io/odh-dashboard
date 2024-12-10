@@ -6,7 +6,6 @@ export enum SpawnerPageSectionID {
   DEPLOYMENT_SIZE = 'deployment-size',
   ENVIRONMENT_VARIABLES = 'environment-variables',
   CLUSTER_STORAGE = 'cluster-storage',
-  DATA_CONNECTIONS = 'data-connections',
   CONNECTIONS = 'connections',
 }
 
