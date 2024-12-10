@@ -304,6 +304,19 @@ export type Toleration = {
   tolerationSeconds?: number;
 };
 
+export type Identifier = {
+  displayName: string;
+  identifier: string;
+  minCount: number | string;
+  maxCount: number | string;
+  defaultCount: number | string;
+};
+
+export type NodeSelector = {
+  key: string;
+  value: string;
+};
+
 export type PodContainer = {
   name: string;
   image: string;

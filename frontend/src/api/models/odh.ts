@@ -14,6 +14,13 @@ export const AcceleratorProfileModel: K8sModelCommon = {
   plural: 'acceleratorprofiles',
 };
 
+export const HardwareProfileModel = {
+  apiVersion: 'v1alpha1',
+  apiGroup: 'dashboard.opendatahub.io',
+  kind: 'HardwareProfile',
+  plural: 'hardwareprofiles',
+} satisfies K8sModelCommon;
+
 export const NotebookModel: K8sModelCommon = {
   apiVersion: 'v1',
   apiGroup: 'kubeflow.org',
