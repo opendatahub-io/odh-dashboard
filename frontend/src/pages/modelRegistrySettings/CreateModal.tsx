@@ -79,6 +79,8 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
   const secureDbEnabled = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY_SECURE_DB).status;
 
   const modelRegistryNamespace = dscStatus?.components?.modelregistry?.registriesNamespace;
+
+  // the 3 following consts are temporary hard-coded values to be replaced as part of RHOAIENG-15899
   const existingCertConfigMaps = [
     'config-service-cabundle',
     'odh-trusted-ca-bundle',
@@ -384,7 +386,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
                     description={
                       <>
                         Use the <strong>ca-bundle.crt</strong> bundle in the{' '}
-                        <strong>odh-trusted-ca-bundle</strong> ConfigMap. {secureDBInfo.radio}
+                        <strong>odh-trusted-ca-bundle</strong> ConfigMap.
                       </>
                     }
                     id="cluster-wide-ca"
