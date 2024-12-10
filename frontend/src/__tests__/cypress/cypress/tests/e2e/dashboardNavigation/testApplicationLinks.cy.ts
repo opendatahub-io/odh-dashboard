@@ -1,6 +1,6 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { extractLauncherUrls } from '~/__tests__/cypress/cypress/utils/urlExtractor';
-import { header } from '~/__tests__/cypress/cypress/pages/components/header';
+import { header } from '~/__tests__/cypress/cypress/pages/components/Header';
 
 describe('Verify the RHOAI Application and Switcher links in the Dashboard Navigation', () => {
   it('Verify the various application tabs and switcher links are operational', () => {
