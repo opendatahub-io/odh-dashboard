@@ -93,28 +93,29 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
           {!loaded ? (
             <Skeleton />
           ) : (
-           <ActionList>
-            <ActionListGroup>
-              <ActionListItem>
-                <Button
-                  icon={<ExternalLinkAltIcon />}
-                  onClick={() =>
-                    fireMiscTrackingEvent('Explore card get started clicked', {
-                      name: selectedApp.metadata.name,
-                    })
-                  }
-                  iconPosition="end"
-                  href={selectedApp.spec.getStartedLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  component="a"
-                >
-                  Get started
-                </Button>
-              </ActionListItem>
-              <ActionListItem>{renderEnableButton()}</ActionListItem>
-            </ActionListGroup>
-          </ActionList>)}
+            <ActionList>
+              <ActionListGroup>
+                <ActionListItem>
+                  <Button
+                    icon={<ExternalLinkAltIcon />}
+                    onClick={() =>
+                      fireMiscTrackingEvent('Explore card get started clicked', {
+                        name: selectedApp.metadata.name,
+                      })
+                    }
+                    iconPosition="end"
+                    href={selectedApp.spec.getStartedLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    component="a"
+                  >
+                    Get started
+                  </Button>
+                </ActionListItem>
+                <ActionListItem>{renderEnableButton()}</ActionListItem>
+              </ActionListGroup>
+            </ActionList>
+          )}
         </DrawerPanelBody>
       )}
       <Divider />
