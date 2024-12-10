@@ -199,7 +199,7 @@ class AttachExistingStorageModal extends Modal {
     cy.findByTestId('persistent-storage-group')
       .findByPlaceholderText('Select a persistent storage')
       .click();
-    cy.findByTestId('persistent-storage-group').contains('button.pf-v6-c-menu__item', name).click();
+    cy.findByTestId('persistent-storage-typeahead').contains(name).click();
   }
 
   findStandardPathInput() {
