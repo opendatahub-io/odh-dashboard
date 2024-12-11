@@ -14,9 +14,8 @@ export const isAppEnabled = (app: NIMAccountKind): boolean => {
 
 export const getNIMAccount = async (
   fastify: KubeFastifyInstance,
-  namespace: string,
 ): Promise<NIMAccountKind | undefined> => {
-  const { customObjectsApi } = fastify.kube;
+  const { customObjectsApi, namespace } = fastify.kube;
   try {
     const response = await customObjectsApi.listNamespacedCustomObject(
       'nim.opendatahub.io',
@@ -35,11 +34,8 @@ export const getNIMAccount = async (
   }
 };
 
-export const createNIMAccount = async (
-  fastify: KubeFastifyInstance,
-  namespace: string,
-): Promise<NIMAccountKind> => {
-  const { customObjectsApi } = fastify.kube;
+export const createNIMAccount = async (fastify: KubeFastifyInstance): Promise<NIMAccountKind> => {
+  const { customObjectsApi, namespace } = fastify.kube;
   const account = {
     apiVersion: 'nim.opendatahub.io/v1',
     kind: 'Account',
@@ -68,10 +64,9 @@ export const createNIMAccount = async (
 
 export const createNIMSecret = async (
   fastify: KubeFastifyInstance,
-  namespace: string,
   enableValues: { [key: string]: string },
-): Promise<SecretKind> => {
-  const { coreV1Api } = fastify.kube;
+): Promise<{ secret: SecretKind }> => {
+  const { coreV1Api, namespace } = fastify.kube;
   const nimSecret = {
     apiVersion: 'v1',
     kind: 'Secret',
@@ -86,6 +81,21 @@ export const createNIMSecret = async (
     stringData: enableValues,
   };
 
-  const response = await coreV1Api.createNamespacedSecret(namespace, nimSecret);
-  return Promise.resolve(response.body as SecretKind);
+  try {
+    // Try to create the secret
+    const response = await coreV1Api.createNamespacedSecret(namespace, nimSecret);
+    return { secret: response.body as SecretKind };
+  } catch (e: any) {
+    if (e.response?.statusCode === 409) {
+      // Secret already exists, so update it (replace)
+      const updateResponse = await coreV1Api.replaceNamespacedSecret(
+        NIM_SECRET_NAME,
+        namespace,
+        nimSecret,
+      );
+      return { secret: updateResponse.body as SecretKind };
+    } else {
+      throw e;
+    }
+  }
 };
