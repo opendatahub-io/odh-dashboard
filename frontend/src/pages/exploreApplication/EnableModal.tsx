@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Alert, Button, Form, FormAlert, Spinner, TextInputTypes } from '@patternfly/react-core';
 import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { isEmpty, values } from 'lodash-es';
 import { OdhApplication } from '~/types';
 import { EnableApplicationStatus, useEnableApplication } from '~/utilities/useEnableApplication';
 import { asEnumMember } from '~/utilities/utils';
@@ -18,6 +19,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
   const [postError, setPostError] = React.useState('');
   const [validationInProgress, setValidationInProgress] = React.useState(false);
   const [enableValues, setEnableValues] = React.useState<{ [key: string]: string }>({});
+  const [isEnableValuesHasEmptyValue, setIsEnableValuesHasEmptyValue] = React.useState(true);
   const [validationStatus, validationErrorMessage] = useEnableApplication(
     validationInProgress,
     selectedApp.metadata.name,
@@ -36,6 +38,11 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
       ...enableValues,
       [key]: value,
     };
+    if (values(updatedValues).some((val) => isEmpty(val))) {
+      setIsEnableValuesHasEmptyValue(true);
+    } else {
+      setIsEnableValuesHasEmptyValue(false);
+    }
     setEnableValues(updatedValues);
   };
 
@@ -53,6 +60,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
       selectedApp.spec.shownOnEnabledPage = true;
       /* eslint-enable no-param-reassign */
 
+      setIsEnableValuesHasEmptyValue(true);
       onClose();
     }
     if (validationInProgress && validationStatus === EnableApplicationStatus.FAILED) {
@@ -97,7 +105,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
           key="confirm"
           variant="primary"
           onClick={onDoEnableApp}
-          isDisabled={validationInProgress}
+          isDisabled={validationInProgress || isEnableValuesHasEmptyValue}
         >
           {enable.actionLabel}
         </Button>,
