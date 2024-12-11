@@ -344,7 +344,7 @@ describe('Model Serving Global', () => {
       'POST',
       InferenceServiceModel,
       mockInferenceServiceK8sResource({
-        name: 'test-name',
+        name: 'test-model',
         path: 'test-model/',
         displayName: 'Test Name',
         isModelMesh: true,
@@ -403,7 +403,7 @@ describe('Model Serving Global', () => {
         apiVersion: 'serving.kserve.io/v1beta1',
         kind: 'InferenceService',
         metadata: {
-          name: 'test-model',
+          name: 'test-name',
           namespace: 'test-project',
           labels: { 'opendatahub.io/dashboard': 'true' },
           annotations: {
@@ -468,7 +468,7 @@ describe('Model Serving Global', () => {
         apiVersion: 'serving.kserve.io/v1beta1',
         kind: 'InferenceService',
         metadata: {
-          name: 'test-model',
+          name: 'trigger-error',
           namespace: 'test-project',
           labels: { 'opendatahub.io/dashboard': 'true' },
           annotations: {
