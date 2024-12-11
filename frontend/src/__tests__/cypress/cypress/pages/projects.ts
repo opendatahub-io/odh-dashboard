@@ -121,6 +121,10 @@ class ProjectListPage {
     return cy.findByTestId('create-data-science-project');
   }
 
+  findLaunchStandaloneWorkbenchButton() {
+    return cy.findByTestId('launch-standalone-notebook-server');
+  }
+
   findProjectsTable() {
     return cy.findByTestId('project-view-table');
   }
