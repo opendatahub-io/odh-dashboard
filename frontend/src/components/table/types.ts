@@ -11,6 +11,7 @@ export type SortableData<T> = Pick<
   | 'modifier'
   | 'width'
   | 'info'
+  | 'visibility'
   | 'className'
 > & {
   label: string;
