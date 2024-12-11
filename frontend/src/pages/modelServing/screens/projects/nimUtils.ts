@@ -2,21 +2,17 @@
 
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { ProjectKind, SecretKind, ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
-import { deletePvc, deleteSecret, getTemplate } from '~/api';
+import { deletePvc, deleteSecret, getTemplate, listNIMAccounts } from '~/api';
 import { fetchInferenceServiceCount } from '~/pages/modelServing/screens/projects/utils';
-
-const NIM_SECRET_NAME = 'nvidia-nim-access';
-const NIM_NGC_SECRET_NAME = 'nvidia-nim-image-pull';
-const TEMPLATE_NAME = 'nvidia-nim-serving-template';
 
 export const getNGCSecretType = (isNGC: boolean): string =>
   isNGC ? 'kubernetes.io/dockerconfigjson' : 'Opaque';
 
 export const getNIMResource = async <T extends K8sResourceCommon = SecretKind>(
-  resourceName: string,
+  resourceRef: string,
 ): Promise<T> => {
   try {
-    const response = await fetch(`/api/nim-serving/${resourceName}`, {
+    const response = await fetch(`/api/nim-serving/${resourceRef}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -29,16 +25,18 @@ export const getNIMResource = async <T extends K8sResourceCommon = SecretKind>(
     const resourceData = await response.json();
     return resourceData.body;
   } catch (error) {
-    throw new Error(`Failed to fetch the resource: ${resourceName}.`);
+    throw new Error(`Failed to fetch the resource: ${resourceRef}.`);
   }
 };
-export const getNIMData = async (isNGC: boolean): Promise<Record<string, string> | undefined> => {
-  const nimSecretData: SecretKind = isNGC
-    ? await getNIMResource(NIM_NGC_SECRET_NAME)
-    : await getNIMResource(NIM_SECRET_NAME);
+
+export const getNIMData = async (
+  secretKey: string,
+  isNGC: boolean,
+): Promise<Record<string, string> | undefined> => {
+  const nimSecretData = await getNIMResource(secretKey);
 
   if (!nimSecretData.data) {
-    throw new Error(`Error retrieving NIM ${isNGC ? 'NGC' : ''} secret data`);
+    throw new Error(`Error retrieving ${isNGC ? 'NGC' : 'NIM'} secret data`);
   }
 
   const data: Record<string, string> = {};
@@ -62,7 +60,13 @@ export const isNIMServingRuntimeTemplateAvailable = async (
   dashboardNamespace: string,
 ): Promise<boolean> => {
   try {
-    await getTemplate(TEMPLATE_NAME, dashboardNamespace);
+    const templateName = await fetchNIMAccountTemplateName(dashboardNamespace);
+    if (!templateName) {
+      // eslint-disable-next-line no-console
+      console.error('No NIM account template available.');
+      return false;
+    }
+    await getTemplate(templateName, dashboardNamespace);
     return true;
   } catch (error) {
     return false;
@@ -71,9 +75,10 @@ export const isNIMServingRuntimeTemplateAvailable = async (
 
 export const getNIMServingRuntimeTemplate = async (
   dashboardNamespace: string,
+  templateName: string,
 ): Promise<TemplateKind | undefined> => {
   try {
-    const template = await getTemplate(TEMPLATE_NAME, dashboardNamespace);
+    const template = await getTemplate(templateName, dashboardNamespace);
     return template;
   } catch (error) {
     return undefined;
@@ -182,4 +187,31 @@ export const getNIMResourcesToDelete = async (
   }
 
   return resourcesToDelete;
+};
+
+export const fetchNIMAccountTemplateName = async (
+  dashboardNamespace: string,
+): Promise<string | undefined> => {
+  try {
+    const accounts = await listNIMAccounts(dashboardNamespace);
+    if (accounts.length === 0) {
+      throw new Error('NIM account does not exist.');
+    }
+
+    const nimAccount = accounts[0];
+    if (!nimAccount.status?.runtimeTemplate?.name) {
+      throw new Error('Failed to retrieve the NIM account template name.');
+    }
+
+    return nimAccount.status.runtimeTemplate.name;
+  } catch (e) {
+    if (e instanceof Error) {
+      // eslint-disable-next-line no-console
+      console.error(`Error fetching NIM account template name: ${e.message}`);
+    } else {
+      // eslint-disable-next-line no-console
+      console.error(`Error fetching NIM account template name: ${String(e)}`);
+    }
+    return undefined;
+  }
 };

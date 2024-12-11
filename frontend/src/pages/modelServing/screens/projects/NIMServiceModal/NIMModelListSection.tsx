@@ -8,6 +8,7 @@ import {
 } from '~/pages/modelServing/screens/types';
 import SimpleSelect from '~/components/SimpleSelect';
 import { fetchNIMModelNames, ModelInfo } from '~/pages/modelServing/screens/projects/utils';
+import { useDashboardNamespace } from '~/redux/selectors';
 
 type NIMModelListSectionProps = {
   inferenceServiceData: CreatingInferenceServiceObject;
@@ -28,6 +29,7 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
   const [selectedModel, setSelectedModel] = useState(
     isEditing ? `${inferenceServiceData.format.name}` : '',
   );
+  const { dashboardNamespace } = useDashboardNamespace();
 
   useEffect(() => {
     if (!isEditing) {
@@ -60,7 +62,7 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
       ]);
       setSelectedModel(inferenceServiceData.format.name);
     }
-  }, [isEditing, inferenceServiceData.format.name]);
+  }, [isEditing, inferenceServiceData.format.name, dashboardNamespace]);
 
   const getSupportedModelFormatsInfo = (key: string) => {
     const lastHyphenIndex = key.lastIndexOf('-');
