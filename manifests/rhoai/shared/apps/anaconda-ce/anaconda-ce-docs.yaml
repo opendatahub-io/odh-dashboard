@@ -7,10 +7,10 @@ metadata:
 spec:
   appName: anaconda-ce
   type: tutorial
-  displayName: Exploring Anaconda for data science 
+  displayName: Exploring Anaconda for data science
   description: |-
     Learn about Anaconda, a freemium open source distribution of the Python and R programming languages.
-  url: https://anaconda.org/training/anaconda_introduction/notebook
+  url: https://learning.anaconda.cloud
   durationMinutes: 5
 ---
 apiVersion: dashboard.opendatahub.io/v1
@@ -37,9 +37,9 @@ metadata:
 spec:
   appName: anaconda-ce
   type: tutorial
-  displayName: Using Pandas for data analysis in Python 
+  displayName: Using Pandas for data analysis in Python
   description: |-
-    Learn how to use pandas, a data analysis library for the Python programming language. 
+    Learn how to use pandas, a data analysis library for the Python programming language.
   url: https://github.com/TomAugspurger/effective-pandas
   durationMinutes: 90
 ---
@@ -81,7 +81,7 @@ metadata:
     opendatahub.io/categories: 'Data analysis,Model optimization'
 spec:
   appName: anaconda-ce
-  displayName: Using Dask for parallel data analysis 
+  displayName: Using Dask for parallel data analysis
   description: |-
     Analyze medium-sized datasets in parallel locally using Dask, a parallel computing library that scales the existing Python ecosystem.
   url: https://tutorial.dask.org/
@@ -96,12 +96,12 @@ metadata:
     opendatahub.io/categories: 'Model development,Getting started'
 spec:
   appName: anaconda-ce
-  type: tutorial
-  displayName: Building machine learning models with scikit-learn 
+  type: how-to
+  displayName: Building machine learning models with scikit-learn
   description: |-
     Learn how to build machine learning models with scikit-learn for supervised learning, unsupervised learning, and classification problems.
-  url: https://scikit-learn.org/stable/tutorial/index.html
-  durationMinutes: 90
+  url: https://scikit-learn.org/stable/getting_started.html
+  durationMinutes: 15
 ---
 apiVersion: dashboard.opendatahub.io/v1
 kind: OdhDocument
