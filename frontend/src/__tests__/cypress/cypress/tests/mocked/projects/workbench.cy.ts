@@ -306,21 +306,6 @@ describe('Workbench page', () => {
     storageTableRow.findStorageSizeValue().should('have.text', 'Max 20Gi');
     storageTableRow.findMountPathValue().should('have.text', '/opt/app-root/src/');
 
-    //add data connection
-    createSpawnerPage.findDataConnectionCheckbox().check();
-    createSpawnerPage.findNewDataConnectionRadio().click();
-    createSpawnerPage.findSubmitButton().should('be.disabled');
-    createSpawnerPage.findAwsNameInput().type('Test Secret');
-    createSpawnerPage.findAwsKeyInput().type('test-aws-key');
-    createSpawnerPage.findAwsSecretKeyInput().type('test-secret-key');
-    createSpawnerPage.findEndpointInput().type('https://s3.amazonaws.com/');
-    createSpawnerPage.findRegionInput().type('us-east-1');
-    createSpawnerPage.findBucketInput().type('test-bucket');
-
-    //add existing data connection
-    createSpawnerPage.findExistingDataConnectionRadio().click();
-    createSpawnerPage.selectExistingDataConnection('Test Secret');
-
     createSpawnerPage.findSubmitButton().click();
     cy.wait('@createConfigMap').then((interception) => {
       expect(interception.request.body).to.containSubset({

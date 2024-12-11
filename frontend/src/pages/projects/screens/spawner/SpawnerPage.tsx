@@ -44,7 +44,6 @@ import ContainerSizeSelector from './deploymentSize/ContainerSizeSelector';
 import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
 import { getCompatibleAcceleratorIdentifiers } from './spawnerUtils';
 import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
-import DataConnectionField from './dataConnection/DataConnectionField';
 import { useNotebookDataConnection } from './dataConnection/useNotebookDataConnection';
 import { useNotebookSizeState } from './useNotebookSizeState';
 import useDefaultStorageClass from './storage/useDefaultStorageClass';
@@ -128,10 +127,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   );
   const existingStorageNames = storageData.map((storageDataEntry) => storageDataEntry.name);
 
-  const [dataConnectionData, setDataConnectionData] = useNotebookDataConnection(
-    dataConnections.data,
-    existingNotebook,
-  );
+  const [dataConnectionData] = useNotebookDataConnection(dataConnections.data, existingNotebook);
 
   const isConnectionTypesEnabled = useConnectionTypesEnabled();
   const [notebookConnections, setNotebookConnections] = React.useState<Connection[]>(
@@ -323,28 +319,16 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                 <ClusterStorageEmptyState />
               )}
             </FormSection>
-            {isConnectionTypesEnabled ? (
-              <ConnectionsFormSection
-                project={currentProject}
-                projectConnections={projectConnections}
-                refreshProjectConnections={refreshProjectConnections}
-                notebook={existingNotebook}
-                notebookDisplayName={k8sNameDescriptionData.data.name}
-                selectedConnections={notebookConnections}
-                setSelectedConnections={setNotebookConnections}
-              />
-            ) : (
-              <FormSection
-                title={SpawnerPageSectionTitles[SpawnerPageSectionID.DATA_CONNECTIONS]}
-                id={SpawnerPageSectionID.DATA_CONNECTIONS}
-                aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.DATA_CONNECTIONS]}
-              >
-                <DataConnectionField
-                  dataConnectionData={dataConnectionData}
-                  setDataConnectionData={setDataConnectionData}
-                />
-              </FormSection>
-            )}
+
+            <ConnectionsFormSection
+              project={currentProject}
+              projectConnections={projectConnections}
+              refreshProjectConnections={refreshProjectConnections}
+              notebook={existingNotebook}
+              notebookDisplayName={k8sNameDescriptionData.data.name}
+              selectedConnections={notebookConnections}
+              setSelectedConnections={setNotebookConnections}
+            />
           </Form>
         </GenericSidebar>
       </PageSection>
