@@ -282,7 +282,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
               </HelperText>
             )}
           </FormGroup>
-          {!secureDbEnabled && (
+          {secureDbEnabled && (
             <>
               <FormGroup>
                 <Checkbox
