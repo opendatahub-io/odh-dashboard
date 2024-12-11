@@ -135,7 +135,7 @@ const initIntercepts = ({
       }),
       mockProjectK8sResource({ k8sName: 'test-project', displayName: 'Test project' }),
     ]),
-  );
+  ).as('getProjects');
 
   cy.interceptOdh(
     `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts`,
@@ -185,8 +185,10 @@ describe('Deploy model version', () => {
     cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version');
     modelVersionRow.findKebabAction('Deploy').click();
+    cy.wait('@getProjects');
     modelVersionDeployModal.selectProjectByName('Model mesh project');
     cy.findByText('Multi-model platform is not installed').should('exist');
+    cy.wait('@getProjects');
     modelVersionDeployModal.selectProjectByName('KServe project');
     cy.findByText('Single-model platform is not installed').should('exist');
   });
