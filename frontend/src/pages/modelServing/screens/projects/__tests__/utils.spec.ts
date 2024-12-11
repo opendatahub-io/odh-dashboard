@@ -12,7 +12,7 @@ import {
 import { LabeledDataConnection, ServingPlatformStatuses } from '~/pages/modelServing/screens/types';
 import { ServingRuntimePlatform } from '~/types';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { createPvc, createSecret, listAccounts } from '~/api';
+import { createPvc, createSecret, listNIMAccounts } from '~/api';
 import { PersistentVolumeClaimKind, ServingRuntimeKind } from '~/k8sTypes';
 import {
   fetchNIMAccountTemplateName,
@@ -27,7 +27,7 @@ jest.mock('~/api', () => ({
   createSecret: jest.fn(),
   createPvc: jest.fn(),
   getInferenceServiceContext: jest.fn(),
-  listAccounts: jest.fn(),
+  listNIMAccounts: jest.fn(),
 }));
 
 jest.mock('~/pages/modelServing/screens/projects/nimUtils', () => ({
@@ -548,26 +548,26 @@ describe('fetchNIMAccountTemplateName', () => {
 
   it('should return the template name when available', async () => {
     const mockAccount = mockNimAccount({ runtimeTemplateName: 'test-template' });
-    (listAccounts as jest.Mock).mockResolvedValueOnce([mockAccount]);
+    (listNIMAccounts as jest.Mock).mockResolvedValueOnce([mockAccount]);
 
     const result = await fetchNIMAccountTemplateName(dashboardNamespace);
 
     expect(result).toBe('test-template');
-    expect(listAccounts).toHaveBeenCalledWith(dashboardNamespace);
+    expect(listNIMAccounts).toHaveBeenCalledWith(dashboardNamespace);
   });
 
   it('should return undefined when no accounts exist', async () => {
-    (listAccounts as jest.Mock).mockResolvedValueOnce([]);
+    (listNIMAccounts as jest.Mock).mockResolvedValueOnce([]);
 
     const result = await fetchNIMAccountTemplateName(dashboardNamespace);
 
     expect(result).toBeUndefined();
-    expect(listAccounts).toHaveBeenCalledWith(dashboardNamespace);
+    expect(listNIMAccounts).toHaveBeenCalledWith(dashboardNamespace);
   });
 
-  it('should handle errors from listAccounts', async () => {
+  it('should handle errors from listNIMAccounts', async () => {
     const mockError = new Error('Server Error');
-    (listAccounts as jest.Mock).mockRejectedValue(mockError);
+    (listNIMAccounts as jest.Mock).mockRejectedValue(mockError);
 
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
