@@ -1,8 +1,10 @@
 import React from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import { Button } from '@patternfly/react-core';
 import { experimentRunsRoute, globalPipelineRunDetailsRoute } from '~/routes';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { useRedirect } from '~/utilities/useRedirect';
+import RedirectErrorState from '~/pages/external/RedirectErrorState';
 
 /**
  * Handles redirects from Pipeline SDK URLs to internal routes.
@@ -14,6 +16,7 @@ import { useRedirect } from '~/utilities/useRedirect';
 const PipelinesSdkRedirects: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const createRedirectPath = React.useCallback(() => {
     if (!namespace) {
@@ -37,14 +40,33 @@ const PipelinesSdkRedirects: React.FC = () => {
     throw new Error('Invalid URL format');
   }, [namespace, location.hash]);
 
-  const [redirect, { loaded }] = useRedirect(createRedirectPath);
+  const [redirect, { loaded, error }] = useRedirect(createRedirectPath);
 
   React.useEffect(() => {
     redirect();
   }, [redirect]);
 
   return (
-    <ApplicationsPage title="Redirecting..." description={null} loaded={loaded} empty={false} />
+    <ApplicationsPage
+      loaded={loaded}
+      empty={!!error}
+      emptyStatePage={
+        <RedirectErrorState
+          title="Error redirecting to pipelines"
+          errorMessage={error?.message}
+          actions={
+            <>
+              <Button variant="link" onClick={() => navigate('/pipelines')}>
+                Go to pipelines
+              </Button>
+              <Button variant="link" onClick={() => navigate('/experiments')}>
+                Go to experiments
+              </Button>
+            </>
+          }
+        />
+      }
+    />
   );
 };
 

@@ -1,11 +1,12 @@
 import React from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import PipelinesSdkRedirect from './redirectComponents/PipelinesSdkRedirects';
+import ExternalRedirectNotFound from './redirectComponents/ExternalRedirectNotFound';
 
 const ExternalRoutes: React.FC = () => (
   <Routes>
     <Route path="/pipelinesSdk/:namespace/*" element={<PipelinesSdkRedirect />} />
-    <Route path="*" element={<Navigate to="/not-found" replace />} />
+    <Route path="*" element={<ExternalRedirectNotFound />} />
   </Routes>
 );
 

@@ -20,6 +20,42 @@ export type RedirectOptions = {
  * @param createRedirectPath Function that creates the redirect path, can be async for data fetching
  * @param options Redirect options
  * @returns Array of [redirect function, redirect state]
+ *
+ * @example
+ * ```tsx
+ * const [redirect, state] = useRedirect(() => '/foo');
+ *
+ * // With async path creation
+ * const [redirect, state] = useRedirect(async () => {
+ *   const data = await fetchData();
+ *   return `/bar/${data.id}`;
+ * });
+ *
+ * // With options
+ * const [redirect, state] = useRedirect(() => '/foobar', {
+ *   navigateOptions: { replace: true },
+ *   onComplete: () => console.log('Redirected'),
+ *   onError: (error) => console.error(error)
+ * });
+ *
+ * // Usage
+ * const createRedirectPath = React.useCallback(() => '/some/path', []);
+ *
+ * const [redirect, { loaded, error }] = useRedirect(createRedirectPath);
+ *
+ * React.useEffect(() => {
+ *   redirect();
+ * }, [redirect]);
+ *
+ *
+ * return (
+ * 	<ApplicationsPage
+ * 		loaded={loaded}
+ * 		empty={!!error}
+ * 		emptyStatePage={<RedirectErrorState fallbackUrl="/foo/bar"/>}
+ * 	/>
+ * );
+ * ```
  */
 export const useRedirect = (
   createRedirectPath: () => string | Promise<string | undefined> | undefined,
@@ -33,27 +69,21 @@ export const useRedirect = (
     error: undefined,
   });
 
-  const redirect = React.useCallback(
-    async (notFoundOnError = true) => {
-      try {
-        const path = await createRedirectPath();
-        if (!path) {
-          throw new Error('No redirect path available');
-        }
-        navigate(path, navigateOptions);
-        setState({ loaded: true, error: undefined });
-        onComplete?.();
-      } catch (e) {
-        const error = e instanceof Error ? e : new Error('Failed to redirect');
-        setState({ loaded: true, error });
-        onError?.(error);
-        if (notFoundOnError) {
-          navigate('/not-found', { replace: true });
-        }
+  const redirect = React.useCallback(async () => {
+    try {
+      const path = await createRedirectPath();
+      if (!path) {
+        throw new Error('No redirect path available');
       }
-    },
-    [createRedirectPath, navigate, navigateOptions, onComplete, onError],
-  );
+      navigate(path, navigateOptions);
+      setState({ loaded: true, error: undefined });
+      onComplete?.();
+    } catch (e) {
+      const error = e instanceof Error ? e : new Error('Failed to redirect');
+      setState({ loaded: true, error });
+      onError?.(error);
+    }
+  }, [createRedirectPath, navigate, navigateOptions, onComplete, onError]);
 
   return [redirect, state];
 };
