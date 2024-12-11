@@ -37,6 +37,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableKServeRaw: boolean;
       disableModelMesh: boolean;
       disableAcceleratorProfiles: boolean;
+      disableHardwareProfiles: boolean;
       disableDistributedWorkloads: boolean;
       disableModelRegistry: boolean;
       disableServingRuntimeParams: boolean;
@@ -1253,4 +1254,9 @@ export type NIMAccountKind = K8sResourceCommon & {
     };
     conditions?: K8sCondition[];
   };
+};
+
+export type ResourceAccessReviewResponse = {
+  groups?: string[];
+  users?: string[];
 };

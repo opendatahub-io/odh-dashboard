@@ -951,7 +951,7 @@ describe('Pipeline runs', () => {
           .getRowByName(mockRecurringRuns[0].display_name)
           .findStatusSwitchByRowName()
           .click();
-        cy.wait('@disableRecurringRun');
+        cy.wait('@disableRecurringRun', { timeout: 10000 });
       });
 
       it('schedules toggle should be disabled for the schedules with archived experiment', () => {

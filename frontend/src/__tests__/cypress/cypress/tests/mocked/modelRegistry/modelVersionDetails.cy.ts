@@ -326,6 +326,17 @@ describe('Model version details', () => {
     });
 
     it('Switching model versions', () => {
+      cy.interceptOdh(
+        `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts`,
+        {
+          path: {
+            serviceName: 'modelregistry-sample',
+            apiVersion: MODEL_REGISTRY_API_VERSION,
+            modelVersionId: 2,
+          },
+        },
+        mockModelArtifactList({}),
+      );
       modelVersionDetails.findVersionId().contains('1');
       modelVersionDetails.findModelVersionDropdownButton().click();
       modelVersionDetails.findModelVersionDropdownItem('Version 3').should('not.exist');
