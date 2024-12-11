@@ -2,7 +2,7 @@
 
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { ProjectKind, SecretKind, ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
-import { deletePvc, deleteSecret, getTemplate, listAccounts } from '~/api';
+import { deletePvc, deleteSecret, getTemplate, listNIMAccounts } from '~/api';
 import { fetchInferenceServiceCount } from '~/pages/modelServing/screens/projects/utils';
 
 export const getNGCSecretType = (isNGC: boolean): string =>
@@ -193,7 +193,7 @@ export const fetchNIMAccountTemplateName = async (
   dashboardNamespace: string,
 ): Promise<string | undefined> => {
   try {
-    const accounts = await listAccounts(dashboardNamespace);
+    const accounts = await listNIMAccounts(dashboardNamespace);
     if (accounts.length === 0) {
       throw new Error('NIM account does not exist.');
     }
