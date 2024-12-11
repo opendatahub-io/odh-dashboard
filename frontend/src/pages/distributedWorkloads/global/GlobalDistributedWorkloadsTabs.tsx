@@ -33,8 +33,8 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
   const tabs = useDistributedWorkloadsTabs();
   const activeTab = tabs.find(({ id }) => id === activeTabId);
   const { namespace } = useParams<{ namespace: string }>();
-  const { clusterQueue, localQueues } = React.useContext(DistributedWorkloadsContext);
-  const requiredFetches = [clusterQueue, localQueues];
+  const { clusterQueues, localQueues } = React.useContext(DistributedWorkloadsContext);
+  const requiredFetches = [clusterQueues, localQueues];
   const error = requiredFetches.find((f) => !!f.error)?.error;
   const loaded = requiredFetches.every((f) => f.loaded);
 
@@ -51,9 +51,11 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
     return <LoadingState />;
   }
 
-  if (!clusterQueue.data || localQueues.data.length === 0) {
-    const nonAdmin = !clusterQueue.data;
-    const title = `Configure the ${!clusterQueue.data ? 'cluster queue' : 'project queue'}`;
+  if (clusterQueues.data.length === 0 || localQueues.data.length === 0) {
+    const nonAdmin = clusterQueues.data.length === 0;
+    const title = `Configure the ${
+      clusterQueues.data.length === 0 ? 'cluster queue' : 'project queue'
+    }`;
     const message = nonAdmin
       ? 'Ask your cluster admin to configure the cluster queue.'
       : 'Configure the queue for this project, or select a different project.';
