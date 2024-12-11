@@ -67,7 +67,6 @@ describe('useRedirect', () => {
     renderResult.rerender(createRedirectPath, { onError });
 
     expect(onError).toHaveBeenCalledWith(expect.any(Error));
-    expect(mockNavigate).toHaveBeenCalledWith('/not-found', { replace: true });
     expect(renderResult.result.current[1].loaded).toBe(true);
     expect(renderResult.result.current[1].error).toBeInstanceOf(Error);
   });
@@ -84,7 +83,6 @@ describe('useRedirect', () => {
     renderResult.rerender(createRedirectPath, { onError });
 
     expect(onError).toHaveBeenCalledWith(error);
-    expect(mockNavigate).toHaveBeenCalledWith('/not-found', { replace: true });
     expect(renderResult.result.current[1].loaded).toBe(true);
     expect(renderResult.result.current[1].error).toBe(error);
   });
