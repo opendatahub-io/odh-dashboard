@@ -85,27 +85,14 @@ module.exports = async (fastify: KubeFastifyInstance) => {
               });
             }
           } catch (accountError: any) {
-            const message =
-              accountError.response?.statusCode === 409
-                ? 'NIM account already exists.'
-                : `Failed to create or retrieve NIM account: ${accountError.response?.body?.message}`;
+            const message = `Failed to create or retrieve NIM account: ${accountError.response?.body?.message}`;
             fastify.log.error(message);
             reply.status(accountError.response?.statusCode || 500).send(new Error(message));
           }
         } catch (secretError: any) {
-          if (secretError.response?.statusCode === 409) {
-            fastify.log.error(`NIM secret already exists, skipping creation.`);
-            reply.status(409).send(new Error(`NIM secret already exists, skipping creation.`));
-          } else {
-            fastify.log.error(
-              `Failed to create NIM secret. ${secretError.response?.body?.message}`,
-            );
-            reply
-              .status(secretError.response?.statusCode || 500)
-              .send(
-                new Error(`Failed to create NIM secret, ${secretError.response?.body?.message}`),
-              );
-          }
+          const message = `Failed to create NIM secret. ${secretError.response?.body?.message}`;
+          fastify.log.error(message);
+          reply.status(secretError.response?.statusCode || 500).send(new Error(message));
         }
       },
     ),
