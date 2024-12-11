@@ -1,13 +1,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-
 import { Alert, Stack } from '@patternfly/react-core';
-
-import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
+import { ProjectKind } from '~/k8sTypes';
 import InferenceServiceTable from '~/pages/modelServing/screens/global/InferenceServiceTable';
 import { getVersionDetailsInferenceServiceColumns } from '~/pages/modelServing/screens/global/data';
-import { typedEmptyImage, ProjectObjectType } from '~/concepts/design/utils';
-import ModelVersionDetailsTabs from './ModelVersionDetailsTabs';
+import ModelVersionDetailsTabs from '~/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
+import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
+import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
+
+enum ColumnField {
+  Kebab = 'kebab',
+}
 
 type ModelVersionRegisteredDeploymentsViewProps = Pick<
   React.ComponentProps<typeof ModelVersionDetailsTabs>,
@@ -35,6 +38,19 @@ const ModelVersionRegisteredDeploymentsView: React.FC<
     );
   }
 
+  const getColumnsWithKebab = (projects: ProjectKind[]) => {
+    const columns = getVersionDetailsInferenceServiceColumns(projects);
+    return [
+      ...columns,
+      {
+        label: '',
+        field: ColumnField.Kebab,
+        sortable: false,
+        actions: [],
+      },
+    ];
+  };
+
   return (
     <Stack hasGutter>
       <Alert variant="info" isInline title="Filtered list: Deployments from model registry only">
@@ -45,7 +61,7 @@ const ModelVersionRegisteredDeploymentsView: React.FC<
 
       <InferenceServiceTable
         isGlobal
-        getColumns={(projects) => getVersionDetailsInferenceServiceColumns(projects)}
+        getColumns={(projects) => getColumnsWithKebab(projects)}
         inferenceServices={inferenceServices.data}
         servingRuntimes={servingRuntimes.data}
         isLoading={isLoading}
@@ -53,4 +69,5 @@ const ModelVersionRegisteredDeploymentsView: React.FC<
     </Stack>
   );
 };
+
 export default ModelVersionRegisteredDeploymentsView;
