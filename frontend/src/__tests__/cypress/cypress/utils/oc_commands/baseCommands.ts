@@ -63,16 +63,37 @@ export const patchOpenShiftResource = (
 export const waitForPodReady = (
   podNameContains: string,
   timeout: string = '10s',
-  namespace: string = '--all-namespaces'
+  namespace: string = '-A'
 ): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc get pods ${namespace} --no-headers | awk '$2 ~ /^${podNameContains}/ {print $1, $2}' | xargs -tn2 oc wait --for=condition=Ready pod ${timeout} -n`;
 
-  cy.log(ocCommand);
+  const ocCommand = `oc get pods ${namespace} --no-headers | awk '$2 ~ /^${podNameContains}/ {print $1, $2}' | xargs -tn2 oc wait --for=condition=Ready pod --timeout=${timeout} -n`;
+  cy.log(`Executing: ${ocCommand}`);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
     if (result.code !== 0) {
       throw new Error(`Pod readiness check failed: ${result.stderr}`);
     }
     cy.log(`Pod is ready: ${result.stdout}`);
+  });
+};
+
+/**
+ * Deletes notebooks matching a given name pattern across all namespaces.
+ *
+ * @param notebookNameContains A substring to match against the notebook name (e.g., "jupyter-nb").
+ * @returns A Cypress chainable that performs the notebook deletion process.
+ */
+export const deleteNotebook = (
+  notebookNameContains: string,
+): Cypress.Chainable<CommandLineResult> => {
+
+  const ocCommand = `oc get notebook -A -o custom-columns=":metadata.namespace,:metadata.name" | grep ${notebookNameContains} | xargs -I {} sh -c 'oc delete notebook -n $(echo {} | cut -d " " -f1) $(echo {} | cut -d " " -f2) --ignore-not-found'`;
+  cy.log(`Executing: ${ocCommand}`);
+  
+  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
+    if (result.code !== 0) {
+      throw new Error(`Command failed with code ${result.stderr}`);
+    }
+    cy.log(`Notebook deletion: ${result.stdout}`);
   });
 };
