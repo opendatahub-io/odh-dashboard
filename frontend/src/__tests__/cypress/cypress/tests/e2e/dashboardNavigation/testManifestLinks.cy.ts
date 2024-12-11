@@ -11,9 +11,12 @@ describe('Verify that all the URLs referenced in the Manifest directory are oper
             const filteredUrls = urls.filter(url => !url.includes('git') && !url.includes('github'));
 
             // Log filtered URLs for debugging
-            cy.log('Filtered URLs:', filteredUrls);
-            console.log('Filtered URLs:', filteredUrls);
-            
+            console.log('Extracted valid URLs:');
+            urls.forEach(url => {
+                console.log(url); // Log each URL individually
+                cy.log(url); // Also log to Cypress UI
+            });
+
             // Verify that each remaining URL is accessible and returns a 200 status code
             cy.step('Verify that each filtered URL is accessible and that a 200 is returned');
             filteredUrls.forEach((url) => {
