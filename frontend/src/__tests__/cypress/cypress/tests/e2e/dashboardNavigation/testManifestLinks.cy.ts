@@ -1,13 +1,17 @@
+import path from 'path';
+
 describe('Verify that all the URLs referenced in the Manifest directory are operational', () => {
   it('Reads the manifest directory, filters out unwanted URLs, and validates the remaining URLs', () => {
-    cy.step('Read the Manifest directory');
+    //const baseDir = process.env.BASE_DIR || '/Users/acoughli';
+    //const manifestsDir: string = path.resolve(baseDir, 'forked-odh-dashboard/odh-dashboard/manifests');
+    // Use `__dirname` to determine the path relative to the current test file
+    const manifestsDir = path.resolve(__dirname, '../../../../../odh-dashboard/manifests');
 
-    // Specify the directory containing your YAML files
-    const manifestsDir = '/Users/acoughli/forked-odh-dashboard/odh-dashboard/manifests';
+    cy.log('Resolved manifests directory:', manifestsDir);
 
     // Extract URLs from the manifests directory using the registered task
     cy.task<string[]>('extractHttpsUrls', manifestsDir).then((urls) => {
-      // Filter out any URLs that contain 'git' or 'github'
+      // Filter out any URLs that contain unwanted strings
       const filteredUrls = urls.filter(
         (url) =>
           !url.includes('my-project-s2i-python-service') &&
