@@ -69,7 +69,7 @@ export const waitForPodReady = (
   const ocCommand = `oc get pods ${namespaceFlag} --no-headers | awk '$2 ~ /^${podNameContains}/ {print $1, $2}' | xargs -tn2 oc wait --for=condition=Ready pod --timeout=${timeout} -n`;
   cy.log(`Executing: ${ocCommand}`);
 
-  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
+  return cy.exec(ocCommand, { failOnNonZeroExit: false, timeout: 300000 }).then((result: CommandLineResult) => {
     if (result.code !== 0) {
       throw new Error(`Pod readiness check failed: ${result.stderr}`);
     }
@@ -93,6 +93,10 @@ export const deleteNotebook = (
     if (result.code !== 0) {
       throw new Error(`Command failed with code ${result.stderr}`);
     }
-    cy.log(`Notebook deletion: ${result.stdout}`);
+    if (result.stdout.trim() === '') {
+      cy.log('No notebooks found');
+    } else {
+      cy.log(`Notebook deletion: ${result.stdout}`);
+    }
   });
 };
