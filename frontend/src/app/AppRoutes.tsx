@@ -68,6 +68,10 @@ const AcceleratorProfileRoutes = React.lazy(
   () => import('../pages/acceleratorProfiles/AcceleratorProfilesRoutes'),
 );
 
+const HardwareProfileRoutes = React.lazy(
+  () => import('../pages/hardwareProfiles/HardwareProfilesRoutes'),
+);
+
 const StorageClassesPage = React.lazy(() => import('../pages/storageClasses/StorageClassesPage'));
 
 const ModelRegistryRoutes = React.lazy(() => import('../pages/modelRegistry/ModelRegistryRoutes'));
@@ -131,6 +135,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/notebookImages" element={<BYONImagesPage />} />
             <Route path="/clusterSettings" element={<ClusterSettingsPage />} />
             <Route path="/acceleratorProfiles/*" element={<AcceleratorProfileRoutes />} />
+            <Route path="/hardwareProfiles/*" element={<HardwareProfileRoutes />} />
             <Route path="/servingRuntimes/*" element={<CustomServingRuntimeRoutes />} />
             {isConnectionTypesAvailable ? (
               <Route path="/connectionTypes/*" element={<ConnectionTypeRoutes />} />
