@@ -77,7 +77,7 @@ const COL_STATUS: SortableData<InferenceServiceKind> = {
   width: 10,
   sortable: false,
 };
-export const COL_KEBAB: SortableData<InferenceServiceKind> = {
+const COL_KEBAB: SortableData<InferenceServiceKind> = {
   field: ColumnField.Kebab,
   label: '',
   sortable: false,
@@ -103,6 +103,7 @@ export const getVersionDetailsInferenceServiceColumns = (
   COL_ENDPOINT,
   COL_API_PROTOCOL,
   COL_STATUS,
+  COL_KEBAB,
 ];
 
 export const getProjectInferenceServiceColumns = (): SortableData<InferenceServiceKind>[] => [

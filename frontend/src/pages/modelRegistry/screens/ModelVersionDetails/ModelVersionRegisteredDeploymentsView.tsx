@@ -1,12 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Alert, Stack } from '@patternfly/react-core';
-import { ProjectKind } from '~/k8sTypes';
 import InferenceServiceTable from '~/pages/modelServing/screens/global/InferenceServiceTable';
-import {
-  getVersionDetailsInferenceServiceColumns,
-  COL_KEBAB,
-} from '~/pages/modelServing/screens/global/data';
+import { getVersionDetailsInferenceServiceColumns } from '~/pages/modelServing/screens/global/data';
 import ModelVersionDetailsTabs from '~/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
@@ -37,17 +33,6 @@ const ModelVersionRegisteredDeploymentsView: React.FC<
     );
   }
 
-  const getColumnsWithKebab = (projects: ProjectKind[]) => {
-    const columns = getVersionDetailsInferenceServiceColumns(projects);
-    return [
-      ...columns,
-      {
-        ...COL_KEBAB,
-        actions: [],
-      },
-    ];
-  };
-
   return (
     <Stack hasGutter>
       <Alert variant="info" isInline title="Filtered list: Deployments from model registry only">
@@ -58,7 +43,7 @@ const ModelVersionRegisteredDeploymentsView: React.FC<
 
       <InferenceServiceTable
         isGlobal
-        getColumns={(projects) => getColumnsWithKebab(projects)}
+        getColumns={getVersionDetailsInferenceServiceColumns}
         inferenceServices={inferenceServices.data}
         servingRuntimes={servingRuntimes.data}
         isLoading={isLoading}
