@@ -478,7 +478,7 @@ describe('Serving Runtime List', () => {
         expect(interception.request.url).to.include('?dryRun=All');
         expect(interception.request.body).to.containSubset({
           metadata: {
-            name: 'test-model-legacy',
+            name: 'test-name',
             namespace: 'test-project',
             labels: { 'opendatahub.io/dashboard': 'true' },
             annotations: {

@@ -104,7 +104,6 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   const [servingRuntimeSelected, setServingRuntimeSelected] = React.useState<
     ServingRuntimeKind | undefined
   >(undefined);
-
   const {
     formData: selectedAcceleratorProfile,
     setFormData: setSelectedAcceleratorProfile,
@@ -224,8 +223,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
       false,
     );
 
-    const inferenceServiceName = translateDisplayNameForK8s(createDataInferenceService.name);
-
+    const inferenceServiceName = createDataInferenceService.k8sName;
     const submitInferenceServiceResource = getSubmitInferenceServiceResourceFn(
       createDataInferenceService,
       editInfo?.inferenceServiceEditInfo,
