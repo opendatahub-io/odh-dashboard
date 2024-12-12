@@ -166,6 +166,7 @@ const ConnectionTypeForm: React.FC<Props> = ({
                 String(o.data).toLowerCase().includes(filterValue.toLowerCase()),
             )
           }
+          previewDescription={false}
         />
         {connectionType && (
           <ConnectionTypeDetailsHelperText connectionType={connectionType} isPreview={isPreview} />

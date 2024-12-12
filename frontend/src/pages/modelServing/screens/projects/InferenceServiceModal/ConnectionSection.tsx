@@ -136,6 +136,7 @@ const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = ({
             }
           }}
           popperProps={{ appendTo: 'inline' }}
+          previewDescription={false}
         />
         {selectedConnection && (
           <ConnectionDetailsHelperText

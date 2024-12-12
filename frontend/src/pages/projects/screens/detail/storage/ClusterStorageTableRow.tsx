@@ -82,7 +82,7 @@ const ClusterStorageTableRow: React.FC<ClusterStorageTableRowProps> = ({
           <TypeaheadSelect
             shouldFocusToggleOnSelect
             placeholder={placeholderText}
-            isDisabled={!availableNotebooks.loaded || selectOptions.length === 0}
+            isDisabled={!availableNotebooks.loaded}
             selectOptions={selectOptions}
             selected={obj.name}
             onClearSelection={() => onNotebookSelect('')}
@@ -91,6 +91,7 @@ const ClusterStorageTableRow: React.FC<ClusterStorageTableRowProps> = ({
                 onNotebookSelect(selectedValue);
               }
             }}
+            previewDescription={false}
           />
         ) : (
           <>

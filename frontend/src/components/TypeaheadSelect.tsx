@@ -16,8 +16,12 @@ import {
   Button,
   MenuToggleProps,
   SelectProps,
+  FormHelperText,
+  HelperTextItem,
+  HelperText,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
+import TruncatedText from '~/components/TruncatedText';
 
 export interface TypeaheadSelectOption extends Omit<SelectOptionProps, 'content' | 'isSelected'> {
   /** Content of the select option. */
@@ -74,6 +78,8 @@ export interface TypeaheadSelectProps extends Omit<SelectProps, 'toggle' | 'onSe
   isRequired?: boolean;
   /** Test id of the toggle */
   dataTestId?: string;
+  /** Flag to indicate if showing the description under the toggle */
+  previewDescription?: boolean;
 }
 
 const defaultNoOptionsFoundMessage = (filter: string) => `No results found for "${filter}"`;
@@ -101,6 +107,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   toggleProps,
   isRequired = true,
   dataTestId,
+  previewDescription = true,
   ...props
 }: TypeaheadSelectProps) => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -419,32 +426,43 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   );
 
   return (
-    <Select
-      isOpen={isOpen}
-      selected={selected}
-      onSelect={handleSelect}
-      onOpenChange={(open) => !open && closeMenu()}
-      toggle={toggle}
-      shouldFocusFirstItemOnOpen={false}
-      ref={innerRef}
-      {...props}
-    >
-      <SelectList>
-        {filteredSelections.map((option, index) => {
-          const { content, value, ...optionProps } = option;
-          return (
-            <SelectOption
-              key={value}
-              value={value}
-              isFocused={focusedItemIndex === index}
-              {...optionProps}
-            >
-              {content}
-            </SelectOption>
-          );
-        })}
-      </SelectList>
-    </Select>
+    <>
+      <Select
+        isOpen={isOpen}
+        selected={selected}
+        onSelect={handleSelect}
+        onOpenChange={(open) => !open && closeMenu()}
+        toggle={toggle}
+        shouldFocusFirstItemOnOpen={false}
+        ref={innerRef}
+        {...props}
+      >
+        <SelectList>
+          {filteredSelections.map((option, index) => {
+            const { content, value, ...optionProps } = option;
+            return (
+              <SelectOption
+                key={value}
+                value={value}
+                isFocused={focusedItemIndex === index}
+                {...optionProps}
+              >
+                {content}
+              </SelectOption>
+            );
+          })}
+        </SelectList>
+      </Select>
+      {previewDescription && isSingleOption && selected?.description ? (
+        <FormHelperText>
+          <HelperText>
+            <HelperTextItem>
+              <TruncatedText maxLines={2} content={selected.description} />
+            </HelperTextItem>
+          </HelperText>
+        </FormHelperText>
+      ) : null}
+    </>
   );
 };
 
