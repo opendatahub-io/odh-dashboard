@@ -37,7 +37,7 @@ const PipelinesSdkRedirects: React.FC = () => {
       return globalPipelineRunDetailsRoute(namespace, runId);
     }
 
-    throw new Error('Invalid URL format');
+    throw new Error('The URL format is invalid.');
   }, [namespace, location.hash]);
 
   const [redirect, { loaded, error }] = useRedirect(createRedirectPath);
@@ -57,10 +57,10 @@ const PipelinesSdkRedirects: React.FC = () => {
           actions={
             <>
               <Button variant="link" onClick={() => navigate('/pipelines')}>
-                Go to pipelines
+                Go to Pipelines
               </Button>
               <Button variant="link" onClick={() => navigate('/experiments')}>
-                Go to experiments
+                Go to Experiments
               </Button>
             </>
           }

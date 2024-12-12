@@ -81,7 +81,7 @@ const RedirectErrorState: React.FC<RedirectErrorStateProps> = ({
         icon={ExclamationCircleIcon}
         titleText={title ?? 'Error redirecting'}
         variant={EmptyStateVariant.lg}
-        data-id="redirect-error"
+        data-testid="redirect-error"
       >
         {errorMessage && <EmptyStateBody>{errorMessage}</EmptyStateBody>}
         {fallbackUrl && (

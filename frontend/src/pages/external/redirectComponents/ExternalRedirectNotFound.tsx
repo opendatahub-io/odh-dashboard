@@ -8,9 +8,9 @@ const ExternalRedirectNotFound: React.FC = () => (
     empty
     emptyStatePage={
       <RedirectErrorState
-        title="Not Found"
-        errorMessage="There is no external redirect for this URL"
-        fallbackText="Go to home"
+        title="Page not found"
+        errorMessage="There is no external redirect for this URL."
+        fallbackText="Go to Home"
         fallbackUrl="/"
       />
     }
