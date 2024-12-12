@@ -69,12 +69,14 @@ export const waitForPodReady = (
   const ocCommand = `oc get pods ${namespaceFlag} --no-headers | awk '$2 ~ /^${podNameContains}/ {print $1, $2}' | xargs -tn2 oc wait --for=condition=Ready pod --timeout=${timeout} -n`;
   cy.log(`Executing: ${ocCommand}`);
 
-  return cy.exec(ocCommand, { failOnNonZeroExit: false, timeout: 300000 }).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
-      throw new Error(`Pod readiness check failed: ${result.stderr}`);
-    }
-    cy.log(`Pod is ready: ${result.stdout}`);
-  });
+  return cy
+    .exec(ocCommand, { failOnNonZeroExit: false, timeout: 300000 })
+    .then((result: CommandLineResult) => {
+      if (result.code !== 0) {
+        throw new Error(`Pod readiness check failed: ${result.stderr}`);
+      }
+      cy.log(`Pod is ready: ${result.stdout}`);
+    });
 };
 
 /**

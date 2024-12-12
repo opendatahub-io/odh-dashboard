@@ -54,10 +54,10 @@ describe('Verify a Jupyter Notebook can be launched directly from the Data Scien
     // Verify that the server is running
     cy.step('Verify the Jupyter Notebook pod is ready');
     waitForPodReady('jupyter-nb', '300s');
-    
+
     // Expand  the log
     cy.step('Expand the Event log');
-    notebookServer.findEventlog().should('be.visible').click();  
+    notebookServer.findEventlog().should('be.visible').click();
 
     // Wait for the success alert
     cy.step('Waits for the Success alert');
