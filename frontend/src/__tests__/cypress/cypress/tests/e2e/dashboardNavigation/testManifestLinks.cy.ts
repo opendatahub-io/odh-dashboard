@@ -1,14 +1,7 @@
-import path from 'path';
-
 describe('Verify that all the URLs referenced in the Manifest directory are operational', () => {
-  it('Reads the manifest directory, filters out unwanted URLs, and validates the remaining URLs', () => {
-    const baseDir = process.env.BASE_DIR || '/Users/acoughli';
-    const manifestsDir: string = path.resolve(
-      baseDir,
-      'forked-odh-dashboard/odh-dashboard/manifests',
-    );
-
-    cy.log('Resolved manifests directory:', manifestsDir);
+  it('Reads the manifest directory, filters out test/sample URLs and validates the remaining URLs', () => {
+    const manifestsDir = '../../../../manifests';
+    cy.log(`Resolved manifests directory: ${manifestsDir}`);
 
     // Extract URLs from the manifests directory using the registered task
     cy.task<string[]>('extractHttpsUrls', manifestsDir).then((urls) => {
