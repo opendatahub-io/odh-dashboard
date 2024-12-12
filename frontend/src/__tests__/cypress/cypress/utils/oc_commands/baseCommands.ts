@@ -65,8 +65,8 @@ export const waitForPodReady = (
   timeout: '10s',
   namespace?: string,
 ): Cypress.Chainable<CommandLineResult> => {
-  namespace = namespace ? `-n ${namespace}` : '-A';
-  const ocCommand = `oc get pods ${namespace} --no-headers | awk '$2 ~ /^${podNameContains}/ {print $1, $2}' | xargs -tn2 oc wait --for=condition=Ready pod --timeout=${timeout} -n`;
+  const namespaceFlag = namespace ? `-n ${namespace}` : '-A';
+  const ocCommand = `oc get pods ${namespaceFlag} --no-headers | awk '$2 ~ /^${podNameContains}/ {print $1, $2}' | xargs -tn2 oc wait --for=condition=Ready pod --timeout=${timeout} -n`;
   cy.log(`Executing: ${ocCommand}`);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
