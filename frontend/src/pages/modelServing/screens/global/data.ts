@@ -77,7 +77,7 @@ const COL_STATUS: SortableData<InferenceServiceKind> = {
   width: 10,
   sortable: false,
 };
-const COL_KEBAB: SortableData<InferenceServiceKind> = {
+export const COL_KEBAB: SortableData<InferenceServiceKind> = {
   field: ColumnField.Kebab,
   label: '',
   sortable: false,

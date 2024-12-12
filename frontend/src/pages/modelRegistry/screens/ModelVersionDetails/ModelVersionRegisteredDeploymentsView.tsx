@@ -3,14 +3,13 @@ import { Link } from 'react-router-dom';
 import { Alert, Stack } from '@patternfly/react-core';
 import { ProjectKind } from '~/k8sTypes';
 import InferenceServiceTable from '~/pages/modelServing/screens/global/InferenceServiceTable';
-import { getVersionDetailsInferenceServiceColumns } from '~/pages/modelServing/screens/global/data';
+import {
+  getVersionDetailsInferenceServiceColumns,
+  COL_KEBAB,
+} from '~/pages/modelServing/screens/global/data';
 import ModelVersionDetailsTabs from '~/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
-
-enum ColumnField {
-  Kebab = 'kebab',
-}
 
 type ModelVersionRegisteredDeploymentsViewProps = Pick<
   React.ComponentProps<typeof ModelVersionDetailsTabs>,
@@ -43,9 +42,7 @@ const ModelVersionRegisteredDeploymentsView: React.FC<
     return [
       ...columns,
       {
-        label: '',
-        field: ColumnField.Kebab,
-        sortable: false,
+        ...COL_KEBAB,
         actions: [],
       },
     ];
