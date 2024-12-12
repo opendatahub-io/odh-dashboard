@@ -12,7 +12,7 @@ describe('Verify that all the URLs referenced in the Manifest directory are oper
 
     // Extract URLs from the manifests directory using the registered task
     cy.task<string[]>('extractHttpsUrls', manifestsDir).then((urls) => {
-      // Filter out any URLs that contain unwanted strings
+      // Filter out Sample/Test URLs
       const filteredUrls = urls.filter(
         (url) =>
           !url.includes('my-project-s2i-python-service') &&
@@ -20,25 +20,11 @@ describe('Verify that all the URLs referenced in the Manifest directory are oper
           !url.includes('ClusterIP') &&
           !url.includes('s2i-python-service') &&
           !url.includes('user-dev-rhoam-quarkus') &&
-          !url.includes('software.intel') &&
-          !url.includes('docs.openvino') &&
           !url.includes('project-simple') &&
           !url.includes('example.apps') &&
-          !url.includes('figma.com/figma/ns') &&
           !url.includes('localhost') &&
-          !url.includes('red_hat_3scale_api_management') &&
-          !url.includes('anaconda.org/training/anaconda_introduction/notebook') &&
-          !url.includes('scikit-learn.org/stable/tutorial/index.html') &&
           !url.includes('console-openshift-console.apps.test-cluster.example.com/') &&
           !url.includes('console-openshift-console.apps.test-cluster.example.com') &&
-          !url.includes('ibm.com/docs/SSQNUZ_latest/svc-welcome/watsonxai.html') &&
-          !url.includes('ibm.biz/wxai-install') &&
-          !url.includes('ibm.com/docs/SSQNUZ_latest/wsj/analyze-data/fm-overview.html') &&
-          !url.includes('ibm.com/docs/en/SSQNUZ_5.1.x/fixlist/watsonxai-fixlist.html') &&
-          !url.includes('ibm.com/docs/SSQNUZ_latest/fixlist/watsonxai-fixlist.html') &&
-          !url.includes(
-            'intel.com/content/www/us/en/developer/tools/oneapi/ai-analytics-toolkit.html',
-          ) &&
           !url.includes('repo.anaconda.cloud/repo/t/$'),
       );
 
@@ -48,7 +34,9 @@ describe('Verify that all the URLs referenced in the Manifest directory are oper
       });
 
       // Verify that each remaining URL is accessible and returns a 200 status code
-      cy.step('Verify that each filtered URL is accessible and that a 200 is returned');
+      cy.step(
+        'Verify that each filtered URL is accessible and that a 200 is returned - currently failing due to issues linked RHOAIENG-9235',
+      );
       filteredUrls.forEach((url) => {
         cy.request(url).then((response) => {
           const { status } = response;
