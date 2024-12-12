@@ -58,13 +58,14 @@ export const patchOpenShiftResource = (
  * @param podNameContains A substring to partially match against the pod name (e.g., "jupyter-nb").
  * @returns A Cypress chainable that waits for the pod to be ready.
  * @param timeout The amount of time to wait for the pod to become ready (default is 10 seconds, e.g., '10s', '30m').
- * @param namespace The namespace to search for the pod. Defaults to `--all-namespaces` for all namespaces, or can specify a specific namespace with `-n <namespace>`.
+ * @param namespace The namespace to search for the pod. Defaults to `-A` for all namespaces, or can specify a specific namespace with `-n <namespace>`.
  */
 export const waitForPodReady = (
   podNameContains: string,
-  timeout = '10s',
-  namespace = '-A',
+  timeout: '10s',
+  namespace?: string,
 ): Cypress.Chainable<CommandLineResult> => {
+  namespace = namespace ? `-n ${namespace}` : '-A';
   const ocCommand = `oc get pods ${namespace} --no-headers | awk '$2 ~ /^${podNameContains}/ {print $1, $2}' | xargs -tn2 oc wait --for=condition=Ready pod --timeout=${timeout} -n`;
   cy.log(`Executing: ${ocCommand}`);
 
