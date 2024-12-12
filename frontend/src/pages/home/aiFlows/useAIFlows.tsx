@@ -83,7 +83,7 @@ export const useAIFlows = (): React.ReactNode => {
       <PageSection hasBodyWrapper={false} data-testid="home-page-ai-flows">
         <Stack hasGutter>
           <Content>
-            <Content component="h1">Train, serve, monitor, and manage AI/ML models</Content>
+            <Content component="h1">Work with AI/ML models</Content>
           </Content>
           <EvenlySpacedGallery itemCount={cards.length} hasGutter>
             {cards}

@@ -11,6 +11,7 @@ const DeployAndMonitorGallery: React.FC<{ onClose: () => void }> = ({ onClose })
   const servingPlatformStatuses = useServingPlatformStatuses();
   const { status: modelRegistryAvailable } = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY);
   const modelMeshEnabled = servingPlatformStatuses.modelMesh.enabled;
+  const kServeEnabled = servingPlatformStatuses.kServe.enabled;
 
   const infoItems = [];
 
@@ -26,7 +27,7 @@ const DeployAndMonitorGallery: React.FC<{ onClose: () => void }> = ({ onClose })
           <Content>
             <Content component="small">
               Model registries provide a structured and organized way to store, version, deploy, and
-              track models, ensuring that they are easily accessible and managable throughout their
+              track models, ensuring that they are easily accessible and manageable throughout their
               lifecycle.
             </Content>
           </Content>
@@ -57,7 +58,9 @@ const DeployAndMonitorGallery: React.FC<{ onClose: () => void }> = ({ onClose })
         isOpen
       />,
     );
+  }
 
+  if (modelMeshEnabled || kServeEnabled) {
     infoItems.push(
       <InfoGalleryItem
         key="model-deploy"
