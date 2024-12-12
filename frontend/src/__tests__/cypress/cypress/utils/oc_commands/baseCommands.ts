@@ -62,7 +62,7 @@ export const patchOpenShiftResource = (
  */
 export const waitForPodReady = (
   podNameContains: string,
-  timeout: string = '10s',
+  timeout = '10s',
   namespace?: string,
 ): Cypress.Chainable<CommandLineResult> => {
   const namespaceFlag = namespace ? `-n ${namespace}` : '-A';
