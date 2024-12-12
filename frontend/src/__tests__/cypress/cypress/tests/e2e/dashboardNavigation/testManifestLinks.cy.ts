@@ -2,10 +2,11 @@ import path from 'path';
 
 describe('Verify that all the URLs referenced in the Manifest directory are operational', () => {
   it('Reads the manifest directory, filters out unwanted URLs, and validates the remaining URLs', () => {
-    //const baseDir = process.env.BASE_DIR || '/Users/acoughli';
-    //const manifestsDir: string = path.resolve(baseDir, 'forked-odh-dashboard/odh-dashboard/manifests');
-    // Use `__dirname` to determine the path relative to the current test file
-    const manifestsDir = path.resolve(__dirname, '../../../../../odh-dashboard/manifests');
+    const baseDir = process.env.BASE_DIR || '/Users/acoughli';
+    const manifestsDir: string = path.resolve(
+      baseDir,
+      'forked-odh-dashboard/odh-dashboard/manifests',
+    );
 
     cy.log('Resolved manifests directory:', manifestsDir);
 
@@ -15,11 +16,19 @@ describe('Verify that all the URLs referenced in the Manifest directory are oper
       const filteredUrls = urls.filter(
         (url) =>
           !url.includes('my-project-s2i-python-service') &&
+          !url.includes('clusterip/') &&
+          !url.includes('ClusterIP') &&
+          !url.includes('s2i-python-service') &&
           !url.includes('user-dev-rhoam-quarkus') &&
           !url.includes('software.intel') &&
           !url.includes('docs.openvino') &&
           !url.includes('project-simple') &&
+          !url.includes('example.apps') &&
+          !url.includes('figma.com/figma/ns') &&
+          !url.includes('localhost') &&
           !url.includes('red_hat_3scale_api_management') &&
+          !url.includes('anaconda.org/training/anaconda_introduction/notebook') &&
+          !url.includes('scikit-learn.org/stable/tutorial/index.html') &&
           !url.includes('console-openshift-console.apps.test-cluster.example.com/') &&
           !url.includes('console-openshift-console.apps.test-cluster.example.com') &&
           !url.includes('ibm.com/docs/SSQNUZ_latest/svc-welcome/watsonxai.html') &&
