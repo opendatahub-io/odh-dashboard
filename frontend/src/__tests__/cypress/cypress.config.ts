@@ -80,7 +80,7 @@ export default defineConfig({
           return Promise.resolve({});
         },
         extractHttpsUrls(directory: string) {
-          return extractHttpsUrls(directory); 
+          return extractHttpsUrls(directory);
         },
         log(message) {
           // eslint-disable-next-line no-console

@@ -28,32 +28,53 @@ export function extractLauncherUrls(): Cypress.Chainable<string[]> {
  * @param {string} directory - The directory path to search for YAML files.
  * @returns {string[]} An array of HTTPS URLs extracted from YAML files.
  */
+type YamlValue = string | number | boolean | null | YamlObject | YamlArray;
+interface YamlObject {
+  [key: string]: YamlValue;
+}
+type YamlArray = YamlValue[];
+
 export function extractHttpsUrls(directory: string): string[] {
-    const httpsUrls: string[] = [];
+  const httpsUrlSet = new Set<string>();
 
-    function walkDir(dir: string) {
-        const files = fs.readdirSync(dir); 
-        files.forEach(file => {
-            const filePath = path.join(dir, file);
-            const stat = fs.statSync(filePath); 
-            if (stat.isDirectory()) {
-                walkDir(filePath);
-            } else if (file.endsWith('.yaml') || file.endsWith('.yml')) {
-                try {
-                    const content = fs.readFileSync(filePath, 'utf8'); 
-                    const yamlContent = yaml.load(content);
-                    const yamlString = JSON.stringify(yamlContent);
-                    const urls = yamlString.match(/https:\/\/\S+/g);
-                    if (urls) {
-                        httpsUrls.push(...urls);
-                    }
-                } catch (error) {
-                    console.error(`Error parsing YAML file: ${filePath}`, error);
-                }
-            }
+  function extractUrlsFromValue(value: YamlValue): void {
+    if (typeof value === 'string') {
+      const urlRegex = /https:\/\/[^\s\](),"'}*]*(?=[\s\](),"'}*]|$)/g;
+      const matches = value.match(urlRegex);
+      if (matches) {
+        matches.forEach((url) => {
+          const cleanUrl = url.replace(/\*+$/, '');
+          httpsUrlSet.add(cleanUrl);
         });
+      }
+    } else if (typeof value === 'object' && value !== null) {
+      if (Array.isArray(value)) {
+        value.forEach(extractUrlsFromValue);
+      } else {
+        Object.values(value).forEach(extractUrlsFromValue);
+      }
     }
+  }
 
-    walkDir(directory);
-    return httpsUrls;
+  function walkDir(dir: string): void {
+    const files = fs.readdirSync(dir);
+    files.forEach((file) => {
+      const filePath = path.join(dir, file);
+      const stat = fs.statSync(filePath);
+      if (stat.isDirectory()) {
+        walkDir(filePath);
+      } else if (file.endsWith('.yaml') || file.endsWith('.yml')) {
+        try {
+          const content = fs.readFileSync(filePath, 'utf8');
+          const yamlContent = yaml.load(content) as YamlValue;
+          extractUrlsFromValue(yamlContent);
+        } catch (error) {
+          // Catches any file related errors
+        }
+      }
+    });
+  }
+
+  walkDir(directory);
+  return Array.from(httpsUrlSet);
 }
