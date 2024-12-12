@@ -85,7 +85,12 @@ export const ClusterStorageTable: React.FC<ClusterStorageTableProps> = ({
         columns={clusterStorageTableColumns}
         data={storageData}
         rowRenderer={(row, rowIndex) => (
-          <Tr key={row.id} data-testid={`cluster-storage-table-row ${row.id ?? ''}`}>
+          <Tr
+            key={row.id}
+            data-testid={`cluster-storage-table-row ${row.id ?? ''}`}
+            style={{ verticalAlign: 'baseline' }}
+          >
+            <Td visibility={['hidden']} />
             <Td dataLabel="Name">
               <Flex
                 alignItems={{ default: 'alignItemsCenter' }}

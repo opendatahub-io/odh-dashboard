@@ -25,8 +25,10 @@ export const allFeatureFlags: string[] = Object.keys({
   disableKServeRaw: true,
   disableModelMesh: false,
   disableAcceleratorProfiles: false,
+  disableHardwareProfiles: false,
   disableDistributedWorkloads: false,
   disableModelRegistry: false,
+  disableModelRegistrySecureDB: true,
   disableServingRuntimeParams: false,
   disableConnectionTypes: false,
   disableStorageClasses: false,
@@ -39,6 +41,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.ACCELERATOR_PROFILES]: {
     featureFlags: ['disableAcceleratorProfiles'],
+  },
+  [SupportedArea.HARDWARE_PROFILES]: {
+    featureFlags: ['disableHardwareProfiles'],
   },
   [SupportedArea.CLUSTER_SETTINGS]: {
     featureFlags: ['disableClusterManager'],
@@ -124,6 +129,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.SERVING_RUNTIME_PARAMS]: {
     featureFlags: ['disableServingRuntimeParams'],
     reliantAreas: [SupportedArea.K_SERVE, SupportedArea.MODEL_SERVING],
+  },
+  [SupportedArea.MODEL_REGISTRY_SECURE_DB]: {
+    featureFlags: ['disableModelRegistrySecureDB'],
+    reliantAreas: [SupportedArea.MODEL_REGISTRY],
   },
   [SupportedArea.NIM_MODEL]: {
     featureFlags: ['disableNIMModelServing'],

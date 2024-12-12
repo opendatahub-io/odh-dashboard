@@ -67,9 +67,13 @@ spec:
                       type: boolean
                     disableAcceleratorProfiles:
                       type: boolean
+                    disableHardwareProfiles:
+                      type: boolean
                     disableDistributedWorkloads:
                       type: boolean
                     disableModelRegistry:
+                      type: boolean
+                    disableModelRegistrySecureDB:
                       type: boolean
                     disableServingRuntimeParams:
                       type: boolean

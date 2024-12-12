@@ -38,6 +38,12 @@ export type ForNotebookSelection = {
   mountPath: MountPath;
 };
 
+export type ClusterStorageNotebookSelection = ForNotebookSelection & {
+  existingPvc: boolean;
+  isUpdatedValue: boolean;
+  newRowId?: number;
+};
+
 export type CreatingStorageObjectForNotebook = NameDescType & {
   size: string;
   forNotebook: ForNotebookSelection;

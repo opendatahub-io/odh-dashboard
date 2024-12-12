@@ -21,10 +21,12 @@ export type MockDashboardConfigType = {
   disableKServeRaw?: boolean;
   disableModelMesh?: boolean;
   disableAcceleratorProfiles?: boolean;
+  disableHardwareProfiles?: boolean;
   disablePerformanceMetrics?: boolean;
   disableTrustyBiasMetrics?: boolean;
   disableDistributedWorkloads?: boolean;
   disableModelRegistry?: boolean;
+  disableModelRegistrySecureDB?: boolean;
   disableServingRuntimeParams?: boolean;
   disableConnectionTypes?: boolean;
   disableStorageClasses?: boolean;
@@ -53,10 +55,12 @@ export const mockDashboardConfig = ({
   disableKServeRaw = true,
   disableModelMesh = false,
   disableAcceleratorProfiles = false,
+  disableHardwareProfiles = false,
   disablePerformanceMetrics = false,
   disableTrustyBiasMetrics = false,
   disableDistributedWorkloads = false,
   disableModelRegistry = false,
+  disableModelRegistrySecureDB = true,
   disableServingRuntimeParams = false,
   disableConnectionTypes = true,
   disableStorageClasses = false,
@@ -164,8 +168,10 @@ export const mockDashboardConfig = ({
       disableKServeRaw,
       disableModelMesh,
       disableAcceleratorProfiles,
+      disableHardwareProfiles,
       disableDistributedWorkloads,
       disableModelRegistry,
+      disableModelRegistrySecureDB,
       disableServingRuntimeParams,
       disableConnectionTypes,
       disableStorageClasses,

@@ -197,11 +197,21 @@ const useAcceleratorProfilesNav = (): NavDataHref[] =>
     },
   ]);
 
+const useHardwareProfilesNav = (): NavDataHref[] =>
+  useAreaCheck<NavDataHref>(SupportedArea.HARDWARE_PROFILES, [
+    {
+      id: 'settings-hardware-profiles',
+      label: 'Hardware profiles',
+      href: '/hardwareProfiles',
+    },
+  ]);
+
 const useSettingsNav = (): NavDataGroup[] => {
   const settingsNavs: NavDataHref[] = [
     ...useCustomNotebooksNav(),
     ...useClusterSettingsNav(),
     ...useAcceleratorProfilesNav(),
+    ...useHardwareProfilesNav(),
     ...useCustomRuntimesNav(),
     ...useConnectionTypesNav(),
     ...useStorageClassesNav(),
