@@ -62,10 +62,9 @@ export const patchOpenShiftResource = (
  */
 export const waitForPodReady = (
   podNameContains: string,
-  timeout: string = '10s',
-  namespace: string = '-A'
+  timeout = '10s',
+  namespace = '-A',
 ): Cypress.Chainable<CommandLineResult> => {
-
   const ocCommand = `oc get pods ${namespace} --no-headers | awk '$2 ~ /^${podNameContains}/ {print $1, $2}' | xargs -tn2 oc wait --for=condition=Ready pod --timeout=${timeout} -n`;
   cy.log(`Executing: ${ocCommand}`);
 
@@ -86,10 +85,9 @@ export const waitForPodReady = (
 export const deleteNotebook = (
   notebookNameContains: string,
 ): Cypress.Chainable<CommandLineResult> => {
-
   const ocCommand = `oc get notebook -A -o custom-columns=":metadata.namespace,:metadata.name" | grep ${notebookNameContains} | xargs -I {} sh -c 'oc delete notebook -n $(echo {} | cut -d " " -f1) $(echo {} | cut -d " " -f2) --ignore-not-found'`;
   cy.log(`Executing: ${ocCommand}`);
-  
+
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
     if (result.code !== 0) {
       throw new Error(`Command failed with code ${result.stderr}`);

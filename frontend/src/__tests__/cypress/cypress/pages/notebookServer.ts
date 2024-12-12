@@ -53,20 +53,19 @@ class NotebookServer {
     return cy.findByText('Success', { timeout: 120000 });
   }
 
-  findMinimalPythonImage() {
-    return cy.get(
-      '[data-testid="radio jupyter-minimal-notebook"], [data-testid="radio s2i-minimal-notebook"]',
-    );
+  findNotebookImage(notebook: string) {
+    return cy.get(`[data-testid="radio ${notebook}"]`);
   }
 
-  findPythonVersionsButton() {
-    return cy.get('button[aria-controls*="expandable-section-content"]').contains('Versions');
+  findVersionsDropdown(version: string) {
+    return cy
+      .get(`[data-id="${version}"]`)
+      .closest('.pf-v5-c-expandable-section')
+      .find('span.pf-v5-c-expandable-section__toggle-text');
   }
 
-  findPythonVersion20241() {
-    return cy.get(
-      'input[data-id="jupyter-minimal-notebook:2024.1"], input[data-id="s2i-minimal-notebook:2024.1"]',
-    );
+  findNotebookVersion(version: string) {
+    return cy.get(`[data-id="${version}"]`);
   }
 }
 

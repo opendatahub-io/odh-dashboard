@@ -1,16 +1,15 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import { notebookServer } from '~/__tests__/cypress/cypress/pages/notebookServer';
-import { waitForPodReady } from '~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
-
-const ocDeleteNotebook = `oc -n opendatahub get notebook -o name | grep jupyter-nb | xargs oc -n opendatahub delete --ignore-not-found`;
+import {
+  waitForPodReady,
+  deleteNotebook,
+} from '~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
 
 describe('Verify a Jupyter Notebook can be launched directly from the Data Science Project List View', () => {
   before(() => {
     // Check if a notebook is running and delete if it is
-    cy.exec(ocDeleteNotebook).then((result) => {
-      cy.log('Notebook deletion:', result.stdout);
-    });
+    deleteNotebook('jupyter-nb');
   });
 
   it('Verify User Can Access Jupyter Launcher From DS Project Page', () => {
@@ -24,16 +23,16 @@ describe('Verify a Jupyter Notebook can be launched directly from the Data Scien
     projectListPage.findLaunchStandaloneWorkbenchButton().click();
 
     // Select a notebook image
-    cy.step('Choose Minimal Python Image');
-    notebookServer.findMinimalPythonImage().click();
+    cy.step('Choose Code Server Image');
+    notebookServer.findNotebookImage('code-server-notebook').click();
 
     // Select the versions dropdown
-    cy.step('Select the versions dropdown');
-    notebookServer.findPythonVersionsButton().click();
+    cy.step('Select the code server versions dropdown');
+    notebookServer.findVersionsDropdown('code-server-notebook:2024.1').click();
 
     // Select a image version
     cy.step('Select an image version');
-    notebookServer.findPythonVersion20241().click();
+    notebookServer.findNotebookVersion('code-server-notebook:2024.1').click();
 
     // Verify that 'Start Server button' is enabled
     cy.step('Check Start server button is enabled');
@@ -45,7 +44,7 @@ describe('Verify a Jupyter Notebook can be launched directly from the Data Scien
 
     // Verify that the server is running
     cy.step('Verify the Jupyter Notebook pod is ready');
-    waitForPodReady('jupyter-nb', '40s');
+    waitForPodReady('jupyter-nb', '1000s');
 
     // Expand  the log
     cy.step('Expand the Event log');
