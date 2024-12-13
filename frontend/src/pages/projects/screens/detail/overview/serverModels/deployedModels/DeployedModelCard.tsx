@@ -48,7 +48,7 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
 
   return (
     <GalleryItem key={inferenceService.metadata.uid}>
-      <TypeBorderedCard objectType={ProjectObjectType.modelServer}>
+      <TypeBorderedCard isFullHeight objectType={ProjectObjectType.modelServer}>
         <CardHeader>
           <Flex gap={{ default: 'gapSm' }} direction={{ default: 'column' }}>
             <FlexItem>
