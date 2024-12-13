@@ -22,6 +22,7 @@ import { markdownConverter } from '~/utilities/markdown';
 import { useAppContext } from '~/app/AppContext';
 import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { useIntegratedAppStatus } from '~/pages/exploreApplication/useIntegratedAppStatus';
+import { useUser } from '~/redux/selectors';
 
 const DEFAULT_BETA_TEXT =
   'This application is available for early access prior to official ' +
@@ -38,13 +39,14 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
   const { dashboardConfig } = useAppContext();
   const { enablement } = dashboardConfig.spec.dashboardConfig;
   const [{ isInstalled, canInstall, error }, loaded] = useIntegratedAppStatus(selectedApp);
+  const { isAdmin } = useUser();
 
   if (!selectedApp) {
     return null;
   }
 
   const renderEnableButton = () => {
-    if (!selectedApp.spec.enable || selectedApp.spec.isEnabled || isInstalled) {
+    if (!selectedApp.spec.enable || selectedApp.spec.isEnabled || isInstalled || !isAdmin) {
       return null;
     }
     const button = (
