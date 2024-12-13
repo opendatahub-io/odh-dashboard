@@ -108,3 +108,6 @@ export function extractHttpsUrls(directory: string): string[] {
   walkDir(directory); // Start walking the directory
   return Array.from(httpsUrlSet); // Return the unique set of URLs as an array
 }
+export const isUrlExcluded = (url: string, excludedSubstrings: string[]): boolean => {
+  return excludedSubstrings.some((substring) => url.includes(substring));
+};

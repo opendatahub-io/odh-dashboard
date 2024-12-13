@@ -1,4 +1,17 @@
+import * as yaml from 'js-yaml';
+import { isUrlExcluded } from '~/__tests__/cypress/cypress/utils/urlExtractor';
+
 describe('Verify that all the URLs referenced in the Manifest directory are operational', () => {
+  let excludedSubstrings: string[];
+
+  // Setup: Load test data
+  before(() => {
+    cy.fixture('e2e/dashboardNavigation/testManifestLinks.yaml', 'utf8').then((yamlString) => {
+      const yamlData = yaml.load(yamlString) as { excludedSubstrings: string[] };
+      excludedSubstrings = yamlData.excludedSubstrings;
+    });
+  });
+
   it('Reads the manifest directory, filters out test/sample URLs and validates the remaining URLs', () => {
     const manifestsDir = '../../../../manifests';
     cy.log(`Resolved manifests directory: ${manifestsDir}`);
@@ -6,20 +19,7 @@ describe('Verify that all the URLs referenced in the Manifest directory are oper
     // Extract URLs from the manifests directory using the registered task
     cy.task<string[]>('extractHttpsUrls', manifestsDir).then((urls) => {
       // Filter out Sample/Test URLs
-      const filteredUrls = urls.filter(
-        (url) =>
-          !url.includes('my-project-s2i-python-service') &&
-          !url.includes('clusterip/') &&
-          !url.includes('ClusterIP') &&
-          !url.includes('s2i-python-service') &&
-          !url.includes('user-dev-rhoam-quarkus') &&
-          !url.includes('project-simple') &&
-          !url.includes('example.apps') &&
-          !url.includes('localhost') &&
-          !url.includes('console-openshift-console.apps.test-cluster.example.com/') &&
-          !url.includes('console-openshift-console.apps.test-cluster.example.com') &&
-          !url.includes('repo.anaconda.cloud/repo/t/$'),
-      );
+      const filteredUrls = urls.filter((url) => !isUrlExcluded(url, excludedSubstrings));
 
       // Log filtered URLs for debugging
       filteredUrls.forEach((url) => {
