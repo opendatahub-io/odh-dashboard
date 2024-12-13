@@ -3,13 +3,39 @@ import { Content } from '@patternfly/react-core';
 import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
 import InfoGalleryItem from '~/concepts/design/InfoGalleryItem';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
+import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
+import { SupportedArea } from '~/concepts/areas';
 import InfoGallery from './InfoGallery';
 
 const DeployAndMonitorGallery: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const servingPlatformStatuses = useServingPlatformStatuses();
+  const { status: modelRegistryAvailable } = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY);
   const modelMeshEnabled = servingPlatformStatuses.modelMesh.enabled;
+  const kServeEnabled = servingPlatformStatuses.kServe.enabled;
 
   const infoItems = [];
+
+  if (modelRegistryAvailable) {
+    infoItems.push(
+      <InfoGalleryItem
+        key="model-registry"
+        data-testid="ai-flows-model-registry-info"
+        title="Model registry"
+        resourceType={ProjectObjectType.modelRegistrySettings}
+        sectionType={SectionType.serving}
+        description={
+          <Content>
+            <Content component="small">
+              Model registries provide a structured and organized way to store, version, deploy, and
+              track models, ensuring that they are easily accessible and manageable throughout their
+              lifecycle.
+            </Content>
+          </Content>
+        }
+        isOpen
+      />,
+    );
+  }
 
   if (modelMeshEnabled) {
     infoItems.push(
@@ -34,24 +60,27 @@ const DeployAndMonitorGallery: React.FC<{ onClose: () => void }> = ({ onClose })
     );
   }
 
-  infoItems.push(
-    <InfoGalleryItem
-      key="model-deploy"
-      data-testid="ai-flows-model-deploy-info"
-      title="Deploying models"
-      resourceType={ProjectObjectType.deployingModels}
-      sectionType={SectionType.serving}
-      description={
-        <Content>
-          <Content component="small">
-            Deploy models to test them and integrate them into applications. Deploying a model makes
-            it accessible via an API, enabling you to return predictions based on data inputs.
+  if (modelMeshEnabled || kServeEnabled) {
+    infoItems.push(
+      <InfoGalleryItem
+        key="model-deploy"
+        data-testid="ai-flows-model-deploy-info"
+        title="Deploying models"
+        resourceType={ProjectObjectType.deployingModels}
+        sectionType={SectionType.serving}
+        description={
+          <Content>
+            <Content component="small">
+              Deploy models to test them and integrate them into applications. Deploying a model
+              makes it accessible via an API, enabling you to return predictions based on data
+              inputs.
+            </Content>
           </Content>
-        </Content>
-      }
-      isOpen
-    />,
-  );
+        }
+        isOpen
+      />,
+    );
+  }
 
   return (
     <InfoGallery
