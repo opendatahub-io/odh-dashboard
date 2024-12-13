@@ -1,4 +1,5 @@
 import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { appChrome } from '../appChrome';
 
 class PipelineRunsGlobal {
   visit(projectName: string, runType?: 'active' | 'archived' | 'scheduled') {
@@ -7,6 +8,14 @@ class PipelineRunsGlobal {
         runType === 'scheduled' ? '/schedules' : `/runs${runType ? `/${runType}` : ''}`
       }`,
     );
+    this.wait();
+  }
+  findNavItem() {
+    return appChrome.findNavItem('Data Science Pipelines', 'Runs');
+  }
+
+  navigate() {
+    this.findNavItem().click();
     this.wait();
   }
 
