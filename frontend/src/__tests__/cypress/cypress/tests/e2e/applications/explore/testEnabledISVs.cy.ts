@@ -4,7 +4,7 @@ import { getOcResourceNames } from '~/__tests__/cypress/cypress/utils/oc_command
 
 const applicationNamespace = Cypress.env('TEST_NAMESPACE');
 
-describe('Verify RHODS Explore Section Contains Only Configured ISVs', () => {
+describe('Verify RHODS Explore Section Contains Only Expected ISVs', () => {
   let expectedISVs: string[];
 
   before(() => {
@@ -12,7 +12,7 @@ describe('Verify RHODS Explore Section Contains Only Configured ISVs', () => {
     getOcResourceNames(applicationNamespace, 'OdhApplication').then((metadataNames) => {
       expectedISVs = metadataNames.filter((isv) => isv);
       cy.log(
-        `Configured ISVs which should display as Cards in Explore Section: ${expectedISVs.join(
+        `Expected ISVs which should display as Cards in Explore Section: ${expectedISVs.join(
           ', ',
         )}`,
       );
