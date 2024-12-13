@@ -103,6 +103,7 @@ export const getVersionDetailsInferenceServiceColumns = (
   COL_ENDPOINT,
   COL_API_PROTOCOL,
   COL_STATUS,
+  COL_KEBAB,
 ];
 
 export const getProjectInferenceServiceColumns = (): SortableData<InferenceServiceKind>[] => [
