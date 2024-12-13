@@ -1,8 +1,8 @@
 import { act } from 'react';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import { GroupsConfig } from '~/pages/groupSettings/groupTypes';
+import { GroupsConfig } from '~/concepts/userConfigs/groupTypes';
 import { fetchGroupsSettings, updateGroupsSettings } from '~/services/groupSettingsService';
-import { useWatchGroups } from '~/utilities/useWatchGroups';
+import { useWatchGroups } from '~/concepts/userConfigs/useWatchGroups';
 import useNotification from '~/utilities/useNotification';
 
 jest.mock('~/services/groupSettingsService', () => ({

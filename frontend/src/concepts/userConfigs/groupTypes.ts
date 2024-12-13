@@ -1,6 +1,9 @@
-export type GroupsConfig = {
+export type GroupValues = {
   adminGroups: GroupStatus[];
   allowedGroups: GroupStatus[];
+};
+
+export type GroupsConfig = GroupValues & {
   errorAdmin?: string;
   errorUser?: string;
 };
@@ -11,7 +14,7 @@ export enum GroupsConfigField {
 }
 
 export type GroupStatus = {
-  id: number;
+  id: number | string;
   name: string;
   enabled: boolean;
 };

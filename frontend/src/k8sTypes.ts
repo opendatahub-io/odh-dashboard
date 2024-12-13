@@ -1376,3 +1376,14 @@ export type ListConfigSecretsResponse = {
   secrets: ConfigSecretItem[];
   configMaps: ConfigSecretItem[];
 };
+
+export type AuthKind = K8sResourceCommon & {
+  metadata: {
+    name: 'auth'; // singleton, immutable name
+    namespace: never; // Cluster resource
+  };
+  spec: {
+    adminGroups: string[];
+    allowedGroups: string[];
+  };
+};
