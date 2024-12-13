@@ -1,4 +1,4 @@
-# testManifestLinks.cy.ts Test Data #
+# testManifestLinks.cy.ts Test Data. #
 excludedSubstrings:
   - my-project-s2i-python-service
   - clusterip/
