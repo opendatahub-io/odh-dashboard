@@ -10,7 +10,7 @@ const useServingPlatformStatuses = (): ServingPlatformStatuses => {
   const kServeInstalled = !!kServeStatus.requiredComponents?.[StackComponent.K_SERVE];
   const modelMeshInstalled = !!modelMeshStatus.requiredComponents?.[StackComponent.MODEL_MESH];
 
-  const isNIMAvailable = useIsNIMAvailable();
+  const [isNIMAvailable, loaded] = useIsNIMAvailable();
 
   return {
     kServe: {
@@ -18,8 +18,9 @@ const useServingPlatformStatuses = (): ServingPlatformStatuses => {
       installed: kServeInstalled,
     },
     kServeNIM: {
-      enabled: isNIMAvailable,
+      enabled: loaded && isNIMAvailable,
       installed: kServeInstalled,
+      isLoaded: loaded,
     },
     modelMesh: {
       enabled: modelMeshEnabled,

@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { Button, Tooltip, Content, ButtonProps } from '@patternfly/react-core';
+import { Button, ButtonProps, Content, Tooltip } from '@patternfly/react-core';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
 
 type ModelServingPlatformButtonActionProps = ButtonProps & {
   isProjectModelMesh: boolean;
@@ -17,13 +18,18 @@ const ModelServingPlatformButtonAction: React.FC<ModelServingPlatformButtonActio
 }) => {
   const {
     servingRuntimeTemplates: [, templatesLoaded],
+    servingPlatformStatuses,
+    currentProject,
   } = React.useContext(ProjectDetailsContext);
+  const isNIMAvailable = servingPlatformStatuses.kServeNIM.enabled;
+  const isKServeNIMEnabled = isProjectNIMSupported(currentProject);
+  const isNimDisabled = !isNIMAvailable && isKServeNIMEnabled;
 
-  const actionButton = () => (
+  const actionButton = (
     <Button
       {...buttonProps}
       isLoading={!templatesLoaded}
-      isAriaDisabled={!templatesLoaded || emptyTemplates}
+      isAriaDisabled={!templatesLoaded || emptyTemplates || isNimDisabled}
       data-testid={testId}
       variant={variant}
     >
@@ -31,8 +37,8 @@ const ModelServingPlatformButtonAction: React.FC<ModelServingPlatformButtonActio
     </Button>
   );
 
-  if (!emptyTemplates) {
-    return actionButton();
+  if (!emptyTemplates && !isNimDisabled) {
+    return actionButton;
   }
 
   return (
@@ -40,12 +46,16 @@ const ModelServingPlatformButtonAction: React.FC<ModelServingPlatformButtonActio
       data-testid="model-serving-action-tooltip"
       aria-label="Model Serving Action Info"
       content={
-        <Content component="p">{`At least one serving runtime must be enabled to ${
-          isProjectModelMesh ? 'add a model server' : 'deploy a model'
-        }. Contact your administrator.`}</Content>
+        isNimDisabled ? (
+          'NIM is not available. Contact your administrator.'
+        ) : (
+          <Content component="p">{`At least one serving runtime must be enabled to ${
+            isProjectModelMesh ? 'add a model server' : 'deploy a model'
+          }. Contact your administrator.`}</Content>
+        )
       }
     >
-      {actionButton()}
+      <span>{actionButton}</span>
     </Tooltip>
   );
 };

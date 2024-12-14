@@ -70,6 +70,7 @@ const getMockServingPlatformStatuses = ({
   modelMeshInstalled = true,
   nimEnabled = false,
   nimInstalled = false,
+  isLoaded = false,
 }): ServingPlatformStatuses => ({
   kServe: {
     enabled: kServeEnabled,
@@ -78,6 +79,7 @@ const getMockServingPlatformStatuses = ({
   kServeNIM: {
     enabled: nimEnabled,
     installed: nimInstalled,
+    isLoaded,
   },
   modelMesh: {
     enabled: modelMeshEnabled,

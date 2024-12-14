@@ -143,3 +143,31 @@ export const mockNimModelPVC = (): PersistentVolumeClaimKind => {
 export const mockNimServingResource = (
   resource: ConfigMapKind | SecretKind,
 ): NimServingResponse => ({ body: { body: resource } });
+
+export const mockOdhApplication = [
+  {
+    metadata: {
+      name: 'nvidia-nim',
+      annotations: {
+        'internal.config.kubernetes.io/previousKinds': 'OdhApplication',
+      },
+    },
+    spec: {
+      displayName: 'NVIDIA NIM',
+      provider: 'NVIDIA',
+      description: 'NVIDIA Inference Microservices for AI model serving.',
+      route: 'https://nim-route.test.com',
+      routeNamespace: 'redhat-ods-applications',
+      img: 'https://example.com/nvidia-nim.png',
+      docsLink: 'https://docs.nvidia.com/nim',
+      getStartedLink: 'https://nvidia.com/get-started-nim',
+      getStartedMarkDown: '**NVIDIA NIM** provides fast and efficient model serving.',
+      category: 'Self-managed',
+      shownOnEnabledPage: true,
+      isEnabled: true,
+      internalRoute: 'https://internal-nim-route.test.com',
+      quickStart: 'nim-quickstart-guide',
+      beta: false,
+    },
+  },
+];
