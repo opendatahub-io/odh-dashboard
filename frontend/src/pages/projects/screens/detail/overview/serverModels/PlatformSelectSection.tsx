@@ -1,16 +1,16 @@
 import * as React from 'react';
-import { Alert, Gallery, Stack, Content } from '@patternfly/react-core';
+import { Alert, Content, Gallery, Stack } from '@patternfly/react-core';
 import CollapsibleSection from '~/concepts/design/CollapsibleSection';
 import ModelServingPlatformSelectErrorAlert from '~/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
-import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import SelectNIMCard from './SelectNIMCard';
 import SelectSingleModelCard from './SelectSingleModelCard';
 import SelectMultiModelCard from './SelectMultiModelCard';
 
 const PlatformSelectSection: React.FC = () => {
   const [errorSelectingPlatform, setErrorSelectingPlatform] = React.useState<Error>();
+  const { servingPlatformStatuses } = React.useContext(ProjectDetailsContext);
 
-  const servingPlatformStatuses = useServingPlatformStatuses();
   const kServeEnabled = servingPlatformStatuses.kServe.enabled;
   const isNIMAvailable = servingPlatformStatuses.kServeNIM.enabled;
   const modelMeshEnabled = servingPlatformStatuses.modelMesh.enabled;

@@ -1,21 +1,31 @@
-import { useEffect, useState } from 'react';
+import * as React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { isNIMServingRuntimeTemplateAvailable } from '~/pages/modelServing/screens/projects/nimUtils';
-import { useDashboardNamespace } from '~/redux/selectors';
+import { getIntegrationAppEnablementStatus } from '~/services/integrationAppService';
+import { fetchComponents } from '~/services/componentsServices';
+import useFetchState from '~/utilities/useFetchState';
 
-export const useIsNIMAvailable = (): boolean => {
-  const { dashboardNamespace } = useDashboardNamespace();
-  const [isNIMAvailable, setIsNIMAvailable] = useState<boolean>(false);
+export const useIsNIMAvailable = (): [boolean, boolean, Error | undefined] => {
   const isNIMModelServingAvailable = useIsAreaAvailable(SupportedArea.NIM_MODEL).status;
 
-  useEffect(() => {
-    const checkNIMServingRuntime = async () => {
-      const isNIMRuntimeAvailable = await isNIMServingRuntimeTemplateAvailable(dashboardNamespace);
-      setIsNIMAvailable(isNIMModelServingAvailable && isNIMRuntimeAvailable);
-    };
+  const fetchNIMAvailability = React.useCallback(async () => {
+    const components = await fetchComponents(false);
 
-    checkNIMServingRuntime();
-  }, [isNIMModelServingAvailable, dashboardNamespace]);
+    const nimComponent = components.find((component) => component.metadata.name === 'nvidia-nim');
 
-  return isNIMAvailable;
+    if (!nimComponent || !nimComponent.spec.internalRoute) {
+      return false;
+    }
+
+    const { isInstalled, isEnabled } = await getIntegrationAppEnablementStatus(
+      nimComponent.spec.internalRoute,
+    );
+
+    return isNIMModelServingAvailable && isInstalled && isEnabled;
+  }, [isNIMModelServingAvailable]);
+
+  const [isNIMAvailable, loaded, loadError] = useFetchState<boolean>(fetchNIMAvailability, false, {
+    initialPromisePurity: true,
+  });
+
+  return [isNIMAvailable, loaded, loadError];
 };

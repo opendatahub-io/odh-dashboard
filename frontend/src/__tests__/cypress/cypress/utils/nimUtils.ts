@@ -16,7 +16,6 @@ import {
   PVCModel,
   SecretModel,
   ServingRuntimeModel,
-  TemplateModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import {
   mockNimImages,
@@ -25,9 +24,9 @@ import {
   mockNimProject,
   mockNimServingResource,
   mockNimServingRuntime,
-  mockNimServingRuntimeTemplate,
   mockNvidiaNimAccessSecret,
   mockNvidiaNimImagePullSecret,
+  mockOdhApplication,
 } from '~/__mocks__/mockNimResource';
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import type { InferenceServiceKind } from '~/k8sTypes';
@@ -62,11 +61,15 @@ export const initInterceptsToEnableNim = ({ hasAllModels = false }: EnableNimCon
     }),
   );
 
+  cy.interceptOdh('GET /api/components', mockOdhApplication);
+
+  cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
+
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockNimProject(hasAllModels)]));
 
-  const templateMock = mockNimServingRuntimeTemplate();
-  cy.interceptK8sList(TemplateModel, mockK8sResourceList([templateMock]));
-  cy.interceptK8s(TemplateModel, templateMock);
+  // const templateMock = mockNimServingRuntimeTemplate();
+  // cy.interceptK8sList(TemplateModel, mockK8sResourceList([templateMock]));
+  // cy.interceptK8s(TemplateModel, templateMock);
 
   cy.interceptK8sList(
     AcceleratorProfileModel,
@@ -79,8 +82,6 @@ export const initInterceptsToEnableNim = ({ hasAllModels = false }: EnableNimCon
     total: { 'nvidia.com/gpu': 1 },
     allocated: { 'nvidia.com/gpu': 1 },
   });
-
-  cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
 };
 
 // intercept all APIs required for deploying new NIM models in existing projects
@@ -149,16 +150,16 @@ export const initInterceptorsValidatingNimEnablement = (
 ): void => {
   cy.interceptOdh('GET /api/config', mockDashboardConfig(dashboardConfig));
 
-  if (!disableServingRuntime) {
-    const templateMock = mockNimServingRuntimeTemplate();
-    cy.interceptK8sList(TemplateModel, mockK8sResourceList([templateMock]));
-    cy.interceptK8s(TemplateModel, templateMock);
-  }
+  cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
+
+  // if (!disableServingRuntime) {
+  //   const templateMock = mockNimServingRuntimeTemplate();
+  //   cy.interceptK8sList(TemplateModel, mockK8sResourceList([templateMock]));
+  //   cy.interceptK8s(TemplateModel, templateMock);
+  // }
 
   cy.interceptK8sList(
     ProjectModel,
     mockK8sResourceList([mockProjectK8sResource({ hasAnnotations: true })]),
   );
-
-  cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
 };

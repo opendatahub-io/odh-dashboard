@@ -9,11 +9,11 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import {
-  ServingRuntimeKind,
   InferenceServiceKind,
-  TemplateKind,
   ProjectKind,
   SecretKind,
+  ServingRuntimeKind,
+  TemplateKind,
 } from '~/k8sTypes';
 import { DEFAULT_CONTEXT_DATA, DEFAULT_LIST_WATCH_RESULT } from '~/utilities/const';
 import { ContextResourceData, CustomWatchK8sResult } from '~/types';
@@ -22,10 +22,11 @@ import { useDashboardNamespace } from '~/redux/selectors';
 import { DataConnection } from '~/pages/projects/types';
 import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
 import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
-import { ProjectsContext, byName } from '~/concepts/projects/ProjectsContext';
-import { SupportedArea, conditionalArea } from '~/concepts/areas';
+import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import { conditionalArea, SupportedArea } from '~/concepts/areas';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import { useTemplates } from '~/api';
+import { ServingPlatformStatuses } from '~/pages/modelServing/screens/types';
 import useInferenceServices from './useInferenceServices';
 import useServingRuntimes from './useServingRuntimes';
 import useTemplateOrder from './customServingRuntimes/useTemplateOrder';
@@ -46,6 +47,7 @@ type ModelServingContextType = {
   preferredProject: ProjectKind | null;
   serverSecrets: ContextResourceData<SecretKind>;
   projects: ProjectKind[] | null;
+  servingPlatformStatuses: ServingPlatformStatuses;
 };
 
 type ModelServingContextProviderProps = {
@@ -67,6 +69,22 @@ export const ModelServingContext = React.createContext<ModelServingContextType>(
   project: null,
   preferredProject: null,
   projects: null,
+  servingPlatformStatuses: {
+    kServe: {
+      enabled: false,
+      installed: false,
+    },
+    kServeNIM: {
+      enabled: false,
+      installed: false,
+      isLoaded: false,
+    },
+    modelMesh: {
+      enabled: false,
+      installed: false,
+    },
+    platformEnabledCount: 0,
+  },
 });
 
 const ModelServingContextProvider = conditionalArea<ModelServingContextProviderProps>(
@@ -92,6 +110,7 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
     useInferenceServices(namespace),
   );
   const dataConnections = useContextResourceData<DataConnection>(useDataConnections(namespace));
+  const servingPlatformStatuses = useServingPlatformStatuses();
 
   const servingRuntimeRefresh = servingRuntimes.refresh;
   const inferenceServiceRefresh = inferenceServices.refresh;
@@ -102,13 +121,8 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
     dataConnectionRefresh();
   }, [servingRuntimeRefresh, inferenceServiceRefresh, dataConnectionRefresh]);
 
-  const {
-    kServe: { installed: kServeInstalled },
-    modelMesh: { installed: modelMeshInstalled },
-  } = useServingPlatformStatuses();
-
   const notInstalledError =
-    !kServeInstalled && !modelMeshInstalled
+    !servingPlatformStatuses.kServe.installed && !servingPlatformStatuses.modelMesh.installed
       ? new Error('No model serving platform installed')
       : undefined;
 
@@ -192,6 +206,7 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
         project,
         preferredProject,
         projects,
+        servingPlatformStatuses,
       }}
     >
       {children}
