@@ -42,7 +42,7 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
   const isKServeNIMEnabled = isProjectNIMSupported(currentProject);
 
   const modelMetricsSupported =
-    modelMetricsEnabled && (modelMesh || kserveMetricsEnabled) && !isKServeNIMEnabled;
+    modelMetricsEnabled && (modelMesh || kserveMetricsEnabled);
 
   const inferenceServiceDisplayName = getDisplayNameFromK8sResource(inferenceService);
 

@@ -7,6 +7,7 @@ import { TimeframeTitle } from '~/concepts/metrics/types';
 import KserveMeanLatencyGraph from '~/concepts/metrics/kserve/content/KserveMeanLatencyGraph';
 import KserveCpuUsageGraph from '~/concepts/metrics/kserve/content/KserveCpuUsageGraph';
 import KserveMemoryUsageGraph from '~/concepts/metrics/kserve/content/KserveMemoryUsageGraph';
+import KserveTimeToFirstTokenGraph from './KserveTimeForFirstToken';
 
 type KservePerformanceGraphsProps = {
   namespace: string;
@@ -54,6 +55,7 @@ const KservePerformanceGraphs: React.FC<KservePerformanceGraphsProps> = ({
         />
       );
     }
+    
 
     // Condition IS necessary as graph types are provided by the backend.
     // We need to guard against receiving an unknown value at runtime and fail gracefully.
@@ -68,6 +70,29 @@ const KservePerformanceGraphs: React.FC<KservePerformanceGraphsProps> = ({
         />
       );
     }
+
+    if (graphDefinition.type === KserveMetricsGraphTypes.TIME_TO_FIRST_TOKEN) {
+      return (
+        <KserveTimeToFirstTokenGraph
+          graphDefinition={graphDefinition}
+          timeframe={timeframe}
+          end={end}
+          namespace={namespace}
+        />
+      );
+    }
+
+    if (graphDefinition.type === KserveMetricsGraphTypes.TIME_PER_OUTPUT_TOKEN) {
+      return (
+        <KserveCpuUsageGraph
+          graphDefinition={graphDefinition}
+          timeframe={timeframe}
+          end={end}
+          namespace={namespace}
+        />
+      );
+    }
+
 
     // TODO: add an unsupported graph type error state.
     return null;

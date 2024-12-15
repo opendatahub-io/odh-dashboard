@@ -178,6 +178,83 @@ export const useFetchKserveMemoryUsageData = (
   });
 };
 
+type TimeToFirstTokenData = {
+  data: {
+    timeToFirstToken: PendingContextResourceData<PrometheusQueryRangeResultValue>;
+  };
+  refreshAll: () => void;
+};
+
+
+export const useFetchKserveTimeToFirstTokenData = (
+  metricsDef: KserveMetricGraphDefinition,
+  timeframe: TimeframeTitle,
+  endInMs: number,
+  namespace: string,
+): TimeToFirstTokenData => {
+  const active = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
+
+  const timeToFirstToken = useQueryRangeResourceData(
+    active,
+    metricsDef.queries[0]?.query,
+    endInMs,
+    timeframe,
+    defaultResponsePredicate,
+    namespace,
+  );
+
+  const data = React.useMemo(
+    () => ({
+      timeToFirstToken,
+    }),
+    [timeToFirstToken],
+  );
+
+  return useAllSettledContextResourceData(data, {
+    timeToFirstToken: DEFAULT_PENDING_CONTEXT_RESOURCE,
+  });
+};
+
+// Graph #5
+type TimePerOutputTokenData = {
+  data: {
+    timePerOutputToken: PendingContextResourceData<PrometheusQueryRangeResultValue>;
+  };
+  refreshAll: () => void;
+};
+export const useFetchKserveTimePerOutputTokenData = (
+  metricsDef: KserveMetricGraphDefinition,
+  timeframe: TimeframeTitle,
+  endInMs: number,
+  namespace: string,
+): TimePerOutputTokenData => {
+  // Check if KServe metrics are active
+  const active = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
+  // Extract the query for TIME_PER_OUTPUT_TOKEN
+  const timePerOutputTokenQuery = metricsDef.queries[0].query; // Assumes it's the first query in the metric definition
+  // Fetch data using useQueryRangeResourceData
+  const timePerOutputToken = useQueryRangeResourceData(
+    active,
+    timePerOutputTokenQuery,
+    endInMs,
+    timeframe,
+    defaultResponsePredicate,
+    namespace,
+  );
+  // Memoize the fetched data
+  const data = React.useMemo(
+    () => ({
+      timePerOutputToken,
+    }),
+    [timePerOutputToken],
+  );
+  // Return all-settled context resource data
+  return useAllSettledContextResourceData(data, {
+    timePerOutputToken: DEFAULT_PENDING_CONTEXT_RESOURCE,
+  });
+};
+
+
 const useAllSettledContextResourceData = <
   T,
   U extends Record<string, PendingContextResourceData<T>>,
