@@ -183,7 +183,8 @@ describe('ClusterStorage', () => {
     //connect workbench
     addClusterStorageModal.findAddWorkbenchButton().click();
     addClusterStorageModal.findWorkbenchTable().should('exist');
-    addClusterStorageModal.selectWorkbenchName(0, 'test-notebook');
+    addClusterStorageModal.findWorkbenchSelect(0).should('have.attr', 'disabled');
+    addClusterStorageModal.findWorkbenchSelectValueField(0).should('have.value', 'Test Notebook');
 
     //don't allow duplicate path
     addClusterStorageModal.findMountPathField(0).fill('test-dupe');
@@ -268,7 +269,10 @@ describe('ClusterStorage', () => {
     const clusterStorageRow = clusterStorage.getClusterStorageRow('Existing PVC');
     clusterStorageRow.findKebabAction('Edit storage').click();
     updateClusterStorageModal.findAddWorkbenchButton().click();
-    updateClusterStorageModal.selectWorkbenchName(1, 'another-notebook');
+    addClusterStorageModal.findWorkbenchSelect(1).should('have.attr', 'disabled');
+    addClusterStorageModal
+      .findWorkbenchSelectValueField(1)
+      .should('have.value', 'Another Notebook');
     updateClusterStorageModal.findMountPathField(1).fill('new-data');
 
     cy.interceptK8s('PATCH', NotebookModel, anotherNotebook).as('updateClusterStorage');
