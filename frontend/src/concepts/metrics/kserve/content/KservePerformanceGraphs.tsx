@@ -7,7 +7,8 @@ import { TimeframeTitle } from '~/concepts/metrics/types';
 import KserveMeanLatencyGraph from '~/concepts/metrics/kserve/content/KserveMeanLatencyGraph';
 import KserveCpuUsageGraph from '~/concepts/metrics/kserve/content/KserveCpuUsageGraph';
 import KserveMemoryUsageGraph from '~/concepts/metrics/kserve/content/KserveMemoryUsageGraph';
-import KserveTimeToFirstTokenGraph from './KserveTimeForFirstToken';
+import KserveTimeToFirstTokenGraph from './KserveTimeForFirstTokenGraphs';
+import KserveKVCacheUsageGraph from './KserveKVCacheUsageGraph';
 
 type KservePerformanceGraphsProps = {
   namespace: string;
@@ -71,6 +72,19 @@ const KservePerformanceGraphs: React.FC<KservePerformanceGraphsProps> = ({
       );
     }
 
+    // Graph #1 - KV Cache usage over time
+    if (graphDefinition.type === KserveMetricsGraphTypes.KV_CACHE) {
+      return (
+        <KserveKVCacheUsageGraph
+          graphDefinition={graphDefinition}
+          timeframe={timeframe}
+          end={end}
+          namespace={namespace}
+        />
+      );
+    }
+
+    // Graph #4 - Time to First Token
     if (graphDefinition.type === KserveMetricsGraphTypes.TIME_TO_FIRST_TOKEN) {
       return (
         <KserveTimeToFirstTokenGraph
@@ -83,6 +97,17 @@ const KservePerformanceGraphs: React.FC<KservePerformanceGraphsProps> = ({
     }
 
     if (graphDefinition.type === KserveMetricsGraphTypes.TIME_PER_OUTPUT_TOKEN) {
+      return (
+        <KserveCpuUsageGraph
+          graphDefinition={graphDefinition}
+          timeframe={timeframe}
+          end={end}
+          namespace={namespace}
+        />
+      );
+    }
+
+    if (graphDefinition.type === KserveMetricsGraphTypes.CURRENT_REQUESTS) {
       return (
         <KserveCpuUsageGraph
           graphDefinition={graphDefinition}

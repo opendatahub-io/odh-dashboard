@@ -220,7 +220,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
                         />
                       );
                     case MetricsChartTypes.LINE:
-                      return <ChartLine key={i} data={line.points} name={line.name} />;
+                      return <ChartLine key={i} data={line.points} name={line.name} themeColor={metrics[i]?.color} />;
                     default:
                       return null;
                   }

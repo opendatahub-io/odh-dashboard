@@ -14,6 +14,7 @@ type MetricChartLineBase = {
 };
 export type NamedMetricChartLine = MetricChartLineBase & {
   name: string;
+  color?: string; // Add customColor as an optional property
 };
 export type UnnamedMetricChartLine = MetricChartLineBase & {
   /** Assumes chart title */

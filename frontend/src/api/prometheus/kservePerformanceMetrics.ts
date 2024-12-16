@@ -178,6 +178,45 @@ export const useFetchKserveMemoryUsageData = (
   });
 };
 
+// Graph #1 - KV Cache usage over time
+type KVCacheUsageData = {
+  data: {
+    kvCacheUsage: PendingContextResourceData<PrometheusQueryRangeResultValue>;
+  };
+  refreshAll: () => void;
+};
+
+
+export const useFetchKserveKVCacheUsageData = (
+  metricsDef: KserveMetricGraphDefinition,
+  timeframe: TimeframeTitle,
+  endInMs: number,
+  namespace: string,
+): KVCacheUsageData => {
+  const active = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
+
+  const kvCacheUsage = useQueryRangeResourceData(
+    active,
+    metricsDef.queries[0]?.query,
+    endInMs,
+    timeframe,
+    defaultResponsePredicate,
+    namespace,
+  );
+
+  const data = React.useMemo(
+    () => ({
+      kvCacheUsage,
+    }),
+    [kvCacheUsage],
+  );
+
+  return useAllSettledContextResourceData(data, {
+    kvCacheUsage: DEFAULT_PENDING_CONTEXT_RESOURCE,
+  });
+};
+
+// Graph #4 - Time to First Token
 type TimeToFirstTokenData = {
   data: {
     timeToFirstToken: PendingContextResourceData<PrometheusQueryRangeResultValue>;
@@ -251,6 +290,76 @@ export const useFetchKserveTimePerOutputTokenData = (
   // Return all-settled context resource data
   return useAllSettledContextResourceData(data, {
     timePerOutputToken: DEFAULT_PENDING_CONTEXT_RESOURCE,
+  });
+};
+
+// Graph #2
+type CurrentRequestsData = {
+  data: {
+    requestsWaiting: PendingContextResourceData<PrometheusQueryRangeResultValue>;
+    requestsRunning: PendingContextResourceData<PrometheusQueryRangeResultValue>;
+    maxRequests: PendingContextResourceData<PrometheusQueryRangeResultValue>;
+  };
+  refreshAll: () => void;
+};
+
+export const useFetchKserveCurrentRequestsData = (
+  metricsDef: KserveMetricGraphDefinition,
+  timeframe: TimeframeTitle,
+  endInMs: number,
+  namespace: string,
+): CurrentRequestsData => {
+  // Check if KServe metrics are active
+  const active = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
+
+  // Extract the queries for "Requests waiting", "Requests running", and "Max requests"
+  const requestsWaitingQuery = metricsDef.queries[0].query;
+  const requestsRunningQuery = metricsDef.queries[1].query;
+  const maxRequestsQuery = metricsDef.queries[2].query;
+
+  // Fetch data using useQueryRangeResourceData
+  const requestsWaiting = useQueryRangeResourceData(
+    active,
+    requestsWaitingQuery,
+    endInMs,
+    timeframe,
+    defaultResponsePredicate,
+    namespace,
+  );
+
+  const requestsRunning = useQueryRangeResourceData(
+    active,
+    requestsRunningQuery,
+    endInMs,
+    timeframe,
+    defaultResponsePredicate,
+    namespace,
+  );
+
+  const maxRequests = useQueryRangeResourceData(
+    active,
+    maxRequestsQuery,
+    endInMs,
+    timeframe,
+    defaultResponsePredicate,
+    namespace,
+  );
+
+  // Combine the fetched data
+  const data = React.useMemo(
+    () => ({
+      requestsWaiting,
+      requestsRunning,
+      maxRequests,
+    }),
+    [requestsWaiting, requestsRunning, maxRequests],
+  );
+
+  // Use helper to handle pending state and refresh functionality
+  return useAllSettledContextResourceData(data, {
+    requestsWaiting: DEFAULT_PENDING_CONTEXT_RESOURCE,
+    requestsRunning: DEFAULT_PENDING_CONTEXT_RESOURCE,
+    maxRequests: DEFAULT_PENDING_CONTEXT_RESOURCE,
   });
 };
 
