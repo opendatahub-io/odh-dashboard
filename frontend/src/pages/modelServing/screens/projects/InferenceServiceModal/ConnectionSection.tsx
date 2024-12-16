@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Alert,
   Button,
   Flex,
   FlexItem,
@@ -7,6 +8,7 @@ import {
   FormSection,
   Popover,
   Radio,
+  Skeleton,
   Truncate,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
@@ -41,6 +43,7 @@ import TypeaheadSelect, { TypeaheadSelectOption } from '~/components/TypeaheadSe
 import {
   CreatingInferenceServiceObject,
   InferenceServiceStorageType,
+  LabeledConnection,
 } from '~/pages/modelServing/screens/types';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
@@ -49,7 +52,7 @@ import DataConnectionFolderPathField from './DataConnectionFolderPathField';
 
 type ExistingConnectionFieldProps = {
   connectionTypes: ConnectionTypeConfigMapObj[];
-  projectConnections: Connection[];
+  projectConnections: LabeledConnection[];
   selectedConnection?: Connection;
   onSelect: (connection: Connection) => void;
   folderPath: string;
@@ -69,19 +72,19 @@ const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = ({
   const options: TypeaheadSelectOption[] = React.useMemo(
     () =>
       projectConnections.map((connection) => ({
-        content: getDisplayNameFromK8sResource(connection),
-        value: getResourceNameFromK8sResource(connection),
+        content: getDisplayNameFromK8sResource(connection.connection),
+        value: getResourceNameFromK8sResource(connection.connection),
         description: (
           <Flex direction={{ default: 'column' }} rowGap={{ default: 'rowGapNone' }}>
-            {getDescriptionFromK8sResource(connection) && (
+            {getDescriptionFromK8sResource(connection.connection) && (
               <FlexItem>
-                <Truncate content={getDescriptionFromK8sResource(connection)} />
+                <Truncate content={getDescriptionFromK8sResource(connection.connection)} />
               </FlexItem>
             )}
             <FlexItem>
               <Truncate
                 content={`Type: ${
-                  getConnectionTypeDisplayName(connection, connectionTypes) || 'Unknown'
+                  getConnectionTypeDisplayName(connection.connection, connectionTypes) || 'Unknown'
                 }`}
               />
             </FlexItem>
@@ -89,7 +92,7 @@ const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = ({
         ),
         isSelected:
           !!selectedConnection &&
-          getResourceNameFromK8sResource(connection) ===
+          getResourceNameFromK8sResource(connection.connection) ===
             getResourceNameFromK8sResource(selectedConnection),
       })),
     [connectionTypes, projectConnections, selectedConnection],
@@ -129,10 +132,10 @@ const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = ({
           selectOptions={options}
           onSelect={(_, value) => {
             const newConnection = projectConnections.find(
-              (c) => getResourceNameFromK8sResource(c) === value,
+              (c) => getResourceNameFromK8sResource(c.connection) === value,
             );
             if (newConnection) {
-              onSelect(newConnection);
+              onSelect(newConnection.connection);
             }
           }}
           popperProps={{ appendTo: 'inline' }}
@@ -270,6 +273,9 @@ type Props = {
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
   setConnection: (connection?: Connection) => void;
   setIsConnectionValid: (isValid: boolean) => void;
+  loaded: boolean;
+  loadError: Error | undefined;
+  connections: LabeledConnection[];
 };
 
 export const ConnectionSection: React.FC<Props> = ({
@@ -277,6 +283,9 @@ export const ConnectionSection: React.FC<Props> = ({
   setData,
   setConnection,
   setIsConnectionValid,
+  loaded,
+  loadError,
+  connections,
 }) => {
   const [connectionTypes] = useWatchConnectionTypes(true);
   const [projectConnections] = useConnections(data.project, true);
@@ -288,6 +297,14 @@ export const ConnectionSection: React.FC<Props> = ({
       ),
     [projectConnections, data.storage.dataConnection],
   );
+
+  if (loadError) {
+    return (
+      <Alert title="Error loading connections" variant="danger">
+        {loadError.message}
+      </Alert>
+    );
+  }
 
   return (
     <>
@@ -323,10 +340,13 @@ export const ConnectionSection: React.FC<Props> = ({
           });
         }}
         body={
-          data.storage.type === InferenceServiceStorageType.EXISTING_STORAGE && (
+          data.storage.type === InferenceServiceStorageType.EXISTING_STORAGE &&
+          (!loaded && data.project !== '' ? (
+            <Skeleton />
+          ) : (
             <ExistingConnectionField
               connectionTypes={connectionTypes}
-              projectConnections={projectConnections}
+              projectConnections={connections}
               selectedConnection={selectedConnection}
               onSelect={(selection) => {
                 setConnection(selection);
@@ -339,7 +359,7 @@ export const ConnectionSection: React.FC<Props> = ({
               setFolderPath={(path) => setData('storage', { ...data.storage, path })}
               setIsConnectionValid={setIsConnectionValid}
             />
-          )
+          ))
         }
       />
       <Radio

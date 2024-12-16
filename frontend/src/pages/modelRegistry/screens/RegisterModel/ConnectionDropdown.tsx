@@ -11,13 +11,16 @@ import React from 'react';
 import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
 import { Connection } from '~/concepts/connectionTypes/types';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { ModelLocationType } from './useRegisterModelData';
 
 type ConnectionDropdownProps = {
+  type: ModelLocationType;
   onSelect: (connectionInfo: Connection) => void;
   project?: string;
   selectedConnection?: Connection;
 };
 export const ConnectionDropdown = ({
+  type,
   onSelect,
   project,
   selectedConnection,
@@ -29,7 +32,10 @@ export const ConnectionDropdown = ({
     setIsOpen(!isOpen);
   };
 
-  const filteredConnections = connections.filter((c) => c.data?.AWS_S3_BUCKET);
+  const filteredConnections =
+    type === ModelLocationType.ObjectStorage
+      ? connections.filter((c) => c.data?.AWS_S3_BUCKET)
+      : connections.filter((c) => c.data?.URI);
 
   const getToggleContent = () => {
     if (!project) {

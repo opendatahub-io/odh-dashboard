@@ -15,15 +15,15 @@ import {
 } from '@patternfly/react-core';
 import { OptimizeIcon } from '@patternfly/react-icons';
 import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
-import { DataConnection, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import { convertAWSSecretData } from '~/pages/projects/screens/detail/data-connections/utils';
+import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import FormSection from '~/components/pf-overrides/FormSection';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
+import { convertObjectStorageSecretData } from '~/concepts/connectionTypes/utils';
+import { Connection } from '~/concepts/connectionTypes/types';
 import { ModelLocationType, RegistrationCommonFormData } from './useRegisterModelData';
 import { ConnectionModal } from './ConnectionModal';
 import { MR_CHARACTER_LIMIT } from './const';
 import { isNameValid } from './utils';
-import { Connection } from '~/concepts/connectionTypes/types';
 
 type RegistrationCommonFormSectionsProps<D extends RegistrationCommonFormData> = {
   formData: D;
@@ -53,10 +53,16 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
     AWS_DEFAULT_REGION: 'modelLocationRegion',
   };
 
-  const fillObjectStorageByConnection = (connection: DataConnection) => {
-    convertAWSSecretData(connection).forEach((dataItem) => {
+  const fillObjectStorageByConnection = (connection: Connection) => {
+    convertObjectStorageSecretData(connection).forEach((dataItem) => {
       setData(connectionDataMap[dataItem.key], dataItem.value);
     });
+  };
+
+  const fillURIByConnection = (connection: Connection) => {
+    if (connection.data?.URI) {
+      setData('modelLocationURI', window.atob(connection.data.URI));
+    }
   };
 
   const {
@@ -161,7 +167,7 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
                 icon={<OptimizeIcon />}
                 onClick={() => setAutofillModalOpen(true)}
               >
-                Autofill from data connection
+                Autofill from connection
               </Button>
             </SplitItem>
           )}
@@ -263,7 +269,7 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
                 icon={<OptimizeIcon />}
                 onClick={() => setAutofillModalOpen(true)}
               >
-                Autofill from data connection
+                Autofill from connection
               </Button>
             </SplitItem>
           )}
@@ -276,6 +282,8 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
           onSubmit={(connection) => {
             if (modelLocationType === ModelLocationType.ObjectStorage) {
               fillObjectStorageByConnection(connection);
+            } else {
+              fillURIByConnection(connection);
             }
             setAutofillModalOpen(false);
           }}

@@ -1,4 +1,5 @@
 import { AlertVariant } from '@patternfly/react-core';
+import { Connection } from '~/concepts/connectionTypes/types';
 import { SecretKind, ServingContainer, ServingRuntimeKind } from '~/k8sTypes';
 import { DataConnection, EnvVariableDataEntry } from '~/pages/projects/types';
 import { ContainerResources } from '~/types';
@@ -123,5 +124,10 @@ export type ServingPlatformStatuses = {
 
 export type LabeledDataConnection = {
   dataConnection: DataConnection;
+  isRecommended?: boolean;
+};
+
+export type LabeledConnection = {
+  connection: Connection;
   isRecommended?: boolean;
 };
