@@ -200,8 +200,15 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
               data-testid="metrics-chart-has-data"
               {...legendProps}
             >
+
               <ChartAxis
-                tickFormat={(x) => convertTimestamp(x, formatToShow(currentTimeframe))}
+                //X-Axis with "Date" Title 
+                tickFormat={(x) => new Date(x).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
+                label="Date" // Add this for the axis title
+                style={{
+                  axisLabel: { padding: 40, fontSize: 14, fontWeight: 'bold', fill: '#555' },
+                }}
+                // tickFormat={(x) => convertTimestamp(x, formatToShow(currentTimeframe))}
                 domain={{
                   x: [lastUpdateTime - TimeframeTimeRange[currentTimeframe] * 1000, lastUpdateTime],
                 }}
@@ -217,6 +224,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
                           key={i}
                           data={line.points.length === 0 ? [null] : line.points}
                           name={line.name}
+                          interpolation="monotoneX" // Smooths out the area line
                         />
                       );
                     case MetricsChartTypes.LINE:
