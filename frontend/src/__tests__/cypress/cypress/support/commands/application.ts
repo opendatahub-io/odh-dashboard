@@ -232,7 +232,7 @@ Cypress.Commands.add('findMenuItem', { prevSubject: 'element' }, (subject, name)
     if ($el.attr('aria-expanded') === 'false') {
       cy.wrap($el).click();
     }
-    return cy.get('[data-ouia-component-type="PF6/Menu"]').findByRole('menuitem', { name });
+    return cy.get('[data-ouia-component-type="PF6/Menu"]').find('td').contains(name);
   });
 });
 

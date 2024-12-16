@@ -36,4 +36,16 @@ export class SearchSelector extends SubComponentBase {
   findMenuList(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findContextualItem('menuList');
   }
+
+  // Search for an item by typing into the search input
+  searchItem(name: string): void {
+    this.findSearchInput().clear().type(name);
+  }
+
+  // Perform the entire process: open, search, and select
+  openAndSelectItem(name: string): void {
+    this.findToggleButton().click(); // Open the dropdown
+    this.searchItem(name); // Type the name in the search input
+    this.selectItem(name); // Select the item
+  }
 }

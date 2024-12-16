@@ -10,12 +10,9 @@ class PipelineRunsGlobal {
     );
     this.wait();
   }
-  findNavItem() {
-    return appChrome.findNavItem('Data Science Pipelines', 'Runs');
-  }
 
   navigate() {
-    this.findNavItem().click();
+    appChrome.findNavItem('Runs', 'Data Science Pipelines').click();
     this.wait();
   }
 
@@ -41,7 +38,7 @@ class PipelineRunsGlobal {
   }
 
   findProjectSelect() {
-    return cy.findByTestId('project-selector-dropdown');
+    return cy.findByTestId('project-selector-toggle');
   }
 
   findCreateRunButton() {
@@ -69,7 +66,12 @@ class PipelineRunsGlobal {
   }
 
   selectProjectByName(name: string) {
-    this.findProjectSelect().findDropdownItem(name).click();
+    this.findProjectSelect().click();
+    cy.findByTestId('project-selector-search').fill(name);
+    cy.findByTestId('project-selector-menuList')
+      .contains('button', name)
+      .should('be.visible')
+      .click();
   }
 }
 
