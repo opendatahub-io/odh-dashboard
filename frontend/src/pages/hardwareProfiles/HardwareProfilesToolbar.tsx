@@ -30,7 +30,7 @@ const HardwareProfilesToolbar: React.FC<HardwareProfilesToolbarProps> = ({
           onChange={(_event, value) => onChange(value)}
         />
       ),
-      [HardwareProfileFilterOptions.enable]: ({ value, onChange, ...props }) => (
+      [HardwareProfileFilterOptions.enabled]: ({ value, onChange, ...props }) => (
         <SimpleSelect
           {...props}
           dataTestId="hardware-profile-filter-enable-select"

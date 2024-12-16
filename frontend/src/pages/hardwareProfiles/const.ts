@@ -16,7 +16,7 @@ export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
   },
   {
     field: 'enablement',
-    label: 'Enable',
+    label: 'Enabled',
     sortable: false,
     info: {
       popover: 'Indicates whether the hardware profile is available for new resources.',
@@ -131,12 +131,12 @@ export enum HardwareProfileEnableType {
 
 export enum HardwareProfileFilterOptions {
   name = 'Name',
-  enable = 'Enable',
+  enabled = 'Enabled',
 }
 
 export const hardwareProfileFilterOptions = {
   [HardwareProfileFilterOptions.name]: 'Name',
-  [HardwareProfileFilterOptions.enable]: 'Enable',
+  [HardwareProfileFilterOptions.enabled]: 'Enabled',
 };
 
 export type HardwareProfileFilterDataType = Record<
@@ -146,5 +146,5 @@ export type HardwareProfileFilterDataType = Record<
 
 export const initialHardwareProfileFilterData: HardwareProfileFilterDataType = {
   [HardwareProfileFilterOptions.name]: '',
-  [HardwareProfileFilterOptions.enable]: undefined,
+  [HardwareProfileFilterOptions.enabled]: undefined,
 };

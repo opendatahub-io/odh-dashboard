@@ -5,7 +5,6 @@ import {
   StackItem,
   Timestamp,
   TimestampTooltipVariant,
-  Title,
 } from '@patternfly/react-core';
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
 import { relativeTime } from '~/utilities/time';
@@ -51,7 +50,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
             truncateDescriptionLines={2}
           />
         </Td>
-        <Td dataLabel="Enable">
+        <Td dataLabel="Enabled">
           <HardwareProfileEnableToggle
             hardwareProfile={hardwareProfile}
             refreshHardwareProfiles={refreshHardwareProfiles}
@@ -105,9 +104,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
               {hardwareProfile.spec.identifiers &&
                 hardwareProfile.spec.identifiers.length !== 0 && (
                   <StackItem>
-                    <Title headingLevel="h6" size="md">
-                      Node resources
-                    </Title>
+                    <p className="pf-v6-u-font-weight-bold">Node resources</p>
                     <NodeResourceTable nodeResources={hardwareProfile.spec.identifiers} />
                     <Divider />
                   </StackItem>
@@ -115,9 +112,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
               {hardwareProfile.spec.nodeSelectors &&
                 hardwareProfile.spec.nodeSelectors.length !== 0 && (
                   <StackItem>
-                    <Title headingLevel="h6" size="md">
-                      Node selectors
-                    </Title>
+                    <p className="pf-v6-u-font-weight-bold">Node selectors</p>
                     <NodeSelectorTable nodeSelectors={hardwareProfile.spec.nodeSelectors} />
                     <Divider />
                   </StackItem>
@@ -125,9 +120,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
               {hardwareProfile.spec.tolerations &&
                 hardwareProfile.spec.tolerations.length !== 0 && (
                   <StackItem>
-                    <Title headingLevel="h6" size="md">
-                      Tolerations
-                    </Title>
+                    <p className="pf-v6-u-font-weight-bold">Tolerations</p>
                     <TolerationTable tolerations={hardwareProfile.spec.tolerations} />
                     <Divider />
                   </StackItem>

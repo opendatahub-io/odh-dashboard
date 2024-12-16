@@ -1,5 +1,4 @@
 import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
-import { Modal } from './components/Modal';
 import { TableRow } from './components/table';
 
 class HardwareProfileTableToolbar extends Contextual<HTMLElement> {
@@ -105,19 +104,4 @@ class HardwareProfile {
   }
 }
 
-class DisableHardwareProfileModal extends Modal {
-  constructor() {
-    super('Disable hardware profile');
-  }
-
-  findDisableButton() {
-    return this.findFooter().findByRole('button', { name: 'Disable' });
-  }
-
-  findCancelButton() {
-    return this.findFooter().findByRole('button', { name: 'Cancel' });
-  }
-}
-
 export const hardwareProfile = new HardwareProfile();
-export const disableHardwareProfileModal = new DisableHardwareProfileModal();

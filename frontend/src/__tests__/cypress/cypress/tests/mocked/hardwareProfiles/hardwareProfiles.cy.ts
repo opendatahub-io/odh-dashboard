@@ -1,7 +1,4 @@
-import {
-  hardwareProfile,
-  disableHardwareProfileModal,
-} from '~/__tests__/cypress/cypress/pages/hardwareProfile';
+import { hardwareProfile } from '~/__tests__/cypress/cypress/pages/hardwareProfile';
 import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { HardwareProfileModel } from '~/__tests__/cypress/cypress/utils/models';
@@ -90,7 +87,9 @@ describe('Hardware Profile', () => {
       hardwareProfileTableToolbar.findFilterInput('name').clear();
       hardwareProfile.findRows().should('have.length', 2);
 
-      hardwareProfileTableToolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Enable').click();
+      hardwareProfileTableToolbar
+        .findFilterMenuOption('filter-toolbar-dropdown', 'Enabled')
+        .click();
       hardwareProfileTableToolbar.selectEnableFilter('Enabled');
       hardwareProfile.findRows().should('have.length', 1);
       hardwareProfile.getRow('Test Hardware Profile').find().should('exist');
@@ -133,7 +132,6 @@ describe('Hardware Profile', () => {
       hardwareProfile.getRow('Test Hardware Profile Delete').findEnabled().should('not.be.checked');
       hardwareProfile.getRow('Test Hardware Profile').findEnabled().should('be.checked');
       hardwareProfile.getRow('Test Hardware Profile').findEnableSwitch().click();
-      disableHardwareProfileModal.findDisableButton().click();
 
       cy.wait('@toggleHardwareProfile').then((interception) => {
         expect(interception.request.body).to.eql([

@@ -33,7 +33,7 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
     () =>
       hardwareProfiles.filter((cr) => {
         const nameFilter = filterData.Name?.toLowerCase();
-        const enableFilter = filterData.Enable;
+        const enableFilter = filterData.Enabled;
 
         if (nameFilter && !cr.spec.displayName.toLowerCase().includes(nameFilter)) {
           return false;

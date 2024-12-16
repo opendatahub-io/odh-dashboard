@@ -4,8 +4,6 @@ import useNotification from '~/utilities/useNotification';
 import { toggleHardwareProfileEnablement } from '~/api';
 import { HardwareProfileKind } from '~/k8sTypes';
 
-import DisableHardwareProfileModal from '~/pages/hardwareProfiles/DisableHardwareProfileModal';
-
 type HardwareProfileEnableToggleProps = {
   hardwareProfile: HardwareProfileKind;
   refreshHardwareProfiles: () => void;
@@ -16,8 +14,6 @@ const HardwareProfileEnableToggle: React.FC<HardwareProfileEnableToggleProps> = 
   refreshHardwareProfiles,
 }) => {
   const { enabled } = hardwareProfile.spec;
-  const label = enabled ? 'enabled' : 'stopped';
-  const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [isEnabled, setEnabled] = React.useState(enabled);
   const [isLoading, setLoading] = React.useState(false);
   const notification = useNotification();
@@ -46,33 +42,14 @@ const HardwareProfileEnableToggle: React.FC<HardwareProfileEnableToggleProps> = 
   };
 
   return (
-    <>
-      <Switch
-        aria-label={label}
-        data-testid="enable-switch"
-        id={`${hardwareProfile.metadata.name}-enable-switch`}
-        isChecked={isEnabled}
-        isDisabled={isLoading}
-        onChange={() => {
-          if (isEnabled) {
-            setIsModalOpen(true);
-          } else {
-            handleChange(true);
-          }
-        }}
-      />
-      {isModalOpen ? (
-        <DisableHardwareProfileModal
-          data-testid="disable-hardware-profile-modal"
-          onClose={(confirmStatus) => {
-            if (confirmStatus) {
-              handleChange(false);
-            }
-            setIsModalOpen(false);
-          }}
-        />
-      ) : null}
-    </>
+    <Switch
+      aria-label={enabled ? 'enabled' : 'stopped'}
+      data-testid="enable-switch"
+      id={`${hardwareProfile.metadata.name}-enable-switch`}
+      isChecked={isEnabled}
+      isDisabled={isLoading}
+      onChange={(_e, checked) => handleChange(checked)}
+    />
   );
 };
 
