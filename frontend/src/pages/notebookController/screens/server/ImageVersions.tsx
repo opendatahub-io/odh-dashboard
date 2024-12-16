@@ -65,6 +65,7 @@ const ImageVersions: React.FC<ImageVersionsProps> = ({ image, tags, selectedTag,
             description={getDescriptionForTag(tag)}
             isChecked={tag.name === selectedTag?.name}
             onChange={(e, checked: boolean) => onSelect(tag, checked)}
+            data-testid={`radio ${image.name}-${tag.name}`}
           />
         );
       })}
