@@ -68,7 +68,7 @@ export const DistributedWorkloadsContextProvider =
     const clusterQueues = {
       ...allClusterQueues,
       data: allClusterQueues.data.filter((cq) =>
-        localQueues.data.some((lq) => lq.spec.clusterQueueName === cq.metadata?.name),
+        localQueues.data.some((lq) => lq.spec.clusterQueue === cq.metadata?.name),
       ),
     };
 
