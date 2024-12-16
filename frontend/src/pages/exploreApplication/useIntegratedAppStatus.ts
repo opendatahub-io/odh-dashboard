@@ -32,6 +32,6 @@ export const useIntegratedAppStatus = (app?: OdhApplication): FetchState<Integra
       variablesValidationStatus: '',
       error: '',
     },
-    { initialPromisePurity: true },
+    { refreshRate: 5000, initialPromisePurity: true },
   );
 };
