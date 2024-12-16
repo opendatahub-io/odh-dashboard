@@ -15,6 +15,7 @@ export const useIntegratedAppStatus = (app?: OdhApplication): FetchState<Integra
         isInstalled: false,
         isEnabled: false,
         canInstall: true,
+        variablesValidationStatus: '',
         error: '',
       });
     }
@@ -28,8 +29,9 @@ export const useIntegratedAppStatus = (app?: OdhApplication): FetchState<Integra
       isInstalled: false,
       isEnabled: false,
       canInstall: false,
+      variablesValidationStatus: '',
       error: '',
     },
-    { refreshRate: 5000, initialPromisePurity: true },
+    { initialPromisePurity: true },
   );
 };

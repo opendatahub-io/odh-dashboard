@@ -51,6 +51,14 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
     setValidationInProgress(true);
   };
 
+  const handleClose = () => {
+    if (!validationInProgress) {
+      setIsEnableValuesHasEmptyValue(true);
+      setEnableValues({});
+    }
+    onClose();
+  };
+
   React.useEffect(() => {
     if (validationInProgress && validationStatus === EnableApplicationStatus.SUCCESS) {
       setValidationInProgress(false);
@@ -60,14 +68,13 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
       selectedApp.spec.shownOnEnabledPage = true;
       /* eslint-enable no-param-reassign */
 
-      setIsEnableValuesHasEmptyValue(true);
-      onClose();
+      handleClose();
     }
     if (validationInProgress && validationStatus === EnableApplicationStatus.FAILED) {
       setValidationInProgress(false);
       setPostError(validationErrorMessage);
     }
-  }, [onClose, selectedApp.spec, validationErrorMessage, validationInProgress, validationStatus]);
+  }, [handleClose, selectedApp.spec, validationErrorMessage, validationInProgress, validationStatus]);
 
   React.useEffect(() => {
     if (shown) {
@@ -78,13 +85,6 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
     // Only update when shown is updated to true
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shown]);
-
-  const handleClose = () => {
-    if (!validationInProgress) {
-      setEnableValues({});
-    }
-    onClose();
-  };
 
   if (!selectedApp.spec.enable || !shown) {
     return null;

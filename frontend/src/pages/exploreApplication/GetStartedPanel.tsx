@@ -38,26 +38,31 @@ type GetStartedPanelProps = {
 const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose, onEnable }) => {
   const { dashboardConfig } = useAppContext();
   const { enablement } = dashboardConfig.spec.dashboardConfig;
-  const [{ isInstalled, canInstall, error }, loaded] = useIntegratedAppStatus(selectedApp);
+  const [{ isEnabled, canInstall, error }, loaded] = useIntegratedAppStatus(selectedApp);
 
   if (!selectedApp) {
     return null;
   }
 
   const renderEnableButton = () => {
-    if (!selectedApp.spec.enable || selectedApp.spec.isEnabled || isInstalled) {
+    if (!selectedApp.spec.enable || selectedApp.spec.isEnabled || isEnabled) {
       return null;
     }
+
+    if (!loaded && !error) {
+      return <Skeleton style={{ minWidth: 100 }} fontSize="3xl" />;
+    }
+
     const button = (
       <Button
         variant={ButtonVariant.secondary}
         onClick={onEnable}
         isDisabled={!enablement || !canInstall}
-        isLoading={!loaded && !error}
       >
         Enable
       </Button>
     );
+
     if (!enablement || !canInstall) {
       return (
         <Tooltip content="This feature has been disabled by an administrator.">
@@ -90,32 +95,28 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
       </DrawerHead>
       {selectedApp.spec.getStartedLink && (
         <DrawerPanelBody>
-          {!loaded ? (
-            <Skeleton />
-          ) : (
-            <ActionList>
-              <ActionListGroup>
-                <ActionListItem>
-                  <Button
-                    icon={<ExternalLinkAltIcon />}
-                    onClick={() =>
-                      fireMiscTrackingEvent('Explore card get started clicked', {
-                        name: selectedApp.metadata.name,
-                      })
-                    }
-                    iconPosition="end"
-                    href={selectedApp.spec.getStartedLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    component="a"
-                  >
-                    Get started
-                  </Button>
-                </ActionListItem>
-                <ActionListItem>{renderEnableButton()}</ActionListItem>
-              </ActionListGroup>
-            </ActionList>
-          )}
+          <ActionList>
+            <ActionListGroup>
+              <ActionListItem>
+                <Button
+                  icon={<ExternalLinkAltIcon />}
+                  onClick={() =>
+                    fireMiscTrackingEvent('Explore card get started clicked', {
+                      name: selectedApp.metadata.name,
+                    })
+                  }
+                  iconPosition="end"
+                  href={selectedApp.spec.getStartedLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  component="a"
+                >
+                  Get started
+                </Button>
+              </ActionListItem>
+              <ActionListItem>{renderEnableButton()}</ActionListItem>
+            </ActionListGroup>
+          </ActionList>
         </DrawerPanelBody>
       )}
       <Divider />

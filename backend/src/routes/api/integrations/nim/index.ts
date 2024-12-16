@@ -2,7 +2,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import { secureAdminRoute } from '../../../../utils/route-security';
 import { KubeFastifyInstance } from '../../../../types';
 import { isString } from 'lodash';
-import { createNIMAccount, createNIMSecret, getNIMAccount, isAppEnabled } from './nimUtils';
+import { createNIMAccount, createNIMSecret, getNIMAccount, apiKeyValidationStatus, isAppEnabled } from './nimUtils';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
   const { namespace } = fastify.kube;
@@ -16,11 +16,12 @@ module.exports = async (fastify: KubeFastifyInstance) => {
           if (response) {
             // Installed
             const isEnabled = isAppEnabled(response);
-            reply.send({ isInstalled: true, isEnabled: isEnabled, canInstall: false, error: '' });
+            const keyValidationStatus: string = apiKeyValidationStatus(response);
+            reply.send({ isInstalled: true, isEnabled: isEnabled, variablesValidationStatus: keyValidationStatus, canInstall: !isEnabled, error: '' });
           } else {
             // Not installed
             fastify.log.info(`NIM account does not exist`);
-            reply.send({ isInstalled: false, isEnabled: false, canInstall: true, error: '' });
+            reply.send({ isInstalled: false, isEnabled: false, variablesValidationStatus: '', canInstall: true, error: '' });
           }
         })
         .catch((e) => {
@@ -34,8 +35,9 @@ module.exports = async (fastify: KubeFastifyInstance) => {
               reply.send({
                 isInstalled: false,
                 isEnabled: false,
+                variablesValidationStatus: '',
                 canInstall: false,
-                error: 'NIM not installed',
+                error: 'NIM not installed'
               });
             }
           } else {
@@ -43,8 +45,9 @@ module.exports = async (fastify: KubeFastifyInstance) => {
             reply.send({
               isInstalled: false,
               isEnabled: false,
+              variablesValidationStatus: '',
               canInstall: false,
-              error: 'An unexpected error occurred. Please try again later.',
+              error: 'An unexpected error occurred. Please try again later.'
             });
           }
         });
@@ -67,11 +70,13 @@ module.exports = async (fastify: KubeFastifyInstance) => {
             await createNIMAccount(fastify, namespace)
               .then((response) => {
                 const isEnabled = isAppEnabled(response);
+                const keyValidationStatus: string = apiKeyValidationStatus(response);
                 reply.send({
                   isInstalled: true,
                   isEnabled: isEnabled,
-                  canInstall: false,
-                  error: '',
+                  variablesValidationStatus: keyValidationStatus,
+                  canInstall: !isEnabled,
+                  error: ''
                 });
               })
               .catch((e) => {
