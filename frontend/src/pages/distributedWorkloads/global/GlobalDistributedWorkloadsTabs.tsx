@@ -52,8 +52,8 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
   }
 
   if (clusterQueues.data.length === 0 || localQueues.data.length === 0) {
-    const nonAdmin = cqExists;
-    const title = `Configure the ${ cqExists ? 'cluster queue' : 'project queue' }`;
+    const nonAdmin = !cqExists;
+    const title = `Configure the ${!cqExists ? 'cluster queue' : 'project queue'}`;
     const message = nonAdmin
       ? 'Ask your cluster admin to configure the cluster queue.'
       : 'Configure the queue for this project, or select a different project.';

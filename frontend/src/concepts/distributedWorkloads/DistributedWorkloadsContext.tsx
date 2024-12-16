@@ -67,7 +67,7 @@ export const DistributedWorkloadsContextProvider =
 
     const allClusterQueues = useMakeFetchObject<ClusterQueueKind[]>(useClusterQueues(refreshRate));
 
-    const cqExists = allClusterQueues.data.length > 0;
+    const validCQExists = allClusterQueues.data.some((cq) => cq.spec.resourceGroups?.length);
 
     const clusterQueues = {
       ...allClusterQueues,
@@ -130,7 +130,7 @@ export const DistributedWorkloadsContextProvider =
           refreshAllData,
           namespace,
           projectDisplayName: getDisplayNameFromK8sResource(project),
-          cqExists,
+          cqExists: validCQExists,
         }}
       >
         {children}
