@@ -39,7 +39,7 @@ export const DWStatusOverviewDonutChart: React.FC = () => {
     );
   }
   return (
-    <div style={{ height: '250px', minWidth: '620px', paddingBottom: '12px' }}>
+    <div style={{ height: '250px', minWidth: '620px' }}>
       <ChartDonut
         ariaDesc="Distributed workload status overview"
         ariaTitle="Status overview donut chart"
