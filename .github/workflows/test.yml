@@ -6,6 +6,7 @@ jobs:
     strategy:
       matrix:
         node-version: [18.x]
+        containers: [1, 2, 3,4]
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js ${{ matrix.node-version }}
@@ -44,9 +45,17 @@ jobs:
       - name: Check for uncomitted changes
         run: |
           git diff --exit-code
-      - name: Test backend & test frontend with code coverage
+ - name: Test backend & frontend unit tests with coverage
         if: ${{ success() }}
-        run: npm run test:backend && npm run test:frontend:coverage
+        run: npm run test:backend && npm run test:frontend:unit-coverage
+
+      - name: Run Cypress tests in parallel
+        run: |
+          npm run test:cypress-ci:parallel -- \
+            --ci-build-id ${{ github.sha }}-${{ github.workflow }}-${{ github.event_name }} \
+            --parallel --group "Cypress Tests" \
+            --record  # If you're using Cypress Dashboard
+
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4.6.0
         with:
@@ -55,6 +64,7 @@ jobs:
           name: frontend
           directory: ./frontend/coverage
           verbose: true
+
       - uses: actions/upload-artifact@v4
         if: ${{ always() }}
         with:
