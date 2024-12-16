@@ -27,6 +27,7 @@ type DistributedWorkloadsContextType = {
   refreshAllData: () => void;
   namespace: string;
   projectDisplayName: string;
+  cqExists: boolean;
 };
 
 type DistributedWorkloadsContextProviderProps = {
@@ -42,6 +43,7 @@ export const DistributedWorkloadsContext = React.createContext<DistributedWorklo
   refreshAllData: () => undefined,
   namespace: '',
   projectDisplayName: '',
+  cqExists: false,
 });
 
 export const DistributedWorkloadsContextProvider =
@@ -65,10 +67,14 @@ export const DistributedWorkloadsContextProvider =
 
     const allClusterQueues = useMakeFetchObject<ClusterQueueKind[]>(useClusterQueues(refreshRate));
 
+    const cqExists = allClusterQueues.data.length > 0;
+
     const clusterQueues = {
       ...allClusterQueues,
-      data: allClusterQueues.data.filter((cq) =>
-        localQueues.data.some((lq) => lq.spec.clusterQueue === cq.metadata?.name),
+      data: allClusterQueues.data.filter(
+        (cq) =>
+          localQueues.data.some((lq) => lq.spec.clusterQueue === cq.metadata?.name) &&
+          cq.spec.resourceGroups?.length,
       ),
     };
 
@@ -124,6 +130,7 @@ export const DistributedWorkloadsContextProvider =
           refreshAllData,
           namespace,
           projectDisplayName: getDisplayNameFromK8sResource(project),
+          cqExists,
         }}
       >
         {children}
