@@ -59,6 +59,7 @@ export const ConnectionModal: React.FC<{
         </FormGroup>
         <FormGroup label="Data connection name" isRequired fieldId="autofillConnection">
           <ConnectionDropdown
+            type={type}
             onSelect={setConnection}
             selectedConnection={connection}
             project={project}
