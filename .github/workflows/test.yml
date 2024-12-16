@@ -45,7 +45,7 @@ jobs:
       - name: Check for uncomitted changes
         run: |
           git diff --exit-code
- - name: Test backend & frontend unit tests with coverage
+      - name: Test backend & frontend unit tests with coverage
         if: ${{ success() }}
         run: npm run test:backend && npm run test:frontend:unit-coverage
 
