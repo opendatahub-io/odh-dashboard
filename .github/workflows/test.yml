@@ -67,8 +67,10 @@ jobs:
       
       # Run Cypress Mock Tests in Parallel using the existing command.
       - name: Run Cypress Mock Tests in Parallel
+        env:
+          CI_BUILD_ID: ${{ github.sha }}-${{ github.workflow }}-${{ github.event_name }} 
         run: |
-          cd ./frontend && npm run test:cypress-ci -- --headless
+          cd ./frontend && npm run test:cypress-ci
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4.6.0
