@@ -3,6 +3,8 @@ import { FormGroup, Radio, Alert, MenuItem, MenuGroup } from '@patternfly/react-
 import SearchSelector from '~/components/searchSelector/SearchSelector';
 import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { RecursivePartial } from '~/typeHelpers';
+import { ConfigSecretItem } from '~/k8sTypes';
+import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { PemFileUpload } from './PemFileUpload';
 
 export enum SecureDBRType {
@@ -26,8 +28,8 @@ interface CreateMRSecureDBSectionProps {
   modelRegistryNamespace: string;
   nameDesc: { name: string };
   existingCertKeys: string[];
-  existingCertConfigMaps: string[];
-  existingCertSecrets: string[];
+  existingCertConfigMaps: ConfigSecretItem[];
+  existingCertSecrets: ConfigSecretItem[];
   setSecureDBInfo: (info: SecureDBInfo) => void;
 }
 
@@ -58,6 +60,20 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
     return false;
   };
 
+  const clusterWideCABundle = existingCertConfigMaps.find(
+    (configMap) =>
+      configMap.name === 'odh-trusted-ca-bundle' && configMap.keys.includes('ca-bundle.crt'),
+  );
+
+  const isClusterWideCABundleAvailable = !!clusterWideCABundle;
+
+  const openshiftCAbundle = existingCertConfigMaps.find(
+    (configMap) =>
+      configMap.name === 'odh-trusted-ca-bundle' && configMap.keys.includes('odh-ca-bundle.crt'),
+  );
+
+  const isOpenshiftCABundleAvailable = !!openshiftCAbundle;
+
   const handleSecureDBTypeChange = (type: SecureDBRType) => {
     const newInfo = {
       type,
@@ -76,7 +92,7 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
     <>
       <MenuGroup label="ConfigMaps">
         {existingCertConfigMaps
-          .filter((configMap) => configMap.toLowerCase().includes(searchValue.toLowerCase()))
+          .filter((configMap) => configMap.name.toLowerCase().includes(searchValue.toLowerCase()))
           .map((configMap, index) => (
             <MenuItem
               key={`configmap-${index}`}
@@ -84,7 +100,7 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
                 setSearchValue('');
                 const newInfo = {
                   ...secureDBInfo,
-                  configMap,
+                  configMap: configMap.name,
                   key: '',
                 };
                 setSecureDBInfo({
@@ -93,13 +109,13 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
                 });
               }}
             >
-              {configMap}
+              {configMap.name}
             </MenuItem>
           ))}
       </MenuGroup>
       <MenuGroup label="Secrets">
         {existingCertSecrets
-          .filter((secret) => secret.toLowerCase().includes(searchValue.toLowerCase()))
+          .filter((secret) => secret.name.toLowerCase().includes(searchValue.toLowerCase()))
           .map((secret, index) => (
             <MenuItem
               key={`secret-${index}`}
@@ -107,7 +123,7 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
                 setSearchValue('');
                 const newInfo = {
                   ...secureDBInfo,
-                  configMap: secret,
+                  configMap: secret.name,
                   key: '',
                 };
                 setSecureDBInfo({
@@ -116,7 +132,7 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
                 });
               }}
             >
-              {secret}
+              {secret.name}
             </MenuItem>
           ))}
       </MenuGroup>
@@ -128,6 +144,7 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
       <Radio
         isChecked={secureDBInfo.type === SecureDBRType.CLUSTER_WIDE}
         name="cluster-wide-ca"
+        isDisabled={!isClusterWideCABundleAvailable}
         onChange={() => handleSecureDBTypeChange(SecureDBRType.CLUSTER_WIDE)}
         label="Use cluster-wide CA bundle"
         description={
@@ -141,8 +158,9 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
       <Radio
         isChecked={secureDBInfo.type === SecureDBRType.OPENSHIFT}
         name="openshift-ca"
+        isDisabled={!isOpenshiftCABundleAvailable}
         onChange={() => handleSecureDBTypeChange(SecureDBRType.OPENSHIFT)}
-        label="Use OpenShift AI CA bundle"
+        label={`Use ${ODH_PRODUCT_NAME} CA bundle`}
         description={
           <>
             Use the <strong>odh-ca-bundle.crt</strong> bundle in the{' '}

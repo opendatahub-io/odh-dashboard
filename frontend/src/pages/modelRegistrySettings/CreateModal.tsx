@@ -1,11 +1,13 @@
 import * as React from 'react';
 import {
+  Alert,
   Button,
   Checkbox,
   Form,
   FormGroup,
   HelperText,
   HelperTextItem,
+  Skeleton,
   TextInput,
 } from '@patternfly/react-core';
 import { Modal } from '@patternfly/react-core/deprecated';
@@ -23,6 +25,7 @@ import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import useModelRegistryCertificateNames from '~/concepts/modelRegistrySettings/useModelRegistryCertificateNames';
 import { CreateMRSecureDBSection, SecureDBInfo, SecureDBRType } from './CreateMRSecureDBSection';
 import ModelRegistryDatabasePassword from './ModelRegistryDatabasePassword';
 
@@ -60,16 +63,13 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
   const [showPassword, setShowPassword] = React.useState(false);
   const { dscStatus } = React.useContext(AreaContext);
   const secureDbEnabled = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY_SECURE_DB).status;
+  const [configSecrets, configSecretsLoaded, configSecretsError] = useModelRegistryCertificateNames(
+    !addSecureDB,
+  );
 
   const modelRegistryNamespace = dscStatus?.components?.modelregistry?.registriesNamespace || '';
 
-  // the 3 following consts are temporary hard-coded values to be replaced as part of RHOAIENG-15899
-  const existingCertConfigMaps = [
-    'config-service-cabundle',
-    'odh-trusted-ca-bundle',
-    'foo-ca-bundle',
-  ];
-  const existingCertSecrets = ['builder-dockercfg-b7gdr', 'builder-token-hwsps', 'foo-secret'];
+  // Delete this
   const existingCertKeys = ['service-ca.crt', 'foo-ca.crt'];
 
   React.useEffect(() => {
@@ -317,17 +317,24 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
                   name="add-secure-db"
                 />
               </FormGroup>
-              {addSecureDB && (
-                <CreateMRSecureDBSection
-                  secureDBInfo={secureDBInfo}
-                  modelRegistryNamespace={modelRegistryNamespace}
-                  nameDesc={nameDesc}
-                  existingCertKeys={existingCertKeys}
-                  existingCertConfigMaps={existingCertConfigMaps}
-                  existingCertSecrets={existingCertSecrets}
-                  setSecureDBInfo={setSecureDBInfo}
-                />
-              )}
+              {addSecureDB &&
+                (!configSecretsLoaded && !configSecretsError ? (
+                  <Skeleton />
+                ) : configSecretsLoaded ? (
+                  <CreateMRSecureDBSection
+                    secureDBInfo={secureDBInfo}
+                    modelRegistryNamespace={modelRegistryNamespace}
+                    nameDesc={nameDesc}
+                    existingCertKeys={existingCertKeys}
+                    existingCertConfigMaps={configSecrets.configMaps}
+                    existingCertSecrets={configSecrets.secrets}
+                    setSecureDBInfo={setSecureDBInfo}
+                  />
+                ) : (
+                  <Alert isInline variant="danger" title="Error fetching config maps and secrets">
+                    {configSecretsError?.message}
+                  </Alert>
+                ))}
             </>
           )}
         </FormSection>
