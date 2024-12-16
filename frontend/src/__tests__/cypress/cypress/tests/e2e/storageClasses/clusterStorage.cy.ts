@@ -19,6 +19,8 @@ describe('Regular Users can make use of the Storage Classes in the Cluster Stora
     tearDownClusterStorageSCFeature(dspName);
   });
 
+  // TODO: This test is failing due to https://issues.redhat.com/browse/RHOAIENG-16609
+
   it('If all SC are disabled except one, the SC dropdown should be disabled', () => {
     cy.visitWithLogin('/projects', LDAP_CONTRIBUTOR_USER);
     // Open the project
