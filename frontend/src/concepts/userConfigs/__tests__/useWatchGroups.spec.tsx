@@ -3,14 +3,30 @@ import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import { GroupsConfig } from '~/concepts/userConfigs/groupTypes';
 import { fetchGroupsSettings, updateGroupsSettings } from '~/services/groupSettingsService';
 import { useWatchGroups } from '~/concepts/userConfigs/useWatchGroups';
+import { getAuth, patchAuth, useAccessReview, useGroups } from '~/api';
 import useNotification from '~/utilities/useNotification';
+import { GroupKind } from '~/k8sTypes';
+import { mockGroup } from '~/__mocks__/mockGroup';
+import { fetchAuthGroups } from '~/concepts/userConfigs/utils';
+import { mockAuth } from '~/__mocks__/mockAuth';
 
 jest.mock('~/services/groupSettingsService', () => ({
   fetchGroupsSettings: jest.fn(),
   updateGroupsSettings: jest.fn(),
 }));
+jest.mock('~/api', () => ({
+  ...jest.requireActual('~/api'),
+  getAuth: jest.fn(),
+  patchAuth: jest.fn(),
+  useAccessReview: jest.fn(),
+  useGroups: jest.fn(),
+}));
+jest.mock('~/concepts/userConfigs/utils', () => ({
+  ...jest.requireActual('~/concepts/userConfigs/utils'),
+  fetchAuthGroups: jest.fn(),
+}));
 // Mock the useNotification hook
-jest.mock('../useNotification', () => {
+jest.mock('../../../utilities/useNotification', () => {
   const mock = {
     success: jest.fn(),
     error: jest.fn(),
@@ -20,8 +36,13 @@ jest.mock('../useNotification', () => {
     default: jest.fn(() => mock),
   };
 });
+const getAuthMock = jest.mocked(getAuth);
+const patchAuthMock = jest.mocked(patchAuth);
 const fetchGroupSettingsMock = jest.mocked(fetchGroupsSettings);
+const fetchAuthGroupsMock = jest.mocked(fetchAuthGroups);
 const useNotificationMock = jest.mocked(useNotification);
+const useGroupsMock = jest.mocked(useGroups);
+const useAccessReviewMock = jest.mocked(useAccessReview);
 const updateGroupSettingsMock = jest.mocked(updateGroupsSettings);
 const mockEmptyGroupSettings = {
   adminGroups: [],
@@ -44,18 +65,30 @@ const createResult = (r: Partial<ReturnType<typeof useWatchGroups>>) =>
   );
 
 describe('useWatchGroups', () => {
+  beforeEach(() => {
+    getAuthMock.mockImplementation(() => Promise.resolve(mockAuth()));
+    patchAuthMock.mockResolvedValue(mockAuth());
+    const groups: GroupKind[] = [mockGroup({ name: 'odh-admins' })];
+    useGroupsMock.mockImplementation(() => [groups, true, undefined]);
+    useAccessReviewMock.mockImplementation(() => [true, true]);
+  });
+
   it('should fetch groups successfully', async () => {
     const mockGroupSettings: GroupsConfig = {
-      adminGroups: [{ id: 1, name: 'odh-admins', enabled: true }],
+      adminGroups: [{ id: 'odh-admins', name: 'odh-admins', enabled: true }],
       allowedGroups: [],
     };
+
     updateGroupSettingsMock.mockImplementation((group) => Promise.resolve(group));
-    fetchGroupSettingsMock.mockResolvedValue(mockGroupSettings);
+    fetchAuthGroupsMock.mockResolvedValue(mockGroupSettings);
     const renderResult = testHook(useWatchGroups)();
-    expect(fetchGroupSettingsMock).toHaveBeenCalledTimes(1);
+    expect(fetchGroupSettingsMock).toHaveBeenCalledTimes(0);
+    expect(fetchAuthGroupsMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(createResult({ loaded: false, isLoading: true }));
+
     await renderResult.waitForNextUpdate();
-    expect(fetchGroupSettingsMock).toHaveBeenCalledTimes(1);
+    expect(fetchGroupSettingsMock).toHaveBeenCalledTimes(0);
+    expect(fetchAuthGroupsMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(createResult({ groupSettings: mockGroupSettings }));
     renderResult.rerender();
     expect(renderResult).hookToBeStable({
@@ -68,9 +101,13 @@ describe('useWatchGroups', () => {
       setGroupSettings: true,
       setIsGroupSettingsChanged: true,
     });
+
     const mockUpdatedGroupSettings: GroupsConfig = {
-      adminGroups: [{ id: 2, name: 'odh-admins', enabled: false }],
-      allowedGroups: [],
+      adminGroups: [{ id: 'odh-admins', name: 'odh-admins', enabled: true }],
+      allowedGroups: [
+        { id: 'odh-admins', name: 'odh-admins', enabled: false },
+        { id: 'system:authenticated', name: 'system:authenticated', enabled: true },
+      ],
     };
     act(() => {
       renderResult.result.current.setIsGroupSettingsChanged(true);
@@ -95,28 +132,30 @@ describe('useWatchGroups', () => {
   });
 
   it('should handle error', async () => {
-    fetchGroupSettingsMock.mockRejectedValue(new Error(`Error updating group settings`));
+    fetchAuthGroupsMock.mockRejectedValue(new Error(`Error getting group settings`));
     const renderResult = testHook(useWatchGroups)();
-    expect(fetchGroupSettingsMock).toHaveBeenCalledTimes(1);
+    expect(fetchGroupSettingsMock).toHaveBeenCalledTimes(0);
+    expect(fetchAuthGroupsMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(createResult({ loaded: false, isLoading: true }));
     await renderResult.waitForNextUpdate();
-    expect(fetchGroupSettingsMock).toHaveBeenCalledTimes(1);
+    expect(fetchGroupSettingsMock).toHaveBeenCalledTimes(0);
+    expect(fetchAuthGroupsMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(
-      createResult({ loaded: false, loadError: new Error('Error updating group settings') }),
+      createResult({ loaded: false, loadError: new Error('Error getting group settings') }),
     );
     expect(useNotificationMock().error).toHaveBeenCalledWith(
       'Error',
-      'Error updating group settings',
+      'Error getting group settings',
     );
   });
 
   it('should test admin error', async () => {
     const mockGroupSettings: GroupsConfig = {
-      adminGroups: [{ id: 1, name: 'odh-admins', enabled: true }],
+      adminGroups: [{ id: 'odh-admins', name: 'odh-admins', enabled: true }],
       allowedGroups: [],
       errorAdmin: 'errorAdmin',
     };
-    fetchGroupSettingsMock.mockResolvedValue(mockGroupSettings);
+    fetchAuthGroupsMock.mockResolvedValue(mockGroupSettings);
     const renderResult = testHook(useWatchGroups)();
     await renderResult.waitForNextUpdate();
     expect(useNotificationMock().error).toHaveBeenCalledWith('Group error', 'errorAdmin');
@@ -124,11 +163,11 @@ describe('useWatchGroups', () => {
 
   it('should test user error', async () => {
     const mockGroupSettings: GroupsConfig = {
-      adminGroups: [{ id: 1, name: 'odh-admins', enabled: true }],
+      adminGroups: [{ id: 'odh-admins', name: 'odh-admins', enabled: true }],
       allowedGroups: [],
       errorUser: 'errorUser',
     };
-    fetchGroupSettingsMock.mockResolvedValue(mockGroupSettings);
+    fetchAuthGroupsMock.mockResolvedValue(mockGroupSettings);
     const renderResult = testHook(useWatchGroups)();
     await renderResult.waitForNextUpdate();
     expect(useNotificationMock().error).toHaveBeenCalledWith('Group error', 'errorUser');

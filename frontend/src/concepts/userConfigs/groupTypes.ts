@@ -1,9 +1,6 @@
-export type GroupValues = {
+export type GroupsConfig = {
   adminGroups: GroupStatus[];
   allowedGroups: GroupStatus[];
-};
-
-export type GroupsConfig = GroupValues & {
   errorAdmin?: string;
   errorUser?: string;
 };

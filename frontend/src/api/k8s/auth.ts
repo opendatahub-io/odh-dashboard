@@ -4,11 +4,11 @@ import { AuthKind } from '~/k8sTypes';
 
 export const AUTH_SINGLETON_NAME = 'auth';
 
-export const getAuthResource = (): Promise<AuthKind> =>
+export const getAuth = (): Promise<AuthKind> =>
   k8sGetResource<AuthKind>({ model: AuthModel, queryOptions: { name: AUTH_SINGLETON_NAME } });
 
 export type GroupData = { adminGroups?: string[]; allowedGroups?: string[] };
-export const patchAuthResource = (groupData: GroupData): Promise<AuthKind> => {
+export const patchAuth = (groupData: GroupData): Promise<AuthKind> => {
   const { adminGroups, allowedGroups } = groupData;
   const patches: Patch[] = [];
   if (adminGroups) {

@@ -39,8 +39,8 @@ export const useWatchGroups = (): {
       setIsLoading(true);
       if (canUpdateAuthResource) {
         fetchAuthGroups(groupsData)
-          .then(({ allowedGroups, adminGroups }) => {
-            setGroupSettings({ allowedGroups, adminGroups });
+          .then((groupConfig) => {
+            setGroupSettings(groupConfig);
             setLoadError(undefined);
             setLoaded(true);
           })
