@@ -16,7 +16,7 @@ class GroupSettingSection extends Contextual<HTMLElement> {
   }
 
   findMultiGroupOptions(name: string) {
-    return this.find().findByRole('option', { name });
+    return this.find().document().findByRole('option', { name });
   }
 
   private findChipGroup() {
