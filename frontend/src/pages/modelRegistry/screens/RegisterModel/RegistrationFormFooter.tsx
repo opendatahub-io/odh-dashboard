@@ -1,5 +1,4 @@
 import React from 'react';
-import RegisterModelErrors from './RegisterModelErrors';
 import {
   PageSection,
   Stack,
@@ -9,6 +8,7 @@ import {
   ActionListItem,
   ActionListGroup,
 } from '@patternfly/react-core';
+import RegisterModelErrors from './RegisterModelErrors';
 
 type RegistrationFormFooterProps = {
   submitLabel: string;
