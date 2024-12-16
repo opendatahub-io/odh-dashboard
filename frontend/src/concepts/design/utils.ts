@@ -67,6 +67,63 @@ export enum ProjectObjectType {
   resources = 'resources',
 }
 
+export const typedIconColor = (objectType: ProjectObjectType): string => {
+  switch (objectType) {
+    case ProjectObjectType.project:
+      return 'var(--ai-project--IconColor)';
+    case ProjectObjectType.projectContext:
+      return 'var(--ai-project-context--IconColor)';
+    case ProjectObjectType.notebook:
+      return 'var(--ai-notebook--IconColor)';
+    case ProjectObjectType.notebookImage:
+      return 'var(--ai-set-up--IconColor)';
+    case ProjectObjectType.pipeline:
+    case ProjectObjectType.pipelineRun:
+    case ProjectObjectType.pipelineExperiment:
+    case ProjectObjectType.pipelineExecution:
+    case ProjectObjectType.pipelineArtifact:
+      return 'var(--ai-pipeline--IconColor)';
+    case ProjectObjectType.pipelineSetup:
+      return 'var(--ai-set-up--IconColor)';
+    case ProjectObjectType.clusterStorage:
+    case ProjectObjectType.storageClasses:
+      return 'var(--ai-cluster-storage--IconColor)';
+    case ProjectObjectType.model:
+    case ProjectObjectType.singleModel:
+    case ProjectObjectType.multiModel:
+    case ProjectObjectType.modelServer:
+    case ProjectObjectType.registeredModels:
+    case ProjectObjectType.deployedModels:
+    case ProjectObjectType.deployingModels:
+      return 'var(--ai-model-server--IconColor)';
+    case ProjectObjectType.modelRegistrySettings:
+      return 'var(--ai-set-up--IconColor)';
+    case ProjectObjectType.dataConnection:
+    case ProjectObjectType.connections:
+      return 'var(--ai-data-connection--IconColor)';
+    case ProjectObjectType.user:
+      return 'var(--ai-user--IconColor)';
+    case ProjectObjectType.group:
+      return 'var(--ai-group--IconColor)';
+    case ProjectObjectType.permissions:
+      return 'var(--ai-set-up--IconColor)';
+    case ProjectObjectType.enabledApplications:
+    case ProjectObjectType.exploreApplications:
+      return 'var(--ai-config--IconColor)';
+    case ProjectObjectType.resources:
+      return 'var(--ai-general--IconColor)';
+    case ProjectObjectType.distributedWorkload:
+      return 'var(--ai-serving--IconColor)';
+    case ProjectObjectType.clusterSettings:
+    case ProjectObjectType.acceleratorProfile:
+      return 'var(--ai-set-up--IconColor)';
+    case ProjectObjectType.servingRuntime:
+      return 'var(--ai-set-up--IconColor)';
+    default:
+      return '';
+  }
+};
+
 export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
   switch (objectType) {
     case ProjectObjectType.project:
@@ -228,6 +285,23 @@ export const typedEmptyImage = (objectType: ProjectObjectType, option?: string):
     case ProjectObjectType.dataConnection:
     case ProjectObjectType.connections:
       return dataConnectionEmptyStateImg;
+    default:
+      return '';
+  }
+};
+
+export const sectionTypeIconColor = (sectionType: SectionType): string => {
+  switch (sectionType) {
+    case SectionType.setup:
+      return 'var(--ai-set-up--IconColor)';
+    case SectionType.organize:
+      return 'var(--ai-organize--IconColor)';
+    case SectionType.training:
+      return 'var(--ai-training--IconColor)';
+    case SectionType.serving:
+      return 'var(--ai-serving--IconColor)';
+    case SectionType.general:
+      return 'var(--ai-general--IconColor)';
     default:
       return '';
   }
