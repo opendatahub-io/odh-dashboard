@@ -6,7 +6,7 @@ const authCheck: AccessReviewResourceAttributes = {
   group: 'services.platform.opendatahub.io',
   resource: AuthModel.plural,
   name: AUTH_SINGLETON_NAME,
-  verb: 'update', // If they can get the data but not updated, we can assume they cannot access it
+  verb: 'patch', // If they can get the data but not update it, we can assume they cannot access it
 };
 
 export const useDoesUserHaveAuthAccess = (): ReturnType<typeof useAccessReview> =>
