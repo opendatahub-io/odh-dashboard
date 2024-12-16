@@ -60,8 +60,8 @@ class NotebookServer {
   findVersionsDropdown(version: string) {
     return cy
       .get(`[data-id="${version}"]`)
-      .closest('.pf-v5-c-expandable-section')
-      .find('span.pf-v5-c-expandable-section__toggle-text');
+      .closest('.pf-v6-c-expandable-section')
+      .find('span.pf-v6-c-button__text');
   }
 
   findNotebookVersion(version: string) {
