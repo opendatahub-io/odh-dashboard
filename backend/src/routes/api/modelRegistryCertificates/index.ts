@@ -1,5 +1,5 @@
 import { secureAdminRoute } from '../../../utils/route-security';
-import { KubeFastifyInstance, ListConfigSecretsResponse } from '../../../types';
+import { KubeFastifyInstance } from '../../../types';
 import { getModelRegistryNamespace } from '../modelRegistries/modelRegistryUtils';
 import { listModelRegistryCertificateNames } from './modelRegistryCertificatesUtils';
 import { FastifyReply, FastifyRequest } from 'fastify';
