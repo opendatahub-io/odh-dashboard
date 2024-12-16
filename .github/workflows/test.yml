@@ -49,23 +49,38 @@ jobs:
         run: npm run test:backend && npm run test:frontend:unit-coverage
 
   CypressMockTests:
-  runs-on: ubuntu-latest
-  needs: Tests 
-  strategy:
-    matrix:
-      container: [1, 2, 3, 4]  # Creates 4 parallel executions for Cypress tests.
-  steps:
-    - uses: actions/checkout@v4
+    runs-on: ubuntu-latest
+    needs: Tests 
+    strategy:
+      matrix:
+        container: [1, 2, 3, 4]  # Creates 4 parallel executions for Cypress tests.
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4.1.0
+        with:
+          node-version: '18.x'
+      
+      - name: Install Node.js packages for Cypress
+        run: npm install
+      
+      # Run Cypress Mock Tests in Parallel using the existing command.
+      - name: Run Cypress Mock Tests in Parallel
+        run: |
+          cd ./frontend && npm run test:cypress-ci -- --headless
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4.1.0
-      with:
-        node-version: '18.x'
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4.6.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+          name: frontend
+          directory: ./frontend/coverage
+          verbose: true
 
-    - name: Install Node.js packages for Cypress
-      run: npm install
-
-    # Run Cypress Mock Tests in Parallel using the existing command.
-    - name: Run Cypress Mock Tests in Headless Mode
-      run: |
-        cd ./frontend && npm run test:cypress-ci -- --headless
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: cypress-results
+          path: ./frontend/src/__tests__/cypress/results/
