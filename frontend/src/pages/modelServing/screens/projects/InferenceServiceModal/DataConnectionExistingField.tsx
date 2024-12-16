@@ -91,6 +91,7 @@ const DataConnectionExistingField: React.FC<DataConnectionExistingFieldType> = (
                 dataConnection: option,
               });
             }}
+            popperProps={{ appendTo: 'inline' }}
           />
         </FormGroup>
       </StackItem>

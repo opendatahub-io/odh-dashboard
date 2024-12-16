@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
   ClipboardCopy,
   FormGroup,
+  NumberInput,
   Split,
   SplitItem,
   Stack,
@@ -13,12 +14,11 @@ import {
   RunTypeScheduledData,
   ScheduledType,
 } from '~/concepts/pipelines/content/createRun/types';
-import NumberInputWrapper from '~/components/NumberInputWrapper';
-import { replaceNonNumericPartWithString, replaceNumericPartWithString } from '~/utilities/string';
 import {
   DEFAULT_CRON_STRING,
   DEFAULT_PERIODIC_OPTION,
 } from '~/concepts/pipelines/content/createRun/const';
+import { extractNumberAndTimeUnit } from './utils';
 
 type TriggerTypeFieldProps = {
   data: RunTypeScheduledData;
@@ -27,6 +27,8 @@ type TriggerTypeFieldProps = {
 
 const TriggerTypeField: React.FC<TriggerTypeFieldProps> = ({ data, onChange }) => {
   let content: React.ReactNode | null;
+  const [numberPart, unitPart] = extractNumberAndTimeUnit(data.value);
+
   switch (data.triggerType) {
     case ScheduledType.CRON:
       content = (
@@ -50,30 +52,37 @@ const TriggerTypeField: React.FC<TriggerTypeFieldProps> = ({ data, onChange }) =
         <FormGroup label="Run every" data-testid="run-every-group">
           <Split hasGutter>
             <SplitItem>
-              <NumberInputWrapper
+              <NumberInput
                 min={1}
-                value={parseInt(data.value) || 1}
-                onChange={(value) =>
+                value={numberPart}
+                onChange={(newNumberPart) => {
+                  const updatedValue = `${Number(newNumberPart.currentTarget.value).toLocaleString(
+                    'fullwide',
+                    { useGrouping: false },
+                  )}${unitPart}`;
                   onChange({
                     ...data,
-                    value: replaceNumericPartWithString(data.value, value ?? 0),
-                  })
-                }
+                    value: updatedValue,
+                  });
+                }}
               />
             </SplitItem>
             <SplitItem>
               <SimpleSelect
+                popperProps={{ maxWidth: undefined }}
+                isFullWidth
                 options={Object.values(PeriodicOptions).map((v) => ({
                   key: v,
                   label: v,
                 }))}
-                value={data.value.replace(/\d+/, '')}
-                onChange={(value) =>
+                value={unitPart}
+                onChange={(newUnitPart) => {
+                  const updatedValue = `${numberPart}${newUnitPart}`;
                   onChange({
                     ...data,
-                    value: replaceNonNumericPartWithString(data.value, value),
-                  })
-                }
+                    value: updatedValue,
+                  });
+                }}
               />
             </SplitItem>
           </Split>
@@ -115,6 +124,7 @@ const TriggerTypeField: React.FC<TriggerTypeFieldProps> = ({ data, onChange }) =
 
               onChange({ ...data, triggerType, value });
             }}
+            popperProps={{ appendTo: 'inline' }}
           />
         </FormGroup>
       </StackItem>

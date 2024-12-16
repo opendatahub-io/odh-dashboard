@@ -115,7 +115,7 @@ class CompareRunsRocCurve extends Contextual<HTMLElement> {
   }
 
   findRocCurveTableEmptyState() {
-    return this.find().findByTestId('no-result-found-title');
+    return this.find().findByTestId('dashboard-empty-table-state');
   }
 
   getRocCurveRowByName(name: string) {

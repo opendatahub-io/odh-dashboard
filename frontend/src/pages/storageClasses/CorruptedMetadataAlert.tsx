@@ -26,7 +26,7 @@ export const CorruptedMetadataAlert: React.FC<CorruptedMetadataAlertProps> = ({
           isInline
           isPlain
           title="Corrupted metadata"
-          className="pf-v5-u-text-nowrap"
+          className="pf-v6-u-text-nowrap"
         />
       </Popover>
     </FlexItem>

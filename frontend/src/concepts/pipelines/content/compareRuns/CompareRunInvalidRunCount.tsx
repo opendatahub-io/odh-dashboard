@@ -3,8 +3,6 @@ import {
   PageSection,
   EmptyState,
   EmptyStateVariant,
-  EmptyStateHeader,
-  EmptyStateIcon,
   EmptyStateBody,
   EmptyStateFooter,
   EmptyStateActions,
@@ -40,13 +38,13 @@ export const CompareRunsInvalidRunCount: React.FC<CompareRunsInvalidRunCountProp
   }
 
   return (
-    <PageSection isFilled data-testid="compare-runs-invalid-number-runs">
-      <EmptyState variant={EmptyStateVariant.lg}>
-        <EmptyStateHeader
-          titleText={title}
-          icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-          headingLevel="h1"
-        />
+    <PageSection hasBodyWrapper={false} isFilled data-testid="compare-runs-invalid-number-runs">
+      <EmptyState
+        headingLevel="h1"
+        icon={ExclamationCircleIcon}
+        titleText={title}
+        variant={EmptyStateVariant.lg}
+      >
         <EmptyStateBody>{description}</EmptyStateBody>
         <EmptyStateFooter>
           <EmptyStateActions>

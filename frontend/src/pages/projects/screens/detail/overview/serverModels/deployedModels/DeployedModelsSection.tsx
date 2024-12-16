@@ -8,15 +8,12 @@ import {
   CardFooter,
   EmptyState,
   EmptyStateBody,
-  EmptyStateHeader,
-  EmptyStateIcon,
   Flex,
   FlexItem,
   Label,
   Spinner,
   Stack,
-  Text,
-  TextContent,
+  Content,
 } from '@patternfly/react-core';
 import { useSearchParams } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
@@ -89,12 +86,11 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
 
   const renderError = (message?: string): React.ReactElement => (
     <Bullseye>
-      <EmptyState>
-        <EmptyStateHeader
-          titleText="Problem loading deployed models"
-          icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-          headingLevel="h2"
-        />
+      <EmptyState
+        headingLevel="h2"
+        icon={ExclamationCircleIcon}
+        titleText="Problem loading deployed models"
+      >
         <EmptyStateBody>{message}</EmptyStateBody>
       </EmptyState>
     </Bullseye>
@@ -150,24 +146,22 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
                   clearError={() => setErrorSelectingPlatform(undefined)}
                 />
               )}
-              <TextContent>
-                <Text component="small">
-                  Multiple models can be deployed from a single model server. Manage model servers
-                  and and deploy models from the{' '}
-                  <Button component="a" isInline variant="link" onClick={navToModels}>
-                    Models
-                  </Button>{' '}
-                  tab.
-                </Text>
-              </TextContent>
+              <Content component="small">
+                Multiple models can be deployed from a single model server. Manage model servers and
+                and deploy models from the{' '}
+                <Button component="a" isInline variant="link" onClick={navToModels}>
+                  Models
+                </Button>{' '}
+                tab.
+              </Content>
             </Stack>
           </CardBody>
           <CardFooter>
             <Flex gap={{ default: 'gapLg' }}>
               <FlexItem>
-                <TextContent>
-                  <Text component="small">No deployed models</Text>
-                </TextContent>
+                <Content>
+                  <Content component="small">No deployed models</Content>
+                </Content>
               </FlexItem>
               <FlexItem>
                 <Button component="a" isInline variant="link" onClick={navToModels}>
@@ -219,13 +213,11 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
                   {platformError.message}
                 </Alert>
               ) : (
-                <TextContent>
-                  <Text component="small">
-                    {isMultiPlatform
-                      ? 'Before deploying a model, you must first add a model server.'
-                      : 'Each model is deployed on its own model server.'}
-                  </Text>
-                </TextContent>
+                <Content component="small">
+                  {isMultiPlatform
+                    ? 'Before deploying a model, you must first add a model server.'
+                    : 'Each model is deployed on its own model server.'}
+                </Content>
               )}
             </Stack>
           </CardBody>

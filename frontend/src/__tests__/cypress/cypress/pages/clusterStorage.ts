@@ -8,7 +8,7 @@ class ClusterStorageRow extends TableRow {
   }
 
   findConnectedWorkbenches() {
-    return this.find().find('[data-label="Connected workbenches"]');
+    return this.find().find('[data-label="Workbench connections"]');
   }
 
   toggleExpandableContent() {
@@ -55,14 +55,29 @@ class ClusterStorageModal extends Modal {
     super(edit ? 'Update cluster storage' : 'Add cluster storage');
   }
 
-  findWorkbenchConnectionSelect() {
-    return this.find()
-      .findByTestId('connect-existing-workbench-group')
-      .findByRole('button', { name: 'Typeahead menu toggle', hidden: true });
+  findAddWorkbenchButton() {
+    return cy.findByTestId('add-workbench-button');
   }
 
-  findMountField() {
-    return this.find().findByTestId('mount-path-folder-value');
+  findWorkbenchTable() {
+    return cy.findByTestId('workbench-connection-table');
+  }
+
+  selectWorkbenchName(row: number, name: string) {
+    this.findWorkbenchTable().find(`[data-label=Name]`).eq(row).find('button').click();
+    cy.findByRole('option', { name, hidden: true }).click();
+  }
+
+  selectCustomPathFormat(row: number) {
+    this.findWorkbenchTable().find(`[data-label="Path format"]`).eq(row).find('button').click();
+    cy.findByRole('option', {
+      name: 'Custom Custom paths that do not begin with /opt/app-root/src/ are not visible in the JupyterLab file browser.',
+      hidden: true,
+    }).click();
+  }
+
+  findMountPathField(row: number) {
+    return this.findWorkbenchTable().find(`[data-label="Mount path"]`).eq(row).find('input');
   }
 
   findMountFieldHelperText() {
@@ -86,12 +101,12 @@ class ClusterStorageModal extends Modal {
   }
 
   private findPVSizeSelectButton() {
-    return cy.findByTestId('value-unit-select');
+    return this.find().findByTestId('value-unit-select');
   }
 
   selectPVSize(name: string) {
-    this.findPVSizeSelectButton().click();
-    cy.findByRole('menuitem', { name, hidden: true }).click();
+    this.findPVSizeSelectButton().findDropdownItem(name).click();
+    return this;
   }
 
   shouldHavePVSizeSelectValue(name: string) {
@@ -125,6 +140,15 @@ class ClusterStorageModal extends Modal {
 
   findStorageClassSelect() {
     return this.find().findByTestId('storage-classes-selector');
+  }
+
+  selectStorageClassSelectOption(name: string | RegExp) {
+    this.findStorageClassSelect().click();
+    cy.findByRole('option', { name, hidden: true }).click();
+  }
+
+  findStorageClassOption(name: string) {
+    return cy.get('#storage-classes-selector').findByText(name);
   }
 
   findStorageClassDeprecatedWarning() {

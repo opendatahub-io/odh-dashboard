@@ -19,31 +19,49 @@ import { Link } from 'react-router-dom';
 import FormSection from '~/components/pf-overrides/FormSection';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { modelRegistryUrl, registeredModelUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
+import { useAppSelector } from '~/redux/hooks';
 import { useRegisterModelData } from './useRegisterModelData';
 import { isNameValid, isRegisterModelSubmitDisabled, registerModel } from './utils';
 import RegistrationCommonFormSections from './RegistrationCommonFormSections';
-import { useRegistrationCommonState } from './useRegistrationCommonState';
 import PrefilledModelRegistryField from './PrefilledModelRegistryField';
 import RegistrationFormFooter from './RegistrationFormFooter';
-import { MR_CHARACTER_LIMIT } from './const';
+import { MR_CHARACTER_LIMIT, SubmitLabel } from './const';
 
 const RegisterModel: React.FC = () => {
   const { modelRegistry: mrName } = useParams();
   const navigate = useNavigate();
-
-  const { isSubmitting, submitError, setSubmitError, handleSubmit, apiState, author } =
-    useRegistrationCommonState();
-
+  const { apiState } = React.useContext(ModelRegistryContext);
+  const author = useAppSelector((state) => state.user || '');
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [submitError, setSubmitError] = React.useState<Error | undefined>(undefined);
   const [formData, setData] = useRegisterModelData();
   const isModelNameValid = isNameValid(formData.modelName);
   const isSubmitDisabled = isSubmitting || isRegisterModelSubmitDisabled(formData);
   const { modelName, modelDescription } = formData;
+  const [registeredModelName, setRegisteredModelName] = React.useState<string>('');
+  const [versionName, setVersionName] = React.useState<string>('');
+  const [errorName, setErrorName] = React.useState<string | undefined>(undefined);
 
-  const onSubmit = () =>
-    handleSubmit(async () => {
-      const { registeredModel } = await registerModel(apiState, formData, author);
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    setSubmitError(undefined);
+
+    const {
+      data: { registeredModel, modelVersion, modelArtifact },
+      errors,
+    } = await registerModel(apiState, formData, author);
+    if (registeredModel && modelVersion && modelArtifact) {
       navigate(registeredModelUrl(registeredModel.id, mrName));
-    });
+    } else if (Object.keys(errors).length > 0) {
+      setIsSubmitting(false);
+      setRegisteredModelName(formData.modelName);
+      setVersionName(formData.versionName);
+      const resourceName = Object.keys(errors)[0];
+      setErrorName(resourceName);
+      setSubmitError(errors[resourceName]);
+    }
+  };
   const onCancel = () => navigate(modelRegistryUrl(mrName));
 
   return (
@@ -61,7 +79,7 @@ const RegisterModel: React.FC = () => {
       loaded
       empty={false}
     >
-      <PageSection variant="light" isFilled>
+      <PageSection hasBodyWrapper={false} isFilled>
         <Form isWidthLimited>
           <Stack hasGutter>
             <StackItem className={spacing.mbLg}>
@@ -109,17 +127,19 @@ const RegisterModel: React.FC = () => {
               />
             </StackItem>
           </Stack>
+          <RegistrationFormFooter
+            submitLabel={SubmitLabel.REGISTER_MODEL}
+            submitError={submitError}
+            isSubmitDisabled={isSubmitDisabled}
+            isSubmitting={isSubmitting}
+            onSubmit={handleSubmit}
+            onCancel={onCancel}
+            errorName={errorName}
+            versionName={versionName}
+            modelName={registeredModelName}
+          />
         </Form>
       </PageSection>
-      <RegistrationFormFooter
-        submitLabel="Register model"
-        submitError={submitError}
-        setSubmitError={setSubmitError}
-        isSubmitDisabled={isSubmitDisabled}
-        isSubmitting={isSubmitting}
-        onSubmit={onSubmit}
-        onCancel={onCancel}
-      />
     </ApplicationsPage>
   );
 };

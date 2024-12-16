@@ -1,13 +1,14 @@
 import * as React from 'react';
 import {
   Button,
+  Checkbox,
   Form,
   FormGroup,
   HelperText,
   HelperTextItem,
-  Modal,
   TextInput,
 } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import PasswordInput from '~/components/PasswordInput';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { ModelRegistryKind } from '~/k8sTypes';
@@ -18,6 +19,8 @@ import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
 import { NameDescType } from '~/pages/projects/types';
 import FormSection from '~/components/pf-overrides/FormSection';
 import { AreaContext } from '~/concepts/areas/AreaContext';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { CreateMRSecureDBSection, SecureDBInfo, SecureDBRType } from './CreateMRSecureDBSection';
 
 type CreateModalProps = {
   onClose: () => void;
@@ -37,6 +40,15 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
   const [username, setUsername] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [database, setDatabase] = React.useState('');
+  const [addSecureDB, setAddSecureDB] = React.useState(false);
+  const [secureDBInfo, setSecureDBInfo] = React.useState<SecureDBInfo>({
+    type: SecureDBRType.CLUSTER_WIDE,
+    nameSpace: '',
+    configMap: '',
+    certificate: '',
+    key: '',
+    isValid: true,
+  });
   const [isHostTouched, setIsHostTouched] = React.useState(false);
   const [isPortTouched, setIsPortTouched] = React.useState(false);
   const [isUsernameTouched, setIsUsernameTouched] = React.useState(false);
@@ -44,6 +56,18 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
   const [isDatabaseTouched, setIsDatabaseTouched] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
   const { dscStatus } = React.useContext(AreaContext);
+  const secureDbEnabled = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY_SECURE_DB).status;
+
+  const modelRegistryNamespace = dscStatus?.components?.modelregistry?.registriesNamespace || '';
+
+  // the 3 following consts are temporary hard-coded values to be replaced as part of RHOAIENG-15899
+  const existingCertConfigMaps = [
+    'config-service-cabundle',
+    'odh-trusted-ca-bundle',
+    'foo-ca-bundle',
+  ];
+  const existingCertSecrets = ['builder-dockercfg-b7gdr', 'builder-token-hwsps', 'foo-secret'];
+  const existingCertKeys = ['service-ca.crt', 'foo-ca.crt'];
 
   const onBeforeClose = () => {
     setIsSubmitting(false);
@@ -120,7 +144,8 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
     hasContent(password) &&
     hasContent(port) &&
     hasContent(username) &&
-    hasContent(database);
+    hasContent(database) &&
+    (!addSecureDB || secureDBInfo.isValid);
 
   return (
     <Modal
@@ -257,6 +282,30 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
               </HelperText>
             )}
           </FormGroup>
+          {secureDbEnabled && (
+            <>
+              <FormGroup>
+                <Checkbox
+                  label="Add CA certificate to secure database connection"
+                  isChecked={addSecureDB}
+                  onChange={(_e, value) => setAddSecureDB(value)}
+                  id="add-secure-db"
+                  name="add-secure-db"
+                />
+              </FormGroup>
+              {addSecureDB && (
+                <CreateMRSecureDBSection
+                  secureDBInfo={secureDBInfo}
+                  modelRegistryNamespace={modelRegistryNamespace}
+                  nameDesc={nameDesc}
+                  existingCertKeys={existingCertKeys}
+                  existingCertConfigMaps={existingCertConfigMaps}
+                  existingCertSecrets={existingCertSecrets}
+                  setSecureDBInfo={setSecureDBInfo}
+                />
+              )}
+            </>
+          )}
         </FormSection>
       </Form>
     </Modal>

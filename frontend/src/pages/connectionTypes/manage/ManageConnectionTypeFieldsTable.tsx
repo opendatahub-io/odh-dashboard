@@ -8,8 +8,6 @@ import {
   EmptyStateActions,
   EmptyStateBody,
   EmptyStateFooter,
-  EmptyStateHeader,
-  EmptyStateIcon,
   EmptyStateVariant,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
@@ -29,8 +27,7 @@ type EmptyFieldsTableProps = {
 
 const EmptyFieldsTable: React.FC<EmptyFieldsTableProps> = ({ onAddSection, onAddField }) => (
   <Bullseye>
-    <EmptyState variant={EmptyStateVariant.lg}>
-      <EmptyStateHeader icon={<EmptyStateIcon icon={PlusCircleIcon} />} titleText="No fields" />
+    <EmptyState icon={PlusCircleIcon} titleText="No fields" variant={EmptyStateVariant.lg}>
       <EmptyStateBody>
         Add fields to prompt users to input information, and optionally assign default values to
         those fields. Connection name and description fields are included by default.
@@ -144,7 +141,7 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
               ))}
             </Tbody>
           </Table>
-          <ActionList className="pf-v5-u-mt-md">
+          <ActionList className="pf-v6-u-mt-md">
             <ActionListItem>
               <Button
                 variant="secondary"

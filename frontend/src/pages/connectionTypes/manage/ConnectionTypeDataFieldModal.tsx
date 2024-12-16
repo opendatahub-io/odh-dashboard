@@ -6,11 +6,11 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
-  Modal,
   Popover,
   TextArea,
   TextInput,
 } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import {
   ExclamationCircleIcon,
   OutlinedQuestionCircleIcon,
@@ -136,7 +136,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
         <FormGroup
           fieldId="description"
           label="Description"
-          labelIcon={
+          labelHelp={
             <Popover
               aria-label="description help"
               headerContent="Description"
@@ -159,7 +159,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
         <FormGroup
           fieldId="envVar"
           label="Environment variable"
-          labelIcon={
+          labelHelp={
             <Popover
               aria-label="environment variable help"
               headerContent="Environment variable"

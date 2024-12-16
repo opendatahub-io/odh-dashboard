@@ -22,8 +22,12 @@ export const MetricsRefreshIntervalSelect: React.FC = () => {
         label: value,
       }))}
       toggleLabel={currentRefreshInterval}
-      toggleProps={{ id: 'metrics-toolbar-refresh-interval-select-toggle' }}
+      toggleProps={{
+        id: 'metrics-toolbar-refresh-interval-select-toggle',
+        style: { width: '15ch' },
+      }}
       data-testid="metrics-toolbar-refresh-interval-select"
+      popperProps={{ maxWidth: undefined }}
     />
   );
 };

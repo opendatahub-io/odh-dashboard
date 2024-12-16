@@ -91,6 +91,7 @@ const ExecutionsTableToolbar: React.FC<ExecutionsTableToolbarProps> = ({
               label: v,
             }))}
             onChange={(v) => onChange(v)}
+            popperProps={{ maxWidth: undefined }}
           />
         ),
         [FilterOptions.Status]: ({ value, onChange, ...props }) => (
@@ -103,6 +104,7 @@ const ExecutionsTableToolbar: React.FC<ExecutionsTableToolbarProps> = ({
               label: v,
             }))}
             onChange={(v) => onChange(v)}
+            popperProps={{ maxWidth: undefined }}
           />
         ),
       }}

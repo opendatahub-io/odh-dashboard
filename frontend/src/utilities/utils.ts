@@ -61,7 +61,7 @@ export const getLabelColorForDocType = (docType: string): LabelProps['color'] =>
     case OdhDocumentType.Documentation:
       return 'orange';
     case OdhDocumentType.Tutorial:
-      return 'cyan';
+      return 'teal';
     case OdhDocumentType.QuickStart:
       return 'green';
     case OdhDocumentType.HowTo:

@@ -5,7 +5,6 @@ import {
   CardHeader,
   CardTitle,
   EmptyState,
-  EmptyStateIcon,
   Spinner,
   Title,
   Toolbar,
@@ -25,7 +24,7 @@ import {
   ChartThreshold,
   ChartVoronoiContainer,
   createContainer,
-} from '@patternfly/react-charts';
+} from '@patternfly/react-charts/victory';
 import { CubesIcon } from '@patternfly/react-icons';
 import { TimeframeTimeRange } from '~/concepts/metrics/const';
 import { MetricsCommonContext } from '~/concepts/metrics/MetricsCommonContext';
@@ -240,17 +239,15 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
               ))}
             </Chart>
           ) : (
-            <EmptyState>
+            <EmptyState icon={isAllLoaded ? CubesIcon : Spinner}>
               {isAllLoaded ? (
                 <>
-                  <EmptyStateIcon icon={CubesIcon} />
                   <Title headingLevel="h4" size="lg" data-testid="metrics-chart-no-data">
                     {error ? error.message : 'No available data'}
                   </Title>
                 </>
               ) : (
                 <>
-                  <EmptyStateIcon icon={Spinner} />
                   <Title headingLevel="h4" size="lg">
                     Loading
                   </Title>

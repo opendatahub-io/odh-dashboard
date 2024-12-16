@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { DrawerPanelBody, Tab, TabContent, Tabs } from '@patternfly/react-core';
+import { DrawerPanelBody, Tab, TabContent, TabContentBody, Tabs } from '@patternfly/react-core';
 import SelectedNodeDetailsTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/SelectedNodeDetailsTab';
 import SelectedNodeInputOutputTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/SelectedNodeInputOutputTab';
 import LogsTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/LogsTab';
@@ -76,7 +76,7 @@ const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({
           />
         ))}
       </Tabs>
-      <DrawerPanelBody className="pipeline-run__drawer-panel-body pf-v5-u-px-sm">
+      <DrawerPanelBody className="pipeline-run__drawer-panel-body pf-v6-u-px-sm">
         {!tabs[selection].isDisabled && (
           <TabContent
             id={selection}
@@ -84,7 +84,7 @@ const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({
             activeKey={selection}
             style={{ flex: '1 1 auto' }}
           >
-            {tabs[selection].content}
+            <TabContentBody hasPadding>{tabs[selection].content}</TabContentBody>
           </TabContent>
         )}
       </DrawerPanelBody>

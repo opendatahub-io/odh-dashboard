@@ -2,6 +2,7 @@ import { servingRuntimes } from '~/__tests__/cypress/cypress/pages/servingRuntim
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { getSingleModelPath } from '~/__tests__/cypress/cypress/utils/fileImportUtils';
 import { getSingleModelServingRuntimeInfo } from '~/__tests__/cypress/cypress/utils/fileParserUtil';
+import { cleanupTemplates } from '~/__tests__/cypress/cypress/utils/oc_commands/templates';
 
 let modelServingSingleName: string;
 let metadataSingleDisplayName: string;
@@ -18,15 +19,21 @@ before(() => {
     // For other errors, let them fail the test
     return true;
   });
-  // Load single-model serving runtime info before tests run
-  getSingleModelServingRuntimeInfo().then((info) => {
-    modelServingSingleName = info.singleModelServingName;
-    metadataSingleDisplayName = info.displayName;
-    cy.log(`Loaded Single-Model Name: ${modelServingSingleName}`);
-    cy.log(`Loaded Single-Model Metadata Name: ${modelServingSingleName}`);
-  });
-});
+  cy.wrap(null)
+    .then(() => {
+      return getSingleModelServingRuntimeInfo();
+    })
+    .then((info) => {
+      // Load Single-Model serving runtime info before tests run
+      modelServingSingleName = info.singleModelServingName;
+      metadataSingleDisplayName = info.displayName;
+      cy.log(`Loaded Single-Model Name: ${modelServingSingleName}`);
+      cy.log(`Loaded Single-Model Metadata Name: ${metadataSingleDisplayName}`);
 
+      // Call cleanupTemplates here, after metadataDisplayName is set
+      return cleanupTemplates(metadataSingleDisplayName);
+    });
+});
 describe('Verify Admins Can Import and Delete a Custom Single-Model Serving Runtime Template By Uploading A YAML file', () => {
   it('Admin should access serving runtimes, import a yaml file and then delete', () => {
     // Authentication and navigation
@@ -73,8 +80,8 @@ describe('Verify Admins Can Import and Delete a Custom Single-Model Serving Runt
       .find()
       .within(() => {
         servingRuntimes.findEditModel().click();
-        servingRuntimes.findDeleteModel().click();
       });
+    servingRuntimes.findDeleteModel().click();
 
     servingRuntimes.findDeleteModal().should('be.visible').type(metadataSingleDisplayName);
 

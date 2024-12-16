@@ -1,12 +1,5 @@
 import * as React from 'react';
-import {
-  Bullseye,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateIcon,
-  Spinner,
-  EmptyStateHeader,
-} from '@patternfly/react-core';
+import { Bullseye, EmptyState, EmptyStateBody, Spinner } from '@patternfly/react-core';
 import { CubesIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import PipelineRunTable from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
 import { usePipelineArchivedRunsTable } from '~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunTable';
@@ -22,12 +15,11 @@ export const ArchivedRuns: React.FC = () => {
   if (error) {
     return (
       <Bullseye>
-        <EmptyState>
-          <EmptyStateHeader
-            titleText="There was an issue loading archived runs"
-            icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-            headingLevel="h2"
-          />
+        <EmptyState
+          headingLevel="h2"
+          icon={ExclamationCircleIcon}
+          titleText="There was an issue loading archived runs"
+        >
           <EmptyStateBody>{error.message}</EmptyStateBody>
         </EmptyState>
       </Bullseye>
@@ -44,13 +36,12 @@ export const ArchivedRuns: React.FC = () => {
 
   if (loaded && totalSize === 0 && !tableProps.filter) {
     return (
-      <EmptyState data-testid="archived-runs-empty-state">
-        <EmptyStateHeader
-          titleText="No archived runs"
-          icon={<EmptyStateIcon icon={CubesIcon} />}
-          headingLevel="h2"
-        />
-
+      <EmptyState
+        headingLevel="h2"
+        icon={CubesIcon}
+        titleText="No archived runs"
+        data-testid="archived-runs-empty-state"
+      >
         <EmptyStateBody>
           Archive a run to remove it from the <b>{PipelineRunTabTitle.ACTIVE}</b> tab. Archived runs
           can be restored later, or deleted.

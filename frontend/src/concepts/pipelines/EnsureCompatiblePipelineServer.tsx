@@ -4,9 +4,7 @@ import {
   EmptyStateVariant,
   Bullseye,
   Spinner,
-  EmptyStateHeader,
   EmptyStateBody,
-  EmptyStateIcon,
   ButtonVariant,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
@@ -46,17 +44,12 @@ const EnsureCompatiblePipelineServer: React.FC<EnsureCompatiblePipelineServerPro
     return (
       <>
         <Bullseye data-testid="incompatible-pipelines-server">
-          <EmptyState variant={emptyStateVariant}>
-            <EmptyStateHeader
-              data-testid="incompatible-pipelines-server-title"
-              titleText="Unsupported pipeline and pipeline server version"
-              icon={
-                <EmptyStateIcon
-                  color="var(--pf-v5-global--warning-color--100)"
-                  icon={ExclamationTriangleIcon}
-                />
-              }
-            />
+          <EmptyState
+            data-testid="incompatible-pipelines-server-title"
+            icon={ExclamationTriangleIcon}
+            titleText="Unsupported pipeline and pipeline server version"
+            variant={emptyStateVariant}
+          >
             <EmptyStateBody>
               <p>
                 This project contains v1 pipeline resources, which are no longer supported or

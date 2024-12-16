@@ -12,6 +12,7 @@ import { mergeFiles } from 'junit-report-merger';
 import { interceptSnapshotFile } from '~/__tests__/cypress/cypress/utils/snapshotUtils';
 import { setup as setupWebsockets } from '~/__tests__/cypress/cypress/support/websockets';
 import { env, cypressEnv, BASE_URL } from '~/__tests__/cypress/cypress/utils/testConfig';
+import { extractHttpsUrls } from '~/__tests__/cypress/cypress/utils/urlExtractor';
 
 const resultsDir = `${env.CY_RESULTS_DIR || 'results'}/${env.CY_MOCK ? 'mocked' : 'e2e'}`;
 
@@ -78,6 +79,9 @@ export default defineConfig({
 
           return Promise.resolve({});
         },
+        extractHttpsUrls(directory: string) {
+          return extractHttpsUrls(directory);
+        },
         log(message) {
           // eslint-disable-next-line no-console
           console.log(message);
@@ -138,7 +142,7 @@ export default defineConfig({
       // Apply retries only for tests in the "e2e" folder
       return {
         ...config,
-        retries: !env.CY_MOCK && !env.CY_RECORD ? 2 : config.retries,
+        retries: !env.CY_MOCK && !env.CY_RECORD ? { runMode: 2, openMode: 0 } : config.retries,
       };
     },
   },

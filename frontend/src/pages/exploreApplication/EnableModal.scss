@@ -3,18 +3,18 @@
     display: flex;
     align-items: center;
     > svg {
-      margin-right: var(--pf-v5-global--spacer--sm);
+      margin-right: var(--pf-t--global--spacer--sm);
     }
   }
   &__enable-link {
-    margin-top: var(--pf-v5-global--spacer--md);
+    margin-top: var(--pf-t--global--spacer--md);
   }
-  .pf-v5-c-alert.m-no-alert-icon {
-    .pf-v5-c-alert__icon {
+  .pf-v6-c-alert.m-no-alert-icon {
+    .pf-v6-c-alert__icon {
       display: none;
     }
   }
-  .pf-v5-c-modal-box__title-text {
+  .pf-v6-c-modal-box__title-text {
     text-overflow: initial;
     white-space: break-spaces;
   }

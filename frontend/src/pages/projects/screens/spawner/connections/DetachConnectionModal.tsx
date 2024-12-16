@@ -1,5 +1,6 @@
 import React from 'react';
-import { Button, Modal } from '@patternfly/react-core';
+import { Button } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import { Connection } from '~/concepts/connectionTypes/types';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 

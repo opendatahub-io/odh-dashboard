@@ -1,12 +1,12 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { getValidateISVResults, validateISV } from './validateISV';
-import { secureRoute } from '../../../utils/route-security';
+import { secureAdminRoute } from '../../../utils/route-security';
 import { KubeFastifyInstance } from '../../../types';
 
 export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.get(
     '/',
-    secureRoute(fastify)(async (request: FastifyRequest, reply: FastifyReply) => {
+    secureAdminRoute(fastify)(async (request: FastifyRequest, reply: FastifyReply) => {
       return validateISV(fastify, request)
         .then((res) => {
           return res;
@@ -20,7 +20,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
 
   fastify.get(
     '/results',
-    secureRoute(fastify)(async (request: FastifyRequest, reply: FastifyReply) => {
+    secureAdminRoute(fastify)(async (request: FastifyRequest, reply: FastifyReply) => {
       return getValidateISVResults(fastify, request)
         .then((res) => {
           return res;

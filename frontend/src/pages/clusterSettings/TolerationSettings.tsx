@@ -37,11 +37,11 @@ const TolerationSettings: React.FC<TolerationSettingsProps> = ({
       footer={
         <HelperText>
           {tolerationSettings.error && (
-            <HelperTextItem data-testid="toleration-helper-text-error" hasIcon variant="error">
+            <HelperTextItem data-testid="toleration-helper-text-error" variant="error">
               {tolerationSettings.error}
             </HelperTextItem>
           )}
-          <HelperTextItem variant="indeterminate">
+          <HelperTextItem>
             The toleration key above will be applied to all notebook pods when they are created. Add
             a matching taint key (with any value) to the Machine Pool(s) that you want to dedicate
             to Notebooks.

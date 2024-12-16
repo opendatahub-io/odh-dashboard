@@ -13,7 +13,7 @@ const MaxConcurrencyField: React.FC<MaxConcurrencyFieldProps> = ({ onChange, val
     label="Maximum concurrent runs"
     isRequired
     fieldId="maxConcurrency"
-    labelIcon={
+    labelHelp={
       <DashboardHelpTooltip content="Specifies how many runs can be executed concurrently. Range [1-10]" />
     }
   >

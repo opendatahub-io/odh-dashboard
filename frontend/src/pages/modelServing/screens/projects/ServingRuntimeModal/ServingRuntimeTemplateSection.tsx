@@ -98,6 +98,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
             }
           }
         }}
+        popperProps={{ appendTo: 'inline' }}
       />
       {data.servingRuntimeTemplateName && onConfigureParamsClick && (
         <FormHelperText>

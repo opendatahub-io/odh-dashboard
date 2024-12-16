@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
-import { FlexItem, Text, TextVariants, Truncate } from '@patternfly/react-core';
+import { FlexItem, Content, ContentVariants, Truncate } from '@patternfly/react-core';
 import { ModelState, RegisteredModel } from '~/concepts/modelRegistry/types';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
@@ -88,9 +88,9 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
           </FlexItem>
         </div>
         {rm.description && (
-          <Text data-testid="description" component={TextVariants.small}>
+          <Content data-testid="description" component={ContentVariants.small}>
             <Truncate content={rm.description} />
-          </Text>
+          </Content>
         )}
       </Td>
       <Td dataLabel="Labels">
@@ -100,7 +100,9 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
         <ModelTimestamp timeSinceEpoch={rm.lastUpdateTimeSinceEpoch} />
       </Td>
       <Td dataLabel="Owner">
-        <Text data-testid="registered-model-owner">{rm.owner || '-'}</Text>
+        <Content component="p" data-testid="registered-model-owner">
+          {rm.owner || '-'}
+        </Content>
       </Td>
       <Td isActionCell>
         <ActionsColumn items={actions} />
