@@ -48,9 +48,27 @@ jobs:
         if: ${{ success() }}
         run: npm run test:backend && npm run test:frontend:unit-coverage
 
+CypressTests:
+    runs-on: ubuntu-latest
+    needs: Tests 
+    strategy:
+      matrix:
+        container: [1, 2, 3, 4]  # Creates 4 parallel executions for Cypress tests.
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4.1.0
+        with:
+          node-version: '18.x'
+      
+      - name: Install Node.js packages for Cypress
+        run: npm install
+      
+      # Run Cypress Mock Tests in Parallel using the existing command.
       - name: Run Cypress Mock Tests in Parallel
         run: |
-          cd ./frontend && npm run test:cypress-ci:parallel -- --ci-build-id ${{ github.sha }}-${{ github.workflow }}-${{ github.event_name }} --parallel --group "Cypress Tests"
+          cd ./frontend && npm run test:cypress-ci -- --ci-build-id ${{ github.sha }}-${{ github.workflow }}-${{ github.event_name }}
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4.6.0
