@@ -6,7 +6,6 @@ jobs:
     strategy:
       matrix:
         node-version: [18.x]
-        containers: [1, 2, 3,4]
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js ${{ matrix.node-version }}
@@ -49,12 +48,9 @@ jobs:
         if: ${{ success() }}
         run: npm run test:backend && npm run test:frontend:unit-coverage
 
-      - name: Run Cypress tests in parallel
+      - name: Run Cypress Mock Tests in Parallel
         run: |
-          npm run test:cypress-ci:parallel -- \
-            --ci-build-id ${{ github.sha }}-${{ github.workflow }}-${{ github.event_name }} \
-            --parallel --group "Cypress Tests" \
-            --record  # If you're using Cypress Dashboard
+          cd ./frontend && npm run test:cypress-ci:parallel -- --ci-build-id ${{ github.sha }}-${{ github.workflow }}-${{ github.event_name }} --parallel --group "Cypress Tests"
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4.6.0
