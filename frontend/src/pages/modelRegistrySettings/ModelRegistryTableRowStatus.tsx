@@ -43,7 +43,7 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
     }, {}) ?? {};
   let statusLabel: string = ModelRegistryStatusLabel.Progressing;
   let icon = <InProgressIcon />;
-  let status: React.ComponentProps<typeof Label>['status'] = undefined;
+  let status: React.ComponentProps<typeof Label>['status'];
   let popoverMessages: string[] = [];
   let popoverTitle = '';
 
