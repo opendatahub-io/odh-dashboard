@@ -19,7 +19,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       const { coreV1Api, namespace } = fastify.kube;
 
       // Fetch the Account CR to determine the actual resource name dynamically
-      const account = await getNIMAccount(fastify, namespace);
+      const account = await getNIMAccount(fastify);
       if (!account) {
         throw createCustomError('Not found', 'NIM account not found', 404);
       }
