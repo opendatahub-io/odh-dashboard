@@ -20,12 +20,14 @@ interface DeployRegisteredModelModalProps {
   modelVersion: ModelVersion;
   onCancel: () => void;
   onSubmit?: () => void;
+  onAfterDeploy?: () => Promise<void>;
 }
 
 const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
   modelVersion,
   onCancel,
   onSubmit,
+  onAfterDeploy,
 }) => {
   const {
     servingRuntimeTemplates: [templates],
@@ -52,15 +54,17 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
   } = useRegisteredModelDeployInfo(modelVersion);
 
   const onClose = React.useCallback(
-    (submit: boolean) => {
+    async (submit: boolean) => {
       if (submit) {
+        if (onAfterDeploy) {
+          await onAfterDeploy();
+        }
         onSubmit?.();
       }
-
       setSelectedProject(null);
       onCancel();
     },
-    [onCancel, onSubmit],
+    [onCancel, onSubmit, onAfterDeploy],
   );
 
   const projectSection = (

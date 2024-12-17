@@ -41,12 +41,13 @@ export const createModelVersion =
     );
 export const createModelVersionForRegisteredModel =
   (hostpath: string) =>
-  (
+  async (
     opts: K8sAPIOptions,
     registeredModelId: string,
     data: CreateModelVersionData,
-  ): Promise<ModelVersion> =>
-    handleModelRegistryFailures(
+  ): Promise<ModelVersion> => {
+    // First create the version
+    const newVersion = await handleModelRegistryFailures<ModelVersion>(
       proxyCREATE(
         hostpath,
         `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/${registeredModelId}/versions`,
@@ -55,6 +56,19 @@ export const createModelVersionForRegisteredModel =
         opts,
       ),
     );
+
+    // Bump the parent model's timestamp by patching its state with current state
+    await handleModelRegistryFailures<RegisteredModel>(
+      proxyPATCH(
+        hostpath,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/${registeredModelId}`,
+        { state: 'LIVE' },
+        opts,
+      ),
+    );
+
+    return newVersion;
+  };
 
 export const createModelArtifact =
   (hostPath: string) =>

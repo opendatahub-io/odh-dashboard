@@ -23,6 +23,7 @@ type RegisteredModelTableRowProps = {
   refresh: () => void;
 };
 
+
 const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
   registeredModel: rm,
   isArchiveRow,

@@ -21,6 +21,7 @@ import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegi
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
 import { uriToObjectStorageFields } from '~/concepts/modelRegistry/utils';
 import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
+import { bumpBothTimestamps } from '~/concepts/modelRegistry/utils/updateTimestamps';
 
 type ModelVersionDetailsViewProps = {
   modelVersion: ModelVersion;
@@ -47,6 +48,11 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
       </Bullseye>
     );
   }
+  const handleVersionUpdate = async (updatePromise: Promise<unknown>): Promise<void> => {
+    await updatePromise;
+    await bumpBothTimestamps(apiState.api, mv.id, mv.registeredModelId);
+    refresh();
+  };
 
   return (
     <Flex
@@ -64,15 +70,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             contentWhenEmpty="No description"
             value={mv.description || ''}
             saveEditedValue={(value) =>
-              apiState.api
-                .patchModelVersion(
-                  {},
-                  {
-                    description: value,
-                  },
-                  mv.id,
-                )
-                .then(refresh)
+              handleVersionUpdate(apiState.api.patchModelVersion({}, { description: value }, mv.id))
             }
           />
           <EditableLabelsDescriptionListGroup
@@ -82,15 +80,13 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             title="Labels"
             contentWhenEmpty="No labels"
             onLabelsChange={(editedLabels) =>
-              apiState.api
-                .patchModelVersion(
+              handleVersionUpdate(
+                apiState.api.patchModelVersion(
                   {},
-                  {
-                    customProperties: mergeUpdatedLabels(mv.customProperties, editedLabels),
-                  },
+                  { customProperties: mergeUpdatedLabels(mv.customProperties, editedLabels) },
                   mv.id,
-                )
-                .then(refresh)
+                ),
+              )
             }
             data-testid="model-version-labels"
           />
