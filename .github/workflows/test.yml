@@ -83,7 +83,7 @@ jobs:
     
       - name: Run Cypress Mock Tests in Parallel
         run: |
-          cd ./frontend && npm run test:cypress-ci -- --headless --no-sandbox --spec $(echo '${{ steps.test-files.outputs.files }}' | tr ',' '\n' | awk 'NR % 5 == ${{ matrix.container }} - 1' | tr '\n' ',')
+          cd ./frontend && npm run test:cypress-ci -- --headless --no-sandbox --spec $(echo "$TEST_FILES" | tr ',' '\n' | awk 'NR % 5 == ${{ matrix.container }} - 1' | tr '\n' ',')
 
       - uses: actions/upload-artifact@v4
         if: ${{ always() }}
