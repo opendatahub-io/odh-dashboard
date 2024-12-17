@@ -8,7 +8,6 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.get(
     '/',
     secureAdminRoute(fastify)(async (request: FastifyRequest, reply: FastifyReply) => {
-      console.log('in backend route');
       try {
         const modelRegistryNamespace = getModelRegistryNamespace(fastify);
         return listModelRegistryCertificateNames(fastify, modelRegistryNamespace);

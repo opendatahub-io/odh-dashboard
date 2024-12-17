@@ -69,9 +69,6 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
 
   const modelRegistryNamespace = dscStatus?.components?.modelregistry?.registriesNamespace || '';
 
-  // Delete this
-  const existingCertKeys = ['service-ca.crt', 'foo-ca.crt'];
-
   React.useEffect(() => {
     if (mr) {
       const dbSpec = mr.spec.mysql || mr.spec.postgres;
@@ -325,7 +322,6 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
                     secureDBInfo={secureDBInfo}
                     modelRegistryNamespace={modelRegistryNamespace}
                     nameDesc={nameDesc}
-                    existingCertKeys={existingCertKeys}
                     existingCertConfigMaps={configSecrets.configMaps}
                     existingCertSecrets={configSecrets.secrets}
                     setSecureDBInfo={setSecureDBInfo}

@@ -41,14 +41,17 @@ export const listModelRegistryCertificateNames = async (
           (key) => secret.data?.[key] !== undefined && secret.data[key] !== '',
         );
         return { name: secret.metadata?.name || 'unknown', keys };
-      });
+      })
+      .filter((secret) => secret.keys.length > 0);
 
-    const configMaps = configMapsResponse.items.map((configMap) => {
-      const keys = Object.keys(configMap.data || {}).filter(
-        (key) => configMap.data?.[key] !== undefined && configMap.data[key] !== '',
-      );
-      return { name: configMap.metadata?.name || 'unknown', keys };
-    });
+    const configMaps = configMapsResponse.items
+      .map((configMap) => {
+        const keys = Object.keys(configMap.data || {}).filter(
+          (key) => configMap.data?.[key] !== undefined && configMap.data[key] !== '',
+        );
+        return { name: configMap.metadata?.name || 'unknown', keys };
+      })
+      .filter((configMap) => configMap.keys.length > 0);
 
     return { secrets, configMaps };
   } catch (e: any) {
