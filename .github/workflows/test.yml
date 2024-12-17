@@ -74,7 +74,7 @@ jobs:
     
       - name: Run Cypress Mock Tests in Parallel
         run: |
-        cd ./frontend && npm run test:cypress-ci -- --headless --spec $(echo '${{ steps.test-files.outputs.files }}' | tr ',' '\n' | awk 'NR % 5 == ${{ matrix.container }} - 1')
+          cd ./frontend && npm run test:cypress-ci -- --headless --spec $(echo '${{ steps.test-files.outputs.files }}' | tr ',' '\n' | awk 'NR % 5 == ${{ matrix.container }} - 1')
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4.6.0
