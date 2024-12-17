@@ -29,8 +29,6 @@ jobs:
 
           TEST_DIR="frontend/src/__tests__/cypress/cypress/tests/mocked"
           echo "Checking for test files in $TEST_DIR"
-
-          # List contents of the parent directory to verify structure
           echo "Listing contents of frontend/src/__tests__/cypress/cypress/tests:"
           ls -la frontend/src/__tests__/cypress/cypress/tests/
           
