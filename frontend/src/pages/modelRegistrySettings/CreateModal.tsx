@@ -3,11 +3,12 @@ import {
   Alert,
   Button,
   Checkbox,
+  EmptyState,
   Form,
   FormGroup,
   HelperText,
   HelperTextItem,
-  Skeleton,
+  Spinner,
   TextInput,
 } from '@patternfly/react-core';
 import { Modal } from '@patternfly/react-core/deprecated';
@@ -316,7 +317,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
               </FormGroup>
               {addSecureDB &&
                 (!configSecretsLoaded && !configSecretsError ? (
-                  <Skeleton />
+                  <EmptyState icon={Spinner} />
                 ) : configSecretsLoaded ? (
                   <CreateMRSecureDBSection
                     secureDBInfo={secureDBInfo}
