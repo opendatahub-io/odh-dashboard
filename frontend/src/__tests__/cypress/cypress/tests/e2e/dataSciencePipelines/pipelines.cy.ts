@@ -14,8 +14,8 @@ import {
   pipelineRunDetails,
 } from '~/__tests__/cypress/cypress/pages/pipelines/topology';
 import { provisionProjectForPipelines } from '~/__tests__/cypress/cypress/utils/pipelines';
-import { getIrisPipelinePath } from '../../../utils/fileImportUtils';
-import { createOpenShiftConfigMap } from '../../../utils/oc_commands/configmap';
+import { getIrisPipelinePath } from '~/__tests__/cypress/cypress/utils/fileImportUtils';
+import { createOpenShiftConfigMap } from '~/__tests__/cypress/cypress/utils/oc_commands/configmap';
 
 const projectName = 'test-pipelines-prj';
 const dspaSecretName = 'dashboard-dspa-secret';
@@ -73,8 +73,8 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
   });
 
   it('Verify User Can Create, Run and Delete A DS Pipeline From DS Project Details Page Using Custom Pip Mirror', () => {
-    let pipeline_id: string = '';
-    let version_id: string = '';
+    let pipeline_id = '';
+    let version_id = '';
 
     cy.step('Create Pipelines ConfigMap With Custom Pip Index Url And Trusted Host ');
     const pipConfig = Cypress.env('PIP_CONFIG');
@@ -144,6 +144,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
         .click();
       pipelineDeleteModal.findInput().fill(testPipelineIrisName);
       pipelineDeleteModal.findSubmitButton().click();
+      pipelineDeleteModal.shouldBeOpen(false);
 
       cy.step('Verify that the pipeline version no longer exist');
       // cy.wait(1000); // There's a reload spinner which sometimes take a little bit longer
