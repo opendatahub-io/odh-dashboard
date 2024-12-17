@@ -44,6 +44,29 @@ class NotebookServer {
   findAcceleratorProfileSelect() {
     return cy.findByTestId('accelerator-profile-select');
   }
+
+  findOpenInNewTabButton() {
+    return cy.findByRole('button', { name: 'Open in new tab' });
+  }
+
+  findSuccessAlert() {
+    return cy.findByText('Success', { timeout: 120000 });
+  }
+
+  findNotebookImage(notebook: string) {
+    return cy.get(`[data-testid="radio ${notebook}"]`);
+  }
+
+  findVersionsDropdown(version: string) {
+    return cy
+      .get(`[data-id="${version}"]`)
+      .closest('.pf-v6-c-expandable-section')
+      .find('span.pf-v6-c-button__text');
+  }
+
+  findNotebookVersion(version: string) {
+    return cy.get(`[data-id="${version}"]`);
+  }
 }
 
 export const notebookServer = new NotebookServer();
