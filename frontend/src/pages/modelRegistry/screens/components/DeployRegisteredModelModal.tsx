@@ -56,15 +56,12 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
   const onClose = React.useCallback(
     async (submit: boolean) => {
       if (submit) {
-        if (onAfterDeploy) {
-          await onAfterDeploy();
-        }
         onSubmit?.();
       }
       setSelectedProject(null);
       onCancel();
     },
-    [onCancel, onSubmit, onAfterDeploy],
+    [onCancel, onSubmit],
   );
 
   const projectSection = (
