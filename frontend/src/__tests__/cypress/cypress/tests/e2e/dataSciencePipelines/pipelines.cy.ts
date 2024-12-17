@@ -99,9 +99,10 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
     pipelineImportModal.submit();
 
     // Verify that we are at the details page of the pipeline by checking the title
-    // It can take a little longer to load
+    // It can take a little longer than expected to load
     pipelineDetails.findPageTitle(60000).should('have.text', testPipelineIrisName);
 
+    // Get the pipeline ID and version ID from the URL
     cy.url().then((currentUrl) => {
       const regex = /\/pipelines\/[^/]+\/([^/]+)\/([^/]+)\/view/;
       const match = currentUrl.match(regex);
@@ -114,46 +115,50 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
       } else {
         throw new Error('Pipeline ID and Version ID could not be extracted from the URL.');
       }
+
+      cy.step(`Create a ${testPipelineIrisName} pipeline run from the Runs view`);
+      pipelineRunsGlobal.navigate();
+      pipelineRunsGlobal.selectProjectByName(projectName);
+      pipelineRunsGlobal.findCreateRunButton().click();
+
+      cy.step('Run the pipeline from the Runs view');
+      createRunPage.experimentSelect.findToggleButton().click();
+      createRunPage.selectExperimentByName('Default');
+      createRunPage.fillName(testRunName);
+      createRunPage.fillDescription('Run Description');
+      createRunPage.pipelineSelect.openAndSelectItem(testPipelineIrisName);
+      createRunPage.pipelineVersionSelect.selectItem(testPipelineIrisName);
+      createRunPage.findSubmitButton().click();
+
+      cy.step('Expect the run to Succeed');
+      pipelineRunDetails.expectStatusLabelToBe('Succeeded', 180000);
+
+      cy.step('Delete the pipeline version');
+      pipelinesGlobal.navigate();
+      // pipelineRunsGlobal.selectProjectByName(projectName);
+      const pipelineRowWithVersion = pipelinesTable.getRowById(pipeline_id);
+      pipelineRowWithVersion.findExpandButton().click();
+      pipelineRowWithVersion
+        .getPipelineVersionRowById(version_id)
+        .findKebabAction('Delete pipeline version')
+        .click();
+      pipelineDeleteModal.findInput().fill(testPipelineIrisName);
+      pipelineDeleteModal.findSubmitButton().click();
+
+      cy.step('Verify that the pipeline version no longer exist');
+      // cy.wait(1000); // There's a reload spinner which sometimes take a little bit longer
+      const pipelineRowWithVersionDeleted = pipelinesTable.getRowById(pipeline_id);
+      pipelineRowWithVersionDeleted.findExpandButton().click();
+      pipelineRowWithVersionDeleted.shouldNotHavePipelineVersion();
+
+      cy.step('Delete the pipeline');
+      const pipelineRow = pipelinesTable.getRowById(pipeline_id);
+      pipelineRow.findKebabAction('Delete pipeline').click();
+      pipelineDeleteModal.findInput().fill(testPipelineIrisName);
+      pipelineDeleteModal.findSubmitButton().click();
+
+      cy.step('Verify that the pipeline no longer exist');
+      pipelinesTable.shouldBeEmpty();
     });
-
-    cy.step(`Create a ${testPipelineIrisName} pipeline run from the Runs view`);
-    pipelineRunsGlobal.navigate();
-    pipelineRunsGlobal.selectProjectByName(projectName);
-    pipelineRunsGlobal.findCreateRunButton().click();
-
-    cy.step('Run the pipeline from the Runs view');
-    // //Fill the Create run fields
-    createRunPage.experimentSelect.findToggleButton().click();
-    createRunPage.selectExperimentByName('Default');
-    createRunPage.fillName(testRunName);
-    createRunPage.fillDescription('Run Description');
-    createRunPage.pipelineSelect.openAndSelectItem(testPipelineIrisName);
-    createRunPage.pipelineVersionSelect.selectItem(testPipelineIrisName);
-    createRunPage.findSubmitButton().click();
-
-    cy.step('Expect the run to Succeed');
-    pipelineRunDetails.expectStatusLabelToBe('Succeeded', 180000);
-
-    cy.step('Delete the pipeline version');
-    pipelinesGlobal.navigate();
-    // pipelineRunsGlobal.selectProjectByName(projectName);
-    const pipelineRowWithVersion = pipelinesTable.getRowById(pipeline_id);
-    pipelineRowWithVersion.findExpandButton().click();
-    pipelineRowWithVersion
-      .getPipelineVersionRowById(version_id)
-      .findKebabAction('Delete pipeline version')
-      .click();
-    pipelineDeleteModal.findInput().fill(testPipelineIrisName);
-    pipelineDeleteModal.findSubmitButton().click();
-
-    cy.step('Delete the pipeline');
-    const pipelineRow = pipelinesTable.getRowById(pipeline_id);
-    pipelineRow.findKebabAction('Delete pipeline').click();
-    pipelineDeleteModal.findInput().fill(testPipelineIrisName);
-    pipelineDeleteModal.findSubmitButton().click();
   });
 });
-
-// logPipeline ID: 9a4523be-a396-46fd-b3b7-bd78398d06fa
-// 52
-// logVersion ID: e3842a7f-b89b-4df4-a808-aaf684b8631d
