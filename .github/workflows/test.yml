@@ -3,6 +3,7 @@ on: [push, pull_request]
 jobs:
   CypressMockTests:
     runs-on: ubuntu-latest
+    needs: Tests 
     strategy:
       fail-fast: false
       matrix:
@@ -28,6 +29,10 @@ jobs:
 
           TEST_DIR="frontend/src/__tests__/cypress/cypress/tests/mocked"
           echo "Checking for test files in $TEST_DIR"
+
+          # List contents of the parent directory to verify structure
+          echo "Listing contents of frontend/src/__tests__/cypress/cypress/tests:"
+          ls -la frontend/src/__tests__/cypress/cypress/tests/
           
           if [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked" ]; then
             TEST_FILES=$(find frontend/src/__tests__/cypress/cypress/tests/mocked -name "*.cy.ts" | tr '\n' ',')
