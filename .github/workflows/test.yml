@@ -36,12 +36,12 @@ jobs:
             echo "Listing contents of mocked directory:"
             ls -la "$TEST_DIR" 
 
-          TEST_FILES=$(find "$TEST_DIR" -name "*.cy.ts" | tr '\n' ',')
-          echo "files=$TEST_FILES" >> $GITHUB_OUTPUT
-        else
-          echo "Directory does not exist. No test files found." >> $GITHUB_OUTPUT
-          echo "files=" >> $GITHUB_OUTPUT  # Set empty output if no files found
-        fi
+            TEST_FILES=$(find "$TEST_DIR" -name "*.cy.ts" | tr '\n' ',')
+            echo "files=$TEST_FILES" >> $GITHUB_OUTPUT
+          else
+            echo "Directory does not exist. No test files found." >> $GITHUB_OUTPUT
+            echo "files=" >> $GITHUB_OUTPUT  # Set empty output if no files found
+          fi
     
       - name: Run Cypress Mock Tests in Parallel
         run: |
