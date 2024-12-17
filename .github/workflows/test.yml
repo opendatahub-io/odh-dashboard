@@ -53,7 +53,7 @@ jobs:
     needs: Tests 
     strategy:
       matrix:
-        container: [1, 2, 3, 4, 5]  # Creates 5 parallel executions for Cypress tests.
+        container: [1]  
     steps:
       - uses: actions/checkout@v4
       
