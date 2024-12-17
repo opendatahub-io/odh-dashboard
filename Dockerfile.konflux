@@ -20,6 +20,7 @@ RUN npm ci --omit=optional
 
 # Set Red Hat Openshift AI logo and links
 ENV ODH_LOGO=../images/rhoai-logo.svg
+ENV ODH_LOGO_DARK=../images/rhoai-logo.svg
 ENV ODH_PRODUCT_NAME="Red Hat OpenShift AI"
 ENV ODH_FAVICON="rhoai-favicon.svg"
 ENV DOC_LINK="https://docs.redhat.com/en/documentation/red_hat_openshift_ai/"
