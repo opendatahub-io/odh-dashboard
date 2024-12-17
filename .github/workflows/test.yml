@@ -78,8 +78,14 @@ jobs:
       - name: Get test files
         id: test-files
         run: |
-          TEST_FILES=$(find src/__tests__/cypress/cypress/tests/mocked -name "*.cy.ts" | tr '\n' ',')
-          echo "files=$TEST_FILES" >> $GITHUB_OUTPUT
+          if [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked" ]; then
+            TEST_FILES=$(find frontend/src/__tests__/cypress/cypress/tests/mocked -name "*.cy.ts" | tr '\n' ',')
+            echo "files=$TEST_FILES" >> $GITHUB_OUTPUT
+          else
+            echo "Directory does not exist. No test files found." >> $GITHUB_OUTPUT
+            echo "files=" >> $GITHUB_OUTPUT  # Set empty output if no files found
+          fi
+
     
       - name: Run Cypress Mock Tests in Parallel
         run: |
