@@ -85,6 +85,7 @@ const CreateNewStorageSection = <D extends StorageData>({
         currentStatus={currentStatus}
         size={String(data.size)}
         setSize={(size) => setData('size', size)}
+        existingPvcName={data.existingPvc?.metadata.name}
       />
     </FormSection>
   );
