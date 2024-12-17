@@ -24,7 +24,7 @@ jobs:
           echo "Current working directory:"
           pwd
           echo "Listing contents of the current directory:"
-          ls -la
+          ls -la "$TEST_DIR"
 
           TEST_DIR="frontend/src/__tests__/cypress/cypress/tests/mocked"
           echo "Checking for test files in $TEST_DIR"
