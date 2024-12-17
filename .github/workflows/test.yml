@@ -50,6 +50,7 @@ jobs:
           CONTAINER_INDEX: ${{ matrix.container }}
         run: |
           echo "Running Cypress tests for container $CONTAINER_INDEX..."
+          echo "Test Files: $TEST_FILES"  # Debugging line
           cd ./frontend && npm run test:cypress-ci -- --headless --no-sandbox --spec $(echo "$TEST_FILES" | tr ',' '\n' | awk -v container="$CONTAINER_INDEX" 'NR % 5 == container - 1' | tr '\n' ',')
       - uses: actions/upload-artifact@v4
         if: ${{ always() }}
