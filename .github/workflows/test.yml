@@ -78,12 +78,12 @@ jobs:
       - name: Get test files
         id: test-files
         run: |
-          TEST_FILES=$(find frontend/src/__tests__/cypress/cypress/tests/mocked -name "*.cy.ts" | tr '\n' ',')
+          TEST_FILES=$(find src/__tests__/cypress/cypress/tests/mocked -name "*.cy.ts" | tr '\n' ',')
           echo "files=$TEST_FILES" >> $GITHUB_OUTPUT
     
       - name: Run Cypress Mock Tests in Parallel
         run: |
-          cd ./frontend && npm run test:cypress-ci -- --headless --spec $(echo '${{ steps.test-files.outputs.files }}' | tr ',' '\n' | awk 'NR % 5 == ${{ matrix.container }} - 1')
+          cd ./frontend && npm run test:cypress-ci -- --headless --no-sandbox --spec $(echo '${{ steps.test-files.outputs.files }}' | tr ',' '\n' | awk 'NR % 5 == ${{ matrix.container }} - 1' | tr '\n' ',')
 
       - uses: actions/upload-artifact@v4
         if: ${{ always() }}
