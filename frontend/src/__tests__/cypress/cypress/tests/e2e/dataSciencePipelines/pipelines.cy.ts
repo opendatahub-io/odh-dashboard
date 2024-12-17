@@ -73,9 +73,6 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
   });
 
   it('Verify User Can Create, Run and Delete A DS Pipeline From DS Project Details Page Using Custom Pip Mirror', () => {
-    let pipeline_id = '';
-    let version_id = '';
-
     cy.step('Create Pipelines ConfigMap With Custom Pip Index Url And Trusted Host ');
     const pipConfig = Cypress.env('PIP_CONFIG');
     createOpenShiftConfigMap('ds-pipeline-custom-env-vars', projectName, {
@@ -108,10 +105,9 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
       const match = currentUrl.match(regex);
 
       if (match) {
-        pipeline_id = match[1];
-        version_id = match[2];
-        cy.log(`Pipeline ID: ${pipeline_id}`);
-        cy.log(`Version ID: ${version_id}`);
+        const [, pipelineId, versionId] = match;
+        cy.log(`Pipeline ID: ${pipelineId}`);
+        cy.log(`Version ID: ${versionId}`);
       } else {
         throw new Error('Pipeline ID and Version ID could not be extracted from the URL.');
       }
@@ -136,24 +132,25 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
       cy.step('Delete the pipeline version');
       pipelinesGlobal.navigate();
       // pipelineRunsGlobal.selectProjectByName(projectName);
-      const pipelineRowWithVersion = pipelinesTable.getRowById(pipeline_id);
+      const pipelineRowWithVersion = pipelinesTable.getRowById(pipelineId);
       pipelineRowWithVersion.findExpandButton().click();
       pipelineRowWithVersion
-        .getPipelineVersionRowById(version_id)
+        .getPipelineVersionRowById(versionId)
         .findKebabAction('Delete pipeline version')
         .click();
       pipelineDeleteModal.findInput().fill(testPipelineIrisName);
       pipelineDeleteModal.findSubmitButton().click();
-      pipelineDeleteModal.shouldBeOpen(false);
+      // The line below it's not working due to a bug
+      // pipelineDeleteModal.shouldBeOpen(false)
+      cy.get('[role=dialog]').should('not.exist');
 
       cy.step('Verify that the pipeline version no longer exist');
-      // cy.wait(1000); // There's a reload spinner which sometimes take a little bit longer
-      const pipelineRowWithVersionDeleted = pipelinesTable.getRowById(pipeline_id);
+      const pipelineRowWithVersionDeleted = pipelinesTable.getRowById(pipelineId);
       pipelineRowWithVersionDeleted.findExpandButton().click();
       pipelineRowWithVersionDeleted.shouldNotHavePipelineVersion();
 
       cy.step('Delete the pipeline');
-      const pipelineRow = pipelinesTable.getRowById(pipeline_id);
+      const pipelineRow = pipelinesTable.getRowById(pipelineId);
       pipelineRow.findKebabAction('Delete pipeline').click();
       pipelineDeleteModal.findInput().fill(testPipelineIrisName);
       pipelineDeleteModal.findSubmitButton().click();
