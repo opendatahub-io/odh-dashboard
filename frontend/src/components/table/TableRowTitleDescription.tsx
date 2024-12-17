@@ -19,7 +19,7 @@ type TableRowTitleDescriptionProps = {
 
 const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
   title,
-  boldTitle = true,
+  boldTitle = false,
   titleIcon,
   description,
   resource,

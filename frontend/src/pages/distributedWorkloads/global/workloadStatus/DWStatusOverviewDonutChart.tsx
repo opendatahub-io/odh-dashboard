@@ -39,7 +39,8 @@ export const DWStatusOverviewDonutChart: React.FC = () => {
     );
   }
   return (
-    <div style={{ height: '250px', minWidth: '620px' }}>
+    // maxWidth matches what the chart's svg width value would be without the default "width: 100%" coming from PF Charts
+    <div style={{ maxWidth: '530px' }}>
       <ChartDonut
         ariaDesc="Distributed workload status overview"
         ariaTitle="Status overview donut chart"
