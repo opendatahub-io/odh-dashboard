@@ -10,10 +10,7 @@ class ModelVersionDeployModal extends Modal {
   }
 
   selectProjectByName(name: string) {
-    const selector = this.findProjectSelector();
-    selector.should('have.attr', 'aria-expanded', 'false');
-    selector.click();
-    this.find().findByRole('option', { name, timeout: 5000 }).click();
+    this.findProjectSelector().findSelectOption(name).click();
   }
 }
 

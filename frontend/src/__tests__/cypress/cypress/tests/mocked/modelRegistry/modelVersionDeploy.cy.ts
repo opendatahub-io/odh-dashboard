@@ -193,6 +193,8 @@ describe('Deploy model version', () => {
     modelVersionDeployModal.selectProjectByName('Model mesh project');
     cy.findByText('Multi-model platform is not installed').should('exist');
     cy.wait('@getProjects');
+    //make sure the selector is closed after previous selection
+    modelVersionDeployModal.findProjectSelector().should('have.attr', 'aria-expanded', 'false');
     modelVersionDeployModal.selectProjectByName('KServe project');
     cy.findByText('Single-model platform is not installed').should('exist');
   });
