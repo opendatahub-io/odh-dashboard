@@ -62,7 +62,7 @@ export const createNIMAccount = async (fastify: KubeFastifyInstance): Promise<NI
   return Promise.resolve(response.body as NIMAccountKind);
 };
 
-export const createNIMSecret = async (
+export const manageNIMSecret = async (
   fastify: KubeFastifyInstance,
   enableValues: { [key: string]: string },
 ): Promise<{ secret: SecretKind }> => {
