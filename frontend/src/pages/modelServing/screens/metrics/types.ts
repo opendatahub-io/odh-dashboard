@@ -51,6 +51,7 @@ export type DomainCalculator = (
 export enum MetricsChartTypes {
   AREA,
   LINE,
+  DONUT
 }
 
 export enum MetricsTabKeys {

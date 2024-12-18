@@ -216,6 +216,58 @@ export const useFetchKserveKVCacheUsageData = (
   });
 };
 
+
+// Graph #3 - Total Prompt Token Count and Total Generation Token Count
+type TokensCountData = {
+  data: {
+    totalPromptTokenCount: PendingContextResourceData<PrometheusQueryRangeResultValue>;
+    totalGenerationTokenCount: PendingContextResourceData<PrometheusQueryRangeResultValue>;
+  };
+  refreshAll: () => void;
+};
+
+
+export const useFetchKserveTokensCountData = (
+  metricsDef: KserveMetricGraphDefinition,
+  timeframe: TimeframeTitle,
+  endInMs: number,
+  namespace: string,
+): TokensCountData => {
+  const active = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
+
+  // Extract the queries for "Total Prompt Token Count" and "Total Generation Token Count
+  const totalPromptTokenCount = useQueryRangeResourceData(
+    active,
+    metricsDef.queries[0]?.query,
+    endInMs,
+    timeframe,
+    defaultResponsePredicate,
+    namespace,
+  );
+
+  const totalGenerationTokenCount = useQueryRangeResourceData(
+    active,
+    metricsDef.queries[1]?.query,
+    endInMs,
+    timeframe,
+    defaultResponsePredicate,
+    namespace,
+  );
+
+  const data = React.useMemo(
+    () => ({
+      totalPromptTokenCount,totalGenerationTokenCount
+    }),
+    [totalPromptTokenCount, totalGenerationTokenCount],
+  );
+
+  return useAllSettledContextResourceData(data, {
+    totalPromptTokenCount: DEFAULT_PENDING_CONTEXT_RESOURCE,
+    totalGenerationTokenCount: DEFAULT_PENDING_CONTEXT_RESOURCE,
+  });
+};
+
+
 // Graph #4 - Time to First Token
 type TimeToFirstTokenData = {
   data: {

@@ -9,6 +9,7 @@ import KserveCpuUsageGraph from '~/concepts/metrics/kserve/content/KserveCpuUsag
 import KserveMemoryUsageGraph from '~/concepts/metrics/kserve/content/KserveMemoryUsageGraph';
 import KserveTimeToFirstTokenGraph from './KserveTimeForFirstTokenGraphs';
 import KserveKVCacheUsageGraph from './KserveKVCacheUsageGraph';
+import KserveTokensCountGraph from './KserveTokensCountGraph';
 
 type KservePerformanceGraphsProps = {
   namespace: string;
@@ -83,6 +84,19 @@ const KservePerformanceGraphs: React.FC<KservePerformanceGraphsProps> = ({
         />
       );
     }
+
+// Graph #3 - Total Prompt Token Count and Total Generation Token Count
+    if (graphDefinition.type === KserveMetricsGraphTypes.TOKENS_COUNT) {
+      return (
+        <KserveTokensCountGraph
+          graphDefinition={graphDefinition}
+          timeframe={timeframe}
+          end={end}
+          namespace={namespace}
+        />
+      );
+    }
+
 
     // Graph #4 - Time to First Token
     if (graphDefinition.type === KserveMetricsGraphTypes.TIME_TO_FIRST_TOKEN) {
