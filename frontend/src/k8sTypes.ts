@@ -1239,6 +1239,7 @@ export type AcceleratorProfileKind = K8sResourceCommon & {
 export type HardwareProfileKind = K8sResourceCommon & {
   metadata: {
     name: string;
+    namespace: string;
   };
   spec: {
     displayName: string;
@@ -1335,6 +1336,30 @@ export type ModelRegistryKind = K8sResourceCommon & {
     }
   >;
   status?: {
+    conditions?: K8sCondition[];
+  };
+};
+
+export type NIMAccountKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    apiKeySecret: {
+      name: string;
+    };
+  };
+  status?: {
+    nimConfig?: {
+      name: string;
+    };
+    runtimeTemplate?: {
+      name: string;
+    };
+    nimPullSecret?: {
+      name: string;
+    };
     conditions?: K8sCondition[];
   };
 };
