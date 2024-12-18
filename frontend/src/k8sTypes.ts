@@ -1363,3 +1363,13 @@ export type NIMAccountKind = K8sResourceCommon & {
     conditions?: K8sCondition[];
   };
 };
+
+export type ConfigSecretItem = {
+  name: string;
+  keys: string[];
+};
+
+export type ListConfigSecretsResponse = {
+  secrets: ConfigSecretItem[];
+  configMaps: ConfigSecretItem[];
+};

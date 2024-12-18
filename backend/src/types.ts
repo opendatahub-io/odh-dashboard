@@ -1261,3 +1261,13 @@ export type ResourceAccessReviewResponse = {
   groups?: string[];
   users?: string[];
 };
+
+export type ConfigSecretItem = {
+  name: string;
+  keys: string[];
+};
+
+export type ListConfigSecretsResponse = {
+  secrets: ConfigSecretItem[];
+  configMaps: ConfigSecretItem[];
+};
