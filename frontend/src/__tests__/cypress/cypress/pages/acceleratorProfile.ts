@@ -6,7 +6,7 @@ import { TableRow } from './components/table';
 class AcceleratorTableToolbar extends TableToolbar {}
 class AcceleratorRow extends TableRow {
   findDescription() {
-    return this.find().findByTestId('description');
+    return this.find().findByTestId('table-row-title-description');
   }
 
   shouldHaveIdentifier(name: string) {
