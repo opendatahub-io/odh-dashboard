@@ -103,11 +103,6 @@ export const mockPodK8sResource = ({
               '--ServerApp.port=8888\n                  --ServerApp.token=\'\'\n                  --ServerApp.password=\'\'\n                  --ServerApp.base_url=/notebook/project/workbench\n                  --ServerApp.quit_button=False\n                  --ServerApp.tornado_settings={"user":"user","hub_host":"http://localhost:4010","hub_prefix":"/projects/project"}',
           },
           {
-            name: 'JUPYTER_IMAGE',
-            value:
-              'image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/s2i-minimal-notebook:py3.8-v1',
-          },
-          {
             name: 'NB_PREFIX',
             value: '/notebook/project/workbench',
           },
