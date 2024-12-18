@@ -458,6 +458,8 @@ export type InferenceServiceAnnotations = Partial<{
 
 export type InferenceServiceLabels = Partial<{
   'networking.knative.dev/visibility': string;
+  'security.opendatahub.io/enable-auth': 'true';
+  'networking.kserve.io/visibility': 'exposed';
 }>;
 
 export type InferenceServiceKind = K8sResourceCommon & {
@@ -468,7 +470,7 @@ export type InferenceServiceKind = K8sResourceCommon & {
       DisplayNameAnnotations &
       EitherOrNone<
         {
-          'serving.kserve.io/deploymentMode': 'ModelMesh';
+          'serving.kserve.io/deploymentMode': 'ModelMesh' | 'RawDeployment';
         },
         {
           'serving.knative.openshift.io/enablePassthrough': 'true';
@@ -476,6 +478,7 @@ export type InferenceServiceKind = K8sResourceCommon & {
           'sidecar.istio.io/rewriteAppHTTPProbers': 'true';
         }
       >;
+    labels?: InferenceServiceLabels;
   };
   spec: {
     predictor: {
