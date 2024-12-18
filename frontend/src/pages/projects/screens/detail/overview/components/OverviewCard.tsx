@@ -37,7 +37,7 @@ const OverviewCard: React.FC<OverviewCardProps> = ({
         <FlexItem>
           <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
             <FlexItem>
-              <HeaderIcon type={objectType} sectionType={sectionType} size={36} />
+              <HeaderIcon type={objectType} sectionType={sectionType} />
             </FlexItem>
             {title ? (
               <FlexItem>
