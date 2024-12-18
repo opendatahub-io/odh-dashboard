@@ -184,14 +184,21 @@ const initIntercepts = ({
 };
 
 describe('Deploy model version', () => {
-  it('Deploy model version on unsupported platform', () => {
-    initIntercepts({ kServeInstalled: false, modelMeshInstalled: false });
+  it('Deploy model version on unsupported multi-model platform', () => {
+    initIntercepts({ modelMeshInstalled: false });
     cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version');
     modelVersionRow.findKebabAction('Deploy').click();
     cy.wait('@getProjects');
     modelVersionDeployModal.selectProjectByName('Model mesh project');
     cy.findByText('Multi-model platform is not installed').should('exist');
+  });
+
+  it('Deploy model version on unsupported single-model platform', () => {
+    initIntercepts({ kServeInstalled: false });
+    cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
+    const modelVersionRow = modelRegistry.getModelVersionRow('test model version');
+    modelVersionRow.findKebabAction('Deploy').click();
     cy.wait('@getProjects');
     modelVersionDeployModal.selectProjectByName('KServe project');
     cy.findByText('Single-model platform is not installed').should('exist');
