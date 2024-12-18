@@ -62,6 +62,7 @@ jobs:
             exit 0
           else
             echo "Spec files for this container: $SPEC_FILES"
+            export CYPRESS_SPEC_PATTERN="$SPEC_FILES"
             echo "Running Cypress with spec pattern: ${CYPRESS_SPEC_PATTERN}"
-            cd frontend && CYPRESS_SPEC_PATTERN="$SPEC_FILES" npm run test:cypress-ci
+            cd frontend && npm run test:cypress-ci
           fi
