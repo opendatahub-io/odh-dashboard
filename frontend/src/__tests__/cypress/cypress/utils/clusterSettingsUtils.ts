@@ -7,18 +7,18 @@ import {
 import type { DashboardConfig, NotebookControllerConfig } from '~/__tests__/cypress/cypress/types';
 
 /**
- * Validates the visibility and state of Model Serving Platform checkboxes 
+ * Validates the visibility and state of Model Serving Platform checkboxes
  * in the Cluster Settings based on the provided dashboard configuration.
  *
  * This function checks whether the Model Serving feature is enabled or disabled,
- * and subsequently verifies the state of the Multi-Platform and Single-Platform 
- * checkboxes based on their respective enable/disable flags. 
+ * and subsequently verifies the state of the Multi-Platform and Single-Platform
+ * checkboxes based on their respective enable/disable flags.
  *
  * - If Model Serving is disabled, both checkboxes should not be visible.
  * - If Model Serving is enabled:
- *   - The Multi-Platform Checkbox will be checked if Model Mesh is enabled; 
+ *   - The Multi-Platform Checkbox will be checked if Model Mesh is enabled;
  *     otherwise, it will not be checked.
- *   - The Single-Platform Checkbox will be checked if KServe is enabled; 
+ *   - The Single-Platform Checkbox will be checked if KServe is enabled;
  *     otherwise, it will not be checked.
  *
  * @param dashboardConfig The Model Serving Platform configuration object containing

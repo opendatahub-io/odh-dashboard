@@ -25,7 +25,7 @@ describe('Regular Users can make use of the Storage Classes in the Cluster Stora
     // Authentication and navigation
     cy.visitWithLogin('/projects', LDAP_CONTRIBUTOR_USER);
     // Open the project
-    cy.step(`Navigate to the Project list tab and search for ${dspName}`,);
+    cy.step(`Navigate to the Project list tab and search for ${dspName}`);
     projectListPage.filterProjectByName(dspName);
     projectListPage.findProjectLink(dspName).click();
     cy.step('Navigate to the Cluster Storage tab and disable all non-default storage classes');
@@ -36,7 +36,9 @@ describe('Regular Users can make use of the Storage Classes in the Cluster Stora
       // Open the Create cluster storage Modal
       findAddClusterStorageButton().click();
 
-      cy.step('Checking that Storage Classes Dropdown is disabled - 🐛 RHOAIENG-16609 will fail this test in RHOAI');
+      cy.step(
+        'Checking that Storage Classes Dropdown is disabled - 🐛 RHOAIENG-16609 will fail this test in RHOAI',
+      );
       // Check that the SC Dropdown is disabled
       addClusterStorageModal.findStorageClassSelect().should('be.disabled');
     });
