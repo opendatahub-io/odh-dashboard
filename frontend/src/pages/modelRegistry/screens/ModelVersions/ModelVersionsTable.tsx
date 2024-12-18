@@ -34,7 +34,6 @@ const ModelVersionsTable: React.FC<ModelVersionsTableProps> = ({
       if (!registeredModelId) return;
 
       try {
-        // Bump the update time for both the model version and registered model
         await Promise.all([
           modelRegistryApi.patchModelVersion(modelVersionId, { state: ModelState.LIVE }),
           modelRegistryApi.patchRegisteredModel(registeredModelId, { state: ModelState.LIVE }),

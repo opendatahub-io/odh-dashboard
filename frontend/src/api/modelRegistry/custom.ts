@@ -8,6 +8,7 @@ import {
   ModelVersion,
   RegisteredModelList,
   RegisteredModel,
+  ModelRegistryMetadataType,
 } from '~/concepts/modelRegistry/types';
 import { proxyCREATE, proxyGET, proxyPATCH } from '~/api/proxyUtils';
 import { K8sAPIOptions } from '~/k8sTypes';
@@ -57,12 +58,20 @@ export const createModelVersionForRegisteredModel =
       ),
     );
 
-    // Bump the parent model's timestamp by patching its state with current state
+    const currentTime = new Date().toISOString();
     await handleModelRegistryFailures<RegisteredModel>(
       proxyPATCH(
         hostpath,
         `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/${registeredModelId}`,
-        { state: 'LIVE' },
+        { 
+          state: 'LIVE',
+          customProperties: {
+            '_lastModified': {
+              metadataType: ModelRegistryMetadataType.STRING,
+              string_value: currentTime
+            }
+          }
+        },
         opts,
       ),
     );
@@ -207,31 +216,37 @@ export const patchRegisteredModel =
     opts: K8sAPIOptions,
     data: Partial<RegisteredModel>,
     registeredModelId: string,
-  ): Promise<RegisteredModel> =>
-    handleModelRegistryFailures(
+  ): Promise<RegisteredModel> => {
+    return handleModelRegistryFailures<RegisteredModel>(
       proxyPATCH(
         hostPath,
         `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/${registeredModelId}`,
         data,
         opts,
       ),
-    );
+    ).then(response => {
+      return response;
+    });
+  };
 
 export const patchModelVersion =
   (hostPath: string) =>
   (
     opts: K8sAPIOptions,
     data: Partial<ModelVersion>,
-    modelversionId: string,
-  ): Promise<ModelVersion> =>
-    handleModelRegistryFailures(
+    modelVersionId: string,
+  ): Promise<ModelVersion> => {
+    return handleModelRegistryFailures<ModelVersion>(
       proxyPATCH(
         hostPath,
-        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_versions/${modelversionId}`,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_versions/${modelVersionId}`,
         data,
         opts,
       ),
-    );
+    ).then(response => {
+      return response;
+    });
+  };
 
 export const patchModelArtifact =
   (hostPath: string) =>

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { CreateModelVersionData, ModelVersion } from '~/concepts/modelRegistry/types';
+import { CreateModelVersionData, ModelVersion, ModelState } from '~/concepts/modelRegistry/types';
 import { useModelRegistryAPI } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { bumpRegisteredModelTimestamp } from '~/concepts/modelRegistry/utils/updateTimestamps';
 
@@ -17,25 +17,15 @@ export const useModelVersionCreation = (): {
     async (
       registeredModelId: string,
       data: CreateModelVersionData,
-      opts = {},
-    ): Promise<ModelVersion> => {
-      if (!apiAvailable) {
-        throw new Error('API not yet available');
-      }
-
-      // First create the version
-      const newVersion = await api.createModelVersionForRegisteredModel(
-        opts,
-        registeredModelId,
-        data,
-      );
-
-      // Then bump the registered model's timestamp
-      await bumpRegisteredModelTimestamp(api, registeredModelId);
-
+      opts: Record<string, unknown> = {},
+    ): Promise<ModelVersion> => {      
+      const newVersion = await api.createModelVersionForRegisteredModel(opts, registeredModelId, data);
+      await api.patchRegisteredModel(opts, { state: ModelState.LIVE }, registeredModelId).then(response => {
+      });
+      
       return newVersion;
     },
-    [api, apiAvailable],
+    [api],
   );
 
   return {

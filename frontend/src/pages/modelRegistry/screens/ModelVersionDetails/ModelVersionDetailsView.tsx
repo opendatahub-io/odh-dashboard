@@ -49,9 +49,27 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
     );
   }
   const handleVersionUpdate = async (updatePromise: Promise<unknown>): Promise<void> => {
-    await updatePromise;
-    await bumpBothTimestamps(apiState.api, mv.id, mv.registeredModelId);
-    refresh();
+    try {
+      await updatePromise;
+      
+      if (!mv.registeredModelId) {
+        return;
+      }
+      
+      await bumpBothTimestamps(apiState.api, mv.id, mv.registeredModelId);
+      refresh();
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const handleArtifactUpdate = async (updatePromise: Promise<unknown>): Promise<void> => {
+    try {
+      await updatePromise;
+      await bumpBothTimestamps(apiState.api, mv.id, mv.registeredModelId);
+      refreshModelArtifacts();
+    } catch (error) {
+    }
   };
 
   return (
@@ -114,114 +132,98 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
         <Title style={{ margin: '1em 0' }} headingLevel={ContentVariants.h3}>
           Model location
         </Title>
-        {modelArtifactsLoadError ? (
-          <Alert variant="danger" isInline title={modelArtifactsLoadError.name}>
-            {modelArtifactsLoadError.message}
-          </Alert>
-        ) : (
-          <>
-            <DescriptionList>
-              {storageFields && (
-                <>
-                  <DashboardDescriptionListGroup
-                    title="Endpoint"
-                    isEmpty={modelArtifacts.size === 0 || !storageFields.endpoint}
-                    contentWhenEmpty="No endpoint"
-                  >
-                    <InlineTruncatedClipboardCopy
-                      testId="storage-endpoint"
-                      textToCopy={storageFields.endpoint}
-                    />
-                  </DashboardDescriptionListGroup>
-                  <DashboardDescriptionListGroup
-                    title="Region"
-                    isEmpty={modelArtifacts.size === 0 || !storageFields.region}
-                    contentWhenEmpty="No region"
-                  >
-                    <InlineTruncatedClipboardCopy
-                      testId="storage-region"
-                      textToCopy={storageFields.region || ''}
-                    />
-                  </DashboardDescriptionListGroup>
-                  <DashboardDescriptionListGroup
-                    title="Bucket"
-                    isEmpty={modelArtifacts.size === 0 || !storageFields.bucket}
-                    contentWhenEmpty="No bucket"
-                  >
-                    <InlineTruncatedClipboardCopy
-                      testId="storage-bucket"
-                      textToCopy={storageFields.bucket}
-                    />
-                  </DashboardDescriptionListGroup>
-                  <DashboardDescriptionListGroup
-                    title="Path"
-                    isEmpty={modelArtifacts.size === 0 || !storageFields.path}
-                    contentWhenEmpty="No path"
-                  >
-                    <InlineTruncatedClipboardCopy
-                      testId="storage-path"
-                      textToCopy={storageFields.path}
-                    />
-                  </DashboardDescriptionListGroup>
-                </>
-              )}
-              {!storageFields && (
-                <>
-                  <DashboardDescriptionListGroup
-                    title="URI"
-                    isEmpty={modelArtifacts.size === 0 || !modelArtifact?.uri}
-                    contentWhenEmpty="No URI"
-                  >
-                    <InlineTruncatedClipboardCopy
-                      testId="storage-uri"
-                      textToCopy={modelArtifact?.uri || ''}
-                    />
-                  </DashboardDescriptionListGroup>
-                </>
-              )}
-            </DescriptionList>
-            <Divider style={{ marginTop: '1em' }} />
-            <Title style={{ margin: '1em 0' }} headingLevel={ContentVariants.h3}>
-              Source model format
-            </Title>
-            <DescriptionList>
-              <EditableTextDescriptionListGroup
-                editableVariant="TextInput"
-                baseTestId="source-model-format"
-                isArchive={isArchiveVersion}
-                value={modelArtifact?.modelFormatName || ''}
-                saveEditedValue={(value) =>
-                  apiState.api
-                    .patchModelArtifact({}, { modelFormatName: value }, modelArtifact?.id || '')
-                    .then(() => {
-                      refreshModelArtifacts();
-                    })
-                }
-                title="Model Format"
-                contentWhenEmpty="No model format specified"
-              />
-              <EditableTextDescriptionListGroup
-                editableVariant="TextInput"
-                baseTestId="source-model-version"
-                value={modelArtifact?.modelFormatVersion || ''}
-                isArchive={isArchiveVersion}
-                saveEditedValue={(newVersion) =>
-                  apiState.api
-                    .patchModelArtifact(
-                      {},
-                      { modelFormatVersion: newVersion },
-                      modelArtifact?.id || '',
-                    )
-                    .then(() => {
-                      refreshModelArtifacts();
-                    })
-                }
-                title="Version"
-                contentWhenEmpty="No source model format version"
-              />
-            </DescriptionList>
-          </>
-        )}
+        <DescriptionList>
+          {storageFields && (
+            <>
+              <DashboardDescriptionListGroup
+                title="Endpoint"
+                isEmpty={modelArtifacts.size === 0 || !storageFields.endpoint}
+                contentWhenEmpty="No endpoint"
+              >
+                <InlineTruncatedClipboardCopy
+                  testId="storage-endpoint"
+                  textToCopy={storageFields.endpoint}
+                />
+              </DashboardDescriptionListGroup>
+              <DashboardDescriptionListGroup
+                title="Region"
+                isEmpty={modelArtifacts.size === 0 || !storageFields.region}
+                contentWhenEmpty="No region"
+              >
+                <InlineTruncatedClipboardCopy
+                  testId="storage-region"
+                  textToCopy={storageFields.region || ''}
+                />
+              </DashboardDescriptionListGroup>
+              <DashboardDescriptionListGroup
+                title="Bucket"
+                isEmpty={modelArtifacts.size === 0 || !storageFields.bucket}
+                contentWhenEmpty="No bucket"
+              >
+                <InlineTruncatedClipboardCopy
+                  testId="storage-bucket"
+                  textToCopy={storageFields.bucket}
+                />
+              </DashboardDescriptionListGroup>
+              <DashboardDescriptionListGroup
+                title="Path"
+                isEmpty={modelArtifacts.size === 0 || !storageFields.path}
+                contentWhenEmpty="No path"
+              >
+                <InlineTruncatedClipboardCopy
+                  testId="storage-path"
+                  textToCopy={storageFields.path}
+                />
+              </DashboardDescriptionListGroup>
+            </>
+          )}
+          {!storageFields && (
+            <>
+              <DashboardDescriptionListGroup
+                title="URI"
+                isEmpty={modelArtifacts.size === 0 || !modelArtifact?.uri}
+                contentWhenEmpty="No URI"
+              >
+                <InlineTruncatedClipboardCopy
+                  testId="storage-uri"
+                  textToCopy={modelArtifact?.uri || ''}
+                />
+              </DashboardDescriptionListGroup>
+            </>
+          )}
+        </DescriptionList>
+        <Divider style={{ marginTop: '1em' }} />
+        <Title style={{ margin: '1em 0' }} headingLevel={TextVariants.h3}>
+          Source model format
+        </Title>
+        <DescriptionList>
+          <EditableTextDescriptionListGroup
+            editableVariant="TextInput"
+            baseTestId="source-model-format"
+            isArchive={isArchiveVersion}
+            value={modelArtifact?.modelFormatName || ''}
+            saveEditedValue={(value) =>
+              handleArtifactUpdate(
+                apiState.api.patchModelArtifact({}, { modelFormatName: value }, modelArtifact?.id || '')
+              )
+            }
+            title="Model Format"
+            contentWhenEmpty="No model format specified"
+          />
+          <EditableTextDescriptionListGroup
+            editableVariant="TextInput"
+            baseTestId="source-model-version"
+            value={modelArtifact?.modelFormatVersion || ''}
+            isArchive={isArchiveVersion}
+            saveEditedValue={(newVersion) =>
+              handleArtifactUpdate(
+                apiState.api.patchModelArtifact({}, { modelFormatVersion: newVersion }, modelArtifact?.id || '')
+              )
+            }
+            title="Version"
+            contentWhenEmpty="No source model format version"
+          />
+        </DescriptionList>
         <Divider style={{ marginTop: '1em' }} />
         <DescriptionList isFillColumns style={{ marginTop: '1em' }}>
           <DashboardDescriptionListGroup
