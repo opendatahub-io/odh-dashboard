@@ -55,7 +55,7 @@ jobs:
 
           # Generate the list of spec files for this container and trim trailing comma
           SPEC_FILES=$(echo "$TEST_FILES" | tr ',' '\n' | awk -v container="$CONTAINER_INDEX" 'NR % 5 == container - 1' | sed 's|^frontend/||' | tr '\n' ',' | sed 's/,$//')
-          
+
           # Check if SPEC_FILES is empty
           if [ -z "$SPEC_FILES" ]; then
             echo "No spec files found for container $CONTAINER_INDEX. Skipping Cypress tests."
