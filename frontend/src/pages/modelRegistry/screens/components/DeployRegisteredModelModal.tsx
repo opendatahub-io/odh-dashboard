@@ -19,6 +19,7 @@ import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/M
 import { getKServeTemplates } from '~/pages/modelServing/customServingRuntimes/utils';
 import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
 import { bumpBothTimestamps } from '~/concepts/modelRegistry/utils/updateTimestamps';
+import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
 
 interface DeployRegisteredModelModalProps {
   modelVersion: ModelVersion;
@@ -48,6 +49,7 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
   const { loaded: projectDeployStatusLoaded, error: projectError } =
     useProjectErrorForRegisteredModel(selectedProject?.metadata.name, platform);
   const [dataConnections] = useDataConnections(selectedProject?.metadata.name);
+  const [connections] = useConnections(selectedProject?.metadata.name, true);
   const error = platformError || projectError;
 
   const {
@@ -143,7 +145,7 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
         servingRuntimeTemplates={getKServeTemplates(templates, templateOrder, templateDisablement)}
         shouldFormHidden={!!error}
         registeredModelDeployInfo={registeredModelDeployInfo}
-        projectContext={{ currentProject: selectedProject, dataConnections }}
+        projectContext={{ currentProject: selectedProject, dataConnections, connections }}
         projectSection={projectSection}
       />
     );
@@ -154,7 +156,7 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
       onClose={onClose}
       shouldFormHidden={!!error}
       registeredModelDeployInfo={registeredModelDeployInfo}
-      projectContext={{ currentProject: selectedProject, dataConnections }}
+      projectContext={{ currentProject: selectedProject, dataConnections, connections }}
       projectSection={projectSection}
     />
   );

@@ -72,6 +72,10 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
       registeredModelDeployInfo,
     );
 
+  const isConnectionTypesEnabled = useConnectionTypesEnabled();
+  const [connection, setConnection] = React.useState<Connection>();
+  const [isConnectionValid, setIsConnectionValid] = React.useState(false);
+
   const [connections, connectionsLoaded, connectionsLoadError] =
     usePrefillDeployModalConnectionFromModelRegistry(
       projectContext,
@@ -79,10 +83,6 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
       setCreateData,
       registeredModelDeployInfo,
     );
-
-  const isConnectionTypesEnabled = useConnectionTypesEnabled();
-  const [connection, setConnection] = React.useState<Connection>();
-  const [isConnectionValid, setIsConnectionValid] = React.useState(false);
 
   const hasEditInfo = !!editInfo;
   React.useEffect(() => {
