@@ -54,7 +54,7 @@ jobs:
           echo "Test Files: $TEST_FILES"  
 
           # Generate the list of spec files for this container and trim trailing comma
-          SPEC_FILES=$(echo "$TEST_FILES" | tr ',' '\n' | awk -v container="$CONTAINER_INDEX" 'NR % 5 == container - 1' | tr '\n' ',' | sed 's/,$//')
+          SPEC_FILES=$(echo "$TEST_FILES" | tr ',' '\n' | awk -v container="$CONTAINER_INDEX" 'NR % 5 == container - 1' | tr '\n' ',')
           
           # Check if SPEC_FILES is empty
           if [ -z "$SPEC_FILES" ]; then
@@ -62,5 +62,5 @@ jobs:
             exit 0
           else
             echo "Spec files for this container-  $SPEC_FILES"
-            cd ./frontend && SPEC_FILES="../$SPEC_FILES" npm run test:cypress-ci
+            cd ./frontend && CYPRESS_SPEC_PATTERN="$SPEC_FILES" npm run test:cypress-ci
           fi
