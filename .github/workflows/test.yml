@@ -54,7 +54,7 @@ jobs:
           echo "Test Files: $TEST_FILES"  
 
           # Generate the list of spec files for this container and trim trailing comma
-          SPEC_FILES=$(echo "$TEST_FILES" | tr ',' '\n' | awk -v container="$CONTAINER_INDEX" 'NR % 5 == container - 1' | tr '\n' ',')
+          cd ./frontend && SPEC_FILES=$(echo "$TEST_FILES" | tr ',' '\n' | awk -v container="$CONTAINER_INDEX" 'NR % 5 == container - 1' | sed 's|^frontend/||' | tr '\n' ',' | sed 's/,$//')
           
           # Check if SPEC_FILES is empty
           if [ -z "$SPEC_FILES" ]; then
