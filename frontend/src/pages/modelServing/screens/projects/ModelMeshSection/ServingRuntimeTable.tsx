@@ -27,6 +27,7 @@ const ServingRuntimeTable: React.FC = () => {
     servingRuntimes: { data: modelServers, refresh: refreshServingRuntime },
     serverSecrets: { refresh: refreshTokens },
     dataConnections: { data: dataConnections, refresh: refreshDataConnections },
+    connections: { data: connections, refresh: refreshConnections },
     inferenceServices: { data: inferenceServices, refresh: refreshInferenceServices },
     filterTokens,
     currentProject,
@@ -99,6 +100,7 @@ const ServingRuntimeTable: React.FC = () => {
             if (submit) {
               refreshInferenceServices();
               refreshDataConnections();
+              refreshConnections();
               setExpandedServingRuntimeName(deployServingRuntime.metadata.name);
             }
             fireFormTrackingEvent('Model Deployed', {
@@ -110,6 +112,7 @@ const ServingRuntimeTable: React.FC = () => {
             currentProject,
             currentServingRuntime: deployServingRuntime,
             dataConnections,
+            connections,
           }}
         />
       )}

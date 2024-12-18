@@ -27,6 +27,7 @@ const ServeModelButton: React.FC = () => {
     servingRuntimeTemplateOrder: { data: templateOrder },
     servingRuntimeTemplateDisablement: { data: templateDisablement },
     dataConnections: { data: dataConnections },
+    connections: { data: connections },
   } = React.useContext(ModelServingContext);
   const { projects } = React.useContext(ProjectsContext);
   const { namespace } = useParams<{ namespace: string }>();
@@ -80,6 +81,7 @@ const ServeModelButton: React.FC = () => {
           projectContext={{
             currentProject: project,
             dataConnections,
+            connections,
           }}
           onClose={(submit: boolean) => {
             onSubmit(submit);
@@ -97,6 +99,7 @@ const ServeModelButton: React.FC = () => {
             projectContext={{
               currentProject: project,
               dataConnections,
+              connections,
             }}
             servingRuntimeTemplates={templatesEnabled.filter((template) =>
               getTemplateEnabledForPlatform(template, ServingRuntimePlatform.SINGLE),

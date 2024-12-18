@@ -6,6 +6,7 @@ import {
   FlexItem,
   FormGroup,
   FormSection,
+  Label,
   Popover,
   Radio,
   Skeleton,
@@ -71,32 +72,48 @@ const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = ({
 }) => {
   const options: TypeaheadSelectOption[] = React.useMemo(
     () =>
-      projectConnections.map((connection) => ({
-        content: getDisplayNameFromK8sResource(connection.connection),
-        value: getResourceNameFromK8sResource(connection.connection),
-        description: (
-          <Flex direction={{ default: 'column' }} rowGap={{ default: 'rowGapNone' }}>
-            {getDescriptionFromK8sResource(connection.connection) && (
+      projectConnections.map((connection) => {
+        const { isRecommended } = connection; // Assuming `isRecommended` is part of each connection
+        const displayName = getDisplayNameFromK8sResource(connection.connection);
+
+        return {
+          content: displayName,
+          value: getResourceNameFromK8sResource(connection.connection),
+          dropdownLabel: (
+            <>
+              {isRecommended && (
+                <Label color="blue" isCompact>
+                  Recommended
+                </Label>
+              )}
+            </>
+          ),
+          description: (
+            <Flex direction={{ default: 'column' }} rowGap={{ default: 'rowGapNone' }}>
+              {getDescriptionFromK8sResource(connection.connection) && (
+                <FlexItem>
+                  <Truncate content={getDescriptionFromK8sResource(connection.connection)} />
+                </FlexItem>
+              )}
               <FlexItem>
-                <Truncate content={getDescriptionFromK8sResource(connection.connection)} />
+                <Truncate
+                  content={`Type: ${
+                    getConnectionTypeDisplayName(connection.connection, connectionTypes) ||
+                    'Unknown'
+                  }`}
+                />
               </FlexItem>
-            )}
-            <FlexItem>
-              <Truncate
-                content={`Type: ${
-                  getConnectionTypeDisplayName(connection.connection, connectionTypes) || 'Unknown'
-                }`}
-              />
-            </FlexItem>
-          </Flex>
-        ),
-        isSelected:
-          !!selectedConnection &&
-          getResourceNameFromK8sResource(connection.connection) ===
-            getResourceNameFromK8sResource(selectedConnection),
-      })),
+            </Flex>
+          ),
+          isSelected:
+            !!selectedConnection &&
+            getResourceNameFromK8sResource(connection.connection) ===
+              getResourceNameFromK8sResource(selectedConnection),
+        };
+      }),
     [connectionTypes, projectConnections, selectedConnection],
   );
+
   const selectedConnectionType = React.useMemo(
     () =>
       connectionTypes.find(
@@ -114,19 +131,21 @@ const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = ({
 
   return (
     <>
-      <Popover
-        aria-label="Hoverable popover"
-        bodyContent="This list includes only connections that are compatible with model serving."
-      >
-        <Button
-          style={{ paddingLeft: 0 }}
-          icon={<OutlinedQuestionCircleIcon />}
-          variant="link"
-          disabled
+      {projectConnections.length !== 0 && (
+        <Popover
+          aria-label="Hoverable popover"
+          bodyContent="This list includes only connections that are compatible with model serving."
         >
-          Not seeing what you&apos;re looking for?
-        </Button>
-      </Popover>
+          <Button
+            style={{ paddingLeft: 0 }}
+            icon={<OutlinedQuestionCircleIcon />}
+            variant="link"
+            disabled
+          >
+            Not seeing what you&apos;re looking for?
+          </Button>
+        </Popover>
+      )}
       <FormGroup label="Connection" isRequired className="pf-v6-u-mb-lg">
         <TypeaheadSelect
           selectOptions={options}
@@ -273,9 +292,9 @@ type Props = {
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
   setConnection: (connection?: Connection) => void;
   setIsConnectionValid: (isValid: boolean) => void;
-  loaded: boolean;
-  loadError: Error | undefined;
-  connections: LabeledConnection[];
+  loaded?: boolean;
+  loadError?: Error | undefined;
+  connections?: LabeledConnection[];
 };
 
 export const ConnectionSection: React.FC<Props> = ({
@@ -344,21 +363,23 @@ export const ConnectionSection: React.FC<Props> = ({
           (!loaded && data.project !== '' ? (
             <Skeleton />
           ) : (
-            <ExistingConnectionField
-              connectionTypes={connectionTypes}
-              projectConnections={connections}
-              selectedConnection={selectedConnection}
-              onSelect={(selection) => {
-                setConnection(selection);
-                setData('storage', {
-                  ...data.storage,
-                  dataConnection: getResourceNameFromK8sResource(selection),
-                });
-              }}
-              folderPath={data.storage.path}
-              setFolderPath={(path) => setData('storage', { ...data.storage, path })}
-              setIsConnectionValid={setIsConnectionValid}
-            />
+            connections && (
+              <ExistingConnectionField
+                connectionTypes={connectionTypes}
+                projectConnections={connections}
+                selectedConnection={selectedConnection}
+                onSelect={(selection) => {
+                  setConnection(selection);
+                  setData('storage', {
+                    ...data.storage,
+                    dataConnection: getResourceNameFromK8sResource(selection),
+                  });
+                }}
+                folderPath={data.storage.path}
+                setFolderPath={(path) => setData('storage', { ...data.storage, path })}
+                setIsConnectionValid={setIsConnectionValid}
+              />
+            )
           ))
         }
       />

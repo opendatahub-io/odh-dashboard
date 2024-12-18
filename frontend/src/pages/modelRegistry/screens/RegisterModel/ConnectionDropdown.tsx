@@ -26,7 +26,7 @@ export const ConnectionDropdown = ({
   selectedConnection,
 }: ConnectionDropdownProps): React.JSX.Element => {
   const [isOpen, setIsOpen] = React.useState(false);
-  const [connections, connectionsLoaded, connectionsLoadError] = useConnections(project);
+  const [connections, connectionsLoaded, connectionsLoadError] = useConnections(project, true);
 
   const onToggle = () => {
     setIsOpen(!isOpen);
