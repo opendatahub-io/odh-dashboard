@@ -7,7 +7,6 @@ export const SpawnerPageSectionTitles: SpawnerPageSectionTitlesType = {
   [SpawnerPageSectionID.DEPLOYMENT_SIZE]: 'Deployment size',
   [SpawnerPageSectionID.ENVIRONMENT_VARIABLES]: 'Environment variables',
   [SpawnerPageSectionID.CLUSTER_STORAGE]: 'Cluster storage',
-  [SpawnerPageSectionID.DATA_CONNECTIONS]: 'Data connections',
   [SpawnerPageSectionID.CONNECTIONS]: 'Connections',
 };
 

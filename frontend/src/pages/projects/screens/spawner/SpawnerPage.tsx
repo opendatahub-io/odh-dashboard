@@ -44,7 +44,6 @@ import ContainerSizeSelector from './deploymentSize/ContainerSizeSelector';
 import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
 import { getCompatibleAcceleratorIdentifiers } from './spawnerUtils';
 import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
-import DataConnectionField from './dataConnection/DataConnectionField';
 import { useNotebookDataConnection } from './dataConnection/useNotebookDataConnection';
 import { useNotebookSizeState } from './useNotebookSizeState';
 import useDefaultStorageClass from './storage/useDefaultStorageClass';
@@ -58,6 +57,7 @@ import { defaultClusterStorage } from './storage/constants';
 import { ClusterStorageEmptyState } from './storage/ClusterStorageEmptyState';
 import AttachExistingStorageModal from './storage/AttachExistingStorageModal';
 import WorkbenchStorageModal from './storage/WorkbenchStorageModal';
+import DataConnectionField from './dataConnection/DataConnectionField';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
@@ -323,6 +323,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                 <ClusterStorageEmptyState />
               )}
             </FormSection>
+
             {isConnectionTypesEnabled ? (
               <ConnectionsFormSection
                 project={currentProject}
@@ -334,11 +335,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                 setSelectedConnections={setNotebookConnections}
               />
             ) : (
-              <FormSection
-                title={SpawnerPageSectionTitles[SpawnerPageSectionID.DATA_CONNECTIONS]}
-                id={SpawnerPageSectionID.DATA_CONNECTIONS}
-                aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.DATA_CONNECTIONS]}
-              >
+              <FormSection title="Data connections">
                 <DataConnectionField
                   dataConnectionData={dataConnectionData}
                   setDataConnectionData={setDataConnectionData}
