@@ -200,6 +200,7 @@ const TableBase = <T,>({
         stickyLeftOffset={col.stickyLeftOffset}
         hasRightBorder={col.hasRightBorder}
         modifier={col.modifier}
+        visibility={col.visibility}
         className={col.className}
       >
         {col.label}

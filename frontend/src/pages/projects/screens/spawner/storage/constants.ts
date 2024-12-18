@@ -7,7 +7,7 @@ export const clusterStorageTableColumns: SortableData<StorageData>[] = [
     label: 'ID',
     field: 'id',
     sortable: false,
-    className: 'pf-v6-u-hidden',
+    visibility: ['hidden'],
   },
   {
     label: 'Name',
