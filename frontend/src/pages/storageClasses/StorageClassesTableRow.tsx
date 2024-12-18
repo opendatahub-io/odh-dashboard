@@ -191,7 +191,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
               <DashboardPopupIconButton
                 icon={<OutlinedQuestionCircleIcon />}
                 aria-label="Storage class info popover"
-                hasNoPadding
+                style={{ paddingBlock: 0 }}
               />
             </Popover>
           </FlexItem>
