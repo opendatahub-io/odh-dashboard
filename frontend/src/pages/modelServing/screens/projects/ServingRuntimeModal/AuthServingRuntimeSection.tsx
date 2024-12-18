@@ -20,6 +20,7 @@ type AuthServingRuntimeSectionProps<D extends CreatingModelServingObjectCommon> 
   setData: UpdateObjectAtPropAndValue<D>;
   allowCreate: boolean;
   publicRoute?: boolean;
+  showModelRoute?: boolean;
 };
 
 const AuthServingRuntimeSection = <D extends CreatingModelServingObjectCommon>({
@@ -27,6 +28,7 @@ const AuthServingRuntimeSection = <D extends CreatingModelServingObjectCommon>({
   setData,
   allowCreate,
   publicRoute,
+  showModelRoute = true,
 }: AuthServingRuntimeSectionProps<D>): React.ReactNode => {
   const createNewToken = React.useCallback(() => {
     const name = 'default-name';
@@ -85,14 +87,16 @@ const AuthServingRuntimeSection = <D extends CreatingModelServingObjectCommon>({
           </FormGroup>
         </StackItem>
       )}
-      <StackItem>
-        <ServingRuntimeTokenSection
-          data={data}
-          setData={setData}
-          allowCreate={allowCreate}
-          createNewToken={createNewToken}
-        />
-      </StackItem>
+      {showModelRoute && (
+        <StackItem>
+          <ServingRuntimeTokenSection
+            data={data}
+            setData={setData}
+            allowCreate={allowCreate}
+            createNewToken={createNewToken}
+          />
+        </StackItem>
+      )}
       {((publicRoute && data.externalRoute && !data.tokenAuth) ||
         (!publicRoute && !data.tokenAuth)) && (
         <StackItem>
@@ -104,6 +108,21 @@ const AuthServingRuntimeSection = <D extends CreatingModelServingObjectCommon>({
             title="Making models available by external routes without requiring authorization can lead to security vulnerabilities."
           />
         </StackItem>
+      )}
+      {publicRoute && data.externalRoute && !showModelRoute && (
+        <Alert
+          isInline
+          variant="warning"
+          title="Token authentication prerequisite not installed"
+          data-testid="token-authentication-prerequisite-alert"
+        >
+          <p>
+            Making models available through external routes without requiring token authentication
+            can lead to unauthorized access of your model. To enable token authentication, you must
+            first request that your cluster administrator install the Authorino operator on your
+            cluster.
+          </p>
+        </Alert>
       )}
     </Stack>
   );

@@ -912,6 +912,28 @@ describe('Serving Runtime List', () => {
       kserveModal.findAuthenticationCheckbox().should('not.exist');
     });
 
+    it('show warning alert on modal, when authorino operator is not installed/enabled', () => {
+      initIntercepts({
+        disableModelMeshConfig: false,
+        disableKServeConfig: false,
+        disableKServeAuthConfig: false,
+        servingRuntimes: [],
+        projectEnableModelMesh: false,
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+
+      modelServingSection.findDeployModelButton().click();
+
+      kserveModal.shouldBeOpen();
+      kserveModal.findAuthorinoNotEnabledAlert().should('exist');
+      kserveModal.findModelRouteCheckbox().should('not.be.checked');
+      kserveModal.findModelRouteCheckbox().check();
+      kserveModal.findTokenAuthAlert().should('exist');
+      kserveModal.findModelRouteCheckbox().uncheck();
+      kserveModal.findTokenAuthAlert().should('not.exist');
+    });
+
     it('Kserve auth should be hidden when no required capabilities', () => {
       initIntercepts({
         disableModelMeshConfig: false,
