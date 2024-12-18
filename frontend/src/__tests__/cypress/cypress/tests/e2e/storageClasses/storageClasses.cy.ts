@@ -51,47 +51,53 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
   });
 
   it('An admin user can disable an enabled Storage Class', () => {
+    cy.step('Navigate to Storage Classes view');
     cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
     storageClassesPage.navigate();
+
     const scEnabledName = `${scName}-enabled-non-default`;
-    // SC row exist
+
+    cy.step('Check SC row exist');
     storageClassesTable.findRowByName(scEnabledName).should('be.visible');
     const scEnabledRow = storageClassesTable.getRowByConfigName(scEnabledName);
-    // There's no Default label
+    cy.step("Check there's no Default label");
     scEnabledRow.findOpenshiftDefaultLabel().should('not.exist');
-    // The Enable switch is set to enabled
+    cy.step('Check the Enable switch is set to enabled');
     scEnabledRow.findEnableSwitchInput().should('have.attr', 'aria-checked', 'true');
-    // The Default radio button is enabled but not checked
+    cy.step('Check the Default radio button is enabled but not checked');
     scEnabledRow.findDefaultRadioInput().should('be.enabled');
     scEnabledRow.findDefaultRadioInput().should('not.have.attr', 'checked');
 
-    // Enable the SC
+    cy.step('Enable the Storage Class');
     scEnabledRow.findEnableSwitchInput().click({ force: true });
 
-    // The Enable switch is set to disabled
+    cy.step('Check the Enable switch is set to disabled');
     scEnabledRow.findEnableSwitchInput().should('have.attr', 'aria-checked', 'false');
-    // The Default radio button is disabled
+    cy.step('Check the Default radio button is disabled');
     scEnabledRow.findDefaultRadioInput().should('be.disabled');
     verifyStorageClassConfig(scEnabledName, false, false);
   });
 
   it('An admin user can set an enabled Storage Class as the default one', () => {
+    cy.step('Navigate to Storage Classes view');
     cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
     storageClassesPage.navigate();
+
     const scToDefaultName = `${scName}-enabled-to-default`;
     const scToDefaultRow = storageClassesTable.getRowByConfigName(scToDefaultName);
-    // There's no Default label
+
+    cy.step("Check there's no Default label");
     scToDefaultRow.findOpenshiftDefaultLabel().should('not.exist');
-    // The Default radio button is enabled but not checked
+    cy.step('Check the Default radio button is enabled but not checked');
     scToDefaultRow.findDefaultRadioInput().should('be.enabled');
     scToDefaultRow.findDefaultRadioInput().should('not.have.attr', 'checked');
 
-    // Set the SC to be the default one
+    cy.step('Set the SC to be the default one');
     scToDefaultRow.findDefaultRadioInput().click();
 
-    // The Default radio button is enabled
+    cy.step('Check the Default radio button is enabled');
     scToDefaultRow.findDefaultRadioInput().should('be.enabled');
-    // The Enable switch is disabled
+    cy.step('Check the Enable switch is disabled');
     scToDefaultRow.findEnableSwitchInput().should('be.disabled');
     verifyStorageClassConfig(scToDefaultName, true, true);
   });
