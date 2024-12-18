@@ -24,23 +24,23 @@ const testRunName = 'test-pipelines-run';
 
 describe('An admin user can import and run a pipeline', { testIsolation: false }, () => {
   before(() => {
-    // Create a Project for pipelines
     provisionProjectForPipelines(projectName, dspaSecretName);
+    const pipConfig = Cypress.env('PIP_CONFIG');
+    //Create Pipelines ConfigMap With Custom Pip Index Url And Trusted Host
+    createOpenShiftConfigMap('ds-pipeline-custom-env-vars', projectName, {
+      // The following lines should be snake case
+      /* eslint-disable-next-line camelcase */
+      pip_index_url: pipConfig.PIP_INDEX_URL,
+      /* eslint-disable-next-line camelcase */
+      pip_trusted_host: pipConfig.PIP_TRUSTED_HOST,
+    });
   });
 
   after(() => {
-    // Delete provisioned Project
     deleteOpenShiftProject(projectName);
   });
 
   it('Verify User Can Create, Run and Delete A DS Pipeline From DS Project Details Page Using Custom Pip Mirror', () => {
-    cy.step('Create Pipelines ConfigMap With Custom Pip Index Url And Trusted Host ');
-    const pipConfig = Cypress.env('PIP_CONFIG');
-    createOpenShiftConfigMap('ds-pipeline-custom-env-vars', projectName, {
-      pip_index_url: pipConfig.PIP_INDEX_URL,
-      pip_trusted_host: pipConfig.PIP_TRUSTED_HOST,
-    });
-
     cy.step(`Navigate to DSP ${projectName}`);
     cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
     projectListPage.navigate();
@@ -102,7 +102,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
       pipelineDeleteModal.findInput().fill(testPipelineIrisName);
       pipelineDeleteModal.findSubmitButton().click();
       // The line below it's not working due to a bug
-      // pipelineDeleteModal.shouldBeOpen(false)
+      // pipelineDeleteModal.shouldBeOpen(false);
       cy.get('[role=dialog]').should('not.exist');
 
       cy.step('Verify that the pipeline version no longer exist');

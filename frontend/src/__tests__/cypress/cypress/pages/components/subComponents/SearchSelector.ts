@@ -44,8 +44,8 @@ export class SearchSelector extends SubComponentBase {
 
   // Perform the entire process: open, search, and select
   openAndSelectItem(name: string): void {
-    this.findToggleButton().click(); // Open the dropdown
-    this.searchItem(name); // Type the name in the search input
-    this.selectItem(name); // Select the item
+    this.findToggleButton().click();
+    this.searchItem(name);
+    this.selectItem(name);
   }
 }

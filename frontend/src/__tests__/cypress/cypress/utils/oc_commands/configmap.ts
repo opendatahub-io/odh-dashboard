@@ -1,4 +1,4 @@
-import type { CommandLineResult, DashboardConfig } from '~/__tests__/cypress/cypress/types';
+import type { CommandLineResult } from '~/__tests__/cypress/cypress/types';
 
 /**
  * Create an OpenShift ConfigMap
@@ -17,12 +17,10 @@ export const createOpenShiftConfigMap = (
   namespace: string,
   keyValues: Record<string, string>, // Object of key-value pairs
 ): Cypress.Chainable<CommandLineResult> => {
-  // Construct the `--from-literal` arguments dynamically
+  // Build the `--from-literal` arguments dynamically
   const literals = Object.entries(keyValues)
     .map(([key, value]) => `--from-literal=${key}=${value}`)
     .join(' ');
-
-  // Construct the `oc create configmap` command
   const ocCommand = `oc create configmap ${configMapName} -n ${namespace} ${literals}`;
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
