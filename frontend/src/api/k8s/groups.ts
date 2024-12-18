@@ -26,9 +26,12 @@ export const useGroups = (): CustomWatchK8sResult<GroupKind[]> => {
   const [groupData, loaded, error] = useK8sWatchResourceList<GroupKind[]>(initResource, GroupModel);
 
   return React.useMemo(() => {
+    if (!accessReviewLoaded) {
+      return [[], false, undefined];
+    }
     if (!allowList) {
       return [[], true, undefined];
     }
     return [groupData, loaded, error];
-  }, [error, groupData, loaded, allowList]);
+  }, [accessReviewLoaded, allowList, groupData, loaded, error]);
 };

@@ -48,3 +48,10 @@ export const NIMAccountModel: K8sModelCommon = {
   kind: 'Account',
   plural: 'accounts',
 };
+
+export const AuthModel: K8sModelCommon = {
+  apiVersion: 'v1alpha1',
+  apiGroup: 'services.platform.opendatahub.io',
+  kind: 'Auth',
+  plural: 'auths',
+};

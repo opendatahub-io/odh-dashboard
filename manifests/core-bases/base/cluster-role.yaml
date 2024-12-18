@@ -219,3 +219,9 @@ rules:
       - ''
     resources:
       - endpoints
+  - verbs:
+      - get
+    apiGroups:
+      - 'services.platform.opendatahub.io'
+    resources:
+      - auths

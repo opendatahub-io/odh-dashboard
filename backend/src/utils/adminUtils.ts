@@ -7,6 +7,7 @@ import { KubeFastifyInstance, ResourceAccessReviewResponse } from '../types';
 import { getAdminGroups, getAllGroupsByUser, getAllowedGroups, getGroup } from './groupsUtils';
 import { flatten, uniq } from 'lodash';
 import { getNamespaces } from '../utils/notebookUtils';
+import { getAuth } from './resourceUtils';
 
 const SYSTEM_AUTHENTICATED = 'system:authenticated';
 /** Usernames with invalid characters can start with `b64:` to keep their unwanted characters */
@@ -24,6 +25,12 @@ const getGroupUserList = async (
 };
 
 export const getAdminUserList = async (fastify: KubeFastifyInstance): Promise<string[]> => {
+  const auth = getAuth();
+  if (auth) {
+    return getGroupUserList(fastify, auth.spec.adminGroups);
+  }
+
+  // FIXME: see RHOAIENG-16988
   const adminGroups = getAdminGroups();
   const adminGroupsList = adminGroups
     .split(',')
@@ -61,6 +68,12 @@ export const getClusterAdminUserList = async (fastify: KubeFastifyInstance): Pro
 };
 
 export const getAllowedUserList = async (fastify: KubeFastifyInstance): Promise<string[]> => {
+  const auth = getAuth();
+  if (auth) {
+    return getGroupUserList(fastify, auth.spec.allowedGroups);
+  }
+
+  // FIXME: see RHOAIENG-16988
   const allowedGroups = getAllowedGroups();
   const allowedGroupList = allowedGroups
     .split(',')
@@ -74,8 +87,16 @@ export const getGroupsConfig = async (
   username: string,
 ): Promise<boolean> => {
   try {
-    const adminGroups = getAdminGroups();
-    const adminGroupsList = adminGroups.split(',');
+    const auth = getAuth();
+
+    let adminGroupsList: string[];
+    if (auth) {
+      adminGroupsList = auth.spec.adminGroups;
+    } else {
+      // FIXME: see RHOAIENG-16988
+      const adminGroups = getAdminGroups();
+      adminGroupsList = adminGroups.split(',');
+    }
 
     if (adminGroupsList.includes(SYSTEM_AUTHENTICATED)) {
       throw new Error('It is not allowed to set system:authenticated as admin group.');
@@ -102,8 +123,17 @@ export const isUserAllowed = async (
   username: string,
 ): Promise<boolean> => {
   try {
-    const allowedGroups = getAllowedGroups();
-    const allowedGroupsList = allowedGroups.split(',');
+    const auth = getAuth();
+
+    let allowedGroupsList: string[];
+    if (auth) {
+      allowedGroupsList = auth.spec.allowedGroups;
+    } else {
+      // FIXME: see RHOAIENG-16988
+      const allowedGroups = getAllowedGroups();
+      allowedGroupsList = allowedGroups.split(',');
+    }
+
     if (allowedGroupsList.includes(SYSTEM_AUTHENTICATED)) {
       return true;
     } else {

@@ -15,6 +15,7 @@ export class MissingGroupError extends Error {
   }
 }
 
+/** @deprecated - see RHOAIENG-16988 */
 export const getGroupsCR = (): GroupsConfigBody => {
   if (getDashboardConfig().spec.groupsConfig) {
     return getDashboardConfig().spec.groupsConfig;
@@ -22,6 +23,7 @@ export const getGroupsCR = (): GroupsConfigBody => {
   throw new Error(`Failed to retrieve Dashboard CR groups configuration`);
 };
 
+/** @deprecated - see RHOAIENG-16988 */
 export const updateGroupsCR = async (
   fastify: KubeFastifyInstance,
   groupsConfigBody: GroupsConfigBody,
@@ -38,6 +40,7 @@ export const updateGroupsCR = async (
   }
 };
 
+/** @deprecated - see RHOAIENG-16988 */
 export const getAdminGroups = (): string => {
   try {
     return getGroupsCR().adminGroups;
@@ -46,6 +49,7 @@ export const getAdminGroups = (): string => {
   }
 };
 
+/** @deprecated - see RHOAIENG-16988 */
 export const getAllowedGroups = (): string => {
   try {
     return getGroupsCR().allowedGroups;
@@ -71,6 +75,7 @@ export const getGroup = async (
   }
 };
 
+/** @deprecated - see RHOAIENG-16988 */
 export const getAllGroups = async (customObjectsApi: CustomObjectsApi): Promise<string[]> => {
   try {
     const adminGroupResponse = await customObjectsApi.listClusterCustomObject(

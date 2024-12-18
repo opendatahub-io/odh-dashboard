@@ -24,7 +24,7 @@ import type {
 
 import type { StartNotebookData } from '~/pages/projects/types';
 import type { AllowedUser } from '~/pages/notebookController/screens/admin/types';
-import type { GroupsConfig } from '~/pages/groupSettings/groupTypes';
+import type { GroupsConfig } from '~/concepts/userConfigs/groupTypes';
 import type { StatusResponse } from '~/redux/types';
 import type {
   BYONImage,

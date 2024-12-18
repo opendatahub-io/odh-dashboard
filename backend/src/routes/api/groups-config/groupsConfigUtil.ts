@@ -1,3 +1,9 @@
+/**
+ * @fileOverview
+ * @deprecated
+ * The Whole file is deprecated. The exposed functions of the module are deprecated to help.
+ * We are moving to direct k8s auth control and doing away with the OdhDashboardConfig group info.
+ */
 import { FastifyRequest } from 'fastify';
 import createError from 'http-errors';
 import {
@@ -13,6 +19,7 @@ import { isUserAdmin } from '../../../utils/adminUtils';
 
 const SYSTEM_AUTHENTICATED = 'system:authenticated';
 
+/** @deprecated - see RHOAIENG-16988 */
 export const getGroupsConfig = async (fastify: KubeFastifyInstance): Promise<GroupsConfig> => {
   const { customObjectsApi } = fastify.kube;
 
@@ -27,6 +34,7 @@ export const getGroupsConfig = async (fastify: KubeFastifyInstance): Promise<Gro
 const transformGroupsConfig = (groupStatus: GroupStatus[]): string[] =>
   groupStatus.filter((group) => group.enabled).map((group) => group.name);
 
+/** @deprecated - see RHOAIENG-16988 */
 export const updateGroupsConfig = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest<{ Body: GroupsConfig }>,
@@ -151,6 +159,7 @@ const getError = (
 };
 
 /**
+ * @deprecated - see RHOAIENG-16988
  * Check if any selected groups has been deleted and update the configuration if so
  * @param fastify Fastify instance
  * @param groupsData Custom Resource Data for group configuration
