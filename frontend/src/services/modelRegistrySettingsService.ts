@@ -42,7 +42,7 @@ export const getModelRegistryBackend = (
 
 export const updateModelRegistryBackend = (
   modelRegistryName: string,
-  patch: RecursivePartial<ModelRegistryKind>,
+  patch: RecursivePartial<ModelRegistryAndDBPassword>,
 ): Promise<ModelRegistryAndDBPassword> =>
   axios
     .patch(`${registriesUrl}/${modelRegistryName}`, patch)
