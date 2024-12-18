@@ -155,11 +155,11 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
           setEnableOpen(true);
         }}
       >
-        here
+        here.
       </Button>
       {!isInternalRouteIntegrationsApp(odhApp.spec.internalRoute) ? (
         <>
-          . To remove card click&nbsp;
+          To remove card click&nbsp;
           <Button
             isInline
             variant="link"
