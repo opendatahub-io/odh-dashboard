@@ -1,7 +1,7 @@
 import React from 'react';
 import { TextInput } from '@patternfly/react-core';
-import { TypeaheadSelect, TypeaheadSelectOption } from '@patternfly/react-templates';
 import { RegisteredModel } from '~/concepts/modelRegistry/types';
+import TypeaheadSelect, { TypeaheadSelectOption } from '~/components/TypeaheadSelect';
 
 type RegisteredModelSelectorProps = {
   registeredModels: RegisteredModel[];
@@ -49,7 +49,7 @@ const RegisteredModelSelector: React.FC<RegisteredModelSelectorProps> = ({
     <TypeaheadSelect
       id="model-name"
       onClearSelection={() => setRegisteredModelId('')}
-      initialOptions={options}
+      selectOptions={options}
       placeholder="Select a registered model"
       noOptionsFoundMessage={(filter) => `No results found for "${filter}"`}
       onSelect={(_event, selection) => {

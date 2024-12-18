@@ -34,7 +34,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
   const [defaultSc] = useDefaultStorageClass();
 
   const enabledStorageClasses = storageClasses
-    // .filter((sc) => getStorageClassConfig(sc)?.isEnabled === true)
+    .filter((sc) => getStorageClassConfig(sc)?.isEnabled === true)
     .toSorted((a, b) => {
       const aConfig = getStorageClassConfig(a);
       const bConfig = getStorageClassConfig(b);

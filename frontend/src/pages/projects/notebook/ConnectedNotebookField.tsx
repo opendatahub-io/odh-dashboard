@@ -89,6 +89,7 @@ const ConnectedNotebookField: React.FC<SelectNotebookFieldProps> = ({
             id: 'notebook-search-input',
           }}
           data-testid="notebook-search-select"
+          isRequired={false}
         />
       )}
       <FormHelperText>
