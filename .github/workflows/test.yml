@@ -53,7 +53,7 @@ jobs:
           echo "Running Cypress tests for container $CONTAINER_INDEX..."
           echo "Test Files: $TEST_FILES"  
 
-         # Generate the list of spec files for this container and trim trailing comma
+          # Generate the list of spec files for this container and trim trailing comma
           SPEC_FILES=$(echo "$TEST_FILES" | tr ',' '\n' | awk -v container="$CONTAINER_INDEX" 'NR % 5 == container - 1' | tr '\n' ',' | sed 's/,$//')
           
           # Check if SPEC_FILES is empty
@@ -64,9 +64,3 @@ jobs:
             echo "Spec files for this container-  $SPEC_FILES"
             cd ./frontend && npm run test:cypress-ci -- --headless --no-sandbox --spec "$SPEC_FILES"
           fi
-      - uses: actions/upload-artifact@v4   
-        if: ${{ always() }}
-        with:
-          name: cypress-results-${{ strategy.job-index }}
-          path: ./frontend/src/__tests__/cypress/results/
-          overwrite: true
