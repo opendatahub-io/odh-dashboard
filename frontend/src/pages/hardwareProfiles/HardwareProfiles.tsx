@@ -14,13 +14,14 @@ import { PlusCircleIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { useDashboardNamespace } from '~/redux/selectors';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
+import HardwareProfilesTable from '~/pages/hardwareProfiles/HardwareProfilesTable';
 import useHardwareProfiles from './useHardwareProfiles';
 
 const description = `Manage hardware profile settings for users in your organization.`;
 
 const HardwareProfiles: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
-  const [hardwareProfiles, loaded, loadError] = useHardwareProfiles(dashboardNamespace);
+  const [hardwareProfiles, loaded, loadError, refresh] = useHardwareProfiles(dashboardNamespace);
 
   const isEmpty = hardwareProfiles.length === 0;
 
@@ -67,7 +68,10 @@ const HardwareProfiles: React.FC = () => {
       emptyStatePage={noHardwareProfilePageSection}
       provideChildrenPadding
     >
-      {/* Todo: Create hardware table */}
+      <HardwareProfilesTable
+        hardwareProfiles={hardwareProfiles}
+        refreshHardwareProfiles={refresh}
+      />
     </ApplicationsPage>
   );
 };

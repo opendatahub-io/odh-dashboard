@@ -246,7 +246,7 @@ const patchModelRegistry = async (
     dryRun ? 'All' : undefined,
     undefined,
     undefined,
-    { headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_PATCH } },
+    { headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH } },
     // patchNamespacedCustomObject doesn't support TS generics and returns body as `object`, so we assert its real type
   ) as Promise<{ body: ModelRegistryKind }>);
   return response.body;
@@ -279,6 +279,9 @@ const updateDatabasePassword = async (
       },
       undefined,
       dryRun ? 'All' : undefined,
+      undefined,
+      undefined,
+      { headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH } },
     );
   } else {
     await deleteDatabasePasswordSecret(fastify, modelRegistry, modelRegistryNamespace);

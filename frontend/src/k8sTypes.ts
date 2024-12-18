@@ -1239,6 +1239,7 @@ export type AcceleratorProfileKind = K8sResourceCommon & {
 export type HardwareProfileKind = K8sResourceCommon & {
   metadata: {
     name: string;
+    namespace: string;
   };
   spec: {
     displayName: string;

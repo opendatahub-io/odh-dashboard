@@ -4,6 +4,7 @@ import {
   k8sDeleteResource,
   k8sGetResource,
   k8sListResource,
+  k8sPatchResource,
   K8sStatus,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
@@ -71,6 +72,29 @@ export const updateHardwareProfile = (
     applyK8sAPIOptions({ model: HardwareProfileModel, resource: hardwareProfileResource }, opts),
   );
 };
+
+export const toggleHardwareProfileEnablement = (
+  name: string,
+  namespace: string,
+  enabled: boolean,
+  opts?: K8sAPIOptions,
+): Promise<HardwareProfileKind> =>
+  k8sPatchResource<HardwareProfileKind>(
+    applyK8sAPIOptions(
+      {
+        model: HardwareProfileModel,
+        queryOptions: { name, ns: namespace },
+        patches: [
+          {
+            op: 'replace',
+            path: '/spec/enabled',
+            value: enabled,
+          },
+        ],
+      },
+      opts,
+    ),
+  );
 
 export const deleteHardwareProfile = (
   hardwareProfileName: string,
