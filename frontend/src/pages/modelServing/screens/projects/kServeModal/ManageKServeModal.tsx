@@ -57,6 +57,7 @@ import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
+import usePrefillDeployModalConnectionFromModelRegistry from '~/pages/modelRegistry/screens/RegisteredModels/usePrefillDeployModalConnectionFromModelRegistry';
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 import EnvironmentVariablesSection from './EnvironmentVariablesSection';
 import ServingRuntimeArgsSection from './ServingRuntimeArgsSection';
@@ -79,6 +80,7 @@ type ManageKServeModalProps = {
     projectContext?: {
       currentProject: ProjectKind;
       dataConnections: DataConnection[];
+      connections: Connection[];
     };
   },
   {
@@ -121,6 +123,13 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const isConnectionTypesEnabled = useConnectionTypesEnabled();
   const [connection, setConnection] = React.useState<Connection>();
   const [isConnectionValid, setIsConnectionValid] = React.useState(false);
+  const [connections, connectionsLoaded, connectionsLoadError] =
+    usePrefillDeployModalConnectionFromModelRegistry(
+      projectContext,
+      createDataInferenceService,
+      setCreateDataInferenceService,
+      registeredModelDeployInfo,
+    );
 
   const isAuthorinoEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status;
   const currentProjectName = projectContext?.currentProject.metadata.name;
@@ -447,8 +456,11 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
               <ConnectionSection
                 data={createDataInferenceService}
                 setData={setCreateDataInferenceService}
+                loaded={!!projectContext?.connections || connectionsLoaded}
+                loadError={connectionsLoadError}
                 setConnection={setConnection}
                 setIsConnectionValid={setIsConnectionValid}
+                connections={connections}
               />
             ) : (
               <DataConnectionSection

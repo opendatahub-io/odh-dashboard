@@ -23,6 +23,7 @@ import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
+import usePrefillDeployModalConnectionFromModelRegistry from '~/pages/modelRegistry/screens/RegisteredModels/usePrefillDeployModalConnectionFromModelRegistry';
 import DataConnectionSection from './DataConnectionSection';
 import ProjectSection from './ProjectSection';
 import InferenceServiceFrameworkSection from './InferenceServiceFrameworkSection';
@@ -41,6 +42,7 @@ type ManageInferenceServiceModalProps = {
       currentProject: ProjectKind;
       currentServingRuntime?: ServingRuntimeKind;
       dataConnections: DataConnection[];
+      connections: Connection[];
     };
   }
 >;
@@ -73,6 +75,14 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
   const isConnectionTypesEnabled = useConnectionTypesEnabled();
   const [connection, setConnection] = React.useState<Connection>();
   const [isConnectionValid, setIsConnectionValid] = React.useState(false);
+
+  const [connections, connectionsLoaded, connectionsLoadError] =
+    usePrefillDeployModalConnectionFromModelRegistry(
+      projectContext,
+      createData,
+      setCreateData,
+      registeredModelDeployInfo,
+    );
 
   const hasEditInfo = !!editInfo;
   React.useEffect(() => {
@@ -214,8 +224,11 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
                 <ConnectionSection
                   data={createData}
                   setData={setCreateData}
+                  loaded={!!projectContext?.connections || connectionsLoaded}
+                  loadError={connectionsLoadError}
                   setConnection={setConnection}
                   setIsConnectionValid={setIsConnectionValid}
+                  connections={connections}
                 />
               ) : (
                 <DataConnectionSection
