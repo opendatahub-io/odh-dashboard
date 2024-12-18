@@ -37,7 +37,7 @@ const DeployedModelsCard: React.FC<DeployedModelsCardProps> = ({
     <TypeBorderedCard objectType={ProjectObjectType.deployedModels}>
       <CardHeader>
         <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-          <HeaderIcon type={ProjectObjectType.deployedModels} size={36} />
+          <HeaderIcon type={ProjectObjectType.deployedModels} />
           <FlexItem>
             <Content>
               <Content component="h3">
