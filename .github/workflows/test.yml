@@ -44,7 +44,7 @@ jobs:
             echo "Directory does not exist. No test files found." >> $GITHUB_OUTPUT
             echo "files=" >> $GITHUB_OUTPUT  # Set empty output if no files found
           fi
-    
+
       - name: Run Cypress Mock Tests in Parallel
         env:
           CONTAINER_INDEX: ${{ matrix.container }}
@@ -53,7 +53,7 @@ jobs:
           echo "Running Cypress tests for container $CONTAINER_INDEX..."
           echo "Test Files: $TEST_FILES"  
 
-# Generate the list of spec files for this container and trim trailing comma
+         # Generate the list of spec files for this container and trim trailing comma
           SPEC_FILES=$(echo "$TEST_FILES" | tr ',' '\n' | awk -v container="$CONTAINER_INDEX" 'NR % 5 == container - 1' | tr '\n' ',' | sed 's/,$//')
           
           # Check if SPEC_FILES is empty
