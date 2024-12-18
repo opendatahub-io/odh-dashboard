@@ -10,16 +10,16 @@ import type {
   RegisteredModelList,
 } from '~/concepts/modelRegistry/types';
 import type {
+  ConsoleLinkKind,
   DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
+  ModelRegistryKind,
+  NotebookKind,
   OdhQuickStart,
   RoleBindingKind,
   ServingRuntimeKind,
   TemplateKind,
-  NotebookKind,
-  ModelRegistryKind,
-  ConsoleLinkKind,
 } from '~/k8sTypes';
 
 import type { StartNotebookData } from '~/pages/projects/types';
@@ -367,6 +367,13 @@ declare global {
           response: OdhResponse<K8sResourceListResult<ModelRegistryKind>>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'PATCH /api/modelRegistries/:modelRegistryName',
+          options: {
+            path: { modelRegistryName: string };
+          },
+          response: OdhResponse<{ modelRegistry: ModelRegistryKind; databasePassword?: string }>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'GET /api/modelRegistries/:modelRegistryName',
           options: {
             path: { modelRegistryName: string };
@@ -675,7 +682,7 @@ declare global {
           type: 'GET /api/nim-serving/:resource',
           options: {
             path: {
-              resource: 'nvidia-nim-images-data' | 'nvidia-nim-access' | 'nvidia-nim-image-pull';
+              resource: string;
             };
           },
           response: OdhResponse<NimServingResponse>,

@@ -4,7 +4,6 @@ import { StackCapability, StackComponent } from '~/concepts/areas/types';
 import {
   FormFieldSelector,
   modelRegistrySettings,
-  DatabaseDetailsTestId,
 } from '~/__tests__/cypress/cypress/pages/modelRegistrySettings';
 import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
 import {
@@ -26,8 +25,10 @@ const groupSubjects: RoleBindingSubject[] = [
 
 const setupMocksForMRSettingAccess = ({
   hasModelRegistries = true,
+  hasDatabasePassword = true,
 }: {
   hasModelRegistries?: boolean;
+  hasDatabasePassword?: boolean;
 }) => {
   asProductAdminUser();
   cy.interceptOdh(
@@ -82,7 +83,7 @@ const setupMocksForMRSettingAccess = ({
     },
     {
       modelRegistry: mockModelRegistry({ name: 'test-registry-1' }),
-      databasePassword: 'test-password',
+      databasePassword: hasDatabasePassword ? 'test-password' : undefined,
     },
   );
   cy.interceptOdh(
@@ -92,6 +93,17 @@ const setupMocksForMRSettingAccess = ({
     },
     (req) => {
       req.reply(500); // Something went wrong on the backend when decoding the secret
+    },
+  );
+
+  cy.interceptOdh(
+    'PATCH /api/modelRegistries/:modelRegistryName',
+    {
+      path: { modelRegistryName: 'test-registry-1' },
+    },
+    {
+      modelRegistry: mockModelRegistry({ name: 'test-registry-1' }),
+      databasePassword: 'test-password',
     },
   );
 
@@ -162,6 +174,21 @@ describe('CreateModal', () => {
     modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).type('myDatabase');
     modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).blur();
     modelRegistrySettings.findSubmitButton().should('be.enabled');
+
+    // test resource name validation
+    modelRegistrySettings.k8sNameDescription.findResourceEditLink().click();
+    modelRegistrySettings.k8sNameDescription
+      .findResourceNameInput()
+      .should('have.attr', 'aria-invalid', 'false');
+    // Invalid character k8s names fail
+    modelRegistrySettings.k8sNameDescription.findResourceNameInput().clear().type('InVaLiD vAlUe!');
+    modelRegistrySettings.k8sNameDescription
+      .findResourceNameInput()
+      .should('have.attr', 'aria-invalid', 'true');
+    modelRegistrySettings.findSubmitButton().should('be.disabled');
+    modelRegistrySettings.k8sNameDescription.findResourceNameInput().clear().type('image');
+
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
     modelRegistrySettings.shouldHaveNoErrors();
   });
 });
@@ -176,40 +203,80 @@ describe('ModelRegistriesTable', () => {
   });
 });
 
-describe('ViewDatabaseConfigModal', () => {
-  it('Shows database details for a registry', () => {
+describe('EditModelRegistry', () => {
+  it('Update model registry', () => {
     setupMocksForMRSettingAccess({});
     modelRegistrySettings.visit(true);
     modelRegistrySettings
       .findModelRegistryRow('test-registry-1')
-      .findKebabAction('View database configuration')
+      .findKebabAction('Edit model registry')
       .click();
     modelRegistrySettings
-      .findDatabaseDetail(DatabaseDetailsTestId.HOST)
-      .should('contain.text', 'model-registry-db');
+      .findFormField(FormFieldSelector.NAME)
+      .should('have.value', 'test-registry-1');
+    modelRegistrySettings.findFormField(FormFieldSelector.NAME).clear().type('test-2');
     modelRegistrySettings
-      .findDatabaseDetail(DatabaseDetailsTestId.PORT)
-      .should('contain.text', '5432');
+      .findFormField(FormFieldSelector.HOST)
+      .should('have.value', 'model-registry-db');
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).should('have.value', '5432');
     modelRegistrySettings
-      .findDatabaseDetail(DatabaseDetailsTestId.USERNAME)
-      .should('contain.text', 'mlmduser');
-    modelRegistrySettings.findDatabasePasswordHiddenButton().click();
+      .findFormField(FormFieldSelector.USERNAME)
+      .should('have.value', 'mlmduser');
     modelRegistrySettings
-      .findDatabaseDetail(DatabaseDetailsTestId.PASSWORD)
-      .should('contain.text', 'test-password');
+      .findFormField(FormFieldSelector.PASSWORD)
+      .should('have.value', 'test-password');
     modelRegistrySettings
-      .findDatabaseDetail(DatabaseDetailsTestId.DATABASE)
-      .should('contain.text', 'model-registry');
+      .findFormField(FormFieldSelector.DATABASE)
+      .should('have.value', 'model-registry');
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
+    modelRegistrySettings.findSubmitButton().click();
   });
 
-  it('Shows error loading password when secret fails to decode', () => {
-    setupMocksForMRSettingAccess({});
+  it('Shows skeleton, when password is loading', () => {
+    setupMocksForMRSettingAccess({ hasDatabasePassword: false });
+    modelRegistrySettings.visit(true);
+    modelRegistrySettings
+      .findModelRegistryRow('test-registry-1')
+      .findKebabAction('Edit model registry')
+      .click();
+    modelRegistrySettings
+      .findFormField(FormFieldSelector.NAME)
+      .should('have.value', 'test-registry-1');
+    modelRegistrySettings
+      .findFormField(FormFieldSelector.HOST)
+      .should('have.value', 'model-registry-db');
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).should('have.value', '5432');
+    modelRegistrySettings
+      .findFormField(FormFieldSelector.USERNAME)
+      .should('have.value', 'mlmduser');
+    modelRegistrySettings
+      .findFormField(FormFieldSelector.DATABASE)
+      .should('have.value', 'model-registry');
+    modelRegistrySettings.findSubmitButton().should('be.disabled');
+  });
+
+  it('Shows erros, when password fails to load', () => {
+    setupMocksForMRSettingAccess({ hasDatabasePassword: false });
     modelRegistrySettings.visit(true);
     modelRegistrySettings
       .findModelRegistryRow('test-registry-2')
-      .findKebabAction('View database configuration')
+      .findKebabAction('Edit model registry')
       .click();
-    cy.findByText('Error loading password').should('exist');
+    modelRegistrySettings
+      .findFormField(FormFieldSelector.NAME)
+      .should('have.value', 'test-registry-2');
+    modelRegistrySettings
+      .findFormField(FormFieldSelector.HOST)
+      .should('have.value', 'model-registry-db');
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).should('have.value', '5432');
+    modelRegistrySettings
+      .findFormField(FormFieldSelector.USERNAME)
+      .should('have.value', 'mlmduser');
+    cy.findByText('Failed to load the password. The Secret file is missing.').should('exist');
+    modelRegistrySettings
+      .findFormField(FormFieldSelector.DATABASE)
+      .should('have.value', 'model-registry');
+    modelRegistrySettings.findSubmitButton().should('be.disabled');
   });
 });
 

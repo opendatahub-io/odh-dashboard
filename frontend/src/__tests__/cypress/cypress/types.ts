@@ -103,6 +103,10 @@ export type DataScienceProjectData = {
   projectContributorResourceName: string;
 };
 
+export type NotebookImageData = {
+  codeserverImageName: string;
+};
+
 export type NimServingResponse = {
   body: {
     body: ConfigMapKind | SecretKind;
