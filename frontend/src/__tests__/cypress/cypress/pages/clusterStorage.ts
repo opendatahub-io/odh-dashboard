@@ -48,6 +48,19 @@ class ClusterStorageRow extends TableRow {
   findStorageClassResourceKindText() {
     return cy.findByTestId('resource-kind-text');
   }
+
+  findStorageSizeWarning() {
+    return cy.findByTestId('size-warning-popover').click();
+  }
+
+  findStorageSizeWarningText() {
+    return cy
+      .findByTestId('size-warning-popover-text')
+      .should(
+        'have.text',
+        'To complete the storage size update, you must connect and run a workbench.',
+      );
+  }
 }
 
 class ClusterStorageModal extends Modal {

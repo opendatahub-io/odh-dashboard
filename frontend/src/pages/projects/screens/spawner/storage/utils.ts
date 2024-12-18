@@ -29,6 +29,7 @@ export const useCreateStorageObject = (
       formData?.description || (existingData ? getDescriptionFromK8sResource(existingData) : ''),
     size: formData?.size || (existingData ? existingData.spec.resources.requests.storage : size),
     storageClassName: formData?.storageClassName || existingData?.spec.storageClassName,
+    existingPvc: existingData,
   };
 
   const [data, setData] = useGenericObjectState<StorageData>(createStorageData);

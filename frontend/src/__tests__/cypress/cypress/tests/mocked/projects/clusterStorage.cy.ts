@@ -56,6 +56,28 @@ const initInterceptors = ({ isEmpty = false, storageClassName }: HandlersProps) 
               storageClassName,
               status: { phase: 'Pending' },
             }),
+            mockPVCK8sResource({
+              displayName: 'Updated storage with no workbench',
+              storageClassName,
+              storage: '13Gi',
+              status: {
+                phase: 'Bound',
+                accessModes: ['ReadWriteOnce'],
+                capacity: {
+                  storage: '12Gi',
+                },
+                conditions: [
+                  {
+                    type: 'FileSystemResizePending',
+                    status: 'True',
+                    lastProbeTime: null,
+                    lastTransitionTime: '2024-11-15T14:04:04Z',
+                    message:
+                      'Waiting for user to (re-)start a pod to finish file system resize of volume on node.',
+                  },
+                ],
+              },
+            }),
           ],
     ),
   );
@@ -320,6 +342,18 @@ describe('ClusterStorage', () => {
     clusterStorage.findClusterStorageTableHeaderButton('Name').should(be.sortAscending);
     clusterStorage.findClusterStorageTableHeaderButton('Name').click();
     clusterStorage.findClusterStorageTableHeaderButton('Name').should(be.sortDescending);
+  });
+
+  it('should show warning when cluster storage size is updated but no workbench is connected', () => {
+    initInterceptors({});
+    clusterStorage.visit('test-project');
+    const clusterStorageRow = clusterStorage.getClusterStorageRow(
+      'Updated storage with no workbench',
+    );
+    clusterStorageRow.toggleExpandableContent();
+    clusterStorageRow.shouldHaveStorageSize('Max 13Gi');
+    clusterStorageRow.findStorageSizeWarning();
+    clusterStorageRow.findStorageSizeWarning().should('exist');
   });
 
   it('Edit cluster storage', () => {

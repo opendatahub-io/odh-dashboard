@@ -313,6 +313,7 @@ export type PersistentVolumeClaimKind = K8sResourceCommon & {
     capacity?: {
       storage: string;
     };
+    conditions?: K8sCondition[];
   } & Record<string, unknown>;
 };
 
