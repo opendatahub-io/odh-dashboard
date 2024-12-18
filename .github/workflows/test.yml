@@ -52,7 +52,18 @@ jobs:
         run: |
           echo "Running Cypress tests for container $CONTAINER_INDEX..."
           echo "Test Files: $TEST_FILES"  
-          cd ./frontend && npm run test:cypress-ci -- --headless --no-sandbox --spec $(echo "$TEST_FILES" | tr ',' '\n' | awk -v container="$CONTAINER_INDEX" 'NR % 5 == container - 1' | tr '\n' ',')
+
+# Generate the list of spec files for this container and trim trailing comma
+          SPEC_FILES=$(echo "$TEST_FILES" | tr ',' '\n' | awk -v container="$CONTAINER_INDEX" 'NR % 5 == container - 1' | tr '\n' ',' | sed 's/,$//')
+          
+          # Check if SPEC_FILES is empty
+          if [ -z "$SPEC_FILES" ]; then
+            echo "No spec files found for container $CONTAINER_INDEX. Skipping Cypress tests."
+            exit 0
+          else
+            echo "Spec Files for this container: $SPEC_FILES"
+            cd ./frontend && npm run test:cypress-ci -- --headless --no-sandbox --spec "$SPEC_FILES"
+          fi
       - uses: actions/upload-artifact@v4   
         if: ${{ always() }}
         with:
