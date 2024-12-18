@@ -61,6 +61,6 @@ jobs:
             echo "No spec files found for container $CONTAINER_INDEX. Skipping Cypress tests."
             exit 0
           else
-            echo "Spec files for this container-  $SPEC_FILES"
+            echo "Spec files for this container: $SPEC_FILES"
             cd frontend && CYPRESS_SPEC_PATTERN="$SPEC_FILES" npm run test:cypress-ci
           fi
