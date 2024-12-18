@@ -31,25 +31,20 @@ export const useEnableApplication = (
 
   const dispatchResults = React.useCallback(
     (error?: string) => {
-      if (!error) {
-        dispatch(
-          addNotification({
-            status: AlertVariant.success,
-            title: `${appName} has been added to the Enabled page.`,
-            timestamp: new Date(),
-          }),
-        );
-        dispatch(forceComponentsUpdate());
-        return;
-      }
       dispatch(
         addNotification({
-          status: AlertVariant.danger,
-          title: `Error attempting to validate ${appName}.`,
+          status: error ? AlertVariant.danger : AlertVariant.success,
+          title: error
+            ? `Error attempting to validate ${appName}`
+            : `${appName} has been added to the Enabled page.`,
           message: error,
           timestamp: new Date(),
         }),
       );
+
+      if (!error) {
+        dispatch(forceComponentsUpdate());
+      }
     },
     [appName, dispatch],
   );
@@ -134,7 +129,11 @@ export const useEnableApplication = (
         enableIntegrationApp(internalRoute, enableValues)
           .then((response) => {
             if (!closed) {
-              if (response.isInstalled && response.canInstall) {
+              if (
+                response.isInstalled &&
+                response.canInstall &&
+                response.variablesValidationStatus === ''
+              ) {
                 setEnableStatus({ status: EnableApplicationStatus.INPROGRESS, error: '' });
               }
             }

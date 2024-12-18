@@ -93,7 +93,8 @@ module.exports = async (fastify: KubeFastifyInstance) => {
               reply.send({
                 isInstalled: true,
                 isEnabled: isEnabled,
-                canInstall: false,
+                variablesValidationStatus: '',
+                canInstall: !isEnabled,
                 error: '',
               });
             } else {
@@ -101,7 +102,8 @@ module.exports = async (fastify: KubeFastifyInstance) => {
               reply.send({
                 isInstalled: true,
                 isEnabled: isEnabled,
-                canInstall: false,
+                variablesValidationStatus: '',
+                canInstall: !isEnabled,
                 error: '',
               });
             }

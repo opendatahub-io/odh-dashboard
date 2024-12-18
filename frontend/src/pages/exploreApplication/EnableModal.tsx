@@ -19,7 +19,10 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
   const [postError, setPostError] = React.useState('');
   const [validationInProgress, setValidationInProgress] = React.useState(false);
   const [enableValues, setEnableValues] = React.useState<{ [key: string]: string }>({});
-  const [isEnableValuesHasEmptyValue, setIsEnableValuesHasEmptyValue] = React.useState(true);
+  const isEnableValuesHasEmptyValue = React.useMemo(
+    () => isEmpty(enableValues) || values(enableValues).some((val) => isEmpty(val)),
+    [enableValues],
+  );
   const [validationStatus, validationErrorMessage] = useEnableApplication(
     validationInProgress,
     selectedApp.metadata.name,
@@ -38,11 +41,6 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
       ...enableValues,
       [key]: value,
     };
-    if (values(updatedValues).some((val) => isEmpty(val))) {
-      setIsEnableValuesHasEmptyValue(true);
-    } else {
-      setIsEnableValuesHasEmptyValue(false);
-    }
     setEnableValues(updatedValues);
   };
 
@@ -53,8 +51,8 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
 
   const handleClose = React.useCallback(() => {
     if (!validationInProgress) {
-      setIsEnableValuesHasEmptyValue(true);
       setEnableValues({});
+      setPostError('');
     }
     onClose();
   }, [validationInProgress, onClose]);
