@@ -57,7 +57,10 @@ describe('Home page AI Flows', () => {
 
     homeAISection.getProjectCard().find().should('not.exist');
 
-    homePage.initHomeIntercepts({ disableModelServing: true });
+    homePage.initHomeIntercepts({
+      disableModelServing: true,
+      disableModelRegistry: true,
+    });
     homePage.visit();
 
     homeAISection.getModelsFlowCard().find().should('not.exist');

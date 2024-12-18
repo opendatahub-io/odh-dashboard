@@ -1,23 +1,83 @@
 import React from 'react';
-import { Alert } from '@patternfly/react-core';
-import PasswordHiddenText from '~/components/PasswordHiddenText';
+import { Alert, HelperText, HelperTextItem, Skeleton } from '@patternfly/react-core';
+import PasswordInput from '~/components/PasswordInput';
+import { ModelRegistryKind } from '~/k8sTypes';
+import useFetchState, { FetchStateCallbackPromise, NotReadyError } from '~/utilities/useFetchState';
+import { getModelRegistryBackend } from '~/services/modelRegistrySettingsService';
 
 type ModelRegistryDatabasePasswordProps = {
-  password?: string;
-  loadError?: Error;
+  password: string | undefined;
+  setPassword: (value: string) => void;
+  showPassword?: boolean;
+  isPasswordTouched?: boolean;
+  setIsPasswordTouched: (value: boolean) => void;
+  editRegistry?: ModelRegistryKind;
 };
 
 const ModelRegistryDatabasePassword: React.FC<ModelRegistryDatabasePasswordProps> = ({
-  password,
-  loadError,
+  password = '',
+  setPassword,
+  showPassword,
+  isPasswordTouched,
+  setIsPasswordTouched,
+  editRegistry: mr,
 }) => {
-  if (loadError) {
-    return <Alert variant="danger" isInline isPlain title="Error loading password" />;
+  const [existingDbPassword, passwordLoaded, passwordLoadError] = useFetchState(
+    React.useCallback<FetchStateCallbackPromise<string | undefined>>(async () => {
+      if (!mr) {
+        return Promise.reject(new NotReadyError('Model registry does not exist'));
+      }
+
+      const { databasePassword } = await getModelRegistryBackend(mr.metadata.name);
+      return databasePassword;
+    }, [mr]),
+    undefined,
+  );
+
+  React.useEffect(() => {
+    if (existingDbPassword && mr) {
+      setPassword(existingDbPassword);
+    }
+  }, [existingDbPassword, setPassword, mr]);
+
+  const hasContent = (value: string): boolean => !!value.trim().length;
+
+  if (!passwordLoaded && !passwordLoadError && mr) {
+    return <Skeleton screenreaderText="Loading contents" />;
   }
-  if (!password) {
-    return 'No password';
+
+  if (passwordLoadError) {
+    return (
+      <Alert
+        variant="danger"
+        isInline
+        isPlain
+        title="Failed to load the password. The Secret file is missing."
+      />
+    );
   }
-  return <PasswordHiddenText password={password} />;
+
+  return (
+    <>
+      <PasswordInput
+        isRequired
+        type={showPassword ? 'text' : 'password'}
+        id="mr-password"
+        name="mr-password"
+        value={password}
+        onBlur={() => setIsPasswordTouched(true)}
+        onChange={(_e, value) => setPassword(value)}
+        validated={isPasswordTouched && !hasContent(password) ? 'error' : 'default'}
+      />
+      {isPasswordTouched && !hasContent(password) && (
+        <HelperText>
+          <HelperTextItem variant="error" data-testid="mr-password-error">
+            Password cannot be empty
+          </HelperTextItem>
+        </HelperText>
+      )}
+    </>
+  );
 };
 
 export default ModelRegistryDatabasePassword;

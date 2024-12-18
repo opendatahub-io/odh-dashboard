@@ -40,7 +40,7 @@ export const assembleInferenceService = (
     servingRuntimeArgs,
     servingRuntimeEnvVars,
   } = data;
-  const name = editName || servingRuntimeName;
+  const name = editName || data.k8sName;
   const { path, dataConnection, uri } = storage;
   const dataConnectionKey = secretKey || dataConnection;
 

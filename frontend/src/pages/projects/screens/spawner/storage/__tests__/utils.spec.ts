@@ -86,7 +86,7 @@ describe('validateMountPath', () => {
 
   it('should return error message for invalid characters in the path', () => {
     const result = validateMountPath('Invalid/Path', inUseMountPaths);
-    expect(result).toBe('Must only consist of lowercase letters, dashes, and slashes.');
+    expect(result).toBe('Must only consist of lowercase letters, dashes, numbers and slashes.');
   });
 
   it('should return error message for already in-use mount path', () => {
@@ -106,7 +106,7 @@ describe('validateMountPath', () => {
 
   it('should return error for an invalid folder name with numbers or uppercase letters', () => {
     const result = validateMountPath('Invalid123', inUseMountPaths);
-    expect(result).toBe('Must only consist of lowercase letters, dashes, and slashes.');
+    expect(result).toBe('Must only consist of lowercase letters, dashes, numbers and slashes.');
   });
 
   it('should return an empty string for valid mount path in CUSTOM format', () => {
@@ -116,7 +116,7 @@ describe('validateMountPath', () => {
 
   it('should return error for an invalid folder name with uppercase letters in CUSTOM format', () => {
     const result = validateMountPath('InvalidFolder', inUseMountPaths);
-    expect(result).toBe('Must only consist of lowercase letters, dashes, and slashes.');
+    expect(result).toBe('Must only consist of lowercase letters, dashes, numbers and slashes.');
   });
 });
 

@@ -2,6 +2,7 @@ import { servingRuntimes } from '~/__tests__/cypress/cypress/pages/servingRuntim
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { getMultiModelPath } from '~/__tests__/cypress/cypress/utils/fileImportUtils';
 import { getMultiModelServingRuntimeInfo } from '~/__tests__/cypress/cypress/utils/fileParserUtil';
+import { cleanupTemplates } from '~/__tests__/cypress/cypress/utils/oc_commands/templates';
 
 let modelServingName: string;
 let metadataDisplayName: string;
@@ -10,21 +11,26 @@ before(() => {
   // TODO: Investigate and resolve 'window is not defined' error during page transition seen in ODH related to application performance
   // Temporary workaround: Catching and ignoring this specific error to prevent test failure
   Cypress.on('uncaught:exception', (err) => {
-    // Check if the error is about 'window is not defined'
     if (err.message.includes('window is not defined')) {
-      // Prevent the error from failing the test
       return false;
     }
-    // For other errors, let them fail the test
     return true;
   });
-  // Load multi-model serving runtime info before tests run
-  getMultiModelServingRuntimeInfo().then((info) => {
-    modelServingName = info.multiModelServingName;
-    metadataDisplayName = info.displayName;
-    cy.log(`Loaded Multi-Model Name: ${modelServingName}`);
-    cy.log(`Loaded Multi-Model Metadata Name: ${metadataDisplayName}`);
-  });
+
+  cy.wrap(null)
+    .then(() => {
+      return getMultiModelServingRuntimeInfo();
+    })
+    .then((info) => {
+      // Load Multi-Model serving runtime info before tests run
+      modelServingName = info.multiModelServingName;
+      metadataDisplayName = info.displayName;
+      cy.log(`Loaded Multi-Model Name: ${modelServingName}`);
+      cy.log(`Loaded Multi-Model Metadata Name: ${metadataDisplayName}`);
+
+      // Call cleanupTemplates here, after metadataDisplayName is set
+      return cleanupTemplates(metadataDisplayName);
+    });
 });
 
 describe('Verify Admins Can Import and Delete a Custom Multi-Model Serving Runtime Template By Uploading A YAML file', () => {

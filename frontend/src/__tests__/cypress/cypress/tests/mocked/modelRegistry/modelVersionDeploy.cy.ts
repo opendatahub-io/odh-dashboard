@@ -8,6 +8,7 @@ import {
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
 import {
+  NIMAccountModel,
   ProjectModel,
   SecretModel,
   ServiceModel,
@@ -30,6 +31,7 @@ import {
 import { ServingRuntimePlatform } from '~/types';
 import { kserveModal } from '~/__tests__/cypress/cypress/pages/modelServing';
 import { mockModelArtifact } from '~/__mocks__/mockModelArtifact';
+import { mockNimAccount } from '~/__mocks__/mockNimAccount';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 
@@ -135,7 +137,7 @@ const initIntercepts = ({
       }),
       mockProjectK8sResource({ k8sName: 'test-project', displayName: 'Test project' }),
     ]),
-  );
+  ).as('getProjects');
 
   cy.interceptOdh(
     `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts`,
@@ -177,6 +179,8 @@ const initIntercepts = ({
       { namespace: 'opendatahub' },
     ),
   );
+
+  cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
 };
 
 describe('Deploy model version', () => {
@@ -185,8 +189,10 @@ describe('Deploy model version', () => {
     cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version');
     modelVersionRow.findKebabAction('Deploy').click();
+    cy.wait('@getProjects');
     modelVersionDeployModal.selectProjectByName('Model mesh project');
     cy.findByText('Multi-model platform is not installed').should('exist');
+    cy.wait('@getProjects');
     modelVersionDeployModal.selectProjectByName('KServe project');
     cy.findByText('Single-model platform is not installed').should('exist');
   });

@@ -5,8 +5,10 @@ import { StackComponent } from '~/concepts/areas/types';
 import {
   ContainerResourceAttributes,
   ContainerResources,
+  Identifier,
   ImageStreamStatusTagCondition,
   ImageStreamStatusTagItem,
+  NodeSelector,
   NotebookSize,
   PodAffinity,
   PodContainer,
@@ -1187,8 +1189,10 @@ export type DashboardCommonConfig = {
   disableKServeRaw: boolean;
   disableModelMesh: boolean;
   disableAcceleratorProfiles: boolean;
+  disableHardwareProfiles: boolean;
   disableDistributedWorkloads: boolean;
   disableModelRegistry: boolean;
+  disableModelRegistrySecureDB: boolean;
   disableServingRuntimeParams: boolean;
   disableConnectionTypes: boolean;
   disableStorageClasses: boolean;
@@ -1229,6 +1233,21 @@ export type AcceleratorProfileKind = K8sResourceCommon & {
     identifier: string;
     description?: string;
     tolerations?: Toleration[];
+  };
+};
+
+export type HardwareProfileKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    displayName: string;
+    enabled: boolean;
+    description?: string;
+    tolerations?: Toleration[];
+    identifiers?: Identifier[];
+    nodeSelectors?: NodeSelector[];
   };
 };
 
@@ -1317,6 +1336,30 @@ export type ModelRegistryKind = K8sResourceCommon & {
     }
   >;
   status?: {
+    conditions?: K8sCondition[];
+  };
+};
+
+export type NIMAccountKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    apiKeySecret: {
+      name: string;
+    };
+  };
+  status?: {
+    nimConfig?: {
+      name: string;
+    };
+    runtimeTemplate?: {
+      name: string;
+    };
+    nimPullSecret?: {
+      name: string;
+    };
     conditions?: K8sCondition[];
   };
 };
