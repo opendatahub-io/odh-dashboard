@@ -26,24 +26,32 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
   });
 
   it('An admin user can enable a disabled Storage Class', () => {
+    cy.step('Navigate to Storage Classes view');
     cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
     storageClassesPage.navigate();
     const scDisabledName = `${scName}-disabled-non-default`;
+    cy.step('Check SC row exists');
     // SC row exist
     storageClassesTable.findRowByName(scDisabledName).should('be.visible');
     const scDisabledRow = storageClassesTable.getRowByConfigName(scDisabledName);
+    cy.step("Check there's no Default label");
     // There's no Default label
     scDisabledRow.findOpenshiftDefaultLabel().should('not.exist');
+    cy.step('Check the Enable switch is set to disabled');
     // The Enable switch is set to disabled
     scDisabledRow.findEnableSwitchInput().should('have.attr', 'aria-checked', 'false');
+    cy.step('Check the Default radio button is disabled');
     // The Default radio button is disabled
     scDisabledRow.findDefaultRadioInput().should('be.disabled');
 
+    cy.step('Enable the Storage Class');
     // Enable the SC
     scDisabledRow.findEnableSwitchInput().click({ force: true });
 
+    cy.step('Check the Enable switch is set to Enabled');
     // The Enable switch is set to enabled
     scDisabledRow.findEnableSwitchInput().should('have.attr', 'aria-checked', 'true');
+    cy.step('Check the Default radio button is disabled');
     // The Default radio button is enabled but not checked
     scDisabledRow.findDefaultRadioInput().should('be.enabled');
     scDisabledRow.findDefaultRadioInput().should('not.have.attr', 'checked');
@@ -57,7 +65,7 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
 
     const scEnabledName = `${scName}-enabled-non-default`;
 
-    cy.step('Check SC row exist');
+    cy.step('Check SC row exists');
     storageClassesTable.findRowByName(scEnabledName).should('be.visible');
     const scEnabledRow = storageClassesTable.getRowByConfigName(scEnabledName);
     cy.step("Check there's no Default label");
