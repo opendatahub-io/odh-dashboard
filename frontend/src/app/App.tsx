@@ -6,6 +6,11 @@ import {
   Alert,
   Bullseye,
   Button,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
+  ModalVariant,
   Page,
   PageSection,
   Spinner,
@@ -67,9 +72,35 @@ const App: React.FC = () => {
     [buildStatuses, dashboardConfig, storageClasses],
   );
 
+  const isUnauthorized = React.useMemo(() => {
+    if (fetchConfigError?.request?.status === 500) {
+      return true;
+    }
+    return false;
+  }, [fetchConfigError]);
+
   // We lack the critical data to startup the app
   if (userError || fetchConfigError) {
-    // There was an error fetching critical data
+    // Check for unauthorized state
+    if (isUnauthorized) {
+      return (
+        <Modal variant={ModalVariant.small} isOpen ouiaId="BasicModal">
+          <ModalHeader title="Session Expired" titleIconVariant="warning" />
+          <ModalBody>Your session timed out. To continue working, log in.</ModalBody>
+          <ModalFooter>
+            <Button
+              key="confirm"
+              variant="primary"
+              onClick={() => logout().then(() => window.location.reload())}
+            >
+              Log in
+            </Button>
+          </ModalFooter>
+        </Modal>
+      );
+    }
+
+    // Default error handling for other cases
     return (
       <Page>
         <PageSection hasBodyWrapper={false}>
