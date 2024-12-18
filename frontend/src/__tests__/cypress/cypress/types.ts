@@ -129,6 +129,8 @@ export type NotebookController = {
 export type DashboardConfig = {
   dashboardConfig: {
     disableModelServing: boolean;
+    disableModelMesh: boolean;
+    disableKServe: boolean;
   };
   notebookController: NotebookController;
   [key: string]: unknown;
