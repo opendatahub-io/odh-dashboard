@@ -46,7 +46,7 @@ declare global {
        */
       interceptK8s: (<K extends K8sResourceCommon>(
         modelOrOptions: K8sModelCommon | K8sOptions,
-        response?:
+        response:
           | K
           | K8sStatus
           | Patch[]
@@ -67,7 +67,7 @@ declare global {
         (<K extends K8sResourceCommon>(
           method: 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT',
           modelOrOptions: K8sModelCommon | K8sOptions,
-          response?:
+          response:
             | K
             | K8sStatus
             | Patch[]
