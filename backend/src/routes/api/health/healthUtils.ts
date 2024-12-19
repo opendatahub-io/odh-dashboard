@@ -2,6 +2,7 @@ import { getDashboardConfig } from '../../../utils/resourceUtils';
 import { KubeFastifyInstance } from '../../../types';
 import { createCustomError } from '../../../utils/requestUtils';
 
+let count = 0
 export const health = async (fastify: KubeFastifyInstance): Promise<{ health: string }> => {
   const kubeContext = fastify.kube?.currentContext || '';
   if (!kubeContext && !kubeContext.trim()) {
@@ -17,7 +18,9 @@ export const health = async (fastify: KubeFastifyInstance): Promise<{ health: st
     fastify.log.error(error, 'failed to get dashboard config');
     throw error;
   } else {
+    if (count++ < 3) {
     throw new Error('this is a made up error for testing');
-    // return { health: 'ok' };
+    }
+    return { health: 'ok' };
   }
 };
