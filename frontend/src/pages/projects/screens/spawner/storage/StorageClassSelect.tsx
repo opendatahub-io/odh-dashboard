@@ -88,6 +88,10 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
     };
   });
 
+  if (storageClassesLoaded && !hasStorageClassConfigs) {
+    return null;
+  }
+
   return hasStorageClassConfigs ? (
     <FormGroup label="Storage class" fieldId="storage-class">
       <SimpleSelect
