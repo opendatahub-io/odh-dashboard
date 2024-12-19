@@ -16,6 +16,7 @@ import {
   PVCModel,
   SecretModel,
   ServingRuntimeModel,
+  TemplateModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import {
   mockNimImages,
@@ -24,13 +25,14 @@ import {
   mockNimProject,
   mockNimServingResource,
   mockNimServingRuntime,
+  mockNimServingRuntimeTemplate,
   mockNvidiaNimAccessSecret,
   mockNvidiaNimImagePullSecret,
-  mockOdhApplication,
 } from '~/__mocks__/mockNimResource';
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import type { InferenceServiceKind } from '~/k8sTypes';
 import { mockNimAccount } from '~/__mocks__/mockNimAccount';
+import { mockOdhApplication } from '~/__mocks__/mockOdhApplication';
 
 /* ###################################################
    ###### Interception Initialization Utilities ######
@@ -61,15 +63,25 @@ export const initInterceptsToEnableNim = ({ hasAllModels = false }: EnableNimCon
     }),
   );
 
-  cy.interceptOdh('GET /api/components', mockOdhApplication);
+  cy.interceptOdh('GET /api/components', null, [mockOdhApplication({})]);
+
+  cy.interceptOdh(
+    'GET /api/integrations/:internalRoute',
+    { path: { internalRoute: 'nim' } },
+    {
+      isInstalled: true,
+      isEnabled: true,
+      canInstall: false,
+      error: '',
+    },
+  );
 
   cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
-
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockNimProject(hasAllModels)]));
 
-  // const templateMock = mockNimServingRuntimeTemplate();
-  // cy.interceptK8sList(TemplateModel, mockK8sResourceList([templateMock]));
-  // cy.interceptK8s(TemplateModel, templateMock);
+  const templateMock = mockNimServingRuntimeTemplate();
+  cy.interceptK8sList(TemplateModel, mockK8sResourceList([templateMock]));
+  cy.interceptK8s(TemplateModel, templateMock);
 
   cy.interceptK8sList(
     AcceleratorProfileModel,
@@ -150,13 +162,25 @@ export const initInterceptorsValidatingNimEnablement = (
 ): void => {
   cy.interceptOdh('GET /api/config', mockDashboardConfig(dashboardConfig));
 
+  cy.interceptOdh('GET /api/components', null, [mockOdhApplication({})]);
+
+  cy.interceptOdh(
+    'GET /api/integrations/:internalRoute',
+    { path: { internalRoute: 'nim' } },
+    {
+      isInstalled: true,
+      isEnabled: true,
+      canInstall: false,
+      error: '',
+    },
+  );
   cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
 
-  // if (!disableServingRuntime) {
-  //   const templateMock = mockNimServingRuntimeTemplate();
-  //   cy.interceptK8sList(TemplateModel, mockK8sResourceList([templateMock]));
-  //   cy.interceptK8s(TemplateModel, templateMock);
-  // }
+  if (!disableServingRuntime) {
+    const templateMock = mockNimServingRuntimeTemplate();
+    cy.interceptK8sList(TemplateModel, mockK8sResourceList([templateMock]));
+    cy.interceptK8s(TemplateModel, templateMock);
+  }
 
   cy.interceptK8sList(
     ProjectModel,

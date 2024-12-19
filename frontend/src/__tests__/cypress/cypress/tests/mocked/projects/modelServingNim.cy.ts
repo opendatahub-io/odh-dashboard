@@ -264,7 +264,7 @@ describe('NIM Model Serving', () => {
             disableModelMesh: false,
             disableNIMModelServing: false,
           },
-          // true,
+          true,
         );
         projectDetailsOverviewTab.visit('test-project');
         cy.findByTestId('model-serving-platform-button').should('not.exist');
@@ -277,7 +277,7 @@ describe('NIM Model Serving', () => {
             disableModelMesh: false,
             disableNIMModelServing: false,
           },
-          // true,
+          true,
         );
         projectDetailsOverviewTab.visit('test-project');
         projectDetailsOverviewTab.findModelServingPlatform('nvidia-nim').should('not.exist');
@@ -291,7 +291,7 @@ describe('NIM Model Serving', () => {
             disableModelMesh: false,
             disableNIMModelServing: false,
           },
-          // true,
+          true,
         );
         projectDetails.visitSection('test-project', 'model-server');
         cy.get('button[data-testid=deploy-button]').should('not.exist');
@@ -304,7 +304,7 @@ describe('NIM Model Serving', () => {
             disableModelMesh: false,
             disableNIMModelServing: false,
           },
-          // true,
+          true,
         );
         projectDetails.visitSection('test-project', 'model-server');
         projectDetails.findModelServingPlatform('nvidia-nim-model').should('not.exist');

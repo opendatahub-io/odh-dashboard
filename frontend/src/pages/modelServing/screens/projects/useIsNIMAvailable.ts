@@ -24,7 +24,7 @@ export const useIsNIMAvailable = (): [boolean, boolean, Error | undefined] => {
   }, [isNIMModelServingAvailable]);
 
   const [isNIMAvailable, loaded, loadError] = useFetchState<boolean>(fetchNIMAvailability, false, {
-    initialPromisePurity: true,
+    initialPromisePurity: false,
   });
 
   return [isNIMAvailable, loaded, loadError];

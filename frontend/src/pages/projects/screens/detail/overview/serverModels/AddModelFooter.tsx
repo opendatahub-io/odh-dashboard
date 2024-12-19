@@ -14,7 +14,7 @@ import ManageServingRuntimeModal from '~/pages/modelServing/screens/projects/Ser
 import ManageKServeModal from '~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 import ManageNIMServingModal from '~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
 import { modelVersionUrl } from '~/pages/modelRegistry/screens/routeUtils';
-import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
+import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 
 type AddModelFooterProps = {
   selectedPlatform?: ServingRuntimePlatform;
@@ -25,6 +25,7 @@ const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform, isNIM
   const navigate = useNavigate();
 
   const [modalShown, setModalShown] = React.useState<boolean>(false);
+  const servingPlatformStatuses = useServingPlatformStatuses();
 
   const {
     servingRuntimes: { refresh: refreshServingRuntime },
@@ -35,7 +36,6 @@ const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform, isNIM
     serverSecrets: { refresh: refreshTokens },
     inferenceServices: { refresh: refreshInferenceServices },
     currentProject,
-    servingPlatformStatuses,
   } = React.useContext(ProjectDetailsContext);
 
   const templatesSorted = getSortedTemplates(templates, templateOrder);
@@ -69,21 +69,12 @@ const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform, isNIM
   // deployingFromRegistry = User came from the Model Registry page because this project didn't have a serving platform selected
   const deployingFromRegistry = modelRegistryName && registeredModelId && modelVersionId;
 
-  const isNIMAvailable = servingPlatformStatuses.kServeNIM.enabled;
-  const isKServeNIMEnabled = isProjectNIMSupported(currentProject);
-
   return (
     <CardFooter>
       <Flex gap={{ default: 'gapMd' }}>
         <ModelServingPlatformButtonAction
           isProjectModelMesh={isProjectModelMesh}
           emptyTemplates={emptyTemplates}
-          // isNimDisabled={!isNIMAvailable && isKServeNIMEnabled}
-          // tooltipContent={
-          //   !isNIMAvailable && isKServeNIMEnabled
-          //     ? 'NIM is not available. Contact your administrator.'
-          //     : undefined
-          // }
           onClick={() => setModalShown(true)}
           variant="link"
           isInline
