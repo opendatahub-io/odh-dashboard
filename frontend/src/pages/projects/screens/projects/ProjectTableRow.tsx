@@ -71,7 +71,6 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
       <Tr isControlRow>
         <Td dataLabel="Name">
           <TableRowTitleDescription
-            boldTitle={false}
             title={
               <ResourceNameTooltip resource={project}>
                 <ProjectLink project={project} />

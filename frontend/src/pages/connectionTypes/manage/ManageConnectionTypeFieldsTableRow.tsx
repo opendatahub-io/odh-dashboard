@@ -64,7 +64,6 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
         />
         <Td dataLabel={columns[0].label} data-testid="field-name">
           <TableRowTitleDescription
-            boldTitle={false}
             title={
               <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
                 <FlexItem>
@@ -132,7 +131,6 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
       />
       <Td dataLabel={columns[0].label} data-testid="field-name" visibility={columns[0].visibility}>
         <TableRowTitleDescription
-          boldTitle={false}
           title={<Truncate content={row.name} />}
           description={row.description}
           truncateDescriptionLines={2}

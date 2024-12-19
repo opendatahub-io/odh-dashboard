@@ -30,7 +30,6 @@ const ExperimentTableRow: React.FC<ExperimentTableRowProps> = ({
       <CheckboxTd id={experiment.experiment_id} isChecked={isChecked} onToggle={onToggleCheck} />
       <Td dataLabel="Experiment">
         <TableRowTitleDescription
-          boldTitle={false}
           title={
             <Link
               to={
