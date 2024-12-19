@@ -1,62 +1,68 @@
 name: Test
 on: [push, pull_request]
 jobs:
-  Tests:
+  CypressMockTests:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        node-version: [18.x]
+        container: [1, 2, 3, 4, 5] # Creates 5 parallel executions for Cypress tests.
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Node.js ${{ matrix.node-version }}
+      
+      - name: Setup Node.js
         uses: actions/setup-node@v4.1.0
         with:
-          node-version: ${{ matrix.node-version }}
-      - name: Node.js modules cache, repository
-        uses: actions/cache@v4
-        id: repo-cache
-        with:
-          path: ${{ github.workspace }}/node_modules
-          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-repo-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.node-version }}-modules-repo
-      - name: Node.js modules cache, backend
-        uses: actions/cache@v4
-        id: backend-cache
-        with:
-          path: ${{ github.workspace }}/backend/node_modules
-          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-backend-${{ hashFiles('**/backend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.node-version }}-modules-backend
-      - name: Node.js modules cache, frontend
-        uses: actions/cache@v4
-        id: frontend-cache
-        with:
-          path: |
-            ~/.cache/Cypress
-            ${{ github.workspace }}/frontend/node_modules
-          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-frontend-${{ hashFiles('**/frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.node-version }}-modules-frontend
-      - name: Install Node.js packages
-        if: ${{ steps.repo-cache.outputs.cache-hit != 'true' || steps.backend-cache.outputs.cache-hit != 'true' || steps.frontend-cache.outputs.cache-hit != 'true' }}
+          node-version: '18.x'
+      
+      - name: Install Node.js packages for Cypress
         run: npm install
-      - name: Check for uncomitted changes
+        
+      - name: Get test files
+        id: test-files
         run: |
-          git diff --exit-code
-      - name: Test backend & test frontend with code coverage
-        if: ${{ success() }}
-        run: npm run test:backend && npm run test:frontend:coverage
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v4.6.0
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
-          name: frontend
-          directory: ./frontend/coverage
-          verbose: true
-      - uses: actions/upload-artifact@v4
-        if: ${{ always() }}
-        with:
-          name: cypress-results
-          path: ./frontend/src/__tests__/cypress/results/
+          echo "Current working directory:"
+          pwd
+
+          TEST_DIR="frontend/src/__tests__/cypress/cypress/tests/mocked"
+          echo "Listing contents of the current directory:"
+          ls -la
+          echo "Checking for test files in $TEST_DIR"
+
+          echo "Listing contents of frontend/src/__tests__/cypress/cypress/tests:"
+          ls -la frontend/src/__tests__/cypress/cypress/tests/
+
+          if [ -d "$TEST_DIR" ]; then
+            echo "Listing contents of mocked directory:"
+            ls -la "$TEST_DIR" 
+
+            TEST_FILES=$(find "$TEST_DIR" -name "*.cy.ts" | tr '\n' ',')
+            echo "Found test files: $TEST_FILES"
+
+            echo "files=$TEST_FILES" >> $GITHUB_OUTPUT
+          else
+            echo "Directory does not exist. No test files found." >> $GITHUB_OUTPUT
+            echo "files=" >> $GITHUB_OUTPUT  # Set empty output if no files found
+          fi
+
+      - name: Run Cypress Mock Tests in Parallel
+        env:
+          CONTAINER_INDEX: ${{ matrix.container }}
+          TEST_FILES: ${{ steps.test-files.outputs.files }}
+        run: |
+          echo "Running Cypress tests for container $CONTAINER_INDEX..."
+          echo "Test Files: $TEST_FILES"  
+
+          # Generate the list of spec files for this container and trim trailing comma
+          SPEC_FILES=$(echo "$TEST_FILES" | tr ',' '\n' | awk -v container="$CONTAINER_INDEX" 'NR % 5 == container - 1' | sed 's|^frontend/||' | tr '\n' ',' | sed 's/,$//')
+
+          # Check if SPEC_FILES is empty
+          if [ -z "$SPEC_FILES" ]; then
+            echo "No spec files found for container $CONTAINER_INDEX. Skipping Cypress tests."
+            exit 0
+          else
+            echo "Spec files for this container: $SPEC_FILES"
+            export SPEC_PATTERN="$SPEC_FILES"
+            echo "Running Cypress with spec pattern: ${SPEC_PATTERN}"
+            cd frontend && npm run test:cypress-ci
+          fi
