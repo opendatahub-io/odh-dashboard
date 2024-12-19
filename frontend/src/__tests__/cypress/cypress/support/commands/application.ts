@@ -226,15 +226,27 @@ Cypress.Commands.add('findDropdownItem', { prevSubject: 'element' }, (subject, n
   });
 });
 
-Cypress.Commands.add('findMenuItem', { prevSubject: 'element' }, (subject, name) => {
-  Cypress.log({ displayName: 'findMenuItem', message: name });
-  return cy.wrap(subject).then(($el) => {
-    if ($el.attr('aria-expanded') === 'false') {
-      cy.wrap($el).click();
-    }
-    return cy.get('[data-ouia-component-type="PF6/Menu"]').find('td').contains(name);
-  });
-});
+Cypress.Commands.add(
+  'findMenuItem',
+  { prevSubject: 'element' },
+  (subject: JQuery<HTMLElement>, name: string | RegExp): Cypress.Chainable<JQuery<HTMLElement>> => {
+    Cypress.log({ displayName: 'findMenuItem', message: name.toString() });
+
+    return cy.wrap(subject).then(($el) => {
+      // Check if the dropdown is collapsed and expand it
+      if ($el.attr('aria-expanded') === 'false') {
+        cy.wrap($el).click();
+      }
+
+      // Find the menu and locate the desired item by name or RegExp
+      return cy
+        .get('[data-ouia-component-type="PF6/Menu"]')
+        .find('td') // Target table cells
+        .contains(name)
+        .then((cell) => cy.wrap(cell as unknown as JQuery<HTMLElement>)); // Cast to HTMLElement
+    });
+  },
+);
 
 Cypress.Commands.add('findDropdownItemByTestId', { prevSubject: 'element' }, (subject, testId) => {
   Cypress.log({ displayName: 'findDropdownItemByTestId', message: testId });
