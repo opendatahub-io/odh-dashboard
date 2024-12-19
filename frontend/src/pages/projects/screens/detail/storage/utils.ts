@@ -106,3 +106,11 @@ export const getInUseMountPaths = (
     .filter((key) => key !== existingPvcName)
     .map((key) => allInUseMountPaths[key]);
 };
+
+export const getDefaultMountPathFromStorageName = (
+  storageName?: string,
+  newRowId?: number,
+): string =>
+  storageName
+    ? `${MOUNT_PATH_PREFIX}${storageName.toLowerCase().replace(/\s+/g, '-')}-${newRowId ?? 1}`
+    : MOUNT_PATH_PREFIX;

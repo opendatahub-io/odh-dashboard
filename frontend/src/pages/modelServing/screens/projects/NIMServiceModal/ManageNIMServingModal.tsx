@@ -53,6 +53,7 @@ import { getServingRuntimeFromTemplate } from '~/pages/modelServing/customServin
 import { useNIMPVC } from '~/pages/modelServing/screens/projects/NIMServiceModal/useNIMPVC';
 import AuthServingRuntimeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
 import { useNIMTemplateName } from '~/pages/modelServing/screens/projects/useNIMTemplateName';
+import { KServeDeploymentModeDropdown } from '~/pages/modelServing/screens/projects/kServeModal/KServeDeploymentModeDropdown';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
 const NIM_NGC_SECRET_NAME = 'ngc-secret';
@@ -98,6 +99,8 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   const isAuthorinoEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status;
   const currentProjectName = projectContext?.currentProject.metadata.name;
   const namespace = currentProjectName || createDataInferenceService.project;
+
+  const isKServeRawEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_RAW).status;
 
   const [translatedName] = translateDisplayNameForK8sAndReport(createDataInferenceService.name, {
     maxLength: 253,
@@ -353,6 +356,15 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
           <StackItem>
             <NIMPVCSizeSection pvcSize={pvcSize} setPvcSize={setPvcSize} />
           </StackItem>
+          {isKServeRawEnabled && (
+            <StackItem>
+              <KServeDeploymentModeDropdown
+                isRaw={!!createDataInferenceService.isKServeRawDeployment}
+                setIsRaw={(isRaw) => setCreateDataInferenceService('isKServeRawDeployment', isRaw)}
+                isDisabled={!!editInfo}
+              />
+            </StackItem>
+          )}
           <StackItem>
             <KServeAutoscalerReplicaSection
               data={createDataInferenceService}

@@ -1,39 +1,46 @@
 import * as React from 'react';
 import {
+  Alert,
   Button,
   Checkbox,
+  EmptyState,
   Form,
   FormGroup,
   HelperText,
   HelperTextItem,
+  Spinner,
   TextInput,
 } from '@patternfly/react-core';
 import { Modal } from '@patternfly/react-core/deprecated';
-import PasswordInput from '~/components/PasswordInput';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { ModelRegistryKind } from '~/k8sTypes';
 import { ModelRegistryModel } from '~/api';
-import { createModelRegistryBackend } from '~/services/modelRegistrySettingsService';
+import {
+  createModelRegistryBackend,
+  updateModelRegistryBackend,
+} from '~/services/modelRegistrySettingsService';
 import { isValidK8sName, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
-import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
-import { NameDescType } from '~/pages/projects/types';
 import FormSection from '~/components/pf-overrides/FormSection';
 import { AreaContext } from '~/concepts/areas/AreaContext';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import K8sNameDescriptionField, {
+  useK8sNameDescriptionFieldData,
+} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import useModelRegistryCertificateNames from '~/concepts/modelRegistrySettings/useModelRegistryCertificateNames';
 import { CreateMRSecureDBSection, SecureDBInfo, SecureDBRType } from './CreateMRSecureDBSection';
+import ModelRegistryDatabasePassword from './ModelRegistryDatabasePassword';
 
 type CreateModalProps = {
   onClose: () => void;
   refresh: () => Promise<unknown>;
+  modelRegistry?: ModelRegistryKind;
 };
 
-const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
+const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegistry: mr }) => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<Error>();
-  const [nameDesc, setNameDesc] = React.useState<NameDescType>({
-    name: '',
-    k8sName: undefined,
-    description: '',
+  const { data: nameDesc, onDataChange: setNameDesc } = useK8sNameDescriptionFieldData({
+    initialData: mr,
   });
   const [host, setHost] = React.useState('');
   const [port, setPort] = React.useState('');
@@ -57,26 +64,26 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
   const [showPassword, setShowPassword] = React.useState(false);
   const { dscStatus } = React.useContext(AreaContext);
   const secureDbEnabled = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY_SECURE_DB).status;
+  const [configSecrets, configSecretsLoaded, configSecretsError] = useModelRegistryCertificateNames(
+    !addSecureDB,
+  );
 
   const modelRegistryNamespace = dscStatus?.components?.modelregistry?.registriesNamespace || '';
 
-  // the 3 following consts are temporary hard-coded values to be replaced as part of RHOAIENG-15899
-  const existingCertConfigMaps = [
-    'config-service-cabundle',
-    'odh-trusted-ca-bundle',
-    'foo-ca-bundle',
-  ];
-  const existingCertSecrets = ['builder-dockercfg-b7gdr', 'builder-token-hwsps', 'foo-secret'];
-  const existingCertKeys = ['service-ca.crt', 'foo-ca.crt'];
+  React.useEffect(() => {
+    if (mr) {
+      const dbSpec = mr.spec.mysql || mr.spec.postgres;
+      setHost(dbSpec?.host || 'Unknown');
+      setPort(dbSpec?.port?.toString() || 'Unknown');
+      setUsername(dbSpec?.username || 'Unknown');
+      setDatabase(dbSpec?.database || 'Unknown');
+    }
+  }, [mr]);
 
   const onBeforeClose = () => {
     setIsSubmitting(false);
     setError(undefined);
-    setNameDesc({
-      name: '',
-      k8sName: undefined,
-      description: '',
-    });
+
     setHost('');
     setPort('');
     setUsername('');
@@ -94,44 +101,76 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
   const onSubmit = async () => {
     setIsSubmitting(true);
     setError(undefined);
-    const data: ModelRegistryKind = {
-      apiVersion: `${ModelRegistryModel.apiGroup}/${ModelRegistryModel.apiVersion}`,
-      kind: 'ModelRegistry',
-      metadata: {
-        name: nameDesc.k8sName || translateDisplayNameForK8s(nameDesc.name),
-        namespace: dscStatus?.components?.modelregistry?.registriesNamespace || '',
-        annotations: {
-          'openshift.io/description': nameDesc.description,
-          'openshift.io/display-name': nameDesc.name.trim(),
-        },
-      },
-      spec: {
-        grpc: {},
-        rest: {},
-        istio: {
-          gateway: {
-            grpc: { tls: {} },
-            rest: { tls: {} },
+
+    if (mr) {
+      try {
+        await updateModelRegistryBackend(mr.metadata.name, {
+          modelRegistry: {
+            metadata: {
+              annotations: {
+                'openshift.io/description': nameDesc.description,
+                'openshift.io/display-name': nameDesc.name.trim(),
+              },
+            },
+            spec: {
+              mysql: {
+                host,
+                port: Number(port),
+                database,
+                username,
+              },
+            },
+          },
+          databasePassword: password,
+        });
+        await refresh();
+        onBeforeClose();
+      } catch (e) {
+        if (e instanceof Error) {
+          setError(e);
+        }
+        setIsSubmitting(false);
+      }
+    } else {
+      const data: ModelRegistryKind = {
+        apiVersion: `${ModelRegistryModel.apiGroup}/${ModelRegistryModel.apiVersion}`,
+        kind: 'ModelRegistry',
+        metadata: {
+          name: nameDesc.k8sName.value || translateDisplayNameForK8s(nameDesc.name),
+          namespace: dscStatus?.components?.modelregistry?.registriesNamespace || '',
+          annotations: {
+            'openshift.io/description': nameDesc.description,
+            'openshift.io/display-name': nameDesc.name.trim(),
           },
         },
-        mysql: {
-          host,
-          port: Number(port),
-          database,
-          username,
-          skipDBCreation: false,
+        spec: {
+          grpc: {},
+          rest: {},
+          istio: {
+            gateway: {
+              grpc: { tls: {} },
+              rest: { tls: {} },
+            },
+          },
+          mysql: {
+            host,
+            port: Number(port),
+            database,
+            username,
+            skipDBCreation: false,
+          },
         },
-      },
-    };
-    try {
-      await createModelRegistryBackend({ modelRegistry: data, databasePassword: password });
-      await refresh();
-      onBeforeClose();
-    } catch (e) {
-      if (e instanceof Error) {
-        setError(e);
+      };
+      try {
+        await createModelRegistryBackend({ modelRegistry: data, databasePassword: password });
+        await refresh();
+        onBeforeClose();
+      } catch (e) {
+        if (e instanceof Error) {
+          setError(e);
+        }
+        setIsSubmitting(false);
       }
-      setIsSubmitting(false);
     }
   };
 
@@ -139,7 +178,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
 
   const canSubmit = () =>
     !isSubmitting &&
-    isValidK8sName(nameDesc.k8sName || translateDisplayNameForK8s(nameDesc.name)) &&
+    isValidK8sName(nameDesc.k8sName.value || translateDisplayNameForK8s(nameDesc.name)) &&
     hasContent(host) &&
     hasContent(password) &&
     hasContent(port) &&
@@ -150,7 +189,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
   return (
     <Modal
       isOpen
-      title="Create model registry"
+      title={`${mr ? 'Edit' : 'Create'} model registry`}
       onClose={onBeforeClose}
       actions={[
         <Button key="create-button" variant="primary" isDisabled={!canSubmit()} onClick={onSubmit}>
@@ -165,26 +204,18 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
         <DashboardModalFooter
           onCancel={onBeforeClose}
           onSubmit={onSubmit}
-          submitLabel="Create"
+          submitLabel={mr ? 'Update' : 'Create'}
           isSubmitLoading={isSubmitting}
           isSubmitDisabled={!canSubmit()}
           error={error}
-          alertTitle="Error creating model registry"
+          alertTitle={`Error ${mr ? 'updating' : 'creating'} model registry`}
         />
       }
     >
       <Form>
-        <NameDescriptionField
-          nameFieldId="mr-name"
-          descriptionFieldId="mr-description"
-          data={nameDesc}
-          showK8sName
-          setData={(value) => {
-            setNameDesc(value);
-          }}
-        />
+        <K8sNameDescriptionField dataTestId="mr" data={nameDesc} onDataChange={setNameDesc} />
         <FormSection
-          title="Connect to external MySQL database"
+          title={mr ? 'Database' : 'Connect to external MySQL database'}
           description="This external database is where model data is stored."
         >
           <FormGroup label="Host" isRequired fieldId="mr-host">
@@ -245,23 +276,14 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
             )}
           </FormGroup>
           <FormGroup label="Password" isRequired fieldId="mr-password">
-            <PasswordInput
-              isRequired
-              type={showPassword ? 'text' : 'password'}
-              id="mr-password"
-              name="mr-password"
-              value={password}
-              onBlur={() => setIsPasswordTouched(true)}
-              onChange={(_e, value) => setPassword(value)}
-              validated={isPasswordTouched && !hasContent(password) ? 'error' : 'default'}
+            <ModelRegistryDatabasePassword
+              password={password || ''}
+              setPassword={setPassword}
+              isPasswordTouched={isPasswordTouched}
+              setIsPasswordTouched={setIsPasswordTouched}
+              showPassword={showPassword}
+              editRegistry={mr}
             />
-            {isPasswordTouched && !hasContent(password) && (
-              <HelperText>
-                <HelperTextItem variant="error" data-testid="mr-password-error">
-                  Password cannot be empty
-                </HelperTextItem>
-              </HelperText>
-            )}
           </FormGroup>
           <FormGroup label="Database" isRequired fieldId="mr-database">
             <TextInput
@@ -293,17 +315,23 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh }) => {
                   name="add-secure-db"
                 />
               </FormGroup>
-              {addSecureDB && (
-                <CreateMRSecureDBSection
-                  secureDBInfo={secureDBInfo}
-                  modelRegistryNamespace={modelRegistryNamespace}
-                  nameDesc={nameDesc}
-                  existingCertKeys={existingCertKeys}
-                  existingCertConfigMaps={existingCertConfigMaps}
-                  existingCertSecrets={existingCertSecrets}
-                  setSecureDBInfo={setSecureDBInfo}
-                />
-              )}
+              {addSecureDB &&
+                (!configSecretsLoaded && !configSecretsError ? (
+                  <EmptyState icon={Spinner} />
+                ) : configSecretsLoaded ? (
+                  <CreateMRSecureDBSection
+                    secureDBInfo={secureDBInfo}
+                    modelRegistryNamespace={modelRegistryNamespace}
+                    nameDesc={nameDesc}
+                    existingCertConfigMaps={configSecrets.configMaps}
+                    existingCertSecrets={configSecrets.secrets}
+                    setSecureDBInfo={setSecureDBInfo}
+                  />
+                ) : (
+                  <Alert isInline variant="danger" title="Error fetching config maps and secrets">
+                    {configSecretsError?.message}
+                  </Alert>
+                ))}
             </>
           )}
         </FormSection>

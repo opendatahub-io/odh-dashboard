@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button, Stack, FormGroup, StackItem } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import isEqual from 'lodash-es/isEqual';
+import { isEqual } from 'lodash-es';
 import { NotebookKind, PersistentVolumeClaimKind } from '~/k8sTypes';
 import { ClusterStorageNotebookSelection, StorageData } from '~/pages/projects/types';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
@@ -31,6 +31,7 @@ import {
   isPvcUpdateRequired,
   getInUseMountPaths,
   validateClusterMountPath,
+  getDefaultMountPathFromStorageName,
 } from './utils';
 import { storageColumns } from './clusterTableColumns';
 import ClusterStorageTableRow from './ClusterStorageTableRow';
@@ -94,7 +95,7 @@ const ClusterStorageModal: React.FC<ClusterStorageModalProps> = ({ existingPvc, 
       {
         name: '',
         mountPath: {
-          value: MOUNT_PATH_PREFIX,
+          value: getDefaultMountPathFromStorageName(storageName, newRowId),
           error: '',
         },
         existingPvc: false,
@@ -103,7 +104,7 @@ const ClusterStorageModal: React.FC<ClusterStorageModalProps> = ({ existingPvc, 
       },
     ]);
     setNewRowId((prev) => prev + 1);
-  }, [newRowId, notebookData]);
+  }, [newRowId, notebookData, storageName]);
 
   const { updatedNotebooks, removedNotebooks } = handleConnectedNotebooks(
     notebookData,
@@ -192,34 +193,38 @@ const ClusterStorageModal: React.FC<ClusterStorageModalProps> = ({ existingPvc, 
 
   const isValid = hasAllValidNotebookRelationship;
 
-  React.useEffect(() => {
-    const updatedData = notebookData.map((notebook) => {
-      if (!notebook.existingPvc && !notebook.isUpdatedValue && storageName) {
-        const defaultPathValue = `${MOUNT_PATH_PREFIX}${storageName
-          .toLowerCase()
-          .replace(/\s+/g, '-')}-${notebook.newRowId ?? 1}`;
+  const updatePathWithNameChange = React.useCallback(
+    (newStorageName: string) => {
+      const updatedData = notebookData.map((notebook) => {
+        if (!notebook.existingPvc && !notebook.isUpdatedValue) {
+          const defaultPathValue = getDefaultMountPathFromStorageName(
+            newStorageName,
+            notebook.newRowId,
+          );
 
-        const inUseMountPaths = getInUseMountPaths(
-          notebook.name,
-          allNotebooks,
-          existingPvc?.metadata.name,
-        );
+          const inUseMountPaths = getInUseMountPaths(
+            notebook.name,
+            allNotebooks,
+            existingPvc?.metadata.name,
+          );
 
-        return {
-          ...notebook,
-          mountPath: {
-            value: defaultPathValue,
-            error: validateClusterMountPath(defaultPathValue, inUseMountPaths),
-          },
-        };
+          return {
+            ...notebook,
+            mountPath: {
+              value: defaultPathValue,
+              error: validateClusterMountPath(defaultPathValue, inUseMountPaths),
+            },
+          };
+        }
+        return notebook;
+      });
+
+      if (!isEqual(updatedData, notebookData)) {
+        setNotebookData(updatedData);
       }
-      return notebook;
-    });
-
-    if (!isEqual(updatedData, notebookData)) {
-      setNotebookData(updatedData);
-    }
-  }, [allNotebooks, existingPvc, notebookData, storageName]);
+    },
+    [allNotebooks, existingPvc?.metadata.name, notebookData],
+  );
 
   const handleMountPathUpdate = React.useCallback(
     (rowIndex: number, value: string, format: MountPathFormat) => {
@@ -265,6 +270,7 @@ const ClusterStorageModal: React.FC<ClusterStorageModalProps> = ({ existingPvc, 
       }
       onNameChange={(currentName) => {
         setStorageName(currentName);
+        updatePathWithNameChange(currentName);
       }}
       submitLabel={existingPvc ? 'Update' : 'Add storage'}
       isValid={isValid}
@@ -283,7 +289,7 @@ const ClusterStorageModal: React.FC<ClusterStorageModalProps> = ({ existingPvc, 
                   data={notebookData}
                   rowRenderer={(row, rowIndex) => (
                     <ClusterStorageTableRow
-                      key={rowIndex}
+                      key={row.newRowId || row.name}
                       obj={row}
                       inUseMountPaths={getInUseMountPaths(
                         row.name,
