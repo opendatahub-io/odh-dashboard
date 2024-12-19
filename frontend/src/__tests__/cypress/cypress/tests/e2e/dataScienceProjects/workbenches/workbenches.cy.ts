@@ -82,7 +82,7 @@ describe('Workbench and PVSs tests', () => {
     cy.step(`Wait for Workbench ${workbenchName} to display a "Running" status`);
     const notebookRow = workbenchPage.getNotebookRow(workbenchName);
     notebookRow.expectStatusLabelToBe('Running', 120000);
-    notebookRow.shouldHaveNotebookImageName('Minimal Python');
+    notebookRow.shouldHaveNotebookImageName('code-server');
     notebookRow.shouldHaveContainerSize('Small');
 
     cy.step(`Check the cluster storage ${PVCDisplayName} is now connected to ${workbenchName}`);
