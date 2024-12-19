@@ -36,7 +36,6 @@ const ProjectView: React.FC = () => {
       empty={projects.length === 0}
       emptyStatePage={<EmptyProjects allowCreate={allowCreate} />}
       provideChildrenPadding
-      removeChildrenTopPadding
     >
       <ProjectListView allowCreate={allowCreate} />
     </ApplicationsPage>

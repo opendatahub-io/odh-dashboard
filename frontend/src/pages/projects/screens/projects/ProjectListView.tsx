@@ -72,7 +72,6 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
       <Table
         enablePagination
         loading={false}
-        variant="compact"
         defaultSortColumn={0}
         data={filteredProjects}
         columns={filteredColumns}

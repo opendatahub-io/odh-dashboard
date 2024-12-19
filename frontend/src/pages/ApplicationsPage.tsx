@@ -148,7 +148,11 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
       </FlexItem>
       <FlexItem>{!noHeader && renderHeader()}</FlexItem>
       <FlexItem flex={{ default: 'flex_1' }}>
-        <Flex direction={{ default: 'column' }} style={{ height: '100%' }}>
+        <Flex
+          direction={{ default: 'column' }}
+          style={{ height: '100%' }}
+          flexWrap={{ default: 'nowrap' }}
+        >
           {renderContents()}
         </Flex>
       </FlexItem>
