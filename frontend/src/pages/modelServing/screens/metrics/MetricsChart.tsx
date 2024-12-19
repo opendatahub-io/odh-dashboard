@@ -199,23 +199,35 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
               theme={theme}
               hasPatterns={hasPatterns}
               data-testid="metrics-chart-has-data"
-              {...legendProps}
+              {...(type !== MetricsChartTypes.DONUT && legendProps)} // Conditional spreading
+              showAxis={type === MetricsChartTypes.DONUT ? false : true}
             >
+              {/* Conditionally render X Axis for non-DONUT chart types */}
+              {type !== MetricsChartTypes.DONUT && (
+                //X-Axis
+                <ChartAxis
+                  //X-Axis with Date timestamp 
+                  // tickFormat={(x) => new Date(x).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
 
-              <ChartAxis
-                //X-Axis with "Date" Title 
-                tickFormat={(x) => new Date(x).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
-                label="Date" // Add this for the axis title
-                style={{
-                  axisLabel: { padding: 40, fontSize: 14, fontWeight: 'bold', fill: '#555' },
-                }}
-                // tickFormat={(x) => convertTimestamp(x, formatToShow(currentTimeframe))}
-                domain={{
-                  x: [lastUpdateTime - TimeframeTimeRange[currentTimeframe] * 1000, lastUpdateTime],
-                }}
-                fixLabelOverlap
-              />
-              <ChartAxis dependentAxis tickCount={10} fixLabelOverlap />
+                  //X-Axis with hours timestamp
+                  tickFormat={(x) => convertTimestamp(x, formatToShow(currentTimeframe))}
+                  //Add title for the X-axis
+                  label="Hours" // Add this for the axis title
+                  style={{
+                    axisLabel: { padding: 40, fontSize: 14, fontWeight: 'bold', fill: '#555' },
+                  }}
+                  domain={{
+                    x: [lastUpdateTime - TimeframeTimeRange[currentTimeframe] * 1000, lastUpdateTime],
+                  }}
+                  fixLabelOverlap
+                />
+              )}
+
+              {/* Conditionally render Y Axis for non-DONUT chart types */}
+              {type !== MetricsChartTypes.DONUT && (
+                //Y-Axis
+                < ChartAxis dependentAxis tickCount={10} fixLabelOverlap />
+              )}
               <ChartGroupWrapper>
                 {graphLines.map((line, i) => {
                   switch (type) {
@@ -229,11 +241,28 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
                         />
                       );
                     case MetricsChartTypes.LINE:
-                      return <ChartLine key={i} data={line.points} name={line.name} themeColor={metrics[i]?.color} />;
-                      case MetricsChartTypes.DONUT:
-                        return <ChartDonut key={i} data={line.points} name={line.name} themeColor={metrics[i]?.color} />;
-                      default:
-                        return null;
+                      return (
+                        <ChartGroup key={i}>
+                          {line.points.map((line1, index) => (
+                            <ChartLine
+                              key={index}
+                              data={line.points}
+                              name={line.name}
+                            />
+                          ))}
+                        </ChartGroup>
+                      );
+                    case MetricsChartTypes.DONUT:
+                      return <ChartDonut
+                        key={i}
+                        legendData={legendProps.legendData}
+                        legendOrientation="vertical"
+                        legendPosition="right"
+                        data={line.points}
+                        name={line.name}
+                        themeColor={metrics[i]?.color} />;
+                    default:
+                      return null;
                   }
                 })}
               </ChartGroupWrapper>
