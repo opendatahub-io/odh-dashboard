@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Skeleton, Tooltip } from '@patternfly/react-core';
+import { Button, Tooltip } from '@patternfly/react-core';
 import { useParams } from 'react-router-dom';
 import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
 import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
@@ -14,6 +14,7 @@ import ManageKServeModal from '~/pages/modelServing/screens/projects/kServeModal
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
 import ManageNIMServingModal from '~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
+import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 
 const ServeModelButton: React.FC = () => {
   const [platformSelected, setPlatformSelected] = React.useState<
@@ -26,12 +27,11 @@ const ServeModelButton: React.FC = () => {
     servingRuntimeTemplateOrder: { data: templateOrder },
     servingRuntimeTemplateDisablement: { data: templateDisablement },
     dataConnections: { data: dataConnections },
-    servingPlatformStatuses,
   } = React.useContext(ModelServingContext);
   const { projects } = React.useContext(ProjectsContext);
   const { namespace } = useParams<{ namespace: string }>();
+  const servingPlatformStatuses = useServingPlatformStatuses();
   const isNIMAvailable = servingPlatformStatuses.kServeNIM.enabled;
-  const nimLoaded = servingPlatformStatuses.kServeNIM.isLoaded;
 
   const project = projects.find(byName(namespace));
 
@@ -71,10 +71,6 @@ const ServeModelButton: React.FC = () => {
         <div>{deployButton}</div>
       </Tooltip>
     );
-  }
-
-  if (isKServeNIMEnabled && !nimLoaded) {
-    return <Skeleton style={{ minWidth: 100 }} fontSize="3xl" />;
   }
 
   if (!isNIMAvailable && isKServeNIMEnabled) {

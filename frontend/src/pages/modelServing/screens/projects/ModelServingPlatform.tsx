@@ -40,6 +40,7 @@ import { NamespaceApplicationCase } from '~/pages/projects/types';
 import ModelServingPlatformSelectButton from '~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
 import ModelServingPlatformSelectErrorAlert from '~/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
 import { modelVersionUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ModelMeshServingRuntimeTable from './ModelMeshSection/ServingRuntimeTable';
 import ModelServingPlatformButtonAction from './ModelServingPlatformButtonAction';
@@ -60,6 +61,11 @@ const ModelServingPlatform: React.FC = () => {
   // deployingFromRegistry = User came from the Model Registry page because this project didn't have a serving platform selected
   const deployingFromRegistry = !!(modelRegistryName && registeredModelId && modelVersionId);
 
+  const servingPlatformStatuses = useServingPlatformStatuses();
+  const kServeEnabled = servingPlatformStatuses.kServe.enabled;
+  const modelMeshEnabled = servingPlatformStatuses.modelMesh.enabled;
+  const isNIMAvailable = servingPlatformStatuses.kServeNIM.enabled;
+
   const {
     servingRuntimes: {
       data: servingRuntimes,
@@ -74,12 +80,7 @@ const ModelServingPlatform: React.FC = () => {
     serverSecrets: { refresh: refreshTokens },
     inferenceServices: { refresh: refreshInferenceServices },
     currentProject,
-    servingPlatformStatuses,
   } = React.useContext(ProjectDetailsContext);
-
-  const kServeEnabled = servingPlatformStatuses.kServe.enabled;
-  const modelMeshEnabled = servingPlatformStatuses.modelMesh.enabled;
-  const isNIMAvailable = servingPlatformStatuses.kServeNIM.enabled;
 
   const isKServeNIMEnabled = isProjectNIMSupported(currentProject);
 
@@ -139,12 +140,6 @@ const ModelServingPlatform: React.FC = () => {
               testId={`${isProjectModelMesh ? 'add-server' : 'deploy'}-button`}
               emptyTemplates={emptyTemplates}
               variant="primary"
-              // isNimDisabled={!isNIMAvailable && isKServeNIMEnabled}
-              // tooltipContent={
-              //   !isNIMAvailable && isKServeNIMEnabled
-              //     ? 'NIM is not available. Contact your administrator.'
-              //     : undefined
-              // }
               onClick={() => {
                 setPlatformSelected(
                   isProjectModelMesh ? ServingRuntimePlatform.MULTI : ServingRuntimePlatform.SINGLE,
@@ -226,12 +221,6 @@ const ModelServingPlatform: React.FC = () => {
                   isProjectModelMesh={isProjectModelMesh}
                   testId={`${isProjectModelMesh ? 'add-server' : 'deploy'}-button`}
                   emptyTemplates={emptyTemplates}
-                  // isNimDisabled={!isNIMAvailable && isKServeNIMEnabled}
-                  // tooltipContent={
-                  //   !isNIMAvailable && isKServeNIMEnabled
-                  //     ? 'NIM is not available. Contact your administrator.'
-                  //     : undefined
-                  // }
                   onClick={() => {
                     setPlatformSelected(
                       isProjectModelMesh

@@ -27,8 +27,6 @@ import { getTokenNames } from '~/pages/modelServing/utils';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { Connection } from '~/concepts/connectionTypes/types';
 import { useGroups, useTemplates } from '~/api';
-import { ServingPlatformStatuses } from '~/pages/modelServing/screens/types';
-import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import { NotebookState } from './notebook/types';
 import { DataConnection } from './types';
 import useDataConnections from './screens/detail/data-connections/useDataConnections';
@@ -52,7 +50,6 @@ type ProjectDetailsContextType = {
   serverSecrets: ContextResourceData<SecretKind>;
   projectSharingRB: ContextResourceData<RoleBindingKind>;
   groups: CustomWatchK8sResult<GroupKind[]>;
-  servingPlatformStatuses: ServingPlatformStatuses;
 };
 
 export const ProjectDetailsContext = React.createContext<ProjectDetailsContextType>({
@@ -70,22 +67,6 @@ export const ProjectDetailsContext = React.createContext<ProjectDetailsContextTy
   serverSecrets: DEFAULT_CONTEXT_DATA,
   projectSharingRB: DEFAULT_CONTEXT_DATA,
   groups: DEFAULT_LIST_WATCH_RESULT,
-  servingPlatformStatuses: {
-    kServe: {
-      enabled: false,
-      installed: false,
-    },
-    kServeNIM: {
-      enabled: false,
-      installed: false,
-      isLoaded: false,
-    },
-    modelMesh: {
-      enabled: false,
-      installed: false,
-    },
-    platformEnabledCount: 0,
-  },
 });
 
 const ProjectDetailsContextProvider: React.FC = () => {
@@ -100,7 +81,6 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const connections = useContextResourceData<Connection>(useConnections(namespace));
   const servingRuntimes = useContextResourceData<ServingRuntimeKind>(useServingRuntimes(namespace));
   const servingRuntimeTemplates = useTemplates(dashboardNamespace);
-  const servingPlatformStatuses = useServingPlatformStatuses();
 
   const servingRuntimeTemplateOrder = useContextResourceData<string>(
     useTemplateOrder(dashboardNamespace),
@@ -154,7 +134,6 @@ const ProjectDetailsContextProvider: React.FC = () => {
             serverSecrets,
             projectSharingRB,
             groups,
-            servingPlatformStatuses,
           }
         : null,
     [
@@ -172,7 +151,6 @@ const ProjectDetailsContextProvider: React.FC = () => {
       serverSecrets,
       projectSharingRB,
       groups,
-      servingPlatformStatuses,
     ],
   );
 

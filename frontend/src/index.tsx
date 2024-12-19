@@ -19,21 +19,21 @@ import { ReduxContext } from './redux/context';
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 const root = createRoot(document.getElementById('root')!);
 root.render(
-  // <React.StrictMode>
-  <ErrorBoundary>
-    <Provider store={sdkStore}>
-      <Provider store={store} context={ReduxContext}>
-        <Router>
-          <SDKInitialize>
-            <BrowserStorageContextProvider>
-              <ThemeProvider>
-                <App />
-              </ThemeProvider>
-            </BrowserStorageContextProvider>
-          </SDKInitialize>
-        </Router>
+  <React.StrictMode>
+    <ErrorBoundary>
+      <Provider store={sdkStore}>
+        <Provider store={store} context={ReduxContext}>
+          <Router>
+            <SDKInitialize>
+              <BrowserStorageContextProvider>
+                <ThemeProvider>
+                  <App />
+                </ThemeProvider>
+              </BrowserStorageContextProvider>
+            </SDKInitialize>
+          </Router>
+        </Provider>
       </Provider>
-    </Provider>
-  </ErrorBoundary>,
-  // </React.StrictMode>,
+    </ErrorBoundary>
+  </React.StrictMode>,
 );
