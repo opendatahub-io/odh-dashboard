@@ -49,7 +49,7 @@ export const PipelineRunDetailsTabs: React.FC<PipelineRunDetailsTabsProps> = ({
       hasBodyWrapper={false}
       isFilled
       padding={{ default: 'noPadding' }}
-      style={{ flexBasis: 0, overflowY: 'hidden' }}
+      style={{ flexBasis: 0 }}
     >
       <Flex
         direction={{ default: 'column' }}
