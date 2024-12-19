@@ -17,6 +17,7 @@ export const health = async (fastify: KubeFastifyInstance): Promise<{ health: st
     fastify.log.error(error, 'failed to get dashboard config');
     throw error;
   } else {
-    return { health: 'ok' };
+    throw new Error('this is a made up error for testing');
+    // return { health: 'ok' };
   }
 };
