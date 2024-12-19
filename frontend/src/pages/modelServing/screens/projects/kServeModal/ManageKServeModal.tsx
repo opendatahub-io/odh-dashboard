@@ -430,14 +430,13 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                 setSelectedAcceleratorProfile={setSelectedAcceleratorProfile}
                 infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
               />
-              {isAuthorinoEnabled && (
-                <AuthServingRuntimeSection
-                  data={createDataInferenceService}
-                  setData={setCreateDataInferenceService}
-                  allowCreate={allowCreate}
-                  publicRoute
-                />
-              )}
+              <AuthServingRuntimeSection
+                data={createDataInferenceService}
+                setData={setCreateDataInferenceService}
+                allowCreate={allowCreate}
+                publicRoute
+                showModelRoute={isAuthorinoEnabled}
+              />
             </>
           )}
         </FormSection>
