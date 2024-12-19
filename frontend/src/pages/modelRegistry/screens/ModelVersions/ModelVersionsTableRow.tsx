@@ -23,6 +23,7 @@ type ModelVersionsTableRowProps = {
   isArchiveModel?: boolean;
   hasDeployment?: boolean;
   refresh: () => void;
+  onAfterDeploy?: (modelVersionId: string) => Promise<void>;
 };
 
 const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
@@ -31,6 +32,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
   isArchiveModel,
   hasDeployment = false,
   refresh,
+  onAfterDeploy,
 }) => {
   const navigate = useNavigate();
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
@@ -38,6 +40,12 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
   const [isDeployModalOpen, setIsDeployModalOpen] = React.useState(false);
   const { apiState } = React.useContext(ModelRegistryContext);
+
+  const handleAfterDeploy = async () => {
+    if (onAfterDeploy) {
+      await onAfterDeploy(mv.id);
+    }
+  };
 
   const actions: IAction[] = isArchiveRow
     ? [
@@ -127,15 +135,16 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
           ) : null}
           {isDeployModalOpen ? (
             <DeployRegisteredModelModal
-              onSubmit={() =>
+              onSubmit={async () => {
+                await handleAfterDeploy();
                 navigate(
                   modelVersionDeploymentsUrl(
                     mv.id,
                     mv.registeredModelId,
                     preferredModelRegistry?.metadata.name,
                   ),
-                )
-              }
+                );
+              }}
               onCancel={() => setIsDeployModalOpen(false)}
               modelVersion={mv}
             />

@@ -52,11 +52,10 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
   } = useRegisteredModelDeployInfo(modelVersion);
 
   const onClose = React.useCallback(
-    (submit: boolean) => {
+    async (submit: boolean) => {
       if (submit) {
         onSubmit?.();
       }
-
       setSelectedProject(null);
       onCancel();
     },
