@@ -4,6 +4,8 @@ import {
   typedBackgroundColor,
   ProjectObjectType,
   SectionType,
+  sectionTypeIconColor,
+  typedIconColor,
 } from '~/concepts/design/utils';
 import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
 
@@ -32,6 +34,7 @@ const HeaderIcon: React.FC<HeaderIconProps> = ({
       background: sectionType
         ? sectionTypeBackgroundColor(sectionType)
         : typedBackgroundColor(type),
+      color: sectionType ? sectionTypeIconColor(sectionType) : typedIconColor(type),
     }}
   >
     <TypedObjectIcon

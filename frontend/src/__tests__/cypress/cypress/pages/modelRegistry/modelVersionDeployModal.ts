@@ -10,8 +10,7 @@ class ModelVersionDeployModal extends Modal {
   }
 
   selectProjectByName(name: string) {
-    this.findProjectSelector().click();
-    this.find().findByRole('option', { name, timeout: 5000 }).click();
+    this.findProjectSelector().findSelectOption(name).click();
   }
 }
 

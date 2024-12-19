@@ -319,7 +319,10 @@ describe('Workbench page', () => {
 
     //add existing data connection
     createSpawnerPage.findExistingDataConnectionRadio().click();
-    createSpawnerPage.selectExistingDataConnection('Test Secret');
+    createSpawnerPage.findExistingDataConnectionSelect().should('have.attr', 'disabled');
+    createSpawnerPage
+      .findExistingDataConnectionSelectValueField()
+      .should('have.value', 'Test Secret');
 
     createSpawnerPage.findSubmitButton().click();
     cy.wait('@createConfigMap').then((interception) => {

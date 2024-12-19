@@ -60,6 +60,7 @@ import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescription
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 import EnvironmentVariablesSection from './EnvironmentVariablesSection';
 import ServingRuntimeArgsSection from './ServingRuntimeArgsSection';
+import { KServeDeploymentModeDropdown } from './KServeDeploymentModeDropdown';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -124,6 +125,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const isAuthorinoEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status;
   const currentProjectName = projectContext?.currentProject.metadata.name;
   const namespace = currentProjectName || createDataInferenceService.project;
+
+  const isKServeRawEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_RAW).status;
 
   const {
     initialState: initialAcceleratorProfileState,
@@ -402,6 +405,15 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                 modelContext={servingRuntimeSelected?.spec.supportedModelFormats}
                 registeredModelFormat={registeredModelDeployInfo?.modelFormat}
               />
+              {isKServeRawEnabled && (
+                <KServeDeploymentModeDropdown
+                  isRaw={!!createDataInferenceService.isKServeRawDeployment}
+                  setIsRaw={(isRaw) =>
+                    setCreateDataInferenceService('isKServeRawDeployment', isRaw)
+                  }
+                  isDisabled={!!editInfo}
+                />
+              )}
               <KServeAutoscalerReplicaSection
                 data={createDataInferenceService}
                 setData={setCreateDataInferenceService}
