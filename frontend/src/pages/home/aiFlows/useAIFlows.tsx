@@ -5,6 +5,7 @@ import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
 import { SupportedArea } from '~/concepts/areas';
 import EvenlySpacedGallery from '~/components/EvenlySpacedGallery';
 import { CreateAndTrainIcon, ModelIcon, ProjectIcon } from '~/images/icons';
+import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import ProjectsGallery from './ProjectsGallery';
 import CreateAndTrainGallery from './CreateAndTrainGallery';
 import DeployAndMonitorGallery from './DeployAndMonitorGallery';
@@ -16,9 +17,13 @@ export const useAIFlows = (): React.ReactNode => {
   const { status: projectsAvailable } = useIsAreaAvailable(SupportedArea.DS_PROJECTS_VIEW);
   const { status: modelServingAvailable } = useIsAreaAvailable(SupportedArea.MODEL_SERVING);
   const { status: modelRegistryAvailable } = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY);
+  const servingPlatformStatuses = useServingPlatformStatuses();
   const [selected, setSelected] = React.useState<string | undefined>();
 
   return React.useMemo(() => {
+    const hasModelServingPlatforms =
+      modelServingAvailable && servingPlatformStatuses.platformEnabledCount > 0;
+
     const cards = [];
     if (projectsAvailable) {
       cards.push(
@@ -56,7 +61,7 @@ export const useAIFlows = (): React.ReactNode => {
         />,
       );
     }
-    if (modelServingAvailable || modelRegistryAvailable) {
+    if (hasModelServingPlatforms || modelRegistryAvailable) {
       cards.push(
         <AIFlowCard
           key="models"
@@ -107,5 +112,6 @@ export const useAIFlows = (): React.ReactNode => {
     projectsAvailable,
     selected,
     workbenchesAvailable,
+    servingPlatformStatuses.platformEnabledCount,
   ]);
 };

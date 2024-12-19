@@ -103,4 +103,13 @@ describe('Home page AI Flows', () => {
     homeAISection.getTrainFlowCard().find().click();
     homeAISection.findPipelinesTrainDescriptionText().should('not.exist');
   });
+
+  it('should hide the models card when model registry and model serving platform components are disabled regardless of feature flags', () => {
+    homePage.initHomeIntercepts({
+      disableModelRegistry: true,
+      disableModelServing: true,
+    });
+    homePage.visit();
+    homeAISection.getModelsFlowCard().find().should('not.exist');
+  });
 });
