@@ -1,12 +1,25 @@
-import { ModelRegistryAPIs, ModelState, ModelRegistryMetadataType } from '~/concepts/modelRegistry/types';
+import {
+  ModelRegistryAPIs,
+  ModelState,
+  ModelRegistryMetadataType,
+} from '~/concepts/modelRegistry/types';
 
 export const bumpModelVersionTimestamp = async (
   api: ModelRegistryAPIs,
   modelVersionId: string,
 ): Promise<void> => {
+  if (!modelVersionId) {
+    throw new Error('Model version ID is required');
+  }
+
   try {
     await api.patchModelVersion({}, { state: ModelState.LIVE }, modelVersionId);
   } catch (error) {
+    throw new Error(
+      `Failed to update model version timestamp: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
   }
 };
 
@@ -14,19 +27,32 @@ export const bumpRegisteredModelTimestamp = async (
   api: ModelRegistryAPIs,
   registeredModelId: string,
 ): Promise<void> => {
+  if (!registeredModelId) {
+    throw new Error('Registered model ID is required');
+  }
+
   try {
     const currentTime = new Date().toISOString();
-    await api.patchRegisteredModel({}, { 
-      state: ModelState.LIVE,
-      customProperties: {
-        '_lastModified': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: currentTime
-        }
-      }
-    }, registeredModelId);
+    await api.patchRegisteredModel(
+      {},
+      {
+        state: ModelState.LIVE,
+        customProperties: {
+          _lastModified: {
+            metadataType: ModelRegistryMetadataType.STRING,
+            // eslint-disable-next-line camelcase
+            string_value: currentTime,
+          },
+        },
+      },
+      registeredModelId,
+    );
   } catch (error) {
-    throw error;
+    throw new Error(
+      `Failed to update registered model timestamp: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
   }
 };
 
@@ -35,16 +61,8 @@ export const bumpBothTimestamps = async (
   modelVersionId: string,
   registeredModelId: string,
 ): Promise<void> => {
-  try {
-    const results = await Promise.all([
-      bumpModelVersionTimestamp(api, modelVersionId).catch(e => {
-        throw e;
-      }),
-      bumpRegisteredModelTimestamp(api, registeredModelId).catch(e => {
-        throw e;
-      })
-    ]);
-  } catch (error) {
-    throw error;
-  }
+  await Promise.all([
+    bumpModelVersionTimestamp(api, modelVersionId),
+    bumpRegisteredModelTimestamp(api, registeredModelId),
+  ]);
 };

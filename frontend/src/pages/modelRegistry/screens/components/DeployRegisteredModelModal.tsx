@@ -20,14 +20,12 @@ interface DeployRegisteredModelModalProps {
   modelVersion: ModelVersion;
   onCancel: () => void;
   onSubmit?: () => void;
-  onAfterDeploy?: () => Promise<void>;
 }
 
 const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
   modelVersion,
   onCancel,
   onSubmit,
-  onAfterDeploy,
 }) => {
   const {
     servingRuntimeTemplates: [templates],

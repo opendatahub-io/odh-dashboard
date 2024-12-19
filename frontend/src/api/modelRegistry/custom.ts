@@ -63,14 +63,14 @@ export const createModelVersionForRegisteredModel =
       proxyPATCH(
         hostpath,
         `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/${registeredModelId}`,
-        { 
+        {
           state: 'LIVE',
           customProperties: {
-            '_lastModified': {
+            _lastModified: {
               metadataType: ModelRegistryMetadataType.STRING,
-              string_value: currentTime
-            }
-          }
+              stringValue: currentTime,
+            },
+          },
         },
         opts,
       ),
@@ -216,18 +216,15 @@ export const patchRegisteredModel =
     opts: K8sAPIOptions,
     data: Partial<RegisteredModel>,
     registeredModelId: string,
-  ): Promise<RegisteredModel> => {
-    return handleModelRegistryFailures<RegisteredModel>(
+  ): Promise<RegisteredModel> =>
+    handleModelRegistryFailures<RegisteredModel>(
       proxyPATCH(
         hostPath,
         `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/${registeredModelId}`,
         data,
         opts,
       ),
-    ).then(response => {
-      return response;
-    });
-  };
+    );
 
 export const patchModelVersion =
   (hostPath: string) =>
@@ -235,18 +232,15 @@ export const patchModelVersion =
     opts: K8sAPIOptions,
     data: Partial<ModelVersion>,
     modelVersionId: string,
-  ): Promise<ModelVersion> => {
-    return handleModelRegistryFailures<ModelVersion>(
+  ): Promise<ModelVersion> =>
+    handleModelRegistryFailures<ModelVersion>(
       proxyPATCH(
         hostPath,
         `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_versions/${modelVersionId}`,
         data,
         opts,
       ),
-    ).then(response => {
-      return response;
-    });
-  };
+    );
 
 export const patchModelArtifact =
   (hostPath: string) =>

@@ -49,18 +49,14 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
     );
   }
   const handleVersionUpdate = async (updatePromise: Promise<unknown>): Promise<void> => {
-    try {
-      await updatePromise;
-      
-      if (!mv.registeredModelId) {
-        return;
-      }
-      
-      await bumpBothTimestamps(apiState.api, mv.id, mv.registeredModelId);
-      refresh();
-    } catch (error) {
-      throw error;
+    await updatePromise;
+
+    if (!mv.registeredModelId) {
+      return;
     }
+
+    await bumpBothTimestamps(apiState.api, mv.id, mv.registeredModelId);
+    refresh();
   };
 
   const handleArtifactUpdate = async (updatePromise: Promise<unknown>): Promise<void> => {
@@ -69,6 +65,9 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
       await bumpBothTimestamps(apiState.api, mv.id, mv.registeredModelId);
       refreshModelArtifacts();
     } catch (error) {
+      throw new Error(
+        `Failed to update artifact: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   };
 
@@ -204,7 +203,11 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             value={modelArtifact?.modelFormatName || ''}
             saveEditedValue={(value) =>
               handleArtifactUpdate(
-                apiState.api.patchModelArtifact({}, { modelFormatName: value }, modelArtifact?.id || '')
+                apiState.api.patchModelArtifact(
+                  {},
+                  { modelFormatName: value },
+                  modelArtifact?.id || '',
+                ),
               )
             }
             title="Model Format"
@@ -217,7 +220,11 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             isArchive={isArchiveVersion}
             saveEditedValue={(newVersion) =>
               handleArtifactUpdate(
-                apiState.api.patchModelArtifact({}, { modelFormatVersion: newVersion }, modelArtifact?.id || '')
+                apiState.api.patchModelArtifact(
+                  {},
+                  { modelFormatVersion: newVersion },
+                  modelArtifact?.id || '',
+                ),
               )
             }
             title="Version"

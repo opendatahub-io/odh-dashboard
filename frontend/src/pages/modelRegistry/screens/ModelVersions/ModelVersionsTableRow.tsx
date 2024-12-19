@@ -135,17 +135,17 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
           ) : null}
           {isDeployModalOpen ? (
             <DeployRegisteredModelModal
-              onSubmit={() =>
+              onSubmit={async () => {
+                await handleAfterDeploy();
                 navigate(
                   modelVersionDeploymentsUrl(
                     mv.id,
                     mv.registeredModelId,
                     preferredModelRegistry?.metadata.name,
                   ),
-                )
-              }
+                );
+              }}
               onCancel={() => setIsDeployModalOpen(false)}
-              onAfterDeploy={handleAfterDeploy}
               modelVersion={mv}
             />
           ) : null}

@@ -1,5 +1,7 @@
 import * as React from 'react';
+import { useCallback } from 'react';
 import { useParams } from 'react-router-dom';
+import { useModelRegistryAPI } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { Table } from '~/components/table';
 import { ModelVersion, ModelState } from '~/concepts/modelRegistry/types';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
@@ -8,8 +10,6 @@ import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import { KnownLabels } from '~/k8sTypes';
 import { mvColumns } from './ModelVersionsTableColumns';
 import ModelVersionsTableRow from './ModelVersionsTableRow';
-import { useCallback } from 'react';
-import { useModelRegistryAPI } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 
 type ModelVersionsTableProps = {
   clearFilters: () => void;
@@ -31,7 +31,9 @@ const ModelVersionsTable: React.FC<ModelVersionsTableProps> = ({
 
   const handleAfterDeploy = useCallback(
     async (modelVersionId: string) => {
-      if (!registeredModelId) return;
+      if (!registeredModelId) {
+        return;
+      }
 
       try {
         await Promise.all([
