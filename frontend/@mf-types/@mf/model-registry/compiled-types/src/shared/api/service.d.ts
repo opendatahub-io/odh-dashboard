@@ -1,0 +1,18 @@
+import { CreateModelArtifactData, CreateModelVersionData, CreateRegisteredModelData, ModelArtifact, ModelArtifactList, ModelVersionList, ModelVersion, RegisteredModelList, RegisteredModel } from '~/app/types';
+import { APIOptions } from '~/shared/api/types';
+export declare const createRegisteredModel: (hostPath: string) => (opts: APIOptions, data: CreateRegisteredModelData) => Promise<RegisteredModel>;
+export declare const createModelVersion: (hostPath: string) => (opts: APIOptions, data: CreateModelVersionData) => Promise<ModelVersion>;
+export declare const createModelVersionForRegisteredModel: (hostPath: string) => (opts: APIOptions, registeredModelId: string, data: CreateModelVersionData) => Promise<ModelVersion>;
+export declare const createModelArtifact: (hostPath: string) => (opts: APIOptions, data: CreateModelArtifactData) => Promise<ModelArtifact>;
+export declare const createModelArtifactForModelVersion: (hostPath: string) => (opts: APIOptions, modelVersionId: string, data: CreateModelArtifactData) => Promise<ModelArtifact>;
+export declare const getRegisteredModel: (hostPath: string) => (opts: APIOptions, registeredModelId: string) => Promise<RegisteredModel>;
+export declare const getModelVersion: (hostPath: string) => (opts: APIOptions, modelversionId: string) => Promise<ModelVersion>;
+export declare const getModelArtifact: (hostPath: string) => (opts: APIOptions, modelArtifactId: string) => Promise<ModelArtifact>;
+export declare const getListModelArtifacts: (hostPath: string) => (opts: APIOptions) => Promise<ModelArtifactList>;
+export declare const getListModelVersions: (hostPath: string) => (opts: APIOptions) => Promise<ModelVersionList>;
+export declare const getListRegisteredModels: (hostPath: string) => (opts: APIOptions) => Promise<RegisteredModelList>;
+export declare const getModelVersionsByRegisteredModel: (hostPath: string) => (opts: APIOptions, registeredmodelId: string) => Promise<ModelVersionList>;
+export declare const getModelArtifactsByModelVersion: (hostPath: string) => (opts: APIOptions, modelVersionId: string) => Promise<ModelArtifactList>;
+export declare const patchRegisteredModel: (hostPath: string) => (opts: APIOptions, data: Partial<RegisteredModel>, registeredModelId: string) => Promise<RegisteredModel>;
+export declare const patchModelVersion: (hostPath: string) => (opts: APIOptions, data: Partial<ModelVersion>, modelversionId: string) => Promise<ModelVersion>;
+export declare const patchModelArtifact: (hostPath: string) => (opts: APIOptions, data: Partial<ModelArtifact>, modelartifactId: string) => Promise<ModelArtifact>;
