@@ -4,6 +4,10 @@ import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import ValueUnitField from '~/components/ValueUnitField';
 import { MEMORY_UNITS_FOR_SELECTION, UnitOption } from '~/utilities/valueUnits';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
+import {
+  ConnectedNotebookContext,
+  useRelatedNotebooks,
+} from '~/pages/projects/notebook/useRelatedNotebooks';
 
 type PVSizeFieldProps = {
   fieldID: string;
@@ -13,6 +17,7 @@ type PVSizeFieldProps = {
   currentStatus?: PersistentVolumeClaimKind['status'];
   label?: string;
   options?: UnitOption[];
+  existingPvcName?: string;
 };
 
 const PVSizeField: React.FC<PVSizeFieldProps> = ({
@@ -23,9 +28,17 @@ const PVSizeField: React.FC<PVSizeFieldProps> = ({
   currentStatus,
   label = 'Persistent storage size',
   options = MEMORY_UNITS_FOR_SELECTION,
+  existingPvcName,
 }) => {
   const currentSize = currentStatus?.capacity?.storage;
   const isUnbound = currentStatus && currentStatus.phase !== 'Bound';
+
+  const { notebooks } = useRelatedNotebooks(
+    ConnectedNotebookContext.REMOVABLE_PVC,
+    existingPvcName,
+  );
+
+  const hasExistingNotebookConnections = notebooks.length > 0;
 
   return (
     <FormGroup label={label} fieldId={fieldID} data-testid={fieldID}>
@@ -60,8 +73,9 @@ const PVSizeField: React.FC<PVSizeFieldProps> = ({
                 variant="warning"
                 icon={<ExclamationTriangleIcon />}
               >
-                Storage size can only be increased. If you do so, the workbench will restart and be
-                unavailable for a period of time that is usually proportional to the size change.
+                {!hasExistingNotebookConnections
+                  ? 'Storage size can only be increased. To complete the storage size update, you must connect to and run a workbench.'
+                  : 'Storage size can only be increased. If you do so, the workbench will restart and be unavailable for a period of time that is usually proportional to the size change.'}
               </HelperTextItem>
             )}
           </HelperText>
