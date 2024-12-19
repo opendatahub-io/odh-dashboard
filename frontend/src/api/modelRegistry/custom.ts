@@ -8,11 +8,11 @@ import {
   ModelVersion,
   RegisteredModelList,
   RegisteredModel,
-  ModelRegistryMetadataType,
 } from '~/concepts/modelRegistry/types';
+import { MODEL_REGISTRY_API_VERSION } from '~/concepts/modelRegistry/const';
+import { bumpRegisteredModelTimestamp } from '~/concepts/modelRegistry/utils/updateTimestamps';
 import { proxyCREATE, proxyGET, proxyPATCH } from '~/api/proxyUtils';
 import { K8sAPIOptions } from '~/k8sTypes';
-import { MODEL_REGISTRY_API_VERSION } from '~/concepts/modelRegistry/const';
 import { handleModelRegistryFailures } from './errorUtils';
 
 export const createRegisteredModel =
@@ -47,7 +47,6 @@ export const createModelVersionForRegisteredModel =
     registeredModelId: string,
     data: CreateModelVersionData,
   ): Promise<ModelVersion> => {
-    // First create the version
     const newVersion = await handleModelRegistryFailures<ModelVersion>(
       proxyCREATE(
         hostpath,
@@ -58,22 +57,20 @@ export const createModelVersionForRegisteredModel =
       ),
     );
 
-    const currentTime = new Date().toISOString();
-    await handleModelRegistryFailures<RegisteredModel>(
-      proxyPATCH(
-        hostpath,
-        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/${registeredModelId}`,
-        {
-          state: 'LIVE',
-          customProperties: {
-            _lastModified: {
-              metadataType: ModelRegistryMetadataType.STRING,
-              stringValue: currentTime,
-            },
-          },
-        },
-        opts,
-      ),
+    // Use the established timestamp update utility
+    await bumpRegisteredModelTimestamp(
+      {
+        patchRegisteredModel: (apiOpts, patchData, id) =>
+          handleModelRegistryFailures(
+            proxyPATCH(
+              hostpath,
+              `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/${id}`,
+              patchData,
+              apiOpts,
+            ),
+          ),
+      },
+      registeredModelId,
     );
 
     return newVersion;

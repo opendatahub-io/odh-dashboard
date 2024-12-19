@@ -4,6 +4,8 @@ import {
   ModelRegistryMetadataType,
 } from '~/concepts/modelRegistry/types';
 
+type MinimalModelRegistryAPI = Pick<ModelRegistryAPIs, 'patchRegisteredModel'>;
+
 export const bumpModelVersionTimestamp = async (
   api: ModelRegistryAPIs,
   modelVersionId: string,
@@ -24,7 +26,7 @@ export const bumpModelVersionTimestamp = async (
 };
 
 export const bumpRegisteredModelTimestamp = async (
-  api: ModelRegistryAPIs,
+  api: MinimalModelRegistryAPI,
   registeredModelId: string,
 ): Promise<void> => {
   if (!registeredModelId) {
