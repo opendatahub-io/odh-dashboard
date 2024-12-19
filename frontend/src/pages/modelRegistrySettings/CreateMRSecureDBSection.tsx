@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { FormGroup, Radio, Alert, MenuItem, MenuGroup } from '@patternfly/react-core';
+import { FormGroup, Radio, Alert, MenuItem, MenuGroup, Tooltip } from '@patternfly/react-core';
 import SearchSelector from '~/components/searchSelector/SearchSelector';
 import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { RecursivePartial } from '~/typeHelpers';
+import { ConfigSecretItem } from '~/k8sTypes';
+import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { PemFileUpload } from './PemFileUpload';
 
 export enum SecureDBRType {
@@ -19,15 +21,15 @@ export interface SecureDBInfo {
   certificate: string;
   nameSpace: string;
   isValid: boolean;
+  resourceType?: 'ConfigMap' | 'Secret';
 }
 
 interface CreateMRSecureDBSectionProps {
   secureDBInfo: SecureDBInfo;
   modelRegistryNamespace: string;
   nameDesc: { name: string };
-  existingCertKeys: string[];
-  existingCertConfigMaps: string[];
-  existingCertSecrets: string[];
+  existingCertConfigMaps: ConfigSecretItem[];
+  existingCertSecrets: ConfigSecretItem[];
   setSecureDBInfo: (info: SecureDBInfo) => void;
 }
 
@@ -35,12 +37,15 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
   secureDBInfo,
   modelRegistryNamespace,
   nameDesc,
-  existingCertKeys,
   existingCertConfigMaps,
   existingCertSecrets,
   setSecureDBInfo,
 }) => {
-  const [searchValue, setSearchValue] = useState('');
+  const [searchConfigSecretName, setSearchConfigSecretName] = useState('');
+  const [searchKey, setSearchKey] = useState('');
+  const ODH_TRUSTED_BUNDLE = 'odh-trusted-ca-bundle';
+  const CA_BUNDLE_CRT = 'ca-bundle.crt';
+  const ODH_CA_BUNDLE_CRT = 'odh-ca-bundle.crt';
 
   const hasContent = (value: string): boolean => !!value.trim().length;
 
@@ -58,12 +63,33 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
     return false;
   };
 
+  const clusterWideCABundle = existingCertConfigMaps.find(
+    (configMap) => configMap.name === ODH_TRUSTED_BUNDLE && configMap.keys.includes(CA_BUNDLE_CRT),
+  );
+
+  const isClusterWideCABundleAvailable = !!clusterWideCABundle;
+
+  const openshiftCAbundle = existingCertConfigMaps.find(
+    (configMap) =>
+      configMap.name === ODH_TRUSTED_BUNDLE && configMap.keys.includes(ODH_CA_BUNDLE_CRT),
+  );
+
+  const isProductCABundleAvailable = !!openshiftCAbundle;
+
+  const getKeysByName = (configMapsSecrets: ConfigSecretItem[], targetName: string): string[] => {
+    const configMapSecret = configMapsSecrets.find(
+      (configMapOrSecret) => configMapOrSecret.name === targetName,
+    );
+    return configMapSecret ? configMapSecret.keys : [];
+  };
+
   const handleSecureDBTypeChange = (type: SecureDBRType) => {
     const newInfo = {
       type,
       nameSpace: '',
       key: '',
       configMap: '',
+      resourceType: undefined,
       certificate: '',
     };
     setSecureDBInfo({
@@ -72,51 +98,46 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
     });
   };
 
+  const handleResourceSelect = (selectedName: string, resourceType: 'ConfigMap' | 'Secret') => {
+    setSearchConfigSecretName('');
+
+    const newInfo = {
+      ...secureDBInfo,
+      configMap: selectedName,
+      key: '',
+      resourceType,
+    };
+
+    setSecureDBInfo({ ...newInfo, isValid: isValid(newInfo) });
+  };
+
   const getFilteredExistingCAResources = () => (
     <>
       <MenuGroup label="ConfigMaps">
         {existingCertConfigMaps
-          .filter((configMap) => configMap.toLowerCase().includes(searchValue.toLowerCase()))
+          .filter((configMap) =>
+            configMap.name.toLowerCase().includes(searchConfigSecretName.toLowerCase()),
+          )
           .map((configMap, index) => (
             <MenuItem
               key={`configmap-${index}`}
-              onClick={() => {
-                setSearchValue('');
-                const newInfo = {
-                  ...secureDBInfo,
-                  configMap,
-                  key: '',
-                };
-                setSecureDBInfo({
-                  ...newInfo,
-                  isValid: isValid(newInfo),
-                });
-              }}
+              onClick={() => handleResourceSelect(configMap.name, 'ConfigMap')}
             >
-              {configMap}
+              {configMap.name}
             </MenuItem>
           ))}
       </MenuGroup>
       <MenuGroup label="Secrets">
         {existingCertSecrets
-          .filter((secret) => secret.toLowerCase().includes(searchValue.toLowerCase()))
+          .filter((secret) =>
+            secret.name.toLowerCase().includes(searchConfigSecretName.toLowerCase()),
+          )
           .map((secret, index) => (
             <MenuItem
               key={`secret-${index}`}
-              onClick={() => {
-                setSearchValue('');
-                const newInfo = {
-                  ...secureDBInfo,
-                  configMap: secret,
-                  key: '',
-                };
-                setSecureDBInfo({
-                  ...newInfo,
-                  isValid: isValid(newInfo),
-                });
-              }}
+              onClick={() => handleResourceSelect(secret.name, 'Secret')}
             >
-              {secret}
+              {secret.name}
             </MenuItem>
           ))}
       </MenuGroup>
@@ -125,32 +146,72 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
 
   return (
     <>
-      <Radio
-        isChecked={secureDBInfo.type === SecureDBRType.CLUSTER_WIDE}
-        name="cluster-wide-ca"
-        onChange={() => handleSecureDBTypeChange(SecureDBRType.CLUSTER_WIDE)}
-        label="Use cluster-wide CA bundle"
-        description={
-          <>
-            Use the <strong>ca-bundle.crt</strong> bundle in the{' '}
-            <strong>odh-trusted-ca-bundle</strong> ConfigMap.
-          </>
-        }
-        id="cluster-wide-ca"
-      />
-      <Radio
-        isChecked={secureDBInfo.type === SecureDBRType.OPENSHIFT}
-        name="openshift-ca"
-        onChange={() => handleSecureDBTypeChange(SecureDBRType.OPENSHIFT)}
-        label="Use OpenShift AI CA bundle"
-        description={
-          <>
-            Use the <strong>odh-ca-bundle.crt</strong> bundle in the{' '}
-            <strong>odh-trusted-ca-bundle</strong> ConfigMap.
-          </>
-        }
-        id="openshift-ca"
-      />
+      {!isClusterWideCABundleAvailable ? (
+        <Tooltip content="No certificate is available in the cluster-wide CA bundle">
+          <Radio
+            isChecked={secureDBInfo.type === SecureDBRType.CLUSTER_WIDE}
+            name="cluster-wide-ca"
+            isDisabled={!isClusterWideCABundleAvailable}
+            onChange={() => handleSecureDBTypeChange(SecureDBRType.CLUSTER_WIDE)}
+            label="Use cluster-wide CA bundle"
+            description={
+              <>
+                Use the <strong>{CA_BUNDLE_CRT}</strong> bundle in the{' '}
+                <strong>{ODH_TRUSTED_BUNDLE}</strong> ConfigMap.
+              </>
+            }
+            id="cluster-wide-ca"
+          />
+        </Tooltip>
+      ) : (
+        <Radio
+          isChecked={secureDBInfo.type === SecureDBRType.CLUSTER_WIDE}
+          name="cluster-wide-ca"
+          isDisabled={!isClusterWideCABundleAvailable}
+          onChange={() => handleSecureDBTypeChange(SecureDBRType.CLUSTER_WIDE)}
+          label="Use cluster-wide CA bundle"
+          description={
+            <>
+              Use the <strong>{CA_BUNDLE_CRT}</strong> bundle in the{' '}
+              <strong>{ODH_TRUSTED_BUNDLE}</strong> ConfigMap.
+            </>
+          }
+          id="cluster-wide-ca"
+        />
+      )}
+      {!isProductCABundleAvailable ? (
+        <Tooltip content={`No certificate is available in the ${ODH_PRODUCT_NAME} CA bundle`}>
+          <Radio
+            isChecked={secureDBInfo.type === SecureDBRType.OPENSHIFT}
+            name="openshift-ca"
+            isDisabled={!isProductCABundleAvailable}
+            onChange={() => handleSecureDBTypeChange(SecureDBRType.OPENSHIFT)}
+            label={`Use ${ODH_PRODUCT_NAME} CA bundle`}
+            description={
+              <>
+                Use the <strong>{ODH_CA_BUNDLE_CRT}</strong> bundle in the{' '}
+                <strong>{ODH_TRUSTED_BUNDLE}</strong> ConfigMap.
+              </>
+            }
+            id="openshift-ca"
+          />
+        </Tooltip>
+      ) : (
+        <Radio
+          isChecked={secureDBInfo.type === SecureDBRType.OPENSHIFT}
+          name="openshift-ca"
+          isDisabled={!isProductCABundleAvailable}
+          onChange={() => handleSecureDBTypeChange(SecureDBRType.OPENSHIFT)}
+          label={`Use ${ODH_PRODUCT_NAME} CA bundle`}
+          description={
+            <>
+              Use the <strong>{ODH_CA_BUNDLE_CRT}</strong> bundle in the{' '}
+              <strong>{ODH_TRUSTED_BUNDLE}</strong> ConfigMap.
+            </>
+          }
+          id="openshift-ca"
+        />
+      )}
       <Radio
         isChecked={secureDBInfo.type === SecureDBRType.EXISTING}
         name="existing-ca"
@@ -175,9 +236,9 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
             <SearchSelector
               isFullWidth
               dataTestId="existing-ca-resource-selector"
-              onSearchChange={(newValue) => setSearchValue(newValue)}
-              onSearchClear={() => setSearchValue('')}
-              searchValue={searchValue}
+              onSearchChange={(newValue) => setSearchConfigSecretName(newValue)}
+              onSearchClear={() => setSearchConfigSecretName('')}
+              searchValue={searchConfigSecretName}
               toggleText={secureDBInfo.configMap || 'Select a ConfigMap or a Secret'}
             >
               {getFilteredExistingCAResources()}
@@ -192,18 +253,29 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
             <SearchSelector
               isFullWidth
               dataTestId="existing-ca-key-selector"
-              onSearchChange={(newValue) => setSearchValue(newValue)}
-              onSearchClear={() => setSearchValue('')}
-              searchValue={searchValue}
-              toggleText={secureDBInfo.key || 'Select a key'}
+              onSearchChange={(newValue) => setSearchKey(newValue)}
+              isDisabled={!secureDBInfo.configMap}
+              onSearchClear={() => setSearchKey('')}
+              searchValue={searchKey}
+              toggleText={
+                secureDBInfo.key ||
+                (!secureDBInfo.configMap
+                  ? 'Select a resource to view its available keys'
+                  : 'Select a key')
+              }
             >
-              {existingCertKeys
-                .filter((item) => item.toLowerCase().includes(searchValue.toLowerCase()))
+              {getKeysByName(
+                secureDBInfo.resourceType === 'ConfigMap'
+                  ? existingCertConfigMaps
+                  : existingCertSecrets,
+                secureDBInfo.configMap,
+              )
+                .filter((item) => item.toLowerCase().includes(searchKey.toLowerCase()))
                 .map((item, index) => (
                   <MenuItem
                     key={`key-${index}`}
                     onClick={() => {
-                      setSearchValue('');
+                      setSearchKey('');
                       const newInfo = {
                         ...secureDBInfo,
                         key: item,
