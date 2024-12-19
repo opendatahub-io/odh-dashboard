@@ -169,7 +169,7 @@ export const initInterceptorsValidatingNimEnablement = (
     { path: { internalRoute: 'nim' } },
     {
       isInstalled: true,
-      isEnabled: true,
+      isEnabled: false,
       canInstall: false,
       error: '',
     },
@@ -177,9 +177,16 @@ export const initInterceptorsValidatingNimEnablement = (
   cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
 
   if (!disableServingRuntime) {
-    const templateMock = mockNimServingRuntimeTemplate();
-    cy.interceptK8sList(TemplateModel, mockK8sResourceList([templateMock]));
-    cy.interceptK8s(TemplateModel, templateMock);
+    cy.interceptOdh(
+      'GET /api/integrations/:internalRoute',
+      { path: { internalRoute: 'nim' } },
+      {
+        isInstalled: true,
+        isEnabled: true,
+        canInstall: false,
+        error: '',
+      },
+    );
   }
 
   cy.interceptK8sList(
