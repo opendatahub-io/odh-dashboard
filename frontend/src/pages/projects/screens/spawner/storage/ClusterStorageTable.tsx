@@ -6,6 +6,7 @@ import { InfoCircleIcon } from '@patternfly/react-icons';
 
 import { Table } from '~/components/table';
 import { StorageData, StorageType } from '~/pages/projects/types';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { clusterStorageTableColumns } from './constants';
 import { ClusterStorageDetachModal } from './ClusterStorageDetachModal';
 import WorkbenchStorageModal from './WorkbenchStorageModal';
@@ -97,7 +98,13 @@ export const ClusterStorageTable: React.FC<ClusterStorageTableProps> = ({
                 spaceItems={{ default: 'spaceItemsSm' }}
               >
                 <FlexItem>
-                  <Truncate content={row.name} />
+                  <Truncate
+                    content={
+                      row.existingPvc?.metadata.name === row.name
+                        ? getDisplayNameFromK8sResource(row.existingPvc)
+                        : row.name
+                    }
+                  />
                 </FlexItem>
 
                 {!hasUpdatedDefaultNameRef.current &&

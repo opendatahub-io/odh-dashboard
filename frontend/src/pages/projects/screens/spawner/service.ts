@@ -10,7 +10,6 @@ import {
   deleteSecret,
   replaceConfigMap,
   replaceSecret,
-  updatePvc,
 } from '~/api';
 import { Volume, VolumeMount } from '~/types';
 import {
@@ -26,7 +25,6 @@ import {
 import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
 import { Connection } from '~/concepts/connectionTypes/types';
 import { ConfigMapKind, NotebookKind, PersistentVolumeClaimKind, SecretKind } from '~/k8sTypes';
-import { isPvcUpdateRequired } from '~/pages/projects/screens/detail/storage/utils';
 import { fetchNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
 import { getDeletedConfigMapOrSecretVariables } from './environmentVariables/utils';
 
@@ -50,18 +48,13 @@ export const createPvcDataForNotebook = async (
 };
 
 export const updatePvcDataForNotebook = async (
-  projectName: string,
   storageData: StorageData,
   existingPvc: PersistentVolumeClaimKind | undefined,
-  dryRun?: boolean,
 ): Promise<{ volumes: Volume[]; volumeMounts: VolumeMount[] }> => {
   const volumes: Volume[] = [];
   const volumeMounts: VolumeMount[] = [];
 
   if (existingPvc && storageData.storageType === StorageType.EXISTING_PVC) {
-    if (isPvcUpdateRequired(existingPvc, storageData)) {
-      await updatePvc(storageData, existingPvc, projectName, { dryRun });
-    }
     const { name } = existingPvc.metadata;
 
     volumes.push({ name, persistentVolumeClaim: { claimName: name } });

@@ -163,7 +163,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
               ),
             );
         }
-        return updatePvcDataForNotebook(projectName, pvcData, pvcData.existingPvc, dryRun);
+        return updatePvcDataForNotebook(pvcData, pvcData.existingPvc);
       }
 
       return createPvcDataForNotebook(projectName, pvcData, dryRun);
