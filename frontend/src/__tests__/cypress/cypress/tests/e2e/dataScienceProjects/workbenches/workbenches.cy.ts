@@ -72,7 +72,7 @@ describe('Workbench and PVSs tests', () => {
     cy.step(`Create Workbench ${projectName} using storage ${PVCDisplayName}`);
     workbenchPage.findCreateButton().click();
     createSpawnerPage.getNameInput().fill(workbenchName);
-    createSpawnerPage.findNotebookImage('jupyter-minimal-notebook').click();
+    createSpawnerPage.findNotebookImage('s2i-minimal-notebook').click();
     createSpawnerPage.findAttachExistingStorageButton().click();
     attachExistingStorageModal.selectExistingPersistentStorage(PVCDisplayName);
     attachExistingStorageModal.findStandardPathInput().fill(workbenchName);
