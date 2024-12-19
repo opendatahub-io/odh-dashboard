@@ -1,16 +1,22 @@
-import { AccessReviewResourceAttributes, AuthKind, GroupKind } from '~/k8sTypes';
-import { AUTH_SINGLETON_NAME, AuthModel, getAuth, patchAuth, useAccessReview } from '~/api';
+import * as React from 'react';
+import { AuthKind, GroupKind } from '~/k8sTypes';
+import { getAuth, patchAuth } from '~/api';
+import useFetchState from '~/utilities/useFetchState';
 import { GroupsConfig } from './groupTypes';
 
-const authCheck: AccessReviewResourceAttributes = {
-  group: 'services.platform.opendatahub.io',
-  resource: AuthModel.plural,
-  name: AUTH_SINGLETON_NAME,
-  verb: 'patch', // If they can get the data but not update it, we can assume they cannot access it
+export const useDoesUserHaveAuthAccess = (): [hasAccess: boolean, loadedAccess: boolean] => {
+  const [state, loaded] = useFetchState(
+    React.useCallback(
+      () =>
+        getAuth()
+          .then(() => true)
+          .catch(() => false),
+      [],
+    ),
+    false,
+  );
+  return [state, loaded];
 };
-
-export const useDoesUserHaveAuthAccess = (): ReturnType<typeof useAccessReview> =>
-  useAccessReview(authCheck);
 
 const ALL_USERS = 'system:authenticated';
 
