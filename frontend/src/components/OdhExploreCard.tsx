@@ -53,36 +53,11 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
       className={cardClasses}
     >
       <CardHeader
+        className="pf-m-no-offset"
         {...(!dashboardConfig.spec.dashboardConfig.disableISVBadges && {
           actions: {
-            actions: (
-              <Flex
-                spaceItems={{ default: 'spaceItemsSm' }}
-                alignItems={{ default: 'alignItemsCenter' }}
-                direction={{ default: 'column' }}
-              >
-                {odhApp.spec.comingSoon && (
-                  <FlexItem className="odh-card__coming-soon">Coming soon</FlexItem>
-                )}
-                {!odhApp.spec.comingSoon && odhApp.spec.category && (
-                  <FlexItem className={badgeClasses} onClick={disabled ? undefined : onSelect}>
-                    <OdhExploreCardTypeBadge
-                      isDisabled={disabled}
-                      category={odhApp.spec.category}
-                    />
-                  </FlexItem>
-                )}
-                {odhApp.spec.beta && (
-                  <FlexItem className="odh-card__partner-badge odh-m-beta">
-                    <Label className={disabled ? 'pf-m-disabled' : undefined} color="yellow">
-                      Beta
-                    </Label>
-                  </FlexItem>
-                )}
-              </Flex>
-            ),
             hasNoOffset: true,
-            className: undefined,
+            actions: null,
           },
           selectableActions: {
             selectableActionId: `${odhApp.metadata.name}-selectable-card-id`,
@@ -94,7 +69,35 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
           },
         })}
       >
-        <BrandImage src={odhApp.spec.img} alt="" data-testid="brand-image" />
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          gap={{ default: 'gapMd' }}
+          direction={{ default: 'row' }}
+          flexWrap={{ default: 'nowrap' }}
+        >
+          <BrandImage src={odhApp.spec.img} alt="" data-testid="brand-image" />
+          <Flex
+            spaceItems={{ default: 'spaceItemsSm' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+            direction={{ default: 'column' }}
+          >
+            {odhApp.spec.comingSoon && (
+              <FlexItem className="odh-card__coming-soon">Coming soon</FlexItem>
+            )}
+            {!odhApp.spec.comingSoon && odhApp.spec.category && (
+              <FlexItem className={badgeClasses} onClick={disabled ? undefined : onSelect}>
+                <OdhExploreCardTypeBadge isDisabled={disabled} category={odhApp.spec.category} />
+              </FlexItem>
+            )}
+            {odhApp.spec.beta && (
+              <FlexItem className="odh-card__partner-badge odh-m-beta">
+                <Label className={disabled ? 'pf-m-disabled' : undefined} color="yellow">
+                  Beta
+                </Label>
+              </FlexItem>
+            )}
+          </Flex>
+        </Flex>
       </CardHeader>
       <SupportedAppTitle odhApp={odhApp} showProvider />
       <CardBody data-testid="cardbody">{odhApp.spec.description}</CardBody>
