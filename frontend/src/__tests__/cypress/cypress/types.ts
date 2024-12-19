@@ -147,6 +147,12 @@ export type NotebookControllerConfig = {
   USE_ISTIO: string;
 };
 
+export type NotebookControllerCullerConfig = {
+  CULL_IDLE_TIME: string;
+  ENABLE_CULLING: string;
+  IDLENESS_CHECK_PERIOD: string;
+};
+
 export type ResourceData = {
   kind: string;
   labelSelector: string;

@@ -4,7 +4,10 @@ import {
   cullerSettings,
   notebookTolerationSettings,
 } from '~/__tests__/cypress/cypress/pages/clusterSettings';
-import type { DashboardConfig, NotebookControllerConfig } from '~/__tests__/cypress/cypress/types';
+import type {
+  DashboardConfig,
+  NotebookControllerCullerConfig,
+} from '~/__tests__/cypress/cypress/types';
 
 /**
  * Validates the visibility and state of Model Serving Platform checkboxes
@@ -86,20 +89,25 @@ export const validatePVCSize = (dashboardConfig: DashboardConfig): void => {
 
 /**
  * Validates the Stop Idle Notebooks displays in the Cluster Settings.
- * @param notebookControllerConfig The notebook controller configuration object.
+ * @param notebookControllerCullerConfig The notebook controller culler configuration object or error message.
  */
 export const validateStopIdleNotebooks = (
-  notebookControllerConfig: NotebookControllerConfig,
+  notebookControllerCullerConfig: NotebookControllerCullerConfig | string,
 ): void => {
-  const isCullingEnabled = notebookControllerConfig.ENABLE_CULLING;
-  cy.log(`Value of ENABLE_CULLING: ${isCullingEnabled}`);
-
-  if (isCullingEnabled) {
-    cullerSettings.findStopIdleNotebooks().should('exist');
-    cy.log('Culling is enabled; Stop Idle Notebooks setting should exist in the UI.');
+  if (typeof notebookControllerCullerConfig === 'string') {
+    cy.log('Culler config not found or error occurred:', notebookControllerCullerConfig);
+    cullerSettings.findUnlimitedOption().should('be.checked');
+    cullerSettings.findLimitedOption().should('not.be.checked');
+    cy.log('Do not stop idle notebooks option should be checked when culler config is not found');
   } else {
-    cullerSettings.findStopIdleNotebooks().should('not.exist');
-    cy.log('Culling is disabled; Stop Idle Notebooks setting should not exist in the UI.');
+    const isCullingEnabled = 'ENABLE_CULLING' in notebookControllerCullerConfig;
+    cy.log(`Value of ENABLE_CULLING: ${isCullingEnabled}`);
+
+    if (isCullingEnabled) {
+      cullerSettings.findLimitedOption().should('be.checked');
+      cullerSettings.findUnlimitedOption().should('not.be.checked');
+      cy.log('Stop idle notebooks after should be checked when culling is enabled');
+    }
   }
 };
 
