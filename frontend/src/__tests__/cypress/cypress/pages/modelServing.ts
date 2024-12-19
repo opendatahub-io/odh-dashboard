@@ -101,6 +101,10 @@ class InferenceServiceModal extends Modal {
     return this.find().findByTestId('inference-service-framework-selection');
   }
 
+  findDeploymentModeSelect() {
+    return this.find().findByTestId('deployment-mode-select');
+  }
+
   findExistingDataConnectionOption() {
     return this.find().findByTestId('existing-data-connection-radio');
   }
