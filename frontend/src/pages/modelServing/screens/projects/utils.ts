@@ -66,11 +66,18 @@ export const isServingRuntimeTokenEnabled = (servingRuntime: ServingRuntimeKind)
 export const isServingRuntimeRouteEnabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['enable-route'] === 'true';
 
+const isInferenceServiceKServeRaw = (inferenceService: InferenceServiceKind): boolean =>
+  inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] === 'RawDeployment';
+
 export const isInferenceServiceTokenEnabled = (inferenceService: InferenceServiceKind): boolean =>
-  inferenceService.metadata.annotations?.['security.opendatahub.io/enable-auth'] === 'true';
+  isInferenceServiceKServeRaw(inferenceService)
+    ? inferenceService.metadata.labels?.['security.opendatahub.io/enable-auth'] === 'true'
+    : inferenceService.metadata.annotations?.['security.opendatahub.io/enable-auth'] === 'true';
 
 export const isInferenceServiceRouteEnabled = (inferenceService: InferenceServiceKind): boolean =>
-  inferenceService.metadata.labels?.['networking.knative.dev/visibility'] !== 'cluster-local';
+  isInferenceServiceKServeRaw(inferenceService)
+    ? inferenceService.metadata.labels?.['networking.kserve.io/visibility'] === 'exposed'
+    : inferenceService.metadata.labels?.['networking.knative.dev/visibility'] !== 'cluster-local';
 
 export const isGpuDisabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['opendatahub.io/disable-gpu'] === 'true';
@@ -211,6 +218,7 @@ export const useCreateInferenceServiceObject = (
     existingData?.metadata.annotations?.['openshift.io/display-name'] ||
     existingData?.metadata.name ||
     '';
+  const existingIsKServeRaw = !!existingData && isInferenceServiceKServeRaw(existingData);
   const existingStorage =
     useDeepCompareMemoize(existingData?.spec.predictor.model?.storage) || undefined;
   const existingUri =
@@ -224,10 +232,8 @@ export const useCreateInferenceServiceObject = (
   const existingMaxReplicas =
     existingData?.spec.predictor.maxReplicas ?? existingServingRuntimeData?.spec.replicas ?? 1;
 
-  const existingExternalRoute =
-    existingData?.metadata.labels?.['networking.knative.dev/visibility'] !== 'cluster-local';
-  const existingTokenAuth =
-    existingData?.metadata.annotations?.['security.opendatahub.io/enable-auth'] === 'true';
+  const existingExternalRoute = !!existingData && isInferenceServiceRouteEnabled(existingData);
+  const existingTokenAuth = !!existingData && isInferenceServiceTokenEnabled(existingData);
 
   const existingTokens = useDeepCompareMemoize(getServingRuntimeTokens(secrets));
   const existingSize = useDeepCompareMemoize(
@@ -243,6 +249,7 @@ export const useCreateInferenceServiceObject = (
       setCreateData('name', existingName);
       setCreateData('servingRuntimeName', existingServingRuntime);
       setCreateData('project', existingProject);
+      setCreateData('isKServeRawDeployment', existingIsKServeRaw);
       setCreateData('modelSize', existingSize);
       setCreateData('storage', {
         type: existingUri
@@ -283,6 +290,7 @@ export const useCreateInferenceServiceObject = (
     existingTokens,
     existingServingRuntimeArgs,
     existingServingRuntimeEnvVars,
+    existingIsKServeRaw,
   ]);
 
   return [...createInferenceServiceState, sizes];

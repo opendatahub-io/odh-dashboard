@@ -38,6 +38,7 @@ export const mockInferenceServiceModalData = ({
       },
     },
   },
+  isKServeRawDeployment,
 }: MockResourceConfigType): CreatingInferenceServiceObject => ({
   name,
   k8sName,
@@ -51,4 +52,5 @@ export const mockInferenceServiceModalData = ({
   tokenAuth,
   tokens,
   modelSize,
+  isKServeRawDeployment,
 });
