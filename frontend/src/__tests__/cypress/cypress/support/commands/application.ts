@@ -5,6 +5,7 @@ import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e
 import {
   getDashboardConfig,
   getNotebookControllerConfig,
+  getNotebookControllerCullerConfig,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 
 /* eslint-disable @typescript-eslint/no-namespace */
@@ -155,6 +156,20 @@ declare global {
        * @returns A Cypress.Chainable that resolves to the requested config value or the full config object.
        */
       getNotebookControllerConfig: (key?: string) => Cypress.Chainable<DashboardConfig | unknown>;
+
+      /**
+       * Retrieves the Notebook Controller Culler Config from OpenShift and returns either the full config or a specific value.
+       *
+       * When no key is provided, returns the entire Notebook Controller Culler Config object.
+       * When a key is provided, returns the specific value for that key.
+       *
+       * @param key Optional. The specific config key to retrieve. Use dot notation for nested properties.
+       *
+       * @returns A Cypress.Chainable that resolves to the requested config value or the full config object.
+       */
+      getNotebookControllerCullerConfig: (
+        key?: string,
+      ) => Cypress.Chainable<DashboardConfig | unknown>;
     }
   }
 }
@@ -290,6 +305,7 @@ Cypress.Commands.overwriteQuery('findAllByTestId', function findAllByTestId(...a
 });
 Cypress.Commands.add('getNotebookControllerConfig', getNotebookControllerConfig);
 Cypress.Commands.add('getDashboardConfig', getDashboardConfig);
+Cypress.Commands.add('getNotebookControllerCullerConfig', getNotebookControllerCullerConfig);
 
 const enhancedFindByTestId = (
   command: Cypress.Command,

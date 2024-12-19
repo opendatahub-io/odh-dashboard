@@ -161,6 +161,43 @@ export const getNotebookControllerConfig = (key?: string): Cypress.Chainable<unk
   });
 };
 
+/**
+ * Retrieves the Notebook Controller Config from OpenShift and returns either the full config or a specific value.
+ *
+ * @param key Optional. The specific config key to retrieve (use dot notation for nested properties).
+ * @returns A Cypress.Chainable that resolves to the requested config value or the full config object.
+ */
+export const getNotebookControllerCullerConfig = (key?: string): Cypress.Chainable<unknown> => {
+  const applicationNamespace = Cypress.env('TEST_NAMESPACE');
+  const command = `oc get configmap -n ${applicationNamespace} notebook-controller-culler-config -o jsonpath='{.data}' | jq .`;
+
+  // Log the command being executed
+  cy.log('Executing command:', command);
+
+  return cy.exec(command).then((result) => {
+    // Log the std error
+    cy.log('Command stderr:', result.stderr);
+
+    if (result.code !== 0) {
+      return Cypress.Promise.resolve(`Error: ${result.stderr.trim()}`);
+    }
+
+    const trimmedOutput = result.stdout.trim();
+    if (!trimmedOutput) {
+      return Cypress.Promise.resolve('Error: Empty configuration');
+    }
+
+    try {
+      const config = JSON.parse(trimmedOutput) as Record<string, unknown>;
+      return key
+        ? Cypress.Promise.resolve(getNestedProperty(config, key))
+        : Cypress.Promise.resolve(config);
+    } catch (error) {
+      return Cypress.Promise.resolve(`Error: Invalid JSON - ${trimmedOutput}`);
+    }
+  });
+};
+
 // Helper function to safely get nested properties
 function getNestedProperty(obj: Record<string, unknown>, path: string): unknown {
   return path.split('.').reduce((current: unknown, key: string) => {
