@@ -41,7 +41,6 @@ export const StorageClassesTable: React.FC = () => {
       enablePagination
       variant="compact"
       data={filteredStorageClasses}
-      hasNestedHeader
       columns={columns}
       emptyTableView={
         <DashboardEmptyTableView onClearFilters={() => setFilterData(initialScFilterData)} />

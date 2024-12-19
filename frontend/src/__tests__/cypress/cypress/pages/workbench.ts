@@ -353,11 +353,14 @@ class CreateSpawnerPage {
     return cy.findByTestId('existing-data-connection-type-radio');
   }
 
-  selectExistingDataConnection(name: string) {
-    cy.findByTestId('data-connection-group')
-      .findByRole('button', { name: 'Typeahead menu toggle' })
-      .findSelectOption(name)
-      .click();
+  findExistingDataConnectionSelect() {
+    return cy.findByTestId('existing-data-connection-select');
+  }
+
+  findExistingDataConnectionSelectValueField() {
+    return this.findExistingDataConnectionSelect().findByRole('combobox', {
+      name: 'Type to filter',
+    });
   }
 
   findAwsNameInput() {
