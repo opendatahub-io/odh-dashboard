@@ -1,6 +1,10 @@
 import axios from '~/utilities/axios';
-import { GroupsConfig } from '~/pages/groupSettings/groupTypes';
+import { GroupsConfig } from '~/concepts/userConfigs/groupTypes';
 
+/**
+ * @deprecated Use Auth Resource instead
+ * @see fetchAuthGroups
+ */
 export const fetchGroupsSettings = (): Promise<GroupsConfig> => {
   const url = '/api/groups-config';
   return axios
@@ -11,6 +15,10 @@ export const fetchGroupsSettings = (): Promise<GroupsConfig> => {
     });
 };
 
+/**
+ * @deprecated Use Auth Resource instead
+ * @see updateAuthGroups
+ */
 export const updateGroupsSettings = (settings: GroupsConfig): Promise<GroupsConfig> => {
   const url = '/api/groups-config';
   return axios
