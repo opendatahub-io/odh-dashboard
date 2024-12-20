@@ -1,9 +1,7 @@
 import * as React from 'react';
-import { useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { useModelRegistryAPI } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { Table } from '~/components/table';
-import { ModelVersion, ModelState } from '~/concepts/modelRegistry/types';
+import { ModelVersion } from '~/concepts/modelRegistry/types';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
@@ -27,30 +25,6 @@ const ModelVersionsTable: React.FC<ModelVersionsTableProps> = ({
 }) => {
   const { registeredModelId } = useParams();
   const inferenceServices = useMakeFetchObject(useInferenceServices(undefined, registeredModelId));
-  const modelRegistryApi = useModelRegistryAPI();
-
-  const handleAfterDeploy = useCallback(
-    async (modelVersionId: string) => {
-      if (!registeredModelId) {
-        return;
-      }
-
-      try {
-        await Promise.all([
-          modelRegistryApi.api.patchModelVersion({}, { state: ModelState.LIVE }, modelVersionId),
-          modelRegistryApi.api.patchRegisteredModel(
-            {},
-            { state: ModelState.LIVE },
-            registeredModelId,
-          ),
-        ]);
-      } catch (error) {
-        throw new Error('Failed to update timestamps after deployment');
-      }
-    },
-    [registeredModelId, modelRegistryApi],
-  );
-
   const hasDeploys = (mvId: string) =>
     !!inferenceServices.data.some(
       (s) => s.metadata.labels?.[KnownLabels.MODEL_VERSION_ID] === mvId,
@@ -73,7 +47,6 @@ const ModelVersionsTable: React.FC<ModelVersionsTableProps> = ({
           modelVersion={mv}
           isArchiveModel={isArchiveModel}
           refresh={refresh}
-          onAfterDeploy={handleAfterDeploy}
         />
       )}
     />
