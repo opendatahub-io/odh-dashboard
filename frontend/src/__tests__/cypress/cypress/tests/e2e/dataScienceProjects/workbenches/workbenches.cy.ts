@@ -47,6 +47,14 @@ describe('Workbench and PVSs tests', () => {
       });
   });
 
+  after(() => {
+    // Delete provisioned Project
+    if (projectName) {
+      cy.log(`Deleting Project ${projectName} after the test has finished.`);
+      deleteOpenShiftProject(projectName);
+    }
+  });
+
   it('Verify users can create a workbench and connect an existent PersistentVolume', () => {
     const workbenchName = projectName.replace('dsp-', '');
 

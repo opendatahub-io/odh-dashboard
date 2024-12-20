@@ -8,7 +8,6 @@ import type {
   TestConfig,
   AWSS3BucketDetails,
   AWSS3Buckets,
-  PipConfig,
 } from '~/__tests__/cypress/cypress/types';
 
 [
@@ -53,10 +52,8 @@ const AWS_PIPELINES: AWSS3Buckets = {
   BUCKET_2: AWS_PIPELINES_BUCKET_DETAILS,
 };
 const TEST_NAMESPACE = testConfig?.APPLICATIONS_NAMESPACE;
-const PIP_CONFIG: PipConfig = {
-  PIP_INDEX_URL: testConfig?.PIP_CONFIG.PIP_INDEX_URL || '',
-  PIP_TRUSTED_HOST: testConfig?.PIP_CONFIG.PIP_TRUSTED_HOST || '',
-};
+const PIP_INDEX_URL = testConfig?.PIP_INDEX_URL;
+const PIP_TRUSTED_HOST = testConfig?.PIP_TRUSTED_HOST;
 
 // spread the cypressEnv variables into the cypress config
 export const cypressEnv = {
@@ -64,7 +61,8 @@ export const cypressEnv = {
   HTPASSWD_CLUSTER_ADMIN_USER,
   AWS_PIPELINES,
   TEST_NAMESPACE,
-  PIP_CONFIG,
+  PIP_INDEX_URL,
+  PIP_TRUSTED_HOST,
 };
 
 // re-export the updated process env
