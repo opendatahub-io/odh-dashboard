@@ -57,19 +57,8 @@ export const createModelVersionForRegisteredModel =
       ),
     );
 
-    // Use the established timestamp update utility
     await bumpRegisteredModelTimestamp(
-      {
-        patchRegisteredModel: (apiOpts, patchData, id) =>
-          handleModelRegistryFailures(
-            proxyPATCH(
-              hostpath,
-              `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/${id}`,
-              patchData,
-              apiOpts,
-            ),
-          ),
-      },
+      { patchRegisteredModel: patchRegisteredModel(hostpath) },
       registeredModelId,
     );
 

@@ -21,7 +21,10 @@ import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegi
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
 import { uriToObjectStorageFields } from '~/concepts/modelRegistry/utils';
 import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
-import { bumpBothTimestamps } from '~/concepts/modelRegistry/utils/updateTimestamps';
+import {
+  bumpBothTimestamps,
+  bumpRegisteredModelTimestamp,
+} from '~/concepts/modelRegistry/utils/updateTimestamps';
 
 type ModelVersionDetailsViewProps = {
   modelVersion: ModelVersion;
@@ -55,7 +58,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
       return;
     }
 
-    await bumpBothTimestamps(apiState.api, mv.id, mv.registeredModelId);
+    await bumpRegisteredModelTimestamp(apiState.api, mv.registeredModelId);
     refresh();
   };
 

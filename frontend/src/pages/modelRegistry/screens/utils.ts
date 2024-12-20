@@ -44,6 +44,10 @@ export const getProperties = <T extends ModelRegistryCustomProperties>(
 ): ModelRegistryStringCustomProperties => {
   const initial: ModelRegistryStringCustomProperties = {};
   return Object.keys(customProperties).reduce((acc, key) => {
+    if (key === '_lastModified') {
+      return acc;
+    }
+
     const prop = customProperties[key];
     if (prop.metadataType === ModelRegistryMetadataType.STRING && prop.string_value !== '') {
       return { ...acc, [key]: prop };
