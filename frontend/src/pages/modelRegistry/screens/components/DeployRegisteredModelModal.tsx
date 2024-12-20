@@ -1,7 +1,7 @@
 import React from 'react';
 import { Alert, Button, Form, FormSection, Spinner } from '@patternfly/react-core';
 import { Modal } from '@patternfly/react-core/deprecated';
-import { ModelVersion, ModelState } from '~/concepts/modelRegistry/types';
+import { ModelVersion } from '~/concepts/modelRegistry/types';
 import { ProjectKind } from '~/k8sTypes';
 import useProjectErrorForRegisteredModel from '~/pages/modelRegistry/screens/RegisteredModels/useProjectErrorForRegisteredModel';
 import ProjectSelector from '~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSelector';
@@ -18,6 +18,7 @@ import {
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { getKServeTemplates } from '~/pages/modelServing/customServingRuntimes/utils';
 import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
+import { bumpBothTimestamps } from '~/concepts/modelRegistry/utils/updateTimestamps';
 
 interface DeployRegisteredModelModalProps {
   modelVersion: ModelVersion;
@@ -61,19 +62,16 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
     }
 
     try {
-      await Promise.all([
-        modelRegistryApi.api.patchModelVersion({}, { state: ModelState.LIVE }, modelVersion.id),
-        modelRegistryApi.api.patchRegisteredModel(
-          {},
-          { state: ModelState.LIVE },
-          modelVersion.registeredModelId,
-        ),
-      ]);
+      await bumpBothTimestamps(
+        modelRegistryApi.api,
+        modelVersion.id,
+        modelVersion.registeredModelId,
+      );
       onSubmit?.();
     } catch (submitError) {
       throw new Error('Failed to update timestamps after deployment');
     }
-  }, [modelRegistryApi, modelVersion.id, modelVersion.registeredModelId, onSubmit]);
+  }, [modelRegistryApi.api, modelVersion.id, modelVersion.registeredModelId, onSubmit]);
 
   const onClose = React.useCallback(
     (submit: boolean) => {
