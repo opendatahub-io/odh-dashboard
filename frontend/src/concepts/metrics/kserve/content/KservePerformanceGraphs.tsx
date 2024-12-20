@@ -110,6 +110,7 @@ const KservePerformanceGraphs: React.FC<KservePerformanceGraphsProps> = ({
       );
     }
 
+    // Graph #5 - Time per Output Token
     if (graphDefinition.type === KserveMetricsGraphTypes.TIME_PER_OUTPUT_TOKEN) {
       return (
         <KserveCpuUsageGraph
@@ -121,6 +122,19 @@ const KservePerformanceGraphs: React.FC<KservePerformanceGraphsProps> = ({
       );
     }
 
+    // Graph #6- Requests Outcomes
+    if (graphDefinition.type === KserveMetricsGraphTypes.REQUEST_OUTCOMES) {
+      return (
+        <KserveCpuUsageGraph
+          graphDefinition={graphDefinition}
+          timeframe={timeframe}
+          end={end}
+          namespace={namespace}
+        />
+      );
+    }
+
+    // Graph #2 Current Requests
     if (graphDefinition.type === KserveMetricsGraphTypes.CURRENT_REQUESTS) {
       return (
         <KserveCpuUsageGraph
