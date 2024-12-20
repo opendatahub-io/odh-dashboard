@@ -13,7 +13,6 @@ import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_com
 import { createPersistentVolumeClaim } from '~/__tests__/cypress/cypress/utils/oc_commands/presistentVolumeClaim';
 
 describe('Workbench and PVSs tests', () => {
-  // let testData: PVCReplacements;
   let projectName: string;
   let PVCName: string;
   let PVCDisplayName: string;
