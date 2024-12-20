@@ -200,9 +200,24 @@ const getNodesForTasks = (
     }
 
     // Read the artifact-task map we built before
-    // Add edge from artifact to task
     const artifactToTaskEdges = taskArtifactMap[taskId]?.map((v) => v.artifactNodeId) ?? [];
     runAfter.push(...artifactToTaskEdges);
+
+    // Find tasks that are connected through artifacts to the current task
+    const artifactConnectedTasks = new Set(
+      artifactToTaskEdges.flatMap((artifactId) => {
+        const parts = artifactId.split('.');
+        return parts.length >= 4 ? parts[3] : [];
+      }),
+    );
+
+    // Filter out direct runAfter edges if there's an artifact connection
+    const filteredRunAfter = runAfter.filter((sourceId) => {
+      if (!sourceId.includes('.')) {
+        return !artifactConnectedTasks.has(sourceId);
+      }
+      return true;
+    });
 
     if (hasSubTask && subTasks) {
       const subTasksArtifactMap = parseTasksForArtifactRelationship(taskId, subTasks);
@@ -227,13 +242,13 @@ const getNodesForTasks = (
         taskId,
         taskName,
         pipelineTask,
-        runAfter,
+        filteredRunAfter,
         runStatus,
         taskChildren,
       );
       nodes.push(itemNode, ...nestedNodes);
     } else {
-      nodes.push(createNode(taskId, taskName, pipelineTask, runAfter, runStatus));
+      nodes.push(createNode(taskId, taskName, pipelineTask, filteredRunAfter, runStatus));
     }
     children.push(taskId);
   });
