@@ -87,7 +87,6 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
     <Tr>
       <Td dataLabel={connectionTypeColumns[0].label}>
         <TableRowTitleDescription
-          boldTitle={false}
           title={<Truncate content={getDisplayNameFromK8sResource(obj)} />}
           description={getDescriptionFromK8sResource(obj)}
           truncateDescriptionLines={2}

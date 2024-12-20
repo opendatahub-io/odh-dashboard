@@ -8,7 +8,7 @@ const GlobalDistributedWorkloadsWorkloadStatusTab: React.FC = () => (
     <StackItem>
       <Card isFullHeight data-testid="dw-status-overview-card">
         <CardTitle>Status overview</CardTitle>
-        <CardBody style={{ height: 250 }}>
+        <CardBody>
           <DWStatusOverviewDonutChart />
         </CardBody>
       </Card>

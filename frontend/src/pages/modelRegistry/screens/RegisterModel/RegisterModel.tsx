@@ -127,19 +127,19 @@ const RegisterModel: React.FC = () => {
               />
             </StackItem>
           </Stack>
-          <RegistrationFormFooter
-            submitLabel={SubmitLabel.REGISTER_MODEL}
-            submitError={submitError}
-            isSubmitDisabled={isSubmitDisabled}
-            isSubmitting={isSubmitting}
-            onSubmit={handleSubmit}
-            onCancel={onCancel}
-            errorName={errorName}
-            versionName={versionName}
-            modelName={registeredModelName}
-          />
         </Form>
       </PageSection>
+      <RegistrationFormFooter
+        submitLabel={SubmitLabel.REGISTER_MODEL}
+        submitError={submitError}
+        isSubmitDisabled={isSubmitDisabled}
+        isSubmitting={isSubmitting}
+        onSubmit={handleSubmit}
+        onCancel={onCancel}
+        errorName={errorName}
+        versionName={versionName}
+        modelName={registeredModelName}
+      />
     </ApplicationsPage>
   );
 };
