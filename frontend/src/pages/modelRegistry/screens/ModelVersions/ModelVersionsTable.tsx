@@ -37,8 +37,12 @@ const ModelVersionsTable: React.FC<ModelVersionsTableProps> = ({
 
       try {
         await Promise.all([
-          modelRegistryApi.patchModelVersion(modelVersionId, { state: ModelState.LIVE }),
-          modelRegistryApi.patchRegisteredModel(registeredModelId, { state: ModelState.LIVE }),
+          modelRegistryApi.api.patchModelVersion({}, { state: ModelState.LIVE }, modelVersionId),
+          modelRegistryApi.api.patchRegisteredModel(
+            {},
+            { state: ModelState.LIVE },
+            registeredModelId,
+          ),
         ]);
       } catch (error) {
         throw new Error('Failed to update timestamps after deployment');

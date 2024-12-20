@@ -8,7 +8,6 @@ import { ContextResourceData, CustomWatchK8sResult } from '~/types';
 import { TemplateKind } from '~/k8sTypes';
 import { DEFAULT_CONTEXT_DATA, DEFAULT_LIST_WATCH_RESULT } from '~/utilities/const';
 import useTemplateDisablement from '~/pages/modelServing/customServingRuntimes/useTemplateDisablement';
-import { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
 import useModelRegistryAPIState, { ModelRegistryAPIState } from './useModelRegistryAPIState';
 
 export type ModelRegistryContextType = {
@@ -68,11 +67,6 @@ export const ModelRegistryContextProvider = conditionalArea<ModelRegistryContext
 
 type UseModelRegistryAPI = ModelRegistryAPIState & {
   refreshAllAPI: () => void;
-  patchModelVersion: (modelVersionId: string, updates: Partial<ModelVersion>) => Promise<void>;
-  patchRegisteredModel: (
-    registeredModelId: string,
-    updates: Partial<RegisteredModel>,
-  ) => Promise<void>;
 };
 
 export const useModelRegistryAPI = (): UseModelRegistryAPI => {
@@ -81,9 +75,5 @@ export const useModelRegistryAPI = (): UseModelRegistryAPI => {
   return {
     refreshAllAPI,
     ...apiState,
-    patchModelVersion: (modelVersionId: string, updates: Partial<ModelVersion>) =>
-      apiState.api.patchModelVersion({}, updates, modelVersionId).then(() => undefined),
-    patchRegisteredModel: (registeredModelId: string, updates: Partial<RegisteredModel>) =>
-      apiState.api.patchRegisteredModel({}, updates, registeredModelId).then(() => undefined),
   };
 };

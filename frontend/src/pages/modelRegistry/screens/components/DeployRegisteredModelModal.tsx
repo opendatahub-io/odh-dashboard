@@ -1,7 +1,7 @@
 import React from 'react';
 import { Alert, Button, Form, FormSection, Spinner } from '@patternfly/react-core';
 import { Modal } from '@patternfly/react-core/deprecated';
-import { ModelVersion } from '~/concepts/modelRegistry/types';
+import { ModelVersion, ModelState } from '~/concepts/modelRegistry/types';
 import { ProjectKind } from '~/k8sTypes';
 import useProjectErrorForRegisteredModel from '~/pages/modelRegistry/screens/RegisteredModels/useProjectErrorForRegisteredModel';
 import ProjectSelector from '~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSelector';
@@ -11,7 +11,10 @@ import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/pro
 import { ServingRuntimePlatform } from '~/types';
 import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
 import useRegisteredModelDeployInfo from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
-import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
+import {
+  ModelRegistryContext,
+  useModelRegistryAPI,
+} from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { getKServeTemplates } from '~/pages/modelServing/customServingRuntimes/utils';
 import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
@@ -33,6 +36,7 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
     servingRuntimeTemplateDisablement: { data: templateDisablement },
   } = React.useContext(ModelRegistryContext);
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const modelRegistryApi = useModelRegistryAPI();
 
   const [selectedProject, setSelectedProject] = React.useState<ProjectKind | null>(null);
   const servingPlatformStatuses = useServingPlatformStatuses();
@@ -51,15 +55,35 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
     error: deployInfoError,
   } = useRegisteredModelDeployInfo(modelVersion);
 
+  const handleSubmit = React.useCallback(async () => {
+    if (!modelVersion.registeredModelId) {
+      return;
+    }
+
+    try {
+      await Promise.all([
+        modelRegistryApi.api.patchModelVersion({}, { state: ModelState.LIVE }, modelVersion.id),
+        modelRegistryApi.api.patchRegisteredModel(
+          {},
+          { state: ModelState.LIVE },
+          modelVersion.registeredModelId,
+        ),
+      ]);
+      onSubmit?.();
+    } catch (submitError) {
+      throw new Error('Failed to update timestamps after deployment');
+    }
+  }, [modelRegistryApi, modelVersion.id, modelVersion.registeredModelId, onSubmit]);
+
   const onClose = React.useCallback(
-    async (submit: boolean) => {
+    (submit: boolean) => {
       if (submit) {
-        onSubmit?.();
+        handleSubmit();
       }
       setSelectedProject(null);
       onCancel();
     },
-    [onCancel, onSubmit],
+    [handleSubmit, onCancel],
   );
 
   const projectSection = (
@@ -100,7 +124,7 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
         isOpen
         onClose={() => onClose(false)}
         actions={[
-          <Button key="deploy" variant="primary" isDisabled>
+          <Button key="deploy" variant="primary" onClick={handleSubmit}>
             Deploy
           </Button>,
           <Button key="cancel" variant="link" onClick={() => onClose(false)}>
