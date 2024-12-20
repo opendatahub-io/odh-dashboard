@@ -9,9 +9,10 @@ import {
   RegisteredModelList,
   RegisteredModel,
 } from '~/concepts/modelRegistry/types';
+import { MODEL_REGISTRY_API_VERSION } from '~/concepts/modelRegistry/const';
+import { bumpRegisteredModelTimestamp } from '~/concepts/modelRegistry/utils/updateTimestamps';
 import { proxyCREATE, proxyGET, proxyPATCH } from '~/api/proxyUtils';
 import { K8sAPIOptions } from '~/k8sTypes';
-import { MODEL_REGISTRY_API_VERSION } from '~/concepts/modelRegistry/const';
 import { handleModelRegistryFailures } from './errorUtils';
 
 export const createRegisteredModel =
@@ -41,12 +42,12 @@ export const createModelVersion =
     );
 export const createModelVersionForRegisteredModel =
   (hostpath: string) =>
-  (
+  async (
     opts: K8sAPIOptions,
     registeredModelId: string,
     data: CreateModelVersionData,
-  ): Promise<ModelVersion> =>
-    handleModelRegistryFailures(
+  ): Promise<ModelVersion> => {
+    const newVersion = await handleModelRegistryFailures<ModelVersion>(
       proxyCREATE(
         hostpath,
         `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/${registeredModelId}/versions`,
@@ -55,6 +56,14 @@ export const createModelVersionForRegisteredModel =
         opts,
       ),
     );
+
+    await bumpRegisteredModelTimestamp(
+      { patchRegisteredModel: patchRegisteredModel(hostpath) },
+      registeredModelId,
+    );
+
+    return newVersion;
+  };
 
 export const createModelArtifact =
   (hostPath: string) =>
@@ -194,7 +203,7 @@ export const patchRegisteredModel =
     data: Partial<RegisteredModel>,
     registeredModelId: string,
   ): Promise<RegisteredModel> =>
-    handleModelRegistryFailures(
+    handleModelRegistryFailures<RegisteredModel>(
       proxyPATCH(
         hostPath,
         `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/registered_models/${registeredModelId}`,
@@ -208,12 +217,12 @@ export const patchModelVersion =
   (
     opts: K8sAPIOptions,
     data: Partial<ModelVersion>,
-    modelversionId: string,
+    modelVersionId: string,
   ): Promise<ModelVersion> =>
-    handleModelRegistryFailures(
+    handleModelRegistryFailures<ModelVersion>(
       proxyPATCH(
         hostPath,
-        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_versions/${modelversionId}`,
+        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_versions/${modelVersionId}`,
         data,
         opts,
       ),
