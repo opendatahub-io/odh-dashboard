@@ -69,55 +69,55 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
         const [, pipelineId, versionId] = match;
         cy.log(`Pipeline ID: ${pipelineId}`);
         cy.log(`Version ID: ${versionId}`);
+
+        cy.step(`Create a ${testPipelineIrisName} pipeline run from the Runs view`);
+        pipelineRunsGlobal.navigate();
+        pipelineRunsGlobal.selectProjectByName(projectName);
+        pipelineRunsGlobal.findCreateRunButton().click();
+
+        cy.step('Run the pipeline from the Runs view');
+        createRunPage.experimentSelect.findToggleButton().click();
+        createRunPage.selectExperimentByName('Default');
+        createRunPage.fillName(testRunName);
+        createRunPage.fillDescription('Run Description');
+        createRunPage.pipelineSelect.openAndSelectItem(testPipelineIrisName);
+        createRunPage.pipelineVersionSelect.selectItem(testPipelineIrisName);
+        createRunPage.findSubmitButton().click();
+
+        cy.step('Expect the run to Succeed');
+        pipelineRunDetails.expectStatusLabelToBe('Succeeded', 180000);
+
+        cy.step('Delete the pipeline version');
+        pipelinesGlobal.navigate();
+        // pipelineRunsGlobal.selectProjectByName(projectName);
+        const pipelineRowWithVersion = pipelinesTable.getRowById(pipelineId);
+        pipelineRowWithVersion.findExpandButton().click();
+        pipelineRowWithVersion
+          .getPipelineVersionRowById(versionId)
+          .findKebabAction('Delete pipeline version')
+          .click();
+        pipelineDeleteModal.findInput().fill(testPipelineIrisName);
+        pipelineDeleteModal.findSubmitButton().click();
+        // The line below it's not working due to a bug
+        // pipelineDeleteModal.shouldBeOpen(false);
+        cy.get('[role=dialog]').should('not.exist');
+
+        cy.step('Verify that the pipeline version no longer exist');
+        const pipelineRowWithVersionDeleted = pipelinesTable.getRowById(pipelineId);
+        pipelineRowWithVersionDeleted.findExpandButton().click();
+        pipelineRowWithVersionDeleted.shouldNotHavePipelineVersion();
+
+        cy.step('Delete the pipeline');
+        const pipelineRow = pipelinesTable.getRowById(pipelineId);
+        pipelineRow.findKebabAction('Delete pipeline').click();
+        pipelineDeleteModal.findInput().fill(testPipelineIrisName);
+        pipelineDeleteModal.findSubmitButton().click();
+
+        cy.step('Verify that the pipeline no longer exist');
+        pipelinesTable.shouldBeEmpty();
       } else {
         throw new Error('Pipeline ID and Version ID could not be extracted from the URL.');
       }
-
-      cy.step(`Create a ${testPipelineIrisName} pipeline run from the Runs view`);
-      pipelineRunsGlobal.navigate();
-      pipelineRunsGlobal.selectProjectByName(projectName);
-      pipelineRunsGlobal.findCreateRunButton().click();
-
-      cy.step('Run the pipeline from the Runs view');
-      createRunPage.experimentSelect.findToggleButton().click();
-      createRunPage.selectExperimentByName('Default');
-      createRunPage.fillName(testRunName);
-      createRunPage.fillDescription('Run Description');
-      createRunPage.pipelineSelect.openAndSelectItem(testPipelineIrisName);
-      createRunPage.pipelineVersionSelect.selectItem(testPipelineIrisName);
-      createRunPage.findSubmitButton().click();
-
-      cy.step('Expect the run to Succeed');
-      pipelineRunDetails.expectStatusLabelToBe('Succeeded', 180000);
-
-      cy.step('Delete the pipeline version');
-      pipelinesGlobal.navigate();
-      // pipelineRunsGlobal.selectProjectByName(projectName);
-      const pipelineRowWithVersion = pipelinesTable.getRowById(pipelineId);
-      pipelineRowWithVersion.findExpandButton().click();
-      pipelineRowWithVersion
-        .getPipelineVersionRowById(versionId)
-        .findKebabAction('Delete pipeline version')
-        .click();
-      pipelineDeleteModal.findInput().fill(testPipelineIrisName);
-      pipelineDeleteModal.findSubmitButton().click();
-      // The line below it's not working due to a bug
-      // pipelineDeleteModal.shouldBeOpen(false);
-      cy.get('[role=dialog]').should('not.exist');
-
-      cy.step('Verify that the pipeline version no longer exist');
-      const pipelineRowWithVersionDeleted = pipelinesTable.getRowById(pipelineId);
-      pipelineRowWithVersionDeleted.findExpandButton().click();
-      pipelineRowWithVersionDeleted.shouldNotHavePipelineVersion();
-
-      cy.step('Delete the pipeline');
-      const pipelineRow = pipelinesTable.getRowById(pipelineId);
-      pipelineRow.findKebabAction('Delete pipeline').click();
-      pipelineDeleteModal.findInput().fill(testPipelineIrisName);
-      pipelineDeleteModal.findSubmitButton().click();
-
-      cy.step('Verify that the pipeline no longer exist');
-      pipelinesTable.shouldBeEmpty();
     });
   });
 });
