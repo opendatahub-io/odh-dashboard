@@ -4,7 +4,6 @@ import { Button, CardFooter, Flex } from '@patternfly/react-core';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import ModelServingPlatformButtonAction from '~/pages/modelServing/screens/projects/ModelServingPlatformButtonAction';
 import { ServingRuntimePlatform } from '~/types';
-import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import {
   getSortedTemplates,
   getTemplateEnabled,
@@ -15,6 +14,7 @@ import ManageServingRuntimeModal from '~/pages/modelServing/screens/projects/Ser
 import ManageKServeModal from '~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 import ManageNIMServingModal from '~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
 import { modelVersionUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 
 type AddModelFooterProps = {
   selectedPlatform?: ServingRuntimePlatform;
@@ -25,7 +25,6 @@ const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform, isNIM
   const navigate = useNavigate();
 
   const [modalShown, setModalShown] = React.useState<boolean>(false);
-
   const servingPlatformStatuses = useServingPlatformStatuses();
 
   const {

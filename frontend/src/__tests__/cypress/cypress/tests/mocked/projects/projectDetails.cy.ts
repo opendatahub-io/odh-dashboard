@@ -40,6 +40,7 @@ import { asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers'
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import { mockNimServingRuntimeTemplate } from '~/__mocks__/mockNimResource';
 import { mockNimAccount } from '~/__mocks__/mockNimAccount';
+import { mockOdhApplication } from '~/__mocks__/mockOdhApplication';
 
 type HandlersProps = {
   isEmpty?: boolean;
@@ -274,6 +275,17 @@ const initIntercepts = ({
     buildMockPipelines(isEmpty ? [] : [mockPipelineKF({})]),
   );
 
+  cy.interceptOdh('GET /api/components', null, [mockOdhApplication({})]);
+  cy.interceptOdh(
+    'GET /api/integrations/:internalRoute',
+    { path: { internalRoute: 'nim' } },
+    {
+      isInstalled: true,
+      isEnabled: true,
+      canInstall: false,
+      error: '',
+    },
+  );
   cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
 };
 
