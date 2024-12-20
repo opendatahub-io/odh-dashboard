@@ -18,6 +18,7 @@ type MockResourceConfigType = {
   enabled?: boolean;
   nodeSelectors?: NodeSelector[];
   tolerations?: Toleration[];
+  annotations?: Record<string, string>;
 };
 
 export const mockHardwareProfile = ({
@@ -49,6 +50,7 @@ export const mockHardwareProfile = ({
       value: 'va;ue',
     },
   ],
+  annotations,
 }: MockResourceConfigType): HardwareProfileKind => ({
   apiVersion: 'dashboard.opendatahub.io/v1alpha1',
   kind: 'HardwareProfile',
@@ -59,6 +61,7 @@ export const mockHardwareProfile = ({
     namespace,
     resourceVersion: '1309350',
     uid,
+    annotations,
   },
   spec: {
     identifiers,

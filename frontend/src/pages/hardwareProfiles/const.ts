@@ -1,6 +1,10 @@
 import { SortableData } from '~/components/table';
 import { HardwareProfileKind } from '~/k8sTypes';
-import { Identifier, NodeSelector, Toleration } from '~/types';
+import {
+  ManageHardwareProfileSectionID,
+  ManageHardwareProfileSectionTitlesType,
+} from '~/pages/hardwareProfiles/manage/types';
+import { Identifier } from '~/types';
 
 export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
   {
@@ -76,54 +80,6 @@ export const nodeResourceColumns: SortableData<Identifier>[] = [
   },
 ];
 
-export const nodeSelectorColumns: SortableData<NodeSelector>[] = [
-  {
-    field: 'key',
-    label: 'Key',
-    sortable: false,
-    width: 50,
-  },
-  {
-    field: 'value',
-    label: 'Value',
-    sortable: false,
-    width: 50,
-  },
-];
-
-export const tolerationColumns: SortableData<Toleration>[] = [
-  {
-    field: 'operator',
-    label: 'Operator',
-    sortable: false,
-    width: 20,
-  },
-  {
-    field: 'key',
-    label: 'Key',
-    sortable: false,
-    width: 20,
-  },
-  {
-    field: 'value',
-    label: 'Value',
-    sortable: false,
-    width: 20,
-  },
-  {
-    field: 'effect',
-    label: 'Effect',
-    sortable: false,
-    width: 20,
-  },
-  {
-    field: 'toleration_seconds',
-    label: 'Toleration seconds',
-    sortable: false,
-    width: 20,
-  },
-];
-
 export enum HardwareProfileEnableType {
   enabled = 'Enabled',
   disabled = 'Disabled',
@@ -147,4 +103,32 @@ export type HardwareProfileFilterDataType = Record<
 export const initialHardwareProfileFilterData: HardwareProfileFilterDataType = {
   [HardwareProfileFilterOptions.name]: '',
   [HardwareProfileFilterOptions.enabled]: undefined,
+};
+
+export const ManageHardwareProfileSectionTitles: ManageHardwareProfileSectionTitlesType = {
+  [ManageHardwareProfileSectionID.DETAILS]: 'Details',
+  [ManageHardwareProfileSectionID.IDENTIFIERS]: 'Node resources',
+  [ManageHardwareProfileSectionID.NODE_SELECTORS]: 'Node selectors',
+  [ManageHardwareProfileSectionID.TOLERATIONS]: 'Tolerations',
+};
+
+export const DEFAULT_HARDWARE_PROFILE_SPEC: HardwareProfileKind['spec'] = {
+  displayName: '',
+  enabled: true,
+  identifiers: [
+    {
+      identifier: 'cpu',
+      displayName: 'CPU',
+      defaultCount: 1,
+      maxCount: 2,
+      minCount: 1,
+    },
+    {
+      identifier: 'memory',
+      displayName: 'RAM',
+      defaultCount: '1GiB',
+      minCount: '0.001GiB',
+      maxCount: '2GiB',
+    },
+  ],
 };

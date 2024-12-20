@@ -34,6 +34,8 @@ const k8sCreateResourceMock = jest.mocked(k8sCreateResource<HardwareProfileKind>
 const k8sUpdateResourceMock = jest.mocked(k8sUpdateResource<HardwareProfileKind>);
 const k8sDeleteResourceMock = jest.mocked(k8sDeleteResource<HardwareProfileKind, K8sStatus>);
 
+global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
+
 const data: HardwareProfileKind['spec'] = {
   displayName: 'test',
   identifiers: [
@@ -62,6 +64,7 @@ const assembleHardwareProfileResult: HardwareProfileKind = {
   metadata: {
     name: 'test-1',
     namespace: 'namespace',
+    annotations: expect.anything(),
   },
   spec: data,
 };
@@ -135,7 +138,7 @@ describe('getHardwareProfile', () => {
 });
 
 describe('createHardwareProfiles', () => {
-  it('should create hadware profile', async () => {
+  it('should create hardware profile', async () => {
     k8sCreateResourceMock.mockResolvedValue(mockHardwareProfile({ uid: 'test' }));
     const result = await createHardwareProfile('test-1', data, 'namespace');
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
@@ -184,6 +187,8 @@ describe('updateHardwareProfile', () => {
         namespace: 'namespace',
         description: 'test description',
         displayName: 'test',
+        nodeSelectors: [],
+        annotations: expect.anything(),
       }),
     });
     expect(k8sUpdateResourceMock).toHaveBeenCalledTimes(1);
@@ -211,6 +216,8 @@ describe('updateHardwareProfile', () => {
         namespace: 'namespace',
         description: 'test description',
         displayName: 'test',
+        nodeSelectors: [],
+        annotations: expect.anything(),
       }),
     });
   });
