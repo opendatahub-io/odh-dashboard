@@ -8,8 +8,10 @@ export const useIsNIMAvailable = (): [boolean, boolean, Error | undefined] => {
   const isNIMModelServingAvailable = useIsAreaAvailable(SupportedArea.NIM_MODEL).status;
 
   const fetchNIMAvailability = React.useCallback(async () => {
+    if (!isNIMModelServingAvailable) {
+      return false;
+    }
     const components = await fetchComponents(false);
-
     const nimComponent = components.find((component) => component.metadata.name === 'nvidia-nim');
 
     if (!nimComponent || !nimComponent.spec.internalRoute) {
@@ -20,7 +22,7 @@ export const useIsNIMAvailable = (): [boolean, boolean, Error | undefined] => {
       nimComponent.spec.internalRoute,
     );
 
-    return isNIMModelServingAvailable && isInstalled && isEnabled;
+    return isInstalled && isEnabled;
   }, [isNIMModelServingAvailable]);
 
   const [isNIMAvailable, loaded, loadError] = useFetchState<boolean>(fetchNIMAvailability, false, {
