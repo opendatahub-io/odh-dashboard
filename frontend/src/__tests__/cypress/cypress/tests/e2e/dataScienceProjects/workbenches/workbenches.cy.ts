@@ -13,7 +13,6 @@ import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_com
 import { createPersistentVolumeClaim } from '~/__tests__/cypress/cypress/utils/oc_commands/presistentVolumeClaim';
 
 describe('Workbench and PVSs tests', () => {
-  // let testData: PVCReplacements;
   let projectName: string;
   let PVCName: string;
   let PVCDisplayName: string;
@@ -48,14 +47,6 @@ describe('Workbench and PVSs tests', () => {
       });
   });
 
-  after(() => {
-    // Delete provisioned Project
-    if (projectName) {
-      cy.log(`Deleting Project ${projectName} after the test has finished.`);
-      deleteOpenShiftProject(projectName);
-    }
-  });
-
   it('Verify users can create a workbench and connect an existent PersistentVolume', () => {
     const workbenchName = projectName.replace('dsp-', '');
 
@@ -72,7 +63,7 @@ describe('Workbench and PVSs tests', () => {
     cy.step(`Create Workbench ${projectName} using storage ${PVCDisplayName}`);
     workbenchPage.findCreateButton().click();
     createSpawnerPage.getNameInput().fill(workbenchName);
-    createSpawnerPage.findNotebookImage('jupyter-minimal-notebook').click();
+    createSpawnerPage.findNotebookImage('code-server-notebook').click();
     createSpawnerPage.findAttachExistingStorageButton().click();
     attachExistingStorageModal.selectExistingPersistentStorage(PVCDisplayName);
     attachExistingStorageModal.findStandardPathInput().fill(workbenchName);
@@ -82,7 +73,7 @@ describe('Workbench and PVSs tests', () => {
     cy.step(`Wait for Workbench ${workbenchName} to display a "Running" status`);
     const notebookRow = workbenchPage.getNotebookRow(workbenchName);
     notebookRow.expectStatusLabelToBe('Running', 120000);
-    notebookRow.shouldHaveNotebookImageName('Minimal Python');
+    notebookRow.shouldHaveNotebookImageName('code-server');
     notebookRow.shouldHaveContainerSize('Small');
 
     cy.step(`Check the cluster storage ${PVCDisplayName} is now connected to ${workbenchName}`);
