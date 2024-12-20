@@ -345,6 +345,58 @@ export const useFetchKserveTimePerOutputTokenData = (
   });
 };
 
+// Graph #6
+type RequestsOutcomesData = {
+  data: {
+    successCount: PendingContextResourceData<PrometheusQueryRangeResultValue>;
+    failedCount: PendingContextResourceData<PrometheusQueryRangeResultValue>;
+  };
+  refreshAll: () => void;
+};
+
+export const useFetchKserveRequestsOutcomesData = (
+  metricsDef: KserveMetricGraphDefinition,
+  timeframe: TimeframeTitle,
+  endInMs: number,
+  namespace: string,
+): RequestsOutcomesData => {
+  const active = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
+
+  const successQuery = metricsDef.queries[0]?.query;
+  const failedQuery = metricsDef.queries[1]?.query;
+
+  const successCount = useQueryRangeResourceData(
+    active,
+    successQuery,
+    endInMs,
+    timeframe,
+    defaultResponsePredicate,
+    namespace,
+  );
+
+  const failedCount = useQueryRangeResourceData(
+    active,
+    failedQuery,
+    endInMs,
+    timeframe,
+    defaultResponsePredicate,
+    namespace,
+  );
+
+  const data = React.useMemo(
+    () => ({
+      successCount,
+      failedCount,
+    }),
+    [failedCount, successCount],
+  );
+
+  return useAllSettledContextResourceData(data, {
+    successCount: DEFAULT_PENDING_CONTEXT_RESOURCE,
+    failedCount: DEFAULT_PENDING_CONTEXT_RESOURCE,
+  });
+};
+
 // Graph #2
 type CurrentRequestsData = {
   data: {
