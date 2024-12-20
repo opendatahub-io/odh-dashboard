@@ -74,7 +74,8 @@ describe('Workbench and PVSs tests', () => {
     createSpawnerPage.getNameInput().fill(workbenchName);
     createSpawnerPage.findNotebookImage('code-server-notebook').click();
     createSpawnerPage.findAttachExistingStorageButton().click();
-    attachExistingStorageModal.selectExistingPersistentStorage(PVCDisplayName);
+    attachExistingStorageModal.verifyPSDropdownIsDisabled();
+    attachExistingStorageModal.verifyPSDropdownText(PVCDisplayName);
     attachExistingStorageModal.findStandardPathInput().fill(workbenchName);
     attachExistingStorageModal.findAttachButton().click();
     createSpawnerPage.findSubmitButton().click();
