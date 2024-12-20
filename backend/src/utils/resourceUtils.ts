@@ -121,10 +121,10 @@ const createDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfi
       DASHBOARD_CONFIG.plural,
       blankDashboardCR,
     )
-    .then((result) => [result.body])
+    .then((result) => result.body as DashboardConfig)
     .catch((e) => {
       fastify.log.error('Error creating Dashboard CR: ', e);
-      return null;
+      return blankDashboardCR;
     });
 };
 
