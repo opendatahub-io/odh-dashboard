@@ -11,7 +11,7 @@ export enum GroupsConfigField {
 }
 
 export type GroupStatus = {
-  id: number;
+  id: number | string;
   name: string;
   enabled: boolean;
 };
