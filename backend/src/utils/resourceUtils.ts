@@ -22,6 +22,7 @@ import {
   TolerationOperator,
   DataScienceClusterKindStatus,
   KnownLabels,
+  AuthKind,
 } from '../types';
 import {
   DEFAULT_ACTIVE_TIMEOUT,
@@ -50,6 +51,7 @@ const quickStartsVersion = 'v1';
 const quickStartsPlural = 'odhquickstarts';
 
 let dashboardConfigWatcher: ResourceWatcher<DashboardConfig>;
+let authWatcher: ResourceWatcher<AuthKind>;
 let clusterStatusWatcher: ResourceWatcher<DataScienceClusterKindStatus>;
 let subscriptionWatcher: ResourceWatcher<SubscriptionStatusData>;
 let appWatcher: ResourceWatcher<OdhApplication>;
@@ -549,8 +551,16 @@ const fetchConsoleLinks = async (fastify: KubeFastifyInstance) => {
     });
 };
 
+const fetchAuthKind = (fastify: KubeFastifyInstance): Promise<AuthKind[]> => {
+  return fastify.kube.customObjectsApi
+    .getClusterCustomObject('services.platform.opendatahub.io', 'v1alpha1', 'auths', 'auth')
+    .then((response) => response.body as AuthKind)
+    .then((auth) => [auth]);
+};
+
 export const initializeWatchedResources = (fastify: KubeFastifyInstance): void => {
   dashboardConfigWatcher = new ResourceWatcher<DashboardConfig>(fastify, fetchDashboardCR);
+  authWatcher = new ResourceWatcher<AuthKind>(fastify, fetchAuthKind);
   clusterStatusWatcher = new ResourceWatcher<DataScienceClusterKindStatus>(
     fastify,
     fetchWatchedClusterStatus,
@@ -625,6 +635,10 @@ export const updateApplications = (): Promise<void> => {
 export const getApplication = (appName: string): OdhApplication => {
   const apps = getApplications();
   return apps.find((app) => app.metadata.name === appName);
+};
+
+export const getAuth = (): AuthKind => {
+  return authWatcher.getResources()[0];
 };
 
 export const getDocs = (): OdhDocument[] => {
