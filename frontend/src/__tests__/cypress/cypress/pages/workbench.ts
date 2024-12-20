@@ -202,6 +202,19 @@ class AttachExistingStorageModal extends Modal {
     cy.findByTestId('persistent-storage-typeahead').contains(name).click();
   }
 
+  verifyPSDropdownIsDisabled(): void {
+    cy.get('[data-testid="persistent-storage-group"] .pf-v6-c-menu-toggle')
+      .should('have.class', 'pf-m-disabled')
+      .and('have.attr', 'disabled');
+  }
+
+  verifyPSDropdownText(expectedText: string): void {
+    cy.get('[data-testid="persistent-storage-group"] .pf-v6-c-text-input-group__text-input').should(
+      'have.value',
+      expectedText,
+    );
+  }
+
   findStandardPathInput() {
     return cy.findByTestId('mount-path-folder-value');
   }
