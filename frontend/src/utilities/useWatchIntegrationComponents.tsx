@@ -29,7 +29,8 @@ export const useWatchIntegrationComponents = (
             isInstalled: false,
             isEnabled: false,
             canInstall: false,
-            error: e.message ?? e.error, // might be an error from the server, might be an error in the network call itself
+            variablesValidationStatus: '',
+            error: e.message ?? e.error,
           } satisfies IntegrationAppStatus),
       );
 
