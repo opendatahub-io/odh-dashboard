@@ -35,7 +35,7 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
     () =>
       loaded
         ? storages.reduce((acc: TypeaheadSelectOption[], pvc) => {
-            if (!existingStorageNames?.includes(pvc.metadata.name)) {
+            if (!existingStorageNames?.includes(getDisplayNameFromK8sResource(pvc))) {
               acc.push({
                 value: pvc.metadata.name,
                 content: getDisplayNameFromK8sResource(pvc),
@@ -64,7 +64,7 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
 
   if (!loaded) {
     placeholderText = 'Loading storages';
-  } else if (storages.length === 0) {
+  } else if (selectOptions.length === 0) {
     placeholderText = 'No existing storages available';
   } else {
     placeholderText = 'Select a persistent storage';
@@ -82,7 +82,6 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
         selected={data.storage}
         onSelect={(_, storage) => {
           const pvc = storages.find((pvcData) => pvcData.metadata.name === storage);
-
           setData({
             ...data,
             pvc,
