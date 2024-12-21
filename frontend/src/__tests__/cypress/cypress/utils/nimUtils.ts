@@ -11,6 +11,7 @@ import {
   AcceleratorProfileModel,
   ConfigMapModel,
   InferenceServiceModel,
+  NIMAccountModel,
   ProjectModel,
   PVCModel,
   SecretModel,
@@ -30,6 +31,7 @@ import {
 } from '~/__mocks__/mockNimResource';
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import type { InferenceServiceKind } from '~/k8sTypes';
+import { mockNimAccount } from '~/__mocks__/mockNimAccount';
 
 /* ###################################################
    ###### Interception Initialization Utilities ######
@@ -77,6 +79,8 @@ export const initInterceptsToEnableNim = ({ hasAllModels = false }: EnableNimCon
     total: { 'nvidia.com/gpu': 1 },
     allocated: { 'nvidia.com/gpu': 1 },
   });
+
+  cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
 };
 
 // intercept all APIs required for deploying new NIM models in existing projects
@@ -89,23 +93,24 @@ export const initInterceptsToDeployModel = (nimInferenceService: InferenceServic
 
   cy.interceptOdh(
     `GET /api/nim-serving/:resource`,
-    { path: { resource: 'nvidia-nim-images-data' } },
+    { path: { resource: 'nimConfig' } },
     mockNimServingResource(mockNimImages()),
   );
 
   cy.interceptOdh(
     `GET /api/nim-serving/:resource`,
-    { path: { resource: 'nvidia-nim-access' } },
+    { path: { resource: 'apiKeySecret' } },
     mockNimServingResource(mockNvidiaNimAccessSecret()),
   );
 
   cy.interceptOdh(
     `GET /api/nim-serving/:resource`,
-    { path: { resource: 'nvidia-nim-image-pull' } },
+    { path: { resource: 'nimPullSecret' } },
     mockNimServingResource(mockNvidiaNimImagePullSecret()),
   );
 
   cy.interceptK8s('POST', PVCModel, mockNimModelPVC());
+  cy.interceptK8s('GET', NIMAccountModel, mockNimAccount({}));
 };
 
 // intercept all APIs required for deleting an existing NIM models
@@ -154,4 +159,6 @@ export const initInterceptorsValidatingNimEnablement = (
     ProjectModel,
     mockK8sResourceList([mockProjectK8sResource({ hasAnnotations: true })]),
   );
+
+  cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
 };

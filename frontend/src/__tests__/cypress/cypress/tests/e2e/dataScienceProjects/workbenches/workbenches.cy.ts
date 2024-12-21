@@ -72,9 +72,10 @@ describe('Workbench and PVSs tests', () => {
     cy.step(`Create Workbench ${projectName} using storage ${PVCDisplayName}`);
     workbenchPage.findCreateButton().click();
     createSpawnerPage.getNameInput().fill(workbenchName);
-    createSpawnerPage.findNotebookImage('s2i-minimal-notebook').click();
+    createSpawnerPage.findNotebookImage('code-server-notebook').click();
     createSpawnerPage.findAttachExistingStorageButton().click();
-    attachExistingStorageModal.selectExistingPersistentStorage(PVCDisplayName);
+    attachExistingStorageModal.verifyPSDropdownIsDisabled();
+    attachExistingStorageModal.verifyPSDropdownText(PVCDisplayName);
     attachExistingStorageModal.findStandardPathInput().fill(workbenchName);
     attachExistingStorageModal.findAttachButton().click();
     createSpawnerPage.findSubmitButton().click();
@@ -82,7 +83,7 @@ describe('Workbench and PVSs tests', () => {
     cy.step(`Wait for Workbench ${workbenchName} to display a "Running" status`);
     const notebookRow = workbenchPage.getNotebookRow(workbenchName);
     notebookRow.expectStatusLabelToBe('Running', 120000);
-    notebookRow.shouldHaveNotebookImageName('Minimal Python');
+    notebookRow.shouldHaveNotebookImageName('code-server');
     notebookRow.shouldHaveContainerSize('Small');
 
     cy.step(`Check the cluster storage ${PVCDisplayName} is now connected to ${workbenchName}`);

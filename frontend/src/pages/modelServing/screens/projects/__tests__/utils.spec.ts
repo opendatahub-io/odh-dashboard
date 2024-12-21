@@ -12,26 +12,27 @@ import {
 import { LabeledDataConnection, ServingPlatformStatuses } from '~/pages/modelServing/screens/types';
 import { ServingRuntimePlatform } from '~/types';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { createPvc, createSecret } from '~/api';
+import { createPvc, createSecret, listNIMAccounts } from '~/api';
 import { PersistentVolumeClaimKind, ServingRuntimeKind } from '~/k8sTypes';
 import {
-  getNGCSecretType,
+  fetchNIMAccountTemplateName,
   getNIMData,
   getNIMResource,
   updateServingRuntimeTemplate,
 } from '~/pages/modelServing/screens/projects/nimUtils';
+import { mockNimAccount } from '~/__mocks__/mockNimAccount';
 
 jest.mock('~/api', () => ({
   getSecret: jest.fn(),
   createSecret: jest.fn(),
   createPvc: jest.fn(),
   getInferenceServiceContext: jest.fn(),
+  listNIMAccounts: jest.fn(),
 }));
 
 jest.mock('~/pages/modelServing/screens/projects/nimUtils', () => ({
   ...jest.requireActual('~/pages/modelServing/screens/projects/nimUtils'),
   getNIMData: jest.fn(),
-  getNGCSecretType: jest.fn(),
   getNIMResource: jest.fn(),
 }));
 
@@ -237,14 +238,13 @@ describe('getCreateInferenceServiceLabels', () => {
 
 describe('createNIMSecret', () => {
   const projectName = 'test-project';
-  const secretName = 'test-secret';
   const dryRun = false;
 
   const nimSecretMock = {
     apiVersion: 'v1',
     kind: 'Secret',
     metadata: {
-      name: secretName,
+      name: 'ngc-secret',
       namespace: projectName,
     },
     data: {},
@@ -260,30 +260,24 @@ describe('createNIMSecret', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (getNGCSecretType as jest.Mock).mockImplementation((isNGC: boolean) =>
-      isNGC ? 'kubernetes.io/dockerconfigjson' : 'Opaque',
-    );
   });
 
   it('should create NGC secret when isNGC is true', async () => {
     (getNIMData as jest.Mock).mockResolvedValueOnce(nimSecretDataNGC);
     (createSecret as jest.Mock).mockResolvedValueOnce(nimSecretMock);
 
-    const result = await createNIMSecret(projectName, secretName, true, dryRun);
+    const result = await createNIMSecret(projectName, 'ngc-secret', true, dryRun);
 
-    expect(getNIMData).toHaveBeenCalledWith(true);
-    expect(getNGCSecretType).toHaveBeenCalledWith(true);
+    expect(getNIMData).toHaveBeenCalledWith('ngc-secret', true);
     expect(createSecret).toHaveBeenCalledWith(
       {
         apiVersion: 'v1',
         kind: 'Secret',
         metadata: {
-          name: secretName,
+          name: 'ngc-secret',
           namespace: projectName,
         },
-        data: {
-          '.dockerconfigjson': 'mocked-dockerconfig-json',
-        },
+        data: nimSecretDataNGC,
         type: 'kubernetes.io/dockerconfigjson',
       },
       { dryRun },
@@ -295,21 +289,18 @@ describe('createNIMSecret', () => {
     (getNIMData as jest.Mock).mockResolvedValueOnce(nimSecretDataNonNGC);
     (createSecret as jest.Mock).mockResolvedValueOnce(nimSecretMock);
 
-    const result = await createNIMSecret(projectName, secretName, false, dryRun);
+    const result = await createNIMSecret(projectName, 'nvidia-nim-secrets', false, dryRun);
 
-    expect(getNIMData).toHaveBeenCalledWith(false);
-    expect(getNGCSecretType).toHaveBeenCalledWith(false);
+    expect(getNIMData).toHaveBeenCalledWith('nvidia-nim-secrets', false);
     expect(createSecret).toHaveBeenCalledWith(
       {
         apiVersion: 'v1',
         kind: 'Secret',
         metadata: {
-          name: secretName,
+          name: 'nvidia-nim-secrets',
           namespace: projectName,
         },
-        data: {
-          NGC_API_KEY: 'mocked-api-key',
-        },
+        data: nimSecretDataNonNGC,
         type: 'Opaque',
       },
       { dryRun },
@@ -320,14 +311,25 @@ describe('createNIMSecret', () => {
   it('should reject if getNIMData throws an error', async () => {
     (getNIMData as jest.Mock).mockRejectedValueOnce(new Error('Error retrieving secret data'));
 
-    await expect(createNIMSecret(projectName, secretName, true, dryRun)).rejects.toThrow(
-      'Error creating NIM NGC secret',
+    await expect(createNIMSecret(projectName, 'ngc-secret', true, dryRun)).rejects.toThrow(
+      'Error creating NGC secret',
+    );
+  });
+
+  it('should reject if createSecret throws an error', async () => {
+    (getNIMData as jest.Mock).mockResolvedValueOnce(nimSecretDataNonNGC);
+    (createSecret as jest.Mock).mockRejectedValueOnce(new Error('Error creating secret'));
+
+    await expect(createNIMSecret(projectName, 'nvidia-nim-secrets', false, dryRun)).rejects.toThrow(
+      'Error creating NIM secret',
     );
   });
 });
-describe('fetchNIMModelNames', () => {
-  const NIM_CONFIGMAP_NAME = 'nvidia-nim-images-data';
 
+describe('fetchNIMModelNames', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
   const configMapMock = {
     data: {
       model1: JSON.stringify({
@@ -349,16 +351,12 @@ describe('fetchNIMModelNames', () => {
     },
   };
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   it('should return model infos when configMap has data', async () => {
     (getNIMResource as jest.Mock).mockResolvedValueOnce(configMapMock);
 
     const result = await fetchNIMModelNames();
 
-    expect(getNIMResource).toHaveBeenCalledWith(NIM_CONFIGMAP_NAME);
+    expect(getNIMResource).toHaveBeenCalledWith('nimConfig');
     expect(result).toEqual([
       {
         name: 'model1',
@@ -386,7 +384,7 @@ describe('fetchNIMModelNames', () => {
 
     const result = await fetchNIMModelNames();
 
-    expect(getNIMResource).toHaveBeenCalledWith(NIM_CONFIGMAP_NAME);
+    expect(getNIMResource).toHaveBeenCalledWith('nimConfig');
     expect(result).toBeUndefined();
   });
 
@@ -395,7 +393,7 @@ describe('fetchNIMModelNames', () => {
 
     const result = await fetchNIMModelNames();
 
-    expect(getNIMResource).toHaveBeenCalledWith(NIM_CONFIGMAP_NAME);
+    expect(getNIMResource).toHaveBeenCalledWith('nimConfig');
     expect(result).toBeUndefined();
   });
 });
@@ -538,5 +536,48 @@ describe('updateServingRuntimeTemplate', () => {
     const result = updateServingRuntimeTemplate(servingRuntimeWithoutVolumeMounts, pvcName);
 
     expect(result.spec.containers[0].volumeMounts).toBeUndefined();
+  });
+});
+
+describe('fetchNIMAccountTemplateName', () => {
+  const dashboardNamespace = 'test-namespace';
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should return the template name when available', async () => {
+    const mockAccount = mockNimAccount({ runtimeTemplateName: 'test-template' });
+    (listNIMAccounts as jest.Mock).mockResolvedValueOnce([mockAccount]);
+
+    const result = await fetchNIMAccountTemplateName(dashboardNamespace);
+
+    expect(result).toBe('test-template');
+    expect(listNIMAccounts).toHaveBeenCalledWith(dashboardNamespace);
+  });
+
+  it('should return undefined when no accounts exist', async () => {
+    (listNIMAccounts as jest.Mock).mockResolvedValueOnce([]);
+
+    const result = await fetchNIMAccountTemplateName(dashboardNamespace);
+
+    expect(result).toBeUndefined();
+    expect(listNIMAccounts).toHaveBeenCalledWith(dashboardNamespace);
+  });
+
+  it('should handle errors from listNIMAccounts', async () => {
+    const mockError = new Error('Server Error');
+    (listNIMAccounts as jest.Mock).mockRejectedValue(mockError);
+
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+    const result = await fetchNIMAccountTemplateName(dashboardNamespace);
+
+    expect(result).toBeUndefined();
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      `Error fetching NIM account template name: ${mockError.message}`,
+    );
+
+    consoleErrorSpy.mockRestore();
   });
 });

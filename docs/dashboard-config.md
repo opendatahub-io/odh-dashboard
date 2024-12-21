@@ -31,10 +31,12 @@ The following are a list of features that are supported, along with there defaul
 | disableKServeRaw             | true    | Disables the option to deploy in raw instead of serverless.                                          |
 | disableModelMesh             | false   | Disables the ability to select ModelMesh as a Serving Platform.                                      |
 | disableAcceleratorProfiles   | false   | Disables Accelerator profiles from the Admin Panel.                                                  |
+| disableHardwareProfiles      | true    | Disables Hardware profiles from the Admin Panel.                                                     |
 | disableTrustyBiasMetrics     | false   | Disables Model Bias tab from Model Serving metrics.                                                  |
 | disablePerformanceMetrics    | false   | Disables Endpoint Performance tab from Model Serving metrics.                                        |
 | disableDistributedWorkloads  | false   | Disables Distributed Workload Metrics from the dashboard.                                            |
 | disableModelRegistry         | false   | Disables Model Registry from the dashboard.                                                          |
+| disableModelRegistrySecureDB | true    | Disables Model Registry Secure DB from the dashboard.                                                |
 | disableServingRuntimeParams  | false   | Disables Serving Runtime params from the dashboard.                                                  |
 | disableStorageClasses        | false   | Disables storage classes settings nav item from the dashboard.                                       |
 | disableNIMModelServing       | true    | Disables components of NIM Model UI from the dashboard.                                              |
@@ -62,6 +64,7 @@ spec:
     disableProjectSharing: false
     disableCustomServingRuntimes: false
     disableAcceleratorProfiles: false
+    disableHardwareProfiles: true
     disableKServeMetrics: false
     disableTrustyBiasMetrics: false
     disablePerformanceMetrics: false
@@ -158,6 +161,7 @@ spec:
     disableProjectSharing: true
     disableCustomServingRuntimes: false
     disableAcceleratorProfiles: true
+    disableHardwareProfiles: true
     disableKServeMetrics: true
     disableTrustyBiasMetrics: false
     disablePerformanceMetrics: false

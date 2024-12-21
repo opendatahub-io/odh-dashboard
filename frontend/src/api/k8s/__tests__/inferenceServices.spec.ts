@@ -143,7 +143,7 @@ describe('assembleInferenceService', () => {
     const resourceName = 'llama-model';
 
     const inferenceService = assembleInferenceService(
-      mockInferenceServiceModalData({ name: displayName, servingRuntimeName: resourceName }),
+      mockInferenceServiceModalData({ name: displayName, k8sName: resourceName }),
     );
 
     expect(inferenceService.metadata.annotations).toBeDefined();
@@ -344,7 +344,7 @@ describe('assembleInferenceService', () => {
     );
   });
 
-  it('should omit requests on mdoelmesh', async () => {
+  it('should omit requests on modelmesh', async () => {
     const acceleratorProfileState: AcceleratorProfileState = {
       acceleratorProfile: mockAcceleratorProfile({}),
       acceleratorProfiles: [mockAcceleratorProfile({})],
@@ -384,6 +384,56 @@ describe('assembleInferenceService', () => {
     );
 
     expect(inferenceService.spec.predictor.model?.resources).toBeUndefined();
+  });
+
+  it('should have base annotations for kserve raw', async () => {
+    const inferenceService = assembleInferenceService(
+      mockInferenceServiceModalData({ isKServeRawDeployment: true }),
+    );
+    const { annotations, labels } = inferenceService.metadata;
+
+    expect(annotations?.['serving.kserve.io/deploymentMode']).toBe('RawDeployment');
+
+    expect(annotations?.['serving.knative.openshift.io/enablePassthrough']).toBe(undefined);
+    expect(annotations?.['sidecar.istio.io/inject']).toBe(undefined);
+    expect(annotations?.['sidecar.istio.io/rewriteAppHTTPProbers']).toBe(undefined);
+    expect(annotations?.['security.opendatahub.io/enable-auth']).toBe(undefined);
+    expect(labels?.['security.opendatahub.io/enable-auth']).toBe(undefined);
+    expect(labels?.['networking.kserve.io/visibility']).toBe(undefined);
+    expect(labels?.['networking.knative.dev/visibility']).toBe(undefined);
+  });
+
+  it('should have correct auth and routing for kserve raw', async () => {
+    const ext = assembleInferenceService(
+      mockInferenceServiceModalData({ isKServeRawDeployment: true, externalRoute: true }),
+    );
+    expect(ext.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBe('RawDeployment');
+    expect(ext.metadata.annotations?.['security.opendatahub.io/enable-auth']).toBe(undefined);
+    expect(ext.metadata.labels?.['security.opendatahub.io/enable-auth']).toBe(undefined);
+    expect(ext.metadata.labels?.['networking.kserve.io/visibility']).toBe('exposed');
+    expect(ext.metadata.labels?.['networking.knative.dev/visibility']).toBe(undefined);
+
+    const auth = assembleInferenceService(
+      mockInferenceServiceModalData({ isKServeRawDeployment: true, tokenAuth: true }),
+    );
+    expect(auth.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBe('RawDeployment');
+    expect(auth.metadata.annotations?.['security.opendatahub.io/enable-auth']).toBe(undefined);
+    expect(auth.metadata.labels?.['security.opendatahub.io/enable-auth']).toBe('true');
+    expect(auth.metadata.labels?.['networking.kserve.io/visibility']).toBe(undefined);
+    expect(auth.metadata.labels?.['networking.knative.dev/visibility']).toBe(undefined);
+
+    const both = assembleInferenceService(
+      mockInferenceServiceModalData({
+        isKServeRawDeployment: true,
+        externalRoute: true,
+        tokenAuth: true,
+      }),
+    );
+    expect(both.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBe('RawDeployment');
+    expect(both.metadata.annotations?.['security.opendatahub.io/enable-auth']).toBe(undefined);
+    expect(both.metadata.labels?.['security.opendatahub.io/enable-auth']).toBe('true');
+    expect(both.metadata.labels?.['networking.kserve.io/visibility']).toBe('exposed');
+    expect(both.metadata.labels?.['networking.knative.dev/visibility']).toBe(undefined);
   });
 });
 

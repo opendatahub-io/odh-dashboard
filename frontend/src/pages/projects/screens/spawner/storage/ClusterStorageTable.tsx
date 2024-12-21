@@ -6,6 +6,7 @@ import { InfoCircleIcon } from '@patternfly/react-icons';
 
 import { Table } from '~/components/table';
 import { StorageData, StorageType } from '~/pages/projects/types';
+import { formatMemory } from '~/utilities/valueUnits';
 import { clusterStorageTableColumns } from './constants';
 import { ClusterStorageDetachModal } from './ClusterStorageDetachModal';
 import WorkbenchStorageModal from './WorkbenchStorageModal';
@@ -85,7 +86,12 @@ export const ClusterStorageTable: React.FC<ClusterStorageTableProps> = ({
         columns={clusterStorageTableColumns}
         data={storageData}
         rowRenderer={(row, rowIndex) => (
-          <Tr key={row.id} data-testid={`cluster-storage-table-row ${row.id ?? ''}`}>
+          <Tr
+            key={row.id}
+            data-testid={`cluster-storage-table-row ${row.id ?? ''}`}
+            style={{ verticalAlign: 'baseline' }}
+          >
+            <Td visibility={['hidden']} />
             <Td dataLabel="Name">
               <Flex
                 alignItems={{ default: 'alignItemsCenter' }}
@@ -111,7 +117,7 @@ export const ClusterStorageTable: React.FC<ClusterStorageTableProps> = ({
                   )}
               </Flex>
             </Td>
-            <Td dataLabel="Storage size">Max {row.size}</Td>
+            <Td dataLabel="Storage size">Max {formatMemory(row.size)}</Td>
             <Td dataLabel="Mount path">{row.mountPath}</Td>
             <Td isActionCell>
               <ActionsColumn

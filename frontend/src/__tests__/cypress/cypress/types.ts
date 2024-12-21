@@ -102,6 +102,10 @@ export type DataScienceProjectData = {
   projectContributorResourceName: string;
 };
 
+export type NotebookImageData = {
+  codeserverImageName: string;
+};
+
 export type NimServingResponse = {
   body: {
     body: ConfigMapKind | SecretKind;
@@ -125,6 +129,8 @@ export type NotebookController = {
 export type DashboardConfig = {
   dashboardConfig: {
     disableModelServing: boolean;
+    disableModelMesh: boolean;
+    disableKServe: boolean;
   };
   notebookController: NotebookController;
   [key: string]: unknown;
@@ -139,6 +145,12 @@ export type NotebookControllerConfig = {
   ISTIO_GATEWAY: string;
   ISTIO_HOST: string;
   USE_ISTIO: string;
+};
+
+export type NotebookControllerCullerConfig = {
+  CULL_IDLE_TIME: string;
+  ENABLE_CULLING: string;
+  IDLENESS_CHECK_PERIOD: string;
 };
 
 export type ResourceData = {

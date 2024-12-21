@@ -5,8 +5,10 @@ import { StackComponent } from '~/concepts/areas/types';
 import {
   ContainerResourceAttributes,
   ContainerResources,
+  Identifier,
   ImageStreamStatusTagCondition,
   ImageStreamStatusTagItem,
+  NodeSelector,
   NotebookSize,
   PodAffinity,
   PodContainer,
@@ -311,6 +313,7 @@ export type PersistentVolumeClaimKind = K8sResourceCommon & {
     capacity?: {
       storage: string;
     };
+    conditions?: K8sCondition[];
   } & Record<string, unknown>;
 };
 
@@ -456,6 +459,8 @@ export type InferenceServiceAnnotations = Partial<{
 
 export type InferenceServiceLabels = Partial<{
   'networking.knative.dev/visibility': string;
+  'security.opendatahub.io/enable-auth': 'true';
+  'networking.kserve.io/visibility': 'exposed';
 }>;
 
 export type InferenceServiceKind = K8sResourceCommon & {
@@ -466,7 +471,7 @@ export type InferenceServiceKind = K8sResourceCommon & {
       DisplayNameAnnotations &
       EitherOrNone<
         {
-          'serving.kserve.io/deploymentMode': 'ModelMesh';
+          'serving.kserve.io/deploymentMode': 'ModelMesh' | 'RawDeployment';
         },
         {
           'serving.knative.openshift.io/enablePassthrough': 'true';
@@ -474,6 +479,7 @@ export type InferenceServiceKind = K8sResourceCommon & {
           'sidecar.istio.io/rewriteAppHTTPProbers': 'true';
         }
       >;
+    labels?: InferenceServiceLabels;
   };
   spec: {
     predictor: {
@@ -1187,8 +1193,10 @@ export type DashboardCommonConfig = {
   disableKServeRaw: boolean;
   disableModelMesh: boolean;
   disableAcceleratorProfiles: boolean;
+  disableHardwareProfiles: boolean;
   disableDistributedWorkloads: boolean;
   disableModelRegistry: boolean;
+  disableModelRegistrySecureDB: boolean;
   disableServingRuntimeParams: boolean;
   disableConnectionTypes: boolean;
   disableStorageClasses: boolean;
@@ -1229,6 +1237,21 @@ export type AcceleratorProfileKind = K8sResourceCommon & {
     identifier: string;
     description?: string;
     tolerations?: Toleration[];
+  };
+};
+
+export type HardwareProfileKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    displayName: string;
+    enabled: boolean;
+    description?: string;
+    tolerations?: Toleration[];
+    identifiers?: Identifier[];
+    nodeSelectors?: NodeSelector[];
   };
 };
 
@@ -1318,5 +1341,50 @@ export type ModelRegistryKind = K8sResourceCommon & {
   >;
   status?: {
     conditions?: K8sCondition[];
+  };
+};
+
+export type NIMAccountKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    apiKeySecret: {
+      name: string;
+    };
+  };
+  status?: {
+    nimConfig?: {
+      name: string;
+    };
+    runtimeTemplate?: {
+      name: string;
+    };
+    nimPullSecret?: {
+      name: string;
+    };
+    conditions?: K8sCondition[];
+  };
+};
+
+export type ConfigSecretItem = {
+  name: string;
+  keys: string[];
+};
+
+export type ListConfigSecretsResponse = {
+  secrets: ConfigSecretItem[];
+  configMaps: ConfigSecretItem[];
+};
+
+export type AuthKind = K8sResourceCommon & {
+  metadata: {
+    name: 'auth'; // singleton, immutable name
+    namespace?: never; // Cluster resource
+  };
+  spec: {
+    adminGroups: string[];
+    allowedGroups: string[];
   };
 };

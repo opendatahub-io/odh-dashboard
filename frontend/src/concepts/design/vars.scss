@@ -1,97 +1,132 @@
 :root {
-  --ai-set-up--BackgroundColor: #ffe8cc;
-  --ai-set-up--LabelBackgroundColor: #fccb8f;
-  --ai-set-up--BorderColor: #f8ae54;
-  --ai-set-up--SelectedColor: #f5921b;
-  --ai-set-up--Color: #f5921b;
+  --ai-set-up--BackgroundColor: var(--pf-t--color--orange--10);
+  --ai-set-up--LabelBackgroundColor: var(--pf-t--color--orange--20);
+  --ai-set-up--BorderColor: var(--pf-t--color--orange--30);
+  --ai-set-up--SelectedColor: var(--pf-t--color--orange--40);
+  --ai-set-up--Color: var(--pf-t--color--orange--40);
+  --ai-set-up--IconColor: var(--pf-t--global--text--color--regular);
 
-  --ai-config--BackgroundColor: var(--ai-set-up--BackgroundColor);
-  --ai-config--LabelBackgroundColor: var(--ai-set-up--LabelBackgroundColor);
-  --ai-config--BorderColor: var(--ai-set-up--BorderColor);
-  --ai-config--SelectedColor: var(--ai-set-up--SelectedColor);
-  --ai-config--Color: var(--ai-set-up--Color);
+  --ai-config--BackgroundColor: var(--pf-t--color--orange--10);
+  --ai-config--LabelBackgroundColor: var(--pf-t--color--orange--20);
+  --ai-config--BorderColor: var(--pf-t--color--orange--30);
+  --ai-config--SelectedColor: var(--pf-t--color--orange--40);
+  --ai-config--Color: var(--pf-t--color--orange--40);
+  --ai-config--IconColor: var(--pf-t--global--text--color--regular);
 
-  --ai-organize--BackgroundColor: var(--ai-set-up--BackgroundColor);
-  --ai-organize--LabelBackgroundColor: var(--ai-set-up--LabelBackgroundColor);
-  --ai-organize--BorderColor: var(--ai-set-up--BorderColor);
-  --ai-organize--SelectedColor: var(--ai-set-up--SelectedColor);
-  --ai-organize--Color: var(--ai-set-up--Color);
+  --ai-organize--BackgroundColor: var(--pf-t--color--orange--10);
+  --ai-organize--LabelBackgroundColor: var(--pf-t--color--orange--20);
+  --ai-organize--BorderColor: var(--pf-t--color--orange--30);
+  --ai-organize--SelectedColor: var(--pf-t--color--orange--40);
+  --ai-organize--Color: var(--pf-t--color--orange--40);
+  --ai-organize--IconColor: var(--pf-t--global--text--color--regular);
 
-  --ai-training--BackgroundColor: #daf2f2;
-  --ai-training--LabelBackgroundColor: #b9e5e5;
-  --ai-training--BorderColor: #9ad8d8;
-  --ai-training--SelectedColor: #63bdbd;
-  --ai-training--Color: #37a3a3;
+  --ai-training--BackgroundColor: var(--pf-t--color--teal--10);
+  --ai-training--LabelBackgroundColor: var(--pf-t--color--teal--20);
+  --ai-training--BorderColor: var(--pf-t--color--teal--30);
+  --ai-training--SelectedColor: var(--pf-t--color--teal--40);
+  --ai-training--Color: var(--pf-t--color--teal--50);
+  --ai-training--IconColor: var(--pf-t--global--text--color--regular);
 
-  --ai-serving--BackgroundColor: #ece6ff;
-  --ai-serving--LabelBackgroundColor: #d0c5f4;
-  --ai-serving--BorderColor: #b6a6e9;
-  --ai-serving--SelectedColor: #876fd4;
-  --ai-serving--Color: #5e40be;
+  --ai-serving--BackgroundColor: var(--pf-t--color--purple--10);
+  --ai-serving--LabelBackgroundColor: var(--pf-t--color--purple--20);
+  --ai-serving--BorderColor: var(--pf-t--color--purple--30);
+  --ai-serving--SelectedColor: var(--pf-t--color--purple--40);
+  --ai-serving--Color: var(--pf-t--color--purple--50);
+  --ai-serving--IconColor: var(--pf-t--global--text--color--regular);
 
-  --ai-general--BackgroundColor: #f2f2f2;
-  --ai-general--LabelBackgroundColor: #e0e0e0;
-  --ai-general--BorderColor: #c7c7c7;
-  --ai-general--SelectedColor: #a3a3a3;
-  --ai-general--Color: #707070;
+  --ai-general--BackgroundColor: var(--pf-t--color--gray--10);
+  --ai-general--LabelBackgroundColor: var(--pf-t--color--gray--20);
+  --ai-general--BorderColor: var(--pf-t--color--gray--30);
+  --ai-general--SelectedColor: var(--pf-t--color--gray--40);
+  --ai-general--Color:var(--pf-t--color--gray--50);
+  --ai-general--IconColor: var(--pf-t--global--text--color--regular);
 
   --ai-project--BackgroundColor: var(--ai-organize--BackgroundColor);
   --ai-project--LabelBackgroundColor: var(--ai-organize-LabelBackgroundColor);
   --ai-project--BorderColor: var(--ai-organize--BorderColor);
   --ai-project--SelectedColor: var(--ai-organize--SelectedColor);
   --ai-project--Color: var(--ai-organize--BorderColor);
+  --ai-project--IconColor: var(--ai-organize--IconColor);
 
   --ai-project-context--BackgroundColor: var(--ai-general--BackgroundColor);
   --ai-project-context--LabelBackgroundColor: var(--ai-general-LabelBackgroundColor);
   --ai-project-context--BorderColor: var(--ai-general--BorderColor);
   --ai-project-context--SelectedColor: var(--ai-general--SelectedColor);
   --ai-project-context--Color: var(--ai-general--BorderColor);
+  --ai-project-context--IconColor: var(--ai-general--IconColor);
 
   --ai-data-connection--BackgroundColor: var(--ai-organize--BackgroundColor);
   --ai-data-connection--LabelBackgroundColor: var(--ai-organize-LabelBackgroundColor);
   --ai-data-connection--BorderColor: var(--ai-organize--BorderColor);
   --ai-data-connection--SelectedColor: var(--ai-organize--SelectedColor);
   --ai-data-connection--Color: var(--ai-organize--BorderColor);
+  --ai-data-connection--IconColor: var(--ai-organize--IconColor);
 
   --ai-cluster-storage--BackgroundColor: var(--ai-organize--BackgroundColor);
   --ai-cluster-storage--LabelBackgroundColor: var(--ai-organize-LabelBackgroundColor);
   --ai-cluster-storage--BorderColor: var(--ai-organize--BorderColor);
   --ai-cluster-storage--SelectedColor: var(--ai-organize--SelectedColor);
   --ai-cluster-storage--Color: var(--ai-organize--BorderColor);
+  --ai-cluster-storage--IconColor: var(--ai-organize--IconColor);
 
   --ai-notebook--BackgroundColor: var(--ai-training--BackgroundColor);
   --ai-notebook--LabelBackgroundColor: var(--ai-training-LabelBackgroundColor);
   --ai-notebook--BorderColor: var(--ai-training--BorderColor);
   --ai-notebook--SelectedColor: var(--ai-training--SelectedColor);
   --ai-notebook--Color: var(--ai-training--Color);
+  --ai-notebook--IconColor: var(--ai-training--IconColor);
 
   --ai-model--BackgroundColor: var(--ai-serving--BackgroundColor);
   --ai-model--LabelBackgroundColor: var(--ai-serving-LabelBackgroundColor);
   --ai-model--BorderColor: var(--ai-serving--BorderColor);
   --ai-model--SelectedColor: var(--ai-serving--SelectedColor);
   --ai-model--Color: var(--ai-serving--BorderColor);
+  --ai-model--IconColor: var(--ai-serving--IconColor);
 
   --ai-pipeline--BackgroundColor: var(--ai-training--BackgroundColor);
   --ai-pipeline--LabelBackgroundColor: var(--ai-training-LabelBackgroundColor);
   --ai-pipeline--BorderColor: var(--ai-training--BorderColor);
   --ai-pipeline--SelectedColor: var(--ai-training--SelectedColor);
   --ai-pipeline--Color: var(--ai-training--BorderColor);
+  --ai-pipeline--IconColor: var(--ai-training--IconColor);
 
   --ai-model-server--BackgroundColor: var(--ai-serving--BackgroundColor);
   --ai-model-server--LabelBackgroundColor: var(--ai-serving-LabelBackgroundColor);
   --ai-model-server--BorderColor: var(--ai-serving--BorderColor);
   --ai-model-server--SelectedColor: var(--ai-serving--SelectedColor);
   --ai-model-server--Color: var(--ai-serving--Color);
+  --ai-model-server--IconColor: var(--ai-serving--IconColor);
 
   --ai-user--BackgroundColor: var(--ai-set-up--BackgroundColor);
   --ai-user--LabelBackgroundColor: var(--ai-set-up-LabelBackgroundColor);
   --ai-user--BorderColor: var(--ai-set-up--BorderColor);
   --ai-user--SelectedColor: var(--ai-set-up--SelectedColor);
   --ai-user--Color: var(--ai-set-up--BorderColor);
+  --ai-user--IconColor: var(--ai-set-up--IconColor);
 
   --ai-group--BackgroundColor: var(--ai-set-up--BackgroundColor);
   --ai-group--LabelBackgroundColor: var(--ai-set-up-LabelBackgroundColor);
   --ai-group--BorderColor: var(--ai-set-up--BorderColor);
   --ai-group--SelectedColor: var(--ai-set-up--SelectedColor);
   --ai-group--Color: var(--ai-set-up--BorderColor);
+  --ai-group--IconColor: var(--ai-set-up--IconColor);
+}
+:root:where(.pf-v6-theme-dark) {
+  --ai-set-up--BackgroundColor: var(--pf-t--color--orange--50);
+  --ai-set-up--IconColor: var(--pf-t--color--white);
+
+  --ai-config--BackgroundColor: var(--pf-t--color--orange--50);
+  --ai-config--IconColor: var(--pf-t--color--white);
+
+  --ai-organize--BackgroundColor: var(--pf-t--color--orange--50);
+  --ai-organize--IconColor: var(--pf-t--color--white);
+
+  --ai-training--BackgroundColor: var(--pf-t--color--teal--50);
+  --ai-training--IconColor: var(--pf-t--color--white);
+
+  --ai-serving--BackgroundColor: var(--pf-t--color--purple--40);
+  --ai-serving--IconColor: var(--pf-t--color--white);
+
+  --ai-general--BackgroundColor: var(--pf-t--color--gray--50);
+  --ai-general--IconColor: var(--pf-t--color--white);
 }

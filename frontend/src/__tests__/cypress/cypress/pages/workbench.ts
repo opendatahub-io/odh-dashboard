@@ -199,7 +199,20 @@ class AttachExistingStorageModal extends Modal {
     cy.findByTestId('persistent-storage-group')
       .findByPlaceholderText('Select a persistent storage')
       .click();
-    cy.findByTestId('persistent-storage-group').contains('button.pf-v6-c-menu__item', name).click();
+    cy.findByTestId('persistent-storage-typeahead').contains(name).click();
+  }
+
+  verifyPSDropdownIsDisabled(): void {
+    cy.get('[data-testid="persistent-storage-group"] .pf-v6-c-menu-toggle')
+      .should('have.class', 'pf-m-disabled')
+      .and('have.attr', 'disabled');
+  }
+
+  verifyPSDropdownText(expectedText: string): void {
+    cy.get('[data-testid="persistent-storage-group"] .pf-v6-c-text-input-group__text-input').should(
+      'have.value',
+      expectedText,
+    );
   }
 
   findStandardPathInput() {
@@ -353,11 +366,14 @@ class CreateSpawnerPage {
     return cy.findByTestId('existing-data-connection-type-radio');
   }
 
-  selectExistingDataConnection(name: string) {
-    cy.findByTestId('data-connection-group')
-      .findByRole('button', { name: 'Typeahead menu toggle' })
-      .findSelectOption(name)
-      .click();
+  findExistingDataConnectionSelect() {
+    return cy.findByTestId('existing-data-connection-select');
+  }
+
+  findExistingDataConnectionSelectValueField() {
+    return this.findExistingDataConnectionSelect().findByRole('combobox', {
+      name: 'Type to filter',
+    });
   }
 
   findAwsNameInput() {

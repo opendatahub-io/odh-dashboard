@@ -127,13 +127,7 @@ rules:
   - apiGroups:
       - ''
     verbs:
-      - get
-      - list
-      - watch
-      - create
-      - update
       - patch
-      - delete
     resources:
       - namespaces
   - apiGroups:
@@ -219,3 +213,15 @@ rules:
       - delete
     resources:
       - accounts
+  - verbs:
+      - get
+    apiGroups:
+      - ''
+    resources:
+      - endpoints
+  - verbs:
+      - get
+    apiGroups:
+      - 'services.platform.opendatahub.io'
+    resources:
+      - auths

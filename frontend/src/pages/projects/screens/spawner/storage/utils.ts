@@ -29,6 +29,7 @@ export const useCreateStorageObject = (
       formData?.description || (existingData ? getDescriptionFromK8sResource(existingData) : ''),
     size: formData?.size || (existingData ? existingData.spec.resources.requests.storage : size),
     storageClassName: formData?.storageClassName || existingData?.spec.storageClassName,
+    existingPvc: existingData,
   };
 
   const [data, setData] = useGenericObjectState<StorageData>(createStorageData);
@@ -148,11 +149,11 @@ export const validateMountPath = (value: string, inUseMountPaths: string[]): str
   // Regex to allow empty string for Standard format
   const regex =
     format === MountPathFormat.STANDARD
-      ? /^(\/?[a-z-]+(\/[a-z-]+)*\/?|)$/
-      : /^(\/?[a-z-]+(\/[a-z-]+)*\/?)$/;
+      ? /^(\/?[a-z0-9-]+(\/[a-z0-9-]+)*\/?|)$/
+      : /^(\/?[a-z0-9-]+(\/[a-z0-9-]+)*\/?)?$/;
 
   if (!regex.test(value)) {
-    return 'Must only consist of lowercase letters, dashes, and slashes.';
+    return 'Must only consist of lowercase letters, dashes, numbers and slashes.';
   }
 
   if (
