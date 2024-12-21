@@ -29,9 +29,9 @@ export const mockHardwareProfile = ({
     {
       displayName: 'Memory',
       identifier: 'memory',
-      minCount: 5,
-      maxCount: 2,
-      defaultCount: 2,
+      minCount: '5Gi',
+      maxCount: '2Gi',
+      defaultCount: '2Gi',
     },
   ],
   description = '',
