@@ -34,7 +34,6 @@ const KserveTokensCountGraph: React.FC<KserveTokensCountGraphProps> = ({
             ...totalPromptTokenCount,
             data: convertPrometheusNaNToZero(totalPromptTokenCount.data),
           },
-          color: "blue", // Custom color for "Requests waiting"
         },
         {
           name: graphDefinition.queries[1].title, // "total Generation Token Count"
@@ -42,10 +41,9 @@ const KserveTokensCountGraph: React.FC<KserveTokensCountGraphProps> = ({
             ...totalGenerationTokenCount,
             data: convertPrometheusNaNToZero(totalPromptTokenCount.data),
           },
-          color: "green", 
         },
       ]}
-      type={MetricsChartTypes.DONUT}
+      type={MetricsChartTypes.LINE}
     />
   );
 };

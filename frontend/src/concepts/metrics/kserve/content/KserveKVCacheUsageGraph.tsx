@@ -23,21 +23,18 @@ const KserveKVCacheUsageGraph: React.FC<KserveKVCacheUsageGraphProps> = ({
   const {
     data: { kvCacheUsage },
   } = useFetchKserveKVCacheUsageData(graphDefinition, timeframe, end, namespace);
-  
-    console.log(kvCacheUsage);
-  
-    return (
-      <MetricsChart
-        title={graphDefinition.title}
-        metrics={{ metric: kvCacheUsage, translatePoint: toPercentage }}
-        color="blue"
-        type={MetricsChartTypes.LINE}
-        domain={() => ({
-          y: [0, 100],
-        })}
-      />
-    );
-  };
-  
+
+  return (
+    <MetricsChart
+      title={graphDefinition.title}
+      metrics={{ metric: kvCacheUsage, translatePoint: toPercentage }}
+      type={MetricsChartTypes.LINE}
+      domain={() => ({
+        y: [0, 100],
+      })}
+    />
+  );
+};
+
 
 export default KserveKVCacheUsageGraph;

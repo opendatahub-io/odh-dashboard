@@ -31,7 +31,6 @@ const KserveCurrentRequestsGraph: React.FC<KserveCurrentRequestsGraphProps> = ({
             ...requestsWaiting,
             data: convertPrometheusNaNToZero(requestsWaiting.data),
           },
-          color: "blue", // Custom color for "Requests waiting"
         },
         {
           name: graphDefinition.queries[1].title, // "Requests running"
@@ -39,7 +38,6 @@ const KserveCurrentRequestsGraph: React.FC<KserveCurrentRequestsGraphProps> = ({
             ...requestsRunning,
             data: convertPrometheusNaNToZero(requestsRunning.data),
           },
-          color: "green", // Custom color for "Requests running"
         },
         {
           name: graphDefinition.queries[2].title, // "Max requests"
@@ -47,7 +45,6 @@ const KserveCurrentRequestsGraph: React.FC<KserveCurrentRequestsGraphProps> = ({
             ...maxRequests,
             data: convertPrometheusNaNToZero(maxRequests.data),
           },
-          color: "red", // Custom color for "Max requests"
         },
       ]}
       type={MetricsChartTypes.LINE} // Render as line graph
