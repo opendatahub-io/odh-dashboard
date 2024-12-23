@@ -26,6 +26,7 @@ import { ClusterStorageNotebookSelection } from '~/pages/projects/types';
 import { MOUNT_PATH_PREFIX } from '~/pages/projects/screens/spawner/storage/const';
 import SimpleSelect from '~/components/SimpleSelect';
 import { MountPathFormat } from '~/pages/projects/screens/spawner/storage/types';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { isMountPathFormat, mountPathFormat, mountPathSuffix } from './utils';
 
 type ClusterStorageTableRowProps = {
@@ -61,7 +62,7 @@ const ClusterStorageTableRow: React.FC<ClusterStorageTableRowProps> = ({
 
   const selectOptions = availableNotebooks.notebooks.map((notebook) => ({
     value: notebook.metadata.name,
-    content: notebook.metadata.name,
+    content: getDisplayNameFromK8sResource(notebook),
   }));
 
   let placeholderText: string;
@@ -82,7 +83,7 @@ const ClusterStorageTableRow: React.FC<ClusterStorageTableRowProps> = ({
           <TypeaheadSelect
             shouldFocusToggleOnSelect
             placeholder={placeholderText}
-            isDisabled={!availableNotebooks.loaded || selectOptions.length === 0}
+            isDisabled={!availableNotebooks.loaded}
             selectOptions={selectOptions}
             selected={obj.name}
             onClearSelection={() => onNotebookSelect('')}
@@ -91,6 +92,8 @@ const ClusterStorageTableRow: React.FC<ClusterStorageTableRowProps> = ({
                 onNotebookSelect(selectedValue);
               }
             }}
+            previewDescription={false}
+            dataTestId="cluster-storage-workbench-select"
           />
         ) : (
           <>

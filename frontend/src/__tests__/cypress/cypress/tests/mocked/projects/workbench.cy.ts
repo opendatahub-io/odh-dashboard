@@ -303,7 +303,7 @@ describe('Workbench page', () => {
     // cluster storage
     const storageTableRow = createSpawnerPage.getStorageTable().getRowById(0);
     storageTableRow.findNameValue().should('have.text', 'test-project-storage');
-    storageTableRow.findStorageSizeValue().should('have.text', 'Max 20Gi');
+    storageTableRow.findStorageSizeValue().should('have.text', 'Max 20GiB');
     storageTableRow.findMountPathValue().should('have.text', '/opt/app-root/src/');
 
     //add data connection
@@ -319,7 +319,10 @@ describe('Workbench page', () => {
 
     //add existing data connection
     createSpawnerPage.findExistingDataConnectionRadio().click();
-    createSpawnerPage.selectExistingDataConnection('Test Secret');
+    createSpawnerPage.findExistingDataConnectionSelect().should('have.attr', 'disabled');
+    createSpawnerPage
+      .findExistingDataConnectionSelectValueField()
+      .should('have.value', 'Test Secret');
 
     createSpawnerPage.findSubmitButton().click();
     cy.wait('@createConfigMap').then((interception) => {
