@@ -3,7 +3,6 @@ import { KserveMetricGraphDefinition } from '~/concepts/metrics/kserve/types';
 import { useFetchKserveRequestCountData } from '~/api';
 import MetricsChart from '~/pages/modelServing/screens/metrics/MetricsChart';
 import { TimeframeTitle } from '~/concepts/metrics/types';
-import { MetricsChartTypes } from '~/pages/modelServing/screens/metrics/types';
 
 type KserveRequestCountGraphProps = {
   graphDefinition: KserveMetricGraphDefinition;
@@ -37,7 +36,6 @@ const KserveRequestCountGraph: React.FC<KserveRequestCountGraphProps> = ({
       color="blue"
       title={graphDefinition.title}
       isStack
-      type={MetricsChartTypes.DONUT}
     />
   );
 };

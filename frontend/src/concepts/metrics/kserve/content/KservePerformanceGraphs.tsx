@@ -7,12 +7,6 @@ import { TimeframeTitle } from '~/concepts/metrics/types';
 import KserveMeanLatencyGraph from '~/concepts/metrics/kserve/content/KserveMeanLatencyGraph';
 import KserveCpuUsageGraph from '~/concepts/metrics/kserve/content/KserveCpuUsageGraph';
 import KserveMemoryUsageGraph from '~/concepts/metrics/kserve/content/KserveMemoryUsageGraph';
-import KserveTimeToFirstTokenGraph from './KserveTimeForFirstTokenGraphs';
-import KserveKVCacheUsageGraph from './KserveKVCacheUsageGraph';
-import KserveTokensCountGraph from './KserveTokensCountGraph';
-import KserveRequestsOutcomesGraph from './KserveRequestsOutcomesGraph';
-import KserveTimePerOutputTokenGraph from './KserveTimePerOutputTokenGraph';
-import KserveCurrentRequestsGraph from './KserveCurrentRequestsGraph';
 
 type KservePerformanceGraphsProps = {
   namespace: string;
@@ -60,7 +54,7 @@ const KservePerformanceGraphs: React.FC<KservePerformanceGraphsProps> = ({
         />
       );
     }
-    
+
 
     // Condition IS necessary as graph types are provided by the backend.
     // We need to guard against receiving an unknown value at runtime and fail gracefully.
@@ -75,80 +69,6 @@ const KservePerformanceGraphs: React.FC<KservePerformanceGraphsProps> = ({
         />
       );
     }
-
-    // Graph #1 - KV Cache usage over time
-    if (graphDefinition.type === KserveMetricsGraphTypes.KV_CACHE) {
-      return (
-        <KserveKVCacheUsageGraph
-          graphDefinition={graphDefinition}
-          timeframe={timeframe}
-          end={end}
-          namespace={namespace}
-        />
-      );
-    }
-
-// Graph #3 - Total Prompt Token Count and Total Generation Token Count
-    if (graphDefinition.type === KserveMetricsGraphTypes.TOKENS_COUNT) {
-      return (
-        <KserveTokensCountGraph
-          graphDefinition={graphDefinition}
-          timeframe={timeframe}
-          end={end}
-          namespace={namespace}
-        />
-      );
-    }
-
-
-    // Graph #4 - Time to First Token
-    if (graphDefinition.type === KserveMetricsGraphTypes.TIME_TO_FIRST_TOKEN) {
-      return (
-        <KserveTimeToFirstTokenGraph
-          graphDefinition={graphDefinition}
-          timeframe={timeframe}
-          end={end}
-          namespace={namespace}
-        />
-      );
-    }
-
-    // Graph #5 - Time per Output Token
-    if (graphDefinition.type === KserveMetricsGraphTypes.TIME_PER_OUTPUT_TOKEN) {
-      return (
-        <KserveTimePerOutputTokenGraph
-          graphDefinition={graphDefinition}
-          timeframe={timeframe}
-          end={end}
-          namespace={namespace}
-        />
-      );
-    }
-
-    // Graph #6- Requests Outcomes
-    if (graphDefinition.type === KserveMetricsGraphTypes.REQUEST_OUTCOMES) {
-      return (
-        <KserveRequestsOutcomesGraph
-          graphDefinition={graphDefinition}
-          timeframe={timeframe}
-          end={end}
-          namespace={namespace}
-        />
-      );
-    }
-
-    // Graph #2 Current Requests
-    if (graphDefinition.type === KserveMetricsGraphTypes.CURRENT_REQUESTS) {
-      return (
-        <KserveCurrentRequestsGraph
-          graphDefinition={graphDefinition}
-          timeframe={timeframe}
-          end={end}
-          namespace={namespace}
-        />
-      );
-    }
-
 
     // TODO: add an unsupported graph type error state.
     return null;

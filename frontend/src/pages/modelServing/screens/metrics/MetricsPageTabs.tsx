@@ -12,7 +12,7 @@ import PerformanceTab from './performance/PerformanceTab';
 import BiasTab from './bias/BiasTab';
 import BiasConfigurationAlertPopover from './bias/BiasConfigurationPage/BiasConfigurationAlertPopover';
 import useMetricsPageEnabledTabs from './useMetricsPageEnabledTabs';
-
+import NIMTab from './nim/NimTab';
 import './MetricsPageTabs.scss';
 
 type MetricsPageTabsProps = {
@@ -26,7 +26,10 @@ const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
   const performanceMetricsAreaAvailable = useIsAreaAvailable(
     SupportedArea.PERFORMANCE_METRICS,
   ).status;
-  const { tab } = useParams<{ tab: MetricsTabKeys }>();
+  //check availability of NIM metrics
+  const nimMetricsAreaAvailable = useIsAreaAvailable(
+    SupportedArea.NIM_MODEL,
+  ).status; const { tab } = useParams<{ tab: MetricsTabKeys }>();
   const navigate = useNavigate();
 
   if (!tab) {
@@ -41,10 +44,20 @@ const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
     return <NotFound />;
   }
 
+  //Display only one tab that is available
   if (enabledTabs.length === 1) {
-    return performanceMetricsAreaAvailable ? <PerformanceTab model={model} /> : <BiasTab />;
+    if (performanceMetricsAreaAvailable) {
+      return <PerformanceTab model={model} />
+    }
+    else if (nimMetricsAreaAvailable) {
+      return <NIMTab model={model} />
+    }
+    else {
+      return <BiasTab />;
+    }
   }
 
+  //Display multiple available tabs 
   return (
     <Tabs
       activeKey={tab}
@@ -70,6 +83,22 @@ const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
           <PerformanceTab model={model} />
         </Tab>
       )}
+
+
+      {/* Add NIN metrics tab */}
+      {nimMetricsAreaAvailable && (// TODO - check the flag show
+        <Tab
+          eventKey={MetricsTabKeys.NIM}
+          title={<TabTitleText>NIM Metrics</TabTitleText>}
+          aria-label="Nim tab"
+          className="odh-metrics-page-tabs__content"
+          data-testid="nim-tab"
+        >
+          <NIMTab model={model} />
+        </Tab>
+      )}
+
+
       {biasMetricsInstalled && (
         <Tab
           eventKey={MetricsTabKeys.BIAS}

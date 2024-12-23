@@ -1,20 +1,20 @@
 import React from 'react';
-import { KserveMetricGraphDefinition } from '~/concepts/metrics/kserve/types';
+import { NimMetricGraphDefinition } from '~/concepts/metrics/kserve/types';
 import { TimeframeTitle } from '~/concepts/metrics/types';
-import { useFetchKserveTimeToFirstTokenData } from '~/api/prometheus/kservePerformanceMetrics';
+import { useFetchNimTimeToFirstTokenData } from '~/api/prometheus/NimPerformanceMetrics';
 import MetricsChart from '~/pages/modelServing/screens/metrics/MetricsChart';
 import { MetricsChartTypes } from '~/pages/modelServing/screens/metrics/types';
 import { convertPrometheusNaNToZero } from '~/pages/modelServing/screens/metrics/utils';
 
 // Graph #4 - Time to First Token
-type KserveTimeToFirstTokenGraphProps = {
-  graphDefinition: KserveMetricGraphDefinition;
+type NimTimeToFirstTokenGraphProps = {
+  graphDefinition: NimMetricGraphDefinition;
   timeframe: TimeframeTitle;
   end: number;
   namespace: string;
 };
 
-const KserveTimeToFirstTokenGraph: React.FC<KserveTimeToFirstTokenGraphProps> = ({
+const NimTimeToFirstTokenGraph: React.FC<NimTimeToFirstTokenGraphProps> = ({
   graphDefinition,
   timeframe,
   end,
@@ -22,15 +22,15 @@ const KserveTimeToFirstTokenGraph: React.FC<KserveTimeToFirstTokenGraphProps> = 
 }) => {
   const {
     data: { timeToFirstToken },
-  } = useFetchKserveTimeToFirstTokenData(graphDefinition, timeframe, end, namespace);
+  } = useFetchNimTimeToFirstTokenData(graphDefinition, timeframe, end, namespace);
 
   return (
     <MetricsChart
       title={graphDefinition.title}
-      metrics={{ metric: {...timeToFirstToken, data: convertPrometheusNaNToZero(timeToFirstToken.data) }}}
+      metrics={{ metric: { ...timeToFirstToken, data: convertPrometheusNaNToZero(timeToFirstToken.data) } }}
       color="blue"
     />
   );
 };
 
-export default KserveTimeToFirstTokenGraph;
+export default NimTimeToFirstTokenGraph;

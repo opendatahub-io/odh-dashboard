@@ -1,18 +1,18 @@
 import React from 'react';
-import { KserveMetricGraphDefinition } from '~/concepts/metrics/kserve/types';
-import { useFetchKserveRequestsOutcomesData } from '~/api';
+import { NimMetricGraphDefinition } from '~/concepts/metrics/kserve/types';
+import { useFetchNimRequestsOutcomesData } from '~/api/prometheus/NimPerformanceMetrics';
 import MetricsChart from '~/pages/modelServing/screens/metrics/MetricsChart';
 import { TimeframeTitle } from '~/concepts/metrics/types';
 import { MetricsChartTypes } from '~/pages/modelServing/screens/metrics/types';
 
-type KserveRequestsOutcomesGraphProps = {
-  graphDefinition: KserveMetricGraphDefinition;
+type NimRequestsOutcomesGraphProps = {
+  graphDefinition: NimMetricGraphDefinition;
   timeframe: TimeframeTitle;
   end: number;
   namespace: string;
 };
 
-const KserveRequestsOutcomesGraph: React.FC<KserveRequestsOutcomesGraphProps> = ({
+const NimRequestsOutcomesGraph: React.FC<NimRequestsOutcomesGraphProps> = ({
   graphDefinition,
   timeframe,
   end,
@@ -20,7 +20,7 @@ const KserveRequestsOutcomesGraph: React.FC<KserveRequestsOutcomesGraphProps> = 
 }) => {
   const {
     data: { successCount, failedCount },
-  } = useFetchKserveRequestsOutcomesData(graphDefinition, timeframe, end, namespace);
+  } = useFetchNimRequestsOutcomesData(graphDefinition, timeframe, end, namespace);
 
   return (
     <MetricsChart
@@ -42,4 +42,4 @@ const KserveRequestsOutcomesGraph: React.FC<KserveRequestsOutcomesGraphProps> = 
   );
 };
 
-export default KserveRequestsOutcomesGraph;
+export default NimRequestsOutcomesGraph;

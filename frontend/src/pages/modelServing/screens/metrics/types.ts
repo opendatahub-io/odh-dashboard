@@ -57,6 +57,7 @@ export enum MetricsChartTypes {
 export enum MetricsTabKeys {
   PERFORMANCE = 'performance',
   BIAS = 'bias',
+  NIM = 'nim'
 }
 
 export type BiasChartConfig = {

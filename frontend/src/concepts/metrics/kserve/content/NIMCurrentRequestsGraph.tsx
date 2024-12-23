@@ -1,17 +1,17 @@
 import React from 'react';
-import { KserveMetricGraphDefinition } from '~/concepts/metrics/kserve/types';
+import { NimMetricGraphDefinition } from '~/concepts/metrics/kserve/types';
 import { TimeframeTitle } from '~/concepts/metrics/types';
 import MetricsChart from '~/pages/modelServing/screens/metrics/MetricsChart';
-import { useFetchKserveCurrentRequestsData } from '~/api';
+import { useFetchNimCurrentRequestsData } from '~/api/prometheus/NimPerformanceMetrics';
 import { convertPrometheusNaNToZero } from '~/pages/modelServing/screens/metrics/utils';
 import { MetricsChartTypes } from '~/pages/modelServing/screens/metrics/types';
-type KserveCurrentRequestsGraphProps = {
-  graphDefinition: KserveMetricGraphDefinition; // Contains queries and title
+type NimCurrentRequestsGraphProps = {
+  graphDefinition: NimMetricGraphDefinition; // Contains queries and title
   timeframe: TimeframeTitle;                   // Time range
   end: number;                                 // End timestamp
   namespace: string;                           // Namespace
 };
-const KserveCurrentRequestsGraph: React.FC<KserveCurrentRequestsGraphProps> = ({
+const NimCurrentRequestsGraph: React.FC<NimCurrentRequestsGraphProps> = ({
   graphDefinition,
   timeframe,
   end,
@@ -20,7 +20,7 @@ const KserveCurrentRequestsGraph: React.FC<KserveCurrentRequestsGraphProps> = ({
   // Fetch the data for "Running", "Waiting", and "Max Requests"
   const {
     data: { requestsWaiting, requestsRunning, maxRequests },
-  } = useFetchKserveCurrentRequestsData(graphDefinition, timeframe, end, namespace);
+  } = useFetchNimCurrentRequestsData(graphDefinition, timeframe, end, namespace);
   return (
     <MetricsChart
       title={graphDefinition.title}
@@ -51,4 +51,4 @@ const KserveCurrentRequestsGraph: React.FC<KserveCurrentRequestsGraphProps> = ({
     />
   );
 };
-export default KserveCurrentRequestsGraph;
+export default NimCurrentRequestsGraph;

@@ -1,20 +1,20 @@
 import React from 'react';
-import { KserveMetricGraphDefinition } from '~/concepts/metrics/kserve/types';
+import { NimMetricGraphDefinition } from '~/concepts/metrics/kserve/types';
 import { TimeframeTitle } from '~/concepts/metrics/types';
-import { useFetchKserveTokensCountData } from '~/api/prometheus/kservePerformanceMetrics';
+import { useFetchNimTokensCountData } from '~/api/prometheus/NimPerformanceMetrics';
 import MetricsChart from '~/pages/modelServing/screens/metrics/MetricsChart';
 import { MetricsChartTypes } from '~/pages/modelServing/screens/metrics/types';
 import { convertPrometheusNaNToZero } from '~/pages/modelServing/screens/metrics/utils';
 
 // Graph #3 - Total Prompt Token Count and Total Generation Token Count
-type KserveTokensCountGraphProps = {
-  graphDefinition: KserveMetricGraphDefinition;
+type NimTokensCountGraphProps = {
+  graphDefinition: NimMetricGraphDefinition;
   timeframe: TimeframeTitle;
   end: number;
   namespace: string;
 };
 
-const KserveTokensCountGraph: React.FC<KserveTokensCountGraphProps> = ({
+const NimTokensCountGraph: React.FC<NimTokensCountGraphProps> = ({
   graphDefinition,
   timeframe,
   end,
@@ -22,7 +22,7 @@ const KserveTokensCountGraph: React.FC<KserveTokensCountGraphProps> = ({
 }) => {
   const {
     data: { totalPromptTokenCount, totalGenerationTokenCount },
-  } = useFetchKserveTokensCountData(graphDefinition, timeframe, end, namespace);
+  } = useFetchNimTokensCountData(graphDefinition, timeframe, end, namespace);
 
   return (
     <MetricsChart
@@ -48,4 +48,4 @@ const KserveTokensCountGraph: React.FC<KserveTokensCountGraphProps> = ({
   );
 };
 
-export default KserveTokensCountGraph;
+export default NimTokensCountGraph;

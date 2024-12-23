@@ -1,20 +1,20 @@
 import React from 'react';
-import { KserveMetricGraphDefinition } from '~/concepts/metrics/kserve/types';
+import { NimMetricGraphDefinition } from '~/concepts/metrics/kserve/types';
 import { TimeframeTitle } from '~/concepts/metrics/types';
-import { useFetchKserveKVCacheUsageData } from '~/api/prometheus/kservePerformanceMetrics';
+import { useFetchNimKVCacheUsageData } from '~/api/prometheus/NimPerformanceMetrics';
 import MetricsChart from '~/pages/modelServing/screens/metrics/MetricsChart';
 import { MetricsChartTypes } from '~/pages/modelServing/screens/metrics/types';
 import { toPercentage } from '~/pages/modelServing/screens/metrics/utils';
 
 // Graph #1 - KV Cache usage over time
-type KserveKVCacheUsageGraphProps = {
-  graphDefinition: KserveMetricGraphDefinition;
+type NimKVCacheUsageGraphProps = {
+  graphDefinition: NimMetricGraphDefinition;
   timeframe: TimeframeTitle;
   end: number;
   namespace: string;
 };
 
-const KserveKVCacheUsageGraph: React.FC<KserveKVCacheUsageGraphProps> = ({
+const NimKVCacheUsageGraph: React.FC<NimKVCacheUsageGraphProps> = ({
   graphDefinition,
   timeframe,
   end,
@@ -22,7 +22,7 @@ const KserveKVCacheUsageGraph: React.FC<KserveKVCacheUsageGraphProps> = ({
 }) => {
   const {
     data: { kvCacheUsage },
-  } = useFetchKserveKVCacheUsageData(graphDefinition, timeframe, end, namespace);
+  } = useFetchNimKVCacheUsageData(graphDefinition, timeframe, end, namespace);
 
   return (
     <MetricsChart
@@ -37,4 +37,4 @@ const KserveKVCacheUsageGraph: React.FC<KserveKVCacheUsageGraphProps> = ({
 };
 
 
-export default KserveKVCacheUsageGraph;
+export default NimKVCacheUsageGraph;

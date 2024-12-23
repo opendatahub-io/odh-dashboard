@@ -5,6 +5,9 @@ export enum KserveMetricsGraphTypes {
   MEMORY_USAGE = 'MEMORY_USAGE',
   REQUEST_COUNT = 'REQUEST_COUNT',
   MEAN_LATENCY = 'MEAN_LATENCY',
+}
+
+export enum NimMetricsGraphTypes {
   TIME_TO_FIRST_TOKEN = 'TIME_TO_FIRST_TOKEN',
   TIME_PER_OUTPUT_TOKEN = 'TIME_PER_OUTPUT_TOKEN',
   KV_CACHE = 'KV_CACHE',
@@ -12,3 +15,5 @@ export enum KserveMetricsGraphTypes {
   TOKENS_COUNT = 'TOKENS_COUNT',
   REQUEST_OUTCOMES = 'REQUEST_OUTCOMES'
 }
+
+
