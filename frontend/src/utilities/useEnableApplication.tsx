@@ -7,6 +7,7 @@ import {
 } from '~/services/integrationAppService';
 import { addNotification, forceComponentsUpdate } from '~/redux/actions/actions';
 import { useAppDispatch } from '~/redux/hooks';
+import { VariablesValidationStatus } from '~/types';
 import { isInternalRouteIntegrationsApp } from './utils';
 
 export enum EnableApplicationStatus {
@@ -66,21 +67,23 @@ export const useEnableApplication = (
               if (
                 response.isInstalled &&
                 response.canInstall &&
-                response.variablesValidationStatus === ''
+                response.variablesValidationStatus === VariablesValidationStatus.UNKNOWN
               ) {
                 watchHandle = setTimeout(watchStatus, 10 * 1000);
                 return;
               }
               setEnableStatus({
                 status:
-                  response.variablesValidationStatus === 'True'
+                  response.variablesValidationStatus === VariablesValidationStatus.SUCCESS
                     ? EnableApplicationStatus.SUCCESS
                     : EnableApplicationStatus.FAILED,
                 error:
-                  response.variablesValidationStatus === 'True' ? '' : 'Variables are not valid',
+                  response.variablesValidationStatus === VariablesValidationStatus.SUCCESS
+                    ? ''
+                    : 'Variables are not valid',
               });
               dispatchResults(
-                response.variablesValidationStatus === 'True'
+                response.variablesValidationStatus === VariablesValidationStatus.SUCCESS
                   ? undefined
                   : 'Variables are not valid',
               );
@@ -132,7 +135,7 @@ export const useEnableApplication = (
               if (
                 response.isInstalled &&
                 response.canInstall &&
-                response.variablesValidationStatus === ''
+                response.variablesValidationStatus === VariablesValidationStatus.UNKNOWN
               ) {
                 setEnableStatus({ status: EnableApplicationStatus.INPROGRESS, error: '' });
               }

@@ -2,6 +2,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import { secureAdminRoute } from '../../../../utils/route-security';
 import { KubeFastifyInstance } from '../../../../types';
 import { isString } from 'lodash';
+import { VariablesValidationStatus } from '../../../../types';
 import {
   createNIMAccount,
   manageNIMSecret,
@@ -35,7 +36,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
             reply.send({
               isInstalled: false,
               isEnabled: false,
-              variablesValidationStatus: '',
+              variablesValidationStatus: VariablesValidationStatus.UNKNOWN,
               canInstall: true,
               error: '',
             });
@@ -52,7 +53,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
               reply.send({
                 isInstalled: false,
                 isEnabled: false,
-                variablesValidationStatus: '',
+                variablesValidationStatus: VariablesValidationStatus.UNKNOWN,
                 canInstall: false,
                 error: 'NIM not installed',
               });
@@ -62,7 +63,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
             reply.send({
               isInstalled: false,
               isEnabled: false,
-              variablesValidationStatus: '',
+              variablesValidationStatus: VariablesValidationStatus.UNKNOWN,
               canInstall: false,
               error: 'An unexpected error occurred. Please try again later.',
             });
@@ -93,7 +94,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
               reply.send({
                 isInstalled: true,
                 isEnabled: isEnabled,
-                variablesValidationStatus: '',
+                variablesValidationStatus: VariablesValidationStatus.UNKNOWN,
                 canInstall: !isEnabled,
                 error: '',
               });
@@ -102,7 +103,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
               reply.send({
                 isInstalled: true,
                 isEnabled: isEnabled,
-                variablesValidationStatus: '',
+                variablesValidationStatus: VariablesValidationStatus.UNKNOWN,
                 canInstall: !isEnabled,
                 error: '',
               });

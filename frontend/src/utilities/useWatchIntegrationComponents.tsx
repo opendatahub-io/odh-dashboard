@@ -1,6 +1,11 @@
 import * as React from 'react';
 import { useAppSelector } from '~/redux/hooks';
-import { IntegrationAppStatus, OdhApplication, OdhIntegrationApplication } from '~/types';
+import {
+  IntegrationAppStatus,
+  OdhApplication,
+  OdhIntegrationApplication,
+  VariablesValidationStatus,
+} from '~/types';
 import { getIntegrationAppEnablementStatus } from '~/services/integrationAppService';
 import { allSettledPromises } from '~/utilities/allSettledPromises';
 import { POLL_INTERVAL } from './const';
@@ -29,7 +34,7 @@ export const useWatchIntegrationComponents = (
             isInstalled: false,
             isEnabled: false,
             canInstall: false,
-            variablesValidationStatus: '',
+            variablesValidationStatus: VariablesValidationStatus.UNKNOWN,
             error: e.message ?? e.error,
           } satisfies IntegrationAppStatus),
       );

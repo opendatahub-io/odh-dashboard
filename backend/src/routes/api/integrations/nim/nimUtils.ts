@@ -6,7 +6,7 @@ const NIM_ACCOUNT_NAME = 'odh-nim-account';
 export const apiKeyValidationStatus = (app: NIMAccountKind): string => {
   const conditions = app?.status?.conditions || [];
   const apiKeyCondition = conditions.find((condition) => condition.type === 'APIKeyValidation');
-  return apiKeyCondition?.status || '';
+  return apiKeyCondition?.status || 'Unknown';
 };
 
 export const isAppEnabled = (app: NIMAccountKind): boolean => {
