@@ -225,7 +225,7 @@ describe('Distributed Workload Metrics root page', () => {
     cy.findByText('Top resource-consuming distributed workloads').should('exist');
   });
 
-  it.only('Changing the project and navigating between tabs or to the root of the page retains the new project', () => {
+  it('Changing the project and navigating between tabs or to the root of the page retains the new project', () => {
     initIntercepts({});
     globalDistributedWorkloads.visit();
     cy.url().should('include', '/projectMetrics/test-project');
