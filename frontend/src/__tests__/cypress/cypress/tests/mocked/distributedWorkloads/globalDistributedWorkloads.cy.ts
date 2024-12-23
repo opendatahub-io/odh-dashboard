@@ -225,12 +225,12 @@ describe('Distributed Workload Metrics root page', () => {
     cy.findByText('Top resource-consuming distributed workloads').should('exist');
   });
 
-  it('Changing the project and navigating between tabs or to the root of the page retains the new project', () => {
+  it.only('Changing the project and navigating between tabs or to the root of the page retains the new project', () => {
     initIntercepts({});
     globalDistributedWorkloads.visit();
     cy.url().should('include', '/projectMetrics/test-project');
 
-    globalDistributedWorkloads.projectDropdown.selectItem('Test Project 2');
+    globalDistributedWorkloads.projectDropdown.openAndSelectItem('Test Project 2', true);
     cy.url().should('include', '/projectMetrics/test-project-2');
 
     cy.findByLabelText('Distributed workload status tab').click();

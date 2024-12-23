@@ -9,12 +9,13 @@ export class SearchSelector extends SubComponentBase {
     return this.findScope().findByTestId(`${this.selectorId}-${suffix}`);
   }
 
-  findItem(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findResultTableList().contains(name).should('exist');
+  findItem(name: string, useMenuList: boolean): Cypress.Chainable<JQuery<HTMLElement>> {
+    const list = useMenuList ? this.findMenuList() : this.findResultTableList();
+    return list.contains(name).should('exist');
   }
 
-  selectItem(name: string): void {
-    this.findItem(name).click();
+  selectItem(name: string, useMenuList = false): void {
+    this.findItem(name, useMenuList).click();
   }
 
   findSearchInput(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -47,9 +48,9 @@ export class SearchSelector extends SubComponentBase {
   }
 
   // Perform the entire process: open, search, and select
-  openAndSelectItem(name: string): void {
+  openAndSelectItem(name: string, useMenuList = false): void {
     this.findToggleButton().click();
     this.searchItem(name);
-    this.selectItem(name);
+    this.selectItem(name, useMenuList);
   }
 }

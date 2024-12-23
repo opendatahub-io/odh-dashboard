@@ -171,6 +171,7 @@ class PipelinesTable {
         this.find()
           .findByTestId(['pipeline-row', id])
           .should('exist')
+          .scrollIntoView()
           .and('be.visible') as unknown as Cypress.Chainable<JQuery<HTMLTableRowElement>>,
     );
   }
