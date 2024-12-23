@@ -10,7 +10,7 @@ export class SearchSelector extends SubComponentBase {
   }
 
   findItem(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findToggleButton().findMenuItem(name);
+    return this.findResultTableList().contains(name).should('exist');
   }
 
   selectItem(name: string): void {
@@ -23,6 +23,10 @@ export class SearchSelector extends SubComponentBase {
 
   findToggleButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findContextualItem('toggle');
+  }
+
+  findResultTableList(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findContextualItem('table-list');
   }
 
   findSearchHelpText(): Cypress.Chainable<JQuery<HTMLElement>> {
