@@ -59,6 +59,7 @@ const CategoryFilters: React.FC<CategoryFiltersProps> = ({ docApps, favorites })
           active={category === categoryQuery || (!categoryQuery && category === ALL_ITEMS)}
           onActivate={() => onSelectCategory(category)}
           tabIndex={-1}
+          style={{ textDecoration: 'none' }}
         />
       ))}
     </VerticalTabs>

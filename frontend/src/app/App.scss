@@ -38,6 +38,13 @@ body,
   --pf-v6-c-truncate__start--MinWidth: 0;
 }
 
+// TODO: Remove when PF bug is fixed. https://github.com/patternfly/react-catalog-view/issues/74
+.vertical-tabs-pf-tab {
+  > a {
+    text-decoration: none;
+  }
+}
+
 // TODO: Remove when PF bug is fixed. https://github.com/patternfly/patternfly-react/issues/11314
 .pf-v6-c-table__text.pf-m-truncate {
   min-width: max(100%, 5ch);

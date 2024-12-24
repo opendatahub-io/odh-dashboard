@@ -41,8 +41,8 @@ const ImageTagPopover: React.FC<ImageTagPopoverProps> = ({ tag, description }) =
     >
       <Button
         icon={<HelpIcon />}
+        hasNoPadding
         aria-label="More info for notebook image"
-        className="odh-notebook-controller__notebook-image-popover-icon"
         variant="plain"
       />
     </Popover>
