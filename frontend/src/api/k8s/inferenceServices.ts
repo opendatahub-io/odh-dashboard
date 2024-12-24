@@ -15,7 +15,7 @@ import { ContainerResources } from '~/types';
 import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
 import { getModelServingProjects } from './projects';
-import { assemblePodSpecOptions } from './utils';
+import { assemblePodSpecOptions, parseCommandLine } from './utils';
 
 const applyAuthToInferenceService = (
   inferenceService: InferenceServiceKind,
@@ -100,6 +100,8 @@ export const assembleInferenceService = (
   const dataConnectionKey = secretKey || dataConnection;
 
   const nonEmptyArgs = servingRuntimeArgs?.filter(Boolean) || [];
+  // Ensure that we properly handle separating args
+  const splitArgs: string[] = nonEmptyArgs.flatMap(parseCommandLine);
   const nonEmptyEnvVars = servingRuntimeEnvVars?.filter((ev) => ev.name) || [];
 
   let updateInferenceService: InferenceServiceKind = inferenceService
@@ -143,7 +145,7 @@ export const assembleInferenceService = (
                       path,
                     },
                   }),
-              args: nonEmptyArgs,
+              args: splitArgs,
               env: nonEmptyEnvVars,
             },
           },
@@ -192,7 +194,7 @@ export const assembleInferenceService = (
                       path,
                     },
                   }),
-              args: nonEmptyArgs,
+              args: splitArgs,
               env: nonEmptyEnvVars,
             },
           },
