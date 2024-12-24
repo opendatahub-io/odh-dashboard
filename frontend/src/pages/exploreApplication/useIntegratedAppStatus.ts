@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { IntegrationAppStatus, OdhApplication } from '~/types';
+import { IntegrationAppStatus, OdhApplication, VariablesValidationStatus } from '~/types';
 import useFetchState, { FetchState, NotReadyError } from '~/utilities/useFetchState';
 import { getIntegrationAppEnablementStatus } from '~/services/integrationAppService';
 import { isIntegrationApp } from '~/utilities/utils';
@@ -15,6 +15,7 @@ export const useIntegratedAppStatus = (app?: OdhApplication): FetchState<Integra
         isInstalled: false,
         isEnabled: false,
         canInstall: true,
+        variablesValidationStatus: VariablesValidationStatus.UNKNOWN,
         error: '',
       });
     }
@@ -28,8 +29,9 @@ export const useIntegratedAppStatus = (app?: OdhApplication): FetchState<Integra
       isInstalled: false,
       isEnabled: false,
       canInstall: false,
+      variablesValidationStatus: VariablesValidationStatus.UNKNOWN,
       error: '',
     },
-    { initialPromisePurity: true },
+    { refreshRate: 5000, initialPromisePurity: true },
   );
 };
