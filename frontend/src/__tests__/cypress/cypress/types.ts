@@ -92,6 +92,8 @@ export type TestConfig = {
   OCP_ADMIN_USER: UserAuthConfig;
   S3: AWSS3Buckets;
   APPLICATIONS_NAMESPACE: NamespaceConfig;
+  PIP_INDEX_URL: string;
+  PIP_TRUSTED_HOST: string;
 };
 
 export type DataScienceProjectData = {
@@ -170,6 +172,7 @@ export type ResourcesData = {
     CustomTutorial: ResourceData[];
   };
 };
+
 export type NamespaceConfig = {
   APPLICATIONS_NAMESPACE: string;
 };

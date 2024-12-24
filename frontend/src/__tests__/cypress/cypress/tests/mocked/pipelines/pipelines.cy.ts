@@ -33,6 +33,7 @@ import {
 import type { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { tablePagination } from '~/__tests__/cypress/cypress/pages/components/Pagination';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
+import { pipelineRunsGlobal } from '~/__tests__/cypress/cypress/pages/pipelines/pipelineRunsGlobal';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipeline({ display_name: 'Test pipeline' });
@@ -535,7 +536,7 @@ describe('Pipelines', () => {
     pipelinesGlobal.visit(projectName);
     verifyRelativeURL('/pipelines/test-project-name');
 
-    pipelinesGlobal.projectDropdown.selectItem('Test Project 2');
+    pipelineRunsGlobal.selectProjectByName('Test Project 2');
     verifyRelativeURL('/pipelines/test-project-name-2');
   });
 
