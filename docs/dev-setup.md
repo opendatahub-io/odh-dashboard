@@ -21,7 +21,7 @@ ODH requires the following to run:
    ```bash
    git clone https://github.com/opendatahub-io/odh-dashboard
    ```
-2. Within the repo context, install project dependencies
+2. Within the repo context, we use `npm` to install project dependencies
    ```bash
    cd odh-dashboard && npm install
    ```
@@ -49,7 +49,6 @@ npm run start
 For in-depth local run guidance review the [contribution guidelines](../CONTRIBUTING.md).
 
 ### Testing
-
 Run the tests.
 
 ```bash
