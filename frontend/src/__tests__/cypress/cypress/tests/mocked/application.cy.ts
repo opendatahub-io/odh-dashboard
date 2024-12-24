@@ -7,6 +7,7 @@ import {
 import { mockDashboardConfig } from '~/__mocks__';
 import { aboutDialog } from '~/__tests__/cypress/cypress/pages/aboutDialog';
 import { mockConsoleLinks } from '~/__mocks__/mockConsoleLinks';
+import { loginDialog } from '~/__tests__/cypress/cypress/pages/loginDialog';
 
 describe('Application', () => {
   it('should disallow access to the dashboard', () => {
@@ -112,5 +113,23 @@ describe('Application', () => {
 
     aboutDialog.findText().should('contain.text', 'OpenShift');
     aboutDialog.findProductName().should('contain.text', 'OpenShift AI');
+  });
+  it('should show the login modal when receiving a 403 status code', () => {
+    // Mock the intercept to return a 403 status code
+
+    cy.interceptOdh('GET /api/config', {
+      statusCode: 403,
+    }).as('getData403');
+
+    // Visit the page where the request is triggered
+    cy.visit('/');
+
+    // Wait for the intercept to be triggered
+    cy.wait('@getData403');
+
+    // Verify that the login modal is displayed
+    loginDialog
+      .findText()
+      .should('contain.text', 'Your session timed out. To continue working, log in');
   });
 });
