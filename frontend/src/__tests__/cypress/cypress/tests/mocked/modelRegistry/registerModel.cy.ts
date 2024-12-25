@@ -135,7 +135,7 @@ describe('Register model page', () => {
     registerModelPage
       .findConnectionSelector()
       .contains('Select a project to view its available data connections');
-    registerModelPage.projectDropdown.selectItem('Test Project');
+    registerModelPage.projectDropdown.openAndSelectItem('Test Project', true);
     registerModelPage.findConnectionSelector().contains('No available data connections');
   });
 
@@ -150,7 +150,7 @@ describe('Register model page', () => {
     registerModelPage
       .findConnectionSelector()
       .contains('Select a project to view its available data connections');
-    registerModelPage.projectDropdown.selectItem('Test Project');
+    registerModelPage.projectDropdown.openAndSelectItem('Test Project', true);
     registerModelPage.findConnectionSelector().contains('Select data connection');
     registerModelPage.findConnectionSelector().findDropdownItem('Test Secret').click();
     registerModelPage.findAutofillButton().click();
