@@ -12,7 +12,7 @@ class PipelinesGlobal {
   }
 
   navigate() {
-    appChrome.findNavItem('Data Science Pipelines').click();
+    appChrome.findNavItem('Pipelines', 'Data Science Pipelines').click();
     this.wait();
   }
 
