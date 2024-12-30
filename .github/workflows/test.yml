@@ -155,7 +155,7 @@ jobs:
         run: |
           mkdir -p ./frontend/coverage
           cp -R all-artifacts/unit-coverage/* ./frontend/coverage/
-          find all-artifacts -type d \( -name "__mocks__" -o -name "__tests__" -o -name "pages" \) -prune -o \
+          find all-artifacts \( -path "*/__mocks__/*" -o -path "*/__tests__/*" -o -path "*/pages/*" \) -prune -o \
           -name "*.json" -o -name "*.lcov" | while read file; do
             cp "$file" ./frontend/coverage/ || true
           done
