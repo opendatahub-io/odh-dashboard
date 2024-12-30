@@ -20,6 +20,7 @@ import {
 import {
   AccessReviewResourceAttributes,
   InferenceServiceKind,
+  PersistentVolumeClaimKind,
   ProjectKind,
   SecretKind,
   ServingRuntimeKind,
@@ -51,6 +52,8 @@ import { useDashboardNamespace } from '~/redux/selectors';
 import { getServingRuntimeFromTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
 import { useNIMPVC } from '~/pages/modelServing/screens/projects/NIMServiceModal/useNIMPVC';
 import AuthServingRuntimeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
+import { useNIMTemplateName } from '~/pages/modelServing/screens/projects/useNIMTemplateName';
+import { KServeDeploymentModeDropdown } from '~/pages/modelServing/screens/projects/kServeModal/KServeDeploymentModeDropdown';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
 const NIM_NGC_SECRET_NAME = 'ngc-secret';
@@ -96,6 +99,8 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   const isAuthorinoEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status;
   const currentProjectName = projectContext?.currentProject.metadata.name;
   const namespace = currentProjectName || createDataInferenceService.project;
+
+  const isKServeRawEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_RAW).status;
 
   const [translatedName] = translateDisplayNameForK8sAndReport(createDataInferenceService.name, {
     maxLength: 253,
@@ -151,19 +156,22 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     !baseInputValueValid;
 
   const { dashboardNamespace } = useDashboardNamespace();
+  const templateName = useNIMTemplateName();
 
   React.useEffect(() => {
     if (editInfo?.servingRuntimeEditInfo?.servingRuntime) {
       setServingRuntimeSelected(editInfo.servingRuntimeEditInfo.servingRuntime);
     } else {
       const fetchNIMServingRuntimeTemplate = async () => {
-        const nimTemplate = await getNIMServingRuntimeTemplate(dashboardNamespace);
-        setServingRuntimeSelected(getServingRuntimeFromTemplate(nimTemplate));
+        if (templateName) {
+          const nimTemplate = await getNIMServingRuntimeTemplate(dashboardNamespace, templateName);
+          setServingRuntimeSelected(getServingRuntimeFromTemplate(nimTemplate));
+        }
       };
 
       fetchNIMServingRuntimeTemplate();
     }
-  }, [dashboardNamespace, editInfo]);
+  }, [templateName, dashboardNamespace, editInfo]);
 
   const isSecretNeeded = async (ns: string, secretName: string): Promise<boolean> => {
     try {
@@ -242,23 +250,19 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
       submitInferenceServiceResource({ dryRun: true }),
     ])
       .then(async () => {
-        const promises: Promise<void>[] = [
+        const promises: Promise<void | SecretKind | PersistentVolumeClaimKind>[] = [
           submitServingRuntimeResources({ dryRun: false }).then(() => undefined),
           submitInferenceServiceResource({ dryRun: false }).then(() => undefined),
         ];
 
         if (!editInfo) {
           if (await isSecretNeeded(namespace, NIM_SECRET_NAME)) {
-            promises.push(
-              createNIMSecret(namespace, NIM_SECRET_NAME, false, false).then(() => undefined),
-            );
+            promises.push(createNIMSecret(namespace, 'apiKeySecret', false, false));
           }
           if (await isSecretNeeded(namespace, NIM_NGC_SECRET_NAME)) {
-            promises.push(
-              createNIMSecret(namespace, NIM_NGC_SECRET_NAME, true, false).then(() => undefined),
-            );
+            promises.push(createNIMSecret(namespace, 'nimPullSecret', true, false));
           }
-          promises.push(createNIMPVC(namespace, nimPVCName, pvcSize, false).then(() => undefined));
+          promises.push(createNIMPVC(namespace, nimPVCName, pvcSize, false));
         } else if (pvc && pvc.spec.resources.requests.storage !== pvcSize) {
           const updatePvcData = {
             size: pvcSize, // New size
@@ -266,9 +270,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
             description: pvc.metadata.annotations?.description || '',
             storageClassName: pvc.spec.storageClassName,
           };
-          promises.push(
-            updatePvc(updatePvcData, pvc, namespace, { dryRun: false }).then(() => undefined),
-          );
+          promises.push(updatePvc(updatePvcData, pvc, namespace, { dryRun: false }));
         }
         return Promise.all(promises);
       })
@@ -354,6 +356,15 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
           <StackItem>
             <NIMPVCSizeSection pvcSize={pvcSize} setPvcSize={setPvcSize} />
           </StackItem>
+          {isKServeRawEnabled && (
+            <StackItem>
+              <KServeDeploymentModeDropdown
+                isRaw={!!createDataInferenceService.isKServeRawDeployment}
+                setIsRaw={(isRaw) => setCreateDataInferenceService('isKServeRawDeployment', isRaw)}
+                isDisabled={!!editInfo}
+              />
+            </StackItem>
+          )}
           <StackItem>
             <KServeAutoscalerReplicaSection
               data={createDataInferenceService}

@@ -48,6 +48,19 @@ class ClusterStorageRow extends TableRow {
   findStorageClassResourceKindText() {
     return cy.findByTestId('resource-kind-text');
   }
+
+  findStorageSizeWarning() {
+    return cy.findByTestId('size-warning-popover').click();
+  }
+
+  findStorageSizeWarningText() {
+    return cy
+      .findByTestId('size-warning-popover-text')
+      .should(
+        'have.text',
+        'To complete the storage size update, you must connect and run a workbench.',
+      );
+  }
 }
 
 class ClusterStorageModal extends Modal {
@@ -64,8 +77,21 @@ class ClusterStorageModal extends Modal {
   }
 
   selectWorkbenchName(row: number, name: string) {
-    this.findWorkbenchTable().find(`[data-label=Name]`).eq(row).find('button').click();
+    this.findWorkbenchSelect(row).click();
     cy.findByRole('option', { name, hidden: true }).click();
+  }
+
+  findWorkbenchSelect(row: number) {
+    return this.findWorkbenchTable()
+      .find(`[data-label=Name]`)
+      .eq(row)
+      .findByTestId('cluster-storage-workbench-select');
+  }
+
+  findWorkbenchSelectValueField(row: number) {
+    return this.findWorkbenchSelect(row).findByRole('combobox', {
+      name: 'Type to filter',
+    });
   }
 
   selectCustomPathFormat(row: number) {

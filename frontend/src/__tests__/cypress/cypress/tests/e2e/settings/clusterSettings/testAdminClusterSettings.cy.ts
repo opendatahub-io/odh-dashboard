@@ -4,7 +4,11 @@ import {
 } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { clusterSettings } from '~/__tests__/cypress/cypress/pages/clusterSettings';
 import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
-import type { DashboardConfig, NotebookControllerConfig } from '~/__tests__/cypress/cypress/types';
+import type {
+  DashboardConfig,
+  NotebookControllerConfig,
+  NotebookControllerCullerConfig,
+} from '~/__tests__/cypress/cypress/types';
 import {
   validateModelServingPlatforms,
   validatePVCSize,
@@ -15,6 +19,7 @@ import {
 describe('Verify that only the Cluster Admin can access Cluster Settings', () => {
   let dashboardConfig: DashboardConfig;
   let notebookControllerConfig: NotebookControllerConfig;
+  let notebookControllerCullerConfig: NotebookControllerCullerConfig | string;
 
   before(() => {
     // Retrieve the dashboard configuration
@@ -26,6 +31,21 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
     cy.getNotebookControllerConfig().then((config) => {
       notebookControllerConfig = config as NotebookControllerConfig;
       cy.log('Controller Config:', JSON.stringify(notebookControllerConfig, null, 2));
+    });
+    // Retrieve the Notebook controller culler configuration
+    cy.getNotebookControllerCullerConfig().then((config) => {
+      cy.log('Raw Controller Culler Config Response:', JSON.stringify(config));
+
+      if (typeof config === 'object' && config !== null) {
+        notebookControllerCullerConfig = config as NotebookControllerCullerConfig;
+        cy.log(
+          'Controller Culler Config:',
+          JSON.stringify(notebookControllerCullerConfig, null, 2),
+        );
+      } else {
+        notebookControllerCullerConfig = config as string;
+        cy.log('Controller Culler Config (Error):', config);
+      }
     });
   });
 
@@ -47,12 +67,14 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
 
     // Validate Stop idle notebooks based on OpenShift command to 'notebook-controller' to validate configuration
     cy.step('Validate Stop idle notebooks displays and fields are enabled/disabled');
-    validateStopIdleNotebooks(notebookControllerConfig);
+    cy.log('Notebook Controller Culler Config:', JSON.stringify(notebookControllerCullerConfig));
+    validateStopIdleNotebooks(notebookControllerCullerConfig);
 
     // Validate notebook pod tolerations displays based on OpenShift command to 'get OdhDashboardConfig' to validate configuration
     cy.step('Validate Notebook pod tolerations displays and fields are enabled/disabled');
     validateNotebookPodTolerations(dashboardConfig);
   });
+
   it('Test User - should not have access rights to view the Cluster Settings tab', () => {
     cy.step('Log into the application');
     cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);

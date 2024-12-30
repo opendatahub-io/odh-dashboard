@@ -48,15 +48,9 @@ import {
 import { isDataConnectionAWS } from '~/pages/projects/screens/detail/data-connections/utils';
 import { containsOnlySlashes, isS3PathValid, removeLeadingSlash } from '~/utilities/string';
 import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
-import {
-  getNGCSecretType,
-  getNIMData,
-  getNIMResource,
-} from '~/pages/modelServing/screens/projects/nimUtils';
+import { getNIMData, getNIMResource } from '~/pages/modelServing/screens/projects/nimUtils';
 import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import { Connection } from '~/concepts/connectionTypes/types';
-
-const NIM_CONFIGMAP_NAME = 'nvidia-nim-images-data';
 
 export const getServingRuntimeSizes = (config: DashboardConfigKind): ModelServingSize[] => {
   let sizes = config.spec.modelServerSizes || [];
@@ -72,11 +66,18 @@ export const isServingRuntimeTokenEnabled = (servingRuntime: ServingRuntimeKind)
 export const isServingRuntimeRouteEnabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['enable-route'] === 'true';
 
+const isInferenceServiceKServeRaw = (inferenceService: InferenceServiceKind): boolean =>
+  inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] === 'RawDeployment';
+
 export const isInferenceServiceTokenEnabled = (inferenceService: InferenceServiceKind): boolean =>
-  inferenceService.metadata.annotations?.['security.opendatahub.io/enable-auth'] === 'true';
+  isInferenceServiceKServeRaw(inferenceService)
+    ? inferenceService.metadata.labels?.['security.opendatahub.io/enable-auth'] === 'true'
+    : inferenceService.metadata.annotations?.['security.opendatahub.io/enable-auth'] === 'true';
 
 export const isInferenceServiceRouteEnabled = (inferenceService: InferenceServiceKind): boolean =>
-  inferenceService.metadata.labels?.['networking.knative.dev/visibility'] !== 'cluster-local';
+  isInferenceServiceKServeRaw(inferenceService)
+    ? inferenceService.metadata.labels?.['networking.kserve.io/visibility'] === 'exposed'
+    : inferenceService.metadata.labels?.['networking.knative.dev/visibility'] !== 'cluster-local';
 
 export const isGpuDisabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['opendatahub.io/disable-gpu'] === 'true';
@@ -217,6 +218,7 @@ export const useCreateInferenceServiceObject = (
     existingData?.metadata.annotations?.['openshift.io/display-name'] ||
     existingData?.metadata.name ||
     '';
+  const existingIsKServeRaw = !!existingData && isInferenceServiceKServeRaw(existingData);
   const existingStorage =
     useDeepCompareMemoize(existingData?.spec.predictor.model?.storage) || undefined;
   const existingUri =
@@ -230,10 +232,8 @@ export const useCreateInferenceServiceObject = (
   const existingMaxReplicas =
     existingData?.spec.predictor.maxReplicas ?? existingServingRuntimeData?.spec.replicas ?? 1;
 
-  const existingExternalRoute =
-    existingData?.metadata.labels?.['networking.knative.dev/visibility'] !== 'cluster-local';
-  const existingTokenAuth =
-    existingData?.metadata.annotations?.['security.opendatahub.io/enable-auth'] === 'true';
+  const existingExternalRoute = !!existingData && isInferenceServiceRouteEnabled(existingData);
+  const existingTokenAuth = !!existingData && isInferenceServiceTokenEnabled(existingData);
 
   const existingTokens = useDeepCompareMemoize(getServingRuntimeTokens(secrets));
   const existingSize = useDeepCompareMemoize(
@@ -249,6 +249,7 @@ export const useCreateInferenceServiceObject = (
       setCreateData('name', existingName);
       setCreateData('servingRuntimeName', existingServingRuntime);
       setCreateData('project', existingProject);
+      setCreateData('isKServeRawDeployment', existingIsKServeRaw);
       setCreateData('modelSize', existingSize);
       setCreateData('storage', {
         type: existingUri
@@ -289,6 +290,7 @@ export const useCreateInferenceServiceObject = (
     existingTokens,
     existingServingRuntimeArgs,
     existingServingRuntimeEnvVars,
+    existingIsKServeRaw,
   ]);
 
   return [...createInferenceServiceState, sizes];
@@ -641,7 +643,7 @@ export interface ModelInfo {
 }
 
 export const fetchNIMModelNames = async (): Promise<ModelInfo[] | undefined> => {
-  const configMap = await getNIMResource<ConfigMapKind>(NIM_CONFIGMAP_NAME);
+  const configMap = await getNIMResource<ConfigMapKind>('nimConfig');
   if (configMap.data && Object.keys(configMap.data).length > 0) {
     const modelInfos: ModelInfo[] = [];
     for (const [key, value] of Object.entries(configMap.data)) {
@@ -668,26 +670,27 @@ export const fetchNIMModelNames = async (): Promise<ModelInfo[] | undefined> => 
 
 export const createNIMSecret = async (
   projectName: string,
-  secretName: string,
+  secretKey: string,
   isNGC: boolean,
   dryRun: boolean,
 ): Promise<SecretKind> => {
   try {
-    const data = await getNIMData(isNGC);
+    const data = await getNIMData(secretKey, isNGC);
 
     const newSecret = {
       apiVersion: 'v1',
       kind: 'Secret',
       metadata: {
-        name: secretName,
+        name: isNGC ? 'ngc-secret' : 'nvidia-nim-secrets',
         namespace: projectName,
       },
       data,
-      type: getNGCSecretType(isNGC),
+      type: isNGC ? 'kubernetes.io/dockerconfigjson' : 'Opaque',
     };
+
     return await createSecret(newSecret, { dryRun });
   } catch (e) {
-    return Promise.reject(new Error(`Error creating NIM ${isNGC ? 'NGC' : ''} secret`));
+    return Promise.reject(new Error(`Error creating ${isNGC ? 'NGC' : 'NIM'} secret`));
   }
 };
 

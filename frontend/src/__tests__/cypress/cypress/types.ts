@@ -92,6 +92,8 @@ export type TestConfig = {
   OCP_ADMIN_USER: UserAuthConfig;
   S3: AWSS3Buckets;
   APPLICATIONS_NAMESPACE: NamespaceConfig;
+  PIP_INDEX_URL: string;
+  PIP_TRUSTED_HOST: string;
 };
 
 export type DataScienceProjectData = {
@@ -100,6 +102,10 @@ export type DataScienceProjectData = {
   projectResourceName: string;
   projectPermissionResourceName: string;
   projectContributorResourceName: string;
+};
+
+export type NotebookImageData = {
+  codeserverImageName: string;
 };
 
 export type NimServingResponse = {
@@ -125,6 +131,8 @@ export type NotebookController = {
 export type DashboardConfig = {
   dashboardConfig: {
     disableModelServing: boolean;
+    disableModelMesh: boolean;
+    disableKServe: boolean;
   };
   notebookController: NotebookController;
   [key: string]: unknown;
@@ -139,6 +147,12 @@ export type NotebookControllerConfig = {
   ISTIO_GATEWAY: string;
   ISTIO_HOST: string;
   USE_ISTIO: string;
+};
+
+export type NotebookControllerCullerConfig = {
+  CULL_IDLE_TIME: string;
+  ENABLE_CULLING: string;
+  IDLENESS_CHECK_PERIOD: string;
 };
 
 export type ResourceData = {
@@ -158,6 +172,7 @@ export type ResourcesData = {
     CustomTutorial: ResourceData[];
   };
 };
+
 export type NamespaceConfig = {
   APPLICATIONS_NAMESPACE: string;
 };

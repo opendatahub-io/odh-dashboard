@@ -12,10 +12,10 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import { isGroupEmpty } from '~/utilities/utils';
 import SettingSection from '~/components/SettingSection';
 import { MultiSelection, SelectionOptions } from '~/components/MultiSelection';
-import { useWatchGroups } from '~/utilities/useWatchGroups';
+import { useWatchGroups } from '~/concepts/userConfigs/useWatchGroups';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
-import { GroupsConfigField } from './groupTypes';
+import { GroupsConfigField } from '~/concepts/userConfigs/groupTypes';
 
 const GroupSettings: React.FC = () => {
   const {
@@ -45,7 +45,7 @@ const GroupSettings: React.FC = () => {
         setGroupSettings({
           ...groupSettings,
           adminGroups: newState.map((opt) => ({
-            id: Number(opt.id),
+            id: opt.id,
             name: opt.name,
             enabled: opt.selected || false,
           })),
@@ -55,7 +55,7 @@ const GroupSettings: React.FC = () => {
         setGroupSettings({
           ...groupSettings,
           allowedGroups: newState.map((opt) => ({
-            id: Number(opt.id),
+            id: opt.id,
             name: opt.name,
             enabled: opt.selected || false,
           })),
@@ -103,7 +103,7 @@ const GroupSettings: React.FC = () => {
               setValue={(newState) => handleMenuItemSelection(newState, GroupsConfigField.ADMIN)}
               selectionRequired
               noSelectedOptionsMessage="One or more group must be selected"
-              popperProps={{ appendTo: 'inline' }}
+              popperProps={{ appendTo: document.body }}
             />
             {groupSettings.errorAdmin ? (
               <Alert
@@ -144,7 +144,7 @@ const GroupSettings: React.FC = () => {
               setValue={(newState) => handleMenuItemSelection(newState, GroupsConfigField.USER)}
               selectionRequired
               noSelectedOptionsMessage="One or more group must be selected"
-              popperProps={{ appendTo: 'inline' }}
+              popperProps={{ appendTo: document.body }}
             />
             {groupSettings.errorUser ? (
               <Alert
