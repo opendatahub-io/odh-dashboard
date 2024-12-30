@@ -59,8 +59,17 @@ jobs:
             ${{ github.workspace }}/backend/node_modules
             ${{ github.workspace }}/frontend/node_modules
           key: ${{ runner.os }}-18.x-modules-${{ hashFiles('**/package-lock.json') }}
-      - name: Run unit tests with Coverage 
-        run: npm run test:frontend:unit-coverage
+      - name: Run unit tests with coverage
+        run: |
+          npm run test:frontend:unit-coverage
+          mkdir -p ./frontend/coverage
+          if [ -d "./frontend/jest-coverage" ]; then
+            cp -R ./frontend/jest-coverage/* ./frontend/coverage/
+          elif [ -d "./jest-coverage" ]; then
+            cp -R ./jest-coverage/* ./frontend/coverage/
+          fi
+      - name: List coverage directory
+        run: ls -R ./frontend/coverage
       - name: Upload unit test coverage
         uses: actions/upload-artifact@v4
         with:
