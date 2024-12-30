@@ -59,13 +59,16 @@ jobs:
             ${{ github.workspace }}/backend/node_modules
             ${{ github.workspace }}/frontend/node_modules
           key: ${{ runner.os }}-18.x-modules-${{ hashFiles('**/package-lock.json') }}
-      - name: Run unit tests
-        run: npm run test:unit
+      - name: Run unit tests with Coverage 
+        run: npm run test:frontend:unit-coverage
+      - name: List coverage directory
+        run: ls -R ./frontend/coverage
       - name: Upload unit test coverage
         uses: actions/upload-artifact@v4
         with:
           name: unit-coverage
           path: ./frontend/coverage
+          if-no-files-found: error
 
   Get-Test-Groups:
     runs-on: ubuntu-latest
@@ -100,7 +103,7 @@ jobs:
           fi
 
   Cypress-Mock-Tests:
-    needs: [Setup, Get-Test-Groups, Unit-Tests]
+    needs: [Setup, Get-Test-Groups, Unit-Tests, Lint]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
