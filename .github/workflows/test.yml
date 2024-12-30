@@ -18,7 +18,7 @@ jobs:
       - name: Install Node.js packages for Cypress
         run: npm install
         
-      Get-Test-Groups:
+  Get-Test-Groups:
     runs-on: ubuntu-latest
     outputs:
       test-groups: ${{ steps.set-groups.outputs.test-groups }}
@@ -51,7 +51,7 @@ jobs:
           fi
 
   Cypress-Tests:
-    needs: [Setup, Get-Test-Groups]
+    needs: [CypressMockTests, Get-Test-Groups]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
