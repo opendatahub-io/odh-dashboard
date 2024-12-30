@@ -1,6 +1,5 @@
 name: Test
 on: [push, pull_request]
-
 jobs:
   Setup:
     runs-on: ubuntu-latest
@@ -62,6 +61,11 @@ jobs:
           key: ${{ runner.os }}-18.x-modules-${{ hashFiles('**/package-lock.json') }}
       - name: Run unit tests
         run: npm run test:unit
+      - name: Upload unit test coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-coverage
+          path: ./frontend/coverage
 
   Get-Test-Groups:
     runs-on: ubuntu-latest
@@ -95,7 +99,7 @@ jobs:
             echo "test-groups=[\"default\"]" >> "$GITHUB_OUTPUT"
           fi
 
-  Cypress-Tests:
+  Cypress-Mock-Tests:
     needs: [Setup, Get-Test-Groups, Unit-Tests]
     runs-on: ubuntu-latest
     strategy:
@@ -113,7 +117,7 @@ jobs:
             ${{ github.workspace }}/backend/node_modules
             ${{ github.workspace }}/frontend/node_modules
           key: ${{ runner.os }}-18.x-modules-${{ hashFiles('**/package-lock.json') }}
-      - name: Run Cypress tests
+      - name: Run Cypress Mock tests
         run: |
           if [ "${{ matrix.test-group }}" == "default" ]; then
             npm run test:cypress-ci
@@ -121,3 +125,44 @@ jobs:
             npm run test:cypress-ci -- --spec "src/__tests__/cypress/cypress/tests/mocked/${{ matrix.test-group }}/**/*"
           fi
         working-directory: ./frontend
+      - name: Upload Cypress Mock results
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-results-${{ matrix.test-group }}
+          path: ./frontend/src/__tests__/cypress/results/mocked
+
+  Combine-Results-and-Upload:
+    needs: [Unit-Tests, Cypress-Mock-Tests]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-artifacts
+      - name: Combine coverage reports
+        run: |
+          mkdir -p ./frontend/coverage
+          cp -R all-artifacts/unit-coverage/* ./frontend/coverage/
+          find all-artifacts -name "mocked" -type d | while read dir; do
+            cp -R "$dir"/* ./frontend/coverage/
+          done
+      - name: Upload combined results
+        uses: actions/upload-artifact@v4
+        with:
+          name: combined-test-results
+          path: ./frontend/coverage/
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4.6.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+          name: frontend
+          directory: ./frontend/coverage
+          verbose: true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cypress-results
+          path: ./frontend/src/__tests__/cypress/results/
+
