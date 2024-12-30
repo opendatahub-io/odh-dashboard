@@ -1,7 +1,7 @@
 name: Test
 on: [push, pull_request]
 jobs:
-  CypressMockTests:
+  CypressMockTestSetup:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -15,8 +15,38 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       
-      - name: Install Node.js packages for Cypress
+      - name: Node.js modules cache
+        uses: actions/cache@v4
+        id: modules-cache
+        with:
+          path: |
+            ~/.cache/Cypress
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/backend/node_modules
+            ${{ github.workspace }}/frontend/node_modules
+          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: Install dependencies
+        if: steps.modules-cache.outputs.cache-hit != 'true'
         run: npm install
+      - name: Check for uncomitted changes
+        run: git diff --exit-code
+
+  Lint:
+    needs: CypressMockTestSetup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/Cypress
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/backend/node_modules
+            ${{ github.workspace }}/frontend/node_modules
+          key: ${{ runner.os }}-18.x-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: Run linting and formatting checks
+        run: npm run test:fix
         
   Get-Test-Groups:
     runs-on: ubuntu-latest
@@ -51,7 +81,7 @@ jobs:
           fi
 
   Cypress-Tests:
-    needs: [CypressMockTests, Get-Test-Groups]
+    needs: [CypressMockTestSetup, Get-Test-Groups]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
