@@ -96,7 +96,7 @@ jobs:
           fi
 
   Cypress-Tests:
-    needs: [Setup, Get-Test-Groups]
+    needs: [Setup, Get-Test-Groups, Unit-Tests]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

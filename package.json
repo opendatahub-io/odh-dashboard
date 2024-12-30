@@ -41,7 +41,7 @@
     "test:frontend": "cd ./frontend && npm run test",
     "test:frontend:unit-coverage": "cd ./frontend && npm run test:unit-coverage",
 
-    "test:cypress-ci": "CY_MOCK=1 CY_WS_PORT=9002 npm run cypress:run",
+    "test:cypress-ci": "cd ./frontend && npm run test:cypress-ci -- ",
     "test:cypress-ci:parallel": "cd ./frontend && npm run cypress:server:build:coverage && npm run cypress:server & npx wait-on tcp:127.0.0.1:9001 && npm run cypress:run:mock:coverage",
     "cypress:run:mock:coverage": "cypress run --coverage",
     "cypress:run:mock:coverage:parallel": "cypress run --coverage",
