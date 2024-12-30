@@ -1,20 +1,18 @@
 name: Test
 on: [push, pull_request]
+
 jobs:
-  CypressMockTestSetup:
+  Setup:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
       matrix:
         node-version: [18.x]
     steps:
       - uses: actions/checkout@v4
-      
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4.1.0
         with:
           node-version: ${{ matrix.node-version }}
-      
       - name: Node.js modules cache
         uses: actions/cache@v4
         id: modules-cache
@@ -32,7 +30,7 @@ jobs:
         run: git diff --exit-code
 
   Lint:
-    needs: CypressMockTestSetup
+    needs: Setup
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -47,7 +45,24 @@ jobs:
           key: ${{ runner.os }}-18.x-modules-${{ hashFiles('**/package-lock.json') }}
       - name: Run linting and formatting checks
         run: npm run test:fix
-        
+
+  Unit-Tests:
+    needs: Setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/Cypress
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/backend/node_modules
+            ${{ github.workspace }}/frontend/node_modules
+          key: ${{ runner.os }}-18.x-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: Run unit tests
+        run: npm run test:unit
+
   Get-Test-Groups:
     runs-on: ubuntu-latest
     outputs:
@@ -81,7 +96,7 @@ jobs:
           fi
 
   Cypress-Tests:
-    needs: [CypressMockTestSetup, Get-Test-Groups]
+    needs: [Setup, Get-Test-Groups]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
