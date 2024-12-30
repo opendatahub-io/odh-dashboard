@@ -154,9 +154,11 @@ jobs:
         run: |
           mkdir -p ./frontend/coverage
           cp -R all-artifacts/unit-coverage/* ./frontend/coverage/
-          find all-artifacts -name "mocked" -type d | while read dir; do
-            cp -R "$dir"/* ./frontend/coverage/
+          find all-artifacts -type d \( -name "__mocks__" -o -name "__tests__" \) -prune -o \
+          -name "*.json" -o -name "*.lcov" | while read file; do
+            cp "$file" ./frontend/coverage/ || true
           done
+
       - name: Upload combined results
         uses: actions/upload-artifact@v4
         with:
