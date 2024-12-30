@@ -1,8 +1,8 @@
 import { appChrome } from './appChrome';
+import { K8sNameDescriptionField } from './components/subComponents/K8sNameDescriptionField';
 
 export enum FormFieldSelector {
   NAME = '#mr-name',
-  RESOURCENAME = '#resource-mr-name',
   HOST = '#mr-host',
   PORT = '#mr-port',
   USERNAME = '#mr-username',
@@ -27,6 +27,8 @@ export enum DatabaseDetailsTestId {
 }
 
 class ModelRegistrySettings {
+  k8sNameDescription = new K8sNameDescriptionField('mr');
+
   visit(wait = true) {
     cy.visitWithLogin('/modelRegistrySettings');
     if (wait) {

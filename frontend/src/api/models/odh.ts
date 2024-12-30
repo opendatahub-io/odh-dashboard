@@ -41,3 +41,17 @@ export const InferenceServiceModel: K8sModelCommon = {
   kind: 'InferenceService',
   plural: 'inferenceservices',
 };
+
+export const NIMAccountModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  apiGroup: 'nim.opendatahub.io',
+  kind: 'Account',
+  plural: 'accounts',
+};
+
+export const AuthModel: K8sModelCommon = {
+  apiVersion: 'v1alpha1',
+  apiGroup: 'services.platform.opendatahub.io',
+  kind: 'Auth',
+  plural: 'auths',
+};

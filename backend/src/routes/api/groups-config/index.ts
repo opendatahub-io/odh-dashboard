@@ -1,9 +1,14 @@
+/**
+ * @fileOverview
+ * @deprecated see RHOAIENG-16988
+ */
 import { FastifyRequest } from 'fastify';
 import { GroupsConfig, KubeFastifyInstance } from '../../../types';
 import { getGroupsConfig, updateGroupsConfig } from './groupsConfigUtil';
 import { secureAdminRoute } from '../../../utils/route-security';
 
 export default async (fastify: KubeFastifyInstance): Promise<void> => {
+  /** @deprecated - see RHOAIENG-16988 */
   fastify.get(
     '/',
     secureAdminRoute(fastify)(async (request, reply) => {
@@ -16,6 +21,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
     }),
   );
 
+  /** @deprecated - see RHOAIENG-16988 */
   fastify.put(
     '/',
     secureAdminRoute(fastify)(async (request: FastifyRequest<{ Body: GroupsConfig }>, reply) => {

@@ -69,6 +69,7 @@ export type CreatingInferenceServiceObject = CreatingModelServingObjectCommon & 
   labels?: Record<string, string>;
   servingRuntimeArgs?: ServingContainer['args'];
   servingRuntimeEnvVars?: ServingContainer['env'];
+  isKServeRawDeployment?: boolean;
 };
 
 export type CreatingModelServingObjectCommon = {

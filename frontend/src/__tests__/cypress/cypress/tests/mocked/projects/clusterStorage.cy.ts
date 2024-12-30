@@ -56,6 +56,28 @@ const initInterceptors = ({ isEmpty = false, storageClassName }: HandlersProps) 
               storageClassName,
               status: { phase: 'Pending' },
             }),
+            mockPVCK8sResource({
+              displayName: 'Updated storage with no workbench',
+              storageClassName,
+              storage: '13Gi',
+              status: {
+                phase: 'Bound',
+                accessModes: ['ReadWriteOnce'],
+                capacity: {
+                  storage: '12Gi',
+                },
+                conditions: [
+                  {
+                    type: 'FileSystemResizePending',
+                    status: 'True',
+                    lastProbeTime: null,
+                    lastTransitionTime: '2024-11-15T14:04:04Z',
+                    message:
+                      'Waiting for user to (re-)start a pod to finish file system resize of volume on node.',
+                  },
+                ],
+              },
+            }),
           ],
     ),
   );
@@ -183,7 +205,8 @@ describe('ClusterStorage', () => {
     //connect workbench
     addClusterStorageModal.findAddWorkbenchButton().click();
     addClusterStorageModal.findWorkbenchTable().should('exist');
-    addClusterStorageModal.selectWorkbenchName(0, 'test-notebook');
+    addClusterStorageModal.findWorkbenchSelect(0).should('have.attr', 'disabled');
+    addClusterStorageModal.findWorkbenchSelectValueField(0).should('have.value', 'Test Notebook');
 
     //don't allow duplicate path
     addClusterStorageModal.findMountPathField(0).fill('test-dupe');
@@ -268,7 +291,10 @@ describe('ClusterStorage', () => {
     const clusterStorageRow = clusterStorage.getClusterStorageRow('Existing PVC');
     clusterStorageRow.findKebabAction('Edit storage').click();
     updateClusterStorageModal.findAddWorkbenchButton().click();
-    updateClusterStorageModal.selectWorkbenchName(1, 'another-notebook');
+    addClusterStorageModal.findWorkbenchSelect(1).should('have.attr', 'disabled');
+    addClusterStorageModal
+      .findWorkbenchSelectValueField(1)
+      .should('have.value', 'Another Notebook');
     updateClusterStorageModal.findMountPathField(1).fill('new-data');
 
     cy.interceptK8s('PATCH', NotebookModel, anotherNotebook).as('updateClusterStorage');
@@ -320,6 +346,18 @@ describe('ClusterStorage', () => {
     clusterStorage.findClusterStorageTableHeaderButton('Name').should(be.sortAscending);
     clusterStorage.findClusterStorageTableHeaderButton('Name').click();
     clusterStorage.findClusterStorageTableHeaderButton('Name').should(be.sortDescending);
+  });
+
+  it('should show warning when cluster storage size is updated but no workbench is connected', () => {
+    initInterceptors({});
+    clusterStorage.visit('test-project');
+    const clusterStorageRow = clusterStorage.getClusterStorageRow(
+      'Updated storage with no workbench',
+    );
+    clusterStorageRow.toggleExpandableContent();
+    clusterStorageRow.shouldHaveStorageSize('Max 13Gi');
+    clusterStorageRow.findStorageSizeWarning();
+    clusterStorageRow.findStorageSizeWarning().should('exist');
   });
 
   it('Edit cluster storage', () => {

@@ -2,7 +2,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import { secureAdminRoute } from '../../../../utils/route-security';
 import { KubeFastifyInstance } from '../../../../types';
 import { isString } from 'lodash';
-import { createNIMAccount, createNIMSecret, getNIMAccount, isAppEnabled } from './nimUtils';
+import { createNIMAccount, getNIMAccount, isAppEnabled, manageNIMSecret } from './nimUtils';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
   const PAGE_NOT_FOUND_MESSAGE = '404 page not found';
@@ -62,7 +62,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
         const enableValues = request.body;
 
         try {
-          await createNIMSecret(fastify, enableValues);
+          await manageNIMSecret(fastify, enableValues);
           // Ensure the account exists
           try {
             const account = await getNIMAccount(fastify);

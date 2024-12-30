@@ -46,8 +46,11 @@ export type DashboardConfig = K8sResourceCommon & {
       disableStorageClasses: boolean;
       disableNIMModelServing: boolean;
     };
+    /** @deprecated -- replacing this with Platform Auth resource -- remove when this is no longer in the CRD */
     groupsConfig?: {
+      /** @deprecated -- see above */
       adminGroups: string;
+      /** @deprecated -- see above */
       allowedGroups: string;
     };
     notebookSizes?: NotebookSize[];
@@ -1260,4 +1263,25 @@ export type NIMAccountKind = K8sResourceCommon & {
 export type ResourceAccessReviewResponse = {
   groups?: string[];
   users?: string[];
+};
+
+export type ConfigSecretItem = {
+  name: string;
+  keys: string[];
+};
+
+export type ListConfigSecretsResponse = {
+  secrets: ConfigSecretItem[];
+  configMaps: ConfigSecretItem[];
+};
+
+export type AuthKind = K8sResourceCommon & {
+  metadata: {
+    name: 'auth'; // singleton, immutable name
+    namespace?: never; // Cluster resource
+  };
+  spec: {
+    adminGroups: string[];
+    allowedGroups: string[];
+  };
 };
