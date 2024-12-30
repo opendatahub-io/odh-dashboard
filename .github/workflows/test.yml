@@ -6,63 +6,73 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        container: [1, 2, 3, 4, 5] # Creates 5 parallel executions for Cypress tests.
+        node-version: [18.x]
     steps:
       - uses: actions/checkout@v4
       
-      - name: Setup Node.js
+      - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4.1.0
         with:
-          node-version: '18.x'
+          node-version: ${{ matrix.node-version }}
       
       - name: Install Node.js packages for Cypress
         run: npm install
         
-      - name: Get test files
-        id: test-files
+      Get-Test-Groups:
+    runs-on: ubuntu-latest
+    outputs:
+      test-groups: ${{ steps.set-groups.outputs.test-groups }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: set-groups
+        shell: bash
         run: |
-          echo "Current working directory:"
-          pwd
-
-          TEST_DIR="frontend/src/__tests__/cypress/cypress/tests/mocked"
-          echo "Listing contents of the current directory:"
-          ls -la
-          echo "Checking for test files in $TEST_DIR"
-
-          echo "Listing contents of frontend/src/__tests__/cypress/cypress/tests:"
-          ls -la frontend/src/__tests__/cypress/cypress/tests/
-
-          if [ -d "$TEST_DIR" ]; then
-            echo "Listing contents of mocked directory:"
-            ls -la "$TEST_DIR" 
-
-            TEST_FILES=$(find "$TEST_DIR" -name "*.cy.ts" | tr '\n' ',')
-            echo "Found test files: $TEST_FILES"
-
-            echo "files=$TEST_FILES" >> $GITHUB_OUTPUT
+          set -x  # Enable debug mode to see each command
+          
+          echo "Checking directory structure..."
+          ls -la frontend/src/__tests__/cypress/cypress/tests/ || echo "Base test directory not found"
+          
+          if [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked" ]; then
+            echo "Found mocked tests directory"
+            
+            # Get directories and create JSON array - force compact output with -c
+            DIRS=$(cd frontend/src/__tests__/cypress/cypress/tests/mocked && \
+                  find . -maxdepth 1 -mindepth 1 -type d -printf "%f\n" | \
+                  jq -R . | jq -c -s .)
+            
+            # Output in the correct format for GitHub Actions
+            echo "test-groups=$DIRS" >> "$GITHUB_OUTPUT"
+            
+            echo "Generated test groups:"
+            cat "$GITHUB_OUTPUT"
           else
-            echo "Directory does not exist. No test files found." >> $GITHUB_OUTPUT
-            echo "files=" >> $GITHUB_OUTPUT  # Set empty output if no files found
+            echo "No mocked tests directory found, using default"
+            echo "test-groups=[\"default\"]" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Run Cypress Mock Tests in Parallel
-        env:
-          CONTAINER_INDEX: ${{ matrix.container }}
-          TEST_FILES: ${{ steps.test-files.outputs.files }}
+  Cypress-Tests:
+    needs: [Setup, Get-Test-Groups]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        test-group: ${{ fromJson(needs.Get-Test-Groups.outputs.test-groups) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/Cypress
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/backend/node_modules
+            ${{ github.workspace }}/frontend/node_modules
+          key: ${{ runner.os }}-18.x-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: Run Cypress tests
         run: |
-          echo "Running Cypress tests for container $CONTAINER_INDEX..."
-          echo "Test Files: $TEST_FILES"  
-
-          # Generate the list of spec files for this container and trim trailing comma
-          SPEC_FILES=$(echo "$TEST_FILES" | tr ',' '\n' | awk -v container="$CONTAINER_INDEX" 'NR % 5 == container - 1' | sed 's|^frontend/||' | tr '\n' ',' | sed 's/,$//')
-
-          # Check if SPEC_FILES is empty
-          if [ -z "$SPEC_FILES" ]; then
-            echo "No spec files found for container $CONTAINER_INDEX. Skipping Cypress tests."
-            exit 0
+          if [ "${{ matrix.test-group }}" == "default" ]; then
+            npm run test:cypress-ci
           else
-            echo "Spec files for this container: $SPEC_FILES"
-            export SPEC_PATTERN="$SPEC_FILES"
-            echo "Running Cypress with spec pattern: ${SPEC_PATTERN}"
-            cd frontend && npm run test:cypress-ci
+            npm run test:cypress-ci -- --spec "src/__tests__/cypress/cypress/tests/mocked/${{ matrix.test-group }}/**/*"
           fi
+        working-directory: ./frontend
