@@ -60,7 +60,9 @@ jobs:
             ${{ github.workspace }}/backend/node_modules
             ${{ github.workspace }}/frontend/node_modules
           key: ${{ runner.os }}-18.x-modules-${{ hashFiles('**/package-lock.json') }}
-      - name: Run unit tests with coverage
+      - name: Run backend tests
+        run: npm run test:backend
+      - name: Run frontend unit tests with coverage
         run: |
           npm run test:frontend:unit-coverage
           mkdir -p ./frontend/coverage
@@ -77,6 +79,12 @@ jobs:
           name: unit-coverage
           path: ./frontend/coverage
           if-no-files-found: error
+      - name: Upload backend test coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: ./backend/coverage
+          if-no-files-found: warn
 
   Get-Test-Groups:
     runs-on: ubuntu-latest
@@ -143,7 +151,7 @@ jobs:
           path: ./frontend/src/__tests__/cypress/results/mocked
 
   Combine-Results-and-Upload:
-    needs: [Unit-Tests, Cypress-Mock-Tests]
+    needs: [Unit-Tests, Cypress-Mock-Tests] 
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -153,28 +161,27 @@ jobs:
           path: all-artifacts
       - name: Combine coverage reports
         run: |
-          mkdir -p ./frontend/coverage
-          cp -R all-artifacts/unit-coverage/* ./coverage/
+          mkdir -p ./coverage
+          cp -R all-artifacts/unit-coverage/* ./coverage/ || true
+          cp -R all-artifacts/backend-coverage/* ./coverage/ || true
           find all-artifacts -name "mocked" -type d | while read dir; do
-            cp -R "$dir"/* ./coverage/
+            cp -R "$dir"/* ./coverage/ || true
           done
-      
       - name: Merge coverage reports
         run: |
           npx istanbul-merge --out coverage/coverage-final.json coverage/**/coverage-final.json
           npx nyc report --reporter lcov --reporter text -t coverage --report-dir ./coverage/report
-
       - name: Upload combined results
         uses: actions/upload-artifact@v4
         with:
           name: combined-coverage-results
-          path: ./coverage/
+          path: ./coverage
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4.6.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
-          name: frontend
+          name: frontend-and-backend
           directory: ./coverage
           verbose: true
       - uses: actions/upload-artifact@v4
@@ -182,4 +189,3 @@ jobs:
         with:
           name: cypress-results
           path: ./frontend/src/__tests__/cypress/results/
-
