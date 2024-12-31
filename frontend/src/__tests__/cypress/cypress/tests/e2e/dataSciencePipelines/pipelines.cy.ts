@@ -26,22 +26,16 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
   });
 
   it('An admin User can Import and Run a Pipeline', () => {
-    // Login as an admin
+    cy.step('Navigate to DSP ${projectName}');
     cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-
-    /**
-     * Import Pipeline by URL from Project Details view
-     */
     projectListPage.navigate();
-
-    // Open the project
     projectListPage.filterProjectByName(projectName);
     projectListPage.findProjectLink(projectName).click();
 
+    cy.step('Import a pipeline by URL');
     // Increasing the timeout to ~3mins so the DSPA can be loaded
     projectDetails.findImportPipelineButton(180000).click();
-
-    // Fill tue Import Pipeline modal
+    // Fill the Import Pipeline modal
     pipelineImportModal.findPipelineNameInput().type(testPipelineName);
     pipelineImportModal.findPipelineDescriptionInput().type('Pipeline Description');
     pipelineImportModal.findImportPipelineRadio().click();
@@ -56,19 +50,15 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
     // It can take a little longer to load
     pipelineDetails.findPageTitle(60000).should('have.text', testPipelineName);
 
-    /**
-     * Run the Pipeline using the Actions button in the pipeline detail view
-     */
-
+    cy.step('Run the pipeline from the Actions button in the pipeline detail view');
     pipelineDetails.selectActionDropdownItem('Create run');
-
-    //Fill the Create run fields
     createRunPage.experimentSelect.findToggleButton().click();
     createRunPage.selectExperimentByName('Default');
     createRunPage.fillName(testRunName);
     createRunPage.fillDescription('Run Description');
     createRunPage.findSubmitButton().click();
 
+    cy.step('Expect the run to Succeed');
     //Redirected to the Graph view of the created run
     pipelineRunDetails.expectStatusLabelToBe('Succeeded', 180000);
   });

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {
   Bullseye,
+  Popover,
   Progress,
   ProgressMeasureLocation,
   Spinner,
@@ -8,12 +9,14 @@ import {
   SplitItem,
   Content,
   Tooltip,
+  Flex,
 } from '@patternfly/react-core';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { ExclamationCircleIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
-import { getPvcTotalSize } from '~/pages/projects/utils';
+import { getPvcRequestSize, getPvcTotalSize } from '~/pages/projects/utils';
 import { usePVCFreeAmount } from '~/api';
 import { bytesAsRoundedGiB } from '~/utilities/number';
+import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 
 type StorageSizeBarProps = {
   pvc: PersistentVolumeClaimKind;
@@ -22,6 +25,26 @@ type StorageSizeBarProps = {
 const StorageSizeBar: React.FC<StorageSizeBarProps> = ({ pvc }) => {
   const [inUseInBytes, loaded, error] = usePVCFreeAmount(pvc);
   const maxValue = getPvcTotalSize(pvc);
+  const requestedValue = getPvcRequestSize(pvc);
+
+  if (pvc.status?.conditions?.find((c) => c.type === 'FileSystemResizePending')) {
+    return (
+      <Flex>
+        <Content component="small">Max {requestedValue}</Content>
+        <Popover
+          bodyContent="To complete the storage size update, you must connect and run a workbench."
+          data-testid="size-warning-popover-text"
+        >
+          <DashboardPopupIconButton
+            icon={<ExclamationTriangleIcon />}
+            aria-label="Size warning"
+            data-testid="size-warning-popover"
+            iconProps={{ status: 'warning' }}
+          />
+        </Popover>
+      </Flex>
+    );
+  }
 
   if (!error && Number.isNaN(inUseInBytes)) {
     return (

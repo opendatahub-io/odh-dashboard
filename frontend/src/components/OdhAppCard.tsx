@@ -1,5 +1,4 @@
 import React from 'react';
-import classNames from 'classnames';
 import { Link } from 'react-router-dom';
 import {
   AlertVariant,
@@ -15,6 +14,7 @@ import {
   DropdownList,
   Label,
 } from '@patternfly/react-core';
+import { css } from '@patternfly/react-styles';
 import { EllipsisVIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhApplication } from '~/types';
 import { getLaunchStatus, launchQuickStart } from '~/utilities/quickStartUtils';
@@ -104,10 +104,11 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     );
   }
 
-  const launchClasses = classNames('odh-card__footer__link', {
-    'm-hidden': !odhApp.spec.link,
-    'm-disabled': disabled || !workbenchEnabled,
-  });
+  const launchClasses = css(
+    'odh-card__footer__link',
+    !odhApp.spec.link && 'm-hidden',
+    (disabled || !workbenchEnabled) && 'm-disabled',
+  );
 
   const cardFooter = (
     <CardFooter className="odh-card__footer">
@@ -116,9 +117,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
           <Link
             data-testid="jupyter-app-link"
             to="/notebookController"
-            className={classNames('odh-card__footer__link', {
-              'm-disabled': !workbenchEnabled,
-            })}
+            className={css('odh-card__footer__link', !workbenchEnabled && 'm-disabled')}
           >
             Launch application
           </Link>
@@ -137,11 +136,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     </CardFooter>
   );
 
-  const cardClasses = classNames('odh-card', {
-    // Using PF native class to prevent needing custom styling; RHOAI feel free to delete this comment
-    'pf-m-disabled': disabled,
-    'pf-m-current': selected,
-  });
+  const cardClasses = css('odh-card', selected && 'pf-m-current');
 
   const popoverBodyContent = (hide: () => void) => (
     <div>
@@ -177,8 +172,9 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       bodyContent={popoverBodyContent}
       position="bottom"
     >
-      {/* Note from PatternFly: this implementation is not accessible and should use a button/interactive element instead of a plain span */}
-      <span className="odh-card__disabled-text">Disabled</span>
+      <Button variant="plain" className="odh-card__disabled-text">
+        Disabled
+      </Button>
     </Popover>
   );
 
@@ -189,6 +185,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       id={odhApp.metadata.name}
       role="listitem"
       className={cardClasses}
+      isDisabled={disabled || !workbenchEnabled}
     >
       <CardHeader
         actions={{
@@ -228,10 +225,11 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
         odhApp.spec.category &&
         odhApp.spec.support !== ODH_PRODUCT_NAME ? (
           <div className="odh-card__partner-badge-container">
-            <span className="odh-card__partner-badge" data-testid="partner-badge">
-              <Label className={disabled ? 'pf-m-disabled' : undefined} variant="outline">
-                {odhApp.spec.category}
-              </Label>
+            <span
+              className={css('odh-card__partner-badge', disabled && 'pf-m-disabled')}
+              data-testid="partner-badge"
+            >
+              <Label variant="outline">{odhApp.spec.category}</Label>
             </span>
           </div>
         ) : null}
