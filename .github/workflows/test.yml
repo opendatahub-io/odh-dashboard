@@ -154,24 +154,28 @@ jobs:
       - name: Combine coverage reports
         run: |
           mkdir -p ./frontend/coverage
-          cp -R all-artifacts/unit-coverage/* ./frontend/coverage/
-          find all-artifacts \( -path "*/__mocks__/*" -o -path "*/__tests__/*" -o -path "*/pages/*" \) -prune -o \
-          -name "*.json" -o -name "*.lcov" | while read file; do
-            cp "$file" ./frontend/coverage/ || true
+          cp -R all-artifacts/unit-coverage/* ./coverage/
+          find all-artifacts -name "mocked" -type d | while read dir; do
+            cp -R "$dir"/* ./coverage/
           done
+      
+      - name: Merge coverage reports
+        run: |
+          npx istanbul-merge --out coverage/coverage-final.json coverage/**/coverage-final.json
+          npx nyc report --reporter lcov --reporter text -t coverage --report-dir ./coverage/report
 
       - name: Upload combined results
         uses: actions/upload-artifact@v4
         with:
-          name: combined-test-results
-          path: ./frontend/coverage/
+          name: combined-coverage-results
+          path: ./coverage/
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4.6.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
           name: frontend
-          directory: ./frontend/coverage
+          directory: ./coverage
           verbose: true
       - uses: actions/upload-artifact@v4
         if: always()
