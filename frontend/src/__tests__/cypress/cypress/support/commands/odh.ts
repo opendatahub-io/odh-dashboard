@@ -10,6 +10,7 @@ import type {
   RegisteredModelList,
 } from '~/concepts/modelRegistry/types';
 import type {
+  ConfigMapKind,
   ConsoleLinkKind,
   DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
@@ -18,13 +19,14 @@ import type {
   NotebookKind,
   OdhQuickStart,
   RoleBindingKind,
+  SecretKind,
   ServingRuntimeKind,
   TemplateKind,
 } from '~/k8sTypes';
 
 import type { StartNotebookData } from '~/pages/projects/types';
 import type { AllowedUser } from '~/pages/notebookController/screens/admin/types';
-import type { GroupsConfig } from '~/pages/groupSettings/groupTypes';
+import type { GroupsConfig } from '~/concepts/userConfigs/groupTypes';
 import type { StatusResponse } from '~/redux/types';
 import type {
   BYONImage,
@@ -607,6 +609,20 @@ declare global {
             path: { username: string };
           },
           response: OdhResponse<{ notebook: NotebookKind; isRunning: boolean }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/envs/configmap/openshift-ai-notebooks/:filename',
+          options: {
+            path: { filename: string };
+          },
+          response: OdhResponse<ConfigMapKind>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/envs/secret/openshift-ai-notebooks/:filename',
+          options: {
+            path: { filename: string };
+          },
+          response: OdhResponse<SecretKind>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/artifacts/:artifactId',

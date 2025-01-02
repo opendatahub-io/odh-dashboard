@@ -6,6 +6,7 @@ import { InfoCircleIcon } from '@patternfly/react-icons';
 
 import { Table } from '~/components/table';
 import { StorageData, StorageType } from '~/pages/projects/types';
+import { formatMemory } from '~/utilities/valueUnits';
 import { clusterStorageTableColumns } from './constants';
 import { ClusterStorageDetachModal } from './ClusterStorageDetachModal';
 import WorkbenchStorageModal from './WorkbenchStorageModal';
@@ -116,7 +117,7 @@ export const ClusterStorageTable: React.FC<ClusterStorageTableProps> = ({
                   )}
               </Flex>
             </Td>
-            <Td dataLabel="Storage size">Max {row.size}</Td>
+            <Td dataLabel="Storage size">Max {formatMemory(row.size)}</Td>
             <Td dataLabel="Mount path">{row.mountPath}</Td>
             <Td isActionCell>
               <ActionsColumn
