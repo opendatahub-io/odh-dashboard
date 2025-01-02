@@ -55,41 +55,45 @@ describe('Workbench and PVSs tests', () => {
     }
   });
 
-  it('Verify users can create a workbench and connect an existent PersistentVolume', () => {
-    const workbenchName = projectName.replace('dsp-', '');
+  it(
+    'Verify users can create a workbench and connect an existent PersistentVolume',
+    { tags: ['@Smoke', '@ODS-1814', '@Dashboard', '@Tier1'] },
+    () => {
+      const workbenchName = projectName.replace('dsp-', '');
 
-    // Authentication and navigation
-    cy.step('Log into the application');
-    cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+      // Authentication and navigation
+      cy.step('Log into the application');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
-    cy.step(`Navigate to Workbenches tab of Project ${projectName}`);
-    projectListPage.navigate();
-    projectListPage.filterProjectByName(projectName);
-    projectListPage.findProjectLink(projectName).click();
-    projectDetails.findSectionTab('workbenches').click();
+      cy.step(`Navigate to Workbenches tab of Project ${projectName}`);
+      projectListPage.navigate();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
+      projectDetails.findSectionTab('workbenches').click();
 
-    cy.step(`Create Workbench ${projectName} using storage ${PVCDisplayName}`);
-    workbenchPage.findCreateButton().click();
-    createSpawnerPage.getNameInput().fill(workbenchName);
-    createSpawnerPage.findNotebookImage('code-server-notebook').click();
-    createSpawnerPage.findAttachExistingStorageButton().click();
-    attachExistingStorageModal.verifyPSDropdownIsDisabled();
-    attachExistingStorageModal.verifyPSDropdownText(PVCDisplayName);
-    attachExistingStorageModal.findStandardPathInput().fill(workbenchName);
-    attachExistingStorageModal.findAttachButton().click();
-    createSpawnerPage.findSubmitButton().click();
+      cy.step(`Create Workbench ${projectName} using storage ${PVCDisplayName}`);
+      workbenchPage.findCreateButton().click();
+      createSpawnerPage.getNameInput().fill(workbenchName);
+      createSpawnerPage.findNotebookImage('code-server-notebook').click();
+      createSpawnerPage.findAttachExistingStorageButton().click();
+      attachExistingStorageModal.verifyPSDropdownIsDisabled();
+      attachExistingStorageModal.verifyPSDropdownText(PVCDisplayName);
+      attachExistingStorageModal.findStandardPathInput().fill(workbenchName);
+      attachExistingStorageModal.findAttachButton().click();
+      createSpawnerPage.findSubmitButton().click();
 
-    cy.step(`Wait for Workbench ${workbenchName} to display a "Running" status`);
-    const notebookRow = workbenchPage.getNotebookRow(workbenchName);
-    notebookRow.expectStatusLabelToBe('Running', 120000);
-    notebookRow.shouldHaveNotebookImageName('code-server');
-    notebookRow.shouldHaveContainerSize('Small');
+      cy.step(`Wait for Workbench ${workbenchName} to display a "Running" status`);
+      const notebookRow = workbenchPage.getNotebookRow(workbenchName);
+      notebookRow.expectStatusLabelToBe('Running', 120000);
+      notebookRow.shouldHaveNotebookImageName('code-server');
+      notebookRow.shouldHaveContainerSize('Small');
 
-    cy.step(`Check the cluster storage ${PVCDisplayName} is now connected to ${workbenchName}`);
-    projectDetails.findSectionTab('cluster-storages').click();
-    // TODO: Bug RHOAIENG-16239
-    // const csRow = clusterStorage.getClusterStorageRow(PVCDisplayName);
-    const csRow = clusterStorage.getClusterStorageRow(PVCName);
-    csRow.findConnectedWorkbenches().should('have.text', workbenchName);
-  });
+      cy.step(`Check the cluster storage ${PVCDisplayName} is now connected to ${workbenchName}`);
+      projectDetails.findSectionTab('cluster-storages').click();
+      // TODO: Bug RHOAIENG-16239
+      // const csRow = clusterStorage.getClusterStorageRow(PVCDisplayName);
+      const csRow = clusterStorage.getClusterStorageRow(PVCName);
+      csRow.findConnectedWorkbenches().should('have.text', workbenchName);
+    },
+  );
 });

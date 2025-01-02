@@ -49,41 +49,49 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
     });
   });
 
-  it('Admin should access Cluster Settings and see UI fields matching OpenShift configurations', () => {
-    // Authentication and navigation
-    cy.step('Log into the application');
-    cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+  it(
+    'Admin should access Cluster Settings and see UI fields matching OpenShift configurations',
+    { tags: ['@Smoke', '@ODS-1216', '@Dashboard'] },
+    () => {
+      // Authentication and navigation
+      cy.step('Log into the application');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
-    cy.step('Navigate to Cluster Settings');
-    clusterSettings.visit();
+      cy.step('Navigate to Cluster Settings');
+      clusterSettings.visit();
 
-    // Validate model serving displays based on OpenShift command to 'get OdhDashboardConfig' to validate configuration
-    cy.step('Validate Model Serving Platforms display and are checked');
-    validateModelServingPlatforms(dashboardConfig);
+      // Validate model serving displays based on OpenShift command to 'get OdhDashboardConfig' to validate configuration
+      cy.step('Validate Model Serving Platforms display and are checked');
+      validateModelServingPlatforms(dashboardConfig);
 
-    // Validate pvc size based on OpenShift command to 'get OdhDashboardConfig' to validate configuration
-    cy.step('Validate PVC Size displays and default displays');
-    validatePVCSize(dashboardConfig);
+      // Validate pvc size based on OpenShift command to 'get OdhDashboardConfig' to validate configuration
+      cy.step('Validate PVC Size displays and default displays');
+      validatePVCSize(dashboardConfig);
 
-    // Validate Stop idle notebooks based on OpenShift command to 'notebook-controller' to validate configuration
-    cy.step('Validate Stop idle notebooks displays and fields are enabled/disabled');
-    cy.log('Notebook Controller Culler Config:', JSON.stringify(notebookControllerCullerConfig));
-    validateStopIdleNotebooks(notebookControllerCullerConfig);
+      // Validate Stop idle notebooks based on OpenShift command to 'notebook-controller' to validate configuration
+      cy.step('Validate Stop idle notebooks displays and fields are enabled/disabled');
+      cy.log('Notebook Controller Culler Config:', JSON.stringify(notebookControllerCullerConfig));
+      validateStopIdleNotebooks(notebookControllerCullerConfig);
 
-    // Validate notebook pod tolerations displays based on OpenShift command to 'get OdhDashboardConfig' to validate configuration
-    cy.step('Validate Notebook pod tolerations displays and fields are enabled/disabled');
-    validateNotebookPodTolerations(dashboardConfig);
-  });
+      // Validate notebook pod tolerations displays based on OpenShift command to 'get OdhDashboardConfig' to validate configuration
+      cy.step('Validate Notebook pod tolerations displays and fields are enabled/disabled');
+      validateNotebookPodTolerations(dashboardConfig);
+    },
+  );
 
-  it('Test User - should not have access rights to view the Cluster Settings tab', () => {
-    cy.step('Log into the application');
-    cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
+  it(
+    'Test User - should not have access rights to view the Cluster Settings tab',
+    { tags: ['@Smoke', '@ODS-1216', '@Dashboard'] },
+    () => {
+      cy.step('Log into the application');
+      cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
-    cy.step('Navigate to the Cluster Settings');
-    clusterSettings.visit(false);
+      cy.step('Navigate to the Cluster Settings');
+      clusterSettings.visit(false);
 
-    pageNotfound.findPage().should('exist');
+      pageNotfound.findPage().should('exist');
 
-    clusterSettings.findNavItem().should('not.exist');
-  });
+      clusterSettings.findNavItem().should('not.exist');
+    },
+  );
 });

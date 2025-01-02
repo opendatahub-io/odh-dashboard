@@ -24,23 +24,27 @@ describe('Verify RHODS Explore Section Contains Only Expected ISVs', () => {
     });
   });
 
-  it('Validate that configured ISVs display in the Explore Section', () => {
-    // Authentication and navigation
-    cy.step('Login to the application');
-    cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+  it(
+    'Validate that configured ISVs display in the Explore Section',
+    { tags: ['@Smoke', '@ODS-1890', '@Dashboard', '@Tier1'] },
+    () => {
+      // Authentication and navigation
+      cy.step('Login to the application');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
-    // Navigate to the Explore page and search for each ISV
-    cy.step('Navigate to the Explore page');
-    explorePage.visit();
+      // Navigate to the Explore page and search for each ISV
+      cy.step('Navigate to the Explore page');
+      explorePage.visit();
 
-    cy.step('Searching for each ISV based on the oc command output and rhoai-app manifest flag');
-    expectedISVs.forEach((isv) => {
-      explorePage
-        .findCardLocator(isv)
-        .should('be.visible')
-        .then(() => {
-          cy.log(`✅ Application found: ${isv}`);
-        });
-    });
-  });
+      cy.step('Searching for each ISV based on the oc command output and rhoai-app manifest flag');
+      expectedISVs.forEach((isv) => {
+        explorePage
+          .findCardLocator(isv)
+          .should('be.visible')
+          .then(() => {
+            cy.log(`✅ Application found: ${isv}`);
+          });
+      });
+    },
+  );
 });

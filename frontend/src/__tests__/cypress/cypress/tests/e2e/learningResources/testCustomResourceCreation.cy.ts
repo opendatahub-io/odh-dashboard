@@ -33,7 +33,7 @@ describe('Create a custom resource Quickstart by using Dashboard CRDs', () => {
     return cleanupCustomResources(resourcesData);
   });
 
-  it('Upload custom resource and verify', () => {
+  it('Upload custom resource and verify', { tags: ['@Smoke', '@ODS-697', '@Dashboard'] }, () => {
     // Authentication and navigation
     cy.step('Log into the application');
     cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);

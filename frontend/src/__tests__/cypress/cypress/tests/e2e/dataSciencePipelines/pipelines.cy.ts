@@ -25,7 +25,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
     deleteOpenShiftProject(projectName);
   });
 
-  it('An admin User can Import and Run a Pipeline', () => {
+  it('An admin User can Import and Run a Pipeline', { tags: ['@Smoke', '@Dashboard'] }, () => {
     cy.step('Navigate to DSP ${projectName}');
     cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
     projectListPage.navigate();
