@@ -44,7 +44,7 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
 
   it(
     'Create and Delete a Data Science Project in RHOAI',
-    { tags: ['@Smoke', '@ODS-1775', '@Dashboard', '@Tier1'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-1775', '@Dashboard', '@Tier1'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');

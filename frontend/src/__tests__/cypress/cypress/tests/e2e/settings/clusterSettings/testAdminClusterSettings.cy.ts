@@ -51,7 +51,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
 
   it(
     'Admin should access Cluster Settings and see UI fields matching OpenShift configurations',
-    { tags: ['@Smoke', '@ODS-1216', '@Dashboard'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-1216', '@Dashboard'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -81,7 +81,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
 
   it(
     'Test User - should not have access rights to view the Cluster Settings tab',
-    { tags: ['@Smoke', '@ODS-1216', '@Dashboard'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-1216', '@Dashboard'] },
     () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);

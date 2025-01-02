@@ -23,7 +23,7 @@ describe('Regular Users can make use of the Storage Classes in the Cluster Stora
 
   it(
     'If all SC are disabled except one, the SC dropdown should be disabled',
-    { tags: ['@Smoke', '@Dashboard'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard'] },
     () => {
       // Authentication and navigation
       cy.visitWithLogin('/projects', LDAP_CONTRIBUTOR_USER);
