@@ -1,4 +1,5 @@
 [dev setup documentation]: docs/dev-setup.md#requirements
+[SharedClustersConfluence]: https://spaces.redhat.com/display/RHODS/Dashboard+Shared+Clusters
 
 # Contributing
 
@@ -55,6 +56,15 @@ NAMESPACE=my-example make port-forward
 
 To give your dev environment access to the ODH configuration, log in to the OpenShift cluster and set the project to the location of the ODH installation
 
+See this list for a set of shared clusters: [SharedClustersConfluence]
+
+1. Open the cluster UI from the above list. 
+1. On the cluster overview screen in the Administrator ⚙️ perspective, find the `Cluster API Address`. (It should be in the form of https://api.{cluster-name}.dev.datahub.redhat.com:6443)
+1. Provide the Cluster API Address to one of the following methods of authentication. 
+1. ⚠️ You will see a TLS/security warning, this is normal for development cluster protected behind the VPN. 
+1. When you log-in to the cluster, ensure that you use the `customadmins` role, and avoid the `kube:admin` role as this will be deprecated in the future. 
+1. See the Cluster [SharedClustersConfluence] page for registered users/passwords for testing, and credentials, as well as sharing the status of shared resources (up/down/etc).
+
 ```bash
 oc login https://api.my-openshift-cluster.com:6443 -u <username> -p <password>
 ```
@@ -67,7 +77,7 @@ OC_PROJECT=my-project
 OC_USER=kubeadmin
 OC_PASSWORD=my-password
 ```
-
+    
 ```bash
 make login
 ```
@@ -78,7 +88,7 @@ or
 npm run make:login
 ```
 
-> Note: You'll need to reauthenticate using one of the above steps and restart `backend` each day.
+> Note: You'll need to 🔐 reauthenticate using one of the above steps and restart `backend` each day.
 
 ## Debugging and Testing
 
