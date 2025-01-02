@@ -63,7 +63,7 @@ See this list for a set of shared clusters: [SharedClustersConfluence]
 1. Provide the Cluster API Address to one of the following methods of authentication. 
 1. ⚠️ You will see a TLS/security warning, this is normal for development cluster protected behind the VPN. 
 1. When you log-in to the cluster, ensure that you use the `customadmins` role, and avoid the `kube:admin` role as this will be deprecated in the future. 
-1. See the Cluster [SharedClustersConfluence] page for registered users/passwords for testing, and authenticate.
+1. See the Cluster [SharedClustersConfluence] page for registered users/passwords for testing, and credentials, as well as sharing the status of shared resources (up/down/etc).
 
 ```bash
 oc login https://api.my-openshift-cluster.com:6443 -u <username> -p <password>
