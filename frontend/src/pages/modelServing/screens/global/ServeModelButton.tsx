@@ -59,7 +59,9 @@ const ServeModelButton: React.FC = () => {
           getProjectModelServingPlatform(project, servingPlatformStatuses).platform,
         )
       }
-      isAriaDisabled={!project || (!isNIMAvailable && isKServeNIMEnabled)}
+      isAriaDisabled={
+        !project || templatesEnabled.length === 0 || (!isNIMAvailable && isKServeNIMEnabled)
+      }
     >
       Deploy model
     </Button>
