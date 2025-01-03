@@ -56,7 +56,7 @@ const ModelServingPlatformButtonAction: React.FC<ModelServingPlatformButtonActio
         )
       }
     >
-      <span>{actionButton}</span>
+      {actionButton}
     </Tooltip>
   );
 };

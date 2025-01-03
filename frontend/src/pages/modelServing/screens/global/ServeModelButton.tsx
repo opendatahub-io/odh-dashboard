@@ -68,16 +68,14 @@ const ServeModelButton: React.FC = () => {
   if (!project) {
     return (
       <Tooltip data-testid="deploy-model-tooltip" content="To deploy a model, select a project.">
-        <div>{deployButton}</div>
+        {deployButton}
       </Tooltip>
     );
   }
 
   if (!isNIMAvailable && isKServeNIMEnabled) {
     return (
-      <Tooltip content="NIM is not available. Contact your administrator.">
-        <div>{deployButton}</div>
-      </Tooltip>
+      <Tooltip content="NIM is not available. Contact your administrator.">{deployButton}</Tooltip>
     );
   }
 
