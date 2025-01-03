@@ -97,6 +97,30 @@ const initIntercepts = () => {
     },
     mockModelArtifact(),
   ).as('createModelArtifact');
+
+  cy.interceptOdh(
+    'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId',
+    {
+      path: {
+        serviceName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        registeredModelId: '1',
+      },
+    },
+    mockRegisteredModel({ id: '1', name: 'Test model name' }),
+  ).as('updateRegisteredModel');
+
+  cy.interceptOdh(
+    'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId',
+    {
+      path: {
+        serviceName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: '2',
+      },
+    },
+    mockModelVersion({ id: '2', name: 'Test version name' }),
+  ).as('updateModelVersion');
 };
 
 describe('Register model page', () => {

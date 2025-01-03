@@ -11,10 +11,14 @@ import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/pro
 import { ServingRuntimePlatform } from '~/types';
 import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
 import useRegisteredModelDeployInfo from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
-import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
+import {
+  ModelRegistryContext,
+  useModelRegistryAPI,
+} from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { getKServeTemplates } from '~/pages/modelServing/customServingRuntimes/utils';
 import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
+import { bumpBothTimestamps } from '~/concepts/modelRegistry/utils/updateTimestamps';
 
 interface DeployRegisteredModelModalProps {
   modelVersion: ModelVersion;
@@ -33,6 +37,7 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
     servingRuntimeTemplateDisablement: { data: templateDisablement },
   } = React.useContext(ModelRegistryContext);
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const modelRegistryApi = useModelRegistryAPI();
 
   const [selectedProject, setSelectedProject] = React.useState<ProjectKind | null>(null);
   const servingPlatformStatuses = useServingPlatformStatuses();
@@ -51,16 +56,32 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
     error: deployInfoError,
   } = useRegisteredModelDeployInfo(modelVersion);
 
+  const handleSubmit = React.useCallback(async () => {
+    if (!modelVersion.registeredModelId) {
+      return;
+    }
+
+    try {
+      await bumpBothTimestamps(
+        modelRegistryApi.api,
+        modelVersion.id,
+        modelVersion.registeredModelId,
+      );
+      onSubmit?.();
+    } catch (submitError) {
+      throw new Error('Failed to update timestamps after deployment');
+    }
+  }, [modelRegistryApi.api, modelVersion.id, modelVersion.registeredModelId, onSubmit]);
+
   const onClose = React.useCallback(
     (submit: boolean) => {
       if (submit) {
-        onSubmit?.();
+        handleSubmit();
       }
-
       setSelectedProject(null);
       onCancel();
     },
-    [onCancel, onSubmit],
+    [handleSubmit, onCancel],
   );
 
   const projectSection = (
@@ -101,7 +122,7 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
         isOpen
         onClose={() => onClose(false)}
         actions={[
-          <Button key="deploy" variant="primary" isDisabled>
+          <Button key="deploy" variant="primary" onClick={handleSubmit}>
             Deploy
           </Button>,
           <Button key="cancel" variant="link" onClick={() => onClose(false)}>
