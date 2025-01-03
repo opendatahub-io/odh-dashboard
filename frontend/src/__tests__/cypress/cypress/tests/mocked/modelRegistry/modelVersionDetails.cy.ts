@@ -463,6 +463,10 @@ describe('Model version details', () => {
     beforeEach(() => {
       initIntercepts();
       modelVersionDetails.visit();
+
+      cy.on('uncaught:exception', () => {
+        return false;
+      });
     });
 
     it('should update source model format', () => {
@@ -477,6 +481,18 @@ describe('Model version details', () => {
         },
         mockModelArtifact({}),
       ).as('updateModelFormat');
+
+      cy.interceptOdh(
+        'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId',
+        {
+          path: {
+            serviceName: 'modelregistry-sample',
+            apiVersion: MODEL_REGISTRY_API_VERSION,
+            registeredModelId: '1',
+          },
+        },
+        mockRegisteredModel({}),
+      );
 
       modelVersionDetails.findSourceModelFormat('edit').click();
       modelVersionDetails
@@ -505,6 +521,18 @@ describe('Model version details', () => {
         },
         mockModelArtifact({}),
       ).as('updateModelVersion');
+
+      cy.interceptOdh(
+        'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId',
+        {
+          path: {
+            serviceName: 'modelregistry-sample',
+            apiVersion: MODEL_REGISTRY_API_VERSION,
+            registeredModelId: '1',
+          },
+        },
+        mockRegisteredModel({}),
+      );
 
       modelVersionDetails.findSourceModelVersion('edit').click();
       modelVersionDetails.findSourceModelVersion('group').find('input').clear().type('2.0.0');

@@ -342,9 +342,7 @@ declare global {
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId',
-          options: {
-            path: { serviceName: string; apiVersion: string; modelVersionId: number };
-          },
+          options: { path: { serviceName: string; apiVersion: string; modelVersionId: number } },
           response: OdhResponse<ModelVersion>,
         ) => Cypress.Chainable<null>) &
         ((
@@ -686,6 +684,43 @@ declare global {
             };
           },
           response: OdhResponse<NimServingResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId',
+          options: {
+            path: {
+              serviceName: string;
+              apiVersion: string;
+              registeredModelId: string | number;
+            };
+          },
+          response: OdhResponse<RegisteredModel>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: string,
+          options: {
+            method: 'GET';
+            path: {
+              serviceName: string;
+              apiVersion: string;
+              modelVersionId: string;
+            };
+          },
+          response: OdhResponse<ModelVersion>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts',
+          options: {
+            path: { serviceName: string; apiVersion: string; modelVersionId: string };
+          },
+          response: OdhResponse<ModelArtifact>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId',
+          options: {
+            path: { serviceName: string; apiVersion: string; modelVersionId: string };
+          },
+          response: OdhResponse<ModelVersion>,
         ) => Cypress.Chainable<null>);
     }
   }
