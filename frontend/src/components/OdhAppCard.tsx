@@ -25,6 +25,7 @@ import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { useAppContext } from '~/app/AppContext';
 import { useAppDispatch } from '~/redux/hooks';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { isInternalRouteIntegrationsApp } from '~/utilities/utils';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 import SupportedAppTitle from './SupportedAppTitle';
 import BrandImage from './BrandImage';
@@ -149,20 +150,24 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
           setEnableOpen(true);
         }}
       >
-        here
+        here.
       </Button>
-      . To remove card click&nbsp;
-      <Button
-        isInline
-        variant="link"
-        onClick={() => {
-          hide();
-          removeApplication();
-        }}
-      >
-        here
-      </Button>
-      .
+      {!isInternalRouteIntegrationsApp(odhApp.spec.internalRoute) ? (
+        <>
+          To remove card click&nbsp;
+          <Button
+            isInline
+            variant="link"
+            onClick={() => {
+              hide();
+              removeApplication();
+            }}
+          >
+            here
+          </Button>
+          .
+        </>
+      ) : null}
     </div>
   );
 

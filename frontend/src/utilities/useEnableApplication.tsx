@@ -7,7 +7,9 @@ import {
 } from '~/services/integrationAppService';
 import { addNotification, forceComponentsUpdate } from '~/redux/actions/actions';
 import { useAppDispatch } from '~/redux/hooks';
+import { VariablesValidationStatus } from '~/types';
 import { isInternalRouteIntegrationsApp } from './utils';
+import { FAST_POLL_INTERVAL } from '~/utilities/const';
 
 export enum EnableApplicationStatus {
   INPROGRESS,
@@ -27,29 +29,25 @@ export const useEnableApplication = (
     status: EnableApplicationStatus;
     error: string;
   }>({ status: EnableApplicationStatus.IDLE, error: '' });
+  const [startPolling, setStartPolling] = React.useState(false);
   const dispatch = useAppDispatch();
 
   const dispatchResults = React.useCallback(
     (error?: string) => {
-      if (!error) {
-        dispatch(
-          addNotification({
-            status: AlertVariant.success,
-            title: `${appName} has been added to the Enabled page.`,
-            timestamp: new Date(),
-          }),
-        );
-        dispatch(forceComponentsUpdate());
-        return;
-      }
       dispatch(
         addNotification({
-          status: AlertVariant.danger,
-          title: `Error attempting to validate ${appName}.`,
+          status: error ? AlertVariant.danger : AlertVariant.success,
+          title: error
+            ? `Error attempting to validate ${appName}`
+            : `${appName} has been added to the Enabled page.`,
           message: error,
           timestamp: new Date(),
         }),
       );
+
+      if (!error) {
+        dispatch(forceComponentsUpdate());
+      }
     },
     [appName, dispatch],
   );
@@ -63,22 +61,35 @@ export const useEnableApplication = (
   React.useEffect(() => {
     let cancelled = false;
     let watchHandle: ReturnType<typeof setTimeout>;
-    if (enableStatus.status === EnableApplicationStatus.INPROGRESS) {
+    
+    if (startPolling && enableStatus.status === EnableApplicationStatus.INPROGRESS) {
       const watchStatus = () => {
         if (isInternalRouteIntegrationsApp(internalRoute)) {
           getIntegrationAppEnablementStatus(internalRoute)
             .then((response) => {
-              if (!response.isInstalled && response.canInstall) {
+              if (
+                response.isInstalled &&
+                response.canInstall &&
+                response.variablesValidationStatus === VariablesValidationStatus.UNKNOWN
+              ) {
                 watchHandle = setTimeout(watchStatus, 10 * 1000);
                 return;
               }
-              if (response.isInstalled) {
-                setEnableStatus({
-                  status: EnableApplicationStatus.SUCCESS,
-                  error: '',
-                });
-                dispatchResults(undefined);
-              }
+              setEnableStatus({
+                status:
+                  response.variablesValidationStatus === VariablesValidationStatus.SUCCESS
+                    ? EnableApplicationStatus.SUCCESS
+                    : EnableApplicationStatus.FAILED,
+                error:
+                  response.variablesValidationStatus === VariablesValidationStatus.SUCCESS
+                    ? ''
+                    : 'Variables are not valid',
+              });
+              dispatchResults(
+                response.variablesValidationStatus === VariablesValidationStatus.SUCCESS
+                  ? undefined
+                  : 'Variables are not valid',
+              );
             })
             .catch((e) => {
               if (!cancelled) {
@@ -115,32 +126,32 @@ export const useEnableApplication = (
       cancelled = true;
       clearTimeout(watchHandle);
     };
-  }, [appId, dispatchResults, enableStatus.status, internalRoute]);
+  }, [appId, dispatchResults, enableStatus.status, internalRoute, startPolling]);
 
   React.useEffect(() => {
     let closed = false;
     if (doEnable) {
       if (isInternalRouteIntegrationsApp(internalRoute)) {
+        setStartPolling(false);
+        setEnableStatus({ status: EnableApplicationStatus.INPROGRESS, error: '' });
+        
         enableIntegrationApp(internalRoute, enableValues)
           .then((response) => {
             if (!closed) {
-              if (!response.isInstalled && response.canInstall) {
-                setEnableStatus({ status: EnableApplicationStatus.INPROGRESS, error: '' });
-                return;
-              }
-
-              if (response.isInstalled) {
-                setEnableStatus({
-                  status: EnableApplicationStatus.SUCCESS,
-                  error: response.error,
-                });
-                dispatchResults(undefined);
-              }
+              setTimeout(() => {
+                if (
+                  response.isInstalled &&
+                  response.canInstall &&
+                  response.variablesValidationStatus === VariablesValidationStatus.UNKNOWN
+                ) {
+                  setStartPolling(true);
+                }
+              }, FAST_POLL_INTERVAL);
             }
           })
           .catch((e) => {
             if (!closed) {
-              setEnableStatus({ status: EnableApplicationStatus.FAILED, error: e.m });
+              setEnableStatus({ status: EnableApplicationStatus.FAILED, error: e.message });
             }
             dispatchResults(e.message);
           });
@@ -164,7 +175,7 @@ export const useEnableApplication = (
           })
           .catch((e) => {
             if (!closed) {
-              setEnableStatus({ status: EnableApplicationStatus.FAILED, error: e.m });
+              setEnableStatus({ status: EnableApplicationStatus.FAILED, error: e.message });
             }
             dispatchResults(e.message);
           });
