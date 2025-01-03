@@ -11,6 +11,7 @@ import {
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
+import { useNavigate } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { useDashboardNamespace } from '~/redux/selectors';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
@@ -22,6 +23,7 @@ const description = `Manage hardware profile settings for users in your organiza
 const HardwareProfiles: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
   const [hardwareProfiles, loaded, loadError, refresh] = useHardwareProfiles(dashboardNamespace);
+  const navigate = useNavigate();
 
   const isEmpty = hardwareProfiles.length === 0;
 
@@ -45,9 +47,7 @@ const HardwareProfiles: React.FC = () => {
             <Button
               data-testid="display-hardware-modal-button"
               variant={ButtonVariant.primary}
-              onClick={() => {
-                /* Todo: Create hardware profile */
-              }}
+              onClick={() => navigate('/hardwareProfiles/create')}
             >
               Add new hardware profile
             </Button>
