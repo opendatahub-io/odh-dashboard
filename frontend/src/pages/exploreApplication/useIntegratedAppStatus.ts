@@ -3,8 +3,11 @@ import { IntegrationAppStatus, OdhApplication, VariablesValidationStatus } from 
 import useFetchState, { FetchState, NotReadyError } from '~/utilities/useFetchState';
 import { getIntegrationAppEnablementStatus } from '~/services/integrationAppService';
 import { isIntegrationApp } from '~/utilities/utils';
+import { useAppSelector } from '~/redux/hooks';
 
 export const useIntegratedAppStatus = (app?: OdhApplication): FetchState<IntegrationAppStatus> => {
+  const forceUpdate = useAppSelector((state) => state.forceComponentsUpdate);
+
   const callback = React.useCallback(() => {
     if (!app) {
       return Promise.reject(new NotReadyError('Need an app to check'));
@@ -21,7 +24,7 @@ export const useIntegratedAppStatus = (app?: OdhApplication): FetchState<Integra
     }
 
     return getIntegrationAppEnablementStatus(app.spec.internalRoute);
-  }, [app]);
+  }, [app, forceUpdate]);
 
   return useFetchState(
     callback,
@@ -32,6 +35,8 @@ export const useIntegratedAppStatus = (app?: OdhApplication): FetchState<Integra
       variablesValidationStatus: VariablesValidationStatus.UNKNOWN,
       error: '',
     },
-    { refreshRate: 5000, initialPromisePurity: true },
+    { 
+      initialPromisePurity: true,
+    },
   );
 };

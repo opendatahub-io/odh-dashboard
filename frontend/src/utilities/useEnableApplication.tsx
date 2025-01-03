@@ -9,6 +9,7 @@ import { addNotification, forceComponentsUpdate } from '~/redux/actions/actions'
 import { useAppDispatch } from '~/redux/hooks';
 import { VariablesValidationStatus } from '~/types';
 import { isInternalRouteIntegrationsApp } from './utils';
+import { FAST_POLL_INTERVAL } from '~/utilities/const';
 
 export enum EnableApplicationStatus {
   INPROGRESS,
@@ -28,6 +29,7 @@ export const useEnableApplication = (
     status: EnableApplicationStatus;
     error: string;
   }>({ status: EnableApplicationStatus.IDLE, error: '' });
+  const [startPolling, setStartPolling] = React.useState(false);
   const dispatch = useAppDispatch();
 
   const dispatchResults = React.useCallback(
@@ -59,7 +61,8 @@ export const useEnableApplication = (
   React.useEffect(() => {
     let cancelled = false;
     let watchHandle: ReturnType<typeof setTimeout>;
-    if (enableStatus.status === EnableApplicationStatus.INPROGRESS) {
+    
+    if (startPolling && enableStatus.status === EnableApplicationStatus.INPROGRESS) {
       const watchStatus = () => {
         if (isInternalRouteIntegrationsApp(internalRoute)) {
           getIntegrationAppEnablementStatus(internalRoute)
@@ -123,22 +126,27 @@ export const useEnableApplication = (
       cancelled = true;
       clearTimeout(watchHandle);
     };
-  }, [appId, dispatchResults, enableStatus.status, internalRoute]);
+  }, [appId, dispatchResults, enableStatus.status, internalRoute, startPolling]);
 
   React.useEffect(() => {
     let closed = false;
     if (doEnable) {
       if (isInternalRouteIntegrationsApp(internalRoute)) {
+        setStartPolling(false);
+        setEnableStatus({ status: EnableApplicationStatus.INPROGRESS, error: '' });
+        
         enableIntegrationApp(internalRoute, enableValues)
           .then((response) => {
             if (!closed) {
-              if (
-                response.isInstalled &&
-                response.canInstall &&
-                response.variablesValidationStatus === VariablesValidationStatus.UNKNOWN
-              ) {
-                setEnableStatus({ status: EnableApplicationStatus.INPROGRESS, error: '' });
-              }
+              setTimeout(() => {
+                if (
+                  response.isInstalled &&
+                  response.canInstall &&
+                  response.variablesValidationStatus === VariablesValidationStatus.UNKNOWN
+                ) {
+                  setStartPolling(true);
+                }
+              }, FAST_POLL_INTERVAL);
             }
           })
           .catch((e) => {
