@@ -42,7 +42,7 @@
     "@fastify/sensible": "^5.2.0",
     "@fastify/static": "^6.10.2",
     "@fastify/websocket": "^8.3.1",
-    "@kubernetes/client-node": "^0.12.2",
+    "@kubernetes/client-node": "^1.0.0",
     "dotenv": "^8.2.0",
     "fastify": "^4.28.1",
     "fastify-plugin": "^4.5.1",
