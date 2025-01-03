@@ -33,6 +33,7 @@ import type {
   ClusterSettingsType,
   DetectedAccelerators,
   ImageInfo,
+  IntegrationAppStatus,
   OdhApplication,
   OdhDocument,
   PrometheusQueryRangeResponse,
@@ -702,6 +703,15 @@ declare global {
             };
           },
           response: OdhResponse<NimServingResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/integrations/:internalRoute',
+          options: {
+            path: {
+              internalRoute: string;
+            };
+          },
+          response: OdhResponse<IntegrationAppStatus>,
         ) => Cypress.Chainable<null>);
     }
   }

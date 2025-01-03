@@ -22,6 +22,7 @@ import ProjectsContextProvider from '~/concepts/projects/ProjectsContext';
 import { ModelRegistrySelectorContextProvider } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import useStorageClasses from '~/concepts/k8s/useStorageClasses';
 import AreaContextProvider from '~/concepts/areas/AreaContext';
+import { NimContextProvider } from '~/concepts/nimServing/NIMAvailabilityContext';
 import useDevFeatureFlags from './useDevFeatureFlags';
 import Header from './Header';
 import AppRoutes from './AppRoutes';
@@ -130,13 +131,15 @@ const App: React.FC = () => {
             }
           >
             <ErrorBoundary>
-              <ProjectsContextProvider>
-                <ModelRegistrySelectorContextProvider>
-                  <QuickStarts>
-                    <AppRoutes />
-                  </QuickStarts>
-                </ModelRegistrySelectorContextProvider>
-              </ProjectsContextProvider>
+              <NimContextProvider>
+                <ProjectsContextProvider>
+                  <ModelRegistrySelectorContextProvider>
+                    <QuickStarts>
+                      <AppRoutes />
+                    </QuickStarts>
+                  </ModelRegistrySelectorContextProvider>
+                </ProjectsContextProvider>
+              </NimContextProvider>
               <ToastNotifications />
               <TelemetrySetup />
             </ErrorBoundary>

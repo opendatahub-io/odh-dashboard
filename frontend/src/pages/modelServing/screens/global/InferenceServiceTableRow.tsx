@@ -11,6 +11,7 @@ import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
+import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
@@ -38,6 +39,8 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   const { projects } = React.useContext(ProjectsContext);
   const project = projects.find(byName(inferenceService.metadata.namespace)) ?? null;
   const isKServeNIMEnabled = project ? isProjectNIMSupported(project) : false;
+  const servingPlatformStatuses = useServingPlatformStatuses();
+  const isNIMAvailable = servingPlatformStatuses.kServeNIM.enabled;
 
   const [modelMetricsEnabled] = useModelMetricsEnabled();
   const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
@@ -112,6 +115,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
                 onClick: () => {
                   onEditInferenceService(inferenceService);
                 },
+                isDisabled: !isNIMAvailable && isKServeNIMEnabled,
               },
               { isSeparator: true },
               {

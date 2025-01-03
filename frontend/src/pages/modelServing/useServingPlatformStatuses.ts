@@ -1,6 +1,7 @@
+import * as React from 'react';
 import { StackComponent, SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { ServingPlatformStatuses } from '~/pages/modelServing/screens/types';
-import { useIsNIMAvailable } from '~/pages/modelServing/screens/projects/useIsNIMAvailable';
+import { NIMAvailabilityContext } from '~/concepts/nimServing/NIMAvailabilityContext';
 
 const useServingPlatformStatuses = (): ServingPlatformStatuses => {
   const kServeStatus = useIsAreaAvailable(SupportedArea.K_SERVE);
@@ -10,7 +11,7 @@ const useServingPlatformStatuses = (): ServingPlatformStatuses => {
   const kServeInstalled = !!kServeStatus.requiredComponents?.[StackComponent.K_SERVE];
   const modelMeshInstalled = !!modelMeshStatus.requiredComponents?.[StackComponent.MODEL_MESH];
 
-  const isNIMAvailable = useIsNIMAvailable();
+  const { isNIMAvailable } = React.useContext(NIMAvailabilityContext);
 
   return {
     kServe: {
