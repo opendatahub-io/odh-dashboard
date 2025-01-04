@@ -272,9 +272,7 @@ const TableBase = <T,>({
       {caption && <Caption>{caption}</Caption>}
       <Thead noWrap hasNestedHeader={hasNestedHeader}>
         {/* Note from PF: following custom style can be removed when we can resolve misalignment issue natively */}
-        <Tr style={{ verticalAlign: 'middle' }}>
-          {columns.map((col, i) => renderColumnHeader(col, i))}
-        </Tr>
+        <Tr>{columns.map((col, i) => renderColumnHeader(col, i))}</Tr>
         {subColumns?.length ? (
           <Tr>{subColumns.map((col, i) => renderColumnHeader(col, columns.length + i, true))}</Tr>
         ) : null}

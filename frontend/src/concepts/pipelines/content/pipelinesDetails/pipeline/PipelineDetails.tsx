@@ -171,7 +171,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
             hasBodyWrapper={false}
             isFilled
             padding={{ default: 'noPadding' }}
-            style={{ flexBasis: 0, overflowY: 'hidden' }}
+            style={{ flexBasis: 0 }}
           >
             <Flex
               direction={{ default: 'column' }}

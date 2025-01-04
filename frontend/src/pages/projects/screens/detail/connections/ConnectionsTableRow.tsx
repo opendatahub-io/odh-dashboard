@@ -41,7 +41,6 @@ const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
       <Td dataLabel="Name">
         <TableRowTitleDescription
           title={<Truncate content={getDisplayNameFromK8sResource(obj)} />}
-          boldTitle={false}
           titleIcon={
             showWarningIcon ? (
               <Icon status="warning" className="pf-v6-u-pl-lg">
