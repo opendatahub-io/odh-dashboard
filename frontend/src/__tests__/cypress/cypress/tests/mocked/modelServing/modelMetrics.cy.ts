@@ -86,7 +86,7 @@ const mockTrustyDBSecret = (): SecretKind =>
 
 const initIntercepts = ({
   disablePerformanceMetrics,
-  disableNIMModelServing,
+  disableNIMModelServing = false,
   disableTrustyBiasMetrics,
   disableKServeMetrics,
   servingRuntimes = [mockServingRuntimeK8sResource({})],
