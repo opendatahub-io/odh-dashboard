@@ -139,9 +139,9 @@ jobs:
       - name: Run Cypress Mock tests
         run: |
           if [ "${{ matrix.test-group }}" == "default" ]; then
-            npm run test:cypress-ci
+            npm run test:cypress-ci:coverage
           else
-            npm run test:cypress-ci -- --spec "src/__tests__/cypress/cypress/tests/mocked/${{ matrix.test-group }}/**/*"
+            npm run test:cypress-ci:coverage -- --spec "src/__tests__/cypress/cypress/tests/mocked/${{ matrix.test-group }}/**/*"
           fi
         working-directory: ./frontend
       - name: Upload Cypress Mock results
