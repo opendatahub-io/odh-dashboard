@@ -57,6 +57,7 @@ export class CreateRunPage {
 
   findPipelineVersionByName(name: string): Cypress.Chainable<JQuery<HTMLTableCellElement>> {
     return this.find()
+      .document()
       .findByTestId('pipeline-version-selector-table-list')
       .find('td')
       .contains(name);

@@ -58,7 +58,7 @@ class PipelineImportModal extends Modal {
     this.pipelineSelector
       .findToggleButton()
       .click()
-      .parents()
+      .document()
       .findByTestId('pipeline-selector-table-list')
       .find('tr')
       .contains(name)
