@@ -40,6 +40,8 @@ export const bumpRegisteredModelTimestamp = async (
       {
         state: ModelState.LIVE,
         customProperties: {
+          // This is a workaround to update the timestamp on the backend. There is a bug opened for model registry team
+          // to fix this issue. see https://issues.redhat.com/browse/RHOAIENG-17614
           _lastModified: {
             metadataType: ModelRegistryMetadataType.STRING,
             // eslint-disable-next-line camelcase

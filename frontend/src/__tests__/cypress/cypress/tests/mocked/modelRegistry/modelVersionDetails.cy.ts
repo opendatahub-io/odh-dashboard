@@ -463,10 +463,6 @@ describe('Model version details', () => {
     beforeEach(() => {
       initIntercepts();
       modelVersionDetails.visit();
-
-      cy.on('uncaught:exception', () => {
-        return false;
-      });
     });
 
     it('should update source model format', () => {
