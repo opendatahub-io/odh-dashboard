@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Bullseye, Alert, Spinner } from '@patternfly/react-core';
 import { ClusterQueueKind, LocalQueueKind, WorkloadKind } from '~/k8sTypes';
 import { FetchStateObject } from '~/types';
-import { DEFAULT_LIST_FETCH_STATE, DEFAULT_VALUE_FETCH_STATE } from '~/utilities/const';
+import { DEFAULT_LIST_FETCH_STATE } from '~/utilities/const';
 import { SupportedArea, conditionalArea } from '~/concepts/areas';
 import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
 import { ProjectsContext, byName } from '~/concepts/projects/ProjectsContext';
@@ -20,13 +20,14 @@ import useLocalQueues from './useLocalQueues';
 import useWorkloads from './useWorkloads';
 
 type DistributedWorkloadsContextType = {
-  clusterQueue: FetchStateObject<ClusterQueueKind | undefined>;
+  clusterQueues: FetchStateObject<ClusterQueueKind[]>;
   localQueues: FetchStateObject<LocalQueueKind[]>;
   workloads: FetchStateObject<WorkloadKind[]>;
   projectCurrentMetrics: DWProjectCurrentMetrics;
   refreshAllData: () => void;
   namespace: string;
   projectDisplayName: string;
+  cqExists: boolean;
 };
 
 type DistributedWorkloadsContextProviderProps = {
@@ -35,13 +36,14 @@ type DistributedWorkloadsContextProviderProps = {
 };
 
 export const DistributedWorkloadsContext = React.createContext<DistributedWorkloadsContextType>({
-  clusterQueue: DEFAULT_VALUE_FETCH_STATE,
+  clusterQueues: DEFAULT_LIST_FETCH_STATE,
   localQueues: DEFAULT_LIST_FETCH_STATE,
   workloads: DEFAULT_LIST_FETCH_STATE,
   projectCurrentMetrics: DEFAULT_DW_PROJECT_CURRENT_METRICS,
   refreshAllData: () => undefined,
   namespace: '',
   projectDisplayName: '',
+  cqExists: false,
 });
 
 export const DistributedWorkloadsContextProvider =
@@ -59,16 +61,22 @@ export const DistributedWorkloadsContextProvider =
 
     // TODO mturley implement lazy loading, let the context consumers tell us what data they need and make the other ones throw a NotReadyError
 
-    const clusterQueues = useMakeFetchObject<ClusterQueueKind[]>(useClusterQueues(refreshRate));
-    // We only support one ClusterQueue, but if the user has created multiple we use the first one with resourceGroups
-    const clusterQueue: FetchStateObject<ClusterQueueKind | undefined> = {
-      ...clusterQueues,
-      data: clusterQueues.data.find((cq) => cq.spec.resourceGroups?.length),
-    };
-
     const localQueues = useMakeFetchObject<LocalQueueKind[]>(
       useLocalQueues(namespace, refreshRate),
     );
+
+    const allClusterQueues = useMakeFetchObject<ClusterQueueKind[]>(useClusterQueues(refreshRate));
+
+    const validCQExists = allClusterQueues.data.some((cq) => cq.spec.resourceGroups?.length);
+
+    const clusterQueues = {
+      ...allClusterQueues,
+      data: allClusterQueues.data.filter(
+        (cq) =>
+          localQueues.data.some((lq) => lq.spec.clusterQueue === cq.metadata?.name) &&
+          cq.spec.resourceGroups?.length,
+      ),
+    };
 
     const workloads = useMakeFetchObject<WorkloadKind[]>(useWorkloads(namespace, refreshRate));
 
@@ -115,13 +123,14 @@ export const DistributedWorkloadsContextProvider =
     return (
       <DistributedWorkloadsContext.Provider
         value={{
-          clusterQueue,
+          clusterQueues,
           localQueues,
           workloads,
           projectCurrentMetrics,
           refreshAllData,
           namespace,
           projectDisplayName: getDisplayNameFromK8sResource(project),
+          cqExists: validCQExists,
         }}
       >
         {children}

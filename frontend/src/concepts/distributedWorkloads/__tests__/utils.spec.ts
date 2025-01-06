@@ -200,10 +200,20 @@ describe('getQueueRequestedResources', () => {
 
 describe('getTotalSharedQuota', () => {
   it('correctly parses and adds up total resources from clusterQueue resourceGroups', () => {
-    const mockClusterQueue = mockClusterQueueK8sResource({});
-    expect(getTotalSharedQuota(mockClusterQueue)).toEqual({
+    const mockClusterQueues = [mockClusterQueueK8sResource({})];
+    expect(getTotalSharedQuota(mockClusterQueues)).toEqual({
       cpuCoresRequested: 100,
       memoryBytesRequested: 68719476736,
+    } satisfies WorkloadRequestedResources);
+  });
+  it('correctley parses and adds up total resources from multiple clusterQueues', () => {
+    const mockClusterQueues = [
+      mockClusterQueueK8sResource({ name: 'test-clusterqueue-1' }),
+      mockClusterQueueK8sResource({ name: 'test-clusterqueue-2' }),
+    ];
+    expect(getTotalSharedQuota(mockClusterQueues)).toEqual({
+      cpuCoresRequested: 200,
+      memoryBytesRequested: 137438953472,
     } satisfies WorkloadRequestedResources);
   });
 });

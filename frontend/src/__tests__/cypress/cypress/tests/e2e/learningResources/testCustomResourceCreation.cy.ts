@@ -33,37 +33,41 @@ describe('Create a custom resource Quickstart by using Dashboard CRDs', () => {
     return cleanupCustomResources(resourcesData);
   });
 
-  it('Upload custom resource and verify', () => {
-    // Authentication and navigation
-    cy.step('Log into the application');
-    cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+  it(
+    'Upload custom resource and verify',
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-697', '@Dashboard'] },
+    () => {
+      // Authentication and navigation
+      cy.step('Log into the application');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
-    cy.step('Navigate to Resources tab and search for the Custom Resources');
-    resources.visit();
+      cy.step('Navigate to Resources tab and search for the Custom Resources');
+      resources.visit();
 
-    // Verify the resources have been created by iterating over the resources created in the before method
-    cy.step('Check for newly created resources');
-    checkResources([
-      {
-        name: resourceNames.quickStartName,
-        metaDataName: resourceNames.quickStartMetaDataName,
-        description: resourceNames.quickStartDescription,
-      },
-      {
-        name: resourceNames.applicationName,
-        metaDataName: resourceNames.customAppMetaDataName,
-        description: resourceNames.customAppDescription,
-      },
-      {
-        name: resourceNames.howToName,
-        metaDataName: resourceNames.howToMetaDataName,
-        description: resourceNames.howToDescription,
-      },
-      {
-        name: resourceNames.tutorialName,
-        metaDataName: resourceNames.tutorialMetaDataName,
-        description: resourceNames.tutorialDescription,
-      },
-    ]);
-  });
+      // Verify the resources have been created by iterating over the resources created in the before method
+      cy.step('Check for newly created resources');
+      checkResources([
+        {
+          name: resourceNames.quickStartName,
+          metaDataName: resourceNames.quickStartMetaDataName,
+          description: resourceNames.quickStartDescription,
+        },
+        {
+          name: resourceNames.applicationName,
+          metaDataName: resourceNames.customAppMetaDataName,
+          description: resourceNames.customAppDescription,
+        },
+        {
+          name: resourceNames.howToName,
+          metaDataName: resourceNames.howToMetaDataName,
+          description: resourceNames.howToDescription,
+        },
+        {
+          name: resourceNames.tutorialName,
+          metaDataName: resourceNames.tutorialMetaDataName,
+          description: resourceNames.tutorialDescription,
+        },
+      ]);
+    },
+  );
 });
