@@ -15,10 +15,6 @@ const TolerationTable: React.FC<TolerationTableProps> = ({ tolerations, onUpdate
   const [editToleration, setEditToleration] = React.useState<Toleration | undefined>();
   const [currentIndex, setCurrentIndex] = React.useState<number | undefined>();
 
-  const columns = viewOnly
-    ? tolerationColumns.filter((column) => column.field !== 'actions')
-    : tolerationColumns;
-
   return (
     <>
       <TableBase
@@ -26,7 +22,11 @@ const TolerationTable: React.FC<TolerationTableProps> = ({ tolerations, onUpdate
         data-testid="hardware-profile-tolerations-table"
         id="hardware-profile-tolerations-table"
         data={tolerations}
-        columns={columns}
+        columns={
+          viewOnly
+            ? tolerationColumns.filter((column) => column.field !== 'actions')
+            : tolerationColumns
+        }
         rowRenderer={(cr, rowIndex) => (
           <TolerationTableRow
             toleration={cr}

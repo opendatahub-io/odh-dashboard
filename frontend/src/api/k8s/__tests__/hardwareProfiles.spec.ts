@@ -40,11 +40,18 @@ const data: HardwareProfileKind['spec'] = {
   displayName: 'test',
   identifiers: [
     {
-      displayName: 'Memory',
+      displayName: 'RAM',
       identifier: 'memory',
-      minCount: '5Gi',
-      maxCount: '2Gi',
+      minCount: '2Gi',
+      maxCount: '5Gi',
       defaultCount: '2Gi',
+    },
+    {
+      displayName: 'CPU',
+      identifier: 'cpu',
+      minCount: '1',
+      maxCount: '2',
+      defaultCount: '1',
     },
   ],
   description: 'test description',

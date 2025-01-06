@@ -42,7 +42,7 @@ const ManageNodeSelectorSection: React.FC<ManageNodeSelectorSectionProps> = ({
       >
         Node selectors are added to a pod spec to allow the pod to be scheduled on nodes with
         matching labels.
-        {nodeSelectors.length !== 0 && (
+        {!isEmpty && (
           <NodeSelectorTable
             nodeSelectors={nodeSelectors}
             onUpdate={(newNodeSelectors) => setNodeSelectors(newNodeSelectors)}

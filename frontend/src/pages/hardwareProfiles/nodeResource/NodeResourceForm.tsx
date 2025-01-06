@@ -36,6 +36,7 @@ const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
         <TextInput
           value={identifier.displayName || ''}
           onChange={(_, value) => setIdentifier('displayName', value)}
+          data-testid="node-resource-label-input"
         />
       </FormGroup>
 
@@ -48,6 +49,7 @@ const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
             (identifier.identifier === 'cpu' || identifier.identifier === 'memory')
           }
           validated={validated}
+          data-testid="node-resource-identifier-input"
         />
         {!isUniqueIdentifier && (
           <FormHelperText>

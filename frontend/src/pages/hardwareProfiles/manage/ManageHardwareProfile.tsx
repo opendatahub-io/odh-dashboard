@@ -15,6 +15,7 @@ import {
 import ManageNodeSelectorSection from '~/pages/hardwareProfiles/manage/ManageNodeSelectorSection';
 import ManageTolerationSection from '~/pages/hardwareProfiles/manage/ManageTolerationSection';
 import ManageHardwareProfileFooter from '~/pages/hardwareProfiles/manage/ManageHardwareProfileFooter';
+import ManageNodeResourceSection from '~/pages/hardwareProfiles/manage/ManageNodeResourceSection';
 import { HardwareProfileFormData, ManageHardwareProfileSectionID } from './types';
 
 type ManageHardwareProfileProps = {
@@ -83,7 +84,7 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
       description={
         duplicatedHardwareProfile
           ? 'Create a new, editable profile by duplicating an existing profile.'
-          : undefined
+          : 'A hardware profile allows you to target notebook and model deployment workloads to particular cluster nodes by allowing you to specify node resources, node selectors and tolerations.'
       }
       breadcrumb={
         <Breadcrumb>
@@ -114,6 +115,10 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
               dataTestId="hardware-profile-name-desc"
             />
           </FormSection>
+          <ManageNodeResourceSection
+            nodeResources={state.identifiers ?? []}
+            setNodeResources={(identifiers) => setState('identifiers', identifiers)}
+          />
           <ManageNodeSelectorSection
             nodeSelectors={state.nodeSelectors ?? []}
             setNodeSelectors={(nodeSelectors) => setState('nodeSelectors', nodeSelectors)}

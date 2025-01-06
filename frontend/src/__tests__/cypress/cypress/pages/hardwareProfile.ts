@@ -106,6 +106,26 @@ class HardwareProfile {
   }
 }
 
+class NodeResourceRow extends TableRow {
+  shouldHaveResourceLabel(name: string) {
+    this.find().find(`[data-label="Resource label"]`).should('have.text', name);
+    return this;
+  }
+
+  shouldHaveResourceIdentifier(name: string) {
+    this.find().find(`[data-label="Resource identifier"]`).should('have.text', name);
+    return this;
+  }
+
+  findEditAction() {
+    return this.find().findByRole('button', { name: 'Edit node resource' });
+  }
+
+  findDeleteAction() {
+    return this.find().findByRole('button', { name: 'Remove node resource' });
+  }
+}
+
 class NodeSelectorRow extends TableRow {
   shouldHaveKey(name: string) {
     this.find().find(`[data-label=Key]`).should('have.text', name);
@@ -162,6 +182,10 @@ class ManageHardwareProfile {
     return cy.findByTestId('add-node-selector-button');
   }
 
+  findAddNodeResourceButton() {
+    return cy.findByTestId('add-node-resource-button');
+  }
+
   findSubmitButton() {
     return cy.findByTestId('hardware-profile-create-button');
   }
@@ -174,6 +198,10 @@ class ManageHardwareProfile {
     return cy.findByTestId('hardware-profile-node-selectors-table');
   }
 
+  findNodeResourceTable() {
+    return cy.findByTestId('hardware-profile-node-resources-table');
+  }
+
   getTolerationTableRow(name: string) {
     return new TolerationRow(() =>
       this.findTolerationTable().find(`[data-label=Key]`).contains(name).parents('tr'),
@@ -183,6 +211,15 @@ class ManageHardwareProfile {
   getNodeSelectorTableRow(name: string) {
     return new NodeSelectorRow(() =>
       this.findNodeSelectorTable().find(`[data-label=Key]`).contains(name).parents('tr'),
+    );
+  }
+
+  getNodeResourceTableRow(name: string) {
+    return new NodeResourceRow(() =>
+      this.findNodeResourceTable()
+        .find(`[data-label="Resource identifier"]`)
+        .contains(name)
+        .parents('tr'),
     );
   }
 }
@@ -307,11 +344,35 @@ class NodeSelectorModal extends Modal {
   }
 }
 
+class NodeResourceModal extends Modal {
+  constructor(edit = false) {
+    super(edit ? 'Edit node resource' : 'Add node resource');
+  }
+
+  findNodeResourceLabelInput() {
+    return this.find().findByTestId('node-resource-label-input');
+  }
+
+  findNodeResourceIdentifierInput() {
+    return this.find().findByTestId('node-resource-identifier-input');
+  }
+
+  findNodeResourceExistingErrorMessage() {
+    return this.find().findByTestId('resource-identifier-error');
+  }
+
+  findNodeResourceSubmitButton() {
+    return this.find().findByTestId('modal-submit-button');
+  }
+}
+
 export const hardwareProfile = new HardwareProfile();
 export const createHardwareProfile = new CreateHardwareProfile();
 export const createTolerationModal = new TolerationModal(false);
 export const editTolerationModal = new TolerationModal(true);
 export const createNodeSelectorModal = new NodeSelectorModal(false);
 export const editNodeSelectorModal = new NodeSelectorModal(true);
+export const createNodeResourceModal = new NodeResourceModal(false);
+export const editNodeResourceModal = new NodeResourceModal(true);
 export const editHardwareProfile = new EditHardwareProfile();
 export const duplicateHardwareProfile = new DuplicateHardwareProfile();

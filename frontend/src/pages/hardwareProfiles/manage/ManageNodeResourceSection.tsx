@@ -1,16 +1,10 @@
 import React from 'react';
-import {
-  FormSection,
-  Flex,
-  FlexItem,
-  Button,
-  Content,
-  Stack,
-  StackItem,
-} from '@patternfly/react-core';
+import { FormSection, Flex, FlexItem, Button } from '@patternfly/react-core';
 import { Identifier } from '~/types';
-import NodeResourceTable from './nodeResource/NodeResourceTable';
-import ManageNodeResourceModal from './nodeResource/ManageNodeResourceModal';
+import NodeResourceTable from '~/pages/hardwareProfiles/nodeResource/NodeResourceTable';
+import ManageNodeResourceModal from '~/pages/hardwareProfiles/nodeResource/ManageNodeResourceModal';
+import { ManageHardwareProfileSectionTitles } from '~/pages/hardwareProfiles/const';
+import { ManageHardwareProfileSectionID } from '~/pages/hardwareProfiles/manage/types';
 
 type ManageNodeResourceSectionProps = {
   nodeResources: Identifier[];
@@ -27,7 +21,9 @@ const ManageNodeResourceSection: React.FC<ManageNodeResourceSectionProps> = ({
       <FormSection
         title={
           <Flex>
-            <FlexItem>Node resources</FlexItem>
+            <FlexItem>
+              {ManageHardwareProfileSectionTitles[ManageHardwareProfileSectionID.IDENTIFIERS]}
+            </FlexItem>
             <FlexItem>
               <Button
                 variant="secondary"
@@ -37,31 +33,23 @@ const ManageNodeResourceSection: React.FC<ManageNodeResourceSectionProps> = ({
                 Add resource
               </Button>
             </FlexItem>
-            <FlexItem>
-              <Content component="p" className="odh-form-section__desc">
-                Every hardware profile must include CPU and memory resources. Additional resources,
-                such as GPUs, can be added here.
-              </Content>
-            </FlexItem>
           </Flex>
         }
       >
-        <Stack hasGutter>
-          <StackItem>
-            <NodeResourceTable
-              nodeResources={nodeResources}
-              onUpdate={(newIdentifiers) => setNodeResources(newIdentifiers)}
-            />
-          </StackItem>
-        </Stack>
+        Every hardware profile must include CPU and memory resources. Additional resources, such as
+        GPUs, can be added here.
+        <NodeResourceTable
+          nodeResources={nodeResources}
+          onUpdate={(newResources) => setNodeResources(newResources)}
+        />
       </FormSection>
-      {isNodeResourceModalOpen ? (
+      {isNodeResourceModalOpen && (
         <ManageNodeResourceModal
           onClose={() => setIsNodeResourceModalOpen(false)}
           onSave={(identifier) => setNodeResources([...nodeResources, identifier])}
           nodeResources={nodeResources}
         />
-      ) : null}
+      )}
     </>
   );
 };

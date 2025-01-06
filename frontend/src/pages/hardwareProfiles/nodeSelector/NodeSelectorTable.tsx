@@ -15,10 +15,6 @@ const NodeSelectorTable: React.FC<NodeSelectorTableProps> = ({ nodeSelectors, on
   const [editNodeSelector, setEditNodeSelector] = React.useState<NodeSelector | undefined>();
   const [currentIndex, setCurrentIndex] = React.useState<number | undefined>();
 
-  const columns = viewOnly
-    ? nodeSelectorColumns.filter((column) => column.field !== 'actions')
-    : nodeSelectorColumns;
-
   return (
     <>
       <TableBase
@@ -26,7 +22,11 @@ const NodeSelectorTable: React.FC<NodeSelectorTableProps> = ({ nodeSelectors, on
         data-testid="hardware-profile-node-selectors-table"
         id="hardware-profile-node-selectors-table"
         data={nodeSelectors}
-        columns={columns}
+        columns={
+          viewOnly
+            ? nodeSelectorColumns.filter((column) => column.field !== 'actions')
+            : nodeSelectorColumns
+        }
         rowRenderer={(cr, rowIndex) => (
           <NodeSelectorTableRow
             key={rowIndex}

@@ -4,7 +4,6 @@ import {
   ManageHardwareProfileSectionID,
   ManageHardwareProfileSectionTitlesType,
 } from '~/pages/hardwareProfiles/manage/types';
-import { Identifier } from '~/types';
 
 export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
   {
@@ -44,39 +43,6 @@ export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
     field: 'kebab',
     label: '',
     sortable: false,
-  },
-];
-
-export const nodeResourceColumns: SortableData<Identifier>[] = [
-  {
-    field: 'name',
-    label: 'Resource label',
-    sortable: false,
-    width: 20,
-  },
-  {
-    field: 'identifier',
-    label: 'Resource identifier',
-    sortable: false,
-    width: 20,
-  },
-  {
-    field: 'default',
-    label: 'Default',
-    sortable: false,
-    width: 20,
-  },
-  {
-    field: 'min_allowed',
-    label: 'Minimum allowed',
-    sortable: false,
-    width: 20,
-  },
-  {
-    field: 'max_allowed',
-    label: 'Maximum allowed',
-    sortable: false,
-    width: 20,
   },
 ];
 

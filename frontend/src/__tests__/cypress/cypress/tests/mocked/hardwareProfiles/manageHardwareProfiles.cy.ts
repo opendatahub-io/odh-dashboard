@@ -5,10 +5,12 @@ import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers'
 import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
 import {
   createHardwareProfile,
+  createNodeResourceModal,
   createNodeSelectorModal,
   createTolerationModal,
   duplicateHardwareProfile,
   editHardwareProfile,
+  editNodeResourceModal,
   editNodeSelectorModal,
   editTolerationModal,
 } from '~/__tests__/cypress/cypress/pages/hardwareProfile';
@@ -27,6 +29,20 @@ const initIntercepts = ({ isPresent = true }: HandlersProps) => {
           displayName: 'Test Hardware Profile',
           description: 'Test description',
           identifiers: [
+            {
+              displayName: 'RAM',
+              identifier: 'memory',
+              minCount: '2Gi',
+              maxCount: '5Gi',
+              defaultCount: '2Gi',
+            },
+            {
+              displayName: 'CPU',
+              identifier: 'cpu',
+              minCount: '1',
+              maxCount: '2',
+              defaultCount: '1',
+            },
             {
               identifier: 'nvidia.com/gpu',
               displayName: 'GPU',
@@ -84,27 +100,102 @@ describe('Manage Hardware Profile', () => {
       .type('test-hardware-profile-name');
     createHardwareProfile.findSubmitButton().should('be.enabled');
 
-    /* TODO: Add tests for identifiers table */
+    // test node resource table
+    createHardwareProfile.findNodeResourceTable().should('exist');
+    // verify both CPU and RAM row exists and cannot be deleted
+    createHardwareProfile
+      .getNodeResourceTableRow('cpu')
+      .findDeleteAction()
+      .should('have.attr', 'aria-disabled');
+    createHardwareProfile
+      .getNodeResourceTableRow('memory')
+      .findDeleteAction()
+      .should('have.attr', 'aria-disabled');
+    // open node resource modal
+    createHardwareProfile.findAddNodeResourceButton().click();
+    // fill in form required fields
+    createNodeResourceModal.findNodeResourceSubmitButton().should('be.disabled');
+    createNodeResourceModal.findNodeResourceLabelInput().fill('Test GPU');
+    // test duplicated identifier
+    createNodeResourceModal.findNodeResourceIdentifierInput().fill('cpu');
+    createNodeResourceModal.findNodeResourceExistingErrorMessage().should('exist');
+    createNodeResourceModal.findNodeResourceSubmitButton().should('be.disabled');
+    createNodeResourceModal.findNodeResourceIdentifierInput().fill('test-gpu');
+    createNodeResourceModal.findNodeResourceSubmitButton().should('be.enabled');
+    createNodeResourceModal.findNodeResourceSubmitButton().click();
+    // test that values were added correctly
+    createHardwareProfile.getNodeResourceTableRow('test-gpu').shouldHaveResourceLabel('Test GPU');
+    // test edit node resource
+    // test cannot edit cpu or memory identifier
+    createHardwareProfile.getNodeResourceTableRow('cpu').findEditAction().click();
+    editNodeResourceModal.findNodeResourceIdentifierInput().should('be.disabled');
+    editNodeResourceModal.findCancelButton().click();
+    createHardwareProfile.getNodeResourceTableRow('memory').findEditAction().click();
+    editNodeResourceModal.findNodeResourceIdentifierInput().should('be.disabled');
+    editNodeResourceModal.findCancelButton().click();
+    createHardwareProfile.getNodeResourceTableRow('test-gpu').findEditAction().click();
+    editNodeResourceModal.findNodeResourceLabelInput().fill('Test GPU Edited');
+    editNodeResourceModal.findNodeResourceIdentifierInput().fill('test-gpu-edited');
+    editNodeResourceModal.findNodeResourceSubmitButton().click();
+    createHardwareProfile
+      .getNodeResourceTableRow('test-gpu-edited')
+      .shouldHaveResourceLabel('Test GPU Edited')
+      .shouldHaveResourceIdentifier('test-gpu-edited');
+
+    // test node selectors empty state
+    createHardwareProfile.findNodeSelectorTable().should('not.exist');
+    // open node selector modal
+    createHardwareProfile.findAddNodeSelectorButton().click();
+    // fill in form required fields
+    createNodeSelectorModal.findNodeSelectorSubmitButton().should('be.disabled');
+    createNodeSelectorModal.findNodeSelectorKeyInput().fill('test-key');
+    createNodeSelectorModal.findNodeSelectorSubmitButton().should('be.disabled');
+    createNodeSelectorModal.findNodeSelectorValueInput().fill('test-value');
+    createNodeSelectorModal.findNodeSelectorSubmitButton().should('be.enabled');
+    createNodeSelectorModal.findNodeSelectorSubmitButton().click();
+    // test that values were added correctly
+    createHardwareProfile
+      .getNodeSelectorTableRow('test-key')
+      .shouldHaveKey('test-key')
+      .shouldHaveValue('test-value');
+    // test edit node selector
+    let nodeSelectorTableRow = createHardwareProfile.getNodeSelectorTableRow('test-key');
+    nodeSelectorTableRow.findEditAction().click();
+    editNodeSelectorModal.findNodeSelectorKeyInput().fill('test-update');
+    editNodeSelectorModal.findCancelButton().click();
+    nodeSelectorTableRow.findEditAction().click();
+    editNodeSelectorModal.findNodeSelectorKeyInput().fill('test-update');
+    editNodeSelectorModal.findNodeSelectorSubmitButton().click();
+    nodeSelectorTableRow = createHardwareProfile.getNodeSelectorTableRow('test-update');
+    nodeSelectorTableRow.shouldHaveValue('test-value');
+    // test cancel clears fields
+    nodeSelectorTableRow.findEditAction().click();
+    editNodeSelectorModal.findCancelButton().click();
+    createHardwareProfile.findAddNodeSelectorButton().click();
+    createNodeSelectorModal.findNodeSelectorSubmitButton().should('be.disabled');
+    createNodeSelectorModal.findCancelButton().click();
+    // add another field
+    createHardwareProfile.findAddNodeSelectorButton().click();
+    createNodeSelectorModal.findNodeSelectorKeyInput().fill('new-test-node-selector');
+    createNodeSelectorModal.findNodeSelectorValueInput().fill('new-test-value');
+    createNodeSelectorModal.findNodeSelectorSubmitButton().click();
+    // delete the previous one
+    nodeSelectorTableRow.findDeleteAction().click();
 
     // test tolerations empty state
     createHardwareProfile.findTolerationTable().should('not.exist');
-
-    //open toleration modal
+    // open toleration modal
     createHardwareProfile.findAddTolerationButton().click();
-
     // fill in form required fields
     createTolerationModal.findTolerationSubmitButton().should('be.disabled');
     createTolerationModal.findTolerationKeyInput().fill('test-key');
     createTolerationModal.findTolerationSubmitButton().should('be.enabled');
-
     // test value info warning when operator is Exists
     createTolerationModal.findOperatorOptionExist().click();
-
     createTolerationModal.findTolerationValueInput().fill('test-value');
     createTolerationModal.findTolerationValueAlert().should('exist');
     createTolerationModal.findOperatorOptionEqual().click();
     createTolerationModal.findTolerationValueAlert().should('not.exist');
-
     // test toleration seconds warning when effect is not NoExecute
     createTolerationModal.findTolerationSecondRadioCustom().click();
     createTolerationModal.findTolerationSecondAlert().should('exist');
@@ -112,14 +203,12 @@ describe('Manage Hardware Profile', () => {
     createTolerationModal.findTolerationSecondAlert().should('not.exist');
     createTolerationModal.findPlusButton().click();
     createTolerationModal.findTolerationSubmitButton().click();
-
     // test that values were added correctly
     createHardwareProfile
       .getTolerationTableRow('test-key')
       .shouldHaveOperator('Equal')
       .shouldHaveEffect('NoExecute')
       .shouldHaveTolerationSeconds('1 second(s)');
-
     // test bare minimum fields
     createHardwareProfile.findAddTolerationButton().click();
     createTolerationModal.findTolerationKeyInput().fill('toleration-key');
@@ -129,7 +218,6 @@ describe('Manage Hardware Profile', () => {
       .shouldHaveOperator('Equal')
       .shouldHaveEffect('-')
       .shouldHaveTolerationSeconds('-');
-
     // test edit toleration
     let tolerationTableRow = createHardwareProfile.getTolerationTableRow('test-key');
     tolerationTableRow.findEditAction().click();
@@ -141,65 +229,16 @@ describe('Manage Hardware Profile', () => {
     editTolerationModal.findTolerationSubmitButton().click();
     tolerationTableRow = createHardwareProfile.getTolerationTableRow('updated-test');
     tolerationTableRow.shouldHaveOperator('Equal');
-
     // test cancel clears fields
     tolerationTableRow.findEditAction().click();
     editTolerationModal.findCancelButton().click();
     createHardwareProfile.findAddTolerationButton().click();
     createTolerationModal.findTolerationSubmitButton().should('be.disabled');
     createTolerationModal.findCancelButton().click();
-
     // test delete
     tolerationTableRow.findDeleteAction().click();
     createHardwareProfile.getTolerationTableRow('toleration-key').findDeleteAction().click();
     createHardwareProfile.findTolerationTable().should('not.exist');
-
-    // test node selectors empty state
-    createHardwareProfile.findNodeSelectorTable().should('not.exist');
-
-    //open node selector modal
-    createHardwareProfile.findAddNodeSelectorButton().click();
-
-    // fill in form required fields
-    createNodeSelectorModal.findNodeSelectorSubmitButton().should('be.disabled');
-    createNodeSelectorModal.findNodeSelectorKeyInput().fill('test-key');
-    createNodeSelectorModal.findNodeSelectorSubmitButton().should('be.disabled');
-    createNodeSelectorModal.findNodeSelectorValueInput().fill('test-value');
-    createNodeSelectorModal.findNodeSelectorSubmitButton().should('be.enabled');
-    createNodeSelectorModal.findNodeSelectorSubmitButton().click();
-
-    // test that values were added correctly
-    createHardwareProfile
-      .getNodeSelectorTableRow('test-key')
-      .shouldHaveKey('test-key')
-      .shouldHaveValue('test-value');
-
-    // test edit toleration
-    let nodeSelectorTableRow = createHardwareProfile.getNodeSelectorTableRow('test-key');
-    nodeSelectorTableRow.findEditAction().click();
-    editNodeSelectorModal.findNodeSelectorKeyInput().fill('test-update');
-    editNodeSelectorModal.findCancelButton().click();
-    nodeSelectorTableRow.findEditAction().click();
-    editNodeSelectorModal.findNodeSelectorKeyInput().fill('test-update');
-    editNodeSelectorModal.findNodeSelectorSubmitButton().click();
-    nodeSelectorTableRow = createHardwareProfile.getNodeSelectorTableRow('test-update');
-    nodeSelectorTableRow.shouldHaveValue('test-value');
-
-    // test cancel clears fields
-    nodeSelectorTableRow.findEditAction().click();
-    editNodeSelectorModal.findCancelButton().click();
-    createHardwareProfile.findAddNodeSelectorButton().click();
-    createNodeSelectorModal.findNodeSelectorSubmitButton().should('be.disabled');
-    createNodeSelectorModal.findCancelButton().click();
-
-    // add another field
-    createHardwareProfile.findAddNodeSelectorButton().click();
-    createNodeSelectorModal.findNodeSelectorKeyInput().fill('new-test-node-selector');
-    createNodeSelectorModal.findNodeSelectorValueInput().fill('new-test-value');
-    createNodeSelectorModal.findNodeSelectorSubmitButton().click();
-
-    // delete the previous one
-    nodeSelectorTableRow.findDeleteAction().click();
 
     cy.interceptK8s(
       'POST',
@@ -244,6 +283,13 @@ describe('Manage Hardware Profile', () => {
       .findDescriptionInput()
       .should('have.value', 'Test description');
 
+    editHardwareProfile.findNodeResourceTable().should('exist');
+    editHardwareProfile
+      .getNodeResourceTableRow('nvidia.com/gpu')
+      .shouldHaveResourceLabel('GPU')
+      .findDeleteAction()
+      .click();
+
     editHardwareProfile.findTolerationTable().should('exist');
     editHardwareProfile
       .getTolerationTableRow('nvidia.com/gpu')
@@ -264,11 +310,18 @@ describe('Manage Hardware Profile', () => {
       expect(interception.request.body.spec).to.eql({
         identifiers: [
           {
-            identifier: 'nvidia.com/gpu',
-            displayName: 'GPU',
-            maxCount: 2,
-            minCount: 1,
-            defaultCount: 1,
+            displayName: 'RAM',
+            identifier: 'memory',
+            minCount: '2Gi',
+            maxCount: '5Gi',
+            defaultCount: '2Gi',
+          },
+          {
+            displayName: 'CPU',
+            identifier: 'cpu',
+            minCount: '1',
+            maxCount: '2',
+            defaultCount: '1',
           },
         ],
         displayName: 'Test Hardware Profile',
@@ -306,6 +359,9 @@ describe('Manage Hardware Profile', () => {
     duplicateHardwareProfile.k8sNameDescription.findDisplayNameInput().should('have.value', '');
     duplicateHardwareProfile.k8sNameDescription.findDescriptionInput().should('have.value', '');
 
+    editHardwareProfile.findNodeResourceTable().should('exist');
+    editHardwareProfile.getNodeResourceTableRow('nvidia.com/gpu').shouldHaveResourceLabel('GPU');
+
     duplicateHardwareProfile.findTolerationTable().should('exist');
     duplicateHardwareProfile
       .getTolerationTableRow('nvidia.com/gpu')
@@ -327,6 +383,20 @@ describe('Manage Hardware Profile', () => {
     cy.wait('@createHardwareProfile').then((interception) => {
       expect(interception.request.body.spec).to.eql({
         identifiers: [
+          {
+            displayName: 'RAM',
+            identifier: 'memory',
+            minCount: '2Gi',
+            maxCount: '5Gi',
+            defaultCount: '2Gi',
+          },
+          {
+            displayName: 'CPU',
+            identifier: 'cpu',
+            minCount: '1',
+            maxCount: '2',
+            defaultCount: '1',
+          },
           {
             identifier: 'nvidia.com/gpu',
             displayName: 'GPU',
