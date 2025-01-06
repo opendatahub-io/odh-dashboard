@@ -16,74 +16,76 @@ export type RedirectOptions = {
 };
 
 /**
- * Hook for managing redirects with loading states
+ * Hook for managing redirects with loading states. Automatically redirects on mount.
  * @param createRedirectPath Function that creates the redirect path, can be async for data fetching
  * @param options Redirect options
- * @returns Array of [redirect function, redirect state]
+ * @returns Redirect state object containing loading and error states
  *
  * @example
  * ```tsx
- * const [redirect, state] = useRedirect(() => '/foo');
+ * // Basic usage
+ * const { loaded, error } = useRedirect(() => '/foo');
  *
  * // With async path creation
- * const [redirect, state] = useRedirect(async () => {
+ * const { loaded, error } = useRedirect(async () => {
  *   const data = await fetchData();
  *   return `/bar/${data.id}`;
  * });
  *
  * // With options
- * const [redirect, state] = useRedirect(() => '/foobar', {
+ * const { loaded, error } = useRedirect(() => '/foobar', {
  *   navigateOptions: { replace: true },
  *   onComplete: () => console.log('Redirected'),
  *   onError: (error) => console.error(error)
  * });
  *
- * // Usage
+ * // Usage in a component
  * const createRedirectPath = React.useCallback(() => '/some/path', []);
  *
- * const [redirect, { loaded, error }] = useRedirect(createRedirectPath);
- *
- * React.useEffect(() => {
- *   redirect();
- * }, [redirect]);
- *
+ * const { loaded, error } = useRedirect(createRedirectPath);
  *
  * return (
- * 	<ApplicationsPage
- * 		loaded={loaded}
- * 		empty={!!error}
- * 		emptyStatePage={<RedirectErrorState fallbackUrl="/foo/bar"/>}
- * 	/>
+ *   <ApplicationsPage
+ *     loaded={loaded}
+ *     empty={false}
+ *     loadError={error}
+ *     loadErrorPage={<RedirectErrorState
+ *       title="Error redirecting"
+ *       errorMessage={error?.message}
+ *       actions={<Button onClick={() => navigate('/foo/bar')}>Go to Home</Button>}
+ *     />}
+ *   />
  * );
  * ```
  */
 export const useRedirect = (
-  createRedirectPath: () => string | Promise<string | undefined> | undefined,
+  createRedirectPath: () => string | Promise<string>,
   options: RedirectOptions = {},
-): [(notFoundOnError?: boolean) => Promise<void>, RedirectState] => {
+): RedirectState => {
   const { navigateOptions, onComplete, onError } = options;
-
   const navigate = useNavigate();
   const [state, setState] = React.useState<RedirectState>({
     loaded: false,
     error: undefined,
   });
 
-  const redirect = React.useCallback(async () => {
-    try {
-      const path = await createRedirectPath();
-      if (!path) {
-        throw new Error('No redirect path available');
+  React.useEffect(() => {
+    const performRedirect = async () => {
+      try {
+        setState({ loaded: false, error: undefined });
+        const path = await createRedirectPath();
+        navigate(path, navigateOptions);
+        setState({ loaded: true, error: undefined });
+        onComplete?.();
+      } catch (e) {
+        const error = e instanceof Error ? e : new Error('Failed to redirect');
+        setState({ loaded: true, error });
+        onError?.(error);
       }
-      navigate(path, navigateOptions);
-      setState({ loaded: true, error: undefined });
-      onComplete?.();
-    } catch (e) {
-      const error = e instanceof Error ? e : new Error('Failed to redirect');
-      setState({ loaded: true, error });
-      onError?.(error);
-    }
+    };
+
+    performRedirect();
   }, [createRedirectPath, navigate, navigateOptions, onComplete, onError]);
 
-  return [redirect, state];
+  return state;
 };

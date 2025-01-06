@@ -40,17 +40,14 @@ const PipelinesSdkRedirects: React.FC = () => {
     throw new Error('The URL format is invalid.');
   }, [namespace, location.hash]);
 
-  const [redirect, { loaded, error }] = useRedirect(createRedirectPath);
-
-  React.useEffect(() => {
-    redirect();
-  }, [redirect]);
+  const { error } = useRedirect(createRedirectPath);
 
   return (
     <ApplicationsPage
-      loaded={loaded}
-      empty={!!error}
-      emptyStatePage={
+      loaded
+      empty={false}
+      loadError={error}
+      loadErrorPage={
         <RedirectErrorState
           title="Error redirecting to pipelines"
           errorMessage={error?.message}
