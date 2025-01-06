@@ -102,6 +102,9 @@ export type DataScienceProjectData = {
   projectResourceName: string;
   projectPermissionResourceName: string;
   projectContributorResourceName: string;
+  projectEditName: string;
+  projectEditDescription: string;
+  projectEditResourceName: string;
 };
 
 export type NotebookImageData = {
