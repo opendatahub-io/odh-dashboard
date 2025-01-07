@@ -23,7 +23,6 @@ const AcceleratorProfilesTableRow: React.FC<AcceleratorProfilesTableRowType> = (
     <Tr>
       <Td dataLabel="Name">
         <TableRowTitleDescription
-          boldTitle={false}
           title={<Truncate content={acceleratorProfile.spec.displayName} />}
           description={acceleratorProfile.spec.description}
           truncateDescriptionLines={2}
