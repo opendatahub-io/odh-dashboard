@@ -149,6 +149,11 @@ jobs:
         with:
           name: cypress-results-${{ matrix.test-group }}
           path: ./frontend/src/__tests__/cypress/results/mocked
+      - name: Upload Cypress coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-coverage-${{ matrix.test-group }}
+          path: ./frontend/src/__tests__/cypress/coverage
 
   Combine-Results-and-Upload:
     needs: [Unit-Tests, Cypress-Mock-Tests] 
@@ -164,7 +169,7 @@ jobs:
           mkdir -p ./coverage
           cp -R all-artifacts/unit-coverage/* ./coverage/ || true
           cp -R all-artifacts/backend-coverage/* ./coverage/ || true
-          find all-artifacts -name "mocked" -type d | while read dir; do
+          find all-artifacts -name "cypress-coverage-*" -type d | while read dir; do
             cp -R "$dir"/* ./coverage/ || true
           done
       - name: Merge coverage reports
