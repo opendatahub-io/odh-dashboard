@@ -29,6 +29,7 @@ const ModelVersionsTable: React.FC<ModelVersionsTableProps> = ({
     !!inferenceServices.data.some(
       (s) => s.metadata.labels?.[KnownLabels.MODEL_VERSION_ID] === mvId,
     );
+
   return (
     <Table
       data-testid="model-versions-table"
