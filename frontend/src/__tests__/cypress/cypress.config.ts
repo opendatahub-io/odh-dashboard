@@ -1,5 +1,8 @@
 import path from 'path';
 import fs from 'fs';
+
+// @ts-expect-error: Types are not available for this third-party library
+import registerCypressGrep from '@cypress/grep/src/plugin';
 import { defineConfig } from 'cypress';
 import coverage from '@cypress/code-coverage/task';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -52,6 +55,7 @@ export default defineConfig({
     },
     ODH_PRODUCT_NAME: env.ODH_PRODUCT_NAME,
     resolution: 'high',
+    grepFilterSpecs: true,
   },
   defaultCommandTimeout: 10000,
   e2e: {
@@ -63,6 +67,7 @@ export default defineConfig({
       : `cypress/tests/e2e/**/*.cy.ts`,
     experimentalInteractiveRunEvents: true,
     setupNodeEvents(on, config) {
+      registerCypressGrep(config);
       cypressHighResolution(on, config);
       coverage(on, config);
       setupWebsockets(on, config);

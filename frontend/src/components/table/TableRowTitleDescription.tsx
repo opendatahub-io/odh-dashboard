@@ -6,7 +6,6 @@ import TruncatedText from '~/components/TruncatedText';
 
 type TableRowTitleDescriptionProps = {
   title: React.ReactNode;
-  boldTitle?: boolean;
   titleIcon?: React.ReactNode;
   resource?: K8sResourceCommon;
   subtitle?: React.ReactNode;
@@ -19,7 +18,6 @@ type TableRowTitleDescriptionProps = {
 
 const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
   title,
-  boldTitle = true,
   titleIcon,
   description,
   resource,
@@ -50,7 +48,7 @@ const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
 
   return (
     <div>
-      <div data-testid="table-row-title" className={boldTitle ? 'pf-v6-u-font-weight-bold' : ''}>
+      <div data-testid="table-row-title">
         {resource ? (
           <ResourceNameTooltip resource={resource} wrap={wrapResourceTitle}>
             {title}

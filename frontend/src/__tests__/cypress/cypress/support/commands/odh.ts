@@ -10,6 +10,7 @@ import type {
   RegisteredModelList,
 } from '~/concepts/modelRegistry/types';
 import type {
+  ConfigMapKind,
   ConsoleLinkKind,
   DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
@@ -18,6 +19,7 @@ import type {
   NotebookKind,
   OdhQuickStart,
   RoleBindingKind,
+  SecretKind,
   ServingRuntimeKind,
   TemplateKind,
 } from '~/k8sTypes';
@@ -342,9 +344,7 @@ declare global {
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId',
-          options: {
-            path: { serviceName: string; apiVersion: string; modelVersionId: number };
-          },
+          options: { path: { serviceName: string; apiVersion: string; modelVersionId: number } },
           response: OdhResponse<ModelVersion>,
         ) => Cypress.Chainable<null>) &
         ((
@@ -609,6 +609,20 @@ declare global {
           response: OdhResponse<{ notebook: NotebookKind; isRunning: boolean }>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'GET /api/envs/configmap/openshift-ai-notebooks/:filename',
+          options: {
+            path: { filename: string };
+          },
+          response: OdhResponse<ConfigMapKind>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/envs/secret/openshift-ai-notebooks/:filename',
+          options: {
+            path: { filename: string };
+          },
+          response: OdhResponse<SecretKind>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/artifacts/:artifactId',
           options: {
             query: { view: string };
@@ -686,6 +700,43 @@ declare global {
             };
           },
           response: OdhResponse<NimServingResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId',
+          options: {
+            path: {
+              serviceName: string;
+              apiVersion: string;
+              registeredModelId: string | number;
+            };
+          },
+          response: OdhResponse<RegisteredModel>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: string,
+          options: {
+            method: 'GET';
+            path: {
+              serviceName: string;
+              apiVersion: string;
+              modelVersionId: string;
+            };
+          },
+          response: OdhResponse<ModelVersion>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts',
+          options: {
+            path: { serviceName: string; apiVersion: string; modelVersionId: string };
+          },
+          response: OdhResponse<ModelArtifact>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId',
+          options: {
+            path: { serviceName: string; apiVersion: string; modelVersionId: string };
+          },
+          response: OdhResponse<ModelVersion>,
         ) => Cypress.Chainable<null>);
     }
   }

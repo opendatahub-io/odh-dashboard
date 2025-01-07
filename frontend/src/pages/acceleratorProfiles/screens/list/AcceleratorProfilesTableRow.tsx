@@ -1,16 +1,11 @@
 import * as React from 'react';
-import {
-  Content,
-  ContentVariants,
-  Timestamp,
-  TimestampTooltipVariant,
-  Truncate,
-} from '@patternfly/react-core';
+import { Timestamp, TimestampTooltipVariant, Truncate } from '@patternfly/react-core';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { AcceleratorProfileKind } from '~/k8sTypes';
 import AcceleratorProfileEnableToggle from '~/pages/acceleratorProfiles/screens/list/AcceleratorProfileEnableToggle';
 import { relativeTime } from '~/utilities/time';
+import { TableRowTitleDescription } from '~/components/table';
 
 type AcceleratorProfilesTableRowType = {
   acceleratorProfile: AcceleratorProfileKind;
@@ -27,16 +22,11 @@ const AcceleratorProfilesTableRow: React.FC<AcceleratorProfilesTableRowType> = (
   return (
     <Tr>
       <Td dataLabel="Name">
-        <Content>
-          <Content component="p">
-            <Truncate content={acceleratorProfile.spec.displayName} />
-          </Content>
-          {acceleratorProfile.spec.description && (
-            <Content data-testid="description" component={ContentVariants.small}>
-              <Truncate content={acceleratorProfile.spec.description} />
-            </Content>
-          )}
-        </Content>
+        <TableRowTitleDescription
+          title={<Truncate content={acceleratorProfile.spec.displayName} />}
+          description={acceleratorProfile.spec.description}
+          truncateDescriptionLines={2}
+        />
       </Td>
       <Td dataLabel="Identifier">{acceleratorProfile.spec.identifier}</Td>
       <Td dataLabel="Enable">

@@ -11,7 +11,7 @@ export const DWSectionCard: React.FC<{
   <Card isFullHeight>
     <CardHeader>
       <CardTitle>
-        <Flex gap={{ default: 'gapMd' }}>
+        <Flex gap={{ default: 'gapSm' }}>
           {title} {helpTooltip ? <DashboardHelpTooltip content={helpTooltip} /> : null}
         </Flex>
       </CardTitle>

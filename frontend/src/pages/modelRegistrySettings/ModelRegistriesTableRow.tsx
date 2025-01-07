@@ -28,7 +28,7 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
   );
 
   return (
-    <Tr style={{ verticalAlign: 'middle' }}>
+    <Tr>
       <Td dataLabel="Model registry name">
         <ResourceNameTooltip resource={mr}>
           <strong>

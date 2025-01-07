@@ -6,7 +6,6 @@ import {
   EmptyStateVariant,
   EmptyStateBody,
   PageSection,
-  Title,
   EmptyStateActions,
   EmptyStateFooter,
 } from '@patternfly/react-core';
@@ -33,10 +32,11 @@ const AcceleratorProfiles: React.FC = () => {
   const noAcceleratorProfilePageSection = (
     <PageSection hasBodyWrapper={false} isFilled>
       <EmptyState
+        headingLevel="h5"
         titleText={
-          <Title data-testid="no-available-accelerator-profiles" headingLevel="h5" size="lg">
+          <span data-testid="no-available-accelerator-profiles">
             No available accelerator profiles yet
-          </Title>
+          </span>
         }
         icon={PlusCircleIcon}
         variant={EmptyStateVariant.full}
