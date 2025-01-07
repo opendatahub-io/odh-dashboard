@@ -44,7 +44,11 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
           }}
           style={{ fontSize: 'var(--pf-t--global--font--size--body--default)' }}
         >
-          <Truncate content={getDisplayNameFromK8sResource(project)} />
+          <Truncate
+            // TODO: Remove the inline style for underline once https://github.com/patternfly/patternfly/issues/7255 is resolved and PF versions are updated
+            style={{ textDecoration: 'underline' }}
+            content={getDisplayNameFromK8sResource(project)}
+          />
         </Button>
       </CardHeader>
       <CardBody>
