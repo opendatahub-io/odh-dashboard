@@ -32,9 +32,8 @@ class ClusterStorageRow extends TableRow {
     return this.find().find('[data-label="Storage class"]');
   }
 
-  shouldHaveStorageSize(name: string) {
-    this.find().siblings().find('[data-label=Size]').contains(name).should('exist');
-    return this;
+  findSizeColumn() {
+    return this.find().find('[data-label="Storage size"]');
   }
 
   showStorageClassDetails() {

@@ -76,7 +76,6 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
       <Table
         data={storageTableData}
         columns={getStorageColumns()}
-        disableRowRenderSupport
         data-testid="storage-table"
         variant="compact"
         rowRenderer={(data, i) => (
