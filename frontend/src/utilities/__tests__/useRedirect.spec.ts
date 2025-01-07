@@ -16,59 +16,66 @@ describe('useRedirect', () => {
     const onComplete = jest.fn();
     const renderResult = testHook(useRedirect)(createRedirectPath, { onComplete });
 
-    const [redirect, state] = renderResult.result.current;
+    let state = renderResult.result.current;
     expect(state.loaded).toBe(false);
     expect(state.error).toBeUndefined();
 
-    await redirect();
-    renderResult.rerender(createRedirectPath, { onComplete });
+    await renderResult.waitForNextUpdate();
+    state = renderResult.result.current;
 
     expect(createRedirectPath).toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith('/success-path', undefined);
     expect(onComplete).toHaveBeenCalled();
-    expect(renderResult.result.current[1].loaded).toBe(true);
-    expect(renderResult.result.current[1].error).toBeUndefined();
+    expect(state.loaded).toBe(true);
+    expect(state.error).toBeUndefined();
   });
 
   it('should handle async redirect path creation', async () => {
     const createRedirectPath = jest.fn().mockResolvedValue('/async-path');
     const renderResult = testHook(useRedirect)(createRedirectPath);
-    const [redirect] = renderResult.result.current;
 
-    await redirect();
-    renderResult.rerender(createRedirectPath);
+    let state = renderResult.result.current;
+    expect(state.loaded).toBe(false);
+    expect(state.error).toBeUndefined();
+
+    await renderResult.waitForNextUpdate();
+    state = renderResult.result.current;
 
     expect(createRedirectPath).toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith('/async-path', undefined);
-    expect(renderResult.result.current[1].loaded).toBe(true);
-    expect(renderResult.result.current[1].error).toBeUndefined();
+    expect(state.loaded).toBe(true);
+    expect(state.error).toBeUndefined();
   });
 
   it('should handle redirect with navigation options', async () => {
     const createRedirectPath = jest.fn().mockReturnValue('/path');
     const navigateOptions = { replace: true };
     const renderResult = testHook(useRedirect)(createRedirectPath, { navigateOptions });
-    const [redirect] = renderResult.result.current;
+    let state = renderResult.result.current;
+    expect(state.loaded).toBe(false);
+    expect(state.error).toBeUndefined();
 
-    await redirect();
-    renderResult.rerender(createRedirectPath, { navigateOptions });
+    await renderResult.waitForNextUpdate();
+    state = renderResult.result.current;
 
     expect(mockNavigate).toHaveBeenCalledWith('/path', navigateOptions);
   });
 
   it('should handle error when path is undefined', async () => {
-    const createRedirectPath = jest.fn().mockReturnValue(undefined);
+    const createRedirectPath = jest.fn().mockRejectedValue(new Error('No path available'));
     const onError = jest.fn();
     const renderResult = testHook(useRedirect)(createRedirectPath, { onError });
 
-    const [redirect] = renderResult.result.current;
+    let state = renderResult.result.current;
+    expect(state.loaded).toBe(false);
+    expect(state.error).toBeUndefined();
 
-    await redirect();
-    renderResult.rerender(createRedirectPath, { onError });
+    await renderResult.waitForNextUpdate();
+    state = renderResult.result.current;
 
     expect(onError).toHaveBeenCalledWith(expect.any(Error));
-    expect(renderResult.result.current[1].loaded).toBe(true);
-    expect(renderResult.result.current[1].error).toBeInstanceOf(Error);
+    expect(state.loaded).toBe(true);
+    expect(state.error).toBeInstanceOf(Error);
   });
 
   it('should handle error in path creation', async () => {
@@ -77,35 +84,40 @@ describe('useRedirect', () => {
     const onError = jest.fn();
     const renderResult = testHook(useRedirect)(createRedirectPath, { onError });
 
-    const [redirect] = renderResult.result.current;
+    let state = renderResult.result.current;
+    expect(state.loaded).toBe(false);
+    expect(state.error).toBeUndefined();
 
-    await redirect();
-    renderResult.rerender(createRedirectPath, { onError });
+    await renderResult.waitForNextUpdate();
+    state = renderResult.result.current;
 
     expect(onError).toHaveBeenCalledWith(error);
-    expect(renderResult.result.current[1].loaded).toBe(true);
-    expect(renderResult.result.current[1].error).toBe(error);
+    expect(state.loaded).toBe(true);
+    expect(state.error).toBe(error);
   });
 
   it('should not redirect to not-found when notFoundOnError is false', async () => {
     const createRedirectPath = jest.fn().mockRejectedValue(new Error());
     const renderResult = testHook(useRedirect)(createRedirectPath);
 
-    const [redirect] = renderResult.result.current;
+    let state = renderResult.result.current;
+    expect(state.loaded).toBe(false);
+    expect(state.error).toBeUndefined();
 
-    await redirect(false);
-    renderResult.rerender(createRedirectPath);
+    await renderResult.waitForNextUpdate();
+    state = renderResult.result.current;
 
     expect(mockNavigate).not.toHaveBeenCalled();
-    expect(renderResult.result.current[1].loaded).toBe(true);
-    expect(renderResult.result.current[1].error).toBeInstanceOf(Error);
+
+    expect(state.loaded).toBe(true);
+    expect(state.error).toBeInstanceOf(Error);
   });
 
   it('should be stable', () => {
     const createRedirectPath = jest.fn().mockReturnValue('/path');
     const renderResult = testHook(useRedirect)(createRedirectPath);
     renderResult.rerender(createRedirectPath);
-    expect(renderResult).hookToBeStable([true, true]);
-    expect(renderResult).hookToHaveUpdateCount(2);
+    expect(renderResult).hookToBeStable({ loaded: true, error: undefined });
+    expect(renderResult).hookToHaveUpdateCount(3);
   });
 });
