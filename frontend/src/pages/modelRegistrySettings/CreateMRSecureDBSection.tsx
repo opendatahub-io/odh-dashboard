@@ -1,33 +1,32 @@
 import React, { useState } from 'react';
 import { FormGroup, Radio, Alert, MenuItem, MenuGroup, Tooltip } from '@patternfly/react-core';
 import SearchSelector from '~/components/searchSelector/SearchSelector';
-import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { RecursivePartial } from '~/typeHelpers';
 import { ConfigSecretItem } from '~/k8sTypes';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { PemFileUpload } from './PemFileUpload';
-
-export enum SecureDBRType {
-  CLUSTER_WIDE = 'cluster-wide',
-  OPENSHIFT = 'openshift',
-  EXISTING = 'existing',
-  NEW = 'new',
-}
+import {
+  CA_BUNDLE_CRT,
+  ODH_CA_BUNDLE_CRT,
+  ODH_TRUSTED_BUNDLE,
+  ResourceType,
+  SecureDBRType,
+} from './const';
 
 export interface SecureDBInfo {
   type: SecureDBRType;
-  configMap: string;
+  resourceName: string;
   key: string;
   certificate: string;
   nameSpace: string;
   isValid: boolean;
-  resourceType?: 'ConfigMap' | 'Secret';
+  resourceType?: ResourceType;
 }
 
 interface CreateMRSecureDBSectionProps {
   secureDBInfo: SecureDBInfo;
   modelRegistryNamespace: string;
-  nameDesc: { name: string };
+  k8sName: string;
   existingCertConfigMaps: ConfigSecretItem[];
   existingCertSecrets: ConfigSecretItem[];
   setSecureDBInfo: (info: SecureDBInfo) => void;
@@ -36,16 +35,25 @@ interface CreateMRSecureDBSectionProps {
 export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = ({
   secureDBInfo,
   modelRegistryNamespace,
-  nameDesc,
+  k8sName,
   existingCertConfigMaps,
   existingCertSecrets,
   setSecureDBInfo,
 }) => {
   const [searchConfigSecretName, setSearchConfigSecretName] = useState('');
   const [searchKey, setSearchKey] = useState('');
-  const ODH_TRUSTED_BUNDLE = 'odh-trusted-ca-bundle';
-  const CA_BUNDLE_CRT = 'ca-bundle.crt';
-  const ODH_CA_BUNDLE_CRT = 'odh-ca-bundle.crt';
+
+  let newConfigMapName = 'db-credential';
+  if (k8sName) {
+    newConfigMapName = `${k8sName}-db-credential`;
+    let suffix = 1;
+    const existingConfigMaps = existingCertConfigMaps.map((cofigmap) => cofigmap.name);
+
+    while (existingConfigMaps.includes(newConfigMapName)) {
+      suffix++;
+      newConfigMapName = `${k8sName}-db-credential-${suffix}`;
+    }
+  }
 
   const hasContent = (value: string): boolean => !!value.trim().length;
 
@@ -55,7 +63,7 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
       return true;
     }
     if (fullInfo.type === SecureDBRType.EXISTING) {
-      return hasContent(fullInfo.configMap) && hasContent(fullInfo.key);
+      return hasContent(fullInfo.resourceName) && hasContent(fullInfo.key);
     }
     if (fullInfo.type === SecureDBRType.NEW) {
       return hasContent(fullInfo.certificate);
@@ -88,7 +96,7 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
       type,
       nameSpace: '',
       key: '',
-      configMap: '',
+      resourceName: '',
       resourceType: undefined,
       certificate: '',
     };
@@ -98,12 +106,12 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
     });
   };
 
-  const handleResourceSelect = (selectedName: string, resourceType: 'ConfigMap' | 'Secret') => {
+  const handleResourceSelect = (selectedName: string, resourceType: ResourceType) => {
     setSearchConfigSecretName('');
 
     const newInfo = {
       ...secureDBInfo,
-      configMap: selectedName,
+      resourceName: selectedName,
       key: '',
       resourceType,
     };
@@ -121,7 +129,7 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
           .map((configMap, index) => (
             <MenuItem
               key={`configmap-${index}`}
-              onClick={() => handleResourceSelect(configMap.name, 'ConfigMap')}
+              onClick={() => handleResourceSelect(configMap.name, ResourceType.ConfigMap)}
             >
               {configMap.name}
             </MenuItem>
@@ -135,7 +143,7 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
           .map((secret, index) => (
             <MenuItem
               key={`secret-${index}`}
-              onClick={() => handleResourceSelect(secret.name, 'Secret')}
+              onClick={() => handleResourceSelect(secret.name, ResourceType.Secret)}
             >
               {secret.name}
             </MenuItem>
@@ -239,7 +247,7 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
               onSearchChange={(newValue) => setSearchConfigSecretName(newValue)}
               onSearchClear={() => setSearchConfigSecretName('')}
               searchValue={searchConfigSecretName}
-              toggleText={secureDBInfo.configMap || 'Select a ConfigMap or a Secret'}
+              toggleText={secureDBInfo.resourceName || 'Select a ConfigMap or a Secret'}
             >
               {getFilteredExistingCAResources()}
             </SearchSelector>
@@ -254,12 +262,12 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
               isFullWidth
               dataTestId="existing-ca-key-selector"
               onSearchChange={(newValue) => setSearchKey(newValue)}
-              isDisabled={!secureDBInfo.configMap}
+              isDisabled={!secureDBInfo.resourceName}
               onSearchClear={() => setSearchKey('')}
               searchValue={searchKey}
               toggleText={
                 secureDBInfo.key ||
-                (!secureDBInfo.configMap
+                (!secureDBInfo.resourceName
                   ? 'Select a resource to view its available keys'
                   : 'Select a key')
               }
@@ -268,7 +276,7 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
                 secureDBInfo.resourceType === 'ConfigMap'
                   ? existingCertConfigMaps
                   : existingCertSecrets,
-                secureDBInfo.configMap,
+                secureDBInfo.resourceName,
               )
                 .filter((item) => item.toLowerCase().includes(searchKey.toLowerCase()))
                 .map((item, index) => (
@@ -305,8 +313,7 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
             variant="info"
             style={{ marginLeft: 'var(--pf-t--global--spacer--lg)' }}
           >
-            Uploading a certificate below creates the{' '}
-            <strong>{translateDisplayNameForK8s(nameDesc.name)}-db-credential</strong> ConfigMap
+            Uploading a certificate below creates the <strong>{newConfigMapName}</strong> ConfigMap
             with the <strong>ca.crt</strong> key. If you&apos;d like to upload the certificate as a
             Secret instead, see the documentation for more details.
           </Alert>
@@ -319,6 +326,7 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
               onChange={(value) => {
                 const newInfo = {
                   ...secureDBInfo,
+                  resourceName: newConfigMapName,
                   certificate: value,
                 };
                 setSecureDBInfo({ ...newInfo, isValid: isValid(newInfo) });

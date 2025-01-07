@@ -1322,7 +1322,20 @@ export type ModelRegistryKind = K8sResourceCommon & {
         port?: number;
         skipDBCreation?: boolean;
         username?: string;
-      };
+      } & EitherNotBoth<
+        {
+          sslRootCertificateConfigMap?: {
+            name: string;
+            key: string;
+          } | null;
+        },
+        {
+          sslRootCertificateSecret?: {
+            name: string;
+            key: string;
+          } | null;
+        }
+      >;
     },
     {
       postgres?: {
