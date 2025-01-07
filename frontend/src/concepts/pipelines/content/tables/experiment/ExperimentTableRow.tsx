@@ -39,8 +39,8 @@ const ExperimentTableRow: React.FC<ExperimentTableRowProps> = ({
               }
               state={{ experiment }}
             >
-              {/* TODO: Remove the custom className after upgrading to PFv6 */}
-              <Truncate content={experiment.display_name} className="truncate-no-min-width" />
+              {/* TODO: Remove the inline style for underline once https://github.com/patternfly/patternfly/issues/7255 is resolved and PF versions are updated */}
+              <Truncate style={{ textDecoration: 'underline' }} content={experiment.display_name} />
             </Link>
           }
           description={experiment.description}
