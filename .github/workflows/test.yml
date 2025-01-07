@@ -174,8 +174,8 @@ jobs:
           done
       - name: Merge coverage reports
         run: |
-          npx nyc merge coverage
-          npx nyc report --reporter lcov --reporter text -t coverage --report-dir ./coverage/report
+          npx nyc merge ./coverage ./coverage/coverage-final.json
+          npx nyc report --reporter lcov --reporter text --temp-directory ./coverage --report-dir ./coverage/report
       - name: Upload combined results
         uses: actions/upload-artifact@v4
         with:
