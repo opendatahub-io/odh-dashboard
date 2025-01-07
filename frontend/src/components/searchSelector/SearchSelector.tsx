@@ -63,7 +63,7 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
   const toggleRef = React.useRef(null);
   const menuRef = React.useRef(null);
   const searchRef = React.useRef<HTMLInputElement | null>(null);
-  const popperProps = { minWidth, maxWidth: 'trigger', appendTo: 'inline' };
+  const popperProps = { minWidth, maxWidth: 'trigger' };
 
   return (
     <MenuContainer
@@ -129,7 +129,7 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
             )}
           </MenuSearch>
           <Divider />
-          <MenuContent>
+          <MenuContent maxMenuHeight="200px">
             <MenuList data-testid={`${dataTestId}-menuList`}>
               {typeof children === 'function'
                 ? children({ menuClose: () => setIsOpen(false) })

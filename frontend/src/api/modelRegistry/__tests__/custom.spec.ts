@@ -118,7 +118,7 @@ describe('createModelVersionForRegisteredModel', () => {
         state: ModelState.LIVE,
         customProperties: {},
       }),
-    ).toBe(mockResultPromise);
+    ).toEqual(mockResultPromise);
     expect(proxyCREATEMock).toHaveBeenCalledTimes(1);
     expect(proxyCREATEMock).toHaveBeenCalledWith(
       'hostPath',

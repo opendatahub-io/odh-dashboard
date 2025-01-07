@@ -63,7 +63,13 @@ const HomeHint: React.FC = () => {
               data-testid="jupyter-hint-icon"
               src={jupyterImg}
               alt="Jupyter"
-              style={{ height: 42, maxWidth: 'unset' }}
+              style={{
+                height: 42,
+                maxWidth: 'unset',
+                backgroundColor: 'var(--pf-t--color--white)',
+                padding: 'var(--pf-t--global--spacer--xs)',
+                borderRadius: 'var(--pf-t--global--border--radius--small)',
+              }}
             />
             <FlexItem>
               <Content>
