@@ -47,6 +47,7 @@ const PipelineDetailsYAML: React.FC<PipelineDetailsYAMLProps> = ({
       isLanguageLabelVisible
       language={Language.yaml}
       isReadOnly
+      codeEditorHeight="100%"
     />
   );
 };
