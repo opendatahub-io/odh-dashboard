@@ -80,6 +80,15 @@ export type PVCReplacements = {
   PVC_SIZE: string;
 };
 
+export type WBEditTestData = {
+  editTestNamespace: string;
+  editedTestNamespace: string;
+  editedTestDescription: string;
+  pvcEditName: string;
+  pvcEditDisplayName: string;
+  pvcEditSize: string;
+};
+
 export type CommandLineResult = {
   code: number;
   stdout: string;
