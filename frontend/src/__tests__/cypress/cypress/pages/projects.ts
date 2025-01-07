@@ -172,7 +172,15 @@ class CreateEditProjectModal extends Modal {
   }
 
   findSubmitButton() {
-    return this.findFooter().findByRole('button', { name: this.edit ? /Edit/ : /Create/ });
+    return this.findFooter().findByRole('button', { name: this.edit ? /Update/ : /Create/ });
+  }
+
+  findEditProjectName() {
+    return this.find().findByTestId('manage-project-modal-name');
+  }
+
+  findEditDescriptionName() {
+    return this.find().findByTestId('manage-project-modal-description');
   }
 }
 

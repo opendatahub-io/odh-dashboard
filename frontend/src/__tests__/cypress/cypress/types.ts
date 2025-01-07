@@ -105,6 +105,7 @@ export type DataScienceProjectData = {
   projectEditName: string;
   projectEditDescription: string;
   projectEditResourceName: string;
+  projectEditUpdatedName: string;
 };
 
 export type NotebookImageData = {
