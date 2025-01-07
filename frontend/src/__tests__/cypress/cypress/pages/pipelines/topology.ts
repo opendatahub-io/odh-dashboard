@@ -166,7 +166,7 @@ class PipelineDetails extends PipelinesTopology {
     this.pipelineVersionSelector
       .findToggleButton()
       .click()
-      .parents()
+      .document()
       .findByTestId('pipeline-version-selector-table-list')
       .find('td')
       .contains(name)

@@ -6,7 +6,7 @@ export class SearchSelector extends SubComponentBase {
   }
 
   private findContextualItem(suffix: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findScope().findByTestId(`${this.selectorId}-${suffix}`);
+    return this.findScope().document().findByTestId(`${this.selectorId}-${suffix}`);
   }
 
   findItem(name: string, useMenuList: boolean): Cypress.Chainable<JQuery<HTMLElement>> {
