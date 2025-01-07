@@ -288,6 +288,10 @@ class CreateSpawnerPage {
     return cy.findByTestId('workbench-name');
   }
 
+  getDescriptionInput() {
+    return cy.findByTestId('workbench-description');
+  }
+
   private findPVSizeField() {
     return cy.findByTestId('create-new-storage-size');
   }

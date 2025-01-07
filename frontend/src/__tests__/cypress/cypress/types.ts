@@ -84,9 +84,7 @@ export type WBEditTestData = {
   editTestNamespace: string;
   editedTestNamespace: string;
   editedTestDescription: string;
-  pvcEditName: string;
   pvcEditDisplayName: string;
-  pvcEditSize: string;
 };
 
 export type CommandLineResult = {

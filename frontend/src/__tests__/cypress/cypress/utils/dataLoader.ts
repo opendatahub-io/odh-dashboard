@@ -2,7 +2,8 @@ import yaml from 'js-yaml';
 import type {
   DataScienceProjectData,
   PVCReplacements,
-  ResourcesData, WBEditTestData
+  ResourcesData,
+  WBEditTestData,
 } from '~/__tests__/cypress/cypress/types';
 
 // Load fixture function that returns DataScienceProjectData
