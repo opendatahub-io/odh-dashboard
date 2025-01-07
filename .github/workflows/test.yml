@@ -168,10 +168,12 @@ jobs:
         run: |
           mkdir -p ./coverage
           cp -R all-artifacts/unit-coverage/* ./coverage/ || true
-          cp -R all-artifacts/backend-coverage/* ./coverage/ || true
+          [ -d all-artifacts/backend-coverage ] && cp -R all-artifacts/backend-coverage/* ./coverage/ || true
           find all-artifacts -name "cypress-coverage-*" -type d | while read dir; do
             cp -R "$dir"/* ./coverage/ || true
           done
+          echo "Combined coverage files:"
+          ls -R ./coverage
       - name: Merge coverage reports
         run: |
           npx nyc merge ./coverage ./coverage/coverage-final.json
