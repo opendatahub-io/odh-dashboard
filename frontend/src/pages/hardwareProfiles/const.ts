@@ -85,16 +85,16 @@ export const DEFAULT_HARDWARE_PROFILE_SPEC: HardwareProfileKind['spec'] = {
     {
       identifier: 'cpu',
       displayName: 'CPU',
-      defaultCount: 1,
-      maxCount: 2,
+      defaultCount: 2,
+      maxCount: 4,
       minCount: 1,
     },
     {
       identifier: 'memory',
-      displayName: 'RAM',
-      defaultCount: '1GiB',
-      minCount: '0.001GiB',
-      maxCount: '2GiB',
+      displayName: 'Memory',
+      defaultCount: '4Gi',
+      minCount: '2Gi',
+      maxCount: '8Gi',
     },
   ],
 };

@@ -45,12 +45,12 @@ const CountFormField: React.FC<CountFormFieldProps> = ({
   };
 
   return (
-    <FormGroup label={label} fieldId={fieldId} data-testid={fieldId}>
+    <FormGroup label={label} fieldId={fieldId} data-testid={`node-resource-size-${fieldId}`}>
       {renderInputField()}
       {!isValid && errorMessage && (
         <FormHelperText>
           <HelperText>
-            <HelperTextItem data-testid={`${fieldId}-error`} variant="error">
+            <HelperTextItem data-testid={`node-resource-size-${fieldId}-error`} variant="error">
               {errorMessage}
             </HelperTextItem>
           </HelperText>

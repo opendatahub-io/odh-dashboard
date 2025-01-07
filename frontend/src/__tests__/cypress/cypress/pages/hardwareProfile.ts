@@ -361,6 +361,34 @@ class NodeResourceModal extends Modal {
     return this.find().findByTestId('resource-identifier-error');
   }
 
+  findNodeResourceDefaultInput() {
+    return this.find().findByTestId('node-resource-size-default').findByLabelText('Input');
+  }
+
+  selectNodeResourceDefaultUnit(name: string) {
+    this.find()
+      .findByTestId('node-resource-size-default')
+      .findByTestId('value-unit-select')
+      .findDropdownItem(name)
+      .click();
+  }
+
+  findNodeResourceDefaultErrorMessage() {
+    return this.find().findByTestId('node-resource-size-default-error');
+  }
+
+  findNodeResourceMinInput() {
+    return this.find().findByTestId('node-resource-size-minimum-allowed').findByLabelText('Input');
+  }
+
+  findNodeResourceMinErrorMessage() {
+    return this.find().findByTestId('node-resource-size-minimum-allowed-error');
+  }
+
+  findNodeResourceMaxInput() {
+    return this.find().findByTestId('node-resource-size-maximum-allowed').findByLabelText('Input');
+  }
+
   findNodeResourceSubmitButton() {
     return this.find().findByTestId('modal-submit-button');
   }

@@ -30,7 +30,7 @@ const initIntercepts = ({ isPresent = true }: HandlersProps) => {
           description: 'Test description',
           identifiers: [
             {
-              displayName: 'RAM',
+              displayName: 'Memory',
               identifier: 'memory',
               minCount: '2Gi',
               maxCount: '5Gi',
@@ -77,7 +77,7 @@ describe('Manage Hardware Profile', () => {
     createHardwareProfile.findSubmitButton().should('be.disabled');
 
     // test required fields
-    createHardwareProfile.k8sNameDescription.findDisplayNameInput().fill('test-hardware-profile');
+    createHardwareProfile.k8sNameDescription.findDisplayNameInput().fill('Test hardware profile');
     createHardwareProfile.findSubmitButton().should('be.enabled');
 
     // test resource name validation
@@ -99,10 +99,33 @@ describe('Manage Hardware Profile', () => {
       .clear()
       .type('test-hardware-profile-name');
     createHardwareProfile.findSubmitButton().should('be.enabled');
+    createHardwareProfile.k8sNameDescription.findDescriptionInput().fill('Test description');
+
+    cy.interceptK8s(
+      'POST',
+      {
+        model: HardwareProfileModel,
+        ns: 'opendatahub',
+        name: 'test-hardware-profile',
+      },
+      mockHardwareProfile({ name: 'test-hardware-profile', namespace: 'opendatahub' }),
+    ).as('createHardwareProfile');
+    createHardwareProfile.findSubmitButton().click();
+
+    cy.wait('@createHardwareProfile').then((interception) => {
+      expect(interception.request.body.spec.displayName).to.be.eql('Test hardware profile');
+      expect(interception.request.body.spec.description).to.be.eql('Test description');
+    });
+  });
+
+  it('test node resources section', () => {
+    initIntercepts({});
+    createHardwareProfile.visit();
+    createHardwareProfile.k8sNameDescription.findDisplayNameInput().fill('test-hardware-profile');
 
     // test node resource table
     createHardwareProfile.findNodeResourceTable().should('exist');
-    // verify both CPU and RAM row exists and cannot be deleted
+    // verify both CPU and Memory rows exist and cannot be deleted
     createHardwareProfile
       .getNodeResourceTableRow('cpu')
       .findDeleteAction()
@@ -125,22 +148,104 @@ describe('Manage Hardware Profile', () => {
     createNodeResourceModal.findNodeResourceSubmitButton().click();
     // test that values were added correctly
     createHardwareProfile.getNodeResourceTableRow('test-gpu').shouldHaveResourceLabel('Test GPU');
+
     // test edit node resource
     // test cannot edit cpu or memory identifier
     createHardwareProfile.getNodeResourceTableRow('cpu').findEditAction().click();
     editNodeResourceModal.findNodeResourceIdentifierInput().should('be.disabled');
+    // test default value should be within min and max value
+    editNodeResourceModal.selectNodeResourceDefaultUnit('Milicores');
+    editNodeResourceModal.findNodeResourceDefaultErrorMessage().should('exist');
+    editNodeResourceModal.selectNodeResourceDefaultUnit('Cores');
+    editNodeResourceModal.findNodeResourceDefaultErrorMessage().should('not.exist');
+    // test min value should not exceed max value
+    editNodeResourceModal.findNodeResourceMinInput().type('3');
+    editNodeResourceModal.findNodeResourceMinErrorMessage().should('exist');
+    editNodeResourceModal.findNodeResourceMinInput().clear();
+    editNodeResourceModal.findNodeResourceMinErrorMessage().should('not.exist');
     editNodeResourceModal.findCancelButton().click();
+
     createHardwareProfile.getNodeResourceTableRow('memory').findEditAction().click();
     editNodeResourceModal.findNodeResourceIdentifierInput().should('be.disabled');
+    // test default value should be within min and max value
+    editNodeResourceModal.selectNodeResourceDefaultUnit('MiB');
+    editNodeResourceModal.findNodeResourceDefaultErrorMessage().should('exist');
+    editNodeResourceModal.selectNodeResourceDefaultUnit('GiB');
+    editNodeResourceModal.findNodeResourceDefaultErrorMessage().should('not.exist');
+    // test min value should not exceed max value
+    editNodeResourceModal.findNodeResourceMinInput().type('3');
+    editNodeResourceModal.findNodeResourceMinErrorMessage().should('exist');
+    editNodeResourceModal.findNodeResourceMinInput().clear();
+    editNodeResourceModal.findNodeResourceMinErrorMessage().should('not.exist');
     editNodeResourceModal.findCancelButton().click();
+
     createHardwareProfile.getNodeResourceTableRow('test-gpu').findEditAction().click();
     editNodeResourceModal.findNodeResourceLabelInput().fill('Test GPU Edited');
     editNodeResourceModal.findNodeResourceIdentifierInput().fill('test-gpu-edited');
+    // test default value should be within min and max value
+    editNodeResourceModal.findNodeResourceDefaultInput().type('3');
+    editNodeResourceModal.findNodeResourceDefaultErrorMessage().should('exist');
+    editNodeResourceModal.findNodeResourceSubmitButton().should('be.disabled');
+    editNodeResourceModal.findNodeResourceDefaultInput().type('{backspace}');
+    editNodeResourceModal.findNodeResourceDefaultErrorMessage().should('not.exist');
+    editNodeResourceModal.findNodeResourceSubmitButton().should('be.enabled');
+    // test min value should not exceed max value
+    editNodeResourceModal.findNodeResourceMinInput().type('3');
+    editNodeResourceModal.findNodeResourceMinErrorMessage().should('exist');
+    editNodeResourceModal.findNodeResourceSubmitButton().should('be.disabled');
+    editNodeResourceModal.findNodeResourceMinInput().type('{backspace}');
+    editNodeResourceModal.findNodeResourceMinErrorMessage().should('not.exist');
+    editNodeResourceModal.findNodeResourceSubmitButton().should('be.enabled');
+    editNodeResourceModal.findNodeResourceMaxInput().type('3');
     editNodeResourceModal.findNodeResourceSubmitButton().click();
     createHardwareProfile
       .getNodeResourceTableRow('test-gpu-edited')
       .shouldHaveResourceLabel('Test GPU Edited')
       .shouldHaveResourceIdentifier('test-gpu-edited');
+
+    cy.interceptK8s(
+      'POST',
+      {
+        model: HardwareProfileModel,
+        ns: 'opendatahub',
+        name: 'test-hardware-profile',
+      },
+      mockHardwareProfile({ name: 'test-hardware-profile', namespace: 'opendatahub' }),
+    ).as('createHardwareProfile');
+    createHardwareProfile.findSubmitButton().click();
+
+    cy.wait('@createHardwareProfile').then((interception) => {
+      expect(interception.request.body.spec.identifiers).to.be.eql([
+        {
+          identifier: 'cpu',
+          displayName: 'CPU',
+          defaultCount: 2,
+          maxCount: 4,
+          minCount: 1,
+        },
+        {
+          identifier: 'memory',
+          displayName: 'Memory',
+          defaultCount: '4Gi',
+          minCount: '2Gi',
+          maxCount: '8Gi',
+        },
+        {
+          displayName: 'Test GPU Edited',
+          identifier: 'test-gpu-edited',
+          minCount: 1,
+          maxCount: 13,
+          defaultCount: 1,
+        },
+      ]);
+    });
+  });
+
+  it('test node selectors section', () => {
+    initIntercepts({});
+    createHardwareProfile.visit();
+    createHardwareProfile.findSubmitButton().should('be.disabled');
+    createHardwareProfile.k8sNameDescription.findDisplayNameInput().fill('test-hardware-profile');
 
     // test node selectors empty state
     createHardwareProfile.findNodeSelectorTable().should('not.exist');
@@ -181,6 +286,30 @@ describe('Manage Hardware Profile', () => {
     createNodeSelectorModal.findNodeSelectorSubmitButton().click();
     // delete the previous one
     nodeSelectorTableRow.findDeleteAction().click();
+
+    cy.interceptK8s(
+      'POST',
+      {
+        model: HardwareProfileModel,
+        ns: 'opendatahub',
+        name: 'test-hardware-profile',
+      },
+      mockHardwareProfile({ name: 'test-hardware-profile', namespace: 'opendatahub' }),
+    ).as('createHardwareProfile');
+    createHardwareProfile.findSubmitButton().click();
+
+    cy.wait('@createHardwareProfile').then((interception) => {
+      expect(interception.request.body.spec.nodeSelectors).to.be.eql([
+        { key: 'new-test-node-selector', value: 'new-test-value' },
+      ]);
+    });
+  });
+
+  it('test tolerations section', () => {
+    initIntercepts({});
+    createHardwareProfile.visit();
+    createHardwareProfile.findSubmitButton().should('be.disabled');
+    createHardwareProfile.k8sNameDescription.findDisplayNameInput().fill('test-hardware-profile');
 
     // test tolerations empty state
     createHardwareProfile.findTolerationTable().should('not.exist');
@@ -253,9 +382,6 @@ describe('Manage Hardware Profile', () => {
 
     cy.wait('@createHardwareProfile').then((interception) => {
       expect(interception.request.body.spec.tolerations).to.be.eql([]);
-      expect(interception.request.body.spec.nodeSelectors).to.be.eql([
-        { key: 'new-test-node-selector', value: 'new-test-value' },
-      ]);
     });
   });
 
@@ -310,7 +436,7 @@ describe('Manage Hardware Profile', () => {
       expect(interception.request.body.spec).to.eql({
         identifiers: [
           {
-            displayName: 'RAM',
+            displayName: 'Memory',
             identifier: 'memory',
             minCount: '2Gi',
             maxCount: '5Gi',
@@ -384,7 +510,7 @@ describe('Manage Hardware Profile', () => {
       expect(interception.request.body.spec).to.eql({
         identifiers: [
           {
-            displayName: 'RAM',
+            displayName: 'Memory',
             identifier: 'memory',
             minCount: '2Gi',
             maxCount: '5Gi',

@@ -62,13 +62,13 @@ const ManageHardwareProfileWrapper: React.FC<ManageHardwareProfileWrapperProps> 
   return children(data);
 };
 
-export const EditHardWareProfile: React.FC = () => (
+export const EditHardwareProfile: React.FC = () => (
   <ManageHardwareProfileWrapper>
     {(data) => <ManageHardwareProfile existingHardwareProfile={data} />}
   </ManageHardwareProfileWrapper>
 );
 
-export const DuplicateHardWareProfile: React.FC = () => (
+export const DuplicateHardwareProfile: React.FC = () => (
   <ManageHardwareProfileWrapper>
     {(data) => <ManageHardwareProfile duplicatedHardwareProfile={data} />}
   </ManageHardwareProfileWrapper>

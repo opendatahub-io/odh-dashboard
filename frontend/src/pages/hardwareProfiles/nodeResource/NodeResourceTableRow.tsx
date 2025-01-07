@@ -50,8 +50,8 @@ const NodeResourceTableRow: React.FC<NodeResourceTableRowProps> = ({
                 <Tooltip
                   content={
                     <>
-                      A hardware profile must include CPU and RAM resources. These resources can be
-                      edited but can&apos;t be deleted.
+                      A hardware profile must include CPU and Memory resources. These resources can
+                      be edited but can&apos;t be deleted.
                     </>
                   }
                   triggerRef={tooltipRef}

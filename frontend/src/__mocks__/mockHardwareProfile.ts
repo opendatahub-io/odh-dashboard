@@ -28,7 +28,7 @@ export const mockHardwareProfile = ({
   displayName = 'Nvidia GPU',
   identifiers = [
     {
-      displayName: 'RAM',
+      displayName: 'Memory',
       identifier: 'memory',
       minCount: '2Gi',
       maxCount: '5Gi',

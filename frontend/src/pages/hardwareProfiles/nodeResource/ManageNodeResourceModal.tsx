@@ -44,9 +44,8 @@ const ManageNodeResourceModal: React.FC<ManageNodeResourceModalProps> = ({
     }
   }, [identifier]);
 
-  const isValidCounts = unitOptions
-    ? validateDefaultCount(identifier, unitOptions) && validateMinCount(identifier, unitOptions)
-    : true;
+  const isValidCounts =
+    validateDefaultCount(identifier, unitOptions) && validateMinCount(identifier, unitOptions);
 
   const isButtonDisabled =
     !identifier.displayName || !identifier.identifier || !isUniqueIdentifier || !isValidCounts;

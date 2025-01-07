@@ -69,7 +69,7 @@ const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
         identifier={identifier.identifier}
         size={identifier.defaultCount}
         setSize={(value) => setIdentifier('defaultCount', value)}
-        isValid={unitOptions ? validateDefaultCount(identifier, unitOptions) : true}
+        isValid={validateDefaultCount(identifier, unitOptions)}
         errorMessage="Default must be equal to or between the minimum and maximum allowed limits."
       />
 
@@ -79,7 +79,7 @@ const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
         identifier={identifier.identifier}
         size={identifier.minCount}
         setSize={(value) => setIdentifier('minCount', value)}
-        isValid={unitOptions ? validateMinCount(identifier, unitOptions) : true}
+        isValid={validateMinCount(identifier, unitOptions)}
         errorMessage="Minimum allowed value cannot exceed the maximum allowed value."
       />
 
