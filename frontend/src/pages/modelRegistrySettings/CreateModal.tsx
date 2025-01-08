@@ -312,6 +312,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
                   isChecked={addSecureDB}
                   onChange={(_e, value) => setAddSecureDB(value)}
                   id="add-secure-db"
+                  data-testid="add-secure-db-mr-checkbox"
                   name="add-secure-db"
                 />
               </FormGroup>

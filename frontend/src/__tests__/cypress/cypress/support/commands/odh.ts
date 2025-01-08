@@ -15,6 +15,7 @@ import type {
   DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
+  ListConfigSecretsResponse,
   ModelRegistryKind,
   NotebookKind,
   OdhQuickStart,
@@ -653,6 +654,10 @@ declare global {
         ((
           type: 'GET /api/connection-types',
           response: ConnectionTypeConfigMap[],
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/modelRegistryCertificates',
+          response: ListConfigSecretsResponse,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'POST /api/connection-types',
