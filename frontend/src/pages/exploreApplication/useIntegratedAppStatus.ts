@@ -19,12 +19,13 @@ export const useIntegratedAppStatus = (app?: OdhApplication): FetchState<Integra
         isEnabled: false,
         canInstall: true,
         variablesValidationStatus: VariablesValidationStatus.UNKNOWN,
+        variablesValidationTimestamp: 'Unknown',
         error: '',
       });
     }
 
     return getIntegrationAppEnablementStatus(app.spec.internalRoute);
-  }, [app, forceUpdate]);
+  }, [app, forceUpdate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return useFetchState(
     callback,
@@ -33,9 +34,10 @@ export const useIntegratedAppStatus = (app?: OdhApplication): FetchState<Integra
       isEnabled: false,
       canInstall: false,
       variablesValidationStatus: VariablesValidationStatus.UNKNOWN,
+      variablesValidationTimestamp: 'Unknown',
       error: '',
     },
-    { 
+    {
       initialPromisePurity: true,
     },
   );

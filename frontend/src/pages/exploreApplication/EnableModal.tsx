@@ -50,12 +50,10 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
   };
 
   const handleClose = React.useCallback(() => {
-    if (!validationInProgress) {
-      setEnableValues({});
-      setPostError('');
-    }
+    setEnableValues({});
+    setPostError('');
     onClose();
-  }, [validationInProgress, onClose]);
+  }, [onClose]);
 
   React.useEffect(() => {
     if (validationInProgress && validationStatus === EnableApplicationStatus.SUCCESS) {

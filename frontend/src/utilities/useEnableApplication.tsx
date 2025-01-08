@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { AlertVariant } from '@patternfly/react-core';
+import * as _ from 'lodash-es';
 import { getValidationStatus, postValidateIsv } from '~/services/validateIsvService';
 import {
   enableIntegrationApp,
@@ -7,9 +8,8 @@ import {
 } from '~/services/integrationAppService';
 import { addNotification, forceComponentsUpdate } from '~/redux/actions/actions';
 import { useAppDispatch } from '~/redux/hooks';
-import { VariablesValidationStatus } from '~/types';
+import { IntegrationAppStatus, VariablesValidationStatus } from '~/types';
 import { isInternalRouteIntegrationsApp } from './utils';
-import { FAST_POLL_INTERVAL } from '~/utilities/const';
 
 export enum EnableApplicationStatus {
   INPROGRESS,
@@ -29,7 +29,8 @@ export const useEnableApplication = (
     status: EnableApplicationStatus;
     error: string;
   }>({ status: EnableApplicationStatus.IDLE, error: '' });
-  const [startPolling, setStartPolling] = React.useState(false);
+  const [lastVariablesValidationTimestamp, setLastVariablesValidationTimestamp] =
+    React.useState<string>('Unknown');
   const dispatch = useAppDispatch();
 
   const dispatchResults = React.useCallback(
@@ -61,20 +62,24 @@ export const useEnableApplication = (
   React.useEffect(() => {
     let cancelled = false;
     let watchHandle: ReturnType<typeof setTimeout>;
-    
-    if (startPolling && enableStatus.status === EnableApplicationStatus.INPROGRESS) {
+
+    if (enableStatus.status === EnableApplicationStatus.INPROGRESS) {
+      const shouldContinueWatching = (response: IntegrationAppStatus): boolean => {
+        if (!_.isEqual(response.variablesValidationTimestamp, lastVariablesValidationTimestamp)) {
+          return false;
+        }
+        return true;
+      };
+
       const watchStatus = () => {
         if (isInternalRouteIntegrationsApp(internalRoute)) {
           getIntegrationAppEnablementStatus(internalRoute)
             .then((response) => {
-              if (
-                response.isInstalled &&
-                response.canInstall &&
-                response.variablesValidationStatus === VariablesValidationStatus.UNKNOWN
-              ) {
+              if (shouldContinueWatching(response)) {
                 watchHandle = setTimeout(watchStatus, 10 * 1000);
                 return;
               }
+              setLastVariablesValidationTimestamp(response.variablesValidationTimestamp);
               setEnableStatus({
                 status:
                   response.variablesValidationStatus === VariablesValidationStatus.SUCCESS
@@ -126,27 +131,46 @@ export const useEnableApplication = (
       cancelled = true;
       clearTimeout(watchHandle);
     };
-  }, [appId, dispatchResults, enableStatus.status, internalRoute, startPolling]);
+  }, [
+    appId,
+    dispatchResults,
+    enableStatus.status,
+    internalRoute,
+    lastVariablesValidationTimestamp,
+  ]);
 
   React.useEffect(() => {
     let closed = false;
     if (doEnable) {
       if (isInternalRouteIntegrationsApp(internalRoute)) {
-        setStartPolling(false);
-        setEnableStatus({ status: EnableApplicationStatus.INPROGRESS, error: '' });
-        
         enableIntegrationApp(internalRoute, enableValues)
           .then((response) => {
             if (!closed) {
-              setTimeout(() => {
+              if (response.isInstalled && response.canInstall) {
+                setEnableStatus({ status: EnableApplicationStatus.INPROGRESS, error: '' });
+                setLastVariablesValidationTimestamp(response.variablesValidationTimestamp);
+
                 if (
-                  response.isInstalled &&
-                  response.canInstall &&
-                  response.variablesValidationStatus === VariablesValidationStatus.UNKNOWN
+                  response.variablesValidationTimestamp !== 'Unknown' &&
+                  response.variablesValidationTimestamp !== lastVariablesValidationTimestamp
                 ) {
-                  setStartPolling(true);
+                  setEnableStatus({
+                    status:
+                      response.variablesValidationStatus === VariablesValidationStatus.SUCCESS
+                        ? EnableApplicationStatus.SUCCESS
+                        : EnableApplicationStatus.FAILED,
+                    error:
+                      response.variablesValidationStatus === VariablesValidationStatus.SUCCESS
+                        ? ''
+                        : 'Variables are not valid',
+                  });
+                  dispatchResults(
+                    response.variablesValidationStatus === VariablesValidationStatus.SUCCESS
+                      ? undefined
+                      : 'Variables are not valid',
+                  );
                 }
-              }, FAST_POLL_INTERVAL);
+              }
             }
           })
           .catch((e) => {
@@ -185,6 +209,15 @@ export const useEnableApplication = (
     return () => {
       closed = true;
     };
-  }, [appId, appName, dispatch, dispatchResults, doEnable, enableValues, internalRoute]);
+  }, [
+    appId,
+    appName,
+    dispatch,
+    dispatchResults,
+    doEnable,
+    enableValues,
+    internalRoute,
+    lastVariablesValidationTimestamp,
+  ]);
   return [enableStatus.status, enableStatus.error];
 };
