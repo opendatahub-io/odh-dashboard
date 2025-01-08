@@ -15,7 +15,23 @@ export const bumpModelVersionTimestamp = async (
   }
 
   try {
-    await api.patchModelVersion({}, { state: ModelState.LIVE }, modelVersionId);
+    const currentTime = new Date().toISOString();
+    await api.patchModelVersion(
+      {},
+      {
+        // This is a workaround to update the timestamp on the backend. There is a bug opened for model registry team
+        // to fix this issue. see https://issues.redhat.com/browse/RHOAIENG-17614
+        state: ModelState.LIVE,
+        customProperties: {
+          _lastModified: {
+            metadataType: ModelRegistryMetadataType.STRING,
+            // eslint-disable-next-line camelcase
+            string_value: currentTime,
+          },
+        },
+      },
+      modelVersionId,
+    );
   } catch (error) {
     throw new Error(
       `Failed to update model version timestamp: ${
