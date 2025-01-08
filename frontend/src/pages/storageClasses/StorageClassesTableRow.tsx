@@ -168,7 +168,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
       </Td>
 
       <Td dataLabel={ColumnLabel.OpenshiftStorageClass}>
-        <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+        <Flex spaceItems={{ default: 'spaceItemsSm' }}>
           <FlexItem>{metadata.name}</FlexItem>
 
           <FlexItem>
@@ -191,6 +191,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
               <DashboardPopupIconButton
                 icon={<OutlinedQuestionCircleIcon />}
                 aria-label="Storage class info popover"
+                style={{ paddingBlock: 0 }}
               />
             </Popover>
           </FlexItem>

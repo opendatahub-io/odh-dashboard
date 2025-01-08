@@ -4,6 +4,6 @@
   "exclude": ["node_modules", "public", "coverage", ".nyc_output"],
   "compilerOptions": {
     "sourceMap": true,
-    "types": ["node", "cypress", "@testing-library/cypress", "cypress-axe", "cypress-plugin-steps"]
+    "types": ["node", "cypress", "@testing-library/cypress", "cypress-axe", "cypress-plugin-steps", "@cypress/grep"]
   }
 }

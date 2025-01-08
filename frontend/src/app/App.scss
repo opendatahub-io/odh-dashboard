@@ -38,6 +38,13 @@ body,
   --pf-v6-c-truncate__start--MinWidth: 0;
 }
 
+// TODO: Remove when PF bug is fixed. https://github.com/patternfly/react-catalog-view/issues/74
+.vertical-tabs-pf-tab {
+  > a {
+    text-decoration: none;
+  }
+}
+
 // TODO: Remove when PF bug is fixed. https://github.com/patternfly/patternfly-react/issues/11314
 .pf-v6-c-table__text.pf-m-truncate {
   min-width: max(100%, 5ch);
@@ -57,4 +64,14 @@ body,
 .pf-v6-c-popover.odh-u-scrollable .pf-v6-c-popover__body {
   max-height: 65vh;
   overflow: auto;
+}
+
+// Necessary to scroll select menus with grouped sections. Remove when https://github.com/patternfly/patternfly/issues/7256 is resolved
+.pf-v6-c-menu {
+  &.pf-m-scrollable .pf-v6-c-menu__content {
+    overflow: auto;
+  }
+  &.pf-m-drilldown:not(.pf-m-scrollable) {
+    overflow: hidden;
+  }
 }
