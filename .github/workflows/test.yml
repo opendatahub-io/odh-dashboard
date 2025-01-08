@@ -184,7 +184,9 @@ jobs:
           jq 'del(.[] | select(.statementMap == {}))' ./coverage/merged-coverage.json > ./coverage/cleaned-coverage.json
           mv ./coverage/cleaned-coverage.json ./coverage/merged-coverage.json
       - name: Generate coverage report
-        run: npx nyc report --reporter=html --reporter=text-summary --temp-directory ./coverage -t ./coverage
+        run: |
+          mkdir -p ./coverage/report
+          npx nyc report --reporter=html --reporter=text-summary --temp-directory ./coverage -t ./coverage --report-dir ./coverage/report
       - name: Upload combined results
         uses: actions/upload-artifact@v4
         with:
