@@ -392,7 +392,9 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   {
                     storageType: StorageType.EXISTING_PVC,
                     id: storageData.length + 1,
-                    name: attachData.storage,
+                    name: attachData.pvc
+                      ? getDisplayNameFromK8sResource(attachData.pvc)
+                      : attachData.storage,
                     existingPvc: attachData.pvc,
                     mountPath: attachData.mountPath.value,
                     description: attachData.pvc?.metadata.annotations?.['openshift.io/description'],
