@@ -65,3 +65,13 @@ body,
   max-height: 65vh;
   overflow: auto;
 }
+
+// Necessary to scroll select menus with grouped sections. Remove when https://github.com/patternfly/patternfly/issues/7256 is resolved
+.pf-v6-c-menu {
+  &.pf-m-scrollable .pf-v6-c-menu__content {
+    overflow: auto;
+  }
+  &.pf-m-drilldown:not(.pf-m-scrollable) {
+    overflow: hidden;
+  }
+}
