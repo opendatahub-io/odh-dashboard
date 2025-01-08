@@ -20,6 +20,7 @@ const EmptySingleModelServingCard: React.FC<EmptySingleModelServingCardProps> = 
   setErrorSelectingPlatform,
 }) => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
+
   return (
     <Card
       style={{

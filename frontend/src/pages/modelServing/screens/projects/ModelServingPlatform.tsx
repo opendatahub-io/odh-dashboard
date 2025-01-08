@@ -4,6 +4,7 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import {
   Alert,
   Button,
+  Content,
   EmptyStateActions,
   Flex,
   FlexItem,
@@ -13,7 +14,6 @@ import {
   Popover,
   Stack,
   StackItem,
-  Content,
 } from '@patternfly/react-core';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
@@ -26,7 +26,6 @@ import {
 import { ServingRuntimePlatform } from '~/types';
 import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/projects/utils';
 import KServeInferenceServiceTable from '~/pages/modelServing/screens/projects/KServeSection/KServeInferenceServiceTable';
-import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
 import EmptyDetailsView from '~/components/EmptyDetailsView';
@@ -41,6 +40,7 @@ import { NamespaceApplicationCase } from '~/pages/projects/types';
 import ModelServingPlatformSelectButton from '~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
 import ModelServingPlatformSelectErrorAlert from '~/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
 import { modelVersionUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ModelMeshServingRuntimeTable from './ModelMeshSection/ServingRuntimeTable';
 import ModelServingPlatformButtonAction from './ModelServingPlatformButtonAction';
@@ -63,8 +63,8 @@ const ModelServingPlatform: React.FC = () => {
 
   const servingPlatformStatuses = useServingPlatformStatuses();
   const kServeEnabled = servingPlatformStatuses.kServe.enabled;
-  const isNIMAvailable = servingPlatformStatuses.kServeNIM.enabled;
   const modelMeshEnabled = servingPlatformStatuses.modelMesh.enabled;
+  const isNIMAvailable = servingPlatformStatuses.kServeNIM.enabled;
 
   const {
     servingRuntimes: {
