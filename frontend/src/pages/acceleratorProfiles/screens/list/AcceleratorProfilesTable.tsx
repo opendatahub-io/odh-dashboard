@@ -77,7 +77,7 @@ const AcceleratorProfilesTable: React.FC<AcceleratorProfilesTableProps> = ({
                 data-testid="create-accelerator-profile"
                 onClick={() => navigate(`/acceleratorProfiles/create`)}
               >
-                Create accelerator profile
+                Create hardware profile
               </Button>
             </ToolbarItem>
           </>

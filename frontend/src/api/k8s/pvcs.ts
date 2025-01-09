@@ -55,6 +55,14 @@ export const assemblePvc = (
   };
 };
 
+export const getAllDashboardPvcs = (): Promise<PersistentVolumeClaimKind[]> =>
+  k8sListResourceItems<PersistentVolumeClaimKind>({
+    model: PVCModel,
+    queryOptions: {
+      queryParams: { labelSelector: LABEL_SELECTOR_DASHBOARD_RESOURCE },
+    },
+  });
+
 export const getDashboardPvcs = (projectName: string): Promise<PersistentVolumeClaimKind[]> =>
   k8sListResourceItems<PersistentVolumeClaimKind>({
     model: PVCModel,

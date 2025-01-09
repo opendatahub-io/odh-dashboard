@@ -23,6 +23,7 @@ import useStopNotebookModalAvailability from '~/pages/projects/notebook/useStopN
 import { useAppContext } from '~/app/AppContext';
 import NotebookStateAction from '~/pages/projects/notebook/NotebookStateAction';
 import StopNotebookConfirmModal from '~/pages/projects/notebook/StopNotebookConfirmModal';
+import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { NotebookImageAvailability } from './const';
 import { NotebookImageDisplayName } from './NotebookImageDisplayName';
 import NotebookStorageBars from './NotebookStorageBars';
@@ -48,7 +49,8 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   compact,
   showOutOfDateElyraInfo,
 }) => {
-  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const { currentProject: contextProject } = React.useContext(ProjectDetailsContext);
+  const { projects } = React.useContext(ProjectsContext);
   const navigate = useNavigate();
   const [isExpanded, setExpanded] = React.useState(false);
   const { size: notebookSize } = useNotebookDeploymentSize(obj.notebook);
@@ -79,6 +81,8 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
       obj.refresh().then(() => setInProgress(false));
     });
   }, [dashboardConfig, obj, canEnablePipelines, notebookSize, acceleratorProfile]);
+
+  const currentProject = projects.find((p) => p.metadata.name === notebookNamespace);
 
   const handleStop = React.useCallback(() => {
     fireNotebookTrackingEvent('stopped', obj.notebook, notebookSize, acceleratorProfile);
@@ -137,6 +141,9 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
             />
           )}
         </Td>
+        {contextProject.metadata.name !== notebookNamespace && currentProject ? (
+          <Td dataLabel="Project">{getDisplayNameFromK8sResource(currentProject)}</Td>
+        ) : null}
         <Td dataLabel="Notebook image">
           <Split>
             <SplitItem>
@@ -158,7 +165,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
                     <Button
                       onClick={() => {
                         navigate(
-                          `/projects/${currentProject.metadata.name}/spawner/${obj.notebook.metadata.name}`,
+                          `/projects/${obj.notebook.metadata.namespace}/spawner/${obj.notebook.metadata.name}`,
                         );
                       }}
                     >
@@ -207,7 +214,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
         {!compact ? (
           <Td isActionCell>
             <NotebookActionsColumn
-              project={currentProject}
+              project={currentProject || contextProject}
               notebookState={obj}
               onNotebookDelete={onNotebookDelete}
             />

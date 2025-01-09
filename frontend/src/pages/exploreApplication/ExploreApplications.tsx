@@ -1,24 +1,17 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as _ from 'lodash-es';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerContentBody,
-  Gallery,
-  PageSection,
-} from '@patternfly/react-core';
+import { Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core';
 import { useWatchComponents } from '~/utilities/useWatchComponents';
-import OdhExploreCard from '~/components/OdhExploreCard';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { OdhApplication } from '~/types';
 import { useQueryParams } from '~/utilities/useQueryParams';
 import { removeQueryArgument, setQueryArgument } from '~/utilities/router';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { useAppContext } from '~/app/AppContext';
-import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
+import ExploreApplicationsList from '~/pages/exploreApplication/ExploreApplicationsList';
 import GetStartedPanel from './GetStartedPanel';
 
 import './ExploreApplications.scss';
@@ -66,31 +59,13 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
               empty={isEmpty}
               loadError={loadError}
             >
-              <PageSection
-                style={{ height: '100%' }}
-                hasBodyWrapper={false}
-                isFilled
-                data-id="page-content"
-              >
-                <Gallery maxWidths={{ default: '330px' }} role="list" hasGutter>
-                  {exploreComponents.map((c) => (
-                    <OdhExploreCard
-                      key={c.metadata.name}
-                      odhApp={c}
-                      isSelected={selectedComponent?.metadata.name === c.metadata.name}
-                      onSelect={() => {
-                        updateSelection(c.metadata.name);
-                        fireMiscTrackingEvent('Explore card clicked', {
-                          name: c.metadata.name,
-                        });
-                      }}
-                      disableInfo={disableInfo}
-                      enableOpen={c.metadata.name === enableApp?.metadata.name}
-                      onEnableClose={() => setEnableApp(undefined)}
-                    />
-                  ))}
-                </Gallery>
-              </PageSection>
+              <ExploreApplicationsList
+                exploreComponents={exploreComponents}
+                updateSelection={updateSelection}
+                selectedComponent={selectedComponent}
+                enableApp={enableApp}
+                setEnableApp={setEnableApp}
+              />
             </ApplicationsPage>
           </DrawerContentBody>
         </DrawerContent>

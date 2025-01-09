@@ -1,5 +1,12 @@
 import * as React from 'react';
-import { useSearchParams } from 'react-router-dom';
+import {
+  generatePath,
+  matchPath,
+  Outlet,
+  useLocation,
+  useNavigate,
+  useParams,
+} from 'react-router-dom';
 import { Tabs, Tab, TabTitleIcon, TabTitleText, PageSection } from '@patternfly/react-core';
 import { SVGIconProps } from '@patternfly/react-icons/dist/esm/createIcon';
 
@@ -7,23 +14,20 @@ type GenericHorizontalBarProps = {
   activeKey: string | null;
   sections: {
     title: string;
-    component: React.ReactNode;
     icon?: React.ReactElement<React.ComponentClass<SVGIconProps>>;
     id: string;
   }[];
+  routes: string[];
 };
 
-const GenericHorizontalBar: React.FC<GenericHorizontalBarProps> = ({ activeKey, sections }) => {
-  const [queryParams, setQueryParams] = useSearchParams();
-
-  React.useEffect(() => {
-    if (!sections.find((s) => s.id === activeKey) && sections[0].id) {
-      queryParams.set('section', sections[0].id);
-      setQueryParams(queryParams, { replace: true });
-    }
-  }, [sections, activeKey, queryParams, setQueryParams]);
-
-  const activeSection = sections.find((section) => section.id === activeKey) || sections[0];
+const GenericHorizontalBar: React.FC<GenericHorizontalBarProps> = ({
+  activeKey,
+  sections,
+  routes,
+}) => {
+  const location = useLocation();
+  const params = useParams();
+  const navigate = useNavigate();
 
   return (
     <>
@@ -37,29 +41,35 @@ const GenericHorizontalBar: React.FC<GenericHorizontalBarProps> = ({ activeKey, 
         <Tabs
           activeKey={activeKey || sections[0].id}
           onSelect={(event, tabIndex) => {
-            queryParams.set('section', `${tabIndex}`);
-            setQueryParams(queryParams);
+            const pathPattern = routes.find((pattern) => matchPath(pattern, location.pathname));
+            if (pathPattern) {
+              const path = generatePath(pathPattern, {
+                namespace: params.namespace,
+                section: `${tabIndex}`,
+              });
+              navigate(path);
+            }
           }}
           aria-label="Horizontal bar"
           style={{ paddingInlineStart: 'var(--pf-t--global--spacer--lg' }}
         >
-          {sections.map((section) => (
+          {sections.map((tabSection) => (
             <Tab
-              key={section.id}
-              eventKey={section.id}
-              tabContentId={section.id}
-              data-testid={`${section.id}-tab`}
+              key={tabSection.id}
+              eventKey={tabSection.id}
+              tabContentId={tabSection.id}
+              data-testid={`${tabSection.id}-tab`}
               title={
                 <>
-                  {section.icon && <TabTitleIcon>{section.icon}</TabTitleIcon>}
-                  <TabTitleText>{section.title}</TabTitleText>
+                  {tabSection.icon && <TabTitleIcon>{tabSection.icon}</TabTitleIcon>}
+                  <TabTitleText>{tabSection.title}</TabTitleText>
                 </>
               }
             />
           ))}
         </Tabs>
+        <Outlet />
       </PageSection>
-      {activeSection.component}
     </>
   );
 };

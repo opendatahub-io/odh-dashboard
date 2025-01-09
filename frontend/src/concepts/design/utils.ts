@@ -56,6 +56,8 @@ export enum ProjectObjectType {
   distributedWorkload = 'distributed-workload',
   dataConnection = 'data-connection',
   connections = 'connections',
+  generalSettings = 'general-settings',
+  environmentSetup = 'environment-setup',
   clusterSettings = 'cluster-settings',
   acceleratorProfile = 'accelerator-profile',
   permissions = 'permissions',
@@ -65,6 +67,7 @@ export enum ProjectObjectType {
   enabledApplications = 'enabled-applications',
   exploreApplications = 'explore-applications',
   resources = 'resources',
+  modelSetup = 'model-setup',
 }
 
 export const typedIconColor = (objectType: ProjectObjectType): string => {
@@ -172,7 +175,10 @@ export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.distributedWorkload:
       return 'var(--ai-serving--BackgroundColor)';
     case ProjectObjectType.clusterSettings:
+    case ProjectObjectType.generalSettings:
     case ProjectObjectType.acceleratorProfile:
+    case ProjectObjectType.environmentSetup:
+    case ProjectObjectType.modelSetup:
       return 'var(--ai-set-up--BackgroundColor)';
     case ProjectObjectType.servingRuntime:
       return 'var(--ai-set-up--BackgroundColor)';

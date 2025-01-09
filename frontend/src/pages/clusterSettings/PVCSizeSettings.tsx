@@ -11,7 +11,7 @@ import {
   TextInput,
   InputGroupItem,
 } from '@patternfly/react-core';
-import SettingSection from '~/components/SettingSection';
+import CollapsibleSettingSection from '~/components/CollapsibleSettingSection';
 import { DEFAULT_PVC_SIZE, MAX_PVC_SIZE, MIN_PVC_SIZE } from './const';
 
 type PVCSizeSettingsProps = {
@@ -26,7 +26,7 @@ const PVCSizeSettings: React.FC<PVCSizeSettingsProps> = ({ initialValue, pvcSize
   }, [initialValue, setPvcSize]);
 
   return (
-    <SettingSection
+    <CollapsibleSettingSection
       title="PVC size"
       description="Changing the PVC size changes the storage size attached to the new notebook servers for
 all users."
@@ -88,7 +88,7 @@ all users."
           </HelperText>
         </StackItem>
       </Stack>
-    </SettingSection>
+    </CollapsibleSettingSection>
   );
 };
 

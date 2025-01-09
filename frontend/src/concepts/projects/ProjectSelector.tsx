@@ -5,6 +5,7 @@ import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import SearchSelector from '~/components/searchSelector/SearchSelector';
 import { ProjectKind } from '~/k8sTypes';
 import { ProjectIcon } from '~/images/icons';
+import ProjectLink from '~/concepts/projects/ProjectLink';
 
 type ProjectSelectorProps = {
   onSelection: (projectName: string) => void;
@@ -111,6 +112,9 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
             <Bullseye>{selectorLabel}</Bullseye>
           </FlexItem>
           <FlexItem>{selector}</FlexItem>
+          <FlexItem>
+            <ProjectLink namespace={namespace} />
+          </FlexItem>
         </Flex>
       </Flex>
     );

@@ -10,12 +10,12 @@ import {
 } from '@patternfly/react-core';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { isGroupEmpty } from '~/utilities/utils';
-import SettingSection from '~/components/SettingSection';
 import { MultiSelection, SelectionOptions } from '~/components/MultiSelection';
 import { useWatchGroups } from '~/concepts/userConfigs/useWatchGroups';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
 import { GroupsConfigField } from '~/concepts/userConfigs/groupTypes';
+import CollapsibleSettingSection from '~/components/CollapsibleSettingSection';
 
 const GroupSettings: React.FC = () => {
   const {
@@ -78,7 +78,7 @@ const GroupSettings: React.FC = () => {
     >
       <Stack hasGutter>
         <StackItem>
-          <SettingSection
+          <CollapsibleSettingSection
             title="Data Science administrator groups"
             testId="data-science-administrator-groups"
             description={adminDesc}
@@ -125,10 +125,10 @@ const GroupSettings: React.FC = () => {
                 </HelperTextItem>
               </HelperText>
             )}
-          </SettingSection>
+          </CollapsibleSettingSection>
         </StackItem>
         <StackItem>
-          <SettingSection
+          <CollapsibleSettingSection
             title="Data Science user groups"
             description={userDesc}
             testId="data-science-user-groups"
@@ -166,7 +166,7 @@ const GroupSettings: React.FC = () => {
                 </HelperTextItem>
               </HelperText>
             )}
-          </SettingSection>
+          </CollapsibleSettingSection>
         </StackItem>
         <StackItem>
           <Button
@@ -182,7 +182,7 @@ const GroupSettings: React.FC = () => {
             isLoading={isLoading}
             onClick={handleSaveButtonClicked}
           >
-            Save changes
+            Save
           </Button>
         </StackItem>
       </Stack>

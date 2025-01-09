@@ -12,8 +12,8 @@ import {
   TextInput,
   InputGroupItem,
 } from '@patternfly/react-core';
-import SettingSection from '~/components/SettingSection';
 import { getHourAndMinuteByTimeout, getTimeoutByHourAndMinute } from '~/utilities/utils';
+import CollapsibleSettingSection from '~/components/CollapsibleSettingSection';
 import {
   CULLER_TIMEOUT_LIMITED,
   CULLER_TIMEOUT_UNLIMITED,
@@ -65,7 +65,7 @@ const CullerSettings: React.FC<CullerSettingsProps> = ({
   };
 
   return (
-    <SettingSection
+    <CollapsibleSettingSection
       title="Stop idle notebooks"
       description="Set the time limit for idle notebooks to be stopped."
       footer={
@@ -180,7 +180,7 @@ const CullerSettings: React.FC<CullerSettingsProps> = ({
           </HelperText>
         </StackItem>
       </Stack>
-    </SettingSection>
+    </CollapsibleSettingSection>
   );
 };
 
