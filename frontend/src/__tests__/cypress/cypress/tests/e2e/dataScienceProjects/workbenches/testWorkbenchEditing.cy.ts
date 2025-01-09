@@ -6,7 +6,7 @@ import { loadPVCEditFixture } from '~/__tests__/cypress/cypress/utils/dataLoader
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 
-describe('Verify Workbenches - Editing Workbench Name and Description', () => {
+describe('Edit and Update a Workbench in RHOAI', () => {
   let editTestNamespace: string;
   let editedTestNamespace: string;
   let editedTestDescription: string;
@@ -40,7 +40,7 @@ describe('Verify Workbenches - Editing Workbench Name and Description', () => {
   });
 
   it(
-    'Edit and Update a Workbench in RHOAI',
+    'Editing Workbench Name and Description',
     { tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@Dashboard', '@Tier1'] },
     () => {
       const workbenchName = editTestNamespace.replace('dsp-', '');
@@ -82,6 +82,7 @@ describe('Verify Workbenches - Editing Workbench Name and Description', () => {
       // Verify that the workbench has been updated
       cy.step('Verifying the Edited details display after updating');
       const notebookEditedRow = workbenchPage.getNotebookRow(editedTestNamespace);
+      notebookEditedRow.findNotebookDescription(editedTestDescription);
       notebookEditedRow.expectStatusLabelToBe('Running', 120000);
       notebookEditedRow.shouldHaveNotebookImageName('code-server');
       notebookEditedRow.shouldHaveContainerSize('Small');
