@@ -28,7 +28,7 @@ export const allFeatureFlags: string[] = Object.keys({
   disableHardwareProfiles: false,
   disableDistributedWorkloads: false,
   disableModelRegistry: false,
-  disableModelRegistrySecureDB: true,
+  disableModelRegistrySecureDB: false,
   disableServingRuntimeParams: false,
   disableConnectionTypes: false,
   disableStorageClasses: false,
