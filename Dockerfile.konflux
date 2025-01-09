@@ -1,7 +1,7 @@
 # Build arguments
 ARG SOURCE_CODE=.
 
-FROM registry.access.redhat.com/ubi8/nodejs-18@sha256:2fcda2fccd4c4c969ad81d707aab18d5ff2894cc0e47ccb2361e1510f3e8a269 as builder
+FROM registry.access.redhat.com/ubi8/nodejs-18@sha256:492e2ae9c6a3d9aaf0fac2963adcb924603089b04647c77a7430e31687bb4561 as builder
 
 ## Build args to be used at this step
 ARG SOURCE_CODE
@@ -20,6 +20,7 @@ RUN npm ci --omit=optional
 
 # Set Red Hat Openshift AI logo and links
 ENV ODH_LOGO=../images/rhoai-logo.svg
+ENV ODH_LOGO_DARK=../images/rhoai-logo-dark-theme.svg
 ENV ODH_PRODUCT_NAME="Red Hat OpenShift AI"
 ENV ODH_FAVICON="rhoai-favicon.svg"
 ENV DOC_LINK="https://docs.redhat.com/en/documentation/red_hat_openshift_ai/"
@@ -28,7 +29,7 @@ ENV COMMUNITY_LINK=""
 
 RUN npm run build
 
-FROM registry.access.redhat.com/ubi8/nodejs-18@sha256:2fcda2fccd4c4c969ad81d707aab18d5ff2894cc0e47ccb2361e1510f3e8a269 as runtime
+FROM registry.access.redhat.com/ubi8/nodejs-18@sha256:492e2ae9c6a3d9aaf0fac2963adcb924603089b04647c77a7430e31687bb4561 as runtime
 
 WORKDIR /usr/src/app
 
