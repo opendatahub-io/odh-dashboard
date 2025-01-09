@@ -20,23 +20,18 @@ import { useInferenceServicesForConnection } from '~/pages/projects/useInference
 import { deleteSecret, removeNotebookSecret } from '~/api';
 
 type Props = {
-  namespace: string;
   deleteConnection: Connection;
   onClose: (deleted?: boolean) => void;
 };
 
-export const ConnectionsDeleteModal: React.FC<Props> = ({
-  namespace,
-  deleteConnection,
-  onClose,
-}) => {
+export const ConnectionsDeleteModal: React.FC<Props> = ({ deleteConnection, onClose }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error>();
   const { notebooks: connectedNotebooks, loaded } = useRelatedNotebooks(
     ConnectedNotebookContext.EXISTING_DATA_CONNECTION,
     deleteConnection.metadata.name,
   );
-  const [notebookStates] = useNotebooksStates(connectedNotebooks, namespace);
+  const [notebookStates] = useNotebooksStates(connectedNotebooks);
   const [notebooksExpanded, setNotebooksExpanded] = React.useState<boolean>(false);
   const connectedModels = useInferenceServicesForConnection(deleteConnection);
   const [modelsExpanded, setModelsExpanded] = React.useState<boolean>(false);

@@ -6,7 +6,6 @@ import { getColumns } from './connectionsTableColumns';
 import { ConnectionsDeleteModal } from './ConnectionsDeleteModal';
 
 type ConnectionsTableProps = {
-  namespace: string;
   connections: Connection[];
   connectionTypes?: ConnectionTypeConfigMapObj[];
   refreshConnections: () => void;
@@ -14,7 +13,6 @@ type ConnectionsTableProps = {
 };
 
 const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
-  namespace,
   connections,
   connectionTypes,
   refreshConnections,
@@ -56,7 +54,6 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
       />
       {deleteConnection && (
         <ConnectionsDeleteModal
-          namespace={namespace}
           deleteConnection={deleteConnection}
           onClose={(deleted) => {
             setDeleteConnection(undefined);

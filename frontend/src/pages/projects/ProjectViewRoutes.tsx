@@ -8,11 +8,25 @@ import ProjectModelMetricsConfigurationPage from '~/pages/modelServing/screens/p
 import ProjectModelMetricsPage from '~/pages/modelServing/screens/projects/ProjectModelMetricsPage';
 import ProjectInferenceExplainabilityWrapper from '~/pages/modelServing/screens/projects/ProjectInferenceExplainabilityWrapper';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import ProjectDetails from './screens/detail/ProjectDetails';
-import ProjectView from './screens/projects/ProjectView';
-import ProjectDetailsContextProvider from './ProjectDetailsContext';
-import SpawnerPage from './screens/spawner/SpawnerPage';
+import ProjectExperimentRuns from '~/pages/projects/screens/detail/experiments/ProjectExperimentRuns';
+import ProjectExperiments from '~/pages/projects/screens/detail/experiments/ProjectExperiments';
+import ProjectOverview from '~/pages/projects/screens/detail/overview/ProjectOverview';
+import NotebookList from '~/pages/projects/screens/detail/notebooks/NotebookList';
+import ExperimentContextProvider from '~/pages/pipelines/global/experiments/ExperimentContext';
+import PipelineAvailabilityLoader from '~/pages/pipelines/global/pipelines/PipelineAvailabilityLoader';
+import PipelinesSection from '~/pages/projects/screens/detail/pipelines/PipelinesSection';
+import ModelServingPlatform from '~/pages/modelServing/screens/projects/ModelServingPlatform';
+import ProjectSharing from '~/pages/projects/projectSharing/ProjectSharing';
+import StorageList from '~/pages/projects/screens/detail/storage/StorageList';
+import ConnectionsList from '~/pages/projects/screens/detail/connections/ConnectionsList';
+import ExecutionsSection from '~/pages/projects/screens/detail/executions/ExecutionsSection';
+import ArtifactsSection from '~/pages/projects/screens/detail/artifacts/ArtifactsSection';
+import DistributedWorkloadsSection from '~/pages/projects/screens/detail/distributedWorkloads/DistributedWorkloadsSection';
 import EditSpawnerPage from './screens/spawner/EditSpawnerPage';
+import SpawnerPage from './screens/spawner/SpawnerPage';
+import ProjectDetailsContextProvider from './ProjectDetailsContext';
+import ProjectView from './screens/projects/ProjectView';
+import ProjectDetails from './screens/detail/ProjectDetails';
 
 const ProjectViewRoutes: React.FC = () => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
@@ -24,8 +38,30 @@ const ProjectViewRoutes: React.FC = () => {
   return (
     <ProjectsRoutes>
       <Route path="/" element={<ProjectView />} />
-      <Route path="/:namespace/*" element={<ProjectDetailsContextProvider />}>
-        <Route index element={<ProjectDetails />} />
+      <Route path="/:namespace" element={<ProjectDetailsContextProvider />}>
+        <Route element={<ProjectDetails />}>
+          <Route index element={<ProjectOverview />} />
+          <Route path="overview" element={<ProjectOverview />} />
+          <Route path="workbenches" element={<NotebookList />} />
+          <Route path="experiments-and-runs" element={<PipelineAvailabilityLoader />}>
+            <Route index element={<ProjectExperiments />} />
+            <Route path=":tab?">
+              <Route index element={<ProjectExperiments />} />
+              <Route path=":experimentId" element={<ExperimentContextProvider />}>
+                <Route index element={<ProjectExperimentRuns />} />
+                <Route path=":runTab" element={<ProjectExperimentRuns />} />
+              </Route>
+            </Route>
+          </Route>
+          <Route path="executions" element={<ExecutionsSection />} />
+          <Route path="artifacts" element={<ArtifactsSection />} />
+          <Route path="distributed-workloads" element={<DistributedWorkloadsSection />} />
+          <Route path="model-deployments" element={<ModelServingPlatform />} />
+          <Route path="pipelines" element={<PipelinesSection />} />
+          <Route path="connections" element={<ConnectionsList />} />
+          <Route path="cluster-storages" element={<StorageList />} />
+          <Route path="permissions" element={<ProjectSharing />} />
+        </Route>
         <Route path="spawner" element={<SpawnerPage />} />
         <Route path="spawner/:notebookName" element={<EditSpawnerPage />} />
         {modelMetricsEnabled && (
