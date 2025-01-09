@@ -159,6 +159,7 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
           <Radio
             isChecked={secureDBInfo.type === SecureDBRType.CLUSTER_WIDE}
             name="cluster-wide-ca"
+            data-testid="cluster-wide-ca-radio"
             isDisabled={!isClusterWideCABundleAvailable}
             onChange={() => handleSecureDBTypeChange(SecureDBRType.CLUSTER_WIDE)}
             label="Use cluster-wide CA bundle"
@@ -175,6 +176,7 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
         <Radio
           isChecked={secureDBInfo.type === SecureDBRType.CLUSTER_WIDE}
           name="cluster-wide-ca"
+          data-testid="cluster-wide-ca-radio"
           isDisabled={!isClusterWideCABundleAvailable}
           onChange={() => handleSecureDBTypeChange(SecureDBRType.CLUSTER_WIDE)}
           label="Use cluster-wide CA bundle"
@@ -192,6 +194,7 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
           <Radio
             isChecked={secureDBInfo.type === SecureDBRType.OPENSHIFT}
             name="openshift-ca"
+            data-testid="openshift-ca-radio"
             isDisabled={!isProductCABundleAvailable}
             onChange={() => handleSecureDBTypeChange(SecureDBRType.OPENSHIFT)}
             label={`Use ${ODH_PRODUCT_NAME} CA bundle`}
@@ -208,6 +211,7 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
         <Radio
           isChecked={secureDBInfo.type === SecureDBRType.OPENSHIFT}
           name="openshift-ca"
+          data-testid="openshift-ca-radio"
           isDisabled={!isProductCABundleAvailable}
           onChange={() => handleSecureDBTypeChange(SecureDBRType.OPENSHIFT)}
           label={`Use ${ODH_PRODUCT_NAME} CA bundle`}
@@ -223,6 +227,7 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
       <Radio
         isChecked={secureDBInfo.type === SecureDBRType.EXISTING}
         name="existing-ca"
+        data-testid="existing-ca-radio"
         onChange={() => handleSecureDBTypeChange(SecureDBRType.EXISTING)}
         label="Choose from existing certificates"
         description={
