@@ -672,7 +672,7 @@ export type IntegrationAppStatus = {
   isInstalled: boolean;
   isEnabled: boolean;
   canInstall: boolean;
-  variablesValidationStatus: VariablesValidationStatus;
-  variablesValidationTimestamp: string;
+  variablesValidationStatus?: VariablesValidationStatus;
+  variablesValidationTimestamp?: string;
   error: string;
 };

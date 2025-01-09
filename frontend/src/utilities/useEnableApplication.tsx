@@ -79,7 +79,7 @@ export const useEnableApplication = (
                 watchHandle = setTimeout(watchStatus, 10 * 1000);
                 return;
               }
-              setLastVariablesValidationTimestamp(response.variablesValidationTimestamp);
+              setLastVariablesValidationTimestamp(response.variablesValidationTimestamp || 'Unknown');
               setEnableStatus({
                 status:
                   response.variablesValidationStatus === VariablesValidationStatus.SUCCESS
@@ -148,7 +148,7 @@ export const useEnableApplication = (
             if (!closed) {
               if (response.isInstalled && response.canInstall) {
                 setEnableStatus({ status: EnableApplicationStatus.INPROGRESS, error: '' });
-                setLastVariablesValidationTimestamp(response.variablesValidationTimestamp);
+                setLastVariablesValidationTimestamp(response.variablesValidationTimestamp || 'Unknown');
 
                 if (
                   response.variablesValidationTimestamp !== 'Unknown' &&
