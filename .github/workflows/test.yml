@@ -192,6 +192,8 @@ jobs:
         with:
           name: combined-coverage-results
           path: ./coverage/combined-coverage-final.json
+      - name: Display merged coverage file
+        run: cat ./coverage/merged-coverage.json
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4.6.0
         with:
