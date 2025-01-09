@@ -9,12 +9,12 @@ import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/Em
 
 type ModelVersionRegisteredDeploymentsViewProps = Pick<
   React.ComponentProps<typeof ModelVersionDetailsTabs>,
-  'inferenceServices' | 'servingRuntimes'
+  'inferenceServices' | 'servingRuntimes' | 'refresh'
 >;
 
 const ModelVersionRegisteredDeploymentsView: React.FC<
   ModelVersionRegisteredDeploymentsViewProps
-> = ({ inferenceServices, servingRuntimes }) => {
+> = ({ inferenceServices, servingRuntimes, refresh }) => {
   const isLoading = !inferenceServices.loaded || !servingRuntimes.loaded;
 
   if (!isLoading && !inferenceServices.data.length) {
@@ -47,6 +47,7 @@ const ModelVersionRegisteredDeploymentsView: React.FC<
         inferenceServices={inferenceServices.data}
         servingRuntimes={servingRuntimes.data}
         isLoading={isLoading}
+        refresh={refresh}
       />
     </Stack>
   );

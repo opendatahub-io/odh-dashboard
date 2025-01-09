@@ -64,6 +64,7 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
             <ModelVersionRegisteredDeploymentsView
               inferenceServices={inferenceServices}
               servingRuntimes={servingRuntimes}
+              refresh={refresh}
             />
           </PageSection>
         </Tab>
