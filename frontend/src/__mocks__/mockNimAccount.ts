@@ -19,7 +19,15 @@ export const mockNimAccount = ({
   nimConfigName = 'mock-nvidia-nim-images-data',
   runtimeTemplateName = 'mock-nvidia-nim-serving-template',
   nimPullSecretName = 'mock-nvidia-nim-image-pull',
-  conditions = [],
+  conditions = [
+    {
+      type: 'AccountStatus',
+      status: 'True',
+      lastTransitionTime: new Date().toISOString(),
+      reason: 'AccountSuccessful',
+      message: 'reconciled successfully',
+    },
+  ],
 }: MockResourceConfigType): NIMAccountKind => ({
   apiVersion: 'nim.opendatahub.io/v1',
   kind: 'Account',
