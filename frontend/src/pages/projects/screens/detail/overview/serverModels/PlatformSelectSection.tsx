@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Alert, Content, Gallery, Stack } from '@patternfly/react-core';
+import { Alert, Content, Flex, FlexItem, Gallery } from '@patternfly/react-core';
 import CollapsibleSection from '~/concepts/design/CollapsibleSection';
 import ModelServingPlatformSelectErrorAlert from '~/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
@@ -27,39 +27,46 @@ const PlatformSelectSection: React.FC = () => {
 
   return (
     <CollapsibleSection title="Serve models" data-testid="section-model-server">
-      <Stack hasGutter>
-        <Content
-          data-testid="no-model-serving-platform-selected"
-          style={{ paddingLeft: 'var(--pf-t--global--spacer--md)' }}
-        >
-          <Content component="small">
+      <Flex gap={{ default: 'gapMd' }} direction={{ default: 'column' }}>
+        <FlexItem>
+          <Content
+            data-testid="no-model-serving-platform-selected"
+            style={{ paddingLeft: 'var(--pf-t--global--spacer--md)' }}
+            component="small"
+          >
             Select the type of model serving platform to be used when deploying models from this
             project.
           </Content>
-        </Content>
-        <Gallery hasGutter {...galleryWidths}>
-          {kServeEnabled && (
-            <SelectSingleModelCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
-          )}
-          {modelMeshEnabled && (
-            <SelectMultiModelCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
-          )}
-          {isNIMAvailable && (
-            <SelectNIMCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
-          )}
-        </Gallery>
+        </FlexItem>
+        <FlexItem>
+          <Gallery hasGutter {...galleryWidths}>
+            {kServeEnabled && (
+              <SelectSingleModelCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
+            )}
+            {modelMeshEnabled && (
+              <SelectMultiModelCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
+            )}
+            {isNIMAvailable && (
+              <SelectNIMCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
+            )}
+          </Gallery>
+        </FlexItem>
         {errorSelectingPlatform && (
-          <ModelServingPlatformSelectErrorAlert
-            error={errorSelectingPlatform}
-            clearError={() => setErrorSelectingPlatform(undefined)}
-          />
+          <FlexItem>
+            <ModelServingPlatformSelectErrorAlert
+              error={errorSelectingPlatform}
+              clearError={() => setErrorSelectingPlatform(undefined)}
+            />
+          </FlexItem>
         )}
-        <Alert
-          isInline
-          variant="info"
-          title="You can change the model serving type before the first model is deployed from this project. After deployment, switching types requires deleting all models and servers."
-        />
-      </Stack>
+        <FlexItem>
+          <Alert
+            isInline
+            variant="info"
+            title="You can change the model serving type before the first model is deployed from this project. After deployment, switching types requires deleting all models and servers."
+          />
+        </FlexItem>
+      </Flex>
     </CollapsibleSection>
   );
 };

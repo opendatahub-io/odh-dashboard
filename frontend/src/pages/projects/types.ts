@@ -40,6 +40,7 @@ export type ForNotebookSelection = {
 
 export type ClusterStorageNotebookSelection = ForNotebookSelection & {
   existingPvc: boolean;
+  notebookDisplayName?: string;
   isUpdatedValue: boolean;
   newRowId?: number;
 };
