@@ -198,7 +198,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
           name: frontend-and-backend
-          file: ./coverage/combined-coverage-final.json
+          file: ./coverage/merged-coverage.json
           disable_search: true
           directory: ./coverage
           verbose: true
