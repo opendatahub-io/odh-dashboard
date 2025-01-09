@@ -7,6 +7,10 @@ type AppContextProps = {
   dashboardConfig: DashboardConfigKind;
   storageClasses: StorageClassKind[];
   isRHOAI: boolean;
+  altNav?: boolean;
+  altPreferredProject?: boolean;
+  favoriteProjects: string[];
+  setFavoriteProjects: (projects: string[]) => void;
 };
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions

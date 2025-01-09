@@ -5,7 +5,7 @@ import PipelineCoreApplicationPage from '~/pages/pipelines/global/PipelineCoreAp
 import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import PipelineAndVersionContextProvider from '~/concepts/pipelines/content/PipelineAndVersionContext';
 import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
-import { experimentsBaseRoute } from '~/routes';
+import { experimentsBaseRoute, experimentsRootPath } from '~/routes';
 import { ProjectObjectType } from '~/concepts/design/utils';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ExperimentListTabs, experimentsPageDescription, experimentsPageTitle } from './const';
@@ -20,6 +20,7 @@ const GlobalExperiments: React.FC<GlobalExperimentsParams> = ({ tab }) => {
 
   return (
     <PipelineCoreApplicationPage
+      page={experimentsRootPath}
       title={
         <TitleWithIcon
           title={experimentsPageTitle}

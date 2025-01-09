@@ -13,6 +13,8 @@ import useProjectNotebookStates from '~/pages/projects/notebook/useProjectNotebo
 import { FAST_POLL_INTERVAL, POLL_INTERVAL } from '~/utilities/const';
 import useRefreshInterval from '~/utilities/useRefreshInterval';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { AppContext } from '~/app/AppContext';
+import FavoriteButton from '~/components/FavoriteButton';
 import ProjectLink from './ProjectLink';
 
 // Plans to add other expandable columns in the future
@@ -33,6 +35,7 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
   setDeleteData,
 }) => {
   const owner = getProjectOwner(project);
+  const { favoriteProjects, setFavoriteProjects } = React.useContext(AppContext);
   const [expandColumn, setExpandColumn] = React.useState<ExpandableColumns | undefined>();
   const [item, runAccessCheck] = useProjectTableRowItems(
     project,
@@ -47,6 +50,7 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
   const stoppedCount = notebookStates.filter(
     (notebookState) => notebookState.isStopping || notebookState.isStopped,
   ).length;
+  const isFavorite = favoriteProjects.includes(project.metadata.name);
 
   const toggleExpandColumn = (colIndex: ExpandableColumns) => {
     setExpandColumn(expandColumn === colIndex ? undefined : colIndex);
@@ -69,6 +73,20 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
   return (
     <Tbody isExpanded={!!expandColumn}>
       <Tr isControlRow>
+        <Td dataLabel="Favorite">
+          <FavoriteButton
+            isFavorite={isFavorite}
+            onClick={() => {
+              if (isFavorite) {
+                setFavoriteProjects(
+                  favoriteProjects.filter((fav) => fav !== project.metadata.name),
+                );
+              } else {
+                setFavoriteProjects([...favoriteProjects, project.metadata.name]);
+              }
+            }}
+          />
+        </Td>
         <Td dataLabel="Name">
           <TableRowTitleDescription
             title={

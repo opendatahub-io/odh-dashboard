@@ -60,6 +60,9 @@ useAppContextMock.mockReturnValue({
   dashboardConfig: mockDashboardConfig({}),
   storageClasses: [],
   isRHOAI: false,
+  favoriteProjects: [],
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  setFavoriteProjects: () => {},
 });
 
 const useUserMock = jest.mocked(useUser);

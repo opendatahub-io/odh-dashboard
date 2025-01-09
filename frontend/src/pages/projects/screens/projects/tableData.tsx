@@ -20,6 +20,12 @@ const WorkBenchDescription = (
 
 export const columns: SortableData<ProjectKind>[] = [
   {
+    field: 'favorite',
+    label: '',
+    sortable: false,
+    width: 10,
+  },
+  {
     field: 'name',
     label: 'Name',
     sortable: (a, b) =>

@@ -69,16 +69,29 @@ export const ProjectDetailsContext = React.createContext<ProjectDetailsContextTy
   groups: DEFAULT_LIST_WATCH_RESULT,
 });
 
-const ProjectDetailsContextProvider: React.FC = () => {
+type ProjectDetailsContextProviderProps = {
+  getInvalidRedirectPath?: (namespace: string) => string;
+  allowAllProjects?: boolean;
+};
+
+const ProjectDetailsContextProvider: React.FC<ProjectDetailsContextProviderProps> = ({
+  getInvalidRedirectPath,
+  allowAllProjects = false,
+}) => {
   const { dashboardNamespace } = useDashboardNamespace();
-  const { namespace } = useParams<{ namespace: string }>();
-  const { projects } = React.useContext(ProjectsContext);
+  const { namespace } = useParams();
+  const { projects, loaded, getPreferredProject } = React.useContext(ProjectsContext);
+  const preferredProject = getPreferredProject('project-details');
   const project = projects.find(byName(namespace)) ?? null;
-  useSyncPreferredProject(project);
-  const notebooks = useContextResourceData<NotebookState>(useProjectNotebookStates(namespace));
-  const pvcs = useContextResourceData<PersistentVolumeClaimKind>(useProjectPvcs(namespace));
+  useSyncPreferredProject('project-details', project);
+  const notebooks = useContextResourceData<NotebookState>(
+    useProjectNotebookStates(namespace, true),
+  );
+  const pvcs = useContextResourceData<PersistentVolumeClaimKind>(useProjectPvcs(namespace, true));
   const dataConnections = useContextResourceData<DataConnection>(useDataConnections(namespace));
-  const connections = useContextResourceData<Connection>(useConnections(namespace));
+  const connections = useContextResourceData<Connection>(
+    useConnections(namespace, undefined, true),
+  );
   const servingRuntimes = useContextResourceData<ServingRuntimeKind>(useServingRuntimes(namespace));
   const servingRuntimeTemplates = useTemplates(dashboardNamespace);
 
@@ -117,25 +130,22 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const pipelinesEnabled = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
 
   const contextValue = React.useMemo(
-    () =>
-      project
-        ? {
-            currentProject: project,
-            notebooks,
-            pvcs,
-            dataConnections,
-            connections,
-            servingRuntimes,
-            servingRuntimeTemplates,
-            servingRuntimeTemplateOrder,
-            servingRuntimeTemplateDisablement,
-            inferenceServices,
-            filterTokens,
-            serverSecrets,
-            projectSharingRB,
-            groups,
-          }
-        : null,
+    () => ({
+      currentProject: project || { apiVersion: '', kind: '', metadata: { name: '' } },
+      notebooks,
+      pvcs,
+      dataConnections,
+      connections,
+      servingRuntimes,
+      servingRuntimeTemplates,
+      servingRuntimeTemplateOrder,
+      servingRuntimeTemplateDisablement,
+      inferenceServices,
+      filterTokens,
+      serverSecrets,
+      projectSharingRB,
+      groups,
+    }),
     [
       project,
       notebooks,
@@ -154,24 +164,29 @@ const ProjectDetailsContextProvider: React.FC = () => {
     ],
   );
 
-  if (!project || !contextValue) {
-    if (projectsEnabled && projects.length === 0) {
+  if (!project) {
+    if (projectsEnabled && loaded && projects.length === 0) {
       // No projects, but we do have the projects view -- navigate them so they can go through normal flows
       return <Navigate to="/projects" replace />;
     }
-
-    return (
-      <InvalidProject
-        namespace={namespace}
-        title="Problem loading project details"
-        getRedirectPath={(ns) => `/projects/${ns}`}
-      />
-    );
+    if (getInvalidRedirectPath && preferredProject) {
+      return <Navigate to={getInvalidRedirectPath(preferredProject.metadata.name)} replace />;
+    }
+    if (!allowAllProjects) {
+      return (
+        <InvalidProject
+          page="project-details"
+          namespace={namespace}
+          title="Problem loading project details"
+          getRedirectPath={(ns) => `/projects/${ns}`}
+        />
+      );
+    }
   }
 
   return (
     <ProjectDetailsContext.Provider value={contextValue}>
-      {pipelinesEnabled ? (
+      {pipelinesEnabled && project ? (
         <PipelineContextProvider namespace={project.metadata.name}>
           <Outlet />
         </PipelineContextProvider>

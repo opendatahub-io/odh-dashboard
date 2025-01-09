@@ -20,7 +20,8 @@ const GlobalModelServingCoreLoader: React.FC<GlobalModelServingCoreLoaderProps> 
   getInvalidRedirectPath,
 }) => {
   const { namespace } = useParams<{ namespace: string }>();
-  const { projects, preferredProject } = React.useContext(ProjectsContext);
+  const { projects, getPreferredProject } = React.useContext(ProjectsContext);
+  const preferredProject = getPreferredProject('model-serving');
 
   let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
   if (projects.length === 0) {
@@ -43,7 +44,11 @@ const GlobalModelServingCoreLoader: React.FC<GlobalModelServingCoreLoaderProps> 
     renderStateProps = {
       empty: true,
       emptyStatePage: (
-        <InvalidProject namespace={namespace} getRedirectPath={getInvalidRedirectPath} />
+        <InvalidProject
+          page="model-serving"
+          namespace={namespace}
+          getRedirectPath={getInvalidRedirectPath}
+        />
       ),
     };
   } else {
@@ -62,7 +67,7 @@ const GlobalModelServingCoreLoader: React.FC<GlobalModelServingCoreLoaderProps> 
   return (
     <ApplicationsPage
       {...renderStateProps}
-      title="Deployed models"
+      title="Model deployments"
       description="Manage and view the health and performance of your deployed models."
       loaded
       headerContent={<ModelServingProjectSelection getRedirectPath={getInvalidRedirectPath} />}

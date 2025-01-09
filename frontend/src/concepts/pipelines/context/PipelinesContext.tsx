@@ -79,7 +79,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
 )(({ children, namespace }) => {
   const { projects } = React.useContext(ProjectsContext);
   const project = projects.find(byName(namespace)) ?? null;
-  useSyncPreferredProject(project);
+  useSyncPreferredProject('pipelines', project);
 
   const state = usePipelineNamespaceCR(namespace);
   const [pipelineNamespaceCR, crLoaded, crLoadError, refreshCR] = state;

@@ -35,7 +35,6 @@ describe('ConnectionsTable', () => {
     const connection = mockConnection({ displayName: 'connection1', description: 'desc1' });
     render(
       <ConnectionsTable
-        namespace={connection.metadata.namespace}
         connections={[connection]}
         refreshConnections={() => undefined}
         setManageConnectionModal={() => undefined}
@@ -52,7 +51,6 @@ describe('ConnectionsTable', () => {
     const connection = mockConnection({ displayName: 'connection1', description: 'desc1' });
     render(
       <ConnectionsTable
-        namespace={connection.metadata.namespace}
         connections={[connection]}
         connectionTypes={[
           mockConnectionTypeConfigMapObj({ name: 's3', displayName: 'S3 Buckets' }),
@@ -79,7 +77,6 @@ describe('ConnectionsTable', () => {
     const connection = mockConnection({ displayName: 'connection1', description: 'desc1' });
     render(
       <ConnectionsTable
-        namespace={connection.metadata.namespace}
         connections={[connection]}
         connectionTypes={[
           mockConnectionTypeConfigMapObj({ name: 's3', displayName: 'S3 Buckets' }),

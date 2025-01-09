@@ -75,9 +75,10 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
 )(({ children, namespace, getErrorComponent }) => {
   const { dashboardNamespace } = useDashboardNamespace();
   const navigate = useNavigate();
-  const { projects, preferredProject } = React.useContext(ProjectsContext);
+  const { projects, getPreferredProject } = React.useContext(ProjectsContext);
+  const preferredProject = getPreferredProject('model-serving');
   const project = projects.find(byName(namespace)) ?? null;
-  useSyncPreferredProject(project);
+  useSyncPreferredProject('model-serving', project);
   const servingRuntimeTemplates = useTemplates(dashboardNamespace);
 
   const servingRuntimeTemplateOrder = useContextResourceData<string>(

@@ -133,6 +133,20 @@ export const getSecret = (
     ),
   );
 
+export const getAllSecretsByLabel = (
+  label: string,
+  namespaces: string[],
+  opts?: K8sAPIOptions,
+): Promise<SecretKind[]> => {
+  const getters = namespaces.map((namespace) => getSecretsByLabel(label, namespace, opts));
+  return Promise.all(getters).then((results) =>
+    results.reduce<SecretKind[]>((acc, next) => {
+      acc.push(...next);
+      return acc;
+    }, []),
+  );
+};
+
 export const getSecretsByLabel = (
   label: string,
   namespace: string,

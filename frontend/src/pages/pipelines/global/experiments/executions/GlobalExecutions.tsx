@@ -5,7 +5,7 @@ import PipelineServerActions from '~/concepts/pipelines/content/PipelineServerAc
 import PipelineCoreApplicationPage from '~/pages/pipelines/global/PipelineCoreApplicationPage';
 import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
-import { executionsBaseRoute } from '~/routes';
+import { executionsBaseRoute, executionsRootPath } from '~/routes';
 import {
   executionsPageDescription,
   executionsPageTitle,
@@ -19,6 +19,7 @@ const GlobalExecutions: React.FC = () => {
 
   return (
     <PipelineCoreApplicationPage
+      page={executionsRootPath}
       title={
         <TitleWithIcon
           title={executionsPageTitle}

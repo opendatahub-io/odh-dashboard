@@ -62,13 +62,7 @@ describe('Delete connection modal', () => {
   it('should show related resources', async () => {
     const deleteConnection = mockConnection({ displayName: 'connection1', description: 'desc1' });
 
-    render(
-      <ConnectionsDeleteModal
-        namespace={deleteConnection.metadata.namespace}
-        deleteConnection={deleteConnection}
-        onClose={onClose}
-      />,
-    );
+    render(<ConnectionsDeleteModal deleteConnection={deleteConnection} onClose={onClose} />);
 
     const notebooksCountBadge = screen.getByTestId('connections-delete-notebooks-count');
     expect(notebooksCountBadge).toHaveTextContent('2');
@@ -97,13 +91,7 @@ describe('Delete connection modal', () => {
       loaded: true,
     });
     useInferenceServicesForConnectionMock.mockReturnValue([]);
-    render(
-      <ConnectionsDeleteModal
-        namespace={deleteConnection.metadata.namespace}
-        deleteConnection={deleteConnection}
-        onClose={onClose}
-      />,
-    );
+    render(<ConnectionsDeleteModal deleteConnection={deleteConnection} onClose={onClose} />);
 
     const notebooksCountBadge = screen.queryByTestId('connections-delete-notebooks-toggle');
     expect(notebooksCountBadge).toBeFalsy();

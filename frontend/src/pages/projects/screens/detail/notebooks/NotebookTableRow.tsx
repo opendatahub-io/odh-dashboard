@@ -10,7 +10,7 @@ import NotebookImagePackageDetails from '~/pages/projects/notebook/NotebookImage
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { TableRowTitleDescription } from '~/components/table';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
-import { getDescriptionFromK8sResource } from '~/concepts/k8s/utils';
+import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { NotebookSize } from '~/types';
 import NotebookStateStatus from '~/pages/projects/notebook/NotebookStateStatus';
 import { NotebookActionsColumn } from '~/pages/projects/notebook/NotebookActionsColumn';
@@ -22,6 +22,7 @@ import useStopNotebookModalAvailability from '~/pages/projects/notebook/useStopN
 import { useAppContext } from '~/app/AppContext';
 import NotebookStateAction from '~/pages/projects/notebook/NotebookStateAction';
 import StopNotebookConfirmModal from '~/pages/projects/notebook/StopNotebookConfirmModal';
+import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { NotebookImageAvailability } from './const';
 import { NotebookImageDisplayName } from './NotebookImageDisplayName';
 import NotebookStorageBars from './NotebookStorageBars';
@@ -45,7 +46,8 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   canEnablePipelines,
   showOutOfDateElyraInfo,
 }) => {
-  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const { currentProject: contextProject } = React.useContext(ProjectDetailsContext);
+  const { projects } = React.useContext(ProjectsContext);
   const navigate = useNavigate();
   const [isExpanded, setExpanded] = React.useState(false);
   const { size: notebookSize } = useNotebookDeploymentSize(obj.notebook);
@@ -77,6 +79,8 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
     });
   }, [dashboardConfig, obj, canEnablePipelines, notebookSize, acceleratorProfile]);
 
+  const currentProject = projects.find((p) => p.metadata.name === notebookNamespace);
+
   const handleStop = React.useCallback(() => {
     fireNotebookTrackingEvent('stopped', obj.notebook, notebookSize, acceleratorProfile);
     setInProgress(true);
@@ -92,6 +96,10 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
       setOpenConfirm(true);
     }
   }, [dontShowModalValue, handleStop]);
+
+  if (!currentProject) {
+    return null;
+  }
 
   return (
     <Tbody isExpanded={isExpanded}>
@@ -120,6 +128,9 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
             resource={obj.notebook}
           />
         </Td>
+        {contextProject.metadata.name !== notebookNamespace ? (
+          <Td dataLabel="Project">{getDisplayNameFromK8sResource(currentProject)}</Td>
+        ) : null}
         <Td dataLabel="Notebook image">
           <Split>
             <SplitItem>
@@ -141,7 +152,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
                     <Button
                       onClick={() => {
                         navigate(
-                          `/projects/${currentProject.metadata.name}/spawner/${obj.notebook.metadata.name}`,
+                          `/projects/${obj.notebook.metadata.namespace}/spawner/${obj.notebook.metadata.name}`,
                         );
                       }}
                     >

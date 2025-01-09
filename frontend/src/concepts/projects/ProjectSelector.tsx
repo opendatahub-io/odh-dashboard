@@ -1,10 +1,21 @@
 import * as React from 'react';
-import { Bullseye, Divider, Flex, FlexItem, MenuItem, Truncate } from '@patternfly/react-core';
+import {
+  Bullseye,
+  Divider,
+  Flex,
+  FlexItem,
+  MenuGroup,
+  MenuItem,
+  MenuList,
+  Truncate,
+} from '@patternfly/react-core';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import SearchSelector from '~/components/searchSelector/SearchSelector';
 import { ProjectKind } from '~/k8sTypes';
 import { ProjectIcon } from '~/images/icons';
+import ProjectLink from '~/concepts/projects/ProjectLink';
+import { AppContext } from '~/app/AppContext';
 
 type ProjectSelectorProps = {
   onSelection: (projectName: string) => void;
@@ -30,6 +41,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   isFullWidth = false,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
+  const { favoriteProjects, setFavoriteProjects } = React.useContext(AppContext);
   const selection = projects.find(byName(namespace));
   const [searchText, setSearchText] = React.useState('');
   const bySearchText = React.useCallback(
@@ -48,6 +60,28 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
     : projects;
   const visibleProjects = filteredProjects.filter(bySearchText);
 
+  const favorites = favoriteProjects.reduce<ProjectKind[]>((acc, name) => {
+    const project = filteredProjects.find((p) => p.metadata.name === name);
+    if (project) {
+      acc.push(project);
+    }
+    return acc;
+  }, []);
+  const otherProjects = filteredProjects.filter((p) => !favoriteProjects.includes(p.metadata.name));
+
+  const onFavorite = (itemId: string, actionId: string) => {
+    if (actionId === 'fav') {
+      const isFavorite = favoriteProjects.includes(itemId);
+      if (isFavorite) {
+        setFavoriteProjects(favoriteProjects.filter((fav) => fav !== itemId));
+      } else {
+        setFavoriteProjects([...favoriteProjects, itemId]);
+      }
+      return true;
+    }
+    return false;
+  };
+
   const toggleLabel = projects.length === 0 ? 'No projects' : selectionDisplayName;
   const selector = (
     <SearchSelector
@@ -61,8 +95,35 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
       searchValue={searchText}
       toggleText={toggleLabel}
       toggleVariant={primary ? 'primary' : undefined}
+      hasLists
+      handleAction={onFavorite}
     >
       <>
+        {favorites.length ? (
+          <>
+            <MenuGroup label="Favorites">
+              <MenuList>
+                {favorites.map((project) => (
+                  <MenuItem
+                    key={project.metadata.name}
+                    itemId={project.metadata.name}
+                    isFavorited
+                    isSelected={project.metadata.name === selection?.metadata.name}
+                    onClick={() => {
+                      setSearchText('');
+                      onSelection(project.metadata.name);
+                    }}
+                  >
+                    <Truncate content={getDisplayNameFromK8sResource(project)}>
+                      {getDisplayNameFromK8sResource(project)}
+                    </Truncate>
+                  </MenuItem>
+                ))}
+              </MenuList>
+            </MenuGroup>
+            <Divider />
+          </>
+        ) : null}
         {selectAllProjects && (
           <>
             <MenuItem
@@ -74,24 +135,30 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
             >
               All projects
             </MenuItem>
-            <Divider component="li" />
+            <Divider />
           </>
         )}
         {visibleProjects.length === 0 && <MenuItem isDisabled>No matching results</MenuItem>}
-        {visibleProjects.map((project) => (
-          <MenuItem
-            key={project.metadata.name}
-            isSelected={project.metadata.name === selection?.metadata.name}
-            onClick={() => {
-              setSearchText('');
-              onSelection(project.metadata.name);
-            }}
-          >
-            <Truncate content={getDisplayNameFromK8sResource(project)}>
-              {getDisplayNameFromK8sResource(project)}
-            </Truncate>
-          </MenuItem>
-        ))}
+        <MenuGroup label="Projects">
+          <MenuList>
+            {otherProjects.map((project) => (
+              <MenuItem
+                key={project.metadata.name}
+                itemId={project.metadata.name}
+                isFavorited={false}
+                isSelected={project.metadata.name === selection?.metadata.name}
+                onClick={() => {
+                  setSearchText('');
+                  onSelection(project.metadata.name);
+                }}
+              >
+                <Truncate content={getDisplayNameFromK8sResource(project)}>
+                  {getDisplayNameFromK8sResource(project)}
+                </Truncate>
+              </MenuItem>
+            ))}
+          </MenuList>
+        </MenuGroup>
       </>
     </SearchSelector>
   );
@@ -111,6 +178,9 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
             <Bullseye>{selectorLabel}</Bullseye>
           </FlexItem>
           <FlexItem>{selector}</FlexItem>
+          <FlexItem>
+            <ProjectLink namespace={namespace} />
+          </FlexItem>
         </Flex>
       </Flex>
     );

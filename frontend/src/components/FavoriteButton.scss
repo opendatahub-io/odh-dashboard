@@ -6,6 +6,9 @@
 
     &--is-selected {
       fill: var(--pf-t--global--icon--color--favorite--default);
+      &:hover {
+        fill: var(--pf-t--global--icon--color--favorite--hover);
+      }
     }
   }
 }

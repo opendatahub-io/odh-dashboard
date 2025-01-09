@@ -12,6 +12,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { useSearchParams } from 'react-router-dom';
 import ErrorBoundary from '~/components/error/ErrorBoundary';
 import ToastNotifications from '~/components/ToastNotifications';
 import { useWatchBuildStatus } from '~/utilities/useWatchBuildStatus';
@@ -24,6 +25,7 @@ import useStorageClasses from '~/concepts/k8s/useStorageClasses';
 import AreaContextProvider from '~/concepts/areas/AreaContext';
 import { NimContextProvider } from '~/concepts/nimServing/NIMAvailabilityContext';
 import { ModelCatalogContextProvider } from '~/concepts/modelCatalog/context/ModelCatalogContext';
+import { useBrowserStorage } from '~/components/browserStorage';
 import useDevFeatureFlags from './useDevFeatureFlags';
 import Header from './Header';
 import AppRoutes from './AppRoutes';
@@ -39,9 +41,33 @@ import SessionExpiredModal from './SessionExpiredModal';
 
 import './App.scss';
 
+type PocConfigType = {
+  altNav?: boolean;
+  altPreferredProject?: boolean;
+};
+
+const FAVORITE_PROJECTS_KEY = 'odh-favorite-projects';
+const POC_SESSION_KEY = 'odh-poc-flags';
+const ALT_NAV_PARAM = 'altNav';
+const ALT_PROJECTS_PARAM = 'altProjects';
+
 const App: React.FC = () => {
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
   const { username, userError, isAllowed } = useUser();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [altNav, setAltNav] = React.useState<boolean>(false);
+  const [altPreferredProject, setAltPreferredProject] = React.useState<boolean>(false);
+  const firstLoad = React.useRef(true);
+  const [pocConfig, setPocConfig] = useBrowserStorage<PocConfigType | null>(
+    POC_SESSION_KEY,
+    null,
+    true,
+    true,
+  );
+  const [favoriteProjects, setFavoriteProjects] = useBrowserStorage<string[]>(
+    FAVORITE_PROJECTS_KEY,
+    [],
+  );
 
   const buildStatuses = useWatchBuildStatus();
   const {
@@ -57,6 +83,36 @@ const App: React.FC = () => {
 
   useDetectUser();
 
+  React.useEffect(() => {
+    if (firstLoad.current && pocConfig?.altNav) {
+      setAltNav(true);
+    }
+    firstLoad.current = false;
+  }, [pocConfig]);
+
+  React.useEffect(() => {
+    if (searchParams.has(ALT_NAV_PARAM)) {
+      const updated = searchParams.get(ALT_NAV_PARAM) === 'true';
+      setAltNav(updated);
+      setPocConfig({ altNav: updated });
+
+      // clean up query string
+      searchParams.delete(ALT_NAV_PARAM);
+      setSearchParams(searchParams, { replace: true });
+    }
+    if (searchParams.has(ALT_PROJECTS_PARAM)) {
+      const updated = searchParams.get(ALT_PROJECTS_PARAM) === 'true';
+      setAltPreferredProject(updated);
+      setPocConfig({ altNav: updated });
+
+      // clean up query string
+      searchParams.delete(ALT_NAV_PARAM);
+      setSearchParams(searchParams, { replace: true });
+    }
+    // do not react to changes to setters
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   const contextValue = React.useMemo(
     () =>
       dashboardConfig
@@ -65,9 +121,21 @@ const App: React.FC = () => {
             dashboardConfig,
             storageClasses,
             isRHOAI: dashboardConfig.metadata?.namespace === 'redhat-ods-applications',
+            altNav,
+            altPreferredProject,
+            favoriteProjects,
+            setFavoriteProjects,
           }
         : null,
-    [buildStatuses, dashboardConfig, storageClasses],
+    [
+      dashboardConfig,
+      buildStatuses,
+      storageClasses,
+      altNav,
+      altPreferredProject,
+      favoriteProjects,
+      setFavoriteProjects,
+    ],
   );
 
   const isUnauthorized = fetchConfigError?.request?.status === 403;

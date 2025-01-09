@@ -16,6 +16,15 @@ import { SupportedArea } from '~/concepts/areas';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
 import ModelRegistrySettingsRoutes from '~/pages/modelRegistrySettings/ModelRegistrySettingsRoutes';
 import ConnectionTypeRoutes from '~/pages/connectionTypes/ConnectionTypeRoutes';
+import ComingSoonPage from '~/pages/ComingSoonPage';
+import { ProjectObjectType } from '~/concepts/design/utils';
+import GlobalNotebooksPage from '~/pages/notebooks/GlobalNotebooksPage';
+import ProjectDetailsContextProvider from '~/pages/projects/ProjectDetailsContext';
+import GlobalClusterStoragePage from '~/pages/clusterStorage/GlobalClusterStoragePage';
+import GlobalConnectionsPage from '~/pages/connections/GlobalConnectionsPage';
+import Applications from '~/pages/applications/Applications';
+import GeneralSettings from '~/pages/clusterSettings/GeneralSettings';
+import ModelServingPlatforms from '~/pages/modelSetup/ModelServingPlatforms';
 
 const HomePage = React.lazy(() => import('../pages/home/Home'));
 
@@ -55,9 +64,13 @@ const ClusterSettingsPage = React.lazy(() => import('../pages/clusterSettings/Cl
 const CustomServingRuntimeRoutes = React.lazy(
   () => import('../pages/modelServing/customServingRuntimes/CustomServingRuntimeRoutes'),
 );
+const EnvironmentSetupPage = React.lazy(() => import('../pages/environmentSetup/EnvironmentSetup'));
+const ModelSetupPage = React.lazy(() => import('../pages/modelSetup/ModelSetup'));
+
 const GroupSettingsPage = React.lazy(() => import('../pages/groupSettings/GroupSettings'));
 const LearningCenterPage = React.lazy(() => import('../pages/learningCenter/LearningCenter'));
 const BYONImageRoutes = React.lazy(() => import('../pages/BYONImages/BYONImageRoutes'));
+const BYONImagesPage = React.lazy(() => import('../pages/BYONImages/BYONImages'));
 const NotFound = React.lazy(() => import('../pages/NotFound'));
 
 const DependencyMissingPage = React.lazy(
@@ -108,6 +121,12 @@ const AppRoutes: React.FC = () => {
         )}
         <Route path="/explore" element={<ExploreApplications />} />
         <Route path="/resources" element={<LearningCenterPage />} />
+        <Route
+          path="/modelCustomization"
+          element={
+            <ComingSoonPage title="Model customization" objectType={ProjectObjectType.modelSetup} />
+          }
+        />
 
         <Route path="/projects/*" element={<ProjectViewRoutes />} />
 
@@ -124,6 +143,7 @@ const AppRoutes: React.FC = () => {
 
         <Route path="/modelCatalog/*" element={<ModelCatalogRoutes />} />
 
+        <Route path="/modelRegistry" element={<ModelRegistryRoutes />} />
         <Route path="/modelRegistry/*" element={<ModelRegistryRoutes />} />
 
         <Route path={globPipelinesAll} element={<GlobalPipelinesRoutes />} />
@@ -138,8 +158,30 @@ const AppRoutes: React.FC = () => {
 
         {isAdmin && (
           <>
-            <Route path="/notebookImages/*" element={<BYONImageRoutes />} />
-            <Route path="/clusterSettings" element={<ClusterSettingsPage />} />
+            <Route path="/notebookImages" element={<BYONImageRoutes />} />
+            <Route path="/clusterSettings" element={<ClusterSettingsPage />}>
+              <Route path="general" element={<GeneralSettings />} />
+              <Route path="storage-classes" element={<StorageClassesPage />} />
+            </Route>
+            <Route path="/environmentSetup" element={<EnvironmentSetupPage />}>
+              <Route path="workbench-images" element={<BYONImagesPage />} />
+              <Route path="hardware-profiles" element={<AcceleratorProfileRoutes />} />
+              <Route path="connection-types" element={<ConnectionTypeRoutes />} />
+            </Route>
+            <Route path="/modelSetup" element={<ModelSetupPage />}>
+              <Route path="model-serving-platforms" element={<ModelServingPlatforms />} />
+              <Route path="serving-runtimes" element={<CustomServingRuntimeRoutes />} />
+              <Route
+                path="model-registry-settings"
+                element={
+                  <ComingSoonPage
+                    title="Model registry settings"
+                    objectType={ProjectObjectType.modelRegistrySettings}
+                  />
+                }
+              />
+            </Route>
+
             <Route path="/acceleratorProfiles/*" element={<AcceleratorProfileRoutes />} />
             <Route path="/hardwareProfiles/*" element={<HardwareProfileRoutes />} />
             <Route path="/servingRuntimes/*" element={<CustomServingRuntimeRoutes />} />
@@ -149,7 +191,40 @@ const AppRoutes: React.FC = () => {
             <Route path="/groupSettings" element={<GroupSettingsPage />} />
           </>
         )}
-
+        <Route
+          path="/workbenches/:namespace?"
+          element={
+            <ProjectDetailsContextProvider
+              getInvalidRedirectPath={(ns) => `/workbenches/${ns}`}
+              allowAllProjects
+            />
+          }
+        >
+          <Route index element={<GlobalNotebooksPage />} />
+        </Route>
+        <Route
+          path="/clusterStorage/:namespace?"
+          element={
+            <ProjectDetailsContextProvider
+              getInvalidRedirectPath={(ns) => `/clusterStorage/${ns}`}
+              allowAllProjects
+            />
+          }
+        >
+          <Route index element={<GlobalClusterStoragePage />} />
+        </Route>
+        <Route
+          path="/connections/:namespace?"
+          element={
+            <ProjectDetailsContextProvider
+              getInvalidRedirectPath={(ns) => `/connections/${ns}`}
+              allowAllProjects
+            />
+          }
+        >
+          <Route index element={<GlobalConnectionsPage />} />
+        </Route>
+        <Route path="/applications/:tab?" element={<Applications />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </React.Suspense>

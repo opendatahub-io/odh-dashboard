@@ -10,7 +10,7 @@ import PipelinesView from '~/pages/pipelines/global/pipelines/PipelinesView';
 import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import PipelineAndVersionContextProvider from '~/concepts/pipelines/content/PipelineAndVersionContext';
 import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
-import { pipelinesBaseRoute } from '~/routes';
+import { pipelinesBaseRoute, pipelinesRootPath } from '~/routes';
 import { ProjectObjectType } from '~/concepts/design/utils';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 
@@ -19,6 +19,7 @@ const GlobalPipelines: React.FC = () => {
 
   return (
     <PipelineCoreApplicationPage
+      page={pipelinesRootPath}
       title={<TitleWithIcon title={pipelinesPageTitle} objectType={ProjectObjectType.pipeline} />}
       description={pipelinesPageDescription}
       headerAction={<PipelineServerActions isDisabled={!pipelinesAPI.pipelinesServer.installed} />}

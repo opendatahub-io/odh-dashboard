@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Navigate, Route } from 'react-router-dom';
 import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
 import GlobalPipelineCoreLoader from '~/pages/pipelines/global/GlobalPipelineCoreLoader';
-import { executionsBaseRoute } from '~/routes';
+import { executionsBaseRoute, executionsRootPath } from '~/routes';
 import {
   executionsPageDescription,
   executionsPageTitle,
@@ -17,6 +17,7 @@ const GlobalPipelineExecutionsRoutes: React.FC = () => (
       path="/:namespace?/*"
       element={
         <GlobalPipelineCoreLoader
+          page={executionsRootPath}
           title={executionsPageTitle}
           description={executionsPageDescription}
           getInvalidRedirectPath={executionsBaseRoute}

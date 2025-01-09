@@ -10,8 +10,8 @@ import {
   TextInput,
   ValidatedOptions,
 } from '@patternfly/react-core';
-import SettingSection from '~/components/SettingSection';
 import { NotebookTolerationFormSettings } from '~/types';
+import CollapsibleSettingSection from '~/components/CollapsibleSettingSection';
 import { DEFAULT_TOLERATION_VALUE, TOLERATION_FORMAT, TOLERATION_FORMAT_ERROR } from './const';
 
 type TolerationSettingsProps = {
@@ -32,7 +32,7 @@ const TolerationSettings: React.FC<TolerationSettingsProps> = ({
   }, [initialValue, setTolerationSettings]);
 
   return (
-    <SettingSection
+    <CollapsibleSettingSection
       title="Notebook pod tolerations"
       footer={
         <HelperText>
@@ -95,7 +95,7 @@ const TolerationSettings: React.FC<TolerationSettingsProps> = ({
           />
         </StackItem>
       </Stack>
-    </SettingSection>
+    </CollapsibleSettingSection>
   );
 };
 

@@ -4,7 +4,7 @@ import PipelineServerActions from '~/concepts/pipelines/content/PipelineServerAc
 import PipelineCoreApplicationPage from '~/pages/pipelines/global/PipelineCoreApplicationPage';
 import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
-import { pipelineRunsBaseRoute } from '~/routes';
+import { pipelineRunsBaseRoute, pipelineRunsRootPath } from '~/routes';
 import { ProjectObjectType } from '~/concepts/design/utils';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import {
@@ -26,6 +26,7 @@ const GlobalPipelineRuns: React.FC<GlobalPipelineRunsProps> = ({ tab }) => {
 
   return (
     <PipelineCoreApplicationPage
+      page={pipelineRunsRootPath}
       title={
         <TitleWithIcon title={pipelineRunsPageTitle} objectType={ProjectObjectType.pipelineRun} />
       }

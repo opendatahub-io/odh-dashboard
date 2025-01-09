@@ -53,7 +53,7 @@ export const DistributedWorkloadsContextProvider =
   )(({ children, namespace }) => {
     const { projects } = React.useContext(ProjectsContext);
     const project = projects.find(byName(namespace)) ?? null;
-    useSyncPreferredProject(project);
+    useSyncPreferredProject('distributed-workloads', project);
 
     const { currentRefreshInterval } = React.useContext(MetricsCommonContext);
 

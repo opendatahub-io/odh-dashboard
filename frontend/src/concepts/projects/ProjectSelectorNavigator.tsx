@@ -4,10 +4,12 @@ import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import ProjectSelector from './ProjectSelector';
 
 type ProjectSelectorProps = {
+  page: string;
   getRedirectPath: (namespace: string) => string;
 } & Omit<React.ComponentProps<typeof ProjectSelector>, 'onSelection' | 'namespace'>;
 
 const ProjectSelectorNavigator: React.FC<ProjectSelectorProps> = ({
+  page,
   getRedirectPath,
   ...projectSelectorProps
 }) => {
@@ -19,9 +21,7 @@ const ProjectSelectorNavigator: React.FC<ProjectSelectorProps> = ({
     <ProjectSelector
       {...projectSelectorProps}
       onSelection={(projectName) => {
-        if (!projectName) {
-          updatePreferredProject(null);
-        }
+        updatePreferredProject(page, projectName || null);
         navigate(getRedirectPath(projectName));
       }}
       namespace={namespace ?? ''}

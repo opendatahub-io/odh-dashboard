@@ -3,7 +3,7 @@ import { Navigate, Route } from 'react-router-dom';
 import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
 import GlobalPipelineCoreLoader from '~/pages/pipelines/global/GlobalPipelineCoreLoader';
 import { PipelineRunCoreDetails } from '~/pages/pipelines/global/GlobalPipelineCoreDetails';
-import { globNamespaceAll, pipelineRunsBaseRoute } from '~/routes';
+import { globNamespaceAll, pipelineRunsBaseRoute, pipelineRunsRootPath } from '~/routes';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import PipelineAvailabilityLoader from '~/pages/pipelines/global/pipelines/PipelineAvailabilityLoader';
 import GlobalPipelineRuns from '~/pages/pipelines/global/runs/GlobalPipelineRuns';
@@ -32,6 +32,7 @@ const GlobalPipelineRunsRoutes: React.FC = () => (
       path={globNamespaceAll}
       element={
         <GlobalPipelineCoreLoader
+          page={pipelineRunsRootPath}
           title={pipelineRunsPageTitle}
           description={pipelineRunsPageDescription}
           getInvalidRedirectPath={pipelineRunsBaseRoute}

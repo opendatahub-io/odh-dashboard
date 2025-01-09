@@ -11,7 +11,12 @@ import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import StorageTable from './StorageTable';
 import ClusterStorageModal from './ClusterStorageModal';
 
-const StorageList: React.FC = () => {
+type StorageListProps = {
+  subHeaderComponent?: React.ReactNode;
+  globalView?: boolean;
+};
+
+const StorageList: React.FC<StorageListProps> = ({ subHeaderComponent, globalView }) => {
   const [isOpen, setOpen] = React.useState(false);
   const {
     notebooks: { refresh: refreshNotebooks },
@@ -23,6 +28,26 @@ const StorageList: React.FC = () => {
     refreshPvcs();
     refreshNotebooks();
   };
+
+  const emptyState = (
+    <EmptyDetailsView
+      title="Start by adding cluster storage"
+      description="Cluster storage saves your project’s data on a selected cluster. You can optionally connect cluster storage to a workbench."
+      iconImage={typedEmptyImage(ProjectObjectType.clusterStorage)}
+      imageAlt="add cluster storage"
+      createButton={
+        !globalView ? (
+          <Button
+            data-testid="cluster-storage-button"
+            onClick={() => setOpen(true)}
+            variant="primary"
+          >
+            Add cluster storage
+          </Button>
+        ) : null
+      }
+    />
+  );
 
   return (
     <>
@@ -41,6 +66,7 @@ const StorageList: React.FC = () => {
             />
           </Popover>
         }
+        subHeaderComponent={subHeaderComponent}
         actions={[
           <Button
             onClick={() => setOpen(true)}
@@ -52,29 +78,15 @@ const StorageList: React.FC = () => {
           </Button>,
         ]}
         isLoading={!pvcsLoaded}
-        isEmpty={isPvcsEmpty}
+        isEmpty={!globalView && isPvcsEmpty}
         loadError={pvcsError}
-        emptyState={
-          <EmptyDetailsView
-            title="Start by adding cluster storage"
-            description="Cluster storage saves your project’s data on a selected cluster. You can optionally connect cluster storage to a workbench."
-            iconImage={typedEmptyImage(ProjectObjectType.clusterStorage)}
-            imageAlt="add cluster storage"
-            createButton={
-              <Button
-                data-testid="cluster-storage-button"
-                onClick={() => setOpen(true)}
-                variant="primary"
-              >
-                Add cluster storage
-              </Button>
-            }
-          />
-        }
+        emptyState={emptyState}
       >
         {!isPvcsEmpty ? (
           <StorageTable pvcs={pvcs} refresh={refresh} onAddPVC={() => setOpen(true)} />
-        ) : null}
+        ) : (
+          emptyState
+        )}
       </DetailsSection>
       {isOpen ? (
         <ClusterStorageModal

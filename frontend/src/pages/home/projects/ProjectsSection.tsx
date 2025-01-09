@@ -15,12 +15,13 @@ import { useNavigate } from 'react-router-dom';
 import useDimensions from 'react-cool-dimensions';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import ManageProjectModal from '~/pages/projects/screens/projects/ManageProjectModal';
-import { AccessReviewResourceAttributes } from '~/k8sTypes';
+import { AccessReviewResourceAttributes, ProjectKind } from '~/k8sTypes';
 import { useAccessReview } from '~/api';
 import { SupportedArea } from '~/concepts/areas';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import EvenlySpacedGallery from '~/components/EvenlySpacedGallery';
+import { AppContext } from '~/app/AppContext';
 import ProjectsSectionHeader from './ProjectsSectionHeader';
 import EmptyProjectsCard from './EmptyProjectsCard';
 import ProjectsLoading from './ProjectsLoading';
@@ -41,9 +42,22 @@ const ProjectsSection: React.FC = () => {
 
   const { status: projectsAvailable } = useIsAreaAvailable(SupportedArea.DS_PROJECTS_VIEW);
   const { projects: projects, loaded, loadError } = React.useContext(ProjectsContext);
+  const { favoriteProjects } = React.useContext(AppContext);
   const [allowCreate, rbacLoaded] = useAccessReview(accessReviewResource);
   const [createProjectOpen, setCreateProjectOpen] = React.useState<boolean>(false);
   const [visibleCardCount, setVisibleCardCount] = React.useState<number>(5);
+
+  const sortedProjects = React.useMemo(() => {
+    const favorites = favoriteProjects.reduce<ProjectKind[]>((acc, name) => {
+      const project = projects.find((p) => p.metadata.name === name);
+      if (project) {
+        acc.push(project);
+      }
+      return acc;
+    }, []);
+    const otherProjects = projects.filter((p) => !favoriteProjects.includes(p.metadata.name));
+    return [...favorites, ...otherProjects];
+  }, [favoriteProjects, projects]);
 
   const { observe } = useDimensions({
     onResize: ({ width }) => {
@@ -52,8 +66,8 @@ const ProjectsSection: React.FC = () => {
   });
 
   const shownProjects = React.useMemo(
-    () => (loaded ? projects.slice(0, visibleCardCount) : []),
-    [loaded, projects, visibleCardCount],
+    () => (loaded ? sortedProjects.slice(0, visibleCardCount) : []),
+    [loaded, sortedProjects, visibleCardCount],
   );
 
   if (!projectsAvailable) {

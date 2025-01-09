@@ -15,6 +15,7 @@ import {
   Spinner,
   Truncate,
 } from '@patternfly/react-core';
+import useDebounceCallback from '~/utilities/useDebounceCallback';
 
 type ManualSearchSelectorOpts = {
   menuClose: () => void;
@@ -41,6 +42,8 @@ type SearchSelectorProps = {
   searchValue: string;
   toggleText: string;
   toggleVariant?: React.ComponentProps<typeof MenuToggle>['variant'];
+  hasLists?: boolean;
+  handleAction?: (itemId: string, actionId: string) => boolean;
 };
 
 const SearchSelector: React.FC<SearchSelectorProps> = ({
@@ -58,12 +61,27 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
   searchValue,
   toggleText,
   toggleVariant,
+  hasLists = false,
+  handleAction,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const toggleRef = React.useRef(null);
   const menuRef = React.useRef(null);
   const searchRef = React.useRef<HTMLInputElement | null>(null);
   const popperProps = { minWidth, maxWidth: 'trigger' };
+
+  const debouncedHandleAction = useDebounceCallback(
+    React.useCallback(
+      async (itemId: string, actionId: string) => {
+        if (handleAction && handleAction(itemId, actionId)) {
+          return;
+        }
+        setIsOpen(false);
+      },
+      [handleAction],
+    ),
+    500,
+  );
 
   return (
     <MenuContainer
@@ -102,7 +120,9 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
           ref={menuRef}
           isScrollable
           onSelect={() => setIsOpen(false)}
-          onActionClick={() => setIsOpen(false)}
+          onActionClick={(_ev, itemId, actionId) => {
+            debouncedHandleAction(itemId, actionId);
+          }}
         >
           <MenuSearch>
             <MenuSearchInput>
@@ -130,11 +150,15 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
           </MenuSearch>
           <Divider />
           <MenuContent maxMenuHeight="200px">
-            <MenuList data-testid={`${dataTestId}-menuList`}>
-              {typeof children === 'function'
-                ? children({ menuClose: () => setIsOpen(false) })
-                : children}
-            </MenuList>
+            {hasLists ? (
+              <>{children}</>
+            ) : (
+              <MenuList data-testid={`${dataTestId}-menuList`}>
+                {typeof children === 'function'
+                  ? children({ menuClose: () => setIsOpen(false) })
+                  : children}
+              </MenuList>
+            )}
           </MenuContent>
         </Menu>
       }

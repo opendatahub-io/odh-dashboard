@@ -11,6 +11,8 @@ import {
 } from '~/concepts/connectionTypes/utils';
 import CompatibilityLabel from '~/concepts/connectionTypes/CompatibilityLabel';
 import ConnectedResources from '~/pages/projects/screens/detail/connections/ConnectedResources';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 
 type ConnectionsTableRowProps = {
   obj: Connection;
@@ -29,12 +31,15 @@ const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
   showConnectedResourcesCell = true,
   showWarningIcon = false,
 }) => {
+  const { currentProject: contextProject } = React.useContext(ProjectDetailsContext);
+  const { projects } = React.useContext(ProjectsContext);
   const connectionTypeDisplayName = React.useMemo(
     () => getConnectionTypeDisplayName(obj, connectionTypes ?? []) || 'Unknown',
     [obj, connectionTypes],
   );
 
   const compatibleTypes = getConnectionModelServingCompatibleTypes(obj);
+  const currentProject = projects.find((p) => p.metadata.name === obj.metadata.namespace);
 
   return (
     <Tr>
@@ -54,6 +59,9 @@ const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
           wrapResourceTitle={false}
         />
       </Td>
+      {contextProject.metadata.name !== obj.metadata.namespace && currentProject ? (
+        <Td dataLabel="Project">{getDisplayNameFromK8sResource(currentProject)}</Td>
+      ) : null}
       <Td dataLabel="Type">{connectionTypeDisplayName}</Td>
       {showCompatibilityCell && (
         <Td dataLabel="Compatibility">

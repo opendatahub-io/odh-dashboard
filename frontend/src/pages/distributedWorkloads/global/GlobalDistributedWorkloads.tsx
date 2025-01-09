@@ -13,7 +13,7 @@ import ProjectSelectorNavigator from '~/concepts/projects/ProjectSelectorNavigat
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
 
-const title = 'Distributed Workload Metrics';
+const title = 'Distributed workloads';
 const description = 'Monitor the metrics of your active resources.';
 
 type GlobalDistributedWorkloadsProps = {
@@ -26,7 +26,8 @@ const GlobalDistributedWorkloads: React.FC<GlobalDistributedWorkloadsProps> = ({
   getInvalidRedirectPath,
 }) => {
   const { namespace } = useParams<{ namespace: string }>();
-  const { projects, preferredProject } = React.useContext(ProjectsContext);
+  const { projects, getPreferredProject } = React.useContext(ProjectsContext);
+  const preferredProject = getPreferredProject('distributed-workloads');
 
   if (projects.length === 0) {
     return (
@@ -52,7 +53,11 @@ const GlobalDistributedWorkloads: React.FC<GlobalDistributedWorkloadsProps> = ({
         loaded
         empty
         emptyStatePage={
-          <InvalidProject namespace={namespace} getRedirectPath={getInvalidRedirectPath} />
+          <InvalidProject
+            page="distributed-workloads"
+            namespace={namespace}
+            getRedirectPath={getInvalidRedirectPath}
+          />
         }
       />
     );
@@ -67,6 +72,7 @@ const GlobalDistributedWorkloads: React.FC<GlobalDistributedWorkloadsProps> = ({
       empty={false}
       headerContent={
         <ProjectSelectorNavigator
+          page="distributed-workloads"
           getRedirectPath={(ns: string) => `/distributedWorkloads/${activeTab.path}/${ns}`}
           showTitle
         />

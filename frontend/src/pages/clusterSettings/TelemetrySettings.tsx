@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Checkbox, Content, ContentVariants } from '@patternfly/react-core';
-import SettingSection from '~/components/SettingSection';
+import CollapsibleSettingSection from '~/components/CollapsibleSettingSection';
 
 type TelemetrySettingsProps = {
   initialValue: boolean;
@@ -20,7 +20,7 @@ const TelemetrySettings: React.FC<TelemetrySettingsProps> = ({
   }, [initialValue, setEnabled]);
 
   return (
-    <SettingSection
+    <CollapsibleSettingSection
       title="Usage data collection"
       footer={
         <Content component={ContentVariants.small}>
@@ -47,7 +47,7 @@ const TelemetrySettings: React.FC<TelemetrySettingsProps> = ({
         data-testid="usage-data-checkbox"
         name="usageDataCheckbox"
       />
-    </SettingSection>
+    </CollapsibleSettingSection>
   );
 };
 

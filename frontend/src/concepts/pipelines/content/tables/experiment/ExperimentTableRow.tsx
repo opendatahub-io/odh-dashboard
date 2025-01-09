@@ -1,10 +1,16 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, matchPath, useLocation } from 'react-router-dom';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import { Truncate } from '@patternfly/react-core';
 import { ExperimentKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd, TableRowTitleDescription } from '~/components/table';
-import { experimentArchivedRunsRoute, experimentRunsRoute } from '~/routes';
+import {
+  experimentArchivedRunsRoute,
+  experimentRunsRoute,
+  PROJECT_DETAIL_ROUTES,
+  projectExperimentArchivedRunsRoute,
+  projectExperimentRunsRoute,
+} from '~/routes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { ExperimentCreated, LastExperimentRuns, LastExperimentRunsStarted } from './renderUtils';
 
@@ -22,7 +28,10 @@ const ExperimentTableRow: React.FC<ExperimentTableRowProps> = ({
   actionColumnItems,
 }) => {
   const { namespace } = usePipelinesAPI();
-
+  const location = useLocation();
+  const projectRoute = !!PROJECT_DETAIL_ROUTES.find((pattern) =>
+    matchPath(pattern, location.pathname),
+  );
   const isArchived = experiment.storage_state === StorageStateKF.ARCHIVED;
 
   return (
@@ -34,7 +43,11 @@ const ExperimentTableRow: React.FC<ExperimentTableRowProps> = ({
             <Link
               to={
                 isArchived
-                  ? experimentArchivedRunsRoute(namespace, experiment.experiment_id)
+                  ? projectRoute
+                    ? projectExperimentArchivedRunsRoute(namespace, experiment.experiment_id)
+                    : experimentArchivedRunsRoute(namespace, experiment.experiment_id)
+                  : projectRoute
+                  ? projectExperimentRunsRoute(namespace, experiment.experiment_id)
                   : experimentRunsRoute(namespace, experiment.experiment_id)
               }
               state={{ experiment }}

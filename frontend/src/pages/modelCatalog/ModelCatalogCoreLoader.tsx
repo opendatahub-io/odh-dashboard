@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Outlet } from 'react-router';
-import { conditionalArea, SupportedArea } from '~/concepts/areas';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
@@ -16,10 +15,7 @@ type ApplicationPageRenderState = Pick<
   ApplicationPageProps,
   'emptyStatePage' | 'empty' | 'headerContent'
 >;
-const ModelCatalogCoreLoader: React.FC = conditionalArea(
-  SupportedArea.MODEL_CATALOG,
-  true,
-)(() => {
+const ModelCatalogCoreLoader: React.FC = () => {
   const { modelCatalogSources } = React.useContext(ModelCatalogContext);
   let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
   if (modelCatalogSources.length === 0) {
@@ -57,6 +53,6 @@ const ModelCatalogCoreLoader: React.FC = conditionalArea(
       provideChildrenPadding
     />
   );
-});
+};
 
 export default ModelCatalogCoreLoader;

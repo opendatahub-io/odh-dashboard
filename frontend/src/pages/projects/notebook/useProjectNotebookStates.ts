@@ -7,6 +7,7 @@ import useFetchState, {
   NotReadyError,
 } from '~/utilities/useFetchState';
 import { NotebookKind } from '~/k8sTypes';
+import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { NotebookDataState, NotebookState } from './types';
 import { getNotebooksStatus, getNotebookStatus } from './service';
 
@@ -29,7 +30,6 @@ const refreshNotebookState = (
 
 export const getNotebooksStates = (
   notebooks: NotebookKind[],
-  namespace: string,
 ): Promise<AdHocUpdate<NotebookState[]>> =>
   getNotebooksStatus(notebooks).then((state) => {
     const adhocUpdate: AdHocUpdate<NotebookState[]> = (lazySetState) => {
@@ -39,7 +39,10 @@ export const getNotebooksStates = (
           // Setup each one to be able to refresh later
           const refresh = () => {
             const notebookName = currentState.notebook.metadata.name;
-            return refreshNotebookState(notebookName, namespace).then((newState) => {
+            return refreshNotebookState(
+              notebookName,
+              currentState.notebook.metadata.namespace,
+            ).then((newState) => {
               lazySetState((notebookStates) => {
                 if (newState) {
                   // Replace just the object that got refreshed
@@ -64,24 +67,39 @@ export const getNotebooksStates = (
     return adhocUpdate;
   });
 
-const useProjectNotebookStates = (namespace?: string): FetchState<NotebookState[]> => {
+const useProjectNotebookStates = (
+  namespace?: string,
+  allowAll?: boolean,
+): FetchState<NotebookState[]> => {
+  const { projects } = React.useContext(ProjectsContext);
   const fetchAllNotebooks = React.useCallback<
     FetchStateCallbackPromiseAdHoc<NotebookState[]>
   >(() => {
     if (!namespace) {
+      if (allowAll) {
+        const getters = projects.map((p) => getNotebooks(p.metadata.name));
+        return Promise.all(getters).then((results) => {
+          const notebooks = results.reduce<NotebookKind[]>((acc, val) => acc.concat(val), []);
+          return new Promise((resolve, reject) => {
+            getNotebooksStates(notebooks)
+              .then((updater) => resolve(updater))
+              .catch(reject);
+          });
+        });
+      }
       return Promise.reject(new NotReadyError('No namespace'));
     }
 
     return new Promise((resolve, reject) => {
       getNotebooks(namespace)
         .then((notebooks) => {
-          getNotebooksStates(notebooks, namespace).then((updater) => resolve(updater));
+          getNotebooksStates(notebooks).then((updater) => resolve(updater));
         })
         .catch(reject);
     });
-  }, [namespace]);
+  }, [namespace, allowAll, projects]);
 
-  return useFetchState<NotebookState[]>(fetchAllNotebooks, []);
+  return useFetchState<NotebookState[]>(fetchAllNotebooks, [], { initialPromisePurity: true });
 };
 
 export default useProjectNotebookStates;

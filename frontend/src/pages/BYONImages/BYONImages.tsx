@@ -11,12 +11,14 @@ const BYONImages: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title={<TitleWithIcon title="Notebook images" objectType={ProjectObjectType.notebookImage} />}
-      description="Manage your notebook images."
+      title={
+        <TitleWithIcon title="Workbench images" objectType={ProjectObjectType.notebookImage} />
+      }
+      description="Manage your workbench images."
       loaded={loaded}
       empty={images.length === 0}
       loadError={loadError}
-      errorMessage="Unable to load notebook images."
+      errorMessage="Unable to load workbench images."
       emptyStatePage={<EmptyBYONImages refresh={refresh} />}
       provideChildrenPadding
     >

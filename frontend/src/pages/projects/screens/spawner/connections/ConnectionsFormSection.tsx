@@ -82,11 +82,7 @@ export const ConnectionsFormSection: React.FC<Props> = ({
 
   const initialNumberConnections = React.useRef(selectedConnections.length);
   const notebookArray = React.useMemo(() => (notebook ? [notebook] : []), [notebook]);
-  const [notebookStates] = useNotebooksStates(
-    notebookArray,
-    notebook?.metadata.namespace || '',
-    initialNumberConnections.current > 0,
-  );
+  const [notebookStates] = useNotebooksStates(notebookArray, initialNumberConnections.current > 0);
   const isRunning = React.useMemo(
     () =>
       !!notebookStates.find((n) => n.notebook.metadata.name === notebook?.metadata.name)?.isRunning,

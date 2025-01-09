@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { SVGIconProps } from '@patternfly/react-icons/dist/esm/createIcon';
+import { CogsIcon, HomeIcon, ResourcePoolIcon } from '@patternfly/react-icons';
 import { ProjectObjectType, typedColor } from '~/concepts/design/utils';
 import {
   BuildIcon,
@@ -108,6 +109,9 @@ const TypedObjectIcon: React.FC<TypedObjectIconProps> = ({
     case ProjectObjectType.connections:
       Icon = DataConnectionIcon;
       break;
+    case ProjectObjectType.generalSettings:
+      Icon = CogsIcon;
+      break;
     case ProjectObjectType.clusterSettings:
       Icon = ClusterSettingsIcon;
       break;
@@ -134,6 +138,12 @@ const TypedObjectIcon: React.FC<TypedObjectIconProps> = ({
       break;
     case ProjectObjectType.resources:
       Icon = ResourcesIcon;
+      break;
+    case ProjectObjectType.environmentSetup:
+      Icon = HomeIcon;
+      break;
+    case ProjectObjectType.modelSetup:
+      Icon = ResourcePoolIcon;
       break;
     default:
       return null;

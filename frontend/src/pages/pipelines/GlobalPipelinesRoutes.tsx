@@ -8,7 +8,7 @@ import {
 } from '~/pages/pipelines/global/pipelines/const';
 import { PipelineVersionCoreDetails } from '~/pages/pipelines/global/GlobalPipelineCoreDetails';
 import PipelineDetails from '~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineDetails';
-import { globNamespaceAll, pipelinesBaseRoute } from '~/routes';
+import { globNamespaceAll, pipelinesBaseRoute, pipelinesRootPath } from '~/routes';
 import PipelineAvailabilityLoader from '~/pages/pipelines/global/pipelines/PipelineAvailabilityLoader';
 import GlobalPipelines from './global/pipelines/GlobalPipelines';
 
@@ -18,6 +18,7 @@ const GlobalPipelinesRoutes: React.FC = () => (
       path={globNamespaceAll}
       element={
         <GlobalPipelineCoreLoader
+          page={pipelinesRootPath}
           title={pipelinesPageTitle}
           description={pipelinesPageDescription}
           getInvalidRedirectPath={pipelinesBaseRoute}

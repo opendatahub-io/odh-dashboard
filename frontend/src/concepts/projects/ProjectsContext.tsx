@@ -4,6 +4,7 @@ import { FetchState } from '~/utilities/useFetchState';
 import { KnownLabels, ProjectKind } from '~/k8sTypes';
 import { useDashboardNamespace } from '~/redux/selectors';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { AppContext } from '~/app/AppContext';
 import { isAvailableProject } from './utils';
 
 const projectSorter = (projectA: ProjectKind, projectB: ProjectKind) =>
@@ -16,13 +17,13 @@ type ProjectsContextType = {
   /** eg. Terminating state, etc */
   nonActiveProjects: ProjectKind[];
 
-  /** Some component set this value, you should use this instead of projects[0] */
-  preferredProject: ProjectKind | null;
+  /** Get the project last used for the given page] */
+  getPreferredProject: (page: string) => ProjectKind | null;
   /**
    * Allows for navigation to be unimpeded by project selection
    * @see useSyncPreferredProject
    */
-  updatePreferredProject: (project: ProjectKind | null) => void;
+  updatePreferredProject: (page: string, projectName: string | null) => void;
   waitForProject: (projectName: string) => Promise<void>;
 
   // ...the rest of the state variables
@@ -34,8 +35,9 @@ export const ProjectsContext = React.createContext<ProjectsContextType>({
   projects: [],
   modelServingProjects: [],
   nonActiveProjects: [],
-  preferredProject: null,
-  updatePreferredProject: () => undefined,
+  getPreferredProject: () => null,
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  updatePreferredProject: () => {},
   loaded: false,
   loadError: new Error('Not in project provider'),
   waitForProject: () => Promise.resolve(),
@@ -50,10 +52,26 @@ type ProjectsProviderProps = {
 };
 
 const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) => {
-  const [preferredProject, setPreferredProject] =
-    React.useState<ProjectsContextType['preferredProject']>(null);
   const [projectData, loaded, loadError] = useProjects();
   const { dashboardNamespace } = useDashboardNamespace();
+  const { altPreferredProject } = React.useContext(AppContext);
+  const [pageProjects, setPageProjects] = React.useState<{ [key: string]: ProjectKind | null }>({});
+
+  const getPreferredProject = React.useCallback(
+    (page: string) => pageProjects[!altPreferredProject ? page : '__preferredProject'] ?? null,
+    [altPreferredProject, pageProjects],
+  );
+  const updatePreferredProject = React.useCallback(
+    (page: string, projectName: string | null) => {
+      const project = projectData.find((p) => p.metadata.name === projectName);
+      setPageProjects((prev) => {
+        const projects = { ...prev };
+        projects[!altPreferredProject ? page : '__preferredProject'] = project || null;
+        return projects;
+      });
+    },
+    [altPreferredProject, projectData],
+  );
 
   const { projects, modelServingProjects, nonActiveProjects } = React.useMemo(
     () =>
@@ -121,8 +139,8 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
       projects: projects.toSorted(projectSorter),
       modelServingProjects: modelServingProjects.toSorted(projectSorter),
       nonActiveProjects: nonActiveProjects.toSorted(projectSorter),
-      preferredProject,
-      updatePreferredProject: setPreferredProject,
+      getPreferredProject,
+      updatePreferredProject,
       loaded,
       loadError,
       waitForProject,
@@ -131,8 +149,8 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
       projects,
       modelServingProjects,
       nonActiveProjects,
-      preferredProject,
-      setPreferredProject,
+      getPreferredProject,
+      updatePreferredProject,
       loaded,
       loadError,
       waitForProject,

@@ -14,6 +14,7 @@ import {
 } from '@patternfly/react-core';
 import { ProjectObjectType } from '~/concepts/design/utils';
 import HeaderIcon from '~/concepts/design/HeaderIcon';
+import { AppContext } from '~/app/AppContext';
 import { ProjectSectionID } from './types';
 
 type DetailsSectionProps = {
@@ -22,6 +23,7 @@ type DetailsSectionProps = {
   objectType?: ProjectObjectType;
   title?: string;
   description?: string;
+  subHeaderComponent?: React.ReactNode;
   popover?: React.ReactNode;
   isLoading: boolean;
   loadError?: Error;
@@ -43,10 +45,13 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({
   loadError,
   title,
   description,
+  subHeaderComponent,
   popover,
   labels,
   showDivider,
 }) => {
+  const { altNav } = React.useContext(AppContext);
+
   const renderContent = () => {
     if (loadError) {
       return (
@@ -72,7 +77,12 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({
   };
 
   return (
-    <PageSection hasBodyWrapper={false} aria-label="details-section" id={id}>
+    <PageSection
+      hasBodyWrapper={false}
+      aria-label="details-section"
+      id={id}
+      className={altNav ? undefined : 'pf-v6-u-pt-0 pf-v6-u-pl-0'}
+    >
       <Stack
         data-testid={`section-${id}`}
         hasGutter
@@ -81,52 +91,57 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({
         })}
       >
         {!isEmpty ? (
-          <StackItem>
-            <Flex
-              direction={{ default: 'column', md: 'row' }}
-              gap={{ default: 'gapMd' }}
-              alignItems={{ md: 'alignItemsCenter' }}
-            >
-              <Flex flex={{ default: 'flex_1' }}>
-                <FlexItem>
-                  <Flex
-                    direction={{ default: 'row' }}
-                    gap={{ default: 'gapSm' }}
-                    alignItems={{ default: 'alignItemsCenter' }}
-                  >
-                    {objectType ? (
-                      <FlexItem>
-                        <HeaderIcon type={objectType} />
-                      </FlexItem>
-                    ) : null}
-                    {title ? (
-                      <FlexItem>
-                        <Title id={`${id}-title`} headingLevel="h2" size="xl">
-                          {title}
-                        </Title>
-                      </FlexItem>
-                    ) : null}
-                    {popover ? <FlexItem>{popover}</FlexItem> : null}
-                  </Flex>
-                </FlexItem>
-                <FlexItem>
-                  <Content>{description && <Content component="p">{description}</Content>}</Content>
-                </FlexItem>
+          <>
+            <StackItem>
+              <Flex
+                direction={{ default: 'column', md: 'row' }}
+                gap={{ default: 'gapMd' }}
+                alignItems={{ md: 'alignItemsCenter' }}
+              >
+                <Flex flex={{ default: 'flex_1' }} direction={{ default: 'column' }}>
+                  <FlexItem>
+                    <Flex
+                      direction={{ default: 'row' }}
+                      gap={{ default: 'gapSm' }}
+                      alignItems={{ default: 'alignItemsCenter' }}
+                    >
+                      {objectType ? (
+                        <FlexItem>
+                          <HeaderIcon type={objectType} />
+                        </FlexItem>
+                      ) : null}
+                      {title ? (
+                        <FlexItem>
+                          <Title id={`${id}-title`} headingLevel="h2" size="xl">
+                            {title}
+                          </Title>
+                        </FlexItem>
+                      ) : null}
+                      {popover ? <FlexItem>{popover}</FlexItem> : null}
+                    </Flex>
+                  </FlexItem>
+                  <FlexItem>
+                    <Content>
+                      {description && <Content component="p">{description}</Content>}
+                    </Content>
+                  </FlexItem>
+                </Flex>
+                <Flex direction={{ default: 'column', md: 'row' }}>
+                  {actions && (
+                    <Flex direction={{ default: 'row' }} spaceItems={{ default: 'spaceItemsSm' }}>
+                      {actions.map((action, index) => (
+                        <FlexItem data-testid="details-section-action" key={index}>
+                          {action}
+                        </FlexItem>
+                      ))}
+                    </Flex>
+                  )}
+                  {labels && <FlexItem align={{ default: 'alignRight' }}>{labels}</FlexItem>}
+                </Flex>
               </Flex>
-              <Flex direction={{ default: 'column', md: 'row' }}>
-                {actions && (
-                  <Flex direction={{ default: 'row' }} spaceItems={{ default: 'spaceItemsSm' }}>
-                    {actions.map((action, index) => (
-                      <FlexItem data-testid="details-section-action" key={index}>
-                        {action}
-                      </FlexItem>
-                    ))}
-                  </Flex>
-                )}
-                {labels && <FlexItem align={{ default: 'alignRight' }}>{labels}</FlexItem>}
-              </Flex>
-            </Flex>
-          </StackItem>
+            </StackItem>
+            {subHeaderComponent ? <StackItem>{subHeaderComponent}</StackItem> : null}
+          </>
         ) : null}
         {renderContent()}
       </Stack>

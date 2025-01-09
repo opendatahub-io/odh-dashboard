@@ -18,6 +18,8 @@ import { TableRowTitleDescription } from '~/components/table';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { getStorageClassConfig } from '~/pages/storageClasses/utils';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import useIsRootVolume from './useIsRootVolume';
 import StorageWarningStatus from './StorageWarningStatus';
 import { StorageTableData } from './types';
@@ -39,11 +41,14 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
   onEditPVC,
   onAddPVC,
 }) => {
+  const { currentProject: contextProject } = React.useContext(ProjectDetailsContext);
+  const { projects } = React.useContext(ProjectsContext);
   const isRootVolume = useIsRootVolume(obj.pvc);
 
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
   const storageClassConfig = obj.storageClass && getStorageClassConfig(obj.storageClass);
+  const currentProject = projects.find((p) => p.metadata.name === obj.pvc.metadata.namespace);
 
   const actions: IAction[] = [
     {
@@ -80,7 +85,9 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
         </Flex>
         <Content component="p">{getDescriptionFromK8sResource(obj.pvc)}</Content>
       </Td>
-
+      {contextProject.metadata.name !== obj.pvc.metadata.namespace && currentProject ? (
+        <Td dataLabel="Project">{getDisplayNameFromK8sResource(currentProject)}</Td>
+      ) : null}
       {isStorageClassesAvailable && (
         <Td modifier="truncate" dataLabel="Storage class">
           <Flex

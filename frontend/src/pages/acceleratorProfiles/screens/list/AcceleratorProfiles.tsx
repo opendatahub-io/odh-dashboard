@@ -18,7 +18,7 @@ import AcceleratorProfilesTable from '~/pages/acceleratorProfiles/screens/list/A
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
 
-const description = `Manage accelerator profile settings for users in your organization`;
+const description = `Manage hardware profile settings for users in your organization`;
 
 const AcceleratorProfiles: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
@@ -35,7 +35,7 @@ const AcceleratorProfiles: React.FC = () => {
         headingLevel="h5"
         titleText={
           <span data-testid="no-available-accelerator-profiles">
-            No available accelerator profiles yet
+            No available hardware profiles yet
           </span>
         }
         icon={PlusCircleIcon}
@@ -43,7 +43,7 @@ const AcceleratorProfiles: React.FC = () => {
         data-id="empty-empty-state"
       >
         <EmptyStateBody>
-          You don&apos;t have any accelerator profiles yet. To get started, please ask your cluster
+          You don&apos;t have any hardware profiles yet. To get started, please ask your cluster
           administrator about the accelerator availability in your cluster and create corresponding
           profiles in OpenShift Data Science.
         </EmptyStateBody>
@@ -54,7 +54,7 @@ const AcceleratorProfiles: React.FC = () => {
               variant={ButtonVariant.primary}
               onClick={() => navigate('/acceleratorProfiles/create')}
             >
-              Add new accelerator profile
+              Add new hardware profile
             </Button>
           </EmptyStateActions>
         </EmptyStateFooter>
@@ -66,7 +66,7 @@ const AcceleratorProfiles: React.FC = () => {
     <ApplicationsPage
       title={
         <TitleWithIcon
-          title="Accelerator profiles"
+          title="Hardware profiles"
           objectType={ProjectObjectType.acceleratorProfile}
         />
       }
@@ -74,7 +74,7 @@ const AcceleratorProfiles: React.FC = () => {
       loaded={loaded}
       empty={isEmpty}
       loadError={loadError}
-      errorMessage="Unable to load accelerator profiles."
+      errorMessage="Unable to load hardware profiles."
       emptyStatePage={noAcceleratorProfilePageSection}
       provideChildrenPadding
     >

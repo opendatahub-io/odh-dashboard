@@ -11,6 +11,7 @@ type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;
 type EmptyStateProps = 'emptyStatePage' | 'empty';
 
 type GlobalPipelineCoreLoaderProps = {
+  page: string;
   getInvalidRedirectPath: (namespace: string) => string;
 } & Omit<
   ApplicationPageProps,
@@ -20,11 +21,13 @@ type GlobalPipelineCoreLoaderProps = {
 type ApplicationPageRenderState = Pick<ApplicationPageProps, EmptyStateProps>;
 
 const GlobalPipelineCoreLoader: React.FC<GlobalPipelineCoreLoaderProps> = ({
+  page,
   getInvalidRedirectPath,
   ...applicationPageProps
 }) => {
   const { namespace } = useParams<{ namespace: string }>();
-  const { projects, preferredProject } = React.useContext(ProjectsContext);
+  const { projects, getPreferredProject } = React.useContext(ProjectsContext);
+  const preferredProject = getPreferredProject(page);
 
   let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
   if (projects.length === 0) {
@@ -47,7 +50,11 @@ const GlobalPipelineCoreLoader: React.FC<GlobalPipelineCoreLoaderProps> = ({
     renderStateProps = {
       empty: true,
       emptyStatePage: (
-        <InvalidProject namespace={namespace} getRedirectPath={getInvalidRedirectPath} />
+        <InvalidProject
+          page="pipelines"
+          namespace={namespace}
+          getRedirectPath={getInvalidRedirectPath}
+        />
       ),
     };
   } else {
@@ -61,7 +68,9 @@ const GlobalPipelineCoreLoader: React.FC<GlobalPipelineCoreLoaderProps> = ({
       {...applicationPageProps}
       {...renderStateProps}
       loaded
-      headerContent={<PipelineCoreProjectSelector getRedirectPath={getInvalidRedirectPath} />}
+      headerContent={
+        <PipelineCoreProjectSelector page={page} getRedirectPath={getInvalidRedirectPath} />
+      }
       provideChildrenPadding
     />
   );

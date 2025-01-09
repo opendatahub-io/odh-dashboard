@@ -8,7 +8,7 @@ import {
   experimentsPageTitle,
 } from '~/pages/pipelines/global/experiments/const';
 import GlobalExperiments from '~/pages/pipelines/global/experiments/GlobalExperiments';
-import { experimentsBaseRoute } from '~/routes';
+import { experimentsBaseRoute, experimentsRootPath } from '~/routes';
 import ExperimentContextProvider from '~/pages/pipelines/global/experiments/ExperimentContext';
 import ExperimentPipelineRuns from '~/pages/pipelines/global/experiments/ExperimentPipelineRuns';
 import ExperimentPipelineRunsTabs from '~/pages/pipelines/global/experiments/ExperimentPipelineRunsTabs';
@@ -36,6 +36,7 @@ const GlobalPipelineExperimentsRoutes: React.FC = () => (
       path="/:namespace?/*"
       element={
         <GlobalPipelineCoreLoader
+          page={experimentsRootPath}
           title={experimentsPageTitle}
           description={experimentsPageDescription}
           getInvalidRedirectPath={experimentsBaseRoute}
