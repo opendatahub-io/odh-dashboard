@@ -1,0 +1,5 @@
+# testWorkbenchEditing.cy.ts Test Data #
+editTestNamespace: 'dsp-wb-edit-test'
+editedTestNamespace: 'dsp-wb-edited-test'
+editedTestDescription: 'This is a test description.'
+pvc_EditDisplayName: 'pvc--edit-test-display-name'

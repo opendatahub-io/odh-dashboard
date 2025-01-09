@@ -80,6 +80,13 @@ export type PVCReplacements = {
   PVC_SIZE: string;
 };
 
+export type WBEditTestData = {
+  editTestNamespace: string;
+  editedTestNamespace: string;
+  editedTestDescription: string;
+  pvcEditDisplayName: string;
+};
+
 export type CommandLineResult = {
   code: number;
   stdout: string;
@@ -102,6 +109,10 @@ export type DataScienceProjectData = {
   projectResourceName: string;
   projectPermissionResourceName: string;
   projectContributorResourceName: string;
+  projectEditName: string;
+  projectEditDescription: string;
+  projectEditResourceName: string;
+  projectEditUpdatedName: string;
 };
 
 export type NotebookImageData = {

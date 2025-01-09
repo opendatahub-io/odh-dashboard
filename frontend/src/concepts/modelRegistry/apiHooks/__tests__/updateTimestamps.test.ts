@@ -43,7 +43,16 @@ describe('updateTimestamps', () => {
 
       expect(mockApi.patchModelVersion).toHaveBeenCalledWith(
         {},
-        { state: ModelState.LIVE },
+        {
+          state: ModelState.LIVE,
+          customProperties: {
+            _lastModified: {
+              metadataType: ModelRegistryMetadataType.STRING,
+              // eslint-disable-next-line camelcase
+              string_value: '2024-01-01T00:00:00.000Z',
+            },
+          },
+        },
         fakeModelVersionId,
       );
     });

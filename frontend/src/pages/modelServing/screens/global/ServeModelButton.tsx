@@ -12,9 +12,9 @@ import { ServingRuntimePlatform } from '~/types';
 import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/projects/utils';
 import ManageKServeModal from '~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
 import ManageNIMServingModal from '~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
+import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 
 const ServeModelButton: React.FC = () => {
   const [platformSelected, setPlatformSelected] = React.useState<
@@ -31,6 +31,7 @@ const ServeModelButton: React.FC = () => {
   const { projects } = React.useContext(ProjectsContext);
   const { namespace } = useParams<{ namespace: string }>();
   const servingPlatformStatuses = useServingPlatformStatuses();
+  const isNIMAvailable = servingPlatformStatuses.kServeNIM.enabled;
 
   const project = projects.find(byName(namespace));
 
@@ -58,7 +59,9 @@ const ServeModelButton: React.FC = () => {
           getProjectModelServingPlatform(project, servingPlatformStatuses).platform,
         )
       }
-      isAriaDisabled={!project || !templatesEnabled}
+      isAriaDisabled={
+        !project || templatesEnabled.length === 0 || (!isNIMAvailable && isKServeNIMEnabled)
+      }
     >
       Deploy model
     </Button>
@@ -69,6 +72,12 @@ const ServeModelButton: React.FC = () => {
       <Tooltip data-testid="deploy-model-tooltip" content="To deploy a model, select a project.">
         {deployButton}
       </Tooltip>
+    );
+  }
+
+  if (!isNIMAvailable && isKServeNIMEnabled) {
+    return (
+      <Tooltip content="NIM is not available. Contact your administrator.">{deployButton}</Tooltip>
     );
   }
 
