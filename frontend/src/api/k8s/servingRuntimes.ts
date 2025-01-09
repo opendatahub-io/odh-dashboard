@@ -155,7 +155,7 @@ export const assembleServingRuntime = (
     const supportedModelFormatsObj: SupportedModelFormatsInfo = {
       name: supportedModelFormatsInfo.name,
       version: supportedModelFormatsInfo.version,
-      autoSelect: true,
+      autoSelect: false,
       priority: 1,
     };
 
