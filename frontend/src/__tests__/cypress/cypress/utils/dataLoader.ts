@@ -4,6 +4,7 @@ import type {
   PVCReplacements,
   ResourcesData,
   WBEditTestData,
+  WBControlSuiteTestData
 } from '~/__tests__/cypress/cypress/types';
 
 // Load fixture function that returns DataScienceProjectData
@@ -32,6 +33,13 @@ export const loadPVCFixture = (fixturePath: string): Cypress.Chainable<PVCReplac
 export const loadPVCEditFixture = (fixturePath: string): Cypress.Chainable<WBEditTestData> => {
   return cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as WBEditTestData;
+
+    return data;
+  });
+};
+export const loadWBControlSuiteFixture = (fixturePath: string): Cypress.Chainable<WBControlSuiteTestData> => {
+  return cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as WBControlSuiteTestData;
 
     return data;
   });
