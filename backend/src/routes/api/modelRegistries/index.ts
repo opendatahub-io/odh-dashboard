@@ -3,18 +3,19 @@ import { secureAdminRoute } from '../../../utils/route-security';
 import { KubeFastifyInstance, ModelRegistryKind, RecursivePartial } from '../../../types';
 import createError from 'http-errors';
 import {
-  createModelRegistryAndSecret,
+  createModelRegistryAndCredentials,
   deleteModelRegistryAndSecret,
   getDatabasePassword,
   getModelRegistry,
   getModelRegistryNamespace,
   listModelRegistries,
-  patchModelRegistryAndUpdatePassword,
+  patchModelRegistryAndUpdateCredentials,
 } from './modelRegistryUtils';
 
-type ModelRegistryAndDBPassword = {
+type ModelRegistryAndCredentials = {
   modelRegistry: ModelRegistryKind;
   databasePassword?: string;
+  newDatabaseCACertificate?: string;
 };
 
 // Lists ModelRegistries directly (does not look up passwords from associated Secrets, you must make a direct request to '/:modelRegistryName' for that)
@@ -48,19 +49,20 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       async (
         request: FastifyRequest<{
           Querystring: { dryRun?: string };
-          Body: ModelRegistryAndDBPassword;
+          Body: ModelRegistryAndCredentials;
         }>,
         reply: FastifyReply,
       ) => {
         const { dryRun } = request.query;
-        const { modelRegistry, databasePassword } = request.body;
+        const { modelRegistry, databasePassword, newDatabaseCACertificate } = request.body;
         try {
           const modelRegistryNamespace = getModelRegistryNamespace(fastify);
-          return createModelRegistryAndSecret(
+          return createModelRegistryAndCredentials(
             fastify,
             modelRegistry,
             modelRegistryNamespace,
             databasePassword,
+            newDatabaseCACertificate,
             !!dryRun,
           ).catch((e) => {
             throw createError(e.statusCode, e?.body?.message);
@@ -98,7 +100,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
             modelRegistry,
             modelRegistryNamespace,
           );
-          return { modelRegistry, databasePassword } satisfies ModelRegistryAndDBPassword;
+          return { modelRegistry, databasePassword } satisfies ModelRegistryAndCredentials;
         } catch (e) {
           fastify.log.error(
             `ModelRegistry ${modelRegistryName} could not be read, ${
@@ -120,21 +122,26 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         request: FastifyRequest<{
           Querystring: { dryRun?: string };
           Params: { modelRegistryName: string };
-          Body: RecursivePartial<ModelRegistryAndDBPassword>;
+          Body: RecursivePartial<ModelRegistryAndCredentials>;
         }>,
         reply: FastifyReply,
       ) => {
         const { dryRun } = request.query;
         const { modelRegistryName } = request.params;
-        const { modelRegistry: patchBody, databasePassword } = request.body;
+        const {
+          modelRegistry: patchBody,
+          databasePassword,
+          newDatabaseCACertificate,
+        } = request.body;
         try {
           const modelRegistryNamespace = getModelRegistryNamespace(fastify);
-          const modelRegistry = await patchModelRegistryAndUpdatePassword(
+          const modelRegistry = await patchModelRegistryAndUpdateCredentials(
             fastify,
             modelRegistryName,
             modelRegistryNamespace,
             patchBody,
             databasePassword,
+            newDatabaseCACertificate,
             !!dryRun,
           );
           return { modelRegistry, databasePassword };

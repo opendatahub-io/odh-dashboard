@@ -1,4 +1,9 @@
-import { mockDashboardConfig, mockDscStatus, mockK8sResourceList } from '~/__mocks__';
+import {
+  mockConfigMapsSecrets,
+  mockDashboardConfig,
+  mockDscStatus,
+  mockK8sResourceList,
+} from '~/__mocks__';
 import { mockDsciStatus } from '~/__mocks__/mockDsciStatus';
 import { StackCapability, StackComponent } from '~/concepts/areas/types';
 import {
@@ -11,7 +16,7 @@ import {
   asProjectAdminUser,
 } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { mockModelRegistry } from '~/__mocks__/mockModelRegistry';
-import type { RoleBindingSubject } from '~/k8sTypes';
+import type { ConfigSecretItem, RoleBindingSubject } from '~/k8sTypes';
 import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 
@@ -26,15 +31,22 @@ const groupSubjects: RoleBindingSubject[] = [
 const setupMocksForMRSettingAccess = ({
   hasModelRegistries = true,
   hasDatabasePassword = true,
+  disableModelRegistrySecureDB = true,
+  secrets = [{ name: 'foo', keys: ['foo.crt', 'bar.crt'] }],
+  configMaps = [{ name: 'foo-bar', keys: ['bar.crt'] }],
 }: {
   hasModelRegistries?: boolean;
   hasDatabasePassword?: boolean;
+  disableModelRegistrySecureDB?: boolean;
+  secrets?: ConfigSecretItem[];
+  configMaps?: ConfigSecretItem[];
 }) => {
   asProductAdminUser();
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
       disableModelRegistry: false,
+      disableModelRegistrySecureDB,
     }),
   );
   cy.interceptOdh(
@@ -126,6 +138,11 @@ const setupMocksForMRSettingAccess = ({
       }),
     ]),
   );
+
+  cy.interceptOdh(
+    'GET /api/modelRegistryCertificates',
+    mockConfigMapsSecrets({ secrets, configMaps }),
+  );
 };
 
 it('Model registry settings should not be available for non product admins', () => {
@@ -190,6 +207,29 @@ describe('CreateModal', () => {
 
     modelRegistrySettings.findSubmitButton().should('be.enabled');
     modelRegistrySettings.shouldHaveNoErrors();
+  });
+
+  it('checks whether the secure DB section exists and both first and second radio options are disabled', () => {
+    setupMocksForMRSettingAccess({ disableModelRegistrySecureDB: false });
+    modelRegistrySettings.visit(true);
+    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
+    modelRegistrySettings.findAddSecureDbMRCheckbox().check();
+    modelRegistrySettings.findClusterWideCARadio().should('be.disabled');
+    modelRegistrySettings.findOpenshiftCARadio().should('be.disabled');
+  });
+
+  it('both first and second radio options are enabled', () => {
+    setupMocksForMRSettingAccess({
+      disableModelRegistrySecureDB: false,
+      configMaps: [{ name: 'odh-trusted-ca-bundle', keys: ['ca-bundle.crt', 'odh-ca-bundle.crt'] }],
+    });
+    modelRegistrySettings.visit(true);
+    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
+    modelRegistrySettings.findAddSecureDbMRCheckbox().check();
+    modelRegistrySettings.findClusterWideCARadio().should('be.enabled');
+    modelRegistrySettings.findOpenshiftCARadio().should('be.enabled');
   });
 });
 
