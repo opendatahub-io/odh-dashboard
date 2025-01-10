@@ -30,7 +30,7 @@ export const useEnableApplication = (
     error: string;
   }>({ status: EnableApplicationStatus.IDLE, error: '' });
   const [lastVariablesValidationTimestamp, setLastVariablesValidationTimestamp] =
-    React.useState<string>('Unknown');
+    React.useState<string>('');
   const dispatch = useAppDispatch();
 
   const dispatchResults = React.useCallback(
@@ -79,7 +79,7 @@ export const useEnableApplication = (
                 watchHandle = setTimeout(watchStatus, 10 * 1000);
                 return;
               }
-              setLastVariablesValidationTimestamp(response.variablesValidationTimestamp || 'Unknown');
+              setLastVariablesValidationTimestamp(response.variablesValidationTimestamp || '');
               setEnableStatus({
                 status:
                   response.variablesValidationStatus === VariablesValidationStatus.SUCCESS
@@ -148,11 +148,13 @@ export const useEnableApplication = (
             if (!closed) {
               if (response.isInstalled && response.canInstall) {
                 setEnableStatus({ status: EnableApplicationStatus.INPROGRESS, error: '' });
-                setLastVariablesValidationTimestamp(response.variablesValidationTimestamp || 'Unknown');
+                setLastVariablesValidationTimestamp(response.variablesValidationTimestamp || '');
 
                 if (
-                  response.variablesValidationTimestamp !== 'Unknown' &&
-                  response.variablesValidationTimestamp !== lastVariablesValidationTimestamp
+                  response.variablesValidationTimestamp !== '' &&
+                  lastVariablesValidationTimestamp !== '' &&
+                  response.variablesValidationTimestamp !== lastVariablesValidationTimestamp &&
+                  response.variablesValidationStatus !== VariablesValidationStatus.UNKNOWN
                 ) {
                   setEnableStatus({
                     status:

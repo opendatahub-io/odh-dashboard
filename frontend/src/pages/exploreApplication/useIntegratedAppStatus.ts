@@ -19,7 +19,7 @@ export const useIntegratedAppStatus = (app?: OdhApplication): FetchState<Integra
         isEnabled: false,
         canInstall: true,
         variablesValidationStatus: VariablesValidationStatus.UNKNOWN,
-        variablesValidationTimestamp: 'Unknown',
+        variablesValidationTimestamp: '',
         error: '',
       });
     }
@@ -34,7 +34,7 @@ export const useIntegratedAppStatus = (app?: OdhApplication): FetchState<Integra
       isEnabled: false,
       canInstall: false,
       variablesValidationStatus: VariablesValidationStatus.UNKNOWN,
-      variablesValidationTimestamp: 'Unknown',
+      variablesValidationTimestamp: '',
       error: '',
     },
     {

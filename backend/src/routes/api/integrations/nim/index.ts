@@ -40,7 +40,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
               isInstalled: false,
               isEnabled: false,
               variablesValidationStatus: VariablesValidationStatus.UNKNOWN,
-              variablesValidationTimestamp: 'Unknown',
+              variablesValidationTimestamp: '',
               canInstall: true,
               error: '',
             });
@@ -58,7 +58,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
                 isInstalled: false,
                 isEnabled: false,
                 variablesValidationStatus: VariablesValidationStatus.UNKNOWN,
-                variablesValidationTimestamp: 'Unknown',
+                variablesValidationTimestamp: '',
                 canInstall: false,
                 error: 'NIM not installed',
               });
@@ -69,7 +69,7 @@ module.exports = async (fastify: KubeFastifyInstance) => {
               isInstalled: false,
               isEnabled: false,
               variablesValidationStatus: VariablesValidationStatus.UNKNOWN,
-              variablesValidationTimestamp: 'Unknown',
+              variablesValidationTimestamp: '',
               canInstall: false,
               error: 'An unexpected error occurred. Please try again later.',
             });

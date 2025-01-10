@@ -35,7 +35,7 @@ export const useWatchIntegrationComponents = (
             isEnabled: false,
             canInstall: false,
             variablesValidationStatus: VariablesValidationStatus.UNKNOWN,
-            variablesValidationTimestamp: 'Unknown',
+            variablesValidationTimestamp: '',
             error: e.message ?? e.error,
           } satisfies IntegrationAppStatus),
       );
