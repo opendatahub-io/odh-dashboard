@@ -26,6 +26,7 @@
     "build": "run-s build:clean tsc:prod",
     "build:clean": "rimraf ./dist",
     "test": "run-s test:lint test:type-check test:jest",
+    "test:unit-coverage": "run-s test:lint test:type-check test:jest:coverage",
     "test:lint": "eslint --max-warnings 0 --ext .json,.js,.ts ./src",
     "test:fix": "eslint --ext .json,.js,.ts ./src --fix",
     "test:type-check": "tsc --noEmit",
