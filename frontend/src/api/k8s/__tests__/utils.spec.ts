@@ -385,4 +385,8 @@ describe('parseCommandLine', () => {
   test('handles multiple consecutive spaces', () => {
     expect(parseCommandLine('arg1   arg2    arg3')).toEqual(['arg1', 'arg2', 'arg3']);
   });
+
+  test('handles multi-line input', () => {
+    expect(parseCommandLine('arg1 arg2\narg3 arg4')).toEqual(['arg1', 'arg2', 'arg3', 'arg4']);
+  });
 });
