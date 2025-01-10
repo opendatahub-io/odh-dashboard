@@ -202,6 +202,10 @@ class ManageHardwareProfile {
     return cy.findByTestId('hardware-profile-node-resources-table');
   }
 
+  findNodeResourceTableAlert() {
+    return cy.findByTestId('node-resource-table-alert');
+  }
+
   getTolerationTableRow(name: string) {
     return new TolerationRow(() =>
       this.findTolerationTable().find(`[data-label=Key]`).contains(name).parents('tr'),
@@ -355,6 +359,10 @@ class NodeResourceModal extends Modal {
 
   findNodeResourceIdentifierInput() {
     return this.find().findByTestId('node-resource-identifier-input');
+  }
+
+  findNodeResourceTypeSelect() {
+    return this.find().findByTestId('node-resource-type-select');
   }
 
   findNodeResourceExistingErrorMessage() {

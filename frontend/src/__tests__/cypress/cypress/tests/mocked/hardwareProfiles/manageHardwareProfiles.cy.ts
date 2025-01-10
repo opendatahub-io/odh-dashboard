@@ -125,15 +125,6 @@ describe('Manage Hardware Profile', () => {
 
     // test node resource table
     createHardwareProfile.findNodeResourceTable().should('exist');
-    // verify both CPU and Memory rows exist and cannot be deleted
-    createHardwareProfile
-      .getNodeResourceTableRow('cpu')
-      .findDeleteAction()
-      .should('have.attr', 'aria-disabled');
-    createHardwareProfile
-      .getNodeResourceTableRow('memory')
-      .findDeleteAction()
-      .should('have.attr', 'aria-disabled');
     // open node resource modal
     createHardwareProfile.findAddNodeResourceButton().click();
     // fill in form required fields
@@ -144,15 +135,15 @@ describe('Manage Hardware Profile', () => {
     createNodeResourceModal.findNodeResourceExistingErrorMessage().should('exist');
     createNodeResourceModal.findNodeResourceSubmitButton().should('be.disabled');
     createNodeResourceModal.findNodeResourceIdentifierInput().fill('test-gpu');
+    createNodeResourceModal.findNodeResourceTypeSelect().should('contain.text', 'Other');
     createNodeResourceModal.findNodeResourceSubmitButton().should('be.enabled');
     createNodeResourceModal.findNodeResourceSubmitButton().click();
     // test that values were added correctly
     createHardwareProfile.getNodeResourceTableRow('test-gpu').shouldHaveResourceLabel('Test GPU');
 
     // test edit node resource
-    // test cannot edit cpu or memory identifier
     createHardwareProfile.getNodeResourceTableRow('cpu').findEditAction().click();
-    editNodeResourceModal.findNodeResourceIdentifierInput().should('be.disabled');
+    editNodeResourceModal.findNodeResourceTypeSelect().should('contain.text', 'CPU');
     // test default value should be within min and max value
     editNodeResourceModal.selectNodeResourceDefaultUnit('Milicores');
     editNodeResourceModal.findNodeResourceDefaultErrorMessage().should('exist');
@@ -166,7 +157,7 @@ describe('Manage Hardware Profile', () => {
     editNodeResourceModal.findCancelButton().click();
 
     createHardwareProfile.getNodeResourceTableRow('memory').findEditAction().click();
-    editNodeResourceModal.findNodeResourceIdentifierInput().should('be.disabled');
+    editNodeResourceModal.findNodeResourceTypeSelect().should('contain.text', 'Memory');
     // test default value should be within min and max value
     editNodeResourceModal.selectNodeResourceDefaultUnit('MiB');
     editNodeResourceModal.findNodeResourceDefaultErrorMessage().should('exist');
@@ -203,6 +194,22 @@ describe('Manage Hardware Profile', () => {
       .shouldHaveResourceLabel('Test GPU Edited')
       .shouldHaveResourceIdentifier('test-gpu-edited');
 
+    // test deleting the last CPU trigger the alert shown
+    createHardwareProfile.getNodeResourceTableRow('cpu').findDeleteAction().click();
+    createHardwareProfile.findNodeResourceTableAlert().should('exist');
+    createHardwareProfile.findAddNodeResourceButton().click();
+    createNodeResourceModal.findNodeResourceLabelInput().fill('CPU');
+    createNodeResourceModal.findNodeResourceIdentifierInput().fill('cpu');
+    createNodeResourceModal.findNodeResourceTypeSelect().findSelectOption('CPU').click();
+    createNodeResourceModal.findNodeResourceSubmitButton().should('be.enabled');
+    createNodeResourceModal.findNodeResourceSubmitButton().click();
+
+    createHardwareProfile.findNodeResourceTableAlert().should('not.exist');
+
+    // test deleting the last Memory trigger the alert shown
+    createHardwareProfile.getNodeResourceTableRow('memory').findDeleteAction().click();
+    createHardwareProfile.findNodeResourceTableAlert().should('exist');
+
     cy.interceptK8s(
       'POST',
       {
@@ -217,25 +224,19 @@ describe('Manage Hardware Profile', () => {
     cy.wait('@createHardwareProfile').then((interception) => {
       expect(interception.request.body.spec.identifiers).to.be.eql([
         {
-          identifier: 'cpu',
-          displayName: 'CPU',
-          defaultCount: 2,
-          maxCount: 4,
-          minCount: 1,
-        },
-        {
-          identifier: 'memory',
-          displayName: 'Memory',
-          defaultCount: '4Gi',
-          minCount: '2Gi',
-          maxCount: '8Gi',
-        },
-        {
           displayName: 'Test GPU Edited',
           identifier: 'test-gpu-edited',
           minCount: 1,
           maxCount: 13,
           defaultCount: 1,
+        },
+        {
+          identifier: 'cpu',
+          displayName: 'CPU',
+          defaultCount: 2,
+          maxCount: 4,
+          minCount: 1,
+          resourceType: 'CPU',
         },
       ]);
     });

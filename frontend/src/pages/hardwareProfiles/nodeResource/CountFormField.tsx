@@ -3,13 +3,14 @@ import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternf
 import MemoryField from '~/components/MemoryField';
 import CPUField from '~/components/CPUField';
 import NumberInputWrapper from '~/components/NumberInputWrapper';
+import { IdentifierResourceType } from '~/types';
 
 type CountFormFieldProps = {
   label: string;
   fieldId: string;
   size: number | string;
   setSize: (value: number | string) => void;
-  identifier: string;
+  type?: IdentifierResourceType;
   errorMessage?: string;
   isValid?: boolean;
 };
@@ -19,15 +20,15 @@ const CountFormField: React.FC<CountFormFieldProps> = ({
   fieldId,
   size,
   setSize,
-  identifier,
+  type,
   errorMessage,
   isValid = true,
 }) => {
   const renderInputField = () => {
-    switch (identifier) {
-      case 'cpu':
+    switch (type) {
+      case IdentifierResourceType.CPU:
         return <CPUField onChange={(value) => setSize(value)} value={size} />;
-      case 'memory':
+      case IdentifierResourceType.MEMORY:
         return <MemoryField onChange={(value) => setSize(value)} value={String(size)} />;
       default:
         return (

@@ -1,6 +1,7 @@
 import React from 'react';
-import { FormSection, Flex, FlexItem, Button } from '@patternfly/react-core';
-import { Identifier } from '~/types';
+import { FormSection, Flex, FlexItem, Button, Alert, AlertVariant } from '@patternfly/react-core';
+import { AddCircleOIcon } from '@patternfly/react-icons';
+import { Identifier, IdentifierResourceType } from '~/types';
 import NodeResourceTable from '~/pages/hardwareProfiles/nodeResource/NodeResourceTable';
 import ManageNodeResourceModal from '~/pages/hardwareProfiles/nodeResource/ManageNodeResourceModal';
 import { ManageHardwareProfileSectionTitles } from '~/pages/hardwareProfiles/const';
@@ -16,6 +17,7 @@ const ManageNodeResourceSection: React.FC<ManageNodeResourceSectionProps> = ({
   setNodeResources,
 }) => {
   const [isNodeResourceModalOpen, setIsNodeResourceModalOpen] = React.useState<boolean>(false);
+  const isEmpty = nodeResources.length === 0;
   return (
     <>
       <FormSection
@@ -24,24 +26,47 @@ const ManageNodeResourceSection: React.FC<ManageNodeResourceSectionProps> = ({
             <FlexItem>
               {ManageHardwareProfileSectionTitles[ManageHardwareProfileSectionID.IDENTIFIERS]}
             </FlexItem>
-            <FlexItem>
-              <Button
-                variant="secondary"
-                onClick={() => setIsNodeResourceModalOpen(true)}
-                data-testid="add-node-resource-button"
-              >
-                Add resource
-              </Button>
-            </FlexItem>
+            {!isEmpty && (
+              <FlexItem>
+                <Button
+                  variant="secondary"
+                  onClick={() => setIsNodeResourceModalOpen(true)}
+                  data-testid="add-node-resource-button"
+                >
+                  Add resource
+                </Button>
+              </FlexItem>
+            )}
           </Flex>
         }
       >
-        Every hardware profile must include CPU and memory resources. Additional resources, such as
-        GPUs, can be added here.
-        <NodeResourceTable
-          nodeResources={nodeResources}
-          onUpdate={(newResources) => setNodeResources(newResources)}
-        />
+        Every hardware profile is highly recommended to include CPU and memory resources. Additional
+        resources, such as GPUs, can be added here, too.
+        {!(
+          nodeResources.some(
+            (identifier) => identifier.resourceType === IdentifierResourceType.CPU,
+          ) &&
+          nodeResources.some(
+            (identifier) => identifier.resourceType === IdentifierResourceType.MEMORY,
+          )
+        ) && (
+          <Alert
+            title="Missing CPU or Memory node resources"
+            isInline
+            variant={AlertVariant.warning}
+            data-testid="node-resource-table-alert"
+          >
+            It is not recommended to remove the CPU or Memory. The resources that use this hardware
+            profile will schedule, but will be very unstable due to not having any lower or upper
+            resource bounds.
+          </Alert>
+        )}
+        {!isEmpty && (
+          <NodeResourceTable
+            nodeResources={nodeResources}
+            onUpdate={(newResources) => setNodeResources(newResources)}
+          />
+        )}
       </FormSection>
       {isNodeResourceModalOpen && (
         <ManageNodeResourceModal
@@ -49,6 +74,17 @@ const ManageNodeResourceSection: React.FC<ManageNodeResourceSectionProps> = ({
           onSave={(identifier) => setNodeResources([...nodeResources, identifier])}
           nodeResources={nodeResources}
         />
+      )}
+      {isEmpty && (
+        <Button
+          isInline
+          icon={<AddCircleOIcon />}
+          variant="link"
+          onClick={() => setIsNodeResourceModalOpen(true)}
+          data-testid="add-node-resource-button"
+        >
+          Add node resource
+        </Button>
       )}
     </>
   );

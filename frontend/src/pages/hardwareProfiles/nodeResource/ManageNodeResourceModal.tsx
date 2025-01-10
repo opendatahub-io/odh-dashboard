@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal } from '@patternfly/react-core/deprecated';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import { Identifier } from '~/types';
+import { Identifier, IdentifierResourceType } from '~/types';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import { CPU_UNITS, MEMORY_UNITS_FOR_SELECTION, UnitOption } from '~/utilities/valueUnits';
 import { EMPTY_IDENTIFIER } from './const';
@@ -32,11 +32,11 @@ const ManageNodeResourceModal: React.FC<ManageNodeResourceModalProps> = ({
     !nodeResources.some((i) => i.identifier === identifier.identifier);
 
   React.useEffect(() => {
-    switch (identifier.identifier) {
-      case 'cpu':
+    switch (identifier.resourceType) {
+      case IdentifierResourceType.CPU:
         setUnitOptions(CPU_UNITS);
         break;
-      case 'memory':
+      case IdentifierResourceType.MEMORY:
         setUnitOptions(MEMORY_UNITS_FOR_SELECTION);
         break;
       default:
@@ -74,7 +74,6 @@ const ManageNodeResourceModal: React.FC<ManageNodeResourceModalProps> = ({
         identifier={identifier}
         setIdentifier={setIdentifier}
         unitOptions={unitOptions}
-        isExistingIdentifier={!!existingIdentifier}
         isUniqueIdentifier={isUniqueIdentifier}
       />
     </Modal>

@@ -4,6 +4,7 @@ import {
   ManageHardwareProfileSectionID,
   ManageHardwareProfileSectionTitlesType,
 } from '~/pages/hardwareProfiles/manage/types';
+import { IdentifierResourceType } from '~/types';
 
 export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
   {
@@ -88,6 +89,7 @@ export const DEFAULT_HARDWARE_PROFILE_SPEC: HardwareProfileKind['spec'] = {
       defaultCount: 2,
       maxCount: 4,
       minCount: 1,
+      resourceType: IdentifierResourceType.CPU,
     },
     {
       identifier: 'memory',
@@ -95,6 +97,7 @@ export const DEFAULT_HARDWARE_PROFILE_SPEC: HardwareProfileKind['spec'] = {
       defaultCount: '4Gi',
       minCount: '2Gi',
       maxCount: '8Gi',
+      resourceType: IdentifierResourceType.MEMORY,
     },
   ],
 };

@@ -16,7 +16,6 @@ import ManageNodeSelectorSection from '~/pages/hardwareProfiles/manage/ManageNod
 import ManageTolerationSection from '~/pages/hardwareProfiles/manage/ManageTolerationSection';
 import ManageHardwareProfileFooter from '~/pages/hardwareProfiles/manage/ManageHardwareProfileFooter';
 import ManageNodeResourceSection from '~/pages/hardwareProfiles/manage/ManageNodeResourceSection';
-import { isNodeResourcesSectionValid } from '~/pages/hardwareProfiles/utils';
 import { HardwareProfileFormData, ManageHardwareProfileSectionID } from './types';
 
 type ManageHardwareProfileProps = {
@@ -70,9 +69,7 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
     [state, profileNameDesc],
   );
 
-  const validFormData =
-    isK8sNameDescriptionDataValid(profileNameDesc) &&
-    isNodeResourcesSectionValid(state.identifiers);
+  const validFormData = isK8sNameDescriptionDataValid(profileNameDesc);
 
   return (
     <ApplicationsPage
