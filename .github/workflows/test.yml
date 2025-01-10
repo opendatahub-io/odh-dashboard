@@ -59,8 +59,15 @@ jobs:
             ${{ github.workspace }}/backend/node_modules
             ${{ github.workspace }}/frontend/node_modules
           key: ${{ runner.os }}-18.x-modules-${{ hashFiles('**/package-lock.json') }}
-      - name: Run backend tests
-        run: npm run test:backend
+      - name: Run backend unit tests with coverage
+        run: |
+          npm run test:backend:unit-coverage
+          mkdir -p ./backend/coverage
+          if [ -d "./backend/jest-coverage" ]; then
+            cp -R ./backend/jest-coverage/* ./backend/coverage/
+          elif [ -d "./jest-coverage" ]; then
+            cp -R ./jest-coverage/* ./backend/coverage/
+          fi
       - name: Run frontend unit tests with coverage
         run: |
           npm run test:frontend:unit-coverage
@@ -70,15 +77,13 @@ jobs:
           elif [ -d "./jest-coverage" ]; then
             cp -R ./jest-coverage/* ./frontend/coverage/
           fi
-      - name: List coverage directory
-        run: ls -R ./frontend/coverage
-      - name: Upload unit test coverage
+      - name: Upload frontend unit test coverage
         uses: actions/upload-artifact@v4
         with:
           name: unit-coverage
           path: ./frontend/coverage
           if-no-files-found: error
-      - name: Upload backend test coverage
+      - name: Upload backend unit test coverage
         uses: actions/upload-artifact@v4
         with:
           name: backend-coverage
@@ -192,15 +197,13 @@ jobs:
         with:
           name: combined-coverage-results
           path: ./coverage/combined-coverage-final.json
-      - name: Display merged coverage file
-        run: cat ./coverage/merged-coverage.json
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4.6.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
           name: frontend-and-backend
-          file: ./coverage/merged-coverage.json
+          file: ./coverage/merged-coverage.json 
           disable_search: true
           directory: ./coverage
           verbose: true
