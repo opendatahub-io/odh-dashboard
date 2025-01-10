@@ -94,7 +94,12 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
               )}
               {isAuthorinoEnabled && (
                 <StackItem>
-                  <DescriptionList>
+                  <DescriptionList
+                    {...(!isInferenceServiceTokenEnabled(obj) && {
+                      isHorizontal: true,
+                      horizontalTermWidthModifier: { default: '250px' },
+                    })}
+                  >
                     <DescriptionListGroup>
                       <DescriptionListTerm>Token authentication</DescriptionListTerm>
                       <DescriptionListDescription>

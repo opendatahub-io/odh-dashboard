@@ -27,6 +27,7 @@ export const PemFileUpload: React.FC<{ onChange: (value: string) => void }> = ({
   };
 
   const handleClear = () => {
+    onChange('');
     setFilename('');
     setValue('');
     setIsRejected(false);

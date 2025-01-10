@@ -117,6 +117,30 @@ class ModelRegistrySettings {
   findConfirmDeleteNameInput() {
     return cy.findByTestId('confirm-delete-input');
   }
+
+  findClusterWideCARadio() {
+    return cy.findByTestId('cluster-wide-ca-radio');
+  }
+
+  findOpenshiftCARadio() {
+    return cy.findByTestId('openshift-ca-radio');
+  }
+
+  findExistingCARadio() {
+    return cy.findByTestId('existing-ca-radio');
+  }
+
+  findAddSecureDbMRCheckbox() {
+    return cy.findByTestId('add-secure-db-mr-checkbox');
+  }
+
+  findExistingCAResourceInputToggle() {
+    return cy.findByTestId('existing-ca-resource-selector-toggle');
+  }
+
+  findExistingCAKeyInputToggle() {
+    return cy.findByTestId('existing-ca-key-selector-toggle');
+  }
 }
 
 export const modelRegistrySettings = new ModelRegistrySettings();
