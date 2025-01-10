@@ -68,6 +68,10 @@ jobs:
           elif [ -d "./jest-coverage" ]; then
             cp -R ./jest-coverage/* ./backend/coverage/
           fi
+      - name: Cleanup backend interim artifacts
+        run: |
+          rm -rf ./backend/jest-coverage
+          rm -rf ./jest-coverage
       - name: Run frontend unit tests with coverage
         run: |
           npm run test:frontend:unit-coverage
@@ -77,6 +81,10 @@ jobs:
           elif [ -d "./jest-coverage" ]; then
             cp -R ./jest-coverage/* ./frontend/coverage/
           fi
+      - name: Cleanup frontend interim artifacts
+        run: |
+          rm -rf ./frontend/jest-coverage
+          rm -rf ./jest-coverage
       - name: Upload frontend unit test coverage
         uses: actions/upload-artifact@v4
         with:
@@ -197,6 +205,11 @@ jobs:
         with:
           name: combined-coverage-results
           path: ./coverage/combined-coverage-final.json
+      - name: Cleanup interim coverage files
+        run: |
+          rm -rf ./coverage/unit-coverage-final.json
+          rm -rf ./coverage/backend-coverage-final.json
+          find ./coverage -name "*-coverage-final.json" -type f -delete 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4.6.0
         with:
