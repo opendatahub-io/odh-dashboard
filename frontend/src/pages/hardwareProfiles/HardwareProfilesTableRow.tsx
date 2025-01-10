@@ -7,13 +7,14 @@ import {
   TimestampTooltipVariant,
 } from '@patternfly/react-core';
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
+import { useNavigate } from 'react-router-dom';
 import { relativeTime } from '~/utilities/time';
 import { TableRowTitleDescription } from '~/components/table';
 import HardwareProfileEnableToggle from '~/pages/hardwareProfiles/HardwareProfileEnableToggle';
 import { HardwareProfileKind } from '~/k8sTypes';
 import NodeResourceTable from '~/pages/hardwareProfiles/nodeResource/NodeResourceTable';
-import NodeSelectorTable from '~/pages/hardwareProfiles/nodeSelector/NodeSelectorsTable';
-import TolerationTable from '~/pages/hardwareProfiles/toleration/TolerationsTable';
+import NodeSelectorTable from '~/pages/hardwareProfiles/nodeSelector/NodeSelectorTable';
+import TolerationTable from '~/pages/hardwareProfiles/toleration/TolerationTable';
 import { isHardwareProfileOOTB } from '~/pages/hardwareProfiles/utils';
 
 type HardwareProfilesTableRowProps = {
@@ -31,6 +32,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
 }) => {
   const modifiedDate = hardwareProfile.metadata.annotations?.['opendatahub.io/modified-date'];
   const [isExpanded, setExpanded] = React.useState(false);
+  const navigate = useNavigate();
 
   return (
     <Tbody isExpanded={isExpanded}>
@@ -73,15 +75,19 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
         <Td isActionCell>
           <ActionsColumn
             items={[
-              {
-                title: 'Edit',
-                // TODO: add edit to non-OOTD hardware profiles
-                onClick: () => undefined,
-              },
+              ...(isHardwareProfileOOTB(hardwareProfile)
+                ? []
+                : [
+                    {
+                      title: 'Edit',
+                      onClick: () =>
+                        navigate(`/hardwareProfiles/edit/${hardwareProfile.metadata.name}`),
+                    },
+                  ]),
               {
                 title: 'Duplicate',
-                // TODO: add duplicate
-                onClick: () => undefined,
+                onClick: () =>
+                  navigate(`/hardwareProfiles/duplicate/${hardwareProfile.metadata.name}`),
               },
               ...(isHardwareProfileOOTB(hardwareProfile)
                 ? []

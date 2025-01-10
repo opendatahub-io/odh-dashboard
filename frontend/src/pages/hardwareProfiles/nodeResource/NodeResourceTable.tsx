@@ -7,7 +7,7 @@ import ManageNodeResourceModal from './ManageNodeResourceModal';
 
 type NodeResourceTableProps = {
   nodeResources: Identifier[];
-  onUpdate?: (identifiers: Identifier[]) => void;
+  onUpdate?: (nodeResources: Identifier[]) => void;
 };
 
 const NodeResourceTable: React.FC<NodeResourceTableProps> = ({ nodeResources, onUpdate }) => {
@@ -29,7 +29,7 @@ const NodeResourceTable: React.FC<NodeResourceTableProps> = ({ nodeResources, on
         }
         rowRenderer={(identifier, rowIndex) => (
           <NodeResourceTableRow
-            key={identifier.identifier + rowIndex}
+            key={rowIndex}
             identifier={identifier}
             onEdit={(newIdentifier) => {
               setEditIdentifier(newIdentifier);
