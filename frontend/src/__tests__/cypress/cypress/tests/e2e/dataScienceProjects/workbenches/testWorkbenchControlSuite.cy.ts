@@ -13,7 +13,7 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
 
   // Setup: Load test data and ensure clean state
   before(() => {
-    return loadWBControlSuiteFixture('e2e/dataScienceProjects/testWorkbenchEditing.yaml')
+    return loadWBControlSuiteFixture('e2e/dataScienceProjects/testWorkbenchControlSuite.yaml')
       .then((fixtureData: WBControlSuiteTestData) => {
         controlSuiteTestNamespace = fixtureData.controlSuiteTestNamespace;
         controlSuiteTestDescription = fixtureData.controlSuiteTestDescription;
