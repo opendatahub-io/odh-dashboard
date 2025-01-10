@@ -369,6 +369,10 @@ declare global {
           response: OdhResponse<K8sResourceListResult<ModelRegistryKind>>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'POST /api/modelRegistries',
+          response: OdhResponse<ModelRegistryKind>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'PATCH /api/modelRegistries/:modelRegistryName',
           options: {
             path: { modelRegistryName: string };
@@ -656,7 +660,7 @@ declare global {
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/modelRegistryCertificates',
-          response: ListConfigSecretsResponse,
+          response: OdhResponse<ListConfigSecretsResponse>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'POST /api/connection-types',
