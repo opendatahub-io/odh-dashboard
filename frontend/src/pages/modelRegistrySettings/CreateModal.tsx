@@ -31,6 +31,8 @@ import {
   findConfigMap,
   findSecureDBType,
   constructRequestBody,
+  isClusterWideCABundleEnabled,
+  isOpenshiftCAbundleEnabled,
 } from '~/pages/modelRegistrySettings/utils';
 import { RecursivePartial } from '~/typeHelpers';
 import { CreateMRSecureDBSection, SecureDBInfo } from './CreateMRSecureDBSection';
@@ -55,14 +57,6 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
   const [password, setPassword] = React.useState('');
   const [database, setDatabase] = React.useState('');
   const [addSecureDB, setAddSecureDB] = React.useState(false);
-  const [secureDBInfo, setSecureDBInfo] = React.useState<SecureDBInfo>({
-    type: SecureDBRType.CLUSTER_WIDE,
-    nameSpace: '',
-    resourceName: '',
-    certificate: '',
-    key: '',
-    isValid: true,
-  });
   const [isHostTouched, setIsHostTouched] = React.useState(false);
   const [isPortTouched, setIsPortTouched] = React.useState(false);
   const [isUsernameTouched, setIsUsernameTouched] = React.useState(false);
@@ -74,8 +68,32 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
   const [configSecrets, configSecretsLoaded, configSecretsError] = useModelRegistryCertificateNames(
     !addSecureDB,
   );
-
+  const [secureDBInfo, setSecureDBInfo] = React.useState<SecureDBInfo>({
+    type: SecureDBRType.CLUSTER_WIDE,
+    nameSpace: '',
+    resourceName: '',
+    certificate: '',
+    key: '',
+    isValid: true,
+  });
   const modelRegistryNamespace = dscStatus?.components?.modelregistry?.registriesNamespace || '';
+
+  React.useEffect(() => {
+    if (configSecretsLoaded && !configSecretsError && !mr) {
+      setSecureDBInfo((prev) => ({
+        ...prev,
+        type: isClusterWideCABundleEnabled(configSecrets.configMaps)
+          ? SecureDBRType.CLUSTER_WIDE
+          : isOpenshiftCAbundleEnabled(configSecrets.configMaps)
+          ? SecureDBRType.OPENSHIFT
+          : SecureDBRType.EXISTING,
+        isValid: !!(
+          isClusterWideCABundleEnabled(configSecrets.configMaps) ||
+          isOpenshiftCAbundleEnabled(configSecrets.configMaps)
+        ),
+      }));
+    }
+  }, [configSecretsLoaded, configSecrets.configMaps, mr, configSecretsError]);
 
   React.useEffect(() => {
     if (mr) {
@@ -227,7 +245,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
     hasContent(port) &&
     hasContent(username) &&
     hasContent(database) &&
-    (!addSecureDB || secureDBInfo.isValid);
+    (!addSecureDB || (secureDBInfo.isValid && !configSecretsError));
 
   return (
     <Modal
@@ -372,7 +390,12 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
                     setSecureDBInfo={setSecureDBInfo}
                   />
                 ) : (
-                  <Alert isInline variant="danger" title="Error fetching config maps and secrets">
+                  <Alert
+                    isInline
+                    variant="danger"
+                    title="Error fetching config maps and secrets"
+                    data-testid="error-fetching-resource-alert"
+                  >
                     {configSecretsError?.message}
                   </Alert>
                 ))}
