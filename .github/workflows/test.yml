@@ -220,3 +220,19 @@ jobs:
           disable_search: true
           directory: ./coverage
           verbose: true
+
+  Tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]
+    needs:
+      - Setup
+      - Lint
+      - Unit-Tests
+      - Get-Test-Groups
+      - Cypress-Mock-Tests
+      - Combine-Results-and-Upload
+    steps:
+      - name: Verify all jobs succeeded
+        run: echo "All required jobs have successfully completed for Node.js ${{ matrix.node-version }}."
