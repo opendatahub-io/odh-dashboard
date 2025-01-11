@@ -12,6 +12,7 @@ import {
   ResourceType,
   SecureDBRType,
 } from './const';
+import { isClusterWideCABundleEnabled, isOpenshiftCAbundleEnabled } from './utils';
 
 export interface SecureDBInfo {
   type: SecureDBRType;
@@ -71,18 +72,8 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
     return false;
   };
 
-  const clusterWideCABundle = existingCertConfigMaps.find(
-    (configMap) => configMap.name === ODH_TRUSTED_BUNDLE && configMap.keys.includes(CA_BUNDLE_CRT),
-  );
-
-  const isClusterWideCABundleAvailable = !!clusterWideCABundle;
-
-  const openshiftCAbundle = existingCertConfigMaps.find(
-    (configMap) =>
-      configMap.name === ODH_TRUSTED_BUNDLE && configMap.keys.includes(ODH_CA_BUNDLE_CRT),
-  );
-
-  const isProductCABundleAvailable = !!openshiftCAbundle;
+  const isClusterWideCABundleAvailable = isClusterWideCABundleEnabled(existingCertConfigMaps);
+  const isProductCABundleAvailable = isOpenshiftCAbundleEnabled(existingCertConfigMaps);
 
   const getKeysByName = (configMapsSecrets: ConfigSecretItem[], targetName: string): string[] => {
     const configMapSecret = configMapsSecrets.find(
@@ -306,6 +297,7 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
       <Radio
         isChecked={secureDBInfo.type === SecureDBRType.NEW}
         name="new-ca"
+        data-testid="new-certificate-ca-radio"
         onChange={() => handleSecureDBTypeChange(SecureDBRType.NEW)}
         label="Upload new certificate"
         id="new-ca"
@@ -316,6 +308,7 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
             isInline
             title="Note"
             variant="info"
+            data-testid="certificate-note"
             style={{ marginLeft: 'var(--pf-t--global--spacer--lg)' }}
           >
             Uploading a certificate below creates the <strong>{newConfigMapName}</strong> ConfigMap
@@ -324,6 +317,7 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
           </Alert>
           <FormGroup
             label="Certificate"
+            data-testid="certificate-upload"
             required
             style={{ marginLeft: 'var(--pf-t--global--spacer--lg)' }}
           >

@@ -304,12 +304,18 @@ export type Toleration = {
   tolerationSeconds?: number;
 };
 
+export enum IdentifierResourceType {
+  CPU = 'CPU',
+  MEMORY = 'Memory',
+}
+
 export type Identifier = {
   displayName: string;
   identifier: string;
   minCount: number | string;
   maxCount: number | string;
   defaultCount: number | string;
+  resourceType?: IdentifierResourceType;
 };
 
 export type NodeSelector = {
