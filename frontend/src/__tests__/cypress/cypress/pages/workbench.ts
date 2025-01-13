@@ -123,6 +123,20 @@ class NotebookConfirmModal extends Modal {
   }
 }
 
+class NotebookDeleteModal extends Modal {
+  constructor() {
+    super('Delete workbench?');
+  }
+
+  findDeleteModal() {
+    return cy.get('[data-testid="delete-modal-input"]');
+  }
+
+  findDeleteWorkbenchButton() {
+    return cy.contains('span.pf-v6-c-button__text', 'Delete workbench');
+  }
+}
+
 class NotebookRow extends TableRow {
   shouldHaveNotebookImageName(name: string) {
     this.find().find(`[data-label="Notebook image"]`).find('span').should('have.text', name);
@@ -484,6 +498,7 @@ class NotFoundSpawnerPage {
 export const workbenchPage = new WorkbenchPage();
 export const createSpawnerPage = new CreateSpawnerPage();
 export const notebookConfirmModal = new NotebookConfirmModal();
+export const notebookDeleteModal = new NotebookDeleteModal();
 export const editSpawnerPage = new EditSpawnerPage();
 export const storageModal = new StorageModal();
 export const notFoundSpawnerPage = new NotFoundSpawnerPage();
