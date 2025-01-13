@@ -1,5 +1,7 @@
 import { appChrome } from './appChrome';
+import { Contextual } from './components/Contextual';
 import { K8sNameDescriptionField } from './components/subComponents/K8sNameDescriptionField';
+import { SearchSelector } from './components/subComponents/SearchSelector';
 
 export enum FormFieldSelector {
   NAME = '#mr-name',
@@ -28,6 +30,10 @@ export enum DatabaseDetailsTestId {
 
 class ModelRegistrySettings {
   k8sNameDescription = new K8sNameDescriptionField('mr');
+
+  resourceNameSelect = new SearchSelector('existing-ca-resource-selector');
+
+  keySelect = new SearchSelector('existing-ca-key-selector');
 
   visit(wait = true) {
     cy.visitWithLogin('/modelRegistrySettings');
@@ -130,6 +136,10 @@ class ModelRegistrySettings {
     return cy.findByTestId('existing-ca-radio');
   }
 
+  findUploadNewCertificateRadio() {
+    return cy.findByTestId('new-certificate-ca-radio');
+  }
+
   findAddSecureDbMRCheckbox() {
     return cy.findByTestId('add-secure-db-mr-checkbox');
   }
@@ -140,6 +150,32 @@ class ModelRegistrySettings {
 
   findExistingCAKeyInputToggle() {
     return cy.findByTestId('existing-ca-key-selector-toggle');
+  }
+
+  getNewCertificateUpload() {
+    return new CertificateUpload(() => cy.findByTestId('certificate-upload'));
+  }
+
+  findErrorFetchingResourceAlert() {
+    return cy.findByTestId('error-fetching-resource-alert');
+  }
+
+  findCertificateNote() {
+    return cy.findByTestId('certificate-note');
+  }
+}
+
+class CertificateUpload extends Contextual<HTMLElement> {
+  findUploadCertificateInput() {
+    return this.find().find('[data-testid="new-certificate-upload"] input[type="file"]');
+  }
+
+  uploadPemFile(filePath: string) {
+    this.findUploadCertificateInput().selectFile([filePath], { force: true });
+  }
+
+  findRestrictedFileUploadHelptext() {
+    return cy.findByTestId('restricted-file-example-helpText');
   }
 }
 

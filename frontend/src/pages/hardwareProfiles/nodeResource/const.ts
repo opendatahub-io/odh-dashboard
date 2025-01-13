@@ -13,6 +13,11 @@ export const nodeResourceColumns: SortableData<Identifier>[] = [
     sortable: false,
   },
   {
+    field: 'resourceType',
+    label: 'Resource type',
+    sortable: false,
+  },
+  {
     field: 'defaultCount',
     label: 'Default',
     sortable: false,
@@ -40,4 +45,16 @@ export const EMPTY_IDENTIFIER: Identifier = {
   minCount: 1,
   maxCount: 1,
   defaultCount: 1,
+};
+
+export const DEFAULT_CPU_SIZE = {
+  minCount: 1,
+  maxCount: 4,
+  defaultCount: 2,
+};
+
+export const DEFAULT_MEMORY_SIZE = {
+  minCount: '2Gi',
+  maxCount: '8Gi',
+  defaultCount: '4Gi',
 };

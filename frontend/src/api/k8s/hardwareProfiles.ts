@@ -37,6 +37,9 @@ export const assembleHardwareProfile = (
   metadata: {
     name: hardwareProfileName || translateDisplayNameForK8s(data.displayName),
     namespace,
+    annotations: {
+      'opendatahub.io/modified-date': new Date().toISOString(),
+    },
   },
   spec: data,
 });
@@ -66,7 +69,14 @@ export const updateHardwareProfile = (
   opts?: K8sAPIOptions,
 ): Promise<HardwareProfileKind> => {
   const resource = assembleHardwareProfile(existingHardwareProfile.metadata.name, data, namespace);
-  const hardwareProfileResource = _.merge({}, existingHardwareProfile, resource);
+
+  const oldHardwareProfile = structuredClone(existingHardwareProfile);
+  // clean up the resources from the old hardware profile
+  oldHardwareProfile.spec.identifiers = [];
+  oldHardwareProfile.spec.nodeSelectors = [];
+  oldHardwareProfile.spec.tolerations = [];
+
+  const hardwareProfileResource = _.merge({}, oldHardwareProfile, resource);
 
   return k8sUpdateResource<HardwareProfileKind>(
     applyK8sAPIOptions({ model: HardwareProfileModel, resource: hardwareProfileResource }, opts),

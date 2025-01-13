@@ -1,5 +1,5 @@
 import { RecursivePartial } from '~/typeHelpers';
-import { ModelRegistryKind } from '~/k8sTypes';
+import { ConfigSecretItem, ModelRegistryKind } from '~/k8sTypes';
 import {
   CA_BUNDLE_CRT,
   ODH_CA_BUNDLE_CRT,
@@ -50,4 +50,21 @@ export const constructRequestBody = (
   }
 
   return mr;
+};
+
+export const isClusterWideCABundleEnabled = (
+  existingCertConfigMaps: ConfigSecretItem[],
+): boolean => {
+  const clusterWideCABundle = existingCertConfigMaps.find(
+    (configMap) => configMap.name === ODH_TRUSTED_BUNDLE && configMap.keys.includes(CA_BUNDLE_CRT),
+  );
+  return !!clusterWideCABundle;
+};
+
+export const isOpenshiftCAbundleEnabled = (existingCertConfigMaps: ConfigSecretItem[]): boolean => {
+  const openshiftCAbundle = existingCertConfigMaps.find(
+    (configMap) =>
+      configMap.name === ODH_TRUSTED_BUNDLE && configMap.keys.includes(ODH_CA_BUNDLE_CRT),
+  );
+  return !!openshiftCAbundle;
 };

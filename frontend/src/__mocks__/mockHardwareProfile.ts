@@ -18,6 +18,7 @@ type MockResourceConfigType = {
   enabled?: boolean;
   nodeSelectors?: NodeSelector[];
   tolerations?: Toleration[];
+  annotations?: Record<string, string>;
 };
 
 export const mockHardwareProfile = ({
@@ -29,9 +30,16 @@ export const mockHardwareProfile = ({
     {
       displayName: 'Memory',
       identifier: 'memory',
-      minCount: '5Gi',
-      maxCount: '2Gi',
+      minCount: '2Gi',
+      maxCount: '5Gi',
       defaultCount: '2Gi',
+    },
+    {
+      displayName: 'CPU',
+      identifier: 'cpu',
+      minCount: '1',
+      maxCount: '2',
+      defaultCount: '1',
     },
   ],
   description = '',
@@ -49,6 +57,7 @@ export const mockHardwareProfile = ({
       value: 'va;ue',
     },
   ],
+  annotations,
 }: MockResourceConfigType): HardwareProfileKind => ({
   apiVersion: 'dashboard.opendatahub.io/v1alpha1',
   kind: 'HardwareProfile',
@@ -59,6 +68,7 @@ export const mockHardwareProfile = ({
     namespace,
     resourceVersion: '1309350',
     uid,
+    annotations,
   },
   spec: {
     identifiers,

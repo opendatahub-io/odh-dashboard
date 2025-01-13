@@ -3,13 +3,14 @@ import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternf
 import MemoryField from '~/components/MemoryField';
 import CPUField from '~/components/CPUField';
 import NumberInputWrapper from '~/components/NumberInputWrapper';
+import { IdentifierResourceType } from '~/types';
 
 type CountFormFieldProps = {
   label: string;
   fieldId: string;
   size: number | string;
   setSize: (value: number | string) => void;
-  identifier: string;
+  type?: IdentifierResourceType;
   errorMessage?: string;
   isValid?: boolean;
 };
@@ -19,15 +20,15 @@ const CountFormField: React.FC<CountFormFieldProps> = ({
   fieldId,
   size,
   setSize,
-  identifier,
+  type,
   errorMessage,
   isValid = true,
 }) => {
   const renderInputField = () => {
-    switch (identifier) {
-      case 'cpu':
+    switch (type) {
+      case IdentifierResourceType.CPU:
         return <CPUField onChange={(value) => setSize(value)} value={size} />;
-      case 'memory':
+      case IdentifierResourceType.MEMORY:
         return <MemoryField onChange={(value) => setSize(value)} value={String(size)} />;
       default:
         return (
@@ -45,12 +46,12 @@ const CountFormField: React.FC<CountFormFieldProps> = ({
   };
 
   return (
-    <FormGroup label={label} fieldId={fieldId} data-testid={fieldId}>
+    <FormGroup label={label} fieldId={fieldId} data-testid={`node-resource-size-${fieldId}`}>
       {renderInputField()}
       {!isValid && errorMessage && (
         <FormHelperText>
           <HelperText>
-            <HelperTextItem data-testid={`${fieldId}-error`} variant="error">
+            <HelperTextItem data-testid={`node-resource-size-${fieldId}-error`} variant="error">
               {errorMessage}
             </HelperTextItem>
           </HelperText>
