@@ -1249,6 +1249,12 @@ export enum ServiceAddressAnnotation {
   EXTERNAL_GRPC = 'routing.opendatahub.io/external-address-grpc',
 }
 
+export enum VariablesValidationStatus {
+  UNKNOWN = 'Unknown',
+  FAILED = 'False',
+  SUCCESS = 'True',
+}
+
 export type NIMAccountKind = K8sResourceCommon & {
   metadata: {
     name: string;
