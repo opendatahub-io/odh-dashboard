@@ -77,13 +77,17 @@ spec:
                         description: 'The resource identifier of the hardware device.'
                       minCount:
                         x-kubernetes-int-or-string: true
-                        description: 'The minimum count can be a integer or a number.'
+                        description: 'The minimum count can be an integer or a string.'
                       maxCount:
                         x-kubernetes-int-or-string: true
-                        description: 'The maximum count can be a integer or a number.'
+                        description: 'The maximum count can be an integer or a string.'
                       defaultCount:
                         x-kubernetes-int-or-string: true
-                        description: 'The default count can be a integer or a number.'
+                        description: 'The default count can be an integer or a string.'
+                      resourceType:
+                        description: 'The type of identifier. could be "CPU" or "Memory". Leave it undefined for the other types.'
+                        type: string
+                        enum: ["CPU", "Memory"]
                 nodeSelectors:
                   type: array
                   description: 'Number of node selector available.'

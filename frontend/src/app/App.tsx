@@ -34,6 +34,7 @@ import TelemetrySetup from './TelemetrySetup';
 import { logout } from './appUtils';
 import QuickStarts from './QuickStarts';
 import DevFeatureFlagsBanner from './DevFeatureFlagsBanner';
+import SessionExpiredModal from './SessionExpiredModal';
 
 import './App.scss';
 
@@ -68,9 +69,16 @@ const App: React.FC = () => {
     [buildStatuses, dashboardConfig, storageClasses],
   );
 
+  const isUnauthorized = fetchConfigError?.request?.status === 403;
+
   // We lack the critical data to startup the app
   if (userError || fetchConfigError) {
-    // There was an error fetching critical data
+    // Check for unauthorized state
+    if (isUnauthorized) {
+      return <SessionExpiredModal />;
+    }
+
+    // Default error handling for other cases
     return (
       <Page>
         <PageSection hasBodyWrapper={false}>
