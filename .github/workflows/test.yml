@@ -43,7 +43,7 @@ jobs:
             ${{ github.workspace }}/frontend/node_modules
           key: ${{ runner.os }}-18.x-modules-${{ hashFiles('**/package-lock.json') }}
       - name: Run linting and formatting checks
-        run: npm run test:lint
+        run: npm run lint:test
 
   Unit-Tests:
     needs: Setup
