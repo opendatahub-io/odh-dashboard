@@ -20,6 +20,7 @@ const NodeResourceTableRow: React.FC<NodeResourceTableRowProps> = ({
   <Tr>
     <Td dataLabel="Resource label">{identifier.displayName}</Td>
     <Td dataLabel="Resource identifier">{identifier.identifier}</Td>
+    <Td dataLabel="Resource type">{identifier.resourceType ?? 'Other'}</Td>
     <Td dataLabel="Default">{identifier.defaultCount}</Td>
     <Td dataLabel="Minimum allowed">{identifier.minCount}</Td>
     <Td dataLabel="Maximum allowed">{identifier.maxCount}</Td>
@@ -29,7 +30,6 @@ const NodeResourceTableRow: React.FC<NodeResourceTableRowProps> = ({
           <ActionListItem>
             <Button
               icon={<PencilAltIcon />}
-              data-testid="edit-node-resource-button"
               aria-label="Edit node resource"
               variant="plain"
               onClick={() => onEdit(identifier)}
@@ -38,10 +38,8 @@ const NodeResourceTableRow: React.FC<NodeResourceTableRowProps> = ({
           <ActionListItem>
             <Button
               icon={<MinusCircleIcon />}
-              data-testid="remove-node-resource-button"
               aria-label="Remove node resource"
               variant="plain"
-              isDisabled={identifier.identifier === 'cpu' || identifier.identifier === 'memory'}
               onClick={() => onDelete(identifier)}
             />
           </ActionListItem>

@@ -28,18 +28,23 @@ const groupSubjects: RoleBindingSubject[] = [
   },
 ];
 
+const sampleCertificatePath = './cypress/tests/mocked/modelRegistrySettings/mockCertificate.pem';
+const unSupportedFilePath = './cypress/tests/mocked/modelRegistrySettings/unSupportedFile.txt';
+
 const setupMocksForMRSettingAccess = ({
   hasModelRegistries = true,
   hasDatabasePassword = true,
   disableModelRegistrySecureDB = true,
-  secrets = [{ name: 'foo', keys: ['foo.crt', 'bar.crt'] }],
+  secrets = [{ name: 'sampleSecret', keys: ['foo.crt', 'bar.crt'] }],
   configMaps = [{ name: 'foo-bar', keys: ['bar.crt'] }],
+  failedToLoadCertificates = false,
 }: {
   hasModelRegistries?: boolean;
   hasDatabasePassword?: boolean;
   disableModelRegistrySecureDB?: boolean;
   secrets?: ConfigSecretItem[];
   configMaps?: ConfigSecretItem[];
+  failedToLoadCertificates?: boolean;
 }) => {
   asProductAdminUser();
   cy.interceptOdh(
@@ -64,6 +69,7 @@ const setupMocksForMRSettingAccess = ({
       requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
     }),
   );
+  cy.interceptOdh('POST /api/modelRegistries', mockModelRegistry({})).as('createModelRegistry');
   cy.interceptOdh(
     'GET /api/modelRegistries',
     mockK8sResourceList(
@@ -83,6 +89,25 @@ const setupMocksForMRSettingAccess = ({
                   type: 'Progressing',
                 },
               ],
+            }),
+            mockModelRegistry({
+              name: 'test-registry-4',
+              sslRootCertificateConfigMap: { name: 'odh-trusted-ca-bundle', key: 'ca-bundle.crt' },
+            }),
+            mockModelRegistry({
+              name: 'test-registry-5',
+              sslRootCertificateConfigMap: {
+                name: 'odh-trusted-ca-bundle',
+                key: 'odh-ca-bundle.crt',
+              },
+            }),
+            mockModelRegistry({
+              name: 'test-registry-7',
+              sslRootCertificateSecret: { name: 'sampleSecret', key: 'foo.crt' },
+            }),
+            mockModelRegistry({
+              name: 'test-registry-8',
+              sslRootCertificateConfigMap: { name: 'new-certificate-db-credential', key: 'ca.crt' },
             }),
           ]
         : [],
@@ -107,6 +132,59 @@ const setupMocksForMRSettingAccess = ({
       req.reply(500); // Something went wrong on the backend when decoding the secret
     },
   );
+  cy.interceptOdh(
+    'GET /api/modelRegistries/:modelRegistryName',
+    {
+      path: { modelRegistryName: 'test-registry-4' },
+    },
+    {
+      modelRegistry: mockModelRegistry({
+        name: 'test-registry-4',
+        sslRootCertificateConfigMap: { name: 'odh-trusted-ca-bundle', key: 'ca-bundle.crt' },
+      }),
+      databasePassword: hasDatabasePassword ? 'test-password' : undefined,
+    },
+  );
+  cy.interceptOdh(
+    'GET /api/modelRegistries/:modelRegistryName',
+    {
+      path: { modelRegistryName: 'test-registry-5' },
+    },
+    {
+      modelRegistry: mockModelRegistry({
+        name: 'test-registry-5',
+        sslRootCertificateConfigMap: { name: 'odh-trusted-ca-bundle', key: 'odh-ca-bundle.crt' },
+      }),
+      databasePassword: hasDatabasePassword ? 'test-password' : undefined,
+    },
+  );
+
+  cy.interceptOdh(
+    'GET /api/modelRegistries/:modelRegistryName',
+    {
+      path: { modelRegistryName: 'test-registry-7' },
+    },
+    {
+      modelRegistry: mockModelRegistry({
+        name: 'test-registry-7',
+        sslRootCertificateSecret: { name: 'sampleSecret', key: 'foo.crt' },
+      }),
+      databasePassword: hasDatabasePassword ? 'test-password' : undefined,
+    },
+  );
+  cy.interceptOdh(
+    'GET /api/modelRegistries/:modelRegistryName',
+    {
+      path: { modelRegistryName: 'test-registry-8' },
+    },
+    {
+      modelRegistry: mockModelRegistry({
+        name: 'test-registry-8',
+        sslRootCertificateConfigMap: { name: 'new-certificate-db-credential', key: 'ca.crt' },
+      }),
+      databasePassword: hasDatabasePassword ? 'test-password' : undefined,
+    },
+  );
 
   cy.interceptOdh(
     'PATCH /api/modelRegistries/:modelRegistryName',
@@ -117,7 +195,63 @@ const setupMocksForMRSettingAccess = ({
       modelRegistry: mockModelRegistry({ name: 'test-registry-1' }),
       databasePassword: 'test-password',
     },
-  );
+  ).as('updateModelRegistry');
+
+  cy.interceptOdh(
+    'PATCH /api/modelRegistries/:modelRegistryName',
+    {
+      path: { modelRegistryName: 'test-registry-4' },
+    },
+    {
+      modelRegistry: mockModelRegistry({
+        name: 'test-registry-4',
+        sslRootCertificateConfigMap: { name: 'odh-trusted-ca-bundle', key: 'odh-ca-bundle.crt' },
+      }),
+      databasePassword: 'test-password',
+    },
+  ).as('updateTestRegistry-4');
+
+  cy.interceptOdh(
+    'PATCH /api/modelRegistries/:modelRegistryName',
+    {
+      path: { modelRegistryName: 'test-registry-5' },
+    },
+    {
+      modelRegistry: mockModelRegistry({
+        name: 'test-registry-5',
+        sslRootCertificateConfigMap: { name: 'foo-bar', key: 'bar.crt' },
+      }),
+      databasePassword: 'test-password',
+    },
+  ).as('updateTestRegistry-5');
+
+  cy.interceptOdh(
+    'PATCH /api/modelRegistries/:modelRegistryName',
+    {
+      path: { modelRegistryName: 'test-registry-7' },
+    },
+    {
+      modelRegistry: mockModelRegistry({
+        name: 'test-registry-7',
+        sslRootCertificateConfigMap: { name: 'foo-bar', key: 'bar.crt' },
+      }),
+      databasePassword: 'test-password',
+    },
+  ).as('updateTestRegistry-7');
+
+  cy.interceptOdh(
+    'PATCH /api/modelRegistries/:modelRegistryName',
+    {
+      path: { modelRegistryName: 'test-registry-8' },
+    },
+    {
+      modelRegistry: mockModelRegistry({
+        name: 'test-registry-8',
+        sslRootCertificateConfigMap: { name: 'foo-bar', key: 'bar.crt' },
+      }),
+      databasePassword: 'test-password',
+    },
+  ).as('updateTestRegistry-8');
 
   cy.interceptOdh(
     'GET /api/modelRegistryRoleBindings',
@@ -136,12 +270,37 @@ const setupMocksForMRSettingAccess = ({
         roleRefName: 'registry-user-test-registry-2',
         modelRegistryName: 'test-registry-2',
       }),
+      mockRoleBindingK8sResource({
+        namespace: 'odh-model-registries',
+        name: 'test-registry-4-user',
+        subjects: groupSubjects,
+        roleRefName: 'registry-user-test-registry-4',
+        modelRegistryName: 'test-registry-4',
+      }),
+      mockRoleBindingK8sResource({
+        namespace: 'odh-model-registries',
+        name: 'test-registry-8-user',
+        subjects: groupSubjects,
+        roleRefName: 'registry-user-test-registry-8',
+        modelRegistryName: 'test-registry-8',
+      }),
+      mockRoleBindingK8sResource({
+        namespace: 'odh-model-registries',
+        name: 'test-registry-5-user',
+        subjects: groupSubjects,
+        roleRefName: 'registry-user-test-registry-5',
+        modelRegistryName: 'test-registry-5',
+      }),
     ]),
   );
 
   cy.interceptOdh(
     'GET /api/modelRegistryCertificates',
-    mockConfigMapsSecrets({ secrets, configMaps }),
+    failedToLoadCertificates
+      ? (req) => {
+          req.reply(500); // Something went wrong
+        }
+      : mockConfigMapsSecrets({ secrets, configMaps }),
   );
 };
 
@@ -207,16 +366,91 @@ describe('CreateModal', () => {
 
     modelRegistrySettings.findSubmitButton().should('be.enabled');
     modelRegistrySettings.shouldHaveNoErrors();
+    modelRegistrySettings.findSubmitButton().click();
+
+    cy.wait('@createModelRegistry').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        modelRegistry: {
+          metadata: {
+            name: 'image',
+            namespace: 'odh-model-registries',
+            annotations: {
+              'openshift.io/description': '',
+              'openshift.io/display-name': 'valid-mr-name',
+            },
+          },
+          spec: {
+            mysql: {
+              host: 'host',
+              port: 1234,
+              database: 'myDatabase',
+              username: 'validUser',
+              skipDBCreation: false,
+            },
+          },
+        },
+        databasePassword: 'strongPassword',
+      });
+    });
   });
 
-  it('checks whether the secure DB section exists and both first and second radio options are disabled', () => {
-    setupMocksForMRSettingAccess({ disableModelRegistrySecureDB: false });
+  it('show error when certificates fails to load', () => {
+    setupMocksForMRSettingAccess({
+      disableModelRegistrySecureDB: false,
+      failedToLoadCertificates: true,
+    });
     modelRegistrySettings.visit(true);
     cy.findByText('Create model registry').click();
+    modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
+    modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).type('1234');
+    modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).type('validUser');
+    modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).type('strongPassword');
+    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).type('myDatabase');
+    modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
+    modelRegistrySettings.findAddSecureDbMRCheckbox().check();
+    modelRegistrySettings.findErrorFetchingResourceAlert().should('exist');
+    modelRegistrySettings
+      .findErrorFetchingResourceAlert()
+      .should('have.text', 'Danger alert:Error fetching config maps and secrets');
+    modelRegistrySettings.findSubmitButton().should('be.disabled');
+  });
+
+  it('checks whether the secure DB section exists, both first and second radio options are disabled and third option is checked', () => {
+    setupMocksForMRSettingAccess({
+      disableModelRegistrySecureDB: false,
+    });
+    modelRegistrySettings.visit(true);
+    cy.findByText('Create model registry').click();
+
     modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
     modelRegistrySettings.findAddSecureDbMRCheckbox().check();
     modelRegistrySettings.findClusterWideCARadio().should('be.disabled');
     modelRegistrySettings.findOpenshiftCARadio().should('be.disabled');
+    modelRegistrySettings.findSubmitButton().should('be.disabled');
+    modelRegistrySettings.findExistingCARadio().should('be.checked');
+  });
+
+  it('when Use cluster-wide CA bundle is disabled, it should check Use Open Data Hub CA bundle', () => {
+    setupMocksForMRSettingAccess({
+      disableModelRegistrySecureDB: false,
+      configMaps: [{ name: 'odh-trusted-ca-bundle', keys: ['odh-ca-bundle.crt'] }],
+    });
+    modelRegistrySettings.visit(true);
+    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
+    modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).type('1234');
+    modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).type('validUser');
+    modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).type('strongPassword');
+    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).type('myDatabase');
+
+    modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
+    modelRegistrySettings.findAddSecureDbMRCheckbox().check();
+    modelRegistrySettings.findClusterWideCARadio().should('be.disabled');
+    modelRegistrySettings.findOpenshiftCARadio().should('be.enabled');
+    modelRegistrySettings.findOpenshiftCARadio().should('be.checked');
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
   });
 
   it('both first and second radio options are enabled', () => {
@@ -226,10 +460,300 @@ describe('CreateModal', () => {
     });
     modelRegistrySettings.visit(true);
     cy.findByText('Create model registry').click();
+    modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
+    modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).type('1234');
+    modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).type('validUser');
+    modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).type('strongPassword');
+    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).type('myDatabase');
+
     modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
     modelRegistrySettings.findAddSecureDbMRCheckbox().check();
     modelRegistrySettings.findClusterWideCARadio().should('be.enabled');
+    modelRegistrySettings.findClusterWideCARadio().should('be.checked');
     modelRegistrySettings.findOpenshiftCARadio().should('be.enabled');
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
+  });
+
+  it('create a model registry with Use cluster-wide CA bundle option', () => {
+    setupMocksForMRSettingAccess({
+      disableModelRegistrySecureDB: false,
+      configMaps: [{ name: 'odh-trusted-ca-bundle', keys: ['ca-bundle.crt'] }],
+    });
+    modelRegistrySettings.visit(true);
+    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
+    modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).type('1234');
+    modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).type('validUser');
+    modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).type('strongPassword');
+    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).type('myDatabase');
+    modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
+    modelRegistrySettings.findAddSecureDbMRCheckbox().check();
+    modelRegistrySettings.findClusterWideCARadio().should('be.checked');
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
+    modelRegistrySettings.findSubmitButton().click();
+
+    cy.wait('@createModelRegistry').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        modelRegistry: {
+          metadata: {
+            name: 'valid-mr-name',
+            namespace: 'odh-model-registries',
+            annotations: {
+              'openshift.io/description': '',
+              'openshift.io/display-name': 'valid-mr-name',
+            },
+          },
+          spec: {
+            mysql: {
+              host: 'host',
+              port: 1234,
+              database: 'myDatabase',
+              username: 'validUser',
+              skipDBCreation: false,
+              sslRootCertificateConfigMap: { name: 'odh-trusted-ca-bundle', key: 'ca-bundle.crt' },
+            },
+          },
+        },
+        databasePassword: 'strongPassword',
+      });
+    });
+  });
+
+  it('create a model registry with Use Open Data Hub CA bundle option', () => {
+    setupMocksForMRSettingAccess({
+      disableModelRegistrySecureDB: false,
+      configMaps: [{ name: 'odh-trusted-ca-bundle', keys: ['odh-ca-bundle.crt'] }],
+    });
+    modelRegistrySettings.visit(true);
+    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
+    modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).type('1234');
+    modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).type('validUser');
+    modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).type('strongPassword');
+    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).type('myDatabase');
+    modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
+    modelRegistrySettings.findAddSecureDbMRCheckbox().check();
+    modelRegistrySettings.findClusterWideCARadio().should('be.disabled');
+    modelRegistrySettings.findOpenshiftCARadio().should('be.enabled');
+    modelRegistrySettings.findOpenshiftCARadio().should('be.checked');
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
+    modelRegistrySettings.findSubmitButton().click();
+
+    cy.wait('@createModelRegistry').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        modelRegistry: {
+          metadata: {
+            name: 'valid-mr-name',
+            namespace: 'odh-model-registries',
+            annotations: {
+              'openshift.io/description': '',
+              'openshift.io/display-name': 'valid-mr-name',
+            },
+          },
+          spec: {
+            mysql: {
+              host: 'host',
+              port: 1234,
+              database: 'myDatabase',
+              username: 'validUser',
+              skipDBCreation: false,
+              sslRootCertificateConfigMap: {
+                name: 'odh-trusted-ca-bundle',
+                key: 'odh-ca-bundle.crt',
+              },
+            },
+          },
+        },
+        databasePassword: 'strongPassword',
+      });
+    });
+  });
+
+  it('create a model registry with Choose from existing certificates option - secret', () => {
+    setupMocksForMRSettingAccess({
+      disableModelRegistrySecureDB: false,
+    });
+    modelRegistrySettings.visit(true);
+    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
+    modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).type('1234');
+    modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).type('validUser');
+    modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).type('strongPassword');
+    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).type('myDatabase');
+    modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
+    modelRegistrySettings.findAddSecureDbMRCheckbox().check();
+    modelRegistrySettings.findClusterWideCARadio().should('be.disabled');
+    modelRegistrySettings.findOpenshiftCARadio().should('be.disabled');
+    modelRegistrySettings.findExistingCARadio().should('be.enabled');
+    modelRegistrySettings.findExistingCARadio().should('be.checked');
+
+    modelRegistrySettings.findExistingCAKeyInputToggle().should('be.disabled');
+    modelRegistrySettings.findExistingCAResourceInputToggle().should('be.enabled');
+    modelRegistrySettings.resourceNameSelect.openAndSelectItem('sampleSecret', true);
+    modelRegistrySettings.findExistingCAKeyInputToggle().should('be.enabled');
+    modelRegistrySettings.keySelect.openAndSelectItem('bar.crt', true);
+
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
+    modelRegistrySettings.findSubmitButton().click();
+
+    cy.wait('@createModelRegistry').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        modelRegistry: {
+          metadata: {
+            name: 'valid-mr-name',
+            namespace: 'odh-model-registries',
+            annotations: {
+              'openshift.io/description': '',
+              'openshift.io/display-name': 'valid-mr-name',
+            },
+          },
+          spec: {
+            mysql: {
+              host: 'host',
+              port: 1234,
+              database: 'myDatabase',
+              username: 'validUser',
+              skipDBCreation: false,
+              sslRootCertificateSecret: { name: 'sampleSecret', key: 'bar.crt' },
+            },
+          },
+        },
+        databasePassword: 'strongPassword',
+      });
+    });
+  });
+
+  it('create a model registry with Choose from existing certificates - config map', () => {
+    setupMocksForMRSettingAccess({
+      disableModelRegistrySecureDB: false,
+    });
+    modelRegistrySettings.visit(true);
+    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
+    modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).type('1234');
+    modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).type('validUser');
+    modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).type('strongPassword');
+    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).type('myDatabase');
+    modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
+    modelRegistrySettings.findAddSecureDbMRCheckbox().check();
+    modelRegistrySettings.findExistingCARadio().should('be.enabled');
+
+    modelRegistrySettings.findClusterWideCARadio().should('be.disabled');
+    modelRegistrySettings.findOpenshiftCARadio().should('be.disabled');
+    modelRegistrySettings.findExistingCARadio().should('be.checked');
+
+    modelRegistrySettings.findExistingCAKeyInputToggle().should('be.disabled');
+    modelRegistrySettings.findExistingCAResourceInputToggle().should('be.enabled');
+    modelRegistrySettings.resourceNameSelect.openAndSelectItem('foo-bar', true);
+    modelRegistrySettings.findExistingCAKeyInputToggle().should('be.enabled');
+    modelRegistrySettings.keySelect.openAndSelectItem('bar.crt', true);
+
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
+    modelRegistrySettings.findSubmitButton().click();
+
+    cy.wait('@createModelRegistry').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        modelRegistry: {
+          metadata: {
+            name: 'valid-mr-name',
+            namespace: 'odh-model-registries',
+            annotations: {
+              'openshift.io/description': '',
+              'openshift.io/display-name': 'valid-mr-name',
+            },
+          },
+          spec: {
+            mysql: {
+              host: 'host',
+              port: 1234,
+              database: 'myDatabase',
+              username: 'validUser',
+              skipDBCreation: false,
+              sslRootCertificateConfigMap: { name: 'foo-bar', key: 'bar.crt' },
+            },
+          },
+        },
+        databasePassword: 'strongPassword',
+      });
+    });
+  });
+
+  it('create a model registry with Upload new certificate option', () => {
+    setupMocksForMRSettingAccess({
+      disableModelRegistrySecureDB: false,
+    });
+    modelRegistrySettings.visit(true);
+    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
+    modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).type('1234');
+    modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).type('validUser');
+    modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).type('strongPassword');
+    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).type('myDatabase');
+    modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
+    modelRegistrySettings.findAddSecureDbMRCheckbox().check();
+    modelRegistrySettings.findUploadNewCertificateRadio().check();
+    const certificateUploadSection = modelRegistrySettings.getNewCertificateUpload();
+    certificateUploadSection.uploadPemFile(sampleCertificatePath);
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
+    modelRegistrySettings.findSubmitButton().click();
+
+    cy.wait('@createModelRegistry').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        modelRegistry: {
+          metadata: {
+            name: 'valid-mr-name',
+            namespace: 'odh-model-registries',
+            annotations: {
+              'openshift.io/description': '',
+              'openshift.io/display-name': 'valid-mr-name',
+            },
+          },
+          spec: {
+            mysql: {
+              host: 'host',
+              port: 1234,
+              database: 'myDatabase',
+              username: 'validUser',
+              skipDBCreation: false,
+              sslRootCertificateConfigMap: { name: 'valid-mr-name-db-credential', key: '' },
+            },
+          },
+        },
+        databasePassword: 'strongPassword',
+        newDatabaseCACertificate: 'sample certificate',
+      });
+    });
+  });
+
+  it('Show error when creating a model registry with Upload new certificate option with unsupported file', () => {
+    setupMocksForMRSettingAccess({
+      disableModelRegistrySecureDB: false,
+    });
+    modelRegistrySettings.visit(true);
+    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
+    modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).type('1234');
+    modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).type('validUser');
+    modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).type('strongPassword');
+    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).type('myDatabase');
+    modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
+    modelRegistrySettings.findAddSecureDbMRCheckbox().check();
+    modelRegistrySettings.findUploadNewCertificateRadio().check();
+    modelRegistrySettings.findCertificateNote().should('exist');
+    const certificateUploadSection = modelRegistrySettings.getNewCertificateUpload();
+    certificateUploadSection.uploadPemFile(unSupportedFilePath);
+    certificateUploadSection.findRestrictedFileUploadHelptext().should('exist');
+    certificateUploadSection
+      .findRestrictedFileUploadHelptext()
+      .should('have.text', 'Must be a PEM file: error status;');
+    modelRegistrySettings.findSubmitButton().should('be.disabled');
   });
 });
 
@@ -270,6 +794,10 @@ describe('EditModelRegistry', () => {
       .should('have.value', 'model-registry');
     modelRegistrySettings.findSubmitButton().should('be.enabled');
     modelRegistrySettings.findSubmitButton().click();
+
+    cy.wait('@updateModelRegistry').then((interception) => {
+      expect(interception.request.body).to.containSubset({});
+    });
   });
 
   it('Shows skeleton, when password is loading', () => {
@@ -317,6 +845,292 @@ describe('EditModelRegistry', () => {
       .findFormField(FormFieldSelector.DATABASE)
       .should('have.value', 'model-registry');
     modelRegistrySettings.findSubmitButton().should('be.disabled');
+  });
+
+  it('Edit model registry(without CA certificate) to add CA certificate with Use cluster-wide CA bundle option', () => {
+    setupMocksForMRSettingAccess({
+      disableModelRegistrySecureDB: false,
+      configMaps: [{ name: 'odh-trusted-ca-bundle', keys: ['ca-bundle.crt'] }],
+    });
+    modelRegistrySettings.visit(true);
+    modelRegistrySettings
+      .findModelRegistryRow('test-registry-1')
+      .findKebabAction('Edit model registry')
+      .click();
+    modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
+    modelRegistrySettings.findAddSecureDbMRCheckbox().should('not.be.checked');
+    modelRegistrySettings.findAddSecureDbMRCheckbox().check();
+
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
+    modelRegistrySettings.findSubmitButton().click();
+
+    cy.wait('@updateModelRegistry').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        modelRegistry: {
+          metadata: {
+            annotations: {
+              'openshift.io/description': '',
+              'openshift.io/display-name': 'test-registry-1',
+            },
+          },
+          spec: {
+            mysql: {
+              host: 'model-registry-db',
+              port: 5432,
+              database: 'model-registry',
+              username: 'mlmduser',
+              sslRootCertificateConfigMap: { name: 'odh-trusted-ca-bundle', key: 'ca-bundle.crt' },
+              sslRootCertificateSecret: null,
+            },
+          },
+        },
+        databasePassword: 'test-password',
+      });
+    });
+  });
+
+  it('Edit model registry with Use cluster-wide CA bundle option selected to add CA certificate with Open Data Hub CA bundle option', () => {
+    setupMocksForMRSettingAccess({
+      disableModelRegistrySecureDB: false,
+      configMaps: [{ name: 'odh-trusted-ca-bundle', keys: ['ca-bundle.crt', 'odh-ca-bundle.crt'] }],
+    });
+    modelRegistrySettings.visit(true);
+    modelRegistrySettings
+      .findModelRegistryRow('test-registry-4')
+      .findKebabAction('Edit model registry')
+      .click();
+    modelRegistrySettings.findAddSecureDbMRCheckbox().should('be.checked');
+    modelRegistrySettings.findClusterWideCARadio().should('be.checked');
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
+
+    modelRegistrySettings.findOpenshiftCARadio().should('be.enabled');
+    modelRegistrySettings.findOpenshiftCARadio().check();
+
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
+    modelRegistrySettings.findSubmitButton().click();
+
+    cy.wait('@updateTestRegistry-4').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        modelRegistry: {
+          metadata: {
+            annotations: {
+              'openshift.io/description': '',
+              'openshift.io/display-name': 'test-registry-4',
+            },
+          },
+          spec: {
+            mysql: {
+              host: 'model-registry-db',
+              port: 5432,
+              database: 'model-registry',
+              username: 'mlmduser',
+              sslRootCertificateConfigMap: {
+                name: 'odh-trusted-ca-bundle',
+                key: 'odh-ca-bundle.crt',
+              },
+              sslRootCertificateSecret: null,
+            },
+          },
+        },
+        databasePassword: 'test-password',
+      });
+    });
+  });
+
+  it('Edit model registry with Open Data Hub CA bundle option selected to add CA certificate with Choose from existing certificates option - secret', () => {
+    setupMocksForMRSettingAccess({
+      disableModelRegistrySecureDB: false,
+      configMaps: [{ name: 'odh-trusted-ca-bundle', keys: ['odh-ca-bundle.crt'] }],
+      secrets: [{ name: 'sampleSecret', keys: ['bar.crt'] }],
+    });
+    modelRegistrySettings.visit(true);
+    modelRegistrySettings
+      .findModelRegistryRow('test-registry-5')
+      .findKebabAction('Edit model registry')
+      .click();
+    modelRegistrySettings.findAddSecureDbMRCheckbox().should('be.checked');
+    modelRegistrySettings.findOpenshiftCARadio().should('be.checked');
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
+
+    modelRegistrySettings.findExistingCARadio().should('be.enabled');
+    modelRegistrySettings.findExistingCARadio().click();
+
+    modelRegistrySettings.findExistingCAKeyInputToggle().should('be.disabled');
+    modelRegistrySettings.findExistingCAResourceInputToggle().should('be.enabled');
+    modelRegistrySettings.resourceNameSelect.openAndSelectItem('sampleSecret', true);
+    modelRegistrySettings.findExistingCAKeyInputToggle().should('be.enabled');
+    modelRegistrySettings.keySelect.openAndSelectItem('bar.crt', true);
+
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
+    modelRegistrySettings.findSubmitButton().click();
+
+    cy.wait('@updateTestRegistry-5').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        modelRegistry: {
+          metadata: {
+            annotations: {
+              'openshift.io/description': '',
+              'openshift.io/display-name': 'test-registry-5',
+            },
+          },
+          spec: {
+            mysql: {
+              host: 'model-registry-db',
+              port: 5432,
+              database: 'model-registry',
+              username: 'mlmduser',
+              sslRootCertificateSecret: { name: 'sampleSecret', key: 'bar.crt' },
+              sslRootCertificateConfigMap: null,
+            },
+          },
+        },
+        databasePassword: 'test-password',
+      });
+    });
+  });
+
+  it('Edit model registry with Secrets selected to add CA certificate with Choose from existing certificates option - secret', () => {
+    setupMocksForMRSettingAccess({
+      disableModelRegistrySecureDB: false,
+      secrets: [
+        { name: 'sampleSecret', keys: ['foo.crt'] },
+        { name: 'new-secret', keys: ['ca.crt'] },
+      ],
+    });
+    modelRegistrySettings.visit(true);
+    modelRegistrySettings
+      .findModelRegistryRow('test-registry-7')
+      .findKebabAction('Edit model registry')
+      .click();
+    modelRegistrySettings.findAddSecureDbMRCheckbox().should('be.checked');
+
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
+
+    modelRegistrySettings.resourceNameSelect.openAndSelectItem('new-secret', true);
+    modelRegistrySettings.keySelect.openAndSelectItem('ca.crt', true);
+
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
+    modelRegistrySettings.findSubmitButton().click();
+
+    cy.wait('@updateTestRegistry-7').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        modelRegistry: {
+          metadata: {
+            annotations: {
+              'openshift.io/description': '',
+              'openshift.io/display-name': 'test-registry-7',
+            },
+          },
+          spec: {
+            mysql: {
+              host: 'model-registry-db',
+              port: 5432,
+              database: 'model-registry',
+              username: 'mlmduser',
+              sslRootCertificateConfigMap: null,
+              sslRootCertificateSecret: { name: 'new-secret', key: 'ca.crt' },
+            },
+          },
+        },
+        databasePassword: 'test-password',
+      });
+    });
+  });
+
+  it('Edit model registry with Upload new certificate option selected to add CA certificate with Choose from existing certificates option - config map', () => {
+    setupMocksForMRSettingAccess({
+      disableModelRegistrySecureDB: false,
+      configMaps: [
+        { name: 'foo-bar', keys: ['bar.crt'] },
+        { name: 'new-certificate-db-credentilas', keys: ['ca.crt'] },
+      ],
+    });
+    modelRegistrySettings.visit(true);
+    modelRegistrySettings
+      .findModelRegistryRow('test-registry-8')
+      .findKebabAction('Edit model registry')
+      .click();
+    modelRegistrySettings.findAddSecureDbMRCheckbox().should('be.checked');
+
+    // checking the MR form should naturally change to show that they are using "Choose from existing certificates" with the right configmap/key selected
+    modelRegistrySettings.findExistingCARadio().should('be.checked');
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
+
+    modelRegistrySettings.resourceNameSelect.openAndSelectItem('foo-bar', true);
+    modelRegistrySettings.keySelect.openAndSelectItem('bar.crt', true);
+
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
+    modelRegistrySettings.findSubmitButton().click();
+
+    cy.wait('@updateTestRegistry-8').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        modelRegistry: {
+          metadata: {
+            annotations: {
+              'openshift.io/description': '',
+              'openshift.io/display-name': 'test-registry-8',
+            },
+          },
+          spec: {
+            mysql: {
+              host: 'model-registry-db',
+              port: 5432,
+              database: 'model-registry',
+              username: 'mlmduser',
+              sslRootCertificateConfigMap: { name: 'foo-bar', key: 'bar.crt' },
+              sslRootCertificateSecret: null,
+            },
+          },
+        },
+        databasePassword: 'test-password',
+      });
+    });
+  });
+
+  it('Edit model registry with Upload new certificate option selected to add CA certificate with Choose from existing certificates option - secret', () => {
+    setupMocksForMRSettingAccess({
+      disableModelRegistrySecureDB: false,
+    });
+    modelRegistrySettings.visit(true);
+    modelRegistrySettings
+      .findModelRegistryRow('test-registry-8')
+      .findKebabAction('Edit model registry')
+      .click();
+    modelRegistrySettings.findAddSecureDbMRCheckbox().should('be.checked');
+
+    // checking the MR form should naturally change to show that they are using "Choose from existing certificates" with the right configmap/key selected
+    modelRegistrySettings.findExistingCARadio().should('be.checked');
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
+
+    modelRegistrySettings.resourceNameSelect.openAndSelectItem('sampleSecret', true);
+    modelRegistrySettings.keySelect.openAndSelectItem('foo.crt', true);
+
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
+    modelRegistrySettings.findSubmitButton().click();
+
+    cy.wait('@updateTestRegistry-8').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        modelRegistry: {
+          metadata: {
+            annotations: {
+              'openshift.io/description': '',
+              'openshift.io/display-name': 'test-registry-8',
+            },
+          },
+          spec: {
+            mysql: {
+              host: 'model-registry-db',
+              port: 5432,
+              database: 'model-registry',
+              username: 'mlmduser',
+              sslRootCertificateSecret: { name: 'sampleSecret', key: 'foo.crt' },
+              sslRootCertificateConfigMap: null,
+            },
+          },
+        },
+        databasePassword: 'test-password',
+      });
+    });
   });
 });
 
