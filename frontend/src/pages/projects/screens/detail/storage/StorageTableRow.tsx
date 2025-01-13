@@ -1,12 +1,5 @@
 import * as React from 'react';
-import {
-  ActionsColumn,
-  ExpandableRowContent,
-  IAction,
-  Tbody,
-  Td,
-  Tr,
-} from '@patternfly/react-table';
+import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import {
   Flex,
   FlexItem,
@@ -46,7 +39,6 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
   onEditPVC,
   onAddPVC,
 }) => {
-  const [isExpanded, setExpanded] = React.useState(false);
   const isRootVolume = useIsRootVolume(obj.pvc);
 
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
@@ -73,124 +65,102 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
   }
 
   return (
-    <Tbody isExpanded={isExpanded}>
-      <Tr {...(rowIndex % 2 === 0 && { isStriped: true })}>
-        <Td
-          expand={{
-            rowIndex,
-            expandId: 'storage-row-item',
-            isExpanded,
-            onToggle: () => setExpanded(!isExpanded),
-          }}
-        />
-        <Td dataLabel="Name">
+    <Tr {...(rowIndex % 2 === 0 && { isStriped: true })}>
+      <Td dataLabel="Name">
+        <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+          <FlexItem>
+            <TableRowTitleDescription
+              title={getDisplayNameFromK8sResource(obj.pvc)}
+              resource={obj.pvc}
+            />
+          </FlexItem>
+          <FlexItem>
+            <StorageWarningStatus obj={obj.pvc} onEditPVC={onEditPVC} onAddPVC={onAddPVC} />
+          </FlexItem>
+        </Flex>
+        <Content component="p">{getDescriptionFromK8sResource(obj.pvc)}</Content>
+      </Td>
+
+      {isStorageClassesAvailable && (
+        <Td modifier="truncate" dataLabel="Storage class">
           <Flex
             spaceItems={{ default: 'spaceItemsSm' }}
             alignItems={{ default: 'alignItemsCenter' }}
           >
             <FlexItem>
               <TableRowTitleDescription
-                title={getDisplayNameFromK8sResource(obj.pvc)}
-                resource={obj.pvc}
+                title={
+                  storageClassConfig?.displayName ??
+                  obj.storageClass?.metadata.name ??
+                  obj.pvc.spec.storageClassName ??
+                  ''
+                }
+                resource={obj.storageClass}
               />
             </FlexItem>
-            <FlexItem>
-              <StorageWarningStatus obj={obj.pvc} onEditPVC={onEditPVC} onAddPVC={onAddPVC} />
-            </FlexItem>
-          </Flex>
-          <Content component="p">{getDescriptionFromK8sResource(obj.pvc)}</Content>
-        </Td>
-
-        {isStorageClassesAvailable && (
-          <Td modifier="truncate" dataLabel="Storage class">
-            <Flex
-              spaceItems={{ default: 'spaceItemsSm' }}
-              alignItems={{ default: 'alignItemsCenter' }}
-            >
+            {storageClassesLoaded && (
               <FlexItem>
-                <TableRowTitleDescription
-                  title={
-                    storageClassConfig?.displayName ??
-                    obj.storageClass?.metadata.name ??
-                    obj.pvc.spec.storageClassName ??
-                    ''
-                  }
-                  resource={obj.storageClass}
-                />
-              </FlexItem>
-              {storageClassesLoaded && (
-                <FlexItem>
-                  {!obj.storageClass ? (
-                    <Tooltip content="This storage class is deleted.">
+                {!obj.storageClass ? (
+                  <Tooltip content="This storage class is deleted.">
+                    <Label
+                      data-testid="storage-class-deleted"
+                      isCompact
+                      icon={<ExclamationTriangleIcon />}
+                      color="yellow"
+                    >
+                      Deleted
+                    </Label>
+                  </Tooltip>
+                ) : (
+                  storageClassConfig?.isEnabled === false && (
+                    <Tooltip
+                      data-testid="storage-class-deprecated-tooltip"
+                      content="This storage class is deprecated, but the cluster storage is still active."
+                    >
                       <Label
-                        data-testid="storage-class-deleted"
+                        data-testid="storage-class-deprecated"
                         isCompact
                         icon={<ExclamationTriangleIcon />}
                         color="yellow"
                       >
-                        Deleted
+                        Deprecated
                       </Label>
                     </Tooltip>
-                  ) : (
-                    storageClassConfig?.isEnabled === false && (
-                      <Tooltip
-                        data-testid="storage-class-deprecated-tooltip"
-                        content="This storage class is deprecated, but the cluster storage is still active."
-                      >
-                        <Label
-                          data-testid="storage-class-deprecated"
-                          isCompact
-                          icon={<ExclamationTriangleIcon />}
-                          color="yellow"
-                        >
-                          Deprecated
-                        </Label>
-                      </Tooltip>
-                    )
-                  )}
-                </FlexItem>
-              )}
-            </Flex>
-            <Content component={ContentVariants.small}>
-              {storageClassesLoaded ? storageClassConfig?.description : <Skeleton />}
-            </Content>
-          </Td>
-        )}
-        <Td dataLabel="Type">
-          <Content component="p">
-            <Flex>
-              <FlexItem spacer={{ default: 'spacerSm' }}>
-                <HddIcon />
+                  )
+                )}
               </FlexItem>
-              <FlexItem>{` Persistent storage`}</FlexItem>
-            </Flex>
+            )}
+          </Flex>
+          <Content component={ContentVariants.small}>
+            {storageClassesLoaded ? storageClassConfig?.description : <Skeleton />}
           </Content>
         </Td>
-        {workbenchEnabled && (
-          <Td dataLabel="Workbench connections">
-            <ConnectedNotebookNames
-              context={ConnectedNotebookContext.EXISTING_PVC}
-              relatedResourceName={obj.pvc.metadata.name}
-            />
-          </Td>
-        )}
-        <Td isActionCell>
-          <ActionsColumn items={actions} />
+      )}
+      <Td dataLabel="Type">
+        <Content component="p">
+          <Flex>
+            <FlexItem spacer={{ default: 'spacerSm' }}>
+              <HddIcon />
+            </FlexItem>
+            <FlexItem>{` Persistent storage`}</FlexItem>
+          </Flex>
+        </Content>
+      </Td>
+      <Td dataLabel="Storage size">
+        <StorageSizeBar pvc={obj.pvc} />
+      </Td>
+      {workbenchEnabled && (
+        <Td dataLabel="Workbench connections">
+          <ConnectedNotebookNames
+            context={ConnectedNotebookContext.EXISTING_PVC}
+            relatedResourceName={obj.pvc.metadata.name}
+          />
         </Td>
-      </Tr>
-      <Tr isExpanded={isExpanded}>
-        <Td />
-        <Td dataLabel="Size">
-          <ExpandableRowContent>
-            <strong>Size</strong>
-            <StorageSizeBar pvc={obj.pvc} />
-          </ExpandableRowContent>
-        </Td>
-        <Td />
-        <Td />
-        <Td />
-      </Tr>
-    </Tbody>
+      )}
+      <Td isActionCell>
+        <ActionsColumn items={actions} />
+      </Td>
+    </Tr>
   );
 };
 
