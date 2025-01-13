@@ -1,5 +1,5 @@
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
-import { InferenceServiceKind, KnownLabels } from '~/k8sTypes';
+import { DeploymentMode, InferenceServiceKind, KnownLabels } from '~/k8sTypes';
 import { genUID } from '~/__mocks__/mockUtils';
 import { ContainerResources } from '~/types';
 
@@ -27,6 +27,7 @@ type MockResourceConfigType = {
   additionalLabels?: Record<string, string>;
   args?: string[];
   env?: Array<{ name: string; value: string }>;
+  isKserveRaw?: boolean;
 };
 
 type InferenceServicek8sError = K8sStatus & {
@@ -90,19 +91,24 @@ export const mockInferenceServiceK8sResource = ({
   additionalLabels = {},
   args = [],
   env = [],
+  isKserveRaw = false,
 }: MockResourceConfigType): InferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1beta1',
   kind: 'InferenceService',
   metadata: {
     annotations: {
       'openshift.io/display-name': displayName,
-      ...(isModelMesh
-        ? { 'serving.kserve.io/deploymentMode': 'ModelMesh' }
-        : {
-            'serving.knative.openshift.io/enablePassthrough': 'true',
-            'sidecar.istio.io/inject': 'true',
-            'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
-          }),
+      'serving.kserve.io/deploymentMode': isModelMesh
+        ? DeploymentMode.ModelMesh
+        : isKserveRaw
+        ? DeploymentMode.RawDeployment
+        : DeploymentMode.Serverless,
+      ...(!isModelMesh &&
+        !isKserveRaw && {
+          'serving.knative.openshift.io/enablePassthrough': 'true',
+          'sidecar.istio.io/inject': 'true',
+          'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
+        }),
     },
     creationTimestamp: '2023-03-17T16:12:41Z',
     ...(deleted ? { deletionTimestamp: new Date().toUTCString() } : {}),
