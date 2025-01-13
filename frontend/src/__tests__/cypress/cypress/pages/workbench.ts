@@ -188,6 +188,10 @@ class NotebookRow extends TableRow {
   findNotebookStatusPopover(name: string) {
     return cy.findByTestId('notebook-status-popover').contains(name);
   }
+
+  findNotebookDescription(name: string) {
+    return this.find().findByTestId('table-row-title-description').contains(name);
+  }
 }
 
 class AttachExistingStorageModal extends Modal {
@@ -286,6 +290,10 @@ class CreateSpawnerPage {
 
   getNameInput() {
     return cy.findByTestId('workbench-name');
+  }
+
+  getDescriptionInput() {
+    return cy.findByTestId('workbench-description');
   }
 
   private findPVSizeField() {

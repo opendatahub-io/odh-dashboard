@@ -64,6 +64,7 @@ const ClusterStorageModal: React.FC<ClusterStorageModalProps> = ({ existingPvc, 
     if (hasExistingNotebookConnections) {
       const addData = connectedNotebooks.map((connectedNotebook) => ({
         name: connectedNotebook.metadata.name,
+        notebookDisplayName: connectedNotebook.metadata.annotations?.['openshift.io/display-name'],
         mountPath: {
           value: existingPvc
             ? getNotebookPVCMountPathMap(connectedNotebook)[existingPvc.metadata.name]

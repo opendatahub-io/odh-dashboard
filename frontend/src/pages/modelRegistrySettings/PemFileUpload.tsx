@@ -27,6 +27,7 @@ export const PemFileUpload: React.FC<{ onChange: (value: string) => void }> = ({
   };
 
   const handleClear = () => {
+    onChange('');
     setFilename('');
     setValue('');
     setIsRejected(false);
@@ -48,7 +49,9 @@ export const PemFileUpload: React.FC<{ onChange: (value: string) => void }> = ({
     <>
       <FileUpload
         id="pemFileUpload"
+        data-testid="new-certificate-upload"
         type="text"
+        isReadOnly
         value={value}
         filename={filename}
         filenamePlaceholder="Drag and drop a file or upload one"
@@ -69,6 +72,7 @@ export const PemFileUpload: React.FC<{ onChange: (value: string) => void }> = ({
         <HelperText isLiveRegion>
           <HelperTextItem
             id="restricted-file-example-helpText"
+            data-testid="restricted-file-example-helpText"
             variant={isRejected ? 'error' : 'default'}
           >
             {isRejected ? 'Must be a PEM file' : 'Upload a PEM file'}

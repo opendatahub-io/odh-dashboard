@@ -27,8 +27,17 @@ import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import useModelRegistryCertificateNames from '~/concepts/modelRegistrySettings/useModelRegistryCertificateNames';
-import { CreateMRSecureDBSection, SecureDBInfo, SecureDBRType } from './CreateMRSecureDBSection';
+import {
+  findConfigMap,
+  findSecureDBType,
+  constructRequestBody,
+  isClusterWideCABundleEnabled,
+  isOpenshiftCAbundleEnabled,
+} from '~/pages/modelRegistrySettings/utils';
+import { RecursivePartial } from '~/typeHelpers';
+import { CreateMRSecureDBSection, SecureDBInfo } from './CreateMRSecureDBSection';
 import ModelRegistryDatabasePassword from './ModelRegistryDatabasePassword';
+import { ResourceType, SecureDBRType } from './const';
 
 type CreateModalProps = {
   onClose: () => void;
@@ -48,14 +57,6 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
   const [password, setPassword] = React.useState('');
   const [database, setDatabase] = React.useState('');
   const [addSecureDB, setAddSecureDB] = React.useState(false);
-  const [secureDBInfo, setSecureDBInfo] = React.useState<SecureDBInfo>({
-    type: SecureDBRType.CLUSTER_WIDE,
-    nameSpace: '',
-    configMap: '',
-    certificate: '',
-    key: '',
-    isValid: true,
-  });
   const [isHostTouched, setIsHostTouched] = React.useState(false);
   const [isPortTouched, setIsPortTouched] = React.useState(false);
   const [isUsernameTouched, setIsUsernameTouched] = React.useState(false);
@@ -67,8 +68,32 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
   const [configSecrets, configSecretsLoaded, configSecretsError] = useModelRegistryCertificateNames(
     !addSecureDB,
   );
-
+  const [secureDBInfo, setSecureDBInfo] = React.useState<SecureDBInfo>({
+    type: SecureDBRType.CLUSTER_WIDE,
+    nameSpace: '',
+    resourceName: '',
+    certificate: '',
+    key: '',
+    isValid: true,
+  });
   const modelRegistryNamespace = dscStatus?.components?.modelregistry?.registriesNamespace || '';
+
+  React.useEffect(() => {
+    if (configSecretsLoaded && !configSecretsError && !mr) {
+      setSecureDBInfo((prev) => ({
+        ...prev,
+        type: isClusterWideCABundleEnabled(configSecrets.configMaps)
+          ? SecureDBRType.CLUSTER_WIDE
+          : isOpenshiftCAbundleEnabled(configSecrets.configMaps)
+          ? SecureDBRType.OPENSHIFT
+          : SecureDBRType.EXISTING,
+        isValid: !!(
+          isClusterWideCABundleEnabled(configSecrets.configMaps) ||
+          isOpenshiftCAbundleEnabled(configSecrets.configMaps)
+        ),
+      }));
+    }
+  }, [configSecretsLoaded, configSecrets.configMaps, mr, configSecretsError]);
 
   React.useEffect(() => {
     if (mr) {
@@ -77,6 +102,22 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
       setPort(dbSpec?.port?.toString() || 'Unknown');
       setUsername(dbSpec?.username || 'Unknown');
       setDatabase(dbSpec?.database || 'Unknown');
+      const certificateResourceRef =
+        mr.spec.mysql?.sslRootCertificateConfigMap || mr.spec.mysql?.sslRootCertificateSecret;
+      if (certificateResourceRef) {
+        setAddSecureDB(true);
+        const existingInfo = {
+          type: findSecureDBType(certificateResourceRef.name, certificateResourceRef.key),
+          nameSpace: '',
+          key: certificateResourceRef.key,
+          resourceName: certificateResourceRef.name,
+          resourceType: mr.spec.mysql?.sslRootCertificateSecret
+            ? ResourceType.Secret
+            : ResourceType.ConfigMap,
+          certificate: '',
+        };
+        setSecureDBInfo({ ...existingInfo, isValid: true });
+      }
     }
   }, [mr]);
 
@@ -102,26 +143,32 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
     setIsSubmitting(true);
     setError(undefined);
 
+    const newDatabaseCACertificate =
+      addSecureDB && secureDBInfo.type === SecureDBRType.NEW ? secureDBInfo.certificate : undefined;
+
     if (mr) {
+      const data: RecursivePartial<ModelRegistryKind> = {
+        metadata: {
+          annotations: {
+            'openshift.io/description': nameDesc.description,
+            'openshift.io/display-name': nameDesc.name.trim(),
+          },
+        },
+        spec: {
+          mysql: {
+            host,
+            port: Number(port),
+            database,
+            username,
+          },
+        },
+      };
+
       try {
         await updateModelRegistryBackend(mr.metadata.name, {
-          modelRegistry: {
-            metadata: {
-              annotations: {
-                'openshift.io/description': nameDesc.description,
-                'openshift.io/display-name': nameDesc.name.trim(),
-              },
-            },
-            spec: {
-              mysql: {
-                host,
-                port: Number(port),
-                database,
-                username,
-              },
-            },
-          },
+          modelRegistry: constructRequestBody(data, secureDBInfo, addSecureDB),
           databasePassword: password,
+          newDatabaseCACertificate,
         });
         await refresh();
         onBeforeClose();
@@ -161,8 +208,22 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
           },
         },
       };
+
+      if (addSecureDB && secureDBInfo.resourceType === ResourceType.Secret && data.spec.mysql) {
+        data.spec.mysql.sslRootCertificateSecret = {
+          name: secureDBInfo.resourceName,
+          key: secureDBInfo.key,
+        };
+      } else if (addSecureDB && data.spec.mysql) {
+        data.spec.mysql.sslRootCertificateConfigMap = findConfigMap(secureDBInfo);
+      }
+
       try {
-        await createModelRegistryBackend({ modelRegistry: data, databasePassword: password });
+        await createModelRegistryBackend({
+          modelRegistry: data,
+          databasePassword: password,
+          newDatabaseCACertificate,
+        });
         await refresh();
         onBeforeClose();
       } catch (e) {
@@ -184,7 +245,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
     hasContent(port) &&
     hasContent(username) &&
     hasContent(database) &&
-    (!addSecureDB || secureDBInfo.isValid);
+    (!addSecureDB || (secureDBInfo.isValid && !configSecretsError));
 
   return (
     <Modal
@@ -312,6 +373,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
                   isChecked={addSecureDB}
                   onChange={(_e, value) => setAddSecureDB(value)}
                   id="add-secure-db"
+                  data-testid="add-secure-db-mr-checkbox"
                   name="add-secure-db"
                 />
               </FormGroup>
@@ -322,13 +384,18 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
                   <CreateMRSecureDBSection
                     secureDBInfo={secureDBInfo}
                     modelRegistryNamespace={modelRegistryNamespace}
-                    nameDesc={nameDesc}
+                    k8sName={nameDesc.k8sName.value}
                     existingCertConfigMaps={configSecrets.configMaps}
                     existingCertSecrets={configSecrets.secrets}
                     setSecureDBInfo={setSecureDBInfo}
                   />
                 ) : (
-                  <Alert isInline variant="danger" title="Error fetching config maps and secrets">
+                  <Alert
+                    isInline
+                    variant="danger"
+                    title="Error fetching config maps and secrets"
+                    data-testid="error-fetching-resource-alert"
+                  >
                     {configSecretsError?.message}
                   </Alert>
                 ))}
