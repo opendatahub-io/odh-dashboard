@@ -1,9 +1,8 @@
 import React from 'react';
 import { NimMetricGraphDefinition } from '~/concepts/metrics/kserve/types';
 import { TimeframeTitle } from '~/concepts/metrics/types';
-import { useFetchNimTimeToFirstTokenData } from '~/api/prometheus/NimPerformanceMetrics';
+import { useFetchNimTimeToFirstTokenData } from '~/api';
 import MetricsChart from '~/pages/modelServing/screens/metrics/MetricsChart';
-import { MetricsChartTypes } from '~/pages/modelServing/screens/metrics/types';
 import { convertPrometheusNaNToZero } from '~/pages/modelServing/screens/metrics/utils';
 
 // Graph #4 - Time to First Token
@@ -27,7 +26,9 @@ const NimTimeToFirstTokenGraph: React.FC<NimTimeToFirstTokenGraphProps> = ({
   return (
     <MetricsChart
       title={graphDefinition.title}
-      metrics={{ metric: { ...timeToFirstToken, data: convertPrometheusNaNToZero(timeToFirstToken.data) } }}
+      metrics={{
+        metric: { ...timeToFirstToken, data: convertPrometheusNaNToZero(timeToFirstToken.data) },
+      }}
       color="blue"
       domain={() => ({
         y: [0, 20],

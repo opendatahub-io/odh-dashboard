@@ -10,9 +10,7 @@ const useMetricsPageEnabledTabs = (): MetricsTabKeys[] => {
     SupportedArea.PERFORMANCE_METRICS,
   ).status;
   //check availability of NIM metrics
-  const nimMetricsAreaAvailable = useIsAreaAvailable(
-    SupportedArea.NIM_MODEL,
-  ).status;
+  const nimMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.NIM_MODEL).status;
   if (performanceMetricsAreaAvailable) {
     enabledTabs.push(MetricsTabKeys.PERFORMANCE);
   }

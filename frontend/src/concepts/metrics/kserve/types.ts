@@ -8,12 +8,10 @@ export type KserveMetricsConfigMapKind = ConfigMapKind & {
   };
 };
 
-
 export type MetricQueryDefinition = {
   title: string;
   query: string;
 };
-
 
 //Kserve Data Type Defenitions
 
@@ -51,6 +49,3 @@ export type NimMetricsDefinition = {
   error?: Error;
   graphDefinitions: NimMetricGraphDefinition[];
 };
-
-
-

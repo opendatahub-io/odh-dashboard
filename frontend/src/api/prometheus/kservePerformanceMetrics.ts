@@ -186,7 +186,6 @@ type KVCacheUsageData = {
   refreshAll: () => void;
 };
 
-
 export const useFetchKserveKVCacheUsageData = (
   metricsDef: KserveMetricGraphDefinition,
   timeframe: TimeframeTitle,
@@ -216,7 +215,6 @@ export const useFetchKserveKVCacheUsageData = (
   });
 };
 
-
 // Graph #3 - Total Prompt Token Count and Total Generation Token Count
 type TokensCountData = {
   data: {
@@ -225,7 +223,6 @@ type TokensCountData = {
   };
   refreshAll: () => void;
 };
-
 
 export const useFetchKserveTokensCountData = (
   metricsDef: KserveMetricGraphDefinition,
@@ -256,7 +253,8 @@ export const useFetchKserveTokensCountData = (
 
   const data = React.useMemo(
     () => ({
-      totalPromptTokenCount,totalGenerationTokenCount
+      totalPromptTokenCount,
+      totalGenerationTokenCount,
     }),
     [totalPromptTokenCount, totalGenerationTokenCount],
   );
@@ -267,7 +265,6 @@ export const useFetchKserveTokensCountData = (
   });
 };
 
-
 // Graph #4 - Time to First Token
 type TimeToFirstTokenData = {
   data: {
@@ -275,7 +272,6 @@ type TimeToFirstTokenData = {
   };
   refreshAll: () => void;
 };
-
 
 export const useFetchKserveTimeToFirstTokenData = (
   metricsDef: KserveMetricGraphDefinition,
@@ -466,7 +462,6 @@ export const useFetchKserveCurrentRequestsData = (
     maxRequests: DEFAULT_PENDING_CONTEXT_RESOURCE,
   });
 };
-
 
 const useAllSettledContextResourceData = <
   T,

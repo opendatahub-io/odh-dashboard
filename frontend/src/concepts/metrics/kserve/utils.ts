@@ -2,7 +2,7 @@ import { ConfigMapKind } from '~/k8sTypes';
 import {
   KserveMetricsConfigMapKind,
   KserveMetricsDataObject,
-  NimMetricsDataObject
+  NimMetricsDataObject,
 } from '~/concepts/metrics/kserve/types';
 
 export const isKserveMetricsConfigMapKind = (

@@ -59,11 +59,10 @@ class ModelMetricsNim extends ModelMetricsGlobal {
 
   findTab() {
     return {
-      nimTab: cy.findByTestId('nim-tab')
-    }
+      nimTab: cy.findByTestId('nim-tab'),
+    };
   }
 }
-
 
 class ModelMetricsKserve extends ModelMetricsPerformance {
   findKserveAreaDisabledCard() {
@@ -79,7 +78,6 @@ class ModelMetricsKserve extends ModelMetricsPerformance {
   }
 }
 
-
 class ModelMetricsKserveNim extends ModelMetricsNim {
   findKserveAreaDisabledCard() {
     return cy.findByTestId('kserve-metrics-disabled');
@@ -93,7 +91,6 @@ class ModelMetricsKserveNim extends ModelMetricsNim {
     return cy.findByTestId('kserve-unknown-error');
   }
 }
-
 
 class ModelMetricsBias extends ModelMetricsGlobal {
   visit(project: string, model: string, disableA11y = false) {

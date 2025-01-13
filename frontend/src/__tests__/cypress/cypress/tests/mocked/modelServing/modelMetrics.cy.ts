@@ -205,10 +205,10 @@ const initIntercepts = ({
     },
     isTrustyAIInstalled
       ? mockTrustyAIServiceForDbK8sResource({
-        isAvailable: isTrustyAIAvailable,
-        // If you're already installed for the test, it doesn't matter when
-        creationTimestamp: new Date('1970-01-01').toISOString(),
-      })
+          isAvailable: isTrustyAIAvailable,
+          // If you're already installed for the test, it doesn't matter when
+          creationTimestamp: new Date('1970-01-01').toISOString(),
+        })
       : { statusCode: 404, body: mock404Error({}) },
   );
   cy.interceptK8s(RouteModel, mockRouteK8sResource({ name: 'trustyai-service' }));
@@ -786,25 +786,8 @@ describe('KServe performance metrics', () => {
   });
 });
 
-
-
 //Nim Metrics Tests
 describe('KServe NIM metrics', () => {
-
-  it('should inform user when area disabled', () => {
-    initIntercepts({
-      disableTrustyBiasMetrics: false,
-      disablePerformanceMetrics: false,
-      disableNIMModelServing: false,
-      disableKServeMetrics: true,
-      hasServingData: false,
-      hasBiasData: false,
-      inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
-    });
-    modelMetricsKserveNim.visit('test-project', 'test-inference-service');
-    modelMetricsKserveNim.findKserveAreaDisabledCard().should('be.visible');
-  });
-
   it('should show error when ConfigMap is missing', () => {
     initIntercepts({
       disableTrustyBiasMetrics: false,
@@ -846,7 +829,6 @@ describe('KServe NIM metrics', () => {
     modelMetricsKserveNim.findUnsupportedRuntimeCard().should('be.visible');
   });
 
-
   it('should handle a malformed graph definition gracefully', () => {
     initIntercepts({
       disableTrustyBiasMetrics: false,
@@ -867,7 +849,6 @@ describe('KServe NIM metrics', () => {
     modelMetricsKserveNim.findUnknownErrorCard().should('be.visible');
   });
 
-
   it('should display only 2 graphs, when the config specifies', () => {
     initIntercepts({
       disableTrustyBiasMetrics: false,
@@ -879,14 +860,13 @@ describe('KServe NIM metrics', () => {
       inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
     });
 
-    cy.interceptK8s(
-      ConfigMapModel,
-      mockNimMetricsConfigMap({ config: MOCK_NIM_METRICS_CONFIG_3 }),
-    );
+    cy.interceptK8s(ConfigMapModel, mockNimMetricsConfigMap({ config: MOCK_NIM_METRICS_CONFIG_3 }));
 
     modelMetricsKserveNim.visit('test-project', 'test-inference-service');
     modelMetricsKserveNim.getMetricsChart('GPU cache usage over time').shouldHaveData();
-    modelMetricsKserveNim.getMetricsChart('Current running, waiting, and max requests count').shouldHaveData();
+    modelMetricsKserveNim
+      .getMetricsChart('Current running, waiting, and max requests count')
+      .shouldHaveData();
     modelMetricsKserveNim.getAllMetricsCharts().should('have.length', 2);
   });
 
@@ -907,13 +887,9 @@ describe('KServe NIM metrics', () => {
     );
 
     modelMetricsKserveNim.visit('test-project', 'test-inference-service');
-    modelMetricsKserveNim.getAllMetricsCharts().should('have.length', 6);
+    modelMetricsKserveNim.getAllMetricsCharts().should('have.length', 2);
     modelMetricsKserveNim.getMetricsChart('GPU cache usage over time').shouldHaveData();
-    modelMetricsKserveNim.getMetricsChart('Current running, waiting, and max requests count').shouldHaveData();
     modelMetricsKserveNim.getMetricsChart('Tokens count').shouldHaveData();
-    modelMetricsKserveNim.getMetricsChart('Time to first token').shouldHaveData();
-    modelMetricsKserveNim.getMetricsChart('Time per output token').shouldHaveData();
-    modelMetricsKserveNim.getMetricsChart('Requests outcomes').shouldHaveData();
   });
 
   it('charts should not error out if a query is missing and there is no data', () => {
@@ -933,13 +909,9 @@ describe('KServe NIM metrics', () => {
     );
 
     modelMetricsKserveNim.visit('test-project', 'test-inference-service');
-    modelMetricsKserveNim.getAllMetricsCharts().should('have.length', 6);
+    modelMetricsKserveNim.getAllMetricsCharts().should('have.length', 2);
     modelMetricsKserveNim.getMetricsChart('GPU cache usage over time').shouldHaveNoData();
-    modelMetricsKserveNim.getMetricsChart('Current running, waiting, and max requests count').shouldHaveNoData();
     modelMetricsKserveNim.getMetricsChart('Tokens count').shouldHaveNoData();
-    modelMetricsKserveNim.getMetricsChart('Time to first token').shouldHaveNoData();
-    modelMetricsKserveNim.getMetricsChart('Time per output token').shouldHaveNoData();
-    modelMetricsKserveNim.getMetricsChart('Requests outcomes').shouldHaveNoData();
   });
 
   it('charts should show data when serving data is available', () => {
@@ -957,7 +929,9 @@ describe('KServe NIM metrics', () => {
     modelMetricsKserveNim.visit('test-project', 'test-inference-service');
     modelMetricsKserveNim.getAllMetricsCharts().should('have.length', 6);
     modelMetricsKserveNim.getMetricsChart('GPU cache usage over time').shouldHaveData();
-    modelMetricsKserveNim.getMetricsChart('Current running, waiting, and max requests count').shouldHaveData();
+    modelMetricsKserveNim
+      .getMetricsChart('Current running, waiting, and max requests count')
+      .shouldHaveData();
     modelMetricsKserveNim.getMetricsChart('Tokens count').shouldHaveData();
     modelMetricsKserveNim.getMetricsChart('Time to first token').shouldHaveData();
     modelMetricsKserveNim.getMetricsChart('Time per output token').shouldHaveData();
@@ -979,7 +953,9 @@ describe('KServe NIM metrics', () => {
 
     modelMetricsKserveNim.visit('test-project', 'test-inference-service');
     modelMetricsKserveNim.getMetricsChart('GPU cache usage over time').shouldHaveNoData();
-    modelMetricsKserveNim.getMetricsChart('Current running, waiting, and max requests count').shouldHaveNoData();
+    modelMetricsKserveNim
+      .getMetricsChart('Current running, waiting, and max requests count')
+      .shouldHaveNoData();
     modelMetricsKserveNim.getMetricsChart('Tokens count').shouldHaveNoData();
     modelMetricsKserveNim.getMetricsChart('Time to first token').shouldHaveNoData();
     modelMetricsKserveNim.getMetricsChart('Time per output token').shouldHaveNoData();

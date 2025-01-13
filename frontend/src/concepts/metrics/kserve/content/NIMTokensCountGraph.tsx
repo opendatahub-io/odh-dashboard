@@ -1,7 +1,7 @@
 import React from 'react';
 import { NimMetricGraphDefinition } from '~/concepts/metrics/kserve/types';
 import { TimeframeTitle } from '~/concepts/metrics/types';
-import { useFetchNimTokensCountData } from '~/api/prometheus/NimPerformanceMetrics';
+import { useFetchNimTokensCountData } from '~/api';
 import MetricsChart from '~/pages/modelServing/screens/metrics/MetricsChart';
 import { MetricsChartTypes } from '~/pages/modelServing/screens/metrics/types';
 import { convertPrometheusNaNToZero } from '~/pages/modelServing/screens/metrics/utils';
@@ -28,20 +28,28 @@ const NimTokensCountGraph: React.FC<NimTokensCountGraphProps> = ({
     <MetricsChart
       title={graphDefinition.title}
       metrics={[
-        {
-          name: graphDefinition.queries[0].title, // "total Prompt TokenC ount"
-          metric: {
-            ...totalPromptTokenCount,
-            data: convertPrometheusNaNToZero(totalPromptTokenCount.data),
-          },
-        },
-        {
-          name: graphDefinition.queries[1].title, // "total Generation Token Count"
-          metric: {
-            ...totalGenerationTokenCount,
-            data: convertPrometheusNaNToZero(totalGenerationTokenCount.data),
-          },
-        },
+        ...(graphDefinition.queries[0]
+          ? [
+              {
+                name: graphDefinition.queries[0].title, // "Total Prompt Token Count"
+                metric: {
+                  ...totalPromptTokenCount,
+                  data: convertPrometheusNaNToZero(totalPromptTokenCount.data),
+                },
+              },
+            ]
+          : []),
+        ...(graphDefinition.queries[1]
+          ? [
+              {
+                name: graphDefinition.queries[1].title, // "Total Generation Token Count"
+                metric: {
+                  ...totalGenerationTokenCount,
+                  data: convertPrometheusNaNToZero(totalGenerationTokenCount.data),
+                },
+              },
+            ]
+          : []),
       ]}
       type={MetricsChartTypes.LINE}
     />

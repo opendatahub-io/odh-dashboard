@@ -51,13 +51,13 @@ export type DomainCalculator = (
 export enum MetricsChartTypes {
   AREA,
   LINE,
-  DONUT
+  DONUT,
 }
 
 export enum MetricsTabKeys {
   PERFORMANCE = 'performance',
   BIAS = 'bias',
-  NIM = 'nim'
+  NIM = 'nim',
 }
 
 export type BiasChartConfig = {

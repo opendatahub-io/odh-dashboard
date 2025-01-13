@@ -27,9 +27,8 @@ const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
     SupportedArea.PERFORMANCE_METRICS,
   ).status;
   //check availability of NIM metrics
-  const nimMetricsAreaAvailable = useIsAreaAvailable(
-    SupportedArea.NIM_MODEL,
-  ).status; const { tab } = useParams<{ tab: MetricsTabKeys }>();
+  const nimMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.NIM_MODEL).status;
+  const { tab } = useParams<{ tab: MetricsTabKeys }>();
   const navigate = useNavigate();
 
   if (!tab) {
@@ -47,17 +46,16 @@ const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
   //Display only one tab that is available
   if (enabledTabs.length === 1) {
     if (performanceMetricsAreaAvailable) {
-      return <PerformanceTab model={model} />
+      return <PerformanceTab model={model} />;
     }
-    else if (nimMetricsAreaAvailable) {
-      return <NIMTab model={model} />
+    if (nimMetricsAreaAvailable) {
+      return <NIMTab model={model} />;
     }
-    else {
-      return <BiasTab />;
-    }
+
+    return <BiasTab />;
   }
 
-  //Display multiple available tabs 
+  //Display multiple available tabs
   return (
     <Tabs
       activeKey={tab}
@@ -84,7 +82,6 @@ const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
         </Tab>
       )}
 
-
       {/* Add NIN metrics tab */}
       {nimMetricsAreaAvailable && (
         <Tab
@@ -97,7 +94,6 @@ const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
           <NIMTab model={model} />
         </Tab>
       )}
-
 
       {biasMetricsInstalled && (
         <Tab

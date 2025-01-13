@@ -55,7 +55,6 @@ const KservePerformanceGraphs: React.FC<KservePerformanceGraphsProps> = ({
       );
     }
 
-
     // Condition IS necessary as graph types are provided by the backend.
     // We need to guard against receiving an unknown value at runtime and fail gracefully.
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition

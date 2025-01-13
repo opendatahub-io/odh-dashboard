@@ -1,6 +1,6 @@
 import React from 'react';
 import { NimMetricGraphDefinition } from '~/concepts/metrics/kserve/types';
-import { useFetchNimRequestsOutcomesData } from '~/api/prometheus/NimPerformanceMetrics';
+import { useFetchNimRequestsOutcomesData } from '~/api';
 import MetricsChart from '~/pages/modelServing/screens/metrics/MetricsChart';
 import { TimeframeTitle } from '~/concepts/metrics/types';
 import { MetricsChartTypes } from '~/pages/modelServing/screens/metrics/types';
@@ -25,14 +25,22 @@ const NimRequestsOutcomesGraph: React.FC<NimRequestsOutcomesGraphProps> = ({
   return (
     <MetricsChart
       metrics={[
-        {
-          name: `Successful`,
-          metric: successCount,
-        },
-        {
-          name: `Failed`,
-          metric: failedCount,
-        },
+        ...(graphDefinition.queries[0]
+          ? [
+              {
+                name: `Successful`,
+                metric: successCount,
+              },
+            ]
+          : []),
+        ...(graphDefinition.queries[1]
+          ? [
+              {
+                name: `Failed`,
+                metric: failedCount,
+              },
+            ]
+          : []),
       ]}
       color="blue"
       title={graphDefinition.title}

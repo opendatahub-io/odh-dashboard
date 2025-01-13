@@ -3,17 +3,17 @@ import NimPerformanceGraphs from '~/concepts/metrics/kserve/content/NimPerforman
 import { NimMetricsContext } from '~/concepts/metrics/kserve/NimMetricsContext';
 
 const NimMetricsContent: React.FC = () => {
-    const { namespace, graphDefinitions, timeframe, lastUpdateTime } =
-        React.useContext(NimMetricsContext);
+  const { namespace, graphDefinitions, timeframe, lastUpdateTime } =
+    React.useContext(NimMetricsContext);
 
-    return (
-        <NimPerformanceGraphs
-            namespace={namespace}
-            graphDefinitions={graphDefinitions}
-            timeframe={timeframe}
-            end={lastUpdateTime}
-        />
-    );
+  return (
+    <NimPerformanceGraphs
+      namespace={namespace}
+      graphDefinitions={graphDefinitions}
+      timeframe={timeframe}
+      end={lastUpdateTime}
+    />
+  );
 };
 
 export default NimMetricsContent;

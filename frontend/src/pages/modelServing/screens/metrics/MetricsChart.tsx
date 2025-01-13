@@ -44,6 +44,7 @@ import {
   getThresholdData,
   useStableMetrics,
 } from './utils';
+
 type MetricsChartProps = {
   title: string;
   color?: string;
@@ -191,7 +192,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
               theme={theme}
               hasPatterns={hasPatterns}
               data-testid="metrics-chart-has-data"
-              showAxis={type === MetricsChartTypes.DONUT ? false : true}
+              showAxis={type !== MetricsChartTypes.DONUT}
               {...legendProps}
             >
               <ChartAxis
@@ -216,18 +217,20 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
                     case MetricsChartTypes.LINE:
                       return <ChartLine key={i} data={line.points} name={line.name} />;
                     case MetricsChartTypes.DONUT:
-                      return <ChartDonut
-                        key={i}
-                        legendData={legendProps.legendData}
-                        legendOrientation="vertical"
-                        legendPosition="right"
-                        data={line.points}
-                        name={line.name}
-                        containerComponent={containerComponent}
-                        labels={({ datum }) => `${datum.name}: ${datum.y}`}
-                        constrainToVisibleArea
-                        themeColor={metrics[i]?.color}
-                      />;
+                      return (
+                        <ChartDonut
+                          key={i}
+                          legendData={legendProps.legendData}
+                          legendOrientation="vertical"
+                          legendPosition="right"
+                          data={line.points}
+                          name={line.name}
+                          containerComponent={containerComponent}
+                          labels={({ datum }) => `${datum.name}: ${datum.y}`}
+                          constrainToVisibleArea
+                          themeColor={metrics[i]?.color}
+                        />
+                      );
                     default:
                       return null;
                   }

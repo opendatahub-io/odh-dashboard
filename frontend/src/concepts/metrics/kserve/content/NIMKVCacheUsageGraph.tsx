@@ -1,7 +1,7 @@
 import React from 'react';
 import { NimMetricGraphDefinition } from '~/concepts/metrics/kserve/types';
 import { TimeframeTitle } from '~/concepts/metrics/types';
-import { useFetchNimKVCacheUsageData } from '~/api/prometheus/NimPerformanceMetrics';
+import { useFetchNimKVCacheUsageData } from '~/api';
 import MetricsChart from '~/pages/modelServing/screens/metrics/MetricsChart';
 import { MetricsChartTypes } from '~/pages/modelServing/screens/metrics/types';
 import { toPercentage } from '~/pages/modelServing/screens/metrics/utils';
@@ -35,6 +35,5 @@ const NimKVCacheUsageGraph: React.FC<NimKVCacheUsageGraphProps> = ({
     />
   );
 };
-
 
 export default NimKVCacheUsageGraph;
