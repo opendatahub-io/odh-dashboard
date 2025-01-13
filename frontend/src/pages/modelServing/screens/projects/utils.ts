@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
   ConfigMapKind,
   DashboardConfigKind,
+  DeploymentMode,
   InferenceServiceKind,
   KnownLabels,
   PersistentVolumeClaimKind,
@@ -66,8 +67,9 @@ export const isServingRuntimeTokenEnabled = (servingRuntime: ServingRuntimeKind)
 export const isServingRuntimeRouteEnabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['enable-route'] === 'true';
 
-const isInferenceServiceKServeRaw = (inferenceService: InferenceServiceKind): boolean =>
-  inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] === 'RawDeployment';
+export const isInferenceServiceKServeRaw = (inferenceService: InferenceServiceKind): boolean =>
+  inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] ===
+  DeploymentMode.RawDeployment;
 
 export const isInferenceServiceTokenEnabled = (inferenceService: InferenceServiceKind): boolean =>
   isInferenceServiceKServeRaw(inferenceService)
@@ -81,6 +83,19 @@ export const isInferenceServiceRouteEnabled = (inferenceService: InferenceServic
 
 export const isGpuDisabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['opendatahub.io/disable-gpu'] === 'true';
+
+export const getInferenceServiceDeploymentMode = (
+  modelMesh: boolean,
+  kserveRaw: boolean,
+): DeploymentMode => {
+  if (modelMesh) {
+    return DeploymentMode.ModelMesh;
+  }
+  if (kserveRaw) {
+    return DeploymentMode.RawDeployment;
+  }
+  return DeploymentMode.Serverless;
+};
 
 export const getInferenceServiceFromServingRuntime = (
   inferenceServices: InferenceServiceKind[],
