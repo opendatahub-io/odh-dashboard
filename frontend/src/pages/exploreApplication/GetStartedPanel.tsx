@@ -13,6 +13,7 @@ import {
   DrawerPanelBody,
   DrawerPanelContent,
   Tooltip,
+  Skeleton,
   Content,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
@@ -38,7 +39,7 @@ type GetStartedPanelProps = {
 const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose, onEnable }) => {
   const { dashboardConfig } = useAppContext();
   const { enablement } = dashboardConfig.spec.dashboardConfig;
-  const [{ isInstalled, canInstall, error }, loaded] = useIntegratedAppStatus(selectedApp);
+  const [{ isEnabled, canInstall, error }, loaded] = useIntegratedAppStatus(selectedApp);
   const { isAdmin } = useUser();
 
   if (!selectedApp) {
@@ -46,27 +47,32 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
   }
 
   const renderEnableButton = () => {
-    if (!selectedApp.spec.enable || selectedApp.spec.isEnabled || isInstalled || !isAdmin) {
+    if (!selectedApp.spec.enable || selectedApp.spec.isEnabled || isEnabled || !isAdmin) {
       return null;
     }
+
+    if (!loaded && !error) {
+      return <Skeleton style={{ minWidth: 100 }} fontSize="3xl" />;
+    }
+
     const button = (
       <Button
         variant={ButtonVariant.secondary}
         onClick={onEnable}
         isDisabled={!enablement || !canInstall}
-        isLoading={!loaded && !error}
       >
         Enable
       </Button>
     );
-    if (enablement) {
-      return button;
+
+    if (!enablement || !canInstall) {
+      return (
+        <Tooltip content="This feature has been disabled by an administrator.">
+          <span>{button}</span>
+        </Tooltip>
+      );
     }
-    return (
-      <Tooltip content="This feature has been disabled by an administrator.">
-        <span>{button}</span>
-      </Tooltip>
-    );
+    return button;
   };
 
   return (
