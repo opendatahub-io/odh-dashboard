@@ -131,6 +131,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
             isDisabled={totalOptions.length <= 1 || isDisabled}
             isFullWidth={isFullWidth}
             {...toggleProps}
+            style={{ width: '300px' }}
           >
             {toggleLabel || <Truncate content={selectedLabel} className="truncate-no-min-width" />}
           </MenuToggle>
@@ -160,6 +161,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
                       isDisabled={optionDisabled}
                       isFavorited={isFavorited}
                       data-testid={optionDataTestId || key}
+                      style={{ width: '300px' }}
                     >
                       {dropdownLabel || label}
                     </SelectOption>
