@@ -220,6 +220,7 @@ describe('Notebook image settings', () => {
         url: 'image:latest',
         description: '',
         recommendedAcceleratorIdentifiers: [],
+        recommendedHardwareProfileIdentifiers: [],
         provider: 'test-user',
         packages: [
           { name: 'packages', version: 'version', visible: true },
@@ -271,6 +272,7 @@ describe('Notebook image settings', () => {
         display_name: 'Updated custom image',
         description: 'A custom notebook image',
         recommendedAcceleratorIdentifiers: [],
+        recommendedHardwareProfileIdentifiers: [],
         packages: [{ name: 'test-package', version: '1.0', visible: true }],
         software: [{ name: 'test-software', version: '2.0', visible: true }],
       });

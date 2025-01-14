@@ -240,8 +240,11 @@ const mapImageStreamToBYONImage = (is: ImageStream): BYONImage => ({
   imported_time: is.metadata.creationTimestamp,
   url: is.metadata.annotations['opendatahub.io/notebook-image-url'],
   provider: is.metadata.annotations['opendatahub.io/notebook-image-creator'],
-  recommendedAcceleratorIdentifiers: jsonParseRecommendedAcceleratorIdentifiers(
+  recommendedAcceleratorIdentifiers: jsonParseRecommendedIdentifiers(
     is.metadata.annotations['opendatahub.io/recommended-accelerators'],
+  ),
+  recommendedHardwareProfileIdentifiers: jsonParseRecommendedIdentifiers(
+    is.metadata.annotations['opendatahub.io/recommended-hardware-profile-identifiers'],
   ),
 });
 
@@ -286,6 +289,9 @@ export const postImage = async (
         'opendatahub.io/notebook-image-creator': body.provider,
         'opendatahub.io/recommended-accelerators': JSON.stringify(
           body.recommendedAcceleratorIdentifiers ?? [],
+        ),
+        'opendatahub.io/recommended-hardware-profile-identifiers': JSON.stringify(
+          body.recommendedHardwareProfileIdentifiers ?? [],
         ),
       },
       name,
@@ -430,6 +436,11 @@ export const updateImage = async (
       );
     }
 
+    if (body.recommendedHardwareProfileIdentifiers !== undefined) {
+      imageStream.metadata.annotations['opendatahub.io/recommended-hardware-profile-identifiers'] =
+        JSON.stringify(body.recommendedHardwareProfileIdentifiers);
+    }
+
     await customObjectsApi
       .patchNamespacedCustomObject(
         'image.openshift.io',
@@ -464,7 +475,7 @@ const jsonParsePackage = (unparsedPackage: string): BYONImagePackage[] => {
   }
 };
 
-const jsonParseRecommendedAcceleratorIdentifiers = (unparsedRecommendations: string): string[] => {
+const jsonParseRecommendedIdentifiers = (unparsedRecommendations: string): string[] => {
   try {
     return JSON.parse(unparsedRecommendations) || [];
   } catch {

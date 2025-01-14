@@ -570,4 +570,16 @@ describe('Manage Hardware Profile', () => {
     duplicateHardwareProfile.findViewAllHardwareProfilesButton().click();
     cy.wait('@listHardwareProfiles');
   });
+
+  it('multiple preset identifiers show in the node selector table', () => {
+    initIntercepts({});
+    createHardwareProfile.visit('test-identifier1,test-identifier2');
+
+    createHardwareProfile
+      .getNodeResourceTableRow('test-identifier1')
+      .shouldHaveResourceIdentifier('test-identifier1');
+    createHardwareProfile
+      .getNodeResourceTableRow('test-identifier2')
+      .shouldHaveResourceIdentifier('test-identifier2');
+  });
 });

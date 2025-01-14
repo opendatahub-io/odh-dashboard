@@ -6,6 +6,8 @@ import DashboardSearchField, { SearchType } from '~/concepts/dashboard/Dashboard
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import { useDashboardNamespace } from '~/redux/selectors';
 import useAcceleratorProfiles from '~/pages/notebookController/screens/server/useAcceleratorProfiles';
+import useHardwareProfiles from '~/pages/hardwareProfiles/useHardwareProfiles';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import ManageBYONImageModal from './BYONImageModal/ManageBYONImageModal';
 import DeleteBYONImageModal from './BYONImageModal/DeleteBYONImageModal';
 import { columns } from './tableData';
@@ -51,6 +53,9 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, refres
 
   const { dashboardNamespace } = useDashboardNamespace();
   const acceleratorProfiles = useAcceleratorProfiles(dashboardNamespace);
+  const hardwareProfiles = useHardwareProfiles(dashboardNamespace);
+
+  const isHardwareProfileAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
 
   return (
     <>
@@ -59,7 +64,11 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, refres
         data-testid="notebook-images-table"
         enablePagination
         data={filteredImages}
-        columns={columns}
+        columns={
+          isHardwareProfileAvailable
+            ? columns.filter((column) => column.field !== 'recommendedAccelerators')
+            : columns.filter((column) => column.field !== 'recommendedHardwareProfiles')
+        }
         defaultSortColumn={1}
         emptyTableView={<DashboardEmptyTableView onClearFilters={resetFilters} />}
         disableRowRenderSupport
@@ -71,6 +80,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, refres
             onEditImage={(i) => setEditImage(i)}
             onDeleteImage={(i) => setDeleteImage(i)}
             acceleratorProfiles={acceleratorProfiles}
+            hardwareProfiles={hardwareProfiles}
           />
         )}
         toolbarContent={

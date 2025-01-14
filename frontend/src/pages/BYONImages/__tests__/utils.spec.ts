@@ -1,9 +1,12 @@
 /* eslint-disable camelcase */
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { mockByon } from '~/__mocks__/mockByon';
+import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
+import { HardwareProfileKind } from '~/k8sTypes';
 import {
   convertBYONImageToK8sResource,
   filterBlankPackages,
+  filterHardwareProfilesByRecommendedIdentifiers,
   getEnabledStatus,
 } from '~/pages/BYONImages/utils';
 import { BYONImage, BYONImagePackage } from '~/types';
@@ -93,5 +96,57 @@ describe('filterBlankPackages', () => {
       { name: 'package2', version: '2.0.0', visible: true },
     ];
     expect(filterBlankPackages(packages)).toEqual(packages);
+  });
+});
+
+describe('filterHardwareProfilesByRecommendedIdentifiers', () => {
+  const defaultNodeResourcesData = {
+    displayName: 'Test',
+    maxCount: 1,
+    minCount: 1,
+    defaultCount: 1,
+  };
+  it('should return empty if the recommended identifier array is empty', () => {
+    const hardwareProfiles: HardwareProfileKind[] = [
+      mockHardwareProfile({ identifiers: [{ ...defaultNodeResourcesData, identifier: 'match' }] }),
+    ];
+
+    expect(filterHardwareProfilesByRecommendedIdentifiers(hardwareProfiles, [])).toEqual([]);
+  });
+
+  it('should filter out recommended hardware profiles that contain recommended identifiers', () => {
+    const matchedHardWareProfile = mockHardwareProfile({
+      identifiers: [
+        { ...defaultNodeResourcesData, identifier: 'match' },
+        { ...defaultNodeResourcesData, identifier: 'not-match' },
+      ],
+    });
+    const matchedHardWareProfile2 = mockHardwareProfile({
+      identifiers: [
+        { ...defaultNodeResourcesData, identifier: 'match2' },
+        { ...defaultNodeResourcesData, identifier: 'not-match-2' },
+      ],
+    });
+    const matchedHardWareProfile3 = mockHardwareProfile({
+      identifiers: [
+        { ...defaultNodeResourcesData, identifier: 'match' },
+        { ...defaultNodeResourcesData, identifier: 'match2' },
+      ],
+    });
+    const unmatchedHardWareProfile = mockHardwareProfile({
+      identifiers: [
+        { ...defaultNodeResourcesData, identifier: 'not-match' },
+        { ...defaultNodeResourcesData, identifier: 'not-match-2' },
+      ],
+    });
+    const hardwareProfiles: HardwareProfileKind[] = [
+      matchedHardWareProfile,
+      matchedHardWareProfile2,
+      matchedHardWareProfile3,
+      unmatchedHardWareProfile,
+    ];
+    expect(
+      filterHardwareProfilesByRecommendedIdentifiers(hardwareProfiles, ['match', 'match2']),
+    ).toEqual([matchedHardWareProfile, matchedHardWareProfile2, matchedHardWareProfile3]);
   });
 });

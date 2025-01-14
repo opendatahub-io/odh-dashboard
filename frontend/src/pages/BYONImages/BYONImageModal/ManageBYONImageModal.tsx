@@ -13,6 +13,8 @@ import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
+import { HardwareProfileIdentifierMultiselect } from '~/pages/BYONImages/BYONImageModal/HardwareProfileIdentifierMultiselect';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import ImageLocationField from './ImageLocationField';
 import DisplayedContentTabContent from './DisplayedContentTabContent';
 
@@ -27,6 +29,7 @@ export enum DisplayedContentTab {
 }
 
 const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({ existingImage, onClose }) => {
+  const isHardwareProfileAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(
     DisplayedContentTab.SOFTWARE,
   );
@@ -35,6 +38,8 @@ const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({ existingIma
   const [recommendedAcceleratorIdentifiers, setRecommendedAcceleratorIdentifiers] = React.useState<
     string[]
   >([]);
+  const [recommendedHardwareProfileIdentifiers, setRecommendedHardwareProfileIdentifiers] =
+    React.useState<string[]>([]);
   const [software, setSoftware] = React.useState<BYONImagePackage[]>([]);
   const [packages, setPackages] = React.useState<BYONImagePackage[]>([]);
   const [tempSoftware, setTempSoftware] = React.useState<BYONImagePackage[]>([]);
@@ -66,6 +71,7 @@ const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({ existingIma
       setTempPackages(existingImage.packages);
       setTempSoftware(existingImage.software);
       setRecommendedAcceleratorIdentifiers(existingImage.recommendedAcceleratorIdentifiers);
+      setRecommendedHardwareProfileIdentifiers(existingImage.recommendedHardwareProfileIdentifiers);
     }
   }, [existingImage]);
 
@@ -87,6 +93,7 @@ const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({ existingIma
         display_name: byonNameDesc.name,
         description: byonNameDesc.description,
         recommendedAcceleratorIdentifiers,
+        recommendedHardwareProfileIdentifiers,
         packages: filterBlankPackages(packages),
         software: filterBlankPackages(software),
       }).then(handleResponse);
@@ -98,6 +105,7 @@ const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({ existingIma
         url: repository,
         description: byonNameDesc.description,
         recommendedAcceleratorIdentifiers,
+        recommendedHardwareProfileIdentifiers,
         provider: userName,
         packages: filterBlankPackages(packages),
         software: filterBlankPackages(software),
@@ -147,22 +155,41 @@ const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({ existingIma
           onDataChange={setByonNameDesc}
           dataTestId="byon-image"
         />
-        <FormGroup
-          label="Accelerator identifier"
-          labelHelp={
-            <Popover bodyContent="Add recommended accelerator identifiers for this image.">
-              <DashboardPopupIconButton
-                icon={<OutlinedQuestionCircleIcon />}
-                aria-label="More info for identifier field"
-              />
-            </Popover>
-          }
-        >
-          <AcceleratorIdentifierMultiselect
-            setData={(identifiers) => setRecommendedAcceleratorIdentifiers(identifiers)}
-            data={recommendedAcceleratorIdentifiers}
-          />
-        </FormGroup>
+        {isHardwareProfileAvailable ? (
+          <FormGroup
+            label="Hardware profile identifier"
+            labelHelp={
+              <Popover bodyContent="Add recommended hardware profile identifiers for this image.">
+                <DashboardPopupIconButton
+                  icon={<OutlinedQuestionCircleIcon />}
+                  aria-label="More info for identifier field"
+                />
+              </Popover>
+            }
+          >
+            <HardwareProfileIdentifierMultiselect
+              setData={(identifiers) => setRecommendedHardwareProfileIdentifiers(identifiers)}
+              data={recommendedHardwareProfileIdentifiers}
+            />
+          </FormGroup>
+        ) : (
+          <FormGroup
+            label="Accelerator identifier"
+            labelHelp={
+              <Popover bodyContent="Add recommended accelerator identifiers for this image.">
+                <DashboardPopupIconButton
+                  icon={<OutlinedQuestionCircleIcon />}
+                  aria-label="More info for identifier field"
+                />
+              </Popover>
+            }
+          >
+            <AcceleratorIdentifierMultiselect
+              setData={(identifiers) => setRecommendedAcceleratorIdentifiers(identifiers)}
+              data={recommendedAcceleratorIdentifiers}
+            />
+          </FormGroup>
+        )}
         <FormGroup label="Displayed contents" fieldId="byon-image-software-packages">
           <Tabs
             id="byon-image-software-packages"
