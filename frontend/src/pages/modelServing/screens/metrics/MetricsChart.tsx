@@ -182,7 +182,6 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
           {hasSomeData ? (
             <Chart
               ariaTitle={title}
-              // containerComponent={containerComponent}
               containerComponent={type !== MetricsChartTypes.DONUT ? containerComponent : undefined}
               domain={domain(maxYValue, minYValue)}
               height={400}
