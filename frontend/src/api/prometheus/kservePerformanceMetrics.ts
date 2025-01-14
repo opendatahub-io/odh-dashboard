@@ -1,5 +1,6 @@
 import React from 'react';
 import { KserveMetricGraphDefinition } from '~/concepts/metrics/kserve/types';
+import { NimMetricGraphDefinition } from '~/concepts/metrics/kserve/types';
 import { defaultResponsePredicate } from '~/api/prometheus/usePrometheusQueryRange';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { TimeframeTitle } from '~/concepts/metrics/types';
@@ -178,6 +179,8 @@ export const useFetchKserveMemoryUsageData = (
   });
 };
 
+// Nim Metrics graphs
+
 // Graph #1 - KV Cache usage over time
 type KVCacheUsageData = {
   data: {
@@ -186,8 +189,8 @@ type KVCacheUsageData = {
   refreshAll: () => void;
 };
 
-export const useFetchKserveKVCacheUsageData = (
-  metricsDef: KserveMetricGraphDefinition,
+export const useFetchNimKVCacheUsageData = (
+  metricsDef: NimMetricGraphDefinition,
   timeframe: TimeframeTitle,
   endInMs: number,
   namespace: string,
@@ -215,184 +218,6 @@ export const useFetchKserveKVCacheUsageData = (
   });
 };
 
-// Graph #3 - Total Prompt Token Count and Total Generation Token Count
-type TokensCountData = {
-  data: {
-    totalPromptTokenCount: PendingContextResourceData<PrometheusQueryRangeResultValue>;
-    totalGenerationTokenCount: PendingContextResourceData<PrometheusQueryRangeResultValue>;
-  };
-  refreshAll: () => void;
-};
-
-export const useFetchKserveTokensCountData = (
-  metricsDef: KserveMetricGraphDefinition,
-  timeframe: TimeframeTitle,
-  endInMs: number,
-  namespace: string,
-): TokensCountData => {
-  const active = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
-
-  // Extract the queries for "Total Prompt Token Count" and "Total Generation Token Count
-  const totalPromptTokenCount = useQueryRangeResourceData(
-    active,
-    metricsDef.queries[0]?.query,
-    endInMs,
-    timeframe,
-    defaultResponsePredicate,
-    namespace,
-  );
-
-  const totalGenerationTokenCount = useQueryRangeResourceData(
-    active,
-    metricsDef.queries[1]?.query,
-    endInMs,
-    timeframe,
-    defaultResponsePredicate,
-    namespace,
-  );
-
-  const data = React.useMemo(
-    () => ({
-      totalPromptTokenCount,
-      totalGenerationTokenCount,
-    }),
-    [totalPromptTokenCount, totalGenerationTokenCount],
-  );
-
-  return useAllSettledContextResourceData(data, {
-    totalPromptTokenCount: DEFAULT_PENDING_CONTEXT_RESOURCE,
-    totalGenerationTokenCount: DEFAULT_PENDING_CONTEXT_RESOURCE,
-  });
-};
-
-// Graph #4 - Time to First Token
-type TimeToFirstTokenData = {
-  data: {
-    timeToFirstToken: PendingContextResourceData<PrometheusQueryRangeResultValue>;
-  };
-  refreshAll: () => void;
-};
-
-export const useFetchKserveTimeToFirstTokenData = (
-  metricsDef: KserveMetricGraphDefinition,
-  timeframe: TimeframeTitle,
-  endInMs: number,
-  namespace: string,
-): TimeToFirstTokenData => {
-  const active = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
-
-  const timeToFirstToken = useQueryRangeResourceData(
-    active,
-    metricsDef.queries[0]?.query,
-    endInMs,
-    timeframe,
-    defaultResponsePredicate,
-    namespace,
-  );
-
-  const data = React.useMemo(
-    () => ({
-      timeToFirstToken,
-    }),
-    [timeToFirstToken],
-  );
-
-  return useAllSettledContextResourceData(data, {
-    timeToFirstToken: DEFAULT_PENDING_CONTEXT_RESOURCE,
-  });
-};
-
-// Graph #5
-type TimePerOutputTokenData = {
-  data: {
-    timePerOutputToken: PendingContextResourceData<PrometheusQueryRangeResultValue>;
-  };
-  refreshAll: () => void;
-};
-export const useFetchKserveTimePerOutputTokenData = (
-  metricsDef: KserveMetricGraphDefinition,
-  timeframe: TimeframeTitle,
-  endInMs: number,
-  namespace: string,
-): TimePerOutputTokenData => {
-  // Check if KServe metrics are active
-  const active = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
-  // Extract the query for TIME_PER_OUTPUT_TOKEN
-  const timePerOutputTokenQuery = metricsDef.queries[0].query; // Assumes it's the first query in the metric definition
-  // Fetch data using useQueryRangeResourceData
-  const timePerOutputToken = useQueryRangeResourceData(
-    active,
-    timePerOutputTokenQuery,
-    endInMs,
-    timeframe,
-    defaultResponsePredicate,
-    namespace,
-  );
-  // Memoize the fetched data
-  const data = React.useMemo(
-    () => ({
-      timePerOutputToken,
-    }),
-    [timePerOutputToken],
-  );
-  // Return all-settled context resource data
-  return useAllSettledContextResourceData(data, {
-    timePerOutputToken: DEFAULT_PENDING_CONTEXT_RESOURCE,
-  });
-};
-
-// Graph #6
-type RequestsOutcomesData = {
-  data: {
-    successCount: PendingContextResourceData<PrometheusQueryRangeResultValue>;
-    failedCount: PendingContextResourceData<PrometheusQueryRangeResultValue>;
-  };
-  refreshAll: () => void;
-};
-
-export const useFetchKserveRequestsOutcomesData = (
-  metricsDef: KserveMetricGraphDefinition,
-  timeframe: TimeframeTitle,
-  endInMs: number,
-  namespace: string,
-): RequestsOutcomesData => {
-  const active = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
-
-  const successQuery = metricsDef.queries[0]?.query;
-  const failedQuery = metricsDef.queries[1]?.query;
-
-  const successCount = useQueryRangeResourceData(
-    active,
-    successQuery,
-    endInMs,
-    timeframe,
-    defaultResponsePredicate,
-    namespace,
-  );
-
-  const failedCount = useQueryRangeResourceData(
-    active,
-    failedQuery,
-    endInMs,
-    timeframe,
-    defaultResponsePredicate,
-    namespace,
-  );
-
-  const data = React.useMemo(
-    () => ({
-      successCount,
-      failedCount,
-    }),
-    [failedCount, successCount],
-  );
-
-  return useAllSettledContextResourceData(data, {
-    successCount: DEFAULT_PENDING_CONTEXT_RESOURCE,
-    failedCount: DEFAULT_PENDING_CONTEXT_RESOURCE,
-  });
-};
-
 // Graph #2
 type CurrentRequestsData = {
   data: {
@@ -403,13 +228,13 @@ type CurrentRequestsData = {
   refreshAll: () => void;
 };
 
-export const useFetchKserveCurrentRequestsData = (
-  metricsDef: KserveMetricGraphDefinition,
+export const useFetchNimCurrentRequestsData = (
+  metricsDef: NimMetricGraphDefinition,
   timeframe: TimeframeTitle,
   endInMs: number,
   namespace: string,
 ): CurrentRequestsData => {
-  // Check if KServe metrics are active
+  // Check if Nim metrics are active
   const active = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
 
   // Extract the queries for "Requests waiting", "Requests running", and "Max requests"
@@ -460,6 +285,184 @@ export const useFetchKserveCurrentRequestsData = (
     requestsWaiting: DEFAULT_PENDING_CONTEXT_RESOURCE,
     requestsRunning: DEFAULT_PENDING_CONTEXT_RESOURCE,
     maxRequests: DEFAULT_PENDING_CONTEXT_RESOURCE,
+  });
+};
+
+// Graph #3 - Total Prompt Token Count and Total Generation Token Count
+type TokensCountData = {
+  data: {
+    totalPromptTokenCount: PendingContextResourceData<PrometheusQueryRangeResultValue>;
+    totalGenerationTokenCount: PendingContextResourceData<PrometheusQueryRangeResultValue>;
+  };
+  refreshAll: () => void;
+};
+
+export const useFetchNimTokensCountData = (
+  metricsDef: NimMetricGraphDefinition,
+  timeframe: TimeframeTitle,
+  endInMs: number,
+  namespace: string,
+): TokensCountData => {
+  const active = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
+
+  // Extract the queries for "Total Prompt Token Count" and "Total Generation Token Count
+  const totalPromptTokenCount = useQueryRangeResourceData(
+    active,
+    metricsDef.queries[0]?.query,
+    endInMs,
+    timeframe,
+    defaultResponsePredicate,
+    namespace,
+  );
+
+  const totalGenerationTokenCount = useQueryRangeResourceData(
+    active,
+    metricsDef.queries[1]?.query,
+    endInMs,
+    timeframe,
+    defaultResponsePredicate,
+    namespace,
+  );
+
+  const data = React.useMemo(
+    () => ({
+      totalPromptTokenCount,
+      totalGenerationTokenCount,
+    }),
+    [totalPromptTokenCount, totalGenerationTokenCount],
+  );
+
+  return useAllSettledContextResourceData(data, {
+    totalPromptTokenCount: DEFAULT_PENDING_CONTEXT_RESOURCE,
+    totalGenerationTokenCount: DEFAULT_PENDING_CONTEXT_RESOURCE,
+  });
+};
+
+// Graph #4 - Time to First Token
+type TimeToFirstTokenData = {
+  data: {
+    timeToFirstToken: PendingContextResourceData<PrometheusQueryRangeResultValue>;
+  };
+  refreshAll: () => void;
+};
+
+export const useFetchNimTimeToFirstTokenData = (
+  metricsDef: NimMetricGraphDefinition,
+  timeframe: TimeframeTitle,
+  endInMs: number,
+  namespace: string,
+): TimeToFirstTokenData => {
+  const active = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
+
+  const timeToFirstToken = useQueryRangeResourceData(
+    active,
+    metricsDef.queries[0]?.query,
+    endInMs,
+    timeframe,
+    defaultResponsePredicate,
+    namespace,
+  );
+
+  const data = React.useMemo(
+    () => ({
+      timeToFirstToken,
+    }),
+    [timeToFirstToken],
+  );
+
+  return useAllSettledContextResourceData(data, {
+    timeToFirstToken: DEFAULT_PENDING_CONTEXT_RESOURCE,
+  });
+};
+
+// Graph #5
+type TimePerOutputTokenData = {
+  data: {
+    timePerOutputToken: PendingContextResourceData<PrometheusQueryRangeResultValue>;
+  };
+  refreshAll: () => void;
+};
+export const useFetchNimTimePerOutputTokenData = (
+  metricsDef: NimMetricGraphDefinition,
+  timeframe: TimeframeTitle,
+  endInMs: number,
+  namespace: string,
+): TimePerOutputTokenData => {
+  // Check if Nim metrics are active
+  const active = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
+  // Extract the query for TIME_PER_OUTPUT_TOKEN
+  const timePerOutputTokenQuery = metricsDef.queries[0].query; // Assumes it's the first query in the metric definition
+  // Fetch data using useQueryRangeResourceData
+  const timePerOutputToken = useQueryRangeResourceData(
+    active,
+    timePerOutputTokenQuery,
+    endInMs,
+    timeframe,
+    defaultResponsePredicate,
+    namespace,
+  );
+  // Memoize the fetched data
+  const data = React.useMemo(
+    () => ({
+      timePerOutputToken,
+    }),
+    [timePerOutputToken],
+  );
+  // Return all-settled context resource data
+  return useAllSettledContextResourceData(data, {
+    timePerOutputToken: DEFAULT_PENDING_CONTEXT_RESOURCE,
+  });
+};
+
+// Graph #6
+type RequestsOutcomesData = {
+  data: {
+    successCount: PendingContextResourceData<PrometheusQueryRangeResultValue>;
+    failedCount: PendingContextResourceData<PrometheusQueryRangeResultValue>;
+  };
+  refreshAll: () => void;
+};
+
+export const useFetchNimRequestsOutcomesData = (
+  metricsDef: NimMetricGraphDefinition,
+  timeframe: TimeframeTitle,
+  endInMs: number,
+  namespace: string,
+): RequestsOutcomesData => {
+  const active = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
+
+  const successQuery = metricsDef.queries[0]?.query;
+  const failedQuery = metricsDef.queries[1]?.query;
+
+  const successCount = useQueryRangeResourceData(
+    active,
+    successQuery,
+    endInMs,
+    timeframe,
+    defaultResponsePredicate,
+    namespace,
+  );
+
+  const failedCount = useQueryRangeResourceData(
+    active,
+    failedQuery,
+    endInMs,
+    timeframe,
+    defaultResponsePredicate,
+    namespace,
+  );
+
+  const data = React.useMemo(
+    () => ({
+      successCount,
+      failedCount,
+    }),
+    [failedCount, successCount],
+  );
+
+  return useAllSettledContextResourceData(data, {
+    successCount: DEFAULT_PENDING_CONTEXT_RESOURCE,
+    failedCount: DEFAULT_PENDING_CONTEXT_RESOURCE,
   });
 };
 
