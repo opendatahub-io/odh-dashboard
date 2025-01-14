@@ -42,10 +42,8 @@ jobs:
             ${{ github.workspace }}/backend/node_modules
             ${{ github.workspace }}/frontend/node_modules
           key: ${{ runner.os }}-18.x-modules-${{ hashFiles('**/package-lock.json') }}
-      - name: Install ESLint
-        run: npm install eslint
       - name: Run linting and formatting checks
-        run: npm run test:lint
+        run: npm run lint:frontend:backend
 
   Unit-Tests:
     needs: Setup
