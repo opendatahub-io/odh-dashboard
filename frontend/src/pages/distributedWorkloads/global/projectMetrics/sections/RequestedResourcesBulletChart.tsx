@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { capitalize } from '@patternfly/react-core';
-import { ChartBullet, ChartLegend } from '@patternfly/react-charts/victory';
+import { ChartBullet } from '@patternfly/react-charts/victory';
 import { DistributedWorkloadsContext } from '~/concepts/distributedWorkloads/DistributedWorkloadsContext';
 import { roundNumber } from '~/utilities/number';
 
@@ -62,17 +62,15 @@ export const RequestedResourcesBulletChart: React.FC<RequestedResourcesBulletCha
     tooltipValue: roundNumber(args.preciseValue, 3),
     cappedValue: roundNumber(Math.min(args.preciseValue, maxDomain)),
   });
-  const getChartData = (data: CappedBulletChartDataItem[]) => {
-    return data.map(({ name, cappedValue }) => ({
+  const getChartData = (data: CappedBulletChartDataItem[]) =>
+    data.map(({ name, cappedValue }) => ({
       name,
       y: cappedValue,
     }));
-  };
-  const getLegendData = (data: CappedBulletChartDataItem[]) => {
-    return data.map(({ name, hideValueInLegend, legendValue }) => ({
+  const getLegendData = (data: CappedBulletChartDataItem[]) =>
+    data.map(({ name, hideValueInLegend, legendValue }) => ({
       name: hideValueInLegend ? name : `${name}: ${legendValue}`,
     }));
-  };
 
   const requestedByThisProjectData = getDataItem({
     name: `Requested by ${projectDisplayName}`,
