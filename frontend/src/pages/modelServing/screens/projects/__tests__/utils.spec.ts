@@ -257,7 +257,6 @@ describe('createNIMSecret', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.resetAllMocks();
   });
 
   it('should create NGC secret when isNGC is true', async () => {
@@ -327,7 +326,6 @@ describe('createNIMSecret', () => {
 describe('fetchNIMModelNames', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.resetAllMocks();
   });
   const configMapMock = {
     data: {
@@ -423,7 +421,6 @@ describe('createNIMPVC', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.resetAllMocks();
   });
 
   it('should call createPvc with correct arguments and return the result', async () => {

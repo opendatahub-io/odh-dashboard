@@ -6,6 +6,7 @@ import {
   getNIMResourcesToDelete,
 } from '~/pages/modelServing/screens/projects/nimUtils';
 import { mockNimAccount } from '~/__mocks__/mockNimAccount';
+import { mockServingRuntimeK8sResource } from '~/__mocks__';
 
 jest.mock('~/pages/modelServing/screens/projects/utils', () => ({
   fetchInferenceServiceCount: jest.fn(),
@@ -17,39 +18,31 @@ jest.mock('~/api', () => ({
 }));
 describe('getNIMResourcesToDelete', () => {
   const projectName = 'test-project';
-  const mockServingRuntime: ServingRuntimeKind = {
-    apiVersion: 'serving.kserve.io/v1alpha1',
-    kind: 'ServingRuntime',
-    metadata: {
-      name: 'test-serving-runtime',
-      namespace: 'test-namespace',
+  const mockServingRuntime = mockServingRuntimeK8sResource({});
+
+  mockServingRuntime.spec.volumes = [
+    {
+      name: 'nim-pvc-volume',
+      persistentVolumeClaim: { claimName: 'nim-pvc-123' },
     },
-    spec: {
-      volumes: [
+  ];
+  mockServingRuntime.spec.imagePullSecrets = [{ name: 'ngc-secret' }];
+  mockServingRuntime.spec.containers = [
+    {
+      name: 'test-container',
+      env: [
         {
-          name: 'nim-pvc-volume',
-          persistentVolumeClaim: { claimName: 'nim-pvc-123' },
-        },
-      ],
-      imagePullSecrets: [{ name: 'ngc-secret' }],
-      containers: [
-        {
-          name: 'test-container',
-          env: [
-            {
+          name: 'some-key',
+          valueFrom: {
+            secretKeyRef: {
               name: 'nvidia-nim-secrets',
-              valueFrom: {
-                secretKeyRef: {
-                  name: 'nvidia-nim-secrets',
-                  key: 'some-key',
-                },
-              },
+              key: 'some-key',
             },
-          ],
+          },
         },
       ],
     },
-  };
+  ];
 
   beforeEach(() => {
     jest.clearAllMocks();
