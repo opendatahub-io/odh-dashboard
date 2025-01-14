@@ -46,7 +46,6 @@ describe('getNIMResourcesToDelete', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.resetAllMocks();
   });
 
   it('should add deletePvc to resources if pvcName exists', async () => {
@@ -130,7 +129,6 @@ describe('fetchNIMAccountTemplateName', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.resetAllMocks();
   });
 
   it('should return the template name when available', async () => {
