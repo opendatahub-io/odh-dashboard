@@ -176,6 +176,7 @@ export type OdhApplication = {
     };
     featureFlag?: string;
     internalRoute?: string;
+    error?: string;
   };
 };
 
