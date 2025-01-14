@@ -86,9 +86,13 @@ export const useWatchIntegrationComponents = (
         setNewComponents(components);
       } else {
         const watchComponents = () => {
-          if (!isMounted) return;
+          if (!isMounted) {
+            return;
+          }
           updateComponentEnablementStatus(integrationComponents, components).then(() => {
-            if (!isMounted) return;
+            if (!isMounted) {
+              return;
+            }
             setIsIntegrationComponentsChecked(true);
             watchHandle = setTimeout(watchComponents, POLL_INTERVAL);
           });
@@ -96,7 +100,7 @@ export const useWatchIntegrationComponents = (
         watchComponents();
       }
     }
-    
+
     return () => {
       isMounted = false;
       clearTimeout(watchHandle);
