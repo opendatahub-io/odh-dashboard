@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Alert, Button, Form, FormAlert, Spinner, TextInputTypes } from '@patternfly/react-core';
 import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { isEmpty, values } from 'lodash-es';
 import { OdhApplication } from '~/types';
 import { EnableApplicationStatus, useEnableApplication } from '~/utilities/useEnableApplication';
 import { asEnumMember } from '~/utilities/utils';
@@ -18,6 +19,10 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
   const [postError, setPostError] = React.useState('');
   const [validationInProgress, setValidationInProgress] = React.useState(false);
   const [enableValues, setEnableValues] = React.useState<{ [key: string]: string }>({});
+  const isEnableValuesHasEmptyValue = React.useMemo(
+    () => isEmpty(enableValues) || values(enableValues).some((val) => isEmpty(val)),
+    [enableValues],
+  );
   const [validationStatus, validationErrorMessage] = useEnableApplication(
     validationInProgress,
     selectedApp.metadata.name,
@@ -44,6 +49,12 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
     setValidationInProgress(true);
   };
 
+  const handleClose = React.useCallback(() => {
+    setEnableValues({});
+    setPostError('');
+    onClose();
+  }, [onClose]);
+
   React.useEffect(() => {
     if (validationInProgress && validationStatus === EnableApplicationStatus.SUCCESS) {
       setValidationInProgress(false);
@@ -53,13 +64,19 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
       selectedApp.spec.shownOnEnabledPage = true;
       /* eslint-enable no-param-reassign */
 
-      onClose();
+      handleClose();
     }
     if (validationInProgress && validationStatus === EnableApplicationStatus.FAILED) {
       setValidationInProgress(false);
       setPostError(validationErrorMessage);
     }
-  }, [onClose, selectedApp.spec, validationErrorMessage, validationInProgress, validationStatus]);
+  }, [
+    handleClose,
+    selectedApp.spec,
+    validationErrorMessage,
+    validationInProgress,
+    validationStatus,
+  ]);
 
   React.useEffect(() => {
     if (shown) {
@@ -70,13 +87,6 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
     // Only update when shown is updated to true
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shown]);
-
-  const handleClose = () => {
-    if (!validationInProgress) {
-      setEnableValues({});
-    }
-    onClose();
-  };
 
   if (!selectedApp.spec.enable || !shown) {
     return null;
@@ -97,7 +107,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
           key="confirm"
           variant="primary"
           onClick={onDoEnableApp}
-          isDisabled={validationInProgress}
+          isDisabled={validationInProgress || isEnableValuesHasEmptyValue}
         >
           {enable.actionLabel}
         </Button>,

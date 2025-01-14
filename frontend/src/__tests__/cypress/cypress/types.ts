@@ -87,6 +87,11 @@ export type WBEditTestData = {
   pvcEditDisplayName: string;
 };
 
+export type WBControlSuiteTestData = {
+  controlSuiteTestNamespace: string;
+  controlSuiteTestDescription: string;
+};
+
 export type CommandLineResult = {
   code: number;
   stdout: string;
