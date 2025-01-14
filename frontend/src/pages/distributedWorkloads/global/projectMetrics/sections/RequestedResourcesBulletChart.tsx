@@ -1,12 +1,6 @@
 import * as React from 'react';
 import { capitalize } from '@patternfly/react-core';
 import { ChartBullet, ChartLegend } from '@patternfly/react-charts/victory';
-import {
-  chart_color_blue_300 as chartColorBlue300,
-  chart_color_blue_100 as chartColorBlue100,
-  chart_color_black_100 as chartColorBlack100,
-  chart_color_orange_300 as chartColorOrange300,
-} from '@patternfly/react-tokens';
 import { DistributedWorkloadsContext } from '~/concepts/distributedWorkloads/DistributedWorkloadsContext';
 import { roundNumber } from '~/utilities/number';
 
@@ -52,7 +46,7 @@ export const RequestedResourcesBulletChart: React.FC<RequestedResourcesBulletCha
 
   type CappedBulletChartDataItem = {
     name: string;
-    color: string;
+    color?: string;
     tooltip?: string; // Falls back to `name: preciseValue` if omitted
     hideValueInLegend?: boolean;
     preciseValue: number;
@@ -68,25 +62,32 @@ export const RequestedResourcesBulletChart: React.FC<RequestedResourcesBulletCha
     tooltipValue: roundNumber(args.preciseValue, 3),
     cappedValue: roundNumber(Math.min(args.preciseValue, maxDomain)),
   });
+  const getChartData = (data: CappedBulletChartDataItem[]) => {
+    return data.map(({ name, cappedValue }) => ({
+      name,
+      y: cappedValue,
+    }));
+  };
+  const getLegendData = (data: CappedBulletChartDataItem[]) => {
+    return data.map(({ name, hideValueInLegend, legendValue }) => ({
+      name: hideValueInLegend ? name : `${name}: ${legendValue}`,
+    }));
+  };
 
   const requestedByThisProjectData = getDataItem({
     name: `Requested by ${projectDisplayName}`,
-    color: chartColorBlue300.value,
     preciseValue: numRequestedByThisProject,
   });
   const requestedByAllProjectsData = getDataItem({
     name: 'Requested by all projects',
-    color: chartColorBlue100.value,
     preciseValue: numRequestedByAllProjects,
   });
   const totalSharedQuotaData = getDataItem({
     name: 'Total shared quota',
-    color: chartColorBlack100.value,
     preciseValue: numTotalSharedQuota,
   });
   const warningThresholdData = getDataItem({
     name: 'Warning threshold (over 150%)',
-    color: chartColorOrange300.value,
     tooltip: 'Requested resources have surpassed 150%',
     hideValueInLegend: true,
     preciseValue: warningThreshold,
@@ -116,33 +117,16 @@ export const RequestedResourcesBulletChart: React.FC<RequestedResourcesBulletCha
             const { tooltip, name, tooltipValue } = matchingDataItem || {};
             return tooltip || `${name ?? ''}: ${tooltipValue ?? ''} ${unitLabel}`;
           }}
-          primarySegmentedMeasureData={segmentedMeasureData.map(({ name, cappedValue }) => ({
-            name,
-            y: cappedValue,
-          }))}
-          qualitativeRangeData={qualitativeRangeData.map(({ name, cappedValue }) => ({
-            name,
-            y: cappedValue,
-          }))}
-          comparativeWarningMeasureData={warningMeasureData.map(({ name, cappedValue }) => ({
-            name,
-            y: cappedValue,
-          }))}
+          primarySegmentedMeasureData={getChartData(segmentedMeasureData)}
+          primarySegmentedMeasureLegendData={getLegendData(segmentedMeasureData)}
+          qualitativeRangeData={getChartData(qualitativeRangeData)}
+          qualitativeRangeLegendData={getLegendData(qualitativeRangeData)}
+          comparativeWarningMeasureData={getChartData(warningMeasureData)}
+          comparativeWarningMeasureLegendData={getLegendData(warningMeasureData)}
           maxDomain={{ y: roundNumber(maxDomain) }}
           titlePosition="top-left"
           legendPosition="bottom-left"
           legendOrientation="vertical"
-          legendComponent={
-            <ChartLegend
-              data={allData.map(({ name, hideValueInLegend, legendValue }) => ({
-                name: hideValueInLegend ? name : `${name}: ${legendValue}`,
-              }))}
-              colorScale={allData.map(({ color }) => color)}
-              gutter={30}
-              itemsPerRow={3}
-              rowGutter={0}
-            />
-          }
           constrainToVisibleArea
           width={width}
           padding={{
