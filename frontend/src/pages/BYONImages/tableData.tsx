@@ -36,6 +36,16 @@ export const columns: SortableData<BYONImage>[] = [
     },
   },
   {
+    field: 'recommendedHardwareProfiles',
+    label: 'Recommended hardware profiles',
+    sortable: (a, b) =>
+      a.recommendedHardwareProfileIdentifiers.length -
+      b.recommendedHardwareProfileIdentifiers.length,
+    info: {
+      popover: 'Hardware profiles are used to speed up the execution of workbenches.',
+    },
+  },
+  {
     field: 'provider',
     label: 'Provider',
     sortable: (a, b) => a.provider.localeCompare(b.provider),

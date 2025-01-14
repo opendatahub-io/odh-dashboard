@@ -10,8 +10,10 @@ import {
 import { BYONImage } from '~/types';
 import { relativeTime } from '~/utilities/time';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
-import { AcceleratorProfileKind } from '~/k8sTypes';
+import { AcceleratorProfileKind, HardwareProfileKind } from '~/k8sTypes';
 import { FetchState } from '~/utilities/useFetchState';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import BYONImageHardwareProfiles from '~/pages/BYONImages/BYONImageHardwareProfiles';
 import ImageErrorStatus from './ImageErrorStatus';
 import BYONImageStatusToggle from './BYONImageStatusToggle';
 import { convertBYONImageToK8sResource } from './utils';
@@ -22,6 +24,7 @@ type BYONImagesTableRowProps = {
   obj: BYONImage;
   rowIndex: number;
   acceleratorProfiles: FetchState<AcceleratorProfileKind[]>;
+  hardwareProfiles: FetchState<HardwareProfileKind[]>;
   onEditImage: (obj: BYONImage) => void;
   onDeleteImage: (obj: BYONImage) => void;
 };
@@ -30,9 +33,11 @@ const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
   obj,
   rowIndex,
   acceleratorProfiles,
+  hardwareProfiles,
   onEditImage,
   onDeleteImage,
 }) => {
+  const isHardwareProfileAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
   const [isExpanded, setExpanded] = React.useState(false);
   const columnModifier =
     obj.software.length > 0 && obj.packages.length > 0
@@ -73,9 +78,15 @@ const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
         <Td dataLabel="Enable" modifier="nowrap">
           <BYONImageStatusToggle image={obj} />
         </Td>
-        <Td dataLabel="Accelerators">
-          <BYONImageAccelerators image={obj} acceleratorProfiles={acceleratorProfiles} />
-        </Td>
+        {isHardwareProfileAvailable ? (
+          <Td dataLabel="Recommended hardware profiles">
+            <BYONImageHardwareProfiles image={obj} hardwareProfiles={hardwareProfiles} />
+          </Td>
+        ) : (
+          <Td dataLabel="Recommended accelerators">
+            <BYONImageAccelerators image={obj} acceleratorProfiles={acceleratorProfiles} />
+          </Td>
+        )}
         <Td dataLabel="Provider">{obj.provider}</Td>
         <Td dataLabel="Imported">
           <span style={{ whiteSpace: 'nowrap' }}>

@@ -1,11 +1,13 @@
 import React from 'react';
 import { FormSection, Flex, FlexItem, Button, Alert, AlertVariant } from '@patternfly/react-core';
 import { AddCircleOIcon } from '@patternfly/react-icons';
+import { useSearchParams } from 'react-router-dom';
 import { Identifier, IdentifierResourceType } from '~/types';
 import NodeResourceTable from '~/pages/hardwareProfiles/nodeResource/NodeResourceTable';
 import ManageNodeResourceModal from '~/pages/hardwareProfiles/nodeResource/ManageNodeResourceModal';
 import { ManageHardwareProfileSectionTitles } from '~/pages/hardwareProfiles/const';
 import { ManageHardwareProfileSectionID } from '~/pages/hardwareProfiles/manage/types';
+import { EMPTY_IDENTIFIER } from '~/pages/hardwareProfiles/nodeResource/const';
 
 type ManageNodeResourceSectionProps = {
   nodeResources: Identifier[];
@@ -16,6 +18,17 @@ const ManageNodeResourceSection: React.FC<ManageNodeResourceSectionProps> = ({
   nodeResources,
   setNodeResources,
 }) => {
+  const [searchParams] = useSearchParams();
+
+  const nodeResourcesFromSearchURL = React.useMemo(
+    () =>
+      searchParams
+        .get('identifiers')
+        ?.split(',')
+        .map((identifier) => ({ ...EMPTY_IDENTIFIER, displayName: identifier, identifier })) ?? [],
+    [searchParams],
+  );
+
   const [isNodeResourceModalOpen, setIsNodeResourceModalOpen] = React.useState<boolean>(false);
   const isEmpty = nodeResources.length === 0;
   return (
@@ -63,7 +76,7 @@ const ManageNodeResourceSection: React.FC<ManageNodeResourceSectionProps> = ({
         )}
         {!isEmpty && (
           <NodeResourceTable
-            nodeResources={nodeResources}
+            nodeResources={[...nodeResources, ...nodeResourcesFromSearchURL]}
             onUpdate={(newResources) => setNodeResources(newResources)}
           />
         )}
