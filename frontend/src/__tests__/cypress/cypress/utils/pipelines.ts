@@ -1,8 +1,8 @@
-// Import necessary functions and types
 import { createOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { createDataConnection } from '~/__tests__/cypress/cypress/utils/oc_commands/dataConnection';
 import { createDSPASecret, createDSPA } from '~/__tests__/cypress/cypress/utils/oc_commands/dspa';
 import { AWS_BUCKETS } from '~/__tests__/cypress/cypress/utils/s3Buckets';
+import { AWSS3Buckets } from '../types';
 import type {
   DataConnectionReplacements,
   DspaSecretReplacements,
@@ -16,17 +16,31 @@ import type {
  * @param projectName Project Name
  * @param dspaSecretName DSPA Secret Name
  */
-export const provisionProjectForPipelines = (projectName: string, dspaSecretName: string): void => {
+export const provisionProjectForPipelines = (
+  projectName: string,
+  dspaSecretName: string,
+  bucketKey: 'BUCKET_2' | 'BUCKET_3'
+): void => {
+  cy.log(`Provisioning project with bucket key: ${bucketKey}`);
+  cy.log(`AWS_BUCKETS: ${JSON.stringify(AWS_BUCKETS)}`);
+
+  const bucketConfig = AWS_BUCKETS[bucketKey];
+  cy.log(`Bucket config: ${JSON.stringify(bucketConfig)}`);
+
+  if (!bucketConfig) {
+    throw new Error(`Bucket configuration not found for key: ${bucketKey}`);
+  }
+
   // Provision a Project
   createOpenShiftProject(projectName);
 
-  // Create a pipeline compatible Data Connection
+  // Create a pipeline-compatible Data Connection
   const dataConnectionReplacements: DataConnectionReplacements = {
     NAMESPACE: projectName,
     AWS_ACCESS_KEY_ID: Buffer.from(AWS_BUCKETS.AWS_ACCESS_KEY_ID).toString('base64'),
-    AWS_DEFAULT_REGION: Buffer.from(AWS_BUCKETS.BUCKET_2.REGION).toString('base64'),
-    AWS_S3_BUCKET: Buffer.from(AWS_BUCKETS.BUCKET_2.NAME).toString('base64'),
-    AWS_S3_ENDPOINT: Buffer.from(AWS_BUCKETS.BUCKET_2.ENDPOINT).toString('base64'),
+    AWS_DEFAULT_REGION: Buffer.from(bucketConfig.REGION).toString('base64'),
+    AWS_S3_BUCKET: Buffer.from(bucketConfig.NAME).toString('base64'),
+    AWS_S3_ENDPOINT: Buffer.from(bucketConfig.ENDPOINT).toString('base64'),
     AWS_SECRET_ACCESS_KEY: Buffer.from(AWS_BUCKETS.AWS_SECRET_ACCESS_KEY).toString('base64'),
   };
   createDataConnection(dataConnectionReplacements);
@@ -44,7 +58,7 @@ export const provisionProjectForPipelines = (projectName: string, dspaSecretName
   const dspaReplacements: DspaReplacements = {
     DSPA_SECRET_NAME: dspaSecretName,
     NAMESPACE: projectName,
-    AWS_S3_BUCKET: AWS_BUCKETS.BUCKET_2.NAME,
+    AWS_S3_BUCKET: bucketConfig.NAME,
   };
   createDSPA(dspaReplacements);
 };
