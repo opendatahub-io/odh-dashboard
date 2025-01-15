@@ -1,7 +1,7 @@
 name: Test
 on: [push, pull_request]
 jobs:
-  Tests:
+  Setup:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -12,51 +12,227 @@ jobs:
         uses: actions/setup-node@v4.1.0
         with:
           node-version: ${{ matrix.node-version }}
-      - name: Node.js modules cache, repository
+      - name: Node.js modules cache
         uses: actions/cache@v4
-        id: repo-cache
-        with:
-          path: ${{ github.workspace }}/node_modules
-          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-repo-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.node-version }}-modules-repo
-      - name: Node.js modules cache, backend
-        uses: actions/cache@v4
-        id: backend-cache
-        with:
-          path: ${{ github.workspace }}/backend/node_modules
-          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-backend-${{ hashFiles('**/backend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.node-version }}-modules-backend
-      - name: Node.js modules cache, frontend
-        uses: actions/cache@v4
-        id: frontend-cache
+        id: modules-cache
         with:
           path: |
             ~/.cache/Cypress
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/backend/node_modules
             ${{ github.workspace }}/frontend/node_modules
-          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-frontend-${{ hashFiles('**/frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.node-version }}-modules-frontend
-      - name: Install Node.js packages
-        if: ${{ steps.repo-cache.outputs.cache-hit != 'true' || steps.backend-cache.outputs.cache-hit != 'true' || steps.frontend-cache.outputs.cache-hit != 'true' }}
+          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: Install dependencies
+        if: steps.modules-cache.outputs.cache-hit != 'true'
         run: npm install
       - name: Check for uncomitted changes
+        run: git diff --exit-code
+
+  Lint:
+    needs: Setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/Cypress
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/backend/node_modules
+            ${{ github.workspace }}/frontend/node_modules
+          key: ${{ runner.os }}-18.x-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: Run linting and formatting checks
+        run: npm run lint:frontend:backend
+
+  Unit-Tests:
+    needs: Setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/Cypress
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/backend/node_modules
+            ${{ github.workspace }}/frontend/node_modules
+          key: ${{ runner.os }}-18.x-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: Run backend unit tests with coverage
         run: |
-          git diff --exit-code
-      - name: Test backend & test frontend with code coverage
-        if: ${{ success() }}
-        run: npm run test:backend && npm run test:frontend:coverage
-      - name: Upload coverage reports to Codecov
+          npm run test:backend:unit-coverage
+          mkdir -p ./backend/coverage
+          if [ -d "./backend/jest-coverage" ]; then
+            cp -R ./backend/jest-coverage/* ./backend/coverage/
+          elif [ -d "./jest-coverage" ]; then
+            cp -R ./jest-coverage/* ./backend/coverage/
+          fi
+      - name: Cleanup backend interim artifacts
+        run: |
+          rm -rf ./backend/jest-coverage
+          rm -rf ./jest-coverage
+      - name: Run frontend unit tests with coverage
+        run: |
+          npm run test:frontend:unit-coverage
+          mkdir -p ./frontend/coverage
+          if [ -d "./frontend/jest-coverage" ]; then
+            cp -R ./frontend/jest-coverage/* ./frontend/coverage/
+          elif [ -d "./jest-coverage" ]; then
+            cp -R ./jest-coverage/* ./frontend/coverage/
+          fi
+      - name: Cleanup frontend interim artifacts
+        run: |
+          rm -rf ./frontend/jest-coverage
+          rm -rf ./jest-coverage
+      - name: Upload frontend unit test coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-coverage
+          path: ./frontend/coverage
+          if-no-files-found: error
+      - name: Upload backend unit test coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: ./backend/coverage
+          if-no-files-found: warn
+
+  Get-Test-Groups:
+    runs-on: ubuntu-latest
+    outputs:
+      test-groups: ${{ steps.set-groups.outputs.test-groups }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: set-groups
+        shell: bash
+        run: |
+          set -x  # Enable debug mode to see each command
+          
+          echo "Checking directory structure..."
+          ls -la frontend/src/__tests__/cypress/cypress/tests/ || echo "Base test directory not found"
+          
+          if [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked" ]; then
+            echo "Found mocked tests directory"
+            
+            # Get directories and create JSON array - force compact output with -c
+            DIRS=$(cd frontend/src/__tests__/cypress/cypress/tests/mocked && \
+                  find . -maxdepth 1 -mindepth 1 -type d -printf "%f\n" | \
+                  jq -R . | jq -c -s .)
+            
+            # Output in the correct format for GitHub Actions
+            echo "test-groups=$DIRS" >> "$GITHUB_OUTPUT"
+            
+            echo "Generated test groups:"
+            cat "$GITHUB_OUTPUT"
+          else
+            echo "No mocked tests directory found, using default"
+            echo "test-groups=[\"default\"]" >> "$GITHUB_OUTPUT"
+          fi
+
+  Cypress-Mock-Tests:
+    needs: [Setup, Get-Test-Groups, Unit-Tests, Lint]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        test-group: ${{ fromJson(needs.Get-Test-Groups.outputs.test-groups) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/Cypress
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/backend/node_modules
+            ${{ github.workspace }}/frontend/node_modules
+          key: ${{ runner.os }}-18.x-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: Run Cypress Mock tests
+        run: |
+          if [ "${{ matrix.test-group }}" == "default" ]; then
+            npm run test:cypress-ci:coverage
+          else
+            npm run test:cypress-ci:coverage -- --spec "src/__tests__/cypress/cypress/tests/mocked/${{ matrix.test-group }}/**/*"
+          fi
+        working-directory: ./frontend
+      - name: Upload Cypress Mock results
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-results-${{ matrix.test-group }}
+          path: ./frontend/src/__tests__/cypress/results/mocked
+      - name: Upload Cypress coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-coverage-${{ matrix.test-group }}
+          path: ./frontend/src/__tests__/cypress/coverage
+
+  Combine-Results-and-Upload:
+    needs: [Unit-Tests, Cypress-Mock-Tests] 
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-artifacts
+      - name: Install dependencies
+        run: npm install nyc --no-save
+      - name: Combine coverage reports
+        run: |
+          mkdir -p ./coverage
+          cp all-artifacts/unit-coverage/coverage-final.json ./coverage/unit-coverage-final.json || true
+          [ -f all-artifacts/backend-coverage/coverage-final.json ] && cp all-artifacts/backend-coverage/coverage-final.json ./coverage/backend-coverage-final.json || true
+          find all-artifacts -name "cypress-coverage-*" -type d | while read dir; do
+          group_name=$(basename "$dir")
+          cp "$dir/coverage-final.json" "./coverage/${group_name}-coverage-final.json" || true
+          done
+          echo "Combined coverage files:"
+          ls -R ./coverage
+      - name: Merge coverage reports
+        run: |
+          npx nyc merge ./coverage ./coverage/merged-coverage.json
+          echo "Cleaning up merged coverage file..."
+          jq 'del(.[] | select(.statementMap == {}))' ./coverage/merged-coverage.json > ./coverage/cleaned-coverage.json
+          mv ./coverage/cleaned-coverage.json ./coverage/merged-coverage.json
+      - name: Generate coverage report
+        run: |
+          mkdir -p ./coverage/report
+          npx nyc report --reporter=html --reporter=text-summary --temp-directory ./coverage -t ./coverage --report-dir ./coverage/report
+          cp ./coverage/unit-coverage-final.json ./coverage/combined-coverage-final.json || true
+      - name: Upload combined results
+        uses: actions/upload-artifact@v4
+        with:
+          name: combined-coverage-results
+          path: ./coverage/combined-coverage-final.json
+      - name: Cleanup interim coverage files
+        run: |
+          rm -rf ./coverage/unit-coverage-final.json
+          rm -rf ./coverage/backend-coverage-final.json
+          find ./coverage -name "*-coverage-final.json" -type f -delete 
+      - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4.6.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
-          name: frontend
-          directory: ./frontend/coverage
+          name: frontend-and-backend
+          file: ./coverage/merged-coverage.json 
+          disable_search: true
+          directory: ./coverage
           verbose: true
-      - uses: actions/upload-artifact@v4
-        if: ${{ always() }}
-        with:
-          name: cypress-results
-          path: ./frontend/src/__tests__/cypress/results/
+
+  Tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]
+    needs:
+      - Setup
+      - Lint
+      - Unit-Tests
+      - Get-Test-Groups
+      - Cypress-Mock-Tests
+      - Combine-Results-and-Upload
+    steps:
+      - name: Verify all jobs succeeded
+        run: echo "All required jobs have successfully completed for Node.js ${{ matrix.node-version }}."
