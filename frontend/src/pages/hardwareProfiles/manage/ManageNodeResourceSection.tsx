@@ -19,15 +19,23 @@ const ManageNodeResourceSection: React.FC<ManageNodeResourceSectionProps> = ({
   setNodeResources,
 }) => {
   const [searchParams] = useSearchParams();
+  const identifiersString = searchParams.get('identifiers');
 
   const nodeResourcesFromSearchURL = React.useMemo(
     () =>
-      searchParams
-        .get('identifiers')
-        ?.split(',')
-        .map((identifier) => ({ ...EMPTY_IDENTIFIER, displayName: identifier, identifier })) ?? [],
-    [searchParams],
+      identifiersString
+        ? identifiersString
+            .split(',')
+            .map((identifier) => ({ ...EMPTY_IDENTIFIER, displayName: identifier, identifier }))
+        : [],
+    [identifiersString],
   );
+
+  React.useEffect(() => {
+    setNodeResources([...nodeResources, ...nodeResourcesFromSearchURL]);
+    // we only want this hook to trigger once based on the change in the search params
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodeResourcesFromSearchURL]);
 
   const [isNodeResourceModalOpen, setIsNodeResourceModalOpen] = React.useState<boolean>(false);
   const isEmpty = nodeResources.length === 0;
@@ -76,7 +84,7 @@ const ManageNodeResourceSection: React.FC<ManageNodeResourceSectionProps> = ({
         )}
         {!isEmpty && (
           <NodeResourceTable
-            nodeResources={[...nodeResources, ...nodeResourcesFromSearchURL]}
+            nodeResources={nodeResources}
             onUpdate={(newResources) => setNodeResources(newResources)}
           />
         )}
