@@ -4,6 +4,7 @@ import { addUserToProject, deleteOpenShiftProject } from "~/__tests__/cypress/cy
 import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { LDAP_CONTRIBUTOR_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
+import { modelServingGlobal } from '~/__tests__/cypress/cypress/pages/modelServing';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -23,14 +24,14 @@ describe('Verify Model Creation and Validation using the UI', () => {
         }
         cy.log(`Loaded project name: ${projectName}`);
         // Create a Project for pipelines
-        provisionProjectForPipelines(projectName, dspaSecretName);
+        provisionProjectForPipelines(projectName, dspaSecretName, 'BUCKET_3');
         addUserToProject(projectName, contributor, 'edit');
       });
     });
-      after(() => {
-        // Delete provisioned Project
-        deleteOpenShiftProject(projectName);
-      });
+      // after(() => {
+      //   // Delete provisioned Project
+      //   deleteOpenShiftProject(projectName);
+      // });
    
     it('Verify that a Non Admin can Serve and Query a Model using the UI',
     { tags: ['@Smoke', '@SmokeSet2', '@ODS-2552', '@Dashboard'] },
@@ -46,7 +47,10 @@ describe('Verify Model Creation and Validation using the UI', () => {
     projectListPage.navigate();
     projectListPage.filterProjectByName(testData.projectSingleModelResourceName);
     projectListPage.findProjectLink(testData.projectSingleModelResourceName).click();
-    projectDetails.findSectionTab('Models').click();
+    projectDetails.findSectionTab('model-server').click();
+    cy.get('[data-testid="single-serving-select-button"]').click();
+    //cy.get('[data-testid="deploy-button"]').click();
+    modelServingGlobal.findDeployModelButton().click();
     
     });
 });

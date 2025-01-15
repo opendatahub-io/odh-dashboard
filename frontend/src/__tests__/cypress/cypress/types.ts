@@ -36,6 +36,7 @@ export type AWSS3Buckets = {
   AWS_ACCESS_KEY_ID: string;
   AWS_SECRET_ACCESS_KEY: string;
   BUCKET_2: AWSS3BucketDetails;
+  BUCKET_3: AWSS3BucketDetails;
 };
 
 export type DataConnectionReplacements = {
