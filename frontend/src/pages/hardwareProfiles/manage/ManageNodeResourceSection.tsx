@@ -1,11 +1,13 @@
 import React from 'react';
 import { FormSection, Flex, FlexItem, Button, Alert, AlertVariant } from '@patternfly/react-core';
 import { AddCircleOIcon } from '@patternfly/react-icons';
+import { useSearchParams } from 'react-router-dom';
 import { Identifier, IdentifierResourceType } from '~/types';
 import NodeResourceTable from '~/pages/hardwareProfiles/nodeResource/NodeResourceTable';
 import ManageNodeResourceModal from '~/pages/hardwareProfiles/nodeResource/ManageNodeResourceModal';
 import { ManageHardwareProfileSectionTitles } from '~/pages/hardwareProfiles/const';
 import { ManageHardwareProfileSectionID } from '~/pages/hardwareProfiles/manage/types';
+import { EMPTY_IDENTIFIER } from '~/pages/hardwareProfiles/nodeResource/const';
 
 type ManageNodeResourceSectionProps = {
   nodeResources: Identifier[];
@@ -16,6 +18,25 @@ const ManageNodeResourceSection: React.FC<ManageNodeResourceSectionProps> = ({
   nodeResources,
   setNodeResources,
 }) => {
+  const [searchParams] = useSearchParams();
+  const identifiersString = searchParams.get('identifiers');
+
+  const nodeResourcesFromSearchURL = React.useMemo(
+    () =>
+      identifiersString
+        ? identifiersString
+            .split(',')
+            .map((identifier) => ({ ...EMPTY_IDENTIFIER, displayName: identifier, identifier }))
+        : [],
+    [identifiersString],
+  );
+
+  React.useEffect(() => {
+    setNodeResources([...nodeResources, ...nodeResourcesFromSearchURL]);
+    // we only want this hook to trigger once based on the change in the search params
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodeResourcesFromSearchURL]);
+
   const [isNodeResourceModalOpen, setIsNodeResourceModalOpen] = React.useState<boolean>(false);
   const isEmpty = nodeResources.length === 0;
   return (

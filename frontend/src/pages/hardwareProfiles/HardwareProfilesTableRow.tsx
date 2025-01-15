@@ -49,6 +49,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
           <TableRowTitleDescription
             title={hardwareProfile.spec.displayName}
             description={hardwareProfile.spec.description}
+            resource={hardwareProfile}
             truncateDescriptionLines={2}
           />
         </Td>
