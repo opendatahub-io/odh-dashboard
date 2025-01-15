@@ -1,13 +1,19 @@
 export enum ProjectSectionID {
   OVERVIEW = 'overview',
   WORKBENCHES = 'workbenches',
-  CLUSTER_STORAGES = 'cluster-storages',
-  DATA_CONNECTIONS = 'data-connections',
-  CONNECTIONS = 'connections',
+  EXPERIMENTS_AND_RUNS = 'experiments-and-runs',
+  RUNS = 'uns',
+  EXECUTIONS = 'executions',
+  ARTIFACTS = 'artifacts',
+  DISTRIBUTED_WORKLOADS = 'distributed-workloads',
+  MODEL_DEPLOYMENTS = 'model-deployments',
   MODEL_SERVER = 'model-server',
-  PIPELINES = 'pipelines-projects',
+  PIPELINES = 'pipelines',
+  CONNECTIONS = 'connections',
+  CLUSTER_STORAGES = 'cluster-storages',
   PERMISSIONS = 'permissions',
   SETTINGS = 'settings',
+  DATA_CONNECTIONS = 'data-connections',
 }
 
 export type ProjectSectionTitlesType = {

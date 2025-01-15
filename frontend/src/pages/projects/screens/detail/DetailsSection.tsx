@@ -14,6 +14,7 @@ import {
 } from '@patternfly/react-core';
 import { ProjectObjectType } from '~/concepts/design/utils';
 import HeaderIcon from '~/concepts/design/HeaderIcon';
+import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { ProjectSectionID } from './types';
 
 type DetailsSectionProps = {
@@ -47,6 +48,8 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({
   labels,
   showDivider,
 }) => {
+  const { altProjectNav } = React.useContext(ProjectsContext);
+
   const renderContent = () => {
     if (loadError) {
       return (
@@ -72,7 +75,12 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({
   };
 
   return (
-    <PageSection hasBodyWrapper={false} aria-label="details-section" id={id}>
+    <PageSection
+      hasBodyWrapper={false}
+      aria-label="details-section"
+      id={id}
+      className={altProjectNav ? undefined : 'pf-v6-u-pt-0 pf-v6-u-pl-0'}
+    >
       <Stack
         data-testid={`section-${id}`}
         hasGutter
@@ -87,7 +95,7 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({
               gap={{ default: 'gapMd' }}
               alignItems={{ md: 'alignItemsCenter' }}
             >
-              <Flex flex={{ default: 'flex_1' }}>
+              <Flex flex={{ default: 'flex_1' }} direction={{ default: 'column' }}>
                 <FlexItem>
                   <Flex
                     direction={{ default: 'row' }}

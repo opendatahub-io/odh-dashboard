@@ -16,6 +16,8 @@ import { SupportedArea } from '~/concepts/areas';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
 import ModelRegistrySettingsRoutes from '~/pages/modelRegistrySettings/ModelRegistrySettingsRoutes';
 import ConnectionTypeRoutes from '~/pages/connectionTypes/ConnectionTypeRoutes';
+import ComingSoonPage from '~/pages/ComingSoonPage';
+import { ProjectObjectType } from '~/concepts/design/utils';
 
 const HomePage = React.lazy(() => import('../pages/home/Home'));
 
@@ -116,9 +118,18 @@ const AppRoutes: React.FC = () => {
           element={<NotebookLogoutRedirectPage />}
         />
 
+        <Route
+          path="/modelOverview"
+          element={<ComingSoonPage title="Model overview" objectType={ProjectObjectType.model} />}
+        />
         <Route path="/modelServing/*" element={<ModelServingRoutes />} />
-
         <Route path="/modelRegistry/*" element={<ModelRegistryRoutes />} />
+        <Route
+          path="/deployedModels"
+          element={
+            <ComingSoonPage title="Deployed models" objectType={ProjectObjectType.modelServer} />
+          }
+        />
 
         <Route path={globPipelinesAll} element={<GlobalPipelinesRoutes />} />
         <Route path={globPipelineRunsAll} element={<GlobalPipelineRunsRoutes />} />
@@ -145,6 +156,31 @@ const AppRoutes: React.FC = () => {
             <Route path="/groupSettings" element={<GroupSettingsPage />} />
           </>
         )}
+        <Route
+          path="/workbenches"
+          element={<ComingSoonPage title="Workbenches" objectType={ProjectObjectType.notebook} />}
+        />
+        <Route
+          path="/connections"
+          element={
+            <ComingSoonPage title="Connections" objectType={ProjectObjectType.dataConnection} />
+          }
+        />
+        <Route
+          path="/clusterStorage"
+          element={
+            <ComingSoonPage title="Cluster storage" objectType={ProjectObjectType.clusterStorage} />
+          }
+        />
+        <Route
+          path="/applications"
+          element={
+            <ComingSoonPage
+              title="Applications"
+              objectType={ProjectObjectType.enabledApplications}
+            />
+          }
+        />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

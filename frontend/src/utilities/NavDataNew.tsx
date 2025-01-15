@@ -1,14 +1,4 @@
 import * as React from 'react';
-import {
-  AutomationIcon,
-  CatalogIcon,
-  CogIcon,
-  EnhancementIcon,
-  FolderIcon,
-  HomeIcon,
-  OutlinedAngryIcon,
-  ProcessAutomationIcon,
-} from '@patternfly/react-icons';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import {
   artifactsRootPath,
@@ -23,15 +13,13 @@ type NavDataCommon = {
 
 export type NavDataHref = NavDataCommon & {
   label: React.ReactNode;
-  icon?: React.ReactNode;
   href: string;
 };
 
 export type NavDataGroup = NavDataCommon & {
   group: {
     id: string;
-    label: string;
-    icon?: React.ReactNode;
+    title: string;
   };
   children: NavDataHref[];
 };
@@ -45,28 +33,22 @@ const useAreaCheck = <T,>(area: SupportedArea, success: T[]): T[] =>
   useIsAreaAvailable(area).status ? success : [];
 
 const useHomeNav = (): NavDataItem[] =>
-  useAreaCheck(SupportedArea.HOME, [{ id: 'home', label: 'Home', icon: <HomeIcon />, href: '/' }]);
+  useAreaCheck(SupportedArea.HOME, [{ id: 'home', label: 'Home', href: '/' }]);
 
 const useProjectsNav = (): NavDataItem[] =>
   useAreaCheck(SupportedArea.DS_PROJECTS_VIEW, [
-    { id: 'dsg', label: 'Projects', icon: <FolderIcon />, href: '/projects' },
-  ]);
-
-const useDistributedWorkloadsNav = (): NavDataHref[] =>
-  useAreaCheck(SupportedArea.DISTRIBUTED_WORKLOADS, [
-    { id: 'workloadMetrics', label: 'Distributed workloads', href: '/distributedWorkloads' },
+    { id: 'dsg', label: 'Projects', href: '/projects' },
   ]);
 
 const useDevelopAndTrainNav = (): NavDataItem[] => [
   {
     id: 'developAndTrain',
-    group: { id: 'developAndTrain', label: 'Develop and Train', icon: <ProcessAutomationIcon /> },
+    group: { id: 'developAndTrain', title: 'Develop and Train' },
     children: [
       { id: 'notebooks', label: 'Workbenches', href: '/workbenches' },
       { id: 'experimentsAndRuns', label: 'Experiments and runs', href: experimentsRootPath },
       { id: 'executions', label: 'Executions', href: executionsRootPath },
       { id: 'artifacts', label: 'Artifacts', href: artifactsRootPath },
-      ...useDistributedWorkloadsNav(),
     ],
   },
 ];
@@ -74,9 +56,9 @@ const useDevelopAndTrainNav = (): NavDataItem[] => [
 const useManageModelsNav = (): NavDataItem[] => [
   {
     id: 'manageModels',
-    group: { id: 'manageModels', label: 'Manage models', icon: <OutlinedAngryIcon /> },
+    group: { id: 'manageModels', title: 'Manage models' },
     children: [
-      { id: 'modelOverview', label: 'Model overview', href: '/modelOverview' },
+      { id: 'modelOverview', label: 'Model overview', href: '/model-overview' },
       { id: 'modelRegistry', label: 'Model registry', href: '/modelRegistry' },
       { id: 'modelDeployments', label: 'Model deployments', href: '/deployedModels' },
     ],
@@ -86,7 +68,7 @@ const useManageModelsNav = (): NavDataItem[] => [
 const useAutomateNav = (): NavDataItem[] => [
   {
     id: 'automate',
-    group: { id: 'automate', label: 'Automate', icon: <AutomationIcon /> },
+    group: { id: 'automate', title: 'Automate' },
     children: [{ id: 'pipelines', label: 'Pipelines', href: pipelinesRootPath }],
   },
 ];
@@ -94,18 +76,16 @@ const useAutomateNav = (): NavDataItem[] => [
 const useConfigureNav = (): NavDataItem[] => [
   {
     id: 'configure',
-    group: { id: 'configure', label: 'Configure', icon: <EnhancementIcon /> },
+    group: { id: 'configure', title: 'Configure' },
     children: [
-      { id: 'connections', label: 'Connections', href: '/connections' },
+      { id: 'connections', label: 'Connections', href: '/connectionTypes' },
       { id: 'clusterStorage', label: 'Cluster storage', href: '/clusterStorage' },
       { id: 'applications', label: 'Applications', href: '/applications' },
     ],
   },
 ];
 
-const useLearnNav = (): NavDataHref[] => [
-  { id: 'learn', label: 'Learn', icon: <CatalogIcon />, href: '/resources' },
-];
+const useLearnNav = (): NavDataHref[] => [{ id: 'learn', label: 'Learn', href: '/resources' }];
 
 const useCustomNotebooksNav = (): NavDataHref[] =>
   useAreaCheck<NavDataHref>(SupportedArea.BYON, [
@@ -132,11 +112,6 @@ const useAcceleratorProfilesNav = (): NavDataHref[] =>
     { id: 'accelerator-profiles', label: 'Accelerator profiles', href: '/acceleratorProfiles' },
   ]);
 
-const useConnectionTypesNav = (): NavDataHref[] =>
-  useAreaCheck<NavDataHref>(SupportedArea.CONNECTION_TYPES, [
-    { id: 'connection-types', label: 'Connection types', href: '/connectionTypes' },
-  ]);
-
 const useStorageClassesNav = (): NavDataHref[] =>
   useAreaCheck<NavDataHref>(SupportedArea.STORAGE_CLASSES, [
     { id: 'storage-classes', label: 'Storage classes', href: '/storageClasses' },
@@ -145,13 +120,12 @@ const useStorageClassesNav = (): NavDataHref[] =>
 const useSettingsNav = (): NavDataItem[] => [
   {
     id: 'settings',
-    group: { id: 'settings', label: 'Settings', icon: <CogIcon /> },
+    group: { id: 'settings', title: 'Settings' },
     children: [
       ...useCustomNotebooksNav(),
       ...useClusterSettingsNav(),
       ...useAcceleratorProfilesNav(),
       ...useCustomRuntimesNav(),
-      ...useConnectionTypesNav(),
       ...useStorageClassesNav(),
       ...useUserManagementNav(),
     ],

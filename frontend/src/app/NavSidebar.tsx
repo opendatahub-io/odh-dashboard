@@ -1,6 +1,8 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
+  Flex,
+  FlexItem,
   Nav,
   NavExpandable,
   NavItem,
@@ -20,7 +22,16 @@ const NavHref: React.FC<{ item: NavDataHref; pathname: string }> = ({ item, path
     itemId={item.id}
     isActive={checkLinkActiveStatus(pathname, item.href)}
   >
-    <Link to={item.href}>{item.label}</Link>
+    <Link to={item.href}>
+      {item.icon ? (
+        <Flex gap={{ default: 'gapXs' }}>
+          <FlexItem>{item.icon}</FlexItem>
+          <FlexItem>{item.label}</FlexItem>
+        </Flex>
+      ) : (
+        item.label
+      )}
+    </Link>
   </NavItem>
 );
 
@@ -41,12 +52,21 @@ const NavGroup: React.FC<{ item: NavDataGroup; pathname: string }> = ({ item, pa
       data-id={group.id}
       key={group.id}
       id={group.id}
-      title={group.title}
+      title={
+        group.icon ? (
+          <Flex gap={{ default: 'gapXs' }}>
+            <FlexItem>{group.icon}</FlexItem>
+            <FlexItem>{group.label}</FlexItem>
+          </Flex>
+        ) : (
+          group.label
+        )
+      }
       groupId={group.id}
       isActive={isActive}
       isExpanded={expanded}
       onExpand={(e, val) => setExpanded(val)}
-      aria-label={group.title}
+      aria-label={group.label}
     >
       {children.map((childItem) => (
         <NavHref key={childItem.id} data-id={childItem.id} item={childItem} pathname={pathname} />

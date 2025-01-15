@@ -113,7 +113,7 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
       const navToModels = () => {
         // Instead of calling navigate(), change tabs by changing the section query param to retain other query params.
         // This is how the GenericHorizontalBar component changes tabs internally.
-        queryParams.set('section', ProjectSectionID.MODEL_SERVER);
+        queryParams.set('section', ProjectSectionID.MODEL_DEPLOYMENTS);
         setQueryParams(queryParams);
       };
 

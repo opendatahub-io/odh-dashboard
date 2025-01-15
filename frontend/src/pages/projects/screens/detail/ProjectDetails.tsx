@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Breadcrumb, BreadcrumbItem, Flex, FlexItem } from '@patternfly/react-core';
-import { Link } from 'react-router-dom';
+import { Link, matchPath, useLocation } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import GenericHorizontalBar from '~/pages/projects/components/GenericHorizontalBar';
@@ -8,21 +8,23 @@ import ProjectSharing from '~/pages/projects/projectSharing/ProjectSharing';
 import ProjectSettingsPage from '~/pages/projects/projectSettings/ProjectSettingsPage';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
-import { useQueryParams } from '~/utilities/useQueryParams';
 import ModelServingPlatform from '~/pages/modelServing/screens/projects/ModelServingPlatform';
 import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { AccessReviewResourceAttributes } from '~/k8sTypes';
 import { useAccessReview } from '~/api';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import useConnectionTypesEnabled from '~/concepts/connectionTypes/useConnectionTypesEnabled';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import HeaderIcon from '~/concepts/design/HeaderIcon';
+import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import GenericVerticalBar from '~/pages/projects/components/GenericVerticalBar';
+import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
+import ProjectExperiments from '~/pages/projects/screens/detail/experiments/ProjectExperiments';
+import { PROJECT_DETAIL_ROUTES } from '~/routes';
 import useCheckLogoutParams from './useCheckLogoutParams';
 import ProjectOverview from './overview/ProjectOverview';
 import NotebookList from './notebooks/NotebookList';
 import StorageList from './storage/StorageList';
-import DataConnectionsList from './data-connections/DataConnectionsList';
 import ConnectionsList from './connections/ConnectionsList';
 import PipelinesSection from './pipelines/PipelinesSection';
 import ProjectActions from './ProjectActions';
@@ -37,15 +39,14 @@ const accessReviewResource: AccessReviewResourceAttributes = {
 
 const ProjectDetails: React.FC = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
+  const { altProjectNav } = React.useContext(ProjectsContext);
   const displayName = getDisplayNameFromK8sResource(currentProject);
   const description = getDescriptionFromK8sResource(currentProject);
   const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
   const projectSharingEnabled = useIsAreaAvailable(SupportedArea.DS_PROJECTS_PERMISSIONS).status;
   const pipelinesEnabled = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
   const modelServingEnabled = useModelServingEnabled();
-  const connectionTypesEnabled = useConnectionTypesEnabled();
-  const queryParams = useQueryParams();
-  const state = queryParams.get('section');
+  const location = useLocation();
   const [allowCreate, rbacLoaded] = useAccessReview({
     ...accessReviewResource,
     namespace: currentProject.metadata.name,
@@ -53,6 +54,55 @@ const ProjectDetails: React.FC = () => {
   const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
 
   useCheckLogoutParams();
+
+  const Component = altProjectNav ? GenericHorizontalBar : GenericVerticalBar;
+
+  const activeSection = React.useMemo(() => {
+    if (location.pathname) {
+      const pathPattern = PROJECT_DETAIL_ROUTES.find((pattern) =>
+        matchPath(pattern, location.pathname),
+      );
+
+      if (pathPattern) {
+        const patternSplits = pathPattern.split('/');
+        const sectionIndex = patternSplits.indexOf(':section?');
+        if (sectionIndex) {
+          const pathSplits = location.pathname.split('/');
+          return pathSplits[sectionIndex];
+        }
+      }
+    }
+    return undefined;
+  }, [location.pathname]);
+
+  const breadCrumbs = React.useMemo(() => {
+    const crumbs = [
+      <BreadcrumbItem
+        key="page"
+        render={() => <Link to="/projects">Data Science Projects</Link>}
+      />,
+    ];
+
+    if (location.pathname) {
+      const pathSplits = location.pathname.split('/');
+      for (let i = 2; i < pathSplits.length; i++) {
+        if (i === pathSplits.length - 1) {
+          crumbs.push(
+            <BreadcrumbItem key={pathSplits[i]} isActive>
+              {pathSplits[i]}
+            </BreadcrumbItem>,
+          );
+        } else {
+          crumbs.push(
+            <BreadcrumbItem
+              render={() => <Link to={pathSplits.slice(0, i + 1).join('/')}>{pathSplits[i]}</Link>}
+            />,
+          );
+        }
+      }
+    }
+    return crumbs;
+  }, [location.pathname]);
 
   return (
     <ApplicationsPage
@@ -67,25 +117,20 @@ const ProjectDetails: React.FC = () => {
         </Flex>
       }
       description={<div style={{ marginLeft: 40 }}>{description}</div>}
-      breadcrumb={
-        <Breadcrumb>
-          <BreadcrumbItem render={() => <Link to="/projects">Data Science Projects</Link>} />
-          <BreadcrumbItem isActive>{displayName}</BreadcrumbItem>
-        </Breadcrumb>
-      }
+      breadcrumb={<Breadcrumb>{breadCrumbs}</Breadcrumb>}
       loaded={rbacLoaded}
       empty={false}
       headerAction={<ProjectActions project={currentProject} />}
     >
-      <GenericHorizontalBar
-        activeKey={state}
+      <Component
+        activeKey={activeSection || ProjectSectionID.OVERVIEW}
         sections={[
           { id: ProjectSectionID.OVERVIEW, title: 'Overview', component: <ProjectOverview /> },
           ...(workbenchEnabled
             ? [
                 {
                   id: ProjectSectionID.WORKBENCHES,
-                  title: 'Workbenches',
+                  title: ProjectSectionTitles[ProjectSectionID.WORKBENCHES],
                   component: <NotebookList />,
                 },
               ]
@@ -93,46 +138,60 @@ const ProjectDetails: React.FC = () => {
           ...(pipelinesEnabled
             ? [
                 {
-                  id: ProjectSectionID.PIPELINES,
-                  title: 'Pipelines',
+                  id: ProjectSectionID.EXPERIMENTS_AND_RUNS,
+                  title: ProjectSectionTitles[ProjectSectionID.EXPERIMENTS_AND_RUNS],
+                  component: <ProjectExperiments />,
+                },
+                {
+                  id: ProjectSectionID.EXECUTIONS,
+                  title: ProjectSectionTitles[ProjectSectionID.EXECUTIONS],
+                  component: <PipelinesSection />,
+                },
+                {
+                  id: ProjectSectionID.ARTIFACTS,
+                  title: ProjectSectionTitles[ProjectSectionID.ARTIFACTS],
                   component: <PipelinesSection />,
                 },
               ]
             : []),
+          {
+            id: ProjectSectionID.DISTRIBUTED_WORKLOADS,
+            title: ProjectSectionTitles[ProjectSectionID.DISTRIBUTED_WORKLOADS],
+            component: <PipelinesSection />,
+          },
           ...(modelServingEnabled
             ? [
                 {
-                  id: ProjectSectionID.MODEL_SERVER,
-                  title: 'Models',
+                  id: ProjectSectionID.MODEL_DEPLOYMENTS,
+                  title: ProjectSectionTitles[ProjectSectionID.MODEL_DEPLOYMENTS],
                   component: <ModelServingPlatform />,
                 },
               ]
             : []),
-          {
-            id: ProjectSectionID.CLUSTER_STORAGES,
-            title: 'Cluster storage',
-            component: <StorageList />,
-          },
-          ...(connectionTypesEnabled
+          ...(pipelinesEnabled
             ? [
                 {
-                  id: ProjectSectionID.CONNECTIONS,
-                  title: 'Connections',
-                  component: <ConnectionsList />,
+                  id: ProjectSectionID.PIPELINES,
+                  title: ProjectSectionTitles[ProjectSectionID.PIPELINES],
+                  component: <PipelinesSection />,
                 },
               ]
-            : [
-                {
-                  id: ProjectSectionID.DATA_CONNECTIONS,
-                  title: 'Data connections',
-                  component: <DataConnectionsList />,
-                },
-              ]),
+            : []),
+          {
+            id: ProjectSectionID.CONNECTIONS,
+            title: ProjectSectionTitles[ProjectSectionID.CONNECTIONS],
+            component: <ConnectionsList />,
+          },
+          {
+            id: ProjectSectionID.CLUSTER_STORAGES,
+            title: ProjectSectionTitles[ProjectSectionID.CLUSTER_STORAGES],
+            component: <StorageList />,
+          },
           ...(projectSharingEnabled && allowCreate
             ? [
                 {
                   id: ProjectSectionID.PERMISSIONS,
-                  title: 'Permissions',
+                  title: ProjectSectionTitles[ProjectSectionID.PERMISSIONS],
                   component: <ProjectSharing />,
                 },
               ]
@@ -141,7 +200,7 @@ const ProjectDetails: React.FC = () => {
             ? [
                 {
                   id: ProjectSectionID.SETTINGS,
-                  title: 'Settings',
+                  title: ProjectSectionTitles[ProjectSectionID.SETTINGS],
                   component: <ProjectSettingsPage />,
                 },
               ]

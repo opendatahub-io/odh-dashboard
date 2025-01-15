@@ -29,7 +29,6 @@ const refreshNotebookState = (
 
 export const getNotebooksStates = (
   notebooks: NotebookKind[],
-  namespace: string,
 ): Promise<AdHocUpdate<NotebookState[]>> =>
   getNotebooksStatus(notebooks).then((state) => {
     const adhocUpdate: AdHocUpdate<NotebookState[]> = (lazySetState) => {
@@ -39,7 +38,10 @@ export const getNotebooksStates = (
           // Setup each one to be able to refresh later
           const refresh = () => {
             const notebookName = currentState.notebook.metadata.name;
-            return refreshNotebookState(notebookName, namespace).then((newState) => {
+            return refreshNotebookState(
+              notebookName,
+              currentState.notebook.metadata.namespace,
+            ).then((newState) => {
               lazySetState((notebookStates) => {
                 if (newState) {
                   // Replace just the object that got refreshed
@@ -75,7 +77,7 @@ const useProjectNotebookStates = (namespace?: string): FetchState<NotebookState[
     return new Promise((resolve, reject) => {
       getNotebooks(namespace)
         .then((notebooks) => {
-          getNotebooksStates(notebooks, namespace).then((updater) => resolve(updater));
+          getNotebooksStates(notebooks).then((updater) => resolve(updater));
         })
         .catch(reject);
     });

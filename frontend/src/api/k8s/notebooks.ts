@@ -211,6 +211,11 @@ export const getStopPatch = (): Patch => ({
   value: getStopPatchDataString(),
 });
 
+export const getAllNotebooks = (): Promise<NotebookKind[]> =>
+  k8sListResource<NotebookKind>({
+    model: NotebookModel,
+  }).then((listResource) => listResource.items);
+
 export const getNotebooks = (namespace: string): Promise<NotebookKind[]> =>
   k8sListResource<NotebookKind>({
     model: NotebookModel,

@@ -1,9 +1,11 @@
 import * as React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useProjects } from '~/api';
 import { FetchState } from '~/utilities/useFetchState';
 import { KnownLabels, ProjectKind } from '~/k8sTypes';
 import { useDashboardNamespace } from '~/redux/selectors';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { useBrowserStorage } from '~/components/browserStorage';
 import { isAvailableProject } from './utils';
 
 const projectSorter = (projectA: ProjectKind, projectB: ProjectKind) =>
@@ -28,6 +30,7 @@ type ProjectsContextType = {
   // ...the rest of the state variables
   loaded: ProjectFetchState[1];
   loadError: ProjectFetchState[2];
+  altProjectNav: boolean;
 };
 
 export const ProjectsContext = React.createContext<ProjectsContextType>({
@@ -39,11 +42,19 @@ export const ProjectsContext = React.createContext<ProjectsContextType>({
   loaded: false,
   loadError: new Error('Not in project provider'),
   waitForProject: () => Promise.resolve(),
+  altProjectNav: false,
 });
 
 /** Allow for name to be not passed; won't match, but ease of use. */
 type GetByName = (name?: string) => Parameters<Array<ProjectKind>['find']>[0];
 export const byName: GetByName = (name) => (project) => project.metadata.name === name;
+
+const ALT_NAV_PARAM = 'altNav';
+const POC_SESSION_KEY = 'odh-poc-flags';
+
+type PocConfigType = {
+  altNav?: boolean;
+};
 
 type ProjectsProviderProps = {
   children: React.ReactNode;
@@ -54,6 +65,36 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
     React.useState<ProjectsContextType['preferredProject']>(null);
   const [projectData, loaded, loadError] = useProjects();
   const { dashboardNamespace } = useDashboardNamespace();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [altProjectNav, setAltProjectNav] = React.useState<boolean>(false);
+  const firstLoad = React.useRef(true);
+  const [pocConfig, setPocConfig] = useBrowserStorage<PocConfigType | null>(
+    POC_SESSION_KEY,
+    null,
+    true,
+    true,
+  );
+
+  React.useEffect(() => {
+    if (firstLoad.current && pocConfig?.altNav) {
+      setAltProjectNav(true);
+    }
+    firstLoad.current = false;
+  }, [pocConfig]);
+
+  React.useEffect(() => {
+    if (searchParams.has(ALT_NAV_PARAM)) {
+      const updated = searchParams.get(ALT_NAV_PARAM) === 'true';
+      setAltProjectNav(updated);
+      setPocConfig({ altNav: updated });
+
+      // clean up query string
+      searchParams.delete(ALT_NAV_PARAM);
+      setSearchParams(searchParams, { replace: true });
+    }
+    // do not react to changes to setters
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const { projects, modelServingProjects, nonActiveProjects } = React.useMemo(
     () =>
@@ -126,6 +167,7 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
       loaded,
       loadError,
       waitForProject,
+      altProjectNav,
     }),
     [
       projects,
@@ -136,6 +178,7 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
       loaded,
       loadError,
       waitForProject,
+      altProjectNav,
     ],
   );
 
