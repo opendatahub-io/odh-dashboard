@@ -44,7 +44,8 @@
   }
 
   &__disabled-popover-title {
-    font-size: var(--pf-t--global--font--size--heading--h6);
+    font-size: var(--pf-t--global--font--size--heading--h7);
+    color: var(--pf-t--global--text--color--status--danger--default);
   }
 
   &__explore-badges {

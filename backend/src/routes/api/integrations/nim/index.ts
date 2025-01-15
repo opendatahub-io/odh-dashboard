@@ -7,6 +7,7 @@ import {
   createNIMAccount,
   manageNIMSecret,
   getNIMAccount,
+  errorMsgList,
   apiKeyValidationStatus,
   apiKeyValidationTimestamp,
   isAppEnabled,
@@ -25,13 +26,14 @@ module.exports = async (fastify: KubeFastifyInstance) => {
             const isEnabled = isAppEnabled(response);
             const keyValidationStatus: string = apiKeyValidationStatus(response);
             const keyValidationTimestamp: string = apiKeyValidationTimestamp(response);
+            const errorMsg: string = errorMsgList(response)[0];
             reply.send({
               isInstalled: true,
               isEnabled: isEnabled,
               variablesValidationStatus: keyValidationStatus,
               variablesValidationTimestamp: keyValidationTimestamp,
               canInstall: !isEnabled,
-              error: '',
+              error: errorMsg,
             });
           } else {
             // Not installed
