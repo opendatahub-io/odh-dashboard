@@ -14,13 +14,22 @@ import BiasConfigurationAlertPopover from './bias/BiasConfigurationPage/BiasConf
 import useMetricsPageEnabledTabs from './useMetricsPageEnabledTabs';
 import NIMTab from './nim/NimTab';
 import './MetricsPageTabs.scss';
+import useServingPlatformStatuses from '../../useServingPlatformStatuses';
+import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import { isProjectNIMSupported } from '../projects/nimUtils';
 
 type MetricsPageTabsProps = {
   model: InferenceServiceKind;
 };
 
 const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
+  const servingPlatformStatuses = useServingPlatformStatuses();
+  const isNIMAvailable = servingPlatformStatuses.kServeNIM.enabled;
+  const { projects } = React.useContext(ProjectsContext);
+  const project = projects.find(byName(model?.metadata.namespace)) ?? null;
   const enabledTabs = useMetricsPageEnabledTabs();
+  const isKServeNIMEnabled = project ? isProjectNIMSupported(project) : false;
+  const isNimEnabled = isNIMAvailable && isKServeNIMEnabled;
   const { biasMetricConfigs, statusState } = useModelBiasData();
   const [biasMetricsInstalled] = useDoesTrustyAICRExist();
   const performanceMetricsAreaAvailable = useIsAreaAvailable(
@@ -48,7 +57,7 @@ const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
     if (performanceMetricsAreaAvailable) {
       return <PerformanceTab model={model} />;
     }
-    if (nimMetricsAreaAvailable) {
+    if (nimMetricsAreaAvailable && isNimEnabled) {
       return <NIMTab model={model} />;
     }
 
@@ -83,7 +92,7 @@ const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
       )}
 
       {/* Add NIN metrics tab */}
-      {nimMetricsAreaAvailable && (
+      {nimMetricsAreaAvailable && isNimEnabled && (
         <Tab
           eventKey={MetricsTabKeys.NIM}
           title={<TabTitleText>NIM Metrics</TabTitleText>}
