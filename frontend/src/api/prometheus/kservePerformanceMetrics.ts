@@ -1,6 +1,8 @@
 import React from 'react';
-import { KserveMetricGraphDefinition } from '~/concepts/metrics/kserve/types';
-import { NimMetricGraphDefinition } from '~/concepts/metrics/kserve/types';
+import {
+  KserveMetricGraphDefinition,
+  NimMetricGraphDefinition,
+} from '~/concepts/metrics/kserve/types';
 import { defaultResponsePredicate } from '~/api/prometheus/usePrometheusQueryRange';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { TimeframeTitle } from '~/concepts/metrics/types';

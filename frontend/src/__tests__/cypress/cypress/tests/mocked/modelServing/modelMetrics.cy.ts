@@ -51,6 +51,8 @@ import {
   MOCK_KSERVE_METRICS_CONFIG_MISSING_QUERY,
   MOCK_NIM_METRICS_CONFIG_3,
   MOCK_NIM_METRICS_CONFIG_MISSING_QUERY,
+  MOCK_NIM_METRICS_CONFIG_MISSING_QUERY_2,
+  MOCK_NIM_METRICS_CONFIG_MISSING_QUERY_3,
   mockKserveMetricsConfigMap,
   mockNimMetricsConfigMap,
 } from '~/__mocks__/mockKserveMetricsConfigMap';
@@ -808,7 +810,7 @@ describe('KServe NIM metrics', () => {
       { statusCode: 404, body: mock404Error({}) },
     );
 
-    modelMetricsKserveNim.visit('test-project', 'test-inference-service');
+    modelMetricsKserveNim.visit('tomer-test-2', 'nim-deploy');
     modelMetricsKserveNim.findUnknownErrorCard().should('be.visible');
   });
 
@@ -912,6 +914,58 @@ describe('KServe NIM metrics', () => {
     modelMetricsKserveNim.getAllMetricsCharts().should('have.length', 2);
     modelMetricsKserveNim.getMetricsChart('GPU cache usage over time').shouldHaveNoData();
     modelMetricsKserveNim.getMetricsChart('Tokens count').shouldHaveNoData();
+  });
+
+  it('charts should not error out if a query is missing and there is other data', () => {
+    initIntercepts({
+      disableTrustyBiasMetrics: false,
+      disablePerformanceMetrics: false,
+      disableKServeMetrics: false,
+      disableNIMModelServing: false,
+      hasServingData: true,
+      hasBiasData: false,
+      inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
+    });
+
+    cy.interceptK8s(
+      ConfigMapModel,
+      mockNimMetricsConfigMap({ config: MOCK_NIM_METRICS_CONFIG_MISSING_QUERY_2 }),
+    );
+
+    modelMetricsKserveNim.visit('test-project', 'test-inference-service');
+    modelMetricsKserveNim.getAllMetricsCharts().should('have.length', 4);
+    modelMetricsKserveNim.getMetricsChart('GPU cache usage over time').shouldHaveData();
+    modelMetricsKserveNim.getMetricsChart('Requests outcomes').shouldHaveData();
+    modelMetricsKserveNim
+      .getMetricsChart('Current running, waiting, and max requests count')
+      .shouldHaveData();
+    modelMetricsKserveNim.getMetricsChart('Tokens count').shouldHaveData();
+  });
+
+  it('charts should not error out if a query is missing and there is other data', () => {
+    initIntercepts({
+      disableTrustyBiasMetrics: false,
+      disablePerformanceMetrics: false,
+      disableKServeMetrics: false,
+      disableNIMModelServing: false,
+      hasServingData: true,
+      hasBiasData: false,
+      inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
+    });
+
+    cy.interceptK8s(
+      ConfigMapModel,
+      mockNimMetricsConfigMap({ config: MOCK_NIM_METRICS_CONFIG_MISSING_QUERY_3 }),
+    );
+
+    modelMetricsKserveNim.visit('test-project', 'test-inference-service');
+    modelMetricsKserveNim.getAllMetricsCharts().should('have.length', 4);
+    modelMetricsKserveNim.getMetricsChart('GPU cache usage over time').shouldHaveData();
+    modelMetricsKserveNim.getMetricsChart('Requests outcomes').shouldHaveData();
+    modelMetricsKserveNim
+      .getMetricsChart('Current running, waiting, and max requests count')
+      .shouldHaveData();
+    modelMetricsKserveNim.getMetricsChart('Tokens count').shouldHaveData();
   });
 
   it('charts should show data when serving data is available', () => {

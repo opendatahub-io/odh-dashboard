@@ -48,7 +48,7 @@ class ModelMetricsPerformance extends ModelMetricsGlobal {
 
 class ModelMetricsNim extends ModelMetricsGlobal {
   visit(project: string, model: string) {
-    cy.visitWithLogin(`/modelServing/${project}/metrics/${model}/nim`);
+    cy.visitWithLogin(`/modelServing/${project}/metrics/${model}/performance`);
     this.wait();
   }
 

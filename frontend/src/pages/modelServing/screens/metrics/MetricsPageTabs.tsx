@@ -8,15 +8,15 @@ import useDoesTrustyAICRExist from '~/concepts/trustyai/context/useDoesTrustyAIC
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { InferenceServiceKind } from '~/k8sTypes';
 import { TrustyInstallState } from '~/concepts/trustyai/types';
+import './MetricsPageTabs.scss';
+import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
+import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
+import useMetricsPageEnabledTabs from './useMetricsPageEnabledTabs';
+import BiasConfigurationAlertPopover from './bias/BiasConfigurationPage/BiasConfigurationAlertPopover';
 import PerformanceTab from './performance/PerformanceTab';
 import BiasTab from './bias/BiasTab';
-import BiasConfigurationAlertPopover from './bias/BiasConfigurationPage/BiasConfigurationAlertPopover';
-import useMetricsPageEnabledTabs from './useMetricsPageEnabledTabs';
 import NIMTab from './nim/NimTab';
-import './MetricsPageTabs.scss';
-import useServingPlatformStatuses from '../../useServingPlatformStatuses';
-import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import { isProjectNIMSupported } from '../projects/nimUtils';
 
 type MetricsPageTabsProps = {
   model: InferenceServiceKind;
@@ -26,7 +26,7 @@ const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
   const servingPlatformStatuses = useServingPlatformStatuses();
   const isNIMAvailable = servingPlatformStatuses.kServeNIM.enabled;
   const { projects } = React.useContext(ProjectsContext);
-  const project = projects.find(byName(model?.metadata.namespace)) ?? null;
+  const project = projects.find(byName(model.metadata.namespace)) ?? null;
   const enabledTabs = useMetricsPageEnabledTabs();
   const isKServeNIMEnabled = project ? isProjectNIMSupported(project) : false;
   const isNimEnabled = isNIMAvailable && isKServeNIMEnabled;

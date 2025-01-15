@@ -5,7 +5,7 @@ import { InferenceServiceKind } from '~/k8sTypes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { isModelMesh } from '~/pages/modelServing/utils';
 import MetricsPageToolbar from '~/concepts/metrics/MetricsPageToolbar';
-import ModelGraphs from '~/pages/modelServing/screens/metrics/nim/ModelGraphs';
+import NimMetrics from './NimMetrics';
 
 type NIMTabProps = {
   model: InferenceServiceKind;
@@ -37,7 +37,7 @@ const NIMTab: React.FC<NIMTabProps> = ({ model }) => {
         <MetricsPageToolbar />
       </StackItem>
       <PageSection hasBodyWrapper={false} isFilled>
-        <ModelGraphs model={model} />
+        <NimMetrics modelName={model.metadata.name} />
       </PageSection>
     </Stack>
   );
