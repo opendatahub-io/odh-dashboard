@@ -1,8 +1,8 @@
-// Import necessary functions and types
 import { createOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { createDataConnection } from '~/__tests__/cypress/cypress/utils/oc_commands/dataConnection';
 import { createDSPASecret, createDSPA } from '~/__tests__/cypress/cypress/utils/oc_commands/dspa';
 import { AWS_BUCKETS } from '~/__tests__/cypress/cypress/utils/s3Buckets';
+import { AWSS3Buckets } from '../types';
 import type {
   DataConnectionReplacements,
   DspaSecretReplacements,
@@ -21,8 +21,15 @@ export const provisionProjectForPipelines = (
   dspaSecretName: string,
   bucketKey: 'BUCKET_2' | 'BUCKET_3'
 ): void => {
-  // Get bucket configuration based on the bucket key
+  cy.log(`Provisioning project with bucket key: ${bucketKey}`);
+  cy.log(`AWS_BUCKETS: ${JSON.stringify(AWS_BUCKETS)}`);
+
   const bucketConfig = AWS_BUCKETS[bucketKey];
+  cy.log(`Bucket config: ${JSON.stringify(bucketConfig)}`);
+
+  if (!bucketConfig) {
+    throw new Error(`Bucket configuration not found for key: ${bucketKey}`);
+  }
 
   // Provision a Project
   createOpenShiftProject(projectName);

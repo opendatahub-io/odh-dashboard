@@ -5,14 +5,23 @@ import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { LDAP_CONTRIBUTOR_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import { modelServingGlobal } from '~/__tests__/cypress/cypress/pages/modelServing';
+import { AWS_BUCKETS } from '~/__tests__/cypress/cypress/utils/s3Buckets';
+import { cypressEnv } from '~/__tests__/cypress/cypress/utils/testConfig';
+const { AWS_PIPELINES } = cypressEnv;
 
 let testData: DataScienceProjectData;
 let projectName: string;
 let contributor: string;
 const dspaSecretName = 'dashboard-dspa-secret';
+const awsBucket = 'BUCKET_3' as const;
 
 describe('Verify Model Creation and Validation using the UI', () => {
     before(() => {
+      cy.log(`bucketKey: ${awsBucket}`);
+    cy.log(`AWS_PIPELINES: ${JSON.stringify(AWS_PIPELINES)}`);
+    cy.log(`bucketConfig: ${JSON.stringify(AWS_PIPELINES[awsBucket])}`);
+
+
     return loadDSPFixture('e2e/dataScienceProjects/testModelSingleServingCreation.yaml')
       .then((fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
@@ -24,7 +33,7 @@ describe('Verify Model Creation and Validation using the UI', () => {
         }
         cy.log(`Loaded project name: ${projectName}`);
         // Create a Project for pipelines
-        provisionProjectForPipelines(projectName, dspaSecretName, 'BUCKET_3');
+        provisionProjectForPipelines(projectName, dspaSecretName, awsBucket);
         addUserToProject(projectName, contributor, 'edit');
       });
     });
