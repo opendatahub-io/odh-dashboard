@@ -23,8 +23,6 @@ import InferenceServiceEndpoint from '~/pages/modelServing/screens/global/Infere
 import TypeBorderedCard from '~/concepts/design/TypeBorderedCard';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas/';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
 
 interface DeployedModelCardProps {
   inferenceService: InferenceServiceKind;
@@ -38,11 +36,7 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
   const navigate = useNavigate();
   const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
   const modelMesh = isModelMesh(inferenceService);
-  const { currentProject } = React.useContext(ProjectDetailsContext);
-  const isKServeNIMEnabled = isProjectNIMSupported(currentProject);
-
-  const modelMetricsSupported =
-    modelMetricsEnabled && (modelMesh || kserveMetricsEnabled) && !isKServeNIMEnabled;
+  const modelMetricsSupported = modelMetricsEnabled && (modelMesh || kserveMetricsEnabled);
 
   const inferenceServiceDisplayName = getDisplayNameFromK8sResource(inferenceService);
 

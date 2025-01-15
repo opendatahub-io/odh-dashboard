@@ -46,7 +46,39 @@ class ModelMetricsPerformance extends ModelMetricsGlobal {
   }
 }
 
+class ModelMetricsNim extends ModelMetricsGlobal {
+  visit(project: string, model: string) {
+    cy.visitWithLogin(`/modelServing/${project}/metrics/${model}/performance`);
+    this.wait();
+  }
+
+  protected wait() {
+    cy.findByTestId('nim-metrics-loaded');
+    cy.testA11y();
+  }
+
+  findTab() {
+    return {
+      nimTab: cy.findByTestId('nim-tab'),
+    };
+  }
+}
+
 class ModelMetricsKserve extends ModelMetricsPerformance {
+  findKserveAreaDisabledCard() {
+    return cy.findByTestId('kserve-metrics-disabled');
+  }
+
+  findUnsupportedRuntimeCard() {
+    return cy.findByTestId('kserve-metrics-runtime-unsupported');
+  }
+
+  findUnknownErrorCard() {
+    return cy.findByTestId('kserve-unknown-error');
+  }
+}
+
+class ModelMetricsKserveNim extends ModelMetricsNim {
   findKserveAreaDisabledCard() {
     return cy.findByTestId('kserve-metrics-disabled');
   }
@@ -199,8 +231,10 @@ class ConfigureBiasMetricModal extends Modal {
 }
 
 export const modelMetricsPerformance = new ModelMetricsPerformance();
+export const modelMetricsNim = new ModelMetricsNim();
 export const modelMetricsBias = new ModelMetricsBias();
 export const serverMetrics = new ServerMetrics();
 export const modelMetricsConfigureSection = new ModelMetricsConfigureSection();
 export const configureBiasMetricModal = new ConfigureBiasMetricModal();
 export const modelMetricsKserve = new ModelMetricsKserve();
+export const modelMetricsKserveNim = new ModelMetricsKserveNim();

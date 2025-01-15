@@ -144,11 +144,254 @@ export const MOCK_KSERVE_METRICS_CONFIG_3 = `
   ]
 }`;
 
+// NVIDIA NIM
+export const MOCK_NIM_METRICS_CONFIG_1 = `{
+  "config": [
+    {
+      "title": "GPU cache usage over time",
+      "type": "KV_CACHE",
+      "queries": [
+        {
+          "title": "GPU cache usage over time",
+          "query": "sum_over_time(gpu_cache_usage_perc{namespace='tomer-test-2', pod=~'nim-deploy-predictor-.*'}[24h])"
+        }
+      ]
+    },
+    {
+      "title": "Current running, waiting, and max requests count",
+      "type": "CURRENT_REQUESTS",
+      "queries": [
+        {
+          "title": "Requests waiting",
+          "query": "num_requests_waiting{namespace='tomer-test-2', pod=~'nim-deploy-predictor-.*'}"
+        },
+        {
+          "title": "Requests running",
+          "query": "num_requests_running{namespace='tomer-test-2', pod=~'nim-deploy-predictor-.*'}"
+        },
+        {
+          "title": "Max requests",
+          "query": "num_request_max{namespace='tomer-test-2', pod=~'nim-deploy-predictor-.*'}"
+        }
+      ]
+    },
+    {
+      "title": "Tokens count",
+      "type": "TOKENS_COUNT",
+      "queries": [
+        {
+          "title": "Total prompts token",
+          "query": "round(rate(prompt_tokens_total{namespace='tomer-test-2', pod=~'nim-deploy-predictor-.*'}[1m]))"
+        },
+        {
+          "title": "Total generation token",
+          "query": "round(rate(generation_tokens_total{namespace='tomer-test-2', pod=~'nim-deploy-predictor-.*'}[1m]))"
+        }
+      ]
+    },
+    {
+      "title": "Time to first token",
+      "type": "TIME_TO_FIRST_TOKEN",
+      "queries": [
+        {
+          "title": "Time to first token",
+          "query": "rate(time_to_first_token_seconds_sum{namespace='tomer-test-2', pod=~'nim-deploy-predictor-.*'}[1m])"
+        }
+      ]
+    },
+    {
+      "title": "Time per output token",
+      "type": "TIME_PER_OUTPUT_TOKEN",
+      "queries": [
+        {
+          "title": "Time per output token",
+          "query": "rate(time_per_output_token_seconds_sum{namespace='tomer-test-2', pod=~'nim-deploy-predictor-.*'}[1m])"
+        }
+      ]
+    },
+    {
+      "title": "Requests outcomes",
+      "type": "REQUEST_OUTCOMES",
+      "queries": [
+        {
+          "title": "Number of successful incoming requests",
+          "query": "round(sum(increase(request_success_total{namespace='tomer-test-2', pod=~'nim-deploy-predictor-.*'}[5m])))"
+        },
+        {
+          "title": "Number of failed incoming requests",
+          "query": "round(sum(increase(request_failure_total{namespace='tomer-test-2', pod=~'nim-deploy-predictor-.*'}[5m])))"
+        }
+      ]
+    }
+  ]
+}`;
+
+export const MOCK_NIM_METRICS_CONFIG_3 = `{
+  "config": [
+    {
+      "title": "GPU cache usage over time",
+      "type": "KV_CACHE",
+      "queries": [
+        {
+          "title": "GPU cache usage over time",
+          "query": "sum_over_time(gpu_cache_usage_perc{namespace='tomer-test-2', pod=~'nim-deploy-predictor-.*'}[24h])"
+        }
+      ]
+    },
+    {
+      "title": "Current running, waiting, and max requests count",
+      "type": "CURRENT_REQUESTS",
+      "queries": [
+        {
+          "title": "Requests waiting",
+          "query": "num_requests_waiting{namespace='tomer-test-2', pod=~'nim-deploy-predictor-.*'}"
+        },
+        {
+          "title": "Requests running",
+          "query": "num_requests_running{namespace='tomer-test-2', pod=~'nim-deploy-predictor-.*'}"
+        },
+        {
+          "title": "Max requests",
+          "query": "num_request_max{namespace='tomer-test-2', pod=~'nim-deploy-predictor-.*'}"
+        }
+      ]
+    }
+  ]
+}`;
+
+export const MOCK_NIM_METRICS_CONFIG_MISSING_QUERY = `{
+  "config": [
+    {
+      "title": "GPU cache usage over time",
+      "type": "KV_CACHE",
+      "queries": [
+        {
+          "title": "GPU cache usage over time",
+          "query": "sum_over_time(gpu_cache_usage_perc{namespace='tomer-test-2', pod=~'nim-deploy-predictor-.*'}[24h])"
+        }
+      ]
+    },
+        {
+      "title": "Tokens count",
+      "type": "TOKENS_COUNT",
+      "queries": [
+        {
+          "title": "Total prompts token",
+          "query": "round(rate(prompt_tokens_total{namespace='tomer-test-2', pod=~'nim-deploy-predictor-.*'}[1m]))"
+        }
+      ]
+    }
+  ]
+}`;
+
+export const MOCK_NIM_METRICS_CONFIG_MISSING_QUERY_2 = `{
+  "config": [
+    {
+      "title": "GPU cache usage over time",
+      "type": "KV_CACHE",
+      "queries": [
+        {
+          "title": "GPU cache usage over time",
+          "query": "sum_over_time(gpu_cache_usage_perc{namespace='tomer-test-2', pod=~'nim-deploy-predictor-.*'}[24h])"
+        }
+      ]
+    },
+    {
+      "title": "Requests outcomes",
+      "type": "REQUEST_OUTCOMES",
+      "queries": [
+        {
+          "title": "Number of failed incoming requests",
+          "query": "round(sum(increase(request_failure_total{namespace='tomer-test-2', pod=~'nim-deploy-predictor-.*'}[5m])))"
+        }
+      ]
+    },
+    {
+      "title": "Current running, waiting, and max requests count",
+      "type": "CURRENT_REQUESTS",
+      "queries": [
+        {
+          "title": "Requests running",
+          "query": "num_requests_running{namespace='tomer-test-2', pod=~'nim-deploy-predictor-.*'}"
+        }
+      ]
+    },
+    {
+      "title": "Tokens count",
+      "type": "TOKENS_COUNT",
+      "queries": [
+        {
+          "title": "Total generation token",
+          "query": "round(rate(generation_tokens_total{namespace='tomer-test-2', pod=~'nim-deploy-predictor-.*'}[1m]))"
+        }
+      ]
+    }
+  ]
+}`;
+
+export const MOCK_NIM_METRICS_CONFIG_MISSING_QUERY_3 = `{
+  "config": [
+    {
+      "title": "GPU cache usage over time",
+      "type": "KV_CACHE",
+      "queries": [
+        {
+          "title": "GPU cache usage over time",
+          "query": "sum_over_time(gpu_cache_usage_perc{namespace='tomer-test-2', pod=~'nim-deploy-predictor-.*'}[24h])"
+        }
+      ]
+    },
+    {
+      "title": "Requests outcomes",
+      "type": "REQUEST_OUTCOMES",
+      "queries": [
+        {
+          "title": "Number of successful incoming requests",
+          "query": "round(sum(increase(request_success_total{namespace='tomer-test-2', pod=~'nim-deploy-predictor-.*'}[5m])))"
+        }
+      ]
+    },
+    {
+      "title": "Current running, waiting, and max requests count",
+      "type": "CURRENT_REQUESTS",
+      "queries": [
+        {
+          "title": "Max requests",
+          "query": "num_request_max{namespace='tomer-test-2', pod=~'nim-deploy-predictor-.*'}"
+        }
+      ]
+    },
+    {
+      "title": "Tokens count",
+      "type": "TOKENS_COUNT",
+      "queries": [
+        {
+          "title": "Total prompts token",
+          "query": "round(rate(prompt_tokens_total{namespace='tomer-test-2', pod=~'nim-deploy-predictor-.*'}[1m]))"
+        }
+      ]
+    }
+  ]
+}`;
+
 export const mockKserveMetricsConfigMap = ({
   namespace = 'test-project',
   modelName = 'test-inference-service',
   supported = true,
   config = MOCK_KSERVE_METRICS_CONFIG_1,
+}: MockKserveMetricsConfigMapType): ConfigMapKind => {
+  const data = {
+    metrics: config,
+    supported: String(supported),
+  };
+  return mockConfigMap({ data, namespace, name: `${modelName}-metrics-dashboard` });
+};
+
+export const mockNimMetricsConfigMap = ({
+  namespace = 'test-project',
+  modelName = 'test-inference-service',
+  supported = true,
+  config = MOCK_NIM_METRICS_CONFIG_1,
 }: MockKserveMetricsConfigMapType): ConfigMapKind => {
   const data = {
     metrics: config,

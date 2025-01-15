@@ -1,7 +1,8 @@
-import { KserveMetricsGraphTypes } from '~/concepts/metrics/kserve/const';
+import { KserveMetricsGraphTypes, NimMetricsGraphTypes } from '~/concepts/metrics/kserve/const';
 import {
   isKserveMetricsConfigMapKind,
   isValidKserveMetricsDataObject,
+  isValidNimMetricsDataObject,
 } from '~/concepts/metrics/kserve/utils';
 import { mockConfigMap } from '~/__mocks__/mockConfigMap';
 
@@ -116,5 +117,69 @@ describe('isValidKserveMetricsDataObject', () => {
     expect(isValidKserveMetricsDataObject(true)).toBe(false);
     expect(isValidKserveMetricsDataObject(false)).toBe(false);
     expect(isValidKserveMetricsDataObject(1)).toBe(false);
+  });
+});
+
+describe('isValidNimMetricsDataObject', () => {
+  it('should return true when given a valid value', () => {
+    expect(
+      isValidNimMetricsDataObject({
+        config: [
+          {
+            title: 'Requests outcomes',
+            type: NimMetricsGraphTypes.REQUEST_OUTCOMES,
+            queries: [
+              {
+                title: 'Number of successful incoming requests',
+                query: 'prometheus query',
+              },
+              {
+                title: 'Number of failed incoming requests',
+                query: 'prometheus query',
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it('should return false when given an invalid value', () => {
+    expect(
+      isValidNimMetricsDataObject({
+        cats: [
+          {
+            title: 'Requests outcomes',
+            type: NimMetricsGraphTypes.REQUEST_OUTCOMES,
+            queries: [
+              {
+                title: 'Number of successful incoming requests',
+                query: 'prometheus query',
+              },
+              {
+                title: 'Number of failed incoming requests',
+                query: 'prometheus query',
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(false);
+
+    expect(
+      isValidNimMetricsDataObject({
+        config: [],
+      }),
+    ).toBe(false);
+  });
+
+  it('should return false when given an insane value', () => {
+    expect(isValidNimMetricsDataObject(null)).toBe(false);
+    expect(isValidNimMetricsDataObject(undefined)).toBe(false);
+    expect(isValidNimMetricsDataObject({})).toBe(false);
+    expect(isValidNimMetricsDataObject([])).toBe(false);
+    expect(isValidNimMetricsDataObject(true)).toBe(false);
+    expect(isValidNimMetricsDataObject(false)).toBe(false);
+    expect(isValidNimMetricsDataObject(1)).toBe(false);
   });
 });

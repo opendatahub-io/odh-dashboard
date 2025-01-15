@@ -15,6 +15,7 @@ import {
   Chart,
   ChartArea,
   ChartAxis,
+  ChartDonut,
   ChartGroup,
   ChartLegendTooltip,
   ChartLine,
@@ -77,7 +78,6 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
   const [tooltipTitle, setTooltipTitle] = React.useState(
     convertTimestamp(Date.now(), formatToShow(currentTimeframe)),
   );
-
   const {
     data: graphLines,
     maxYValue,
@@ -93,7 +93,6 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
           const newMinYValue = Math.min(...lineValues.map((v) => v.y));
           const newMaxXValue = Math.max(...lineValues.map((v) => v.x));
           const newMinXValue = Math.min(...lineValues.map((v) => v.x));
-
           return {
             data: [...acc.data, { points: lineValues, name: metric.name }],
             maxYValue: Math.max(acc.maxYValue, newMaxYValue),
@@ -106,13 +105,10 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
       ),
     [metrics],
   );
-
   const error = metrics.find((line) => line.metric.error)?.metric.error;
   const isAllLoaded = error || metrics.every((line) => line.metric.loaded);
   const hasSomeData = graphLines.some((line) => line.points.length > 0);
-
   const ChartGroupWrapper = React.useMemo(() => (isStack ? ChartStack : ChartGroup), [isStack]);
-
   React.useEffect(() => {
     const ref = bodyRef.current;
     let observer: ReturnType<typeof getResizeObserver> = () => undefined;
@@ -125,7 +121,6 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
     }
     return () => observer();
   }, []);
-
   const handleCursorChange = React.useCallback(
     (xValue: number) => {
       if (!xValue) {
@@ -140,7 +135,6 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
     },
     [minXValue, currentTimeframe, maxXValue],
   );
-
   let legendProps: Partial<React.ComponentProps<typeof Chart>> = {};
   let containerComponent;
   if (metrics.length > 1 && metrics.every(({ name }) => !!name)) {
@@ -170,7 +164,6 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
       />
     );
   }
-
   return (
     <Card data-testid={`metrics-card-${title}`}>
       <CardHeader
@@ -189,7 +182,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
           {hasSomeData ? (
             <Chart
               ariaTitle={title}
-              containerComponent={containerComponent}
+              containerComponent={type !== MetricsChartTypes.DONUT ? containerComponent : undefined}
               domain={domain(maxYValue, minYValue)}
               height={400}
               width={chartWidth}
@@ -198,6 +191,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
               theme={theme}
               hasPatterns={hasPatterns}
               data-testid="metrics-chart-has-data"
+              showAxis={type !== MetricsChartTypes.DONUT}
               {...legendProps}
             >
               <ChartAxis
@@ -221,6 +215,21 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
                       );
                     case MetricsChartTypes.LINE:
                       return <ChartLine key={i} data={line.points} name={line.name} />;
+                    case MetricsChartTypes.DONUT:
+                      return (
+                        <ChartDonut
+                          key={i}
+                          legendData={legendProps.legendData}
+                          legendOrientation="vertical"
+                          legendPosition="right"
+                          data={line.points}
+                          name={line.name}
+                          containerComponent={containerComponent}
+                          labels={({ datum }) => `${datum.name}: ${datum.y}`}
+                          constrainToVisibleArea
+                          themeColor={metrics[i]?.color}
+                        />
+                      );
                     default:
                       return null;
                   }
@@ -260,5 +269,4 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
     </Card>
   );
 };
-
 export default MetricsChart;

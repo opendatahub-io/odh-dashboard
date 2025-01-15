@@ -8,24 +8,35 @@ import useDoesTrustyAICRExist from '~/concepts/trustyai/context/useDoesTrustyAIC
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { InferenceServiceKind } from '~/k8sTypes';
 import { TrustyInstallState } from '~/concepts/trustyai/types';
+import './MetricsPageTabs.scss';
+import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
+import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
+import useMetricsPageEnabledTabs from './useMetricsPageEnabledTabs';
+import BiasConfigurationAlertPopover from './bias/BiasConfigurationPage/BiasConfigurationAlertPopover';
 import PerformanceTab from './performance/PerformanceTab';
 import BiasTab from './bias/BiasTab';
-import BiasConfigurationAlertPopover from './bias/BiasConfigurationPage/BiasConfigurationAlertPopover';
-import useMetricsPageEnabledTabs from './useMetricsPageEnabledTabs';
-
-import './MetricsPageTabs.scss';
+import NIMTab from './nim/NimTab';
 
 type MetricsPageTabsProps = {
   model: InferenceServiceKind;
 };
 
 const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
+  const servingPlatformStatuses = useServingPlatformStatuses();
+  const isNIMAvailable = servingPlatformStatuses.kServeNIM.enabled;
+  const { projects } = React.useContext(ProjectsContext);
+  const project = projects.find(byName(model.metadata.namespace)) ?? null;
   const enabledTabs = useMetricsPageEnabledTabs();
+  const isKServeNIMEnabled = project ? isProjectNIMSupported(project) : false;
+  const isNimEnabled = isNIMAvailable && isKServeNIMEnabled;
   const { biasMetricConfigs, statusState } = useModelBiasData();
   const [biasMetricsInstalled] = useDoesTrustyAICRExist();
   const performanceMetricsAreaAvailable = useIsAreaAvailable(
     SupportedArea.PERFORMANCE_METRICS,
   ).status;
+  //check availability of NIM metrics
+  const nimMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.NIM_MODEL).status;
   const { tab } = useParams<{ tab: MetricsTabKeys }>();
   const navigate = useNavigate();
 
@@ -41,10 +52,19 @@ const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
     return <NotFound />;
   }
 
+  //Display only one tab that is available
   if (enabledTabs.length === 1) {
-    return performanceMetricsAreaAvailable ? <PerformanceTab model={model} /> : <BiasTab />;
+    if (performanceMetricsAreaAvailable) {
+      return <PerformanceTab model={model} />;
+    }
+    if (nimMetricsAreaAvailable && isNimEnabled) {
+      return <NIMTab model={model} />;
+    }
+
+    return <BiasTab />;
   }
 
+  //Display multiple available tabs
   return (
     <Tabs
       activeKey={tab}
@@ -70,6 +90,20 @@ const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
           <PerformanceTab model={model} />
         </Tab>
       )}
+
+      {/* Add NIN metrics tab */}
+      {nimMetricsAreaAvailable && isNimEnabled && (
+        <Tab
+          eventKey={MetricsTabKeys.NIM}
+          title={<TabTitleText>NIM Metrics</TabTitleText>}
+          aria-label="Nim tab"
+          className="odh-metrics-page-tabs__content"
+          data-testid="nim-tab"
+        >
+          <NIMTab model={model} />
+        </Tab>
+      )}
+
       {biasMetricsInstalled && (
         <Tab
           eventKey={MetricsTabKeys.BIAS}
