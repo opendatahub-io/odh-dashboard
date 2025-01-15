@@ -90,9 +90,7 @@ describe('Workbench and PVSs tests', () => {
 
       cy.step(`Check the cluster storage ${PVCDisplayName} is now connected to ${workbenchName}`);
       projectDetails.findSectionTab('cluster-storages').click();
-      // TODO: Bug RHOAIENG-16239
-      // const csRow = clusterStorage.getClusterStorageRow(PVCDisplayName);
-      const csRow = clusterStorage.getClusterStorageRow(PVCName);
+      const csRow = clusterStorage.getClusterStorageRow(PVCDisplayName);
       csRow.findConnectedWorkbenches().should('have.text', workbenchName);
     },
   );
