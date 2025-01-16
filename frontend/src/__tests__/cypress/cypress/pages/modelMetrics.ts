@@ -53,8 +53,6 @@ class ModelMetricsNim extends ModelMetricsGlobal {
   }
 
   protected wait() {
-    // TODO this is not loaded for some reason, do we need this?
-    // cy.findByTestId('nim-metrics-loaded');
     cy.testA11y();
   }
 
