@@ -4,9 +4,10 @@ import { addUserToProject, deleteOpenShiftProject } from "~/__tests__/cypress/cy
 import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { LDAP_CONTRIBUTOR_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
-import { modelServingGlobal } from '~/__tests__/cypress/cypress/pages/modelServing';
+import { modelServingGlobal, createServingRuntimeModal, modelServingSection, inferenceServiceModal } from '~/__tests__/cypress/cypress/pages/modelServing';
 import { AWS_BUCKETS } from '~/__tests__/cypress/cypress/utils/s3Buckets';
 import { cypressEnv } from '~/__tests__/cypress/cypress/utils/testConfig';
+import { ServingRuntimeModel } from '~/api';
 const { AWS_PIPELINES } = cypressEnv;
 
 let testData: DataScienceProjectData;
@@ -33,14 +34,14 @@ describe('Verify Model Creation and Validation using the UI', () => {
         }
         cy.log(`Loaded project name: ${projectName}`);
         // Create a Project for pipelines
-        provisionProjectForPipelines(projectName, dspaSecretName, awsBucket);
+        provisionProjectForPipelines(projectName, dspaSecretName, awsBucket, 'resources/yaml/data_connection_model_serving.yaml');
         addUserToProject(projectName, contributor, 'edit');
       });
     });
-      // after(() => {
-      //   // Delete provisioned Project
-      //   deleteOpenShiftProject(projectName);
-      // });
+      //  after(() => {
+      //    // Delete provisioned Project
+      //    deleteOpenShiftProject(projectName);
+       //});
    
     it('Verify that a Non Admin can Serve and Query a Model using the UI',
     { tags: ['@Smoke', '@SmokeSet2', '@ODS-2552', '@Dashboard'] },
@@ -57,9 +58,34 @@ describe('Verify Model Creation and Validation using the UI', () => {
     projectListPage.filterProjectByName(testData.projectSingleModelResourceName);
     projectListPage.findProjectLink(testData.projectSingleModelResourceName).click();
     projectDetails.findSectionTab('model-server').click();
-    cy.get('[data-testid="single-serving-select-button"]').click();
-    //cy.get('[data-testid="deploy-button"]').click();
+    modelServingGlobal.findSingleServingModelButton().click();
     modelServingGlobal.findDeployModelButton().click();
+    inferenceServiceModal.findModelNameInput().type('test-model1234');
+
+
+      // Click on <button> "Caikit TGIS ServingRuntim..."
+  cy.get('[data-testid="serving-runtime-template-selection"]').click();
+
+  // Click on <span> "OpenVINO Model Server"
+  cy.get('.pf-v6-c-menu__list-item:nth-child(1) .pf-v6-c-truncate__start').click();
+
+    //not working
+    //createServingRuntimeModal.findServingRuntimeTemplateDropdown().click();
+    //createServingRuntimeModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit Standalone ServingRuntime for KServe').click(); 
+
+    inferenceServiceModal.findLocationPathInput().type('flan-t5-small/flan-t5-small-caikit');
+
+    //cy.get('.pf-v6-c-action-list__item:nth-child(1)').click();
+    inferenceServiceModal.findSubmitButton().click();
+    
+    cy.get('[data-testid="status-tooltip"]').click();
+    cy.contains('Loaded', { timeout: 120000 }).should('be.visible');
+
+    //locator('[data-testid="status-tooltip"]').click();
+    //getByText('Loaded').should('be.visible')(120000);
+    // const inferenceServiceRow = modelServingSection.getInferenceServiceRow('test-model1234');
+    // inferenceServiceRow.findStatusTooltip().should('be.visible');
+    // inferenceServiceRow.findStatusTooltipValue('Loaded', 120000);
     
     });
 });

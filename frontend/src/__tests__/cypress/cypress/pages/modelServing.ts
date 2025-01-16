@@ -51,6 +51,9 @@ class ModelServingGlobal {
   findGoToProjectButton() {
     return cy.findByTestId('empty-state-action-button');
   }
+  findSingleServingModelButton() {
+    return cy.findByTestId('single-serving-select-button');
+  }
 
   private findModelsTable() {
     // TODO be more precise
@@ -351,10 +354,10 @@ class InferenceServiceRow extends TableRow {
       });
   }
 
-  findStatusTooltipValue(msg: string) {
+  findStatusTooltipValue(msg: string, timeout?: number) {
     this.findStatusTooltip()
       .invoke('text')
-      .should('contain', msg)
+      .should('contain', msg, { timeout })
       .then(() => {
         this.findStatusTooltip().find('button').click();
       });

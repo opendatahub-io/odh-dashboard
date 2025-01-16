@@ -1,4 +1,4 @@
-import { createOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
+import { createCleanProject } from './projectChecker';
 import { createDataConnection } from '~/__tests__/cypress/cypress/utils/oc_commands/dataConnection';
 import { createDSPASecret, createDSPA } from '~/__tests__/cypress/cypress/utils/oc_commands/dspa';
 import { AWS_BUCKETS } from '~/__tests__/cypress/cypress/utils/s3Buckets';
@@ -19,7 +19,8 @@ import type {
 export const provisionProjectForPipelines = (
   projectName: string,
   dspaSecretName: string,
-  bucketKey: 'BUCKET_2' | 'BUCKET_3'
+  bucketKey: 'BUCKET_2' | 'BUCKET_3',
+  customDataConnectionYamlPath?: string
 ): void => {
   cy.log(`Provisioning project with bucket key: ${bucketKey}`);
   cy.log(`AWS_BUCKETS: ${JSON.stringify(AWS_BUCKETS)}`);
@@ -32,7 +33,7 @@ export const provisionProjectForPipelines = (
   }
 
   // Provision a Project
-  createOpenShiftProject(projectName);
+  createCleanProject(projectName);
 
   // Create a pipeline-compatible Data Connection
   const dataConnectionReplacements: DataConnectionReplacements = {
@@ -43,7 +44,7 @@ export const provisionProjectForPipelines = (
     AWS_S3_ENDPOINT: Buffer.from(bucketConfig.ENDPOINT).toString('base64'),
     AWS_SECRET_ACCESS_KEY: Buffer.from(AWS_BUCKETS.AWS_SECRET_ACCESS_KEY).toString('base64'),
   };
-  createDataConnection(dataConnectionReplacements);
+  createDataConnection(dataConnectionReplacements, customDataConnectionYamlPath);
 
   // Configure Pipeline server: Create DSPA Secret
   const dspaSecretReplacements: DspaSecretReplacements = {
