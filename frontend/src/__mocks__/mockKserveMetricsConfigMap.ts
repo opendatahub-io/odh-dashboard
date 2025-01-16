@@ -284,7 +284,6 @@ export const MOCK_NIM_METRICS_CONFIG_MISSING_QUERY = `{
   ]
 }`;
 
-
 export const MOCK_NIM_METRICS_CONFIG_MISSING_QUERY_2 = `{
   "config": [
     {
@@ -356,8 +355,6 @@ export const MOCK_NIM_METRICS_CONFIG_MISSING_QUERY_3 = `{
     }
   ]
 }`;
-
-
 export const mockKserveMetricsConfigMap = ({
   namespace = 'test-project',
   modelName = 'test-inference-service',
