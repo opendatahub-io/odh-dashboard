@@ -117,6 +117,7 @@ export type DataScienceProjectData = {
   projectSingleModelDisplayName: string;
   projectSingleModelDescription: string;
   projectSingleModelResourceName: string;
+  singleModelName: string;
 };
 
 export type NotebookImageData = {

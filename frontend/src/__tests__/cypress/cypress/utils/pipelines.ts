@@ -1,13 +1,12 @@
-import { createCleanProject } from './projectChecker';
 import { createDataConnection } from '~/__tests__/cypress/cypress/utils/oc_commands/dataConnection';
 import { createDSPASecret, createDSPA } from '~/__tests__/cypress/cypress/utils/oc_commands/dspa';
 import { AWS_BUCKETS } from '~/__tests__/cypress/cypress/utils/s3Buckets';
-import { AWSS3Buckets } from '../types';
 import type {
   DataConnectionReplacements,
   DspaSecretReplacements,
   DspaReplacements,
 } from '~/__tests__/cypress/cypress/types';
+import { createCleanProject } from './projectChecker';
 
 /**
  * Provision (using oc) a Project in order to make it usable with pipelines
@@ -20,17 +19,11 @@ export const provisionProjectForPipelines = (
   projectName: string,
   dspaSecretName: string,
   bucketKey: 'BUCKET_2' | 'BUCKET_3',
-  customDataConnectionYamlPath?: string
+  customDataConnectionYamlPath?: string,
 ): void => {
   cy.log(`Provisioning project with bucket key: ${bucketKey}`);
-  cy.log(`AWS_BUCKETS: ${JSON.stringify(AWS_BUCKETS)}`);
 
   const bucketConfig = AWS_BUCKETS[bucketKey];
-  cy.log(`Bucket config: ${JSON.stringify(bucketConfig)}`);
-
-  if (!bucketConfig) {
-    throw new Error(`Bucket configuration not found for key: ${bucketKey}`);
-  }
 
   // Provision a Project
   createCleanProject(projectName);

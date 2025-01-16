@@ -21,10 +21,11 @@ const projectName = 'test-dsp-custom-pip-prj';
 const dspaSecretName = 'test-custom-pip-dspa-secret';
 const testPipelineIrisName = 'test-iris-pipeline';
 const testRunName = 'test-pipelines-run';
+const awsBucket = 'BUCKET_2' as const;
 
 describe('An admin user can import and run a pipeline', { testIsolation: false }, () => {
   before(() => {
-    provisionProjectForPipelines(projectName, dspaSecretName);
+    provisionProjectForPipelines(projectName, dspaSecretName, awsBucket);
     //Create Pipelines ConfigMap With Custom Pip Index Url And Trusted Host
     createOpenShiftConfigMap('ds-pipeline-custom-env-vars', projectName, {
       // The following lines should be snake case

@@ -13,11 +13,12 @@ const projectName = 'test-pipelines-prj';
 const dspaSecretName = 'dashboard-dspa-secret';
 const testPipelineName = 'test-pipelines-pipeline';
 const testRunName = 'test-pipelines-run';
+const awsBucket = 'BUCKET_3' as const;
 
 describe('An admin user can import and run a pipeline', { testIsolation: false }, () => {
   before(() => {
     // Create a Project for pipelines
-    provisionProjectForPipelines(projectName, dspaSecretName);
+    provisionProjectForPipelines(projectName, dspaSecretName, awsBucket);
   });
 
   after(() => {

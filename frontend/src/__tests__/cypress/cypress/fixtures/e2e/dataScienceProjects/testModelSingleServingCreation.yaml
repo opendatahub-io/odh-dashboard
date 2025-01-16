@@ -2,3 +2,4 @@
 projectSingleModelDisplayName: "Cypress Single Model Test Project"
 projectSingleModelDescription: "Cypress Test project description."
 projectSingleModelResourceName: "cypress-single-model-test-project" 
+singleModelName: "cypress-single-model"
