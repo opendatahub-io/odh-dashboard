@@ -30,8 +30,8 @@ import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
 import { projectDetailsSettingsTab } from '~/__tests__/cypress/cypress/pages/projects';
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
 import {
-  mockServingRuntimeTemplateK8sResource,
   mockInvalidTemplateK8sResource,
+  mockServingRuntimeTemplateK8sResource,
 } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { ServingRuntimePlatform } from '~/types';
 import { mock403Error, mock404Error } from '~/__mocks__/mockK8sStatus';
@@ -90,7 +90,7 @@ const mockTrustyDBSecret = (): SecretKind =>
 
 const initIntercepts = ({
   disablePerformanceMetrics,
-  disableNIMModelServing = false,
+  disableNIMModelServing = true,
   disableTrustyBiasMetrics,
   disableKServeMetrics,
   servingRuntimes = [mockServingRuntimeK8sResource({})],

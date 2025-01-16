@@ -35,7 +35,6 @@ const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
   const performanceMetricsAreaAvailable = useIsAreaAvailable(
     SupportedArea.PERFORMANCE_METRICS,
   ).status;
-  //check availability of NIM metrics
   const { tab } = useParams<{ tab: MetricsTabKeys }>();
   const navigate = useNavigate();
 
