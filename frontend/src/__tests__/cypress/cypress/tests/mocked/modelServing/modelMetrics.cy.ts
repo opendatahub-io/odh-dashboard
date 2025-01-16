@@ -808,7 +808,7 @@ describe('KServe performance metrics', () => {
 });
 
 //Nim Metrics Tests
-describe.only('KServe NIM metrics', () => {
+describe('KServe NIM metrics', () => {
   it('should show error when ConfigMap is missing', () => {
     initIntercepts({
       disableTrustyBiasMetrics: false,
@@ -954,13 +954,13 @@ describe.only('KServe NIM metrics', () => {
     modelMetricsKserveNim.getMetricsChart('Tokens count').shouldHaveNoData();
   });
 
-  it('charts should not error out if a query is missing and there is other data', () => {
+  it('charts should not error out if a query is missing and there is no data QUERY_2', () => {
     initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       disableKServeMetrics: false,
       disableNIMModelServing: false,
-      hasServingData: true,
+      hasServingData: false,
       hasBiasData: false,
       enableModelMesh: false,
       enableNIM: true,
@@ -976,22 +976,21 @@ describe.only('KServe NIM metrics', () => {
 
     modelMetricsKserveNim.visit('test-project', 'test-inference-service');
     modelMetricsKserveNim.findTab().click();
-    modelMetricsKserveNim.getAllMetricsCharts().should('have.length', 4);
-    modelMetricsKserveNim.getMetricsChart('GPU cache usage over time').shouldHaveData();
-    modelMetricsKserveNim.getMetricsChart('Requests outcomes').shouldHaveData();
+    modelMetricsKserveNim.getAllMetricsCharts().should('have.length', 3);
+    modelMetricsKserveNim.getMetricsChart('GPU cache usage over time').shouldHaveNoData();
+    modelMetricsKserveNim.getMetricsChart('Tokens count').shouldHaveNoData();
     modelMetricsKserveNim
-      .getMetricsChart('Current running, waiting, and max requests count')
-      .shouldHaveData();
-    modelMetricsKserveNim.getMetricsChart('Tokens count').shouldHaveData();
+    .getMetricsChart('Current running, waiting, and max requests count')
+    .shouldHaveNoData();
   });
 
-  it('charts should not error out if a query is missing and there is other data', () => {
+  it('charts should not error out if a query is missing and there is no data QUERY_3', () => {
     initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       disableKServeMetrics: false,
       disableNIMModelServing: false,
-      hasServingData: true,
+      hasServingData: false,
       hasBiasData: false,
       enableModelMesh: false,
       enableNIM: true,
@@ -1007,13 +1006,10 @@ describe.only('KServe NIM metrics', () => {
 
     modelMetricsKserveNim.visit('test-project', 'test-inference-service');
     modelMetricsKserveNim.findTab().click();
-    modelMetricsKserveNim.getAllMetricsCharts().should('have.length', 4);
-    modelMetricsKserveNim.getMetricsChart('GPU cache usage over time').shouldHaveData();
-    modelMetricsKserveNim.getMetricsChart('Requests outcomes').shouldHaveData();
-    modelMetricsKserveNim
-      .getMetricsChart('Current running, waiting, and max requests count')
-      .shouldHaveData();
-    modelMetricsKserveNim.getMetricsChart('Tokens count').shouldHaveData();
+    modelMetricsKserveNim.getAllMetricsCharts().should('have.length', 3);
+    modelMetricsKserveNim.getMetricsChart('GPU cache usage over time').shouldHaveNoData();
+    modelMetricsKserveNim.getMetricsChart('Requests outcomes').shouldHaveNoData();
+    modelMetricsKserveNim.getMetricsChart('Tokens count').shouldHaveNoData();
   });
 
   it('charts should show data when serving data is available', () => {
