@@ -1,14 +1,9 @@
-import { Alert, AlertActionCloseButton, AlertActionLink } from '@patternfly/react-core';
 import React from 'react';
+import { Alert, AlertActionCloseButton } from '@patternfly/react-core';
 import { useBrowserStorage } from '~/components/browserStorage';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
+import PipelineMigrationNoteLinks from '~/concepts/pipelines/content/PipelineMigrationNoteLinks';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
-
-const INVALID_ARGO_DEPLOYMENT_SELF_DOCUMENTATION_URL =
-  'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/2-latest/html/working_with_data_science_pipelines/migrating-to-data-science-pipelines-2_ds-pipelines';
-
-const INVALID_ARGO_DEPLOYMENT_CLOUD_DOCUMENTATION_URL =
-  'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/working_with_data_science_pipelines/migrating-to-data-science-pipelines-2_ds-pipelines';
 
 export const InvalidArgoDeploymentAlert: React.FC = () => {
   const [invalidArgoDeploymentAlertDismissed, setInvalidArgoDeploymentAlertDismissed] =
@@ -29,28 +24,7 @@ export const InvalidArgoDeploymentAlert: React.FC = () => {
   return (
     <Alert
       data-testid="invalid-argo-alert"
-      actionLinks={
-        <>
-          <AlertActionLink
-            data-testid="self-managed-release-notes-link"
-            component="a"
-            href={INVALID_ARGO_DEPLOYMENT_SELF_DOCUMENTATION_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Self-Managed release notes
-          </AlertActionLink>
-          <AlertActionLink
-            data-testid="cloud-service-release-notes-link"
-            component="a"
-            href={INVALID_ARGO_DEPLOYMENT_CLOUD_DOCUMENTATION_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Cloud Service release notes
-          </AlertActionLink>
-        </>
-      }
+      actionLinks={<PipelineMigrationNoteLinks />}
       actionClose={
         <AlertActionCloseButton onClose={() => setInvalidArgoDeploymentAlertDismissed(true)} />
       }

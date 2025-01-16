@@ -34,6 +34,7 @@ import type { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes
 import { tablePagination } from '~/__tests__/cypress/cypress/pages/components/Pagination';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import { pipelineRunsGlobal } from '~/__tests__/cypress/cypress/pages/pipelines/pipelineRunsGlobal';
+import { argoAlert } from '~/__tests__/cypress/cypress/pages/pipelines/argoAlert';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipeline({ display_name: 'Test pipeline' });
@@ -43,6 +44,7 @@ const initialMockPipelineVersion = buildMockPipelineVersion({
 const pipelineYamlPath = './cypress/tests/mocked/pipelines/mock-upload-pipeline.yaml';
 const argoWorkflowPipeline = './cypress/tests/mocked/pipelines/argo-workflow-pipeline.yaml';
 const tooLargePipelineYAMLPath = './cypress/tests/mocked/pipelines/not-a-pipeline-2-megabytes.yaml';
+const v1PipelineYamlPath = './cypress/tests/mocked/pipelines/v1-pipeline.yaml';
 
 describe('Pipelines', () => {
   it('Empty state', () => {
@@ -642,6 +644,26 @@ describe('Pipelines', () => {
 
     pipelineImportModal.findImportModalError().should('exist');
     pipelineImportModal.findImportModalError().contains('Unsupported pipeline version');
+  });
+
+  it('fails to import a v1 pipeline', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
+
+    // Open the "Import pipeline" modal
+    pipelinesGlobal.findImportPipelineButton().click();
+
+    // Fill out the "Import pipeline" modal and submit
+    pipelineImportModal.shouldBeOpen();
+    pipelineImportModal.fillPipelineName('New pipeline');
+    pipelineImportModal.fillPipelineDescription('New pipeline description');
+    pipelineImportModal.uploadPipelineYaml(v1PipelineYamlPath);
+    pipelineImportModal.submit();
+
+    pipelineImportModal.findImportModalError().should('exist');
+    pipelineImportModal.findImportModalError().contains('Pipeline update and recompile required');
+    argoAlert.findCloudServiceReleaseNotesLink().should('exist');
+    argoAlert.findSelfManagedReleaseNotesLink().should('exist');
   });
 
   it('imports a new pipeline by url', () => {
