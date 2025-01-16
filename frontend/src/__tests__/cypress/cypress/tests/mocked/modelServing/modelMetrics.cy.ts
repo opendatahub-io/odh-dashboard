@@ -980,8 +980,8 @@ describe('KServe NIM metrics', () => {
     modelMetricsKserveNim.getMetricsChart('GPU cache usage over time').shouldHaveNoData();
     modelMetricsKserveNim.getMetricsChart('Tokens count').shouldHaveNoData();
     modelMetricsKserveNim
-    .getMetricsChart('Current running, waiting, and max requests count')
-    .shouldHaveNoData();
+      .getMetricsChart('Current running, waiting, and max requests count')
+      .shouldHaveNoData();
   });
 
   it('charts should not error out if a query is missing and there is no data QUERY_3', () => {

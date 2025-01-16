@@ -26,7 +26,7 @@ const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
   const servingPlatformStatuses = useServingPlatformStatuses();
   const isNIMAvailable = servingPlatformStatuses.kServeNIM.enabled;
   const { projects } = React.useContext(ProjectsContext);
-  const project = projects.find(byName(model.metadata.namespace)) ?? null;
+  const project = projects.find(byName(model.metadata.namespace));
   const enabledTabs = useMetricsPageEnabledTabs();
   const isKServeNIMEnabled = project ? isProjectNIMSupported(project) : false;
   const isNimEnabled = isNIMAvailable && isKServeNIMEnabled;
@@ -36,7 +36,6 @@ const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
     SupportedArea.PERFORMANCE_METRICS,
   ).status;
   //check availability of NIM metrics
-  const nimMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.NIM_MODEL).status;
   const { tab } = useParams<{ tab: MetricsTabKeys }>();
   const navigate = useNavigate();
 
@@ -57,7 +56,7 @@ const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
     if (performanceMetricsAreaAvailable) {
       return <PerformanceTab model={model} />;
     }
-    if (nimMetricsAreaAvailable && isNimEnabled) {
+    if (isNimEnabled) {
       return <NIMTab model={model} />;
     }
 
@@ -92,7 +91,7 @@ const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
       )}
 
       {/* Add NIN metrics tab */}
-      {nimMetricsAreaAvailable && isNimEnabled && (
+      {isNimEnabled && (
         <Tab
           eventKey={MetricsTabKeys.NIM}
           title={<TabTitleText>NIM Metrics</TabTitleText>}
