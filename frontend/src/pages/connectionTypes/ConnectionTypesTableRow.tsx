@@ -146,21 +146,27 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
               title: 'Preview',
               onClick: () => setShowPreview(true),
             },
-            {
-              title: 'Edit',
-              onClick: () => navigate(`/connectionTypes/edit/${obj.metadata.name}`),
-              isDisabled: ownedByDSC(obj),
-            },
+            ...(!ownedByDSC(obj)
+              ? [
+                  {
+                    title: 'Edit',
+                    onClick: () => navigate(`/connectionTypes/edit/${obj.metadata.name}`),
+                  },
+                ]
+              : []),
             {
               title: 'Duplicate',
               onClick: () => navigate(`/connectionTypes/duplicate/${obj.metadata.name}`),
             },
-            { isSeparator: true },
-            {
-              title: 'Delete',
-              onClick: () => handleDelete(obj),
-              isDisabled: ownedByDSC(obj),
-            },
+            ...(!ownedByDSC(obj)
+              ? [
+                  { isSeparator: true },
+                  {
+                    title: 'Delete',
+                    onClick: () => handleDelete(obj),
+                  },
+                ]
+              : []),
           ]}
         />
       </Td>
