@@ -21,6 +21,10 @@ export type ServingRuntimesFetchData = {
 };
 
 // TODO move to concepts/modelServing?
+// TODO tried lifting out the hasNonDashboard* so we are still returning a FetchState<[]> that is compatible with useContextResourceData.
+//      that got too messy. we should look into whether we can convert ProjectDetailsContext to use useMakeFetchObject instead -- make sure we are using the refreshRate though to retain polling behavior.
+//      it's either that or we need to massage the object further so it's compatible with useContextResourceData which sucks.
+//      figure out how to make things work in ProjectDetailsContext before proceeding to other type errors.
 
 const useServingRuntimes = (
   namespace?: string,
