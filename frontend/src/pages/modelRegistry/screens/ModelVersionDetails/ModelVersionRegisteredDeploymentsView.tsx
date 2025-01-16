@@ -17,7 +17,7 @@ const ModelVersionRegisteredDeploymentsView: React.FC<
 > = ({ inferenceServices, servingRuntimes, refresh }) => {
   const isLoading = !inferenceServices.loaded || !servingRuntimes.loaded;
 
-  if (!isLoading && !inferenceServices.data.length) {
+  if (!isLoading && !inferenceServices.data.inferenceServices.length) {
     return (
       <EmptyModelRegistryState
         title="No deployments from model registry"
@@ -44,8 +44,8 @@ const ModelVersionRegisteredDeploymentsView: React.FC<
       <InferenceServiceTable
         isGlobal
         getColumns={getVersionDetailsInferenceServiceColumns}
-        inferenceServices={inferenceServices.data}
-        servingRuntimes={servingRuntimes.data}
+        inferenceServices={inferenceServices.data.inferenceServices}
+        servingRuntimes={servingRuntimes.data.servingRuntimes}
         isLoading={isLoading}
         refresh={refresh}
       />
