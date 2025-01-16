@@ -23,7 +23,7 @@ describe('Verify That Usage Data Collection Can Be Set In Cluster Settings', () 
 
   it(
     'Verify Usage Data Collection can be Enabled/Disabled',
-    { tags: ['@Sanity', '@ODS-1218', '@Dashboard', '@ExcludeOnODH'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ODS-1218', '@Dashboard', '@ExcludeOnODH'] },
     () => {
       if (skipTest) {
         cy.log('Skipping test confirmed');
