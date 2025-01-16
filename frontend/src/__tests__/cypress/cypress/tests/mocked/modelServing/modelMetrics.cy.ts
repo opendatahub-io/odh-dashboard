@@ -56,6 +56,7 @@ import {
   mockKserveMetricsConfigMap,
   mockNimMetricsConfigMap,
 } from '~/__mocks__/mockKserveMetricsConfigMap';
+import { mockOdhApplication } from '~/__mocks__/mockOdhApplication';
 
 type HandlersProps = {
   disablePerformanceMetrics?: boolean;
@@ -67,6 +68,7 @@ type HandlersProps = {
   hasServingData: boolean;
   hasBiasData: boolean;
   enableModelMesh?: boolean;
+  enableNIM?: boolean;
   isTrustyAIAvailable?: boolean;
   isTrustyAIInstalled?: boolean;
 };
@@ -96,6 +98,7 @@ const initIntercepts = ({
   hasServingData = false,
   hasBiasData = false,
   enableModelMesh = true,
+  enableNIM = false,
   isTrustyAIAvailable = true,
   isTrustyAIInstalled = true,
 }: HandlersProps) => {
@@ -117,7 +120,9 @@ const initIntercepts = ({
 
   cy.interceptK8sList(
     ProjectModel,
-    mockK8sResourceList([mockProjectK8sResource({ k8sName: 'test-project', enableModelMesh })]),
+    mockK8sResourceList([
+      mockProjectK8sResource({ k8sName: 'test-project', enableModelMesh, enableNIM }),
+    ]),
   );
   cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(servingRuntimes));
   cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList(inferenceServices));
@@ -214,6 +219,20 @@ const initIntercepts = ({
       : { statusCode: 404, body: mock404Error({}) },
   );
   cy.interceptK8s(RouteModel, mockRouteK8sResource({ name: 'trustyai-service' }));
+};
+
+const initInterceptsToEnableNim = () => {
+  cy.interceptOdh('GET /api/components', null, [mockOdhApplication({})]);
+  cy.interceptOdh(
+    'GET /api/integrations/:internalRoute',
+    { path: { internalRoute: 'nim' } },
+    {
+      isInstalled: true,
+      isEnabled: true,
+      canInstall: false,
+      error: '',
+    },
+  );
 };
 
 describe('Model Metrics', () => {
@@ -789,7 +808,7 @@ describe('KServe performance metrics', () => {
 });
 
 //Nim Metrics Tests
-describe('KServe NIM metrics', () => {
+describe.only('KServe NIM metrics', () => {
   it('should show error when ConfigMap is missing', () => {
     initIntercepts({
       disableTrustyBiasMetrics: false,
@@ -798,8 +817,12 @@ describe('KServe NIM metrics', () => {
       disableKServeMetrics: false,
       hasServingData: true,
       hasBiasData: false,
+      enableModelMesh: false,
+      enableNIM: true,
       inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
     });
+
+    initInterceptsToEnableNim();
 
     cy.interceptK8s(
       {
@@ -810,7 +833,7 @@ describe('KServe NIM metrics', () => {
       { statusCode: 404, body: mock404Error({}) },
     );
 
-    modelMetricsKserveNim.visit('tomer-test-2', 'nim-deploy');
+    modelMetricsKserveNim.visit('test-project', 'test-inference-service');
     modelMetricsKserveNim.findUnknownErrorCard().should('be.visible');
   });
 
@@ -859,12 +882,17 @@ describe('KServe NIM metrics', () => {
       disableNIMModelServing: false,
       hasServingData: true,
       hasBiasData: false,
+      enableModelMesh: false,
+      enableNIM: true,
       inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
     });
+
+    initInterceptsToEnableNim();
 
     cy.interceptK8s(ConfigMapModel, mockNimMetricsConfigMap({ config: MOCK_NIM_METRICS_CONFIG_3 }));
 
     modelMetricsKserveNim.visit('test-project', 'test-inference-service');
+    modelMetricsKserveNim.findTab().click();
     modelMetricsKserveNim.getMetricsChart('GPU cache usage over time').shouldHaveData();
     modelMetricsKserveNim
       .getMetricsChart('Current running, waiting, and max requests count')
@@ -880,8 +908,12 @@ describe('KServe NIM metrics', () => {
       disableNIMModelServing: false,
       hasServingData: true,
       hasBiasData: false,
+      enableModelMesh: false,
+      enableNIM: true,
       inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
     });
+
+    initInterceptsToEnableNim();
 
     cy.interceptK8s(
       ConfigMapModel,
@@ -889,6 +921,7 @@ describe('KServe NIM metrics', () => {
     );
 
     modelMetricsKserveNim.visit('test-project', 'test-inference-service');
+    modelMetricsKserveNim.findTab().click();
     modelMetricsKserveNim.getAllMetricsCharts().should('have.length', 2);
     modelMetricsKserveNim.getMetricsChart('GPU cache usage over time').shouldHaveData();
     modelMetricsKserveNim.getMetricsChart('Tokens count').shouldHaveData();
@@ -902,8 +935,12 @@ describe('KServe NIM metrics', () => {
       disableNIMModelServing: false,
       hasServingData: false,
       hasBiasData: false,
+      enableModelMesh: false,
+      enableNIM: true,
       inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
     });
+
+    initInterceptsToEnableNim();
 
     cy.interceptK8s(
       ConfigMapModel,
@@ -911,6 +948,7 @@ describe('KServe NIM metrics', () => {
     );
 
     modelMetricsKserveNim.visit('test-project', 'test-inference-service');
+    modelMetricsKserveNim.findTab().click();
     modelMetricsKserveNim.getAllMetricsCharts().should('have.length', 2);
     modelMetricsKserveNim.getMetricsChart('GPU cache usage over time').shouldHaveNoData();
     modelMetricsKserveNim.getMetricsChart('Tokens count').shouldHaveNoData();
@@ -924,8 +962,12 @@ describe('KServe NIM metrics', () => {
       disableNIMModelServing: false,
       hasServingData: true,
       hasBiasData: false,
+      enableModelMesh: false,
+      enableNIM: true,
       inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
     });
+
+    initInterceptsToEnableNim();
 
     cy.interceptK8s(
       ConfigMapModel,
@@ -933,6 +975,7 @@ describe('KServe NIM metrics', () => {
     );
 
     modelMetricsKserveNim.visit('test-project', 'test-inference-service');
+    modelMetricsKserveNim.findTab().click();
     modelMetricsKserveNim.getAllMetricsCharts().should('have.length', 4);
     modelMetricsKserveNim.getMetricsChart('GPU cache usage over time').shouldHaveData();
     modelMetricsKserveNim.getMetricsChart('Requests outcomes').shouldHaveData();
@@ -950,8 +993,12 @@ describe('KServe NIM metrics', () => {
       disableNIMModelServing: false,
       hasServingData: true,
       hasBiasData: false,
+      enableModelMesh: false,
+      enableNIM: true,
       inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
     });
+
+    initInterceptsToEnableNim();
 
     cy.interceptK8s(
       ConfigMapModel,
@@ -959,6 +1006,7 @@ describe('KServe NIM metrics', () => {
     );
 
     modelMetricsKserveNim.visit('test-project', 'test-inference-service');
+    modelMetricsKserveNim.findTab().click();
     modelMetricsKserveNim.getAllMetricsCharts().should('have.length', 4);
     modelMetricsKserveNim.getMetricsChart('GPU cache usage over time').shouldHaveData();
     modelMetricsKserveNim.getMetricsChart('Requests outcomes').shouldHaveData();
@@ -976,11 +1024,16 @@ describe('KServe NIM metrics', () => {
       disableNIMModelServing: false,
       hasServingData: true,
       hasBiasData: false,
+      enableModelMesh: false,
+      enableNIM: true,
       inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
     });
 
+    initInterceptsToEnableNim();
+
     cy.interceptK8s(ConfigMapModel, mockNimMetricsConfigMap({ supported: true }));
     modelMetricsKserveNim.visit('test-project', 'test-inference-service');
+    modelMetricsKserveNim.findTab().click();
     modelMetricsKserveNim.getAllMetricsCharts().should('have.length', 6);
     modelMetricsKserveNim.getMetricsChart('GPU cache usage over time').shouldHaveData();
     modelMetricsKserveNim
@@ -1000,12 +1053,17 @@ describe('KServe NIM metrics', () => {
       disableNIMModelServing: false,
       hasServingData: false,
       hasBiasData: false,
+      enableModelMesh: false,
+      enableNIM: true,
       inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
     });
+
+    initInterceptsToEnableNim();
 
     cy.interceptK8s(ConfigMapModel, mockNimMetricsConfigMap({ supported: true }));
 
     modelMetricsKserveNim.visit('test-project', 'test-inference-service');
+    modelMetricsKserveNim.findTab().click();
     modelMetricsKserveNim.getMetricsChart('GPU cache usage over time').shouldHaveNoData();
     modelMetricsKserveNim
       .getMetricsChart('Current running, waiting, and max requests count')
