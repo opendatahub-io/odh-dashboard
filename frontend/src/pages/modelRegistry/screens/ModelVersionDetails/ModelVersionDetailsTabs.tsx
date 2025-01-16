@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import '~/pages/pipelines/global/runs/GlobalPipelineRunsTabs.scss';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
-import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import { ServingRuntimesFetchData } from '~/pages/modelServing/useServingRuntimes'; // TODO move this hook to concepts to avoid this cross-page import
+import { InferenceServicesFetchData } from '~/pages/modelServing/useInferenceServices'; // TODO move this hook to concepts to avoid this cross-page import
 import { FetchStateObject } from '~/types';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { ModelVersionDetailsTabTitle, ModelVersionDetailsTab } from './const';
@@ -13,8 +14,8 @@ import ModelVersionRegisteredDeploymentsView from './ModelVersionRegisteredDeplo
 type ModelVersionDetailTabsProps = {
   tab: ModelVersionDetailsTab;
   modelVersion: ModelVersion;
-  inferenceServices: FetchStateObject<InferenceServiceKind[]>;
-  servingRuntimes: FetchStateObject<ServingRuntimeKind[]>;
+  inferenceServices: FetchStateObject<InferenceServicesFetchData>;
+  servingRuntimes: FetchStateObject<ServingRuntimesFetchData>;
   isArchiveVersion?: boolean;
   refresh: () => void;
 };
