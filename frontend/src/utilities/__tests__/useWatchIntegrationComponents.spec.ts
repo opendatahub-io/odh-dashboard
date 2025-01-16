@@ -1,8 +1,8 @@
-import { useWatchIntegrationComponents } from '../useWatchIntegrationComponents';
 import { getIntegrationAppEnablementStatus } from '~/services/integrationAppService';
 import { OdhApplication, VariablesValidationStatus } from '~/types';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import * as reduxHooks from '~/redux/hooks';
+import { useWatchIntegrationComponents } from '~/utilities/useWatchIntegrationComponents';
 
 jest.mock('~/services/integrationAppService', () => ({
   getIntegrationAppEnablementStatus: jest.fn(),
@@ -110,4 +110,4 @@ describe('useWatchIntegrationComponents', () => {
 
     expect(renderResult.result.current.checkedComponents[0].spec.isEnabled).toBe(true);
   });
-}); 
+});

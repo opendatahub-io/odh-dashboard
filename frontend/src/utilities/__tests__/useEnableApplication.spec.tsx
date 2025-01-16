@@ -1,9 +1,12 @@
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import { useEnableApplication, EnableApplicationStatus } from '../useEnableApplication';
 import { postValidateIsv } from '~/services/validateIsvService';
-import { enableIntegrationApp, getIntegrationAppEnablementStatus } from '~/services/integrationAppService';
+import {
+  enableIntegrationApp,
+  getIntegrationAppEnablementStatus,
+} from '~/services/integrationAppService';
 import * as reduxHooks from '~/redux/hooks';
 import { VariablesValidationStatus } from '~/types';
+import { useEnableApplication, EnableApplicationStatus } from '~/utilities/useEnableApplication';
 
 jest.mock('~/services/validateIsvService', () => ({
   postValidateIsv: jest.fn(),
@@ -28,11 +31,11 @@ describe('useEnableApplication', () => {
 
   it('should start in IDLE state', () => {
     const renderResult = testHook(useEnableApplication)(
-      false, 
-      'test-app', 
-      'Test App', 
-      {}, 
-      undefined
+      false,
+      'test-app',
+      'Test App',
+      {},
+      undefined,
     );
 
     expect(renderResult.result.current[0]).toBe(EnableApplicationStatus.IDLE);
@@ -50,7 +53,7 @@ describe('useEnableApplication', () => {
       'test-app',
       'Test App',
       { key: 'value' },
-      undefined
+      undefined,
     );
 
     expect(renderResult.result.current[0]).toBe(EnableApplicationStatus.IDLE);
@@ -82,7 +85,7 @@ describe('useEnableApplication', () => {
       'test-app',
       'Test App',
       { key: 'value' },
-      '/api/test'
+      '/api/test',
     );
 
     expect(renderResult.result.current[0]).toBe(EnableApplicationStatus.IDLE);
@@ -90,13 +93,8 @@ describe('useEnableApplication', () => {
 
     await renderResult.waitForNextUpdate();
 
-    expect(enableIntegrationApp).toHaveBeenCalledWith(
-      '/api/test',
-      { key: 'value' }
-    );
-    expect(getIntegrationAppEnablementStatus).toHaveBeenCalledWith(
-      '/api/test'
-    );
+    expect(enableIntegrationApp).toHaveBeenCalledWith('/api/test', { key: 'value' });
+    expect(getIntegrationAppEnablementStatus).toHaveBeenCalledWith('/api/test');
   });
 
   it('should handle API errors', async () => {
@@ -108,7 +106,7 @@ describe('useEnableApplication', () => {
       'test-app',
       'Test App',
       { key: 'value' },
-      '/api/test'
+      '/api/test',
     );
 
     expect(renderResult.result.current[0]).toBe(EnableApplicationStatus.IDLE);
@@ -128,7 +126,7 @@ describe('useEnableApplication', () => {
       'test-app',
       'Test App',
       {},
-      undefined
+      undefined,
     );
 
     expect(renderResult.result.current[0]).toBe(EnableApplicationStatus.IDLE);
@@ -138,4 +136,4 @@ describe('useEnableApplication', () => {
     expect(renderResult.result.current[0]).toBe(EnableApplicationStatus.IDLE);
     expect(renderResult.result.current[1]).toBe('');
   });
-}); 
+});
