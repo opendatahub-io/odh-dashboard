@@ -41,10 +41,19 @@ export const useWatchIntegrationComponents = (
       );
 
       if (response.error) {
-        // TODO: Show the error somehow
-        setNewComponents(
-          componentList.filter((app) => app.metadata.name !== component.metadata.name),
+        const updatedComponents = componentList.map((app) =>
+          app.metadata.name === component.metadata.name
+            ? {
+                ...app,
+                spec: {
+                  ...app.spec,
+                  isEnabled: false,
+                  error: response.error,
+                },
+              }
+            : app,
         );
+        setNewComponents(updatedComponents);
       } else {
         const updatedComponents = componentList
           .filter(
@@ -69,13 +78,21 @@ export const useWatchIntegrationComponents = (
 
   React.useEffect(() => {
     let watchHandle: ReturnType<typeof setTimeout>;
+    let isMounted = true;
+
     if (integrationComponents && components) {
       if (integrationComponents.length === 0) {
         setIsIntegrationComponentsChecked(true);
         setNewComponents(components);
       } else {
         const watchComponents = () => {
+          if (!isMounted) {
+            return;
+          }
           updateComponentEnablementStatus(integrationComponents, components).then(() => {
+            if (!isMounted) {
+              return;
+            }
             setIsIntegrationComponentsChecked(true);
             watchHandle = setTimeout(watchComponents, POLL_INTERVAL);
           });
@@ -83,7 +100,9 @@ export const useWatchIntegrationComponents = (
         watchComponents();
       }
     }
+
     return () => {
+      isMounted = false;
       clearTimeout(watchHandle);
     };
   }, [components, integrationComponents]);
