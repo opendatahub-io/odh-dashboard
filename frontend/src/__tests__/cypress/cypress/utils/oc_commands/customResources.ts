@@ -49,7 +49,7 @@ export const getCustomResource = (
   kind: string,
   labelSelector: string,
 ): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `Oc Get kind=${kind}, label_selector=${labelSelector}, namespace=${resourceNamespace}`;
+  const ocCommand = `oc get ${kind} -l ${labelSelector} -n ${resourceNamespace}`;
   cy.log(`Executing command: ${ocCommand}`);
   return cy.exec(ocCommand, { failOnNonZeroExit: false });
 };
