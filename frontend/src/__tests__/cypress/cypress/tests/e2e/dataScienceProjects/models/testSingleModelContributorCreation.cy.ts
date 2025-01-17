@@ -1,5 +1,4 @@
 import type { DataScienceProjectData } from '~/__tests__/cypress/cypress/types';
-import { provisionProjectForPipelines } from '~/__tests__/cypress/cypress/utils/pipelines';
 import {
   addUserToProject,
   deleteOpenShiftProject,
@@ -12,14 +11,16 @@ import {
   inferenceServiceModal,
   modelServingSection,
 } from '~/__tests__/cypress/cypress/pages/modelServing';
-import { checkInferenceServiceState } from '~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
+import {
+  checkInferenceServiceState,
+  provisionProjectForModelServing,
+} from '~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
 
 let testData: DataScienceProjectData;
 let projectName: string;
 let contributor: string;
 let modelName: string;
 let modelFilePath: string;
-const dspaSecretName = 'dashboard-dspa-secret';
 const awsBucket = 'BUCKET_3' as const;
 
 describe('Verify Model Creation and Validation using the UI', () => {
@@ -44,9 +45,8 @@ describe('Verify Model Creation and Validation using the UI', () => {
         }
         cy.log(`Loaded project name: ${projectName}`);
         // Create a Project for pipelines
-        provisionProjectForPipelines(
+        provisionProjectForModelServing(
           projectName,
-          dspaSecretName,
           awsBucket,
           'resources/yaml/data_connection_model_serving.yaml',
         );
