@@ -1,6 +1,11 @@
 import * as React from 'react';
 import { useAppSelector } from '~/redux/hooks';
-import { IntegrationAppStatus, OdhApplication, OdhIntegrationApplication } from '~/types';
+import {
+  IntegrationAppStatus,
+  OdhApplication,
+  OdhIntegrationApplication,
+  VariablesValidationStatus,
+} from '~/types';
 import { getIntegrationAppEnablementStatus } from '~/services/integrationAppService';
 import { allSettledPromises } from '~/utilities/allSettledPromises';
 import { POLL_INTERVAL } from './const';
@@ -29,15 +34,26 @@ export const useWatchIntegrationComponents = (
             isInstalled: false,
             isEnabled: false,
             canInstall: false,
-            error: e.message ?? e.error, // might be an error from the server, might be an error in the network call itself
+            variablesValidationStatus: VariablesValidationStatus.UNKNOWN,
+            variablesValidationTimestamp: '',
+            error: e.message ?? e.error,
           } satisfies IntegrationAppStatus),
       );
 
       if (response.error) {
-        // TODO: Show the error somehow
-        setNewComponents(
-          componentList.filter((app) => app.metadata.name !== component.metadata.name),
+        const updatedComponents = componentList.map((app) =>
+          app.metadata.name === component.metadata.name
+            ? {
+                ...app,
+                spec: {
+                  ...app.spec,
+                  isEnabled: false,
+                  error: response.error,
+                },
+              }
+            : app,
         );
+        setNewComponents(updatedComponents);
       } else {
         const updatedComponents = componentList
           .filter(
@@ -62,13 +78,21 @@ export const useWatchIntegrationComponents = (
 
   React.useEffect(() => {
     let watchHandle: ReturnType<typeof setTimeout>;
+    let isMounted = true;
+
     if (integrationComponents && components) {
       if (integrationComponents.length === 0) {
         setIsIntegrationComponentsChecked(true);
         setNewComponents(components);
       } else {
         const watchComponents = () => {
+          if (!isMounted) {
+            return;
+          }
           updateComponentEnablementStatus(integrationComponents, components).then(() => {
+            if (!isMounted) {
+              return;
+            }
             setIsIntegrationComponentsChecked(true);
             watchHandle = setTimeout(watchComponents, POLL_INTERVAL);
           });
@@ -76,7 +100,9 @@ export const useWatchIntegrationComponents = (
         watchComponents();
       }
     }
+
     return () => {
+      isMounted = false;
       clearTimeout(watchHandle);
     };
   }, [components, integrationComponents]);

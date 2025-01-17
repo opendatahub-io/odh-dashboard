@@ -1,6 +1,10 @@
 import { SortableData } from '~/components/table';
 import { HardwareProfileKind } from '~/k8sTypes';
-import { Identifier, NodeSelector, Toleration } from '~/types';
+import {
+  ManageHardwareProfileSectionID,
+  ManageHardwareProfileSectionTitlesType,
+} from '~/pages/hardwareProfiles/manage/types';
+import { IdentifierResourceType } from '~/types';
 
 export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
   {
@@ -43,87 +47,6 @@ export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
   },
 ];
 
-export const nodeResourceColumns: SortableData<Identifier>[] = [
-  {
-    field: 'name',
-    label: 'Resource label',
-    sortable: false,
-    width: 20,
-  },
-  {
-    field: 'identifier',
-    label: 'Resource identifier',
-    sortable: false,
-    width: 20,
-  },
-  {
-    field: 'default',
-    label: 'Default',
-    sortable: false,
-    width: 20,
-  },
-  {
-    field: 'min_allowed',
-    label: 'Minimum allowed',
-    sortable: false,
-    width: 20,
-  },
-  {
-    field: 'max_allowed',
-    label: 'Maximum allowed',
-    sortable: false,
-    width: 20,
-  },
-];
-
-export const nodeSelectorColumns: SortableData<NodeSelector>[] = [
-  {
-    field: 'key',
-    label: 'Key',
-    sortable: false,
-    width: 50,
-  },
-  {
-    field: 'value',
-    label: 'Value',
-    sortable: false,
-    width: 50,
-  },
-];
-
-export const tolerationColumns: SortableData<Toleration>[] = [
-  {
-    field: 'operator',
-    label: 'Operator',
-    sortable: false,
-    width: 20,
-  },
-  {
-    field: 'key',
-    label: 'Key',
-    sortable: false,
-    width: 20,
-  },
-  {
-    field: 'value',
-    label: 'Value',
-    sortable: false,
-    width: 20,
-  },
-  {
-    field: 'effect',
-    label: 'Effect',
-    sortable: false,
-    width: 20,
-  },
-  {
-    field: 'toleration_seconds',
-    label: 'Toleration seconds',
-    sortable: false,
-    width: 20,
-  },
-];
-
 export enum HardwareProfileEnableType {
   enabled = 'Enabled',
   disabled = 'Disabled',
@@ -147,4 +70,34 @@ export type HardwareProfileFilterDataType = Record<
 export const initialHardwareProfileFilterData: HardwareProfileFilterDataType = {
   [HardwareProfileFilterOptions.name]: '',
   [HardwareProfileFilterOptions.enabled]: undefined,
+};
+
+export const ManageHardwareProfileSectionTitles: ManageHardwareProfileSectionTitlesType = {
+  [ManageHardwareProfileSectionID.DETAILS]: 'Details',
+  [ManageHardwareProfileSectionID.IDENTIFIERS]: 'Node resources',
+  [ManageHardwareProfileSectionID.NODE_SELECTORS]: 'Node selectors',
+  [ManageHardwareProfileSectionID.TOLERATIONS]: 'Tolerations',
+};
+
+export const DEFAULT_HARDWARE_PROFILE_SPEC: HardwareProfileKind['spec'] = {
+  displayName: '',
+  enabled: true,
+  identifiers: [
+    {
+      identifier: 'cpu',
+      displayName: 'CPU',
+      defaultCount: 2,
+      maxCount: 4,
+      minCount: 1,
+      resourceType: IdentifierResourceType.CPU,
+    },
+    {
+      identifier: 'memory',
+      displayName: 'Memory',
+      defaultCount: '4Gi',
+      minCount: '2Gi',
+      maxCount: '8Gi',
+      resourceType: IdentifierResourceType.MEMORY,
+    },
+  ],
 };

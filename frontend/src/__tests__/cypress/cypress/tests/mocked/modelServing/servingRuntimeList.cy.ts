@@ -34,7 +34,7 @@ import {
 } from '~/__tests__/cypress/cypress/pages/modelServing';
 import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
-import type { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import { DeploymentMode, type InferenceServiceKind, type ServingRuntimeKind } from '~/k8sTypes';
 import { ServingRuntimePlatform } from '~/types';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { StackCapability } from '~/concepts/areas/types';
@@ -486,7 +486,7 @@ describe('Serving Runtime List', () => {
             labels: { 'opendatahub.io/dashboard': 'true' },
             annotations: {
               'openshift.io/display-name': 'Test Name',
-              'serving.kserve.io/deploymentMode': 'ModelMesh',
+              'serving.kserve.io/deploymentMode': DeploymentMode.ModelMesh,
             },
           },
           spec: {
@@ -1419,7 +1419,7 @@ describe('Serving Runtime List', () => {
             namespace: 'test-project',
             annotations: {
               'openshift.io/display-name': 'Test Name',
-              'serving.kserve.io/deploymentMode': 'RawDeployment',
+              'serving.kserve.io/deploymentMode': DeploymentMode.RawDeployment,
             },
             labels: {
               'opendatahub.io/dashboard': 'true',

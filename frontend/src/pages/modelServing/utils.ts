@@ -31,6 +31,7 @@ import {
   ServiceAccountKind,
   RoleKind,
   ServingContainer,
+  DeploymentMode,
 } from '~/k8sTypes';
 import { ContainerResources } from '~/types';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
@@ -370,4 +371,5 @@ export const isModelServerEditInfoChanged = (
     : true;
 
 export const isModelMesh = (inferenceService: InferenceServiceKind): boolean =>
-  inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] === 'ModelMesh';
+  inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] ===
+  DeploymentMode.ModelMesh;
