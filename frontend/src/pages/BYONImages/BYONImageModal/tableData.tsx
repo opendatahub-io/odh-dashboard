@@ -1,16 +1,13 @@
-import { SortableData } from '~/components/table';
-import { BYONImagePackage } from '~/types';
+import { ThProps } from '@patternfly/react-table';
 import { DisplayedContentTab } from './ManageBYONImageModal';
 
-export const getColumns = (tab: DisplayedContentTab): SortableData<BYONImagePackage>[] => [
+export const getColumns = (tab: DisplayedContentTab): ThProps[] => [
   {
-    field: tab === DisplayedContentTab.SOFTWARE ? 'software' : 'packages',
     label: tab === DisplayedContentTab.SOFTWARE ? 'Software' : 'Packages',
-    sortable: false,
+    width: 45,
   },
   {
-    field: 'version',
     label: 'Version',
-    sortable: false,
+    width: 45,
   },
 ];

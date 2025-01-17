@@ -17,10 +17,6 @@ type DisplayedContentTabContentProps = {
   tabKey: DisplayedContentTab;
   resources: BYONImagePackage[];
   setResources: React.Dispatch<React.SetStateAction<BYONImagePackage[]>>;
-  tempResources: BYONImagePackage[];
-  setTempResources: React.Dispatch<React.SetStateAction<BYONImagePackage[]>>;
-  editIndex?: number;
-  setEditIndex: (index?: number) => void;
 };
 
 const DisplayedContentTabContent: React.FC<DisplayedContentTabContentProps> = ({
@@ -28,24 +24,8 @@ const DisplayedContentTabContent: React.FC<DisplayedContentTabContentProps> = ({
   tabKey,
   resources,
   setResources,
-  tempResources,
-  setTempResources,
-  editIndex,
-  setEditIndex,
 }) => {
   const resourceType = tabKey === DisplayedContentTab.SOFTWARE ? 'software' : 'packages';
-
-  const addEmptyRow = React.useCallback(() => {
-    setTempResources((prev) => [
-      ...prev,
-      {
-        name: '',
-        version: '',
-        visible: true,
-      },
-    ]);
-    setEditIndex(tempResources.length);
-  }, [tempResources.length, setTempResources, setEditIndex]);
 
   return (
     <TabContent
@@ -54,7 +34,7 @@ const DisplayedContentTabContent: React.FC<DisplayedContentTabContentProps> = ({
       activeKey={activeKey}
       hidden={tabKey !== activeKey}
     >
-      {tempResources.length === 0 ? (
+      {resources.length === 0 ? (
         <EmptyState
           headingLevel="h2"
           icon={PlusCircleIcon}
@@ -70,38 +50,16 @@ const DisplayedContentTabContent: React.FC<DisplayedContentTabContentProps> = ({
             <Button
               data-testid={`add-${resourceType}-button`}
               variant="secondary"
-              onClick={addEmptyRow}
+              onClick={() => {
+                setResources([...resources, { name: '', version: '', visible: true }]);
+              }}
             >
               Add {resourceType}
             </Button>
           </EmptyStateFooter>
         </EmptyState>
       ) : (
-        <DisplayedContentTable
-          tabKey={tabKey}
-          onReset={() => {
-            setTempResources([...resources]);
-            setEditIndex(undefined);
-          }}
-          onConfirm={(rowIndex, name, version) => {
-            const copiedArray = [...tempResources];
-            copiedArray[rowIndex].name = name;
-            copiedArray[rowIndex].version = version;
-            setTempResources(copiedArray);
-            setResources(copiedArray);
-            setEditIndex(undefined);
-          }}
-          resources={tempResources}
-          onAdd={addEmptyRow}
-          editIndex={editIndex}
-          onEdit={setEditIndex}
-          onDelete={(index) => {
-            const copiedArray = [...resources];
-            copiedArray.splice(index, 1);
-            setTempResources(copiedArray);
-            setResources(copiedArray);
-          }}
-        />
+        <DisplayedContentTable tabKey={tabKey} resources={resources} setResources={setResources} />
       )}
     </TabContent>
   );
