@@ -14,6 +14,7 @@ type MetricChartLineBase = {
 };
 export type NamedMetricChartLine = MetricChartLineBase & {
   name: string;
+  color?: string; // Add customColor as an optional property
 };
 export type UnnamedMetricChartLine = MetricChartLineBase & {
   /** Assumes chart title */
@@ -50,11 +51,13 @@ export type DomainCalculator = (
 export enum MetricsChartTypes {
   AREA,
   LINE,
+  DONUT,
 }
 
 export enum MetricsTabKeys {
   PERFORMANCE = 'performance',
   BIAS = 'bias',
+  NIM = 'nim',
 }
 
 export type BiasChartConfig = {
