@@ -18,13 +18,14 @@ let testData: DataScienceProjectData;
 let projectName: string;
 let contributor: string;
 let modelName: string;
+let modelFilePath: string;
 const dspaSecretName = 'dashboard-dspa-secret';
 const awsBucket = 'BUCKET_3' as const;
 
 describe('Verify Model Creation and Validation using the UI', () => {
   before(() => {
     Cypress.on('uncaught:exception', (err) => {
-      if (err.message.includes('Error: secrets')) {
+      if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
         return false;
       }
       return true;
@@ -36,6 +37,7 @@ describe('Verify Model Creation and Validation using the UI', () => {
         projectName = testData.projectSingleModelResourceName;
         contributor = LDAP_CONTRIBUTOR_USER.USERNAME;
         modelName = testData.singleModelName;
+        modelFilePath = testData.modelFilePath;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
@@ -53,8 +55,8 @@ describe('Verify Model Creation and Validation using the UI', () => {
     );
   });
   after(() => {
-    // Delete provisioned Project
-    deleteOpenShiftProject(projectName);
+    // Delete provisioned Project - 5 min timeout to accomadate increased time to delete a project with a model
+    deleteOpenShiftProject(projectName, { timeout: 300000 });
   });
 
   it(
@@ -86,13 +88,14 @@ describe('Verify Model Creation and Validation using the UI', () => {
       inferenceServiceModal.findServingRuntimeTemplate().click();
       inferenceServiceModal.findCalkitTGISServingRuntime().click();
 
-      inferenceServiceModal.findLocationPathInput().type('flan-t5-small/flan-t5-small-caikit');
+      inferenceServiceModal.findLocationPathInput().type(modelFilePath);
       inferenceServiceModal.findSubmitButton().click();
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
       checkInferenceServiceState(testData.singleModelName);
       modelServingSection.findModelServerName(testData.singleModelName);
+      // Note reload is required as status tooltip was not found due to a stale element
       cy.reload();
       modelServingSection.findStatusTooltip().click({ force: true });
       cy.contains('Loaded', { timeout: 120000 }).should('be.visible');
