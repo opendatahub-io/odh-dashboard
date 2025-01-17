@@ -115,7 +115,6 @@ export type DataScienceProjectData = {
   projectEditResourceName: string;
   projectEditUpdatedName: string;
   projectSingleModelDisplayName: string;
-  projectSingleModelDescription: string;
   projectSingleModelResourceName: string;
   singleModelName: string;
 };

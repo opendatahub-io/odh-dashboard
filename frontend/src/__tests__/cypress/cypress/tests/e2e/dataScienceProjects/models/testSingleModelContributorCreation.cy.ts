@@ -10,10 +10,9 @@ import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pag
 import {
   modelServingGlobal,
   inferenceServiceModal,
-  createServingRuntimeModal
+  modelServingSection,
 } from '~/__tests__/cypress/cypress/pages/modelServing';
 import { checkInferenceServiceState } from '~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
-import { ServingRuntimeModel } from '~/api';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -25,13 +24,13 @@ const awsBucket = 'BUCKET_3' as const;
 describe('Verify Model Creation and Validation using the UI', () => {
   before(() => {
     Cypress.on('uncaught:exception', (err) => {
-      if (err.message.includes('Error: secrets')) { 
+      if (err.message.includes('Error: secrets')) {
         return false;
       }
       return true;
     });
     // Setup: Load test data and ensure clean state
-    return loadDSPFixture('e2e/dataScienceProjects/testModelSingleServingCreation.yaml').then(
+    return loadDSPFixture('e2e/dataScienceProjects/testSingleModelContributorCreation.yaml').then(
       (fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
         projectName = testData.projectSingleModelResourceName;
@@ -53,10 +52,10 @@ describe('Verify Model Creation and Validation using the UI', () => {
       },
     );
   });
-  // after(() => {
-  //   // Delete provisioned Project
-  //   deleteOpenShiftProject(projectName);
-  // });
+  after(() => {
+    // Delete provisioned Project
+    deleteOpenShiftProject(projectName);
+  });
 
   it(
     'Verify that a Non Admin can Serve and Query a Model using the UI',
@@ -81,7 +80,7 @@ describe('Verify Model Creation and Validation using the UI', () => {
       modelServingGlobal.findSingleServingModelButton().click();
       modelServingGlobal.findDeployModelButton().click();
 
-      // Launch a Single Serving Model
+      // Launch a Single Serving Model and select the required entries
       cy.step('Launch a Single Serving Model using Caikit TGIS ServingRuntime for KServe');
       inferenceServiceModal.findModelNameInput().type(testData.singleModelName);
       inferenceServiceModal.findServingRuntimeTemplate().click();
@@ -91,17 +90,12 @@ describe('Verify Model Creation and Validation using the UI', () => {
       inferenceServiceModal.findSubmitButton().click();
 
       //Verify the model created
-      cy.step('Verify that the Model is created Successfully');
-      //inferenceServiceModal.findCreatedModel(testData.singleModelName).should('be.visible');
+      cy.step('Verify that the Model is created Successfully on the backend and frontend');
       checkInferenceServiceState(testData.singleModelName);
-
-      //cy.findByTestId('status-tooltip').click();
-      cy.get('div > .pf-v6-c-icon .pf-v6-svg').click();
+      modelServingSection.findModelServerName(testData.singleModelName);
+      cy.reload();
+      modelServingSection.findStatusTooltip().click({ force: true });
       cy.contains('Loaded', { timeout: 120000 }).should('be.visible');
-      //modelServingGlobal.findStatusTooltip().click();
-      //cy.contains('Loaded', { timeout: 120000 }).should('be.visible');
-
-      // status-tooltip 
     },
   );
 });

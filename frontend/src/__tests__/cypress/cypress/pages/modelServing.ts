@@ -375,10 +375,10 @@ class InferenceServiceRow extends TableRow {
       });
   }
 
-  findStatusTooltipValue(msg: string, timeout?: number) {
+  findStatusTooltipValue(msg: string) {
     this.findStatusTooltip()
       .invoke('text')
-      .should('contain', msg, { timeout })
+      .should('contain', msg)
       .then(() => {
         this.findStatusTooltip().find('button').click();
       });
@@ -424,6 +424,14 @@ class ModelServingSection {
 
   private findModelMeshTable() {
     return this.find().findByTestId('serving-runtime-table');
+  }
+
+  findModelServerName(name: string) {
+    return this.find().findByTestId(`metrics-link-${name}`);
+  }
+
+  findStatusTooltip() {
+    return this.find().findByTestId('status-tooltip');
   }
 
   findKServeTableHeaderButton(name: string) {
