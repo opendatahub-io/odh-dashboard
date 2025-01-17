@@ -54,7 +54,7 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
     registeredModelDeployInfo,
     loaded: deployInfoLoaded,
     error: deployInfoError,
-  } = useRegisteredModelDeployInfo(modelVersion);
+  } = useRegisteredModelDeployInfo(modelVersion, preferredModelRegistry?.metadata.name);
 
   const handleSubmit = React.useCallback(async () => {
     if (!modelVersion.registeredModelId) {

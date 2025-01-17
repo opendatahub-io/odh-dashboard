@@ -61,6 +61,10 @@ class ModelServingGlobal {
     return this.findModelsTable().find(`[data-label=Name]`).contains(name).parents('tr');
   }
 
+  findRows() {
+    return this.findModelsTable().find('[data-label=Name]').parents('tr');
+  }
+
   getModelMetricLink(name: string) {
     return this.findModelsTable().findByTestId(`metrics-link-${name}`);
   }

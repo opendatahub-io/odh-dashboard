@@ -29,7 +29,9 @@ const ModelVersions: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
   const loadError = mvLoadError || rmLoadError;
   const loaded = mvLoaded && rmLoaded;
   const navigate = useNavigate();
-  const inferenceServices = useMakeFetchObject(useInferenceServices(undefined, rmId));
+  const inferenceServices = useMakeFetchObject(
+    useInferenceServices(undefined, rmId, undefined, preferredModelRegistry?.metadata.name),
+  );
 
   useEffect(() => {
     if (rm?.state === ModelState.ARCHIVED) {
