@@ -99,7 +99,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
       className="odh-enable-modal"
       data-id="enable-modal"
       variant={ModalVariant.small}
-      title={enable.title}
+      title={enable.title || `Enable ${selectedApp.spec.displayName}`}
       isOpen
       onClose={handleClose}
       actions={[
@@ -107,9 +107,9 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
           key="confirm"
           variant="primary"
           onClick={onDoEnableApp}
-          isDisabled={validationInProgress || isEnableValuesHasEmptyValue}
+          isDisabled={validationInProgress || (enable.variables && isEnableValuesHasEmptyValue)}
         >
-          {enable.actionLabel}
+          {enable.actionLabel || 'Enable'}
         </Button>,
         <Button key="cancel" variant="link" onClick={handleClose}>
           {validationInProgress ? 'Close' : 'Cancel'}
