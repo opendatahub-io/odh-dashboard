@@ -52,7 +52,12 @@ export const asTimestamp = (date: Date): React.ReactNode => (
       </Icon>
     </FlexItem>
     <FlexItem>
-      <Timestamp date={date} dateFormat={TimestampFormat.full} timeFormat={TimestampFormat.full} />
+      <Timestamp
+        shouldDisplayUTC
+        date={date}
+        dateFormat={TimestampFormat.full}
+        timeFormat={TimestampFormat.medium}
+      />
     </FlexItem>
   </Flex>
 );
