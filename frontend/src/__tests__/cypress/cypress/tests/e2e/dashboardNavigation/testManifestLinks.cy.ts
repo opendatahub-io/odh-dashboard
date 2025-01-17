@@ -1,7 +1,7 @@
 import * as yaml from 'js-yaml';
 import { isUrlExcluded } from '~/__tests__/cypress/cypress/utils/urlExtractor';
 
-describe('Verify that all the URLs referenced in the Manifest directory are operational - currently failing due to issues linked RHOAIENG-9235', () => {
+describe('[Known Bug: RHOAIENG-9235] Verify that all the URLs referenced in the Manifest directory are operational', () => {
   let excludedSubstrings: string[];
 
   // Setup: Load test data
