@@ -52,6 +52,10 @@ class ModelServingGlobal {
     return cy.findByTestId('empty-state-action-button');
   }
 
+  findSingleServingModelButton() {
+    return cy.findByTestId('single-serving-select-button');
+  }
+
   private findModelsTable() {
     // TODO be more precise
     return cy.findByTestId('inference-service-table');
@@ -63,6 +67,10 @@ class ModelServingGlobal {
 
   getModelMetricLink(name: string) {
     return this.findModelsTable().findByTestId(`metrics-link-${name}`);
+  }
+
+  findStatusTooltip() {
+    return cy.findByTestId('status-tooltip');
   }
 
   findEmptyResults() {
@@ -95,6 +103,18 @@ class InferenceServiceModal extends Modal {
 
   findServingRuntimeSelect() {
     return this.find().findByTestId('inference-service-model-selection');
+  }
+
+  findServingRuntimeTemplate() {
+    return this.find().findByTestId('serving-runtime-template-selection');
+  }
+
+  findCalkitStandaloneServingRuntime() {
+    return this.find().findByTestId('caikit-standalone-runtime');
+  }
+
+  findCalkitTGISServingRuntime() {
+    return this.find().findByTestId('caikit-tgis-runtime');
   }
 
   findModelFrameworkSelect() {
@@ -183,6 +203,10 @@ class InferenceServiceModal extends Modal {
 
   findServingRuntimeEnvVarsValue(value: string) {
     return this.find().findByTestId(`serving-runtime-environment-variables-input-value ${value}`);
+  }
+
+  findCreatedModel(name: string) {
+    return this.find().findByTestId(`metrics-link-${name}`);
   }
 }
 
@@ -400,6 +424,14 @@ class ModelServingSection {
 
   private findModelMeshTable() {
     return this.find().findByTestId('serving-runtime-table');
+  }
+
+  findModelServerName(name: string) {
+    return this.find().findByTestId(`metrics-link-${name}`);
+  }
+
+  findStatusTooltip() {
+    return this.find().findByTestId('status-tooltip');
   }
 
   findKServeTableHeaderButton(name: string) {
