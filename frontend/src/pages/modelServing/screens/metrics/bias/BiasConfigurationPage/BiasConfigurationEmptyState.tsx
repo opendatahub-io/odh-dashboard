@@ -5,7 +5,7 @@ import {
   EmptyStateVariant,
   EmptyStateFooter,
 } from '@patternfly/react-core';
-import { WrenchIcon } from '@patternfly/react-icons';
+import { CogIcon } from '@patternfly/react-icons';
 import {
   EMPTY_BIAS_CONFIGURATION_DESC,
   EMPTY_BIAS_CONFIGURATION_TITLE,
@@ -22,7 +22,7 @@ const BiasConfigurationEmptyState: React.FC<BiasConfigurationEmptyStateProps> = 
 }) => (
   <EmptyState
     headingLevel="h2"
-    icon={WrenchIcon}
+    icon={CogIcon}
     titleText={EMPTY_BIAS_CONFIGURATION_TITLE}
     variant={variant}
     data-testid="bias-metrics-empty-state"
