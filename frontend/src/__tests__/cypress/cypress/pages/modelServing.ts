@@ -117,12 +117,28 @@ class InferenceServiceModal extends Modal {
     return this.find().findByTestId('caikit-tgis-runtime');
   }
 
+  findOpenVinoServingRuntime() {
+    return this.find().findByTestId('kserve-ovms');
+  }
+
   findModelFrameworkSelect() {
     return this.find().findByTestId('inference-service-framework-selection');
   }
 
+  findOpenVinoIROpSet13() {
+    return this.find().findByTestId('openvino_ir - opset13');
+  }
+
   findDeploymentModeSelect() {
     return this.find().findByTestId('deployment-mode-select');
+  }
+
+  findDeployedModelRouteCheckbox() {
+    return this.find().findByTestId('alt-form-checkbox-route');
+  }
+
+  findTokenAuthenticationCheckbox() {
+    return this.find().findByTestId('alt-form-checkbox-auth');
   }
 
   findExistingDataConnectionOption() {
@@ -432,6 +448,10 @@ class ModelServingSection {
 
   findStatusTooltip() {
     return this.find().findByTestId('status-tooltip');
+  }
+
+  findInternalExternalServiceButton() {
+    return this.find().findByTestId('internal-external-service-button');
   }
 
   findKServeTableHeaderButton(name: string) {

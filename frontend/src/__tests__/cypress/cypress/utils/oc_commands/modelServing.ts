@@ -14,7 +14,7 @@ import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChe
  */
 export const provisionProjectForModelServing = (
   projectName: string,
-  bucketKey: 'BUCKET_2' | 'BUCKET_3',
+  bucketKey: 'BUCKET_1' | 'BUCKET_3',
   customDataConnectionYamlPath?: string,
 ): void => {
   cy.log(`Provisioning project with bucket key: ${bucketKey}`);
