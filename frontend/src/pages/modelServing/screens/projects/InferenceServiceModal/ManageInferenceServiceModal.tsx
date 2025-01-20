@@ -13,6 +13,7 @@ import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
+import useConnectionTypesEnabled from '~/concepts/connectionTypes/useConnectionTypesEnabled';
 import { Connection } from '~/concepts/connectionTypes/types';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
@@ -56,6 +57,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
   const currentProjectName = projectContext?.currentProject.metadata.name || '';
   const currentServingRuntimeName = projectContext?.currentServingRuntime?.metadata.name || '';
 
+  const isConnectionTypesEnabled = useConnectionTypesEnabled();
   const [connection, setConnection] = React.useState<Connection>();
   const [isConnectionValid, setIsConnectionValid] = React.useState(false);
 
@@ -180,12 +182,12 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
               registeredModelFormat={registeredModelDeployInfo?.modelFormat}
             />
             <FormSection title="Source model location" id="model-location">
-              <ConnectionSection
-                data={createData}
-                setData={setCreateData}
-                setConnection={setConnection}
-                setIsConnectionValid={setIsConnectionValid}
-              />
+                <ConnectionSection
+                  data={createData}
+                  setData={setCreateData}
+                  setConnection={setConnection}
+                  setIsConnectionValid={setIsConnectionValid}
+                />
             </FormSection>
           </>
         )}

@@ -405,12 +405,12 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
         </FormSection>
         {!hideForm && (
           <FormSection title="Source model location" id="model-location">
-            <ConnectionSection
-              data={createDataInferenceService}
-              setData={setCreateDataInferenceService}
-              setConnection={setConnection}
-              setIsConnectionValid={setIsConnectionValid}
-            />
+              <ConnectionSection
+                data={createDataInferenceService}
+                setData={setCreateDataInferenceService}
+                setConnection={setConnection}
+                setIsConnectionValid={setIsConnectionValid}
+              />
           </FormSection>
         )}
         {servingRuntimeParamsEnabled && (
