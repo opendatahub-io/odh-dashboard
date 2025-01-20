@@ -84,7 +84,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
     options?.find((option) => option.key === key) || groupedOptionsFlat?.find((o) => o.key === key);
 
   const selectedOption = value ? findOptionForKey(value) : undefined;
-  const selectedLabel = selectedOption?.dropdownLabel || selectedOption?.label || placeholder;
+  const selectedLabel = selectedOption?.label ?? placeholder;
 
   const totalOptions = React.useMemo(
     () => [...(options || []), ...(groupedOptionsFlat || [])],
@@ -131,11 +131,8 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
             isDisabled={totalOptions.length <= 1 || isDisabled}
             isFullWidth={isFullWidth}
             {...toggleProps}
-            style={{ width: '300px' }}
           >
-            {toggleLabel || (
-              <Truncate content={String(selectedLabel)} className="truncate-no-min-width" />
-            )}
+            {toggleLabel || <Truncate content={selectedLabel} className="truncate-no-min-width" />}
           </MenuToggle>
         )}
         shouldFocusToggleOnSelect
@@ -163,7 +160,6 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
                       isDisabled={optionDisabled}
                       isFavorited={isFavorited}
                       data-testid={optionDataTestId || key}
-                      style={{ width: '300px' }}
                     >
                       {dropdownLabel || label}
                     </SelectOption>

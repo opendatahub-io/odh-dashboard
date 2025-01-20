@@ -73,6 +73,7 @@ const BiasTab: React.FC = () => {
               biasMetricConfigs.length > 0 ? (
                 <ToolbarGroup>
                   <Stack>
+                    {/* Will be fixed by https://issues.redhat.com/browse/RHOAIENG-2403 */}
                     <StackItem style={{ fontWeight: 'bold' }}>Metrics to display</StackItem>
                     <StackItem>
                       <ToolbarItem data-testid="bias-metric-config-toolbar">
