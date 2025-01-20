@@ -28,6 +28,7 @@ export enum KnownLabels {
   PROJECT_SUBJECT = 'opendatahub.io/rb-project-subject',
   REGISTERED_MODEL_ID = 'modelregistry.opendatahub.io/registered-model-id',
   MODEL_VERSION_ID = 'modelregistry.opendatahub.io/model-version-id',
+  MODEL_REGISTRY_NAME = 'modelregistry.opendatahub.io/name',
 }
 
 export type K8sVerb =

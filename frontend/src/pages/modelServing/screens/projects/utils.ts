@@ -729,10 +729,12 @@ export const createNIMPVC = (
   );
 
 export const getCreateInferenceServiceLabels = (
-  data: Pick<RegisteredModelDeployInfo, 'registeredModelId' | 'modelVersionId'> | undefined,
+  data:
+    | Pick<RegisteredModelDeployInfo, 'registeredModelId' | 'modelVersionId' | 'mrName'>
+    | undefined,
 ): { labels: Record<string, string> } | undefined => {
-  if (data?.registeredModelId || data?.modelVersionId) {
-    const { registeredModelId, modelVersionId } = data;
+  if (data?.registeredModelId || data?.modelVersionId || data?.mrName) {
+    const { registeredModelId, modelVersionId, mrName } = data;
 
     return {
       labels: {
@@ -741,6 +743,9 @@ export const getCreateInferenceServiceLabels = (
         }),
         ...(modelVersionId && {
           'modelregistry.opendatahub.io/model-version-id': modelVersionId,
+        }),
+        ...(mrName && {
+          'modelregistry.opendatahub.io/name': mrName,
         }),
       },
     };

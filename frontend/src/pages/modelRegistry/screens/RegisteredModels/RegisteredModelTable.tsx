@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useParams } from 'react-router-dom';
 import { Table } from '~/components/table';
 import { RegisteredModel } from '~/concepts/modelRegistry/types';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
@@ -20,7 +21,10 @@ const RegisteredModelTable: React.FC<RegisteredModelTableProps> = ({
   toolbarContent,
   refresh,
 }) => {
-  const inferenceServices = useMakeFetchObject(useInferenceServices());
+  const { mrName } = useParams();
+  const inferenceServices = useMakeFetchObject(
+    useInferenceServices(undefined, undefined, undefined, mrName),
+  );
   const hasDeploys = (rmId: string) =>
     !!inferenceServices.data.some(
       (s) => s.metadata.labels?.[KnownLabels.REGISTERED_MODEL_ID] === rmId,
