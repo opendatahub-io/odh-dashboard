@@ -56,10 +56,6 @@ class ModelServingGlobal {
     return cy.findByTestId('single-serving-select-button');
   }
 
-  findMultiModelButton() {
-    return cy.findByTestId('multi-serving-select-button');
-  }
-
   private findModelsTable() {
     // TODO be more precise
     return cy.findByTestId('inference-service-table');
@@ -75,6 +71,10 @@ class ModelServingGlobal {
 
   getModelMetricLink(name: string) {
     return this.findModelsTable().findByTestId(`metrics-link-${name}`);
+  }
+
+  findStatusTooltip() {
+    return cy.findByTestId('status-tooltip');
   }
 
   findStatusTooltip() {
@@ -123,10 +123,6 @@ class InferenceServiceModal extends Modal {
 
   findCalkitTGISServingRuntime() {
     return this.find().findByTestId('caikit-tgis-runtime');
-  }
-
-  findOpenVinoServingRuntime() {
-    return this.find().findByTestId('kserve-ovms');
   }
 
   findModelFrameworkSelect() {
@@ -241,6 +237,10 @@ class InferenceServiceModal extends Modal {
 
   findServingRuntimeEnvVarsValue(value: string) {
     return this.find().findByTestId(`serving-runtime-environment-variables-input-value ${value}`);
+  }
+
+  findCreatedModel(name: string) {
+    return this.find().findByTestId(`metrics-link-${name}`);
   }
 
   findCreatedModel(name: string) {
@@ -478,6 +478,14 @@ class ModelServingSection {
 
   private findModelMeshTable() {
     return this.find().findByTestId('serving-runtime-table');
+  }
+
+  findModelServerName(name: string) {
+    return this.find().findByTestId(`metrics-link-${name}`);
+  }
+
+  findStatusTooltip() {
+    return this.find().findByTestId('status-tooltip');
   }
 
   findModelServerName(name: string) {

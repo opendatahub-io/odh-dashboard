@@ -38,6 +38,7 @@ export type AWSS3Buckets = {
   BUCKET_1: AWSS3BucketDetails;
   BUCKET_2: AWSS3BucketDetails;
   BUCKET_3: AWSS3BucketDetails;
+  BUCKET_3: AWSS3BucketDetails;
 };
 
 export type DataConnectionReplacements = {
@@ -140,20 +141,6 @@ export type DataScienceProjectData = {
   projectSingleModelResourceName: string;
   singleModelName: string;
   modelFilePath: string;
-  projectSingleModelAdminDisplayName: string;
-  projectSingleModelAdminResourceName: string;
-  singleModelAdminName: string;
-  modelOpenVinoPath: string;
-  projectMultiModelAdminDisplayName: string;
-  projectMultiModelAdminResourceName: string;
-  multiModelAdminName: string;
-  modelOpenVinoExamplePath: string;
-  projectDCResourceName: string;
-  projectPVStorageResourceName: string;
-  pvStorageName: string;
-  pvStorageDescription: string;
-  pvStorageNameEdited: string;
-  invalidResourceNames: string[];
 };
 
 export type NotebookImageData = {
