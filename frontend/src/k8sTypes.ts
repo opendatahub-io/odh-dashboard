@@ -1,5 +1,5 @@
 import { K8sResourceCommon, MatchExpression } from '@openshift/dynamic-plugin-sdk-utils';
-import { EitherNotBoth, EitherOrNone } from '@openshift/dynamic-plugin-sdk';
+import { EitherNotBoth } from '@openshift/dynamic-plugin-sdk';
 import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import { StackComponent } from '~/concepts/areas/types';
 import {
@@ -453,6 +453,12 @@ export type SupportedModelFormats = {
   autoSelect?: boolean;
 };
 
+export enum DeploymentMode {
+  ModelMesh = 'ModelMesh',
+  RawDeployment = 'RawDeployment',
+  Serverless = 'Serverless',
+}
+
 export type InferenceServiceAnnotations = Partial<{
   'security.opendatahub.io/enable-auth': string;
 }>;
@@ -469,16 +475,12 @@ export type InferenceServiceKind = K8sResourceCommon & {
     namespace: string;
     annotations?: InferenceServiceAnnotations &
       DisplayNameAnnotations &
-      EitherOrNone<
-        {
-          'serving.kserve.io/deploymentMode': 'ModelMesh' | 'RawDeployment';
-        },
-        {
-          'serving.knative.openshift.io/enablePassthrough': 'true';
-          'sidecar.istio.io/inject': 'true';
-          'sidecar.istio.io/rewriteAppHTTPProbers': 'true';
-        }
-      >;
+      Partial<{
+        'serving.kserve.io/deploymentMode': DeploymentMode;
+        'serving.knative.openshift.io/enablePassthrough': 'true';
+        'sidecar.istio.io/inject': 'true';
+        'sidecar.istio.io/rewriteAppHTTPProbers': 'true';
+      }>;
     labels?: InferenceServiceLabels;
   };
   spec: {

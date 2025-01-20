@@ -107,8 +107,8 @@ const ServingRuntimeArgsSection: React.FC<ServingRuntimeArgsSectionType> = ({
       <FormHelperText>
         <HelperText>
           <HelperTextItem>
-            {`Enter one argument and its values per line. Overwriting the runtime's predefined
-            listening port or model location will likely result in a failed deployment.`}
+            {`Overwriting the runtime's predefined listening port or
+            model location will likely result in a failed deployment.`}
           </HelperTextItem>
         </HelperText>
       </FormHelperText>

@@ -465,9 +465,15 @@ describe('Pipeline topology', () => {
         .findValue()
         .contains(mockRecurringRun.display_name);
       pipelineRunDetails.findDetailItem('Workflow name').findValue().contains('test-pipeline');
-      pipelineRunDetails.findDetailItem('Started').findValue().contains('March 15, 2024');
-      pipelineRunDetails.findDetailItem('Finished').findValue().contains('March 15, 2024');
-      pipelineRunDetails.findDetailItem('Duration').findValue().contains('0:50');
+      pipelineRunDetails
+        .findDetailItem('Started')
+        .findValue()
+        .contains('Friday, March 15, 2024 at 5:59:35 PM UTC');
+      pipelineRunDetails
+        .findDetailItem('Finished')
+        .findValue()
+        .contains('Friday, March 15, 2024 at 6:00:25 PM UTC');
+      pipelineRunDetails.findDetailItem('Duration').findValue().contains('50 seconds');
     });
 
     it('Test pipeline triggered run tab parameters', () => {

@@ -14,8 +14,9 @@ import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { ContainerResources } from '~/types';
 import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
+import { getInferenceServiceDeploymentMode } from '~/pages/modelServing/screens/projects/utils';
 import { getModelServingProjects } from './projects';
-import { assemblePodSpecOptions } from './utils';
+import { assemblePodSpecOptions, parseCommandLine } from './utils';
 
 const applyAuthToInferenceService = (
   inferenceService: InferenceServiceKind,
@@ -100,6 +101,8 @@ export const assembleInferenceService = (
   const dataConnectionKey = secretKey || dataConnection;
 
   const nonEmptyArgs = servingRuntimeArgs?.filter(Boolean) || [];
+  // Ensure that we properly handle separating args
+  const splitArgs: string[] = nonEmptyArgs.flatMap(parseCommandLine);
   const nonEmptyEnvVars = servingRuntimeEnvVars?.filter((ev) => ev.name) || [];
 
   let updateInferenceService: InferenceServiceKind = inferenceService
@@ -109,17 +112,16 @@ export const assembleInferenceService = (
           ...inferenceService.metadata,
           annotations: {
             'openshift.io/display-name': data.name.trim(),
-            ...(isModelMesh
-              ? { 'serving.kserve.io/deploymentMode': 'ModelMesh' }
-              : data.isKServeRawDeployment
-              ? {
-                  'serving.kserve.io/deploymentMode': 'RawDeployment',
-                }
-              : {
-                  'serving.knative.openshift.io/enablePassthrough': 'true',
-                  'sidecar.istio.io/inject': 'true',
-                  'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
-                }),
+            'serving.kserve.io/deploymentMode': getInferenceServiceDeploymentMode(
+              !!isModelMesh,
+              !!data.isKServeRawDeployment,
+            ),
+            ...(!isModelMesh &&
+              !data.isKServeRawDeployment && {
+                'serving.knative.openshift.io/enablePassthrough': 'true',
+                'sidecar.istio.io/inject': 'true',
+                'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
+              }),
           },
           labels: {
             ...inferenceService.metadata.labels,
@@ -143,7 +145,7 @@ export const assembleInferenceService = (
                       path,
                     },
                   }),
-              args: nonEmptyArgs,
+              args: splitArgs,
               env: nonEmptyEnvVars,
             },
           },
@@ -157,17 +159,16 @@ export const assembleInferenceService = (
           namespace: project,
           annotations: {
             'openshift.io/display-name': data.name.trim(),
-            ...(isModelMesh
-              ? { 'serving.kserve.io/deploymentMode': 'ModelMesh' }
-              : data.isKServeRawDeployment
-              ? {
-                  'serving.kserve.io/deploymentMode': 'RawDeployment',
-                }
-              : {
-                  'serving.knative.openshift.io/enablePassthrough': 'true',
-                  'sidecar.istio.io/inject': 'true',
-                  'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
-                }),
+            'serving.kserve.io/deploymentMode': getInferenceServiceDeploymentMode(
+              !!isModelMesh,
+              !!data.isKServeRawDeployment,
+            ),
+            ...(!isModelMesh &&
+              !data.isKServeRawDeployment && {
+                'serving.knative.openshift.io/enablePassthrough': 'true',
+                'sidecar.istio.io/inject': 'true',
+                'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
+              }),
           },
           labels: {
             [KnownLabels.DASHBOARD_RESOURCE]: 'true',
@@ -192,7 +193,7 @@ export const assembleInferenceService = (
                       path,
                     },
                   }),
-              args: nonEmptyArgs,
+              args: splitArgs,
               env: nonEmptyEnvVars,
             },
           },

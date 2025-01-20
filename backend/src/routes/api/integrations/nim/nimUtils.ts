@@ -3,6 +3,25 @@ import { KubeFastifyInstance, NIMAccountKind, SecretKind } from '../../../../typ
 const NIM_SECRET_NAME = 'nvidia-nim-access';
 const NIM_ACCOUNT_NAME = 'odh-nim-account';
 
+export const errorMsgList = (app: NIMAccountKind): string[] => {
+  const conditions = app?.status?.conditions || [];
+  return conditions
+    .filter((condition) => condition.status === 'False')
+    .map((condition) => condition.message);
+};
+
+export const apiKeyValidationTimestamp = (app: NIMAccountKind): string => {
+  const conditions = app?.status?.conditions || [];
+  const apiKeyCondition = conditions.find((condition) => condition.type === 'APIKeyValidation');
+  return apiKeyCondition?.lastTransitionTime || '';
+};
+
+export const apiKeyValidationStatus = (app: NIMAccountKind): string => {
+  const conditions = app?.status?.conditions || [];
+  const apiKeyCondition = conditions.find((condition) => condition.type === 'APIKeyValidation');
+  return apiKeyCondition?.status || 'Unknown';
+};
+
 export const isAppEnabled = (app: NIMAccountKind): boolean => {
   const conditions = app?.status?.conditions || [];
   return (

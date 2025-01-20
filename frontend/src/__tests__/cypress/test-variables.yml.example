@@ -18,5 +18,9 @@ S3:
     NAME: pipeline-bucket-name
     REGION: pipeline-bucket-region
     ENDPOINT: https://pipeline-bucket-endpoint.com/
+  BUCKET_3:
+    NAME: model-bucket-name
+    REGION: model-bucket-region
+    ENDPOINT: https://model-bucket-endpoint.com/
 PIP_INDEX_URL: https://pypi.org/simple
 PIP_TRUSTED_HOST: pypi.org
