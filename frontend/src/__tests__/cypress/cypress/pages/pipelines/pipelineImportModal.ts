@@ -24,7 +24,7 @@ class PipelineImportModal extends Modal {
   }
 
   findSubmitButton() {
-    return this.findFooter().findByTestId('import-button');
+    return this.findFooter().findByTestId('modal-submit-button');
   }
 
   findUploadPipelineRadio() {
@@ -56,7 +56,7 @@ class PipelineImportModal extends Modal {
   }
 
   findImportModalError() {
-    return this.find().findByTestId('import-modal-error');
+    return this.find().findByTestId('error-message-alert');
   }
 
   mockCreatePipelineAndVersion(params: CreatePipelineAndVersionKFData, namespace: string) {
