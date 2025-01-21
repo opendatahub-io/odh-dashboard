@@ -265,6 +265,10 @@ class ServingRuntimeModal extends Modal {
     return this.find().findByTestId('serving-runtime-template-selection');
   }
 
+  findOpenVinoModelServer() {
+    return this.find().findByTestId('ovms');
+  }
+
   findPredefinedArgsButton() {
     return this.find().findByTestId('view-predefined-args-button');
   }
