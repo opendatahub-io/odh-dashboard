@@ -454,6 +454,10 @@ class ModelServingSection {
     return this.find().findByTestId('internal-external-service-button');
   }
 
+  findExternalServicePopoverTable() {
+    return cy.findByTestId('external-service-popover');
+  }
+
   findKServeTableHeaderButton(name: string) {
     return this.findKServeTable().find('thead').findByRole('button', { name });
   }

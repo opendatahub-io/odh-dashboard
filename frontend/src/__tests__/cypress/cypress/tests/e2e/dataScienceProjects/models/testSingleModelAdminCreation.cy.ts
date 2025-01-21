@@ -1,7 +1,5 @@
 import type { DataScienceProjectData } from '~/__tests__/cypress/cypress/types';
-import {
-  deleteOpenShiftProject,
-} from '~/__tests__/cypress/cypress/utils/oc_commands/project';
+import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
@@ -13,11 +11,11 @@ import {
 import {
   checkInferenceServiceState,
   provisionProjectForModelServing,
+  modelExternalURLOpenVinoTester,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
 
 let testData: DataScienceProjectData;
 let projectName: string;
-let admin: string;
 let modelName: string;
 let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
@@ -35,7 +33,6 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       (fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
         projectName = testData.projectSingleModelAdminResourceName;
-        admin = HTPASSWD_CLUSTER_ADMIN_USER.USERNAME;
         modelName = testData.singleModelAdminName;
         modelFilePath = testData.modelOpenVinoPath;
 
@@ -52,10 +49,10 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       },
     );
   });
-  // after(() => {
-  //   // Delete provisioned Project - 5 min timeout to accomadate increased time to delete a project with a model
-  //   deleteOpenShiftProject(projectName, { timeout: 300000 });
-  // });
+  after(() => {
+    // Delete provisioned Project - 5 min timeout to accomadate increased time to delete a project with a model
+    deleteOpenShiftProject(projectName, { timeout: 300000 });
+  });
 
   it(
     'Verify that an Admin can Serve, Query a Model using both the UI and External links',
@@ -88,7 +85,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       inferenceServiceModal.findModelFrameworkSelect().click();
       inferenceServiceModal.findOpenVinoIROpSet13().click();
 
-      // Enable Model access through an external route 
+      // Enable Model access through an external route
       cy.step('Allow Model to be accessed from an External route without Authentication');
       inferenceServiceModal.findDeployedModelRouteCheckbox().click();
       inferenceServiceModal.findDeployedModelRouteCheckbox().should('be.checked');
@@ -106,10 +103,15 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       modelServingSection.findStatusTooltip().click({ force: true });
       cy.contains('Loaded', { timeout: 120000 }).should('be.visible');
 
-      modelServingSection.findInternalExternalServiceButton().click();
-      //locator('[data-testid="internal-external-service-button"]')
-      //https://cy-openvino-model-cy-single-model-admin-test.apps.ods-qe-psi-10.osp.rh-ods.com
+      //Verify the Model is accessible externally
+      cy.step('Verify the model is accessible externally');
+      modelExternalURLOpenVinoTester(modelName).then(({ url, response }) => {
+        expect(response.status).to.equal(200);
 
+        //verify the External URL Matches the Backend
+        modelServingSection.findInternalExternalServiceButton().click();
+        modelServingSection.findExternalServicePopoverTable().should('contain', url);
+      });
     },
   );
 });
