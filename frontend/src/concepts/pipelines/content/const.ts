@@ -11,3 +11,6 @@ export const PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR =
 
 export const NAME_CHARACTER_LIMIT = 255;
 export const DESCRIPTION_CHARACTER_LIMIT = 255;
+
+export const PIPELINE_IMPORT_V1_ERROR_TEXT =
+  'DSP 1.0 pipelines are no longer supported by OpenShift AI. To import this pipeline, you must update and recompile it. To learn more, view the Migrating pipelines from DSP 1.0 to 2.0 documentation.';
