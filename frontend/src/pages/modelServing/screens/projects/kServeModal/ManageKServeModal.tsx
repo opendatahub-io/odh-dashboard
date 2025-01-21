@@ -38,13 +38,11 @@ import { DataConnection, NamespaceApplicationCase } from '~/pages/projects/types
 import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
 import InferenceServiceFrameworkSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/InferenceServiceFrameworkSection';
-import DataConnectionSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/DataConnectionSection';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import AuthServingRuntimeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
 import { useAccessReview } from '~/api';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
-import usePrefillDeployModalFromModelRegistry from '~/pages/modelRegistry/screens/RegisteredModels/usePrefillDeployModalFromModelRegistry';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import {
   FormTrackingEventProperties,
@@ -110,13 +108,6 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const { data: kServeNameDesc, onDataChange: setKserveNameDesc } = useK8sNameDescriptionFieldData({
     initialData: editInfo?.inferenceServiceEditInfo,
   });
-  const [dataConnections, dataConnectionsLoaded, dataConnectionsLoadError] =
-    usePrefillDeployModalFromModelRegistry(
-      projectContext,
-      createDataInferenceService,
-      setCreateDataInferenceService,
-      registeredModelDeployInfo,
-    );
 
   const isConnectionTypesEnabled = useConnectionTypesEnabled();
   const [connection, setConnection] = React.useState<Connection>();
@@ -442,22 +433,12 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
         </FormSection>
         {!hideForm && (
           <FormSection title="Source model location" id="model-location">
-            {isConnectionTypesEnabled ? (
-              <ConnectionSection
-                data={createDataInferenceService}
-                setData={setCreateDataInferenceService}
-                setConnection={setConnection}
-                setIsConnectionValid={setIsConnectionValid}
-              />
-            ) : (
-              <DataConnectionSection
-                data={createDataInferenceService}
-                setData={setCreateDataInferenceService}
-                loaded={!!projectContext?.dataConnections || dataConnectionsLoaded}
-                loadError={dataConnectionsLoadError}
-                dataConnections={dataConnections}
-              />
-            )}
+            <ConnectionSection
+              data={createDataInferenceService}
+              setData={setCreateDataInferenceService}
+              setConnection={setConnection}
+              setIsConnectionValid={setIsConnectionValid}
+            />
           </FormSection>
         )}
         {servingRuntimeParamsEnabled && (

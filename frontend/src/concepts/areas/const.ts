@@ -30,7 +30,6 @@ export const allFeatureFlags: string[] = Object.keys({
   disableModelRegistry: false,
   disableModelRegistrySecureDB: false,
   disableServingRuntimeParams: false,
-  disableConnectionTypes: false,
   disableStorageClasses: false,
   disableNIMModelServing: true,
 } satisfies DashboardCommonConfig);
@@ -53,7 +52,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     reliantAreas: [SupportedArea.MODEL_SERVING],
   },
   [SupportedArea.CONNECTION_TYPES]: {
-    featureFlags: ['disableConnectionTypes'],
+    featureFlags: [], // TODO: We want to disable, no flag exists today,
   },
   [SupportedArea.STORAGE_CLASSES]: {
     featureFlags: ['disableStorageClasses'],
