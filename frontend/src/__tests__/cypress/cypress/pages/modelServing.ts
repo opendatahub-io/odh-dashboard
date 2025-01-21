@@ -55,8 +55,8 @@ class ModelServingGlobal {
   findSingleServingModelButton() {
     return cy.findByTestId('single-serving-select-button');
   }
-  
-   findMultiModelButton() {
+
+  findMultiModelButton() {
     return cy.findByTestId('multi-serving-select-button');
   }
 
@@ -124,8 +124,8 @@ class InferenceServiceModal extends Modal {
   findCalkitTGISServingRuntime() {
     return this.find().findByTestId('caikit-tgis-runtime');
   }
-  
-   findOpenVinoServingRuntime() {
+
+  findOpenVinoServingRuntime() {
     return this.find().findByTestId('kserve-ovms');
   }
 
@@ -481,8 +481,8 @@ class ModelServingSection {
   findKServeTableHeaderButton(name: string) {
     return this.findKServeTable().find('thead').findByRole('button', { name });
   }
-  
-    findInternalExternalServiceButton() {
+
+  findInternalExternalServiceButton() {
     return this.find().findByTestId('internal-external-service-button');
   }
 
