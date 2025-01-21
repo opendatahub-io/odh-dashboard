@@ -21,6 +21,7 @@ type ApplicationsPageProps = {
   loaded: boolean;
   empty: boolean;
   loadError?: Error;
+  loadErrorPage?: React.ReactNode;
   children?: React.ReactNode;
   errorMessage?: string;
   emptyMessage?: string;
@@ -41,6 +42,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   loaded,
   empty,
   loadError,
+  loadErrorPage,
   children,
   errorMessage,
   emptyMessage,
@@ -77,7 +79,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
 
   const renderContents = () => {
     if (loadError) {
-      return (
+      return !loadErrorPage ? (
         <PageSection hasBodyWrapper={false} isFilled>
           <EmptyState
             headingLevel="h1"
@@ -89,6 +91,8 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
             <EmptyStateBody>{loadError.message}</EmptyStateBody>
           </EmptyState>
         </PageSection>
+      ) : (
+        loadErrorPage
       );
     }
 

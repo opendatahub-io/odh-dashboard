@@ -55,8 +55,8 @@ class ModelServingGlobal {
   findSingleServingModelButton() {
     return cy.findByTestId('single-serving-select-button');
   }
-
-  findMultiModelButton() {
+  
+   findMultiModelButton() {
     return cy.findByTestId('multi-serving-select-button');
   }
 
@@ -67,6 +67,10 @@ class ModelServingGlobal {
 
   getModelRow(name: string) {
     return this.findModelsTable().find(`[data-label=Name]`).contains(name).parents('tr');
+  }
+
+  findRows() {
+    return this.findModelsTable().find('[data-label=Name]').parents('tr');
   }
 
   getModelMetricLink(name: string) {
@@ -120,8 +124,8 @@ class InferenceServiceModal extends Modal {
   findCalkitTGISServingRuntime() {
     return this.find().findByTestId('caikit-tgis-runtime');
   }
-
-  findOpenVinoServingRuntime() {
+  
+   findOpenVinoServingRuntime() {
     return this.find().findByTestId('kserve-ovms');
   }
 
@@ -474,16 +478,16 @@ class ModelServingSection {
     return this.find().findByTestId('status-tooltip');
   }
 
-  findInternalExternalServiceButton() {
+  findKServeTableHeaderButton(name: string) {
+    return this.findKServeTable().find('thead').findByRole('button', { name });
+  }
+  
+    findInternalExternalServiceButton() {
     return this.find().findByTestId('internal-external-service-button');
   }
 
   findExternalServicePopoverTable() {
     return cy.findByTestId('external-service-popover');
-  }
-
-  findKServeTableHeaderButton(name: string) {
-    return this.findKServeTable().find('thead').findByRole('button', { name });
   }
 
   getKServeRow(name: string) {

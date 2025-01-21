@@ -1,35 +1,38 @@
 import * as React from 'react';
-import { Button, Panel, PanelFooter, PanelHeader, PanelMainBody } from '@patternfly/react-core';
-import { PlusCircleIcon } from '@patternfly/react-icons';
-import { Table } from '~/components/table';
+import {
+  Button,
+  Panel,
+  PanelFooter,
+  PanelHeader,
+  PanelMainBody,
+  TextInput,
+} from '@patternfly/react-core';
+import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
+import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { BYONImagePackage } from '~/types';
+import useDraggableTableControlled from '~/utilities/useDraggableTableControlled';
 import { DisplayedContentTab } from './ManageBYONImageModal';
 import { getColumns } from './tableData';
-import DisplayedContentTableRow from './DisplayedContentTableRow';
 
 type DisplayedContentTableProps = {
   tabKey: DisplayedContentTab;
-  onReset: () => void;
-  onConfirm: (rowIndex: number, name: string, version: string) => void;
   resources: BYONImagePackage[];
-  onAdd: () => void;
-  editIndex?: number;
-  onEdit: (index: number) => void;
-  onDelete: (index: number) => void;
+  setResources: React.Dispatch<React.SetStateAction<BYONImagePackage[]>>;
 };
 
 const DisplayedContentTable: React.FC<DisplayedContentTableProps> = ({
   tabKey,
-  onReset,
-  onConfirm,
   resources,
-  onAdd,
-  editIndex,
-  onEdit,
-  onDelete,
+  setResources,
 }) => {
   const content = tabKey === DisplayedContentTab.SOFTWARE ? 'software' : 'packages';
+  const dataLabel = tabKey === DisplayedContentTab.SOFTWARE ? 'Software' : 'Packages';
   const columns = getColumns(tabKey);
+  const { tableProps, rowsToRender } = useDraggableTableControlled<{
+    name: string;
+    version: string;
+    visible: boolean;
+  }>(resources, setResources);
 
   return (
     <Panel>
@@ -40,40 +43,87 @@ const DisplayedContentTable: React.FC<DisplayedContentTableProps> = ({
       <PanelMainBody>
         <Table
           data-testid={`displayed-content-table-${content}`}
+          className={tableProps.className}
           variant="compact"
-          data={resources}
-          columns={columns}
-          disableRowRenderSupport
-          rowRenderer={(resource, rowIndex) => (
-            <DisplayedContentTableRow
-              key={rowIndex}
-              obj={resource}
-              tabKey={tabKey}
-              isActive={editIndex === rowIndex}
-              isEditing={editIndex !== undefined}
-              onConfirm={(name, version) => onConfirm(rowIndex, name, version)}
-              onReset={onReset}
-              onEdit={() => onEdit(rowIndex)}
-              onDelete={() => onDelete(rowIndex)}
-              onMoveToNextRow={() => {
-                if (rowIndex === resources.length - 1) {
-                  onAdd();
-                } else {
-                  onEdit(rowIndex + 1);
-                }
-              }}
-            />
-          )}
-        />
+        >
+          <Thead noWrap>
+            <Tr>
+              <Th screenReaderText="Drag and drop" />
+              {columns.map((column, columnIndex) => (
+                <Th key={columnIndex}>{column.label}</Th>
+              ))}
+              <Th screenReaderText="Actions" />
+            </Tr>
+          </Thead>
+          <Tbody {...tableProps.tbodyProps}>
+            {rowsToRender.map((r, i) => (
+              <Tr
+                key={i}
+                draggable
+                {...r.rowProps}
+                data-testid="displayed-content-row"
+                style={{ verticalAlign: 'baseline' }}
+              >
+                <Td
+                  draggableRow={{
+                    id: `draggable-row-${r.rowProps.id}`,
+                  }}
+                />
+                <Td dataLabel={dataLabel}>
+                  <TextInput
+                    data-testid={`${dataLabel}-name-input-${i}`}
+                    value={r.data.name}
+                    type="text"
+                    onChange={(_, name) => {
+                      const updatedResources = [...resources];
+                      updatedResources[i].name = name;
+                      setResources(updatedResources);
+                    }}
+                    aria-label={`${dataLabel} name input`}
+                  />
+                </Td>
+                <Td dataLabel="Version">
+                  <TextInput
+                    data-testid={`${dataLabel}-version-input-${i}`}
+                    value={r.data.version}
+                    type="text"
+                    onChange={(_, version) => {
+                      const updatedResources = [...resources];
+                      updatedResources[i].version = version;
+                      setResources(updatedResources);
+                    }}
+                    aria-label={`${dataLabel} version input`}
+                  />
+                </Td>
+                <Td>
+                  <Button
+                    icon={<MinusCircleIcon />}
+                    data-testid={`remove-displayed-content-button-${i}`}
+                    aria-label="Remove displayed content"
+                    variant="plain"
+                    isDisabled={rowsToRender.length === 1 && !r.data.name && !r.data.version}
+                    onClick={() => {
+                      if (rowsToRender.length === 1) {
+                        setResources([{ name: '', version: '', visible: true }]);
+                      } else {
+                        setResources(resources.filter((_, index) => i !== index));
+                      }
+                    }}
+                  />
+                </Td>
+              </Tr>
+            ))}
+          </Tbody>
+        </Table>
       </PanelMainBody>
       <PanelFooter>
         <Button
           data-testid={`add-${content}-resource-button`}
           variant="link"
           icon={<PlusCircleIcon />}
-          onClick={onAdd}
-          isDisabled={editIndex !== undefined}
-          isInline
+          onClick={() => {
+            setResources([...resources, { name: '', version: '', visible: true }]);
+          }}
         >
           Add {content}
         </Button>

@@ -40,7 +40,12 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
   const [mv, mvLoaded, mvLoadError, refreshModelVersion] = useModelVersionById(mvId);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
   const inferenceServices = useMakeFetchObject(
-    useInferenceServices(undefined, mv?.registeredModelId, mv?.id),
+    useInferenceServices(
+      undefined,
+      mv?.registeredModelId,
+      mv?.id,
+      preferredModelRegistry?.metadata.name,
+    ),
   );
   const servingRuntimes = useMakeFetchObject(useServingRuntimes());
 
