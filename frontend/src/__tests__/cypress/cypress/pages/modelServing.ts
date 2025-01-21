@@ -56,6 +56,10 @@ class ModelServingGlobal {
     return cy.findByTestId('single-serving-select-button');
   }
 
+  findMultiModelButton() {
+    return cy.findByTestId('multi-serving-select-button');
+  }
+
   private findModelsTable() {
     // TODO be more precise
     return cy.findByTestId('inference-service-table');
@@ -123,6 +127,10 @@ class InferenceServiceModal extends Modal {
 
   findModelFrameworkSelect() {
     return this.find().findByTestId('inference-service-framework-selection');
+  }
+
+  findOpenVinoIROpSet1() {
+    return this.find().findByTestId('openvino_ir - opset1');
   }
 
   findOpenVinoIROpSet13() {
@@ -301,8 +309,20 @@ class ServingRuntimeModal extends Modal {
     return this.find().findByTestId('service-account-form-name');
   }
 
+  findModelServerName() {
+    return this.find().findByTestId('serving-runtime-name');
+  }
+
   findModelServerSizeSelect() {
     return this.find().findByTestId('model-server-size-selection');
+  }
+
+  findDeployedModelRouteCheckbox() {
+    return this.find().findByTestId('alt-form-checkbox-route');
+  }
+
+  findTokenAuthenticationCheckbox() {
+    return this.find().findByTestId('alt-form-checkbox-auth');
   }
 
   findModelServerReplicasMinusButton() {

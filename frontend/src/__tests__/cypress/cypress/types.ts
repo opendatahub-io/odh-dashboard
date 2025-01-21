@@ -128,6 +128,10 @@ export type DataScienceProjectData = {
   projectSingleModelAdminResourceName: string;
   singleModelAdminName: string;
   modelOpenVinoPath: string;
+  projectMultiModelAdminDisplayName: string;
+  projectMultiModelAdminResourceName: string;
+  multiModelAdminName: string;
+  modelOpenVinoExamplePath: string;
 };
 
 export type NotebookImageData = {
