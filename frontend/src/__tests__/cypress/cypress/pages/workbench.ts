@@ -199,8 +199,8 @@ class NotebookRow extends TableRow {
     return this.find().findByTestId('notebook-stop-action');
   }
 
-  findNotebookStatusPopover(name: string) {
-    return cy.findByTestId('notebook-status-popover').contains(name);
+  findNotebookStatusModal() {
+    return cy.findByTestId('notebook-status-modal');
   }
 
   findNotebookDescription(name: string) {
