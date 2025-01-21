@@ -8,7 +8,7 @@ const resourcesToolbar = resources.getLearningCenterToolbar();
 const resourceFilters = resources.getLearningCenterFilters();
 
 describe('Resources page', () => {
-  beforeEach(() => {
+  before(() => {
     // Authentication
     cy.step('Log into the application');
     cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
