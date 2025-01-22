@@ -57,7 +57,6 @@ describe('Verify that users can provide contributor project permissions to non-a
       cy.step('Assign contributor user Project Permissions');
       permissions.findAddUserButton().click();
       permissions.getUserTable().findAddInput().type(LDAP_CONTRIBUTOR_USER.USERNAME);
-      cy.debug();
       permissions
         .getUserTable()
         .selectPermission(
