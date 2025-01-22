@@ -3,6 +3,7 @@ import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pag
 import { permissions } from '~/__tests__/cypress/cypress/pages/permissions';
 import {
   HTPASSWD_CLUSTER_ADMIN_USER,
+  LDAP_CONTRIBUTOR_GROUP,
   LDAP_CONTRIBUTOR_USER,
 } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
@@ -69,6 +70,40 @@ describe('Verify that users can provide admin project permissions to non-admin u
       );
       permissions.getUserTable().findSaveNewButton().should('exist').and('be.visible').click();
       cy.contains(LDAP_CONTRIBUTOR_USER.USERNAME).should('exist');
+    },
+  );
+  it(
+    'Verify user can assign access permissions to user group',
+    { tags: ['@Sanity', '@SanitySet1', '@ODS-2208', '@Dashboard'] },
+    () => {
+      // Authentication and navigation
+      cy.step('Log into the application');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+
+      // Project navigation, add group and provide admin permissions
+      cy.step(
+        `Navigate to the Project list tab and search for ${testData.projectPermissionResourceName}`,
+      );
+      projectListPage.navigate();
+      projectListPage.filterProjectByName(testData.projectPermissionResourceName);
+      projectListPage.findProjectLink(testData.projectPermissionResourceName).click();
+      projectDetails.findSectionTab('permissions').click();
+
+      cy.step('Assign admin group Project Permissions');
+      permissions.findAddGroupButton().click();
+      permissions.getGroupTable().findAddInput().type(LDAP_CONTRIBUTOR_GROUP.USERNAME);
+      permissions
+        .getGroupTable()
+        .selectPermission(
+          LDAP_CONTRIBUTOR_GROUP.USERNAME,
+          'Admin Edit the project and manage user access',
+        );
+
+      cy.step(
+        `Save the group and validate that ${LDAP_CONTRIBUTOR_GROUP.USERNAME} has been saved with admin permissions`,
+      );
+      permissions.getGroupTable().findSaveNewButton().should('exist').and('be.visible').click();
+      cy.contains(LDAP_CONTRIBUTOR_GROUP.USERNAME).should('exist');
     },
   );
   it(
