@@ -28,6 +28,7 @@ export enum KnownLabels {
   PROJECT_SUBJECT = 'opendatahub.io/rb-project-subject',
   REGISTERED_MODEL_ID = 'modelregistry.opendatahub.io/registered-model-id',
   MODEL_VERSION_ID = 'modelregistry.opendatahub.io/model-version-id',
+  MODEL_REGISTRY_NAME = 'modelregistry.opendatahub.io/name',
 }
 
 export type K8sVerb =
@@ -1271,6 +1272,9 @@ export type K8sResourceListResult<TResource extends Partial<K8sResourceCommon>> 
 /** We don't need or should ever get the full kind, this is the status section */
 export type DataScienceClusterKindStatus = {
   components?: {
+    kserve?: {
+      defaultDeploymentMode?: string;
+    };
     modelregistry?: {
       registriesNamespace?: string;
     };

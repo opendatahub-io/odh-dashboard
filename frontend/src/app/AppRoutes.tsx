@@ -76,6 +76,8 @@ const StorageClassesPage = React.lazy(() => import('../pages/storageClasses/Stor
 
 const ModelRegistryRoutes = React.lazy(() => import('../pages/modelRegistry/ModelRegistryRoutes'));
 
+const ExternalRoutes = React.lazy(() => import('../pages/external/ExternalRoutes'));
+
 const AppRoutes: React.FC = () => {
   const { isAdmin, isAllowed } = useUser();
   const isJupyterEnabled = useCheckJupyterEnabled();
@@ -94,6 +96,7 @@ const AppRoutes: React.FC = () => {
     <React.Suspense fallback={<ApplicationsPage title="" description="" loaded={false} empty />}>
       <InvalidArgoDeploymentAlert />
       <Routes>
+        <Route path="/external/*" element={<ExternalRoutes />} />
         {isHomeAvailable ? (
           <>
             <Route path="/" element={<HomePage />} />

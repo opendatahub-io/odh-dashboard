@@ -37,7 +37,12 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
   const [rm] = useRegisteredModelById(rmId);
   const [mv, mvLoaded, mvLoadError, refreshModelVersion] = useModelVersionById(mvId);
   const inferenceServices = useMakeFetchObject(
-    useInferenceServices(undefined, mv?.registeredModelId, mv?.id),
+    useInferenceServices(
+      undefined,
+      mv?.registeredModelId,
+      mv?.id,
+      preferredModelRegistry?.metadata.name,
+    ),
   );
   const servingRuntimes = useMakeFetchObject(useServingRuntimes());
 

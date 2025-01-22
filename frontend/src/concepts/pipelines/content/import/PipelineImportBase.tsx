@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Alert, Button, Form, FormGroup, Stack, StackItem } from '@patternfly/react-core';
+import { Form, FormGroup, Stack, StackItem } from '@patternfly/react-core';
 import { Modal } from '@patternfly/react-core/deprecated';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
@@ -10,11 +10,14 @@ import {
   PIPELINE_ARGO_ERROR,
   NAME_CHARACTER_LIMIT,
   DESCRIPTION_CHARACTER_LIMIT,
+  PIPELINE_IMPORT_V1_ERROR_TEXT,
 } from '~/concepts/pipelines/content/const';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import useDebounceCallback from '~/utilities/useDebounceCallback';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
-import { PipelineUploadOption, extractKindFromPipelineYAML } from './utils';
+import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
+import PipelineMigrationNoteLinks from '~/concepts/pipelines/content/PipelineMigrationNoteLinks';
+import { PipelineUploadOption, extractKindFromPipelineYAML, isYAMLPipelineV1 } from './utils';
 import PipelineUploadRadio from './PipelineUploadRadio';
 import { PipelineImportData } from './useImportModalData';
 
@@ -47,6 +50,7 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
   const { name, description, fileContents, pipelineUrl, uploadOption } = data;
   const [hasDuplicateName, setHasDuplicateName] = React.useState(false);
   const isArgoWorkflow = extractKindFromPipelineYAML(fileContents) === 'Workflow';
+  const isV1PipelineFile = isYAMLPipelineV1(fileContents);
 
   const isImportButtonDisabled =
     !apiAvailable ||
@@ -91,7 +95,11 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
         })
         .catch((e) => {
           setImporting(false);
-          setError(e);
+          if (e.message.includes('InvalidInputError') && isV1PipelineFile) {
+            setError(new Error(PIPELINE_IMPORT_V1_ERROR_TEXT));
+          } else {
+            setError(e);
+          }
         });
     }
   };
@@ -101,21 +109,24 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
       title={title}
       isOpen
       onClose={() => onBeforeClose()}
-      actions={[
-        <Button
-          key="import-button"
-          data-testid="import-button"
-          variant="primary"
-          isDisabled={isImportButtonDisabled}
-          isLoading={importing}
-          onClick={onSubmit}
-        >
-          {submitButtonText}
-        </Button>,
-        <Button key="cancel-button" variant="secondary" onClick={() => onBeforeClose()}>
-          Cancel
-        </Button>,
-      ]}
+      footer={
+        <DashboardModalFooter
+          onCancel={() => onBeforeClose()}
+          onSubmit={onSubmit}
+          submitLabel={submitButtonText}
+          isSubmitLoading={importing}
+          isSubmitDisabled={isImportButtonDisabled}
+          error={error}
+          alertTitle={
+            isArgoWorkflow
+              ? PIPELINE_ARGO_ERROR
+              : isV1PipelineFile
+              ? 'Pipeline update and recompile required'
+              : 'Error creating pipeline'
+          }
+          alertLinks={isV1PipelineFile ? <PipelineMigrationNoteLinks /> : undefined}
+        />
+      }
       variant="medium"
       data-testid="import-pipeline-modal"
     >
@@ -153,25 +164,16 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
           <StackItem>
             <PipelineUploadRadio
               fileContents={fileContents}
-              setFileContents={(value) => setData('fileContents', value)}
+              setFileContents={(value) => {
+                setData('fileContents', value);
+                setError(undefined);
+              }}
               pipelineUrl={pipelineUrl}
               setPipelineUrl={(url) => setData('pipelineUrl', url)}
               uploadOption={uploadOption}
               setUploadOption={(option) => setData('uploadOption', option)}
             />
           </StackItem>
-          {error && (
-            <StackItem>
-              <Alert
-                data-testid="import-modal-error"
-                title={isArgoWorkflow ? PIPELINE_ARGO_ERROR : 'Error creating pipeline'}
-                isInline
-                variant="danger"
-              >
-                {error.message}
-              </Alert>
-            </StackItem>
-          )}
         </Stack>
       </Form>
     </Modal>
