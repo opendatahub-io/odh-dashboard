@@ -1,22 +1,12 @@
 import * as React from 'react';
-import {
-  Bullseye,
-  Popover,
-  Progress,
-  ProgressMeasureLocation,
-  Spinner,
-  Split,
-  SplitItem,
-  Content,
-  Tooltip,
-  Flex,
-} from '@patternfly/react-core';
+import { Popover, Spinner, Content, Tooltip, Flex, ContentVariants } from '@patternfly/react-core';
 import { ExclamationCircleIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import { getPvcRequestSize, getPvcTotalSize } from '~/pages/projects/utils';
 import { usePVCFreeAmount } from '~/api';
 import { bytesAsRoundedGiB } from '~/utilities/number';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+import ProgressBarWithLabels from '~/components/ProgressBarWithLabels';
 
 type StorageSizeBarProps = {
   pvc: PersistentVolumeClaimKind;
@@ -74,31 +64,16 @@ const StorageSizeBar: React.FC<StorageSizeBarProps> = ({ pvc }) => {
   }
 
   const progressBar = (
-    <Progress
+    <ProgressBarWithLabels
+      inUseLabel={inUseRender}
+      contentComponentVariant={ContentVariants.small}
+      maxValueLabel={maxValue}
       aria-label={percentageLabel || 'Storage progress bar'}
-      measureLocation={ProgressMeasureLocation.none}
       value={Number(percentage)}
-      style={{ gridGap: 0 }} // PF issue with split & measureLocation
     />
   );
 
-  return (
-    <Split hasGutter>
-      <SplitItem>
-        <Bullseye>
-          <Content component="small">{inUseRender}</Content>
-        </Bullseye>
-      </SplitItem>
-      <SplitItem isFilled style={{ maxWidth: 200 }}>
-        {percentageLabel ? <Tooltip content={percentageLabel}>{progressBar}</Tooltip> : progressBar}
-      </SplitItem>
-      <SplitItem>
-        <Bullseye>
-          <Content component="small">{maxValue}</Content>
-        </Bullseye>
-      </SplitItem>
-    </Split>
-  );
+  return percentageLabel ? <Tooltip content={percentageLabel}>{progressBar}</Tooltip> : progressBar;
 };
 
 export default StorageSizeBar;

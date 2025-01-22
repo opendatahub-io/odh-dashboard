@@ -40,6 +40,7 @@
     "test:cypress-ci:coverage": "npx concurrently -P -k -s first \"npm run cypress:server:build:coverage && npm run cypress:server\" \"npx wait-on tcp:127.0.0.1:9001 && npm run cypress:run:mock:coverage -- {@}\" -- ",
     "coverage:merge": "rimraf coverage && istanbul-merge --out coverage/coverage-final.json jest-coverage/coverage-final.json src/__tests__/cypress/coverage/coverage-final.json && nyc report --reporter html -t coverage --report-dir coverage/report && nyc report --reporter json-summary -t coverage --report-dir coverage",
     "cypress:open": "cypress open --project src/__tests__/cypress",
+    "cypress:e2e": "npx cypress run --env grepTags=@Dashboard+-@Bug --browser=chrome --project src/__tests__/cypress",
     "cypress:run": "cypress run -b chrome --project src/__tests__/cypress",
     "cypress:open:mock": "CY_MOCK=1 CY_WS_PORT=9002 npm run cypress:open -- ",
     "cypress:run:mock": "CY_MOCK=1 CY_WS_PORT=9002 npm run cypress:run -- ",

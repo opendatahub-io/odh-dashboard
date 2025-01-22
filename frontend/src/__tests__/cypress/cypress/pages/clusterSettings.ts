@@ -32,6 +32,10 @@ class ModelSergingSettings extends ClusterSettings {
     return cy.findByTestId('single-model-serving-platform-enabled-checkbox');
   }
 
+  findSinglePlatformDeploymentModeSelect() {
+    return cy.findByTestId('default-deployment-mode-select');
+  }
+
   findMultiPlatformCheckbox() {
     return cy.findByTestId('multi-model-serving-platform-enabled-checkbox');
   }

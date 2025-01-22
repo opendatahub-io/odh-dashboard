@@ -204,43 +204,43 @@ describe('Distributed Workload Metrics root page', () => {
     globalDistributedWorkloads.shouldHavePageTitle();
   });
 
-  it('Defaults to Project Metrics tab and automatically selects a project', () => {
+  it('Defaults to Distributed workload status tab and automatically selects a project', () => {
     initIntercepts({});
     globalDistributedWorkloads.visit();
 
-    cy.url().should('include', '/projectMetrics/test-project');
-    cy.findByText('Top resource-consuming distributed workloads').should('exist');
+    cy.url().should('include', '/workloadStatus/test-project');
+    globalDistributedWorkloads.findStatusOverviewCard().should('exist');
   });
 
   it('Tabs navigate to corresponding routes and render their contents', () => {
     initIntercepts({});
     globalDistributedWorkloads.visit();
 
-    cy.findByLabelText('Distributed workload status tab').click();
-    cy.url().should('include', '/workloadStatus/test-project');
-    globalDistributedWorkloads.findStatusOverviewCard().should('exist');
-
     cy.findByLabelText('Project metrics tab').click();
     cy.url().should('include', '/projectMetrics/test-project');
     cy.findByText('Top resource-consuming distributed workloads').should('exist');
+
+    cy.findByLabelText('Distributed workload status tab').click();
+    cy.url().should('include', '/workloadStatus/test-project');
+    globalDistributedWorkloads.findStatusOverviewCard().should('exist');
   });
 
   it('Changing the project and navigating between tabs or to the root of the page retains the new project', () => {
     initIntercepts({});
     globalDistributedWorkloads.visit();
-    cy.url().should('include', '/projectMetrics/test-project');
+    cy.url().should('include', '/workloadStatus/test-project');
 
     globalDistributedWorkloads.projectDropdown.openAndSelectItem('Test Project 2', true);
-    cy.url().should('include', '/projectMetrics/test-project-2');
-
-    cy.findByLabelText('Distributed workload status tab').click();
     cy.url().should('include', '/workloadStatus/test-project-2');
 
     cy.findByLabelText('Project metrics tab').click();
     cy.url().should('include', '/projectMetrics/test-project-2');
 
+    cy.findByLabelText('Distributed workload status tab').click();
+    cy.url().should('include', '/workloadStatus/test-project-2');
+
     globalDistributedWorkloads.navigate();
-    cy.url().should('include', '/projectMetrics/test-project-2');
+    cy.url().should('include', '/workloadStatus/test-project-2');
   });
 
   it('Changing the refresh interval and reloading the page should retain the selection', () => {

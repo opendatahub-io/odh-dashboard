@@ -9,6 +9,7 @@ import {
   ModelServingPlatformEnabled,
   NotebookTolerationFormSettings,
 } from '~/types';
+import { DeploymentMode } from '~/k8sTypes';
 import { addNotification } from '~/redux/actions/actions';
 import { useCheckJupyterEnabled } from '~/utilities/notebookControllerUtils';
 import { useAppDispatch } from '~/redux/hooks';
@@ -17,6 +18,7 @@ import CullerSettings from '~/pages/clusterSettings/CullerSettings';
 import TelemetrySettings from '~/pages/clusterSettings/TelemetrySettings';
 import TolerationSettings from '~/pages/clusterSettings/TolerationSettings';
 import ModelServingPlatformSettings from '~/pages/clusterSettings/ModelServingPlatformSettings';
+import { useDefaultDeploymentMode } from '~/pages/modelServing/useDefaultDeploymentMode';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
@@ -29,6 +31,8 @@ import {
 } from './const';
 
 const ClusterSettings: React.FC = () => {
+  const defaultSingleModelDeploymentMode = useDefaultDeploymentMode();
+
   const [loaded, setLoaded] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error>();
@@ -46,6 +50,9 @@ const ClusterSettings: React.FC = () => {
     });
   const [modelServingEnabledPlatforms, setModelServingEnabledPlatforms] =
     React.useState<ModelServingPlatformEnabled>(clusterSettings.modelServingPlatformEnabled);
+  const [defaultDeploymentMode, setDefaultDeploymentMode] = React.useState<DeploymentMode>(
+    defaultSingleModelDeploymentMode,
+  );
   const dispatch = useAppDispatch();
 
   React.useEffect(() => {
@@ -152,6 +159,8 @@ const ClusterSettings: React.FC = () => {
               initialValue={clusterSettings.modelServingPlatformEnabled}
               enabledPlatforms={modelServingEnabledPlatforms}
               setEnabledPlatforms={setModelServingEnabledPlatforms}
+              defaultDeploymentMode={defaultDeploymentMode}
+              setDefaultDeploymentMode={setDefaultDeploymentMode}
             />
           </StackItem>
         )}

@@ -14,7 +14,7 @@ import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChe
  */
 export const provisionProjectForModelServing = (
   projectName: string,
-  bucketKey: 'BUCKET_2' | 'BUCKET_3',
+  bucketKey: 'BUCKET_1' | 'BUCKET_3',
   customDataConnectionYamlPath?: string,
 ): void => {
   cy.log(`Provisioning project with bucket key: ${bucketKey}`);
@@ -76,4 +76,65 @@ export const checkInferenceServiceState = (
   };
 
   return checkState();
+};
+
+/**
+ * Extracts the external URL of a model from its InferenceService and performs a test request.
+ *
+ * @param modelName - The name of the InferenceService/model to test.
+ */
+export const modelExternalURLOpenVinoTester = (
+  modelName: string,
+): Cypress.Chainable<{ url: string; response: Cypress.Response<unknown> }> => {
+  return cy.exec(`oc get inferenceService ${modelName} -o json`).then((result) => {
+    const inferenceService = JSON.parse(result.stdout);
+    const { url } = inferenceService.status;
+
+    if (!url) {
+      throw new Error('External URL not found in InferenceService');
+    }
+
+    cy.log(`Request URL: ${url}/v2/models/${modelName}/infer`);
+    cy.log(`Request method: POST`);
+    cy.log(`Request headers: ${JSON.stringify({ 'Content-Type': 'application/json' })}`);
+    cy.log(
+      `Request body: ${JSON.stringify({
+        inputs: [
+          {
+            name: 'Func/StatefulPartitionedCall/input/_0:0',
+            shape: [1, 30],
+            datatype: 'FP32',
+            data: Array.from({ length: 30 }, (_, i) => i + 1),
+          },
+        ],
+      })}`,
+    );
+
+    return cy
+      .request({
+        method: 'POST',
+        url: `${url}/v2/models/${modelName}/infer`,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: {
+          inputs: [
+            {
+              name: 'Func/StatefulPartitionedCall/input/_0:0',
+              shape: [1, 30],
+              datatype: 'FP32',
+              data: Array.from({ length: 30 }, (_, i) => i + 1),
+            },
+          ],
+        },
+        failOnStatusCode: false,
+      })
+      .then((response) => {
+        cy.log(`Response status: ${response.status}`);
+        cy.log(`Response body: ${JSON.stringify(response.body)}`);
+
+        // Return a Cypress chain instead of a plain object
+        return cy.wrap({ url, response });
+      });
+  });
 };

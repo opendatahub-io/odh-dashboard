@@ -1,4 +1,6 @@
 import { KubeFastifyInstance, NIMAccountKind, SecretKind } from '../../../../types';
+import createError from 'http-errors';
+import { errorHandler } from '../../../../utils';
 
 const NIM_SECRET_NAME = 'nvidia-nim-access';
 const NIM_ACCOUNT_NAME = 'odh-nim-account';
@@ -116,5 +118,33 @@ export const manageNIMSecret = async (
     } else {
       throw e;
     }
+  }
+};
+
+export const deleteNIMAccount = async (
+  fastify: KubeFastifyInstance,
+): Promise<{ success: boolean; error: string }> => {
+  const { customObjectsApi } = fastify.kube;
+  const { namespace } = fastify.kube;
+
+  try {
+    await customObjectsApi
+      .deleteNamespacedCustomObject(
+        'nim.opendatahub.io',
+        'v1',
+        namespace,
+        'accounts',
+        NIM_ACCOUNT_NAME,
+      )
+      .catch((e) => {
+        throw createError(e.statusCode, e?.body?.message);
+      });
+    return { success: true, error: '' };
+  } catch (e) {
+    if (createError.isHttpError(e) && e.statusCode === 404) {
+      fastify.log.error(e, 'Unable to delete nim account.');
+      return { success: false, error: `Unable to delete nim account: ${errorHandler(e)}` };
+    }
+    throw e;
   }
 };

@@ -201,18 +201,6 @@ rules:
       - delete
     resources:
       - modelregistries
-  - apiGroups:
-      - nim.opendatahub.io
-    verbs:
-      - get
-      - list
-      - watch
-      - create
-      - update
-      - patch
-      - delete
-    resources:
-      - accounts
   - verbs:
       - get
     apiGroups:
