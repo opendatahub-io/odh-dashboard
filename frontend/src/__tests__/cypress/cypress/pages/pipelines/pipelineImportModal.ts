@@ -27,6 +27,10 @@ class PipelineImportModal extends Modal {
     return this.findFooter().findByTestId('modal-submit-button');
   }
 
+  findImportButton() {
+    return this.findFooter().findByTestId('import-button');
+  }
+
   findUploadPipelineRadio() {
     return this.find().findByTestId('upload-file-radio');
   }
@@ -79,7 +83,7 @@ class PipelineImportModal extends Modal {
   }
 
   submit(): void {
-    this.findSubmitButton().click();
+    this.findImportButton().click();
   }
 }
 
