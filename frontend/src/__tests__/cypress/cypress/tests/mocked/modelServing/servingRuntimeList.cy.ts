@@ -1474,6 +1474,46 @@ describe('Serving Runtime List', () => {
         expect(interceptions).to.have.length(2); //1 dry run request and 1 actual request
       });
     });
+
+    it('Check environment variables validation in KServe Modal', () => {
+      initIntercepts({
+        disableModelMeshConfig: false,
+        disableKServeConfig: false,
+        disableServingRuntimeParams: false,
+        servingRuntimes: [],
+        projectEnableModelMesh: false,
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+      modelServingSection.findDeployModelButton().click();
+      kserveModal.shouldBeOpen();
+
+      kserveModal.findModelNameInput().type('Test Name');
+      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
+      kserveModal.findLocationPathInput().type('test-model/');
+
+      kserveModal.findServingRuntimeEnvVarsSectionAddButton().click();
+
+      kserveModal.findServingRuntimeEnvVarsName('0').type('1invalid-name');
+      cy.findByText('Must not start with a digit.').should('be.visible');
+
+      // Test invalid env var name with special characters
+      kserveModal.findServingRuntimeEnvVarsName('0').clear().type('invalid@name');
+      cy.findByText("Must consist of alphabetic characters, digits, '_', '-', or '.'").should(
+        'be.visible',
+      );
+
+      // Test valid env var name
+      kserveModal.findServingRuntimeEnvVarsName('0').clear().type('VALID_NAME');
+      kserveModal.findServingRuntimeEnvVarsValue('0').type('test-value');
+      cy.findByText('Must not start with a digit.').should('not.exist');
+      cy.get('[data-testid="serving-runtime-environment-variables-input-name 0"]').should(
+        'have.attr',
+        'aria-invalid',
+        'false',
+      );
+    });
   });
 
   describe('ModelMesh model server', () => {
