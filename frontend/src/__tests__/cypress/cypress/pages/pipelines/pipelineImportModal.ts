@@ -83,7 +83,7 @@ class PipelineImportModal extends Modal {
   }
 
   submit(): void {
-    this.findImportButton().click();
+    this.findSubmitButton().click();
   }
 }
 

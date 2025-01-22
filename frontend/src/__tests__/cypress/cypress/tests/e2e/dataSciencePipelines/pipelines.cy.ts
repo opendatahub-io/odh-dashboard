@@ -48,7 +48,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
         .type(
           'https://raw.githubusercontent.com/opendatahub-io/odh-dashboard/refs/heads/main/frontend/src/__tests__/resources/pipelines_samples/dummy_pipeline_compiled.yaml',
         );
-      pipelineImportModal.submit();
+      pipelineImportModal.findImportButton().click();
 
       // Verify that we are at the details page of the pipeline by checking the title
       // It can take a little longer to load

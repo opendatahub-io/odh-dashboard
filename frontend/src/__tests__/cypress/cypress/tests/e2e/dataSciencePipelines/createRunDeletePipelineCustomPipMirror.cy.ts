@@ -59,7 +59,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
       pipelineImportModal.findPipelineNameInput().type(testPipelineIrisName);
       pipelineImportModal.findUploadPipelineRadio().click();
       pipelineImportModal.uploadPipelineYaml(getIrisPipelinePath());
-      pipelineImportModal.submit();
+      pipelineImportModal.findImportButton().click();
 
       // Verify that we are at the details page of the pipeline by checking the title
       // It can take a little longer than expected to load
