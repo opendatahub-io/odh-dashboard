@@ -56,6 +56,10 @@ class ModelServingGlobal {
     return cy.findByTestId('single-serving-select-button');
   }
 
+  findMultiModelButton() {
+    return cy.findByTestId('multi-serving-select-button');
+  }
+
   private findModelsTable() {
     // TODO be more precise
     return cy.findByTestId('inference-service-table');
@@ -121,12 +125,32 @@ class InferenceServiceModal extends Modal {
     return this.find().findByTestId('caikit-tgis-runtime');
   }
 
+  findOpenVinoServingRuntime() {
+    return this.find().findByTestId('kserve-ovms');
+  }
+
   findModelFrameworkSelect() {
     return this.find().findByTestId('inference-service-framework-selection');
   }
 
+  findOpenVinoIROpSet1() {
+    return this.find().findByTestId('openvino_ir - opset1');
+  }
+
+  findOpenVinoIROpSet13() {
+    return this.find().findByTestId('openvino_ir - opset13');
+  }
+
   findDeploymentModeSelect() {
     return this.find().findByTestId('deployment-mode-select');
+  }
+
+  findDeployedModelRouteCheckbox() {
+    return this.find().findByTestId('alt-form-checkbox-route');
+  }
+
+  findTokenAuthenticationCheckbox() {
+    return this.find().findByTestId('alt-form-checkbox-auth');
   }
 
   findExistingDataConnectionOption() {
@@ -245,6 +269,10 @@ class ServingRuntimeModal extends Modal {
     return this.find().findByTestId('serving-runtime-template-selection');
   }
 
+  findOpenVinoModelServer() {
+    return this.find().findByTestId('ovms');
+  }
+
   findPredefinedArgsButton() {
     return this.find().findByTestId('view-predefined-args-button');
   }
@@ -289,8 +317,20 @@ class ServingRuntimeModal extends Modal {
     return this.find().findByTestId('service-account-form-name');
   }
 
+  findModelServerName() {
+    return this.find().findByTestId('serving-runtime-name');
+  }
+
   findModelServerSizeSelect() {
     return this.find().findByTestId('model-server-size-selection');
+  }
+
+  findDeployedModelRouteCheckbox() {
+    return this.find().findByTestId('alt-form-checkbox-route');
+  }
+
+  findTokenAuthenticationCheckbox() {
+    return this.find().findByTestId('alt-form-checkbox-auth');
   }
 
   findModelServerReplicasMinusButton() {
@@ -440,6 +480,14 @@ class ModelServingSection {
 
   findKServeTableHeaderButton(name: string) {
     return this.findKServeTable().find('thead').findByRole('button', { name });
+  }
+
+  findInternalExternalServiceButton() {
+    return this.find().findByTestId('internal-external-service-button');
+  }
+
+  findExternalServicePopoverTable() {
+    return cy.findByTestId('external-service-popover');
   }
 
   getKServeRow(name: string) {

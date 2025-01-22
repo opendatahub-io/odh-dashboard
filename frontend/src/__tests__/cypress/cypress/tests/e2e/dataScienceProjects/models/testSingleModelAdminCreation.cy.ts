@@ -1,10 +1,7 @@
 import type { DataScienceProjectData } from '~/__tests__/cypress/cypress/types';
-import {
-  addUserToProject,
-  deleteOpenShiftProject,
-} from '~/__tests__/cypress/cypress/utils/oc_commands/project';
+import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
-import { LDAP_CONTRIBUTOR_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import {
   modelServingGlobal,
@@ -14,16 +11,16 @@ import {
 import {
   checkInferenceServiceState,
   provisionProjectForModelServing,
+  modelExternalURLOpenVinoTester,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
 
 let testData: DataScienceProjectData;
 let projectName: string;
-let contributor: string;
 let modelName: string;
 let modelFilePath: string;
-const awsBucket = 'BUCKET_3' as const;
+const awsBucket = 'BUCKET_1' as const;
 
-describe('Verify Model Creation and Validation using the UI', () => {
+describe('Verify Admin Single Model Creation and Validation using the UI', () => {
   before(() => {
     Cypress.on('uncaught:exception', (err) => {
       if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
@@ -32,13 +29,12 @@ describe('Verify Model Creation and Validation using the UI', () => {
       return true;
     });
     // Setup: Load test data and ensure clean state
-    return loadDSPFixture('e2e/dataScienceProjects/testSingleModelContributorCreation.yaml').then(
+    return loadDSPFixture('e2e/dataScienceProjects/testSingleModelAdminCreation.yaml').then(
       (fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
-        projectName = testData.projectSingleModelResourceName;
-        contributor = LDAP_CONTRIBUTOR_USER.USERNAME;
-        modelName = testData.singleModelName;
-        modelFilePath = testData.modelFilePath;
+        projectName = testData.projectSingleModelAdminResourceName;
+        modelName = testData.singleModelAdminName;
+        modelFilePath = testData.modelOpenVinoPath;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
@@ -50,7 +46,6 @@ describe('Verify Model Creation and Validation using the UI', () => {
           awsBucket,
           'resources/yaml/data_connection_model_serving.yaml',
         );
-        addUserToProject(projectName, contributor, 'edit');
       },
     );
   });
@@ -60,21 +55,21 @@ describe('Verify Model Creation and Validation using the UI', () => {
   });
 
   it(
-    'Verify that a Non Admin can Serve and Query a Model using the UI',
-    { tags: ['@Smoke', '@SmokeSet3', '@ODS-2552', '@Dashboard', '@Modelserving'] },
+    'Verify that an Admin can Serve, Query a Single Model using both the UI and External links',
+    { tags: ['@Smoke', '@SmokeSet3', '@ODS-2626', '@Dashboard', '@Modelserving'] },
     () => {
       cy.log('Model Name:', modelName);
       // Authentication and navigation
-      cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
-      cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
+      cy.step(`Log into the application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
-      // Project navigation, add user and provide contributor permissions
+      // Project navigation
       cy.step(
-        `Navigate to the Project list tab and search for ${testData.projectSingleModelResourceName}`,
+        `Navigate to the Project list tab and search for ${testData.projectSingleModelAdminResourceName}`,
       );
       projectListPage.navigate();
-      projectListPage.filterProjectByName(testData.projectSingleModelResourceName);
-      projectListPage.findProjectLink(testData.projectSingleModelResourceName).click();
+      projectListPage.filterProjectByName(testData.projectSingleModelAdminResourceName);
+      projectListPage.findProjectLink(testData.projectSingleModelAdminResourceName).click();
 
       // Navigate to Model Serving tab and Deploy a Single Model
       cy.step('Navigate to Model Serving and click to Deploy a Single Model');
@@ -83,22 +78,40 @@ describe('Verify Model Creation and Validation using the UI', () => {
       modelServingGlobal.findDeployModelButton().click();
 
       // Launch a Single Serving Model and select the required entries
-      cy.step('Launch a Single Serving Model using Caikit TGIS ServingRuntime for KServe');
-      inferenceServiceModal.findModelNameInput().type(testData.singleModelName);
+      cy.step('Launch a Single Serving Model using Openvino');
+      inferenceServiceModal.findModelNameInput().type(testData.singleModelAdminName);
       inferenceServiceModal.findServingRuntimeTemplate().click();
-      inferenceServiceModal.findCalkitTGISServingRuntime().click();
+      inferenceServiceModal.findOpenVinoServingRuntime().click();
+      inferenceServiceModal.findModelFrameworkSelect().click();
+      inferenceServiceModal.findOpenVinoIROpSet13().click();
 
+      // Enable Model access through an external route
+      cy.step('Allow Model to be accessed from an External route without Authentication');
+      inferenceServiceModal.findDeployedModelRouteCheckbox().click();
+      inferenceServiceModal.findDeployedModelRouteCheckbox().should('be.checked');
+      inferenceServiceModal.findTokenAuthenticationCheckbox().click();
+      inferenceServiceModal.findTokenAuthenticationCheckbox().should('not.be.checked');
       inferenceServiceModal.findLocationPathInput().type(modelFilePath);
       inferenceServiceModal.findSubmitButton().click();
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
-      checkInferenceServiceState(testData.singleModelName);
-      modelServingSection.findModelServerName(testData.singleModelName);
+      checkInferenceServiceState(testData.singleModelAdminName);
+      modelServingSection.findModelServerName(testData.singleModelAdminName);
       // Note reload is required as status tooltip was not found due to a stale element
       cy.reload();
       modelServingSection.findStatusTooltip().click({ force: true });
       cy.contains('Loaded', { timeout: 120000 }).should('be.visible');
+
+      //Verify the Model is accessible externally
+      cy.step('Verify the model is accessible externally');
+      modelExternalURLOpenVinoTester(modelName).then(({ url, response }) => {
+        expect(response.status).to.equal(200);
+
+        //verify the External URL Matches the Backend
+        modelServingSection.findInternalExternalServiceButton().click();
+        modelServingSection.findExternalServicePopoverTable().should('contain', url);
+      });
     },
   );
 });

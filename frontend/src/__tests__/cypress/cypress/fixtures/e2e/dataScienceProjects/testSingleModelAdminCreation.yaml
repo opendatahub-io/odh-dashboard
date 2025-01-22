@@ -1,0 +1,5 @@
+# testSingleModelAdminCreation.cy.ts Test Data #
+projectSingleModelAdminDisplayName: "Cypress Single Model Admin Test Project"
+projectSingleModelAdminResourceName: "cy-single-model-admin-test" 
+singleModelAdminName: "cy-openvino-model"
+modelOpenVinoPath: "kserve-openvino-test/openvino-example-model"
