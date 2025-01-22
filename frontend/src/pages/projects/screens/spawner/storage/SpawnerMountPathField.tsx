@@ -143,8 +143,8 @@ const SpawnerMountPathField: React.FC<SpawnerMountPathFieldProps> = ({
                 {format === MountPathFormat.CUSTOM && (
                   <HelperTextItem variant="warning">
                     Depending on the workbench type, this location may not be visible or accessible.
-                    For example, the JupyterLab file browser only displays folders and files under
-                    /opt/app-root/src
+                    For example, the JupyterLab file browser only displays mount paths and files
+                    under /opt/app-root/src
                   </HelperTextItem>
                 )}
               </HelperText>
