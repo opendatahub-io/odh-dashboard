@@ -25,7 +25,7 @@ export const getIntegrationAppEnablementStatus = (
       throw new Error(e.response.data?.message || e.message);
     });
 
-export const deleteNIMAccount = (internalRoute: string): Promise<ResponseStatus> =>
+export const deleteIntegrationApp = (internalRoute: string): Promise<ResponseStatus> =>
   axios
     .delete(internalRoute)
     .then((response) => response.data)

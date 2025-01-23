@@ -27,7 +27,7 @@ import { useAppContext } from '~/app/AppContext';
 import { useAppDispatch } from '~/redux/hooks';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { isInternalRouteIntegrationsApp } from '~/utilities/utils';
-import { deleteNIMAccount } from '~/services/integrationAppService';
+import { deleteIntegrationApp } from '~/services/integrationAppService';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 import SupportedAppTitle from './SupportedAppTitle';
 import BrandImage from './BrandImage';
@@ -83,7 +83,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     };
 
     if (isInternalRouteIntegrationsApp(odhApp.spec.internalRoute)) {
-      deleteNIMAccount(odhApp.spec.internalRoute)
+      deleteIntegrationApp(odhApp.spec.internalRoute)
         .then((response) => {
           if (response.success) {
             handleSuccess();
@@ -185,9 +185,8 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
             removeApplication();
           }}
         >
-          here
+          here.
         </Button>
-        .
       </p>
     </div>
   );
