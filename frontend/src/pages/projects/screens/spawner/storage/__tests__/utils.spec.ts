@@ -91,7 +91,7 @@ describe('validateMountPath', () => {
 
   it('should return error message for already in-use mount path', () => {
     const result = validateMountPath('/existing-folder', inUseMountPaths);
-    expect(result).toBe('Mount folder is already in use for this workbench.');
+    expect(result).toBe('Mount path is already in use for this workbench.');
   });
 
   it('should return an empty string for valid and unused mount path', () => {

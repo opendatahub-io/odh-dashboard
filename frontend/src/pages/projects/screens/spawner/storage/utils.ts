@@ -162,7 +162,7 @@ export const validateMountPath = (value: string, inUseMountPaths: string[]): str
       inUseMountPaths.includes(`${MOUNT_PATH_PREFIX}${value}`)) ||
     (format === MountPathFormat.CUSTOM && inUseMountPaths.includes(`/${value}`))
   ) {
-    return 'Mount folder is already in use for this workbench.';
+    return 'Mount path is already in use for this workbench.';
   }
 
   return '';

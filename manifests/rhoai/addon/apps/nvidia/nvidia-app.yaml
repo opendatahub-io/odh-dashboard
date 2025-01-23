@@ -20,14 +20,6 @@ spec:
   docsLink: https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/openshift/contents.html
   quickStart: gpu-quickstart
   getStartedLink: https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/managing_openshift_ai/enabling_accelerators#enabling-nvidia-gpus_managing-rhoai
-  enable:
-    title: Enable NVIDIA GPUs
-    actionLabel: Enable
-    description: Clicking enable adds the NVIDIA GPU Add-on card to the Enabled page
-    linkPreface: |-
-      Before enabling, be sure you have installed the NVIDIA GPU Add-on:
-    link: https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/managing_openshift_ai/enabling_accelerators#enabling-nvidia-gpus_managing-rhoai
-    validationConfigMap: nvidia-validation-result
   getStartedMarkDown: >-
     # NVIDIA GPU Add-on
 
