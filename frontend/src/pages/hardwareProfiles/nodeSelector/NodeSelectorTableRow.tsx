@@ -1,6 +1,6 @@
 import React from 'react';
 import { Td, Tr } from '@patternfly/react-table';
-import { ActionList, ActionListItem, Button } from '@patternfly/react-core';
+import { ActionList, ActionListItem, Button, Truncate } from '@patternfly/react-core';
 import { MinusCircleIcon, PencilAltIcon } from '@patternfly/react-icons';
 import { NodeSelector } from '~/types';
 
@@ -18,8 +18,12 @@ const NodeSelectorTableRow: React.FC<NodeSelectorTableRowProps> = ({
   onDelete,
 }) => (
   <Tr>
-    <Td dataLabel="Key">{nodeSelector.key}</Td>
-    <Td dataLabel="Value">{nodeSelector.value}</Td>
+    <Td dataLabel="Key">
+      <Truncate content={nodeSelector.key} />
+    </Td>
+    <Td dataLabel="Value">
+      <Truncate content={nodeSelector.value} />
+    </Td>
     {showActions && (
       <Td isActionCell modifier="nowrap" style={{ textAlign: 'right' }}>
         <ActionList isIconList>
