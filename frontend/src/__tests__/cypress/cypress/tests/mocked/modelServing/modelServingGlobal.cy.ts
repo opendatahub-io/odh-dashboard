@@ -300,7 +300,6 @@ describe('Model Serving Global', () => {
     inferenceServiceModalEdit.findSubmitButton().should('be.enabled');
 
     // test that user cant upload on an empty new secret
-    inferenceServiceModalEdit.findNewDataConnectionOption().click();
     inferenceServiceModalEdit.findLocationPathInput().clear();
     inferenceServiceModalEdit.findSubmitButton().should('be.disabled');
     inferenceServiceModalEdit.findLocationPathInput().type('/');
@@ -369,7 +368,6 @@ describe('Model Serving Global', () => {
     inferenceServiceModal.findExistingConnectionSelect().should('be.disabled');
     inferenceServiceModal.findLocationPathInput().type('test-model/');
     inferenceServiceModal.findSubmitButton().should('be.enabled');
-    inferenceServiceModal.findNewDataConnectionOption().click();
     inferenceServiceModal.findLocationPathInput().clear();
     inferenceServiceModal.findSubmitButton().should('be.disabled');
     inferenceServiceModal.findLocationPathInput().type('/');

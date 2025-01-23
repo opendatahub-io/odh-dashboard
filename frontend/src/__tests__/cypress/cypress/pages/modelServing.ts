@@ -165,20 +165,10 @@ class InferenceServiceModal extends Modal {
     return this.find().findByTestId('service-account-form-name');
   }
 
-  findNewDataConnectionOption() {
-    return this.find().findByTestId('new-data-connection-radio');
-  }
-
   findExistingConnectionSelect() {
     return this.find()
       .findByRole('group', { name: 'Source model location' })
       .findByRole('button', { name: 'Options menu' });
-  }
-
-  selectExistingConnectionSelectOptionByResourceName(name: string) {
-    this.findExistingConnectionSelect()
-      .findSelectOptionByTestId(`inference-service-data-connection ${name}`)
-      .click();
   }
 
   findLocationNameInput() {

@@ -73,7 +73,6 @@ type HandlersProps = {
   roleAlreadyExists?: boolean;
   rejectInferenceService?: boolean;
   rejectServingRuntime?: boolean;
-  rejectDataConnection?: boolean;
   requiredCapabilities?: StackCapability[];
 };
 
@@ -114,7 +113,6 @@ const initIntercepts = ({
   roleAlreadyExists = false,
   rejectInferenceService = false,
   rejectServingRuntime = false,
-  rejectDataConnection = false,
   requiredCapabilities = [],
 }: HandlersProps) => {
   cy.interceptOdh(
@@ -374,19 +372,6 @@ const initIntercepts = ({
       { namespace: 'opendatahub' },
     ),
   );
-  cy.interceptK8s(
-    'POST',
-    {
-      model: SecretModel,
-      ns: 'test-project',
-    },
-    rejectDataConnection
-      ? { statusCode: 401 }
-      : {
-          statusCode: 200,
-          body: mockSecretK8sResource({}),
-        },
-  ).as('createDataConnectionSecret');
 };
 
 describe('Serving Runtime List', () => {
@@ -443,7 +428,6 @@ describe('Serving Runtime List', () => {
       inferenceServiceModal.findExistingConnectionSelect().should('be.disabled');
       inferenceServiceModal.findLocationPathInput().type('test-model/');
       inferenceServiceModal.findSubmitButton().should('be.enabled');
-      inferenceServiceModal.findNewDataConnectionOption().click();
       inferenceServiceModal.findLocationPathInput().clear();
       inferenceServiceModal.findSubmitButton().should('be.disabled');
       inferenceServiceModal.findLocationNameInput().type('Test Name');
@@ -760,7 +744,6 @@ describe('Serving Runtime List', () => {
       kserveModal.findExistingConnectionSelect().should('be.disabled');
       kserveModal.findLocationPathInput().type('test-model/');
       kserveModal.findSubmitButton().should('be.enabled');
-      kserveModal.findNewDataConnectionOption().click();
       kserveModal.findLocationPathInput().clear();
       kserveModal.findSubmitButton().should('be.disabled');
       kserveModal.findLocationNameInput().type('Test Name');
@@ -995,7 +978,6 @@ describe('Serving Runtime List', () => {
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
       kserveModal.findExistingConnectionSelect().should('be.disabled');
-      kserveModal.findNewDataConnectionOption().click();
       kserveModal.findLocationNameInput().type('Test Name');
       kserveModal.findLocationAccessKeyInput().type('test-key');
       kserveModal.findLocationSecretKeyInput().type('test-secret-key');
@@ -2210,66 +2192,6 @@ describe('Serving Runtime List', () => {
       });
 
       // check url should be dryRun
-    });
-
-    it('Check when Data connection secret dryRun fails', () => {
-      initIntercepts({
-        disableModelMeshConfig: true,
-        disableKServeConfig: false,
-        servingRuntimes: [],
-        rejectDataConnection: true,
-      });
-
-      projectDetails.visitSection('test-project', 'model-server');
-      modelServingSection.findDeployModelButton().click();
-      kserveModal.shouldBeOpen();
-
-      kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
-      kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
-
-      kserveModal.findNewDataConnectionOption().click();
-      kserveModal.findLocationNameInput().type('Test Name');
-      kserveModal.findLocationAccessKeyInput().type('test-key');
-      kserveModal.findLocationSecretKeyInput().type('test-secret-key');
-      kserveModal.findLocationEndpointInput().type('test-endpoint');
-      kserveModal.findLocationBucketInput().type('test-bucket');
-      kserveModal.findLocationPathInput().type('test-model/');
-
-      kserveModal.findSubmitButton().should('be.enabled');
-      kserveModal.findSubmitButton().click();
-
-      // check url should be dryRun
-      cy.wait('@createDataConnectionSecret').then((interception) => {
-        expect(interception.request.url).to.include('?dryRun=All');
-        expect(interception.request.body).to.containSubset({
-          metadata: {
-            name: 'aws-connection-test-name',
-            namespace: 'test-project',
-            annotations: {
-              'openshift.io/display-name': 'Test Name',
-              'opendatahub.io/connection-type': 's3',
-            },
-            labels: { 'opendatahub.io/dashboard': 'true', 'opendatahub.io/managed': 'true' },
-          },
-          stringData: {
-            AWS_ACCESS_KEY_ID: 'test-key',
-            AWS_SECRET_ACCESS_KEY: 'test-secret-key',
-            AWS_S3_BUCKET: 'test-bucket',
-            AWS_S3_ENDPOINT: 'test-endpoint',
-            AWS_DEFAULT_REGION: '',
-          },
-        });
-      });
-
-      cy.get('@createDataConnectionSecret.all').then((interceptions) => {
-        expect(interceptions).to.have.length(1); // 1 dry-run request only
-      });
-
-      // check no createInferenceService call is made as data connection creation failed
-      cy.get('@createInferenceService.all').then((interceptions) => {
-        expect(interceptions).to.have.length(0);
-      });
     });
   });
 
