@@ -14,7 +14,7 @@ describe('[Known Bug: RHOAIENG-9235] Verify that all the URLs referenced in the 
 
   it(
     'Reads the manifest directory, filters out test/sample URLs and validates the remaining URLs',
-    { tags: ['@Smoke', '@SmokeSet1', '@ODS-327', '@ODS-492', '@Dashboard'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@ODS-327', '@ODS-492', '@Dashboard', '@Bug'] },
     () => {
       const manifestsDir = '../../../../manifests';
       cy.log(`Resolved manifests directory: ${manifestsDir}`);
