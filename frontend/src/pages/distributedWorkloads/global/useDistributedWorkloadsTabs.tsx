@@ -20,18 +20,18 @@ export const useDistributedWorkloadsTabs = (): DistributedWorkloadsTabConfig[] =
   const dwAreaIsAvailable = useDistributedWorkloadsEnabled();
   return [
     {
-      id: DistributedWorkloadsTabId.PROJECT_METRICS,
-      title: 'Project metrics',
-      path: 'projectMetrics',
-      isAvailable: dwAreaIsAvailable,
-      ContentComponent: GlobalDistributedWorkloadsProjectMetricsTab,
-    },
-    {
       id: DistributedWorkloadsTabId.WORKLOAD_STATUS,
       title: 'Distributed workload status',
       path: 'workloadStatus',
       isAvailable: dwAreaIsAvailable,
       ContentComponent: GlobalDistributedWorkloadsWorkloadStatusTab,
+    },
+    {
+      id: DistributedWorkloadsTabId.PROJECT_METRICS,
+      title: 'Project metrics',
+      path: 'projectMetrics',
+      isAvailable: dwAreaIsAvailable,
+      ContentComponent: GlobalDistributedWorkloadsProjectMetricsTab,
     },
   ];
 };
