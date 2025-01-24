@@ -26,7 +26,7 @@ const RegisteredModelTable: React.FC<RegisteredModelTableProps> = ({
     useInferenceServices(undefined, undefined, undefined, mrName),
   );
   const hasDeploys = (rmId: string) =>
-    !!inferenceServices.data.some(
+    !!inferenceServices.data.items.some(
       (s) => s.metadata.labels?.[KnownLabels.REGISTERED_MODEL_ID] === rmId,
     );
   return (

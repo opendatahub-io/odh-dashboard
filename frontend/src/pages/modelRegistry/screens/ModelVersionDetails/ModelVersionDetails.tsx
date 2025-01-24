@@ -128,7 +128,7 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
               <ModelVersionsDetailsHeaderActions
                 mv={mv}
                 registeredModel={rm}
-                hasDeployment={inferenceServices.data.length > 0}
+                hasDeployment={inferenceServices.data.items.length > 0}
                 refresh={refresh}
               />
             </FlexItem>

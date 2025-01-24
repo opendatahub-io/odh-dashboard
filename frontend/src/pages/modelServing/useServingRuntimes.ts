@@ -19,12 +19,12 @@ const accessReviewResource: AccessReviewResourceAttributes = {
 };
 
 export type ServingRuntimesFetchData = {
-  servingRuntimes: ServingRuntimeKind[];
+  items: ServingRuntimeKind[];
   hasNonDashboardServingRuntimes: boolean;
 };
 
 export const DEFAULT_SERVING_RUNTIMES_FETCH_DATA: ServingRuntimesFetchData = {
-  servingRuntimes: [],
+  items: [],
   hasNonDashboardServingRuntimes: false,
 };
 
@@ -68,7 +68,7 @@ const useServingRuntimes = (
           ({ metadata: { labels } }) => labels?.[KnownLabels.DASHBOARD_RESOURCE] === 'true',
         );
         return {
-          servingRuntimes: dashboardServingRuntimes,
+          items: dashboardServingRuntimes,
           hasNonDashboardServingRuntimes:
             servingRuntimeList.length > dashboardServingRuntimes.length,
         };
