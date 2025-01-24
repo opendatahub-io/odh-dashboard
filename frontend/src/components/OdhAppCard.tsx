@@ -174,9 +174,9 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
             setEnableOpen(true);
           }}
         >
-          here.
+          here
         </Button>
-        To remove card click&nbsp;
+        . To remove card click&nbsp;
         <Button
           isInline
           variant="link"
@@ -185,8 +185,9 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
             removeApplication();
           }}
         >
-          here.
+          here
         </Button>
+        .
       </p>
     </div>
   );
