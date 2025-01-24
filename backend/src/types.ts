@@ -527,7 +527,6 @@ export type BYONImage = {
   software: BYONImagePackage[];
   packages: BYONImagePackage[];
   recommendedAcceleratorIdentifiers: string[];
-  recommendedHardwareProfileIdentifiers: string[];
 };
 
 export type ImageInfo = {

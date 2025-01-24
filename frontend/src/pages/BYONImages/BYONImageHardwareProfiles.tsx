@@ -28,7 +28,7 @@ const BYONImageHardwareProfiles: React.FC<BYONImageHardwareProfilesProps> = ({
 
   const recommendedHardwareProfiles = filterHardwareProfilesByRecommendedIdentifiers(
     data,
-    image.recommendedHardwareProfileIdentifiers,
+    image.recommendedAcceleratorIdentifiers,
   );
 
   if (loadError) {
@@ -59,9 +59,9 @@ const BYONImageHardwareProfiles: React.FC<BYONImageHardwareProfilesProps> = ({
         </StackItem>
       )}
       <StackItem>
-        {image.recommendedHardwareProfileIdentifiers.length > 0 ? (
+        {image.recommendedAcceleratorIdentifiers.length > 0 ? (
           <Tooltip
-            content={`This image is compatible with hardware profiles with the identifier ${image.recommendedHardwareProfileIdentifiers.join(
+            content={`This image is compatible with hardware profiles with the identifier ${image.recommendedAcceleratorIdentifiers.join(
               ', ',
             )}.`}
           >
@@ -71,7 +71,7 @@ const BYONImageHardwareProfiles: React.FC<BYONImageHardwareProfilesProps> = ({
               render={({ className, content }) => (
                 <Link
                   to={`/hardwareProfiles/create?${new URLSearchParams({
-                    identifiers: image.recommendedHardwareProfileIdentifiers.join(','),
+                    identifiers: image.recommendedAcceleratorIdentifiers.join(','),
                   }).toString()}`}
                   className={className}
                 >

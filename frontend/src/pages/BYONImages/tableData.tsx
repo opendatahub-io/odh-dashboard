@@ -39,8 +39,7 @@ export const columns: SortableData<BYONImage>[] = [
     field: 'recommendedHardwareProfiles',
     label: 'Recommended hardware profiles',
     sortable: (a, b) =>
-      a.recommendedHardwareProfileIdentifiers.length -
-      b.recommendedHardwareProfileIdentifiers.length,
+      a.recommendedAcceleratorIdentifiers.length - b.recommendedAcceleratorIdentifiers.length,
     info: {
       popover: 'Hardware profiles are used to speed up the execution of workbenches.',
     },

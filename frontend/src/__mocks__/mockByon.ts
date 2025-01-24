@@ -13,7 +13,6 @@ export const mockByon = (opts?: RecursivePartial<BYONImage[]>): BYONImage[] =>
         display_name: 'Testing Custom Image',
         description: 'A custom notebook image',
         recommendedAcceleratorIdentifiers: [],
-        recommendedHardwareProfileIdentifiers: [],
         visible: true,
         packages: [
           {

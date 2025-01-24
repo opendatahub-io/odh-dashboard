@@ -38,8 +38,6 @@ const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({ existingIma
   const [recommendedAcceleratorIdentifiers, setRecommendedAcceleratorIdentifiers] = React.useState<
     string[]
   >([]);
-  const [recommendedHardwareProfileIdentifiers, setRecommendedHardwareProfileIdentifiers] =
-    React.useState<string[]>([]);
   const [software, setSoftware] = React.useState<BYONImagePackage[]>([]);
   const [packages, setPackages] = React.useState<BYONImagePackage[]>([]);
   const userName = useAppSelector((state) => state.user || '');
@@ -64,7 +62,6 @@ const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({ existingIma
       setPackages(existingImage.packages);
       setSoftware(existingImage.software);
       setRecommendedAcceleratorIdentifiers(existingImage.recommendedAcceleratorIdentifiers);
-      setRecommendedHardwareProfileIdentifiers(existingImage.recommendedHardwareProfileIdentifiers);
     }
   }, [existingImage]);
 
@@ -86,7 +83,6 @@ const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({ existingIma
         display_name: byonNameDesc.name,
         description: byonNameDesc.description,
         recommendedAcceleratorIdentifiers,
-        recommendedHardwareProfileIdentifiers,
         packages: filterBlankPackages(packages),
         software: filterBlankPackages(software),
       }).then(handleResponse);
@@ -98,7 +94,6 @@ const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({ existingIma
         url: repository,
         description: byonNameDesc.description,
         recommendedAcceleratorIdentifiers,
-        recommendedHardwareProfileIdentifiers,
         provider: userName,
         packages: filterBlankPackages(packages),
         software: filterBlankPackages(software),
@@ -156,8 +151,8 @@ const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({ existingIma
             }
           >
             <HardwareProfileIdentifierMultiselect
-              setData={(identifiers) => setRecommendedHardwareProfileIdentifiers(identifiers)}
-              data={recommendedHardwareProfileIdentifiers}
+              setData={(identifiers) => setRecommendedAcceleratorIdentifiers(identifiers)}
+              data={recommendedAcceleratorIdentifiers}
             />
           </FormGroup>
         ) : (

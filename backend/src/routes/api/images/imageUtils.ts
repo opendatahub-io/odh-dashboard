@@ -243,9 +243,6 @@ const mapImageStreamToBYONImage = (is: ImageStream): BYONImage => ({
   recommendedAcceleratorIdentifiers: jsonParseRecommendedIdentifiers(
     is.metadata.annotations['opendatahub.io/recommended-accelerators'],
   ),
-  recommendedHardwareProfileIdentifiers: jsonParseRecommendedIdentifiers(
-    is.metadata.annotations['opendatahub.io/recommended-hardware-profile-identifiers'],
-  ),
 });
 
 export const postImage = async (
@@ -289,9 +286,6 @@ export const postImage = async (
         'opendatahub.io/notebook-image-creator': body.provider,
         'opendatahub.io/recommended-accelerators': JSON.stringify(
           body.recommendedAcceleratorIdentifiers ?? [],
-        ),
-        'opendatahub.io/recommended-hardware-profile-identifiers': JSON.stringify(
-          body.recommendedHardwareProfileIdentifiers ?? [],
         ),
       },
       name,
@@ -434,11 +428,6 @@ export const updateImage = async (
       imageStream.metadata.annotations['opendatahub.io/recommended-accelerators'] = JSON.stringify(
         body.recommendedAcceleratorIdentifiers,
       );
-    }
-
-    if (body.recommendedHardwareProfileIdentifiers !== undefined) {
-      imageStream.metadata.annotations['opendatahub.io/recommended-hardware-profile-identifiers'] =
-        JSON.stringify(body.recommendedHardwareProfileIdentifiers);
     }
 
     await customObjectsApi
