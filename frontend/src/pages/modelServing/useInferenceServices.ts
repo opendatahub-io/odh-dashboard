@@ -18,12 +18,12 @@ const accessReviewResource: AccessReviewResourceAttributes = {
 };
 
 export type InferenceServicesFetchData = {
-  inferenceServices: InferenceServiceKind[];
+  items: InferenceServiceKind[];
   hasNonDashboardInferenceServices: boolean;
 };
 
 export const DEFAULT_INFERENCE_SERVICES_FETCH_DATA: InferenceServicesFetchData = {
-  inferenceServices: [],
+  items: [],
   hasNonDashboardInferenceServices: false,
 };
 
@@ -81,7 +81,7 @@ const useInferenceServices = (
         ({ metadata: { labels } }) => labels?.[KnownLabels.DASHBOARD_RESOURCE] === 'true',
       );
       return {
-        inferenceServices: dashboardInferenceServices,
+        items: dashboardInferenceServices,
         hasNonDashboardInferenceServices:
           inferenceServiceList.length > dashboardInferenceServices.length,
       };

@@ -30,7 +30,7 @@ const ModelVersionsTable: React.FC<ModelVersionsTableProps> = ({
     useInferenceServices(undefined, registeredModelId, undefined, mrName),
   );
   const hasDeploys = (mvId: string) =>
-    !!inferenceServices.data.some(
+    !!inferenceServices.data.items.some(
       (s) => s.metadata.labels?.[KnownLabels.MODEL_VERSION_ID] === mvId,
     );
 

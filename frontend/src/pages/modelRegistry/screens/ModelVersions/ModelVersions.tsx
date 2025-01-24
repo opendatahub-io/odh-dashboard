@@ -59,7 +59,10 @@ const ModelVersions: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
       title={rm?.name}
       headerAction={
         rm && (
-          <ModelVersionsHeaderActions hasDeployments={!!inferenceServices.data.length} rm={rm} />
+          <ModelVersionsHeaderActions
+            hasDeployments={!!inferenceServices.data.items.length}
+            rm={rm}
+          />
         )
       }
       description={<Truncate content={rm?.description || ''} />}
