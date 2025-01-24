@@ -8,16 +8,14 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { ProjectKind, SecretKind, TemplateKind } from '~/k8sTypes';
 import {
-  InferenceServiceKind,
-  ProjectKind,
-  SecretKind,
-  ServingRuntimeKind,
-  TemplateKind,
-} from '~/k8sTypes';
-import { DEFAULT_CONTEXT_DATA, DEFAULT_LIST_WATCH_RESULT } from '~/utilities/const';
-import { ContextResourceData, CustomWatchK8sResult } from '~/types';
-import { useContextResourceData } from '~/utilities/useContextResourceData';
+  DEFAULT_LIST_FETCH_STATE,
+  DEFAULT_LIST_WATCH_RESULT,
+  POLL_INTERVAL,
+} from '~/utilities/const';
+import { CustomWatchK8sResult, FetchStateObject } from '~/types';
+import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import { useDashboardNamespace } from '~/redux/selectors';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { conditionalArea, SupportedArea } from '~/concepts/areas';
@@ -25,8 +23,14 @@ import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformS
 import { useTemplates } from '~/api';
 import { Connection } from '~/concepts/connectionTypes/types';
 import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
-import useInferenceServices from './useInferenceServices';
-import useServingRuntimes from './useServingRuntimes';
+import useInferenceServices, {
+  DEFAULT_INFERENCE_SERVICES_FETCH_STATE,
+  InferenceServicesFetchData,
+} from './useInferenceServices';
+import useServingRuntimes, {
+  DEFAULT_SERVING_RUNTIMES_FETCH_STATE,
+  ServingRuntimesFetchData,
+} from './useServingRuntimes';
 import useTemplateOrder from './customServingRuntimes/useTemplateOrder';
 import useTemplateDisablement from './customServingRuntimes/useTemplateDisablement';
 import { getTokenNames } from './utils';
@@ -35,15 +39,15 @@ import useServingRuntimeSecrets from './screens/projects/useServingRuntimeSecret
 export type ModelServingContextType = {
   refreshAllData: () => void;
   filterTokens: (servingRuntime?: string) => SecretKind[];
-  connections: ContextResourceData<Connection>;
+  connections: FetchStateObject<Connection[]>;
   servingRuntimeTemplates: CustomWatchK8sResult<TemplateKind[]>;
-  servingRuntimeTemplateOrder: ContextResourceData<string>;
-  servingRuntimeTemplateDisablement: ContextResourceData<string>;
-  servingRuntimes: ContextResourceData<ServingRuntimeKind>;
-  inferenceServices: ContextResourceData<InferenceServiceKind>;
+  servingRuntimeTemplateOrder: FetchStateObject<string[]>;
+  servingRuntimeTemplateDisablement: FetchStateObject<string[]>;
+  servingRuntimes: FetchStateObject<ServingRuntimesFetchData>;
+  inferenceServices: FetchStateObject<InferenceServicesFetchData>;
   project: ProjectKind | null;
   preferredProject: ProjectKind | null;
-  serverSecrets: ContextResourceData<SecretKind>;
+  serverSecrets: FetchStateObject<SecretKind[]>;
   projects: ProjectKind[] | null;
 };
 
@@ -56,13 +60,13 @@ type ModelServingContextProviderProps = {
 export const ModelServingContext = React.createContext<ModelServingContextType>({
   refreshAllData: () => undefined,
   filterTokens: () => [],
-  connections: DEFAULT_CONTEXT_DATA,
+  connections: DEFAULT_LIST_FETCH_STATE,
   servingRuntimeTemplates: DEFAULT_LIST_WATCH_RESULT,
-  servingRuntimeTemplateOrder: DEFAULT_CONTEXT_DATA,
-  servingRuntimeTemplateDisablement: DEFAULT_CONTEXT_DATA,
-  servingRuntimes: DEFAULT_CONTEXT_DATA,
-  inferenceServices: DEFAULT_CONTEXT_DATA,
-  serverSecrets: DEFAULT_CONTEXT_DATA,
+  servingRuntimeTemplateOrder: DEFAULT_LIST_FETCH_STATE,
+  servingRuntimeTemplateDisablement: DEFAULT_LIST_FETCH_STATE,
+  servingRuntimes: DEFAULT_SERVING_RUNTIMES_FETCH_STATE,
+  inferenceServices: DEFAULT_INFERENCE_SERVICES_FETCH_STATE,
+  serverSecrets: DEFAULT_LIST_FETCH_STATE,
   project: null,
   preferredProject: null,
   projects: null,
@@ -78,18 +82,24 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
   const project = projects.find(byName(namespace)) ?? null;
   const servingRuntimeTemplates = useTemplates(dashboardNamespace);
 
-  const servingRuntimeTemplateOrder = useContextResourceData<string>(
-    useTemplateOrder(dashboardNamespace),
+  const servingRuntimeTemplateOrder = useMakeFetchObject<string[]>(
+    useTemplateOrder(dashboardNamespace, undefined, { refreshRate: POLL_INTERVAL }),
   );
-  const servingRuntimeTemplateDisablement = useContextResourceData<string>(
-    useTemplateDisablement(dashboardNamespace),
+  const servingRuntimeTemplateDisablement = useMakeFetchObject<string[]>(
+    useTemplateDisablement(dashboardNamespace, undefined, { refreshRate: POLL_INTERVAL }),
   );
-  const serverSecrets = useContextResourceData<SecretKind>(useServingRuntimeSecrets(namespace));
-  const servingRuntimes = useContextResourceData<ServingRuntimeKind>(useServingRuntimes(namespace));
-  const inferenceServices = useContextResourceData<InferenceServiceKind>(
-    useInferenceServices(namespace),
+  const serverSecrets = useMakeFetchObject<SecretKind[]>(
+    useServingRuntimeSecrets(namespace, { refreshRate: POLL_INTERVAL }),
   );
-  const connections = useContextResourceData<Connection>(useConnections(namespace));
+  const servingRuntimes = useMakeFetchObject<ServingRuntimesFetchData>(
+    useServingRuntimes(namespace, undefined, { refreshRate: POLL_INTERVAL }),
+  );
+  const inferenceServices = useMakeFetchObject<InferenceServicesFetchData>(
+    useInferenceServices(namespace, undefined, undefined, undefined, {
+      refreshRate: POLL_INTERVAL,
+    }),
+  );
+  const connections = useMakeFetchObject<Connection[]>(useConnections(namespace));
 
   const servingRuntimeRefresh = servingRuntimes.refresh;
   const inferenceServiceRefresh = inferenceServices.refresh;
