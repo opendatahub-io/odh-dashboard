@@ -2,9 +2,13 @@ import * as React from 'react';
 import { getDashboardConfigTemplateOrder } from '~/api';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getDashboardConfigTemplateOrderBackend } from '~/services/dashboardService';
-import useFetchState, { FetchState, NotReadyError } from '~/utilities/useFetchState';
+import useFetchState, { FetchOptions, FetchState, NotReadyError } from '~/utilities/useFetchState';
 
-const useTemplateOrder = (namespace?: string, adminPanel?: boolean): FetchState<string[]> => {
+const useTemplateOrder = (
+  namespace?: string,
+  adminPanel?: boolean,
+  fetchOptions?: Partial<FetchOptions>,
+): FetchState<string[]> => {
   const customServingRuntimesEnabled = useCustomServingRuntimesEnabled();
 
   const getTemplateOrder = React.useCallback(() => {
@@ -34,7 +38,7 @@ const useTemplateOrder = (namespace?: string, adminPanel?: boolean): FetchState<
     });
   }, [namespace, customServingRuntimesEnabled, adminPanel]);
 
-  return useFetchState<string[]>(getTemplateOrder, []);
+  return useFetchState<string[]>(getTemplateOrder, [], fetchOptions);
 };
 
 export default useTemplateOrder;

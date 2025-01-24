@@ -2,9 +2,13 @@ import * as React from 'react';
 import { getDashboardConfigTemplateDisablement } from '~/api';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getDashboardConfigTemplateDisablementBackend } from '~/services/dashboardService';
-import useFetchState, { FetchState, NotReadyError } from '~/utilities/useFetchState';
+import useFetchState, { FetchOptions, FetchState, NotReadyError } from '~/utilities/useFetchState';
 
-const useTemplateDisablement = (namespace?: string, adminPanel?: boolean): FetchState<string[]> => {
+const useTemplateDisablement = (
+  namespace?: string,
+  adminPanel?: boolean,
+  fetchOptions?: Partial<FetchOptions>,
+): FetchState<string[]> => {
   const customServingRuntimesEnabled = useCustomServingRuntimesEnabled();
 
   const getTemplateEnablement = React.useCallback(() => {
@@ -34,7 +38,7 @@ const useTemplateDisablement = (namespace?: string, adminPanel?: boolean): Fetch
     });
   }, [namespace, customServingRuntimesEnabled, adminPanel]);
 
-  return useFetchState<string[]>(getTemplateEnablement, []);
+  return useFetchState<string[]>(getTemplateEnablement, [], fetchOptions);
 };
 
 export default useTemplateDisablement;
