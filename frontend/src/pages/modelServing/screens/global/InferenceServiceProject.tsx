@@ -31,7 +31,7 @@ const InferenceServiceProject: React.FC<InferenceServiceProjectProps> = ({
   }
 
   const project = modelServingProjects.find(byName(inferenceService.metadata.namespace));
-  const isKServeNIMEnabled = isProjectNIMSupported(project);
+  const isKServeNIMEnabled = !!project && isProjectNIMSupported(project);
 
   return (
     <>
