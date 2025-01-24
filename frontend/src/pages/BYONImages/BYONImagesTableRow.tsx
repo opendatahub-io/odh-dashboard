@@ -2,18 +2,17 @@ import * as React from 'react';
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
 import {
   DescriptionList,
-  Flex,
-  FlexItem,
   Timestamp,
   TimestampTooltipVariant,
+  Truncate,
 } from '@patternfly/react-core';
 import { BYONImage } from '~/types';
 import { relativeTime } from '~/utilities/time';
-import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import { AcceleratorProfileKind, HardwareProfileKind } from '~/k8sTypes';
 import { FetchState } from '~/utilities/useFetchState';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import BYONImageHardwareProfiles from '~/pages/BYONImages/BYONImageHardwareProfiles';
+import { TableRowTitleDescription } from '~/components/table';
 import ImageErrorStatus from './ImageErrorStatus';
 import BYONImageStatusToggle from './BYONImageStatusToggle';
 import { convertBYONImageToK8sResource } from './utils';
@@ -57,23 +56,15 @@ const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
             onToggle: () => setExpanded(!isExpanded),
           }}
         />
-        <Td dataLabel="Name" modifier="nowrap">
-          <Flex
-            spaceItems={{ default: 'spaceItemsSm' }}
-            alignItems={{ default: 'alignItemsCenter' }}
-          >
-            <FlexItem>
-              <ResourceNameTooltip resource={convertBYONImageToK8sResource(obj)}>
-                {obj.display_name}
-              </ResourceNameTooltip>
-            </FlexItem>
-            <FlexItem>
-              <ImageErrorStatus image={obj} />
-            </FlexItem>
-          </Flex>
-        </Td>
-        <Td dataLabel="Description" modifier="breakWord">
-          {obj.description}
+        <Td dataLabel="Name">
+          <TableRowTitleDescription
+            title={<Truncate content={obj.display_name} />}
+            resource={convertBYONImageToK8sResource(obj)}
+            description={obj.description}
+            truncateDescriptionLines={2}
+            titleIcon={<ImageErrorStatus image={obj} />}
+            wrapResourceTitle={false}
+          />
         </Td>
         <Td dataLabel="Enable" modifier="nowrap">
           <BYONImageStatusToggle image={obj} />

@@ -14,11 +14,6 @@ export const columns: SortableData<BYONImage>[] = [
     sortable: (a, b) => a.name.localeCompare(b.name),
   },
   {
-    field: 'description',
-    label: 'Description',
-    sortable: (a, b) => a.description.localeCompare(b.description),
-  },
-  {
     field: 'enable',
     label: 'Enable',
     sortable: (a, b) => getEnabledStatus(a) - getEnabledStatus(b),
@@ -34,6 +29,7 @@ export const columns: SortableData<BYONImage>[] = [
     info: {
       popover: 'Accelerators are used to speed up the execution of workbenches.',
     },
+    width: 30,
   },
   {
     field: 'recommendedHardwareProfiles',
@@ -43,6 +39,7 @@ export const columns: SortableData<BYONImage>[] = [
     info: {
       popover: 'Hardware profiles are used to speed up the execution of workbenches.',
     },
+    width: 30,
   },
   {
     field: 'provider',
