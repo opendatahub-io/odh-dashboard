@@ -51,9 +51,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disableCustomServingRuntimes'],
     reliantAreas: [SupportedArea.MODEL_SERVING],
   },
-  [SupportedArea.CONNECTION_TYPES]: {
-    featureFlags: [], // TODO: We want to disable, no flag exists today,
-  },
   [SupportedArea.STORAGE_CLASSES]: {
     featureFlags: ['disableStorageClasses'],
   },
