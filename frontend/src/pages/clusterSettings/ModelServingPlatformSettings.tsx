@@ -8,11 +8,9 @@ import {
   Flex,
   FlexItem,
   FormGroup,
-  Popover,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import SettingSection from '~/components/SettingSection';
 import SimpleSelect from '~/components/SimpleSelect';
 import { ModelServingPlatformEnabled } from '~/types';
@@ -21,6 +19,7 @@ import { useAccessReview } from '~/api';
 import { AccessReviewResourceAttributes, DeploymentMode } from '~/k8sTypes';
 import { useOpenShiftURL } from '~/utilities/clusterUtils';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
 
 type ModelServingPlatformSettingsProps = {
   initialValue: ModelServingPlatformEnabled;
@@ -87,8 +86,8 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
           <FlexItem>
             Select the serving platforms that can be used for deploying models on this cluster.
           </FlexItem>
-          <Popover
-            bodyContent={
+          <DashboardHelpTooltip
+            content={
               <>
                 To modify the availability of model serving platforms, ask your cluster admin to
                 manage the respective components in the{' '}
@@ -110,9 +109,7 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
                 resource.
               </>
             }
-          >
-            <OutlinedQuestionCircleIcon />
-          </Popover>
+          />
         </Flex>
       }
     >
@@ -141,9 +138,7 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
                   fieldId="default-deployment-mode-select"
                   label="Default deployment mode"
                   labelHelp={
-                    <Popover bodyContent="Deployment modes define which technology stack will be used to deploy a model, offering different levels of management and scalability. The default deployment mode will be automatically selected during deployment.">
-                      <OutlinedQuestionCircleIcon />
-                    </Popover>
+                    <DashboardHelpTooltip content="Deployment modes define which technology stack will be used to deploy a model, offering different levels of management and scalability. The default deployment mode will be automatically selected during deployment." />
                   }
                 >
                   <SimpleSelect
@@ -169,7 +164,7 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
                       },
                     ]}
                     isDisabled={!enabledPlatforms.kServe}
-                    popperProps={{ appendTo: 'inline' }}
+                    popperProps={{ maxWidth: undefined }}
                   />
                 </FormGroup>
               )
