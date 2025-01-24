@@ -2,6 +2,7 @@ import * as React from 'react';
 import { getNotebook, getNotebooks } from '~/api';
 import useFetchState, {
   AdHocUpdate,
+  FetchOptions,
   FetchState,
   FetchStateCallbackPromiseAdHoc,
   NotReadyError,
@@ -64,7 +65,10 @@ export const getNotebooksStates = (
     return adhocUpdate;
   });
 
-const useProjectNotebookStates = (namespace?: string): FetchState<NotebookState[]> => {
+const useProjectNotebookStates = (
+  namespace?: string,
+  fetchOptions?: Partial<FetchOptions>,
+): FetchState<NotebookState[]> => {
   const fetchAllNotebooks = React.useCallback<
     FetchStateCallbackPromiseAdHoc<NotebookState[]>
   >(() => {
@@ -81,7 +85,7 @@ const useProjectNotebookStates = (namespace?: string): FetchState<NotebookState[
     });
   }, [namespace]);
 
-  return useFetchState<NotebookState[]>(fetchAllNotebooks, []);
+  return useFetchState<NotebookState[]>(fetchAllNotebooks, [], fetchOptions);
 };
 
 export default useProjectNotebookStates;

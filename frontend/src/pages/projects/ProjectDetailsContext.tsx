@@ -2,19 +2,27 @@ import * as React from 'react';
 import { Navigate, Outlet, useParams } from 'react-router-dom';
 import {
   GroupKind,
-  InferenceServiceKind,
   PersistentVolumeClaimKind,
   ProjectKind,
   RoleBindingKind,
   SecretKind,
-  ServingRuntimeKind,
   TemplateKind,
 } from '~/k8sTypes';
-import { DEFAULT_CONTEXT_DATA, DEFAULT_LIST_WATCH_RESULT } from '~/utilities/const';
-import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
-import useInferenceServices from '~/pages/modelServing/useInferenceServices';
-import { ContextResourceData, CustomWatchK8sResult } from '~/types';
-import { useContextResourceData } from '~/utilities/useContextResourceData';
+import {
+  DEFAULT_LIST_FETCH_STATE,
+  DEFAULT_LIST_WATCH_RESULT,
+  POLL_INTERVAL,
+} from '~/utilities/const';
+import useServingRuntimes, {
+  DEFAULT_SERVING_RUNTIMES_FETCH_STATE,
+  ServingRuntimesFetchData,
+} from '~/pages/modelServing/useServingRuntimes';
+import useInferenceServices, {
+  DEFAULT_INFERENCE_SERVICES_FETCH_STATE,
+  InferenceServicesFetchData,
+} from '~/pages/modelServing/useInferenceServices';
+import { CustomWatchK8sResult, FetchStateObject } from '~/types';
+import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import useServingRuntimeSecrets from '~/pages/modelServing/screens/projects/useServingRuntimeSecrets';
 import { PipelineContextProvider } from '~/concepts/pipelines/context';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
@@ -36,32 +44,32 @@ import useConnections from './screens/detail/connections/useConnections';
 type ProjectDetailsContextType = {
   currentProject: ProjectKind;
   filterTokens: (servingRuntime?: string) => SecretKind[];
-  notebooks: ContextResourceData<NotebookState>;
-  pvcs: ContextResourceData<PersistentVolumeClaimKind>;
-  connections: ContextResourceData<Connection>;
-  servingRuntimes: ContextResourceData<ServingRuntimeKind>;
+  notebooks: FetchStateObject<NotebookState[]>;
+  pvcs: FetchStateObject<PersistentVolumeClaimKind[]>;
+  connections: FetchStateObject<Connection[]>;
+  servingRuntimes: FetchStateObject<ServingRuntimesFetchData>;
   servingRuntimeTemplates: CustomWatchK8sResult<TemplateKind[]>;
-  servingRuntimeTemplateOrder: ContextResourceData<string>;
-  servingRuntimeTemplateDisablement: ContextResourceData<string>;
-  inferenceServices: ContextResourceData<InferenceServiceKind>;
-  serverSecrets: ContextResourceData<SecretKind>;
-  projectSharingRB: ContextResourceData<RoleBindingKind>;
+  servingRuntimeTemplateOrder: FetchStateObject<string[]>;
+  servingRuntimeTemplateDisablement: FetchStateObject<string[]>;
+  inferenceServices: FetchStateObject<InferenceServicesFetchData>;
+  serverSecrets: FetchStateObject<SecretKind[]>;
+  projectSharingRB: FetchStateObject<RoleBindingKind[]>;
   groups: CustomWatchK8sResult<GroupKind[]>;
 };
 
 export const ProjectDetailsContext = React.createContext<ProjectDetailsContextType>({
   currentProject: { apiVersion: '', kind: '', metadata: { name: '' } },
   filterTokens: () => [],
-  notebooks: DEFAULT_CONTEXT_DATA,
-  pvcs: DEFAULT_CONTEXT_DATA,
-  connections: DEFAULT_CONTEXT_DATA,
-  servingRuntimes: DEFAULT_CONTEXT_DATA,
+  notebooks: DEFAULT_LIST_FETCH_STATE,
+  pvcs: DEFAULT_LIST_FETCH_STATE,
+  connections: DEFAULT_LIST_FETCH_STATE,
+  servingRuntimes: DEFAULT_SERVING_RUNTIMES_FETCH_STATE,
   servingRuntimeTemplates: DEFAULT_LIST_WATCH_RESULT,
-  servingRuntimeTemplateOrder: DEFAULT_CONTEXT_DATA,
-  servingRuntimeTemplateDisablement: DEFAULT_CONTEXT_DATA,
-  inferenceServices: DEFAULT_CONTEXT_DATA,
-  serverSecrets: DEFAULT_CONTEXT_DATA,
-  projectSharingRB: DEFAULT_CONTEXT_DATA,
+  servingRuntimeTemplateOrder: DEFAULT_LIST_FETCH_STATE,
+  servingRuntimeTemplateDisablement: DEFAULT_LIST_FETCH_STATE,
+  inferenceServices: DEFAULT_INFERENCE_SERVICES_FETCH_STATE,
+  serverSecrets: DEFAULT_LIST_FETCH_STATE,
+  projectSharingRB: DEFAULT_LIST_FETCH_STATE,
   groups: DEFAULT_LIST_WATCH_RESULT,
 });
 
@@ -74,23 +82,37 @@ const ProjectDetailsContextProvider: React.FC = () => {
     [namespace, projects],
   );
   useSyncPreferredProject(project);
-  const notebooks = useContextResourceData<NotebookState>(useProjectNotebookStates(namespace));
-  const pvcs = useContextResourceData<PersistentVolumeClaimKind>(useProjectPvcs(namespace));
-  const connections = useContextResourceData<Connection>(useConnections(namespace));
-  const servingRuntimes = useContextResourceData<ServingRuntimeKind>(useServingRuntimes(namespace));
+  const notebooks = useMakeFetchObject<NotebookState[]>(
+    useProjectNotebookStates(namespace, { refreshRate: POLL_INTERVAL }),
+  );
+  const pvcs = useMakeFetchObject<PersistentVolumeClaimKind[]>(
+    useProjectPvcs(namespace, { refreshRate: POLL_INTERVAL }),
+  );
+  const connections = useMakeFetchObject<Connection[]>(
+    useConnections(namespace, { refreshRate: POLL_INTERVAL }),
+  );
+  const servingRuntimes = useMakeFetchObject<ServingRuntimesFetchData>(
+    useServingRuntimes(namespace, undefined, { refreshRate: POLL_INTERVAL }),
+  );
   const servingRuntimeTemplates = useTemplates(dashboardNamespace);
 
-  const servingRuntimeTemplateOrder = useContextResourceData<string>(
+  const servingRuntimeTemplateOrder = useMakeFetchObject<string[]>(
     useTemplateOrder(dashboardNamespace),
   );
-  const servingRuntimeTemplateDisablement = useContextResourceData<string>(
+  const servingRuntimeTemplateDisablement = useMakeFetchObject<string[]>(
     useTemplateDisablement(dashboardNamespace),
   );
-  const inferenceServices = useContextResourceData<InferenceServiceKind>(
-    useInferenceServices(namespace),
+  const inferenceServices = useMakeFetchObject<InferenceServicesFetchData>(
+    useInferenceServices(namespace, undefined, undefined, undefined, {
+      refreshRate: POLL_INTERVAL,
+    }),
   );
-  const serverSecrets = useContextResourceData<SecretKind>(useServingRuntimeSecrets(namespace));
-  const projectSharingRB = useContextResourceData<RoleBindingKind>(useProjectSharing(namespace));
+  const serverSecrets = useMakeFetchObject<SecretKind[]>(
+    useServingRuntimeSecrets(namespace, { refreshRate: POLL_INTERVAL }),
+  );
+  const projectSharingRB = useMakeFetchObject<RoleBindingKind[]>(
+    useProjectSharing(namespace, { refreshRate: POLL_INTERVAL }),
+  );
   const groups = useGroups();
   const pageName = 'project details';
 

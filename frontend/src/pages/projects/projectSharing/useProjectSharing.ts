@@ -1,9 +1,12 @@
 import * as React from 'react';
 import { listRoleBindings } from '~/api';
 import { RoleBindingKind } from '~/k8sTypes';
-import useFetchState, { FetchState } from '~/utilities/useFetchState';
+import useFetchState, { FetchOptions, FetchState } from '~/utilities/useFetchState';
 
-const useProjectSharing = (namespace?: string): FetchState<RoleBindingKind[]> => {
+const useProjectSharing = (
+  namespace?: string,
+  fetchOptions?: Partial<FetchOptions>,
+): FetchState<RoleBindingKind[]> => {
   const getProjectSharingRoleBindings = React.useCallback(
     () =>
       listRoleBindings(namespace).catch((e) => {
@@ -15,7 +18,7 @@ const useProjectSharing = (namespace?: string): FetchState<RoleBindingKind[]> =>
     [namespace],
   );
 
-  return useFetchState<RoleBindingKind[]>(getProjectSharingRoleBindings, []);
+  return useFetchState<RoleBindingKind[]>(getProjectSharingRoleBindings, [], fetchOptions);
 };
 
 export default useProjectSharing;
