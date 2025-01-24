@@ -36,7 +36,10 @@ const KServeInferenceServiceTable: React.FC = () => {
   const {
     servingRuntimes: { refresh: refreshServingRuntime },
     connections: { refresh: refreshConnections },
-    inferenceServices: { data: inferenceServices, refresh: refreshInferenceServices },
+    inferenceServices: {
+      data: { items: inferenceServices },
+      refresh: refreshInferenceServices,
+    },
     serverSecrets: { refresh: refreshServerSecrets },
     filterTokens,
   } = React.useContext(ProjectDetailsContext);

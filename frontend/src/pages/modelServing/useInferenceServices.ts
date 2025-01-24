@@ -19,7 +19,7 @@ const accessReviewResource: AccessReviewResourceAttributes = {
 
 export type InferenceServicesFetchData = {
   items: InferenceServiceKind[];
-  hasNonDashboardInferenceServices: boolean;
+  hasNonDashboardInferenceServices: boolean; // TODO rename to hasNonDashboardItems? reuse types between here and useServingRuntimes?
 };
 
 export const DEFAULT_INFERENCE_SERVICES_FETCH_DATA: InferenceServicesFetchData = {
