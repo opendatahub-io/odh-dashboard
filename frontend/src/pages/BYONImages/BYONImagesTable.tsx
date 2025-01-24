@@ -30,8 +30,6 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, refres
     switch (searchType) {
       case SearchType.NAME:
         return image.display_name.toLowerCase().includes(search.toLowerCase());
-      case SearchType.DESCRIPTION:
-        return image.description.toLowerCase().includes(search.toLowerCase());
       case SearchType.PROVIDER:
         return image.provider.toLowerCase().includes(search.toLowerCase());
       default:
@@ -43,10 +41,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, refres
     setSearch('');
   };
 
-  const searchTypes = React.useMemo(
-    () => [SearchType.NAME, SearchType.DESCRIPTION, SearchType.PROVIDER],
-    [],
-  );
+  const searchTypes = React.useMemo(() => [SearchType.NAME, SearchType.PROVIDER], []);
 
   const [editImage, setEditImage] = React.useState<BYONImage>();
   const [deleteImage, setDeleteImage] = React.useState<BYONImage>();
