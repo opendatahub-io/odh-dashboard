@@ -4,10 +4,13 @@ import { getServingRuntimeContext, listServingRuntimes, useAccessReview } from '
 import { AccessReviewResourceAttributes, KnownLabels, ServingRuntimeKind } from '~/k8sTypes';
 import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
 import useFetchState, {
+  FetchOptions,
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
 } from '~/utilities/useFetchState';
+import { FetchStateObject } from '~/types';
+import { DEFAULT_VALUE_FETCH_STATE } from '~/utilities/const';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'serving.kserve.io',
@@ -20,6 +23,16 @@ export type ServingRuntimesFetchData = {
   hasNonDashboardServingRuntimes: boolean;
 };
 
+export const DEFAULT_SERVING_RUNTIMES_FETCH_DATA: ServingRuntimesFetchData = {
+  servingRuntimes: [],
+  hasNonDashboardServingRuntimes: false,
+};
+
+export const DEFAULT_SERVING_RUNTIMES_FETCH_STATE: FetchStateObject<ServingRuntimesFetchData> = {
+  ...DEFAULT_VALUE_FETCH_STATE,
+  data: DEFAULT_SERVING_RUNTIMES_FETCH_DATA,
+};
+
 // TODO move to concepts/modelServing?
 // TODO tried lifting out the hasNonDashboard* so we are still returning a FetchState<[]> that is compatible with useContextResourceData.
 //      that got too messy. we should look into whether we can convert ProjectDetailsContext to use useMakeFetchObject instead -- make sure we are using the refreshRate though to retain polling behavior.
@@ -29,6 +42,7 @@ export type ServingRuntimesFetchData = {
 const useServingRuntimes = (
   namespace?: string,
   notReady?: boolean,
+  fetchOptions?: Partial<FetchOptions>,
 ): FetchState<ServingRuntimesFetchData> => {
   const modelServingEnabled = useModelServingEnabled();
 
@@ -69,11 +83,10 @@ const useServingRuntimes = (
     [namespace, modelServingEnabled, notReady, rbacLoaded, allowCreate],
   );
 
-  return useFetchState(
-    callback,
-    { servingRuntimes: [], hasNonDashboardServingRuntimes: false },
-    { initialPromisePurity: true },
-  );
+  return useFetchState(callback, DEFAULT_SERVING_RUNTIMES_FETCH_DATA, {
+    initialPromisePurity: true,
+    ...fetchOptions,
+  });
 };
 
 export default useServingRuntimes;

@@ -2,11 +2,14 @@ import * as React from 'react';
 import { getInferenceServiceContext, listInferenceService, useAccessReview } from '~/api';
 import { AccessReviewResourceAttributes, InferenceServiceKind, KnownLabels } from '~/k8sTypes';
 import useFetchState, {
+  FetchOptions,
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
 } from '~/utilities/useFetchState';
 import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
+import { DEFAULT_VALUE_FETCH_STATE } from '~/utilities/const';
+import { FetchStateObject } from '~/types';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'serving.kserve.io',
@@ -19,6 +22,17 @@ export type InferenceServicesFetchData = {
   hasNonDashboardInferenceServices: boolean;
 };
 
+export const DEFAULT_INFERENCE_SERVICES_FETCH_DATA: InferenceServicesFetchData = {
+  inferenceServices: [],
+  hasNonDashboardInferenceServices: false,
+};
+
+export const DEFAULT_INFERENCE_SERVICES_FETCH_STATE: FetchStateObject<InferenceServicesFetchData> =
+  {
+    ...DEFAULT_VALUE_FETCH_STATE,
+    data: DEFAULT_INFERENCE_SERVICES_FETCH_DATA,
+  };
+
 // TODO move to concepts/modelServing?
 
 const useInferenceServices = (
@@ -26,6 +40,7 @@ const useInferenceServices = (
   registeredModelId?: string,
   modelVersionId?: string,
   mrName?: string,
+  fetchOptions?: Partial<FetchOptions>,
 ): FetchState<InferenceServicesFetchData> => {
   const modelServingEnabled = useModelServingEnabled();
 
@@ -82,11 +97,10 @@ const useInferenceServices = (
     ],
   );
 
-  return useFetchState(
-    callback,
-    { inferenceServices: [], hasNonDashboardInferenceServices: false },
-    { initialPromisePurity: true },
-  );
+  return useFetchState(callback, DEFAULT_INFERENCE_SERVICES_FETCH_DATA, {
+    initialPromisePurity: true,
+    ...fetchOptions,
+  });
 };
 
 export default useInferenceServices;
