@@ -68,7 +68,7 @@ const ModelServingPlatform: React.FC = () => {
 
   const {
     servingRuntimes: {
-      data: servingRuntimes,
+      data: { items: servingRuntimes },
       loaded: servingRuntimesLoaded,
       error: servingRuntimeError,
       refresh: refreshServingRuntime,

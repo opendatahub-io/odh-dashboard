@@ -16,19 +16,17 @@ type InferenceServiceServingRuntimeSectionProps = {
 const InferenceServiceServingRuntimeSection: React.FC<
   InferenceServiceServingRuntimeSectionProps
 > = ({ data, setData, currentServingRuntime }) => {
-  const [servingRuntimes, loaded, loadError] = useServingRuntimes(
+  const [{ items: servingRuntimes }, loaded, loadError] = useServingRuntimes(
     data.project,
     data.project === '' || !!currentServingRuntime,
   );
 
-  const selectedServingRuntime = servingRuntimes.items.find(
+  const selectedServingRuntime = servingRuntimes.find(
     (servingRuntime) => servingRuntime.metadata.name === data.servingRuntimeName,
   );
 
   const placeholderText =
-    servingRuntimes.items.length === 0
-      ? 'No model servers available to select'
-      : 'Select a model server';
+    servingRuntimes.length === 0 ? 'No model servers available to select' : 'Select a model server';
 
   if (loadError) {
     return (
@@ -50,7 +48,7 @@ const InferenceServiceServingRuntimeSection: React.FC<
     <FormGroup label="Model server" fieldId="inference-service-model-selection" isRequired>
       <SimpleSelect
         dataTestId="inference-service-model-selection"
-        options={servingRuntimes.items.map((servingRuntime) => ({
+        options={servingRuntimes.map((servingRuntime) => ({
           key: servingRuntime.metadata.name,
           label: getDisplayNameFromK8sResource(servingRuntime),
         }))}
