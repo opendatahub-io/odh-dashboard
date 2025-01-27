@@ -28,6 +28,16 @@ class HardwareProfileTableToolbar extends Contextual<HTMLElement> {
   }
 }
 
+class HardwareProfileWarningBanner extends Contextual<HTMLElement> {
+  findTitle(title: string) {
+    return this.find().contains(title);
+  }
+
+  findDescription(description: string) {
+    return this.find().contains(description);
+  }
+}
+
 class HardwareProfileRow extends TableRow {
   findDescription() {
     return this.find().findByTestId('table-row-title-description');
@@ -51,6 +61,10 @@ class HardwareProfileRow extends TableRow {
 
   findNodeSelectorTable() {
     return this.findExpandableSection().findByTestId('hardware-profile-node-selectors-table');
+  }
+
+  findWarningIconButton() {
+    return this.find().findByTestId('icon-warning');
   }
 
   findTolerationTable() {
@@ -77,8 +91,16 @@ class HardwareProfile {
     return this.findTable().find('thead').findByRole('button', { name });
   }
 
+  findHardwareProfileBanner() {
+    return new HardwareProfileWarningBanner(() => this.findHardwareProfileDisabledBanner());
+  }
+
   private findTable() {
     return cy.findByTestId('hardware-profile-table');
+  }
+
+  private findHardwareProfileDisabledBanner() {
+    return cy.findByTestId('hardware-profiles-error-alert');
   }
 
   getRow(name: string) {
@@ -103,6 +125,10 @@ class HardwareProfile {
 
   findClearFiltersButton() {
     return cy.findByTestId('clear-filters-button');
+  }
+
+  findRestoreDefaultHardwareProfileButton() {
+    return cy.findByTestId('restore-default-hardware-profile');
   }
 }
 

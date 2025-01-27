@@ -14,7 +14,6 @@ const NodeResourceTable: React.FC<NodeResourceTableProps> = ({ nodeResources, on
   const viewOnly = !onUpdate;
   const [editIdentifier, setEditIdentifier] = React.useState<Identifier | undefined>();
   const [currentIndex, setCurrentIndex] = React.useState<number | undefined>();
-
   return (
     <>
       <TableBase
