@@ -1,16 +1,16 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { secureAdminRoute } from '../../../../utils/route-security';
-import { KubeFastifyInstance } from '../../../../types';
+import { KubeFastifyInstance, VariablesValidationStatus } from '../../../../types';
 import { isString } from 'lodash';
-import { VariablesValidationStatus } from '../../../../types';
 import {
-  createNIMAccount,
-  manageNIMSecret,
-  getNIMAccount,
-  errorMsgList,
   apiKeyValidationStatus,
   apiKeyValidationTimestamp,
+  createNIMAccount,
+  deleteNIMAccount,
+  errorMsgList,
+  getNIMAccount,
   isAppEnabled,
+  manageNIMSecret,
 } from './nimUtils';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
@@ -119,6 +119,17 @@ module.exports = async (fastify: KubeFastifyInstance) => {
           reply.status(secretError.response?.statusCode || 500).send(new Error(message));
         }
       },
+    ),
+  );
+
+  fastify.delete(
+    '/',
+    secureAdminRoute(fastify)(async (request: FastifyRequest, reply: FastifyReply) =>
+      deleteNIMAccount(fastify)
+        .then((res) => res)
+        .catch((res) => {
+          reply.send(res);
+        }),
     ),
   );
 };
