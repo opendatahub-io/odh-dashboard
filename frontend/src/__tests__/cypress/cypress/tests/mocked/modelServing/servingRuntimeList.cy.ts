@@ -1493,16 +1493,23 @@ describe('Serving Runtime List', () => {
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findLocationPathInput().type('test-model/');
 
-      kserveModal.findServingRuntimeEnvVarsSectionAddButton().click();
+      // Verify submit is enabled before testing env vars
+      kserveModal.findSubmitButton().should('be.enabled');
 
+      // Add environment variable with invalid name
+      kserveModal.findServingRuntimeEnvVarsSectionAddButton().click();
       kserveModal.findServingRuntimeEnvVarsName('0').type('1invalid-name');
       cy.findByText('Must not start with a digit.').should('be.visible');
+      // Verify submit is disabled with invalid env var
+      kserveModal.findSubmitButton().should('be.disabled');
 
       // Test invalid env var name with special characters
       kserveModal.findServingRuntimeEnvVarsName('0').clear().type('invalid@name');
       cy.findByText("Must consist of alphabetic characters, digits, '_', '-', or '.'").should(
         'be.visible',
       );
+      // Verify submit remains disabled
+      kserveModal.findSubmitButton().should('be.disabled');
 
       // Test valid env var name
       kserveModal.findServingRuntimeEnvVarsName('0').clear().type('VALID_NAME');
@@ -1513,6 +1520,7 @@ describe('Serving Runtime List', () => {
         'aria-invalid',
         'false',
       );
+      kserveModal.findSubmitButton().should('be.enabled');
     });
   });
 

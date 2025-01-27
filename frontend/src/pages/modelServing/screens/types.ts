@@ -68,17 +68,7 @@ export type CreatingInferenceServiceObject = CreatingModelServingObjectCommon & 
   minReplicas: number;
   labels?: Record<string, string>;
   servingRuntimeArgs?: ServingContainer['args'];
-  servingRuntimeEnvVars?: Array<{
-    name: string;
-    value?: string;
-    valueFrom?: {
-      secretKeyRef?: {
-        name: string;
-        key: string;
-      };
-    };
-    error?: string;
-  }>;
+  servingRuntimeEnvVars?: ServingContainer['env'];
   isKServeRawDeployment?: boolean;
 };
 
