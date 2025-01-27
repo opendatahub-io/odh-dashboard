@@ -17,8 +17,6 @@ const accessReviewResource: AccessReviewResourceAttributes = {
   verb: 'list',
 };
 
-// TODO move to concepts/modelServing?
-
 const useInferenceServices = (
   namespace?: string,
   registeredModelId?: string,

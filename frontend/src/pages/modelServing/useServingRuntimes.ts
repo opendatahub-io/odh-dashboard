@@ -18,9 +18,6 @@ const accessReviewResource: AccessReviewResourceAttributes = {
   verb: 'list',
 };
 
-// TODO move to concepts/modelServing?
-// TODO fix unit tests for the two hooks
-
 const useServingRuntimes = (
   namespace?: string,
   notReady?: boolean,
