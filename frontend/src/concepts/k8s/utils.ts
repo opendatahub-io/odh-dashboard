@@ -5,8 +5,7 @@ import { genRandomChars } from '~/utilities/string';
 export const PreInstalledName = 'Pre-installed';
 
 export const ownedByDSC = (resource: K8sResourceCommon): boolean =>
-  !!resource.metadata?.ownerReferences?.find((owner) => owner.kind === 'DataScienceCluster');
-
+  !!resource.metadata?.labels?.['platform.opendatahub.io/part-of'];
 export const isK8sDSGResource = (x?: K8sResourceCommon): x is K8sDSGResource =>
   x?.metadata?.name != null;
 export const getDisplayNameFromK8sResource = (resource: K8sDSGResource): string =>
