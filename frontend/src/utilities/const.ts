@@ -2,6 +2,7 @@ import {
   ContextResourceData,
   CustomWatchK8sResult,
   FetchStateObject,
+  ListWithNonDashboardPresence,
   OdhDocumentType,
 } from '~/types';
 
@@ -76,6 +77,18 @@ export const DEFAULT_VALUE_FETCH_STATE: FetchStateObject<never | undefined> = {
   data: undefined,
   loaded: false,
   refresh: () => undefined,
+};
+
+export const DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE: ListWithNonDashboardPresence<never> = {
+  items: [],
+  hasNonDashboardItems: false,
+};
+
+export const DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE_FETCH_STATE: FetchStateObject<
+  ListWithNonDashboardPresence<never>
+> = {
+  ...DEFAULT_VALUE_FETCH_STATE,
+  data: DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE,
 };
 
 export const DASHBOARD_MAIN_CONTAINER_ID = 'dashboard-page-main';

@@ -9,28 +9,13 @@ import useFetchState, {
   FetchStateCallbackPromise,
   NotReadyError,
 } from '~/utilities/useFetchState';
-import { FetchStateObject } from '~/types';
-import { DEFAULT_VALUE_FETCH_STATE } from '~/utilities/const';
+import { ListWithNonDashboardPresence } from '~/types';
+import { DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE } from '~/utilities/const';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'serving.kserve.io',
   resource: 'servingruntimes',
   verb: 'list',
-};
-
-export type ServingRuntimesFetchData = {
-  items: ServingRuntimeKind[];
-  hasNonDashboardServingRuntimes: boolean; // TODO rename to hasNonDashboardItems? reuse types between here and useServingRuntimes?
-};
-
-export const DEFAULT_SERVING_RUNTIMES_FETCH_DATA: ServingRuntimesFetchData = {
-  items: [],
-  hasNonDashboardServingRuntimes: false,
-};
-
-export const DEFAULT_SERVING_RUNTIMES_FETCH_STATE: FetchStateObject<ServingRuntimesFetchData> = {
-  ...DEFAULT_VALUE_FETCH_STATE,
-  data: DEFAULT_SERVING_RUNTIMES_FETCH_DATA,
 };
 
 // TODO move to concepts/modelServing?
@@ -40,14 +25,16 @@ const useServingRuntimes = (
   namespace?: string,
   notReady?: boolean,
   fetchOptions?: Partial<FetchOptions>,
-): FetchState<ServingRuntimesFetchData> => {
+): FetchState<ListWithNonDashboardPresence<ServingRuntimeKind>> => {
   const modelServingEnabled = useModelServingEnabled();
 
   const [allowCreate, rbacLoaded] = useAccessReview({
     ...accessReviewResource,
   });
 
-  const callback = React.useCallback<FetchStateCallbackPromise<ServingRuntimesFetchData>>(
+  const callback = React.useCallback<
+    FetchStateCallbackPromise<ListWithNonDashboardPresence<ServingRuntimeKind>>
+  >(
     async (opts) => {
       if (!modelServingEnabled) {
         return Promise.reject(new NotReadyError('Model serving is not enabled'));
@@ -66,8 +53,7 @@ const useServingRuntimes = (
         );
         return {
           items: dashboardServingRuntimes,
-          hasNonDashboardServingRuntimes:
-            servingRuntimeList.length > dashboardServingRuntimes.length,
+          hasNonDashboardItems: servingRuntimeList.length > dashboardServingRuntimes.length,
         };
       } catch (e) {
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -80,7 +66,7 @@ const useServingRuntimes = (
     [namespace, modelServingEnabled, notReady, rbacLoaded, allowCreate],
   );
 
-  return useFetchState(callback, DEFAULT_SERVING_RUNTIMES_FETCH_DATA, {
+  return useFetchState(callback, DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE, {
     initialPromisePurity: true,
     ...fetchOptions,
   });

@@ -8,13 +8,20 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { ProjectKind, SecretKind, TemplateKind } from '~/k8sTypes';
+import {
+  InferenceServiceKind,
+  ProjectKind,
+  SecretKind,
+  ServingRuntimeKind,
+  TemplateKind,
+} from '~/k8sTypes';
 import {
   DEFAULT_LIST_FETCH_STATE,
   DEFAULT_LIST_WATCH_RESULT,
+  DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE_FETCH_STATE,
   POLL_INTERVAL,
 } from '~/utilities/const';
-import { CustomWatchK8sResult, FetchStateObject } from '~/types';
+import { CustomWatchK8sResult, FetchStateObject, ListWithNonDashboardPresence } from '~/types';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import { useDashboardNamespace } from '~/redux/selectors';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
@@ -23,14 +30,8 @@ import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformS
 import { useTemplates } from '~/api';
 import { Connection } from '~/concepts/connectionTypes/types';
 import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
-import useInferenceServices, {
-  DEFAULT_INFERENCE_SERVICES_FETCH_STATE,
-  InferenceServicesFetchData,
-} from './useInferenceServices';
-import useServingRuntimes, {
-  DEFAULT_SERVING_RUNTIMES_FETCH_STATE,
-  ServingRuntimesFetchData,
-} from './useServingRuntimes';
+import useInferenceServices from './useInferenceServices';
+import useServingRuntimes from './useServingRuntimes';
 import useTemplateOrder from './customServingRuntimes/useTemplateOrder';
 import useTemplateDisablement from './customServingRuntimes/useTemplateDisablement';
 import { getTokenNames } from './utils';
@@ -43,8 +44,8 @@ export type ModelServingContextType = {
   servingRuntimeTemplates: CustomWatchK8sResult<TemplateKind[]>;
   servingRuntimeTemplateOrder: FetchStateObject<string[]>;
   servingRuntimeTemplateDisablement: FetchStateObject<string[]>;
-  servingRuntimes: FetchStateObject<ServingRuntimesFetchData>;
-  inferenceServices: FetchStateObject<InferenceServicesFetchData>;
+  servingRuntimes: FetchStateObject<ListWithNonDashboardPresence<ServingRuntimeKind>>;
+  inferenceServices: FetchStateObject<ListWithNonDashboardPresence<InferenceServiceKind>>;
   project: ProjectKind | null;
   preferredProject: ProjectKind | null;
   serverSecrets: FetchStateObject<SecretKind[]>;
@@ -64,8 +65,8 @@ export const ModelServingContext = React.createContext<ModelServingContextType>(
   servingRuntimeTemplates: DEFAULT_LIST_WATCH_RESULT,
   servingRuntimeTemplateOrder: DEFAULT_LIST_FETCH_STATE,
   servingRuntimeTemplateDisablement: DEFAULT_LIST_FETCH_STATE,
-  servingRuntimes: DEFAULT_SERVING_RUNTIMES_FETCH_STATE,
-  inferenceServices: DEFAULT_INFERENCE_SERVICES_FETCH_STATE,
+  servingRuntimes: DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE_FETCH_STATE,
+  inferenceServices: DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE_FETCH_STATE,
   serverSecrets: DEFAULT_LIST_FETCH_STATE,
   project: null,
   preferredProject: null,
@@ -91,10 +92,10 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
   const serverSecrets = useMakeFetchObject<SecretKind[]>(
     useServingRuntimeSecrets(namespace, { refreshRate: POLL_INTERVAL }),
   );
-  const servingRuntimes = useMakeFetchObject<ServingRuntimesFetchData>(
+  const servingRuntimes = useMakeFetchObject<ListWithNonDashboardPresence<ServingRuntimeKind>>(
     useServingRuntimes(namespace, undefined, { refreshRate: POLL_INTERVAL }),
   );
-  const inferenceServices = useMakeFetchObject<InferenceServicesFetchData>(
+  const inferenceServices = useMakeFetchObject<ListWithNonDashboardPresence<InferenceServiceKind>>(
     useInferenceServices(namespace, undefined, undefined, undefined, {
       refreshRate: POLL_INTERVAL,
     }),
