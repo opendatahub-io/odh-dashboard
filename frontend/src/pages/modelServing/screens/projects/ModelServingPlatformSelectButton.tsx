@@ -30,6 +30,11 @@ const ModelServingPlatformSelectButton: React.FC<ModelServingPlatformSelectButto
   const [isLoading, setIsLoading] = React.useState(false);
   const isResetAction = servingPlatform === NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM;
 
+  // TODO first rename hasNonDashboard* to hasNonDashboardItems?
+  // TODO rebase and look for other TODOs in diff from main?
+  // TODO if isResetAction and hasNonDashboardInferenceServices or hasNonDashboardServingRuntimes, disable with tooltip text:
+  // To change the model serving platform, delete all models and model servers in the project. This project contains models or servers not managed by the dashboard.
+
   return (
     <Button
       {...buttonProps}
