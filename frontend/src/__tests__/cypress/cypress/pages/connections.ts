@@ -11,8 +11,24 @@ class ConnectionsPage {
     );
   }
 
+  findDataConnectionName() {
+    return cy.findByTestId('table-row-title');
+  }
+
   findAddConnectionButton() {
     return cy.findByTestId('add-connection-button');
+  }
+
+  findCreateConnectionButton() {
+    return cy.findByTestId('create-connection-button');
+  }
+
+  findKebabToggle() {
+    return cy.get('button[aria-label="Kebab toggle"]');
+  }
+
+  findDeleteButton() {
+    return cy.contains('.pf-v6-c-menu__item-text', 'Delete');
   }
 }
 

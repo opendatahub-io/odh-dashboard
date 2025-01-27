@@ -2,11 +2,32 @@ import { Modal } from './components/Modal';
 
 class DataConnectionModal extends Modal {
   constructor(edit = false) {
-    super(`${edit ? 'Edit' : 'Add'} data connection`);
+    const title = edit ? 'Edit connection' : 'Add connection';
+    super(title);
+  }
+
+  findTypeaheadMenuToggle() {
+    return cy.get('[aria-label="Typeahead menu toggle"]');
+  }
+
+  findS3CompatibleStorageOption() {
+    return cy.findByText('S3 compatible object storage - v1');
   }
 
   findSubmitButton() {
     return this.findFooter().findByTestId('data-connection-submit-button');
+  }
+
+  findCreateButton() {
+    return this.find().findByTestId('modal-submit-button');
+  }
+
+  findConnectionNameInput() {
+    return this.find().findByTestId('connection-name-desc-name');
+  }
+
+  findConnectionDescriptionInput() {
+    return this.find().findByTestId('connection-name-desc-description');
   }
 
   findNameInput() {
