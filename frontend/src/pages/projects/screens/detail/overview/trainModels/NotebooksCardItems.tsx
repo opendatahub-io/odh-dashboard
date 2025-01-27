@@ -47,7 +47,6 @@ const NotebooksCardItems: React.FC<NotebooksCardItemsProps> = ({
           label={getDisplayNameFromK8sResource(notebookState.notebook)}
           notebook={notebookState.notebook}
           isRunning={notebookState.isRunning}
-          isLarge
         />
       ))}
       <Flex key="count" gap={{ default: 'gapMd' }}>

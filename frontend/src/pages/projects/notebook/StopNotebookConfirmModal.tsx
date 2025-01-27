@@ -57,12 +57,7 @@ const StopNotebookConfirmModal: React.FC<StopNotebookConfirmProps> = ({
             <Flex>
               <FlexItem spacer={{ default: 'spacerXs' }}>To save changes, </FlexItem>
               <FlexItem spacer={{ default: 'spacerNone' }}>
-                <NotebookRouteLink
-                  label="open the workbench"
-                  notebook={notebook}
-                  isRunning
-                  isLarge
-                />
+                <NotebookRouteLink label="open the workbench" notebook={notebook} isRunning />
               </FlexItem>
               <FlexItem spacer={{ default: 'spacerNone' }}>.</FlexItem>
             </Flex>

@@ -2,21 +2,23 @@ import { DataScienceClusterKindStatus, K8sCondition } from '~/k8sTypes';
 import { StackComponent } from '~/concepts/areas/types';
 
 export type MockDscStatus = {
+  components?: DataScienceClusterKindStatus['components'];
   conditions?: K8sCondition[];
   phase?: string;
   installedComponents?: DataScienceClusterKindStatus['installedComponents'];
 };
 
 export const mockDscStatus = ({
-  installedComponents,
-  conditions = [],
-  phase = 'Ready',
-}: MockDscStatus): DataScienceClusterKindStatus => ({
-  components: {
+  components = {
     modelregistry: {
       registriesNamespace: 'odh-model-registries',
     },
   },
+  installedComponents,
+  conditions = [],
+  phase = 'Ready',
+}: MockDscStatus): DataScienceClusterKindStatus => ({
+  components,
   conditions: [
     ...[
       {
