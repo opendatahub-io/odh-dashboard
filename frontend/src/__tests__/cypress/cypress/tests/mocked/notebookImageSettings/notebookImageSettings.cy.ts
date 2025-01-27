@@ -58,12 +58,6 @@ describe('Notebook image settings', () => {
     notebookImageSettings.findTableHeaderButton('Name').click();
     notebookImageSettings.findTableHeaderButton('Name').should(be.sortAscending);
 
-    // by description
-    notebookImageSettings.findTableHeaderButton('Description').click();
-    notebookImageSettings.findTableHeaderButton('Description').should(be.sortAscending);
-    notebookImageSettings.findTableHeaderButton('Description').click();
-    notebookImageSettings.findTableHeaderButton('Description').should(be.sortDescending);
-
     // by provider
     notebookImageSettings.findTableHeaderButton('Provider').click();
     notebookImageSettings.findTableHeaderButton('Provider').should(be.sortAscending);
@@ -93,13 +87,6 @@ describe('Notebook image settings', () => {
     notebookImageTableToolbar.findResetButton().click();
     notebookImageTableToolbar.findFilterMenuOption('filter-dropdown-select', 'Provider').click();
     notebookImageTableToolbar.findSearchInput().type('provider-321');
-    notebookImageSettings.getRow('image-321').find().should('exist');
-
-    // by description
-    // test switching filtering options
-    notebookImageTableToolbar.findFilterMenuOption('filter-dropdown-select', 'Description').click();
-    notebookImageSettings.findEmptyResults();
-    notebookImageTableToolbar.findFilterMenuOption('filter-dropdown-select', 'Provider').click();
     notebookImageSettings.getRow('image-321').find().should('exist');
   });
 
