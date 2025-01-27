@@ -2,10 +2,9 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import '~/pages/pipelines/global/runs/GlobalPipelineRunsTabs.scss';
+import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
-import { ServingRuntimesFetchData } from '~/pages/modelServing/useServingRuntimes'; // TODO move this hook to concepts to avoid this cross-page import
-import { InferenceServicesFetchData } from '~/pages/modelServing/useInferenceServices'; // TODO move this hook to concepts to avoid this cross-page import
-import { FetchStateObject } from '~/types';
+import { FetchStateObject, ListWithNonDashboardPresence } from '~/types';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { ModelVersionDetailsTabTitle, ModelVersionDetailsTab } from './const';
 import ModelVersionDetailsView from './ModelVersionDetailsView';
@@ -14,8 +13,8 @@ import ModelVersionRegisteredDeploymentsView from './ModelVersionRegisteredDeplo
 type ModelVersionDetailTabsProps = {
   tab: ModelVersionDetailsTab;
   modelVersion: ModelVersion;
-  inferenceServices: FetchStateObject<InferenceServicesFetchData>;
-  servingRuntimes: FetchStateObject<ServingRuntimesFetchData>;
+  inferenceServices: FetchStateObject<ListWithNonDashboardPresence<InferenceServiceKind>>;
+  servingRuntimes: FetchStateObject<ListWithNonDashboardPresence<ServingRuntimeKind>>;
   isArchiveVersion?: boolean;
   refresh: () => void;
 };

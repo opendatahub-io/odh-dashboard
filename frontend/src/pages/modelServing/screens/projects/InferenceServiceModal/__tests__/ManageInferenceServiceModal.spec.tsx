@@ -35,7 +35,7 @@ describe('ManageInferenceServiceModal', () => {
           mockServingRuntimeK8sResource({ name: 'runtime1', displayName: 'Runtime 1' }),
           mockServingRuntimeK8sResource({ name: 'runtime2' }),
         ],
-        hasNonDashboardServingRuntimes: false,
+        hasNonDashboardItems: false,
       },
       true,
       undefined,

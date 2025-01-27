@@ -706,6 +706,11 @@ export type FetchStateObject<T, E = Error> = {
 export type ContextResourceData<T> = FetchStateObject<T[], Error | AxiosError>;
 export type PendingContextResourceData<T> = ContextResourceData<T> & { pending: boolean };
 
+export type ListWithNonDashboardPresence<T> = {
+  items: T[];
+  hasNonDashboardItems: boolean;
+};
+
 export type BreadcrumbItemType = {
   label: string;
 } & EitherNotBoth<{ link: string }, { isActive: boolean }>;

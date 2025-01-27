@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { getInferenceServiceContext, listInferenceService, useAccessReview } from '~/api';
 import { AccessReviewResourceAttributes, InferenceServiceKind, KnownLabels } from '~/k8sTypes';
+import { ListWithNonDashboardPresence } from '~/types';
 import useFetchState, {
   FetchOptions,
   FetchState,
@@ -8,30 +9,13 @@ import useFetchState, {
   NotReadyError,
 } from '~/utilities/useFetchState';
 import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
-import { DEFAULT_VALUE_FETCH_STATE } from '~/utilities/const';
-import { FetchStateObject } from '~/types';
+import { DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE } from '~/utilities/const';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'serving.kserve.io',
   resource: 'inferenceservices',
   verb: 'list',
 };
-
-export type InferenceServicesFetchData = {
-  items: InferenceServiceKind[];
-  hasNonDashboardInferenceServices: boolean; // TODO rename to hasNonDashboardItems? reuse types between here and useServingRuntimes?
-};
-
-export const DEFAULT_INFERENCE_SERVICES_FETCH_DATA: InferenceServicesFetchData = {
-  items: [],
-  hasNonDashboardInferenceServices: false,
-};
-
-export const DEFAULT_INFERENCE_SERVICES_FETCH_STATE: FetchStateObject<InferenceServicesFetchData> =
-  {
-    ...DEFAULT_VALUE_FETCH_STATE,
-    data: DEFAULT_INFERENCE_SERVICES_FETCH_DATA,
-  };
 
 // TODO move to concepts/modelServing?
 
@@ -41,14 +25,16 @@ const useInferenceServices = (
   modelVersionId?: string,
   mrName?: string,
   fetchOptions?: Partial<FetchOptions>,
-): FetchState<InferenceServicesFetchData> => {
+): FetchState<ListWithNonDashboardPresence<InferenceServiceKind>> => {
   const modelServingEnabled = useModelServingEnabled();
 
   const [allowCreate, rbacLoaded] = useAccessReview({
     ...accessReviewResource,
   });
 
-  const callback = React.useCallback<FetchStateCallbackPromise<InferenceServicesFetchData>>(
+  const callback = React.useCallback<
+    FetchStateCallbackPromise<ListWithNonDashboardPresence<InferenceServiceKind>>
+  >(
     async (opts) => {
       if (!modelServingEnabled) {
         return Promise.reject(new NotReadyError('Model serving is not enabled'));
@@ -82,8 +68,7 @@ const useInferenceServices = (
       );
       return {
         items: dashboardInferenceServices,
-        hasNonDashboardInferenceServices:
-          inferenceServiceList.length > dashboardInferenceServices.length,
+        hasNonDashboardItems: inferenceServiceList.length > dashboardInferenceServices.length,
       };
     },
     [
@@ -97,7 +82,7 @@ const useInferenceServices = (
     ],
   );
 
-  return useFetchState(callback, DEFAULT_INFERENCE_SERVICES_FETCH_DATA, {
+  return useFetchState(callback, DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE, {
     initialPromisePurity: true,
     ...fetchOptions,
   });
