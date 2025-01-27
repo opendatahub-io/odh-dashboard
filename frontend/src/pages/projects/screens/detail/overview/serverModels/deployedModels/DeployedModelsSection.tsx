@@ -6,6 +6,7 @@ import {
   Card,
   CardBody,
   CardFooter,
+  Content,
   EmptyState,
   EmptyStateBody,
   Flex,
@@ -13,7 +14,6 @@ import {
   Label,
   Spinner,
   Stack,
-  Content,
 } from '@patternfly/react-core';
 import { useSearchParams } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
@@ -185,7 +185,11 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
           headerInfo={
             <Flex gap={{ default: 'gapSm' }}>
               <Label>
-                {isMultiPlatform ? 'Multi-model serving enabled' : 'Single-model serving enabled'}
+                {isKServeNIMEnabled
+                  ? 'NVIDIA NIM serving enabled'
+                  : isMultiPlatform
+                  ? 'Multi-model serving enabled'
+                  : 'Single-model serving enabled'}
               </Label>
               {servingPlatformStatuses.platformEnabledCount > 1 && (
                 <ModelServingPlatformSelectButton
