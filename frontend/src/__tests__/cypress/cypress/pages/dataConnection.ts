@@ -2,12 +2,16 @@ import { Modal } from './components/Modal';
 
 class DataConnectionModal extends Modal {
   constructor(edit = false) {
-    const title = edit ? 'Edit connection' : 'Add connection';
-    super(title);
+    const titles = [
+      edit ? 'Edit connection' : 'Add connection',
+      `${edit ? 'Edit' : 'Add'} data connection`,
+    ];
+
+    super(titles[0]);
   }
 
-  findTypeaheadMenuToggle() {
-    return cy.get('[aria-label="Typeahead menu toggle"]');
+  findConnectionTypeDropdown() {
+    return this.find().findByTestId('connection-type-dropdown');
   }
 
   findS3CompatibleStorageOption() {

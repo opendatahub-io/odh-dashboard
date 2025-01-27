@@ -75,7 +75,7 @@ describe('Verify Data Connections - Creation and Deletion', () => {
 
       // Enter validate Data Connection details into the Data Connection Modal
       cy.step('Enter valid Data Connection details and verify creation');
-      addDataConnectionModal.findTypeaheadMenuToggle().click();
+      addDataConnectionModal.findConnectionTypeDropdown().click();
       addDataConnectionModal.findS3CompatibleStorageOption().click();
       addDataConnectionModal.findConnectionNameInput().type(s3Config.NAME);
       addDataConnectionModal.findConnectionDescriptionInput().type('S3 Bucket Connection');
@@ -85,12 +85,12 @@ describe('Verify Data Connections - Creation and Deletion', () => {
       addDataConnectionModal.findRegionInput().type(s3Config.REGION);
       addDataConnectionModal.findBucketInput().type(s3Config.NAME);
       addDataConnectionModal.findCreateButton().click();
+      connectionsPage.getConnectionRow(s3Config.NAME).find().should('exist');
 
       // Delete the Data Connection and confirm that the deletion was successful
       cy.step('Delete the Data Connection and verify deletion');
-      connectionsPage.getConnectionRow(s3Config.NAME).find().should('exist');
       connectionsPage.findKebabToggle().click();
-      connectionsPage.findDeleteButton().click();
+      connectionsPage.getConnectionRow(s3Config.NAME).findKebabAction('Delete').click();
       deleteModal.shouldBeOpen();
       deleteModal.findInput().type(s3Config.NAME);
       deleteModal.findSubmitButton().should('be.enabled').click();
