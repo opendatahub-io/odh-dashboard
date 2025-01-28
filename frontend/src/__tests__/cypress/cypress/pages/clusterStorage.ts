@@ -234,6 +234,10 @@ class ClusterStorage {
   findCreateButtonFromActions() {
     return cy.findByTestId('actions-cluster-storage-button');
   }
+
+  findKebabToggle() {
+    return cy.get('button[aria-label="Kebab toggle"]');
+  }
 }
 
 export const clusterStorage = new ClusterStorage();
