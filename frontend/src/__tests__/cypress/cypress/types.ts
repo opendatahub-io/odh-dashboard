@@ -228,3 +228,13 @@ export type ResourcesData = {
 export type NamespaceConfig = {
   APPLICATIONS_NAMESPACE: string;
 };
+
+enum OOTBConnectionTypes {
+  s3 = 'S3 compatible object storage - v1',
+  uri = 'URI - v1',
+}
+
+export type OOTBConnectionTypesData = {
+  s3: OOTBConnectionTypes.s3;
+  uri: OOTBConnectionTypes.uri;
+};
