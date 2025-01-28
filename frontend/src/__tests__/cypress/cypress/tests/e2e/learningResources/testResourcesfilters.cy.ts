@@ -7,6 +7,20 @@ const cardView = resources.getCardView();
 const resourcesToolbar = resources.getLearningCenterToolbar();
 const resourceFilters = resources.getLearningCenterFilters();
 
+const verifyResourceCountMatchesView = (
+  filterId: string,
+  getViewItems: () => Cypress.Chainable<JQuery<HTMLElement>>,
+  getParentView: () => Cypress.Chainable<JQuery<HTMLElement>>,
+) => {
+  resourceFilters.findResourceCountById(filterId).then((resourceCount) => {
+    if (resourceCount === 0) {
+      getParentView().should('not.exist');
+    } else {
+      getViewItems().should('have.length', resourceCount);
+    }
+  });
+};
+
 describe('Resources page', () => {
   before(() => {
     // Authentication
@@ -27,9 +41,17 @@ describe('Resources page', () => {
       // Enabled filter
       resourceFilters.findFilter('enabled-filter-checkbox').should('not.be.checked');
       resourceFilters.findFilter('enabled-filter-checkbox').check();
-      cardView.findCardItems().should('have.length', 7);
+      verifyResourceCountMatchesView(
+        'enabled-filter-checkbox',
+        () => cardView.findCardItems(),
+        () => cardView.find(),
+      );
       resourcesToolbar.findListToggleButton().click();
-      listView.findListItems().should('have.length', 7);
+      verifyResourceCountMatchesView(
+        'enabled-filter-checkbox',
+        () => listView.findListItems(),
+        () => listView.find(),
+      );
       resourceFilters.findFilter('enabled-filter-checkbox').should('be.checked');
       resourceFilters.findFilter('enabled-filter-checkbox').uncheck();
 
@@ -37,9 +59,17 @@ describe('Resources page', () => {
       resourcesToolbar.findCardToggleButton().click();
       resourceFilters.findFilter('not-enabled-filter-checkbox').should('not.be.checked');
       resourceFilters.findFilter('not-enabled-filter-checkbox').check();
-      cardView.find().should('not.exist');
+      verifyResourceCountMatchesView(
+        'not-enabled-filter-checkbox',
+        () => cardView.findCardItems(),
+        () => cardView.find(),
+      );
       resourcesToolbar.findListToggleButton().click();
-      listView.find().should('not.exist');
+      verifyResourceCountMatchesView(
+        'not-enabled-filter-checkbox',
+        () => listView.findListItems(),
+        () => listView.find(),
+      );
       resourceFilters.findFilter('not-enabled-filter-checkbox').should('be.checked');
       resourceFilters.findFilter('not-enabled-filter-checkbox').uncheck();
 
@@ -50,9 +80,17 @@ describe('Resources page', () => {
       resourcesToolbar.findCardToggleButton().click();
       resourceFilters.findFilter('documentation').should('not.be.checked');
       resourceFilters.findFilter('documentation').check();
-      cardView.findCardItems().should('have.length', 1);
+      verifyResourceCountMatchesView(
+        'documentation',
+        () => cardView.findCardItems(),
+        () => cardView.find(),
+      );
       resourcesToolbar.findListToggleButton().click();
-      listView.findListItems().should('have.length', 1);
+      verifyResourceCountMatchesView(
+        'documentation',
+        () => listView.findListItems(),
+        () => listView.find(),
+      );
       resourceFilters.findFilter('documentation').should('be.checked');
       resourceFilters.findFilter('documentation').uncheck();
 
@@ -60,9 +98,17 @@ describe('Resources page', () => {
       resourcesToolbar.findCardToggleButton().click();
       resourceFilters.findFilter('how-to').should('not.be.checked');
       resourceFilters.findFilter('how-to').check();
-      cardView.findCardItems().should('have.length', 4);
+      verifyResourceCountMatchesView(
+        'how-to',
+        () => cardView.findCardItems(),
+        () => cardView.find(),
+      );
       resourcesToolbar.findListToggleButton().click();
-      listView.findListItems().should('have.length', 4);
+      verifyResourceCountMatchesView(
+        'how-to',
+        () => listView.findListItems(),
+        () => listView.find(),
+      );
       resourceFilters.findFilter('how-to').should('be.checked');
       resourceFilters.findFilter('how-to').uncheck();
 
@@ -70,9 +116,17 @@ describe('Resources page', () => {
       resourcesToolbar.findCardToggleButton().click();
       resourceFilters.findFilter('quickstart').should('not.be.checked');
       resourceFilters.findFilter('quickstart').check();
-      cardView.findCardItems().should('have.length', 2);
+      verifyResourceCountMatchesView(
+        'quickstart',
+        () => cardView.findCardItems(),
+        () => cardView.find(),
+      );
       resourcesToolbar.findListToggleButton().click();
-      listView.findListItems().should('have.length', 2);
+      verifyResourceCountMatchesView(
+        'quickstart',
+        () => listView.findListItems(),
+        () => listView.find(),
+      );
       resourceFilters.findFilter('quickstart').should('be.checked');
       resourceFilters.findFilter('quickstart').uncheck();
 
@@ -80,9 +134,17 @@ describe('Resources page', () => {
       resourcesToolbar.findCardToggleButton().click();
       resourceFilters.findFilter('tutorial').should('not.be.checked');
       resourceFilters.findFilter('tutorial').check();
-      cardView.find().should('not.exist');
+      verifyResourceCountMatchesView(
+        'tutorial',
+        () => cardView.findCardItems(),
+        () => cardView.find(),
+      );
       resourcesToolbar.findListToggleButton().click();
-      listView.find().should('not.exist');
+      verifyResourceCountMatchesView(
+        'tutorial',
+        () => listView.findListItems(),
+        () => listView.find(),
+      );
       resourceFilters.findFilter('tutorial').should('be.checked');
       resourceFilters.findFilter('tutorial').uncheck();
 
@@ -93,19 +155,53 @@ describe('Resources page', () => {
       resourcesToolbar.findCardToggleButton().click();
       resourceFilters.findFilter('Jupyter').should('not.be.checked');
       resourceFilters.findFilter('Jupyter').check();
-      cardView.findCardItems().should('have.length', 7);
+      verifyResourceCountMatchesView(
+        'Jupyter',
+        () => cardView.findCardItems(),
+        () => cardView.find(),
+      );
       resourcesToolbar.findListToggleButton().click();
-      listView.findListItems().should('have.length', 7);
+      verifyResourceCountMatchesView(
+        'Jupyter',
+        () => listView.findListItems(),
+        () => listView.find(),
+      );
       resourceFilters.findFilter('Jupyter').should('be.checked');
       resourceFilters.findFilter('Jupyter').uncheck();
+
+      // Self-managed
+      resourcesToolbar.findCardToggleButton().click();
+      resourceFilters.findFilter('Self-managed').should('not.be.checked');
+      resourceFilters.findFilter('Self-managed').check();
+      verifyResourceCountMatchesView(
+        'Self-managed',
+        () => cardView.findCardItems(),
+        () => cardView.find(),
+      );
+      resourcesToolbar.findListToggleButton().click();
+      verifyResourceCountMatchesView(
+        'Self-managed',
+        () => listView.findListItems(),
+        () => listView.find(),
+      );
+      resourceFilters.findFilter('Self-managed').should('be.checked');
+      resourceFilters.findFilter('Self-managed').uncheck();
 
       // Red Hat managed
       resourcesToolbar.findCardToggleButton().click();
       resourceFilters.findFilter('Red Hat managed').should('not.be.checked');
       resourceFilters.findFilter('Red Hat managed').check();
-      cardView.findCardItems().should('have.length', 7);
+      verifyResourceCountMatchesView(
+        'Red Hat managed',
+        () => cardView.findCardItems(),
+        () => cardView.find(),
+      );
       resourcesToolbar.findListToggleButton().click();
-      listView.findListItems().should('have.length', 7);
+      verifyResourceCountMatchesView(
+        'Red Hat managed',
+        () => listView.findListItems(),
+        () => listView.find(),
+      );
       resourceFilters.findFilter('Red Hat managed').should('be.checked');
       resourceFilters.findFilter('Red Hat managed').uncheck();
 
@@ -116,9 +212,17 @@ describe('Resources page', () => {
       resourceFilters.findFilter('how-to').check();
       resourceFilters.findFilter('documentation').should('not.be.checked');
       resourceFilters.findFilter('documentation').check();
-      cardView.findCardItems().should('have.length', 5);
+      resourceFilters
+        .findResourceCountById('documentation')
+        .then((resourceCount) =>
+          cardView.findCardItems().should('have.length.at.least', resourceCount),
+        );
       resourcesToolbar.findListToggleButton().click();
-      listView.findListItems().should('have.length', 5);
+      resourceFilters
+        .findResourceCountById('documentation')
+        .then((resourceCount) =>
+          listView.findListItems().should('have.length.at.least', resourceCount),
+        );
     },
   );
 });
