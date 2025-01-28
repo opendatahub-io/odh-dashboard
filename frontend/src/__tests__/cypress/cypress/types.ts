@@ -136,6 +136,7 @@ export type DataScienceProjectData = {
   projectPVStorageResourceName: string;
   pvStorageName: string;
   pvStorageDescription: string;
+  pvStorageNameEdited: string;
 };
 
 export type NotebookImageData = {

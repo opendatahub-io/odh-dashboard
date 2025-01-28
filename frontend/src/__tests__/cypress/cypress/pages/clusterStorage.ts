@@ -125,6 +125,10 @@ class ClusterStorageModal extends Modal {
     return this.find().findByTestId('modal-submit-button');
   }
 
+  findPVStorageSizeValue() {
+    return this.find().find('[aria-label="Input"]');
+  }
+
   private findPVSizeSelectButton() {
     return this.find().findByTestId('value-unit-select');
   }

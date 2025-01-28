@@ -2,3 +2,4 @@
 projectPVStorageResourceName: "cy-pv-storage-test" 
 pvStorageName: "cy-pv-storage" 
 pvStorageDescription: "Test Description of PV Storage" 
+pvStorageNameEdited: "cy-pv-storage-edited" 

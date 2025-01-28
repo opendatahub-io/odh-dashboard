@@ -1,4 +1,4 @@
-import type { DataScienceProjectData } from '~/__tests__/cypress/cypress/types';
+import type { DataScienceProjectData, DashboardConfig } from '~/__tests__/cypress/cypress/types';
 import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
@@ -7,23 +7,34 @@ import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_com
 import {
   clusterStorage,
   addClusterStorageModal,
+  updateClusterStorageModal,
 } from '~/__tests__/cypress/cypress/pages/clusterStorage';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 
-describe('Verify Cluster Storage - Creation and Deletion', () => {
+describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
   let testData: DataScienceProjectData;
+  let dashboardConfig: DashboardConfig;
   let projectName: string;
   let pvStorageName: string;
   let pvStorageDescription: string;
+  let pvStorageNameEdited: string;
 
   // Setup: Load test data and ensure clean state
   before(() => {
+    // Retrieve the dashboard configuration
+    cy.getDashboardConfig().then((config) => {
+      dashboardConfig = config as DashboardConfig;
+      cy.log('Dashboard Config:', JSON.stringify(dashboardConfig, null, 2));
+      const { pvcSize } = dashboardConfig.notebookController;
+      cy.log(`Value of PVC Size: ${String(pvcSize)}`);
+    });
     return loadDSPFixture('e2e/dataScienceProjects/testClusterStorageCreation.yaml')
       .then((fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
         projectName = testData.projectPVStorageResourceName;
         pvStorageName = testData.pvStorageName;
         pvStorageDescription = testData.pvStorageDescription;
+        pvStorageNameEdited = testData.pvStorageNameEdited;
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
         }
@@ -43,7 +54,7 @@ describe('Verify Cluster Storage - Creation and Deletion', () => {
   });
 
   it(
-    'Create and Delete a Persistent Volume Storage',
+    'Create, Edit and Delete a Persistent Volume Storage',
     { tags: ['@Sanity', '@SanitySet1', '@ODS-1824', '@Dashboard'] },
     () => {
       // Authentication and navigation
@@ -67,10 +78,21 @@ describe('Verify Cluster Storage - Creation and Deletion', () => {
       cy.step('Enter valid Cluster Storage details and verify creation');
       addClusterStorageModal.findNameInput().type(pvStorageName);
       addClusterStorageModal.findDescriptionInput().type(pvStorageDescription);
+      const numericPvcSize = dashboardConfig.notebookController.pvcSize.replace(/\D/g, '');
+      addClusterStorageModal.findPVStorageSizeValue().should('have.value', numericPvcSize);
       addClusterStorageModal.findSubmitButton().click();
       clusterStorage.getClusterStorageRow(pvStorageName);
 
-      // Delete the DCluster Storage and confirm that the deletion was successful
+      // Edit the Cluster Storage, amend the name and update
+      cy.step('Edit the Cluster Storage and verify edits are successful');
+      clusterStorage.findKebabToggle().click();
+      clusterStorage.getClusterStorageRow(pvStorageName).findKebabAction('Edit storage').click();
+      updateClusterStorageModal.findNameInput().clear();
+      updateClusterStorageModal.findNameInput().type(pvStorageNameEdited);
+      updateClusterStorageModal.findSubmitButton().click();
+      clusterStorage.getClusterStorageRow(pvStorageNameEdited);
+
+      // Delete the Cluster Storage and confirm that the deletion was successful
       cy.step('Delete the Cluster Storage and verify deletion');
       clusterStorage.findKebabToggle().click();
       clusterStorage.getClusterStorageRow(pvStorageName).findKebabAction('Delete storage').click();
