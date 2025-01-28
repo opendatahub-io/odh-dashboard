@@ -2,7 +2,16 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import { secureAdminRoute } from '../../../../utils/route-security';
 import { KubeFastifyInstance } from '../../../../types';
 import { isString } from 'lodash';
-import { createNIMAccount, getNIMAccount, isAppEnabled, manageNIMSecret } from './nimUtils';
+import { VariablesValidationStatus } from '../../../../types';
+import {
+  createNIMAccount,
+  manageNIMSecret,
+  getNIMAccount,
+  errorMsgList,
+  apiKeyValidationStatus,
+  apiKeyValidationTimestamp,
+  isAppEnabled,
+} from './nimUtils';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
   const PAGE_NOT_FOUND_MESSAGE = '404 page not found';
@@ -15,11 +24,28 @@ module.exports = async (fastify: KubeFastifyInstance) => {
           if (response) {
             // Installed
             const isEnabled = isAppEnabled(response);
-            reply.send({ isInstalled: true, isEnabled: isEnabled, canInstall: false, error: '' });
+            const keyValidationStatus: string = apiKeyValidationStatus(response);
+            const keyValidationTimestamp: string = apiKeyValidationTimestamp(response);
+            const errorMsg: string = errorMsgList(response)[0];
+            reply.send({
+              isInstalled: true,
+              isEnabled: isEnabled,
+              variablesValidationStatus: keyValidationStatus,
+              variablesValidationTimestamp: keyValidationTimestamp,
+              canInstall: !isEnabled,
+              error: errorMsg,
+            });
           } else {
             // Not installed
             fastify.log.info(`NIM account does not exist`);
-            reply.send({ isInstalled: false, isEnabled: false, canInstall: true, error: '' });
+            reply.send({
+              isInstalled: false,
+              isEnabled: false,
+              variablesValidationStatus: VariablesValidationStatus.UNKNOWN,
+              variablesValidationTimestamp: '',
+              canInstall: true,
+              error: '',
+            });
           }
         })
         .catch((e) => {
@@ -33,6 +59,8 @@ module.exports = async (fastify: KubeFastifyInstance) => {
               reply.send({
                 isInstalled: false,
                 isEnabled: false,
+                variablesValidationStatus: VariablesValidationStatus.UNKNOWN,
+                variablesValidationTimestamp: '',
                 canInstall: false,
                 error: 'NIM not installed',
               });
@@ -41,7 +69,9 @@ module.exports = async (fastify: KubeFastifyInstance) => {
             fastify.log.error(`An unexpected error occurred: ${e.response.body?.message}`);
             reply.send({
               isInstalled: false,
-              isAppEnabled: false,
+              isEnabled: false,
+              variablesValidationStatus: VariablesValidationStatus.UNKNOWN,
+              variablesValidationTimestamp: '',
               canInstall: false,
               error: 'An unexpected error occurred. Please try again later.',
             });
@@ -66,24 +96,18 @@ module.exports = async (fastify: KubeFastifyInstance) => {
           // Ensure the account exists
           try {
             const account = await getNIMAccount(fastify);
-            if (!account) {
-              const response = await createNIMAccount(fastify);
-              const isEnabled = isAppEnabled(response);
-              reply.send({
-                isInstalled: true,
-                isEnabled: isEnabled,
-                canInstall: false,
-                error: '',
-              });
-            } else {
-              const isEnabled = isAppEnabled(account);
-              reply.send({
-                isInstalled: true,
-                isEnabled: isEnabled,
-                canInstall: false,
-                error: '',
-              });
-            }
+            const nimAccount = !account ? await createNIMAccount(fastify) : account;
+            const isEnabled = isAppEnabled(nimAccount);
+            const keyValidationStatus: string = apiKeyValidationStatus(nimAccount);
+            const keyValidationTimeStamp: string = apiKeyValidationTimestamp(nimAccount);
+            reply.send({
+              isInstalled: true,
+              isEnabled: isEnabled,
+              variablesValidationStatus: keyValidationStatus,
+              variablesValidationTimestamp: keyValidationTimeStamp,
+              canInstall: !isEnabled,
+              error: '',
+            });
           } catch (accountError: any) {
             const message = `Failed to create or retrieve NIM account: ${accountError.response?.body?.message}`;
             fastify.log.error(message);

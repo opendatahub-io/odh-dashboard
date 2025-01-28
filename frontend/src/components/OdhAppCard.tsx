@@ -13,9 +13,10 @@ import {
   MenuToggle,
   DropdownList,
   Label,
+  capitalize,
 } from '@patternfly/react-core';
 import { css } from '@patternfly/react-styles';
-import { EllipsisVIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { EllipsisVIcon, ExclamationCircleIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhApplication } from '~/types';
 import { getLaunchStatus, launchQuickStart } from '~/utilities/quickStartUtils';
 import EnableModal from '~/pages/exploreApplication/EnableModal';
@@ -25,6 +26,7 @@ import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { useAppContext } from '~/app/AppContext';
 import { useAppDispatch } from '~/redux/hooks';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { isInternalRouteIntegrationsApp } from '~/utilities/utils';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 import SupportedAppTitle from './SupportedAppTitle';
 import BrandImage from './BrandImage';
@@ -140,39 +142,53 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
 
   const popoverBodyContent = (hide: () => void) => (
     <div>
-      Subscription is no longer valid. To validate click&nbsp;
-      <Button
-        isInline
-        variant="link"
-        onClick={() => {
-          hide();
-          setEnableOpen(true);
-        }}
-      >
-        here
-      </Button>
-      . To remove card click&nbsp;
-      <Button
-        isInline
-        variant="link"
-        onClick={() => {
-          hide();
-          removeApplication();
-        }}
-      >
-        here
-      </Button>
-      .
+      {isInternalRouteIntegrationsApp(odhApp.spec.internalRoute) ? (
+        <>
+          {odhApp.spec.error ? `${capitalize(odhApp.spec.error)}.` : ''} Contact your administrator.
+        </>
+      ) : (
+        <>
+          Subscription is no longer valid. To validate click&nbsp;
+          <Button
+            isInline
+            variant="link"
+            onClick={() => {
+              hide();
+              setEnableOpen(true);
+            }}
+          >
+            here.
+          </Button>
+          To remove card click&nbsp;
+          <Button
+            isInline
+            variant="link"
+            onClick={() => {
+              hide();
+              removeApplication();
+            }}
+          >
+            here
+          </Button>
+          .
+        </>
+      )}
     </div>
   );
 
   const disabledPopover = (
     <Popover
-      headerContent={<div className="odh-card__disabled-popover-title">Application disabled</div>}
+      headerContent={
+        <div className="odh-card__disabled-popover-title">
+          Enable {odhApp.spec.displayName} failed
+        </div>
+      }
       bodyContent={popoverBodyContent}
-      position="bottom"
+      position="right"
+      headerIcon={<ExclamationCircleIcon />}
+      alertSeverityVariant="danger"
     >
-      <Button variant="plain" className="odh-card__disabled-text">
+      <Button variant="link" className="odh-card__disabled-text">
         Disabled
       </Button>
     </Popover>
