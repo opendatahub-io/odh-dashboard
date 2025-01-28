@@ -18,16 +18,21 @@ import { ManageAcceleratorProfileDetailsSection } from './ManageAcceleratorProfi
 
 type ManageAcceleratorProfileProps = {
   existingAcceleratorProfile?: AcceleratorProfileKind;
+  contextPath?: string;
+  homepageTitle?: string;
 };
 
 const ManageAcceleratorProfile: React.FC<ManageAcceleratorProfileProps> = ({
   existingAcceleratorProfile,
+  contextPath = '/acceleratorProfiles',
+  homepageTitle = 'Accelerator profiles',
 }) => {
-  const [state, setState] = useGenericObjectState<AcceleratorProfileKind['spec']>({
+  const [state, setState] = useGenericObjectState<AcceleratorProfileFormData>({
     displayName: '',
     identifier: '',
     enabled: true,
     tolerations: [],
+    name: '',
   });
   const { data: profileNameDesc, onDataChange: setProfileNameDesc } =
     useK8sNameDescriptionFieldData({
@@ -71,9 +76,7 @@ const ManageAcceleratorProfile: React.FC<ManageAcceleratorProfileProps> = ({
       }
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem
-            render={() => <Link to="/acceleratorProfiles">Accelerator profiles</Link>}
-          />
+          <BreadcrumbItem render={() => <Link to={contextPath}>{homepageTitle}</Link>} />
           <BreadcrumbItem>
             {existingAcceleratorProfile ? 'Edit' : 'Create'} accelerator profile
           </BreadcrumbItem>
@@ -118,6 +121,7 @@ const ManageAcceleratorProfile: React.FC<ManageAcceleratorProfileProps> = ({
           state={formState}
           existingAcceleratorProfile={existingAcceleratorProfile}
           validFormData={validFormData}
+          redirectPath={contextPath}
         />
       </PageSection>
     </ApplicationsPage>
