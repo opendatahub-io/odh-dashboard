@@ -15,6 +15,8 @@ import {
   asProjectAdminUser,
 } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { StackComponent } from '~/concepts/areas/types';
+import { DeploymentMode } from '~/k8sTypes';
+import { mockDashboardConfig } from '~/__mocks__';
 
 it('Cluster settings should not be available for non product admins', () => {
   asProjectAdminUser();
@@ -104,5 +106,37 @@ describe('Cluster Settings', () => {
         }),
       );
     });
+  });
+
+  it('View KServe defaultDeploymentMode', () => {
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableKServeRaw: false,
+      }),
+    );
+    cy.interceptOdh(
+      'GET /api/dsc/status',
+      mockDscStatus({
+        components: { kserve: { defaultDeploymentMode: DeploymentMode.RawDeployment } },
+        installedComponents: { [StackComponent.K_SERVE]: true, [StackComponent.MODEL_MESH]: true },
+      }),
+    );
+    cy.interceptOdh('GET /api/cluster-settings', mockClusterSettings({}));
+
+    clusterSettings.visit();
+
+    modelServingSettings.findSinglePlatformCheckbox().should('be.checked');
+    modelServingSettings.findSinglePlatformDeploymentModeSelect().should('be.visible');
+    modelServingSettings.findMultiPlatformCheckbox().should('be.checked');
+
+    modelServingSettings
+      .findSinglePlatformDeploymentModeSelect()
+      .findSelectOption('Standard (No additional dependencies)')
+      .should('have.attr', 'aria-selected', 'true');
+    modelServingSettings
+      .findSinglePlatformDeploymentModeSelect()
+      .findSelectOption('Advanced (Serverless and Service Mesh)')
+      .should('have.attr', 'aria-selected', 'false');
   });
 });

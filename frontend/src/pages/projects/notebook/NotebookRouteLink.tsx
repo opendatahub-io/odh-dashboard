@@ -13,7 +13,6 @@ type NotebookRouteLinkProps = {
   notebook: NotebookKind;
   isRunning: boolean;
   variant?: ButtonVariant;
-  isLarge?: boolean;
 };
 
 const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({
@@ -22,7 +21,6 @@ const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({
   notebook,
   isRunning,
   variant,
-  isLarge,
 }) => {
   const [routeLink, loaded, error] = useRouteForNotebook(
     notebook.metadata.name,
@@ -45,12 +43,7 @@ const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({
           variant={variant || 'link'}
           icon={!error && <ExternalLinkAltIcon />}
           iconPosition="end"
-          style={{
-            whiteSpace: 'nowrap',
-            fontSize: isLarge
-              ? 'var(--pf-t--global--font--size--body--default)'
-              : 'var(--pf-t--global--font--size--body--sm)',
-          }}
+          style={{ whiteSpace: 'nowrap' }}
           onClick={() => {
             fireMiscTrackingEvent('Workbench Opened', {
               wbName: getDisplayNameFromK8sResource(notebook),

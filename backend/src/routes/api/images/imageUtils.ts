@@ -240,7 +240,7 @@ const mapImageStreamToBYONImage = (is: ImageStream): BYONImage => ({
   imported_time: is.metadata.creationTimestamp,
   url: is.metadata.annotations['opendatahub.io/notebook-image-url'],
   provider: is.metadata.annotations['opendatahub.io/notebook-image-creator'],
-  recommendedAcceleratorIdentifiers: jsonParseRecommendedAcceleratorIdentifiers(
+  recommendedAcceleratorIdentifiers: jsonParseRecommendedIdentifiers(
     is.metadata.annotations['opendatahub.io/recommended-accelerators'],
   ),
 });
@@ -464,7 +464,7 @@ const jsonParsePackage = (unparsedPackage: string): BYONImagePackage[] => {
   }
 };
 
-const jsonParseRecommendedAcceleratorIdentifiers = (unparsedRecommendations: string): string[] => {
+const jsonParseRecommendedIdentifiers = (unparsedRecommendations: string): string[] => {
   try {
     return JSON.parse(unparsedRecommendations) || [];
   } catch {

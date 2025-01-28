@@ -3,17 +3,17 @@ import { Link } from 'react-router-dom';
 import {
   AlertVariant,
   Button,
+  capitalize,
   Card,
   CardBody,
   CardFooter,
   CardHeader,
-  Popover,
   Dropdown,
   DropdownItem,
-  MenuToggle,
   DropdownList,
   Label,
-  capitalize,
+  MenuToggle,
+  Popover,
 } from '@patternfly/react-core';
 import { css } from '@patternfly/react-styles';
 import { EllipsisVIcon, ExclamationCircleIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
@@ -27,6 +27,7 @@ import { useAppContext } from '~/app/AppContext';
 import { useAppDispatch } from '~/redux/hooks';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { isInternalRouteIntegrationsApp } from '~/utilities/utils';
+import { deleteIntegrationApp } from '~/services/integrationAppService';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 import SupportedAppTitle from './SupportedAppTitle';
 import BrandImage from './BrandImage';
@@ -59,31 +60,49 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   };
 
   const removeApplication = () => {
-    removeComponent(odhApp.metadata.name)
-      .then((response) => {
-        if (response.success) {
-          dispatch(
-            addNotification({
-              status: AlertVariant.success,
-              title: `${odhApp.metadata.name} has been removed from the Enabled page.`,
-              timestamp: new Date(),
-            }),
-          );
-          dispatch(forceComponentsUpdate());
-        } else {
-          throw new Error(response.error);
-        }
-      })
-      .catch((e) => {
-        dispatch(
-          addNotification({
-            status: AlertVariant.danger,
-            title: `Error attempting to remove ${odhApp.metadata.name}.`,
-            message: e.message,
-            timestamp: new Date(),
-          }),
-        );
-      });
+    const handleSuccess = () => {
+      dispatch(
+        addNotification({
+          status: AlertVariant.success,
+          title: `${odhApp.metadata.name} has been removed from the Enabled page.`,
+          timestamp: new Date(),
+        }),
+      );
+      dispatch(forceComponentsUpdate());
+    };
+
+    const handleError = (e: Error) => {
+      dispatch(
+        addNotification({
+          status: AlertVariant.danger,
+          title: `Error attempting to remove ${odhApp.metadata.name}.`,
+          message: e.message,
+          timestamp: new Date(),
+        }),
+      );
+    };
+
+    if (isInternalRouteIntegrationsApp(odhApp.spec.internalRoute)) {
+      deleteIntegrationApp(odhApp.spec.internalRoute)
+        .then((response) => {
+          if (response.success) {
+            handleSuccess();
+          } else {
+            throw new Error(response.error);
+          }
+        })
+        .catch(handleError);
+    } else {
+      removeComponent(odhApp.metadata.name)
+        .then((response) => {
+          if (response.success) {
+            handleSuccess();
+          } else {
+            throw new Error(response.error);
+          }
+        })
+        .catch(handleError);
+    }
   };
 
   const dropdownItems = [
@@ -142,37 +161,34 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
 
   const popoverBodyContent = (hide: () => void) => (
     <div>
-      {isInternalRouteIntegrationsApp(odhApp.spec.internalRoute) ? (
-        <>
-          {odhApp.spec.error ? `${capitalize(odhApp.spec.error)}.` : ''} Contact your administrator.
-        </>
-      ) : (
-        <>
-          Subscription is no longer valid. To validate click&nbsp;
-          <Button
-            isInline
-            variant="link"
-            onClick={() => {
-              hide();
-              setEnableOpen(true);
-            }}
-          >
-            here.
-          </Button>
-          To remove card click&nbsp;
-          <Button
-            isInline
-            variant="link"
-            onClick={() => {
-              hide();
-              removeApplication();
-            }}
-          >
-            here
-          </Button>
-          .
-        </>
+      {isInternalRouteIntegrationsApp(odhApp.spec.internalRoute) && odhApp.spec.error && (
+        <>{`${capitalize(odhApp.spec.error)}.`}</>
       )}
+      <p>
+        Subscription is no longer valid. To validate click&nbsp;
+        <Button
+          isInline
+          variant="link"
+          onClick={() => {
+            hide();
+            setEnableOpen(true);
+          }}
+        >
+          here
+        </Button>
+        . To remove card click&nbsp;
+        <Button
+          isInline
+          variant="link"
+          onClick={() => {
+            hide();
+            removeApplication();
+          }}
+        >
+          here
+        </Button>
+        .
+      </p>
     </div>
   );
 

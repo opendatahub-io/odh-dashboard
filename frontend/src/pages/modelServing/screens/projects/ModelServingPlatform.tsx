@@ -325,10 +325,13 @@ const ModelServingPlatform: React.FC = () => {
             ? [
                 <Flex gap={{ default: 'gapSm' }} key="serving-platform-label">
                   <Label data-testid="serving-platform-label">
-                    {isProjectModelMesh
+                    {isKServeNIMEnabled
+                      ? 'NVIDIA NIM serving enabled'
+                      : isProjectModelMesh
                       ? 'Multi-model serving enabled'
                       : 'Single-model serving enabled'}
                   </Label>
+
                   {emptyModelServer && servingPlatformStatuses.platformEnabledCount > 1 && (
                     <ModelServingPlatformSelectButton
                       namespace={currentProject.metadata.name}

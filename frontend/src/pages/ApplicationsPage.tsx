@@ -59,8 +59,11 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
     <PageSection hasBodyWrapper={false}>
       <Stack hasGutter>
         <StackItem>
-          <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-            <Content>
+          <Flex
+            justifyContent={{ default: 'justifyContentSpaceBetween' }}
+            alignItems={{ default: 'alignItemsFlexStart' }}
+          >
+            <FlexItem flex={{ default: 'flex_1' }}>
               <Content component="h1" data-testid="app-page-title">
                 {title}
               </Content>
@@ -68,8 +71,8 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
                 {subtext && <StackItem>{subtext}</StackItem>}
                 {description && <StackItem>{description}</StackItem>}
               </Stack>
-            </Content>
-            {headerAction}
+            </FlexItem>
+            <FlexItem>{headerAction}</FlexItem>
           </Flex>
         </StackItem>
         {headerContent && <StackItem>{headerContent}</StackItem>}
