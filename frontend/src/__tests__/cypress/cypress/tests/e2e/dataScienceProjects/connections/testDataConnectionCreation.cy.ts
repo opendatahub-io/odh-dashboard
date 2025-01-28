@@ -54,7 +54,7 @@ describe('Verify Data Connections - Creation and Deletion', () => {
   });
 
   it(
-    'Create and Delete a Data Connection in RHOAI',
+    'Create and Delete a Data Connection',
     { tags: ['@Sanity', '@SanitySet1', '@ODS-1826', '@Dashboard', '@Tier1'] },
     () => {
       // Authentication and navigation
