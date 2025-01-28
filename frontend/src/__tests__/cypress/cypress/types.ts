@@ -132,6 +132,7 @@ export type DataScienceProjectData = {
   projectMultiModelAdminResourceName: string;
   multiModelAdminName: string;
   modelOpenVinoExamplePath: string;
+  projectDCResourceName: string;
   projectPVStorageResourceName: string;
   pvStorageName: string;
   pvStorageDescription: string;
