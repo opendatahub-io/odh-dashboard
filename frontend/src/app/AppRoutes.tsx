@@ -141,7 +141,6 @@ const AppRoutes: React.FC = () => {
             <Route path="/notebookImages/*" element={<BYONImageRoutes />} />
             <Route path="/clusterSettings" element={<ClusterSettingsPage />} />
             <Route path="/acceleratorProfiles/*" element={<AcceleratorProfileRoutes />} />
-            <Route path="/hardwareProfiles/*" element={<HardwareProfileRoutes />} />
             <Route path="/servingRuntimes/*" element={<CustomServingRuntimeRoutes />} />
             <Route path="/connectionTypes/*" element={<ConnectionTypeRoutes />} />
             <Route path="/storageClasses/*" element={<StorageClassesPage />} />
@@ -149,6 +148,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/groupSettings" element={<GroupSettingsPage />} />
           </>
         )}
+        <Route path="/hardwareProfiles/*" element={<HardwareProfileRoutes />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

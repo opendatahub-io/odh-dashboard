@@ -1,6 +1,10 @@
 export type UserState = {
   username: string;
   userID: string;
+  /**
+   * @deprecated -- use SSAR checks going forward
+   * @see useAccessAllowed
+   */
   isAdmin: boolean;
   isAllowed: boolean;
   userLoading: boolean;
