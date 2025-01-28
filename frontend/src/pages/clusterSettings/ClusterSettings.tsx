@@ -18,7 +18,7 @@ import CullerSettings from '~/pages/clusterSettings/CullerSettings';
 import TelemetrySettings from '~/pages/clusterSettings/TelemetrySettings';
 import TolerationSettings from '~/pages/clusterSettings/TolerationSettings';
 import ModelServingPlatformSettings from '~/pages/clusterSettings/ModelServingPlatformSettings';
-import { useDefaultDeploymentMode } from '~/pages/modelServing/useDefaultDeploymentMode';
+import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
@@ -31,7 +31,7 @@ import {
 } from './const';
 
 const ClusterSettings: React.FC = () => {
-  const defaultSingleModelDeploymentMode = useDefaultDeploymentMode();
+  const { defaultMode: defaultSingleModelDeploymentMode } = useKServeDeploymentMode();
 
   const [loaded, setLoaded] = React.useState(false);
   const [saving, setSaving] = React.useState(false);

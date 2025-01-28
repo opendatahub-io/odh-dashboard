@@ -15,10 +15,10 @@ import SettingSection from '~/components/SettingSection';
 import SimpleSelect from '~/components/SimpleSelect';
 import { ModelServingPlatformEnabled } from '~/types';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
+import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
 import { useAccessReview } from '~/api';
 import { AccessReviewResourceAttributes, DeploymentMode } from '~/k8sTypes';
 import { useOpenShiftURL } from '~/utilities/clusterUtils';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
 
 type ModelServingPlatformSettingsProps = {
@@ -42,7 +42,7 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
   defaultDeploymentMode,
   setDefaultDeploymentMode,
 }) => {
-  const isKServeRawEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_RAW).status;
+  const { isRawAvailable, isServerlessAvailable } = useKServeDeploymentMode();
   const [alert, setAlert] = React.useState<{ variant: AlertVariant; message: string }>();
   const {
     kServe: { installed: kServeInstalled },
@@ -133,7 +133,7 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
             name="singleModelServingPlatformEnabledCheckbox"
             body={
               kServeInstalled &&
-              isKServeRawEnabled && (
+              isRawAvailable && (
                 <FormGroup
                   fieldId="default-deployment-mode-select"
                   label="Default deployment mode"
@@ -160,7 +160,7 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
                       {
                         key: DeploymentMode.Serverless,
                         label: 'Advanced (Serverless and Service Mesh)',
-                        isDisabled: true, // todo: allow admin to update dsc
+                        isDisabled: !isServerlessAvailable || true, // todo: allow admin to update dsc
                       },
                     ]}
                     isDisabled={!enabledPlatforms.kServe}

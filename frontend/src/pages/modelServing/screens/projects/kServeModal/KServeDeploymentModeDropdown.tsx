@@ -3,7 +3,7 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
 import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { DeploymentMode } from '~/k8sTypes';
-import { useDefaultDeploymentMode } from '~/pages/modelServing/useDefaultDeploymentMode';
+import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
 
 type Props = {
   isRaw: boolean;
@@ -12,22 +12,20 @@ type Props = {
 };
 
 export const KServeDeploymentModeDropdown: React.FC<Props> = ({ isRaw, setIsRaw, isDisabled }) => {
-  const defaultDeploymentMode = useDefaultDeploymentMode();
+  const { defaultMode } = useKServeDeploymentMode();
 
   const options: SimpleSelectOption[] = React.useMemo(
     () => [
       {
-        label: `Standard${
-          defaultDeploymentMode === DeploymentMode.RawDeployment ? ' (default)' : ''
-        }`,
+        label: `Standard${defaultMode === DeploymentMode.RawDeployment ? ' (default)' : ''}`,
         key: DeploymentMode.RawDeployment,
       },
       {
-        label: `Advanced${defaultDeploymentMode === DeploymentMode.Serverless ? ' (default)' : ''}`,
+        label: `Advanced${defaultMode === DeploymentMode.Serverless ? ' (default)' : ''}`,
         key: DeploymentMode.Serverless,
       },
     ],
-    [defaultDeploymentMode],
+    [defaultMode],
   );
 
   return (
