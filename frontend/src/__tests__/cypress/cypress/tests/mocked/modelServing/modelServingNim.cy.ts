@@ -29,7 +29,7 @@ describe('NIM Models Deployments', () => {
     modelServingSection
       .getInferenceServiceRow('Test Name')
       .findProject()
-      .should('contains.text', 'Single-model serving enabled');
+      .should('contains.text', 'NVIDIA NIM serving enabled');
     modelServingSection
       .getInferenceServiceRow('Test Name')
       .findServingRuntime()

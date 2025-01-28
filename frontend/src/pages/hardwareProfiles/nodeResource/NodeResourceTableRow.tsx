@@ -1,6 +1,6 @@
 import React from 'react';
 import { Td, Tr } from '@patternfly/react-table';
-import { ActionList, ActionListItem, Button } from '@patternfly/react-core';
+import { ActionList, ActionListItem, Button, Truncate } from '@patternfly/react-core';
 import { MinusCircleIcon, PencilAltIcon } from '@patternfly/react-icons';
 import { Identifier } from '~/types';
 
@@ -18,8 +18,12 @@ const NodeResourceTableRow: React.FC<NodeResourceTableRowProps> = ({
   showActions,
 }) => (
   <Tr>
-    <Td dataLabel="Resource label">{identifier.displayName}</Td>
-    <Td dataLabel="Resource identifier">{identifier.identifier}</Td>
+    <Td dataLabel="Resource label">
+      <Truncate content={identifier.displayName} />
+    </Td>
+    <Td dataLabel="Resource identifier">
+      <Truncate content={identifier.identifier} />
+    </Td>
     <Td dataLabel="Resource type">{identifier.resourceType ?? 'Other'}</Td>
     <Td dataLabel="Default">{identifier.defaultCount}</Td>
     <Td dataLabel="Minimum allowed">{identifier.minCount}</Td>

@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { Progress, Tooltip, Stack, StackItem, Flex, FlexItem } from '@patternfly/react-core';
+import { Tooltip, Stack, StackItem } from '@patternfly/react-core';
 import { roundNumber } from '~/utilities/number';
-import './WorkloadResourceUsageBar.scss';
+import ProgressBarWithLabels from '~/components/ProgressBarWithLabels';
 
 type WorkloadResourceUsageBarProps = {
   showData?: boolean;
@@ -37,20 +37,14 @@ export const WorkloadResourceUsageBar: React.FC<WorkloadResourceUsageBarProps> =
         </Stack>
       }
     >
-      <Flex alignItems={{ default: 'alignItemsCenter' }}>
-        <FlexItem>{roundNumber(used)}</FlexItem>
-        <FlexItem grow={{ default: 'grow' }}>
-          <Progress
-            className="dw-workload-resource-usage-bar"
-            value={used}
-            min={0}
-            max={requested}
-            measureLocation="none"
-            aria-label={progressBarAriaLabel}
-          />
-        </FlexItem>
-        <FlexItem>{roundNumber(requested)}</FlexItem>
-      </Flex>
+      <ProgressBarWithLabels
+        inUseLabel={roundNumber(used)}
+        maxValueLabel={roundNumber(requested)}
+        value={used}
+        min={0}
+        max={requested}
+        aria-label={progressBarAriaLabel}
+      />
     </Tooltip>
   );
 };

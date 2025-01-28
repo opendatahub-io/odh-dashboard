@@ -229,8 +229,12 @@ class ManageHardwareProfile {
 }
 
 class CreateHardwareProfile extends ManageHardwareProfile {
-  visit() {
-    cy.visitWithLogin('/hardwareProfiles/Create');
+  visit(identifiers?: string) {
+    cy.visitWithLogin(
+      identifiers
+        ? `/hardwareProfiles/create${`?identifiers=${identifiers}`}`
+        : '/hardwareProfiles/create',
+    );
     this.wait();
   }
 
