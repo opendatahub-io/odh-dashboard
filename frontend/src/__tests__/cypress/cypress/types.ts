@@ -132,6 +132,7 @@ export type DataScienceProjectData = {
   projectMultiModelAdminResourceName: string;
   multiModelAdminName: string;
   modelOpenVinoExamplePath: string;
+  projectDCResourceName: string;
 };
 
 export type NotebookImageData = {
