@@ -153,8 +153,12 @@ class InferenceServiceModal extends Modal {
     return this.find().findByTestId('alt-form-checkbox-auth');
   }
 
-  findExistingDataConnectionOption() {
-    return this.find().findByTestId('existing-data-connection-radio');
+  findNewConnectionOption() {
+    return this.find().findByTestId('new-connection-radio');
+  }
+
+  findExistingConnectionOption() {
+    return this.find().findByTestId('existing-connection-radio');
   }
 
   findExternalRouteError() {
@@ -166,9 +170,25 @@ class InferenceServiceModal extends Modal {
   }
 
   findExistingConnectionSelect() {
-    return this.find()
-      .findByRole('group', { name: 'Source model location' })
-      .findByRole('button', { name: 'Options menu' });
+    return this.find().findByTestId('typeahead-menu-toggle');
+  }
+
+  findExistingConnectionSelectValueField() {
+    return this.findExistingConnectionSelect().findByRole('combobox', {
+      name: 'Type to filter',
+    });
+  }
+
+  selectExistingConnectionSelectOptionByResourceName() {
+    this.find().findByText('Test Secret').click();
+  }
+
+  findConnectionNameInput() {
+    return this.find().findByTestId('connection-name-desc-name');
+  }
+
+  findConnectionFieldInput() {
+    return this.find().findByTestId('field URI');
   }
 
   findLocationNameInput() {
