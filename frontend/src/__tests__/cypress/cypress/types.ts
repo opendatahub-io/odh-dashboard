@@ -35,7 +35,9 @@ export type AWSS3BucketDetails = {
 export type AWSS3Buckets = {
   AWS_ACCESS_KEY_ID: string;
   AWS_SECRET_ACCESS_KEY: string;
+  BUCKET_1: AWSS3BucketDetails;
   BUCKET_2: AWSS3BucketDetails;
+  BUCKET_3: AWSS3BucketDetails;
 };
 
 export type DataConnectionReplacements = {
@@ -87,6 +89,11 @@ export type WBEditTestData = {
   pvcEditDisplayName: string;
 };
 
+export type WBControlSuiteTestData = {
+  controlSuiteTestNamespace: string;
+  controlSuiteTestDescription: string;
+};
+
 export type CommandLineResult = {
   code: number;
   stdout: string;
@@ -113,6 +120,18 @@ export type DataScienceProjectData = {
   projectEditDescription: string;
   projectEditResourceName: string;
   projectEditUpdatedName: string;
+  projectSingleModelDisplayName: string;
+  projectSingleModelResourceName: string;
+  singleModelName: string;
+  modelFilePath: string;
+  projectSingleModelAdminDisplayName: string;
+  projectSingleModelAdminResourceName: string;
+  singleModelAdminName: string;
+  modelOpenVinoPath: string;
+  projectMultiModelAdminDisplayName: string;
+  projectMultiModelAdminResourceName: string;
+  multiModelAdminName: string;
+  modelOpenVinoExamplePath: string;
 };
 
 export type NotebookImageData = {

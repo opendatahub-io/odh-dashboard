@@ -18,11 +18,7 @@ export const NIMAvailabilityContext = React.createContext<NIMAvailabilityContext
 export const NimContextProvider: React.FC<NIMAvailabilityContextProviderProps> = ({
   children,
   ...props
-}) => {
-  return <EnabledNimContextProvider {...props}>{children}</EnabledNimContextProvider>;
-
-  return children;
-};
+}) => <EnabledNimContextProvider {...props}>{children}</EnabledNimContextProvider>;
 
 const EnabledNimContextProvider: React.FC<NIMAvailabilityContextProviderProps> = ({ children }) => {
   const [isNIMAvailable, loaded] = useIsNIMAvailable();

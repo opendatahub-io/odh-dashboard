@@ -19,6 +19,7 @@ const useInferenceServices = (
   namespace?: string,
   registeredModelId?: string,
   modelVersionId?: string,
+  mrName?: string,
 ): FetchState<InferenceServiceKind[]> => {
   const modelServingEnabled = useModelServingEnabled();
 
@@ -38,7 +39,7 @@ const useInferenceServices = (
 
       const getInferenceServices = allowCreate ? listInferenceService : getInferenceServiceContext;
 
-      return getInferenceServices(
+      const inferenceServiceList = getInferenceServices(
         namespace,
         [
           LABEL_SELECTOR_DASHBOARD_RESOURCE,
@@ -47,8 +48,28 @@ const useInferenceServices = (
         ].join(','),
         opts,
       );
+
+      if (mrName) {
+        return inferenceServiceList.then((inferenceServices) =>
+          inferenceServices.filter(
+            (inferenceService) =>
+              inferenceService.metadata.labels?.[KnownLabels.MODEL_REGISTRY_NAME] === mrName ||
+              !inferenceService.metadata.labels?.[KnownLabels.MODEL_REGISTRY_NAME],
+          ),
+        );
+      }
+
+      return inferenceServiceList;
     },
-    [modelServingEnabled, rbacLoaded, allowCreate, namespace, registeredModelId, modelVersionId],
+    [
+      modelServingEnabled,
+      rbacLoaded,
+      allowCreate,
+      namespace,
+      registeredModelId,
+      modelVersionId,
+      mrName,
+    ],
   );
 
   return useFetchState(callback, [], {

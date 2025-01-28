@@ -6,11 +6,27 @@ import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import { useAccessReview } from '~/api';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { InferenceServiceKind } from '~/k8sTypes';
+import { InferenceServiceKind, KnownLabels } from '~/k8sTypes';
 
 const mockInferenceServices = mockK8sResourceList([
   mockInferenceServiceK8sResource({ name: 'item-1' }),
   mockInferenceServiceK8sResource({ name: 'item-2' }),
+  mockInferenceServiceK8sResource({
+    name: 'item-3',
+    additionalLabels: {
+      [KnownLabels.REGISTERED_MODEL_ID]: '1',
+      [KnownLabels.MODEL_VERSION_ID]: '2',
+      [KnownLabels.MODEL_REGISTRY_NAME]: 'test-registry',
+    },
+  }),
+  mockInferenceServiceK8sResource({
+    name: 'item-4',
+    additionalLabels: {
+      [KnownLabels.REGISTERED_MODEL_ID]: '1',
+      [KnownLabels.MODEL_VERSION_ID]: '2',
+      [KnownLabels.MODEL_REGISTRY_NAME]: 'test-registry-2',
+    },
+  }),
 ]);
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
@@ -249,5 +265,38 @@ describe('useInferenceServices', () => {
       labelSelector:
         'opendatahub.io/dashboard=true,modelregistry.opendatahub.io/registered-model-id=some-registered-model-id,modelregistry.opendatahub.io/model-version-id=some-model-version-id',
     });
+  });
+
+  it('should return inference services of model registry, when modelRegistry name is present', async () => {
+    // Mock the return value of useModelServingEnabled
+    useModelServingEnabledMock.mockReturnValue(true);
+    // Mock the return value of useAccessReview
+    useAccessReviewMock.mockReturnValue([true, true]);
+
+    k8sListResourceMock.mockResolvedValue(mockInferenceServices);
+    const renderResult = testHook(useInferenceServices)('namespace', '1', '2', 'test-registry');
+    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
+    expect(renderResult).hookToStrictEqual(standardUseFetchState([]));
+    expect(renderResult).hookToHaveUpdateCount(1);
+
+    // wait for update
+    await renderResult.waitForNextUpdate();
+    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
+    expect(renderResult).hookToStrictEqual(
+      standardUseFetchState(mockInferenceServices.items.slice(0, 3), true),
+    );
+
+    expect(renderResult).hookToHaveUpdateCount(2);
+    expect(renderResult).hookToBeStable([false, false, true, true]);
+
+    // refresh
+    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([...mockInferenceServices.items]));
+    await act(() => renderResult.result.current[3]());
+    expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
+    expect(renderResult).hookToStrictEqual(
+      standardUseFetchState(mockInferenceServices.items.slice(0, 3), true),
+    );
+    expect(renderResult).hookToHaveUpdateCount(3);
+    expect(renderResult).hookToBeStable([false, true, true, true]);
   });
 });

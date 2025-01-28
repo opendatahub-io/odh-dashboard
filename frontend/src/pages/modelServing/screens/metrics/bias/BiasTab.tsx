@@ -70,20 +70,22 @@ const BiasTab: React.FC = () => {
         <StackItem>
           <MetricsPageToolbar
             leftToolbarItem={
-              <ToolbarGroup>
-                <Stack>
-                  {/* Will be fixed by https://issues.redhat.com/browse/RHOAIENG-2403 */}
-                  <StackItem style={{ fontWeight: 'bold' }}>Metrics to display</StackItem>
-                  <StackItem>
-                    <ToolbarItem data-testid="bias-metric-config-toolbar">
-                      <BiasMetricConfigSelector
-                        onChange={setSelectedBiasConfigs}
-                        initialSelections={selectedBiasConfigs}
-                      />
-                    </ToolbarItem>
-                  </StackItem>
-                </Stack>
-              </ToolbarGroup>
+              biasMetricConfigs.length > 0 ? (
+                <ToolbarGroup>
+                  <Stack>
+                    {/* Will be fixed by https://issues.redhat.com/browse/RHOAIENG-2403 */}
+                    <StackItem style={{ fontWeight: 'bold' }}>Metrics to display</StackItem>
+                    <StackItem>
+                      <ToolbarItem data-testid="bias-metric-config-toolbar">
+                        <BiasMetricConfigSelector
+                          onChange={setSelectedBiasConfigs}
+                          initialSelections={selectedBiasConfigs}
+                        />
+                      </ToolbarItem>
+                    </StackItem>
+                  </Stack>
+                </ToolbarGroup>
+              ) : undefined
             }
           />
         </StackItem>

@@ -3,7 +3,11 @@ import https from 'https';
 import createError from 'http-errors';
 import { setImpersonateAccessToken } from '../../../devFlags';
 import { KubeFastifyInstance } from '../../../types';
-import { DEV_IMPERSONATE_PASSWORD, DEV_IMPERSONATE_USER } from '../../../utils/constants';
+import {
+  DEV_IMPERSONATE_PASSWORD,
+  DEV_IMPERSONATE_USER,
+  DEV_OATH_PREFIX,
+} from '../../../utils/constants';
 import { createCustomError } from '../../../utils/requestUtils';
 import { devRoute } from '../../../utils/route-security';
 
@@ -16,7 +20,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         if (doImpersonate) {
           const apiPath = fastify.kube.config.getCurrentCluster().server;
           const namedHost = apiPath.slice('https://api.'.length).split(':')[0];
-          const url = `https://oauth-openshift.apps.${namedHost}/oauth/authorize?response_type=token&client_id=openshift-challenging-client`;
+          const url = `https://${DEV_OATH_PREFIX}.${namedHost}/oauth/authorize?response_type=token&client_id=openshift-challenging-client`;
           // Custom call, don't use proxy
           const httpsRequest = https
             .get(

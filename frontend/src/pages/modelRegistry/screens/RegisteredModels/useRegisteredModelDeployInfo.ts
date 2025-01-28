@@ -10,10 +10,12 @@ export type RegisteredModelDeployInfo = {
   modelArtifactStorageKey?: string;
   modelVersionId?: string;
   registeredModelId?: string;
+  mrName?: string;
 };
 
 const useRegisteredModelDeployInfo = (
   modelVersion: ModelVersion,
+  mrName?: string,
 ): {
   registeredModelDeployInfo: RegisteredModelDeployInfo;
   loaded: boolean;
@@ -48,6 +50,7 @@ const useRegisteredModelDeployInfo = (
         modelArtifactStorageKey: modelArtifact.storageKey,
         modelVersionId: modelVersion.id,
         registeredModelId: modelVersion.registeredModelId,
+        mrName,
       },
       loaded: registeredModelLoaded && modelArtifactListLoaded,
       error: registeredModelError || modelArtifactListError,
@@ -63,6 +66,7 @@ const useRegisteredModelDeployInfo = (
     registeredModel?.name,
     registeredModelError,
     registeredModelLoaded,
+    mrName,
   ]);
 
   return registeredModelDeployInfo;

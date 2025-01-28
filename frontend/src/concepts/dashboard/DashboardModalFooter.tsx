@@ -20,6 +20,7 @@ type DashboardModalFooterProps = {
   isCancelDisabled?: boolean;
   alertTitle?: string;
   error?: Error;
+  alertLinks?: React.ReactNode;
 };
 
 const DashboardModalFooter: React.FC<DashboardModalFooterProps> = ({
@@ -32,12 +33,19 @@ const DashboardModalFooter: React.FC<DashboardModalFooterProps> = ({
   isCancelDisabled,
   error,
   alertTitle,
+  alertLinks,
 }) => (
   // make sure alert uses the full width
   <Stack hasGutter style={{ flex: 'auto' }}>
     {error && (
       <StackItem>
-        <Alert data-testid="error-message-alert" isInline variant="danger" title={alertTitle}>
+        <Alert
+          data-testid="error-message-alert"
+          isInline
+          variant="danger"
+          title={alertTitle}
+          actionLinks={alertLinks}
+        >
           {error.message}
         </Alert>
       </StackItem>

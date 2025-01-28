@@ -3,6 +3,7 @@ import { HelperText, HelperTextItem, Label, Skeleton } from '@patternfly/react-c
 import { InferenceServiceKind } from '~/k8sTypes';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
 
 type InferenceServiceProjectProps = {
   inferenceService: InferenceServiceKind;
@@ -30,6 +31,7 @@ const InferenceServiceProject: React.FC<InferenceServiceProjectProps> = ({
   }
 
   const project = modelServingProjects.find(byName(inferenceService.metadata.namespace));
+  const isKServeNIMEnabled = !!project && isProjectNIMSupported(project);
 
   return (
     <>
@@ -37,7 +39,9 @@ const InferenceServiceProject: React.FC<InferenceServiceProjectProps> = ({
         <>
           {getDisplayNameFromK8sResource(project)}{' '}
           <Label isCompact={isCompact}>
-            {project.metadata.labels?.['modelmesh-enabled'] === 'true'
+            {isKServeNIMEnabled
+              ? 'NVIDIA NIM serving enabled'
+              : project.metadata.labels?.['modelmesh-enabled'] === 'true'
               ? 'Multi-model serving enabled'
               : 'Single-model serving enabled'}
           </Label>

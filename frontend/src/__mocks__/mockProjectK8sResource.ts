@@ -38,9 +38,6 @@ export const mockProjectK8sResource = ({
       ...(enableModelMesh !== undefined && {
         [KnownLabels.MODEL_SERVING_PROJECT]: enableModelMesh ? 'true' : 'false',
       }),
-      ...(enableNIM && {
-        'opendatahub.io/nim-support': 'true',
-      }),
       ...(isDSProject && { [KnownLabels.DASHBOARD_RESOURCE]: 'true' }),
     },
     ...(hasAnnotations && {
@@ -48,6 +45,7 @@ export const mockProjectK8sResource = ({
         ...(description && { 'openshift.io/description': description }),
         ...(displayName && { 'openshift.io/display-name': displayName }),
         ...(username && { 'openshift.io/requester': username }),
+        ...(enableNIM && { 'opendatahub.io/nim-support': 'true' }),
       },
     }),
     resourceVersion: '1',

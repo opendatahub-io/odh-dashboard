@@ -1,7 +1,28 @@
 import { KubeFastifyInstance, NIMAccountKind, SecretKind } from '../../../../types';
+import createError from 'http-errors';
+import { errorHandler } from '../../../../utils';
 
 const NIM_SECRET_NAME = 'nvidia-nim-access';
 const NIM_ACCOUNT_NAME = 'odh-nim-account';
+
+export const errorMsgList = (app: NIMAccountKind): string[] => {
+  const conditions = app?.status?.conditions || [];
+  return conditions
+    .filter((condition) => condition.status === 'False')
+    .map((condition) => condition.message);
+};
+
+export const apiKeyValidationTimestamp = (app: NIMAccountKind): string => {
+  const conditions = app?.status?.conditions || [];
+  const apiKeyCondition = conditions.find((condition) => condition.type === 'APIKeyValidation');
+  return apiKeyCondition?.lastTransitionTime || '';
+};
+
+export const apiKeyValidationStatus = (app: NIMAccountKind): string => {
+  const conditions = app?.status?.conditions || [];
+  const apiKeyCondition = conditions.find((condition) => condition.type === 'APIKeyValidation');
+  return apiKeyCondition?.status || 'Unknown';
+};
 
 export const isAppEnabled = (app: NIMAccountKind): boolean => {
   const conditions = app?.status?.conditions || [];
@@ -97,5 +118,33 @@ export const manageNIMSecret = async (
     } else {
       throw e;
     }
+  }
+};
+
+export const deleteNIMAccount = async (
+  fastify: KubeFastifyInstance,
+): Promise<{ success: boolean; error: string }> => {
+  const { customObjectsApi } = fastify.kube;
+  const { namespace } = fastify.kube;
+
+  try {
+    await customObjectsApi
+      .deleteNamespacedCustomObject(
+        'nim.opendatahub.io',
+        'v1',
+        namespace,
+        'accounts',
+        NIM_ACCOUNT_NAME,
+      )
+      .catch((e) => {
+        throw createError(e.statusCode, e?.body?.message);
+      });
+    return { success: true, error: '' };
+  } catch (e) {
+    if (createError.isHttpError(e) && e.statusCode === 404) {
+      fastify.log.error(e, 'Unable to delete nim account.');
+      return { success: false, error: `Unable to delete nim account: ${errorHandler(e)}` };
+    }
+    throw e;
   }
 };

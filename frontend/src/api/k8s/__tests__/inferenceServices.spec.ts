@@ -24,7 +24,7 @@ import {
   updateInferenceService,
 } from '~/api/k8s/inferenceServices';
 import { InferenceServiceModel, ProjectModel } from '~/api/models';
-import { InferenceServiceKind, ProjectKind } from '~/k8sTypes';
+import { DeploymentMode, InferenceServiceKind, ProjectKind } from '~/k8sTypes';
 import { ModelServingSize } from '~/pages/modelServing/screens/types';
 import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
@@ -51,7 +51,7 @@ describe('assembleInferenceService', () => {
 
     expect(inferenceService.metadata.annotations).toBeDefined();
     expect(inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBe(
-      undefined,
+      DeploymentMode.Serverless,
     );
     expect(inferenceService.metadata.annotations?.['security.opendatahub.io/enable-auth']).toBe(
       undefined,
@@ -72,7 +72,7 @@ describe('assembleInferenceService', () => {
 
     expect(inferenceService.metadata.annotations).toBeDefined();
     expect(inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBe(
-      undefined,
+      DeploymentMode.Serverless,
     );
     expect(inferenceService.metadata.annotations?.['security.opendatahub.io/enable-auth']).toBe(
       'true',
@@ -96,7 +96,7 @@ describe('assembleInferenceService', () => {
 
     expect(inferenceService.metadata.annotations).toBeDefined();
     expect(inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBe(
-      'ModelMesh',
+      DeploymentMode.ModelMesh,
     );
     expect(
       inferenceService.metadata.annotations?.['serving.knative.openshift.io/enablePassthrough'],
@@ -392,7 +392,7 @@ describe('assembleInferenceService', () => {
     );
     const { annotations, labels } = inferenceService.metadata;
 
-    expect(annotations?.['serving.kserve.io/deploymentMode']).toBe('RawDeployment');
+    expect(annotations?.['serving.kserve.io/deploymentMode']).toBe(DeploymentMode.RawDeployment);
 
     expect(annotations?.['serving.knative.openshift.io/enablePassthrough']).toBe(undefined);
     expect(annotations?.['sidecar.istio.io/inject']).toBe(undefined);
@@ -407,7 +407,9 @@ describe('assembleInferenceService', () => {
     const ext = assembleInferenceService(
       mockInferenceServiceModalData({ isKServeRawDeployment: true, externalRoute: true }),
     );
-    expect(ext.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBe('RawDeployment');
+    expect(ext.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBe(
+      DeploymentMode.RawDeployment,
+    );
     expect(ext.metadata.annotations?.['security.opendatahub.io/enable-auth']).toBe(undefined);
     expect(ext.metadata.labels?.['security.opendatahub.io/enable-auth']).toBe(undefined);
     expect(ext.metadata.labels?.['networking.kserve.io/visibility']).toBe('exposed');
@@ -416,7 +418,9 @@ describe('assembleInferenceService', () => {
     const auth = assembleInferenceService(
       mockInferenceServiceModalData({ isKServeRawDeployment: true, tokenAuth: true }),
     );
-    expect(auth.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBe('RawDeployment');
+    expect(auth.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBe(
+      DeploymentMode.RawDeployment,
+    );
     expect(auth.metadata.annotations?.['security.opendatahub.io/enable-auth']).toBe(undefined);
     expect(auth.metadata.labels?.['security.opendatahub.io/enable-auth']).toBe('true');
     expect(auth.metadata.labels?.['networking.kserve.io/visibility']).toBe(undefined);
@@ -429,7 +433,9 @@ describe('assembleInferenceService', () => {
         tokenAuth: true,
       }),
     );
-    expect(both.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBe('RawDeployment');
+    expect(both.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBe(
+      DeploymentMode.RawDeployment,
+    );
     expect(both.metadata.annotations?.['security.opendatahub.io/enable-auth']).toBe(undefined);
     expect(both.metadata.labels?.['security.opendatahub.io/enable-auth']).toBe('true');
     expect(both.metadata.labels?.['networking.kserve.io/visibility']).toBe('exposed');

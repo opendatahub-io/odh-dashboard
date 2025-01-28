@@ -1,7 +1,7 @@
 import * as yaml from 'js-yaml';
 import { isUrlExcluded } from '~/__tests__/cypress/cypress/utils/urlExtractor';
 
-describe('Verify that all the URLs referenced in the Manifest directory are operational', () => {
+describe('[Known Bug: RHOAIENG-9235] Verify that all the URLs referenced in the Manifest directory are operational', () => {
   let excludedSubstrings: string[];
 
   // Setup: Load test data
@@ -14,7 +14,7 @@ describe('Verify that all the URLs referenced in the Manifest directory are oper
 
   it(
     'Reads the manifest directory, filters out test/sample URLs and validates the remaining URLs',
-    { tags: ['@Smoke', '@SmokeSet1', '@ODS-327', '@ODS-492', '@Dashboard'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@ODS-327', '@ODS-492', '@Dashboard', '@Bug'] },
     () => {
       const manifestsDir = '../../../../manifests';
       cy.log(`Resolved manifests directory: ${manifestsDir}`);

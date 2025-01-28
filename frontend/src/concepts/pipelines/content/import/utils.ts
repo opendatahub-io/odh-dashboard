@@ -23,3 +23,18 @@ export const extractKindFromPipelineYAML = (yamlFile: string): string | undefine
     return undefined;
   }
 };
+
+export const isYAMLPipelineV1 = (yamlFile: string): boolean => {
+  try {
+    const parsedYaml = YAML.parse(yamlFile);
+    return (
+      parsedYaml &&
+      parsedYaml.kind === 'PipelineRun' &&
+      parsedYaml.apiVersion === 'tekton.dev/v1beta1'
+    );
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error('Error parsing YAML file:', e);
+    return false;
+  }
+};

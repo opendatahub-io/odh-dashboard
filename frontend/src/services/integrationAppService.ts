@@ -1,5 +1,5 @@
 import axios from '~/utilities/axios';
-import { IntegrationAppStatus } from '~/types';
+import { IntegrationAppStatus, ResponseStatus } from '~/types';
 
 export const enableIntegrationApp = (
   internalRoute: string,
@@ -23,4 +23,12 @@ export const getIntegrationAppEnablementStatus = (
     .then((res) => res.data)
     .catch((e) => {
       throw new Error(e.response.data?.message || e.message);
+    });
+
+export const deleteIntegrationApp = (internalRoute: string): Promise<ResponseStatus> =>
+  axios
+    .delete(internalRoute)
+    .then((response) => response.data)
+    .catch((e) => {
+      throw new Error(e.response.data.message);
     });

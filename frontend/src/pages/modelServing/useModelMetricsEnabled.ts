@@ -6,8 +6,10 @@ const useModelMetricsEnabled = (): [modelMetricsEnabled: boolean] => {
   ).status;
   const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
 
+  const nimMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.NIM_MODEL).status;
+
   const checkModelMetricsEnabled = () =>
-    performanceMetricsAreaAvailable || biasMetricsAreaAvailable;
+    performanceMetricsAreaAvailable || biasMetricsAreaAvailable || nimMetricsAreaAvailable;
 
   return [checkModelMetricsEnabled()];
 };

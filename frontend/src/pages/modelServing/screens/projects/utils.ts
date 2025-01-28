@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
   ConfigMapKind,
   DashboardConfigKind,
+  DeploymentMode,
   InferenceServiceKind,
   KnownLabels,
   PersistentVolumeClaimKind,
@@ -49,6 +50,7 @@ import { isDataConnectionAWS } from '~/pages/projects/screens/detail/data-connec
 import { containsOnlySlashes, isS3PathValid, removeLeadingSlash } from '~/utilities/string';
 import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 import { getNIMData, getNIMResource } from '~/pages/modelServing/screens/projects/nimUtils';
+import { useDefaultDeploymentMode } from '~/pages/modelServing/useDefaultDeploymentMode';
 import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import { Connection } from '~/concepts/connectionTypes/types';
 
@@ -66,8 +68,9 @@ export const isServingRuntimeTokenEnabled = (servingRuntime: ServingRuntimeKind)
 export const isServingRuntimeRouteEnabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['enable-route'] === 'true';
 
-const isInferenceServiceKServeRaw = (inferenceService: InferenceServiceKind): boolean =>
-  inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] === 'RawDeployment';
+export const isInferenceServiceKServeRaw = (inferenceService: InferenceServiceKind): boolean =>
+  inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] ===
+  DeploymentMode.RawDeployment;
 
 export const isInferenceServiceTokenEnabled = (inferenceService: InferenceServiceKind): boolean =>
   isInferenceServiceKServeRaw(inferenceService)
@@ -81,6 +84,19 @@ export const isInferenceServiceRouteEnabled = (inferenceService: InferenceServic
 
 export const isGpuDisabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['opendatahub.io/disable-gpu'] === 'true';
+
+export const getInferenceServiceDeploymentMode = (
+  modelMesh: boolean,
+  kserveRaw: boolean,
+): DeploymentMode => {
+  if (modelMesh) {
+    return DeploymentMode.ModelMesh;
+  }
+  if (kserveRaw) {
+    return DeploymentMode.RawDeployment;
+  }
+  return DeploymentMode.Serverless;
+};
 
 export const getInferenceServiceFromServingRuntime = (
   inferenceServices: InferenceServiceKind[],
@@ -204,12 +220,14 @@ export const useCreateInferenceServiceObject = (
   sizes: ModelServingSize[],
 ] => {
   const { dashboardConfig } = useAppContext();
+  const defaultDeploymentMode = useDefaultDeploymentMode();
 
   const sizes = useDeepCompareMemoize(getServingRuntimeSizes(dashboardConfig));
 
   const createInferenceServiceState = useGenericObjectState<CreatingInferenceServiceObject>({
     ...defaultInferenceService,
     modelSize: sizes[0],
+    isKServeRawDeployment: defaultDeploymentMode === DeploymentMode.RawDeployment,
   });
 
   const [, setCreateData] = createInferenceServiceState;
@@ -714,10 +732,12 @@ export const createNIMPVC = (
   );
 
 export const getCreateInferenceServiceLabels = (
-  data: Pick<RegisteredModelDeployInfo, 'registeredModelId' | 'modelVersionId'> | undefined,
+  data:
+    | Pick<RegisteredModelDeployInfo, 'registeredModelId' | 'modelVersionId' | 'mrName'>
+    | undefined,
 ): { labels: Record<string, string> } | undefined => {
-  if (data?.registeredModelId || data?.modelVersionId) {
-    const { registeredModelId, modelVersionId } = data;
+  if (data?.registeredModelId || data?.modelVersionId || data?.mrName) {
+    const { registeredModelId, modelVersionId, mrName } = data;
 
     return {
       labels: {
@@ -726,6 +746,9 @@ export const getCreateInferenceServiceLabels = (
         }),
         ...(modelVersionId && {
           'modelregistry.opendatahub.io/model-version-id': modelVersionId,
+        }),
+        ...(mrName && {
+          'modelregistry.opendatahub.io/name': mrName,
         }),
       },
     };

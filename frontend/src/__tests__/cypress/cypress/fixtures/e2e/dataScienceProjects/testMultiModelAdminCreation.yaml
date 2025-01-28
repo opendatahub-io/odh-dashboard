@@ -1,0 +1,5 @@
+# testMultiModelAdminCreation.cy.ts Test Data #
+projectMultiModelAdminDisplayName: "Cypress Multi Model Admin Test Project"
+projectMultiModelAdminResourceName: "cy-multi-model-admin-test" 
+multiModelAdminName: "cy-multi-openvino-model"
+modelOpenVinoExamplePath: "openvino-example-model"

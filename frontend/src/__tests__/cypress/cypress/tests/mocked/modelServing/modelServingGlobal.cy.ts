@@ -24,7 +24,7 @@ import {
   ServingRuntimeModel,
   TemplateModel,
 } from '~/__tests__/cypress/cypress/utils/models';
-import type { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import { DeploymentMode, type InferenceServiceKind, type ServingRuntimeKind } from '~/k8sTypes';
 import { ServingRuntimePlatform } from '~/types';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { asClusterAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
@@ -408,7 +408,7 @@ describe('Model Serving Global', () => {
           labels: { 'opendatahub.io/dashboard': 'true' },
           annotations: {
             'openshift.io/display-name': 'Test Name',
-            'serving.kserve.io/deploymentMode': 'ModelMesh',
+            'serving.kserve.io/deploymentMode': DeploymentMode.ModelMesh,
           },
         },
         spec: {
@@ -473,7 +473,7 @@ describe('Model Serving Global', () => {
           labels: { 'opendatahub.io/dashboard': 'true' },
           annotations: {
             'openshift.io/display-name': 'trigger-error',
-            'serving.kserve.io/deploymentMode': 'ModelMesh',
+            'serving.kserve.io/deploymentMode': DeploymentMode.ModelMesh,
           },
         },
         spec: {

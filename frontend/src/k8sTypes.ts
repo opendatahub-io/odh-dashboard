@@ -1,5 +1,5 @@
 import { K8sResourceCommon, MatchExpression } from '@openshift/dynamic-plugin-sdk-utils';
-import { EitherNotBoth, EitherOrNone } from '@openshift/dynamic-plugin-sdk';
+import { EitherNotBoth } from '@openshift/dynamic-plugin-sdk';
 import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import { StackComponent } from '~/concepts/areas/types';
 import {
@@ -28,6 +28,7 @@ export enum KnownLabels {
   PROJECT_SUBJECT = 'opendatahub.io/rb-project-subject',
   REGISTERED_MODEL_ID = 'modelregistry.opendatahub.io/registered-model-id',
   MODEL_VERSION_ID = 'modelregistry.opendatahub.io/model-version-id',
+  MODEL_REGISTRY_NAME = 'modelregistry.opendatahub.io/name',
 }
 
 export type K8sVerb =
@@ -453,6 +454,12 @@ export type SupportedModelFormats = {
   autoSelect?: boolean;
 };
 
+export enum DeploymentMode {
+  ModelMesh = 'ModelMesh',
+  RawDeployment = 'RawDeployment',
+  Serverless = 'Serverless',
+}
+
 export type InferenceServiceAnnotations = Partial<{
   'security.opendatahub.io/enable-auth': string;
 }>;
@@ -469,16 +476,12 @@ export type InferenceServiceKind = K8sResourceCommon & {
     namespace: string;
     annotations?: InferenceServiceAnnotations &
       DisplayNameAnnotations &
-      EitherOrNone<
-        {
-          'serving.kserve.io/deploymentMode': 'ModelMesh' | 'RawDeployment';
-        },
-        {
-          'serving.knative.openshift.io/enablePassthrough': 'true';
-          'sidecar.istio.io/inject': 'true';
-          'sidecar.istio.io/rewriteAppHTTPProbers': 'true';
-        }
-      >;
+      Partial<{
+        'serving.kserve.io/deploymentMode': DeploymentMode;
+        'serving.knative.openshift.io/enablePassthrough': 'true';
+        'sidecar.istio.io/inject': 'true';
+        'sidecar.istio.io/rewriteAppHTTPProbers': 'true';
+      }>;
     labels?: InferenceServiceLabels;
   };
   spec: {
@@ -1269,6 +1272,9 @@ export type K8sResourceListResult<TResource extends Partial<K8sResourceCommon>> 
 /** We don't need or should ever get the full kind, this is the status section */
 export type DataScienceClusterKindStatus = {
   components?: {
+    kserve?: {
+      defaultDeploymentMode?: string;
+    };
     modelregistry?: {
       registriesNamespace?: string;
     };
