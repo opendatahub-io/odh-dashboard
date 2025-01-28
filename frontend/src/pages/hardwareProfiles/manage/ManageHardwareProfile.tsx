@@ -63,7 +63,7 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
     () => ({
       ...state,
       name: profileNameDesc.k8sName.value,
-      displayName: profileNameDesc.name,
+      displayName: profileNameDesc.name.trim(),
       description: profileNameDesc.description,
     }),
     [state, profileNameDesc],
