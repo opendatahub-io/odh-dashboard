@@ -2,36 +2,11 @@ import { Modal } from './components/Modal';
 
 class DataConnectionModal extends Modal {
   constructor(edit = false) {
-    const titles = [
-      edit ? 'Edit connection' : 'Add connection',
-      `${edit ? 'Edit' : 'Add'} data connection`,
-    ];
-
-    super(titles[0]);
-  }
-
-  findConnectionTypeDropdown() {
-    return this.find().findByTestId('connection-type-dropdown');
-  }
-
-  findS3CompatibleStorageOption() {
-    return cy.findByText('S3 compatible object storage - v1');
+    super(`${edit ? 'Edit' : 'Add'} data connection`);
   }
 
   findSubmitButton() {
     return this.findFooter().findByTestId('data-connection-submit-button');
-  }
-
-  findCreateButton() {
-    return this.find().findByTestId('modal-submit-button');
-  }
-
-  findConnectionNameInput() {
-    return this.find().findByTestId('connection-name-desc-name');
-  }
-
-  findConnectionDescriptionInput() {
-    return this.find().findByTestId('connection-name-desc-description');
   }
 
   findNameInput() {

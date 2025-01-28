@@ -2,10 +2,9 @@ import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e
 import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import type { DataScienceProjectData, AWSS3BucketDetails } from '~/__tests__/cypress/cypress/types';
-import { connectionsPage } from '~/__tests__/cypress/cypress/pages/connections';
+import { connectionsPage, addConnectionModal } from '~/__tests__/cypress/cypress/pages/connections';
 import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
-import { addDataConnectionModal } from '~/__tests__/cypress/cypress/pages/dataConnection';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { AWS_BUCKETS } from '~/__tests__/cypress/cypress/utils/s3Buckets';
 
@@ -75,16 +74,16 @@ describe('Verify Data Connections - Creation and Deletion', () => {
 
       // Enter validate Data Connection details into the Data Connection Modal
       cy.step('Enter valid Data Connection details and verify creation');
-      addDataConnectionModal.findConnectionTypeDropdown().click();
-      addDataConnectionModal.findS3CompatibleStorageOption().click();
-      addDataConnectionModal.findConnectionNameInput().type(s3Config.NAME);
-      addDataConnectionModal.findConnectionDescriptionInput().type('S3 Bucket Connection');
-      addDataConnectionModal.findAwsKeyInput().type(s3AccessKey);
-      addDataConnectionModal.findAwsSecretKeyInput().type(s3SecretKey);
-      addDataConnectionModal.findEndpointInput().type(s3Config.ENDPOINT);
-      addDataConnectionModal.findRegionInput().type(s3Config.REGION);
-      addDataConnectionModal.findBucketInput().type(s3Config.NAME);
-      addDataConnectionModal.findCreateButton().click();
+      addConnectionModal.findConnectionTypeDropdown().click();
+      addConnectionModal.findS3CompatibleStorageOption().click();
+      addConnectionModal.findConnectionNameInput().type(s3Config.NAME);
+      addConnectionModal.findConnectionDescriptionInput().type('S3 Bucket Connection');
+      addConnectionModal.findAwsKeyInput().type(s3AccessKey);
+      addConnectionModal.findAwsSecretKeyInput().type(s3SecretKey);
+      addConnectionModal.findEndpointInput().type(s3Config.ENDPOINT);
+      addConnectionModal.findRegionInput().type(s3Config.REGION);
+      addConnectionModal.findBucketInput().type(s3Config.NAME);
+      addConnectionModal.findCreateButton().click();
       connectionsPage.getConnectionRow(s3Config.NAME).find().should('exist');
 
       // Delete the Data Connection and confirm that the deletion was successful
