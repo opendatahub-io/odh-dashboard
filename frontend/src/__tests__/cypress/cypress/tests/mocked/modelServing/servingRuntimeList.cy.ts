@@ -34,7 +34,12 @@ import {
 } from '~/__tests__/cypress/cypress/pages/modelServing';
 import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
-import { DeploymentMode, type InferenceServiceKind, type ServingRuntimeKind } from '~/k8sTypes';
+import type {
+  DataScienceClusterKindStatus,
+  InferenceServiceKind,
+  ServingRuntimeKind,
+} from '~/k8sTypes';
+import { DeploymentMode } from '~/k8sTypes';
 import { ServingRuntimePlatform } from '~/types';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { StackCapability } from '~/concepts/areas/types';
@@ -76,6 +81,7 @@ type HandlersProps = {
   rejectServingRuntime?: boolean;
   rejectConnection?: boolean;
   requiredCapabilities?: StackCapability[];
+  DscComponents?: DataScienceClusterKindStatus['components'];
 };
 
 const initIntercepts = ({
@@ -117,10 +123,16 @@ const initIntercepts = ({
   rejectServingRuntime = false,
   rejectConnection = false,
   requiredCapabilities = [],
+  DscComponents = {
+    modelregistry: {
+      registriesNamespace: 'odh-model-registries',
+    },
+  },
 }: HandlersProps) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
+      components: DscComponents,
       installedComponents: { kserve: true, 'model-mesh': true },
     }),
   );
@@ -1336,7 +1348,7 @@ describe('Serving Runtime List', () => {
       );
     });
 
-    it('Deploy KServe raw model', () => {
+    it('Deploy KServe raw model (with serverless available)', () => {
       initIntercepts({
         disableModelMeshConfig: false,
         disableKServeConfig: false,
@@ -1377,6 +1389,150 @@ describe('Serving Runtime List', () => {
       // raw
       kserveModal.findDeploymentModeSelect().should('contain.text', 'Advanced (default)');
       kserveModal.findDeploymentModeSelect().findSelectOption('Standard').click();
+
+      // test submitting form, the modal should close to indicate success.
+      kserveModal.findSubmitButton().click();
+      kserveModal.shouldBeOpen(false);
+
+      // dry run request
+      cy.wait('@createServingRuntime').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body).to.containSubset({
+          metadata: {
+            name: 'test-name',
+            annotations: {
+              'openshift.io/display-name': 'test-name',
+              'opendatahub.io/apiProtocol': 'REST',
+              'opendatahub.io/template-name': 'template-2',
+              'opendatahub.io/template-display-name': 'Caikit',
+              'opendatahub.io/accelerator-name': '',
+            },
+            namespace: 'test-project',
+          },
+          spec: {
+            protocolVersions: ['grpc-v1'],
+            supportedModelFormats: [
+              { autoSelect: true, name: 'openvino_ir', version: 'opset1' },
+              { autoSelect: true, name: 'onnx', version: '1' },
+            ],
+          },
+        });
+      });
+
+      // Actual request
+      cy.wait('@createServingRuntime').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
+      // the serving runtime should have been created
+      cy.get('@createServingRuntime.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+      });
+
+      cy.wait('@createInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body).to.containSubset({
+          apiVersion: 'serving.kserve.io/v1beta1',
+          kind: 'InferenceService',
+          metadata: {
+            name: 'test-name',
+            namespace: 'test-project',
+            annotations: {
+              'openshift.io/display-name': 'Test Name',
+              'serving.kserve.io/deploymentMode': DeploymentMode.RawDeployment,
+            },
+            labels: {
+              'opendatahub.io/dashboard': 'true',
+              'security.opendatahub.io/enable-auth': 'true',
+              'networking.kserve.io/visibility': 'exposed',
+            },
+          },
+          spec: {
+            predictor: {
+              minReplicas: 1,
+              maxReplicas: 1,
+              model: {
+                modelFormat: { name: 'onnx', version: '1' },
+                runtime: 'test-name',
+                storage: { key: 'test-secret', path: 'test-model/' },
+                resources: {
+                  requests: { cpu: '1', memory: '4Gi' },
+                  limits: { cpu: '2', memory: '8Gi' },
+                },
+              },
+            },
+          },
+        });
+      });
+
+      //dry run request
+      cy.wait('@createRole').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body).to.containSubset({
+          metadata: {
+            name: 'test-name-view-role',
+            namespace: 'test-project',
+            ownerReferences: [],
+          },
+          rules: [
+            {
+              verbs: ['get'],
+              apiGroups: ['serving.kserve.io'],
+              resources: ['inferenceservices'],
+              resourceNames: ['test-name'],
+            },
+          ],
+        });
+      });
+
+      //Actual request
+      cy.wait('@createRole').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
+      cy.get('@createRole.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); //1 dry run request and 1 actual request
+      });
+    });
+
+    it('Deploy KServe raw model (with serverless disabled)', () => {
+      initIntercepts({
+        disableModelMeshConfig: false,
+        disableKServeConfig: false,
+        disableServingRuntimeParams: false,
+        disableKServeRaw: false,
+        servingRuntimes: [],
+        requiredCapabilities: [],
+        projectEnableModelMesh: false,
+        DscComponents: { kserve: { serverlessMode: 'Removed' } },
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+
+      modelServingSection.findDeployModelButton().click();
+
+      kserveModal.shouldBeOpen();
+
+      // test that you can not submit on empty
+      kserveModal.findSubmitButton().should('be.disabled');
+
+      // test filling in minimum required fields
+      kserveModal.findModelNameInput().type('Test Name');
+      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
+      kserveModal.findSubmitButton().should('be.disabled');
+      // misc.
+      kserveModal.findModelRouteCheckbox().check();
+      kserveModal.findAuthenticationCheckbox().check();
+      kserveModal.findExternalRouteError().should('not.exist');
+      kserveModal.findServiceAccountNameInput().should('have.value', 'default-name');
+      kserveModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
+      kserveModal.findExistingConnectionSelect().should('be.disabled');
+      kserveModal.findLocationPathInput().type('test-model/');
+      kserveModal.findSubmitButton().should('be.enabled');
+      // raw
+      // kserveModal.findDeploymentModeSelect().should('contain.text', 'Advanced (default)');
+      // kserveModal.findDeploymentModeSelect().findSelectOption('Standard').click();
 
       // test submitting form, the modal should close to indicate success.
       kserveModal.findSubmitButton().click();
