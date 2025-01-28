@@ -1,6 +1,6 @@
 import React from 'react';
 import { Td, Tr } from '@patternfly/react-table';
-import { ActionList, ActionListItem, Button } from '@patternfly/react-core';
+import { ActionList, ActionListItem, Button, Truncate } from '@patternfly/react-core';
 import { MinusCircleIcon, PencilAltIcon } from '@patternfly/react-icons';
 import { Toleration } from '~/types';
 
@@ -19,8 +19,12 @@ const TolerationTableRow: React.FC<TolerationTableRowProps> = ({
 }) => (
   <Tr>
     <Td dataLabel="Operator">{toleration.operator ?? '-'}</Td>
-    <Td dataLabel="Key">{toleration.key}</Td>
-    <Td dataLabel="Value">{toleration.value ?? '-'}</Td>
+    <Td dataLabel="Key">
+      <Truncate content={toleration.key} />
+    </Td>
+    <Td dataLabel="Value">
+      <Truncate content={toleration.value ?? '-'} />
+    </Td>
     <Td dataLabel="Effect">{toleration.effect ?? '-'}</Td>
     <Td dataLabel="Toleration seconds">
       {toleration.tolerationSeconds === undefined

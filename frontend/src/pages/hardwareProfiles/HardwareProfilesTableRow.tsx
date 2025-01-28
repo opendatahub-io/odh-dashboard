@@ -6,7 +6,14 @@ import {
   Timestamp,
   TimestampTooltipVariant,
 } from '@patternfly/react-core';
-import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
+import {
+  ActionsColumn,
+  ExpandableRowContent,
+  TableText,
+  Tbody,
+  Td,
+  Tr,
+} from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { relativeTime } from '~/utilities/time';
 import { TableRowTitleDescription } from '~/components/table';
@@ -47,7 +54,9 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
         />
         <Td dataLabel="Name">
           <TableRowTitleDescription
-            title={hardwareProfile.spec.displayName}
+            title={
+              <TableText wrapModifier="truncate">{hardwareProfile.spec.displayName}</TableText>
+            }
             description={hardwareProfile.spec.description}
             resource={hardwareProfile}
             truncateDescriptionLines={2}
