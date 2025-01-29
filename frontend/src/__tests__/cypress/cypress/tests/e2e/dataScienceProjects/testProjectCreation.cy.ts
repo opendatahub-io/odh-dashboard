@@ -118,7 +118,7 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
     },
   );
   it(
-    'Verify User cannot create a project using special characters in Resource name',
+    'Verify User cannot create a project using special characters or long names in the Resource name field',
     { tags: ['@Sanity', '@SanitySet1', '@ODS-1875', '@Dashboard', '@Tier1'] },
     () => {
       // Authentication and navigation
@@ -131,9 +131,9 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
       createProjectModal.shouldBeOpen(false);
       projectListPage.findCreateProjectButton().click();
 
-      // Input project details
+      // Enter invalid resource details
       cy.step(
-        'Enter invalid project information - specifically resource names with special characters',
+        'Enter invalid resource details - iterate through the array defined in the fixtures file',
       );
       createProjectModal.k8sNameDescription.findResourceEditLink().click();
       createProjectModal.k8sNameDescription
@@ -141,19 +141,22 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
         .type(testData.projectDisplayName);
 
       // Test each invalid resource name
-      cy.step('Test invalid resource names');
+      cy.step('Test invalid resource name and verify that project creation is prevented');
 
-      testData.invalidResourceNames.forEach((invalidName) => {
-        cy.log(`Testing invalid resource name: ${invalidName}`);
+      testData.invalidResourceNames.forEach((invalidResourceName) => {
+        cy.log(`Testing invalid resource name: ${invalidResourceName}`);
 
-        // Clear input, type invalid name, and validate behavior
-        createProjectModal.k8sNameDescription.findResourceNameInput().clear().type(invalidName);
+        // Clear input, type invalid resource name, and validate behavior
+        createProjectModal.k8sNameDescription
+          .findResourceNameInput()
+          .clear()
+          .type(invalidResourceName);
         createProjectModal.k8sNameDescription
           .findResourceNameInput()
           .should('have.attr', 'aria-invalid', 'true');
         createProjectModal.findSubmitButton().should('be.disabled');
-        // Log success message for invalid names being rejected
-        cy.log(`✅ ${invalidName}: not authorised as a Resource Name`);
+        // Log success message for invalid resources names being rejected
+        cy.log(`✅ ${invalidResourceName}: not authorised as a Resource Name`);
       });
     },
   );
