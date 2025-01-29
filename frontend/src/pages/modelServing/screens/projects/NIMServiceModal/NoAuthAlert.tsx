@@ -1,9 +1,7 @@
 import React from 'react';
 import { Alert, AlertActionCloseButton, StackItem } from '@patternfly/react-core';
 
-export const NoAuthAlert: React.FC<{ setAlertVisible: (isVisible: boolean) => void }> = ({
-  setAlertVisible,
-}) => (
+export const NoAuthAlert: React.FC<{ onClose: () => void }> = ({ onClose }) => (
   <StackItem>
     <Alert
       id="no-authorino-installed-alert"
@@ -12,7 +10,7 @@ export const NoAuthAlert: React.FC<{ setAlertVisible: (isVisible: boolean) => vo
       isInline
       variant="warning"
       title="Token authentication service not installed"
-      actionClose={<AlertActionCloseButton onClose={() => setAlertVisible(false)} />}
+      actionClose={<AlertActionCloseButton onClose={() => onClose()} />}
     >
       <p>
         The NVIDIA NIM model serving platform used by this project allows deployed models to be
