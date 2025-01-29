@@ -137,7 +137,12 @@ const ConnectionTypeForm: React.FC<Props> = ({
 
   return (
     <>
-      <FormGroup label="Connection type" fieldId="connection-type" isRequired>
+      <FormGroup
+        label="Connection type"
+        fieldId="connection-type"
+        data-testid="connection-type-dropdown"
+        isRequired
+      >
         <TypeaheadSelect
           id="connection-type"
           selectOptions={selectOptions}

@@ -1,0 +1,2 @@
+# testDataConnectionCreation.cy.ts Test Data #
+projectDCResourceName: "cypress-dc-test-project" 
