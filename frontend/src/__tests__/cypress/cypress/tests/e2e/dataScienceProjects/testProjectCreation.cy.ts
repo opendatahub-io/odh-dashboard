@@ -92,4 +92,69 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
       projectListPage.findEmptyResults();
     },
   );
+  it(
+    'Verify users cannot create a project with Empty title',
+    { tags: ['@Sanity', '@SanitySet1', '@ODS-1783', '@Dashboard', '@Tier1'] },
+    () => {
+      // Authentication and navigation
+      cy.step('Log into the application');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+      projectListPage.navigate();
+
+      // Initiate project creation
+      cy.step('Open Create Data Science Project modal');
+      createProjectModal.shouldBeOpen(false);
+      projectListPage.findCreateProjectButton().click();
+
+      // Input project details
+      cy.step('Enter valid project information');
+      createProjectModal.k8sNameDescription
+        .findDescriptionInput()
+        .type(testData.projectDescription);
+
+      // Confirm that the Submit button is disabled
+      cy.step('Verify the submit button is disabled');
+      createProjectModal.findSubmitButton().should('be.disabled');
+    },
+  );
+  it(
+    'Verify User cannot create a project using special characters in Resource name',
+    { tags: ['@Sanity', '@SanitySet1', '@ODS-1875', '@Dashboard', '@Tier1'] },
+    () => {
+      // Authentication and navigation
+      cy.step('Log into the application');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+      projectListPage.navigate();
+
+      // Initiate project creation
+      cy.step('Open Create Data Science Project modal');
+      createProjectModal.shouldBeOpen(false);
+      projectListPage.findCreateProjectButton().click();
+
+      // Input project details
+      cy.step(
+        'Enter invalid project information - specifically resource names with special characters',
+      );
+      createProjectModal.k8sNameDescription.findResourceEditLink().click();
+      createProjectModal.k8sNameDescription
+        .findDisplayNameInput()
+        .type(testData.projectDisplayName);
+
+      // Test each invalid resource name
+      cy.step('Test invalid resource names');
+
+      testData.invalidResourceNames.forEach((invalidName) => {
+        cy.log(`Testing invalid resource name: ${invalidName}`);
+
+        // Clear input, type invalid name, and validate behavior
+        createProjectModal.k8sNameDescription.findResourceNameInput().clear().type(invalidName);
+        createProjectModal.k8sNameDescription
+          .findResourceNameInput()
+          .should('have.attr', 'aria-invalid', 'true');
+        createProjectModal.findSubmitButton().should('be.disabled');
+        // Log success message for invalid names being rejected
+        cy.log(`✅ ${invalidName}: not authorised as a Resource Name`);
+      });
+    },
+  );
 });
