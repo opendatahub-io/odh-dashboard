@@ -25,7 +25,7 @@ const ConnectedResources: React.FC<Props> = ({ connection }) => {
     return <Spinner size="sm" />;
   }
 
-  if (!connectedNotebooks.length) {
+  if (!connectedNotebooks.length && !connectedModels.length) {
     return '-';
   }
 
@@ -34,7 +34,7 @@ const ConnectedResources: React.FC<Props> = ({ connection }) => {
       {connectedNotebooks.map((notebook) => (
         <ResourceLabel
           key={notebook.metadata.name}
-          resourceType={ProjectObjectType.notebook}
+          resourceType={ProjectObjectType.build}
           title={getDisplayNameFromK8sResource(notebook)}
         />
       ))}

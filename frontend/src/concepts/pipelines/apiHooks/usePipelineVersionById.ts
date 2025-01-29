@@ -5,16 +5,19 @@ import useFetchState, {
   NotReadyError,
 } from '~/utilities/useFetchState';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 
 const usePipelineVersionById = (
   pipelineId: string | undefined,
   pipelineVersionId: string | undefined,
-): FetchState<PipelineVersionKFv2 | null> => {
+): FetchState<PipelineVersionKF | null> => {
   const { api } = usePipelinesAPI();
 
-  const call = React.useCallback<FetchStateCallbackPromise<PipelineVersionKFv2 | null>>(
+  const call = React.useCallback<FetchStateCallbackPromise<PipelineVersionKF | null>>(
     (opts) => {
+      if (!pipelineId) {
+        return Promise.reject(new NotReadyError('No pipeline id'));
+      }
       if (!pipelineVersionId) {
         return Promise.reject(new NotReadyError('No pipeline version id'));
       }

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { Button, Flex, FlexItem, Label, Text, Truncate } from '@patternfly/react-core';
+import { Button, Flex, FlexItem, Label, Truncate } from '@patternfly/react-core';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import useModelVersionById from '~/concepts/modelRegistry/apiHooks/useModelVersionById';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
@@ -40,7 +40,12 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
   const [mv, mvLoaded, mvLoadError, refreshModelVersion] = useModelVersionById(mvId);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
   const inferenceServices = useMakeFetchObject(
-    useInferenceServices(undefined, mv?.registeredModelId, mv?.id),
+    useInferenceServices(
+      undefined,
+      mv?.registeredModelId,
+      mv?.id,
+      preferredModelRegistry?.metadata.name,
+    ),
   );
   const servingRuntimes = useMakeFetchObject(useServingRuntimes());
 
@@ -78,19 +83,15 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
         }
         title={
           mv && (
-            <Flex>
-              <FlexItem>
-                <Text>{mv.name}</Text>
-              </FlexItem>
-              <FlexItem>
-                <Label>Archived</Label>
-              </FlexItem>
+            <Flex alignItems={{ default: 'alignItemsCenter' }}>
+              <FlexItem>{mv.name}</FlexItem>
+              <Label>Archived</Label>
             </Flex>
           )
         }
         headerAction={
           <Button data-testid="restore-button" onClick={() => setIsRestoreModalOpen(true)}>
-            Restore version
+            Restore model version
           </Button>
         }
         description={<Truncate content={mv?.description || ''} />}

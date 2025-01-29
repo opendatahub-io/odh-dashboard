@@ -58,12 +58,6 @@ describe('Notebook image settings', () => {
     notebookImageSettings.findTableHeaderButton('Name').click();
     notebookImageSettings.findTableHeaderButton('Name').should(be.sortAscending);
 
-    // by description
-    notebookImageSettings.findTableHeaderButton('Description').click();
-    notebookImageSettings.findTableHeaderButton('Description').should(be.sortAscending);
-    notebookImageSettings.findTableHeaderButton('Description').click();
-    notebookImageSettings.findTableHeaderButton('Description').should(be.sortDescending);
-
     // by provider
     notebookImageSettings.findTableHeaderButton('Provider').click();
     notebookImageSettings.findTableHeaderButton('Provider').should(be.sortAscending);
@@ -94,13 +88,6 @@ describe('Notebook image settings', () => {
     notebookImageTableToolbar.findFilterMenuOption('filter-dropdown-select', 'Provider').click();
     notebookImageTableToolbar.findSearchInput().type('provider-321');
     notebookImageSettings.getRow('image-321').find().should('exist');
-
-    // by description
-    // test switching filtering options
-    notebookImageTableToolbar.findFilterMenuOption('filter-dropdown-select', 'Description').click();
-    notebookImageSettings.findEmptyResults();
-    notebookImageTableToolbar.findFilterMenuOption('filter-dropdown-select', 'Provider').click();
-    notebookImageSettings.getRow('image-321').find().should('exist');
   });
 
   it('Import form fields', () => {
@@ -122,74 +109,62 @@ describe('Notebook image settings', () => {
 
     // test form is disabled after entering software add form
     importNotebookImageModal.findAddSoftwareButton().click();
-    importNotebookImageModal.findSubmitButton().should('be.disabled');
 
     // test form is enabled after submitting software
-    importNotebookImageModal.findSoftwareNameInput().type('software');
+    importNotebookImageModal.findSoftwareNameInput(0).type('software');
+    importNotebookImageModal.findSoftwareVersionInput(0).type('version');
 
-    importNotebookImageModal.findSoftwareVersionInput().type('version');
-
-    importNotebookImageModal.findSaveResourceButton('Software').click();
     importNotebookImageModal.findSubmitButton().should('be.enabled');
-    let notebookImageTabRow = importNotebookImageModal.getSoftwareRow('software');
+
+    // test resource name validation
+    importNotebookImageModal.k8sNameDescription.findResourceEditLink().click();
+    importNotebookImageModal.k8sNameDescription
+      .findResourceNameInput()
+      .should('have.attr', 'aria-invalid', 'false');
+    // Invalid character k8s names fail
+    importNotebookImageModal.k8sNameDescription
+      .findResourceNameInput()
+      .clear()
+      .type('InVaLiD vAlUe!');
+    importNotebookImageModal.k8sNameDescription
+      .findResourceNameInput()
+      .should('have.attr', 'aria-invalid', 'true');
+    importNotebookImageModal.findSubmitButton().should('be.disabled');
+    importNotebookImageModal.k8sNameDescription.findResourceNameInput().clear().type('image');
+    importNotebookImageModal.findSubmitButton().should('be.enabled');
+
+    let notebookImageTabRow = importNotebookImageModal.getSoftwareRow('software', 0);
     notebookImageTabRow.shouldHaveVersionColumn('version');
 
     // test adding another software using Enter
     importNotebookImageModal.findAddSoftwareResourceButton().click();
-    importNotebookImageModal.findSoftwareNameInput().type('software-1');
-    importNotebookImageModal.findSoftwareVersionInput().type('version-1{enter}');
-    importNotebookImageModal.findSubmitButton().should('be.disabled');
-    notebookImageTabRow = importNotebookImageModal.getSoftwareRow('software-1');
+    importNotebookImageModal.findSoftwareNameInput(1).type('software-1');
+    importNotebookImageModal.findSoftwareVersionInput(1).type('version-1');
+
+    notebookImageTabRow = importNotebookImageModal.getSoftwareRow('software-1', 1);
     notebookImageTabRow.shouldHaveVersionColumn('version-1');
 
-    // test escaping from the form doesnt add the software
-    importNotebookImageModal.findSoftwareNameInput().type('software-2{esc}');
-    importNotebookImageModal.findSoftwareRows().should('not.contain', 'software-2');
-
-    importNotebookImageModal.findSubmitButton().should('be.enabled');
-
     // test deleting software
-    notebookImageTabRow.findRemoveContentButton().click();
+    notebookImageTabRow.findRemoveContentButton(1).click();
     importNotebookImageModal.findSoftwareRows().should('not.contain', 'software-1');
 
     // test packages tab
     importNotebookImageModal.findPackagesTab().click();
 
-    // test adding packages
-    // test form is disabled after entering packages add form
+    // test adding package
     importNotebookImageModal.findAddPackagesButton().click();
-    importNotebookImageModal.findSubmitButton().should('be.disabled');
 
     // test form is enabled after submitting packages
-    importNotebookImageModal.findPackagesNameInput().type('packages');
-    importNotebookImageModal.findPackagesVersionInput().type('version');
-    importNotebookImageModal.findSaveResourceButton('Packages').click();
+    importNotebookImageModal.findPackagesNameInput(0).type('packages');
+    importNotebookImageModal.findPackagesVersionInput(0).type('version');
     importNotebookImageModal.findSubmitButton().should('be.enabled');
-    notebookImageTabRow = importNotebookImageModal.getPackagesRow('packages');
+    notebookImageTabRow = importNotebookImageModal.getPackagesRow('packages', 0);
     notebookImageTabRow.shouldHaveVersionColumn('version');
 
-    // test adding another packages using Enter
-    importNotebookImageModal.findAddPackagesResourceButton().click();
-    importNotebookImageModal.findPackagesNameInput().type('packages-1');
-    importNotebookImageModal.findPackagesVersionInput().type('version-1{enter}');
-    importNotebookImageModal.findSubmitButton().should('be.disabled');
-    notebookImageTabRow = importNotebookImageModal.getPackagesRow('packages-1');
-    notebookImageTabRow.shouldHaveVersionColumn('version-1');
-
-    // test escaping from the form doesnt add the packages
-    importNotebookImageModal.findPackagesNameInput().type('packages-2{esc}');
-    importNotebookImageModal.findPackagesRows().should('not.contain', 'packages-2');
-    importNotebookImageModal.findSubmitButton().should('be.enabled');
-
-    // test open packages form blocks cancel, import, close, and tabbing
-    importNotebookImageModal.findAddPackagesResourceButton().click();
-    importNotebookImageModal.findCancelButton().should('be.disabled');
-    importNotebookImageModal.findSubmitButton().should('be.disabled');
-
     //succesfully import notebook image
-    importNotebookImageModal.findPackagesNameInput().type('packages-3');
-    importNotebookImageModal.findPackagesVersionInput().type('version');
-    importNotebookImageModal.findSaveResourceButton('Packages').click();
+    importNotebookImageModal.findAddPackagesResourceButton().click();
+    importNotebookImageModal.findPackagesNameInput(1).type('packages-1');
+    importNotebookImageModal.findPackagesVersionInput(1).type('version-1');
     importNotebookImageModal.findSubmitButton().should('be.enabled');
 
     importNotebookImageModal.findSubmitButton().click();
@@ -198,6 +173,7 @@ describe('Notebook image settings', () => {
       expect(interception.request.body).to.eql({
         /* eslint-disable-next-line camelcase */
         display_name: 'image',
+        name: 'image',
         url: 'image:latest',
         description: '',
         recommendedAcceleratorIdentifiers: [],
@@ -205,7 +181,6 @@ describe('Notebook image settings', () => {
         packages: [
           { name: 'packages', version: 'version', visible: true },
           { name: 'packages-1', version: 'version-1', visible: true },
-          { name: 'packages-3', version: 'version', visible: true },
         ],
         software: [{ name: 'software', version: 'version', visible: true }],
       });
@@ -231,11 +206,11 @@ describe('Notebook image settings', () => {
     updateNotebookImageModal.findDescriptionInput().should('have.value', 'A custom notebook image');
 
     // test software and packages have correct values
-    let notebookImageTabRow = importNotebookImageModal.getSoftwareRow('test-software');
+    let notebookImageTabRow = importNotebookImageModal.getSoftwareRow('test-software', 0);
     notebookImageTabRow.shouldHaveVersionColumn('2.0');
 
     updateNotebookImageModal.findPackagesTab().click();
-    notebookImageTabRow = importNotebookImageModal.getPackagesRow('test-package');
+    notebookImageTabRow = importNotebookImageModal.getPackagesRow('test-package', 0);
     notebookImageTabRow.shouldHaveVersionColumn('1.0');
 
     // test edit notebook image

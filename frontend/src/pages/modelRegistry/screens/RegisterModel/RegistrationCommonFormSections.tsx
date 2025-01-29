@@ -21,6 +21,8 @@ import FormSection from '~/components/pf-overrides/FormSection';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
 import { ModelLocationType, RegistrationCommonFormData } from './useRegisterModelData';
 import { ConnectionModal } from './ConnectionModal';
+import { MR_CHARACTER_LIMIT } from './const';
+import { isNameValid } from './utils';
 
 type RegistrationCommonFormSectionsProps<D extends RegistrationCommonFormData> = {
   formData: D;
@@ -36,6 +38,7 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
   latestVersion,
 }: RegistrationCommonFormSectionsProps<D>): React.ReactNode => {
   const [isAutofillModalOpen, setAutofillModalOpen] = React.useState(false);
+  const isVersionNameValid = isNameValid(formData.versionName);
 
   const connectionDataMap: Record<
     string,
@@ -86,14 +89,22 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
             name="version-name"
             value={versionName}
             onChange={(_e, value) => setData('versionName', value)}
+            validated={isVersionNameValid ? 'default' : 'error'}
           />
-          {latestVersion && (
-            <FormHelperText>
+          <FormHelperText>
+            {latestVersion && (
               <HelperText>
                 <HelperTextItem>Current version is {latestVersion.name}</HelperTextItem>
               </HelperText>
-            </FormHelperText>
-          )}
+            )}
+            {!isVersionNameValid && (
+              <HelperText>
+                <HelperTextItem variant="error">
+                  Cannot exceed {MR_CHARACTER_LIMIT} characters
+                </HelperTextItem>
+              </HelperText>
+            )}
+          </FormHelperText>
         </FormGroup>
         <FormGroup label="Version description" fieldId="version-description">
           <TextArea
@@ -146,7 +157,6 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
               <Button
                 data-testid="object-storage-autofill-button"
                 variant="link"
-                isInline
                 icon={<OptimizeIcon />}
                 onClick={() => setAutofillModalOpen(true)}
               >

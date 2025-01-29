@@ -1,22 +1,21 @@
 import * as React from 'react';
 import { TableVariant } from '@patternfly/react-table';
-import { useParams } from 'react-router-dom';
-import { PipelineRecurringRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRecurringRunKF } from '~/concepts/pipelines/kfTypes';
 import { getTableColumnSort, useCheckboxTable, TableBase } from '~/components/table';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipelineRunsModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 import { PipelinesFilter } from '~/concepts/pipelines/types';
-import usePipelineFilter from '~/concepts/pipelines/content/tables/usePipelineFilter';
+import { usePipelineFilterSearchParams } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import SimpleMenuActions from '~/components/SimpleMenuActions';
-import { useSetVersionFilter } from '~/concepts/pipelines/content/tables/useSetVersionFilter';
 import { pipelineRecurringRunColumns } from '~/concepts/pipelines/content/tables/columns';
+import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
 import PipelineRecurringRunTableRow from './PipelineRecurringRunTableRow';
 import PipelineRecurringRunTableToolbar from './PipelineRecurringRunTableToolbar';
 
 type PipelineRecurringRunTableProps = {
-  recurringRuns: PipelineRecurringRunKFv2[];
+  recurringRuns: PipelineRecurringRunKF[];
   refresh: () => void;
   loading?: boolean;
   totalSize: number;
@@ -44,8 +43,8 @@ const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
   ...tableProps
 }) => {
   const { refreshAllAPI } = usePipelinesAPI();
-  const { experimentId, pipelineVersionId } = useParams();
-  const { onClearFilters, ...filterToolbarProps } = usePipelineFilter(setFilter);
+  const { experiment } = React.useContext(ExperimentContext);
+  const { onClearFilters, ...filterToolbarProps } = usePipelineFilterSearchParams(setFilter);
   const {
     selections,
     tableProps: checkboxTableProps,
@@ -53,19 +52,13 @@ const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
     isSelected,
     // eslint-disable-next-line camelcase
   } = useCheckboxTable(recurringRuns.map(({ recurring_run_id }) => recurring_run_id));
-  const [deleteResources, setDeleteResources] = React.useState<PipelineRecurringRunKFv2[]>([]);
-
-  useSetVersionFilter(filterToolbarProps.onFilterUpdate);
+  const [deleteResources, setDeleteResources] = React.useState<PipelineRecurringRunKF[]>([]);
 
   const getColumns = () => {
     let columns = pipelineRecurringRunColumns;
 
-    if (experimentId) {
+    if (experiment) {
       columns = columns.filter((column) => column.field !== 'experiment');
-    }
-
-    if (pipelineVersionId) {
-      columns = columns.filter((column) => column.field !== 'pipeline_version');
     }
 
     return columns;
@@ -104,13 +97,13 @@ const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
                     onClick: () =>
                       setDeleteResources(
                         selections
-                          .map<PipelineRecurringRunKFv2 | undefined>((selection) =>
+                          .map<PipelineRecurringRunKF | undefined>((selection) =>
                             recurringRuns.find(
                               // eslint-disable-next-line camelcase
                               ({ recurring_run_id }) => recurring_run_id === selection,
                             ),
                           )
-                          .filter((v): v is PipelineRecurringRunKFv2 => !!v),
+                          .filter((v): v is PipelineRecurringRunKF => !!v),
                       ),
                     isDisabled: !selections.length,
                   },

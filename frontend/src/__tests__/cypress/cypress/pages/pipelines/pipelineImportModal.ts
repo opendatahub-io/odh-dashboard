@@ -1,5 +1,5 @@
-import type { CreatePipelineAndVersionKFData, PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
-import { buildMockPipelineV2 } from '~/__mocks__/mockPipelinesProxy';
+import type { CreatePipelineAndVersionKFData, PipelineKF } from '~/concepts/pipelines/kfTypes';
+import { buildMockPipeline } from '~/__mocks__/mockPipelinesProxy';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 
 class PipelineImportModal extends Modal {
@@ -24,7 +24,7 @@ class PipelineImportModal extends Modal {
   }
 
   findSubmitButton() {
-    return this.findFooter().findByTestId('import-button');
+    return this.findFooter().findByTestId('modal-submit-button');
   }
 
   findUploadPipelineRadio() {
@@ -56,7 +56,7 @@ class PipelineImportModal extends Modal {
   }
 
   findImportModalError() {
-    return this.find().findByTestId('import-modal-error');
+    return this.find().findByTestId('error-message-alert');
   }
 
   mockCreatePipelineAndVersion(params: CreatePipelineAndVersionKFData, namespace: string) {
@@ -66,15 +66,15 @@ class PipelineImportModal extends Modal {
         path: { namespace, serviceName: 'dspa' },
         times: 1,
       },
-      buildMockPipelineV2(params.pipeline),
+      buildMockPipeline(params.pipeline),
     );
   }
 
-  mockUploadPipeline(params: Partial<PipelineKFv2>, namespace: string) {
+  mockUploadPipeline(params: Partial<PipelineKF>, namespace: string) {
     return cy.interceptOdh(
       'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/upload',
       { path: { namespace, serviceName: 'dspa' }, times: 1 },
-      buildMockPipelineV2(params),
+      buildMockPipeline(params),
     );
   }
 

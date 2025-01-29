@@ -85,6 +85,7 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
         }
         toggleLabel={selectedImageVersion?.name ?? 'Select one'}
         aria-label="Image version select"
+        popperProps={{ appendTo: 'inline' }}
       />
       <FormHelperText>
         {isSelectedImageVersionOutOfDate && (

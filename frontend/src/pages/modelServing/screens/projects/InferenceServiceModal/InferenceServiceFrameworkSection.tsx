@@ -5,7 +5,6 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
-  Skeleton,
 } from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
@@ -18,6 +17,7 @@ type InferenceServiceFrameworkSectionProps = {
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
   modelContext?: SupportedModelFormats[];
   registeredModelFormat?: string;
+  servingRuntimeName?: string;
 };
 
 const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectionProps> = ({
@@ -25,6 +25,7 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
   setData,
   modelContext,
   registeredModelFormat,
+  servingRuntimeName,
 }) => {
   const [modelsContextLoaded, loaded, loadError] = useModelFramework(
     modelContext ? undefined : data.servingRuntimeName,
@@ -32,16 +33,8 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
   );
   const models = modelContext || modelsContextLoaded;
   const { name: dataFormatName, version: dataFormatVersion } = data.format;
-  const selectedDataFormat = models.find((element) =>
-    dataFormatVersion
-      ? element.name === dataFormatName && element.version === dataFormatVersion
-      : element.name === dataFormatName,
-  );
   const placeholderText =
     models.length === 0 ? 'No frameworks available to select' : 'Select a framework';
-  if (!modelContext && !loaded && data.servingRuntimeName !== '') {
-    return <Skeleton />;
-  }
 
   if (loadError) {
     return (
@@ -59,33 +52,29 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
     >
       <SimpleSelect
         dataTestId="inference-service-framework-selection"
-        isDisabled={models.length === 0}
         toggleProps={{ id: 'inference-service-framework-selection' }}
         options={models.map((framework) => {
           const name = framework.version
             ? `${framework.name} - ${framework.version}`
             : `${framework.name}`;
           return {
+            optionKey: `${servingRuntimeName ?? ''}-${name}`,
             key: name,
             label: name,
           };
         })}
+        isSkeleton={!modelContext && !loaded && data.servingRuntimeName !== ''}
         isFullWidth
         toggleLabel={
-          selectedDataFormat && dataFormatVersion
+          dataFormatVersion
             ? `${dataFormatName} - ${dataFormatVersion}`
             : dataFormatName || placeholderText
         }
         onChange={(option) => {
           const [name, version] = option.split(' - ');
-          const valueSelected = models.find((element) =>
-            version ? element.name === name && element.version === version : element.name === name,
-          );
-
-          if (valueSelected) {
-            setData('format', { name, version });
-          }
+          setData('format', { name, version });
         }}
+        popperProps={{ appendTo: 'inline' }}
       />
       {registeredModelFormat && models.length !== 0 && (
         <FormHelperText>

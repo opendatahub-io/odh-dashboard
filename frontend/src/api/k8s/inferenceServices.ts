@@ -10,13 +10,68 @@ import {
 import { InferenceServiceModel } from '~/api/models';
 import { InferenceServiceKind, K8sAPIOptions, KnownLabels } from '~/k8sTypes';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
-import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
 import { ContainerResources } from '~/types';
-import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
+import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
+import { getInferenceServiceDeploymentMode } from '~/pages/modelServing/screens/projects/utils';
 import { getModelServingProjects } from './projects';
-import { assemblePodSpecOptions } from './utils';
+import { assemblePodSpecOptions, parseCommandLine } from './utils';
+
+const applyAuthToInferenceService = (
+  inferenceService: InferenceServiceKind,
+  tokenAuth: boolean,
+  isModelMesh?: boolean,
+  isKServeRaw?: boolean,
+) => {
+  const updateInferenceService = structuredClone(inferenceService);
+  if (!updateInferenceService.metadata.labels) {
+    updateInferenceService.metadata.labels = {};
+  }
+  if (!updateInferenceService.metadata.annotations) {
+    updateInferenceService.metadata.annotations = {};
+  }
+  delete updateInferenceService.metadata.annotations['security.opendatahub.io/enable-auth'];
+  delete updateInferenceService.metadata.labels['security.opendatahub.io/enable-auth'];
+
+  // KServe
+  if (!isModelMesh && tokenAuth) {
+    if (isKServeRaw) {
+      updateInferenceService.metadata.labels['security.opendatahub.io/enable-auth'] = 'true';
+    } else {
+      // serverless
+      updateInferenceService.metadata.annotations['security.opendatahub.io/enable-auth'] = 'true';
+    }
+  }
+
+  return updateInferenceService;
+};
+
+const applyRoutingToInferenceService = (
+  inferenceService: InferenceServiceKind,
+  externalRoute: boolean,
+  isModelMesh?: boolean,
+  isKServeRaw?: boolean,
+) => {
+  const updateInferenceService = structuredClone(inferenceService);
+  if (!updateInferenceService.metadata.labels) {
+    updateInferenceService.metadata.labels = {};
+  }
+  delete updateInferenceService.metadata.labels['networking.knative.dev/visibility'];
+  delete updateInferenceService.metadata.labels['networking.kserve.io/visibility'];
+
+  // KServe
+  if (!isModelMesh) {
+    if (isKServeRaw && externalRoute) {
+      updateInferenceService.metadata.labels['networking.kserve.io/visibility'] = 'exposed';
+    } else if (!isKServeRaw && !externalRoute) {
+      // serverless
+      updateInferenceService.metadata.labels['networking.knative.dev/visibility'] = 'cluster-local';
+    }
+  }
+
+  return updateInferenceService;
+};
 
 export const assembleInferenceService = (
   data: CreatingInferenceServiceObject,
@@ -26,7 +81,7 @@ export const assembleInferenceService = (
   inferenceService?: InferenceServiceKind,
   isStorageNeeded?: boolean,
   initialAcceleratorProfile?: AcceleratorProfileState,
-  selectedAcceleratorProfile?: AcceleratorProfileSelectFieldState,
+  selectedAcceleratorProfile?: AcceleratorProfileFormData,
 ): InferenceServiceKind => {
   const {
     storage,
@@ -38,31 +93,38 @@ export const assembleInferenceService = (
     minReplicas,
     tokenAuth,
     externalRoute,
+    servingRuntimeArgs,
+    servingRuntimeEnvVars,
   } = data;
-  const name = editName || translateDisplayNameForK8s(data.name);
-  const { path, dataConnection } = storage;
+  const name = editName || data.k8sName;
+  const { path, dataConnection, uri } = storage;
   const dataConnectionKey = secretKey || dataConnection;
 
-  const updateInferenceService: InferenceServiceKind = inferenceService
+  const nonEmptyArgs = servingRuntimeArgs?.filter(Boolean) || [];
+  // Ensure that we properly handle separating args
+  const splitArgs: string[] = nonEmptyArgs.flatMap(parseCommandLine);
+  const nonEmptyEnvVars = servingRuntimeEnvVars?.filter((ev) => ev.name) || [];
+
+  let updateInferenceService: InferenceServiceKind = inferenceService
     ? {
         ...inferenceService,
         metadata: {
           ...inferenceService.metadata,
           annotations: {
             'openshift.io/display-name': data.name.trim(),
-            ...(isModelMesh
-              ? { 'serving.kserve.io/deploymentMode': 'ModelMesh' }
-              : {
-                  'serving.knative.openshift.io/enablePassthrough': 'true',
-                  'sidecar.istio.io/inject': 'true',
-                  'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
-                  ...(tokenAuth && { 'security.opendatahub.io/enable-auth': 'true' }),
-                }),
+            'serving.kserve.io/deploymentMode': getInferenceServiceDeploymentMode(
+              !!isModelMesh,
+              !!data.isKServeRawDeployment,
+            ),
+            ...(!isModelMesh &&
+              !data.isKServeRawDeployment && {
+                'serving.knative.openshift.io/enablePassthrough': 'true',
+                'sidecar.istio.io/inject': 'true',
+                'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
+              }),
           },
           labels: {
             ...inferenceService.metadata.labels,
-            ...(!isModelMesh &&
-              !externalRoute && { 'networking.knative.dev/visibility': 'cluster-local' }),
           },
         },
         spec: {
@@ -75,10 +137,16 @@ export const assembleInferenceService = (
                 ...(format.version && { version: format.version }),
               },
               runtime: servingRuntimeName,
-              storage: {
-                key: dataConnectionKey,
-                path,
-              },
+              ...(uri
+                ? { storageUri: uri }
+                : {
+                    storage: {
+                      key: dataConnectionKey,
+                      path,
+                    },
+                  }),
+              args: splitArgs,
+              env: nonEmptyEnvVars,
             },
           },
         },
@@ -89,22 +157,22 @@ export const assembleInferenceService = (
         metadata: {
           name,
           namespace: project,
-          labels: {
-            [KnownLabels.DASHBOARD_RESOURCE]: 'true',
-            ...(!isModelMesh &&
-              !externalRoute && { 'networking.knative.dev/visibility': 'cluster-local' }),
-            ...data.labels,
-          },
           annotations: {
             'openshift.io/display-name': data.name.trim(),
-            ...(isModelMesh
-              ? { 'serving.kserve.io/deploymentMode': 'ModelMesh' }
-              : {
-                  'serving.knative.openshift.io/enablePassthrough': 'true',
-                  'sidecar.istio.io/inject': 'true',
-                  'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
-                  ...(tokenAuth && { 'security.opendatahub.io/enable-auth': 'true' }),
-                }),
+            'serving.kserve.io/deploymentMode': getInferenceServiceDeploymentMode(
+              !!isModelMesh,
+              !!data.isKServeRawDeployment,
+            ),
+            ...(!isModelMesh &&
+              !data.isKServeRawDeployment && {
+                'serving.knative.openshift.io/enablePassthrough': 'true',
+                'sidecar.istio.io/inject': 'true',
+                'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
+              }),
+          },
+          labels: {
+            [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+            ...data.labels,
           },
         },
         spec: {
@@ -117,22 +185,33 @@ export const assembleInferenceService = (
                 ...(format.version && { version: format.version }),
               },
               runtime: servingRuntimeName,
-              storage: {
-                key: dataConnectionKey,
-                path,
-              },
+              ...(uri
+                ? { storageUri: uri }
+                : {
+                    storage: {
+                      key: dataConnectionKey,
+                      path,
+                    },
+                  }),
+              args: splitArgs,
+              env: nonEmptyEnvVars,
             },
           },
         },
       };
 
-  if (!tokenAuth && updateInferenceService.metadata.annotations) {
-    delete updateInferenceService.metadata.annotations['serving.knative.openshift.io/token-auth'];
-  }
-
-  if (externalRoute && updateInferenceService.metadata.labels) {
-    delete updateInferenceService.metadata.labels['networking.knative.dev/visibility'];
-  }
+  updateInferenceService = applyAuthToInferenceService(
+    updateInferenceService,
+    tokenAuth,
+    isModelMesh,
+    data.isKServeRawDeployment,
+  );
+  updateInferenceService = applyRoutingToInferenceService(
+    updateInferenceService,
+    externalRoute,
+    isModelMesh,
+    data.isKServeRawDeployment,
+  );
 
   // Resource and Accelerator support for KServe
   if (!isModelMesh) {
@@ -238,7 +317,7 @@ export const createInferenceService = (
   secretKey?: string,
   isModelMesh?: boolean,
   initialAcceleratorProfile?: AcceleratorProfileState,
-  selectedAcceleratorProfile?: AcceleratorProfileSelectFieldState,
+  selectedAcceleratorProfile?: AcceleratorProfileFormData,
   dryRun = false,
   isStorageNeeded?: boolean,
 ): Promise<InferenceServiceKind> => {
@@ -269,7 +348,7 @@ export const updateInferenceService = (
   secretKey?: string,
   isModelMesh?: boolean,
   initialAcceleratorProfile?: AcceleratorProfileState,
-  selectedAcceleratorProfile?: AcceleratorProfileSelectFieldState,
+  selectedAcceleratorProfile?: AcceleratorProfileFormData,
   dryRun = false,
   isStorageNeeded?: boolean,
 ): Promise<InferenceServiceKind> => {

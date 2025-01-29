@@ -101,6 +101,14 @@ class ModelVersionArchive {
     return cy.findByTestId('archive-version-page-breadcrumb');
   }
 
+  findVersionDetailsTab() {
+    return cy.findByTestId('model-versions-details-tab');
+  }
+
+  findVersionDeploymentTab() {
+    return cy.findByTestId('deployments-tab');
+  }
+
   findArchiveVersionTable() {
     return cy.findByTestId('model-versions-archive-table');
   }

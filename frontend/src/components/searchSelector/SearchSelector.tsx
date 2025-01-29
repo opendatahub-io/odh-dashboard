@@ -63,12 +63,13 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
   const toggleRef = React.useRef(null);
   const menuRef = React.useRef(null);
   const searchRef = React.useRef<HTMLInputElement | null>(null);
+  const popperProps = { minWidth, maxWidth: 'trigger' };
 
   return (
     <MenuContainer
       isOpen={isOpen}
       menuRef={menuRef}
-      popperProps={{ minWidth, maxWidth: 'trigger' }}
+      popperProps={popperProps}
       onOpenChange={(open) => {
         setIsOpen(open);
         onSearchClear();
@@ -121,17 +122,14 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
             </MenuSearchInput>
             {searchHelpText && (
               <HelperText>
-                <HelperTextItem
-                  variant="indeterminate"
-                  data-testid={`${dataTestId}-searchHelpText`}
-                >
+                <HelperTextItem data-testid={`${dataTestId}-searchHelpText`}>
                   {searchHelpText}
                 </HelperTextItem>
               </HelperText>
             )}
           </MenuSearch>
           <Divider />
-          <MenuContent>
+          <MenuContent maxMenuHeight="200px">
             <MenuList data-testid={`${dataTestId}-menuList`}>
               {typeof children === 'function'
                 ? children({ menuClose: () => setIsOpen(false) })

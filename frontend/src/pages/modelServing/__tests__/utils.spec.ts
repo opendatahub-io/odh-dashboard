@@ -83,7 +83,10 @@ describe('resourcesArePositive', () => {
 });
 
 describe('setUpTokenAuth', () => {
-  const setMockImplementations = (serviceAccountAndRoleBindingAlreadyExist = false) => {
+  const setMockImplementations = (
+    serviceAccountAndRoleBindingAlreadyExist = false,
+    dryRun = false,
+  ) => {
     if (serviceAccountAndRoleBindingAlreadyExist) {
       jest
         .mocked(getServiceAccount)
@@ -100,6 +103,9 @@ describe('setUpTokenAuth', () => {
         .mockImplementation((namespace: string, name: string) =>
           Promise.resolve(mockRoleBindingK8sResource({ name, namespace })),
         );
+      jest
+        .mocked(createRoleBinding)
+        .mockImplementation(() => Promise.resolve(mockRoleBindingK8sResource({})));
     } else {
       jest
         .mocked(getServiceAccount)
@@ -110,11 +116,19 @@ describe('setUpTokenAuth', () => {
       jest
         .mocked(getRoleBinding)
         .mockImplementation(() => Promise.reject({ statusObject: mock404Error({}) }));
+      jest
+        .mocked(createRoleBinding)
+        .mockImplementation(() =>
+          dryRun
+            ? Promise.reject({ statusObject: mock404Error({}) })
+            : Promise.resolve(mockRoleBindingK8sResource({})),
+        );
     }
   };
 
   const fillData: Parameters<typeof setUpTokenAuth>[0] = {
     name: 'test-name-sa',
+    k8sName: 'test-name-sa',
     servingRuntimeTemplateName: '',
     numReplicas: 1,
     modelSize: {
@@ -139,6 +153,25 @@ describe('setUpTokenAuth', () => {
         true,
         mockServingRuntimeK8sResource({ name: 'test-name-sa', namespace: 'test-project' }),
         false,
+      );
+      expect(createServiceAccount).toHaveBeenCalled();
+      expect(createRole).toHaveBeenCalled();
+      expect(createRoleBinding).toHaveBeenCalled();
+      expect(createSecret).toHaveBeenCalled();
+    });
+
+    it('should create service account, role, role binding and secrets if createTokenAuth is true, it should not fail in dryRun mode', async () => {
+      const dryRun = true;
+      setMockImplementations(false, dryRun);
+      await setUpTokenAuth(
+        { ...fillData, tokenAuth: true },
+        'test-name',
+        'test-project',
+        true,
+        mockServingRuntimeK8sResource({ name: 'test-name-sa', namespace: 'test-project' }),
+        false,
+        [],
+        { dryRun },
       );
       expect(createServiceAccount).toHaveBeenCalled();
       expect(createRole).toHaveBeenCalled();

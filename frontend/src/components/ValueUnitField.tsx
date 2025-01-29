@@ -30,6 +30,7 @@ type ValueUnitFieldProps = {
   value: ValueUnitString;
   validated?: 'default' | 'error' | 'warning' | 'success' | ValidatedOptions | undefined;
   menuAppendTo?: HTMLElement;
+  isDisabled?: boolean;
 };
 
 const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
@@ -41,6 +42,7 @@ const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
   menuAppendTo,
   value: fullValue,
   validated,
+  isDisabled,
 }) => {
   const [open, setOpen] = React.useState(false);
   const [currentValue, currentUnitOption] = splitValueUnit(fullValue, options);
@@ -58,12 +60,13 @@ const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
           onBlur={
             onBlur &&
             ((value) => {
-              onBlur(`${Math.max(value || minAsNumber)}${currentUnitOption.unit}`);
+              onBlur(`${Math.max(value ?? minAsNumber)}${currentUnitOption.unit}`);
             })
           }
           onChange={(value) => {
-            onChange(`${value || minAsNumber}${currentUnitOption.unit}`);
+            onChange(`${value ?? minAsNumber ?? ''}${currentUnitOption.unit}`);
           }}
+          isDisabled={isDisabled}
         />
       </SplitItem>
       <SplitItem>
@@ -80,6 +83,7 @@ const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
                 setOpen(!open);
               }}
               isExpanded={open}
+              isDisabled={isDisabled}
             >
               {currentUnitOption.name}
             </MenuToggle>

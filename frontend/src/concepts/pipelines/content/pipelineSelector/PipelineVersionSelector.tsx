@@ -3,7 +3,7 @@ import { EmptyStateVariant } from '@patternfly/react-core';
 import { TableVariant } from '@patternfly/react-table';
 import PipelineSelectorTableRow from '~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
 import { TableBase, getTableColumnSort } from '~/components/table';
-import { PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { pipelineVersionSelectorColumns } from '~/concepts/pipelines/content/pipelineSelector/columns';
 import PipelineViewMoreFooterRow from '~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
@@ -15,7 +15,7 @@ type PipelineVersionSelectorProps = {
   pipelineId?: string;
   selection?: string;
   isCreatePage?: boolean;
-  onSelect: (version: PipelineVersionKFv2) => void;
+  onSelect: (version: PipelineVersionKF) => void;
 };
 
 const PipelineVersionSelector: React.FC<PipelineVersionSelectorProps> = ({
@@ -84,6 +84,7 @@ const PipelineVersionSelector: React.FC<PipelineVersionSelectorProps> = ({
           data={supportedVersions}
           rowRenderer={(row) => (
             <PipelineSelectorTableRow
+              isRowSelected={row.display_name === selection}
               key={row.pipeline_version_id}
               obj={row}
               onClick={() => {

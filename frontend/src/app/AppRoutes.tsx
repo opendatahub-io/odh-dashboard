@@ -8,6 +8,7 @@ import {
   globArtifactsAll,
   globExecutionsAll,
   globExperimentsAll,
+  globPipelineRunsAll,
   globPipelinesAll,
 } from '~/routes';
 import { useCheckJupyterEnabled } from '~/utilities/notebookControllerUtils';
@@ -34,6 +35,9 @@ const NotebookController = React.lazy(
 );
 
 const GlobalPipelinesRoutes = React.lazy(() => import('../pages/pipelines/GlobalPipelinesRoutes'));
+const GlobalPipelineRunsRoutes = React.lazy(
+  () => import('../pages/pipelines/GlobalPipelineRunsRoutes'),
+);
 const GlobalPipelineExperimentRoutes = React.lazy(
   () => import('../pages/pipelines/GlobalPipelineExperimentsRoutes'),
 );
@@ -64,9 +68,15 @@ const AcceleratorProfileRoutes = React.lazy(
   () => import('../pages/acceleratorProfiles/AcceleratorProfilesRoutes'),
 );
 
+const HardwareProfileRoutes = React.lazy(
+  () => import('../pages/hardwareProfiles/HardwareProfilesRoutes'),
+);
+
 const StorageClassesPage = React.lazy(() => import('../pages/storageClasses/StorageClassesPage'));
 
 const ModelRegistryRoutes = React.lazy(() => import('../pages/modelRegistry/ModelRegistryRoutes'));
+
+const ExternalRoutes = React.lazy(() => import('../pages/external/ExternalRoutes'));
 
 const AppRoutes: React.FC = () => {
   const { isAdmin, isAllowed } = useUser();
@@ -86,6 +96,7 @@ const AppRoutes: React.FC = () => {
     <React.Suspense fallback={<ApplicationsPage title="" description="" loaded={false} empty />}>
       <InvalidArgoDeploymentAlert />
       <Routes>
+        <Route path="/external/*" element={<ExternalRoutes />} />
         {isHomeAvailable ? (
           <>
             <Route path="/" element={<HomePage />} />
@@ -113,6 +124,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/modelRegistry/*" element={<ModelRegistryRoutes />} />
 
         <Route path={globPipelinesAll} element={<GlobalPipelinesRoutes />} />
+        <Route path={globPipelineRunsAll} element={<GlobalPipelineRunsRoutes />} />
         <Route path={globExperimentsAll} element={<GlobalPipelineExperimentRoutes />} />
         <Route path={globArtifactsAll} element={<GlobalArtifactsRoutes />} />
         <Route path={globExecutionsAll} element={<GlobalPipelineExecutionsRoutes />} />
@@ -126,6 +138,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/notebookImages" element={<BYONImagesPage />} />
             <Route path="/clusterSettings" element={<ClusterSettingsPage />} />
             <Route path="/acceleratorProfiles/*" element={<AcceleratorProfileRoutes />} />
+            <Route path="/hardwareProfiles/*" element={<HardwareProfileRoutes />} />
             <Route path="/servingRuntimes/*" element={<CustomServingRuntimeRoutes />} />
             {isConnectionTypesAvailable ? (
               <Route path="/connectionTypes/*" element={<ConnectionTypeRoutes />} />

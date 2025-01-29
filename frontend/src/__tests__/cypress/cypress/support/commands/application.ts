@@ -1,20 +1,29 @@
 import type { MatcherOptions } from '@testing-library/cypress';
 import type { Matcher, MatcherOptions as DTLMatcherOptions } from '@testing-library/dom';
-import type { UserAuthConfig } from '~/__tests__/cypress/cypress/types';
-import { TEST_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import type { UserAuthConfig, DashboardConfig } from '~/__tests__/cypress/cypress/types';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import {
+  getDashboardConfig,
+  getNotebookControllerConfig,
+  getNotebookControllerCullerConfig,
+} from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 
 /* eslint-disable @typescript-eslint/no-namespace */
 declare global {
   namespace Cypress {
     interface Chainable {
       /**
-       * Visits the URL and performs a login if necessary.
-       * Uses credentials supplied by environment variables if not provided.
+       * Visits relative URL (page) and performs a login if necessary.
+       * If relativeUrl is '/' or empty string, uses base URL with query parameters (i.e. DevFeatureFlags).
+       * If User credentials not provided, uses Admin credentials supplied by environment variables.
        *
-       * @param url the URL to visit
+       * @param relativeUrl the page to visit.
        * @param credentials login credentials
        */
-      visitWithLogin: (url: string, user?: UserAuthConfig) => Cypress.Chainable<void>;
+      visitWithLogin: (
+        relativeUrl: string,
+        credentials?: UserAuthConfig,
+      ) => Cypress.Chainable<void>;
 
       /**
        * Find a patternfly kebab toggle button.
@@ -33,6 +42,13 @@ declare global {
         name: string | RegExp,
         isDropdownToggle?: boolean,
       ) => Cypress.Chainable<JQuery>;
+
+      /**
+       * Finds a patternfly dropdown item by first opening the dropdown if not already opened.
+       *
+       * @param name the name of the item
+       */
+      findMenuItem: (name: string | RegExp) => Cypress.Chainable<JQuery>;
 
       /**
        * Finds a patternfly dropdown item by first opening the dropdown if not already opened.
@@ -116,35 +132,76 @@ declare global {
        */
       // eslint-disable-next-line @typescript-eslint/method-signature-style
       findAllByTestId(id: Matcher | Matcher[], options?: MatcherOptions): Chainable<JQuery>;
+
+      /**
+       * Retrieves the DashboardConfig from OpenShift and returns either the full config or a specific value.
+       *
+       * When no key is provided, returns the entire DashboardConfig object.
+       * When a key is provided, returns the specific value for that key.
+       *
+       * @param key Optional. The specific config key to retrieve. Use dot notation for nested properties.
+       *
+       * @returns A Cypress.Chainable that resolves to the requested config value or the full config object.
+       */
+      getDashboardConfig: (key?: string) => Cypress.Chainable<DashboardConfig | unknown>;
+
+      /**
+       * Retrieves the Notebook Controller Config from OpenShift and returns either the full config or a specific value.
+       *
+       * When no key is provided, returns the entire Notebook Controller Config object.
+       * When a key is provided, returns the specific value for that key.
+       *
+       * @param key Optional. The specific config key to retrieve. Use dot notation for nested properties.
+       *
+       * @returns A Cypress.Chainable that resolves to the requested config value or the full config object.
+       */
+      getNotebookControllerConfig: (key?: string) => Cypress.Chainable<DashboardConfig | unknown>;
+
+      /**
+       * Retrieves the Notebook Controller Culler Config from OpenShift and returns either the full config or a specific value.
+       *
+       * When no key is provided, returns the entire Notebook Controller Culler Config object.
+       * When a key is provided, returns the specific value for that key.
+       *
+       * @param key Optional. The specific config key to retrieve. Use dot notation for nested properties.
+       *
+       * @returns A Cypress.Chainable that resolves to the requested config value or the full config object.
+       */
+      getNotebookControllerCullerConfig: (
+        key?: string,
+      ) => Cypress.Chainable<DashboardConfig | unknown>;
     }
   }
 }
 
-Cypress.Commands.add('visitWithLogin', (url, user = TEST_USER) => {
+Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUSTER_ADMIN_USER) => {
   if (Cypress.env('MOCK')) {
-    cy.visit(url);
+    cy.visit(relativeUrl);
   } else {
-    cy.intercept('GET', url, { log: false }).as('visitWithLogin');
-
-    cy.visit(url, { failOnStatusCode: false });
-
-    cy.wait('@visitWithLogin', { log: false }).then((interception) => {
-      if (interception.response?.statusCode === 403) {
-        cy.log('Do login');
-        // do login
+    let fullUrl: string;
+    if (relativeUrl.replace(/\//g, '')) {
+      fullUrl = new URL(relativeUrl, Cypress.config('baseUrl') || '').href;
+    } else {
+      fullUrl = new URL(Cypress.config('baseUrl') || '').href;
+    }
+    cy.step(`Navigate to: ${fullUrl}`);
+    cy.intercept('GET', fullUrl, { log: false }).as('page');
+    cy.visit(fullUrl, { failOnStatusCode: false });
+    cy.wait('@page', { log: false }).then((interception) => {
+      const statusCode = interception.response?.statusCode;
+      if (statusCode === 403) {
+        cy.log('Log in');
         cy.get('form[action="/oauth/start"]').submit();
-        cy.findAllByRole('link', user.AUTH_TYPE ? { name: user.AUTH_TYPE } : {})
+        cy.findAllByRole('link', credentials.AUTH_TYPE ? { name: credentials.AUTH_TYPE } : {})
           .last()
-          .click();
-        cy.get('input[name=username]').type(user.USERNAME);
-        cy.get('input[name=password]').type(user.PASSWORD);
+          .then(($link) => {
+            cy.wrap($link).click();
+          });
+        cy.get('input[name=username]').fill(credentials.USERNAME);
+        cy.get('input[name=password]').fill(credentials.PASSWORD);
         cy.get('form').submit();
-      } else if (interception.response?.statusCode !== 200) {
-        throw new Error(
-          `Failed to visit '${url}'. Status code: ${
-            interception.response?.statusCode || 'unknown'
-          }`,
-        );
+      } else if (!interception.response || statusCode !== 200) {
+        throw new Error(`Failed to visit '${fullUrl}'. Status code: ${statusCode || 'unknown'}`);
       }
     });
   }
@@ -169,7 +226,7 @@ Cypress.Commands.add(
         if ($el.attr('aria-expanded') === 'false') {
           cy.wrap($el).click();
         }
-        return cy.wrap($el.parent()).findByRole('menuitem', { name });
+        return cy.get('[data-ouia-component-type="PF6/Dropdown"]').findByRole('menuitem', { name });
       });
   },
 );
@@ -180,7 +237,17 @@ Cypress.Commands.add('findDropdownItem', { prevSubject: 'element' }, (subject, n
     if ($el.attr('aria-expanded') === 'false') {
       cy.wrap($el).click();
     }
-    return cy.wrap($el).parent().findByRole('menuitem', { name });
+    return cy.get('[data-ouia-component-type="PF6/Dropdown"]').findByRole('menuitem', { name });
+  });
+});
+
+Cypress.Commands.add('findMenuItem', { prevSubject: 'element' }, (subject, name) => {
+  Cypress.log({ displayName: 'findMenuItem', message: name });
+  return cy.wrap(subject).then(($el) => {
+    if ($el.attr('aria-expanded') === 'false') {
+      cy.wrap($el).click();
+    }
+    return cy.get('[data-ouia-component-type="PF6/Menu"]').findByRole('menuitem', { name });
   });
 });
 
@@ -236,6 +303,9 @@ Cypress.Commands.overwriteQuery('findByTestId', function findByTestId(...args) {
 Cypress.Commands.overwriteQuery('findAllByTestId', function findAllByTestId(...args) {
   return enhancedFindByTestId(this, ...args);
 });
+Cypress.Commands.add('getNotebookControllerConfig', getNotebookControllerConfig);
+Cypress.Commands.add('getDashboardConfig', getDashboardConfig);
+Cypress.Commands.add('getNotebookControllerCullerConfig', getNotebookControllerCullerConfig);
 
 const enhancedFindByTestId = (
   command: Cypress.Command,

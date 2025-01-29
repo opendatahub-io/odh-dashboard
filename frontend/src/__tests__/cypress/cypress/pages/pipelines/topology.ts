@@ -1,9 +1,9 @@
 import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
 import { DashboardCodeEditor } from '~/__tests__/cypress/cypress/pages/components/DashboardCodeEditor';
 import type {
-  PipelineKFv2,
-  PipelineRecurringRunKFv2,
-  PipelineVersionKFv2,
+  PipelineKF,
+  PipelineRecurringRunKF,
+  PipelineVersionKF,
 } from '~/concepts/pipelines/kfTypes';
 import { SearchSelector } from '~/__tests__/cypress/cypress/pages/components/subComponents/SearchSelector';
 
@@ -166,7 +166,7 @@ class PipelineDetails extends PipelinesTopology {
     this.pipelineVersionSelector
       .findToggleButton()
       .click()
-      .parents()
+      .document()
       .findByTestId('pipeline-version-selector-table-list')
       .find('td')
       .contains(name)
@@ -226,7 +226,7 @@ class PipelineDetails extends PipelinesTopology {
     cy.findByRole('menuitem', { name: label }).click();
   }
 
-  mockGetPipeline(namespace: string, pipeline: PipelineKFv2): Cypress.Chainable<null> {
+  mockGetPipeline(namespace: string, pipeline: PipelineKF): Cypress.Chainable<null> {
     return cy.interceptOdh(
       'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId',
       { path: { namespace, serviceName: 'dspa', pipelineId: pipeline.pipeline_id } },
@@ -234,7 +234,7 @@ class PipelineDetails extends PipelinesTopology {
     );
   }
 
-  mockGetPipelineVersion(pipelineId: string, version: PipelineVersionKFv2, namespace: string) {
+  mockGetPipelineVersion(pipelineId: string, version: PipelineVersionKF, namespace: string) {
     return cy.interceptOdh(
       'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId',
       {
@@ -251,10 +251,8 @@ class PipelineDetails extends PipelinesTopology {
 }
 
 class PipelineRecurringRunDetails extends RunDetails {
-  visit(namespace: string, pipelineId: string, pipelineVersionId: string, recurringRunId?: string) {
-    cy.visitWithLogin(
-      `/pipelines/${namespace}/${pipelineId}/${pipelineVersionId}/schedules/${recurringRunId}`,
-    );
+  visit(namespace: string, recurringRunId = '') {
+    cy.visitWithLogin(`/pipelineRuns/${namespace}/schedules/${recurringRunId}`);
     this.wait();
   }
 
@@ -267,7 +265,7 @@ class PipelineRecurringRunDetails extends RunDetails {
     cy.findByRole('menuitem', { name: label }).click();
   }
 
-  mockEnableRecurringRun(recurringRun: PipelineRecurringRunKFv2, namespace: string) {
+  mockEnableRecurringRun(recurringRun: PipelineRecurringRunKF, namespace: string) {
     return cy.interceptOdh(
       'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId:mode',
       {
@@ -282,7 +280,7 @@ class PipelineRecurringRunDetails extends RunDetails {
     );
   }
 
-  mockDisableRecurringRun(recurringRun: PipelineRecurringRunKFv2, namespace: string) {
+  mockDisableRecurringRun(recurringRun: PipelineRecurringRunKF, namespace: string) {
     return cy.interceptOdh(
       'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId:mode',
       {
@@ -299,8 +297,8 @@ class PipelineRecurringRunDetails extends RunDetails {
 }
 
 class PipelineRunDetails extends RunDetails {
-  visit(namespace: string, pipelineId: string, pipelineVersionId: string, runId?: string) {
-    cy.visitWithLogin(`/pipelines/${namespace}/${pipelineId}/${pipelineVersionId}/runs/${runId}`);
+  visit(namespace: string, runId = '') {
+    cy.visitWithLogin(`/pipelineRuns/${namespace}/runs/${runId}`);
     this.wait();
   }
 

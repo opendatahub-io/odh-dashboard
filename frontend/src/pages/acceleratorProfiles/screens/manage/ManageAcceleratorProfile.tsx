@@ -1,14 +1,18 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
-import { Breadcrumb, BreadcrumbItem, Form, PageSection } from '@patternfly/react-core';
+import { Breadcrumb, BreadcrumbItem, Form, FormSection, PageSection } from '@patternfly/react-core';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import GenericSidebar from '~/components/GenericSidebar';
 
 import { AcceleratorProfileKind } from '~/k8sTypes';
+import K8sNameDescriptionField, {
+  useK8sNameDescriptionFieldData,
+} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import { ManageAcceleratorProfileFooter } from './ManageAcceleratorProfileFooter';
 import { ManageAcceleratorProfileTolerationsSection } from './ManageAcceleratorProfileTolerationsSection';
-import { ManageAcceleratorProfileSectionID } from './types';
+import { AcceleratorProfileFormData, ManageAcceleratorProfileSectionID } from './types';
 import { ManageAcceleratorProfileSectionTitles, ScrollableSelectorID } from './const';
 import { ManageAcceleratorProfileDetailsSection } from './ManageAcceleratorProfileDetailsSection';
 
@@ -25,18 +29,38 @@ const ManageAcceleratorProfile: React.FC<ManageAcceleratorProfileProps> = ({
     enabled: true,
     tolerations: [],
   });
+  const { data: profileNameDesc, onDataChange: setProfileNameDesc } =
+    useK8sNameDescriptionFieldData({
+      initialData: existingAcceleratorProfile
+        ? {
+            name: existingAcceleratorProfile.spec.displayName,
+            k8sName: existingAcceleratorProfile.metadata.name,
+            description: existingAcceleratorProfile.spec.description,
+          }
+        : undefined,
+    });
 
   React.useEffect(() => {
     if (existingAcceleratorProfile) {
-      setState('displayName', existingAcceleratorProfile.spec.displayName);
       setState('identifier', existingAcceleratorProfile.spec.identifier);
-      setState('description', existingAcceleratorProfile.spec.description);
       setState('enabled', existingAcceleratorProfile.spec.enabled);
       setState('tolerations', existingAcceleratorProfile.spec.tolerations);
     }
   }, [existingAcceleratorProfile, setState]);
 
+  const formState: AcceleratorProfileFormData = React.useMemo(
+    () => ({
+      ...state,
+      name: profileNameDesc.k8sName.value,
+      displayName: profileNameDesc.name,
+      description: profileNameDesc.description,
+    }),
+    [state, profileNameDesc],
+  );
+
   const sectionIDs = Object.values(ManageAcceleratorProfileSectionID);
+
+  const validFormData = isK8sNameDescriptionDataValid(profileNameDesc) && !!state.identifier;
 
   return (
     <ApplicationsPage
@@ -59,14 +83,29 @@ const ManageAcceleratorProfile: React.FC<ManageAcceleratorProfileProps> = ({
       empty={false}
     >
       <PageSection
+        hasBodyWrapper={false}
         isFilled
         id={ScrollableSelectorID}
         aria-label="manage-accelerator-spawner-section"
-        variant="light"
       >
         <GenericSidebar sections={sectionIDs} titles={ManageAcceleratorProfileSectionTitles}>
           <Form style={{ maxWidth: 600 }}>
-            <ManageAcceleratorProfileDetailsSection state={state} setState={setState} />
+            <FormSection
+              id={ManageAcceleratorProfileSectionID.DETAILS}
+              aria-label={
+                ManageAcceleratorProfileSectionTitles[ManageAcceleratorProfileSectionID.DETAILS]
+              }
+              title={
+                ManageAcceleratorProfileSectionTitles[ManageAcceleratorProfileSectionID.DETAILS]
+              }
+            >
+              <K8sNameDescriptionField
+                data={profileNameDesc}
+                onDataChange={setProfileNameDesc}
+                dataTestId="accelerator-profile"
+              />
+              <ManageAcceleratorProfileDetailsSection state={state} setState={setState} />
+            </FormSection>
             <ManageAcceleratorProfileTolerationsSection
               tolerations={state.tolerations ?? []}
               setTolerations={(tolerations) => setState('tolerations', tolerations)}
@@ -74,10 +113,11 @@ const ManageAcceleratorProfile: React.FC<ManageAcceleratorProfileProps> = ({
           </Form>
         </GenericSidebar>
       </PageSection>
-      <PageSection stickyOnBreakpoint={{ default: 'bottom' }} variant="light">
+      <PageSection hasBodyWrapper={false} stickyOnBreakpoint={{ default: 'bottom' }}>
         <ManageAcceleratorProfileFooter
-          state={state}
+          state={formState}
           existingAcceleratorProfile={existingAcceleratorProfile}
+          validFormData={validFormData}
         />
       </PageSection>
     </ApplicationsPage>

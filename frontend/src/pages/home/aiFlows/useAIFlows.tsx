@@ -1,12 +1,11 @@
 import * as React from 'react';
-import { PageSection, Stack, Text, TextContent } from '@patternfly/react-core';
+import { PageSection, Stack, Content } from '@patternfly/react-core';
 import { SectionType, sectionTypeBorderColor } from '~/concepts/design/utils';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
 import { SupportedArea } from '~/concepts/areas';
 import EvenlySpacedGallery from '~/components/EvenlySpacedGallery';
-import ProjectImage from './flowImages/ProjectImage';
-import BranchImage from './flowImages/BranchImage';
-import ChartImage from './flowImages/ChartImage';
+import { CreateAndTrainIcon, ModelIcon, ProjectIcon } from '~/images/icons';
+import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import ProjectsGallery from './ProjectsGallery';
 import CreateAndTrainGallery from './CreateAndTrainGallery';
 import DeployAndMonitorGallery from './DeployAndMonitorGallery';
@@ -17,9 +16,14 @@ export const useAIFlows = (): React.ReactNode => {
   const { status: pipelinesAvailable } = useIsAreaAvailable(SupportedArea.DS_PIPELINES);
   const { status: projectsAvailable } = useIsAreaAvailable(SupportedArea.DS_PROJECTS_VIEW);
   const { status: modelServingAvailable } = useIsAreaAvailable(SupportedArea.MODEL_SERVING);
+  const { status: modelRegistryAvailable } = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY);
+  const servingPlatformStatuses = useServingPlatformStatuses();
   const [selected, setSelected] = React.useState<string | undefined>();
 
   return React.useMemo(() => {
+    const hasModelServingPlatforms =
+      modelServingAvailable && servingPlatformStatuses.platformEnabledCount > 0;
+
     const cards = [];
     if (projectsAvailable) {
       cards.push(
@@ -28,7 +32,8 @@ export const useAIFlows = (): React.ReactNode => {
           data-testid="ai-flow-projects-card"
           title="Organize your work with projects"
           image={
-            <ProjectImage
+            <ProjectIcon
+              aria-hidden="true"
               style={{ color: sectionTypeBorderColor(SectionType.organize), width: 42, height: 42 }}
             />
           }
@@ -45,7 +50,8 @@ export const useAIFlows = (): React.ReactNode => {
           data-testid="ai-flow-train-card"
           title="Create and train models"
           image={
-            <BranchImage
+            <CreateAndTrainIcon
+              aria-hidden="true"
               style={{ color: sectionTypeBorderColor(SectionType.training), width: 42, height: 42 }}
             />
           }
@@ -55,14 +61,15 @@ export const useAIFlows = (): React.ReactNode => {
         />,
       );
     }
-    if (modelServingAvailable) {
+    if (hasModelServingPlatforms || modelRegistryAvailable) {
       cards.push(
         <AIFlowCard
           key="models"
           data-testid="ai-flow-models-card"
-          title="Deploy and monitor models"
+          title="Manage models"
           image={
-            <ChartImage
+            <ModelIcon
+              aria-hidden="true"
               style={{ color: sectionTypeBorderColor(SectionType.serving), width: 42, height: 42 }}
             />
           }
@@ -78,11 +85,11 @@ export const useAIFlows = (): React.ReactNode => {
     }
 
     return (
-      <PageSection data-testid="home-page-ai-flows" variant="light">
+      <PageSection hasBodyWrapper={false} data-testid="home-page-ai-flows">
         <Stack hasGutter>
-          <TextContent>
-            <Text component="h1">Train, serve, monitor, and manage AI/ML models</Text>
-          </TextContent>
+          <Content>
+            <Content component="h1">Work with AI/ML models</Content>
+          </Content>
           <EvenlySpacedGallery itemCount={cards.length} hasGutter>
             {cards}
           </EvenlySpacedGallery>
@@ -100,9 +107,11 @@ export const useAIFlows = (): React.ReactNode => {
     );
   }, [
     modelServingAvailable,
+    modelRegistryAvailable,
     pipelinesAvailable,
     projectsAvailable,
     selected,
     workbenchesAvailable,
+    servingPlatformStatuses.platformEnabledCount,
   ]);
 };

@@ -9,19 +9,7 @@ import {
 import { PipelineVersionCoreDetails } from '~/pages/pipelines/global/GlobalPipelineCoreDetails';
 import PipelineDetails from '~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineDetails';
 import { globNamespaceAll, pipelinesBaseRoute } from '~/routes';
-import PipelineVersionContextProvider from '~/pages/pipelines/global/pipelines/PipelineVersionContext';
-import { PipelineRunType } from '~/pages/pipelines/global/runs';
-import PipelineVersionRunsTabs from '~/pages/pipelines/global/pipelines/PipelineVersionRunsTabs';
-import PipelineVersionRuns from '~/pages/pipelines/global/pipelines/PipelineVersionRuns';
-import PipelineVersionRunDetails from '~/pages/pipelines/global/pipelines/PipelineVersionRunDetails';
 import PipelineAvailabilityLoader from '~/pages/pipelines/global/pipelines/PipelineAvailabilityLoader';
-import {
-  PipelineVersionCreateRunPage,
-  PipelineVersionCreateRecurringRunPage,
-} from '~/pages/pipelines/global/pipelines/PipelineVersionCreateRunPage';
-import PipelineVersionDuplicateRunPage from '~/pages/pipelines/global/pipelines/PipelineVersionDuplicateRunPage';
-import PipelineVersionRecurringRunDetails from '~/pages/pipelines/global/pipelines/PipelineVersionRecurringRunDetails';
-import PipelineVersionDuplicateRecurringRunPage from '~/pages/pipelines/global/pipelines/PipelineVersionDuplicateRecurringRunPage';
 import GlobalPipelines from './global/pipelines/GlobalPipelines';
 
 const GlobalPipelinesRoutes: React.FC = () => (
@@ -38,85 +26,11 @@ const GlobalPipelinesRoutes: React.FC = () => (
     >
       <Route index element={<GlobalPipelines />} />
       <Route element={<PipelineAvailabilityLoader />}>
-        <Route path=":pipelineId/:pipelineVersionId" element={<PipelineVersionContextProvider />}>
-          <Route
-            element={
-              <PipelineVersionCoreDetails BreadcrumbDetailsComponent={PipelineVersionRuns} />
-            }
-          >
-            <Route path="runs" element={<PipelineVersionRunsTabs tab={PipelineRunType.ACTIVE} />} />
-            <Route
-              path="runs/active"
-              element={<PipelineVersionRunsTabs tab={PipelineRunType.ACTIVE} />}
-            />
-            <Route
-              path="runs/archived"
-              element={<PipelineVersionRunsTabs tab={PipelineRunType.ARCHIVED} />}
-            />
-            <Route
-              path="schedules"
-              element={<PipelineVersionRunsTabs tab={PipelineRunType.SCHEDULED} />}
-            />
-          </Route>
-          <Route path="runs">
-            <Route
-              path="create"
-              element={
-                <PipelineVersionCoreDetails
-                  BreadcrumbDetailsComponent={PipelineVersionCreateRunPage}
-                />
-              }
-            />
-            <Route
-              path=":runId"
-              element={
-                <PipelineVersionCoreDetails
-                  BreadcrumbDetailsComponent={PipelineVersionRunDetails}
-                />
-              }
-            />
-            <Route
-              path="duplicate/:runId"
-              element={
-                <PipelineVersionCoreDetails
-                  BreadcrumbDetailsComponent={PipelineVersionDuplicateRunPage}
-                />
-              }
-            />
-          </Route>
-          <Route path="schedules">
-            <Route
-              path="create"
-              element={
-                <PipelineVersionCoreDetails
-                  BreadcrumbDetailsComponent={PipelineVersionCreateRecurringRunPage}
-                />
-              }
-            />
-            <Route
-              path=":recurringRunId"
-              element={
-                <PipelineVersionCoreDetails
-                  BreadcrumbDetailsComponent={PipelineVersionRecurringRunDetails}
-                />
-              }
-            />
-            <Route
-              path="duplicate/:recurringRunId"
-              element={
-                <PipelineVersionCoreDetails
-                  BreadcrumbDetailsComponent={PipelineVersionDuplicateRecurringRunPage}
-                />
-              }
-            />
-          </Route>
-          <Route
-            path="view"
-            element={<PipelineVersionCoreDetails BreadcrumbDetailsComponent={PipelineDetails} />}
-          />
-          {/* All the other paths fall back to the pipeline version details view */}
-          <Route path="*" element={<Navigate to="./view" />} />
-        </Route>
+        <Route
+          path=":pipelineId/:pipelineVersionId/view"
+          element={<PipelineVersionCoreDetails BreadcrumbDetailsComponent={PipelineDetails} />}
+        />
+        <Route path="*" element={<Navigate to="." />} />
       </Route>
     </Route>
     <Route path="*" element={<Navigate to="." />} />

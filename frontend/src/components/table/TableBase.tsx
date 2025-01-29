@@ -138,6 +138,7 @@ const TableBase = <T,>({
       variant={variant}
       widgetId="table-pagination"
       perPageOptions={perPageOptions}
+      menuAppendTo="inline"
       titles={{
         paginationAriaLabel: `${variant} pagination`,
       }}
@@ -199,6 +200,7 @@ const TableBase = <T,>({
         stickyLeftOffset={col.stickyLeftOffset}
         hasRightBorder={col.hasRightBorder}
         modifier={col.modifier}
+        visibility={col.visibility}
         className={col.className}
       >
         {col.label}
@@ -269,6 +271,7 @@ const TableBase = <T,>({
     <Table {...props} {...(hasStickyColumns && { gridBreakPoint: '' })} ref={tableRef}>
       {caption && <Caption>{caption}</Caption>}
       <Thead noWrap hasNestedHeader={hasNestedHeader}>
+        {/* Note from PF: following custom style can be removed when we can resolve misalignment issue natively */}
         <Tr>{columns.map((col, i) => renderColumnHeader(col, i))}</Tr>
         {subColumns?.length ? (
           <Tr>{subColumns.map((col, i) => renderColumnHeader(col, columns.length + i, true))}</Tr>
@@ -284,8 +287,8 @@ const TableBase = <T,>({
       {(toolbarContent || showPagination) && (
         <Toolbar
           inset={{ default: 'insetNone' }}
-          className="pf-v5-u-w-100"
-          customChipGroupContent={onClearFilters ? undefined : <></>}
+          className="pf-v6-u-w-100"
+          customLabelGroupContent={onClearFilters ? undefined : <></>}
           clearAllFilters={onClearFilters}
         >
           <ToolbarContent>
@@ -293,8 +296,8 @@ const TableBase = <T,>({
             {showPagination && (
               <ToolbarItem
                 variant="pagination"
-                align={{ default: 'alignRight' }}
-                className="pf-v5-u-pr-lg"
+                align={{ default: 'alignEnd' }}
+                className="pf-v6-u-pr-lg"
               >
                 {pagination('top')}
               </ToolbarItem>
@@ -311,18 +314,12 @@ const TableBase = <T,>({
         </div>
       )}
 
-      {(bottomToolbarContent || showPagination) && (
-        <Toolbar inset={{ default: 'insetNone' }} className="pf-v5-u-w-100">
-          <ToolbarContent alignItems="center">
-            {bottomToolbarContent}
-            {showPagination && (
-              <ToolbarItem variant="pagination" align={{ default: 'alignRight' }}>
-                {pagination('bottom')}
-              </ToolbarItem>
-            )}
-          </ToolbarContent>
+      {bottomToolbarContent && (
+        <Toolbar inset={{ default: 'insetNone' }} className="pf-v6-u-w-100">
+          <ToolbarContent alignItems="center">{bottomToolbarContent}</ToolbarContent>
         </Toolbar>
       )}
+      {showPagination && <>{pagination('bottom')}</>}
     </>
   );
 };

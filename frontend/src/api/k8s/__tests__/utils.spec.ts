@@ -1,8 +1,13 @@
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
-import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
-import { assemblePodSpecOptions, getshmVolume, getshmVolumeMount } from '~/api/k8s/utils';
+import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
+import {
+  assemblePodSpecOptions,
+  getshmVolume,
+  getshmVolumeMount,
+  parseCommandLine,
+} from '~/api/k8s/utils';
 import { ContainerResources, TolerationEffect, TolerationOperator } from '~/types';
-import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
 
@@ -27,7 +32,7 @@ describe('assemblePodSpecOptions', () => {
       count: 0,
       unknownProfileDetected: false,
     };
-    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
       profile: acceleratorProfileMock,
       count: 1,
       useExistingSettings: false,
@@ -63,7 +68,7 @@ describe('assemblePodSpecOptions', () => {
       count: 1,
       unknownProfileDetected: false,
     };
-    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
       profile: undefined,
       count: 0,
       useExistingSettings: false,
@@ -116,7 +121,7 @@ describe('assemblePodSpecOptions', () => {
       count: 1,
       unknownProfileDetected: false,
     };
-    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
       profile: acceleratorProfileMock,
       count: 1,
       useExistingSettings: false,
@@ -168,7 +173,7 @@ describe('assemblePodSpecOptions', () => {
       count: 1,
       unknownProfileDetected: true,
     };
-    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
       profile: acceleratorProfileMock,
       count: 1,
       useExistingSettings: false,
@@ -238,7 +243,7 @@ describe('assemblePodSpecOptions', () => {
       count: 1,
       unknownProfileDetected: false,
     };
-    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
       profile: acceleratorProfileMock,
       count: 1,
       useExistingSettings: false,
@@ -278,7 +283,7 @@ describe('assemblePodSpecOptions', () => {
       count: 1,
       unknownProfileDetected: false,
     };
-    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
       profile: acceleratorProfileMock,
       count: 1,
       useExistingSettings: false,
@@ -326,5 +331,62 @@ describe('getshmVolume', () => {
       },
       name: 'shm',
     });
+  });
+});
+
+describe('parseCommandLine', () => {
+  test('parses simple space-separated arguments', () => {
+    expect(parseCommandLine('arg1 arg2 arg3')).toEqual(['arg1', 'arg2', 'arg3']);
+  });
+
+  test('handles double-quoted arguments', () => {
+    expect(parseCommandLine('"arg1 with spaces" arg2')).toEqual(['arg1 with spaces', 'arg2']);
+  });
+
+  test('handles single-quoted arguments', () => {
+    expect(parseCommandLine("'arg1 with spaces' arg2")).toEqual(['arg1 with spaces', 'arg2']);
+  });
+
+  test('handles mixed quotes', () => {
+    expect(parseCommandLine('\'single quoted\' "double quoted"')).toEqual([
+      'single quoted',
+      'double quoted',
+    ]);
+  });
+
+  test('handles nested quotes', () => {
+    expect(parseCommandLine("'nested\"'")).toEqual(['nested"']);
+  });
+
+  test('handles empty input', () => {
+    expect(parseCommandLine('')).toEqual([]);
+  });
+
+  test('handles arguments with special characters', () => {
+    expect(parseCommandLine('arg1 arg2!@#$%^&*()')).toEqual(['arg1', 'arg2!@#$%^&*()']);
+  });
+
+  test('handles arguments with escaped spaces', () => {
+    expect(parseCommandLine('arg1 "arg with spaces" arg3')).toEqual([
+      'arg1',
+      'arg with spaces',
+      'arg3',
+    ]);
+  });
+
+  test('removes surrounding quotes from single-quoted arguments', () => {
+    expect(parseCommandLine("'arg with spaces'")).toEqual(['arg with spaces']);
+  });
+
+  test('removes surrounding quotes from double-quoted arguments', () => {
+    expect(parseCommandLine('"arg with spaces"')).toEqual(['arg with spaces']);
+  });
+
+  test('handles multiple consecutive spaces', () => {
+    expect(parseCommandLine('arg1   arg2    arg3')).toEqual(['arg1', 'arg2', 'arg3']);
+  });
+
+  test('handles multi-line input', () => {
+    expect(parseCommandLine('arg1 arg2\narg3 arg4')).toEqual(['arg1', 'arg2', 'arg3', 'arg4']);
   });
 });

@@ -24,20 +24,21 @@ const CompareRunsPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
   return (
     <ApplicationsPage
       data-testid="compare-runs-page"
-      title=""
       breadcrumb={
         <Breadcrumb>
           {breadcrumbPath}
-          <BreadcrumbItem key="experiment">
-            {experiment?.display_name ? (
-              <Link to={experimentRunsRoute(namespace, experiment.experiment_id)}>
-                {/* TODO: Remove the custom className after upgrading to PFv6 */}
-                <Truncate content={experiment.display_name} className="truncate-no-min-width" />
-              </Link>
-            ) : (
-              'Loading...'
-            )}
-          </BreadcrumbItem>
+          {experiment ? (
+            <BreadcrumbItem key="experiment">
+              {experiment.display_name ? (
+                <Link to={experimentRunsRoute(namespace, experiment.experiment_id)}>
+                  {/* TODO: Remove the custom className after upgrading to PFv6 */}
+                  <Truncate content={experiment.display_name} className="truncate-no-min-width" />
+                </Link>
+              ) : (
+                'Loading...'
+              )}
+            </BreadcrumbItem>
+          ) : null}
           <BreadcrumbItem isActive>Compare runs</BreadcrumbItem>
         </Breadcrumb>
       }

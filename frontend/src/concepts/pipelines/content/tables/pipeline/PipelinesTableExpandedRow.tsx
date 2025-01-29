@@ -5,18 +5,17 @@ import {
   EmptyStateVariant,
   Spinner,
   EmptyStateActions,
-  EmptyStateHeader,
   EmptyStateFooter,
   Bullseye,
 } from '@patternfly/react-core';
-import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import PipelineVersionTable from '~/concepts/pipelines/content/tables/pipelineVersion/PipelineVersionTable';
 import usePipelineVersionsTable from '~/concepts/pipelines/content/tables/pipelineVersion/usePipelineVersionsTable';
 import { getTableSortProps } from '~/concepts/pipelines/content/tables/usePipelineTable';
 import ImportPipelineVersionButton from '~/concepts/pipelines/content/import/ImportPipelineVersionButton';
 
 type PipelinesTableExpandedRowProps = {
-  pipeline: PipelineKFv2;
+  pipeline: PipelineKF;
 };
 
 const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({ pipeline }) => {
@@ -48,8 +47,12 @@ const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({ p
         <Td />
         <Td colSpan={6}>
           <ExpandableRowContent>
-            <EmptyState variant={EmptyStateVariant.xs} data-testid="no-pipeline-versions">
-              <EmptyStateHeader titleText="No pipeline versions" headingLevel="h3" />
+            <EmptyState
+              headingLevel="h3"
+              titleText="No pipeline versions"
+              variant={EmptyStateVariant.xs}
+              data-testid="no-pipeline-versions"
+            >
               <EmptyStateFooter>
                 <EmptyStateActions>
                   <ImportPipelineVersionButton selectedPipeline={pipeline} variant="link" />
@@ -65,7 +68,7 @@ const PipelinesTableExpandedRow: React.FC<PipelinesTableExpandedRowProps> = ({ p
   return (
     <Tr isExpanded>
       <Td />
-      <Td className="pf-v5-u-pb-lg" noPadding colSpan={6}>
+      <Td className="pf-v6-u-pb-lg" noPadding colSpan={6}>
         <ExpandableRowContent>
           <PipelineVersionTable
             {...sortProps}

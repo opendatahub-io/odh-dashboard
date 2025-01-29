@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { ListItem, Stack, StackItem } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import { RestoreModal } from '~/concepts/pipelines/content/RestoreModal';
 import { BulkActionExpandableSection } from '~/pages/projects/components/BulkActionExpandableSection';
 import { PipelineRunTabTitle } from './types';
 
 interface RestoreRunModalProps {
-  runs: PipelineRunKFv2[];
+  runs: PipelineRunKF[];
   onCancel: () => void;
 }
 

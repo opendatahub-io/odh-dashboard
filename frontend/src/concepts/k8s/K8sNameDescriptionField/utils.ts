@@ -1,4 +1,5 @@
 import * as _ from 'lodash-es';
+import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
@@ -10,6 +11,7 @@ import { RecursivePartial } from '~/typeHelpers';
 import {
   K8sNameDescriptionFieldData,
   K8sNameDescriptionFieldUpdateFunctionInternal,
+  K8sNameDescriptionType,
   UseK8sNameDescriptionDataConfiguration,
 } from './types';
 
@@ -33,21 +35,34 @@ export enum LimitNameResourceType {
 /** K8s max DNS subdomain name length */
 const MAX_RESOURCE_NAME_LENGTH = 253;
 
+export const isK8sNameDescriptionType = (
+  x?: K8sNameDescriptionType | K8sResourceCommon,
+): x is K8sNameDescriptionType => !!x && 'k8sName' in x;
+
 export const setupDefaults = ({
   initialData,
   limitNameResourceType,
   safePrefix,
+  staticPrefix,
+  regexp,
+  invalidCharsMessage,
+  editableK8sName,
 }: UseK8sNameDescriptionDataConfiguration): K8sNameDescriptionFieldData => {
   let initialName = '';
   let initialDescription = '';
   let initialK8sNameValue = '';
   let configuredMaxLength = MAX_RESOURCE_NAME_LENGTH;
 
-  if (isK8sDSGResource(initialData)) {
+  if (isK8sNameDescriptionType(initialData)) {
+    initialName = initialData.name || '';
+    initialDescription = initialData.description || '';
+    initialK8sNameValue = initialData.k8sName || '';
+  } else if (isK8sDSGResource(initialData)) {
     initialName = getDisplayNameFromK8sResource(initialData);
     initialDescription = getDescriptionFromK8sResource(initialData);
     initialK8sNameValue = initialData.metadata.name;
   }
+
   if (limitNameResourceType != null) {
     configuredMaxLength = ROUTE_BASED_NAME_LENGTH;
   }
@@ -58,12 +73,18 @@ export const setupDefaults = ({
     k8sName: {
       value: initialK8sNameValue,
       state: {
-        immutable: initialK8sNameValue !== '',
+        immutable: !editableK8sName && initialK8sNameValue !== '',
         invalidCharacters: false,
         invalidLength: false,
         maxLength: configuredMaxLength,
         safePrefix,
-        touched: false,
+        staticPrefix,
+        regexp,
+        invalidCharsMessage,
+        touched:
+          !!editableK8sName &&
+          initialK8sNameValue !== '' &&
+          initialK8sNameValue !== translateDisplayNameForK8s(initialName),
       },
     },
   })('name', initialName) satisfies K8sNameDescriptionFieldData;
@@ -79,13 +100,15 @@ export const handleUpdateLogic =
       case 'name': {
         changedData.name = value;
 
-        const { touched, immutable, maxLength, safePrefix } = existingData.k8sName.state;
+        const { touched, immutable, maxLength, safePrefix, staticPrefix } =
+          existingData.k8sName.state;
         // When name changes, we want to update resource name if applicable
         if (!touched && !immutable) {
           // Update the generated name
           const k8sValue = translateDisplayNameForK8s(value, {
             maxLength,
             safeK8sPrefix: safePrefix,
+            staticPrefix,
           });
           changedData.k8sName = {
             value: k8sValue,
@@ -96,7 +119,8 @@ export const handleUpdateLogic =
       case 'k8sName':
         changedData.k8sName = {
           state: {
-            invalidCharacters: value.length > 0 ? !isValidK8sName(value) : false,
+            invalidCharacters:
+              value.length > 0 ? !isValidK8sName(value, existingData.k8sName.state.regexp) : false,
             invalidLength: value.length > existingData.k8sName.state.maxLength,
             touched: true,
           },
@@ -115,7 +139,7 @@ export const isK8sNameDescriptionDataValid = ({
   name,
   k8sName: {
     value,
-    state: { invalidCharacters, invalidLength },
+    state: { invalidCharacters, invalidLength, regexp },
   },
 }: K8sNameDescriptionFieldData): boolean =>
-  name.trim().length > 0 && isValidK8sName(value) && !invalidLength && !invalidCharacters;
+  name.trim().length > 0 && isValidK8sName(value, regexp) && !invalidLength && !invalidCharacters;

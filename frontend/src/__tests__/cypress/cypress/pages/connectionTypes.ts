@@ -1,4 +1,5 @@
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
+import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 import { TableRow } from './components/table';
 import { TableToolbar } from './components/TableToolbar';
 import { Contextual } from './components/Contextual';
@@ -102,6 +103,18 @@ class CreateConnectionTypePage {
   getCategorySection() {
     return new CategorySection(() => cy.findByTestId('connection-type-category-toggle'));
   }
+
+  findDuplicateConnectionTypeButton() {
+    return cy.findByTestId('duplicate-connection-type');
+  }
+
+  findCompatibleModelServingTypesAlert() {
+    return cy.findByTestId('compatible-model-serving-types-alert');
+  }
+
+  findModelServingCompatibleTypeDropdown() {
+    return cy.findByTestId('select-model-serving-compatible-type');
+  }
 }
 
 class CategorySection extends Contextual<HTMLElement> {
@@ -126,7 +139,7 @@ class CategorySection extends Contextual<HTMLElement> {
   }
 
   findMultiGroupSelectButton(name: string) {
-    return cy.findByTestId(`select-multi-typeahead-${name}`).click();
+    return cy.findByTestId(`select-multi-typeahead-${name}`);
   }
 }
 
@@ -155,11 +168,6 @@ class ConnectionTypeRow extends TableRow {
 
   shouldHaveDescription(description: string) {
     this.findConnectionTypeDescription().should('contain.text', description);
-    return this;
-  }
-
-  shouldHaveModelServingCompatibility() {
-    this.findConnectionTypeCompatibility().should('have.text', 'Model serving');
     return this;
   }
 
@@ -246,7 +254,7 @@ class ConnectionTypesPage {
   }
 
   findEmptyFilterResults() {
-    return cy.findByTestId('no-result-found-title');
+    return cy.findByTestId('dashboard-empty-table-state');
   }
 
   findSortButton(name: string) {
@@ -258,5 +266,12 @@ class ConnectionTypesPage {
   }
 }
 
+class ConnectionTypePreviewModal extends Modal {
+  constructor() {
+    super('Preview connection');
+  }
+}
+
 export const connectionTypesPage = new ConnectionTypesPage();
 export const createConnectionTypePage = new CreateConnectionTypePage();
+export const connectionTypePreviewModal = new ConnectionTypePreviewModal();

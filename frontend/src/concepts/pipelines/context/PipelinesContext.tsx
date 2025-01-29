@@ -16,7 +16,6 @@ import { ConfigurePipelinesServerModal } from '~/concepts/pipelines/content/conf
 import ViewPipelineServerModal from '~/concepts/pipelines/content/ViewPipelineServerModal';
 import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
 import useManageElyraSecret from '~/concepts/pipelines/context/useManageElyraSecret';
-import { deleteServer } from '~/concepts/pipelines/utils';
 import { conditionalArea, SupportedArea } from '~/concepts/areas';
 import { DEV_MODE } from '~/utilities/const';
 import { MetadataStoreServicePromiseClient } from '~/third_party/mlmd';
@@ -109,7 +108,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
 
   const metadataStoreServiceClient = React.useMemo(() => {
     const client = new MetadataStoreServicePromiseClient(
-      `/api/service/mlmd/${namespace}/${dspaName}`,
+      `/api/service/mlmd/${namespace}/${dspaName ?? ''}`,
     );
     if (DEV_MODE) {
       // Enables the use of this browser extension: https://github.com/SafetyCulture/grpc-web-devtools
@@ -273,38 +272,45 @@ export const ViewServerModal = ({ onClose }: { onClose: () => void }): React.JSX
 };
 
 export const PipelineServerTimedOut: React.FC = () => {
-  const { namespace, crName, crStatus, refreshState, ignoreTimedOut } =
-    React.useContext(PipelinesContext);
+  const { crStatus, ignoreTimedOut } = React.useContext(PipelinesContext);
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
   const errorMessage =
     crStatus?.conditions?.find((condition) => condition.type === 'Ready')?.message || '';
   return (
-    <Alert
-      variant="danger"
-      isInline
-      title="Pipeline server failed"
-      actionClose={<AlertActionCloseButton onClose={() => ignoreTimedOut()} />}
-      actionLinks={
-        <>
-          <AlertActionLink
-            onClick={() => deleteServer(namespace, crName).then(() => refreshState())}
-          >
-            Delete pipeline server
-          </AlertActionLink>
-          <AlertActionLink onClick={() => ignoreTimedOut()}>Close</AlertActionLink>
-        </>
-      }
-    >
-      <Stack hasGutter>
-        {errorMessage && (
-          <StackItem data-testid="timeout-pipeline-error-message">{errorMessage}</StackItem>
-        )}
-        <StackItem>
-          We encountered an error creating or loading your pipeline server. To continue, delete this
-          pipeline server and create a new one. Deleting this pipeline server will delete all of its
-          resources, including pipelines, runs, and jobs.
-        </StackItem>
-        <StackItem>To get help contact your administrator.</StackItem>
-      </Stack>
-    </Alert>
+    <>
+      <Alert
+        variant="danger"
+        isInline
+        title="Pipeline server failed"
+        actionClose={<AlertActionCloseButton onClose={() => ignoreTimedOut()} />}
+        actionLinks={
+          <>
+            <AlertActionLink onClick={() => setDeleteOpen(true)}>
+              Delete pipeline server
+            </AlertActionLink>
+            <AlertActionLink onClick={() => ignoreTimedOut()}>Close</AlertActionLink>
+          </>
+        }
+      >
+        <Stack hasGutter>
+          {errorMessage && (
+            <StackItem data-testid="timeout-pipeline-error-message">{errorMessage}</StackItem>
+          )}
+          <StackItem>
+            We encountered an error creating or loading your pipeline server. To continue, delete
+            this pipeline server and create a new one. Deleting this pipeline server will delete all
+            of its resources, including pipelines, runs, and jobs.
+          </StackItem>
+          <StackItem>To get help contact your administrator.</StackItem>
+        </Stack>
+      </Alert>
+      {deleteOpen ? (
+        <DeleteServerModal
+          onClose={() => {
+            setDeleteOpen(false);
+          }}
+        />
+      ) : null}
+    </>
   );
 };

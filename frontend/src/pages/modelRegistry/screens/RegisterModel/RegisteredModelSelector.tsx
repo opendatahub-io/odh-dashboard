@@ -1,7 +1,7 @@
 import React from 'react';
 import { TextInput } from '@patternfly/react-core';
-import { TypeaheadSelect, TypeaheadSelectOption } from '@patternfly/react-templates';
 import { RegisteredModel } from '~/concepts/modelRegistry/types';
+import TypeaheadSelect, { TypeaheadSelectOption } from '~/components/TypeaheadSelect';
 
 type RegisteredModelSelectorProps = {
   registeredModels: RegisteredModel[];

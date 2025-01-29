@@ -2,19 +2,18 @@ import * as React from 'react';
 import {
   EmptyState,
   EmptyStateBody,
-  EmptyStateIcon,
-  EmptyStateHeader,
   EmptyStateActions,
   EmptyStateFooter,
 } from '@patternfly/react-core';
 
 type EmptyDetailsViewProps = {
   title?: string;
-  description?: string;
+  description?: React.ReactNode;
   iconImage?: string;
   imageAlt?: string;
   allowCreate?: boolean;
   createButton?: React.ReactNode;
+  footerExtraChildren?: React.ReactNode;
   imageSize?: string;
 };
 
@@ -25,25 +24,25 @@ const EmptyDetailsView: React.FC<EmptyDetailsViewProps> = ({
   imageAlt,
   allowCreate = true,
   createButton,
+  footerExtraChildren = null,
   imageSize = '320px',
 }) => (
-  <EmptyState variant="lg">
-    <EmptyStateHeader
-      data-testid="empty-state-title"
-      titleText={title}
-      icon={
-        iconImage ? (
-          <EmptyStateIcon
-            icon={() => <img style={{ height: imageSize }} src={iconImage} alt={imageAlt} />}
-          />
-        ) : undefined
-      }
-      headingLevel="h3"
-    />
+  <EmptyState
+    data-testid="empty-state-title"
+    headingLevel="h3"
+    titleText={title}
+    variant="lg"
+    icon={
+      iconImage
+        ? () => <img style={{ height: imageSize }} src={iconImage} alt={imageAlt} />
+        : undefined
+    }
+  >
     <EmptyStateBody>{description}</EmptyStateBody>
     {allowCreate && createButton ? (
       <EmptyStateFooter>
         <EmptyStateActions>{createButton}</EmptyStateActions>
+        {footerExtraChildren}
       </EmptyStateFooter>
     ) : null}
   </EmptyState>

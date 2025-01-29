@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { PathProps } from '~/concepts/pipelines/content/types';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
-import { experimentRunDetailsRoute, experimentRunsRoute } from '~/routes';
+import { experimentRunsRoute, runDetailsRoute } from '~/routes';
 import DuplicateRunPage from '~/concepts/pipelines/content/createRun/DuplicateRunPage';
 
 const ExperimentDuplicateRunPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
@@ -28,9 +28,7 @@ const ExperimentDuplicateRunPage: React.FC<PathProps> = ({ breadcrumbPath }) => 
       ]}
       contextPath={experimentRunsRoute(namespace, experiment?.experiment_id)}
       contextExperiment={experiment}
-      detailsRedirect={(runId) =>
-        experimentRunDetailsRoute(namespace, experiment?.experiment_id, runId)
-      }
+      detailsRedirect={(runId) => runDetailsRoute(namespace, runId, experiment?.experiment_id)}
     />
   );
 };

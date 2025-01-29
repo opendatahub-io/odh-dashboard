@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Popover } from '@patternfly/react-core';
+import { Button, Popover, Tooltip } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
@@ -11,6 +11,7 @@ import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import { Connection } from '~/concepts/connectionTypes/types';
 import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
 import { createSecret, replaceSecret } from '~/api';
+import { filterEnabledConnectionTypes } from '~/concepts/connectionTypes/utils';
 import ConnectionsTable from './ConnectionsTable';
 import { ManageConnectionModal } from './ManageConnectionsModal';
 
@@ -23,64 +24,104 @@ const ConnectionsList: React.FC = () => {
     currentProject,
   } = React.useContext(ProjectDetailsContext);
   const [connectionTypes, connectionTypesLoaded, connectionTypesError] = useWatchConnectionTypes();
+  const enabledConnectionTypes = React.useMemo(
+    () => filterEnabledConnectionTypes(connectionTypes),
+    [connectionTypes],
+  );
 
   const [manageConnectionModal, setManageConnectionModal] = React.useState<{
     connection?: Connection;
     isEdit?: boolean;
   }>();
 
+  const tooltipRef = React.useRef<HTMLButtonElement>();
+
   return (
-    <DetailsSection
-      objectType={ProjectObjectType.connections}
-      id={ProjectSectionID.CONNECTIONS}
-      title={ProjectSectionTitles[ProjectSectionID.CONNECTIONS]}
-      popover={
-        <Popover headerContent="About connections" bodyContent={ConnectionsDescription}>
-          <DashboardPopupIconButton icon={<OutlinedQuestionCircleIcon />} aria-label="More info" />
-        </Popover>
-      }
-      actions={[
-        <Button
-          key={`action-${ProjectSectionID.CONNECTIONS}`}
-          data-testid="add-connection-button"
-          variant="primary"
-          onClick={() => {
-            setManageConnectionModal({});
-          }}
-        >
-          Add connection
-        </Button>,
-      ]}
-      isLoading={!loaded || !connectionTypesLoaded}
-      isEmpty={connections.length === 0}
-      loadError={error || connectionTypesError}
-      emptyState={
-        <EmptyDetailsView
-          title="No connections"
-          description={ConnectionsDescription}
-          iconImage={typedEmptyImage(ProjectObjectType.connections)}
-          imageAlt="create a connection"
-          createButton={
+    <>
+      <DetailsSection
+        objectType={ProjectObjectType.connections}
+        id={ProjectSectionID.CONNECTIONS}
+        title={ProjectSectionTitles[ProjectSectionID.CONNECTIONS]}
+        popover={
+          <Popover headerContent="About connections" bodyContent={ConnectionsDescription}>
+            <DashboardPopupIconButton
+              icon={<OutlinedQuestionCircleIcon />}
+              aria-label="More info"
+            />
+          </Popover>
+        }
+        actions={[
+          <>
             <Button
-              key={`action-${ProjectSectionID.CONNECTIONS}`}
+              data-testid="add-connection-button"
               variant="primary"
-              data-testid="create-connection-button"
+              onClick={() => {
+                setManageConnectionModal({});
+              }}
+              aria-describedby={
+                enabledConnectionTypes.length === 0 ? 'no-connection-types-tooltip' : undefined
+              }
+              isAriaDisabled={enabledConnectionTypes.length === 0}
+              ref={tooltipRef}
             >
-              Create connection
+              Add connection
             </Button>
+            {enabledConnectionTypes.length === 0 && (
+              <Tooltip
+                id="no-connection-types-tooltip"
+                content="No connection types available"
+                triggerRef={tooltipRef}
+              />
+            )}
+          </>,
+        ]}
+        isLoading={!loaded || !connectionTypesLoaded}
+        isEmpty={connections.length === 0}
+        loadError={error || connectionTypesError}
+        emptyState={
+          <EmptyDetailsView
+            title="No connections"
+            description={ConnectionsDescription}
+            iconImage={typedEmptyImage(ProjectObjectType.connections)}
+            imageAlt="create a connection"
+            createButton={
+              <>
+                <Button
+                  variant="primary"
+                  data-testid="create-connection-button"
+                  aria-describedby={
+                    enabledConnectionTypes.length === 0 ? 'no-connection-types-tooltip' : undefined
+                  }
+                  isAriaDisabled={enabledConnectionTypes.length === 0}
+                  onClick={() => {
+                    setManageConnectionModal({});
+                  }}
+                  ref={tooltipRef}
+                >
+                  Create connection
+                </Button>
+                {enabledConnectionTypes.length === 0 && (
+                  <Tooltip
+                    id="no-connection-types-tooltip"
+                    content="No connection types available"
+                    triggerRef={tooltipRef}
+                  />
+                )}
+              </>
+            }
+          />
+        }
+      >
+        <ConnectionsTable
+          namespace={currentProject.metadata.name}
+          connections={connections}
+          connectionTypes={connectionTypes}
+          refreshConnections={refreshConnections}
+          setManageConnectionModal={(modalConnection?: Connection) =>
+            setManageConnectionModal({ connection: modalConnection, isEdit: true })
           }
         />
-      }
-    >
-      <ConnectionsTable
-        namespace={currentProject.metadata.name}
-        connections={connections}
-        connectionTypes={connectionTypes}
-        refreshConnections={refreshConnections}
-        setManageConnectionModal={(modalConnection?: Connection) =>
-          setManageConnectionModal({ connection: modalConnection, isEdit: true })
-        }
-      />
+      </DetailsSection>
       {manageConnectionModal && (
         <ManageConnectionModal
           connection={manageConnectionModal.connection}
@@ -98,7 +139,7 @@ const ConnectionsList: React.FC = () => {
           isEdit={manageConnectionModal.isEdit}
         />
       )}
-    </DetailsSection>
+    </>
   );
 };
 

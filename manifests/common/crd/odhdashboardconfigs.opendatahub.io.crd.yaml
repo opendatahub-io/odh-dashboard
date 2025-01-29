@@ -53,7 +53,7 @@ spec:
                       type: boolean
                     disablePipelines:
                       type: boolean
-                    disableBiasMetrics:
+                    disableTrustyBiasMetrics:
                       type: boolean
                     disablePerformanceMetrics:
                       type: boolean
@@ -67,11 +67,15 @@ spec:
                       type: boolean
                     disableAcceleratorProfiles:
                       type: boolean
+                    disableHardwareProfiles:
+                      type: boolean
                     disableDistributedWorkloads:
                       type: boolean
                     disableModelRegistry:
                       type: boolean
-                    disableConnectionTypes:
+                    disableModelRegistrySecureDB:
+                      type: boolean
+                    disableServingRuntimeParams:
                       type: boolean
                     disableStorageClasses:
                       type: boolean
@@ -87,6 +91,9 @@ spec:
                       type: string
                     allowedGroups:
                       type: string
+                  x-kubernetes-validations:
+                    - rule: self == oldSelf
+                      message: Can no longer modify group configurations here, see the Auth resource instead
                 notebookSizes:
                   type: array
                   items:

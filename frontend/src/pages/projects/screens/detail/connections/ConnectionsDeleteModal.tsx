@@ -1,14 +1,11 @@
 import React from 'react';
-import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   Badge,
   Bullseye,
   ExpandableSection,
   ExpandableSectionToggle,
   Spinner,
-  TextContent,
-  TextList,
-  TextListItem,
+  Content,
 } from '@patternfly/react-core';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { Connection } from '~/concepts/connectionTypes/types';
@@ -20,19 +17,18 @@ import {
 import { useNotebooksStates } from '~/pages/projects/notebook/useNotebooksStates';
 import { NotebookKind } from '~/k8sTypes';
 import { useInferenceServicesForConnection } from '~/pages/projects/useInferenceServicesForConnection';
+import { deleteSecret, removeNotebookSecret } from '~/api';
 
 type Props = {
   namespace: string;
   deleteConnection: Connection;
   onClose: (deleted?: boolean) => void;
-  onDelete: () => Promise<K8sStatus>;
 };
 
 export const ConnectionsDeleteModal: React.FC<Props> = ({
   namespace,
   deleteConnection,
   onClose,
-  onDelete,
 }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error>();
@@ -61,8 +57,18 @@ export const ConnectionsDeleteModal: React.FC<Props> = ({
       onDelete={() => {
         setIsDeleting(true);
         setError(undefined);
-
-        onDelete()
+        Promise.all(
+          connectedNotebooks.map((notebook) =>
+            removeNotebookSecret(
+              notebook.metadata.name,
+              notebook.metadata.namespace,
+              deleteConnection.metadata.name,
+            ),
+          ),
+        )
+          .then(() =>
+            deleteSecret(deleteConnection.metadata.namespace, deleteConnection.metadata.name),
+          )
           .then(() => {
             onClose(true);
           })
@@ -78,7 +84,7 @@ export const ConnectionsDeleteModal: React.FC<Props> = ({
       The <b>{getDisplayNameFromK8sResource(deleteConnection)}</b> connection will be deleted, and
       its dependent resources will stop working.
       {loaded && !connectedNotebooks.length && !connectedModels.length ? null : (
-        <div className="pf-v5-u-mt-md">
+        <div className="pf-v6-u-mt-md">
           {!loaded ? (
             <Bullseye>
               <Spinner size="md" />
@@ -106,19 +112,20 @@ export const ConnectionsDeleteModal: React.FC<Props> = ({
                       contentId="expanded-connected-notebooks"
                       toggleId="expand-connected-notebooks-toggle"
                     >
-                      <TextContent>
-                        <TextList>
+                      <Content>
+                        <Content component="ul">
                           {connectedNotebooks.map((notebook) => (
-                            <TextListItem
+                            <Content
+                              component="li"
                               key={notebook.metadata.name}
                               data-testid="connections-delete-notebooks-item"
                             >
                               {getDisplayNameFromK8sResource(notebook)}
                               {getNotebookStatusText(notebook)}
-                            </TextListItem>
+                            </Content>
                           ))}
-                        </TextList>
-                      </TextContent>
+                        </Content>
+                      </Content>
                     </ExpandableSection>
                   ) : null}
                 </>
@@ -144,18 +151,19 @@ export const ConnectionsDeleteModal: React.FC<Props> = ({
                       toggleId="expand-connected-models-toggle"
                       contentId="expanded-connected-models"
                     >
-                      <TextContent>
-                        <TextList>
+                      <Content>
+                        <Content component="ul">
                           {connectedModels.map((model) => (
-                            <TextListItem
+                            <Content
+                              component="li"
                               key={model.metadata.name}
                               data-testid="connections-delete-models-item"
                             >
                               {getDisplayNameFromK8sResource(model)}
-                            </TextListItem>
+                            </Content>
                           ))}
-                        </TextList>
-                      </TextContent>
+                        </Content>
+                      </Content>
                     </ExpandableSection>
                   ) : null}
                 </>

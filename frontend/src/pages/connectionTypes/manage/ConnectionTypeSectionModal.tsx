@@ -1,9 +1,11 @@
 import * as React from 'react';
-import { Form, FormGroup, Modal, TextInput, TextArea, Popover } from '@patternfly/react-core';
+import { Form, FormGroup, TextInput, TextArea, Popover } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { SectionField } from '~/concepts/connectionTypes/types';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+import useGenericObjectState from '~/utilities/useGenericObjectState';
 
 type Props = {
   field?: SectionField;
@@ -13,9 +15,12 @@ type Props = {
 };
 
 const ConnectionTypeSectionModal: React.FC<Props> = ({ field, onClose, onSubmit, isEdit }) => {
-  const [name, setName] = React.useState(field?.name || '');
-  const [description, setDescription] = React.useState(field?.description || '');
-
+  const [data, setData] = useGenericObjectState({
+    name: field?.name || '',
+    description: field?.description || '',
+  });
+  const canSubmit = React.useRef(data).current !== data || !isEdit;
+  const { name, description } = data;
   const isValid = name.length > 0;
 
   return (
@@ -34,8 +39,7 @@ const ConnectionTypeSectionModal: React.FC<Props> = ({ field, onClose, onSubmit,
               onClose();
             }
           }}
-          isSubmitDisabled={!isValid}
-          alertTitle=""
+          isSubmitDisabled={!canSubmit || !isValid}
         />
       }
       elementToFocus="#section-name"
@@ -45,7 +49,7 @@ const ConnectionTypeSectionModal: React.FC<Props> = ({ field, onClose, onSubmit,
           label="Section heading"
           isRequired
           fieldId="section-name"
-          labelIcon={
+          labelHelp={
             <Popover
               headerContent="Section heading"
               bodyContent="Use section headings to indicate groups of related fields. Use descriptive headings, for example, Details, Configuration, Preferences."
@@ -62,13 +66,13 @@ const ConnectionTypeSectionModal: React.FC<Props> = ({ field, onClose, onSubmit,
             id="section-name"
             data-testid="section-name"
             value={name}
-            onChange={(_e, value) => setName(value)}
+            onChange={(_e, value) => setData('name', value)}
           />
         </FormGroup>
         <FormGroup
           label="Section description"
           fieldId="section-description"
-          labelIcon={
+          labelHelp={
             <Popover
               headerContent="Section description"
               bodyContent="Use section descriptions to summarize the required input."
@@ -84,7 +88,7 @@ const ConnectionTypeSectionModal: React.FC<Props> = ({ field, onClose, onSubmit,
             id="section-description"
             data-testid="section-description"
             value={description}
-            onChange={(_e, value) => setDescription(value)}
+            onChange={(_e, value) => setData('description', value)}
           />
         </FormGroup>
       </Form>

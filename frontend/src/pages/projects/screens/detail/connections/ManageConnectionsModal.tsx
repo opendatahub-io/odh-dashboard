@@ -1,5 +1,6 @@
 import React from 'react';
-import { Alert, Modal } from '@patternfly/react-core';
+import { Alert, Form } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import ConnectionTypeForm from '~/concepts/connectionTypes/ConnectionTypeForm';
 import {
@@ -7,16 +8,19 @@ import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeFieldType,
   ConnectionTypeValueType,
-  isConnectionTypeDataField,
 } from '~/concepts/connectionTypes/types';
 import { ProjectKind, SecretKind } from '~/k8sTypes';
+import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
+import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import { useK8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import {
   assembleConnectionSecret,
+  filterEnabledConnectionTypes,
+  getConnectionTypeRef,
   getDefaultValues,
+  isConnectionTypeDataField,
   parseConnectionSecretValues,
 } from '~/concepts/connectionTypes/utils';
-import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
 
 type Props = {
   connection?: Connection;
@@ -40,36 +44,38 @@ export const ManageConnectionModal: React.FC<Props> = ({
   const [isModified, setIsModified] = React.useState(false);
 
   const enabledConnectionTypes = React.useMemo(
-    () =>
-      connectionTypes.filter((t) => t.metadata.annotations?.['opendatahub.io/enabled'] === 'true'),
+    () => filterEnabledConnectionTypes(connectionTypes),
     [connectionTypes],
   );
+
+  const connectionTypeSource = getConnectionTypeRef(connection);
 
   const [selectedConnectionType, setSelectedConnectionType] = React.useState<
     ConnectionTypeConfigMapObj | undefined
   >(() => {
-    if (isEdit && connection) {
-      return connectionTypes.find(
-        (t) =>
-          t.metadata.name === connection.metadata.annotations['opendatahub.io/connection-type'],
-      );
+    if (isEdit) {
+      return connectionTypes.find((t) => t.metadata.name === connectionTypeSource);
     }
     if (enabledConnectionTypes.length === 1) {
       return enabledConnectionTypes[0];
     }
     return undefined;
   });
+
+  const connectionTypeName = selectedConnectionType?.metadata.name || connectionTypeSource;
+
   const { data: nameDescData, onDataChange: setNameDescData } = useK8sNameDescriptionFieldData({
     initialData: connection,
   });
   const [connectionValues, setConnectionValues] = React.useState<{
     [key: string]: ConnectionTypeValueType;
   }>(() => {
-    if (connection?.data) {
-      return parseConnectionSecretValues(connection, selectedConnectionType);
-    }
-    if (enabledConnectionTypes.length === 1) {
-      return getDefaultValues(enabledConnectionTypes[0]);
+    if (isEdit) {
+      if (connection) {
+        return parseConnectionSecretValues(connection, selectedConnectionType);
+      }
+    } else if (selectedConnectionType) {
+      return getDefaultValues(selectedConnectionType);
     }
     return {};
   });
@@ -79,9 +85,9 @@ export const ManageConnectionModal: React.FC<Props> = ({
   }>({});
   const isFormValid = React.useMemo(
     () =>
-      !!selectedConnectionType &&
-      !!nameDescData.name &&
-      !selectedConnectionType.data?.fields?.find(
+      !!connectionTypeName &&
+      isK8sNameDescriptionDataValid(nameDescData) &&
+      !selectedConnectionType?.data?.fields?.find(
         (field) =>
           isConnectionTypeDataField(field) &&
           field.required &&
@@ -89,7 +95,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
           field.type !== ConnectionTypeFieldType.Boolean,
       ) &&
       !Object.values(validations).includes(false),
-    [selectedConnectionType, nameDescData, connectionValues, validations],
+    [connectionTypeName, selectedConnectionType, nameDescData, connectionValues, validations],
   );
 
   // if user changes connection types, don't discard previous entries in case of accident
@@ -137,7 +143,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
             setError(undefined);
 
             // this shouldn't ever happen, but type safety
-            if (!selectedConnectionType) {
+            if (!connectionTypeName) {
               setError(new Error('No connection type selected'));
               setIsSaving(false);
               return;
@@ -145,8 +151,8 @@ export const ManageConnectionModal: React.FC<Props> = ({
 
             onSubmit(
               assembleConnectionSecret(
-                project,
-                selectedConnectionType,
+                project.metadata.name,
+                connectionTypeName,
                 nameDescData,
                 connectionValues,
               ),
@@ -160,7 +166,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
               });
           }}
           error={error}
-          isSubmitDisabled={!isFormValid || !isModified}
+          isSubmitDisabled={!isFormValid || !isModified || isSaving}
           isSubmitLoading={isSaving}
           alertTitle=""
         />
@@ -168,7 +174,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
     >
       {isEdit && (
         <Alert
-          style={{ marginBottom: 32 }}
+          className="pf-v6-u-mb-lg"
           variant="warning"
           isInline
           title="Dependent resources require further action"
@@ -177,34 +183,36 @@ export const ManageConnectionModal: React.FC<Props> = ({
           restarted, redeployed, or otherwise regenerated.
         </Alert>
       )}
-      <ConnectionTypeForm
-        connectionTypes={isEdit ? connectionTypes : enabledConnectionTypes}
-        connectionType={selectedConnectionType}
-        setConnectionType={(obj?: ConnectionTypeConfigMapObj) => {
-          if (!isModified) {
-            setIsModified(true);
+      <Form>
+        <ConnectionTypeForm
+          options={!isEdit ? enabledConnectionTypes : undefined}
+          connectionType={selectedConnectionType || (isEdit ? connectionTypeSource : undefined)}
+          setConnectionType={(name: string) => {
+            const obj = connectionTypes.find((c) => c.metadata.name === name);
+            if (!isModified) {
+              setIsModified(true);
+            }
+            changeSelectionType(obj);
+          }}
+          connectionNameDesc={nameDescData}
+          setConnectionNameDesc={(key: keyof K8sNameDescriptionFieldData, value: string) => {
+            if (!isModified) {
+              setIsModified(true);
+            }
+            setNameDescData(key, value);
+          }}
+          connectionValues={connectionValues}
+          onChange={(field, value) => {
+            if (!isModified) {
+              setIsModified(true);
+            }
+            setConnectionValues((prev) => ({ ...prev, [field.envVar]: value }));
+          }}
+          onValidate={(field, isValid) =>
+            setValidations((prev) => ({ ...prev, [field.envVar]: isValid }))
           }
-          changeSelectionType(obj);
-        }}
-        connectionNameDesc={nameDescData}
-        setConnectionNameDesc={(key: keyof K8sNameDescriptionFieldData, value: string) => {
-          if (!isModified) {
-            setIsModified(true);
-          }
-          setNameDescData(key, value);
-        }}
-        connectionValues={connectionValues}
-        onChange={(field, value) => {
-          if (!isModified) {
-            setIsModified(true);
-          }
-          setConnectionValues((prev) => ({ ...prev, [field.envVar]: value }));
-        }}
-        onValidate={(field, isValid) =>
-          setValidations((prev) => ({ ...prev, [field.envVar]: isValid }))
-        }
-        disableTypeSelection={isEdit || enabledConnectionTypes.length === 1}
-      />
+        />
+      </Form>
     </Modal>
   );
 };

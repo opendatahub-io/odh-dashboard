@@ -37,6 +37,7 @@ export enum SupportedArea {
   CLUSTER_SETTINGS = 'cluster-settings',
   USER_MANAGEMENT = 'user-management',
   ACCELERATOR_PROFILES = 'accelerator-profiles',
+  HARDWARE_PROFILES = 'hardware-profiles',
   CONNECTION_TYPES = 'connections-types',
   STORAGE_CLASSES = 'storage-classes',
 
@@ -50,17 +51,20 @@ export enum SupportedArea {
   K_SERVE = 'kserve',
   K_SERVE_AUTH = 'kserve-auth',
   K_SERVE_METRICS = 'kserve-metrics',
+  K_SERVE_RAW = 'kserve-raw',
   MODEL_MESH = 'model-mesh',
   BIAS_METRICS = 'bias-metrics',
   PERFORMANCE_METRICS = 'performance-metrics',
   TRUSTY_AI = 'trusty-ai',
   NIM_MODEL = 'nim-model',
+  SERVING_RUNTIME_PARAMS = 'serving-runtime-params',
 
   /* Distributed Workloads areas */
   DISTRIBUTED_WORKLOADS = 'distributed-workloads',
 
   /* Model Registry areas */
   MODEL_REGISTRY = 'model-registry',
+  MODEL_REGISTRY_SECURE_DB = 'model-registry-secure-db',
 }
 
 /** Components deployed by the Operator. Part of the DSC Status. */

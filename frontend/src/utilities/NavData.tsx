@@ -5,6 +5,7 @@ import {
   artifactsRootPath,
   executionsRootPath,
   experimentsRootPath,
+  pipelineRunsRootPath,
   pipelinesRootPath,
 } from '~/routes';
 
@@ -65,7 +66,22 @@ const useDSPipelinesNav = (): NavDataItem[] => {
   }
 
   return [
-    { id: 'pipelines', label: 'Data Science Pipelines', href: pipelinesRootPath },
+    {
+      id: 'pipelines-and-runs',
+      group: { id: 'pipelines-and-runs', title: 'Data Science Pipelines' },
+      children: [
+        {
+          id: 'pipelines',
+          label: 'Pipelines',
+          href: pipelinesRootPath,
+        },
+        {
+          id: 'runs',
+          label: 'Runs',
+          href: pipelineRunsRootPath,
+        },
+      ],
+    },
     {
       id: 'experiments',
       group: { id: 'experiments', title: 'Experiments' },
@@ -181,11 +197,21 @@ const useAcceleratorProfilesNav = (): NavDataHref[] =>
     },
   ]);
 
+const useHardwareProfilesNav = (): NavDataHref[] =>
+  useAreaCheck<NavDataHref>(SupportedArea.HARDWARE_PROFILES, [
+    {
+      id: 'settings-hardware-profiles',
+      label: 'Hardware profiles',
+      href: '/hardwareProfiles',
+    },
+  ]);
+
 const useSettingsNav = (): NavDataGroup[] => {
   const settingsNavs: NavDataHref[] = [
     ...useCustomNotebooksNav(),
     ...useClusterSettingsNav(),
     ...useAcceleratorProfilesNav(),
+    ...useHardwareProfilesNav(),
     ...useCustomRuntimesNav(),
     ...useConnectionTypesNav(),
     ...useStorageClassesNav(),

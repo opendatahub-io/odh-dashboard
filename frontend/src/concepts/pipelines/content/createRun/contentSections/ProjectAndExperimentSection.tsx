@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { FormGroup, FormSection, Stack, StackItem, Text } from '@patternfly/react-core';
+import { FormGroup, FormSection, Stack, StackItem, Content } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
 import {
   CreateRunPageSections,
   runPageSectionTitles,
@@ -11,8 +11,8 @@ import CreateExperimentButton from '~/concepts/pipelines/content/experiment/Crea
 
 type ProjectAndExperimentSectionProps = {
   projectName: string;
-  value: ExperimentKFv2 | null;
-  onChange: (experiment: ExperimentKFv2) => void;
+  value: ExperimentKF | null;
+  onChange: (experiment: ExperimentKF) => void;
 };
 
 const ProjectAndExperimentSection: React.FC<ProjectAndExperimentSectionProps> = ({
@@ -25,7 +25,7 @@ const ProjectAndExperimentSection: React.FC<ProjectAndExperimentSectionProps> = 
     title={runPageSectionTitles[CreateRunPageSections.PROJECT_AND_EXPERIMENT]}
   >
     <FormGroup label="Project">
-      <Text>{projectName}</Text>
+      <Content component="p">{projectName}</Content>
     </FormGroup>
     <FormGroup label="Experiment" aria-label="Experiment" isRequired>
       <Stack hasGutter>

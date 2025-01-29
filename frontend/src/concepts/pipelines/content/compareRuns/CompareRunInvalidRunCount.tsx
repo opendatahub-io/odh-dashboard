@@ -1,33 +1,28 @@
+import React from 'react';
 import {
   PageSection,
   EmptyState,
   EmptyStateVariant,
-  EmptyStateHeader,
-  EmptyStateIcon,
   EmptyStateBody,
   EmptyStateFooter,
   EmptyStateActions,
   Button,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import React from 'react';
-import { useParams } from 'react-router';
 import { useNavigate } from 'react-router-dom';
-import { experimentsBaseRoute, experimentsManageCompareRunsRoute } from '~/routes';
-import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { manageCompareRunsRoute } from '~/routes';
+import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
 
 type CompareRunsInvalidRunCountProps = {
-  runs: PipelineRunKFv2[];
+  runs: PipelineRunKF[];
 };
 
 export const CompareRunsInvalidRunCount: React.FC<CompareRunsInvalidRunCountProps> = ({ runs }) => {
   const navigate = useNavigate();
-  const { namespace, experimentId } = useParams();
-
-  if (!namespace || !experimentId) {
-    navigate(experimentsBaseRoute(namespace));
-    return null;
-  }
+  const { namespace } = usePipelinesAPI();
+  const { experiment } = React.useContext(ExperimentContext);
 
   const title =
     runs.length > 10 ? 'Too many runs selected' : runs.length === 0 ? 'No runs selected' : null;
@@ -43,13 +38,13 @@ export const CompareRunsInvalidRunCount: React.FC<CompareRunsInvalidRunCountProp
   }
 
   return (
-    <PageSection isFilled data-testid="compare-runs-invalid-number-runs">
-      <EmptyState variant={EmptyStateVariant.lg}>
-        <EmptyStateHeader
-          titleText={title}
-          icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-          headingLevel="h1"
-        />
+    <PageSection hasBodyWrapper={false} isFilled data-testid="compare-runs-invalid-number-runs">
+      <EmptyState
+        headingLevel="h1"
+        icon={ExclamationCircleIcon}
+        titleText={title}
+        variant={EmptyStateVariant.lg}
+      >
         <EmptyStateBody>{description}</EmptyStateBody>
         <EmptyStateFooter>
           <EmptyStateActions>
@@ -57,10 +52,10 @@ export const CompareRunsInvalidRunCount: React.FC<CompareRunsInvalidRunCountProp
               variant="primary"
               onClick={() =>
                 navigate(
-                  experimentsManageCompareRunsRoute(
+                  manageCompareRunsRoute(
                     namespace,
-                    experimentId,
                     runs.map((r) => r.run_id),
+                    experiment?.experiment_id,
                   ),
                 )
               }

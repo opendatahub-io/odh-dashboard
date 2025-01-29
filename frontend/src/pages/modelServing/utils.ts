@@ -30,6 +30,8 @@ import {
   InferenceServiceKind,
   ServiceAccountKind,
   RoleKind,
+  ServingContainer,
+  DeploymentMode,
 } from '~/k8sTypes';
 import { ContainerResources } from '~/types';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
@@ -40,8 +42,8 @@ import {
   ModelServingSize,
   ServingRuntimeToken,
 } from '~/pages/modelServing/screens/types';
-import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
-import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
+import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 
 type TokenNames = {
   serviceAccountName: string;
@@ -120,8 +122,7 @@ export const setUpTokenAuth = async (
       ? Promise.all([
           createServiceAccountIfMissing(serviceAccount, namespace, opts),
           ...(role ? [createRoleIfMissing(role, namespace, opts)] : []),
-          createRoleBindingIfMissing(roleBinding, namespace, opts),
-        ])
+        ]).then(() => createRoleBindingIfMissing(roleBinding, namespace, opts))
       : Promise.resolve()
   )
     .then(() => createSecrets(fillData, deployedModelName, namespace, existingSecrets, opts))
@@ -159,7 +160,14 @@ export const createRoleBindingIfMissing = async (
 ): Promise<RoleBindingKind> =>
   getRoleBinding(namespace, rolebinding.metadata.name).catch((e) => {
     if (e.statusObject?.code === 404) {
-      return createRoleBinding(rolebinding, opts);
+      return createRoleBinding(rolebinding, opts).catch((error) => {
+        if (error.statusObject?.code === 404 && opts?.dryRun) {
+          // If dryRun is enabled and the user is not Cluster Admin it seems that there's a k8s error
+          // that raises a 404 trying to find the role, which is missing since it's a dryRun.
+          return Promise.resolve(rolebinding);
+        }
+        return Promise.reject(error);
+      });
     }
     return Promise.reject(e);
   });
@@ -260,6 +268,30 @@ export const getServingRuntimeOrReturnEmpty = (
   return servingRuntime?.spec.containers[0]?.resources;
 };
 
+export const getKServeContainer = (
+  servingRuntime?: ServingRuntimeKind,
+): ServingContainer | undefined =>
+  servingRuntime?.spec.containers.find((container) => container.name === 'kserve-container');
+
+// will return `undefined` if no kserve container, force empty array if there is kserve with no args
+export const getKServeContainerArgs = (
+  servingRuntime?: ServingRuntimeKind,
+): string[] | undefined => {
+  const kserveContainer = getKServeContainer(servingRuntime);
+  return kserveContainer ? kserveContainer.args ?? [] : undefined;
+};
+
+// will return `undefined` if no kserve container, force empty array if there is kserve with no vars
+export const getKServeContainerEnvVarStrs = (
+  servingRuntime?: ServingRuntimeKind,
+): string[] | undefined => {
+  const kserveContainer = getKServeContainer(servingRuntime);
+  if (!kserveContainer) {
+    return undefined;
+  }
+  return kserveContainer.env?.map((ev) => `${ev.name}=${ev.value ?? ''}`) || [];
+};
+
 export const getServingRuntimeSize = (
   sizes: ModelServingSize[],
   servingRuntime?: ServingRuntimeKind,
@@ -290,7 +322,7 @@ export const getServingRuntimeTokens = (tokens?: SecretKind[]): ServingRuntimeTo
 
 const isAcceleratorProfileChanged = (
   initialAcceleratorProfile: AcceleratorProfileState,
-  selectedAcceleratorProfile: AcceleratorProfileSelectFieldState,
+  selectedAcceleratorProfile: AcceleratorProfileFormData,
 ) => {
   // both are none, check if it's using existing
   if (!selectedAcceleratorProfile.profile && !initialAcceleratorProfile.acceleratorProfile) {
@@ -317,7 +349,7 @@ export const isModelServerEditInfoChanged = (
   createData: CreatingServingRuntimeObject,
   sizes: ModelServingSize[],
   initialAcceleratorProfile: AcceleratorProfileState,
-  selectedAcceleratorProfile: AcceleratorProfileSelectFieldState,
+  selectedAcceleratorProfile: AcceleratorProfileFormData,
   editInfo?: ServingRuntimeEditInfo,
 ): boolean =>
   editInfo?.servingRuntime
@@ -339,4 +371,5 @@ export const isModelServerEditInfoChanged = (
     : true;
 
 export const isModelMesh = (inferenceService: InferenceServiceKind): boolean =>
-  inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] === 'ModelMesh';
+  inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] ===
+  DeploymentMode.ModelMesh;

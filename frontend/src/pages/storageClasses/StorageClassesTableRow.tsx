@@ -134,6 +134,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
                 popoverText="Edit the invalid field(s) and save your changes to correct the corrupted metadata."
                 action={
                   <Button
+                    icon={<PencilAltIcon />}
                     variant="plain"
                     aria-label="Corrupt metadata name/description edit button"
                     onClick={() => {
@@ -143,9 +144,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
                       };
                       setIsEditModalOpen(true);
                     }}
-                  >
-                    <PencilAltIcon />
-                  </Button>
+                  />
                 }
               />
             }
@@ -154,14 +153,10 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
               (!storageClassConfig.description ||
                 isValidConfigValue('description', storageClassConfig.description)) && (
                 <TableRowTitleDescription
-                  title={
-                    <TableText wrapModifier="truncate">{storageClassConfig.displayName}</TableText>
-                  }
+                  title={<TableText>{storageClassConfig.displayName}</TableText>}
                   description={
                     storageClassConfig.description && (
-                      <TableText wrapModifier="truncate">
-                        {storageClassConfig.description}
-                      </TableText>
+                      <TableText>{storageClassConfig.description}</TableText>
                     )
                   }
                 />
@@ -173,7 +168,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
       </Td>
 
       <Td dataLabel={ColumnLabel.OpenshiftStorageClass}>
-        <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+        <Flex spaceItems={{ default: 'spaceItemsSm' }}>
           <FlexItem>{metadata.name}</FlexItem>
 
           <FlexItem>
@@ -181,7 +176,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
               position="right"
               headerContent="Storage class info"
               bodyContent={
-                <DescriptionList isCompact className="pf-v5-u-mt-lg">
+                <DescriptionList isCompact className="pf-v6-u-mt-lg">
                   {storageClassInfoItems.map((storageClassInfoItem) => (
                     <DescriptionListGroup key={storageClassInfoItem.label}>
                       <DescriptionListTerm>{storageClassInfoItem.label}</DescriptionListTerm>
@@ -196,6 +191,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
               <DashboardPopupIconButton
                 icon={<OutlinedQuestionCircleIcon />}
                 aria-label="Storage class info popover"
+                style={{ paddingBlock: 0 }}
               />
             </Popover>
           </FlexItem>

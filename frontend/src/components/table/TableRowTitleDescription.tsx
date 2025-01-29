@@ -6,7 +6,7 @@ import TruncatedText from '~/components/TruncatedText';
 
 type TableRowTitleDescriptionProps = {
   title: React.ReactNode;
-  boldTitle?: boolean;
+  titleIcon?: React.ReactNode;
   resource?: K8sResourceCommon;
   subtitle?: React.ReactNode;
   description?: React.ReactNode;
@@ -18,7 +18,7 @@ type TableRowTitleDescriptionProps = {
 
 const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
   title,
-  boldTitle = true,
+  titleIcon,
   description,
   resource,
   subtitle,
@@ -35,7 +35,7 @@ const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
       ) : (
         <span
           data-testid="table-row-title-description"
-          style={{ color: 'var(--pf-v5-global--Color--200)' }}
+          style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
         >
           {truncateDescriptionLines !== undefined && typeof description === 'string' ? (
             <TruncatedText maxLines={truncateDescriptionLines} content={description} />
@@ -48,7 +48,7 @@ const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
 
   return (
     <div>
-      <div data-testid="table-row-title" className={boldTitle ? 'pf-v5-u-font-weight-bold' : ''}>
+      <div data-testid="table-row-title">
         {resource ? (
           <ResourceNameTooltip resource={resource} wrap={wrapResourceTitle}>
             {title}
@@ -56,6 +56,7 @@ const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
         ) : (
           title
         )}
+        {titleIcon}
       </div>
       {subtitle}
       {descriptionNode}

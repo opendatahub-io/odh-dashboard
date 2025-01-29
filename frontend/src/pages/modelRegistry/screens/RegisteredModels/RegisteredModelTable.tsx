@@ -1,9 +1,13 @@
 import * as React from 'react';
+import { useParams } from 'react-router-dom';
 import { Table } from '~/components/table';
 import { RegisteredModel } from '~/concepts/modelRegistry/types';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
-import { rmColumns } from './RegisteredModelsTableColumns';
+import useInferenceServices from '~/pages/modelServing/useInferenceServices';
+import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
+import { KnownLabels } from '~/k8sTypes';
 import RegisteredModelTableRow from './RegisteredModelTableRow';
+import { rmColumns } from './RegisteredModelsTableColumns';
 
 type RegisteredModelTableProps = {
   clearFilters: () => void;
@@ -16,20 +20,35 @@ const RegisteredModelTable: React.FC<RegisteredModelTableProps> = ({
   registeredModels,
   toolbarContent,
   refresh,
-}) => (
-  <Table
-    data-testid="registered-model-table"
-    data={registeredModels}
-    columns={rmColumns}
-    toolbarContent={toolbarContent}
-    defaultSortColumn={2}
-    onClearFilters={clearFilters}
-    enablePagination
-    emptyTableView={<DashboardEmptyTableView onClearFilters={clearFilters} />}
-    rowRenderer={(rm) => (
-      <RegisteredModelTableRow key={rm.name} registeredModel={rm} refresh={refresh} />
-    )}
-  />
-);
+}) => {
+  const { mrName } = useParams();
+  const inferenceServices = useMakeFetchObject(
+    useInferenceServices(undefined, undefined, undefined, mrName),
+  );
+  const hasDeploys = (rmId: string) =>
+    !!inferenceServices.data.some(
+      (s) => s.metadata.labels?.[KnownLabels.REGISTERED_MODEL_ID] === rmId,
+    );
+  return (
+    <Table
+      data-testid="registered-model-table"
+      data={registeredModels}
+      columns={rmColumns}
+      toolbarContent={toolbarContent}
+      defaultSortColumn={2}
+      onClearFilters={clearFilters}
+      enablePagination
+      emptyTableView={<DashboardEmptyTableView onClearFilters={clearFilters} />}
+      rowRenderer={(rm) => (
+        <RegisteredModelTableRow
+          key={rm.name}
+          hasDeploys={hasDeploys(rm.id)}
+          registeredModel={rm}
+          refresh={refresh}
+        />
+      )}
+    />
+  );
+};
 
 export default RegisteredModelTable;

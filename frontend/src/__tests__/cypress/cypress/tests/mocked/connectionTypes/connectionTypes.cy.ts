@@ -3,7 +3,10 @@ import {
   asProductAdminUser,
   asProjectAdminUser,
 } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { connectionTypesPage } from '~/__tests__/cypress/cypress/pages/connectionTypes';
+import {
+  connectionTypePreviewModal,
+  connectionTypesPage,
+} from '~/__tests__/cypress/cypress/pages/connectionTypes';
 import { mockDashboardConfig } from '~/__mocks__';
 import {
   mockConnectionTypeConfigMap,
@@ -31,7 +34,9 @@ it('Connection types should be hidden by feature flag', () => {
     }),
   );
 
+  cy.interceptOdh('GET /api/connection-types', []);
   connectionTypesPage.visit();
+  connectionTypesPage.shouldBeEmpty();
 });
 
 describe('Connection types', () => {
@@ -45,6 +50,12 @@ describe('Connection types', () => {
       }),
     );
     cy.interceptOdh('GET /api/connection-types', [
+      {
+        ...mockConnectionTypeConfigMap({
+          name: 'corrupt',
+        }),
+        data: { category: '[[', fields: '{{' },
+      },
       mockConnectionTypeConfigMap({}),
       mockConnectionTypeConfigMap({
         name: 'no-display-name',
@@ -71,6 +82,8 @@ describe('Connection types', () => {
   it('should show the correct column values', () => {
     connectionTypesPage.visit();
 
+    connectionTypesPage.findTable().find('tbody tr').should('have.length', 3);
+
     const row = connectionTypesPage.getConnectionTypeRow('Test display name');
     row.shouldHaveDescription('Test description');
     row.shouldHaveCreator('dashboard-admin');
@@ -80,7 +93,12 @@ describe('Connection types', () => {
     row2.shouldHaveDescription('description 2');
     row2.shouldShowPreInstalledLabel();
     row2.shouldBeDisabled();
-    row2.shouldHaveModelServingCompatibility();
+    row2.findConnectionTypeCompatibility().should('have.text', 'S3 compatible object storage');
+
+    row2.findKebabAction('Preview').click();
+    connectionTypePreviewModal.shouldBeOpen();
+    connectionTypePreviewModal.findCloseButton().click();
+    connectionTypePreviewModal.shouldBeOpen(false);
   });
 
   it('should delete connection type', () => {
@@ -92,6 +110,9 @@ describe('Connection types', () => {
       },
       { success: true },
     ).as('delete');
+
+    connectionTypesPage.shouldHaveConnectionTypes();
+
     cy.interceptOdh('GET /api/connection-types', [
       mockConnectionTypeConfigMap({}),
       mockConnectionTypeConfigMap({
@@ -103,7 +124,6 @@ describe('Connection types', () => {
       }),
     ]);
 
-    connectionTypesPage.shouldHaveConnectionTypes();
     connectionTypesPage.getConnectionTypeRow('Test display name').findKebabAction('Delete').click();
     deleteModal.findSubmitButton().should('be.disabled');
     deleteModal.findInput().fill('Test display name');

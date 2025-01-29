@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 
-import { type ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
+import { type ExperimentKF } from '~/concepts/pipelines/kfTypes';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 
 class ExperimentsTabs {
@@ -30,7 +30,7 @@ class ExperimentsTabs {
     return new ExperimentsTable(() => cy.findByTestId('experiments-archived-tab-content'));
   }
 
-  mockGetExperiments(namespace: string, experiments: ExperimentKFv2[]): Cypress.Chainable<null> {
+  mockGetExperiments(namespace: string, experiments: ExperimentKF[]): Cypress.Chainable<null> {
     return cy.interceptOdh(
       'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments',
       {
@@ -58,7 +58,7 @@ class ExperimentsTabs {
           }
         }
         if (filter) {
-          const { predicates } = JSON.parse(filter.toString());
+          const { predicates } = JSON.parse(decodeURIComponent(filter.toString()));
 
           if (predicates.length > 0) {
             predicates.forEach((predicate: { key: string; string_value: string }) => {

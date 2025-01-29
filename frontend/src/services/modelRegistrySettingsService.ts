@@ -1,15 +1,17 @@
 import * as _ from 'lodash-es';
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import axios from '~/utilities/axios';
-import { ModelRegistryKind, RoleBindingKind } from '~/k8sTypes';
+import { ListConfigSecretsResponse, ModelRegistryKind, RoleBindingKind } from '~/k8sTypes';
 import { RecursivePartial } from '~/typeHelpers';
 
 const registriesUrl = '/api/modelRegistries';
 const mrRoleBindingsUrl = '/api/modelRegistryRoleBindings';
+const configSecretsUrl = '/api/modelRegistryCertificates';
 
-type ModelRegistryAndDBPassword = {
+export type ModelRegistryAndCredentials = {
   modelRegistry: ModelRegistryKind;
   databasePassword?: string;
+  newDatabaseCACertificate?: string;
 };
 
 export const listModelRegistriesBackend = (labelSelector?: string): Promise<ModelRegistryKind[]> =>
@@ -21,7 +23,7 @@ export const listModelRegistriesBackend = (labelSelector?: string): Promise<Mode
     });
 
 export const createModelRegistryBackend = (
-  data: ModelRegistryAndDBPassword,
+  data: ModelRegistryAndCredentials,
 ): Promise<ModelRegistryKind> =>
   axios
     .post(registriesUrl, data)
@@ -32,7 +34,7 @@ export const createModelRegistryBackend = (
 
 export const getModelRegistryBackend = (
   modelRegistryName: string,
-): Promise<ModelRegistryAndDBPassword> =>
+): Promise<ModelRegistryAndCredentials> =>
   axios
     .get(`${registriesUrl}/${modelRegistryName}`)
     .then((response) => response.data)
@@ -42,8 +44,8 @@ export const getModelRegistryBackend = (
 
 export const updateModelRegistryBackend = (
   modelRegistryName: string,
-  patch: RecursivePartial<ModelRegistryKind>,
-): Promise<ModelRegistryAndDBPassword> =>
+  patch: RecursivePartial<ModelRegistryAndCredentials>,
+): Promise<ModelRegistryAndCredentials> =>
   axios
     .patch(`${registriesUrl}/${modelRegistryName}`, patch)
     .then((response) => response.data)
@@ -86,6 +88,14 @@ export const createModelRegistryRoleBinding = (data: RoleBindingKind): Promise<R
 export const deleteModelRegistryRoleBinding = (roleBindingName: string): Promise<K8sStatus> =>
   axios
     .delete(`${mrRoleBindingsUrl}/${roleBindingName}`)
+    .then((response) => response.data)
+    .catch((e) => {
+      throw new Error(e.response.data.message);
+    });
+
+export const listModelRegistryCertificateNames = (): Promise<ListConfigSecretsResponse> =>
+  axios
+    .get<ListConfigSecretsResponse>(configSecretsUrl)
     .then((response) => response.data)
     .catch((e) => {
       throw new Error(e.response.data.message);

@@ -6,15 +6,17 @@ import {
   CardFooter,
   EmptyState,
   EmptyStateBody,
-  EmptyStateHeader,
-  EmptyStateIcon,
+  EmptyStateVariant,
   Spinner,
   Stack,
-  Text,
-  TextContent,
+  Content,
 } from '@patternfly/react-core';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { CreatePipelineServerButton, usePipelinesAPI } from '~/concepts/pipelines/context';
+import {
+  CreatePipelineServerButton,
+  PipelineServerTimedOut,
+  usePipelinesAPI,
+} from '~/concepts/pipelines/context';
 import { useSafePipelines } from '~/concepts/pipelines/apiHooks/usePipelines';
 import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
@@ -34,11 +36,7 @@ const PipelinesCard: React.FC = () => {
   const renderContent = () => {
     if (pipelinesServer.initializing) {
       return (
-        <EmptyState variant="xs">
-          <EmptyStateHeader
-            icon={<EmptyStateIcon icon={() => <Spinner size="lg" />} />}
-            headingLevel="h3"
-          />
+        <EmptyState headingLevel="h3" icon={() => <Spinner size="lg" />} variant="xs">
           <EmptyStateBody>Loading...</EmptyStateBody>
         </EmptyState>
       );
@@ -48,14 +46,14 @@ const PipelinesCard: React.FC = () => {
         <>
           <CardBody>
             <Stack hasGutter>
-              <TextContent>
-                <Text component="small">
+              <Content>
+                <Content component="small">
                   Pipelines are platforms for building and deploying portable and scalable
                   machine-learning (ML) workflows. You can import a pipeline or create one in a
                   workbench. Before you can work with pipelines, you must first configure a pipeline
                   server in your project.
-                </Text>
-              </TextContent>
+                </Content>
+              </Content>
               {notebooksLoaded && !notebooksError && notebooks.length > 0 ? (
                 <Alert
                   isInline
@@ -80,9 +78,17 @@ const PipelinesCard: React.FC = () => {
       );
     }
 
+    if (pipelinesServer.timedOut && pipelinesServer.compatible) {
+      return (
+        <CardBody>
+          <PipelineServerTimedOut />
+        </CardBody>
+      );
+    }
+
     return (
       <EnsureAPIAvailability>
-        <EnsureCompatiblePipelineServer>
+        <EnsureCompatiblePipelineServer emptyStateVariant={EmptyStateVariant.xs}>
           <PipelinesCardMetrics />
         </EnsureCompatiblePipelineServer>
       </EnsureAPIAvailability>

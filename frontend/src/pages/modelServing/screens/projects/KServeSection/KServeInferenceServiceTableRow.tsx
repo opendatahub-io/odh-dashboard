@@ -45,7 +45,7 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
     servingRuntimes: { data: servingRuntimes },
   } = React.useContext(ProjectDetailsContext);
 
-  const frameworkName = obj.spec.predictor.model?.modelFormat?.name;
+  const frameworkName = obj.spec.predictor.model?.modelFormat?.name || '';
   const frameworkVersion = obj.spec.predictor.model?.modelFormat?.version;
 
   const servingRuntime = servingRuntimes.find(
@@ -94,7 +94,12 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
               )}
               {isAuthorinoEnabled && (
                 <StackItem>
-                  <DescriptionList>
+                  <DescriptionList
+                    {...(!isInferenceServiceTokenEnabled(obj) && {
+                      isHorizontal: true,
+                      horizontalTermWidthModifier: { default: '250px' },
+                    })}
+                  >
                     <DescriptionListGroup>
                       <DescriptionListTerm>Token authentication</DescriptionListTerm>
                       <DescriptionListDescription>

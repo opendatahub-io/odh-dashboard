@@ -3,6 +3,7 @@ import {
   ToolbarFilter,
   ToolbarGroup,
   ToolbarItem,
+  ToolbarToggleGroup,
   Dropdown,
   DropdownItem,
   MenuToggle,
@@ -42,80 +43,81 @@ function FilterToolbar<T extends string>({
 
   return (
     <>
-      <ToolbarGroup variant="filter-group" data-testid={testId} {...toolbarGroupProps}>
-        <ToolbarItem>
-          <Dropdown
-            onOpenChange={(isOpenChange) => setOpen(isOpenChange)}
-            shouldFocusToggleOnSelect
-            toggle={(toggleRef) => (
-              <MenuToggle
-                data-testid={`${testId}-dropdown`}
-                id={`${testId}-toggle-button`}
-                ref={toggleRef}
-                aria-label="Pipeline Filter toggle"
-                onClick={() => setOpen(!open)}
-                isExpanded={open}
-              >
-                <>
-                  <FilterIcon /> {filterOptions[currentFilterType]}
-                </>
-              </MenuToggle>
-            )}
-            isOpen={open}
-          >
-            <DropdownList>
-              {keys.map((filterKey) => (
-                <DropdownItem
-                  key={filterKey}
-                  id={filterKey}
-                  onClick={() => {
-                    setOpen(false);
-                    setCurrentFilterType(filterKey);
-                  }}
+      <ToolbarToggleGroup breakpoint="md" toggleIcon={<FilterIcon />}>
+        <ToolbarGroup variant="filter-group" data-testid={testId} {...toolbarGroupProps}>
+          <ToolbarItem>
+            <Dropdown
+              onOpenChange={(isOpenChange) => setOpen(isOpenChange)}
+              shouldFocusToggleOnSelect
+              toggle={(toggleRef) => (
+                <MenuToggle
+                  data-testid={`${testId}-dropdown`}
+                  id={`${testId}-toggle-button`}
+                  ref={toggleRef}
+                  aria-label="Filter toggle"
+                  onClick={() => setOpen(!open)}
+                  isExpanded={open}
+                  icon={<FilterIcon />}
                 >
-                  {filterOptions[filterKey]}
-                </DropdownItem>
-              ))}
-            </DropdownList>
-          </Dropdown>
-        </ToolbarItem>
-        {keys.map((filterKey) => {
-          const optionValue = filterOptions[filterKey];
-          const data = filterData[filterKey];
-          const dataValue: { label: string; value: string } | undefined =
-            typeof data === 'string' ? { label: data, value: data } : data;
-          return optionValue ? (
-            <ToolbarFilter
-              key={filterKey}
-              categoryName={optionValue}
-              data-testid={`${testId}-text-field`}
-              variant="search-filter"
-              chips={
-                data && dataValue
-                  ? [
-                      {
-                        key: filterKey,
-                        node: (
-                          <span data-testid={`${filterKey}-filter-chip`}>{dataValue.label}</span>
-                        ),
-                      },
-                    ]
-                  : []
-              }
-              deleteChip={() => {
-                onFilterUpdate(filterKey, '');
-              }}
-              showToolbarItem={currentFilterType === filterKey}
+                  {filterOptions[currentFilterType]}
+                </MenuToggle>
+              )}
+              isOpen={open}
+              popperProps={{ appendTo: 'inline' }}
             >
-              {filterOptionRenders[filterKey]({
-                onChange: (value, label) =>
-                  onFilterUpdate(filterKey, label && value ? { label, value } : value),
-                ...(typeof filterItem === 'string' ? { value: filterItem } : filterItem),
-              })}
-            </ToolbarFilter>
-          ) : null;
-        })}
-      </ToolbarGroup>
+              <DropdownList>
+                {keys.map((filterKey) => (
+                  <DropdownItem
+                    key={filterKey}
+                    id={filterKey}
+                    onClick={() => {
+                      setOpen(false);
+                      setCurrentFilterType(filterKey);
+                    }}
+                  >
+                    {filterOptions[filterKey]}
+                  </DropdownItem>
+                ))}
+              </DropdownList>
+            </Dropdown>
+          </ToolbarItem>
+          {keys.map((filterKey) => {
+            const optionValue = filterOptions[filterKey];
+            const data = filterData[filterKey];
+            const dataValue: { label: string; value: string } | undefined =
+              typeof data === 'string' ? { label: data, value: data } : data;
+            return optionValue ? (
+              <ToolbarFilter
+                key={filterKey}
+                categoryName={optionValue}
+                data-testid={`${testId}-text-field`}
+                labels={
+                  data && dataValue
+                    ? [
+                        {
+                          key: filterKey,
+                          node: (
+                            <span data-testid={`${filterKey}-filter-chip`}>{dataValue.label}</span>
+                          ),
+                        },
+                      ]
+                    : []
+                }
+                deleteLabel={() => {
+                  onFilterUpdate(filterKey, '');
+                }}
+                showToolbarItem={currentFilterType === filterKey}
+              >
+                {filterOptionRenders[filterKey]({
+                  onChange: (value, label) =>
+                    onFilterUpdate(filterKey, label && value ? { label, value } : value),
+                  ...(typeof filterItem === 'string' ? { value: filterItem } : filterItem),
+                })}
+              </ToolbarFilter>
+            ) : null;
+          })}
+        </ToolbarGroup>
+      </ToolbarToggleGroup>
       {children}
     </>
   );

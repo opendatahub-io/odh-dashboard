@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
   - ./crd
   - ./apps
+  - ./connection-types

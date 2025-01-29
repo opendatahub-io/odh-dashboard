@@ -7,8 +7,7 @@ import {
   Flex,
   FlexItem,
   PageSection,
-  Text,
-  TextContent,
+  Content,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
@@ -30,7 +29,7 @@ const HomeHint: React.FC = () => {
   }
 
   return (
-    <PageSection>
+    <PageSection variant="secondary" hasBodyWrapper={false}>
       <Card data-testid="home-page-hint" style={{ borderRadius: 16 }}>
         <CardHeader>
           <Flex
@@ -38,20 +37,19 @@ const HomeHint: React.FC = () => {
             justifyContent={{ default: 'justifyContentSpaceBetween' }}
           >
             <FlexItem>
-              <TextContent>
-                <Text component="h2">Looking for the previous landing page?</Text>
-              </TextContent>
+              <Content>
+                <Content component="h2">Looking for the previous landing page?</Content>
+              </Content>
             </FlexItem>
             <FlexItem>
               <Button
+                icon={<TimesIcon />}
                 data-testid="home-page-hint-close"
                 aria-label="close landing page hint"
                 isInline
                 variant="plain"
                 onClick={() => setHintHidden(true)}
-              >
-                <TimesIcon />
-              </Button>
+              />
             </FlexItem>
           </Flex>
         </CardHeader>
@@ -65,11 +63,17 @@ const HomeHint: React.FC = () => {
               data-testid="jupyter-hint-icon"
               src={jupyterImg}
               alt="Jupyter"
-              style={{ height: 42, maxWidth: 'unset' }}
+              style={{
+                height: 42,
+                maxWidth: 'unset',
+                backgroundColor: 'var(--pf-t--color--white)',
+                padding: 'var(--pf-t--global--spacer--xs)',
+                borderRadius: 'var(--pf-t--global--border--radius--small)',
+              }}
             />
             <FlexItem>
-              <TextContent>
-                <Text component="p" data-testid="hint-body-text">
+              <Content>
+                <Content component="p" data-testid="hint-body-text">
                   {ODH_PRODUCT_NAME} has a new landing page. You can access applications that are
                   enabled for your organization, such as Jupyter, from the{' '}
                   <Button
@@ -77,14 +81,14 @@ const HomeHint: React.FC = () => {
                     variant="link"
                     isInline
                     component="a"
-                    style={{ fontSize: 'var(--pf-v5-global--FontSize--md)' }}
+                    style={{ fontSize: 'var(--pf-t--global--font--size--body--default)' }}
                     onClick={() => navigate('/enabled')}
                   >
                     Enabled applications
                   </Button>{' '}
                   page.
-                </Text>
-              </TextContent>
+                </Content>
+              </Content>
             </FlexItem>
           </Flex>
         </CardBody>

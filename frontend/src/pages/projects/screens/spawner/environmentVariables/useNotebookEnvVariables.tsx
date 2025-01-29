@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { DATA_CONNECTION_PREFIX, getConfigMap, getSecret } from '~/api';
+import { getConfigMap, getSecret } from '~/api';
 import { ConfigMapKind, NotebookKind, SecretKind } from '~/k8sTypes';
 import { EnvVarResourceType } from '~/types';
 import {
@@ -8,6 +8,9 @@ import {
   EnvVariable,
   SecretCategory,
 } from '~/pages/projects/types';
+import useFetchState, { NotReadyError } from '~/utilities/useFetchState';
+import { isConnection } from '~/concepts/connectionTypes/utils';
+import { getDeletedConfigMapOrSecretVariables, isSecretKind } from './utils';
 
 export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVariable[]> => {
   const envFromList = notebook.spec.template.spec.containers[0].envFrom || [];
@@ -15,20 +18,33 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
     envFromList
       .map((envFrom) => {
         if (envFrom.configMapRef) {
-          return getConfigMap(notebook.metadata.namespace, envFrom.configMapRef.name);
+          return getConfigMap(notebook.metadata.namespace, envFrom.configMapRef.name).catch((e) => {
+            if (e.statusObject?.code === 404) {
+              return null;
+            }
+            throw e;
+          });
         }
         if (envFrom.secretRef) {
-          return getSecret(notebook.metadata.namespace, envFrom.secretRef.name);
+          return getSecret(notebook.metadata.namespace, envFrom.secretRef.name).catch((e) => {
+            if (e.statusObject?.code === 404) {
+              return null;
+            }
+            throw e;
+          });
         }
         return Promise.resolve(undefined);
       })
       .filter(
         (
-          v: Promise<ConfigMapKind> | Promise<undefined> | undefined,
-        ): v is Promise<SecretKind | ConfigMapKind> => !!v,
+          v: Promise<ConfigMapKind | null> | Promise<undefined> | undefined,
+        ): v is Promise<SecretKind | ConfigMapKind | null> => !!v,
       ),
   ).then((results) =>
     results.reduce<EnvVariable[]>((acc, resource) => {
+      if (!resource) {
+        return acc;
+      }
       const { data } = resource;
       let envVar: EnvVariable;
       if (resource.kind === EnvVarResourceType.ConfigMap) {
@@ -40,10 +56,7 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
             data: data ? Object.keys(data).map((key) => ({ key, value: data[key] })) : [],
           },
         };
-      } else if (
-        resource.kind === EnvVarResourceType.Secret &&
-        !resource.metadata.name.startsWith(DATA_CONNECTION_PREFIX)
-      ) {
+      } else if (isSecretKind(resource) && !isConnection(resource)) {
         envVar = {
           type: EnvironmentVariableType.SECRET,
           existingName: resource.metadata.name,
@@ -62,17 +75,34 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
 
 export const useNotebookEnvVariables = (
   notebook?: NotebookKind,
-): [envVariables: EnvVariable[], setEnvVariables: (envVars: EnvVariable[]) => void] => {
+  excludedResources: string[] = [],
+): [
+  envVariables: EnvVariable[],
+  setEnvVariables: (envVars: EnvVariable[]) => void,
+  envVariablesLoaded: boolean,
+  deletedConfigMaps: string[],
+  deletedSecrets: string[],
+] => {
   const [envVariables, setEnvVariables] = React.useState<EnvVariable[]>([]);
-
-  React.useEffect(() => {
-    if (notebook) {
-      fetchNotebookEnvVariables(notebook)
-        .then((envVars) => setEnvVariables(envVars))
-        /* eslint-disable-next-line no-console */
-        .catch((e) => console.error('Reading environment variables failed: ', e));
+  const [envVariablesLoaded, setEnvVariablesLoaded] = React.useState<boolean>(false);
+  const callback = React.useCallback(() => {
+    if (!notebook) {
+      return Promise.reject(new NotReadyError('No notebook'));
     }
+
+    return fetchNotebookEnvVariables(notebook);
   }, [notebook]);
 
-  return [envVariables, setEnvVariables];
+  const [existingEnvVariables, existingEnvVariablesLoaded] = useFetchState(callback, []);
+  const { deletedConfigMaps, deletedSecrets } = getDeletedConfigMapOrSecretVariables(
+    notebook,
+    existingEnvVariables,
+    excludedResources,
+  );
+  React.useEffect(() => {
+    setEnvVariables(existingEnvVariables);
+    setEnvVariablesLoaded(existingEnvVariablesLoaded);
+  }, [existingEnvVariables, existingEnvVariablesLoaded]);
+
+  return [envVariables, setEnvVariables, envVariablesLoaded, deletedConfigMaps, deletedSecrets];
 };

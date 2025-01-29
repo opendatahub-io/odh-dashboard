@@ -1,6 +1,7 @@
 import React from 'react';
 import '@patternfly/patternfly/patternfly.min.css';
 import '@patternfly/patternfly/patternfly-addons.css';
+import '@patternfly/patternfly/patternfly-charts.css';
 import {
   Alert,
   Bullseye,
@@ -21,6 +22,7 @@ import ProjectsContextProvider from '~/concepts/projects/ProjectsContext';
 import { ModelRegistrySelectorContextProvider } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import useStorageClasses from '~/concepts/k8s/useStorageClasses';
 import AreaContextProvider from '~/concepts/areas/AreaContext';
+import { NimContextProvider } from '~/concepts/nimServing/NIMAvailabilityContext';
 import useDevFeatureFlags from './useDevFeatureFlags';
 import Header from './Header';
 import AppRoutes from './AppRoutes';
@@ -32,6 +34,7 @@ import TelemetrySetup from './TelemetrySetup';
 import { logout } from './appUtils';
 import QuickStarts from './QuickStarts';
 import DevFeatureFlagsBanner from './DevFeatureFlagsBanner';
+import SessionExpiredModal from './SessionExpiredModal';
 
 import './App.scss';
 
@@ -66,12 +69,19 @@ const App: React.FC = () => {
     [buildStatuses, dashboardConfig, storageClasses],
   );
 
+  const isUnauthorized = fetchConfigError?.request?.status === 403;
+
   // We lack the critical data to startup the app
   if (userError || fetchConfigError) {
-    // There was an error fetching critical data
+    // Check for unauthorized state
+    if (isUnauthorized) {
+      return <SessionExpiredModal />;
+    }
+
+    // Default error handling for other cases
     return (
       <Page>
-        <PageSection>
+        <PageSection hasBodyWrapper={false}>
           <Stack hasGutter>
             <StackItem>
               <Alert variant="danger" isInline title="General loading error">
@@ -110,7 +120,8 @@ const App: React.FC = () => {
           <Page
             className="odh-dashboard"
             isManagedSidebar
-            header={
+            isContentFilled
+            masthead={
               <Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />
             }
             sidebar={isAllowed ? <NavSidebar /> : undefined}
@@ -120,19 +131,23 @@ const App: React.FC = () => {
             isNotificationDrawerExpanded={notificationsOpen}
             mainContainerId={DASHBOARD_MAIN_CONTAINER_ID}
             data-testid={DASHBOARD_MAIN_CONTAINER_ID}
-          >
-            <ErrorBoundary>
+            banner={
               <DevFeatureFlagsBanner
                 dashboardConfig={dashboardConfig.spec.dashboardConfig}
                 {...devFeatureFlagsProps}
               />
-              <ProjectsContextProvider>
-                <ModelRegistrySelectorContextProvider>
-                  <QuickStarts>
-                    <AppRoutes />
-                  </QuickStarts>
-                </ModelRegistrySelectorContextProvider>
-              </ProjectsContextProvider>
+            }
+          >
+            <ErrorBoundary>
+              <NimContextProvider>
+                <ProjectsContextProvider>
+                  <ModelRegistrySelectorContextProvider>
+                    <QuickStarts>
+                      <AppRoutes />
+                    </QuickStarts>
+                  </ModelRegistrySelectorContextProvider>
+                </ProjectsContextProvider>
+              </NimContextProvider>
               <ToastNotifications />
               <TelemetrySetup />
             </ErrorBoundary>

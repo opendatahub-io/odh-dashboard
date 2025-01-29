@@ -28,6 +28,7 @@ const LearningCenterListHeaders: React.FC = () => {
     [navigate],
   );
 
+  // Note from PatternFly: These sort icons needs to be in a button; currently not accessible to keyboard or other AT
   const renderSortArrow = (field: string) => {
     if (sortType !== field) {
       return (

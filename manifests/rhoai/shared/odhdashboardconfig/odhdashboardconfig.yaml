@@ -19,7 +19,7 @@ spec:
     disableModelServing: false
     disableProjectSharing: false
     disableCustomServingRuntimes: false
-    disableBiasMetrics: false
+    disableTrustyBiasMetrics: false
     disablePerformanceMetrics: false
     disableAcceleratorProfiles: false
     disableKServe: false
@@ -28,7 +28,8 @@ spec:
     disableModelMesh: false
     disableDistributedWorkloads: false
     disableModelRegistry: false
-    disableConnectionTypes: true
+    disableModelRegistrySecureDB: false
+    disableServingRuntimeParams: false
     disableStorageClasses: false
     disableNIMModelServing: true
   groupsConfig:

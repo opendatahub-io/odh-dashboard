@@ -95,7 +95,7 @@ const ModelPropertiesTableRow: React.FC<ModelPropertiesTableRowProps> = ({
         {isEditing ? (
           <>
             <TextInput
-              data-testid={isAddRow ? `add-property-key-input` : `edit-property-${key}-key-input`}
+              data-testid={isAddRow ? `add-property-key-input` : `edit-property-key-input ${key}`}
               aria-label={
                 isAddRow
                   ? 'Key input for new property'
@@ -103,6 +103,7 @@ const ModelPropertiesTableRow: React.FC<ModelPropertiesTableRowProps> = ({
               }
               isRequired
               type="text"
+              autoFocus
               value={unsavedKey}
               onChange={(_event, str) => setUnsavedKey(str)}
               validated={keyValidationError ? 'error' : 'default'}
@@ -122,7 +123,9 @@ const ModelPropertiesTableRow: React.FC<ModelPropertiesTableRowProps> = ({
       <Td dataLabel="Value" width={45} modifier="breakWord">
         {isEditing ? (
           <TextInput
-            data-testid={isAddRow ? `add-property-value-input` : `edit-property-${key}-value-input`}
+            data-testid={
+              isAddRow ? `add-property-value-input` : `edit-property-value-input ${value}`
+            }
             aria-label={
               isAddRow
                 ? 'Value input for new property'
@@ -151,25 +154,23 @@ const ModelPropertiesTableRow: React.FC<ModelPropertiesTableRowProps> = ({
             <ActionList isIconList>
               <ActionListItem>
                 <Button
-                  data-testid={`save-edit-button-property-${key}`}
+                  data-testid="save-edit-button-property"
+                  icon={<CheckIcon />}
                   aria-label={`Save edits to property with key ${key}`}
                   variant="link"
                   onClick={onSaveEditsClick}
                   isDisabled={isSavingEdits || !unsavedKey || !unsavedValue || !!keyValidationError}
-                >
-                  <CheckIcon />
-                </Button>
+                />
               </ActionListItem>
               <ActionListItem>
                 <Button
-                  data-testid={`discard-edit-button-property-${key}`}
+                  data-testid="discard-edit-button-property"
+                  icon={<TimesIcon />}
                   aria-label={`Discard edits to property with key ${key}`}
                   variant="plain"
                   onClick={onDiscardEditsClick}
                   isDisabled={isSavingEdits}
-                >
-                  <TimesIcon />
-                </Button>
+                />
               </ActionListItem>
             </ActionList>
           ) : (
@@ -178,6 +179,7 @@ const ModelPropertiesTableRow: React.FC<ModelPropertiesTableRowProps> = ({
               popperProps={{ direction: 'up' }}
               items={[
                 { title: 'Edit', onClick: onEditClick, isDisabled: isSavingEdits },
+                { isSeparator: true },
                 { title: 'Delete', onClick: onDeleteClick, isDisabled: isSavingEdits },
               ]}
             />

@@ -10,6 +10,7 @@ type MockResourceConfigType = {
   k8sName?: string;
   creationTimestamp?: string;
   enableModelMesh?: boolean;
+  enableNIM?: boolean;
   isDSProject?: boolean;
   phase?: 'Active' | 'Terminating';
 };
@@ -21,6 +22,7 @@ export const mockProjectK8sResource = ({
   k8sName = 'test-project',
   creationTimestamp = '2023-02-14T21:43:59Z',
   enableModelMesh,
+  enableNIM = false,
   description = '',
   isDSProject = true,
   phase = 'Active',
@@ -43,6 +45,7 @@ export const mockProjectK8sResource = ({
         ...(description && { 'openshift.io/description': description }),
         ...(displayName && { 'openshift.io/display-name': displayName }),
         ...(username && { 'openshift.io/requester': username }),
+        ...(enableNIM && { 'opendatahub.io/nim-support': 'true' }),
       },
     }),
     resourceVersion: '1',

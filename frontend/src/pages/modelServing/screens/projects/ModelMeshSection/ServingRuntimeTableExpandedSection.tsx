@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { ExpandableRowContent, Td } from '@patternfly/react-table';
 import { ServingRuntimeKind } from '~/k8sTypes';
-import EmptyTableCellForAlignment from '~/pages/projects/components/EmptyTableCellForAlignment';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import InferenceServiceTable from '~/pages/modelServing/screens/global/InferenceServiceTable';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
@@ -28,8 +27,7 @@ const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSe
   obj,
 }) => {
   const {
-    inferenceServices: { data: inferenceServices },
-    refreshAllProjectData,
+    inferenceServices: { data: inferenceServices, refresh: refreshInferenceServices },
   } = React.useContext(ProjectDetailsContext);
 
   const modelInferenceServices = getInferenceServiceFromServingRuntime(inferenceServices, obj);
@@ -37,8 +35,7 @@ const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSe
   if (activeColumn === ServingRuntimeTableTabs.TYPE) {
     return (
       <>
-        <EmptyTableCellForAlignment />
-        <Td dataLabel="Type expansion" colSpan={6}>
+        <Td dataLabel="Type expansion" colSpan={7}>
           <ExpandableRowContent>
             <ServingRuntimeDetails obj={obj} />
           </ExpandableRowContent>
@@ -48,14 +45,14 @@ const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSe
   }
   if (activeColumn === ServingRuntimeTableTabs.DEPLOYED_MODELS) {
     return (
-      <Td dataLabel="Deployed models expansion" colSpan={6}>
+      <Td dataLabel="Deployed models expansion" colSpan={7}>
         <ExpandableRowContent>
           {modelInferenceServices.length > 0 ? (
             <InferenceServiceTable
               inferenceServices={modelInferenceServices}
               servingRuntimes={[obj]}
               refresh={() => {
-                refreshAllProjectData();
+                refreshInferenceServices();
                 onClose();
               }}
             />

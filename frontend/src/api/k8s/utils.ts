@@ -1,4 +1,3 @@
-import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import {
   PodAffinity,
   ContainerResources,
@@ -8,12 +7,13 @@ import {
   Volume,
 } from '~/types';
 import { determineTolerations } from '~/utilities/tolerations';
-import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
+import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
 
 export const assemblePodSpecOptions = (
   resourceSettings: ContainerResources,
   initialAcceleratorProfile?: AcceleratorProfileState,
-  selectedAcceleratorProfile?: AcceleratorProfileSelectFieldState,
+  selectedAcceleratorProfile?: AcceleratorProfileFormData,
   tolerationSettings?: TolerationSettings,
   existingTolerations?: Toleration[],
   affinitySettings?: PodAffinity,
@@ -74,3 +74,24 @@ export const getshmVolume = (sizeLimit?: string): Volume => ({
   name: 'shm',
   emptyDir: { medium: 'Memory', ...(sizeLimit && { sizeLimit }) },
 });
+
+export const parseCommandLine = (input: string): string[] => {
+  const args: string[] = [];
+  const regex = /(?:[^\s"']+|"[^"]*"|'[^']*')+/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(input)) !== null) {
+    let arg: string = match[0];
+
+    // Remove surrounding quotes if any
+    if (arg.startsWith('"') && arg.endsWith('"')) {
+      arg = arg.slice(1, -1).replace(/\\"/g, '"'); // Unescape double quotes
+    } else if (arg.startsWith("'") && arg.endsWith("'")) {
+      arg = arg.slice(1, -1); // Remove single quotes
+    }
+
+    args.push(arg);
+  }
+
+  return args;
+};

@@ -1,3 +1,4 @@
+import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import { homePage } from '~/__tests__/cypress/cypress/pages/home/home';
 
 describe('Home page AI Flows', () => {
@@ -57,7 +58,10 @@ describe('Home page AI Flows', () => {
 
     homeAISection.getProjectCard().find().should('not.exist');
 
-    homePage.initHomeIntercepts({ disableModelServing: true });
+    homePage.initHomeIntercepts({
+      disableModelServing: true,
+      disableModelRegistry: true,
+    });
     homePage.visit();
 
     homeAISection.getModelsFlowCard().find().should('not.exist');
@@ -99,5 +103,20 @@ describe('Home page AI Flows', () => {
     homePage.visit();
     homeAISection.getTrainFlowCard().find().click();
     homeAISection.findPipelinesTrainDescriptionText().should('not.exist');
+  });
+
+  it('should hide the models card when model serving backend components are not installed', () => {
+    cy.interceptOdh(
+      'GET /api/dsc/status',
+      mockDscStatus({
+        installedComponents: {
+          kserve: false,
+          'model-mesh': false,
+          'model-registry-operator': false,
+        },
+      }),
+    );
+    homePage.visit();
+    homeAISection.getModelsFlowCard().find().should('not.exist');
   });
 });

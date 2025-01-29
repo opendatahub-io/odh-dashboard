@@ -2,10 +2,7 @@
  * Common types, should be kept up to date with backend types
  */
 
-import {
-  K8sResourceCommon as SDKK8sResourceCommon,
-  WatchK8sResult,
-} from '@openshift/dynamic-plugin-sdk-utils';
+import { K8sResourceCommon, WatchK8sResult } from '@openshift/dynamic-plugin-sdk-utils';
 import { AxiosError } from 'axios';
 import { EnvironmentFromVariable } from '~/pages/projects/types';
 import {
@@ -179,6 +176,17 @@ export type OdhApplication = {
     };
     featureFlag?: string;
     internalRoute?: string;
+    error?: string;
+  };
+};
+
+/**
+ * An OdhApplication that uses integration api to determine status.
+ * @see isIntegrationApp
+ */
+export type OdhIntegrationApplication = OdhApplication & {
+  spec: {
+    internalRoute: string; // starts with `/api/`
   };
 };
 
@@ -252,20 +260,7 @@ type K8sMetadata = {
   creationTimestamp?: string;
 };
 
-/**
- * @deprecated -- use the SDK version -- see k8sTypes.ts
- * All references that use this are un-vetted data against existing types, should be converted over
- * to the new K8sResourceCommon from the SDK to keep everything unified on one front.
- */
-export type K8sResourceCommon = {
-  apiVersion?: string;
-  kind?: string;
-  metadata: K8sMetadata;
-};
-
-//
-// Used for Telemetry
-//
+/** Used for Telemetry */
 declare global {
   interface Window {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -308,6 +303,25 @@ export type Toleration = {
   value?: string;
   effect?: TolerationEffect;
   tolerationSeconds?: number;
+};
+
+export enum IdentifierResourceType {
+  CPU = 'CPU',
+  MEMORY = 'Memory',
+}
+
+export type Identifier = {
+  displayName: string;
+  identifier: string;
+  minCount: number | string;
+  maxCount: number | string;
+  defaultCount: number | string;
+  resourceType?: IdentifierResourceType;
+};
+
+export type NodeSelector = {
+  key: string;
+  value: string;
 };
 
 export type PodContainer = {
@@ -593,8 +607,8 @@ export type NotebookData = {
   notebookSizeName: string;
   imageName: string;
   imageTagName: string;
-  acceleratorProfile: {
-    acceleratorProfile?: AcceleratorProfileKind;
+  acceleratorProfile?: {
+    acceleratorProfile: AcceleratorProfileKind;
     count: number;
   };
   envVars: EnvVarReducedTypeKeyValues;
@@ -612,7 +626,7 @@ export type ImageStreamAndVersion = {
 };
 
 // This is the workaround to use K8sResourceCommon | K8sResourceCommon[] from SDK to work with utils.
-export type CustomWatchK8sResult<R extends SDKK8sResourceCommon | SDKK8sResourceCommon[]> = [
+export type CustomWatchK8sResult<R extends K8sResourceCommon | K8sResourceCommon[]> = [
   data: WatchK8sResult<R>[0],
   loaded: WatchK8sResult<R>[1],
   loadError: Error | undefined,
@@ -653,4 +667,19 @@ export enum ServingRuntimeAPIProtocol {
 export type KeyValuePair = {
   key: string;
   value: string;
+};
+
+export enum VariablesValidationStatus {
+  UNKNOWN = 'Unknown',
+  FAILED = 'False',
+  SUCCESS = 'True',
+}
+
+export type IntegrationAppStatus = {
+  isInstalled: boolean;
+  isEnabled: boolean;
+  canInstall: boolean;
+  variablesValidationStatus?: VariablesValidationStatus;
+  variablesValidationTimestamp?: string;
+  error: string;
 };

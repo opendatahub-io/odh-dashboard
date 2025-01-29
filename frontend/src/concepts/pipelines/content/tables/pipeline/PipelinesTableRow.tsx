@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Td, Tbody, Tr, ActionsColumn, TableText } from '@patternfly/react-table';
 import { Link, useNavigate } from 'react-router-dom';
 import { Skeleton } from '@patternfly/react-core';
-import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd, TableRowTitleDescription } from '~/components/table';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelinesTableExpandedRow from '~/concepts/pipelines/content/tables/pipeline/PipelinesTableExpandedRow';
@@ -10,11 +10,7 @@ import PipelineVersionUploadModal from '~/concepts/pipelines/content/import/Pipe
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
 import usePipelineTableRowData from '~/concepts/pipelines/content/tables/pipeline/usePipelineTableRowData';
 import { PipelineAndVersionContext } from '~/concepts/pipelines/content/PipelineAndVersionContext';
-import {
-  pipelineVersionCreateRunRoute,
-  pipelineVersionCreateRecurringRunRoute,
-  pipelineVersionDetailsRoute,
-} from '~/routes';
+import { pipelineVersionDetailsRoute, createRunRoute, createRecurringRunRoute } from '~/routes';
 import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
 import {
   PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR,
@@ -25,13 +21,13 @@ const DISABLE_TOOLTIP =
   'All child pipeline versions must be deleted before deleting the parent pipeline';
 
 type PipelinesTableRowProps = {
-  pipeline: PipelineKFv2;
+  pipeline: PipelineKF;
   isChecked: boolean;
   onToggleCheck: () => void;
   rowIndex: number;
   onDeletePipeline: () => void;
   refreshPipelines: () => Promise<unknown>;
-  disableCheck: (id: PipelineKFv2, disabled: boolean) => void;
+  disableCheck: (id: PipelineKF, disabled: boolean) => void;
 };
 
 const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
@@ -46,7 +42,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
   const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
   const [isExpanded, setExpanded] = React.useState(false);
-  const [importTarget, setImportTarget] = React.useState<PipelineKFv2 | null>(null);
+  const [importTarget, setImportTarget] = React.useState<PipelineKF | null>(null);
   const {
     version,
     totalSize,
@@ -91,7 +87,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
             isDisabled={disableDelete}
             tooltip={disableDelete ? DISABLE_TOOLTIP : undefined}
           />
-          <Td>
+          <Td modifier="truncate">
             <TableRowTitleDescription
               title={
                 loading ? (
@@ -104,10 +100,10 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                       version.pipeline_version_id,
                     )}
                   >
-                    <TableText wrapModifier="truncate">{pipeline.display_name}</TableText>
+                    <TableText>{pipeline.display_name}</TableText>
                   </Link>
                 ) : (
-                  <TableText wrapModifier="truncate">{pipeline.display_name}</TableText>
+                  <TableText>{pipeline.display_name}</TableText>
                 )
               }
               description={pipeline.description}
@@ -134,13 +130,9 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                 {
                   title: 'Create run',
                   onClick: () => {
-                    navigate(
-                      pipelineVersionCreateRunRoute(
-                        namespace,
-                        version?.pipeline_id,
-                        version?.pipeline_version_id,
-                      ),
-                    );
+                    navigate(createRunRoute(namespace), {
+                      state: { contextData: { pipeline, version } },
+                    });
                   },
                   isAriaDisabled: isCreateDisabled,
                   tooltipProps: isArgoWorkflow(version?.pipeline_spec)
@@ -150,13 +142,9 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                 {
                   title: 'Create schedule',
                   onClick: () => {
-                    navigate(
-                      pipelineVersionCreateRecurringRunRoute(
-                        namespace,
-                        version?.pipeline_id,
-                        version?.pipeline_version_id,
-                      ),
-                    );
+                    navigate(createRecurringRunRoute(namespace), {
+                      state: { contextData: { pipeline, version } },
+                    });
                   },
                   isAriaDisabled: isCreateDisabled,
                   tooltipProps: isArgoWorkflow(version?.pipeline_spec)

@@ -123,6 +123,22 @@ class ServingRuntimes {
   getRowById(id: string) {
     return new ServingRuntimeRow(id);
   }
+
+  findEditModel() {
+    return cy.findByLabelText('Kebab toggle');
+  }
+
+  findDeleteModel() {
+    return cy.contains('button', 'Delete');
+  }
+
+  findDeleteModal() {
+    return cy.get('[data-testid="delete-modal-input"]');
+  }
+
+  findDeleteModelServingButton() {
+    return cy.get('button').contains('Delete serving runtime');
+  }
 }
 
 export const servingRuntimes = new ServingRuntimes();

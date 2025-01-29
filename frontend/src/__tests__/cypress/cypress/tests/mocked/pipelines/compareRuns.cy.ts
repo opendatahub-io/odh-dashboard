@@ -4,9 +4,9 @@ import {
   mockDashboardConfig,
   mockDataSciencePipelineApplicationK8sResource,
   mockK8sResourceList,
-  buildMockPipelineV2,
+  buildMockPipeline,
   buildMockPipelines,
-  buildMockPipelineVersionV2,
+  buildMockPipelineVersion,
   mockProjectK8sResource,
   mockRouteK8sResource,
   buildMockRunKF,
@@ -28,8 +28,8 @@ import { mockArtifactStorage } from '~/__mocks__/mockArtifactStorage';
 import { initMlmdIntercepts } from './mlmdUtils';
 
 const projectName = 'test-project-name';
-const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
-const initialMockPipelineVersion = buildMockPipelineVersionV2({
+const initialMockPipeline = buildMockPipeline({ display_name: 'Test pipeline' });
+const initialMockPipelineVersion = buildMockPipelineVersion({
   pipeline_id: initialMockPipeline.pipeline_id,
 });
 const mockExperiment = buildMockExperimentKF({
@@ -133,7 +133,7 @@ describe('Compare runs', () => {
     cy.wait('@validRun');
     compareRunsGlobal.findInvalidRunsError().should('not.exist');
     verifyRelativeURL(
-      `/experiments/${projectName}/${mockExperiment.experiment_id}/compareRuns?runs=${mockRun.run_id}`,
+      `/experiments/${projectName}/${mockExperiment.experiment_id}/compareRuns?compareRuns=${mockRun.run_id}`,
     );
   });
 
@@ -153,7 +153,7 @@ describe('Compare runs', () => {
     cy.wait('@validRun');
     compareRunsGlobal.findInvalidRunsError().should('not.exist');
     verifyRelativeURL(
-      `/experiments/${projectName}/${mockExperiment.experiment_id}/compareRuns?runs=invalid_run_id,${mockRun.run_id}`,
+      `/experiments/${projectName}/${mockExperiment.experiment_id}/compareRuns?compareRuns=invalid_run_id,${mockRun.run_id}`,
     );
   });
 

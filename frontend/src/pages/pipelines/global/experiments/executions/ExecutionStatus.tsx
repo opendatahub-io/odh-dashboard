@@ -1,93 +1,64 @@
 import React from 'react';
-import { Icon, Label, Tooltip } from '@patternfly/react-core';
+
+import { Label, LabelProps } from '@patternfly/react-core';
 import {
+  BanIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
   InProgressIcon,
   OutlinedWindowRestoreIcon,
   PendingIcon,
-  TimesCircleIcon,
 } from '@patternfly/react-icons';
+
 import { Execution } from '~/third_party/mlmd';
 
 type ExecutionStatusProps = {
   status: Execution.State;
-  isIcon?: boolean;
+  isCompact?: boolean;
 };
 
-const ExecutionStatus: React.FC<ExecutionStatusProps> = ({ status, isIcon }) => {
-  let tooltip;
-  let icon;
-  let label;
+export const ExecutionStatus: React.FC<ExecutionStatusProps> = ({ status, isCompact }) => {
+  let color: LabelProps['color'];
+  let icon: React.ReactNode;
+  let label: string;
+
   switch (status) {
     case Execution.State.COMPLETE:
-      icon = (
-        <Icon status="success">
-          <CheckCircleIcon />
-        </Icon>
-      );
-      tooltip = 'Complete';
-      label = (
-        <Label color="green" icon={<CheckCircleIcon />}>
-          Complete
-        </Label>
-      );
+      color = 'green';
+      icon = <CheckCircleIcon />;
+      label = 'Complete';
       break;
     case Execution.State.CACHED:
-      icon = (
-        <Icon status="custom">
-          <OutlinedWindowRestoreIcon />
-        </Icon>
-      );
-      tooltip = 'Cached';
-      label = (
-        <Label color="cyan" icon={<OutlinedWindowRestoreIcon />}>
-          Cached
-        </Label>
-      );
+      color = 'green';
+      icon = <OutlinedWindowRestoreIcon />;
+      label = 'Cached';
       break;
     case Execution.State.CANCELED:
-      icon = (
-        <Icon>
-          <TimesCircleIcon />
-        </Icon>
-      );
-      tooltip = 'Canceled';
-      label = <Label icon={<TimesCircleIcon />}>Canceled</Label>;
+      color = 'orangered';
+      icon = <BanIcon />;
+      label = 'Canceled';
       break;
     case Execution.State.FAILED:
-      icon = (
-        <Icon status="danger">
-          <ExclamationCircleIcon />
-        </Icon>
-      );
-      tooltip = 'Failed';
-      label = (
-        <Label color="red" icon={<ExclamationCircleIcon />}>
-          Failed
-        </Label>
-      );
+      color = 'red';
+      icon = <ExclamationCircleIcon />;
+      label = 'Failed';
       break;
     case Execution.State.RUNNING:
-      icon = <Icon isInProgress />;
-      tooltip = 'Running';
-      label = <Label icon={<InProgressIcon />}>Running</Label>;
+      color = 'blue';
+      icon = <InProgressIcon />;
+      label = 'Running';
       break;
     case Execution.State.NEW:
-      icon = (
-        <Icon>
-          <PendingIcon />
-        </Icon>
-      );
-      tooltip = 'New';
-      label = <Label icon={<PendingIcon />}>New</Label>;
+      icon = <PendingIcon />;
+      label = 'Pending';
       break;
     default:
-      icon = <>Unknown</>;
-      label = <Label>Unknown</Label>;
+      label = 'Unknown';
   }
 
-  return isIcon ? <Tooltip content={tooltip}>{icon}</Tooltip> : <>{label}</>;
+  return (
+    <Label color={color} icon={icon} isCompact={isCompact}>
+      {label}
+    </Label>
+  );
 };
-
-export default ExecutionStatus;

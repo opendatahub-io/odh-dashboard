@@ -1,8 +1,10 @@
 import { appChrome } from './appChrome';
+import { Contextual } from './components/Contextual';
+import { K8sNameDescriptionField } from './components/subComponents/K8sNameDescriptionField';
+import { SearchSelector } from './components/subComponents/SearchSelector';
 
 export enum FormFieldSelector {
   NAME = '#mr-name',
-  RESOURCENAME = '#resource-mr-name',
   HOST = '#mr-host',
   PORT = '#mr-port',
   USERNAME = '#mr-username',
@@ -27,6 +29,12 @@ export enum DatabaseDetailsTestId {
 }
 
 class ModelRegistrySettings {
+  k8sNameDescription = new K8sNameDescriptionField('mr');
+
+  resourceNameSelect = new SearchSelector('existing-ca-resource-selector');
+
+  keySelect = new SearchSelector('existing-ca-key-selector');
+
   visit(wait = true) {
     cy.visitWithLogin('/modelRegistrySettings');
     if (wait) {
@@ -114,6 +122,60 @@ class ModelRegistrySettings {
 
   findConfirmDeleteNameInput() {
     return cy.findByTestId('confirm-delete-input');
+  }
+
+  findClusterWideCARadio() {
+    return cy.findByTestId('cluster-wide-ca-radio');
+  }
+
+  findOpenshiftCARadio() {
+    return cy.findByTestId('openshift-ca-radio');
+  }
+
+  findExistingCARadio() {
+    return cy.findByTestId('existing-ca-radio');
+  }
+
+  findUploadNewCertificateRadio() {
+    return cy.findByTestId('new-certificate-ca-radio');
+  }
+
+  findAddSecureDbMRCheckbox() {
+    return cy.findByTestId('add-secure-db-mr-checkbox');
+  }
+
+  findExistingCAResourceInputToggle() {
+    return cy.findByTestId('existing-ca-resource-selector-toggle');
+  }
+
+  findExistingCAKeyInputToggle() {
+    return cy.findByTestId('existing-ca-key-selector-toggle');
+  }
+
+  getNewCertificateUpload() {
+    return new CertificateUpload(() => cy.findByTestId('certificate-upload'));
+  }
+
+  findErrorFetchingResourceAlert() {
+    return cy.findByTestId('error-fetching-resource-alert');
+  }
+
+  findCertificateNote() {
+    return cy.findByTestId('certificate-note');
+  }
+}
+
+class CertificateUpload extends Contextual<HTMLElement> {
+  findUploadCertificateInput() {
+    return this.find().find('[data-testid="new-certificate-upload"] input[type="file"]');
+  }
+
+  uploadPemFile(filePath: string) {
+    this.findUploadCertificateInput().selectFile([filePath], { force: true });
+  }
+
+  findRestrictedFileUploadHelptext() {
+    return cy.findByTestId('restricted-file-example-helpText');
   }
 }
 

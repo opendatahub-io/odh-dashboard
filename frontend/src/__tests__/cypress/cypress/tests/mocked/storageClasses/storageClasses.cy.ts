@@ -395,7 +395,10 @@ describe('Storage classes', () => {
       const storageClasses = [
         ...mockStorageClasses,
         buildMockStorageClass(
-          { ...mockStorageClasses[0], metadata: { ...mockStorageClasses[0], name: 'sc-2' } },
+          {
+            ...mockStorageClasses[0],
+            metadata: { ...mockStorageClasses[0].metadata, name: 'sc-2' },
+          },
           { displayName: 'Test SC 2' },
         ),
       ];
@@ -430,6 +433,22 @@ describe('Storage classes', () => {
       toolbar.findFilterMenuItem('Display name').click();
       toolbar.fillSearchInput('test');
       storageClassesTable.findRows().should('have.length', 1);
+    });
+
+    it('should not show no default alert when there is an OpenShift default storage class', () => {
+      storageClassesPage.mockGetStorageClasses([openshiftDefaultStorageClass]);
+      storageClassesTable.mockUpdateStorageClass(openshiftDefaultStorageClass.metadata.name, 1);
+      storageClassesPage.visit();
+
+      storageClassesPage.findNoDefaultAlert().should('not.exist');
+    });
+
+    it('should show no default alert when there is no OpenShift default storage classes', () => {
+      storageClassesPage.mockGetStorageClasses([otherStorageClass]);
+      storageClassesTable.mockUpdateStorageClass(otherStorageClass.metadata.name, 1);
+      storageClassesPage.visit();
+
+      storageClassesPage.findNoDefaultAlert().should('exist');
     });
   });
 });

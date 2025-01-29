@@ -12,22 +12,29 @@ import {
 export const fetchConnectionTypes = (): Promise<ConnectionTypeConfigMapObj[]> => {
   const url = `/api/connection-types`;
   return axios
-    .get(url)
+    .get<ConnectionTypeConfigMap[]>(url)
     .then((response) =>
-      response.data.map((cm: ConnectionTypeConfigMap) => toConnectionTypeConfigMapObj(cm)),
+      response.data.reduce<ConnectionTypeConfigMapObj[]>((acc, cm) => {
+        try {
+          acc.push(toConnectionTypeConfigMapObj(cm));
+        } catch (e) {
+          // ignore those which fail to parse
+        }
+        return acc;
+      }, []),
     )
     .catch((e) => {
-      throw new Error(e.response.data.message);
+      throw new Error(e?.response?.data?.message ?? e.message);
     });
 };
 
 export const fetchConnectionType = (name: string): Promise<ConnectionTypeConfigMapObj> => {
   const url = `/api/connection-types/${name}`;
   return axios
-    .get(url)
+    .get<ConnectionTypeConfigMap>(url)
     .then((response) => toConnectionTypeConfigMapObj(response.data))
     .catch((e) => {
-      throw new Error(e.response.data.message);
+      throw new Error(e?.response?.data?.message ?? e.message);
     });
 };
 
@@ -36,10 +43,10 @@ export const createConnectionType = (
 ): Promise<ResponseStatus> => {
   const url = `/api/connection-types`;
   return axios
-    .post(url, toConnectionTypeConfigMap(connectionType))
+    .post<ResponseStatus>(url, toConnectionTypeConfigMap(connectionType))
     .then((response) => response.data)
     .catch((e) => {
-      throw new Error(e.response.data.message);
+      throw new Error(e?.response?.data?.message ?? e.message);
     });
 };
 
@@ -48,10 +55,10 @@ export const updateConnectionType = (
 ): Promise<ResponseStatus> => {
   const url = `/api/connection-types/${connectionType.metadata.name}`;
   return axios
-    .put(url, toConnectionTypeConfigMap(connectionType))
+    .put<ResponseStatus>(url, toConnectionTypeConfigMap(connectionType))
     .then((response) => response.data)
     .catch((e) => {
-      throw new Error(e.response.data.message);
+      throw new Error(e?.response?.data?.message ?? e.message);
     });
 };
 
@@ -70,25 +77,25 @@ export const updateConnectionTypeEnabled = (
     });
   }
   patch.push({
-    op: connectionType.metadata.annotations?.['opendatahub.io/enabled'] ? 'replace' : 'add',
-    path: '/metadata/annotations/opendatahub.io~1enabled',
-    value: String(enabled),
+    op: connectionType.metadata.annotations?.['opendatahub.io/disabled'] ? 'replace' : 'add',
+    path: '/metadata/annotations/opendatahub.io~1disabled',
+    value: String(!enabled),
   });
 
   return axios
-    .patch(url, patch)
+    .patch<ResponseStatus>(url, patch)
     .then((response) => response.data)
     .catch((e) => {
-      throw new Error(e.response.data.message);
+      throw new Error(e?.response?.data?.message ?? e.message);
     });
 };
 
 export const deleteConnectionType = (name: string): Promise<ResponseStatus> => {
   const url = `/api/connection-types/${name}`;
   return axios
-    .delete(url)
+    .delete<ResponseStatus>(url)
     .then((response) => response.data)
     .catch((e) => {
-      throw new Error(e.response.data.message);
+      throw new Error(e?.response?.data?.message ?? e.message);
     });
 };

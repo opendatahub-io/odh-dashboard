@@ -1,14 +1,14 @@
 /* eslint-disable camelcase */
 import {
-  buildMockPipelineVersionV2,
-  buildMockPipelineVersionsV2,
+  buildMockPipelineVersion,
+  buildMockPipelineVersions,
   mockProjectK8sResource,
   mockRouteK8sResource,
   mockSecretK8sResource,
   mockDataSciencePipelineApplicationK8sResource,
   mockK8sResourceList,
   mock404Error,
-  buildMockPipelineV2,
+  buildMockPipeline,
   buildMockPipelines,
 } from '~/__mocks__';
 import {
@@ -27,22 +27,23 @@ import {
   RouteModel,
   SecretModel,
 } from '~/__tests__/cypress/cypress/utils/models';
-import type { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
+import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
+import type { PipelineKF } from '~/concepts/pipelines/kfTypes';
 
 const projectName = 'test-project-name';
-const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
-const initialMockPipelineVersion = buildMockPipelineVersionV2({
+const initialMockPipeline = buildMockPipeline({ display_name: 'Test pipeline' });
+const initialMockPipelineVersion = buildMockPipelineVersion({
   pipeline_id: initialMockPipeline.pipeline_id,
 });
 
-const mockPipelines: PipelineKFv2[] = [
-  buildMockPipelineV2({
+const mockPipelines: PipelineKF[] = [
+  buildMockPipeline({
     display_name: 'Test pipeline 1',
     pipeline_id: 'test-pipeline-1',
     created_at: '2023-01-30T22:55:17Z',
   }),
 
-  buildMockPipelineV2({
+  buildMockPipeline({
     display_name: 'Test pipeline 2',
     pipeline_id: 'test-pipeline-2',
     created_at: '2024-01-30T22:55:17Z',
@@ -164,8 +165,7 @@ describe('PipelinesList', () => {
       .findPipelineVersionLink()
       .click();
 
-    cy.url().should(
-      'include',
+    verifyRelativeURL(
       `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
     );
   });
@@ -199,10 +199,7 @@ describe('PipelinesList', () => {
       .findKebabAction('Create run')
       .click();
 
-    cy.url().should(
-      'include',
-      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/runs/create`,
-    );
+    verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
   });
 
   it('navigates to "Schedule run" page from pipeline row', () => {
@@ -215,10 +212,7 @@ describe('PipelinesList', () => {
       .findKebabAction('Create schedule')
       .click();
 
-    cy.url().should(
-      'include',
-      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/schedules/create`,
-    );
+    verifyRelativeURL(`/pipelineRuns/${projectName}/schedules/create`);
   });
 });
 
@@ -277,7 +271,7 @@ export const initIntercepts = (
         pipelineId: initialMockPipeline.pipeline_id,
       },
     },
-    buildMockPipelineVersionsV2([initialMockPipelineVersion]),
+    buildMockPipelineVersions([initialMockPipelineVersion]),
   );
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId',

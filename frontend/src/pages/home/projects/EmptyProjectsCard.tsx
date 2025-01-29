@@ -7,11 +7,11 @@ import {
   FlexItem,
   Stack,
   StackItem,
-  Text,
-  TextContent,
+  Content,
 } from '@patternfly/react-core';
 import { ArrowRightIcon } from '@patternfly/react-icons';
 import getStartedImage from '~/images/AI_ML-illustration-Blog-thumbnail.svg';
+import WhosMyAdministrator from '~/components/WhosMyAdministrator';
 
 type EmptyProjectsCardProps = {
   allowCreate: boolean;
@@ -32,14 +32,14 @@ const EmptyProjectsCard: React.FC<EmptyProjectsCardProps> = ({ allowCreate, onCr
         <FlexItem>
           <Stack hasGutter>
             <StackItem>
-              <TextContent>
-                <Text component="h1">Start by creating your project</Text>
-                <Text component="p">
+              <Content>
+                <Content component="h1">Start by creating your project</Content>
+                <Content component="p">
                   From workbenches to model servers, your data science project can be organized and
                   customized to meet your needs.
                   {!allowCreate ? ' To request a project, contact your administrator.' : null}
-                </Text>
-              </TextContent>
+                </Content>
+              </Content>
             </StackItem>
             {allowCreate ? (
               <StackItem>
@@ -53,7 +53,11 @@ const EmptyProjectsCard: React.FC<EmptyProjectsCardProps> = ({ allowCreate, onCr
                   Create a project
                 </Button>
               </StackItem>
-            ) : null}
+            ) : (
+              <StackItem>
+                <WhosMyAdministrator isInline />
+              </StackItem>
+            )}
           </Stack>
         </FlexItem>
       </Flex>

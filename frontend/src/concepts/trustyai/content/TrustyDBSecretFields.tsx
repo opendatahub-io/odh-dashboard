@@ -24,7 +24,7 @@ const TrustyField: React.FC<{
   return (
     <FormGroup
       label={label}
-      labelIcon={<FieldGroupHelpLabelIcon content={labelTooltip} />}
+      labelHelp={<FieldGroupHelpLabelIcon content={labelTooltip} />}
       isRequired
       fieldId={`${TRUSTYAI_INSTALL_MODAL_TEST_ID}-${id}`}
     >

@@ -263,4 +263,27 @@ describe('ConnectionTypeDataFieldModal', () => {
 
     expect(screen.queryByTestId('envvar-conflict-warning')).not.toBeInTheDocument();
   });
+
+  it('should not be able to submit until form is dirty', () => {
+    const field: ShortTextField = {
+      type: 'short-text',
+      name: 'test',
+      envVar: 'test_envvar',
+      properties: {},
+    };
+    render(
+      <ConnectionTypeDataFieldModal onClose={onClose} onSubmit={onSubmit} isEdit field={field} />,
+    );
+
+    const submitButton = screen.getByTestId('modal-submit-button');
+    const fieldNameInput = screen.getByTestId('field-name-input');
+
+    expect(submitButton).toBeDisabled();
+
+    act(() => {
+      fireEvent.change(fieldNameInput, { target: { value: 'new-field' } });
+    });
+
+    expect(submitButton).not.toBeDisabled();
+  });
 });

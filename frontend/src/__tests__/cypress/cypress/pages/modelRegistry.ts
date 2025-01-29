@@ -87,8 +87,28 @@ class ModelRegistry {
     return cy.findByTestId('empty-model-registries-state');
   }
 
+  findModelRegistryEmptyTableState() {
+    return cy.findByTestId('dashboard-empty-table-state');
+  }
+
   shouldregisteredModelsEmpty() {
     cy.findByTestId('empty-registered-models').should('exist');
+  }
+
+  findViewDetailsButton() {
+    return cy.findByTestId('view-details-button');
+  }
+
+  findDetailsPopover() {
+    return cy.findByTestId('mr-details-popover');
+  }
+
+  findHelpContentButton() {
+    return cy.findByTestId('model-registry-help-button');
+  }
+
+  findHelpContentPopover() {
+    return cy.findByTestId('model-registry-help-content');
   }
 
   shouldmodelVersionsEmpty() {

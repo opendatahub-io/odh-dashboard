@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { CardHeader, Flex, FlexItem, Popover, Text, TextContent } from '@patternfly/react-core';
+import { CardHeader, Flex, FlexItem, Popover, Content } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
 import HeaderIcon from '~/concepts/design/HeaderIcon';
@@ -37,15 +37,15 @@ const OverviewCard: React.FC<OverviewCardProps> = ({
         <FlexItem>
           <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
             <FlexItem>
-              <HeaderIcon type={objectType} sectionType={sectionType} size={36} />
+              <HeaderIcon type={objectType} sectionType={sectionType} />
             </FlexItem>
             {title ? (
               <FlexItem>
-                <TextContent>
-                  <Text id={id ? `${id}-title` : undefined} component="h3">
+                <Content>
+                  <Content id={id ? `${id}-title` : undefined} component="h3">
                     <b>{title}</b>
-                  </Text>
-                </TextContent>
+                  </Content>
+                </Content>
               </FlexItem>
             ) : null}
             {popoverHeaderContent || popoverBodyContent ? (

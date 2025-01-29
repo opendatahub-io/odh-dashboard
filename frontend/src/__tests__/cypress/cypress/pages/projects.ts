@@ -30,7 +30,7 @@ class NotebookRow extends TableRow {
   }
 
   shouldHaveNotebookImageName(name: string) {
-    return cy.findByTestId('image-display-name').should('have.text', name);
+    return cy.findByTestId('image-display-name').should('contain.text', name);
   }
 
   findOutdatedElyraInfo() {
@@ -46,6 +46,14 @@ class ProjectNotebookRow extends TableRow {
   findNotebookStatusText() {
     return this.find().findByTestId('notebook-status-text');
   }
+
+  findNotebookStart() {
+    return this.find().findByTestId('notebook-start-action');
+  }
+
+  findNotebookStop() {
+    return this.find().findByTestId('notebook-stop-action');
+  }
 }
 
 class ProjectRow extends TableRow {
@@ -57,8 +65,16 @@ class ProjectRow extends TableRow {
     return this.find().findByTestId('notebook-column-expand');
   }
 
+  findNotebookColumnExpander() {
+    return this.find().findByTestId('notebook-column-expand').find('button');
+  }
+
   findNotebookTable() {
     return this.find().parents('tbody').findByTestId('project-notebooks-table');
+  }
+
+  getNotebookRows() {
+    return this.findNotebookTable().findByTestId('project-notebooks-table-row');
   }
 
   getNotebookRow(notebookName: string) {
@@ -105,6 +121,10 @@ class ProjectListPage {
     return cy.findByTestId('create-data-science-project');
   }
 
+  findLaunchStandaloneWorkbenchButton() {
+    return cy.findByTestId('launch-standalone-notebook-server');
+  }
+
   findProjectsTable() {
     return cy.findByTestId('project-view-table');
   }
@@ -118,7 +138,7 @@ class ProjectListPage {
   }
 
   findEmptyResults() {
-    return cy.findByTestId('no-result-found-title');
+    return cy.findByTestId('dashboard-empty-table-state');
   }
 
   findSortButton(name: string) {
@@ -152,7 +172,15 @@ class CreateEditProjectModal extends Modal {
   }
 
   findSubmitButton() {
-    return this.findFooter().findByRole('button', { name: this.edit ? /Edit/ : /Create/ });
+    return this.findFooter().findByRole('button', { name: this.edit ? /Update/ : /Create/ });
+  }
+
+  findEditProjectName() {
+    return this.find().findByTestId('manage-project-modal-name');
+  }
+
+  findEditDescriptionName() {
+    return this.find().findByTestId('manage-project-modal-description');
   }
 }
 
@@ -168,8 +196,8 @@ class ProjectDetails {
     this.wait();
   }
 
-  visitSection(project: string, section: string) {
-    cy.visitWithLogin(`/projects/${project}?section=${section}`);
+  visitSection(project: string, section: string, extraUrlParams = '') {
+    cy.visitWithLogin(`/projects/${project}?section=${section}${extraUrlParams}`);
     this.wait(section);
   }
 
@@ -186,7 +214,7 @@ class ProjectDetails {
     return this.findDataConnectionTable().find('thead').findByRole('button', { name });
   }
 
-  private findModelServingPlatform(name: string) {
+  findModelServingPlatform(name: string) {
     return this.findComponent('model-server').findByTestId(`${name}-serving-platform-card`);
   }
 
@@ -232,12 +260,32 @@ class ProjectDetails {
     return cy.findByTestId('import-pipeline-button', { timeout });
   }
 
-  findSingleModelDeployButton() {
-    return this.findModelServingPlatform('single').findByTestId('single-serving-deploy-button');
+  findSelectPlatformButton(platform: string) {
+    return cy.findByTestId(`${platform}-serving-select-button`);
   }
 
-  findMultiModelButton() {
-    return this.findModelServingPlatform('multi').findByTestId('multi-serving-add-server-button');
+  findResetPlatformButton() {
+    return cy.findByTestId('change-serving-platform-button');
+  }
+
+  findErrorSelectingPlatform() {
+    return cy.findByTestId('error-selecting-serving-platform');
+  }
+
+  findDeployModelDropdown() {
+    return cy.findByTestId('deploy-model-dropdown');
+  }
+
+  findBackToRegistryButton() {
+    return cy.findByTestId('deploy-from-registry');
+  }
+
+  findTopLevelDeployModelButton() {
+    return cy.findByTestId('deploy-button');
+  }
+
+  findTopLevelAddModelServerButton() {
+    return cy.findByTestId('add-server-button');
   }
 
   findDeployModelTooltip() {
@@ -291,12 +339,42 @@ class ProjectDetails {
     return cy.findByTestId('unsupported-pipeline-version-alert');
   }
 
-  private findKserveModelsTable() {
+  findPipelineTimeoutErrorMessage() {
+    return cy.findByTestId('timeout-pipeline-error-message');
+  }
+
+  findKserveModelsTable() {
     return cy.findByTestId('kserve-inference-service-table');
   }
 
   getKserveModelMetricLink(name: string) {
     return this.findKserveModelsTable().findByTestId(`metrics-link-${name}`);
+  }
+
+  verifyProjectName(project: string) {
+    return cy.get('[data-testid="app-page-title"]').should('contain.text', project);
+  }
+
+  verifyProjectDescription(description: string) {
+    return cy.findByText(description);
+  }
+
+  findActions() {
+    return cy.findByTestId('project-actions');
+  }
+
+  findDeleteProjectButton() {
+    return cy.findByTestId('delete-project-action').find('button');
+  }
+
+  getKserveTableRow(name: string) {
+    return new KserveTableRow(() =>
+      this.findKserveModelsTable()
+        .find('tbody')
+        .find('[data-label="Name"]')
+        .contains(name)
+        .closest('tr'),
+    );
   }
 }
 
@@ -310,9 +388,51 @@ class ProjectDetailsSettingsTab extends ProjectDetails {
   }
 }
 
+class ProjectDetailsOverviewTab extends ProjectDetails {
+  visit(project: string) {
+    super.visitSection(project, 'overview');
+  }
+
+  findDeployedModelServingRuntime(name: string) {
+    return cy
+      .findByTestId('section-overview')
+      .get('div')
+      .contains(name)
+      .parents('.odh-type-bordered-card .model-server')
+      .get('dd');
+  }
+
+  findModelServingPlatform(name: string) {
+    return cy.findByTestId(`${name}-platform-card`);
+  }
+}
+
+class KserveTableRow extends TableRow {
+  findAPIProtocol() {
+    return this.find().find(`[data-label="API protocol"]`);
+  }
+
+  findServiceRuntime() {
+    return this.find().find(`[data-label="Serving Runtime"]`);
+  }
+
+  findDetailsTriggerButton() {
+    return this.find().findByTestId('kserve-model-row-item').find('button');
+  }
+
+  private findDetailsCell() {
+    return this.find().next('tr').find('td').eq(1);
+  }
+
+  findInfoValueFor(label: string) {
+    return this.findDetailsCell().find('dt').contains(label).closest('div').find('dd');
+  }
+}
+
 export const projectListPage = new ProjectListPage();
 export const createProjectModal = new CreateEditProjectModal();
 export const editProjectModal = new CreateEditProjectModal(true);
 export const deleteProjectModal = new DeleteModal();
 export const projectDetails = new ProjectDetails();
 export const projectDetailsSettingsTab = new ProjectDetailsSettingsTab();
+export const projectDetailsOverviewTab = new ProjectDetailsOverviewTab();

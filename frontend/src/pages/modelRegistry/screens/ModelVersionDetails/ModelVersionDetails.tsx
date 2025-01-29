@@ -37,7 +37,12 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
   const [rm] = useRegisteredModelById(rmId);
   const [mv, mvLoaded, mvLoadError, refreshModelVersion] = useModelVersionById(mvId);
   const inferenceServices = useMakeFetchObject(
-    useInferenceServices(undefined, mv?.registeredModelId, mv?.id),
+    useInferenceServices(
+      undefined,
+      mv?.registeredModelId,
+      mv?.id,
+      preferredModelRegistry?.metadata.name,
+    ),
   );
   const servingRuntimes = useMakeFetchObject(useServingRuntimes());
 
@@ -118,7 +123,11 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
               />
             </FlexItem>
             <FlexItem>
-              <ModelVersionsDetailsHeaderActions mv={mv} refresh={refresh} />
+              <ModelVersionsDetailsHeaderActions
+                mv={mv}
+                hasDeployment={inferenceServices.data.length > 0}
+                refresh={refresh}
+              />
             </FlexItem>
           </Flex>
         )

@@ -3,13 +3,11 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   EmptyState,
-  EmptyStateIcon,
   EmptyStateVariant,
   EmptyStateBody,
   Bullseye,
   Spinner,
   Truncate,
-  EmptyStateHeader,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
@@ -29,7 +27,7 @@ import useExecutionsForPipelineRun from '~/concepts/pipelines/content/pipelinesD
 import { useGetEventsByExecutionIds } from '~/concepts/pipelines/apiHooks/mlmd/useGetEventsByExecutionId';
 import { PipelineTopology } from '~/concepts/topology';
 import { FetchState } from '~/utilities/useFetchState';
-import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import PipelineNotSupported from '~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineNotSupported';
 import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
 import { usePipelineRunArtifacts } from './artifacts';
@@ -37,7 +35,7 @@ import { PipelineRunDetailsTabs } from './PipelineRunDetailsTabs';
 
 const PipelineRunDetails: React.FC<
   PathProps & {
-    fetchedRun: FetchState<PipelineRunKFv2 | null>;
+    fetchedRun: FetchState<PipelineRunKF | null>;
   }
 > = ({ fetchedRun, breadcrumbPath, contextPath }) => {
   const navigate = useNavigate();
@@ -77,12 +75,13 @@ const PipelineRunDetails: React.FC<
 
   if (error) {
     return (
-      <EmptyState variant={EmptyStateVariant.lg} data-id="error-empty-state">
-        <EmptyStateHeader
-          titleText="Error loading pipeline run details"
-          icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-          headingLevel="h4"
-        />
+      <EmptyState
+        headingLevel="h4"
+        icon={ExclamationCircleIcon}
+        titleText="Error loading pipeline run details"
+        variant={EmptyStateVariant.lg}
+        data-id="error-empty-state"
+      >
         <EmptyStateBody>{error.message}</EmptyStateBody>
       </EmptyState>
     );
@@ -123,7 +122,6 @@ const PipelineRunDetails: React.FC<
           run?.description ? <MarkdownView conciseDisplay markdown={run.description} /> : ''
         }
         loaded={loaded}
-        loadError={error}
         breadcrumb={
           <Breadcrumb>
             {breadcrumbPath}

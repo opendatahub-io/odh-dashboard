@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { Dropdown, DropdownList, MenuToggle, DropdownItem } from '@patternfly/react-core';
+import {
+  Dropdown,
+  DropdownList,
+  MenuToggle,
+  DropdownItem,
+  Button,
+  ButtonVariant,
+  ActionList,
+} from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
 import { ArchiveModelVersionModal } from '~/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
@@ -13,11 +21,13 @@ import DeployRegisteredModelModal from '~/pages/modelRegistry/screens/components
 
 interface ModelVersionsDetailsHeaderActionsProps {
   mv: ModelVersion;
+  hasDeployment?: boolean;
   refresh: () => void;
 }
 
 const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActionsProps> = ({
   mv,
+  hasDeployment = false,
   refresh,
 }) => {
   const { apiState } = React.useContext(ModelRegistryContext);
@@ -30,15 +40,24 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
   const tooltipRef = React.useRef<HTMLButtonElement>(null);
 
   return (
-    <>
+    <ActionList>
+      <Button
+        id="deploy-button"
+        aria-label="Deploy version"
+        ref={tooltipRef}
+        variant={ButtonVariant.primary}
+        onClick={() => setIsDeployModalOpen(true)}
+      >
+        Deploy
+      </Button>
       <Dropdown
         isOpen={isOpenActionDropdown}
         onSelect={() => setOpenActionDropdown(false)}
         onOpenChange={(open) => setOpenActionDropdown(open)}
-        popperProps={{ position: 'right' }}
+        popperProps={{ position: 'right', appendTo: 'inline' }}
         toggle={(toggleRef) => (
           <MenuToggle
-            variant="primary"
+            variant={ButtonVariant.secondary}
             ref={toggleRef}
             onClick={() => setOpenActionDropdown(!isOpenActionDropdown)}
             isExpanded={isOpenActionDropdown}
@@ -51,22 +70,17 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
       >
         <DropdownList>
           <DropdownItem
-            id="deploy-button"
-            aria-label="Deploy version"
-            key="deploy-button"
-            onClick={() => setIsDeployModalOpen(true)}
-            ref={tooltipRef}
-          >
-            Deploy
-          </DropdownItem>
-          <DropdownItem
+            isAriaDisabled={hasDeployment}
             id="archive-version-button"
-            aria-label="Archive version"
+            aria-label="Archive model version"
             key="archive-version-button"
             onClick={() => setIsArchiveModalOpen(true)}
+            tooltipProps={
+              hasDeployment ? { content: 'Deployed model versions cannot be archived' } : undefined
+            }
             ref={tooltipRef}
           >
-            Archive version
+            Archive model version
           </DropdownItem>
         </DropdownList>
       </Dropdown>
@@ -107,7 +121,7 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
           modelVersionName={mv.name}
         />
       ) : null}
-    </>
+    </ActionList>
   );
 };
 

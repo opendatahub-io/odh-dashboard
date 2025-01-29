@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
-import { SearchIcon } from '@patternfly/react-icons';
 import { NotebookKind } from '~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { MultiSelection } from '~/components/MultiSelection';
@@ -57,6 +56,7 @@ const ConnectedNotebookField: React.FC<SelectNotebookFieldProps> = ({
     >
       {isMultiSelect ? (
         <MultiSelection
+          id="connected-notebook-select"
           isDisabled={disabled}
           ariaLabel="Notebook select"
           value={notebooks.map((notebook) => ({
@@ -70,6 +70,7 @@ const ConnectedNotebookField: React.FC<SelectNotebookFieldProps> = ({
         />
       ) : (
         <TypeaheadSelect
+          id="connected-notebook-select"
           isDisabled={disabled}
           selectOptions={options}
           selected={selections[0]}
@@ -86,9 +87,9 @@ const ConnectedNotebookField: React.FC<SelectNotebookFieldProps> = ({
           noOptionsFoundMessage="Search for a workbench name"
           toggleProps={{
             id: 'notebook-search-input',
-            icon: <SearchIcon style={{ marginLeft: 8 }} />,
           }}
           data-testid="notebook-search-select"
+          isRequired={false}
         />
       )}
       <FormHelperText>

@@ -9,9 +9,10 @@ import DeployedModelsSection from './deployedModels/DeployedModelsSection';
 
 const ServeModelsSection: React.FC = () => {
   const servingPlatformStatuses = useServingPlatformStatuses();
-
-  const kServeEnabled = servingPlatformStatuses.kServe.enabled;
-  const modelMeshEnabled = servingPlatformStatuses.modelMesh.enabled;
+  const {
+    modelMesh: { enabled: modelMeshEnabled },
+    platformEnabledCount,
+  } = servingPlatformStatuses;
 
   const { currentProject } = React.useContext(ProjectDetailsContext);
 
@@ -20,11 +21,11 @@ const ServeModelsSection: React.FC = () => {
     servingPlatformStatuses,
   );
 
-  if (kServeEnabled && modelMeshEnabled && !currentProjectServingPlatform) {
+  if (platformEnabledCount > 1 && !currentProjectServingPlatform) {
     return <PlatformSelectSection />;
   }
 
-  if (!kServeEnabled && !modelMeshEnabled) {
+  if (platformEnabledCount === 0) {
     return <NoProjectServingEnabledSection />;
   }
 

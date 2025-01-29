@@ -1,38 +1,33 @@
 import React from 'react';
-import { useParams } from 'react-router-dom';
-
-import {
-  Bullseye,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateIcon,
-  Spinner,
-  EmptyStateHeader,
-} from '@patternfly/react-core';
+import { Bullseye, EmptyState, EmptyStateBody, Spinner } from '@patternfly/react-core';
 import { CubesIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
-
 import PipelineRunTable from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
 import { usePipelineActiveRunsTable } from '~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunTable';
 import { createRunRoute } from '~/routes';
-import { useContextExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import {
+  ExperimentContext,
+  useContextExperimentArchivedOrDeleted,
+} from '~/pages/pipelines/global/experiments/ExperimentContext';
 import { EmptyRunsState } from '~/concepts/pipelines/content/tables/pipelineRun/EmptyRunsState';
+import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineRunTabTitle, PipelineRunType } from './types';
 
 export const ActiveRuns: React.FC = () => {
-  const { namespace, experimentId, pipelineVersionId, pipelineId } = useParams();
+  const { experiment } = React.useContext(ExperimentContext);
+  const { namespace } = usePipelinesAPI();
   const [[{ items: runs, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =
-    usePipelineActiveRunsTable({ experimentId, pipelineVersionId });
-  const isExperimentArchived = useContextExperimentArchived();
+    usePipelineActiveRunsTable({ experimentId: experiment?.experiment_id });
+  const { isExperimentArchived } = useContextExperimentArchivedOrDeleted();
 
   if (isExperimentArchived) {
     return (
       <Bullseye>
-        <EmptyState data-testid="experiment-archived-empty-state">
-          <EmptyStateHeader
-            titleText="Experiment archived"
-            icon={<EmptyStateIcon icon={CubesIcon} />}
-            headingLevel="h2"
-          />
+        <EmptyState
+          data-testid="experiment-archived-empty-state"
+          titleText="Experiment archived"
+          icon={CubesIcon}
+          headingLevel="h2"
+        >
           <EmptyStateBody>
             When an experiment is archived, its runs are moved to the {PipelineRunTabTitle.ARCHIVED}{' '}
             tab.
@@ -45,12 +40,11 @@ export const ActiveRuns: React.FC = () => {
   if (error) {
     return (
       <Bullseye>
-        <EmptyState>
-          <EmptyStateHeader
-            titleText="There was an issue loading active runs"
-            icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-            headingLevel="h2"
-          />
+        <EmptyState
+          titleText="There was an issue loading active runs"
+          icon={ExclamationCircleIcon}
+          headingLevel="h2"
+        >
           <EmptyStateBody>{error.message}</EmptyStateBody>
         </EmptyState>
       </Bullseye>
@@ -68,7 +62,7 @@ export const ActiveRuns: React.FC = () => {
   if (loaded && totalSize === 0 && !tableProps.filter) {
     return (
       <EmptyRunsState
-        createRunRoute={createRunRoute(namespace, experimentId, pipelineId, pipelineVersionId)}
+        createRunRoute={createRunRoute(namespace, experiment?.experiment_id)}
         dataTestId="active-runs-empty-state"
       />
     );

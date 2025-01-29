@@ -5,23 +5,21 @@ import { Button, Tooltip } from '@patternfly/react-core';
 import { ModelRegistryKind, RoleBindingKind } from '~/k8sTypes';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import { ContextResourceData } from '~/types';
-import ViewDatabaseConfigModal from './ViewDatabaseConfigModal';
-import DeleteModelRegistryModal from './DeleteModelRegistryModal';
 import { ModelRegistryTableRowStatus } from './ModelRegistryTableRowStatus';
 
 type ModelRegistriesTableRowProps = {
   modelRegistry: ModelRegistryKind;
   roleBindings: ContextResourceData<RoleBindingKind>;
-  refresh: () => Promise<unknown>;
+  onEditRegistry: (obj: ModelRegistryKind) => void;
+  onDeleteRegistry: (obj: ModelRegistryKind) => void;
 };
 
 const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
   modelRegistry: mr,
   roleBindings,
-  refresh,
+  onEditRegistry,
+  onDeleteRegistry,
 }) => {
-  const [isDatabaseConfigModalOpen, setIsDatabaseConfigModalOpen] = React.useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const navigate = useNavigate();
   const filteredRoleBindings = roleBindings.data.filter(
     (rb) =>
@@ -30,66 +28,55 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
   );
 
   return (
-    <>
-      <Tr>
-        <Td dataLabel="Model registry name">
-          <ResourceNameTooltip resource={mr}>
-            <strong>
-              {mr.metadata.annotations?.['openshift.io/display-name'] || mr.metadata.name}
-            </strong>
-          </ResourceNameTooltip>
-          {mr.metadata.annotations?.['openshift.io/description'] && (
-            <p>{mr.metadata.annotations['openshift.io/description']}</p>
-          )}
-        </Td>
-        <Td dataLabel="Status">
-          <ModelRegistryTableRowStatus conditions={mr.status?.conditions} />
-        </Td>
-        <Td modifier="fitContent">
-          {filteredRoleBindings.length === 0 ? (
-            <Tooltip content="You can manage permissions when the model registry becomes available.">
-              <Button isAriaDisabled variant="link">
-                Manage permissions
-              </Button>
-            </Tooltip>
-          ) : (
-            <Button
-              variant="link"
-              onClick={() => navigate(`/modelRegistrySettings/permissions/${mr.metadata.name}`)}
-            >
+    <Tr>
+      <Td dataLabel="Model registry name">
+        <ResourceNameTooltip resource={mr}>
+          <strong>
+            {mr.metadata.annotations?.['openshift.io/display-name'] || mr.metadata.name}
+          </strong>
+        </ResourceNameTooltip>
+        {mr.metadata.annotations?.['openshift.io/description'] && (
+          <p>{mr.metadata.annotations['openshift.io/description']}</p>
+        )}
+      </Td>
+      <Td dataLabel="Status">
+        <ModelRegistryTableRowStatus conditions={mr.status?.conditions} />
+      </Td>
+      <Td modifier="fitContent">
+        {filteredRoleBindings.length === 0 ? (
+          <Tooltip content="You can manage permissions when the model registry becomes available.">
+            <Button isAriaDisabled variant="link">
               Manage permissions
             </Button>
-          )}
-        </Td>
-        <Td isActionCell>
-          <ActionsColumn
-            items={[
-              {
-                title: 'View database configuration',
-                onClick: () => setIsDatabaseConfigModalOpen(true),
+          </Tooltip>
+        ) : (
+          <Button
+            variant="link"
+            onClick={() => navigate(`/modelRegistrySettings/permissions/${mr.metadata.name}`)}
+          >
+            Manage permissions
+          </Button>
+        )}
+      </Td>
+      <Td isActionCell>
+        <ActionsColumn
+          items={[
+            {
+              title: 'Edit model registry',
+              onClick: () => {
+                onEditRegistry(mr);
               },
-              {
-                title: 'Delete model registry',
-                onClick: () => setIsDeleteModalOpen(true),
+            },
+            {
+              title: 'Delete model registry',
+              onClick: () => {
+                onDeleteRegistry(mr);
               },
-            ]}
-          />
-        </Td>
-      </Tr>
-      {isDatabaseConfigModalOpen ? (
-        <ViewDatabaseConfigModal
-          modelRegistry={mr}
-          onClose={() => setIsDatabaseConfigModalOpen(false)}
+            },
+          ]}
         />
-      ) : null}
-      {isDeleteModalOpen ? (
-        <DeleteModelRegistryModal
-          modelRegistry={mr}
-          onClose={() => setIsDeleteModalOpen(false)}
-          refresh={refresh}
-        />
-      ) : null}
-    </>
+      </Td>
+    </Tr>
   );
 };
 

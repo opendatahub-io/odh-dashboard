@@ -38,6 +38,11 @@ const EnvironmentVariablesRow: React.FC<EnvironmentVariablesRowProps> = ({
   };
 
   const updateVariableType = (newType: string) => {
+    if (variableRow.variableType === newType) {
+      // If the type changing is the same as the current type, we don't want to do anything
+      // TODO: Variable Types seems to be dead code; probably not worth removing it until Jupyter Tile gets a refactor
+      return;
+    }
     const newCategory = categories.find((category) => category.name === newType);
     let variables: EnvVarType[] = [];
     if (newCategory) {
@@ -80,13 +85,12 @@ const EnvironmentVariablesRow: React.FC<EnvironmentVariablesRowProps> = ({
           onChange={updateVariableType}
         />
         <Button
+          icon={<MinusCircleIcon />}
           aria-label="Remove environment variable"
           data-id="remove-env-var-button"
           variant="plain"
           onClick={removeVariables}
-        >
-          <MinusCircleIcon />
-        </Button>
+        />
       </Flex>
       {variableRow.variables.map((variable, index) => (
         <EnvironmentVariablesField

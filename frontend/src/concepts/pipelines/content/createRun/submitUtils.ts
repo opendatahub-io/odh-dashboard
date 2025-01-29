@@ -10,9 +10,9 @@ import {
   CreatePipelineRunKFData,
   DateTimeKF,
   InputDefinitionParameterType,
-  PipelineRecurringRunKFv2,
-  PipelineRunKFv2,
-  PipelineVersionKFv2,
+  PipelineRecurringRunKF,
+  PipelineRunKF,
+  PipelineVersionKF,
   RecurringRunMode,
   RuntimeConfigParameters,
   StorageStateKF,
@@ -27,7 +27,7 @@ import { convertPeriodicTimeToSeconds, convertToDate } from '~/utilities/time';
 const createRun = async (
   formData: SafeRunFormData,
   createPipelineRun: PipelineAPIs['createPipelineRun'],
-): Promise<PipelineRunKFv2> => {
+): Promise<PipelineRunKF> => {
   /* eslint-disable camelcase */
   const data: CreatePipelineRunKFData = {
     display_name: formData.nameDesc.name,
@@ -58,7 +58,7 @@ export const convertDateDataToKFDateTime = (dateData?: RunDateTime): DateTimeKF 
 const createRecurringRun = async (
   formData: SafeRunFormData,
   createPipelineRecurringRun: PipelineAPIs['createPipelineRecurringRun'],
-): Promise<PipelineRecurringRunKFv2> => {
+): Promise<PipelineRecurringRunKF> => {
   if (formData.runType.type !== RunTypeOption.SCHEDULED) {
     return Promise.reject(new Error('Cannot create a schedule with incomplete data.'));
   }
@@ -82,7 +82,9 @@ const createRecurringRun = async (
       periodic_schedule:
         formData.runType.data.triggerType === ScheduledType.PERIODIC
           ? {
-              interval_second: periodicScheduleIntervalTime.toString(),
+              interval_second: periodicScheduleIntervalTime.toLocaleString('fullwide', {
+                useGrouping: false,
+              }),
               start_time: startDate,
               end_time: endDate,
             }
@@ -114,7 +116,7 @@ const createRecurringRun = async (
 export const handleSubmit = (
   formData: RunFormData,
   api: PipelineAPIs,
-): Promise<PipelineRunKFv2 | PipelineRecurringRunKFv2> => {
+): Promise<PipelineRunKF | PipelineRecurringRunKF> => {
   if (!isFilledRunFormData(formData)) {
     throw new Error('Form data was incomplete.');
   }
@@ -137,7 +139,7 @@ export const handleSubmit = (
  */
 const normalizeInputParams = (
   params: RuntimeConfigParameters,
-  version: PipelineVersionKFv2 | null,
+  version: PipelineVersionKF | null,
 ): RuntimeConfigParameters =>
   Object.entries(params).reduce((acc: RuntimeConfigParameters, [paramKey, paramValue]) => {
     const inputDefinitionParams = getInputDefinitionParams(version);

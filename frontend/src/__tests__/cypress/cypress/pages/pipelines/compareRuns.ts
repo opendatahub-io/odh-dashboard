@@ -4,7 +4,7 @@ import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Context
 class CompareRunsGlobal {
   visit(projectName: string, experimentId: string, runIds: string[] = []) {
     cy.visitWithLogin(
-      `/experiments/${projectName}/${experimentId}/compareRuns?runs=${runIds.join(',')}`,
+      `/experiments/${projectName}/${experimentId}/compareRuns?compareRuns=${runIds.join(',')}`,
     );
   }
 
@@ -26,7 +26,7 @@ class CompareRunsListTable {
 
   getRowByName(name: string) {
     return new CompareRunsListTableRow(() =>
-      this.find().find(`[data-label=Run]`).contains(name).parents('tr'),
+      this.find().find(`[data-label=Name]`).contains(name).parents('tr'),
     );
   }
 
@@ -115,7 +115,7 @@ class CompareRunsRocCurve extends Contextual<HTMLElement> {
   }
 
   findRocCurveTableEmptyState() {
-    return this.find().findByTestId('no-result-found-title');
+    return this.find().findByTestId('dashboard-empty-table-state');
   }
 
   getRocCurveRowByName(name: string) {

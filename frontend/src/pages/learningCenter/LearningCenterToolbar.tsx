@@ -233,14 +233,12 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
                   )
                 }
                 onChange={onSortOrderSelect}
+                popperProps={{ appendTo: 'inline' }}
               />
             </ToolbarItem>
           </>
         ) : null}
-        <ToolbarItem
-          className="odh-learning-paths__toolbar__count"
-          align={{ default: 'alignRight' }}
-        >
+        <ToolbarItem className="odh-learning-paths__toolbar__count" align={{ default: 'alignEnd' }}>
           {`${count}${count !== totalCount ? ` of ${totalCount}` : ''} items`}
         </ToolbarItem>
       </ToolbarContent>

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { EmptyState, EmptyStateIcon, Title, EmptyStateBody } from '@patternfly/react-core';
+import { EmptyState, EmptyStateBody } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { Table } from '~/components/table';
 import { Toleration } from '~/types';
@@ -18,11 +18,13 @@ export const TolerationsTable: React.FC<TolerationTableProps> = ({ tolerations, 
 
   if (tolerations.length === 0) {
     return (
-      <EmptyState variant="xs" data-testid="tolerations-modal-empty-state">
-        <EmptyStateIcon icon={PlusCircleIcon} />
-        <Title headingLevel="h2" size="lg">
-          No tolerations
-        </Title>
+      <EmptyState
+        titleText="No tolerations"
+        icon={PlusCircleIcon}
+        headingLevel="h2"
+        variant="xs"
+        data-testid="tolerations-modal-empty-state"
+      >
         <EmptyStateBody>
           Tolerations are applied to pods and allow the scheduler to schedule pods with matching
           taints.

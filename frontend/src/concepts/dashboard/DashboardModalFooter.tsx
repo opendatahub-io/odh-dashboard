@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
   ActionList,
   ActionListItem,
+  ActionListGroup,
   Alert,
   Button,
   ButtonProps,
@@ -14,11 +15,12 @@ type DashboardModalFooterProps = {
   submitButtonVariant?: ButtonProps['variant'];
   onSubmit: () => void;
   onCancel: () => void;
-  isSubmitDisabled: boolean;
+  isSubmitDisabled?: boolean;
   isSubmitLoading?: boolean;
   isCancelDisabled?: boolean;
-  alertTitle: string;
+  alertTitle?: string;
   error?: Error;
+  alertLinks?: React.ReactNode;
 };
 
 const DashboardModalFooter: React.FC<DashboardModalFooterProps> = ({
@@ -31,41 +33,50 @@ const DashboardModalFooter: React.FC<DashboardModalFooterProps> = ({
   isCancelDisabled,
   error,
   alertTitle,
+  alertLinks,
 }) => (
   // make sure alert uses the full width
   <Stack hasGutter style={{ flex: 'auto' }}>
     {error && (
       <StackItem>
-        <Alert data-testid="error-message-alert" isInline variant="danger" title={alertTitle}>
+        <Alert
+          data-testid="error-message-alert"
+          isInline
+          variant="danger"
+          title={alertTitle}
+          actionLinks={alertLinks}
+        >
           {error.message}
         </Alert>
       </StackItem>
     )}
     <StackItem>
       <ActionList>
-        <ActionListItem>
-          <Button
-            key="submit"
-            variant={submitButtonVariant}
-            isDisabled={isSubmitDisabled}
-            onClick={onSubmit}
-            isLoading={isSubmitLoading}
-            data-testid="modal-submit-button"
-          >
-            {submitLabel}
-          </Button>
-        </ActionListItem>
-        <ActionListItem>
-          <Button
-            key="cancel"
-            variant="link"
-            isDisabled={isCancelDisabled}
-            onClick={onCancel}
-            data-testid="modal-cancel-button"
-          >
-            Cancel
-          </Button>
-        </ActionListItem>
+        <ActionListGroup>
+          <ActionListItem>
+            <Button
+              key="submit"
+              variant={submitButtonVariant}
+              isDisabled={isSubmitDisabled}
+              onClick={onSubmit}
+              isLoading={isSubmitLoading}
+              data-testid="modal-submit-button"
+            >
+              {submitLabel}
+            </Button>
+          </ActionListItem>
+          <ActionListItem>
+            <Button
+              key="cancel"
+              variant="link"
+              isDisabled={isCancelDisabled}
+              onClick={onCancel}
+              data-testid="modal-cancel-button"
+            >
+              Cancel
+            </Button>
+          </ActionListItem>
+        </ActionListGroup>
       </ActionList>
     </StackItem>
   </Stack>

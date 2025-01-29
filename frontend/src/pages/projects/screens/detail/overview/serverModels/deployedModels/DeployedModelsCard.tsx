@@ -2,11 +2,10 @@ import * as React from 'react';
 import {
   CardBody,
   CardHeader,
+  Content,
   Flex,
   FlexItem,
   Label,
-  Text,
-  TextContent,
   ToggleGroup,
   ToggleGroupItem,
 } from '@patternfly/react-core';
@@ -14,6 +13,8 @@ import HeaderIcon from '~/concepts/design/HeaderIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
 import TypeBorderedCard from '~/concepts/design/TypeBorderedCard';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
 import DeployedModelsGallery from './DeployedModelsGallery';
 
 enum FilterStates {
@@ -33,22 +34,24 @@ const DeployedModelsCard: React.FC<DeployedModelsCardProps> = ({
   isMultiPlatform,
 }) => {
   const [filteredState, setFilteredState] = React.useState<FilterStates | undefined>();
+  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const isKServeNIMEnabled = isProjectNIMSupported(currentProject);
 
   return (
     <TypeBorderedCard objectType={ProjectObjectType.deployedModels}>
       <CardHeader>
         <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-          <HeaderIcon type={ProjectObjectType.deployedModels} size={36} />
+          <HeaderIcon type={ProjectObjectType.deployedModels} />
           <FlexItem>
-            <TextContent>
-              <Text component="h3">
+            <Content>
+              <Content component="h3">
                 <b>Deployed models</b>
-              </Text>
-            </TextContent>
+              </Content>
+            </Content>
           </FlexItem>
           <FlexItem>
             <ToggleGroup
-              style={{ marginLeft: 'var(--pf-v5-global--spacer--md)' }}
+              style={{ marginLeft: 'var(--pf-t--global--spacer--md)' }}
               aria-label="Default with single selectable"
             >
               <ToggleGroupItem
@@ -71,7 +74,11 @@ const DeployedModelsCard: React.FC<DeployedModelsCardProps> = ({
           </FlexItem>
           <FlexItem flex={{ default: 'flex_1' }}>
             <Label style={{ float: 'right' }}>
-              {isMultiPlatform ? 'Multi-model serving enabled' : 'Single-model serving enabled'}
+              {isKServeNIMEnabled
+                ? 'NVIDIA NIM serving enabled'
+                : isMultiPlatform
+                ? 'Multi-model serving enabled'
+                : 'Single-model serving enabled'}
             </Label>
           </FlexItem>
         </Flex>

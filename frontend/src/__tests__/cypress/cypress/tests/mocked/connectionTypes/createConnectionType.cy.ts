@@ -18,27 +18,62 @@ describe('create', () => {
         disableConnectionTypes: false,
       }),
     );
+    cy.interceptOdh('GET /api/connection-types', [
+      mockConnectionTypeConfigMap({
+        displayName: 'URI - v1',
+        name: 'uri-v1',
+        category: ['existing-category'],
+        fields: [
+          {
+            type: 'uri',
+            name: 'URI field test',
+            envVar: 'URI',
+            required: true,
+            properties: {},
+          },
+        ],
+      }),
+    ]);
   });
 
-  it('Display base page', () => {
+  it('Can create connection type', () => {
+    const categorySection = createConnectionTypePage.getCategorySection();
     createConnectionTypePage.visitCreatePage();
 
     createConnectionTypePage.findConnectionTypeName().should('exist');
     createConnectionTypePage.findConnectionTypeDesc().should('exist');
     createConnectionTypePage.findConnectionTypeEnableCheckbox().should('exist');
     createConnectionTypePage.findConnectionTypePreviewToggle().should('exist');
-  });
-
-  it('Allows create button with valid name and category', () => {
-    const categorySection = createConnectionTypePage.getCategorySection();
-    createConnectionTypePage.visitCreatePage();
 
     createConnectionTypePage.findConnectionTypeName().should('have.value', '');
     createConnectionTypePage.findSubmitButton().should('be.disabled');
 
     createConnectionTypePage.findConnectionTypeName().type('hello');
     categorySection.findCategoryTable();
-    categorySection.findMultiGroupSelectButton('Object-storage');
+    categorySection.findMultiGroupSelectButton('existing-category').should('exist');
+    categorySection.findMultiGroupSelectButton('Object-storage').click();
+    createConnectionTypePage.findSubmitButton().should('be.enabled');
+
+    categorySection.findMultiGroupInput().type('Database');
+    categorySection.findMultiGroupSelectButton('Database').click();
+
+    categorySection.findMultiGroupInput().type('New category');
+
+    categorySection.findMultiGroupSelectButton('Option').click();
+    categorySection.findChipItem('New category').should('exist');
+    categorySection.findMultiGroupInput().type('{esc}');
+
+    createConnectionTypePage
+      .findModelServingCompatibleTypeDropdown()
+      .findDropdownItem('URI')
+      .click();
+    createConnectionTypePage.findCompatibleModelServingTypesAlert().should('exist');
+    createConnectionTypePage.getFieldsTableRow(0).findSectionHeading().should('exist');
+    createConnectionTypePage
+      .getFieldsTableRow(1)
+      .findName()
+      .should('contain.text', 'URI field test');
+
     createConnectionTypePage.findSubmitButton().should('be.enabled');
   });
 
@@ -55,32 +90,10 @@ describe('create', () => {
 
     createConnectionTypePage.findConnectionTypeName().type('hello');
     categorySection.findCategoryTable();
-    categorySection.findMultiGroupSelectButton('Object-storage');
+    categorySection.findMultiGroupSelectButton('Object-storage').click();
     createConnectionTypePage.findSubmitButton().should('be.enabled').click();
 
     createConnectionTypePage.findFooterError().should('contain.text', 'returned error message');
-  });
-
-  it('Selects category or creates new category', () => {
-    createConnectionTypePage.visitCreatePage();
-
-    const categorySection = createConnectionTypePage.getCategorySection();
-
-    categorySection.findCategoryTable();
-    categorySection.findMultiGroupSelectButton('Object-storage');
-
-    categorySection.findChipItem('Object storage').should('exist');
-    categorySection.clearMultiChipItem();
-
-    categorySection.findMultiGroupSelectButton('Object-storage');
-
-    categorySection.findMultiGroupInput().type('Database');
-    categorySection.findMultiGroupSelectButton('Database');
-
-    categorySection.findMultiGroupInput().type('New category');
-
-    categorySection.findMultiGroupSelectButton('Option');
-    categorySection.findChipItem('New category').should('exist');
   });
 });
 
@@ -106,11 +119,14 @@ describe('duplicate', () => {
   it('Prefill details from existing connection', () => {
     createConnectionTypePage.visitDuplicatePage('existing');
 
+    createConnectionTypePage.findSubmitButton().should('be.enabled');
     createConnectionTypePage
       .findConnectionTypeName()
       .should(
         'have.value',
-        `Copy of ${existing.metadata.annotations?.['openshift.io/display-name']}`,
+        `Copy of ${
+          existing.metadata.annotations?.['openshift.io/display-name'] || existing.metadata.name
+        }`,
       );
     createConnectionTypePage
       .findConnectionTypeDesc()
@@ -182,6 +198,24 @@ describe('edit', () => {
     );
   });
 
+  it('should duplicate connection into create page', () => {
+    cy.interceptOdh(
+      'GET /api/connection-types/:name',
+      { path: { name: 'existing' } },
+      toConnectionTypeConfigMap(existing),
+    );
+    createConnectionTypePage.visitEditPage('existing');
+
+    createConnectionTypePage.findConnectionTypeName().should('have.value', 'existing');
+    createConnectionTypePage.findConnectionTypeDesc().fill('new description');
+    createConnectionTypePage.findDuplicateConnectionTypeButton().click();
+
+    cy.url().should('include', '/connectionTypes/duplicate/existing');
+
+    createConnectionTypePage.findConnectionTypeName().should('have.value', 'Copy of existing');
+    createConnectionTypePage.findConnectionTypeDesc().should('have.value', 'new description');
+  });
+
   it('Drag and drop field rows in table', () => {
     cy.interceptOdh(
       'GET /api/connection-types/:name',
@@ -189,6 +223,8 @@ describe('edit', () => {
       toConnectionTypeConfigMap(existing),
     );
     createConnectionTypePage.visitEditPage('existing');
+
+    createConnectionTypePage.findSubmitButton().should('be.disabled');
 
     createConnectionTypePage.getFieldsTableRow(0).findName().should('contain.text', 'header1');
     createConnectionTypePage.getFieldsTableRow(1).findName().should('contain.text', 'field1');
@@ -205,6 +241,8 @@ describe('edit', () => {
     createConnectionTypePage.getFieldsTableRow(0).findName().should('contain.text', 'field2');
     createConnectionTypePage.getFieldsTableRow(1).findName().should('contain.text', 'field1');
     createConnectionTypePage.getFieldsTableRow(2).findName().should('contain.text', 'header1');
+
+    createConnectionTypePage.findSubmitButton().should('be.enabled');
   });
 
   it('Move field to section modal', () => {

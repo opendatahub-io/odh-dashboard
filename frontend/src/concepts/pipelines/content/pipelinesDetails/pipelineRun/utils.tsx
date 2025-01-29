@@ -30,7 +30,11 @@ export type PodStatus = {
 export const renderDetailItems = (details: DetailItem[]): React.ReactNode => (
   <DescriptionList isHorizontal horizontalTermWidthModifier={{ lg: '22ch', md: '15ch' }}>
     {details.map((detail) => (
-      <DescriptionListGroup key={detail.key} data-testid={`detail-item-${detail.key}`}>
+      <DescriptionListGroup
+        style={{ alignItems: 'start' }}
+        key={detail.key}
+        data-testid={`detail-item-${detail.key}`}
+      >
         <DescriptionListTerm>{detail.key}</DescriptionListTerm>
         <DescriptionListDescription data-testid="detail-item-value">
           {!detail.value && detail.value !== 0 ? <NoValue /> : detail.value}
@@ -48,7 +52,12 @@ export const asTimestamp = (date: Date): React.ReactNode => (
       </Icon>
     </FlexItem>
     <FlexItem>
-      <Timestamp date={date} dateFormat={TimestampFormat.full} timeFormat={TimestampFormat.full} />
+      <Timestamp
+        shouldDisplayUTC
+        date={date}
+        dateFormat={TimestampFormat.full}
+        timeFormat={TimestampFormat.medium}
+      />
     </FlexItem>
   </Flex>
 );

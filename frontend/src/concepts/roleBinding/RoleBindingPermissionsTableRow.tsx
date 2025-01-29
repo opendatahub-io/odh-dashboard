@@ -2,19 +2,25 @@ import * as React from 'react';
 import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
 import {
   Button,
-  Icon,
+  Popover,
   Split,
   SplitItem,
-  Text,
+  Content,
   Timestamp,
   TimestampTooltipVariant,
   Tooltip,
 } from '@patternfly/react-core';
-import { CheckIcon, OutlinedQuestionCircleIcon, TimesIcon } from '@patternfly/react-icons';
+import {
+  CheckIcon,
+  OutlinedQuestionCircleIcon,
+  TimesIcon,
+  EllipsisVIcon,
+} from '@patternfly/react-icons';
 import { ProjectKind, RoleBindingKind, RoleBindingSubject } from '~/k8sTypes';
 import { relativeTime } from '~/utilities/time';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { projectDisplayNameToNamespace } from '~/concepts/projects/utils';
+import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import { castRoleBindingPermissionsRoleType, firstSubject, roleLabel } from './utils';
 import { RoleBindingPermissionsRoleType } from './types';
 import RoleBindingPermissionsNameInput from './RoleBindingPermissionsNameInput';
@@ -85,24 +91,25 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
               isProjectSubject={isProjectSubject}
             />
           ) : (
-            <Text>
+            <Content component="p">
               {roleBindingName}
               {` `}
               {isDefaultGroup && (
-                <Tooltip
-                  content={
+                <Popover
+                  bodyContent={
                     <div>
                       This group is created by default. You can add users to this group in OpenShift
                       user management, or ask the cluster admin to do so.
                     </div>
                   }
                 >
-                  <Icon>
-                    <OutlinedQuestionCircleIcon />
-                  </Icon>
-                </Tooltip>
+                  <DashboardPopupIconButton
+                    icon={<OutlinedQuestionCircleIcon />}
+                    aria-label="More info"
+                  />
+                </Popover>
               )}
-            </Text>
+            </Content>
           )}
         </Td>
         <Td dataLabel="Permission">
@@ -115,16 +122,16 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
               }}
             />
           ) : (
-            <Text>{roleLabel(roleBindingRoleRef)}</Text>
+            <Content component="p">{roleLabel(roleBindingRoleRef)}</Content>
           )}
         </Td>
         <Td dataLabel="Date added">
           {!isEditing && (
-            <Text>
+            <Content component="p">
               <Timestamp date={createdDate} tooltip={{ variant: TimestampTooltipVariant.default }}>
                 {relativeTime(Date.now(), createdDate.getTime())}
               </Timestamp>
-            </Text>
+            </Content>
           )}
         </Td>
         <Td isActionCell modifier="nowrap" style={{ textAlign: 'right' }}>
@@ -173,9 +180,17 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
                 />
               </SplitItem>
             </Split>
+          ) : isDefaultGroup ? (
+            <Tooltip content="The default group always has access to model registry.">
+              <Button
+                icon={<EllipsisVIcon />}
+                variant="plain"
+                isAriaDisabled
+                aria-label="The default group always has access to model registry."
+              />
+            </Tooltip>
           ) : (
             <ActionsColumn
-              isDisabled={isDefaultGroup}
               items={[
                 {
                   title: 'Edit',
@@ -183,6 +198,7 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
                     onEdit();
                   },
                 },
+                { isSeparator: true },
                 {
                   title: 'Delete',
                   onClick: () => {

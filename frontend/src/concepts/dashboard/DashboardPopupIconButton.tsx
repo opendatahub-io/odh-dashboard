@@ -1,8 +1,9 @@
 import React from 'react';
-import { Button, ButtonProps, Icon } from '@patternfly/react-core';
+import { Button, ButtonProps, Icon, IconComponentProps } from '@patternfly/react-core';
 
-type DashboardPopupIconButtonProps = Omit<ButtonProps, 'variant' | 'isInline' | 'style'> & {
+type DashboardPopupIconButtonProps = Omit<ButtonProps, 'variant' | 'isInline'> & {
   icon: React.ReactNode;
+  iconProps?: Omit<IconComponentProps, 'isInline'>;
 };
 
 /**
@@ -10,13 +11,19 @@ type DashboardPopupIconButtonProps = Omit<ButtonProps, 'variant' | 'isInline' | 
  */
 const DashboardPopupIconButton = ({
   icon,
+  iconProps,
   ...props
 }: DashboardPopupIconButtonProps): React.JSX.Element => (
-  <Button variant="plain" isInline style={{ padding: 0 }} {...props}>
-    <Icon isInline style={{ marginLeft: 'var(--pf-v5-global--spacer--xs)' }}>
-      {icon}
-    </Icon>
-  </Button>
+  <Button
+    icon={
+      <Icon isInline {...iconProps}>
+        {icon}
+      </Icon>
+    }
+    variant="plain"
+    isInline
+    {...props}
+  />
 );
 
 export default DashboardPopupIconButton;

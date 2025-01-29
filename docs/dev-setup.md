@@ -7,7 +7,7 @@ ODH requires the following to run:
 - [NodeJS and NPM](https://nodejs.org/)
   - Node recommended version -> `18.18.2`
   - NPM recommended version -> `9.8.1`
-- [OpenShift CLI](https://docs.openshift.com/container-platform/latest/cli_reference/openshift_cli/getting-started-cli.html)
+- [OpenShift CLI](https://docs.redhat.com/en/documentation/openshift_container_platform/4.16/html/cli_tools/openshift-cli-oc)
 - [kustomize](https://github.com/kubernetes-sigs/kustomize) (if you need to do deployment)
 
 ### Additional tooling
@@ -18,13 +18,13 @@ ODH requires the following to run:
 ## Development
 
 1. Clone the repository
-      ``` bash
-      git clone https://github.com/opendatahub-io/odh-dashboard
-      ```
-2. Within the repo context, install project dependencies
-     ```bash
-     cd odh-dashboard && npm install
-     ```
+   ```bash
+   git clone https://github.com/opendatahub-io/odh-dashboard
+   ```
+2. Within the repo context, we use `npm` to install project dependencies
+   ```bash
+   cd odh-dashboard && npm install
+   ```
 
 ### Build project
 
@@ -34,7 +34,7 @@ npm run build
 
 ### Serve development content
 
-This is the default context for running a local UI.  Make sure you build the project using the instructions above prior to running the command below.
+This is the default context for running a local UI. Make sure you build the project using the instructions above prior to running the command below.
 
 > Note: You must be logged-in with `oc` before you can start the backend. Details for that are in the the [contribution guidelines](../CONTRIBUTING.md#give-your-dev-env-access).
 
@@ -49,12 +49,11 @@ npm run start
 For in-depth local run guidance review the [contribution guidelines](../CONTRIBUTING.md).
 
 ### Testing
-
 Run the tests.
 
-  ```bash
-  npm run test
-  ```
+```bash
+npm run test
+```
 
 For in-depth testing guidance review the [testing guidelines](./testing.md)
 
@@ -64,13 +63,26 @@ Feature flags are defined in the [dashboard config](./dashboard-config.md#featur
 
 With the dev feature flags modal opened, the browser URL will update to include the current feature flag enablement settings. The URL can then be bookmarked or shared.
 
+### Configuring Custom Console Link Domain (CONSOLE_LINK_DOMAIN)
+
+Certain environments require custom access configurations for the OpenShift console and Prometheus endpoints because they may not have access to internal services. To support these configurations, the CONSOLE_LINK_DOMAIN environment variable allows developers to specify a custom domain to override default calculations.
+
+Steps to Configure:
+
+1.  Open the root `.env.local` file (or create it if it doesn't exist).
+2.  Add the following line to define the custom console domain:
+
+    <code>CONSOLE_LINK_DOMAIN=your-custom-domain.com</code>
+
+Replace your-custom-domain.com with the specific domain for your OpenShift console
+
 ## Deploying the ODH Dashbard
 
 ### Official Image Builds
 
 odh-dashboard images are automatically built and pushed to [quay.io](https://quay.io/repository/opendatahub/odh-dashboard) after every commit to the `main` branch. The image tag name format for each image is `main-<COMMIT SHORT HASH>`.
 
-Example: The `main` branch is updated with commit `f76e3952834f453b1d085e8627f9c17297c2f64c`.  The CI system will automatically build an odh-dashboard image based on that code and push the new image to `odh-dashboard:main-f76e395` and updated `odh-dashboard:main` to point to the same image hash.
+Example: The `main` branch is updated with commit `f76e3952834f453b1d085e8627f9c17297c2f64c`. The CI system will automatically build an odh-dashboard image based on that code and push the new image to `odh-dashboard:main-f76e395` and updated `odh-dashboard:main` to point to the same image hash.
 
 The [nightly](https://quay.io/opendatahub/odh-dashboard:nightly) tag is a floating tag that is updated nightly and points to the most recent `main-<HASH>` commit from the previous day.
 

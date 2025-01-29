@@ -48,7 +48,9 @@ const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
             alt="missing model"
           />
         )}
-        description={`${preferredModelRegistry?.metadata.name} has no active registered models. Register a model in this registry, or select a different registry.`}
+        description={`${
+          preferredModelRegistry?.metadata.name ?? ''
+        } has no active registered models. Register a model in this registry, or select a different registry.`}
         primaryActionText="Register model"
         secondaryActionText={
           archiveRegisteredModels.length !== 0 ? 'View archived models' : undefined
@@ -77,9 +79,9 @@ const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
   const toggleGroupItems = (
     <ToolbarGroup variant="filter-group">
       <ToolbarFilter
-        chips={search === '' ? [] : [search]}
-        deleteChip={resetFilters}
-        deleteChipGroup={resetFilters}
+        labels={search === '' ? [] : [search]}
+        deleteLabel={resetFilters}
+        deleteLabelGroup={resetFilters}
         categoryName="Keyword"
       >
         <SimpleSelect
@@ -97,7 +99,7 @@ const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
           icon={<FilterIcon />}
         />
       </ToolbarFilter>
-      <ToolbarItem variant="search-filter">
+      <ToolbarItem>
         <SearchInput
           placeholder={`Find by ${searchType.toLowerCase()}`}
           value={search}

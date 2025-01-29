@@ -17,6 +17,8 @@ resources:
   - model-serving-role.yaml
   - model-serving-role-binding.yaml
   - fetch-accelerators.rbac.yaml
+  - fetch-hardwares.rbac.yaml
+  - fetch-nim-account.rbac.yaml
 images:
   - name: oauth-proxy
     newName: registry.redhat.io/openshift4/ose-oauth-proxy

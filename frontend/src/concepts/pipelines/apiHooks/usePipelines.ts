@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { FetchState, NotReadyError } from '~/utilities/useFetchState';
-import { PipelineKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import usePipelineQuery from '~/concepts/pipelines/apiHooks/usePipelineQuery';
 import {
   ListPipelines,
@@ -14,9 +14,9 @@ import { K8sAPIOptions } from '~/k8sTypes';
 const usePipelines = (
   options?: PipelineOptions,
   refreshRate?: number,
-): FetchState<PipelineListPaged<PipelineKFv2>> => {
+): FetchState<PipelineListPaged<PipelineKF>> => {
   const { api } = usePipelinesAPI();
-  return usePipelineQuery<PipelineKFv2>(
+  return usePipelineQuery<PipelineKF>(
     React.useCallback(
       (opts, params) =>
         api.listPipelines(opts, params).then((result) => ({ ...result, items: result.pipelines })),
@@ -30,9 +30,9 @@ const usePipelines = (
 export const useSafePipelines = (
   options?: PipelineOptions,
   refreshRate?: number,
-): FetchState<PipelineListPaged<PipelineKFv2>> => {
+): FetchState<PipelineListPaged<PipelineKF>> => {
   const { api, pipelinesServer, apiAvailable } = usePipelinesAPI();
-  return usePipelineQuery<PipelineKFv2>(
+  return usePipelineQuery<PipelineKF>(
     React.useCallback(
       (opts, params) => {
         if (!apiAvailable || !pipelinesServer.compatible) {
@@ -53,7 +53,7 @@ async function getAllPipelines(
   opts: K8sAPIOptions,
   params: PipelineParams | undefined,
   listPipelines: ListPipelines,
-): Promise<PipelineKFv2[]> {
+): Promise<PipelineKF[]> {
   const result = await listPipelines(opts, params);
   let allPipelines = result.pipelines ?? [];
 
@@ -72,10 +72,10 @@ async function getAllPipelines(
 export const useAllPipelines = (
   options?: PipelineOptions,
   refreshRate?: number,
-): FetchState<PipelineListPaged<PipelineKFv2>> => {
+): FetchState<PipelineListPaged<PipelineKF>> => {
   const { api } = usePipelinesAPI();
 
-  return usePipelineQuery<PipelineKFv2>(
+  return usePipelineQuery<PipelineKF>(
     React.useCallback(
       async (opts, params) => {
         const allPipelines = await getAllPipelines(opts, params, api.listPipelines);

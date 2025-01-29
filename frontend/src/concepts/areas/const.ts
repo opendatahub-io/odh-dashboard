@@ -17,15 +17,19 @@ export const allFeatureFlags: string[] = Object.keys({
   disableProjectSharing: false,
   disableCustomServingRuntimes: false,
   disablePipelines: false,
-  disableBiasMetrics: false,
+  disableTrustyBiasMetrics: false,
   disablePerformanceMetrics: false,
   disableKServe: false,
   disableKServeAuth: false,
   disableKServeMetrics: false,
+  disableKServeRaw: true,
   disableModelMesh: false,
   disableAcceleratorProfiles: false,
+  disableHardwareProfiles: false,
   disableDistributedWorkloads: false,
   disableModelRegistry: false,
+  disableModelRegistrySecureDB: false,
+  disableServingRuntimeParams: false,
   disableConnectionTypes: false,
   disableStorageClasses: false,
   disableNIMModelServing: true,
@@ -37,6 +41,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.ACCELERATOR_PROFILES]: {
     featureFlags: ['disableAcceleratorProfiles'],
+  },
+  [SupportedArea.HARDWARE_PROFILES]: {
+    featureFlags: ['disableHardwareProfiles'],
   },
   [SupportedArea.CLUSTER_SETTINGS]: {
     featureFlags: ['disableClusterManager'],
@@ -78,6 +85,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disableKServeMetrics'],
     reliantAreas: [SupportedArea.K_SERVE, SupportedArea.MODEL_SERVING],
   },
+  [SupportedArea.K_SERVE_RAW]: {
+    featureFlags: ['disableKServeRaw'],
+    reliantAreas: [SupportedArea.K_SERVE, SupportedArea.MODEL_SERVING],
+  },
   [SupportedArea.MODEL_MESH]: {
     featureFlags: ['disableModelMesh'],
     requiredComponents: [StackComponent.MODEL_MESH],
@@ -94,7 +105,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     reliantAreas: [SupportedArea.DS_PROJECTS_VIEW],
   },
   [SupportedArea.BIAS_METRICS]: {
-    featureFlags: ['disableBiasMetrics'],
+    featureFlags: ['disableTrustyBiasMetrics'],
     requiredComponents: [StackComponent.TRUSTY_AI],
     reliantAreas: [SupportedArea.MODEL_SERVING],
   },
@@ -115,7 +126,16 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     requiredComponents: [StackComponent.MODEL_REGISTRY],
     requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
   },
+  [SupportedArea.SERVING_RUNTIME_PARAMS]: {
+    featureFlags: ['disableServingRuntimeParams'],
+    reliantAreas: [SupportedArea.K_SERVE, SupportedArea.MODEL_SERVING],
+  },
+  [SupportedArea.MODEL_REGISTRY_SECURE_DB]: {
+    featureFlags: ['disableModelRegistrySecureDB'],
+    reliantAreas: [SupportedArea.MODEL_REGISTRY],
+  },
   [SupportedArea.NIM_MODEL]: {
     featureFlags: ['disableNIMModelServing'],
+    reliantAreas: [SupportedArea.K_SERVE],
   },
 };

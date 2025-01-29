@@ -10,6 +10,7 @@ import {
   deleteSecret,
   replaceConfigMap,
   replaceSecret,
+  updatePvc,
 } from '~/api';
 import { Volume, VolumeMount } from '~/types';
 import {
@@ -23,76 +24,49 @@ import {
   StorageType,
 } from '~/pages/projects/types';
 import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
-import { ConfigMapKind, NotebookKind, SecretKind } from '~/k8sTypes';
-import { getVolumesByStorageData } from './spawnerUtils';
+import { Connection } from '~/concepts/connectionTypes/types';
+import { ConfigMapKind, NotebookKind, PersistentVolumeClaimKind, SecretKind } from '~/k8sTypes';
+import { isPvcUpdateRequired } from '~/pages/projects/screens/detail/storage/utils';
 import { fetchNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
+import { getDeletedConfigMapOrSecretVariables } from './environmentVariables/utils';
 
 export const createPvcDataForNotebook = async (
   projectName: string,
   storageData: StorageData,
   dryRun?: boolean,
 ): Promise<{ volumes: Volume[]; volumeMounts: VolumeMount[] }> => {
-  const { storageType } = storageData;
+  const volumes: Volume[] = [];
+  const volumeMounts: VolumeMount[] = [];
 
-  const { volumes, volumeMounts } = getVolumesByStorageData(storageData);
+  if (storageData.storageType === StorageType.NEW_PVC) {
+    const pvc = await createPvc(storageData, projectName, { dryRun });
+    const { name } = pvc.metadata;
 
-  if (storageType === StorageType.NEW_PVC) {
-    const pvc = await createPvc(storageData.creating, projectName, { dryRun });
-    const newPvcName = pvc.metadata.name;
-    volumes.push({ name: newPvcName, persistentVolumeClaim: { claimName: newPvcName } });
-    volumeMounts.push({ mountPath: ROOT_MOUNT_PATH, name: newPvcName });
+    volumes.push({ name, persistentVolumeClaim: { claimName: name } });
+    volumeMounts.push({ mountPath: storageData.mountPath || ROOT_MOUNT_PATH, name });
   }
+
   return { volumes, volumeMounts };
 };
 
-export const replaceRootVolumesForNotebook = async (
+export const updatePvcDataForNotebook = async (
   projectName: string,
-  notebook: NotebookKind,
   storageData: StorageData,
+  existingPvc: PersistentVolumeClaimKind | undefined,
   dryRun?: boolean,
 ): Promise<{ volumes: Volume[]; volumeMounts: VolumeMount[] }> => {
-  const {
-    storageType,
-    existing: { storage: existingName },
-  } = storageData;
+  const volumes: Volume[] = [];
+  const volumeMounts: VolumeMount[] = [];
 
-  const oldVolumes = notebook.spec.template.spec.volumes || [];
-  const oldVolumeMounts = notebook.spec.template.spec.containers[0].volumeMounts || [];
+  if (existingPvc && storageData.storageType === StorageType.EXISTING_PVC) {
+    if (isPvcUpdateRequired(existingPvc, storageData)) {
+      await updatePvc(storageData, existingPvc, projectName, { dryRun });
+    }
+    const { name } = existingPvc.metadata;
 
-  let replacedVolume: Volume;
-  let replacedVolumeMount: VolumeMount;
-
-  if (storageType === StorageType.EXISTING_PVC) {
-    replacedVolume = {
-      name: existingName,
-      persistentVolumeClaim: { claimName: existingName },
-    };
-    replacedVolumeMount = { name: existingName, mountPath: ROOT_MOUNT_PATH };
-  } else {
-    const pvc = await createPvc(storageData.creating, projectName, { dryRun });
-    const newPvcName = pvc.metadata.name;
-    replacedVolume = { name: newPvcName, persistentVolumeClaim: { claimName: newPvcName } };
-    replacedVolumeMount = { mountPath: ROOT_MOUNT_PATH, name: newPvcName };
+    volumes.push({ name, persistentVolumeClaim: { claimName: name } });
+    volumeMounts.push({ mountPath: storageData.mountPath || ROOT_MOUNT_PATH, name });
   }
-
-  const rootVolumeMount = oldVolumeMounts.find(
-    (volumeMount) => volumeMount.mountPath === ROOT_MOUNT_PATH,
-  );
-
-  // if no root, add the replaced one as the root
-  if (!rootVolumeMount) {
-    return {
-      volumes: [...oldVolumes, replacedVolume],
-      volumeMounts: [...oldVolumeMounts, replacedVolumeMount],
-    };
-  }
-
-  const volumes = oldVolumes.map((volume) =>
-    volume.name === rootVolumeMount.name ? replacedVolume : volume,
-  );
-  const volumeMounts = oldVolumeMounts.map((volumeMount) =>
-    volumeMount.name === rootVolumeMount.name ? replacedVolumeMount : volumeMount,
-  );
 
   return { volumes, volumeMounts };
 };
@@ -193,9 +167,18 @@ export const updateConfigMapsAndSecretsForNotebook = async (
   envVariables: EnvVariable[],
   dataConnection?: DataConnectionData,
   existingDataConnection?: DataConnection,
+  connections?: Connection[],
   dryRun = false,
 ): Promise<EnvironmentFromVariable[]> => {
   const existingEnvVars = await fetchNotebookEnvVariables(notebook);
+  const { deletedConfigMaps, deletedSecrets } = getDeletedConfigMapOrSecretVariables(
+    notebook,
+    existingEnvVars,
+    [
+      existingDataConnection?.data.metadata.name || '',
+      ...(connections || []).map((connection) => connection.metadata.name),
+    ],
+  );
   const newDataConnection =
     dataConnection?.enabled && dataConnection.type === 'creating' && dataConnection.creating
       ? dataConnection.creating
@@ -217,6 +200,7 @@ export const updateConfigMapsAndSecretsForNotebook = async (
   const currentNames = oldResources
     .map((envVar) => envVar.existingName)
     .filter((v): v is string => !!v);
+
   const removeResources = existingEnvVars.filter(
     (envVar) => envVar.existingName && !currentNames.includes(envVar.existingName),
   );
@@ -267,7 +251,7 @@ export const updateConfigMapsAndSecretsForNotebook = async (
   ]);
 
   const deletingNames = deleteResources.map((resource) => resource.existingName || '');
-  deletingNames.push(...removeDataConnections);
+  deletingNames.push(...removeDataConnections, ...deletedSecrets, ...deletedConfigMaps);
 
   const envFromList = notebook.spec.template.spec.containers[0].envFrom || [];
 

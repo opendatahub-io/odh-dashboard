@@ -9,7 +9,13 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { createNotebook, K8sStatusError, mergePatchUpdateNotebook, updateNotebook } from '~/api';
+import {
+  createNotebook,
+  K8sStatusError,
+  mergePatchUpdateNotebook,
+  restartNotebook,
+  updateNotebook,
+} from '~/api';
 import {
   DataConnectionData,
   EnvVariable,
@@ -20,25 +26,31 @@ import { useUser } from '~/redux/selectors';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { useAppContext } from '~/app/AppContext';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
+import { Connection } from '~/concepts/connectionTypes/types';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import {
   FormTrackingEventProperties,
   TrackingOutcome,
 } from '~/concepts/analyticsTracking/trackingProperties';
+import { NotebookKind } from '~/k8sTypes';
+import { getNotebookPVCNames } from '~/pages/projects/pvc/utils';
 import {
   createConfigMapsAndSecretsForNotebook,
   createPvcDataForNotebook,
-  replaceRootVolumesForNotebook,
   updateConfigMapsAndSecretsForNotebook,
+  updatePvcDataForNotebook,
 } from './service';
-import { checkRequiredFieldsForNotebookStart } from './spawnerUtils';
+import { checkRequiredFieldsForNotebookStart, getPvcVolumeDetails } from './spawnerUtils';
 import { getNotebookDataConnection } from './dataConnection/useNotebookDataConnection';
+import { setConnectionsOnEnvFrom } from './connections/utils';
 
 type SpawnerFooterProps = {
   startNotebookData: StartNotebookData;
-  storageData: StorageData;
+  storageData: StorageData[];
   envVariables: EnvVariable[];
   dataConnection: DataConnectionData;
+  isConnectionTypesEnabled?: boolean;
+  connections?: Connection[];
   canEnablePipelines: boolean;
 };
 
@@ -47,6 +59,8 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   storageData,
   envVariables,
   dataConnection,
+  isConnectionTypesEnabled,
+  connections = [],
   canEnablePipelines,
 }) => {
   const [error, setError] = React.useState<K8sStatusError>();
@@ -58,12 +72,12 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   } = useAppContext();
   const tolerationSettings = notebookController?.notebookTolerationSettings;
   const {
-    notebooks: { data },
-    dataConnections: { data: existingDataConnections },
-    refreshAllProjectData,
+    notebooks: { data: notebooks, refresh: refreshNotebooks },
+    dataConnections: { data: existingDataConnections, refresh: refreshDataConnections },
+    connections: { data: projectConnections, refresh: refreshConnections },
   } = React.useContext(ProjectDetailsContext);
   const { notebookName } = useParams();
-  const notebookState = data.find(
+  const notebookState = notebooks.find(
     (currentNotebookState) => currentNotebookState.notebook.metadata.name === notebookName,
   );
   const editNotebook = notebookState?.notebook;
@@ -72,17 +86,13 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const [createInProgress, setCreateInProgress] = React.useState(false);
   const isButtonDisabled =
     createInProgress ||
-    !checkRequiredFieldsForNotebookStart(
-      startNotebookData,
-      storageData,
-      envVariables,
-      dataConnection,
-    );
+    !checkRequiredFieldsForNotebookStart(startNotebookData, envVariables, dataConnection);
   const { username } = useUser();
   const existingNotebookDataConnection = getNotebookDataConnection(
     editNotebook,
     existingDataConnections,
   );
+
   const afterStart = (name: string, type: 'created' | 'updated') => {
     const { selectedAcceleratorProfile, notebookSize, image } = startNotebookData;
     const tep: FormTrackingEventProperties = {
@@ -103,16 +113,19 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       imageName: image.imageStream?.metadata.name,
       projectName,
       notebookName: name,
-      storageType: storageData.storageType,
-      storageDataSize: storageData.creating.size,
       dataConnectionType: dataConnection.creating?.type?.toString(),
       dataConnectionCategory: dataConnection.creating?.values?.category?.toString(),
       dataConnectionEnabled: dataConnection.enabled,
       outcome: TrackingOutcome.submit,
       success: true,
     };
+
     fireFormTrackingEvent(`Workbench ${type === 'created' ? 'Created' : 'Updated'}`, tep);
-    refreshAllProjectData();
+
+    refreshNotebooks();
+    refreshDataConnections();
+    refreshConnections();
+
     navigate(`/projects/${projectName}?section=${ProjectSectionID.WORKBENCHES}`);
   };
   const handleError = (e: K8sStatusError) => {
@@ -129,33 +142,68 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     setCreateInProgress(true);
   };
 
+  const getPvcRequests = (dryRun: boolean) => {
+    const restartConnectedNotebooksPromises: Promise<NotebookKind>[] = [];
+
+    const pvcRequests = storageData.map((pvcData) => {
+      if (pvcData.existingPvc) {
+        // Restart connected notebooks if the PVC size has changed
+        if (pvcData.existingPvc.spec.resources.requests.storage !== pvcData.size) {
+          notebooks
+            .filter(
+              (nbs) =>
+                (nbs.isRunning || nbs.isStarting) &&
+                getNotebookPVCNames(nbs.notebook).includes(
+                  pvcData.existingPvc?.metadata.name || '',
+                ),
+            )
+            .map((connectedNotebook) =>
+              restartConnectedNotebooksPromises.push(
+                restartNotebook(connectedNotebook.notebook.metadata.name, projectName, { dryRun }),
+              ),
+            );
+        }
+        return updatePvcDataForNotebook(projectName, pvcData, pvcData.existingPvc, dryRun);
+      }
+
+      return createPvcDataForNotebook(projectName, pvcData, dryRun);
+    });
+
+    return { pvcRequests, restartConnectedNotebooksPromises };
+  };
+
   const updateNotebookPromise = async (dryRun: boolean) => {
     if (!editNotebook) {
       return;
     }
 
-    const pvcDetails = await replaceRootVolumesForNotebook(
-      projectName,
-      editNotebook,
-      storageData,
-      dryRun,
-    );
+    const { pvcRequests, restartConnectedNotebooksPromises } = getPvcRequests(dryRun);
 
-    const envFrom = await updateConfigMapsAndSecretsForNotebook(
+    const pvcResponses = await Promise.all(pvcRequests);
+    const pvcVolumeDetails = getPvcVolumeDetails(pvcResponses);
+
+    await Promise.all(restartConnectedNotebooksPromises);
+
+    let envFrom = await updateConfigMapsAndSecretsForNotebook(
       projectName,
       editNotebook,
       envVariables,
       dataConnection,
       existingNotebookDataConnection,
+      connections,
       dryRun,
     );
+
+    if (isConnectionTypesEnabled) {
+      envFrom = setConnectionsOnEnvFrom(connections, envFrom, projectConnections);
+    }
 
     const annotations = { ...editNotebook.metadata.annotations };
     if (envFrom.length > 0) {
       annotations['notebooks.opendatahub.io/notebook-restart'] = 'true';
     }
 
-    const { volumes, volumeMounts } = pvcDetails;
+    const { volumes, volumeMounts } = pvcVolumeDetails;
     const newStartNotebookData: StartNotebookData = {
       ...startNotebookData,
       volumes,
@@ -193,14 +241,24 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       dataConnection.enabled && dataConnection.type === 'existing' && dataConnection.existing
         ? [dataConnection.existing]
         : [];
-    const pvcDetails = await createPvcDataForNotebook(projectName, storageData, dryRun);
-    const envFrom = await createConfigMapsAndSecretsForNotebook(
+
+    const { pvcRequests, restartConnectedNotebooksPromises } = getPvcRequests(dryRun);
+
+    const pvcResponses = await Promise.all(pvcRequests);
+    const pvcVolumeDetails = getPvcVolumeDetails(pvcResponses);
+
+    await Promise.all(restartConnectedNotebooksPromises);
+
+    let envFrom = await createConfigMapsAndSecretsForNotebook(
       projectName,
       [...envVariables, ...newDataConnection],
       dryRun,
     );
 
-    const { volumes, volumeMounts } = pvcDetails;
+    const { volumes, volumeMounts } = pvcVolumeDetails;
+    if (isConnectionTypesEnabled) {
+      envFrom = setConnectionsOnEnvFrom(connections, envFrom, projectConnections);
+    }
     const newStartData: StartNotebookData = {
       ...startNotebookData,
       volumes,

@@ -25,8 +25,8 @@ import {
 } from '~/api/k8s/servingRuntimes';
 import { ProjectModel, ServingRuntimeModel } from '~/api/models';
 import { ProjectKind, ServingRuntimeKind } from '~/k8sTypes';
-import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
-import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
+import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
 
@@ -120,7 +120,7 @@ describe('assembleServingRuntime', () => {
       unknownProfileDetected: false,
     };
 
-    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
       profile: mockAcceleratorProfile({}),
       count: 1,
       useExistingSettings: false,
@@ -153,7 +153,7 @@ describe('assembleServingRuntime', () => {
       unknownProfileDetected: false,
     };
 
-    const selectedAcceleratorProfile: AcceleratorProfileSelectFieldState = {
+    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
       profile: mockAcceleratorProfile({}),
       count: 1,
       useExistingSettings: false,
@@ -500,8 +500,8 @@ describe('createServingRuntime', () => {
   const MocksevingRuntime = mockServingRuntimeK8sResource({
     auth: false,
     route: false,
-    displayName: 'my-inference-service',
-    name: 'my-inference-service',
+    displayName: 'My Inference Service',
+    name: 'my-inference-service-test',
   });
   const existingData = assembleServingRuntime(
     mockServingRuntimeModalData({}),

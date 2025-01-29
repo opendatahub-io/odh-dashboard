@@ -1,9 +1,14 @@
 import React from 'react';
 import {
+  /** Special use case for Select in this file
+   * It allows multi-selection in the dropdown while keeps the toggle unchanged
+   * Don't use SimpleSelect here
+   */
+  // eslint-disable-next-line no-restricted-imports
   Select,
   SelectOption,
   SelectList,
-  Text,
+  Content,
   Stack,
   StackItem,
   MenuToggle,
@@ -13,12 +18,12 @@ import {
   Split,
 } from '@patternfly/react-core';
 import { CompressIcon, ExpandIcon } from '@patternfly/react-icons';
-import { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 
 type ArtifactDisplayConfig<T> = { config: T; title: string; fileSize?: number };
 
 type PipelineRunArtifactSelectProps<T> = {
-  run?: PipelineRunKFv2;
+  run?: PipelineRunKF;
   renderArtifact: (config: ArtifactDisplayConfig<T>) => React.ReactNode;
   data: ArtifactDisplayConfig<T>[];
   setExpandedGraph: (config?: ArtifactDisplayConfig<T>) => void;
@@ -90,9 +95,9 @@ export const PipelineRunArtifactSelect = <T,>({
           <StackItem>
             <Split>
               <SplitItem>
-                <Text data-testid="pipeline-run-artifact-title">
+                <Content component="p" data-testid="pipeline-run-artifact-title">
                   <b>{displayConfig.title}</b>
-                </Text>
+                </Content>
               </SplitItem>
               <SplitItem isFilled />
               <SplitItem>

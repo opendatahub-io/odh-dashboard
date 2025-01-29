@@ -1,15 +1,10 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Text, TextContent } from '@patternfly/react-core';
+import { Content } from '@patternfly/react-core';
 import { useAccessReview } from '~/api';
 import { AccessReviewResourceAttributes } from '~/k8sTypes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import {
-  ProjectObjectType,
-  SectionType,
-  sectionTypeBorderColor,
-  typedObjectImage,
-} from '~/concepts/design/utils';
+import { ProjectObjectType, SectionType, sectionTypeBorderColor } from '~/concepts/design/utils';
 import CollapsibleSection from '~/concepts/design/CollapsibleSection';
 import DividedGallery from '~/concepts/design/DividedGallery';
 import InfoGalleryItem from '~/concepts/design/InfoGalleryItem';
@@ -54,15 +49,15 @@ const ConfigurationSection: React.FC = () => {
       >
         <InfoGalleryItem
           sectionType={SectionType.setup}
-          imgSrc={typedObjectImage(ProjectObjectType.clusterStorage)}
+          resourceType={ProjectObjectType.clusterStorage}
           title="Cluster storage"
           description={
-            <TextContent>
-              <Text component="small">
+            <Content>
+              <Content component="small">
                 To save your project data, you can add cluster storage and optionally connect the
                 storage to a workbench.
-              </Text>
-            </TextContent>
+              </Content>
+            </Content>
           }
           isOpen={open}
           onClick={() =>
@@ -74,17 +69,15 @@ const ConfigurationSection: React.FC = () => {
         {connectionTypesEnabled ? (
           <InfoGalleryItem
             sectionType={SectionType.setup}
-            imgSrc={typedObjectImage(ProjectObjectType.dataConnection)}
+            resourceType={ProjectObjectType.dataConnection}
             title="Connections"
             description={
-              <TextContent>
-                <Text component="small">
-                  Connections enable you to store and retrieve information that typically should not
-                  be stored in code. For example, you can store details (including credentials) for
-                  object storage, databases, and more. You can then attach the connections to
-                  artifacts in your project, such as workbenches and model servers.
-                </Text>
-              </TextContent>
+              <Content component="small">
+                Connections enable you to store and retrieve information that typically should not
+                be stored in code. For example, you can store details (including credentials) for
+                object storage, databases, and more. You can then attach the connections to
+                artifacts in your project, such as workbenches and model servers.
+              </Content>
             }
             isOpen={open}
             onClick={() =>
@@ -96,16 +89,14 @@ const ConfigurationSection: React.FC = () => {
         ) : (
           <InfoGalleryItem
             sectionType={SectionType.setup}
-            imgSrc={typedObjectImage(ProjectObjectType.dataConnection)}
+            resourceType={ProjectObjectType.dataConnection}
             title="Data connections"
             description={
-              <TextContent>
-                <Text component="small">
-                  You can add data connections to workbenches to connect your project to data inputs
-                  and object storage buckets. You can also use data connections to specify the
-                  location of your models during deployment.
-                </Text>
-              </TextContent>
+              <Content component="small">
+                You can add data connections to workbenches to connect your project to data inputs
+                and object storage buckets. You can also use data connections to specify the
+                location of your models during deployment.
+              </Content>
             }
             isOpen={open}
             onClick={() =>
@@ -119,11 +110,13 @@ const ConfigurationSection: React.FC = () => {
           <InfoGalleryItem
             sectionType={SectionType.setup}
             title="Permissions"
-            imgSrc={typedObjectImage(ProjectObjectType.group)}
+            resourceType={ProjectObjectType.permissions}
             description={
-              <TextContent>
-                <Text component="small">Add users and groups to share access to your project.</Text>
-              </TextContent>
+              <Content>
+                <Content component="small">
+                  Add users and groups to share access to your project.
+                </Content>
+              </Content>
             }
             isOpen={open}
             onClick={() =>

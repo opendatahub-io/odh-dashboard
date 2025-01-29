@@ -4,6 +4,7 @@ import {
   mockNotebookK8sResource,
   mockDashboardConfig,
   mockStorageClassList,
+  mockCustomSecretK8sResource,
 } from '~/__mocks__';
 import type { RoleBindingSubject } from '~/k8sTypes';
 import { mockAllowedUsers } from '~/__mocks__/mockAllowedUsers';
@@ -16,7 +17,13 @@ import {
   stopNotebookModal,
 } from '~/__tests__/cypress/cypress/pages/administration';
 import { homePage } from '~/__tests__/cypress/cypress/pages/home/home';
-import { StorageClassModel } from '~/__tests__/cypress/cypress/utils/models';
+import {
+  AcceleratorProfileModel,
+  StorageClassModel,
+} from '~/__tests__/cypress/cypress/utils/models';
+import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
+import type { EnvironmentVariable } from '~/types';
+import { mockConfigMap } from '~/__mocks__/mockConfigMap';
 
 const groupSubjects: RoleBindingSubject[] = [
   {
@@ -45,11 +52,21 @@ const initIntercepts = () => {
       disableStorageClasses: false,
     }),
   );
-
+  cy.interceptK8sList(
+    AcceleratorProfileModel,
+    mockK8sResourceList([
+      mockAcceleratorProfile({
+        name: 'test-gpu',
+        displayName: 'Test GPU',
+        namespace: 'opendatahub',
+        uid: 'uid',
+      }),
+    ]),
+  );
   cy.interceptK8sList(StorageClassModel, mockStorageClassList());
 };
 
-it('Administration tab should not be accessible for non-project admins', () => {
+it('Administration tab should not be accessible for non-product admins', () => {
   initIntercepts();
   asProjectEditUser();
   notebookServer.visit();
@@ -75,7 +92,98 @@ describe('NotebookServer', () => {
         notebookSizeName: 'XSmall',
         imageName: 'code-server-notebook',
         imageTagName: '2023.2',
-        acceleratorProfile: { acceleratorProfiles: [], count: 0, unknownProfileDetected: false },
+        envVars: { configMap: {}, secrets: {} },
+        state: 'started',
+        storageClassName: 'openshift-default-sc',
+      });
+    });
+  });
+
+  it('should start notebook server with params', () => {
+    const existingParamEnvs: EnvironmentVariable[] = [
+      {
+        name: 'one',
+        valueFrom: {
+          configMapKeyRef: {
+            key: 'one',
+            name: 'jupyterhub-singleuser-profile-test-2duser-envs',
+          },
+        },
+      },
+      {
+        name: 'two',
+        valueFrom: {
+          secretMapKeyRef: {
+            key: 'two',
+            name: 'jupyterhub-singleuser-profile-test-2duser-envs',
+          },
+        },
+      },
+    ];
+    cy.interceptOdh(
+      'GET /api/notebooks/openshift-ai-notebooks/:username/status',
+      { path: { username: 'jupyter-nb-test-2duser' } },
+      {
+        notebook: mockNotebookK8sResource({ additionalEnvs: existingParamEnvs }),
+        isRunning: false,
+      },
+    );
+    cy.interceptOdh(
+      'GET /api/envs/configmap/openshift-ai-notebooks/:filename',
+      { path: { filename: 'jupyterhub-singleuser-profile-test-2duser-envs' } },
+      mockConfigMap({
+        name: 'jupyterhub-singleuser-profile-test-2duser-envs',
+        namespace: 'openshift-ai-notebooks',
+        data: {
+          one: 'test',
+        },
+      }),
+    );
+    cy.interceptOdh(
+      'GET /api/envs/secret/openshift-ai-notebooks/:filename',
+      { path: { filename: 'jupyterhub-singleuser-profile-test-2duser-envs' } },
+      mockCustomSecretK8sResource({
+        name: 'jupyterhub-singleuser-profile-test-2duser-envs',
+        namespace: 'openshift-ai-notebooks',
+        data: {
+          two: 'dGVzdDIK',
+        },
+      }),
+    );
+    notebookServer.visit();
+    notebookServer.findEnvVarKey(0).should('have.value', 'one');
+    notebookServer.findEnvVarIsSecretCheckbox(0).should('not.be.checked');
+    notebookServer.findEnvVarValue(0).should('have.value', 'test');
+
+    notebookServer.findEnvVarKey(1).should('have.value', 'two');
+    notebookServer.findEnvVarIsSecretCheckbox(1).should('be.checked');
+    notebookServer.findEnvVarSecretEyeToggle(1).click();
+    // Seems Cypress doesn't handle atob well -- expect(atob('dGVzdDIK')).to.eql('test2') is not true, `test2\n` is the value of atob in Cypress
+    notebookServer.findEnvVarValue(1).should('contain.value', 'test2');
+  });
+
+  it('should start notebook server with accelerator profile', () => {
+    notebookServer.visit();
+    notebookServer.findAcceleratorProfileSelect().click();
+    notebookServer.findAcceleratorProfileSelect().findSelectOption('Test GPU').click();
+    notebookServer.findAcceleratorProfileSelect().should('contain', 'Test GPU');
+    notebookServer.findStartServerButton().should('be.visible');
+    notebookServer.findStartServerButton().click();
+
+    cy.wait('@startNotebookServer').then((interception) => {
+      expect(interception.request.body).to.eql({
+        notebookSizeName: 'XSmall',
+        imageName: 'code-server-notebook',
+        imageTagName: '2023.2',
+        acceleratorProfile: {
+          count: 1,
+          acceleratorProfile: mockAcceleratorProfile({
+            name: 'test-gpu',
+            displayName: 'Test GPU',
+            namespace: 'opendatahub',
+            uid: 'uid',
+          }),
+        },
         envVars: { configMap: {}, secrets: {} },
         state: 'started',
         storageClassName: 'openshift-default-sc',

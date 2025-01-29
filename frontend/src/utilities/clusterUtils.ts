@@ -1,5 +1,5 @@
 import { useClusterInfo } from '~/redux/selectors/clusterInfo';
-import { DEV_MODE } from '~/utilities/const';
+import { CONSOLE_LINK_DOMAIN, DEV_MODE } from '~/utilities/const';
 
 const consolePrefix = 'console-openshift-console';
 
@@ -7,7 +7,7 @@ export const getOpenShiftConsoleServerURL = (apiURL?: string): string | null => 
   const { hostname, protocol, port } = window.location;
 
   if (DEV_MODE && apiURL) {
-    let apiURLWithoutPrefix = apiURL.slice('https://api.'.length);
+    let apiURLWithoutPrefix = CONSOLE_LINK_DOMAIN || apiURL.slice('https://api.'.length);
     if (apiURLWithoutPrefix.includes(':')) {
       const [withoutPort] = apiURLWithoutPrefix.split(':');
       apiURLWithoutPrefix = withoutPort;

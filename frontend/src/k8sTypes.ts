@@ -1,12 +1,14 @@
 import { K8sResourceCommon, MatchExpression } from '@openshift/dynamic-plugin-sdk-utils';
-import { EitherNotBoth, EitherOrNone } from '@openshift/dynamic-plugin-sdk';
+import { EitherNotBoth } from '@openshift/dynamic-plugin-sdk';
 import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import { StackComponent } from '~/concepts/areas/types';
 import {
   ContainerResourceAttributes,
   ContainerResources,
+  Identifier,
   ImageStreamStatusTagCondition,
   ImageStreamStatusTagItem,
+  NodeSelector,
   NotebookSize,
   PodAffinity,
   PodContainer,
@@ -26,6 +28,7 @@ export enum KnownLabels {
   PROJECT_SUBJECT = 'opendatahub.io/rb-project-subject',
   REGISTERED_MODEL_ID = 'modelregistry.opendatahub.io/registered-model-id',
   MODEL_VERSION_ID = 'modelregistry.opendatahub.io/model-version-id',
+  MODEL_REGISTRY_NAME = 'modelregistry.opendatahub.io/name',
 }
 
 export type K8sVerb =
@@ -311,6 +314,7 @@ export type PersistentVolumeClaimKind = K8sResourceCommon & {
     capacity?: {
       storage: string;
     };
+    conditions?: K8sCondition[];
   } & Record<string, unknown>;
 };
 
@@ -450,12 +454,20 @@ export type SupportedModelFormats = {
   autoSelect?: boolean;
 };
 
+export enum DeploymentMode {
+  ModelMesh = 'ModelMesh',
+  RawDeployment = 'RawDeployment',
+  Serverless = 'Serverless',
+}
+
 export type InferenceServiceAnnotations = Partial<{
   'security.opendatahub.io/enable-auth': string;
 }>;
 
 export type InferenceServiceLabels = Partial<{
   'networking.knative.dev/visibility': string;
+  'security.opendatahub.io/enable-auth': 'true';
+  'networking.kserve.io/visibility': 'exposed';
 }>;
 
 export type InferenceServiceKind = K8sResourceCommon & {
@@ -464,16 +476,13 @@ export type InferenceServiceKind = K8sResourceCommon & {
     namespace: string;
     annotations?: InferenceServiceAnnotations &
       DisplayNameAnnotations &
-      EitherOrNone<
-        {
-          'serving.kserve.io/deploymentMode': 'ModelMesh';
-        },
-        {
-          'serving.knative.openshift.io/enablePassthrough': 'true';
-          'sidecar.istio.io/inject': 'true';
-          'sidecar.istio.io/rewriteAppHTTPProbers': 'true';
-        }
-      >;
+      Partial<{
+        'serving.kserve.io/deploymentMode': DeploymentMode;
+        'serving.knative.openshift.io/enablePassthrough': 'true';
+        'sidecar.istio.io/inject': 'true';
+        'sidecar.istio.io/rewriteAppHTTPProbers': 'true';
+      }>;
+    labels?: InferenceServiceLabels;
   };
   spec: {
     predictor: {
@@ -492,6 +501,8 @@ export type InferenceServiceKind = K8sResourceCommon & {
           path?: string;
           schemaPath?: string;
         };
+        args?: ServingContainer['args'];
+        env?: ServingContainer['env'];
       };
       maxReplicas?: number;
       minReplicas?: number;
@@ -1095,7 +1106,11 @@ export type SelfSubjectRulesReviewKind = K8sResourceCommon & {
 
 export type ServiceKind = K8sResourceCommon & {
   metadata: {
-    annotations?: DisplayNameAnnotations;
+    annotations?: DisplayNameAnnotations &
+      Partial<{
+        'routing.opendatahub.io/external-address-rest': string;
+        'routing.opendatahub.io/external-address-grpc': string;
+      }>;
     name: string;
     namespace: string;
     labels?: Partial<{
@@ -1115,149 +1130,6 @@ export type ServiceKind = K8sResourceCommon & {
       port?: number;
       targetPort?: number | string;
     }[];
-  };
-};
-
-/** @deprecated - Tekton is no longer used */
-export type PipelineRunTaskSpecDigest = {
-  name: string;
-  outputs: unknown[]; // TODO: detail outputs
-  version: string;
-};
-
-/** @deprecated - Tekton is no longer used */
-type PipelineRunTaskSpecStep = {
-  name: string;
-  args?: string[];
-  command: string[] | undefined;
-  image: string;
-};
-
-/** @deprecated - Tekton is no longer used */
-export type PipelineRunTaskSpecResult = {
-  name: string;
-  type: string;
-  description?: string;
-};
-
-/** @deprecated - Tekton is no longer used */
-export type PipelineRunTaskVolumeMount = {
-  name: string;
-  mountPath: string;
-};
-
-/** @deprecated - Tekton is no longer used */
-export type PipelineRunTaskSpec = {
-  steps: PipelineRunTaskSpecStep[];
-  stepTemplate?: {
-    volumeMounts?: PipelineRunTaskVolumeMount[];
-  };
-  results: PipelineRunTaskSpecResult[] | undefined;
-  metadata?: {
-    annotations?: {
-      /** @see PipelineRunTaskSpecDigest */
-      'pipelines.kubeflow.org/component_spec_digest': string;
-      'pipelines.kubeflow.org/task_display_name': string;
-    };
-    labels: {
-      'pipelines.kubeflow.org/cache_enabled': 'true';
-    };
-  };
-};
-
-/** @deprecated - Tekton is no longer used */
-export type PipelineRunTaskParam = {
-  name: string;
-  value: string;
-};
-
-/** @deprecated - Tekton is no longer used */
-export type PipelineRunTaskWhen = {
-  input: string;
-  operator: string;
-  values: string[];
-};
-
-/** @deprecated - Tekton is no longer used */
-export type PipelineRunTask = {
-  name: string;
-  taskSpec: PipelineRunTaskSpec;
-  params?: PipelineRunTaskParam[];
-  when?: PipelineRunTaskWhen[];
-  // TODO: favour this
-  runAfter?: string[];
-};
-
-/** @deprecated - Tekton is no longer used */
-export type PipelineRunPipelineSpec = {
-  tasks: PipelineRunTask[];
-};
-
-/** @deprecated - Tekton is no longer used */
-export type SkippedTask = {
-  name: string;
-  reason: string;
-  whenExpressions: PipelineRunTaskWhen;
-};
-
-/** @deprecated - Tekton is no longer used */
-export type TaskRunResults = {
-  name: string;
-  type: string;
-  value: string;
-};
-
-/** @deprecated - Tekton is no longer used */
-export type PipelineRunTaskStatusStep = {
-  volumeMounts?: PipelineRunTaskVolumeMount[];
-};
-
-/** @deprecated - Tekton is no longer used */
-export type PipelineRunTaskRunStatusProperties = {
-  conditions?: K8sCondition[];
-  podName: string;
-  startTime: string;
-  completionTime?: string;
-  // TODO: Populate these
-  steps?: unknown[];
-  taskResults?: TaskRunResults[];
-  taskSpec?: {
-    steps?: PipelineRunTaskStatusStep[];
-    results?: unknown[];
-  };
-};
-
-/** @deprecated - Tekton is no longer used */
-export type PipelineRunTaskRunStatus = {
-  /** The task name; pipelineSpec.tasks[].name */
-  pipelineTaskName: string;
-  status?: PipelineRunTaskRunStatusProperties;
-};
-
-/** @deprecated - Tekton is no longer used */
-export type PipelineRunKind = K8sResourceCommon & {
-  metadata: {
-    name: string;
-  };
-  spec: {
-    pipelineSpec?: PipelineRunPipelineSpec;
-    params?: PipelineRunTaskParam[];
-    /** Unsupported for Kubeflow */
-    pipelineRef?: {
-      name: string;
-    };
-  };
-  status?: {
-    startTime: string;
-    completionTime?: string;
-    succeededCondition?: string;
-    conditions?: K8sCondition[];
-    /** Keyed on a generated key for the task run */
-    taskRuns?: Record<string, PipelineRunTaskRunStatus>;
-    pipelineSpec: PipelineRunPipelineSpec;
-    skippedTasks?: SkippedTask[];
-    /** References Tekton tasks -- unlikely we will need this */
-    childReferences: unknown[];
   };
 };
 
@@ -1316,15 +1188,19 @@ export type DashboardCommonConfig = {
   disableProjectSharing: boolean;
   disableCustomServingRuntimes: boolean;
   disablePipelines: boolean;
-  disableBiasMetrics: boolean;
+  disableTrustyBiasMetrics: boolean;
   disablePerformanceMetrics: boolean;
   disableKServe: boolean;
   disableKServeAuth: boolean;
   disableKServeMetrics: boolean;
+  disableKServeRaw: boolean;
   disableModelMesh: boolean;
   disableAcceleratorProfiles: boolean;
+  disableHardwareProfiles: boolean;
   disableDistributedWorkloads: boolean;
   disableModelRegistry: boolean;
+  disableModelRegistrySecureDB: boolean;
+  disableServingRuntimeParams: boolean;
   disableConnectionTypes: boolean;
   disableStorageClasses: boolean;
   disableNIMModelServing: boolean;
@@ -1367,6 +1243,21 @@ export type AcceleratorProfileKind = K8sResourceCommon & {
   };
 };
 
+export type HardwareProfileKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    displayName: string;
+    enabled: boolean;
+    description?: string;
+    tolerations?: Toleration[];
+    identifiers?: Identifier[];
+    nodeSelectors?: NodeSelector[];
+  };
+};
+
 // In the SDK TResource extends from K8sResourceCommon, but both kind and apiVersion are mandatory
 export type K8sResourceListResult<TResource extends Partial<K8sResourceCommon>> = {
   apiVersion: string;
@@ -1381,12 +1272,15 @@ export type K8sResourceListResult<TResource extends Partial<K8sResourceCommon>> 
 /** We don't need or should ever get the full kind, this is the status section */
 export type DataScienceClusterKindStatus = {
   components?: {
+    kserve?: {
+      defaultDeploymentMode?: string;
+    };
     modelregistry?: {
       registriesNamespace?: string;
     };
   };
   conditions: K8sCondition[];
-  installedComponents: { [key in StackComponent]?: boolean };
+  installedComponents?: { [key in StackComponent]?: boolean };
   phase?: string;
   release?: {
     name: string;
@@ -1434,7 +1328,20 @@ export type ModelRegistryKind = K8sResourceCommon & {
         port?: number;
         skipDBCreation?: boolean;
         username?: string;
-      };
+      } & EitherNotBoth<
+        {
+          sslRootCertificateConfigMap?: {
+            name: string;
+            key: string;
+          } | null;
+        },
+        {
+          sslRootCertificateSecret?: {
+            name: string;
+            key: string;
+          } | null;
+        }
+      >;
     },
     {
       postgres?: {
@@ -1453,5 +1360,50 @@ export type ModelRegistryKind = K8sResourceCommon & {
   >;
   status?: {
     conditions?: K8sCondition[];
+  };
+};
+
+export type NIMAccountKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    apiKeySecret: {
+      name: string;
+    };
+  };
+  status?: {
+    nimConfig?: {
+      name: string;
+    };
+    runtimeTemplate?: {
+      name: string;
+    };
+    nimPullSecret?: {
+      name: string;
+    };
+    conditions?: K8sCondition[];
+  };
+};
+
+export type ConfigSecretItem = {
+  name: string;
+  keys: string[];
+};
+
+export type ListConfigSecretsResponse = {
+  secrets: ConfigSecretItem[];
+  configMaps: ConfigSecretItem[];
+};
+
+export type AuthKind = K8sResourceCommon & {
+  metadata: {
+    name: 'auth'; // singleton, immutable name
+    namespace?: never; // Cluster resource
+  };
+  spec: {
+    adminGroups: string[];
+    allowedGroups: string[];
   };
 };

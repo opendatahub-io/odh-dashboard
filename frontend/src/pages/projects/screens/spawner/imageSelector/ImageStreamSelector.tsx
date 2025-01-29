@@ -60,6 +60,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
         options={options}
         placeholder="Select one"
         value={selectedImageStream?.metadata.name ?? ''}
+        popperProps={{ appendTo: 'inline' }}
         onChange={(key) => {
           const imageStream = imageStreams.find(
             (currentImageStream) => currentImageStream.metadata.name === key,

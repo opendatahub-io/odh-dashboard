@@ -1,141 +1,84 @@
 .odh-type-bordered-card {
   position: relative;
-  border-radius: 16px;
-  border: 1px solid var(--pf-v5-global--BorderColor--100);
-  padding: 1px;
+  --border-color: transparent;
 
   &:after {
     position: absolute;
     width: 48px;
     height: 4px;
-    background: transparent;
+    background: var(--border-color);
     top: 0;
     left: calc(50% - 24px);
     border-radius: 0 0 4px 4px;
     content: ' ';
-  }
-  &.project {
-    &:after {
-      background: var(--ai-project--BorderColor);
-    }
-  }
-  &.notebook {
-    &:after {
-      background: var(--ai-notebook--BorderColor);
-    }
-  }
-  &.pipeline {
-    &:after {
-      background: var(--ai-pipeline--BorderColor);
-    }
-  }
-  &.pipeline-run {
-    &:after {
-      background: var(--ai-pipeline--BorderColor);
-    }
-  }
-  &.cluster-storage {
-    &:after {
-      background: var(--ai-cluster-storage--BorderColor);
-    }
-  }
-  &.model-server {
-    &:after {
-      background: var(--ai-model-server--BorderColor);
-    }
-  }
-  &.data-connection {
-    &:after {
-      background: var(--ai-data-connection--BorderColor);
-    }
-  }
-  &.user {
-    &:after {
-      background: var(--ai-user--BorderColor);
-    }
-  }
-  &.group {
-    &:after {
-      background: var(--ai-group--BorderColor);
-    }
-  }
-  &.set-up {
-    &:after {
-      background: var(--ai-set-up--BorderColor);
-    }
-  }
-  &.organize {
-    &:after {
-      background: var(--ai-organize--BorderColor);
-    }
-  }
-  &.training {
-    &:after {
-      background: var(--ai-training--BorderColor);
-    }
-  }
-  &.serving {
-    &:after {
-      background: var(--ai-serving--BorderColor);
-    }
   }
   &.m-is-selectable {
     &:after {
       display: none;
       top: unset;
       bottom: 0;
-      transform: rotate( -180deg );
+      transform: rotate(-180deg);
     }
-    &:hover {
-      cursor: pointer;
+    &:hover,
+    &:has(button:focus-within) {
+      --pf-v6-c-card--BorderColor: var(--border-color);
     }
-    &:hover, &.m-is-selected {
+    &:hover,
+    &:has(button:focus-within),
+    &.m-is-selected {
       &:after {
-        display: block
-      }
-      &.project {
-        border-color: var(--ai-project--BorderColor);
-      }
-      &.notebook {
-        border-color: var(--ai-notebook--BorderColor);
-      }
-      &.pipeline {
-        border-color: var(--ai-pipeline--BorderColor);
-      }
-      &.pipeline-run {
-        border-color: var(--ai-pipeline--BorderColor);
-      }
-      &.cluster-storage {
-        border-color: var(--ai-cluster-storage--BorderColor);
-      }
-      &.model-server {
-        border-color: var(--ai-model-server--BorderColor);
-      }
-      &.data-connection {
-        border-color: var(--ai-data-connection--BorderColor);
-      }
-      &.user {
-        border-color: var(--ai-user--BorderColor);
-      }
-      &.group {
-        border-color: var(--ai-group--BorderColor);
-      }
-      &.set-up {
-        border-color: var(--ai-set-up--BorderColor);
-      }
-      &.organize {
-        border-color: var(--ai-organize--BorderColor);
-      }
-      &.training {
-        border-color: var(--ai-training--BorderColor);
-      }
-      &.serving {
-        border-color: var(--ai-serving--BorderColor);
+        display: block;
+        background: var(--selected-color);
       }
     }
     &.m-is-selected {
-      border-width: 2px;
-      padding: 0;
+      --pf-v6-c-card--m-clickable--m-current--BorderColor: var(--selected-color);
     }
+  }
+  &.project,
+  &.organize {
+    --border-color: var(--ai-project--BorderColor);
+    --selected-color: var(--ai-project--SelectedColor);
+  }
+  &.notebook {
+    --border-color: var(--ai-notebook--BorderColor);
+    --selected-color: var(--ai-notebook--SelectedColor);
+  }
+  &.pipeline,
+  &.pipeline-run {
+    --border-color: var(--ai-pipeline--BorderColor);
+    --selected-color: var(--ai-pipeline--SelectedColor);
+  }
+  &.cluster-storage {
+    --border-color: var(--ai-cluster-storage--BorderColor);
+    --selected-color: var(--ai-cluster-storage--SelectedColor);
+  }
+  &.model-server {
+    --border-color: var(--ai-model-server--BorderColor);
+    --selected-color: var(--ai-model-server--SelectedColor);
+  }
+  &.data-connection {
+    --border-color: var(--ai-data-connection--BorderColor);
+    --selected-color: var(--data-connection--SelectedColor);
+  }
+  &.user {
+    --border-color: var(--ai-user--BorderColor);
+    --selected-color: var(--ai-user--SelectedColor);
+  }
+  &.group {
+    --border-color: var(--ai-group--BorderColor);
+    --selected-color: var(--ai-group--SelectedColor);
+  }
+  &.set-up {
+    --border-color: var(--ai-set-up--BorderColor);
+    --selected-color: var(--ai-set-up--SelectedColor);
+  }
+  &.training {
+    --border-color: var(--ai-training--BorderColor);
+    --selected-color: var(--ai-training--SelectedColor);
+  }
+  &.serving {
+    --border-color: var(--ai-serving--BorderColor);
+    --selected-color: var(--ai-serving--SelectedColor);
   }
 }

@@ -54,7 +54,7 @@ const initIntercepts = ({ isEmpty = false }: HandlersProps) => {
   cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
   cy.interceptK8sList(
     NotebookModel,
-    mockK8sResourceList([mockNotebookK8sResource({ envFromName: '' })]),
+    mockK8sResourceList([mockNotebookK8sResource({ envFrom: [] })]),
   );
   cy.interceptK8sList(
     ProjectModel,
@@ -171,10 +171,6 @@ describe('Data connections', () => {
       .findSelectOption('Test Notebook')
       .click();
     editDataConnectionModal.findNotebookRestartAlert().should('exist');
-    cy.interceptK8sList(
-      NotebookModel,
-      mockK8sResourceList([mockNotebookK8sResource({ envFromName: 'test-secret' })]),
-    ).as('addConnectedWorkbench');
     cy.interceptK8s('PUT', SecretModel, mockSecretK8sResource({})).as('editDataConnection');
 
     editDataConnectionModal.findSubmitButton().click();
@@ -209,13 +205,6 @@ describe('Data connections', () => {
 
     cy.get('@editDataConnection.all').then((interceptions) => {
       expect(interceptions).to.have.length(2); //1 dry run request and 1 actual request
-    });
-
-    cy.wait('@addConnectedWorkbench').then(() => {
-      projectDetails
-        .getDataConnectionRow('Test Secret')
-        .findWorkbenchConnection()
-        .should('have.text', 'Test Notebook');
     });
   });
   it('Delete connection', () => {

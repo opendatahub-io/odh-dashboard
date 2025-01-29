@@ -16,8 +16,10 @@ import {
   LabelPosition,
 } from '@patternfly/react-topology';
 import { Flex, FlexItem, Popover, Stack, StackItem } from '@patternfly/react-core';
+import { BanIcon } from '@patternfly/react-icons';
 import { PipelineNodeModelExpanded, StandardTaskNodeData } from '~/concepts/topology/types';
 import NodeStatusIcon from '~/concepts/topology/NodeStatusIcon';
+import { ExecutionStateKF } from '~/concepts/pipelines/kfTypes';
 import { NODE_HEIGHT, NODE_WIDTH } from './const';
 
 const MAX_TIP_ITEMS = 6;
@@ -35,6 +37,8 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
     const [hover, hoverRef] = useHover<SVGGElement>();
     const popoverRef = React.useRef<SVGGElement>(null);
     const detailsLevel = element.getGraph().getDetailsLevel();
+    const runStatus = element.getData()?.runStatus;
+    const state = element.getData()?.pipelineTask.status?.state;
 
     const getPopoverTasksList = (items: Node<NodeModel>[]) => (
       <Stack hasGutter>
@@ -54,12 +58,28 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
       </Stack>
     );
 
+    const status = React.useMemo(() => {
+      switch (state) {
+        case ExecutionStateKF.CACHED:
+          return RunStatus.Succeeded;
+        case ExecutionStateKF.RUNNING:
+          return RunStatus.InProgress;
+        default:
+          return runStatus;
+      }
+    }, [state, runStatus]);
+
     const groupNode = (
       <DefaultTaskGroup
         element={element}
         collapsible
         recreateLayoutOnCollapseChange
-        GroupLabelComponent={TaskGroupPillLabel}
+        GroupLabelComponent={(props) => (
+          <TaskGroupPillLabel
+            {...props}
+            customStatusIcon={status === RunStatus.Cancelled ? <BanIcon /> : undefined}
+          />
+        )}
         selected={selected}
         onSelect={onSelect}
         hideDetailsAtMedium
@@ -67,8 +87,9 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
         labelPosition={LabelPosition.top}
         showStatusState
         scaleNode={hover && detailsLevel !== ScaleDetailsLevel.high}
+        customStatusIcon={status === RunStatus.Cancelled ? <BanIcon /> : undefined}
         showLabelOnHover
-        status={element.getData()?.runStatus}
+        status={status}
         hiddenDetailsShownStatuses={[
           RunStatus.Succeeded,
           RunStatus.Pending,

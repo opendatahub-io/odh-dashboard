@@ -1,17 +1,11 @@
 import * as React from 'react';
-import {
-  Text,
-  TextContent,
-  TextVariants,
-  Timestamp,
-  TimestampTooltipVariant,
-  Truncate,
-} from '@patternfly/react-core';
+import { Timestamp, TimestampTooltipVariant, Truncate } from '@patternfly/react-core';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { AcceleratorProfileKind } from '~/k8sTypes';
 import AcceleratorProfileEnableToggle from '~/pages/acceleratorProfiles/screens/list/AcceleratorProfileEnableToggle';
 import { relativeTime } from '~/utilities/time';
+import { TableRowTitleDescription } from '~/components/table';
 
 type AcceleratorProfilesTableRowType = {
   acceleratorProfile: AcceleratorProfileKind;
@@ -28,16 +22,11 @@ const AcceleratorProfilesTableRow: React.FC<AcceleratorProfilesTableRowType> = (
   return (
     <Tr>
       <Td dataLabel="Name">
-        <TextContent>
-          <Text>
-            <Truncate content={acceleratorProfile.spec.displayName} />
-          </Text>
-          {acceleratorProfile.spec.description && (
-            <Text data-testid="description" component={TextVariants.small}>
-              <Truncate content={acceleratorProfile.spec.description} />
-            </Text>
-          )}
-        </TextContent>
+        <TableRowTitleDescription
+          title={<Truncate content={acceleratorProfile.spec.displayName} />}
+          description={acceleratorProfile.spec.description}
+          truncateDescriptionLines={2}
+        />
       </Td>
       <Td dataLabel="Identifier">{acceleratorProfile.spec.identifier}</Td>
       <Td dataLabel="Enable">
@@ -68,6 +57,7 @@ const AcceleratorProfilesTableRow: React.FC<AcceleratorProfilesTableRowType> = (
               onClick: () =>
                 navigate(`/acceleratorProfiles/edit/${acceleratorProfile.metadata.name}`),
             },
+            { isSeparator: true },
             {
               title: 'Delete',
               onClick: () => handleDelete(acceleratorProfile),

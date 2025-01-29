@@ -8,8 +8,8 @@ import { getStorageClassConfig } from '~/pages/storageClasses/utils';
 import useStorageClasses from '~/concepts/k8s/useStorageClasses';
 import StorageTableRow from './StorageTableRow';
 import { columns } from './data';
-import ManageStorageModal from './ManageStorageModal';
 import { StorageTableData } from './types';
+import ClusterStorageModal from './ClusterStorageModal';
 
 type StorageTableProps = {
   pvcs: PersistentVolumeClaimKind[];
@@ -31,11 +31,13 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
     () =>
       storageClassesLoaded &&
       storageTableData.some(
-        (data) => !data.storageClass || !getStorageClassConfig(data.storageClass)?.isEnabled,
+        (data) =>
+          !data.storageClass || getStorageClassConfig(data.storageClass)?.isEnabled === false,
       ),
     [storageClassesLoaded, storageTableData],
   );
   const shouldShowAlert = isDeprecatedAlert && !alertDismissed && isStorageClassesAvailable;
+  const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
 
   const getStorageColumns = () => {
     let storageColumns = columns;
@@ -43,6 +45,11 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
     if (!isStorageClassesAvailable) {
       storageColumns = columns.filter((column) => column.field !== 'storage');
     }
+
+    if (!workbenchEnabled) {
+      storageColumns = storageColumns.filter((column) => column.field !== 'connected');
+    }
+
     return storageColumns;
   };
 
@@ -61,15 +68,14 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
             />
           }
         >
-          A storage class has been deprecated by your administrator, but the cluster storage using
-          it is still active. If you want to migrate your data to a cluster storage instance using a
-          different storage class, contact your administrator.
+          One or more storage classes have been deprecated by your administrator, but the cluster
+          storage instances using them remain active. If you want to migrate your data to a cluster
+          storage instance using a different storage class, contact your administrator.
         </Alert>
       )}
       <Table
         data={storageTableData}
         columns={getStorageColumns()}
-        disableRowRenderSupport
         data-testid="storage-table"
         variant="compact"
         rowRenderer={(data, i) => (
@@ -85,8 +91,8 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
         )}
       />
       {editPVC ? (
-        <ManageStorageModal
-          existingData={editPVC}
+        <ClusterStorageModal
+          existingPvc={editPVC}
           onClose={(updated) => {
             if (updated) {
               refresh();

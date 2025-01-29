@@ -5,15 +5,13 @@ import { useParams, Link } from 'react-router-dom';
 import RunPage from '~/concepts/pipelines/content/createRun/RunPage';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { PathProps } from '~/concepts/pipelines/content/types';
-import { ExperimentKFv2, PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
 import usePipelineRecurringRunById from '~/concepts/pipelines/apiHooks/usePipelineRecurringRunById';
 import { RunTypeOption } from './types';
 
 type DuplicateRecurringRunPageProps = {
   detailsRedirect: (recurringRunId: string) => string;
-  contextExperiment?: ExperimentKFv2 | null;
-  contextPipeline?: PipelineKFv2 | null;
-  contextPipelineVersion?: PipelineVersionKFv2 | null;
+  contextExperiment?: ExperimentKF | null;
 };
 
 const DuplicateRecurringRunPage: React.FC<PathProps & DuplicateRecurringRunPageProps> = ({

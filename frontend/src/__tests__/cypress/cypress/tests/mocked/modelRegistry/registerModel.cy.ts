@@ -97,6 +97,30 @@ const initIntercepts = () => {
     },
     mockModelArtifact(),
   ).as('createModelArtifact');
+
+  cy.interceptOdh(
+    'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId',
+    {
+      path: {
+        serviceName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        registeredModelId: '1',
+      },
+    },
+    mockRegisteredModel({ id: '1', name: 'Test model name' }),
+  ).as('updateRegisteredModel');
+
+  cy.interceptOdh(
+    'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId',
+    {
+      path: {
+        serviceName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: '2',
+      },
+    },
+    mockModelVersion({ id: '2', name: 'Test version name' }),
+  ).as('updateModelVersion');
 };
 
 describe('Register model page', () => {
@@ -135,7 +159,7 @@ describe('Register model page', () => {
     registerModelPage
       .findConnectionSelector()
       .contains('Select a project to view its available data connections');
-    registerModelPage.projectDropdown.selectItem('Test Project');
+    registerModelPage.projectDropdown.openAndSelectItem('Test Project', true);
     registerModelPage.findConnectionSelector().contains('No available data connections');
   });
 
@@ -150,7 +174,7 @@ describe('Register model page', () => {
     registerModelPage
       .findConnectionSelector()
       .contains('Select a project to view its available data connections');
-    registerModelPage.projectDropdown.selectItem('Test Project');
+    registerModelPage.projectDropdown.openAndSelectItem('Test Project', true);
     registerModelPage.findConnectionSelector().contains('Select data connection');
     registerModelPage.findConnectionSelector().findDropdownItem('Test Secret').click();
     registerModelPage.findAutofillButton().click();
@@ -182,6 +206,7 @@ describe('Register model page', () => {
   });
 
   it('Creates expected resources on submit in object storage mode', () => {
+    const veryLongName = 'Test name'.repeat(15); // A string over 128 characters
     registerModelPage.findFormField(FormFieldSelector.MODEL_NAME).type('Test model name');
     registerModelPage
       .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
@@ -201,7 +226,17 @@ describe('Register model page', () => {
     registerModelPage
       .findFormField(FormFieldSelector.LOCATION_PATH)
       .type('demo-models/flan-t5-small-caikit');
+    registerModelPage.findSubmitButton().should('be.enabled');
 
+    registerModelPage.findFormField(FormFieldSelector.MODEL_NAME).clear().type(veryLongName);
+    registerModelPage.findSubmitButton().should('be.disabled');
+    registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).clear().type(veryLongName);
+    registerModelPage.findFormField(FormFieldSelector.MODEL_NAME).clear().type('Test model name');
+    registerModelPage.findSubmitButton().should('be.disabled');
+    registerModelPage
+      .findFormField(FormFieldSelector.VERSION_NAME)
+      .clear()
+      .type('Test version name');
     registerModelPage.findSubmitButton().click();
 
     cy.wait('@createRegisteredModel').then((interception) => {
@@ -224,7 +259,7 @@ describe('Register model page', () => {
     });
     cy.wait('@createModelArtifact').then((interception) => {
       expect(interception.request.body).to.containSubset({
-        name: 'Test model name-Test version name-artifact',
+        name: 'Test version name',
         description: 'Test version description',
         customProperties: {},
         state: ModelArtifactState.LIVE,
@@ -292,7 +327,7 @@ describe('Register model page', () => {
     });
     cy.wait('@createModelArtifact').then((interception) => {
       expect(interception.request.body).to.containSubset({
-        name: 'Test model name-Test version name-artifact',
+        name: 'Test version name',
         description: 'Test version description',
         customProperties: {},
         state: ModelArtifactState.LIVE,

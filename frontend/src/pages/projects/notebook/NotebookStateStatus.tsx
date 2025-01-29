@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Button, Label, LabelProps, Popover, Tooltip } from '@patternfly/react-core';
 import {
-  BanIcon,
   ExclamationCircleIcon,
   InProgressIcon,
-  RunningIcon,
+  OffIcon,
+  PlayIcon,
   SyncAltIcon,
 } from '@patternfly/react-icons';
 import { EventStatus } from '~/types';
@@ -52,9 +52,9 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
       };
     }
     if (isRunning) {
-      return { label: 'Running', color: 'green', icon: <RunningIcon /> };
+      return { label: 'Running', color: 'green', icon: <PlayIcon /> };
     }
-    return { label: 'Stopped', color: 'grey', icon: <BanIcon /> };
+    return { label: 'Stopped', color: 'grey', icon: <OffIcon /> };
   }, [isError, isRunning, isStarting, isStopping]);
 
   const StatusLabel = (
@@ -74,14 +74,16 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
     return (
       <>
         <Popover
+          alertSeverityVariant={isError ? 'danger' : 'custom'}
           data-testid="notebook-status-popover"
           shouldClose={() => setPopoverVisible(false)}
           isVisible={isPopoverVisible}
-          headerContent="Notebook status"
+          headerContent="Workbench status"
+          headerIcon={isError ? <ExclamationCircleIcon /> : <InProgressIcon />}
           bodyContent={
             events[events.length - 1]
               ? getEventFullMessage(events[events.length - 1])
-              : 'Waiting for notebook to start...'
+              : 'Waiting for workbench to start...'
           }
           footerContent={
             <Button

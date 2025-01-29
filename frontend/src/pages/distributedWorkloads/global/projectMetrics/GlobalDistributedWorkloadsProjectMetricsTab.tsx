@@ -5,12 +5,18 @@ import { TopResourceConsumingWorkloads } from './sections/TopResourceConsumingWo
 import { WorkloadResourceMetricsTable } from './sections/WorkloadResourceMetricsTable';
 import { DWSectionCard } from './sections/DWSectionCard';
 
+const PopoverContent = () => (
+  <>
+    In this section, <strong>all projects</strong> refers to all of the projects that share the
+    specified resource. You might not have access to all of these projects.
+  </>
+);
 const GlobalDistributedWorkloadsProjectMetricsTab: React.FC = () => (
   <Stack hasGutter>
     <StackItem data-testid="dw-requested-resources">
       <DWSectionCard
         title="Requested resources"
-        helpTooltip="In this section, all projects refers to all of the projects that share the specified resource. You might not have access to all of these projects."
+        helpTooltip={<PopoverContent />}
         content={<RequestedResources />}
       />
     </StackItem>

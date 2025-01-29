@@ -3,7 +3,6 @@ import React from 'react';
 import { Label, Popover, Stack, StackItem } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
-  DegradedIcon,
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
   InProgressIcon,
@@ -30,7 +29,6 @@ enum ConditionStatus {
   True = 'True',
   False = 'False',
 }
-
 interface ModelRegistryTableRowStatusProps {
   conditions: K8sCondition[] | undefined;
 }
@@ -45,7 +43,7 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
     }, {}) ?? {};
   let statusLabel: string = ModelRegistryStatusLabel.Progressing;
   let icon = <InProgressIcon />;
-  let color: React.ComponentProps<typeof Label>['color'] = 'blue';
+  let status: React.ComponentProps<typeof Label>['status'];
   let popoverMessages: string[] = [];
   let popoverTitle = '';
 
@@ -72,27 +70,26 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
       !popoverMessages.some((message) => message.includes('ContainerCreating'))
     ) {
       statusLabel = ModelRegistryStatusLabel.Unavailable;
-      icon = <ExclamationCircleIcon />;
-      color = 'red';
+      icon = <ExclamationTriangleIcon />;
+      status = 'warning';
+    }
+    // Degrading
+    else if (degradedCondition?.status === ConditionStatus.True) {
+      statusLabel = ModelRegistryStatusLabel.Degrading;
+      icon = <InProgressIcon className="odh-u-spin" />;
+      popoverTitle = 'Service is degrading';
     }
     // Available
     else if (availableCondition?.status === ConditionStatus.True) {
       statusLabel = ModelRegistryStatusLabel.Available;
       icon = <CheckCircleIcon />;
-      color = 'green';
+      status = 'success';
     }
     // Progressing
     else if (progressCondition?.status === ConditionStatus.True) {
       statusLabel = ModelRegistryStatusLabel.Progressing;
-      icon = <InProgressIcon />;
-      color = 'blue';
-    }
-    // Degrading
-    else if (degradedCondition?.status === ConditionStatus.True) {
-      statusLabel = ModelRegistryStatusLabel.Degrading;
-      icon = <DegradedIcon />;
-      color = 'gold';
-      popoverTitle = 'Service is degrading';
+      icon = <InProgressIcon className="odh-u-spin" />;
+      status = 'info';
     }
   }
   // Handle popover logic for Unavailable status
@@ -121,8 +118,23 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
     }
   }
 
+  const isClickable = popoverTitle && popoverMessages.length;
+
   const label = (
-    <Label data-testid="model-registry-label" icon={icon} color={color} isCompact>
+    <Label
+      {...(isClickable
+        ? {
+            onClick: () => {
+              /* intentional no-op - Click event is handled by the Popover parent,
+              this prop enables clickable styles in the PatternFly Label */
+            },
+          }
+        : {})}
+      data-testid="model-registry-label"
+      icon={icon}
+      status={status}
+      isCompact
+    >
       {statusLabel}
     </Label>
   );

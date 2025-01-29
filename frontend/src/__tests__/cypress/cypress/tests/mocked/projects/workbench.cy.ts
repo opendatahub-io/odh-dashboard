@@ -1,4 +1,5 @@
 import {
+  mockCustomSecretK8sResource,
   mockDashboardConfig,
   mockDscStatus,
   mockK8sResourceList,
@@ -13,6 +14,7 @@ import { mockImageStreamK8sResource } from '~/__mocks__/mockImageStreamK8sResour
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
 import {
+  attachConnectionModal,
   createSpawnerPage,
   editSpawnerPage,
   notFoundSpawnerPage,
@@ -34,19 +36,25 @@ import {
   StorageClassModel,
   AcceleratorProfileModel,
 } from '~/__tests__/cypress/cypress/utils/models';
-import { mock200Status } from '~/__mocks__/mockK8sStatus';
+import { mock200Status, mock404Error } from '~/__mocks__/mockK8sStatus';
 import type { NotebookSize } from '~/types';
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
+import { mockConnectionTypeConfigMap } from '~/__mocks__/mockConnectionType';
+import type { PodKind } from '~/k8sTypes';
+import type { EnvironmentFromVariable } from '~/pages/projects/types';
 
 const configYamlPath = '../../__mocks__/mock-upload-configmap.yaml';
 
 type HandlersProps = {
   isEmpty?: boolean;
   notebookSizes?: NotebookSize[];
+  mockPodList?: PodKind[];
+  envFrom?: EnvironmentFromVariable[];
 };
 
 const initIntercepts = ({
   isEmpty = false,
+  envFrom,
   notebookSizes = [
     {
       name: 'Medium',
@@ -62,6 +70,7 @@ const initIntercepts = ({
       },
     },
   ],
+  mockPodList = [mockPodK8sResource({})],
 }: HandlersProps) => {
   cy.interceptK8sList(StorageClassModel, mockStorageClassList());
   cy.interceptOdh(
@@ -80,7 +89,7 @@ const initIntercepts = ({
   );
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
   cy.interceptK8s(ProjectModel, mockProjectK8sResource({}));
-  cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
+  cy.interceptK8sList(PodModel, mockK8sResourceList(mockPodList));
   cy.interceptK8sList(
     ImageStreamModel,
     mockK8sResourceList([
@@ -134,6 +143,23 @@ const initIntercepts = ({
       }),
     ]),
   );
+  cy.interceptK8s(
+    { model: SecretModel, ns: 'test-project', name: 'secret' },
+    mockCustomSecretK8sResource({
+      name: 'secret',
+      namespace: 'test-project',
+      data: { test: 'c2RzZA==' },
+    }),
+  );
+  cy.interceptK8s(
+    'PUT',
+    { model: SecretModel, ns: 'test-project', name: 'secret' },
+    mockCustomSecretK8sResource({
+      name: 'secret',
+      namespace: 'test-project',
+      data: { test: 'c2RzZA==' },
+    }),
+  );
   cy.interceptK8s(SecretModel, mockSecretK8sResource({ name: 'aws-connection-db-1' }));
   cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('stopWorkbench');
   cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'test-notebook' }));
@@ -147,6 +173,7 @@ const initIntercepts = ({
         ? []
         : [
             mockNotebookK8sResource({
+              envFrom,
               opts: {
                 metadata: {
                   name: 'test-notebook',
@@ -237,7 +264,7 @@ describe('Workbench page', () => {
     //to check scrollable dropdown selection
     createSpawnerPage.findNotebookImage('test-9').click();
     createSpawnerPage.selectContainerSize(
-      'XSmall Limits: 0.5 CPU, 500Mi Memory Requests: 0.1 CPU, 100Mi Memory',
+      'XSmall Limits: 0.5 CPU, 500MiB Memory Requests: 0.1 CPU, 100MiB Memory',
     );
     createSpawnerPage.findSubmitButton().should('be.enabled');
     createSpawnerPage.findAddVariableButton().click();
@@ -273,22 +300,11 @@ describe('Workbench page', () => {
     environmentVariableField.uploadConfigYaml(configYamlPath);
     environmentVariableField.findRemoveEnvironmentVariableButton().should('be.enabled');
 
-    //cluster storage
-    createSpawnerPage.shouldHaveClusterStorageAlert();
-
-    //add new cluster storage
-    createSpawnerPage.findNewStorageRadio().click();
-    createSpawnerPage.findClusterStorageInput().should('have.value', 'test-project');
-    createSpawnerPage.findClusterStorageDescriptionInput().fill('test-description');
-    createSpawnerPage.findPVSizeMinusButton().click();
-    createSpawnerPage.findPVSizeInput().should('have.value', '19');
-    createSpawnerPage.findPVSizePlusButton().click();
-    createSpawnerPage.findPVSizeInput().should('have.value', '20');
-    createSpawnerPage.selectPVSize('Mi');
-
-    //add existing cluster storage
-    createSpawnerPage.findExistingStorageRadio().click();
-    createSpawnerPage.selectExistingPersistentStorage('Test Storage');
+    // cluster storage
+    const storageTableRow = createSpawnerPage.getStorageTable().getRowById(0);
+    storageTableRow.findNameValue().should('have.text', 'test-project-storage');
+    storageTableRow.findStorageSizeValue().should('have.text', 'Max 20GiB');
+    storageTableRow.findMountPathValue().should('have.text', '/opt/app-root/src/');
 
     //add data connection
     createSpawnerPage.findDataConnectionCheckbox().check();
@@ -303,7 +319,10 @@ describe('Workbench page', () => {
 
     //add existing data connection
     createSpawnerPage.findExistingDataConnectionRadio().click();
-    createSpawnerPage.selectExistingDataConnection('Test Secret');
+    createSpawnerPage.findExistingDataConnectionSelect().should('have.attr', 'disabled');
+    createSpawnerPage
+      .findExistingDataConnectionSelectValueField()
+      .should('have.value', 'Test Secret');
 
     createSpawnerPage.findSubmitButton().click();
     cy.wait('@createConfigMap').then((interception) => {
@@ -324,15 +343,6 @@ describe('Workbench page', () => {
           },
           name: 'test-project',
           namespace: 'test-project',
-        },
-        spec: {
-          template: {
-            spec: {
-              volumes: [
-                { name: 'test-storage-1', persistentVolumeClaim: { claimName: 'test-storage-1' } },
-              ],
-            },
-          },
         },
       });
     });
@@ -380,7 +390,7 @@ describe('Workbench page', () => {
     //to check scrollable dropdown selection
     createSpawnerPage.findNotebookImage('test-9').click();
     createSpawnerPage.selectContainerSize(
-      'XSmall Limits: 0.5 CPU, 500Mi Memory Requests: 0.1 CPU, 100Mi Memory',
+      'XSmall Limits: 0.5 CPU, 500MiB Memory Requests: 0.1 CPU, 100MiB Memory',
     );
     createSpawnerPage.findSubmitButton().should('be.enabled');
 
@@ -401,6 +411,74 @@ describe('Workbench page', () => {
           },
           name: 'wb-1234',
           namespace: 'test-project',
+        },
+      });
+    });
+    verifyRelativeURL('/projects/test-project?section=workbenches');
+  });
+
+  it('Create workbench with connection', () => {
+    initIntercepts({ isEmpty: true });
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableConnectionTypes: false }));
+    cy.interceptOdh('GET /api/connection-types', [mockConnectionTypeConfigMap({})]);
+    cy.interceptK8sList(
+      { model: SecretModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockSecretK8sResource({ name: 'test1', displayName: 'test1' }),
+        mockSecretK8sResource({ name: 'test2', displayName: 'test2' }),
+      ]),
+    );
+
+    workbenchPage.visit('test-project');
+    workbenchPage.findCreateButton().click();
+    createSpawnerPage.findSubmitButton().should('be.disabled');
+    verifyRelativeURL('/projects/test-project/spawner');
+    createSpawnerPage.k8sNameDescription.findDisplayNameInput().fill('1234');
+    createSpawnerPage.findNotebookImage('test-9').click();
+
+    createSpawnerPage.findAttachConnectionButton().click();
+    attachConnectionModal.shouldBeOpen();
+    attachConnectionModal.findAttachButton().should('be.disabled');
+    attachConnectionModal.selectConnectionOption('test1');
+    attachConnectionModal.findAttachButton().should('be.enabled');
+    attachConnectionModal.selectConnectionOption('test2');
+    attachConnectionModal.findAttachButton().click();
+
+    createSpawnerPage.findConnectionsTableRow('test1', 's3');
+    createSpawnerPage.findConnectionsTableRow('test2', 's3');
+
+    createSpawnerPage.findSubmitButton().click();
+    cy.wait('@createWorkbench').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          annotations: {
+            'openshift.io/display-name': '1234',
+          },
+          name: 'wb-1234',
+          namespace: 'test-project',
+        },
+        spec: {
+          template: {
+            spec: {
+              affinity: {},
+              containers: [
+                {
+                  envFrom: [
+                    {
+                      secretRef: {
+                        name: 'test1',
+                      },
+                    },
+                    {
+                      secretRef: {
+                        name: 'test2',
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          },
         },
       });
     });
@@ -464,7 +542,7 @@ describe('Workbench page', () => {
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
 
     //stop Workbench
-    notebookRow.findKebabAction('Stop').click();
+    notebookRow.findNotebookStop().click();
     notebookConfirmModal.findStopWorkbenchButton().should('be.enabled');
     cy.interceptK8s(
       NotebookModel,
@@ -514,7 +592,7 @@ describe('Workbench page', () => {
       }),
     );
 
-    notebookRow.findKebabAction('Start').click();
+    notebookRow.findNotebookStart().click();
     notebookRow.findHaveNotebookStatusText().should('have.text', 'Starting');
     notebookRow.findHaveNotebookStatusText().click();
 
@@ -523,7 +601,39 @@ describe('Workbench page', () => {
         { op: 'remove', path: '/metadata/annotations/kubeflow-resource-stopped' },
       ]);
     });
-    notebookRow.findNotebookStatusPopover('Waiting for notebook to start...').should('exist');
+    notebookRow.findNotebookStatusPopover('Waiting for workbench to start...').should('exist');
+  });
+
+  it('Validate the start button is enabled when the notebook image is deleted', () => {
+    initIntercepts({ mockPodList: [] });
+
+    cy.interceptK8sList(
+      {
+        model: NotebookModel,
+        ns: 'test-project',
+      },
+      mockK8sResourceList([
+        mockNotebookK8sResource({
+          name: 'deleted-image-notebook',
+          opts: {
+            metadata: {
+              annotations: {
+                'kubeflow-resource-stopped': '2023-02-14T21:45:14Z',
+              },
+            },
+          },
+          displayName: 'Notebook with deleted image',
+          image: 'test-imagestream:invalid',
+        }),
+      ]),
+    );
+
+    workbenchPage.visit('test-project');
+
+    const notebookRow = workbenchPage.getNotebookRow('Notebook with deleted image');
+    notebookRow.findNotebookImageAvailability().should('have.text', 'Deleted');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Stopped');
+    notebookRow.findNotebookStart().should('not.be.disabled');
   });
 
   it('Edit workbench', () => {
@@ -562,10 +672,15 @@ describe('Workbench page', () => {
       mockK8sResourceList([mockPVCK8sResource({ name: 'test-notebook' })]),
     );
     editSpawnerPage.visit('test-notebook');
+    editSpawnerPage.findAlertMessage().should('not.exist');
     editSpawnerPage.k8sNameDescription.findDisplayNameInput().should('have.value', 'Test Notebook');
     editSpawnerPage.shouldHaveNotebookImageSelectInput('Test Image');
     editSpawnerPage.shouldHaveContainerSizeInput('Small');
-    editSpawnerPage.shouldHavePersistentStorage('Test Storage');
+    editSpawnerPage
+      .getStorageTable()
+      .getRowById(0)
+      .findNameValue()
+      .should('have.text', 'Test Storage');
     editSpawnerPage.findSubmitButton().should('be.enabled');
     editSpawnerPage.k8sNameDescription.findDisplayNameInput().fill('Updated Notebook');
 
@@ -576,7 +691,9 @@ describe('Workbench page', () => {
 
     cy.interceptK8s('PUT', NotebookModel, mockNotebookK8sResource({})).as('editWorkbenchDryRun');
     cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('editWorkbench');
+
     editSpawnerPage.findSubmitButton().click();
+
     cy.wait('@editWorkbenchDryRun').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
       expect(interception.request.body).to.containSubset({
@@ -591,8 +708,172 @@ describe('Workbench page', () => {
         spec: {
           template: {
             spec: {
+              containers: [
+                {
+                  envFrom: [
+                    {
+                      secretRef: {
+                        name: 'secret',
+                      },
+                    },
+                  ],
+
+                  name: 'test-notebook',
+                },
+              ],
               volumes: [
                 { name: 'test-notebook', persistentVolumeClaim: { claimName: 'test-notebook' } },
+              ],
+            },
+          },
+        },
+      });
+    });
+    // Actual request
+    cy.wait('@editWorkbench').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+  });
+
+  it('Edit workbench when either configMap or secret variables not present', () => {
+    initIntercepts({
+      envFrom: [
+        {
+          secretRef: {
+            name: 'secret-1',
+          },
+        },
+        {
+          secretRef: {
+            name: 'secret-2',
+          },
+        },
+      ],
+    });
+    cy.interceptK8s(
+      {
+        model: SecretModel,
+        ns: 'test-project',
+        name: 'secret-1',
+      },
+      {
+        statusCode: 404,
+        body: mock404Error({}),
+      },
+    );
+    cy.interceptK8s(
+      {
+        model: SecretModel,
+        ns: 'test-project',
+        name: 'secret-2',
+      },
+      {
+        statusCode: 404,
+        body: mock404Error({}),
+      },
+    );
+    editSpawnerPage.visit('test-notebook');
+    editSpawnerPage.findAlertMessage().should('exist');
+    editSpawnerPage.findAlertMessage().contains('secret-1 and secret-2');
+    cy.interceptK8s('PUT', NotebookModel, mockNotebookK8sResource({})).as('editWorkbenchDryRun');
+    cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('editWorkbench');
+    editSpawnerPage.findSubmitButton().click();
+    cy.wait('@editWorkbenchDryRun').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          annotations: {
+            'openshift.io/description': '',
+            'openshift.io/display-name': 'Test Notebook',
+            'opendatahub.io/image-display-name': 'Test Image',
+            'opendatahub.io/accelerator-name': '',
+          },
+        },
+        spec: {
+          template: {
+            spec: {
+              containers: [
+                {
+                  envFrom: [],
+
+                  name: 'test-notebook',
+                },
+              ],
+            },
+          },
+        },
+      });
+    });
+    // Actual request
+    cy.wait('@editWorkbench').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+  });
+
+  it('Edit workbench when both configMap and secret are deleted', () => {
+    initIntercepts({
+      envFrom: [
+        {
+          secretRef: {
+            name: 'secret-1',
+          },
+        },
+        {
+          configMapRef: {
+            name: 'secret-2',
+          },
+        },
+      ],
+    });
+    cy.interceptK8s(
+      {
+        model: SecretModel,
+        ns: 'test-project',
+        name: 'secret-1',
+      },
+      {
+        statusCode: 404,
+        body: mock404Error({}),
+      },
+    );
+    cy.interceptK8s(
+      {
+        model: ConfigMapModel,
+        ns: 'test-project',
+        name: 'secret-2',
+      },
+      {
+        statusCode: 404,
+        body: mock404Error({}),
+      },
+    );
+    editSpawnerPage.visit('test-notebook');
+    editSpawnerPage.findAlertMessage().should('exist');
+    editSpawnerPage.findAlertMessage().contains('secret-1 secret');
+    editSpawnerPage.findAlertMessage().contains('secret-2 config map');
+    cy.interceptK8s('PUT', NotebookModel, mockNotebookK8sResource({})).as('editWorkbenchDryRun');
+    cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('editWorkbench');
+    editSpawnerPage.findSubmitButton().click();
+    cy.wait('@editWorkbenchDryRun').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          annotations: {
+            'openshift.io/description': '',
+            'openshift.io/display-name': 'Test Notebook',
+            'opendatahub.io/image-display-name': 'Test Image',
+            'opendatahub.io/accelerator-name': '',
+          },
+        },
+        spec: {
+          template: {
+            spec: {
+              containers: [
+                {
+                  envFrom: [],
+
+                  name: 'test-notebook',
+                },
               ],
             },
           },
@@ -656,7 +937,52 @@ describe('Workbench page', () => {
   });
 
   it('Delete Workbench', () => {
-    initIntercepts({});
+    initIntercepts({
+      envFrom: [
+        {
+          secretRef: {
+            name: 'secret-123456',
+          },
+        },
+        {
+          secretRef: {
+            name: 'custom-secret',
+          },
+        },
+        {
+          configMapRef: {
+            name: 'configmap-123456',
+          },
+        },
+        {
+          configMapRef: {
+            name: 'custom-configmap',
+          },
+        },
+      ],
+    });
+    cy.interceptK8s(
+      {
+        model: SecretModel,
+        ns: 'test-project',
+        name: 'secret-123456',
+      },
+      {
+        statusCode: 404,
+        body: mock404Error({}),
+      },
+    );
+    cy.interceptK8s(
+      {
+        model: ConfigMapModel,
+        ns: 'test-project',
+        name: 'configmap-123456',
+      },
+      {
+        statusCode: 404,
+        body: mock404Error({}),
+      },
+    );
     workbenchPage.visit('test-project');
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
     notebookRow.findKebabAction('Delete workbench').click();
@@ -667,6 +993,29 @@ describe('Workbench page', () => {
       mock200Status({}),
     ).as('deleteWorkbench');
 
+    cy.interceptK8s(
+      'DELETE',
+      { model: SecretModel, ns: 'test-project', name: 'secret-123456' },
+      mock200Status({}),
+    ).as('deleteSecret1');
+    cy.interceptK8s(
+      'DELETE',
+      { model: ConfigMapModel, ns: 'test-project', name: 'configmap-123456' },
+      mock200Status({}),
+    ).as('deleteSecret2');
+
+    // Intercept any DELETE requests for resources that should not be deleted
+    cy.interceptK8s(
+      'DELETE',
+      { model: ConfigMapModel, ns: 'test-project', name: 'custom-configmap' },
+      cy.spy().as('deleteCustomConfigMap'),
+    );
+    cy.interceptK8s(
+      'DELETE',
+      { model: SecretModel, ns: 'test-project', name: 'custom-secret' },
+      cy.spy().as('deleteCustomSecret'),
+    );
+
     cy.interceptK8sList(
       NotebookModel,
       mockK8sResourceList([
@@ -675,5 +1024,11 @@ describe('Workbench page', () => {
     );
     deleteModal.findSubmitButton().click();
     cy.wait('@deleteWorkbench');
+    cy.wait('@deleteSecret1');
+    cy.wait('@deleteSecret2');
+
+    // Verify custom resources were not deleted
+    cy.get('@deleteCustomSecret').should('not.have.been.called');
+    cy.get('@deleteCustomConfigMap').should('not.have.been.called');
   });
 });

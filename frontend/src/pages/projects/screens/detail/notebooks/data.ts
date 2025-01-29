@@ -12,7 +12,7 @@ export const columns: SortableData<NotebookState>[] = [
   {
     field: 'name',
     label: 'Name',
-    width: 30,
+    width: 25,
     sortable: (a, b) =>
       getDisplayNameFromK8sResource(a.notebook).localeCompare(
         getDisplayNameFromK8sResource(b.notebook),
@@ -34,6 +34,12 @@ export const columns: SortableData<NotebookState>[] = [
     field: 'status',
     label: 'Status',
     sortable: (a, b) => getNotebookStatusPriority(a) - getNotebookStatusPriority(b),
+    modifier: 'fitContent',
+  },
+  {
+    field: '',
+    label: '',
+    sortable: false,
   },
   {
     field: 'open',

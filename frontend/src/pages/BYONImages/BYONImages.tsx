@@ -1,6 +1,8 @@
 import * as React from 'react';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { useWatchBYONImages } from '~/utilities/useWatchBYONImages';
+import TitleWithIcon from '~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '~/concepts/design/utils';
 import { BYONImagesTable } from './BYONImagesTable';
 import EmptyBYONImages from './EmptyBYONImages';
 
@@ -9,7 +11,7 @@ const BYONImages: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="Notebook images"
+      title={<TitleWithIcon title="Notebook images" objectType={ProjectObjectType.notebookImage} />}
       description="Manage your notebook images."
       loaded={loaded}
       empty={images.length === 0}

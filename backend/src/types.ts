@@ -29,21 +29,28 @@ export type DashboardConfig = K8sResourceCommon & {
       disableProjectSharing: boolean;
       disableCustomServingRuntimes: boolean;
       disablePipelines: boolean;
-      disableBiasMetrics: boolean;
+      disableTrustyBiasMetrics: boolean;
       disablePerformanceMetrics: boolean;
       disableKServe: boolean;
       disableKServeAuth: boolean;
       disableKServeMetrics: boolean;
+      disableKServeRaw: boolean;
       disableModelMesh: boolean;
       disableAcceleratorProfiles: boolean;
+      disableHardwareProfiles: boolean;
       disableDistributedWorkloads: boolean;
       disableModelRegistry: boolean;
+      disableModelRegistrySecureDB: boolean;
+      disableServingRuntimeParams: boolean;
       disableConnectionTypes: boolean;
       disableStorageClasses: boolean;
       disableNIMModelServing: boolean;
     };
+    /** @deprecated -- replacing this with Platform Auth resource -- remove when this is no longer in the CRD */
     groupsConfig?: {
+      /** @deprecated -- see above */
       adminGroups: string;
+      /** @deprecated -- see above */
       allowedGroups: string;
     };
     notebookSizes?: NotebookSize[];
@@ -325,6 +332,7 @@ export type OdhApplication = {
     displayName: string;
     docsLink: string;
     hidden?: boolean | null;
+    internalRoute?: string;
     enable?: {
       actionLabel: string;
       description?: string;
@@ -833,7 +841,7 @@ export type NotebookData = {
   notebookSizeName: string;
   imageName: string;
   imageTagName: string;
-  acceleratorProfile: AcceleratorProfileState;
+  acceleratorProfile?: AcceleratorProfileState;
   envVars: EnvVarReducedTypeKeyValues;
   state: NotebookState;
   username?: string;
@@ -841,7 +849,7 @@ export type NotebookData = {
 };
 
 export type AcceleratorProfileState = {
-  acceleratorProfile?: AcceleratorProfileKind;
+  acceleratorProfile: AcceleratorProfileKind;
   count: number;
 };
 
@@ -1196,7 +1204,20 @@ export type ModelRegistryKind = K8sResourceCommon & {
         port?: number;
         skipDBCreation?: boolean;
         username?: string;
-      };
+      } & EitherNotBoth<
+        {
+          sslRootCertificateConfigMap?: {
+            name: string;
+            key: string;
+          };
+        },
+        {
+          sslRootCertificateSecret?: {
+            name: string;
+            key: string;
+          };
+        }
+      >;
     },
     {
       postgres?: {
@@ -1227,3 +1248,59 @@ export enum ServiceAddressAnnotation {
   EXTERNAL_REST = 'routing.opendatahub.io/external-address-rest',
   EXTERNAL_GRPC = 'routing.opendatahub.io/external-address-grpc',
 }
+
+export enum VariablesValidationStatus {
+  UNKNOWN = 'Unknown',
+  FAILED = 'False',
+  SUCCESS = 'True',
+}
+
+export type NIMAccountKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    apiKeySecret: {
+      name: string;
+    };
+  };
+  status?: {
+    nimConfig?: {
+      name: string;
+    };
+    runtimeTemplate?: {
+      name: string;
+    };
+    nimPullSecret?: {
+      name: string;
+    };
+    conditions?: K8sCondition[];
+  };
+};
+
+export type ResourceAccessReviewResponse = {
+  groups?: string[];
+  users?: string[];
+};
+
+export type ConfigSecretItem = {
+  name: string;
+  keys: string[];
+};
+
+export type ListConfigSecretsResponse = {
+  secrets: ConfigSecretItem[];
+  configMaps: ConfigSecretItem[];
+};
+
+export type AuthKind = K8sResourceCommon & {
+  metadata: {
+    name: 'auth'; // singleton, immutable name
+    namespace?: never; // Cluster resource
+  };
+  spec: {
+    adminGroups: string[];
+    allowedGroups: string[];
+  };
+};

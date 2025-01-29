@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Alert, FormGroup, Skeleton, Text } from '@patternfly/react-core';
+import { Alert, FormGroup, Content } from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
 import { ServingRuntimeKind } from '~/k8sTypes';
@@ -28,10 +28,6 @@ const InferenceServiceServingRuntimeSection: React.FC<
   const placeholderText =
     servingRuntimes.length === 0 ? 'No model servers available to select' : 'Select a model server';
 
-  if (!loaded && !currentServingRuntime && data.project !== '') {
-    return <Skeleton />;
-  }
-
   if (loadError) {
     return (
       <Alert title="Error loading model servers" variant="danger">
@@ -43,7 +39,7 @@ const InferenceServiceServingRuntimeSection: React.FC<
   if (currentServingRuntime) {
     return (
       <FormGroup label="Model server">
-        <Text>{getDisplayNameFromK8sResource(currentServingRuntime)}</Text>
+        <Content component="p">{getDisplayNameFromK8sResource(currentServingRuntime)}</Content>
       </FormGroup>
     );
   }
@@ -52,11 +48,11 @@ const InferenceServiceServingRuntimeSection: React.FC<
     <FormGroup label="Model server" fieldId="inference-service-model-selection" isRequired>
       <SimpleSelect
         dataTestId="inference-service-model-selection"
-        isDisabled={servingRuntimes.length === 0}
         options={servingRuntimes.map((servingRuntime) => ({
           key: servingRuntime.metadata.name,
           label: getDisplayNameFromK8sResource(servingRuntime),
         }))}
+        isSkeleton={!loaded && data.project !== ''}
         toggleProps={{ id: 'inference-service-model-selection' }}
         isFullWidth
         value={data.servingRuntimeName}
@@ -65,11 +61,14 @@ const InferenceServiceServingRuntimeSection: React.FC<
           placeholderText
         }
         onChange={(option) => {
-          setData('servingRuntimeName', option);
-          setData('format', {
-            name: '',
-          });
+          if (option !== data.servingRuntimeName) {
+            setData('servingRuntimeName', option);
+            setData('format', {
+              name: '',
+            });
+          }
         }}
+        popperProps={{ appendTo: 'inline' }}
       />
     </FormGroup>
   );

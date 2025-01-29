@@ -32,10 +32,8 @@ const DataConnectionExistingField: React.FC<DataConnectionExistingFieldType> = (
   dataConnections,
 }) => {
   const connectionsWithoutBucket = filterOutConnectionsWithoutBucket(dataConnections);
-  const isDataConnectionsEmpty = connectionsWithoutBucket.length === 0;
-  const placeholderText = isDataConnectionsEmpty
-    ? 'No data connections available to select'
-    : 'Select...';
+  const placeholderText =
+    connectionsWithoutBucket.length === 0 ? 'No data connections available to select' : 'Select...';
 
   const selectedDataConnection = connectionsWithoutBucket.find(
     (connection) => connection.dataConnection.data.metadata.name === data.storage.dataConnection,
@@ -77,7 +75,6 @@ const DataConnectionExistingField: React.FC<DataConnectionExistingFieldType> = (
         <FormGroup label="Name" fieldId="inference-service-data-connection" isRequired>
           <SimpleSelect
             isFullWidth
-            isDisabled={isDataConnectionsEmpty}
             options={connectionsWithoutBucket.map((connection) => ({
               key: connection.dataConnection.data.metadata.name,
               dropdownLabel: getLabeledOption(connection),
@@ -94,6 +91,7 @@ const DataConnectionExistingField: React.FC<DataConnectionExistingFieldType> = (
                 dataConnection: option,
               });
             }}
+            popperProps={{ appendTo: 'inline' }}
           />
         </FormGroup>
       </StackItem>

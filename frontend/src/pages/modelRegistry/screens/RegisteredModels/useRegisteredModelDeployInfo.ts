@@ -10,10 +10,12 @@ export type RegisteredModelDeployInfo = {
   modelArtifactStorageKey?: string;
   modelVersionId?: string;
   registeredModelId?: string;
+  mrName?: string;
 };
 
 const useRegisteredModelDeployInfo = (
   modelVersion: ModelVersion,
+  mrName?: string,
 ): {
   registeredModelDeployInfo: RegisteredModelDeployInfo;
   loaded: boolean;
@@ -27,7 +29,7 @@ const useRegisteredModelDeployInfo = (
 
   const registeredModelDeployInfo = React.useMemo(() => {
     const dateString = new Date().toISOString();
-    const modelName = `${registeredModel?.name} - ${modelVersion.name} - ${dateString}`;
+    const modelName = `${registeredModel?.name ?? ''} - ${modelVersion.name} - ${dateString}`;
     if (modelArtifactList.size === 0) {
       return {
         registeredModelDeployInfo: {
@@ -42,12 +44,13 @@ const useRegisteredModelDeployInfo = (
       registeredModelDeployInfo: {
         modelName,
         modelFormat: modelArtifact.modelFormatName
-          ? `${modelArtifact.modelFormatName} - ${modelArtifact.modelFormatVersion}`
+          ? `${modelArtifact.modelFormatName} - ${modelArtifact.modelFormatVersion ?? ''}`
           : undefined,
         modelArtifactUri: modelArtifact.uri,
         modelArtifactStorageKey: modelArtifact.storageKey,
         modelVersionId: modelVersion.id,
         registeredModelId: modelVersion.registeredModelId,
+        mrName,
       },
       loaded: registeredModelLoaded && modelArtifactListLoaded,
       error: registeredModelError || modelArtifactListError,
@@ -63,6 +66,7 @@ const useRegisteredModelDeployInfo = (
     registeredModel?.name,
     registeredModelError,
     registeredModelLoaded,
+    mrName,
   ]);
 
   return registeredModelDeployInfo;

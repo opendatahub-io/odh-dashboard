@@ -1,14 +1,6 @@
 import * as _ from 'lodash';
 import createError from 'http-errors';
-import {
-  PatchUtils,
-  V1ConfigMap,
-  V1Namespace,
-  V1NamespaceList,
-  V1Role,
-  V1RoleBinding,
-  V1RoleBindingList,
-} from '@kubernetes/client-node';
+import { V1ConfigMap, V1Role, V1RoleBinding, V1RoleBindingList } from '@kubernetes/client-node';
 import {
   AcceleratorProfileKind,
   BuildPhase,
@@ -30,6 +22,7 @@ import {
   TolerationOperator,
   DataScienceClusterKindStatus,
   KnownLabels,
+  AuthKind,
 } from '../types';
 import {
   DEFAULT_ACTIVE_TIMEOUT,
@@ -40,7 +33,6 @@ import {
 import { getComponentFeatureFlags } from './features';
 import { blankDashboardCR } from './constants';
 import { getIsAppEnabled, getRouteForApplication, getRouteForClusterId } from './componentUtils';
-import { createCustomError } from './requestUtils';
 import { getDetectedAccelerators } from '../routes/api/accelerators/acceleratorUtils';
 import { FastifyRequest } from 'fastify';
 import { fetchClusterStatus } from './dsc';
@@ -59,6 +51,7 @@ const quickStartsVersion = 'v1';
 const quickStartsPlural = 'odhquickstarts';
 
 let dashboardConfigWatcher: ResourceWatcher<DashboardConfig>;
+let authWatcher: ResourceWatcher<AuthKind>;
 let clusterStatusWatcher: ResourceWatcher<DataScienceClusterKindStatus>;
 let subscriptionWatcher: ResourceWatcher<SubscriptionStatusData>;
 let appWatcher: ResourceWatcher<OdhApplication>;
@@ -76,9 +69,7 @@ const DASHBOARD_CONFIG = {
 };
 
 const fetchDashboardCR = async (fastify: KubeFastifyInstance): Promise<DashboardConfig[]> => {
-  return fetchOrCreateDashboardCR(fastify)
-    .then(softDisableBiasMetrics(fastify))
-    .then((dashboardCR) => [dashboardCR]);
+  return fetchOrCreateDashboardCR(fastify).then((dashboardCR) => [dashboardCR]);
 };
 
 const fetchWatchedClusterStatus = async (
@@ -86,48 +77,6 @@ const fetchWatchedClusterStatus = async (
 ): Promise<DataScienceClusterKindStatus[]> => {
   return fetchClusterStatus(fastify).then((clusterStatus) => [clusterStatus]);
 };
-
-/**
- * TODO: Support Bias Metrics https://issues.redhat.com/browse/RHOAIENG-13084
- * For RHOAI Only
- * Always disable bias metrics until we can properly support the new UI flow.
- * Note: This does no changes to the on-cluster value -- there can be a de-sync
- */
-const softDisableBiasMetrics =
-  (fastify: KubeFastifyInstance) =>
-  (dashboardConfig: DashboardConfig): DashboardConfig & { status?: object } => {
-    if (!isRHOAI(fastify)) {
-      return dashboardConfig;
-    }
-
-    fastify.log.info(
-      'Trusty Bias Metrics are explicitly disabled in the cached odh-dashboard-config',
-    );
-    return {
-      ...dashboardConfig,
-      spec: {
-        ...dashboardConfig.spec,
-        dashboardConfig: {
-          ...dashboardConfig.spec.dashboardConfig,
-          disableBiasMetrics: true,
-        },
-      },
-      // NOTE: This is a fake status to help show in the UI that we are overriding the value
-      // The CRD does not support a status property today and should not have existing statuses here
-      // No code should use this -- this is purely for debugging in the UI
-      // To be removed as soon as we can support trusty properly
-      status: {
-        conditions: [
-          {
-            message: 'This feature flag state is being ignored',
-            reason: 'IgnoredFeatureFlag',
-            status: 'False',
-            type: 'disableBiasMetricsAvailable',
-          },
-        ],
-      },
-    };
-  };
 
 const fetchOrCreateDashboardCR = async (fastify: KubeFastifyInstance): Promise<DashboardConfig> => {
   return fastify.kube.customObjectsApi
@@ -174,10 +123,10 @@ const createDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfi
       DASHBOARD_CONFIG.plural,
       blankDashboardCR,
     )
-    .then((result) => [result.body])
+    .then((result) => result.body as DashboardConfig)
     .catch((e) => {
       fastify.log.error('Error creating Dashboard CR: ', e);
-      return null;
+      return blankDashboardCR;
     });
 };
 
@@ -376,33 +325,38 @@ export const fetchApplications = async (
     .then((result) => result.body)
     .catch(() => null);
   for (const appDef of applicationDefs) {
-    appDef.spec.shownOnEnabledPage = enabledAppsCM?.data?.[appDef.metadata.name] === 'true';
-    appDef.spec.isEnabled = await getIsAppEnabled(fastify, appDef).catch((e) => {
-      fastify.log.warn(
-        `"${
-          appDef.metadata.name
-        }" OdhApplication is being disabled due to an error determining if it's enabled. ${
-          e.response?.body?.message || e.message
-        }`,
-      );
+    if (isIntegrationApp(appDef)) {
+      // Ignore logic for apps that use internal routes for status information
+      applications.push(appDef);
+    } else {
+      appDef.spec.shownOnEnabledPage = enabledAppsCM?.data?.[appDef.metadata.name] === 'true';
+      appDef.spec.isEnabled = await getIsAppEnabled(fastify, appDef).catch((e) => {
+        fastify.log.warn(
+          `"${
+            appDef.metadata.name
+          }" OdhApplication is being disabled due to an error determining if it's enabled. ${
+            e.response?.body?.message || e.message
+          }`,
+        );
 
-      return false;
-    });
-    if (appDef.spec.isEnabled) {
-      if (!appDef.spec.shownOnEnabledPage) {
-        changed = true;
-        enabledAppsCMData[appDef.metadata.name] = 'true';
-        appDef.spec.shownOnEnabledPage = true;
+        return false;
+      });
+      if (appDef.spec.isEnabled) {
+        if (!appDef.spec.shownOnEnabledPage) {
+          changed = true;
+          enabledAppsCMData[appDef.metadata.name] = 'true';
+          appDef.spec.shownOnEnabledPage = true;
+        }
       }
+      applications.push({
+        ...appDef,
+        spec: {
+          ...appDef.spec,
+          getStartedLink: getRouteForClusterId(fastify, appDef.spec.getStartedLink),
+          link: appDef.spec.isEnabled ? await getRouteForApplication(fastify, appDef) : undefined,
+        },
+      });
     }
-    applications.push({
-      ...appDef,
-      spec: {
-        ...appDef.spec,
-        getStartedLink: getRouteForClusterId(fastify, appDef.spec.getStartedLink),
-        link: appDef.spec.isEnabled ? await getRouteForApplication(fastify, appDef) : undefined,
-      },
-    });
   }
   if (changed) {
     // write enabled apps configmap
@@ -597,8 +551,16 @@ const fetchConsoleLinks = async (fastify: KubeFastifyInstance) => {
     });
 };
 
+const fetchAuthKind = (fastify: KubeFastifyInstance): Promise<AuthKind[]> => {
+  return fastify.kube.customObjectsApi
+    .getClusterCustomObject('services.platform.opendatahub.io', 'v1alpha1', 'auths', 'auth')
+    .then((response) => response.body as AuthKind)
+    .then((auth) => [auth]);
+};
+
 export const initializeWatchedResources = (fastify: KubeFastifyInstance): void => {
   dashboardConfigWatcher = new ResourceWatcher<DashboardConfig>(fastify, fetchDashboardCR);
+  authWatcher = new ResourceWatcher<AuthKind>(fastify, fetchAuthKind);
   clusterStatusWatcher = new ResourceWatcher<DataScienceClusterKindStatus>(
     fastify,
     fetchWatchedClusterStatus,
@@ -673,6 +635,10 @@ export const updateApplications = (): Promise<void> => {
 export const getApplication = (appName: string): OdhApplication => {
   const apps = getApplications();
   return apps.find((app) => app.metadata.name === appName);
+};
+
+export const getAuth = (): AuthKind => {
+  return authWatcher.getResources()[0];
 };
 
 export const getDocs = (): OdhDocument[] => {
@@ -947,124 +913,6 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
     await createSuccessfulMigrationConfigMap(fastify, CONFIG_MAP_NAME, DESCRIPTION);
   }
 };
-/**
- * @deprecated - Look to remove asap (see comments below)
- * Converts namespaces that have a display-name annotation suffixed with `[DSP]` over to using a label.
- * This is migration code from 1.19 to 1.20+. When customers are no longer on 1.19, we should remove
- * this code.
- */
-export const cleanupDSPSuffix = async (fastify: KubeFastifyInstance): Promise<void> => {
-  const CONFIG_MAP_NAME = 'dsg-prune-flag';
-
-  const continueProcessing = await fastify.kube.coreV1Api
-    .readNamespacedConfigMap(CONFIG_MAP_NAME, fastify.kube.namespace)
-    .then(() => {
-      // Found configmap, we're note continuing
-      return false;
-    })
-    .catch((e) => {
-      if (e.statusCode === 404) {
-        // No config saying we have already pruned settings
-        return true;
-      }
-      throw e;
-    });
-
-  if (continueProcessing) {
-    const configMap: V1ConfigMap = {
-      metadata: {
-        name: CONFIG_MAP_NAME,
-        namespace: fastify.kube.namespace,
-      },
-      data: {
-        startedPrune: 'true',
-      },
-    };
-    await fastify.kube.coreV1Api
-      .createNamespacedConfigMap(fastify.kube.namespace, configMap)
-      .then(() => fastify.log.info('Successfully created prune setting'))
-      .catch((e) => {
-        throw createCustomError(
-          'Unable to create DSG prune setting configmap',
-          e.response?.body?.message || e.message,
-        );
-      });
-  } else {
-    // Already processed, exit early and save the processing
-    return;
-  }
-
-  let namespaces: V1Namespace[] = [];
-
-  let continueValue: string | undefined = undefined;
-  do {
-    const listNamespaces: V1NamespaceList = await fastify.kube.coreV1Api
-      .listNamespace(undefined, undefined, continueValue, undefined, undefined, 100)
-      .then((response) => response.body);
-
-    const {
-      metadata: { _continue: continueProp },
-      items,
-    } = listNamespaces;
-
-    namespaces = namespaces.concat(items);
-    continueValue = continueProp;
-  } while (continueValue);
-
-  const SUFFIX = '[DSP]';
-
-  const toChangeNamespaces = namespaces.filter(
-    (namespace) =>
-      // Don't touch any openshift or kube namespaces
-      !(
-        namespace.metadata.name.startsWith('openshift') ||
-        namespace.metadata.name.startsWith('kube')
-      ) &&
-      // Just get the namespaces who are suffixed so we can convert them
-      namespace.metadata.annotations?.['openshift.io/display-name']?.endsWith(SUFFIX),
-  );
-
-  if (toChangeNamespaces.length === 0) {
-    return;
-  }
-
-  fastify.log.info(`Updating ${toChangeNamespaces.length} Namespace(s) over to DSG with labels.`);
-
-  const data = (namespace: V1Namespace) => {
-    const displayName = namespace.metadata.annotations['openshift.io/display-name'];
-
-    return {
-      metadata: {
-        annotations: {
-          'openshift.io/display-name': displayName.slice(0, displayName.length - SUFFIX.length),
-        },
-        labels: {
-          'opendatahub.io/dashboard': 'true',
-        },
-      },
-    };
-  };
-
-  const calls = toChangeNamespaces.map((namespace) =>
-    fastify.kube.coreV1Api
-      .patchNamespace(
-        namespace.metadata.name,
-        data(namespace),
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        {
-          headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
-        },
-      )
-      .then(() => fastify.log.info(`Converted ${namespace.metadata.name} over to using labels.`)),
-  );
-
-  Promise.all(calls).then(() => {
-    fastify.log.info('Completed updating Namespaces');
-  });
-};
 
 /**
  * TODO: There should be a better way to go about this... but the namespace is unlikely to ever change
@@ -1081,3 +929,5 @@ export const translateDisplayNameForK8s = (name: string): string =>
     .toLowerCase()
     .replace(/\s/g, '-')
     .replace(/[^A-Za-z0-9-]/g, '');
+export const isIntegrationApp = (app: OdhApplication): boolean =>
+  app.spec.internalRoute?.startsWith('/api/');

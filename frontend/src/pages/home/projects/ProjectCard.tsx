@@ -8,8 +8,7 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
-  Text,
-  TextContent,
+  Content,
   Timestamp,
   Truncate,
 } from '@patternfly/react-core';
@@ -43,17 +42,21 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
               type: 'project',
             });
           }}
-          style={{ fontSize: 'var(--pf-v5-global--FontSize--md)' }}
+          style={{ fontSize: 'var(--pf-t--global--font--size--body--default)' }}
         >
-          <Truncate content={getDisplayNameFromK8sResource(project)} />
+          <Truncate
+            // TODO: Remove the inline style for underline once https://github.com/patternfly/patternfly/issues/7255 is resolved and PF versions are updated
+            style={{ textDecoration: 'underline' }}
+            content={getDisplayNameFromK8sResource(project)}
+          />
         </Button>
       </CardHeader>
       <CardBody>
-        <TextContent>
-          <Text component="small">
+        <Content>
+          <Content component="small">
             <TruncatedText maxLines={3} content={getDescriptionFromK8sResource(project)} />
-          </Text>
-        </TextContent>
+          </Content>
+        </Content>
       </CardBody>
       <CardFooter>
         <DescriptionList isCompact>
@@ -63,7 +66,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
               {project.metadata.creationTimestamp ? (
                 <Timestamp
                   date={new Date(project.metadata.creationTimestamp)}
-                  style={{ color: 'var(--pf-v5-global--Color--100)' }}
+                  style={{ color: 'var(--pf-t--global--text--color--regular)' }}
                 />
               ) : (
                 'Unknown'

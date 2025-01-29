@@ -2,7 +2,7 @@ import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 import { mixin } from '~/__tests__/cypress/cypress/utils/mixin';
-import { Contextual } from './components/Contextual';
+import { K8sNameDescriptionField } from '~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
 import { TableToolbar } from './components/TableToolbar';
 
 class ModelServingToolbar extends TableToolbar {}
@@ -52,6 +52,14 @@ class ModelServingGlobal {
     return cy.findByTestId('empty-state-action-button');
   }
 
+  findSingleServingModelButton() {
+    return cy.findByTestId('single-serving-select-button');
+  }
+
+  findMultiModelButton() {
+    return cy.findByTestId('multi-serving-select-button');
+  }
+
   private findModelsTable() {
     // TODO be more precise
     return cy.findByTestId('inference-service-table');
@@ -61,12 +69,20 @@ class ModelServingGlobal {
     return this.findModelsTable().find(`[data-label=Name]`).contains(name).parents('tr');
   }
 
+  findRows() {
+    return this.findModelsTable().find('[data-label=Name]').parents('tr');
+  }
+
   getModelMetricLink(name: string) {
     return this.findModelsTable().findByTestId(`metrics-link-${name}`);
   }
 
+  findStatusTooltip() {
+    return cy.findByTestId('status-tooltip');
+  }
+
   findEmptyResults() {
-    return cy.findByTestId('no-result-found-title');
+    return cy.findByTestId('dashboard-empty-table-state');
   }
 
   findSortButton(name: string) {
@@ -79,6 +95,8 @@ class ModelServingGlobal {
 }
 
 class InferenceServiceModal extends Modal {
+  k8sNameDescription = new K8sNameDescriptionField('inference-service');
+
   constructor(private edit = false) {
     super(`${edit ? 'Edit' : 'Deploy'} model`);
   }
@@ -88,15 +106,51 @@ class InferenceServiceModal extends Modal {
   }
 
   findModelNameInput() {
-    return this.find().findByTestId('inference-service-name-input');
+    return this.k8sNameDescription.findDisplayNameInput();
   }
 
   findServingRuntimeSelect() {
     return this.find().findByTestId('inference-service-model-selection');
   }
 
+  findServingRuntimeTemplate() {
+    return this.find().findByTestId('serving-runtime-template-selection');
+  }
+
+  findCalkitStandaloneServingRuntime() {
+    return this.find().findByTestId('caikit-standalone-runtime');
+  }
+
+  findCalkitTGISServingRuntime() {
+    return this.find().findByTestId('caikit-tgis-runtime');
+  }
+
+  findOpenVinoServingRuntime() {
+    return this.find().findByTestId('kserve-ovms');
+  }
+
   findModelFrameworkSelect() {
     return this.find().findByTestId('inference-service-framework-selection');
+  }
+
+  findOpenVinoIROpSet1() {
+    return this.find().findByTestId('openvino_ir - opset1');
+  }
+
+  findOpenVinoIROpSet13() {
+    return this.find().findByTestId('openvino_ir - opset13');
+  }
+
+  findDeploymentModeSelect() {
+    return this.find().findByTestId('deployment-mode-select');
+  }
+
+  findDeployedModelRouteCheckbox() {
+    return this.find().findByTestId('alt-form-checkbox-route');
+  }
+
+  findTokenAuthenticationCheckbox() {
+    return this.find().findByTestId('alt-form-checkbox-auth');
   }
 
   findExistingDataConnectionOption() {
@@ -158,27 +212,89 @@ class InferenceServiceModal extends Modal {
   findLocationPathInputError() {
     return this.find().findByTestId('folder-path-error');
   }
+
+  findConfigurationParamsSection() {
+    return this.find().findByTestId('configuration-params');
+  }
+
+  findServingRuntimeArgumentsSectionInput() {
+    return this.find().findByTestId('serving-runtime-arguments-input');
+  }
+
+  findServingRuntimeEnvVarsSectionAddButton() {
+    return this.find().findByTestId('add-environment-variable');
+  }
+
+  findServingRuntimeEnvVarsName(key: string) {
+    return this.find().findByTestId(`serving-runtime-environment-variables-input-name ${key}`);
+  }
+
+  findServingRuntimeEnvVarsValue(value: string) {
+    return this.find().findByTestId(`serving-runtime-environment-variables-input-value ${value}`);
+  }
+
+  findCreatedModel(name: string) {
+    return this.find().findByTestId(`metrics-link-${name}`);
+  }
 }
 
 class ServingRuntimeModal extends Modal {
+  k8sNameDescription = new K8sNameDescriptionField('serving-runtime');
+
   constructor(private edit = false) {
     super(`${edit ? 'Edit' : 'Add'} model server`);
+  }
+
+  findAuthorinoNotEnabledAlert() {
+    return this.find().findByTestId('no-authorino-installed-alert');
+  }
+
+  findTokenAuthAlert() {
+    return this.find().findByTestId('token-authentication-prerequisite-alert');
   }
 
   findSubmitButton() {
     return this.findFooter().findByTestId('modal-submit-button');
   }
 
-  findModelServerNameInput() {
-    return this.find().findByTestId('serving-runtime-name-input');
-  }
-
   findModelServerSizeValue() {
     return this.find().findByLabelText('Model server size');
   }
 
+  findServingRuntimeTemplateHelptext() {
+    return this.find().findByTestId('serving-runtime-template-helptext');
+  }
+
   findServingRuntimeTemplateDropdown() {
     return this.find().findByTestId('serving-runtime-template-selection');
+  }
+
+  findOpenVinoModelServer() {
+    return this.find().findByTestId('ovms');
+  }
+
+  findPredefinedArgsButton() {
+    return this.find().findByTestId('view-predefined-args-button');
+  }
+
+  findPredefinedArgsList() {
+    return cy.findByTestId('predefined-args-list');
+  }
+
+  findPredefinedArgsTooltip() {
+    return cy.findByTestId('predefined-args-tooltip');
+  }
+
+  findPredefinedVarsButton() {
+    return this.find().findByTestId('view-predefined-vars-button');
+  }
+
+  findPredefinedVarsList() {
+    return cy.findByTestId('predefined-vars-list');
+  }
+
+  findPredefinedVarsTooltip() {
+    return cy.findByTestId('predefined-vars-tooltip');
   }
 
   findAuthenticationSection() {
@@ -201,8 +317,20 @@ class ServingRuntimeModal extends Modal {
     return this.find().findByTestId('service-account-form-name');
   }
 
+  findModelServerName() {
+    return this.find().findByTestId('serving-runtime-name');
+  }
+
   findModelServerSizeSelect() {
     return this.find().findByTestId('model-server-size-selection');
+  }
+
+  findDeployedModelRouteCheckbox() {
+    return this.find().findByTestId('alt-form-checkbox-route');
+  }
+
+  findTokenAuthenticationCheckbox() {
+    return this.find().findByTestId('alt-form-checkbox-auth');
   }
 
   findModelServerReplicasMinusButton() {
@@ -285,7 +413,7 @@ class InferenceServiceRow extends TableRow {
   findStatusTooltip() {
     return this.find()
       .findByTestId('status-tooltip')
-      .trigger('mouseenter')
+      .click()
       .then(() => {
         cy.findByTestId('model-status-tooltip');
       });
@@ -296,7 +424,7 @@ class InferenceServiceRow extends TableRow {
       .invoke('text')
       .should('contain', msg)
       .then(() => {
-        this.findStatusTooltip().trigger('mouseleave');
+        this.findStatusTooltip().find('button').click();
       });
   }
 
@@ -311,23 +439,27 @@ class InferenceServiceRow extends TableRow {
   findInternalServicePopover() {
     return cy.findByTestId('internal-service-popover');
   }
-}
-class ServingPlatformCard extends Contextual<HTMLElement> {
-  findDeployModelButton() {
-    return this.find().findByTestId('single-serving-deploy-button');
+
+  findExternalServiceButton() {
+    return this.find().findByTestId('internal-external-service-button');
   }
 
-  findAddModelServerButton() {
-    return this.find().findByTestId('multi-serving-add-server-button');
+  findExternalServicePopover() {
+    return cy.findByTestId('external-service-popover');
+  }
+
+  findServingRuntime() {
+    return this.find().find(`[data-label="Serving Runtime"]`);
+  }
+
+  findProject() {
+    return this.find().find(`[data-label=Project]`);
   }
 }
+
 class ModelServingSection {
   find() {
     return cy.findByTestId('section-model-server');
-  }
-
-  getServingPlatformCard(name: string) {
-    return new ServingPlatformCard(() => cy.findAllByTestId(`${name}-platform-card`));
   }
 
   private findKServeTable() {
@@ -338,8 +470,24 @@ class ModelServingSection {
     return this.find().findByTestId('serving-runtime-table');
   }
 
+  findModelServerName(name: string) {
+    return this.find().findByTestId(`metrics-link-${name}`);
+  }
+
+  findStatusTooltip() {
+    return this.find().findByTestId('status-tooltip');
+  }
+
   findKServeTableHeaderButton(name: string) {
     return this.findKServeTable().find('thead').findByRole('button', { name });
+  }
+
+  findInternalExternalServiceButton() {
+    return this.find().findByTestId('internal-external-service-button');
+  }
+
+  findExternalServicePopoverTable() {
+    return cy.findByTestId('external-service-popover');
   }
 
   getKServeRow(name: string) {

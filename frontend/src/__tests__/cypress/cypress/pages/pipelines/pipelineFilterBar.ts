@@ -1,4 +1,4 @@
-import type { ExperimentKFv2 } from '~/concepts/pipelines/kfTypes';
+import type { ExperimentKF } from '~/concepts/pipelines/kfTypes';
 
 class PipelineFilterBar {
   find() {
@@ -11,8 +11,8 @@ class PipelineRunFilterBar extends PipelineFilterBar {
     return cy.findByTestId('search-for-run-name');
   }
 
-  findExperimentInput() {
-    return cy.findByTestId('pipeline-filter-text-field').find('#experiment-search-input');
+  findExperimentSelect() {
+    return cy.findByTestId('experiment-toggle-button');
   }
 
   findPipelineVersionSelect() {
@@ -53,23 +53,22 @@ class PipelineRunFilterBar extends PipelineFilterBar {
 
   selectStatusByName(name: string) {
     this.findStatusSelect().findSelectOption(name).click();
+    return this;
   }
 
-  selectPipelineVersionByName(name: string): void {
-    this.findPipelineVersionSelect()
-      .click()
-      .parents()
-      .findByTestId('pipeline-version-selector-table-list')
-      .find('td')
-      .contains(name)
-      .click();
+  selectPipelineVersionByName(name: string) {
+    this.findPipelineVersionSelect().click();
+    cy.findByTestId('pipeline-version-selector-table-list').find('td').contains(name).click();
+    return this;
   }
 
   selectExperimentByName(name: string) {
-    cy.findByTestId('experiment-search-select').findSelectOption(name).click();
+    this.findExperimentSelect().click();
+    cy.findByTestId('experiment-selector-table-list').find('td').contains(name).click();
+    return this;
   }
 
-  mockExperiments(experiments: ExperimentKFv2[], namespace: string) {
+  mockExperiments(experiments: ExperimentKF[], namespace: string) {
     return cy.interceptOdh(
       'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments',
       {

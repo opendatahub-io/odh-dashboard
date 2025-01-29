@@ -1,5 +1,8 @@
 import path from 'path';
 import fs from 'fs';
+
+// @ts-expect-error: Types are not available for this third-party library
+import registerCypressGrep from '@cypress/grep/src/plugin';
 import { defineConfig } from 'cypress';
 import coverage from '@cypress/code-coverage/task';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -12,6 +15,7 @@ import { mergeFiles } from 'junit-report-merger';
 import { interceptSnapshotFile } from '~/__tests__/cypress/cypress/utils/snapshotUtils';
 import { setup as setupWebsockets } from '~/__tests__/cypress/cypress/support/websockets';
 import { env, cypressEnv, BASE_URL } from '~/__tests__/cypress/cypress/utils/testConfig';
+import { extractHttpsUrls } from '~/__tests__/cypress/cypress/utils/urlExtractor';
 
 const resultsDir = `${env.CY_RESULTS_DIR || 'results'}/${env.CY_MOCK ? 'mocked' : 'e2e'}`;
 
@@ -51,6 +55,7 @@ export default defineConfig({
     },
     ODH_PRODUCT_NAME: env.ODH_PRODUCT_NAME,
     resolution: 'high',
+    grepFilterSpecs: true,
   },
   defaultCommandTimeout: 10000,
   e2e: {
@@ -62,6 +67,7 @@ export default defineConfig({
       : `cypress/tests/e2e/**/*.cy.ts`,
     experimentalInteractiveRunEvents: true,
     setupNodeEvents(on, config) {
+      registerCypressGrep(config);
       cypressHighResolution(on, config);
       coverage(on, config);
       setupWebsockets(on, config);
@@ -77,6 +83,9 @@ export default defineConfig({
           }
 
           return Promise.resolve({});
+        },
+        extractHttpsUrls(directory: string) {
+          return extractHttpsUrls(directory);
         },
         log(message) {
           // eslint-disable-next-line no-console
@@ -135,7 +144,11 @@ export default defineConfig({
         await mergeFiles(outputFile, inputFiles);
       });
 
-      return config;
+      // Apply retries only for tests in the "e2e" folder
+      return {
+        ...config,
+        retries: !env.CY_MOCK && !env.CY_RECORD ? { runMode: 2, openMode: 0 } : config.retries,
+      };
     },
   },
 });

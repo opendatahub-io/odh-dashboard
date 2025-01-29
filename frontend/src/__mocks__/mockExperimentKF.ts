@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
-import { ExperimentKFv2, StorageStateKF } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 
-export const buildMockExperimentKF = (experiment?: Partial<ExperimentKFv2>): ExperimentKFv2 => ({
+export const buildMockExperimentKF = (experiment?: Partial<ExperimentKF>): ExperimentKF => ({
   experiment_id: 'a9947051-ead5-480c-acca-fd26ae14b81b',
   display_name: 'Default',
   description: 'All runs created without specifying an experiment will be grouped here.',
@@ -12,13 +12,13 @@ export const buildMockExperimentKF = (experiment?: Partial<ExperimentKFv2>): Exp
 });
 
 export const buildMockExperiments = (
-  experiments: ExperimentKFv2[] = [buildMockExperimentKF()],
+  experiments: ExperimentKF[] = [buildMockExperimentKF()],
   totalSize?: number,
   nextPageToken?: string,
 ): {
   total_size?: number | undefined;
   next_page_token?: string | undefined;
-  experiments: ExperimentKFv2[];
+  experiments: ExperimentKF[];
 } => ({
   experiments,
   total_size: totalSize || experiments.length,

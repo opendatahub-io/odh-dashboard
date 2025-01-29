@@ -7,6 +7,7 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
+  Skeleton,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import React from 'react';
@@ -19,7 +20,7 @@ type StorageClassSelectProps = {
   storageClassName?: string;
   setStorageClassName: (name: string) => void;
   disableStorageClassSelect?: boolean;
-  menuAppendTo?: HTMLElement;
+  menuAppendTo?: HTMLElement | 'inline';
 };
 
 const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
@@ -61,14 +62,20 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
     return {
       key: sc.metadata.name,
       label: config?.displayName || sc.metadata.name,
-      description: config?.description,
+      description: (
+        <>
+          Resource name: {sc.metadata.name}
+          <br />
+          {config?.description && `Description: ${config.description}`}
+        </>
+      ),
       isDisabled: !config?.isEnabled,
       dropdownLabel: (
         <Split>
           <SplitItem>{config?.displayName || sc.metadata.name}</SplitItem>
           <SplitItem isFilled />
           <SplitItem>
-            {/* If multiple storage classes have `isDefault` set to true, 
+            {/* If multiple storage classes have `isDefault` set to true,
             prioritize the one returned by useDefaultStorageClass() as the default class */}
             {sc.metadata.name === defaultSc?.metadata.name && (
               <Label isCompact color="green" data-testid="is-default-label">
@@ -81,6 +88,10 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
     };
   });
 
+  if (storageClassesLoaded && !hasStorageClassConfigs) {
+    return null;
+  }
+
   return hasStorageClassConfigs ? (
     <FormGroup label="Storage class" fieldId="storage-class">
       <SimpleSelect
@@ -92,11 +103,10 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
         onChange={(selection) => {
           setStorageClassName(selection);
         }}
-        isDisabled={
-          disableStorageClassSelect || !storageClassesLoaded || enabledStorageClasses.length <= 1
-        }
+        isDisabled={disableStorageClassSelect || !storageClassesLoaded}
         placeholder="Select storage class"
         popperProps={{ appendTo: menuAppendTo }}
+        previewDescription={false}
       />
       <FormHelperText>
         {selectedStorageClassConfig && !selectedStorageClassConfig.isEnabled ? (
@@ -119,7 +129,9 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
         )}
       </FormHelperText>
     </FormGroup>
-  ) : null;
+  ) : (
+    <Skeleton />
+  );
 };
 
 export default StorageClassSelect;

@@ -8,16 +8,14 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { SectionType, sectionTypeBackgroundColor } from '~/concepts/design/utils';
+import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
 import DividedGalleryItem from '~/concepts/design/DividedGalleryItem';
-
-const HEADER_ICON_SIZE = 40;
-const HEADER_ICON_PADDING = 2;
+import HeaderIcon from '~/concepts/design/HeaderIcon';
 
 type InfoGalleryItemProps = {
   title: string;
-  imgSrc: string;
   sectionType: SectionType;
+  resourceType: ProjectObjectType;
   description: React.ReactNode;
   isOpen: boolean;
   onClick?: () => void;
@@ -26,7 +24,7 @@ type InfoGalleryItemProps = {
 
 const InfoGalleryItem: React.FC<InfoGalleryItemProps> = ({
   title,
-  imgSrc,
+  resourceType,
   sectionType,
   description,
   isOpen,
@@ -42,22 +40,8 @@ const InfoGalleryItem: React.FC<InfoGalleryItemProps> = ({
           direction={{ default: isOpen ? 'column' : 'row' }}
           alignItems={{ default: isOpen ? 'alignItemsFlexStart' : 'alignItemsCenter' }}
         >
-          <FlexItem
-            style={{
-              display: 'inline-block',
-              width: HEADER_ICON_SIZE,
-              height: HEADER_ICON_SIZE,
-              padding: HEADER_ICON_PADDING,
-              borderRadius: HEADER_ICON_SIZE / 2,
-              background: sectionTypeBackgroundColor(sectionType),
-            }}
-          >
-            <img
-              width={HEADER_ICON_SIZE - HEADER_ICON_PADDING * 2}
-              height={HEADER_ICON_SIZE - HEADER_ICON_PADDING * 2}
-              src={imgSrc}
-              alt=""
-            />
+          <FlexItem>
+            <HeaderIcon type={resourceType} sectionType={sectionType} />
           </FlexItem>
           {onClick ? (
             <Button
@@ -66,8 +50,8 @@ const InfoGalleryItem: React.FC<InfoGalleryItemProps> = ({
               isInline
               onClick={onClick}
               style={{
-                fontSize: 'var(--pf-v5-global--FontSize--md)',
-                fontWeight: 'var(--pf-v5-global--FontWeight--bold)',
+                fontSize: 'var(--pf-t--global--font--size--body--default)',
+                fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
               }}
             >
               {title}

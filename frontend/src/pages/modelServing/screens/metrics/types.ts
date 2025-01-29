@@ -1,5 +1,5 @@
 import { DomainTuple, ForAxes } from 'victory-core';
-import { ChartThemeDefinitionInterface } from '@patternfly/react-charts';
+import { ChartThemeDefinitionInterface } from '@patternfly/react-charts/victory';
 import { ContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
 import { BiasMetricType } from '~/api';
 import { ModelMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
@@ -14,6 +14,7 @@ type MetricChartLineBase = {
 };
 export type NamedMetricChartLine = MetricChartLineBase & {
   name: string;
+  color?: string; // Add customColor as an optional property
 };
 export type UnnamedMetricChartLine = MetricChartLineBase & {
   /** Assumes chart title */
@@ -50,11 +51,13 @@ export type DomainCalculator = (
 export enum MetricsChartTypes {
   AREA,
   LINE,
+  DONUT,
 }
 
 export enum MetricsTabKeys {
   PERFORMANCE = 'performance',
   BIAS = 'bias',
+  NIM = 'nim',
 }
 
 export type BiasChartConfig = {

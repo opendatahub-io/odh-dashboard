@@ -1,17 +1,21 @@
 import * as React from 'react';
-import { Alert, Gallery, Stack, Text, TextContent } from '@patternfly/react-core';
+import { Alert, Content, Flex, FlexItem, Gallery } from '@patternfly/react-core';
 import CollapsibleSection from '~/concepts/design/CollapsibleSection';
-import { useIsNIMAvailable } from '~/pages/modelServing/screens/projects/useIsNIMAvailable';
-import { useDashboardNamespace } from '~/redux/selectors';
+import ModelServingPlatformSelectErrorAlert from '~/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
+import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import SelectNIMCard from './SelectNIMCard';
 import SelectSingleModelCard from './SelectSingleModelCard';
 import SelectMultiModelCard from './SelectMultiModelCard';
 
 const PlatformSelectSection: React.FC = () => {
-  const { dashboardNamespace } = useDashboardNamespace();
-  const isNIMAvailable = useIsNIMAvailable(dashboardNamespace);
+  const [errorSelectingPlatform, setErrorSelectingPlatform] = React.useState<Error>();
+  const servingPlatformStatuses = useServingPlatformStatuses();
+  const kServeEnabled = servingPlatformStatuses.kServe.enabled;
+  const modelMeshEnabled = servingPlatformStatuses.modelMesh.enabled;
+  const isNIMAvailable = servingPlatformStatuses.kServeNIM.enabled;
 
-  const galleryWidths = isNIMAvailable
+  const threeEnabled = [kServeEnabled, modelMeshEnabled, isNIMAvailable].every((v) => v);
+  const galleryWidths = threeEnabled
     ? {
         minWidths: { default: '100%', lg: 'calc(33.33% - 1rem / 3 * 2)' },
         maxWidths: { default: '100%', lg: 'calc(33.33% - 1rem / 3 * 2)' },
@@ -23,27 +27,46 @@ const PlatformSelectSection: React.FC = () => {
 
   return (
     <CollapsibleSection title="Serve models" data-testid="section-model-server">
-      <Stack hasGutter>
-        <TextContent
-          data-testid="no-model-serving-platform-selected"
-          style={{ paddingLeft: 'var(--pf-v5-global--spacer--md)' }}
-        >
-          <Text component="small">
+      <Flex gap={{ default: 'gapMd' }} direction={{ default: 'column' }}>
+        <FlexItem>
+          <Content
+            data-testid="no-model-serving-platform-selected"
+            style={{ paddingLeft: 'var(--pf-t--global--spacer--md)' }}
+            component="small"
+          >
             Select the type of model serving platform to be used when deploying models from this
             project.
-          </Text>
-        </TextContent>
-        <Gallery hasGutter {...galleryWidths}>
-          <SelectSingleModelCard />
-          <SelectMultiModelCard />
-          {isNIMAvailable && <SelectNIMCard />}
-        </Gallery>
-        <Alert
-          isInline
-          variant="info"
-          title="The model serving type can be changed until the first model is deployed from this project. After that, if you want to use a different model serving type, you must create a new project."
-        />
-      </Stack>
+          </Content>
+        </FlexItem>
+        <FlexItem>
+          <Gallery hasGutter {...galleryWidths}>
+            {kServeEnabled && (
+              <SelectSingleModelCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
+            )}
+            {modelMeshEnabled && (
+              <SelectMultiModelCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
+            )}
+            {isNIMAvailable && (
+              <SelectNIMCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
+            )}
+          </Gallery>
+        </FlexItem>
+        {errorSelectingPlatform && (
+          <FlexItem>
+            <ModelServingPlatformSelectErrorAlert
+              error={errorSelectingPlatform}
+              clearError={() => setErrorSelectingPlatform(undefined)}
+            />
+          </FlexItem>
+        )}
+        <FlexItem>
+          <Alert
+            isInline
+            variant="info"
+            title="You can change the model serving type before the first model is deployed from this project. After deployment, switching types requires deleting all models and servers."
+          />
+        </FlexItem>
+      </Flex>
     </CollapsibleSection>
   );
 };

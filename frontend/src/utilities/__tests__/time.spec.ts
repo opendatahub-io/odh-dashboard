@@ -14,11 +14,11 @@ import {
 
 describe('relativeDuration', () => {
   it('should convert milliseconds to minutes and seconds', () => {
-    expect(relativeDuration(123456)).toBe('2:03');
+    expect(relativeDuration(123456)).toBe('2 minutes, 3 seconds');
   });
 
   it('should calculate values if minutes is less than 0', () => {
-    expect(relativeDuration(-123456)).toBe('0:0-124');
+    expect(relativeDuration(-123456)).toBe('-124 seconds');
   });
 });
 
@@ -117,7 +117,7 @@ describe('ensureTimeFormat', () => {
 
 describe('printSeconds', () => {
   it('should print seconds', () => {
-    expect(printSeconds(3661)).toBe('1 second, 1 minute, 1 hour');
+    expect(printSeconds(3661)).toBe('1 hour, 1 minute, 1 second');
   });
 
   it('should handle a single unit', () => {
@@ -126,6 +126,10 @@ describe('printSeconds', () => {
 
   it('should handle a single unit at max', () => {
     expect(printSeconds(60)).toBe('1 minute');
+  });
+
+  it('should handle zero seconds', () => {
+    expect(printSeconds(0)).toBe('0 seconds');
   });
 });
 
@@ -223,6 +227,13 @@ describe('convertPeriodicTimeToSeconds', () => {
 
   it('should default to 0 seconds for unrecognized units', () => {
     expect(convertPeriodicTimeToSeconds('3Weeks')).toBe(0);
+  });
+
+  it('should convert exponential time to seconds', () => {
+    const timeString = '5.2341124234234124123e+68Hour';
+    const numericValue = parseFloat('5.2341124234234124123e+68');
+    const expectedSeconds = numericValue * 60 * 60; // Convert hours to seconds
+    expect(convertPeriodicTimeToSeconds(timeString)).toBe(expectedSeconds);
   });
 });
 

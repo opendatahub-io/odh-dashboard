@@ -8,7 +8,7 @@ spec:
   displayName: Elasticsearch
   provider: Elastic
   description: |-
-       Build transformative RAG applications, proactively resolve observability issues, and address complex security threats — all with the power of Search AI.
+    Build transformative RAG applications, proactively resolve observability issues, and address complex security threats — all with the power of Search AI.
   kfdefApplications: []
   route: ''
   img: >-
@@ -42,6 +42,8 @@ spec:
   getStartedLink: https://www.elastic.co/guide/en/esre/current/index.html
   csvName: elasticsearch-eck
   getStartedMarkDown: >-
+    # Elasticsearch
+
     <p>Prototype and integrate with LLMs faster: Implement generative AI to build scalable, cost-effective applications across solutions using the Elastic Search AI Platform.</p>
 
     <p>Make the most of your data with Elastic Search AI Platform's integrated solutions: search, security, and observability. Scale your generative AI capabilities and streamline operations with a flexible, secure, and production-ready platform.</p>

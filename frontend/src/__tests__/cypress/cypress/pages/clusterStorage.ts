@@ -8,7 +8,7 @@ class ClusterStorageRow extends TableRow {
   }
 
   findConnectedWorkbenches() {
-    return this.find().find('[data-label="Connected workbenches"]');
+    return this.find().find('[data-label="Workbench connections"]');
   }
 
   toggleExpandableContent() {
@@ -17,6 +17,10 @@ class ClusterStorageRow extends TableRow {
 
   findDeprecatedLabel() {
     return this.find().findByTestId('storage-class-deprecated');
+  }
+
+  queryDeprecatedLabel() {
+    return this.find().get('[data-testid="storage-class-deprecated"]');
   }
 
   shouldHaveDeprecatedTooltip() {
@@ -28,9 +32,33 @@ class ClusterStorageRow extends TableRow {
     return this.find().find('[data-label="Storage class"]');
   }
 
-  shouldHaveStorageSize(name: string) {
-    this.find().siblings().find('[data-label=Size]').contains(name).should('exist');
-    return this;
+  findSizeColumn() {
+    return this.find().find('[data-label="Storage size"]');
+  }
+
+  showStorageClassDetails() {
+    return this.findStorageClassColumn().findByTestId('resource-name-icon-button').click();
+  }
+
+  findStorageClassResourceNameText() {
+    return cy.findByTestId('resource-name-text');
+  }
+
+  findStorageClassResourceKindText() {
+    return cy.findByTestId('resource-kind-text');
+  }
+
+  findStorageSizeWarning() {
+    return cy.findByTestId('size-warning-popover').click();
+  }
+
+  findStorageSizeWarningText() {
+    return cy
+      .findByTestId('size-warning-popover-text')
+      .should(
+        'have.text',
+        'To complete the storage size update, you must connect and run a workbench.',
+      );
   }
 }
 
@@ -39,14 +67,42 @@ class ClusterStorageModal extends Modal {
     super(edit ? 'Update cluster storage' : 'Add cluster storage');
   }
 
-  findWorkbenchConnectionSelect() {
-    return this.find()
-      .findByTestId('connect-existing-workbench-group')
-      .findByRole('button', { name: 'Typeahead menu toggle' });
+  findAddWorkbenchButton() {
+    return cy.findByTestId('add-workbench-button');
   }
 
-  findMountField() {
-    return this.find().findByTestId('mount-path-folder-value');
+  findWorkbenchTable() {
+    return cy.findByTestId('workbench-connection-table');
+  }
+
+  selectWorkbenchName(row: number, name: string) {
+    this.findWorkbenchSelect(row).click();
+    cy.findByRole('option', { name, hidden: true }).click();
+  }
+
+  findWorkbenchSelect(row: number) {
+    return this.findWorkbenchTable()
+      .find(`[data-label=Name]`)
+      .eq(row)
+      .findByTestId('cluster-storage-workbench-select');
+  }
+
+  findWorkbenchSelectValueField(row: number) {
+    return this.findWorkbenchSelect(row).findByRole('combobox', {
+      name: 'Type to filter',
+    });
+  }
+
+  selectCustomPathFormat(row: number) {
+    this.findWorkbenchTable().find(`[data-label="Path format"]`).eq(row).find('button').click();
+    cy.findByRole('option', {
+      name: 'Custom Custom paths that do not begin with /opt/app-root/src/ are not visible in the JupyterLab file browser.',
+      hidden: true,
+    }).click();
+  }
+
+  findMountPathField(row: number) {
+    return this.findWorkbenchTable().find(`[data-label="Mount path"]`).eq(row).find('input');
   }
 
   findMountFieldHelperText() {
@@ -69,18 +125,22 @@ class ClusterStorageModal extends Modal {
     return this.find().findByTestId('modal-submit-button');
   }
 
+  findPVStorageSizeValue() {
+    return this.find().find('[aria-label="Input"]');
+  }
+
   private findPVSizeSelectButton() {
-    return cy.findByTestId('value-unit-select');
+    return this.find().findByTestId('value-unit-select');
   }
 
   selectPVSize(name: string) {
-    this.findPVSizeSelectButton().click();
-    cy.findByRole('menuitem', { name }).click();
+    this.findPVSizeSelectButton().findDropdownItem(name).click();
+    return this;
   }
 
   shouldHavePVSizeSelectValue(name: string) {
     this.findPVSizeSelectButton().contains(name).should('exist');
-    return this;
+    return this.findPVSizeSelectButton();
   }
 
   private findPVSizeField() {
@@ -88,11 +148,15 @@ class ClusterStorageModal extends Modal {
   }
 
   findPVSizeMinusButton() {
-    return this.findPVSizeField().findByRole('button', { name: 'Minus' });
+    return this.findPVSizeField().findByRole('button', { name: 'Minus', hidden: true });
   }
 
-  findPersistentStorageWarning() {
-    return this.find().findByTestId('persistent-storage-warning');
+  findPersistentStorageWarningCanNotEdit() {
+    return this.find().findByTestId('persistent-storage-warning-can-not-edit');
+  }
+
+  findPersistentStorageWarningCanOnlyIncrease() {
+    return this.find().findByTestId('persistent-storage-warning-can-only-increase');
   }
 
   findPVSizeInput() {
@@ -100,11 +164,20 @@ class ClusterStorageModal extends Modal {
   }
 
   findPVSizePlusButton() {
-    return this.findPVSizeField().findByRole('button', { name: 'Plus' });
+    return this.findPVSizeField().findByRole('button', { name: 'Plus', hidden: true });
   }
 
   findStorageClassSelect() {
     return this.find().findByTestId('storage-classes-selector');
+  }
+
+  selectStorageClassSelectOption(name: string | RegExp) {
+    this.findStorageClassSelect().click();
+    cy.findByRole('option', { name, hidden: true }).click();
+  }
+
+  findStorageClassOption(name: string) {
+    return cy.get('#storage-classes-selector').findByText(name);
   }
 
   findStorageClassDeprecatedWarning() {
@@ -140,8 +213,12 @@ class ClusterStorage {
       .findByTestId('storage-class-deprecated-alert')
       .should(
         'contain.text',
-        'Warning alert:Deprecated storage classA storage class has been deprecated by your administrator, but the cluster storage using it is still active. If you want to migrate your data to a cluster storage instance using a different storage class, contact your administrator.',
+        'Warning alert:Deprecated storage classOne or more storage classes have been deprecated by your administrator, but the cluster storage instances using them remain active. If you want to migrate your data to a cluster storage instance using a different storage class, contact your administrator.',
       );
+  }
+
+  shouldNotHaveDeprecatedAlertMessage() {
+    return cy.get('[date-testid="storage-class-deprecated-alert"]').should('not.exist');
   }
 
   closeDeprecatedAlert() {
@@ -160,6 +237,10 @@ class ClusterStorage {
 
   findCreateButtonFromActions() {
     return cy.findByTestId('actions-cluster-storage-button');
+  }
+
+  findKebabToggle() {
+    return cy.get('button[aria-label="Kebab toggle"]');
   }
 }
 

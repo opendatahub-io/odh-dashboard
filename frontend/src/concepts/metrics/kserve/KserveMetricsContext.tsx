@@ -3,8 +3,6 @@ import {
   Bullseye,
   EmptyState,
   EmptyStateBody,
-  EmptyStateHeader,
-  EmptyStateIcon,
   EmptyStateVariant,
   Spinner,
 } from '@patternfly/react-core';
@@ -80,13 +78,13 @@ export const KserveMetricsContextProvider = conditionalArea<KserveMetricsContext
 
   if (error) {
     return (
-      <EmptyState variant={EmptyStateVariant.lg}>
-        <EmptyStateHeader
-          data-testid="kserve-unknown-error"
-          titleText="Unknown error"
-          icon={<EmptyStateIcon icon={ErrorCircleOIcon} />}
-          headingLevel="h5"
-        />
+      <EmptyState
+        data-testid="kserve-unknown-error"
+        headingLevel="h5"
+        icon={ErrorCircleOIcon}
+        titleText="Unknown error"
+        variant={EmptyStateVariant.lg}
+      >
         <EmptyStateBody>Error loading metrics configuration</EmptyStateBody>
       </EmptyState>
     );
@@ -102,13 +100,12 @@ export const KserveMetricsContextProvider = conditionalArea<KserveMetricsContext
 
   if (!supported) {
     return (
-      <EmptyState>
-        <EmptyStateHeader
-          data-testid="kserve-metrics-runtime-unsupported"
-          titleText="Metrics not supported"
-          headingLevel="h4"
-          icon={<EmptyStateIcon icon={CubesIcon} />}
-        />
+      <EmptyState
+        data-testid="kserve-metrics-runtime-unsupported"
+        headingLevel="h4"
+        icon={CubesIcon}
+        titleText="Metrics not supported"
+      >
         <EmptyStateBody>
           {modelName} is using a custom serving runtime. Metrics are only supported for models
           served via a pre-installed runtime when the single-model serving platform is enabled for a

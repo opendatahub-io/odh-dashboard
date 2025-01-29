@@ -24,12 +24,17 @@ const GenericSidebar: React.FC<GenericSidebarProps> = ({
   maxWidth,
 }) => (
   <Sidebar hasGutter>
-    <SidebarPanel variant="sticky" style={{ maxWidth, top: 'var(--pf-v5-global--spacer--md)' }}>
+    {/* Note from PF: the zIndex override here can be removed once the following issue is resolved:
+    https://github.com/patternfly/patternfly/issues/7229
+    */}
+    <SidebarPanel variant="sticky" style={{ maxWidth, zIndex: 'var(--pf-t--global--z-index--sm)' }}>
       <JumpLinks
         isVertical
         label="Jump to section"
         scrollableSelector={scrollableSelector}
         offset={16}
+        expandable={{ default: 'expandable', md: 'nonExpandable' }}
+        isExpanded
       >
         {sections.map((section) => (
           <JumpLinksItem key={section} href={`#${section}`}>
@@ -38,7 +43,7 @@ const GenericSidebar: React.FC<GenericSidebarProps> = ({
         ))}
       </JumpLinks>
     </SidebarPanel>
-    <SidebarContent style={{ paddingBottom: 'var(--pf-v5-global--spacer--lg)' }}>
+    <SidebarContent style={{ paddingBottom: 'var(--pf-t--global--spacer--lg)' }}>
       {children}
     </SidebarContent>
   </Sidebar>

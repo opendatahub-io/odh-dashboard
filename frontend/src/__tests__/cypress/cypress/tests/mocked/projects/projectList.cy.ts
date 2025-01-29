@@ -13,7 +13,7 @@ import {
   SelfSubjectAccessReviewModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mock200Status } from '~/__mocks__/mockK8sStatus';
-import { mockNotebookK8sResource, mockRouteK8sResource } from '~/__mocks__';
+import { mockDscStatus, mockNotebookK8sResource, mockRouteK8sResource } from '~/__mocks__';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
 import { mockSelfSubjectAccessReview } from '~/__mocks__/mockSelfSubjectAccessReview';
 import { asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
@@ -272,8 +272,9 @@ describe('Data science projects details', () => {
     );
     projectListPage.visit();
     const projectTableRow = projectListPage.getProjectRow('Test Project');
-    projectTableRow.findNotebookColumn().click();
-    cy.wait('@getWorkbench');
+    projectTableRow.findNotebookColumnExpander().click();
+    const notebookRows = projectTableRow.getNotebookRows();
+    notebookRows.should('have.length', 1);
   });
 
   it('should open the modal to stop workbench when user stops the workbench', () => {
@@ -316,13 +317,14 @@ describe('Data science projects details', () => {
     );
     projectListPage.visit();
     const projectTableRow = projectListPage.getProjectRow('Test Project');
-    projectTableRow.findNotebookColumn().click();
+    projectTableRow.findNotebookColumnExpander().click();
+    const notebookRows = projectTableRow.getNotebookRows();
+    notebookRows.should('have.length', 1);
 
     const notebookRow = projectTableRow.getNotebookRow('Test Notebook');
     notebookRow.findNotebookRouteLink().should('have.attr', 'aria-disabled', 'false');
 
-    notebookRow.findKebabAction('Start').should('be.disabled');
-    notebookRow.findKebabAction('Stop').click();
+    notebookRow.findNotebookStop().click();
 
     //stop workbench
     notebookConfirmModal.findStopWorkbenchButton().should('be.enabled');
@@ -355,6 +357,35 @@ describe('Data science projects details', () => {
     });
     notebookRow.findNotebookStatusText().should('have.text', 'Stopped');
     notebookRow.findNotebookRouteLink().should('have.attr', 'aria-disabled', 'true');
+  });
+
+  describe('Workbench disabled', () => {
+    beforeEach(() => {
+      cy.interceptOdh(
+        'GET /api/dsc/status',
+        mockDscStatus({
+          installedComponents: {
+            workbenches: false,
+            'data-science-pipelines-operator': true,
+            kserve: true,
+            'model-mesh': true,
+            'model-registry-operator': true,
+          },
+        }),
+      );
+      initIntercepts();
+    });
+
+    it('should hide workbench column when workbenches are disabled', () => {
+      projectListPage.visit();
+
+      // Verify workbench column is not present
+      cy.get('th').contains('Workbenches').should('not.exist');
+
+      // Verify workbench status indicators are not shown
+      const projectTableRow = projectListPage.getProjectRow('Test Project');
+      projectTableRow.findNotebookColumn().should('not.exist');
+    });
   });
 });
 

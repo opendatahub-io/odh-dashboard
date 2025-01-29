@@ -8,8 +8,6 @@ import {
   EmptyStateActions,
   EmptyStateBody,
   EmptyStateFooter,
-  EmptyStateHeader,
-  EmptyStateIcon,
   EmptyStateVariant,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
@@ -17,6 +15,7 @@ import { Table, Thead, Tbody, Tr, Th } from '@patternfly/react-table';
 import { ConnectionTypeField, ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
 import useDraggableTableControlled from '~/utilities/useDraggableTableControlled';
 import { columns } from '~/pages/connectionTypes/manage/fieldTableColumns';
+import { findSectionFields } from '~/concepts/connectionTypes/utils';
 import ConnectionTypeFieldModal from './ConnectionTypeFieldModal';
 import ManageConnectionTypeFieldsTableRow from './ManageConnectionTypeFieldsTableRow';
 import { ConnectionTypeMoveFieldToSectionModal } from './ConnectionTypeFieldMoveModal';
@@ -28,8 +27,7 @@ type EmptyFieldsTableProps = {
 
 const EmptyFieldsTable: React.FC<EmptyFieldsTableProps> = ({ onAddSection, onAddField }) => (
   <Bullseye>
-    <EmptyState variant={EmptyStateVariant.lg}>
-      <EmptyStateHeader icon={<EmptyStateIcon icon={PlusCircleIcon} />} titleText="No fields" />
+    <EmptyState icon={PlusCircleIcon} titleText="No fields" variant={EmptyStateVariant.lg}>
       <EmptyStateBody>
         Add fields to prompt users to input information, and optionally assign default values to
         those fields. Connection name and description fields are included by default.
@@ -76,7 +74,12 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
               <Tr>
                 <Th screenReaderText="Drag and drop" />
                 {columns.map((column, columnIndex) => (
-                  <Th key={columnIndex} width={column.width} visibility={column.visibility}>
+                  <Th
+                    modifier="wrap"
+                    key={columnIndex}
+                    width={column.width}
+                    visibility={column.visibility}
+                  >
                     {column.label}
                   </Th>
                 ))}
@@ -86,9 +89,8 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
             <Tbody {...tableProps.tbodyProps}>
               {rowsToRender.map(({ data: row, rowProps }, index) => (
                 <ManageConnectionTypeFieldsTableRow
-                  key={index}
+                  key={rowProps.id}
                   row={row}
-                  rowIndex={index}
                   fields={fields}
                   onEdit={() => {
                     setModalField({
@@ -97,18 +99,29 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
                       index,
                     });
                   }}
-                  onRemove={() => onFieldsChange(fields.filter((f, i) => i !== index))}
-                  onDuplicate={(field) => {
+                  onRemove={(removeSectionFields) => {
+                    if (removeSectionFields) {
+                      const sectionFields = findSectionFields(index, fields);
+                      onFieldsChange([
+                        ...fields.slice(0, index),
+                        ...(sectionFields.length === 0
+                          ? []
+                          : fields.slice(index + 1 + sectionFields.length)),
+                      ]);
+                    } else {
+                      onFieldsChange(fields.filter((f, i) => i !== index));
+                    }
+                  }}
+                  onDuplicate={() => {
                     setModalField({
-                      field: structuredClone(field),
+                      field: structuredClone({ ...row, name: `Copy of ${row.name}` }),
+                      index: index + 1,
                     });
                   }}
                   onAddField={() => {
-                    const nextSectionIndex = fields.findIndex(
-                      (f, i) => i > index && f.type === ConnectionTypeFieldType.Section,
-                    );
+                    const nextSectionIndex = index + findSectionFields(index, fields).length;
                     if (nextSectionIndex >= 0) {
-                      setModalField({ index: nextSectionIndex });
+                      setModalField({ index: nextSectionIndex + 1 });
                     } else {
                       setModalField({});
                     }
@@ -128,7 +141,7 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
               ))}
             </Tbody>
           </Table>
-          <ActionList className="pf-v5-u-mt-md">
+          <ActionList className="pf-v6-u-mt-md">
             <ActionListItem>
               <Button
                 variant="secondary"

@@ -3,11 +3,8 @@ import {
   Bullseye,
   EmptyState,
   EmptyStateBody,
-  EmptyStateHeader,
-  EmptyStateIcon,
   EmptyStateVariant,
   PageSection,
-  PageSectionVariants,
   Spinner,
   Stack,
   StackItem,
@@ -38,13 +35,13 @@ const BiasTab: React.FC = () => {
 
   if (statusState.type === TrustyInstallState.CR_ERROR) {
     return (
-      <PageSection isFilled variant={PageSectionVariants.light}>
-        <EmptyState variant={EmptyStateVariant.lg}>
-          <EmptyStateHeader
-            titleText="TrustyAI Error"
-            icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-            headingLevel="h5"
-          />
+      <PageSection hasBodyWrapper={false} isFilled>
+        <EmptyState
+          headingLevel="h5"
+          icon={ExclamationCircleIcon}
+          titleText="TrustyAI Error"
+          variant={EmptyStateVariant.lg}
+        >
           <EmptyStateBody>
             <Stack hasGutter>
               <StackItem>We encountered an error accessing the TrustyAI service:</StackItem>
@@ -73,24 +70,26 @@ const BiasTab: React.FC = () => {
         <StackItem>
           <MetricsPageToolbar
             leftToolbarItem={
-              <ToolbarGroup>
-                <Stack>
-                  {/* Will be fixed by https://issues.redhat.com/browse/RHOAIENG-2403 */}
-                  <StackItem style={{ fontWeight: 'bold' }}>Metrics to display</StackItem>
-                  <StackItem>
-                    <ToolbarItem data-testid="bias-metric-config-toolbar">
-                      <BiasMetricConfigSelector
-                        onChange={setSelectedBiasConfigs}
-                        initialSelections={selectedBiasConfigs}
-                      />
-                    </ToolbarItem>
-                  </StackItem>
-                </Stack>
-              </ToolbarGroup>
+              biasMetricConfigs.length > 0 ? (
+                <ToolbarGroup>
+                  <Stack>
+                    {/* Will be fixed by https://issues.redhat.com/browse/RHOAIENG-2403 */}
+                    <StackItem style={{ fontWeight: 'bold' }}>Metrics to display</StackItem>
+                    <StackItem>
+                      <ToolbarItem data-testid="bias-metric-config-toolbar">
+                        <BiasMetricConfigSelector
+                          onChange={setSelectedBiasConfigs}
+                          initialSelections={selectedBiasConfigs}
+                        />
+                      </ToolbarItem>
+                    </StackItem>
+                  </Stack>
+                </ToolbarGroup>
+              ) : undefined
             }
           />
         </StackItem>
-        <PageSection isFilled>
+        <PageSection hasBodyWrapper={false} isFilled>
           <Stack hasGutter>
             {biasMetricConfigs.length === 0 ? (
               <StackItem>

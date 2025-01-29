@@ -1,17 +1,18 @@
 import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 
 class PipelineRunsGlobal {
-  visit(
-    projectName: string,
-    pipelineId: string,
-    versionId: string,
-    runType?: 'active' | 'archived' | 'scheduled',
-  ) {
+  visit(projectName: string, runType?: 'active' | 'archived' | 'scheduled') {
     cy.visitWithLogin(
-      `/pipelines/${projectName}/${pipelineId}/${versionId}${
+      `/pipelineRuns/${projectName}${
         runType === 'scheduled' ? '/schedules' : `/runs${runType ? `/${runType}` : ''}`
       }`,
     );
+    this.wait();
+  }
+
+  navigate() {
+    appChrome.findNavItem('Runs', 'Data Science Pipelines').click();
     this.wait();
   }
 
@@ -37,7 +38,7 @@ class PipelineRunsGlobal {
   }
 
   findProjectSelect() {
-    return cy.findByTestId('project-selector-dropdown');
+    return cy.findByTestId('project-selector-toggle');
   }
 
   findCreateRunButton() {
@@ -65,7 +66,12 @@ class PipelineRunsGlobal {
   }
 
   selectProjectByName(name: string) {
-    this.findProjectSelect().findDropdownItem(name).click();
+    this.findProjectSelect().click();
+    cy.findByTestId('project-selector-search').fill(name);
+    cy.findByTestId('project-selector-menuList')
+      .contains('button', name)
+      .should('be.visible')
+      .click();
   }
 }
 

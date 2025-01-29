@@ -1,8 +1,5 @@
-import type {
-  CreatePipelineVersionKFData,
-  PipelineVersionKFv2,
-} from '~/concepts/pipelines/kfTypes';
-import { buildMockPipelineVersionV2 } from '~/__mocks__/mockPipelineVersionsProxy';
+import type { CreatePipelineVersionKFData, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { buildMockPipelineVersion } from '~/__mocks__/mockPipelineVersionsProxy';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 import { SearchSelector } from '~/__tests__/cypress/cypress/pages/components/subComponents/SearchSelector';
 
@@ -18,7 +15,7 @@ class PipelineImportModal extends Modal {
   }
 
   findSubmitButton() {
-    return this.findFooter().findByRole('button', { name: 'Upload', hidden: true });
+    return cy.findByTestId('modal-submit-button');
   }
 
   findVersionNameInput() {
@@ -54,14 +51,14 @@ class PipelineImportModal extends Modal {
   }
 
   findImportModalError() {
-    return this.find().findByTestId('import-modal-error');
+    return this.find().findByTestId('error-message-alert');
   }
 
   selectPipelineByName(name: string) {
     this.pipelineSelector
       .findToggleButton()
       .click()
-      .parents()
+      .document()
       .findByTestId('pipeline-selector-table-list')
       .find('tr')
       .contains(name)
@@ -84,15 +81,15 @@ class PipelineImportModal extends Modal {
     return cy.interceptOdh(
       'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
       { path: { namespace, serviceName: 'dspa', pipelineId: params.pipeline_id }, times: 1 },
-      buildMockPipelineVersionV2(params),
+      buildMockPipelineVersion(params),
     );
   }
 
-  mockUploadVersion(params: Partial<PipelineVersionKFv2>, namespace: string) {
+  mockUploadVersion(params: Partial<PipelineVersionKF>, namespace: string) {
     return cy.interceptOdh(
       'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/upload_version',
       { path: { namespace, serviceName: 'dspa' }, times: 1 },
-      buildMockPipelineVersionV2(params),
+      buildMockPipelineVersion(params),
     );
   }
 }

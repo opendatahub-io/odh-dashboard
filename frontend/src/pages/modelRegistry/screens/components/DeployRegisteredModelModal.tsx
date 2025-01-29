@@ -1,5 +1,6 @@
 import React from 'react';
-import { Alert, Button, Form, FormSection, Modal, Spinner } from '@patternfly/react-core';
+import { Alert, Button, Form, FormSection, Spinner } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
 import { ProjectKind } from '~/k8sTypes';
 import useProjectErrorForRegisteredModel from '~/pages/modelRegistry/screens/RegisteredModels/useProjectErrorForRegisteredModel';
@@ -10,9 +11,14 @@ import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/pro
 import { ServingRuntimePlatform } from '~/types';
 import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
 import useRegisteredModelDeployInfo from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
-import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
+import {
+  ModelRegistryContext,
+  useModelRegistryAPI,
+} from '~/concepts/modelRegistry/context/ModelRegistryContext';
+import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { getKServeTemplates } from '~/pages/modelServing/customServingRuntimes/utils';
 import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
+import { bumpBothTimestamps } from '~/concepts/modelRegistry/utils/updateTimestamps';
 
 interface DeployRegisteredModelModalProps {
   modelVersion: ModelVersion;
@@ -25,12 +31,13 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
   onCancel,
   onSubmit,
 }) => {
-  const [isProjectSelectorOpen, setProjectSelectorOpen] = React.useState(false);
   const {
     servingRuntimeTemplates: [templates],
     servingRuntimeTemplateOrder: { data: templateOrder },
     servingRuntimeTemplateDisablement: { data: templateDisablement },
   } = React.useContext(ModelRegistryContext);
+  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const modelRegistryApi = useModelRegistryAPI();
 
   const [selectedProject, setSelectedProject] = React.useState<ProjectKind | null>(null);
   const servingPlatformStatuses = useServingPlatformStatuses();
@@ -47,18 +54,34 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
     registeredModelDeployInfo,
     loaded: deployInfoLoaded,
     error: deployInfoError,
-  } = useRegisteredModelDeployInfo(modelVersion);
+  } = useRegisteredModelDeployInfo(modelVersion, preferredModelRegistry?.metadata.name);
+
+  const handleSubmit = React.useCallback(async () => {
+    if (!modelVersion.registeredModelId) {
+      return;
+    }
+
+    try {
+      await bumpBothTimestamps(
+        modelRegistryApi.api,
+        modelVersion.id,
+        modelVersion.registeredModelId,
+      );
+      onSubmit?.();
+    } catch (submitError) {
+      throw new Error('Failed to update timestamps after deployment');
+    }
+  }, [modelRegistryApi.api, modelVersion.id, modelVersion.registeredModelId, onSubmit]);
 
   const onClose = React.useCallback(
     (submit: boolean) => {
       if (submit) {
-        onSubmit?.();
+        handleSubmit();
       }
-
       setSelectedProject(null);
       onCancel();
     },
-    [onCancel, onSubmit],
+    [handleSubmit, onCancel],
   );
 
   const projectSection = (
@@ -66,8 +89,9 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
       selectedProject={selectedProject}
       setSelectedProject={setSelectedProject}
       error={error}
-      isOpen={isProjectSelectorOpen}
-      setOpen={setProjectSelectorOpen}
+      modelRegistryName={preferredModelRegistry?.metadata.name}
+      registeredModelId={modelVersion.registeredModelId}
+      modelVersionId={modelVersion.id}
     />
   );
 
@@ -98,7 +122,7 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
         isOpen
         onClose={() => onClose(false)}
         actions={[
-          <Button key="deploy" variant="primary" isDisabled>
+          <Button key="deploy" variant="primary" onClick={handleSubmit}>
             Deploy
           </Button>,
           <Button key="cancel" variant="link" onClick={() => onClose(false)}>

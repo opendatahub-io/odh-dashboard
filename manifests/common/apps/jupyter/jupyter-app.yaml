@@ -201,7 +201,7 @@ spec:
 
       ii. Enter your credentials and click **Log in** (or equivalent for your identity provider).
 
-      If you see **Error 403: Forbidden**, you are not in the default user group or the default administrator group for OpenShift AI. Contact your administrator so that they can add you to the correct group using [Adding users for Red Hat OpenShift AI](https://access.redhat.com/documentation/en-us/red_hat_openshift_data_science/1/html/managing_users_and_user_resources/adding-users-for-openshift-data-science_useradd).
+      If you see **Error 403: Forbidden**, you are not in the default user group or the default administrator group for OpenShift AI. Contact your administrator so that they can add you to the correct group using [Adding users for Red Hat OpenShift AI](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/managing_openshift_ai/managing-users-and-groups#adding-users-to-user-groups_managing-rhoai).
 
     3. Start a notebook server.
 

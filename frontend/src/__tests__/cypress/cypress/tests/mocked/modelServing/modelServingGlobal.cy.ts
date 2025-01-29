@@ -14,6 +14,7 @@ import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/Delete
 import {
   inferenceServiceModal,
   inferenceServiceModalEdit,
+  kserveModal,
   modelServingGlobal,
 } from '~/__tests__/cypress/cypress/pages/modelServing';
 import {
@@ -23,7 +24,7 @@ import {
   ServingRuntimeModel,
   TemplateModel,
 } from '~/__tests__/cypress/cypress/utils/models';
-import type { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import { DeploymentMode, type InferenceServiceKind, type ServingRuntimeKind } from '~/k8sTypes';
 import { ServingRuntimePlatform } from '~/types';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { asClusterAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
@@ -38,6 +39,7 @@ type HandlersProps = {
   delayInferenceServices?: boolean;
   delayServingRuntimes?: boolean;
   disableKServeMetrics?: boolean;
+  disableServingRuntimeParamsConfig?: boolean;
 };
 
 const initIntercepts = ({
@@ -49,11 +51,15 @@ const initIntercepts = ({
   delayInferenceServices,
   delayServingRuntimes,
   disableKServeMetrics,
+  disableServingRuntimeParamsConfig,
 }: HandlersProps) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      installedComponents: { kserve: true, 'model-mesh': true },
+      installedComponents: {
+        kserve: true,
+        'model-mesh': true,
+      },
     }),
   );
   cy.interceptOdh(
@@ -62,6 +68,7 @@ const initIntercepts = ({
       disableKServe: disableKServeConfig,
       disableModelMesh: disableModelMeshConfig,
       disableKServeMetrics,
+      disableServingRuntimeParams: disableServingRuntimeParamsConfig,
     }),
   );
   cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(servingRuntimes));
@@ -116,6 +123,8 @@ const initIntercepts = ({
           name: 'template-2',
           displayName: 'Caikit',
           platforms: [ServingRuntimePlatform.SINGLE],
+          containerName: 'kserve-container',
+          containerEnvVars: [{ name: 'HF_HOME', value: '/tmp/hf_home' }],
         }),
         mockServingRuntimeTemplateK8sResource({
           name: 'template-3',
@@ -335,7 +344,7 @@ describe('Model Serving Global', () => {
       'POST',
       InferenceServiceModel,
       mockInferenceServiceK8sResource({
-        name: 'test-name',
+        name: 'test-model',
         path: 'test-model/',
         displayName: 'Test Name',
         isModelMesh: true,
@@ -352,10 +361,12 @@ describe('Model Serving Global', () => {
 
     // test filling in minimum required fields
     inferenceServiceModal.findModelNameInput().type('Test Name');
-    inferenceServiceModal.findServingRuntimeSelect().findSelectOption('OVMS Model Serving').click();
+    inferenceServiceModal.findServingRuntimeSelect().should('contain.text', 'OVMS Model Serving');
+    inferenceServiceModal.findServingRuntimeSelect().should('be.disabled');
     inferenceServiceModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
     inferenceServiceModal.findSubmitButton().should('be.disabled');
-    inferenceServiceModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
+    inferenceServiceModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
+    inferenceServiceModal.findExistingConnectionSelect().should('be.disabled');
     inferenceServiceModal.findLocationPathInput().type('test-model/');
     inferenceServiceModal.findSubmitButton().should('be.enabled');
     inferenceServiceModal.findNewDataConnectionOption().click();
@@ -397,7 +408,7 @@ describe('Model Serving Global', () => {
           labels: { 'opendatahub.io/dashboard': 'true' },
           annotations: {
             'openshift.io/display-name': 'Test Name',
-            'serving.kserve.io/deploymentMode': 'ModelMesh',
+            'serving.kserve.io/deploymentMode': DeploymentMode.ModelMesh,
           },
         },
         spec: {
@@ -406,10 +417,12 @@ describe('Model Serving Global', () => {
               modelFormat: { name: 'onnx', version: '1' },
               runtime: 'test-model',
               storage: { key: 'test-secret', path: 'test-model/' },
+              args: [],
+              env: [],
             },
           },
         },
-      });
+      } satisfies InferenceServiceKind);
     });
 
     // Actaul request
@@ -436,10 +449,12 @@ describe('Model Serving Global', () => {
 
     // test filling in minimum required fields
     inferenceServiceModal.findModelNameInput().type('trigger-error');
-    inferenceServiceModal.findServingRuntimeSelect().findSelectOption('OVMS Model Serving').click();
+    inferenceServiceModal.findServingRuntimeSelect().should('contain.text', 'OVMS Model Serving');
+    inferenceServiceModal.findServingRuntimeSelect().should('be.disabled');
     inferenceServiceModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
     inferenceServiceModal.findSubmitButton().should('be.disabled');
-    inferenceServiceModal.findExistingConnectionSelect().findSelectOption('Test Secret').click();
+    inferenceServiceModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
+    inferenceServiceModal.findExistingConnectionSelect().should('be.disabled');
     inferenceServiceModal.findLocationPathInput().type('test-model/');
     inferenceServiceModal.findSubmitButton().should('be.enabled');
     inferenceServiceModal.findLocationPathInput().type('test-model/');
@@ -458,7 +473,7 @@ describe('Model Serving Global', () => {
           labels: { 'opendatahub.io/dashboard': 'true' },
           annotations: {
             'openshift.io/display-name': 'trigger-error',
-            'serving.kserve.io/deploymentMode': 'ModelMesh',
+            'serving.kserve.io/deploymentMode': DeploymentMode.ModelMesh,
           },
         },
         spec: {
@@ -467,10 +482,12 @@ describe('Model Serving Global', () => {
               modelFormat: { name: 'onnx', version: '1' },
               runtime: 'test-model',
               storage: { key: 'test-secret', path: 'test-model/test-model/' },
+              args: [],
+              env: [],
             },
           },
         },
-      });
+      } satisfies InferenceServiceKind);
     });
 
     cy.findByText('Error creating model server');
@@ -482,6 +499,62 @@ describe('Model Serving Global', () => {
     modelServingGlobal.findDeployModelButton().click();
     cy.findByText('Error creating model server').should('not.exist');
   });
+
+  it('Serving runtime helptext', () => {
+    initIntercepts({
+      projectEnableModelMesh: false,
+      disableServingRuntimeParamsConfig: false,
+    });
+    modelServingGlobal.visit('test-project');
+
+    modelServingGlobal.findDeployModelButton().click();
+
+    kserveModal.shouldBeOpen();
+    kserveModal.findServingRuntimeTemplateHelptext().should('not.exist');
+    kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+    kserveModal.findServingRuntimeTemplateHelptext().should('exist');
+  });
+
+  it('View predefined args popover populates', () => {
+    initIntercepts({
+      projectEnableModelMesh: false,
+      disableServingRuntimeParamsConfig: false,
+    });
+    modelServingGlobal.visit('test-project');
+
+    modelServingGlobal.findDeployModelButton().click();
+
+    kserveModal.shouldBeOpen();
+    kserveModal.findPredefinedArgsButton().click();
+    kserveModal.findPredefinedArgsList().should('not.exist');
+    kserveModal.findPredefinedArgsTooltip().should('exist');
+    kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+    kserveModal.findPredefinedArgsButton().click();
+    kserveModal.findPredefinedArgsList().should('exist');
+    kserveModal.findPredefinedArgsTooltip().should('not.exist');
+    kserveModal.findPredefinedArgsList().should('include.text', '--port=8001');
+  });
+
+  it('View predefined vars popover populates', () => {
+    initIntercepts({
+      projectEnableModelMesh: false,
+      disableServingRuntimeParamsConfig: false,
+    });
+    modelServingGlobal.visit('test-project');
+
+    modelServingGlobal.findDeployModelButton().click();
+
+    kserveModal.shouldBeOpen();
+    kserveModal.findPredefinedVarsButton().click();
+    kserveModal.findPredefinedVarsList().should('not.exist');
+    kserveModal.findPredefinedVarsTooltip().should('exist');
+    kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+    kserveModal.findPredefinedVarsButton().click();
+    kserveModal.findPredefinedVarsList().should('exist');
+    kserveModal.findPredefinedVarsTooltip().should('not.exist');
+    kserveModal.findPredefinedVarsList().should('include.text', 'HF_HOME=/tmp/hf_home');
+  });
+
   it('Navigate to kserve model metrics page only if enabled', () => {
     initIntercepts({});
     modelServingGlobal.visit('test-project');

@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
-import { type PipelineKFv2, type PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { type PipelineKF, type PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
-import { buildMockPipelineVersionsV2 } from '~/__mocks__/mockPipelineVersionsProxy';
+import { buildMockPipelineVersions } from '~/__mocks__/mockPipelineVersionsProxy';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 
@@ -34,6 +34,10 @@ class PipelineVersionsTableRow extends TableRow {
   findPipelineVersionLink() {
     return this.find().findByTestId(`table-row-title`).find('a');
   }
+
+  findPipelineVersionViewRunLink() {
+    return this.find().findByTestId('runs-route-link');
+  }
 }
 
 export enum PipelineSort {
@@ -55,7 +59,7 @@ class PipelinesTable {
     projectName = 'test-project-name',
   }: {
     sortType: PipelineSort;
-    pipelines: PipelineKFv2[];
+    pipelines: PipelineKF[];
     projectName?: string;
   }): void {
     const sortPipelineByAscending = (): void => {
@@ -164,9 +168,11 @@ class PipelinesTable {
   getRowById(id: string) {
     return new PipelinesTableRow(
       () =>
-        this.find().findByTestId(['pipeline-row', id]) as unknown as Cypress.Chainable<
-          JQuery<HTMLTableRowElement>
-        >,
+        this.find()
+          .findByTestId(['pipeline-row', id])
+          .should('exist')
+          .scrollIntoView()
+          .and('be.visible') as unknown as Cypress.Chainable<JQuery<HTMLTableRowElement>>,
     );
   }
 
@@ -191,10 +197,10 @@ class PipelinesTable {
   }
 
   findEmptyResults() {
-    return cy.findByTestId('no-result-found-title');
+    return cy.findByTestId('dashboard-empty-table-state');
   }
 
-  mockDeletePipeline(pipeline: PipelineKFv2, namespace: string) {
+  mockDeletePipeline(pipeline: PipelineKF, namespace: string) {
     return cy.interceptOdh(
       'DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId',
       { path: { namespace, serviceName: 'dspa', pipelineId: pipeline.pipeline_id } },
@@ -202,7 +208,7 @@ class PipelinesTable {
     );
   }
 
-  mockDeletePipelineVersion(version: PipelineVersionKFv2, namespace: string) {
+  mockDeletePipelineVersion(version: PipelineVersionKF, namespace: string) {
     return cy.interceptOdh(
       'DELETE /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId',
       {
@@ -217,7 +223,7 @@ class PipelinesTable {
     );
   }
 
-  mockGetPipelines(pipelines: PipelineKFv2[], namespace: string, times?: number) {
+  mockGetPipelines(pipelines: PipelineKF[], namespace: string, times?: number) {
     return cy.interceptOdh(
       'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines',
       {
@@ -226,7 +232,9 @@ class PipelinesTable {
       },
       (req) => {
         const { filter } = req.query;
-        const predicates = filter ? JSON.parse(filter.toString())?.predicates : [];
+        const predicates = filter
+          ? JSON.parse(decodeURIComponent(filter.toString()))?.predicates
+          : [];
         const filterName = predicates?.[0]?.string_value;
 
         if (!filterName) {
@@ -243,7 +251,7 @@ class PipelinesTable {
   }
 
   mockGetPipelineVersions(
-    versions: PipelineVersionKFv2[],
+    versions: PipelineVersionKF[],
     pipelineId: string,
     namespace: string,
     times?: number,
@@ -253,14 +261,16 @@ class PipelinesTable {
       { path: { namespace, serviceName: 'dspa', pipelineId }, times },
       (req) => {
         const { filter } = req.query;
-        const predicates = filter ? JSON.parse(filter.toString())?.predicates : [];
+        const predicates = filter
+          ? JSON.parse(decodeURIComponent(filter.toString()))?.predicates
+          : [];
         const filterName = predicates?.[0]?.string_value;
 
         if (!filterName) {
-          req.reply(buildMockPipelineVersionsV2(versions));
+          req.reply(buildMockPipelineVersions(versions));
         } else {
           req.reply(
-            buildMockPipelineVersionsV2(
+            buildMockPipelineVersions(
               versions.filter((version) => version.display_name === filterName),
             ),
           );

@@ -13,7 +13,7 @@ const SectionFormField: React.FC<Props> = ({
   children,
   'data-testid': dataTestId,
 }) => (
-  <FormSection title={name} description={description} data-testud={dataTestId}>
+  <FormSection title={name} description={description} data-testid={dataTestId}>
     {children}
   </FormSection>
 );

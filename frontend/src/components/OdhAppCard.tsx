@@ -1,20 +1,22 @@
 import React from 'react';
-import classNames from 'classnames';
 import { Link } from 'react-router-dom';
 import {
   AlertVariant,
   Button,
+  capitalize,
   Card,
   CardBody,
   CardFooter,
   CardHeader,
-  Popover,
   Dropdown,
   DropdownItem,
-  MenuToggle,
   DropdownList,
+  Label,
+  MenuToggle,
+  Popover,
 } from '@patternfly/react-core';
-import { EllipsisVIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { css } from '@patternfly/react-styles';
+import { EllipsisVIcon, ExclamationCircleIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhApplication } from '~/types';
 import { getLaunchStatus, launchQuickStart } from '~/utilities/quickStartUtils';
 import EnableModal from '~/pages/exploreApplication/EnableModal';
@@ -23,6 +25,9 @@ import { addNotification, forceComponentsUpdate } from '~/redux/actions/actions'
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { useAppContext } from '~/app/AppContext';
 import { useAppDispatch } from '~/redux/hooks';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { isInternalRouteIntegrationsApp } from '~/utilities/utils';
+import { deleteIntegrationApp } from '~/services/integrationAppService';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 import SupportedAppTitle from './SupportedAppTitle';
 import BrandImage from './BrandImage';
@@ -40,6 +45,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     odhApp.spec.quickStart,
     odhApp.metadata.name,
   );
+  const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
   const disabled = !odhApp.spec.isEnabled;
   const { dashboardConfig } = useAppContext();
   const dispatch = useAppDispatch();
@@ -54,36 +60,60 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   };
 
   const removeApplication = () => {
-    removeComponent(odhApp.metadata.name)
-      .then((response) => {
-        if (response.success) {
-          dispatch(
-            addNotification({
-              status: AlertVariant.success,
-              title: `${odhApp.metadata.name} has been removed from the Enabled page.`,
-              timestamp: new Date(),
-            }),
-          );
-          dispatch(forceComponentsUpdate());
-        } else {
-          throw new Error(response.error);
-        }
-      })
-      .catch((e) => {
-        dispatch(
-          addNotification({
-            status: AlertVariant.danger,
-            title: `Error attempting to remove ${odhApp.metadata.name}.`,
-            message: e.message,
-            timestamp: new Date(),
-          }),
-        );
-      });
+    const handleSuccess = () => {
+      dispatch(
+        addNotification({
+          status: AlertVariant.success,
+          title: `${odhApp.metadata.name} has been removed from the Enabled page.`,
+          timestamp: new Date(),
+        }),
+      );
+      dispatch(forceComponentsUpdate());
+    };
+
+    const handleError = (e: Error) => {
+      dispatch(
+        addNotification({
+          status: AlertVariant.danger,
+          title: `Error attempting to remove ${odhApp.metadata.name}.`,
+          message: e.message,
+          timestamp: new Date(),
+        }),
+      );
+    };
+
+    if (isInternalRouteIntegrationsApp(odhApp.spec.internalRoute)) {
+      deleteIntegrationApp(odhApp.spec.internalRoute)
+        .then((response) => {
+          if (response.success) {
+            handleSuccess();
+          } else {
+            throw new Error(response.error);
+          }
+        })
+        .catch(handleError);
+    } else {
+      removeComponent(odhApp.metadata.name)
+        .then((response) => {
+          if (response.success) {
+            handleSuccess();
+          } else {
+            throw new Error(response.error);
+          }
+        })
+        .catch(handleError);
+    }
   };
 
   const dropdownItems = [
-    <DropdownItem key="docs" to={odhApp.spec.docsLink} target="_blank" rel="noopener noreferrer">
-      View documentation <ExternalLinkAltIcon />
+    <DropdownItem
+      isExternalLink
+      key="docs"
+      to={odhApp.spec.docsLink}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      View documentation
     </DropdownItem>,
   ];
 
@@ -95,10 +125,11 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     );
   }
 
-  const launchClasses = classNames('odh-card__footer__link', {
-    'm-hidden': !odhApp.spec.link,
-    'm-disabled': disabled,
-  });
+  const launchClasses = css(
+    'odh-card__footer__link',
+    !odhApp.spec.link && 'm-hidden',
+    (disabled || !workbenchEnabled) && 'm-disabled',
+  );
 
   const cardFooter = (
     <CardFooter className="odh-card__footer">
@@ -107,7 +138,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
           <Link
             data-testid="jupyter-app-link"
             to="/notebookController"
-            className="odh-card__footer__link"
+            className={css('odh-card__footer__link', !workbenchEnabled && 'm-disabled')}
           >
             Launch application
           </Link>
@@ -126,45 +157,56 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     </CardFooter>
   );
 
-  const cardClasses = classNames('odh-card', {
-    'm-disabled': disabled,
-  });
+  const cardClasses = css('odh-card', selected && 'pf-m-current');
 
   const popoverBodyContent = (hide: () => void) => (
     <div>
-      Subscription is no longer valid. To validate click&nbsp;
-      <Button
-        isInline
-        variant="link"
-        onClick={() => {
-          hide();
-          setEnableOpen(true);
-        }}
-      >
-        here
-      </Button>
-      . To remove card click&nbsp;
-      <Button
-        isInline
-        variant="link"
-        onClick={() => {
-          hide();
-          removeApplication();
-        }}
-      >
-        here
-      </Button>
-      .
+      {isInternalRouteIntegrationsApp(odhApp.spec.internalRoute) && odhApp.spec.error && (
+        <>{`${capitalize(odhApp.spec.error)}.`}</>
+      )}
+      <p>
+        Subscription is no longer valid. To validate click&nbsp;
+        <Button
+          isInline
+          variant="link"
+          onClick={() => {
+            hide();
+            setEnableOpen(true);
+          }}
+        >
+          here
+        </Button>
+        . To remove card click&nbsp;
+        <Button
+          isInline
+          variant="link"
+          onClick={() => {
+            hide();
+            removeApplication();
+          }}
+        >
+          here
+        </Button>
+        .
+      </p>
     </div>
   );
 
   const disabledPopover = (
     <Popover
-      headerContent={<div className="odh-card__disabled-popover-title">Application disabled</div>}
+      headerContent={
+        <div className="odh-card__disabled-popover-title">
+          Enable {odhApp.spec.displayName} failed
+        </div>
+      }
       bodyContent={popoverBodyContent}
-      position="bottom"
+      position="right"
+      headerIcon={<ExclamationCircleIcon />}
+      alertSeverityVariant="danger"
     >
-      <span className="odh-card__disabled-text">Disabled</span>
+      <Button variant="link" className="odh-card__disabled-text">
+        Disabled
+      </Button>
     </Popover>
   );
 
@@ -175,9 +217,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       id={odhApp.metadata.name}
       role="listitem"
       className={cardClasses}
-      isSelected={selected}
-      isSelectable={!disabled}
-      isClickable
+      isDisabled={disabled || !workbenchEnabled}
     >
       <CardHeader
         actions={{
@@ -208,9 +248,8 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
           hasNoOffset: true,
           className: undefined,
         }}
-        style={{ paddingRight: 0 }}
       >
-        <BrandImage src={odhApp.spec.img} alt={odhApp.spec.displayName} data-testid="brand-image" />
+        <BrandImage src={odhApp.spec.img} alt="" data-testid="brand-image" />
       </CardHeader>
       <SupportedAppTitle odhApp={odhApp} />
       <CardBody>
@@ -218,8 +257,11 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
         odhApp.spec.category &&
         odhApp.spec.support !== ODH_PRODUCT_NAME ? (
           <div className="odh-card__partner-badge-container">
-            <span className="odh-card__partner-badge" data-testid="partner-badge">
-              {odhApp.spec.category}
+            <span
+              className={css('odh-card__partner-badge', disabled && 'pf-m-disabled')}
+              data-testid="partner-badge"
+            >
+              <Label variant="outline">{odhApp.spec.category}</Label>
             </span>
           </div>
         ) : null}

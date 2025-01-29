@@ -9,14 +9,14 @@ import {
   TabContentBody,
   EmptyState,
   EmptyStateBody,
-  EmptyStateHeader,
-  EmptyStateIcon,
+  EmptyStateFooter,
 } from '@patternfly/react-core';
 import { WrenchIcon } from '@patternfly/react-icons';
 import MetricsPageToolbar from '~/concepts/metrics/MetricsPageToolbar';
 import { DistributedWorkloadsContext } from '~/concepts/distributedWorkloads/DistributedWorkloadsContext';
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
 import { LoadingState } from '~/pages/distributedWorkloads/components/LoadingState';
+import WhosMyAdministrator from '~/components/WhosMyAdministrator';
 import {
   DistributedWorkloadsTabId,
   useDistributedWorkloadsTabs,
@@ -33,8 +33,8 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
   const tabs = useDistributedWorkloadsTabs();
   const activeTab = tabs.find(({ id }) => id === activeTabId);
   const { namespace } = useParams<{ namespace: string }>();
-  const { clusterQueue, localQueues } = React.useContext(DistributedWorkloadsContext);
-  const requiredFetches = [clusterQueue, localQueues];
+  const { clusterQueues, localQueues, cqExists } = React.useContext(DistributedWorkloadsContext);
+  const requiredFetches = [clusterQueues, localQueues];
   const error = requiredFetches.find((f) => !!f.error)?.error;
   const loaded = requiredFetches.every((f) => f.loaded);
 
@@ -51,27 +51,28 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
     return <LoadingState />;
   }
 
-  if (!clusterQueue.data || localQueues.data.length === 0) {
-    const title = `Configure the ${!clusterQueue.data ? 'cluster queue' : 'project queue'}`;
-    const message = !clusterQueue.data
+  if (clusterQueues.data.length === 0 || localQueues.data.length === 0) {
+    const nonAdmin = !cqExists;
+    const title = `Configure the ${!cqExists ? 'cluster queue' : 'project queue'}`;
+    const message = nonAdmin
       ? 'Ask your cluster admin to configure the cluster queue.'
       : 'Configure the queue for this project, or select a different project.';
 
     return (
-      <EmptyState>
-        <EmptyStateHeader
-          titleText={title}
-          headingLevel="h4"
-          icon={<EmptyStateIcon icon={WrenchIcon} />}
-        />
+      <EmptyState headingLevel="h4" icon={WrenchIcon} titleText={title}>
         <EmptyStateBody>{message}</EmptyStateBody>
+        {nonAdmin ? (
+          <EmptyStateFooter>
+            <WhosMyAdministrator />
+          </EmptyStateFooter>
+        ) : null}
       </EmptyState>
     );
   }
 
   return (
     <>
-      <PageSection variant="light" type="tabs">
+      <PageSection hasBodyWrapper={false} type="tabs">
         <Tabs
           activeKey={activeTabId}
           onSelect={(_, tabId) => {
@@ -98,7 +99,7 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
         </Tabs>
       </PageSection>
       {activeTab ? <MetricsPageToolbar hasTimeRangeSelect={false} /> : null}
-      <PageSection isFilled>
+      <PageSection hasBodyWrapper={false} isFilled>
         {tabs
           .filter((tab) => tab.isAvailable)
           .map((tab) => {

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineQuery from '~/concepts/pipelines/apiHooks/usePipelineQuery';
 import { PipelineListPaged, PipelineOptions } from '~/concepts/pipelines/types';
@@ -9,10 +9,10 @@ const usePipelineVersionsForPipeline = (
   pipelineId?: string,
   options: PipelineOptions = {},
   refreshRate = 0,
-): FetchState<PipelineListPaged<PipelineVersionKFv2>> => {
+): FetchState<PipelineListPaged<PipelineVersionKF>> => {
   const { api } = usePipelinesAPI();
 
-  return usePipelineQuery<PipelineVersionKFv2>(
+  return usePipelineQuery<PipelineVersionKF>(
     React.useCallback(
       (opts, params) => {
         if (!pipelineId) {

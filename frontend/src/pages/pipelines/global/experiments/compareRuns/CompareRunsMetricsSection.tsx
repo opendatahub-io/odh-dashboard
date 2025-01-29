@@ -1,5 +1,5 @@
 import React from 'react';
-import _ from 'lodash-es';
+import * as _ from 'lodash-es';
 import { ExpandableSection, Tab, TabContentBody, TabTitleText, Tabs } from '@patternfly/react-core';
 import { useCompareRuns } from '~/concepts/pipelines/content/compareRuns/CompareRunsContext';
 import { useGetArtifactTypes } from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactTypes';

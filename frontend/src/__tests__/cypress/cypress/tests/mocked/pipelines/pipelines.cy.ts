@@ -2,10 +2,10 @@
 import {
   mockDataSciencePipelineApplicationK8sResource,
   mockK8sResourceList,
-  buildMockPipelineV2,
+  buildMockPipeline,
   buildMockPipelines,
-  buildMockPipelineVersionV2,
-  buildMockPipelineVersionsV2,
+  buildMockPipelineVersion,
+  buildMockPipelineVersions,
   mockProjectK8sResource,
   mockRouteK8sResource,
   mockSecretK8sResource,
@@ -30,18 +30,21 @@ import {
   RouteModel,
   SecretModel,
 } from '~/__tests__/cypress/cypress/utils/models';
-import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import type { PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import type { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { tablePagination } from '~/__tests__/cypress/cypress/pages/components/Pagination';
+import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
+import { pipelineRunsGlobal } from '~/__tests__/cypress/cypress/pages/pipelines/pipelineRunsGlobal';
+import { argoAlert } from '~/__tests__/cypress/cypress/pages/pipelines/argoAlert';
 
 const projectName = 'test-project-name';
-const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
-const initialMockPipelineVersion = buildMockPipelineVersionV2({
+const initialMockPipeline = buildMockPipeline({ display_name: 'Test pipeline' });
+const initialMockPipelineVersion = buildMockPipelineVersion({
   pipeline_id: initialMockPipeline.pipeline_id,
 });
 const pipelineYamlPath = './cypress/tests/mocked/pipelines/mock-upload-pipeline.yaml';
 const argoWorkflowPipeline = './cypress/tests/mocked/pipelines/argo-workflow-pipeline.yaml';
 const tooLargePipelineYAMLPath = './cypress/tests/mocked/pipelines/not-a-pipeline-2-megabytes.yaml';
+const v1PipelineYamlPath = './cypress/tests/mocked/pipelines/v1-pipeline.yaml';
 
 describe('Pipelines', () => {
   it('Empty state', () => {
@@ -400,13 +403,13 @@ describe('Pipelines', () => {
 
   describe('Table filtering and sorting', () => {
     it('Filter by pipeline name', () => {
-      const mockPipelines: PipelineKFv2[] = [
-        buildMockPipelineV2({
+      const mockPipelines: PipelineKF[] = [
+        buildMockPipeline({
           display_name: 'Test pipeline 1',
           pipeline_id: 'test-pipeline-1',
         }),
 
-        buildMockPipelineV2({
+        buildMockPipeline({
           display_name: 'Test pipeline 2',
           pipeline_id: 'test-pipeline-2',
         }),
@@ -433,13 +436,13 @@ describe('Pipelines', () => {
 
     it('Filter by created after', () => {
       const mockPipelines = [
-        buildMockPipelineV2({
+        buildMockPipeline({
           display_name: 'Test pipeline 1',
           pipeline_id: 'test-pipeline-1',
           created_at: '2023-01-30T22:55:17Z',
         }),
 
-        buildMockPipelineV2({
+        buildMockPipeline({
           display_name: 'Test pipeline 2',
           pipeline_id: 'test-pipeline-2',
           created_at: '2024-01-30T22:55:17Z',
@@ -486,12 +489,12 @@ describe('Pipelines', () => {
       pipelinesTable.shouldSortTable({
         sortType: PipelineSort.All,
         pipelines: [
-          buildMockPipelineV2({
+          buildMockPipeline({
             display_name: 'Test pipeline 1',
             pipeline_id: 'test-pipeline-1',
             created_at: '2023-01-30T22:55:17Z',
           }),
-          buildMockPipelineV2({
+          buildMockPipeline({
             display_name: 'Test pipeline 2',
             pipeline_id: 'test-pipeline-2',
             created_at: '2024-01-30T22:55:17Z',
@@ -502,7 +505,7 @@ describe('Pipelines', () => {
     });
   });
 
-  it('incompatible dpsa version shows error with delete option for regular user', () => {
+  it('incompatible dpsa version shows error', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
     cy.interceptK8sList(
@@ -519,7 +522,7 @@ describe('Pipelines', () => {
     pipelinesGlobal.visit(projectName);
     pipelinesGlobal.isApiAvailable();
     pipelinesGlobal.findIsServerIncompatible().should('exist');
-    pipelinesGlobal.findDeletePipelineServerButton().should('exist');
+    pipelinesGlobal.shouldHaveIncompatibleTitleText();
   });
 
   it('error while creating a pipeline server', () => {
@@ -530,34 +533,13 @@ describe('Pipelines', () => {
       .should('have.text', 'Data connection unsuccessfully verified');
   });
 
-  it('incompatible dpsa version shows error with delete option for admin', () => {
-    asProductAdminUser();
-    initIntercepts({});
-    pipelinesGlobal.visit(projectName);
-    cy.interceptK8sList(
-      DataSciencePipelineApplicationModel,
-      mockK8sResourceList([
-        mockDataSciencePipelineApplicationK8sResource({ namespace: projectName, dspVersion: 'v1' }),
-      ]),
-    );
-    cy.interceptK8s(
-      DataSciencePipelineApplicationModel,
-      mockDataSciencePipelineApplicationK8sResource({ namespace: projectName, dspVersion: 'v1' }),
-    );
-
-    pipelinesGlobal.visit(projectName);
-    pipelinesGlobal.isApiAvailable();
-    pipelinesGlobal.findIsServerIncompatible().should('exist');
-    pipelinesGlobal.findDeletePipelineServerButton().should('exist');
-  });
-
   it('selects a different project', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
-    cy.url().should('include', '/pipelines/test-project-name');
+    verifyRelativeURL('/pipelines/test-project-name');
 
-    pipelinesGlobal.projectDropdown.selectItem('Test Project 2');
-    cy.url().should('include', '/pipelines/test-project-name-2');
+    pipelineRunsGlobal.selectProjectByName('Test Project 2');
+    verifyRelativeURL('/pipelines/test-project-name-2');
   });
 
   it('imports a new pipeline', () => {
@@ -567,7 +549,7 @@ describe('Pipelines', () => {
       display_name: 'New pipeline',
       description: 'New pipeline description',
     };
-    const uploadedMockPipeline = buildMockPipelineV2(uploadPipelineParams);
+    const uploadedMockPipeline = buildMockPipeline(uploadPipelineParams);
 
     // Intercept upload/re-fetch of pipelines
     pipelineImportModal.mockUploadPipeline(uploadPipelineParams, projectName).as('uploadPipeline');
@@ -624,8 +606,7 @@ describe('Pipelines', () => {
     cy.wait('@getPipeline');
     cy.wait('@getPipelineVersion');
 
-    cy.url().should(
-      'include',
+    verifyRelativeURL(
       `/pipelines/${projectName}/${uploadedMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
     );
   });
@@ -665,6 +646,26 @@ describe('Pipelines', () => {
     pipelineImportModal.findImportModalError().contains('Unsupported pipeline version');
   });
 
+  it('fails to import a v1 pipeline', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
+
+    // Open the "Import pipeline" modal
+    pipelinesGlobal.findImportPipelineButton().click();
+
+    // Fill out the "Import pipeline" modal and submit
+    pipelineImportModal.shouldBeOpen();
+    pipelineImportModal.fillPipelineName('New pipeline');
+    pipelineImportModal.fillPipelineDescription('New pipeline description');
+    pipelineImportModal.uploadPipelineYaml(v1PipelineYamlPath);
+    pipelineImportModal.submit();
+
+    pipelineImportModal.findImportModalError().should('exist');
+    pipelineImportModal.findImportModalError().contains('Pipeline update and recompile required');
+    argoAlert.findCloudServiceReleaseNotesLink().should('exist');
+    argoAlert.findSelfManagedReleaseNotesLink().should('exist');
+  });
+
   it('imports a new pipeline by url', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
@@ -679,8 +680,8 @@ describe('Pipelines', () => {
         },
       },
     };
-    const createdMockPipeline = buildMockPipelineV2(uploadPipelineAndVersionParams.pipeline);
-    const createdVersion = buildMockPipelineVersionV2(
+    const createdMockPipeline = buildMockPipeline(uploadPipelineAndVersionParams.pipeline);
+    const createdVersion = buildMockPipelineVersion(
       uploadPipelineAndVersionParams.pipeline_version,
     );
 
@@ -717,8 +718,7 @@ describe('Pipelines', () => {
     cy.wait('@getPipeline');
     cy.wait('@getPipelineVersion');
 
-    cy.url().should(
-      'include',
+    verifyRelativeURL(
       `/pipelines/${projectName}/${createdMockPipeline.pipeline_id}/${createdVersion.pipeline_version_id}/view`,
     );
   });
@@ -738,7 +738,7 @@ describe('Pipelines', () => {
     // Open the "Upload new version" modal
     pipelinesGlobal.findUploadVersionButton().click();
 
-    const uploadedMockPipelineVersion = buildMockPipelineVersionV2(uploadVersionParams);
+    const uploadedMockPipelineVersion = buildMockPipelineVersion(uploadVersionParams);
 
     // Intercept upload/re-fetch of pipeline versions
     pipelineVersionImportModal
@@ -833,7 +833,7 @@ describe('Pipelines', () => {
     // Open the "Upload new version" modal
     pipelinesGlobal.findUploadVersionButton().click();
 
-    const uploadedMockPipelineVersion = buildMockPipelineVersionV2(createPipelineVersionParams);
+    const uploadedMockPipelineVersion = buildMockPipelineVersion(createPipelineVersionParams);
 
     // Intercept upload/re-fetch of pipeline versions
     pipelinesTable
@@ -935,7 +935,7 @@ describe('Pipelines', () => {
           pipelineId: initialMockPipeline.pipeline_id,
         },
       },
-      buildMockPipelineVersionsV2([]),
+      buildMockPipelineVersions([]),
     ).as('refreshVersions');
 
     pipelineDeleteModal.findSubmitButton().click();
@@ -966,8 +966,7 @@ describe('Pipelines', () => {
       .findPipelineVersionLink()
       .click();
 
-    cy.url().should(
-      'include',
+    verifyRelativeURL(
       `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
     );
   });
@@ -980,8 +979,7 @@ describe('Pipelines', () => {
     const pipelineRow = pipelinesTable.getRowById(initialMockPipeline.pipeline_id);
     pipelineRow.findPipelineNameLink(initialMockPipeline.display_name).click();
 
-    cy.url().should(
-      'include',
+    verifyRelativeURL(
       `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
     );
   });
@@ -990,22 +988,22 @@ describe('Pipelines', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
 
-    const mockPipeline1 = buildMockPipelineV2({
+    const mockPipeline1 = buildMockPipeline({
       display_name: 'Test pipeline 1',
       pipeline_id: 'test-pipeline-1',
     });
-    const mockPipeline2 = buildMockPipelineV2({
+    const mockPipeline2 = buildMockPipeline({
       display_name: 'Test pipeline 2',
       pipeline_id: 'test-pipeline-2',
     });
 
-    const mockPipeline1Version1 = buildMockPipelineVersionV2({
+    const mockPipeline1Version1 = buildMockPipelineVersion({
       pipeline_id: mockPipeline1.pipeline_id,
       pipeline_version_id: 'test-pipeline-1-version-1',
       display_name: `${mockPipeline1.display_name} version 1`,
     });
 
-    const mockPipeline1Version2 = buildMockPipelineVersionV2({
+    const mockPipeline1Version2 = buildMockPipelineVersion({
       pipeline_id: mockPipeline1.pipeline_id,
       pipeline_version_id: 'test-pipeline-1-version-2',
       display_name: `${mockPipeline1.display_name} version 2`,
@@ -1072,15 +1070,12 @@ describe('Pipelines', () => {
       .findKebabAction('Create run')
       .click();
 
-    cy.url().should(
-      'include',
-      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/runs/create`,
-    );
+    verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
   });
 
   it('run and schedule dropdown action should be disabled when pipeline and pipeline version is not supported', () => {
-    const mockPipelines: PipelineKFv2[] = [
-      buildMockPipelineV2({
+    const mockPipelines: PipelineKF[] = [
+      buildMockPipeline({
         display_name: 'Argo workflow',
         pipeline_id: 'argo-workflow',
       }),
@@ -1107,9 +1102,7 @@ describe('Pipelines', () => {
           pipelineId: 'argo-workflow',
         },
       },
-      buildMockPipelineVersionsV2([
-        mockArgoWorkflowPipelineVersion({ pipelineId: 'argo-workflow' }),
-      ]),
+      buildMockPipelineVersions([mockArgoWorkflowPipelineVersion({ pipelineId: 'argo-workflow' })]),
     );
 
     initIntercepts({ mockPipelines });
@@ -1152,10 +1145,7 @@ describe('Pipelines', () => {
       .findKebabAction('Create schedule')
       .click();
 
-    cy.url().should(
-      'include',
-      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/schedules/create`,
-    );
+    verifyRelativeURL(`/pipelineRuns/${projectName}/schedules/create`);
   });
 
   it('navigate to create run page from pipeline version row', () => {
@@ -1171,10 +1161,7 @@ describe('Pipelines', () => {
       .findKebabAction('Create run')
       .click();
 
-    cy.url().should(
-      'include',
-      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/runs/create`,
-    );
+    verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
   });
 
   it('navigates to "Schedule run" page from pipeline version row', () => {
@@ -1189,10 +1176,7 @@ describe('Pipelines', () => {
       .findKebabAction('Create schedule')
       .click();
 
-    cy.url().should(
-      'include',
-      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/schedules/create`,
-    );
+    verifyRelativeURL(`/pipelineRuns/${projectName}/schedules/create`);
   });
 
   it('navigate to view runs page from pipeline version row', () => {
@@ -1205,12 +1189,11 @@ describe('Pipelines', () => {
     pipelineRow.findExpandButton().click();
     pipelineRow
       .getPipelineVersionRowById(initialMockPipelineVersion.pipeline_version_id)
-      .findKebabAction('View runs')
+      .findPipelineVersionViewRunLink()
       .click();
 
-    cy.url().should(
-      'include',
-      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/runs`,
+    verifyRelativeURL(
+      `/pipelineRuns/${projectName}/runs/active?pipeline_version=${initialMockPipelineVersion.pipeline_version_id}`,
     );
   });
 
@@ -1226,20 +1209,19 @@ describe('Pipelines', () => {
       .findKebabAction('View schedules')
       .click();
 
-    cy.url().should(
-      'include',
-      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/schedules`,
+    verifyRelativeURL(
+      `/pipelineRuns/${projectName}/schedules?pipeline_version=${initialMockPipelineVersion.pipeline_version_id}`,
     );
   });
 
   it('Table pagination', () => {
-    const mockPipelinesV2 = Array.from({ length: 25 }, (_, i) =>
-      buildMockPipelineV2({
+    const mockPipelines = Array.from({ length: 25 }, (_, i) =>
+      buildMockPipeline({
         display_name: `Test pipeline-${i}`,
       }),
     );
     initIntercepts({
-      mockPipelines: mockPipelinesV2.slice(0, 10),
+      mockPipelines: mockPipelines.slice(0, 10),
       totalSize: 25,
       nextPageToken: 'page-2-token',
     });
@@ -1252,7 +1234,7 @@ describe('Pipelines', () => {
       });
     });
 
-    pipelinesTable.getRowById(mockPipelinesV2[0].pipeline_id).find().should('exist');
+    pipelinesTable.getRowById(mockPipelines[0].pipeline_id).find().should('exist');
     pipelinesTable.findRows().should('have.length', '10');
 
     const pagination = tablePagination.top;
@@ -1264,7 +1246,7 @@ describe('Pipelines', () => {
       {
         path: { namespace: projectName, serviceName: 'dspa' },
       },
-      buildMockPipelines(mockPipelinesV2.slice(10, 20), 25),
+      buildMockPipelines(mockPipelines.slice(10, 20), 25),
     ).as('refreshPipelines');
 
     pagination.findNextButton().click();
@@ -1276,7 +1258,7 @@ describe('Pipelines', () => {
       });
     });
 
-    pipelinesTable.getRowById(mockPipelinesV2[10].pipeline_id).find().should('exist');
+    pipelinesTable.getRowById(mockPipelines[10].pipeline_id).find().should('exist');
     pipelinesTable.findRows().should('have.length', '10');
 
     // test Previous button
@@ -1285,7 +1267,7 @@ describe('Pipelines', () => {
       {
         path: { namespace: projectName, serviceName: 'dspa' },
       },
-      buildMockPipelines(mockPipelinesV2.slice(0, 10), 25),
+      buildMockPipelines(mockPipelines.slice(0, 10), 25),
     ).as('getFirstTenPipelines');
 
     pagination.findPreviousButton().click();
@@ -1297,7 +1279,7 @@ describe('Pipelines', () => {
       });
     });
 
-    pipelinesTable.getRowById(mockPipelinesV2[0].pipeline_id).find().should('exist');
+    pipelinesTable.getRowById(mockPipelines[0].pipeline_id).find().should('exist');
 
     // 20 per page
     cy.interceptOdh(
@@ -1305,19 +1287,19 @@ describe('Pipelines', () => {
       {
         path: { namespace: projectName, serviceName: 'dspa' },
       },
-      buildMockPipelines(mockPipelinesV2.slice(0, 20), 22),
+      buildMockPipelines(mockPipelines.slice(0, 20), 22),
     );
     pagination.selectToggleOption('20 per page');
     pagination.findPreviousButton().should('be.disabled');
-    pipelinesTable.getRowById(mockPipelinesV2[19].pipeline_id).find().should('exist');
+    pipelinesTable.getRowById(mockPipelines[19].pipeline_id).find().should('exist');
     pipelinesTable.findRows().should('have.length', '20');
   });
 });
 
 type HandlersProps = {
   isEmpty?: boolean;
-  mockPipelines?: PipelineKFv2[];
-  mockPipelineVersions?: PipelineVersionKFv2[];
+  mockPipelines?: PipelineKF[];
+  mockPipelineVersions?: PipelineVersionKF[];
   hasNoPipelineVersions?: boolean;
   totalSize?: number;
   errorMessage?: string;
@@ -1388,7 +1370,7 @@ const initIntercepts = ({
         pipelineId: initialMockPipeline.pipeline_id,
       },
     },
-    hasNoPipelineVersions ? {} : buildMockPipelineVersionsV2(mockPipelineVersions),
+    hasNoPipelineVersions ? {} : buildMockPipelineVersions(mockPipelineVersions),
   );
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId',

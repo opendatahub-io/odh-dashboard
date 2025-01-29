@@ -2,19 +2,16 @@ import React from 'react';
 import { ExclamationCircleIcon, QuestionCircleIcon } from '@patternfly/react-icons';
 import {
   PageSection,
-  PageSectionVariants,
-  TextContent,
-  Text,
+  Content,
   EmptyState,
   EmptyStateVariant,
-  EmptyStateIcon,
   Spinner,
   EmptyStateBody,
   PageBreadcrumb,
   StackItem,
   Stack,
-  EmptyStateHeader,
   Flex,
+  FlexItem,
 } from '@patternfly/react-core';
 
 type ApplicationsPageProps = {
@@ -24,6 +21,7 @@ type ApplicationsPageProps = {
   loaded: boolean;
   empty: boolean;
   loadError?: Error;
+  loadErrorPage?: React.ReactNode;
   children?: React.ReactNode;
   errorMessage?: string;
   emptyMessage?: string;
@@ -44,6 +42,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   loaded,
   empty,
   loadError,
+  loadErrorPage,
   children,
   errorMessage,
   emptyMessage,
@@ -57,23 +56,23 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   noHeader,
 }) => {
   const renderHeader = () => (
-    <PageSection variant={PageSectionVariants.light}>
+    <PageSection hasBodyWrapper={false}>
       <Stack hasGutter>
         <StackItem>
           <Flex
             justifyContent={{ default: 'justifyContentSpaceBetween' }}
-            flexWrap={{ default: 'nowrap' }}
+            alignItems={{ default: 'alignItemsFlexStart' }}
           >
-            <TextContent>
-              <Text component="h1" data-testid="app-page-title">
+            <FlexItem flex={{ default: 'flex_1' }}>
+              <Content component="h1" data-testid="app-page-title">
                 {title}
-              </Text>
+              </Content>
               <Stack hasGutter>
                 {subtext && <StackItem>{subtext}</StackItem>}
                 {description && <StackItem>{description}</StackItem>}
               </Stack>
-            </TextContent>
-            {headerAction}
+            </FlexItem>
+            <FlexItem>{headerAction}</FlexItem>
           </Flex>
         </StackItem>
         {headerContent && <StackItem>{headerContent}</StackItem>}
@@ -83,27 +82,34 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
 
   const renderContents = () => {
     if (loadError) {
-      return (
-        <PageSection isFilled>
-          <EmptyState variant={EmptyStateVariant.lg} data-id="error-empty-state">
-            <EmptyStateHeader
-              titleText={errorMessage !== undefined ? errorMessage : 'Error loading components'}
-              icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-              headingLevel="h1"
-            />
+      return !loadErrorPage ? (
+        <PageSection hasBodyWrapper={false} isFilled>
+          <EmptyState
+            headingLevel="h1"
+            icon={ExclamationCircleIcon}
+            titleText={errorMessage !== undefined ? errorMessage : 'Error loading components'}
+            variant={EmptyStateVariant.lg}
+            data-id="error-empty-state"
+          >
             <EmptyStateBody>{loadError.message}</EmptyStateBody>
           </EmptyState>
         </PageSection>
+      ) : (
+        loadErrorPage
       );
     }
 
     if (!loaded) {
       return (
         loadingContent || (
-          <PageSection isFilled>
-            <EmptyState variant={EmptyStateVariant.lg} data-id="loading-empty-state">
+          <PageSection hasBodyWrapper={false} isFilled>
+            <EmptyState
+              headingLevel="h1"
+              titleText="Loading"
+              variant={EmptyStateVariant.lg}
+              data-id="loading-empty-state"
+            >
               <Spinner size="xl" />
-              <EmptyStateHeader titleText="Loading" headingLevel="h1" />
             </EmptyState>
           </PageSection>
         )
@@ -112,14 +118,14 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
 
     if (empty) {
       return !emptyStatePage ? (
-        <PageSection isFilled>
-          <EmptyState variant={EmptyStateVariant.lg} data-id="empty-empty-state">
-            <EmptyStateHeader
-              titleText={emptyMessage !== undefined ? emptyMessage : 'No Components Found'}
-              icon={<EmptyStateIcon icon={QuestionCircleIcon} />}
-              headingLevel="h1"
-            />
-          </EmptyState>
+        <PageSection hasBodyWrapper={false} isFilled>
+          <EmptyState
+            headingLevel="h1"
+            icon={QuestionCircleIcon}
+            titleText={emptyMessage !== undefined ? emptyMessage : 'No Components Found'}
+            variant={EmptyStateVariant.lg}
+            data-id="empty-empty-state"
+          />
         </PageSection>
       ) : (
         emptyStatePage
@@ -128,11 +134,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
 
     if (provideChildrenPadding) {
       return (
-        <PageSection
-          variant="light"
-          isFilled
-          style={removeChildrenTopPadding ? { paddingTop: 0 } : undefined}
-        >
+        <PageSection isFilled style={removeChildrenTopPadding ? { paddingTop: 0 } : undefined}>
           {children}
         </PageSection>
       );
@@ -142,11 +144,26 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   };
 
   return (
-    <>
-      {breadcrumb && <PageBreadcrumb>{breadcrumb}</PageBreadcrumb>}
-      {!noHeader && renderHeader()}
-      {renderContents()}
-    </>
+    // TODO: PageBreadcrumb and the PageSection items here are children of the DrawerBody not the PageMain. DrawerBody is not flex which the Page items expect the parent to be.
+    <Flex
+      direction={{ default: 'column' }}
+      flexWrap={{ default: 'nowrap' }}
+      style={{ height: '100%' }}
+    >
+      <FlexItem>
+        {breadcrumb && <PageBreadcrumb hasBodyWrapper={false}>{breadcrumb}</PageBreadcrumb>}
+      </FlexItem>
+      <FlexItem>{!noHeader && renderHeader()}</FlexItem>
+      <FlexItem flex={{ default: 'flex_1' }}>
+        <Flex
+          direction={{ default: 'column' }}
+          style={{ height: '100%' }}
+          flexWrap={{ default: 'nowrap' }}
+        >
+          {renderContents()}
+        </Flex>
+      </FlexItem>
+    </Flex>
   );
 };
 

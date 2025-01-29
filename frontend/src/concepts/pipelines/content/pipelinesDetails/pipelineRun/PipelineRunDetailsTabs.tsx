@@ -13,8 +13,8 @@ import {
 
 import PipelineDetailsYAML from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsYAML';
 import {
-  PipelineRecurringRunKFv2,
-  PipelineRunKFv2,
+  PipelineRecurringRunKF,
+  PipelineRunKF,
   PipelineSpecVariable,
 } from '~/concepts/pipelines/kfTypes';
 import { isPipelineRecurringRun } from '~/concepts/pipelines/content/utils';
@@ -29,7 +29,7 @@ enum DetailsTabKey {
 }
 
 interface PipelineRunDetailsTabsProps {
-  run: PipelineRunKFv2 | PipelineRecurringRunKFv2 | null;
+  run: PipelineRunKF | PipelineRecurringRunKF | null;
   pipelineSpec: PipelineSpecVariable | undefined;
   graphContent: React.ReactNode;
   versionError?: Error;
@@ -46,10 +46,10 @@ export const PipelineRunDetailsTabs: React.FC<PipelineRunDetailsTabsProps> = ({
 
   return (
     <PageSection
+      hasBodyWrapper={false}
       isFilled
       padding={{ default: 'noPadding' }}
-      style={{ flexBasis: 0, overflowY: 'hidden' }}
-      variant="light"
+      style={{ flexBasis: 0 }}
     >
       <Flex
         direction={{ default: 'column' }}
@@ -105,11 +105,11 @@ export const PipelineRunDetailsTabs: React.FC<PipelineRunDetailsTabsProps> = ({
           <TabContent
             id={DetailsTabKey.Graph}
             eventKey={DetailsTabKey.Graph}
-            className="pf-v5-u-h-100"
+            className="pf-v6-u-h-100"
             data-testid="pipeline-graph-tab"
             hidden={activeKey !== DetailsTabKey.Graph}
           >
-            <TabContentBody className="pf-v5-u-h-100">{graphContent}</TabContentBody>
+            <TabContentBody className="pf-v6-u-h-100">{graphContent}</TabContentBody>
           </TabContent>
 
           <TabContent
@@ -117,10 +117,10 @@ export const PipelineRunDetailsTabs: React.FC<PipelineRunDetailsTabsProps> = ({
             eventKey={DetailsTabKey.Spec}
             hidden={activeKey !== DetailsTabKey.Spec}
             style={{ flex: 1 }}
-            className="pf-v5-u-h-100"
+            className="pf-v6-u-h-100"
             data-testid="pipeline-spec-tab"
           >
-            <TabContentBody className="pf-v5-u-h-100" hasPadding>
+            <TabContentBody className="pf-v6-u-h-100" hasPadding>
               <PipelineDetailsYAML
                 filename={run?.display_name}
                 content={pipelineSpec}

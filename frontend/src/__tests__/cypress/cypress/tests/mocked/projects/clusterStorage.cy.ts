@@ -50,7 +50,34 @@ const initInterceptors = ({ isEmpty = false, storageClassName }: HandlersProps) 
         ? []
         : [
             mockPVCK8sResource({ uid: 'test-id', storageClassName }),
-            mockPVCK8sResource({ displayName: 'Another Cluster Storage' }),
+            mockPVCK8sResource({ displayName: 'Another Cluster Storage', storageClassName }),
+            mockPVCK8sResource({
+              displayName: 'Unbound storage',
+              storageClassName,
+              status: { phase: 'Pending' },
+            }),
+            mockPVCK8sResource({
+              displayName: 'Updated storage with no workbench',
+              storageClassName,
+              storage: '13Gi',
+              status: {
+                phase: 'Bound',
+                accessModes: ['ReadWriteOnce'],
+                capacity: {
+                  storage: '12Gi',
+                },
+                conditions: [
+                  {
+                    type: 'FileSystemResizePending',
+                    status: 'True',
+                    lastProbeTime: null,
+                    lastTransitionTime: '2024-11-15T14:04:04Z',
+                    message:
+                      'Waiting for user to (re-)start a pod to finish file system resize of volume on node.',
+                  },
+                ],
+              },
+            }),
           ],
     ),
   );
@@ -62,6 +89,14 @@ const initInterceptors = ({ isEmpty = false, storageClassName }: HandlersProps) 
           {
             mountPath: '/opt/app-root/src/test-dupe',
             name: 'test-dupe-pvc-path',
+          },
+        ],
+        additionalVolumes: [
+          {
+            name: 'test-dupe-pvc-path',
+            persistentVolumeClaim: {
+              claimName: 'test-dupe-pvc-path',
+            },
           },
         ],
       }),
@@ -81,7 +116,23 @@ describe('ClusterStorage', () => {
         }),
       );
 
-      cy.interceptK8sList(StorageClassModel, mockStorageClassList());
+      cy.interceptK8sList(
+        StorageClassModel,
+        mockStorageClassList([
+          ...mockStorageClasses,
+          buildMockStorageClass(
+            {
+              ...mockStorageClasses[0],
+              metadata: {
+                ...mockStorageClasses[0].metadata,
+                name: 'test-initial-storage-class',
+                annotations: {},
+              },
+            },
+            {},
+          ),
+        ]),
+      );
     });
 
     it('Check whether the Storage class column is present', () => {
@@ -89,6 +140,11 @@ describe('ClusterStorage', () => {
       clusterStorage.visit('test-project');
       const clusterStorageRow = clusterStorage.getClusterStorageRow('Test Storage');
       clusterStorageRow.findStorageClassColumn().should('exist');
+      clusterStorageRow.showStorageClassDetails();
+      clusterStorageRow
+        .findStorageClassResourceNameText()
+        .should('have.text', 'openshift-default-sc');
+      clusterStorageRow.findStorageClassResourceKindText().should('have.text', 'StorageClass');
     });
 
     it('Check whether the Storage class is deprecated', () => {
@@ -102,6 +158,15 @@ describe('ClusterStorage', () => {
       clusterStorageRow.shouldHaveDeprecatedTooltip();
       clusterStorage.shouldHaveDeprecatedAlertMessage();
       clusterStorage.closeDeprecatedAlert();
+    });
+
+    it('Should hide deprecated alert when the storage class is not configured', () => {
+      initInterceptors({ storageClassName: 'test-initial-storage-class' });
+      clusterStorage.visit('test-project');
+
+      const clusterStorageRow = clusterStorage.getClusterStorageRow('Test Storage');
+      clusterStorageRow.queryDeprecatedLabel().should('not.exist');
+      clusterStorage.shouldNotHaveDeprecatedAlertMessage();
     });
   });
 
@@ -128,50 +193,33 @@ describe('ClusterStorage', () => {
     addClusterStorageModal.find().findByText('openshift-default-sc').should('exist');
 
     // select storage class
-    addClusterStorageModal.findStorageClassSelect().findSelectOption('Test SC 1').click();
+    addClusterStorageModal.selectStorageClassSelectOption(/Test SC 1/);
     addClusterStorageModal.findSubmitButton().should('be.enabled');
     addClusterStorageModal.findDescriptionInput().fill('description');
     addClusterStorageModal.findPVSizeMinusButton().click();
     addClusterStorageModal.findPVSizeInput().should('have.value', '19');
     addClusterStorageModal.findPVSizePlusButton().click();
     addClusterStorageModal.findPVSizeInput().should('have.value', '20');
-    addClusterStorageModal.selectPVSize('Mi');
+    addClusterStorageModal.selectPVSize('MiB');
 
     //connect workbench
-    addClusterStorageModal
-      .findWorkbenchConnectionSelect()
-      .findSelectOption('Test Notebook')
-      .click();
+    addClusterStorageModal.findAddWorkbenchButton().click();
+    addClusterStorageModal.findWorkbenchTable().should('exist');
+    addClusterStorageModal.findWorkbenchSelect(0).should('have.attr', 'disabled');
+    addClusterStorageModal.findWorkbenchSelectValueField(0).should('have.value', 'Test Notebook');
 
-    // don't allow duplicate path
-    addClusterStorageModal.findMountField().clear();
-    addClusterStorageModal.findMountField().fill('test-dupe');
+    //don't allow duplicate path
+    addClusterStorageModal.findMountPathField(0).fill('test-dupe');
     addClusterStorageModal
       .findMountFieldHelperText()
-      .should('have.text', 'Mount folder is already in use for this workbench.');
+      .should('contain.text', 'This path is already connected to this workbench');
 
-    // don't allow number in the path
-    addClusterStorageModal.findMountField().clear();
-    addClusterStorageModal.findMountField().fill('test2');
+    addClusterStorageModal.findMountPathField(0).clear();
+    addClusterStorageModal.selectCustomPathFormat(0);
     addClusterStorageModal
       .findMountFieldHelperText()
-      .should('have.text', 'Must only consist of lowercase letters and dashes.');
-
-    // Allow trailing slash
-    addClusterStorageModal.findMountField().clear();
-    addClusterStorageModal.findMountField().fill('test/');
-    addClusterStorageModal
-      .findMountFieldHelperText()
-      .should('have.text', 'Must consist of lowercase letters and dashes.');
-
-    addClusterStorageModal.findMountField().clear();
-    addClusterStorageModal
-      .findMountFieldHelperText()
-      .should(
-        'have.text',
-        'Enter a path to a model or folder. This path cannot point to a root folder.',
-      );
-    addClusterStorageModal.findMountField().fill('data');
+      .should('contain.text', 'Enter a path to a model or folder.');
+    addClusterStorageModal.findMountPathField(0).fill('data');
     addClusterStorageModal.findWorkbenchRestartAlert().should('exist');
 
     cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('addClusterStorage');
@@ -186,7 +234,7 @@ describe('ClusterStorage', () => {
         {
           op: 'add',
           path: '/spec/template/spec/containers/0/volumeMounts/-',
-          value: { mountPath: '/opt/app-root/src/data' },
+          value: { mountPath: '/data' },
         },
       ]);
     });
@@ -214,7 +262,7 @@ describe('ClusterStorage', () => {
               ],
               containers: [
                 {
-                  volumeMounts: [{ name: 'existing-pvc', mountPath: '/' }],
+                  volumeMounts: [{ name: 'existing-pvc', mountPath: '/opt/app-root/src' }],
                 },
               ],
             },
@@ -242,91 +290,12 @@ describe('ClusterStorage', () => {
     clusterStorage.visit('test-project');
     const clusterStorageRow = clusterStorage.getClusterStorageRow('Existing PVC');
     clusterStorageRow.findKebabAction('Edit storage').click();
-
-    // Connect to 'Another Notebook'
-    updateClusterStorageModal
-      .findWorkbenchConnectionSelect()
-      .findSelectOption('Another Notebook')
-      .click();
-    updateClusterStorageModal.findMountField().fill('new-data');
-
-    cy.interceptK8s('PATCH', NotebookModel, anotherNotebook).as('updateClusterStorage');
-
-    updateClusterStorageModal.findSubmitButton().click();
-    cy.wait('@updateClusterStorage').then((interception) => {
-      expect(interception.request.url).to.include('?dryRun=All');
-      expect(interception.request.body).to.eql([
-        {
-          op: 'add',
-          path: '/spec/template/spec/volumes/-',
-          value: { name: 'existing-pvc', persistentVolumeClaim: { claimName: 'existing-pvc' } },
-        },
-        {
-          op: 'add',
-          path: '/spec/template/spec/containers/0/volumeMounts/-',
-          value: { name: 'existing-pvc', mountPath: '/opt/app-root/src/new-data' },
-        },
-      ]);
-    });
-
-    cy.wait('@updateClusterStorage').then((interception) => {
-      expect(interception.request.url).not.to.include('?dryRun=All');
-    });
-
-    cy.get('@updateClusterStorage.all').then((interceptions) => {
-      expect(interceptions).to.have.length(2);
-    });
-  });
-
-  it('Add cluster storage with multiple workbench connections', () => {
-    // one notebook already connected to a PVC
-    const testNotebook = mockNotebookK8sResource({
-      displayName: 'Test Notebook',
-      name: 'test-notebook',
-      opts: {
-        spec: {
-          template: {
-            spec: {
-              volumes: [
-                { name: 'existing-pvc', persistentVolumeClaim: { claimName: 'existing-pvc' } },
-              ],
-              containers: [
-                {
-                  volumeMounts: [{ name: 'existing-pvc', mountPath: '/' }],
-                },
-              ],
-            },
-          },
-        },
-      },
-    });
-
-    // another notebook not connected to PVC
-    const anotherNotebook = mockNotebookK8sResource({
-      displayName: 'Another Notebook',
-      name: 'another-notebook',
-    });
-
-    initInterceptors({});
-    cy.interceptK8sList(NotebookModel, mockK8sResourceList([testNotebook, anotherNotebook]));
-
-    cy.interceptK8sList(
-      { model: PVCModel, ns: 'test-project' },
-      mockK8sResourceList([
-        mockPVCK8sResource({ name: 'existing-pvc', displayName: 'Existing PVC' }),
-      ]),
-    );
-
-    clusterStorage.visit('test-project');
-    const clusterStorageRow = clusterStorage.getClusterStorageRow('Existing PVC');
-    clusterStorageRow.findKebabAction('Edit storage').click();
-
-    // Connect to 'Another Notebook'
-    updateClusterStorageModal
-      .findWorkbenchConnectionSelect()
-      .findSelectOption('Another Notebook')
-      .click();
-    updateClusterStorageModal.findMountField().fill('new-data');
+    updateClusterStorageModal.findAddWorkbenchButton().click();
+    addClusterStorageModal.findWorkbenchSelect(1).should('have.attr', 'disabled');
+    addClusterStorageModal
+      .findWorkbenchSelectValueField(1)
+      .should('have.value', 'Another Notebook');
+    updateClusterStorageModal.findMountPathField(1).fill('new-data');
 
     cy.interceptK8s('PATCH', NotebookModel, anotherNotebook).as('updateClusterStorage');
 
@@ -369,14 +338,23 @@ describe('ClusterStorage', () => {
     clusterStorageRow.findStorageClassColumn().should('not.exist');
     clusterStorageRow.shouldHaveStorageTypeValue('Persistent storage');
     clusterStorageRow.findConnectedWorkbenches().should('have.text', 'No connections');
-    clusterStorageRow.toggleExpandableContent();
-    clusterStorageRow.shouldHaveStorageSize('5Gi');
+    clusterStorageRow.findSizeColumn().contains('5GiB');
 
     //sort by Name
-    clusterStorage.findClusterStorageTableHeaderButton('Name').click();
     clusterStorage.findClusterStorageTableHeaderButton('Name').should(be.sortAscending);
     clusterStorage.findClusterStorageTableHeaderButton('Name').click();
     clusterStorage.findClusterStorageTableHeaderButton('Name').should(be.sortDescending);
+  });
+
+  it('should show warning when cluster storage size is updated but no workbench is connected', () => {
+    initInterceptors({});
+    clusterStorage.visit('test-project');
+    const clusterStorageRow = clusterStorage.getClusterStorageRow(
+      'Updated storage with no workbench',
+    );
+    clusterStorageRow.findSizeColumn().should('have.text', 'Max 13GiB');
+    clusterStorageRow.findStorageSizeWarning();
+    clusterStorageRow.findStorageSizeWarning().should('exist');
   });
 
   it('Edit cluster storage', () => {
@@ -386,8 +364,8 @@ describe('ClusterStorage', () => {
     clusterStorageRow.findKebabAction('Edit storage').click();
     updateClusterStorageModal.findNameInput().should('have.value', 'Test Storage');
     updateClusterStorageModal.findPVSizeInput().should('have.value', '5');
-    updateClusterStorageModal.shouldHavePVSizeSelectValue('Gi');
-    updateClusterStorageModal.findPersistentStorageWarning().should('exist');
+    updateClusterStorageModal.shouldHavePVSizeSelectValue('GiB');
+    updateClusterStorageModal.findPersistentStorageWarningCanOnlyIncrease().should('exist');
     updateClusterStorageModal.findSubmitButton().should('be.enabled');
     updateClusterStorageModal.findNameInput().fill('test-updated');
 
@@ -419,6 +397,17 @@ describe('ClusterStorage', () => {
     cy.get('@editClusterStorage.all').then((interceptions) => {
       expect(interceptions).to.have.length(2);
     });
+  });
+
+  it('should disable size field when editing unbound storage', () => {
+    initInterceptors({});
+    clusterStorage.visit('test-project');
+    const clusterStorageRow = clusterStorage.getClusterStorageRow('Unbound storage');
+    clusterStorageRow.findKebabAction('Edit storage').click();
+    updateClusterStorageModal.findNameInput().should('have.value', 'Unbound storage');
+    updateClusterStorageModal.findPVSizeInput().should('have.value', '5').should('be.disabled');
+    updateClusterStorageModal.shouldHavePVSizeSelectValue('GiB').should('be.disabled');
+    updateClusterStorageModal.findPersistentStorageWarningCanNotEdit().should('exist');
   });
 
   it('Delete cluster storage', () => {

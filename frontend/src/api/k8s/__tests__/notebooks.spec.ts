@@ -696,7 +696,7 @@ describe('attachNotebookPVC', () => {
     const namespace = 'test-project';
     const notebookName = 'test-notebook';
     const pvcName = 'test-pvc';
-    const mountSuffix = 'data';
+    const mountSuffix = '/opt/app-root/src/data';
     const mockNotebook = mockNotebookK8sResource({ uid });
 
     k8sPatchResourceMock.mockResolvedValue(mockNotebook);
@@ -728,7 +728,7 @@ describe('attachNotebookPVC', () => {
     const namespace = 'test-project';
     const notebookName = 'test-notebook';
     const pvcName = 'test-pvc';
-    const mountSuffix = 'data';
+    const mountSuffix = '/opt/app-root/src/data';
 
     k8sPatchResourceMock.mockRejectedValue(new Error('error1'));
     await expect(attachNotebookPVC(notebookName, namespace, pvcName, mountSuffix)).rejects.toThrow(
@@ -908,7 +908,7 @@ describe('removeNotebookSecret', () => {
         {
           op: 'replace',
           path: '/spec/template/spec/containers/0/envFrom',
-          value: [{ secretRef: { name: 'aws-connection-db-1' } }],
+          value: [{ secretRef: { name: 'secret' } }],
         },
       ],
       queryOptions: { name, ns: namespace },
@@ -982,7 +982,7 @@ describe('removeNotebookSecret', () => {
         {
           op: 'replace',
           path: '/spec/template/spec/containers/0/envFrom',
-          value: [{ secretRef: { name: 'aws-connection-db-1' } }],
+          value: [{ secretRef: { name: 'secret' } }],
         },
       ],
       queryOptions: { name, ns: namespace },

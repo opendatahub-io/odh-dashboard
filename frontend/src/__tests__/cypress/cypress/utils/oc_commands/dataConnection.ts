@@ -25,6 +25,8 @@ export const createDataConnection = (
 ): Cypress.Chainable<CommandLineResult> => {
   return cy.fixture(yamlFilePath).then((yamlContent) => {
     const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, dataConnectionReplacements);
+
+    cy.log(`Yaml:${modifiedYamlContent}`);
     return applyOpenShiftYaml(modifiedYamlContent);
   });
 };

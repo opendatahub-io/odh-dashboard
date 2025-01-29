@@ -1,39 +1,37 @@
 import React from 'react';
-import { useParams } from 'react-router-dom';
-
 import {
   Bullseye,
   EmptyState,
   EmptyStateBody,
-  EmptyStateIcon,
   Spinner,
-  EmptyStateHeader,
   EmptyStateActions,
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import CreateScheduleButton from '~/pages/pipelines/global/runs/CreateScheduleButton';
-import { useContextExperimentArchived as useIsExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import {
+  ExperimentContext,
+  useContextExperimentArchivedOrDeleted as useIsExperimentArchived,
+} from '~/pages/pipelines/global/experiments/ExperimentContext';
 import { usePipelineRecurringRunsTable } from '~/concepts/pipelines/content/tables/pipelineRecurringRun/usePipelineRecurringRunTable';
 import PipelineRecurringRunTable from '~/concepts/pipelines/content/tables/pipelineRecurringRun/PipelineRecurringRunTable';
 
 const ScheduledRuns: React.FC = () => {
-  const { experimentId, pipelineVersionId } = useParams();
+  const { experiment } = React.useContext(ExperimentContext);
   const [
     [{ items: recurringRuns, totalSize }, loaded, error, refresh],
     { initialLoaded, ...tableProps },
-  ] = usePipelineRecurringRunsTable({ experimentId, pipelineVersionId });
-  const isExperimentArchived = useIsExperimentArchived();
+  ] = usePipelineRecurringRunsTable({ experimentId: experiment?.experiment_id });
+  const { isExperimentArchived } = useIsExperimentArchived();
 
   if (error) {
     return (
       <Bullseye>
-        <EmptyState>
-          <EmptyStateHeader
-            titleText="There was an issue loading schedules"
-            icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-            headingLevel="h2"
-          />
+        <EmptyState
+          headingLevel="h2"
+          icon={ExclamationCircleIcon}
+          titleText="There was an issue loading schedules"
+        >
           <EmptyStateBody>{error.message}</EmptyStateBody>
         </EmptyState>
       </Bullseye>
@@ -50,13 +48,12 @@ const ScheduledRuns: React.FC = () => {
 
   if (loaded && totalSize === 0 && !tableProps.filter) {
     return (
-      <EmptyState data-testid="schedules-empty-state">
-        <EmptyStateHeader
-          titleText="No schedules"
-          icon={<EmptyStateIcon icon={PlusCircleIcon} />}
-          headingLevel="h2"
-        />
-
+      <EmptyState
+        headingLevel="h2"
+        icon={PlusCircleIcon}
+        titleText="No schedules"
+        data-testid="schedules-empty-state"
+      >
         <EmptyStateBody>
           Schedules dictate when and how many times a run is executed.{' '}
           {!isExperimentArchived && 'To get started, create a schedule.'}

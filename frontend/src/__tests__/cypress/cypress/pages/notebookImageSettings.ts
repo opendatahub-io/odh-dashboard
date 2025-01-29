@@ -1,6 +1,7 @@
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
+import { K8sNameDescriptionField } from '~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
 import { DeleteModal } from './components/DeleteModal';
 import { TableToolbar } from './components/TableToolbar';
 
@@ -46,7 +47,7 @@ class NotebookImageSettings {
   }
 
   findEmptyResults() {
-    return cy.findByTestId('no-result-found-title');
+    return cy.findByTestId('dashboard-empty-table-state');
   }
 
   private findTable() {
@@ -70,12 +71,12 @@ class NotebookImageSettings {
 
 class TabRow extends TableRow {
   shouldHaveVersionColumn(name: string) {
-    this.find().find(`[data-label="Version"]`).contains(name);
+    this.find().find(`[data-label="Version"]`).find('input').should('have.value', name);
     return this;
   }
 
-  findRemoveContentButton() {
-    return this.find().findByTestId('remove-displayed-content-button');
+  findRemoveContentButton(index: number) {
+    return this.find().findByTestId(`remove-displayed-content-button-${index}`);
   }
 }
 
@@ -86,6 +87,8 @@ class NotebookImageDeleteModal extends DeleteModal {
 }
 
 class ImportUpdateNotebookImageModal extends Modal {
+  k8sNameDescription = new K8sNameDescriptionField('byon-image');
+
   constructor(private edit = false) {
     super(`${edit ? 'Update' : 'Import'} notebook image`);
   }
@@ -99,11 +102,11 @@ class ImportUpdateNotebookImageModal extends Modal {
   }
 
   findNameInput() {
-    return this.find().findByTestId('byon-image-name-input');
+    return this.k8sNameDescription.findDisplayNameInput();
   }
 
   findDescriptionInput() {
-    return this.find().findByTestId('byon-image-description-input');
+    return this.k8sNameDescription.findDescriptionInput();
   }
 
   // Software tab
@@ -115,12 +118,12 @@ class ImportUpdateNotebookImageModal extends Modal {
     return this.find().findByTestId('add-software-button');
   }
 
-  findSoftwareNameInput() {
-    return this.find().findByTestId('Software-name-input');
+  findSoftwareNameInput(index: number) {
+    return this.find().findByTestId(`Software-name-input-${index}`);
   }
 
-  findSoftwareVersionInput() {
-    return this.find().findByTestId('Software-version-input');
+  findSoftwareVersionInput(index: number) {
+    return this.find().findByTestId(`Software-version-input-${index}`);
   }
 
   findErrorMessageAlert() {
@@ -136,12 +139,12 @@ class ImportUpdateNotebookImageModal extends Modal {
     return this.find().findByTestId('add-packages-button');
   }
 
-  findPackagesNameInput() {
-    return this.find().findByTestId('Packages-name-input');
+  findPackagesNameInput(index: number) {
+    return this.find().findByTestId(`Packages-name-input-${index}`);
   }
 
-  findPackagesVersionInput() {
-    return this.find().findByTestId('Packages-version-input');
+  findPackagesVersionInput(index: number) {
+    return this.find().findByTestId(`Packages-version-input-${index}`);
   }
 
   findSoftwareTable() {
@@ -152,15 +155,25 @@ class ImportUpdateNotebookImageModal extends Modal {
     return cy.findByTestId(`displayed-content-table-packages`);
   }
 
-  getPackagesRow(name: string) {
+  getPackagesRow(name: string, index: number) {
     return new TabRow(() =>
-      this.findPackagesTable().find(`[data-label=Packages]`).contains(name).parents('tr'),
+      this.findPackagesTable()
+        .find(`[data-label=Packages]`)
+        .eq(index)
+        .find('input')
+        .should('have.value', name)
+        .parents('tr'),
     );
   }
 
-  getSoftwareRow(name: string) {
+  getSoftwareRow(name: string, index: number) {
     return new TabRow(() =>
-      this.findSoftwareTable().find(`[data-label=Software]`).contains(name).parents('tr'),
+      this.findSoftwareTable()
+        .find(`[data-label=Software]`)
+        .eq(index)
+        .find('input')
+        .should('have.value', name)
+        .parents('tr'),
     );
   }
 

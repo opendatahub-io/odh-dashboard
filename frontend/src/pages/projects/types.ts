@@ -9,10 +9,10 @@ import {
   Volume,
   VolumeMount,
 } from '~/types';
-import { AWSSecretKind } from '~/k8sTypes';
-import { AcceleratorProfileState } from '~/utilities/useAcceleratorProfileState';
-import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
+import { AWSSecretKind, PersistentVolumeClaimKind } from '~/k8sTypes';
+import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
 import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import { AwsKeys } from './dataConnections/const';
 
 export type UpdateObjectAtPropAndValue<T> = <K extends keyof T>(
@@ -24,12 +24,6 @@ export type NameDescType = {
   name: string;
   k8sName?: string;
   description: string;
-};
-
-export type CreatingStorageObject = {
-  nameDesc: NameDescType;
-  size: string;
-  storageClassName?: string;
 };
 
 export type MountPath = {
@@ -44,15 +38,26 @@ export type ForNotebookSelection = {
   mountPath: MountPath;
 };
 
-export type CreatingStorageObjectForNotebook = CreatingStorageObject & {
+export type ClusterStorageNotebookSelection = ForNotebookSelection & {
+  existingPvc: boolean;
+  notebookDisplayName?: string;
+  isUpdatedValue: boolean;
+  newRowId?: number;
+};
+
+export type CreatingStorageObjectForNotebook = NameDescType & {
+  size: string;
   forNotebook: ForNotebookSelection;
   hasExistingNotebookConnections: boolean;
+  storageClassName?: string;
+  mountPath?: string;
 };
 
 export type ExistingStorageObjectForNotebook = ForNotebookSelection;
 
 export type ExistingStorageObject = {
   storage: string;
+  pvc?: PersistentVolumeClaimKind;
 };
 
 export enum StorageType {
@@ -61,9 +66,16 @@ export enum StorageType {
 }
 
 export type StorageData = {
-  storageType: StorageType;
-  creating: CreatingStorageObject;
-  existing: ExistingStorageObject;
+  name: string;
+  k8sName?: string;
+  size?: string;
+  storageType?: StorageType;
+  description?: string;
+  storageClassName?: string;
+  mountPath?: string;
+  existingName?: string;
+  existingPvc?: PersistentVolumeClaimKind;
+  id?: number;
 };
 
 export type StartNotebookData = {
@@ -71,7 +83,7 @@ export type StartNotebookData = {
   notebookData: K8sNameDescriptionFieldData;
   notebookSize: NotebookSize;
   initialAcceleratorProfile: AcceleratorProfileState;
-  selectedAcceleratorProfile: AcceleratorProfileSelectFieldState;
+  selectedAcceleratorProfile: AcceleratorProfileFormData;
   image: ImageStreamAndVersion;
   volumes?: Volume[];
   volumeMounts?: VolumeMount[];
@@ -169,4 +181,8 @@ export enum NamespaceApplicationCase {
    * Nvidia NIMs run on KServe but have different requirements than regular models.
    */
   KSERVE_NIM_PROMOTION,
+  /**
+   * Downgrade a project from Modelmesh, Kserve or NIM so the platform can be selected again.
+   */
+  RESET_MODEL_SERVING_PLATFORM,
 }

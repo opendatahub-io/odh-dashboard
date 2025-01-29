@@ -9,16 +9,20 @@ import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import StorageTable from './StorageTable';
-import ManageStorageModal from './ManageStorageModal';
+import ClusterStorageModal from './ClusterStorageModal';
 
 const StorageList: React.FC = () => {
   const [isOpen, setOpen] = React.useState(false);
   const {
-    pvcs: { data: pvcs, loaded, error: loadError },
-    refreshAllProjectData: refresh,
+    notebooks: { refresh: refreshNotebooks },
+    pvcs: { data: pvcs, loaded: pvcsLoaded, error: pvcsError, refresh: refreshPvcs },
   } = React.useContext(ProjectDetailsContext);
-
   const isPvcsEmpty = pvcs.length === 0;
+
+  const refresh = () => {
+    refreshPvcs();
+    refreshNotebooks();
+  };
 
   return (
     <>
@@ -47,9 +51,9 @@ const StorageList: React.FC = () => {
             Add cluster storage
           </Button>,
         ]}
-        isLoading={!loaded}
+        isLoading={!pvcsLoaded}
         isEmpty={isPvcsEmpty}
-        loadError={loadError}
+        loadError={pvcsError}
         emptyState={
           <EmptyDetailsView
             title="Start by adding cluster storage"
@@ -73,10 +77,10 @@ const StorageList: React.FC = () => {
         ) : null}
       </DetailsSection>
       {isOpen ? (
-        <ManageStorageModal
-          onClose={(submit: boolean) => {
+        <ClusterStorageModal
+          onClose={(submitted) => {
             setOpen(false);
-            if (submit) {
+            if (submitted) {
               refresh();
             }
           }}

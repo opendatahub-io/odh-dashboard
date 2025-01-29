@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { Button, Flex, FlexItem, Label, Text, Tooltip, Truncate } from '@patternfly/react-core';
+import { Button, Flex, FlexItem, Label, Tooltip, Truncate } from '@patternfly/react-core';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import useModelVersionById from '~/concepts/modelRegistry/apiHooks/useModelVersionById';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
@@ -30,7 +30,12 @@ const ArchiveModelVersionDetails: React.FC<ArchiveModelVersionDetailsProps> = ({
   const [rm] = useRegisteredModelById(rmId);
   const [mv, mvLoaded, mvLoadError, refreshModelVersion] = useModelVersionById(mvId);
   const inferenceServices = useMakeFetchObject(
-    useInferenceServices(undefined, mv?.registeredModelId, mv?.id),
+    useInferenceServices(
+      undefined,
+      mv?.registeredModelId,
+      mv?.id,
+      preferredModelRegistry?.metadata.name,
+    ),
   );
   const navigate = useNavigate();
   const servingRuntimes = useMakeFetchObject(useServingRuntimes());
@@ -53,20 +58,16 @@ const ArchiveModelVersionDetails: React.FC<ArchiveModelVersionDetailsProps> = ({
       }
       title={
         mv && (
-          <Flex>
-            <FlexItem>
-              <Text>{mv.name}</Text>
-            </FlexItem>
-            <FlexItem>
-              <Label>Archived</Label>
-            </FlexItem>
+          <Flex alignItems={{ default: 'alignItemsCenter' }}>
+            <FlexItem>{mv.name}</FlexItem>
+            <Label>Archived</Label>
           </Flex>
         )
       }
       headerAction={
         <Tooltip content="The version of an archived model cannot be restored unless the model is restored.">
-          <Button data-testid="restore-button" aria-label="restore version" isAriaDisabled>
-            Restore version
+          <Button data-testid="restore-button" aria-label="restore model version" isAriaDisabled>
+            Restore model version
           </Button>
         </Tooltip>
       }

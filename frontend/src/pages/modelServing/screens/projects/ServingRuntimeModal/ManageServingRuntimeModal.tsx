@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Form, Modal, Stack, StackItem } from '@patternfly/react-core';
+import { Form, Stack, StackItem } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
   submitServingRuntimeResourcesWithDryRun,
@@ -13,22 +14,23 @@ import {
 } from '~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
-import useServingAcceleratorProfile from '~/pages/modelServing/screens/projects/useServingAcceleratorProfile';
+import useServingAcceleratorProfileFormState from '~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import { ServingRuntimeEditInfo } from '~/pages/modelServing/screens/types';
 import { useAccessReview } from '~/api';
-import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
-import useGenericObjectState from '~/utilities/useGenericObjectState';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import {
   FormTrackingEventProperties,
   TrackingOutcome,
 } from '~/concepts/analyticsTracking/trackingProperties';
+import K8sNameDescriptionField, {
+  useK8sNameDescriptionFieldData,
+} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import ServingRuntimeReplicaSection from './ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from './ServingRuntimeSizeSection';
 import ServingRuntimeTemplateSection from './ServingRuntimeTemplateSection';
-import ServingRuntimeNameSection from './ServingRuntimeNameSection';
 import AuthServingRuntimeSection from './AuthServingRuntimeSection';
 
 type ManageServingRuntimeModalProps = {
@@ -49,24 +51,31 @@ const accessReviewResource: AccessReviewResourceAttributes = {
 
 const modelServerAddedName = 'Model Server Added';
 const modelServerEditName = 'Model Server Modified';
+
 const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   onClose,
   currentProject,
   servingRuntimeTemplates,
   editInfo,
 }) => {
-  const [createData, setCreateData, resetData, sizes] = useCreateServingRuntimeObject(editInfo);
-  const initialAcceleratorProfile = useServingAcceleratorProfile(editInfo?.servingRuntime);
-  const [selectedAcceleratorProfile, setSelectedAcceleratorProfile] =
-    useGenericObjectState<AcceleratorProfileSelectFieldState>({
-      profile: undefined,
-      count: 0,
-      useExistingSettings: false,
-    });
+  const [createData, setCreateData, , sizes] = useCreateServingRuntimeObject(editInfo);
+  const {
+    formData: selectedAcceleratorProfile,
+    setFormData: setSelectedAcceleratorProfile,
+    initialState: initialAcceleratorProfile,
+  } = useServingAcceleratorProfileFormState(editInfo?.servingRuntime);
+
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
   const customServingRuntimesEnabled = useCustomServingRuntimesEnabled();
+
+  const { data: modelServerNameDesc, onDataChange: setModelServerNameDesc } =
+    useK8sNameDescriptionFieldData({
+      initialData: editInfo?.servingRuntime,
+      safePrefix: !customServingRuntimesEnabled ? 'model-server' : undefined,
+      staticPrefix: !customServingRuntimesEnabled,
+    });
 
   const namespace = currentProject.metadata.name;
 
@@ -88,6 +97,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     : baseInputValueValid;
   const isDisabled =
     actionInProgress ||
+    !isK8sNameDescriptionDataValid(modelServerNameDesc) ||
     tokenErrors ||
     !inputValueValid ||
     !isModelServerEditInfoChanged(
@@ -105,6 +115,11 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     [editInfo, servingRuntimeTemplates, createData.servingRuntimeTemplateName],
   );
 
+  React.useEffect(() => {
+    setCreateData('name', modelServerNameDesc.name);
+    setCreateData('k8sName', modelServerNameDesc.k8sName.value);
+  }, [modelServerNameDesc, setCreateData]);
+
   const onBeforeClose = (submitted: boolean) => {
     if (!submitted) {
       fireFormTrackingEvent(editInfo ? modelServerEditName : modelServerAddedName, {
@@ -113,9 +128,6 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     }
 
     onClose(submitted);
-    setError(undefined);
-    setActionInProgress(false);
-    resetData();
   };
 
   const setErrorModal = (e: Error) => {
@@ -191,7 +203,13 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
       >
         <Stack hasGutter>
           <StackItem>
-            <ServingRuntimeNameSection data={createData} setData={setCreateData} />
+            <K8sNameDescriptionField
+              data={modelServerNameDesc}
+              onDataChange={setModelServerNameDesc}
+              dataTestId="serving-runtime"
+              nameLabel="Model server name"
+              hideDescription
+            />
           </StackItem>
           <StackItem>
             <ServingRuntimeTemplateSection
@@ -210,18 +228,16 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
                 server replicas."
             />
           </StackItem>
-          <StackItem>
-            <ServingRuntimeSizeSection
-              data={createData}
-              setData={setCreateData}
-              sizes={sizes}
-              servingRuntimeSelected={servingRuntimeSelected}
-              acceleratorProfileState={initialAcceleratorProfile}
-              selectedAcceleratorProfile={selectedAcceleratorProfile}
-              setSelectedAcceleratorProfile={setSelectedAcceleratorProfile}
-              infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
-            />
-          </StackItem>
+          <ServingRuntimeSizeSection
+            data={createData}
+            setData={setCreateData}
+            sizes={sizes}
+            servingRuntimeSelected={servingRuntimeSelected}
+            acceleratorProfileState={initialAcceleratorProfile}
+            selectedAcceleratorProfile={selectedAcceleratorProfile}
+            setSelectedAcceleratorProfile={setSelectedAcceleratorProfile}
+            infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
+          />
           <AuthServingRuntimeSection
             data={createData}
             setData={setCreateData}

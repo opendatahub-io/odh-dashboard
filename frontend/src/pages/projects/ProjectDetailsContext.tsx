@@ -37,7 +37,6 @@ import useConnections from './screens/detail/connections/useConnections';
 
 type ProjectDetailsContextType = {
   currentProject: ProjectKind;
-  refreshAllProjectData: () => void;
   filterTokens: (servingRuntime?: string) => SecretKind[];
   notebooks: ContextResourceData<NotebookState>;
   pvcs: ContextResourceData<PersistentVolumeClaimKind>;
@@ -54,10 +53,7 @@ type ProjectDetailsContextType = {
 };
 
 export const ProjectDetailsContext = React.createContext<ProjectDetailsContextType>({
-  // We never will get into a case without a project, so fudge the default value
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  currentProject: null as unknown as ProjectKind,
-  refreshAllProjectData: () => undefined,
+  currentProject: { apiVersion: '', kind: '', metadata: { name: '' } },
   filterTokens: () => [],
   notebooks: DEFAULT_CONTEXT_DATA,
   pvcs: DEFAULT_CONTEXT_DATA,
@@ -99,39 +95,6 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const projectSharingRB = useContextResourceData<RoleBindingKind>(useProjectSharing(namespace));
   const groups = useGroups();
 
-  const notebookRefresh = notebooks.refresh;
-  const pvcRefresh = pvcs.refresh;
-  const dataConnectionRefresh = dataConnections.refresh;
-  const connectionRefresh = connections.refresh;
-  const servingRuntimeRefresh = servingRuntimes.refresh;
-  const servingRuntimeTemplateOrderRefresh = servingRuntimeTemplateOrder.refresh;
-  const servingRuntimeTemplateDisablementRefresh = servingRuntimeTemplateDisablement.refresh;
-  const inferenceServiceRefresh = inferenceServices.refresh;
-  const projectSharingRefresh = projectSharingRB.refresh;
-  const refreshAllProjectData = React.useCallback(() => {
-    notebookRefresh();
-    setTimeout(notebookRefresh, 2000);
-    pvcRefresh();
-    dataConnectionRefresh();
-    connectionRefresh();
-    servingRuntimeRefresh();
-    inferenceServiceRefresh();
-    projectSharingRefresh();
-
-    servingRuntimeTemplateOrderRefresh();
-    servingRuntimeTemplateDisablementRefresh();
-  }, [
-    notebookRefresh,
-    pvcRefresh,
-    dataConnectionRefresh,
-    connectionRefresh,
-    servingRuntimeRefresh,
-    servingRuntimeTemplateOrderRefresh,
-    servingRuntimeTemplateDisablementRefresh,
-    inferenceServiceRefresh,
-    projectSharingRefresh,
-  ]);
-
   const filterTokens = React.useCallback(
     (servingRuntimeName?: string): SecretKind[] => {
       if (!namespace || !servingRuntimeName) {
@@ -167,7 +130,6 @@ const ProjectDetailsContextProvider: React.FC = () => {
             servingRuntimeTemplateOrder,
             servingRuntimeTemplateDisablement,
             inferenceServices,
-            refreshAllProjectData,
             filterTokens,
             serverSecrets,
             projectSharingRB,
@@ -185,7 +147,6 @@ const ProjectDetailsContextProvider: React.FC = () => {
       servingRuntimeTemplateOrder,
       servingRuntimeTemplateDisablement,
       inferenceServices,
-      refreshAllProjectData,
       filterTokens,
       serverSecrets,
       projectSharingRB,

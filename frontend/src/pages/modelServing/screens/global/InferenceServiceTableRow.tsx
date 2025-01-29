@@ -11,6 +11,7 @@ import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
+import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
@@ -35,6 +36,12 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   isGlobal,
   columnNames,
 }) => {
+  const { projects } = React.useContext(ProjectsContext);
+  const project = projects.find(byName(inferenceService.metadata.namespace)) ?? null;
+  const isKServeNIMEnabled = project ? isProjectNIMSupported(project) : false;
+  const servingPlatformStatuses = useServingPlatformStatuses();
+  const isNIMAvailable = servingPlatformStatuses.kServeNIM.enabled;
+
   const [modelMetricsEnabled] = useModelMetricsEnabled();
   const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
 
@@ -43,26 +50,11 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   const kserveMetricsSupported = modelMetricsEnabled && kserveMetricsEnabled && !modelMesh;
   const displayName = getDisplayNameFromK8sResource(inferenceService);
 
-  const { projects } = React.useContext(ProjectsContext);
-  const project = projects.find(byName(inferenceService.metadata.namespace)) ?? null;
-  const isKServeNIMEnabled = project ? isProjectNIMSupported(project) : false;
-
   return (
     <>
       <Td dataLabel="Name">
         <ResourceNameTooltip resource={inferenceService}>
-          {modelMeshMetricsSupported ? (
-            <Link
-              data-testid={`metrics-link-${displayName}`}
-              to={
-                isGlobal
-                  ? `/modelServing/${inferenceService.metadata.namespace}/metrics/${inferenceService.metadata.name}`
-                  : `/projects/${inferenceService.metadata.namespace}/metrics/model/${inferenceService.metadata.name}`
-              }
-            >
-              {displayName}
-            </Link>
-          ) : kserveMetricsSupported ? (
+          {modelMeshMetricsSupported || kserveMetricsSupported ? (
             <Link
               data-testid={`metrics-link-${displayName}`}
               to={
@@ -117,16 +109,14 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
           <ResourceActionsColumn
             resource={inferenceService}
             items={[
-              ...(isKServeNIMEnabled
-                ? []
-                : [
-                    {
-                      title: 'Edit',
-                      onClick: () => {
-                        onEditInferenceService(inferenceService);
-                      },
-                    },
-                  ]),
+              {
+                title: 'Edit',
+                onClick: () => {
+                  onEditInferenceService(inferenceService);
+                },
+                isDisabled: !isNIMAvailable && isKServeNIMEnabled,
+              },
+              { isSeparator: true },
               {
                 title: 'Delete',
                 onClick: () => {

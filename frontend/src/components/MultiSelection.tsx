@@ -1,5 +1,11 @@
 import * as React from 'react';
 import {
+  Label,
+  LabelGroup,
+  /**
+   * The Select component is used to build another generic component here
+   */
+  // eslint-disable-next-line no-restricted-imports
   Select,
   SelectOption,
   SelectList,
@@ -8,17 +14,18 @@ import {
   TextInputGroup,
   TextInputGroupMain,
   TextInputGroupUtilities,
-  ChipGroup,
-  Chip,
   Button,
   HelperText,
   HelperTextItem,
   SelectGroup,
   Divider,
+  SelectOptionProps,
+  SelectPopperProps,
 } from '@patternfly/react-core';
+
 import { TimesIcon } from '@patternfly/react-icons/dist/esm/icons/times-icon';
 
-export type SelectionOptions = {
+export type SelectionOptions = Omit<SelectOptionProps, 'id'> & {
   id: number | string;
   name: string;
   selected?: boolean;
@@ -49,9 +56,13 @@ type MultiSelectionProps = {
   isCreateOptionOnTop?: boolean;
   /** Message to display to create a new option */
   createOptionMessage?: string | ((newValue: string) => string);
+  filterFunction?: (filterText: string, options: SelectionOptions[]) => SelectionOptions[];
+  popperProps?: SelectPopperProps;
 };
 
 const defaultCreateOptionMessage = (newValue: string) => `Create "${newValue}"`;
+const defaultFilterFunction = (filterText: string, options: SelectionOptions[]) =>
+  options.filter((o) => !filterText || o.name.toLowerCase().includes(filterText.toLowerCase()));
 
 export const MultiSelection: React.FC<MultiSelectionProps> = ({
   value = [],
@@ -69,6 +80,8 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   isCreatable = false,
   isCreateOptionOnTop = false,
   createOptionMessage = defaultCreateOptionMessage,
+  filterFunction = defaultFilterFunction,
+  popperProps,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState<string>('');
@@ -80,16 +93,14 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     let counter = 0;
     return groupedValues
       .map((g) => {
-        const values = g.values.filter(
-          (v) => !inputValue || v.name.toLowerCase().includes(inputValue.toLowerCase()),
-        );
+        const values = filterFunction(inputValue, g.values);
         return {
           ...g,
           values: values.map((v) => ({ ...v, index: counter++ })),
         };
       })
       .filter((g) => g.values.length);
-  }, [inputValue, groupedValues]);
+  }, [filterFunction, groupedValues, inputValue]);
 
   const setOpen = (open: boolean) => {
     setIsOpen(open);
@@ -104,10 +115,11 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
 
   const selectOptions = React.useMemo(
     () =>
-      value
-        .filter((v) => !inputValue || v.name.toLowerCase().includes(inputValue.toLowerCase()))
-        .map((v, index) => ({ ...v, index: groupOptions.length + index })),
-    [groupOptions, inputValue, value],
+      filterFunction(inputValue, value).map((v, index) => ({
+        ...v,
+        index: groupOptions.length + index,
+      })),
+    [filterFunction, groupOptions, inputValue, value],
   );
 
   const allValues = React.useMemo(() => {
@@ -270,23 +282,25 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
           aria-controls="select-multi-typeahead-listbox"
           placeholder={placeholder}
         >
-          <ChipGroup aria-label="Current selections">
+          <LabelGroup aria-label="Current selections">
             {selected.map((selection, index) => (
-              <Chip
+              <Label
+                variant="outline"
                 key={index}
-                onClick={(ev) => {
+                onClose={(ev) => {
                   ev.stopPropagation();
                   onSelect(selection);
                 }}
               >
                 {selection.name}
-              </Chip>
+              </Label>
             ))}
-          </ChipGroup>
+          </LabelGroup>
         </TextInputGroupMain>
         <TextInputGroupUtilities>
           {selected.length > 0 && (
             <Button
+              icon={<TimesIcon aria-hidden />}
               variant="plain"
               onClick={() => {
                 setInputValue('');
@@ -294,9 +308,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
                 textInputRef.current?.focus();
               }}
               aria-label="Clear input value"
-            >
-              <TimesIcon aria-hidden />
-            </Button>
+            />
           )}
         </TextInputGroupUtilities>
       </TextInputGroup>
@@ -315,6 +327,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
         }}
         onOpenChange={() => setOpen(false)}
         toggle={toggle}
+        popperProps={popperProps}
       >
         {createOption && isCreateOptionOnTop && groupOptions.length > 0 ? (
           <SelectList isAriaMultiselectable>
@@ -329,7 +342,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
           </SelectList>
         ) : null}
         {selectGroups.map((g, index) => (
-          <>
+          <React.Fragment key={g.id}>
             <SelectGroup label={g.name} key={g.id}>
               <SelectList isAriaMultiselectable>
                 {g.values.map((option) => (
@@ -340,6 +353,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
                     value={option.id}
                     ref={null}
                     isSelected={option.selected}
+                    description={option.description}
                   >
                     {option.name}
                   </SelectOption>
@@ -347,7 +361,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
               </SelectList>
             </SelectGroup>
             {index < selectGroups.length - 1 || selectOptions.length ? <Divider /> : null}
-          </>
+          </React.Fragment>
         ))}
         {selectOptions.length ||
         (createOption && (!isCreateOptionOnTop || groupOptions.length === 0)) ? (
@@ -363,6 +377,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
                 value={option.id}
                 ref={null}
                 isSelected={option.selected}
+                description={option.description}
               >
                 {option.name}
               </SelectOption>
@@ -381,7 +396,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
       </Select>
       {noSelectedItems && selectionRequired && (
         <HelperText isLiveRegion>
-          <HelperTextItem variant="error" hasIcon data-testid="group-selection-error-text">
+          <HelperTextItem variant="error" data-testid="group-selection-error-text">
             {noSelectedOptionsMessage}
           </HelperTextItem>
         </HelperText>

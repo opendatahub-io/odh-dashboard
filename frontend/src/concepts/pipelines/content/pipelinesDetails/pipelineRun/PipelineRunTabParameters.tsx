@@ -1,15 +1,9 @@
 import * as React from 'react';
-import {
-  Spinner,
-  EmptyStateVariant,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateHeader,
-} from '@patternfly/react-core';
+import { Spinner, EmptyStateVariant, EmptyState, EmptyStateBody } from '@patternfly/react-core';
 import {
   InputDefinitionParameterType,
-  PipelineRecurringRunKFv2,
-  PipelineRunKFv2,
+  PipelineRecurringRunKF,
+  PipelineRunKF,
   PipelineSpecVariable,
 } from '~/concepts/pipelines/kfTypes';
 import {
@@ -19,7 +13,7 @@ import {
 import { ExecutionDetailsPropertiesValueCode } from '~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsPropertiesValue';
 
 type PipelineRunTabParametersProps = {
-  run: PipelineRecurringRunKFv2 | PipelineRunKFv2 | null;
+  run: PipelineRecurringRunKF | PipelineRunKF | null;
   pipelineSpec: PipelineSpecVariable | undefined;
 };
 
@@ -29,9 +23,13 @@ const PipelineRunTabParameters: React.FC<PipelineRunTabParametersProps> = ({
 }) => {
   if (!run) {
     return (
-      <EmptyState variant={EmptyStateVariant.lg} data-id="loading-empty-state">
+      <EmptyState
+        titleText="Loading"
+        headingLevel="h4"
+        variant={EmptyStateVariant.lg}
+        data-id="loading-empty-state"
+      >
         <Spinner size="xl" />
-        <EmptyStateHeader titleText="Loading" headingLevel="h4" />
       </EmptyState>
     );
   }
@@ -46,8 +44,12 @@ const PipelineRunTabParameters: React.FC<PipelineRunTabParametersProps> = ({
 
   if (parameters.length === 0) {
     return (
-      <EmptyState variant={EmptyStateVariant.lg} data-id="parameters-empty-state">
-        <EmptyStateHeader titleText="No parameters" headingLevel="h2" />
+      <EmptyState
+        titleText="No parameters"
+        headingLevel="h2"
+        variant={EmptyStateVariant.lg}
+        data-id="parameters-empty-state"
+      >
         <EmptyStateBody>This pipeline run does not have any parameters defined.</EmptyStateBody>
       </EmptyState>
     );

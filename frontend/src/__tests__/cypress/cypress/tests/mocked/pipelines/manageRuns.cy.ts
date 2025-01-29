@@ -1,13 +1,13 @@
 /* eslint-disable camelcase */
 import {
   buildMockExperimentKF,
-  buildMockPipelineV2,
-  buildMockPipelineVersionV2,
-  buildMockPipelineVersionsV2,
+  buildMockPipeline,
+  buildMockPipelineVersion,
+  buildMockPipelineVersions,
   buildMockPipelines,
   buildMockRunKF,
 } from '~/__mocks__';
-import type { PipelineRunKFv2 } from '~/concepts/pipelines/kfTypes';
+import type { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import {
   manageRunsPage,
   manageRunsTable,
@@ -22,7 +22,7 @@ const initialRunIds = ['test-run-1', 'test-run-2'];
 
 const mockRuns = Array(11)
   .fill(buildMockRunKF())
-  .map((mockRun: PipelineRunKFv2, index) => ({
+  .map((mockRun: PipelineRunKF, index) => ({
     ...mockRun,
     display_name: `Test run ${index + 1}`,
     run_id: `test-run-${index + 1}`,
@@ -43,10 +43,6 @@ describe('Manage runs', () => {
     manageRunsTable.getRowByName('Test run 1').find();
   });
 
-  it('has param experiment filter by default', () => {
-    cy.findByTestId('experiment-filter-chip').should('have.text', 'Default');
-  });
-
   it('has param run IDs checked by default', () => {
     manageRunsTable.getRowByName('Test run 1').findCheckbox().should('be.checked');
     manageRunsTable.getRowByName('Test run 2').findCheckbox().should('be.checked');
@@ -63,22 +59,13 @@ describe('Manage runs', () => {
     manageRunsTable.getRowByName('Test run 2').findCheckbox().should('be.checked');
   });
 
-  it('navigates back to "Compare runs" page when "Cancel" toolbar action is clicked', () => {
-    manageRunsTable.findCancelButton().click();
-    cy.location('pathname').should(
-      'equal',
-      `/experiments/${projectName}/${experimentId}/compareRuns`,
-    );
-    cy.location('search').should('equal', '?runs=test-run-1,test-run-2');
-  });
-
   it('navigates to "Compare runs" page when "Compare runs" breadcrumb is clicked', () => {
     manageRunsPage.findBreadcrumb().findByRole('link', { name: 'Compare runs' }).click();
     cy.location('pathname').should(
       'equal',
       `/experiments/${projectName}/${experimentId}/compareRuns`,
     );
-    cy.location('search').should('equal', '?runs=test-run-1,test-run-2');
+    cy.location('search').should('equal', '?compareRuns=test-run-1,test-run-2');
   });
 
   it('navigates to experiment runs page when the experiment name breadcrumb is clicked', () => {
@@ -109,7 +96,7 @@ describe('Manage runs', () => {
       'equal',
       `/experiments/${projectName}/${experimentId}/compareRuns`,
     );
-    cy.location('search').should('equal', '?runs=test-run-1,test-run-2,test-run-3');
+    cy.location('search').should('equal', '?compareRuns=test-run-1,test-run-2,test-run-3');
   });
 });
 
@@ -122,10 +109,10 @@ const initIntercepts = () => {
     {
       path: { namespace: projectName, serviceName: 'dspa' },
     },
-    buildMockPipelines([buildMockPipelineV2({ pipeline_id: pipelineId })]),
+    buildMockPipelines([buildMockPipeline({ pipeline_id: pipelineId })]),
   );
 
-  const mockPipelineVersion = buildMockPipelineVersionV2({
+  const mockPipelineVersion = buildMockPipelineVersion({
     pipeline_version_id: pipelineVersionId,
     pipeline_id: pipelineId,
   });
@@ -135,7 +122,7 @@ const initIntercepts = () => {
     {
       path: { namespace: projectName, serviceName: 'dspa', pipelineId },
     },
-    buildMockPipelineVersionsV2([mockPipelineVersion]),
+    buildMockPipelineVersions([mockPipelineVersion]),
   );
 
   cy.interceptOdh(
@@ -150,7 +137,7 @@ const initIntercepts = () => {
       {
         path: { namespace: projectName, serviceName: 'dspa', runId: selectedRunId },
       },
-      mockRuns.find((mockRun) => mockRun.run_id === selectedRunId) as PipelineRunKFv2,
+      mockRuns.find((mockRun) => mockRun.run_id === selectedRunId) as PipelineRunKF,
     );
   });
   cy.interceptOdh(

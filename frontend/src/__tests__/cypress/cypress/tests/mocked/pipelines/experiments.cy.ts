@@ -4,7 +4,7 @@ import {
   mockDashboardConfig,
   mockDataSciencePipelineApplicationK8sResource,
   mockK8sResourceList,
-  buildMockPipelineV2,
+  buildMockPipeline,
   buildMockPipelines,
   mockProjectK8sResource,
   mockRouteK8sResource,
@@ -32,7 +32,7 @@ import {
 import { RecurringRunStatus, RuntimeStateKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 
 const projectName = 'test-project-name';
-const initialMockPipeline = buildMockPipelineV2({ display_name: 'Test pipeline' });
+const initialMockPipeline = buildMockPipeline({ display_name: 'Test pipeline' });
 const currentTime = new Date();
 currentTime.setMonth(currentTime.getMonth() - 3);
 const mockExperiments = [
@@ -285,7 +285,7 @@ describe('Experiments', () => {
       activeRunsTable.getRowByName('Test active run 4').findColumnName('Test active run 4').click();
       pipelineRunDetails
         .findErrorState('run-graph-error-state')
-        .should('have.text', 'Pipeline run graph unavailable');
+        .should('contain.text', 'Pipeline run graph unavailable');
 
       pipelineRunDetails.findDetailsTab().click();
       pipelineRunDetails.findDetailItem('Name').findValue().contains(mockActiveRuns.display_name);
@@ -302,7 +302,7 @@ describe('Experiments', () => {
       pipelineRunDetails.findPipelineSpecTab().click();
       pipelineRunDetails
         .findErrorState('pipeline-spec-error-state')
-        .should('have.text', 'Pipeline spec unavailable');
+        .should('contain.text', 'Pipeline spec unavailable');
     });
 
     it('navigates back to experiments from "Create run" page breadcrumb', () => {

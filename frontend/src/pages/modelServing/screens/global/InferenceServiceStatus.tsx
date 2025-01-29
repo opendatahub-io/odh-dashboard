@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Text, Icon, Tooltip } from '@patternfly/react-core';
+import { Icon, Popover, Button } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
   ExclamationCircleIcon,
@@ -8,7 +8,7 @@ import {
 } from '@patternfly/react-icons';
 import { InferenceServiceKind } from '~/k8sTypes';
 import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
-import { getInferenceServiceActiveModelState, getInferenceServiceStatusMessage } from './utils';
+import { getInferenceServiceModelState, getInferenceServiceStatusMessage } from './utils';
 import { useModelStatus } from './useModelStatus';
 
 type InferenceServiceStatusProps = {
@@ -30,38 +30,38 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
 
   const state = modelStatus?.failedToSchedule
     ? 'FailedToLoad'
-    : getInferenceServiceActiveModelState(inferenceService);
+    : getInferenceServiceModelState(inferenceService);
 
   const statusIcon = () => {
     switch (state) {
       case InferenceServiceModelState.LOADED:
       case InferenceServiceModelState.STANDBY:
         return (
-          <Icon
-            data-testid="status-tooltip"
-            role="button"
-            aria-label="success icon"
-            status="success"
+          <Button
+            aria-label="success status"
+            variant="link"
             isInline
-            tabIndex={0}
-            iconSize={iconSize}
-          >
-            <CheckCircleIcon />
-          </Icon>
+            data-testid="status-tooltip"
+            icon={
+              <Icon status="success" isInline iconSize={iconSize}>
+                <CheckCircleIcon />
+              </Icon>
+            }
+          />
         );
       case InferenceServiceModelState.FAILED_TO_LOAD:
         return (
-          <Icon
-            data-testid="status-tooltip"
-            role="button"
-            aria-label="error icon"
-            status="danger"
+          <Button
+            aria-label="danger status"
+            variant="link"
             isInline
-            tabIndex={0}
-            iconSize={iconSize}
-          >
-            <ExclamationCircleIcon />
-          </Icon>
+            data-testid="status-tooltip"
+            icon={
+              <Icon status="danger" isInline iconSize={iconSize}>
+                <ExclamationCircleIcon />
+              </Icon>
+            }
+          />
         );
       case InferenceServiceModelState.PENDING:
       case InferenceServiceModelState.LOADING:
@@ -72,49 +72,66 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
         );
       case InferenceServiceModelState.UNKNOWN:
         return (
-          <Icon
-            data-testid="status-tooltip"
-            role="button"
-            aria-label="warning icon"
-            status="warning"
+          <Button
+            aria-label="warning status"
+            variant="link"
             isInline
-            tabIndex={0}
-            iconSize={iconSize}
-          >
-            <OutlinedQuestionCircleIcon />
-          </Icon>
+            data-testid="status-tooltip"
+            icon={
+              <Icon status="warning" isInline iconSize={iconSize}>
+                <OutlinedQuestionCircleIcon />
+              </Icon>
+            }
+          />
         );
       default:
         return (
-          <Icon
-            data-testid="status-tooltip"
-            role="button"
-            aria-label="warning icon"
-            status="warning"
+          <Button
+            aria-label="warning status"
+            variant="link"
             isInline
-            tabIndex={0}
-            iconSize={iconSize}
-          >
-            <OutlinedQuestionCircleIcon />
-          </Icon>
+            data-testid="status-tooltip"
+            icon={
+              <Icon status="warning" isInline iconSize={iconSize}>
+                <OutlinedQuestionCircleIcon />
+              </Icon>
+            }
+          />
         );
     }
   };
 
+  const headerContent = () => {
+    switch (state) {
+      case InferenceServiceModelState.LOADED:
+        return 'Available';
+      case InferenceServiceModelState.FAILED_TO_LOAD:
+        return 'Failed';
+      case InferenceServiceModelState.PENDING:
+      case InferenceServiceModelState.LOADING:
+        return 'In Progress';
+      case InferenceServiceModelState.UNKNOWN:
+        return 'Status Unknown';
+      default:
+        return 'Inference Service Status';
+    }
+  };
+
+  const bodyContent = modelStatus?.failedToSchedule
+    ? 'Insufficient resources'
+    : getInferenceServiceStatusMessage(inferenceService);
+
   return (
-    <Tooltip
-      role="none"
+    <Popover
       data-testid="model-status-tooltip"
-      content={
-        modelStatus?.failedToSchedule ? (
-          <Text>Insufficient resources</Text>
-        ) : (
-          <Text>{getInferenceServiceStatusMessage(inferenceService)}</Text>
-        )
-      }
+      className="odh-u-scrollable"
+      position="top"
+      headerContent={headerContent()}
+      bodyContent={bodyContent}
+      isVisible={bodyContent ? undefined : false}
     >
       {statusIcon()}
-    </Tooltip>
+    </Popover>
   );
 };
 

@@ -1,5 +1,18 @@
 import * as React from 'react';
-import { Badge, MenuToggle, Select, SelectList, SelectOption } from '@patternfly/react-core';
+
+import {
+  Badge,
+  MenuToggle,
+  /**
+   * This is a special use case to use the Select component to dynamically generate either single/multi dropdown component
+   * And it allows user to de-select options
+   * No need to replace it with SimpleSelect or MultiSelection component here
+   */
+  // eslint-disable-next-line no-restricted-imports
+  Select,
+  SelectList,
+  SelectOption,
+} from '@patternfly/react-core';
 import { DropdownField } from '~/concepts/connectionTypes/types';
 import { FieldProps } from '~/concepts/connectionTypes/fields/types';
 import DefaultValueTextRenderer from '~/concepts/connectionTypes/fields/DefaultValueTextRenderer';
@@ -80,7 +93,7 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
             <>
               {menuToggleText()}
               {isMulti && (
-                <Badge className="pf-v5-u-ml-xs">
+                <Badge className="pf-v6-u-ml-xs">
                   {(isPreview ? field.properties.defaultValue?.length : value?.length) ?? 0}{' '}
                   selected
                 </Badge>

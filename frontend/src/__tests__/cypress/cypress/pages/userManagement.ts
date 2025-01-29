@@ -16,7 +16,7 @@ class GroupSettingSection extends Contextual<HTMLElement> {
   }
 
   findMultiGroupOptions(name: string) {
-    return this.find().findByRole('option', { name });
+    return this.find().document().findByRole('option', { name });
   }
 
   private findChipGroup() {
@@ -30,7 +30,7 @@ class GroupSettingSection extends Contextual<HTMLElement> {
   removeChipItem(name: string) {
     this.findChipGroup()
       .find('li')
-      .findByRole('button', { name: `close ${name}` })
+      .findByRole('button', { name: `Close ${name}` })
       .click();
   }
 

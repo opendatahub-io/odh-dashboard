@@ -12,6 +12,10 @@
 // You can read more here:
 // https://on.cypress.io/configuration
 // ***********************************************************
+// @ts-expect-error: Types are not available for this third-party library
+import registerCypressGrep from '@cypress/grep';
+
+registerCypressGrep();
 
 import chaiSubset from 'chai-subset';
 import '@cypress/code-coverage/support';
@@ -19,6 +23,7 @@ import 'cypress-mochawesome-reporter/register';
 import './commands';
 import { asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { addCommands as webSocketsAddCommands } from './websockets';
+import 'cypress-plugin-steps';
 
 chai.use(chaiSubset);
 

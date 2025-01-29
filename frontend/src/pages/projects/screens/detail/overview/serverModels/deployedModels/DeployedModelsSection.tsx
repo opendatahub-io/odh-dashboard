@@ -6,18 +6,16 @@ import {
   Card,
   CardBody,
   CardFooter,
+  Content,
   EmptyState,
   EmptyStateBody,
-  EmptyStateHeader,
-  EmptyStateIcon,
   Flex,
   FlexItem,
   Label,
   Spinner,
-  Text,
-  TextContent,
+  Stack,
 } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
@@ -33,6 +31,9 @@ import { InferenceServiceKind } from '~/k8sTypes';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import ModelServingContextProvider from '~/pages/modelServing/ModelServingContext';
 import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
+import { NamespaceApplicationCase } from '~/pages/projects/types';
+import ModelServingPlatformSelectButton from '~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
+import ModelServingPlatformSelectErrorAlert from '~/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
 import DeployedModelsCard from './DeployedModelsCard';
 
 interface DeployedModelsSectionProps {
@@ -40,7 +41,7 @@ interface DeployedModelsSectionProps {
 }
 
 const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPlatform }) => {
-  const navigate = useNavigate();
+  const [queryParams, setQueryParams] = useSearchParams();
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const {
     inferenceServices: { data: inferenceServices, loaded: inferenceServicesLoaded },
@@ -55,6 +56,8 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
   const [deployedModels, setDeployedModels] = React.useState<InferenceServiceKind[]>([]);
 
   const isKServeNIMEnabled = isProjectNIMSupported(currentProject);
+
+  const [errorSelectingPlatform, setErrorSelectingPlatform] = React.useState<Error>();
 
   React.useEffect(() => {
     if (!inferenceServicesLoaded || !modelServersLoaded) {
@@ -83,12 +86,11 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
 
   const renderError = (message?: string): React.ReactElement => (
     <Bullseye>
-      <EmptyState>
-        <EmptyStateHeader
-          titleText="Problem loading deployed models"
-          icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-          headingLevel="h2"
-        />
+      <EmptyState
+        headingLevel="h2"
+        icon={ExclamationCircleIcon}
+        titleText="Problem loading deployed models"
+      >
         <EmptyStateBody>{message}</EmptyStateBody>
       </EmptyState>
     </Bullseye>
@@ -108,36 +110,58 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
     }
 
     if (isMultiPlatform && modelServers.length && deployedModels.length === 0) {
-      const navToModels = () =>
-        navigate(
-          `/projects/${currentProject.metadata.name}?section=${ProjectSectionID.MODEL_SERVER}`,
-        );
+      const navToModels = () => {
+        // Instead of calling navigate(), change tabs by changing the section query param to retain other query params.
+        // This is how the GenericHorizontalBar component changes tabs internally.
+        queryParams.set('section', ProjectSectionID.MODEL_SERVER);
+        setQueryParams(queryParams);
+      };
 
       return (
         <OverviewCard
           objectType={ProjectObjectType.deployedModels}
           sectionType={SectionType.serving}
           title="Deployed models"
-          headerInfo={<Label>Multi-model serving enabled</Label>}
+          headerInfo={
+            <Flex gap={{ default: 'gapSm' }}>
+              <Label>Multi-model serving enabled</Label>
+              {servingPlatformStatuses.platformEnabledCount > 1 && (
+                <ModelServingPlatformSelectButton
+                  namespace={currentProject.metadata.name}
+                  servingPlatform={NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}
+                  setError={setErrorSelectingPlatform}
+                  variant="link"
+                  isInline
+                  data-testid="change-serving-platform-button"
+                />
+              )}
+            </Flex>
+          }
         >
           <CardBody>
-            <TextContent>
-              <Text component="small">
+            <Stack hasGutter>
+              {errorSelectingPlatform && (
+                <ModelServingPlatformSelectErrorAlert
+                  error={errorSelectingPlatform}
+                  clearError={() => setErrorSelectingPlatform(undefined)}
+                />
+              )}
+              <Content component="small">
                 Multiple models can be deployed from a single model server. Manage model servers and
                 and deploy models from the{' '}
                 <Button component="a" isInline variant="link" onClick={navToModels}>
                   Models
                 </Button>{' '}
                 tab.
-              </Text>
-            </TextContent>
+              </Content>
+            </Stack>
           </CardBody>
           <CardFooter>
             <Flex gap={{ default: 'gapLg' }}>
               <FlexItem>
-                <TextContent>
-                  <Text component="small">No deployed models</Text>
-                </TextContent>
+                <Content>
+                  <Content component="small">No deployed models</Content>
+                </Content>
               </FlexItem>
               <FlexItem>
                 <Button component="a" isInline variant="link" onClick={navToModels}>
@@ -159,25 +183,47 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
           sectionType={isMultiPlatform ? SectionType.setup : SectionType.serving}
           title={isMultiPlatform ? 'No model servers' : 'Deployed models'}
           headerInfo={
-            <Label>
-              {isMultiPlatform ? 'Multi-model serving enabled' : 'Single-model serving enabled'}
-            </Label>
+            <Flex gap={{ default: 'gapSm' }}>
+              <Label>
+                {isKServeNIMEnabled
+                  ? 'NVIDIA NIM serving enabled'
+                  : isMultiPlatform
+                  ? 'Multi-model serving enabled'
+                  : 'Single-model serving enabled'}
+              </Label>
+              {servingPlatformStatuses.platformEnabledCount > 1 && (
+                <ModelServingPlatformSelectButton
+                  namespace={currentProject.metadata.name}
+                  servingPlatform={NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}
+                  setError={setErrorSelectingPlatform}
+                  variant="link"
+                  isInline
+                  data-testid="change-serving-platform-button"
+                />
+              )}
+            </Flex>
           }
         >
           <CardBody>
-            {platformError ? (
-              <Alert isInline title="Loading error" variant="danger">
-                {platformError.message}
-              </Alert>
-            ) : (
-              <TextContent>
-                <Text component="small">
+            <Stack hasGutter>
+              {errorSelectingPlatform && (
+                <ModelServingPlatformSelectErrorAlert
+                  error={errorSelectingPlatform}
+                  clearError={() => setErrorSelectingPlatform(undefined)}
+                />
+              )}
+              {platformError ? (
+                <Alert isInline title="Loading error" variant="danger">
+                  {platformError.message}
+                </Alert>
+              ) : (
+                <Content component="small">
                   {isMultiPlatform
                     ? 'Before deploying a model, you must first add a model server.'
                     : 'Each model is deployed on its own model server.'}
-                </Text>
-              </TextContent>
-            )}
+                </Content>
+              )}
+            </Stack>
           </CardBody>
           {!platformError ? <AddModelFooter isNIM={isKServeNIMEnabled} /> : null}
         </OverviewCard>

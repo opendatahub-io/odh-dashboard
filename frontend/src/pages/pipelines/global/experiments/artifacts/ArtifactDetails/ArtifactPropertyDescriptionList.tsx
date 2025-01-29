@@ -11,7 +11,7 @@ import { Value } from '~/third_party/mlmd';
 import { MlmdPropertyDetailsValue } from '~/pages/pipelines/global/experiments/MlmdPropertyValue';
 
 interface ArtifactPropertyDescriptionListProps {
-  testId?: string;
+  testId: string;
   propertiesMap: [string, Value.AsObject][];
 }
 
@@ -20,7 +20,7 @@ export const ArtifactPropertyDescriptionList: React.FC<ArtifactPropertyDescripti
   testId,
 }) => (
   <DescriptionList isHorizontal data-testid={testId}>
-    <DescriptionListGroup>
+    <DescriptionListGroup style={{ alignItems: 'start' }}>
       {propertiesMap.map(([propKey, propValues]) => (
         <React.Fragment key={propKey}>
           <DescriptionListTerm data-testid={`${testId}-${propKey}`}>{propKey}</DescriptionListTerm>

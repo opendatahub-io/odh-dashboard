@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { ExperimentKFv2, PipelineKFv2, PipelineVersionKFv2 } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF, PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { PipelineParams, PipelinesFilter } from '~/concepts/pipelines/types';
 import { NotReadyError } from '~/utilities/useFetchState';
 
@@ -11,10 +11,10 @@ export type LoadMoreProps = {
 };
 
 export const useActiveExperimentLoadMore = (
-  initialState: UsePipelineDataRefProps<ExperimentKFv2>,
-): ((props: LoadMoreProps) => [ExperimentKFv2[], () => Promise<void>]) => {
+  initialState: UsePipelineDataRefProps<ExperimentKF>,
+): ((props: LoadMoreProps) => [ExperimentKF[], () => Promise<void>]) => {
   const { api } = usePipelinesAPI();
-  const { dataRef, pageTokenRef, showMoreData } = usePipelineDataRefs<ExperimentKFv2>(initialState);
+  const { dataRef, pageTokenRef, showMoreData } = usePipelineDataRefs<ExperimentKF>(initialState);
 
   return React.useCallback(
     ({ ...loadMoreProps }) => {
@@ -38,10 +38,10 @@ export const useActiveExperimentLoadMore = (
 };
 
 export const usePipelineLoadMore = (
-  initialState: UsePipelineDataRefProps<PipelineKFv2>,
-): ((props: LoadMoreProps) => [PipelineKFv2[], () => Promise<void>]) => {
+  initialState: UsePipelineDataRefProps<PipelineKF>,
+): ((props: LoadMoreProps) => [PipelineKF[], () => Promise<void>]) => {
   const { api } = usePipelinesAPI();
-  const { dataRef, pageTokenRef, showMoreData } = usePipelineDataRefs<PipelineKFv2>(initialState);
+  const { dataRef, pageTokenRef, showMoreData } = usePipelineDataRefs<PipelineKF>(initialState);
 
   return React.useCallback(
     ({ ...loadMoreProps }) => {
@@ -65,12 +65,12 @@ export const usePipelineLoadMore = (
 };
 
 export const usePipelineVersionLoadMore = (
-  initialState: UsePipelineDataRefProps<PipelineVersionKFv2>,
+  initialState: UsePipelineDataRefProps<PipelineVersionKF>,
   pipelineId?: string,
-): ((props: LoadMoreProps) => [PipelineVersionKFv2[], () => Promise<void>]) => {
+): ((props: LoadMoreProps) => [PipelineVersionKF[], () => Promise<void>]) => {
   const { api } = usePipelinesAPI();
   const { dataRef, pageTokenRef, showMoreData } =
-    usePipelineDataRefs<PipelineVersionKFv2>(initialState);
+    usePipelineDataRefs<PipelineVersionKF>(initialState);
   return React.useCallback(
     ({ ...loadMoreProps }) => {
       const onLoadMore = async () => {

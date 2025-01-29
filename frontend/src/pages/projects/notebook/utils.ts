@@ -1,7 +1,9 @@
 import { EventKind, NotebookKind } from '~/k8sTypes';
-import { EventStatus, NotebookStatus } from '~/types';
-import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
-import { useWatchNotebookEvents } from './useWatchNotebookEvents';
+import { EventStatus, NotebookSize, NotebookStatus } from '~/types';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
+import { useWatchNotebookEvents } from '~/api';
 
 export const hasStopAnnotation = (notebook: NotebookKind): boolean =>
   !!(
@@ -20,9 +22,6 @@ export const getNotebookPVCVolumeNames = (notebook: NotebookKind): { [name: stri
       [volume.name]: volume.persistentVolumeClaim.claimName,
     };
   }, {});
-
-const relativeMountPath = (mountPath: string): string =>
-  mountPath.slice(ROOT_MOUNT_PATH.length) || '/';
 
 export const getNotebookPVCMountPathMap = (
   notebook?: NotebookKind,
@@ -47,20 +46,6 @@ export const getNotebookPVCMountPathMap = (
     }),
     {},
   );
-};
-
-export const getNotebookMountPaths = (notebook?: NotebookKind): string[] => {
-  if (!notebook) {
-    return [];
-  }
-
-  return notebook.spec.template.spec.containers
-    .map(
-      (container) =>
-        container.volumeMounts?.map((volumeMount) => relativeMountPath(volumeMount.mountPath)) ||
-        [],
-    )
-    .flat();
 };
 
 export const getEventTimestamp = (event: EventKind): string =>
@@ -121,7 +106,11 @@ export const useNotebookStatus = (
   podUid: string,
   spawnInProgress: boolean,
 ): [status: NotebookStatus | null, events: EventKind[]] => {
-  const events = useWatchNotebookEvents(notebook, podUid, spawnInProgress);
+  const [events] = useWatchNotebookEvents(
+    notebook.metadata.namespace,
+    notebook.metadata.name,
+    podUid,
+  );
 
   const annotationTime = notebook.metadata.annotations?.['notebooks.kubeflow.org/last-activity'];
   const lastActivity = annotationTime
@@ -264,3 +253,31 @@ export const useNotebookStatus = (
 
 export const getEventFullMessage = (event: EventKind): string =>
   `${getEventTimestamp(event)} [${event.type}] ${event.message}`;
+
+export const fireNotebookTrackingEvent = (
+  action: 'started' | 'stopped',
+  notebook: NotebookKind,
+  size: NotebookSize | null,
+  acceleratorProfile: AcceleratorProfileState,
+): void => {
+  fireFormTrackingEvent(`Workbench ${action === 'started' ? 'Started' : 'Stopped'}`, {
+    outcome: TrackingOutcome.submit,
+    acceleratorCount: acceleratorProfile.unknownProfileDetected
+      ? undefined
+      : acceleratorProfile.count,
+    accelerator: acceleratorProfile.acceleratorProfile
+      ? `${acceleratorProfile.acceleratorProfile.spec.displayName} (${acceleratorProfile.acceleratorProfile.metadata.name}): ${acceleratorProfile.acceleratorProfile.spec.identifier}`
+      : acceleratorProfile.unknownProfileDetected
+      ? 'Unknown'
+      : 'None',
+    lastSelectedSize:
+      size?.name || notebook.metadata.annotations?.['notebooks.opendatahub.io/last-size-selection'],
+    lastSelectedImage:
+      notebook.metadata.annotations?.['notebooks.opendatahub.io/last-image-selection'],
+    projectName: notebook.metadata.namespace,
+    notebookName: notebook.metadata.name,
+    ...(action === 'stopped' && {
+      lastActivity: notebook.metadata.annotations?.['notebooks.kubeflow.org/last-activity'],
+    }),
+  });
+};

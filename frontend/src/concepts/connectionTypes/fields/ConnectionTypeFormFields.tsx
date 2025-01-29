@@ -7,9 +7,9 @@ import {
   ConnectionTypeField,
   ConnectionTypeFieldType,
   ConnectionTypeValueType,
-  isConnectionTypeDataField,
   SectionField,
 } from '~/concepts/connectionTypes/types';
+import { isConnectionTypeDataField } from '~/concepts/connectionTypes/utils';
 
 type Props = {
   fields?: ConnectionTypeField[];
@@ -65,9 +65,10 @@ const ConnectionTypeFormFields: React.FC<Props> = ({
   }, [connectionValues, fields]);
 
   const renderDataFields = (dataFields: ConnectionTypeDataField[]) =>
-    dataFields.map((field, i) => (
-      <DataFormFieldGroup key={i} field={field}>
-        {(id) => (
+    dataFields.map((field, i) => {
+      const id = `field-${field.envVar}`;
+      return (
+        <DataFormFieldGroup key={i} field={field} id={id}>
           <ConnectionTypeDataFormField
             id={id}
             field={field}
@@ -75,16 +76,17 @@ const ConnectionTypeFormFields: React.FC<Props> = ({
             onChange={onChange ? (v) => onChange(field, v) : undefined}
             value={connectionValues?.[field.envVar]}
             onValidate={onValidate ? (e) => onValidate(field, e) : undefined}
+            data-testid={`field ${field.envVar}`}
           />
-        )}
-      </DataFormFieldGroup>
-    ));
+        </DataFormFieldGroup>
+      );
+    });
 
   return (
     <>
       {fieldGroups?.map((fieldGroup, i) =>
         fieldGroup.section ? (
-          <SectionFormField field={fieldGroup.section} key={i}>
+          <SectionFormField field={fieldGroup.section} key={i} data-testid="fields-section">
             {renderDataFields(fieldGroup.fields)}
           </SectionFormField>
         ) : (

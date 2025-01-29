@@ -16,25 +16,29 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import { modelRegistryUrl, registeredModelUrl } from '~/pages/modelRegistry/screens/routeUtils';
 import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegisteredModels';
 import { filterLiveModels } from '~/concepts/modelRegistry/utils';
+import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
+import { useAppSelector } from '~/redux/hooks';
 import { useRegisterVersionData } from './useRegisterModelData';
 import { isRegisterVersionSubmitDisabled, registerVersion } from './utils';
 import RegistrationCommonFormSections from './RegistrationCommonFormSections';
-import { useRegistrationCommonState } from './useRegistrationCommonState';
 import PrefilledModelRegistryField from './PrefilledModelRegistryField';
 import RegistrationFormFooter from './RegistrationFormFooter';
 import RegisteredModelSelector from './RegisteredModelSelector';
 import { usePrefillRegisterVersionFields } from './usePrefillRegisterVersionFields';
+import { SubmitLabel } from './const';
 
 const RegisterVersion: React.FC = () => {
   const { modelRegistry: mrName, registeredModelId: prefilledRegisteredModelId } = useParams();
-
   const navigate = useNavigate();
-
-  const { isSubmitting, submitError, setSubmitError, handleSubmit, apiState, author } =
-    useRegistrationCommonState();
-
+  const { apiState } = React.useContext(ModelRegistryContext);
+  const author = useAppSelector((state) => state.user || '');
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [formData, setData] = useRegisterVersionData(prefilledRegisteredModelId);
   const isSubmitDisabled = isSubmitting || isRegisterVersionSubmitDisabled(formData);
+  const [submitError, setSubmitError] = React.useState<Error | undefined>(undefined);
+  const [errorName, setErrorName] = React.useState<string | undefined>(undefined);
+  const [versionName, setVersionName] = React.useState<string>('');
+
   const { registeredModelId } = formData;
 
   const [allRegisteredModels, loadedRegisteredModels, loadRegisteredModelsError] =
@@ -48,15 +52,29 @@ const RegisterVersion: React.FC = () => {
       setData,
     });
 
-  const onSubmit = () => {
+  const handleSubmit = async () => {
     if (!registeredModel) {
       return; // We shouldn't be able to hit this due to form validation
     }
-    handleSubmit(async () => {
-      await registerVersion(apiState, registeredModel, formData, author);
+    setIsSubmitting(true);
+    setSubmitError(undefined);
+
+    const {
+      data: { modelVersion, modelArtifact },
+      errors,
+    } = await registerVersion(apiState, registeredModel, formData, author);
+
+    if (modelVersion && modelArtifact) {
       navigate(registeredModelUrl(registeredModel.id, mrName));
-    });
+    } else if (Object.keys(errors).length > 0) {
+      const resourceName = Object.keys(errors)[0];
+      setVersionName(formData.versionName);
+      setErrorName(resourceName);
+      setSubmitError(errors[resourceName]);
+      setIsSubmitting(false);
+    }
   };
+
   const onCancel = () =>
     navigate(
       prefilledRegisteredModelId && registeredModel
@@ -91,7 +109,7 @@ const RegisterVersion: React.FC = () => {
       loaded={loadedRegisteredModels}
       empty={false}
     >
-      <PageSection variant="light" isFilled>
+      <PageSection hasBodyWrapper={false} isFilled>
         <Form isWidthLimited>
           <Stack hasGutter>
             <StackItem>
@@ -103,7 +121,7 @@ const RegisterVersion: React.FC = () => {
                 label="Model name"
                 isRequired
                 fieldId="model-name"
-                labelIcon={
+                labelHelp={
                   !loadedPrefillData ? <Spinner size="sm" className={spacing.mlMd} /> : undefined
                 }
               >
@@ -127,13 +145,14 @@ const RegisterVersion: React.FC = () => {
         </Form>
       </PageSection>
       <RegistrationFormFooter
-        submitLabel="Register new version"
+        submitLabel={SubmitLabel.REGISTER_VERSION}
+        errorName={errorName}
         submitError={submitError}
-        setSubmitError={setSubmitError}
         isSubmitDisabled={isSubmitDisabled}
         isSubmitting={isSubmitting}
-        onSubmit={onSubmit}
+        onSubmit={handleSubmit}
         onCancel={onCancel}
+        versionName={versionName}
       />
     </ApplicationsPage>
   );

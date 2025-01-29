@@ -1,0 +1,60 @@
+name: Create new Quay tag from latest main-tag for ODH release
+on:
+  workflow_dispatch:
+    inputs:
+      existingTag:
+        description: Source tag
+        required: true
+        type: string
+      releaseTag:
+        description: Destination tag
+        required: true
+        type: string
+
+env:
+  QUAY_ODH_DASHBOARD_IMAGE_REPO: ${{ secrets.QUAY_ODH_DASHBOARD_IMAGE_REPO }}
+
+jobs:
+  create-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: '0'
+      - name: Check authorized user
+        id: auth-check
+        run: |
+          AUTHORIZED_USERS_FILE=".github/workflows/authorized-tag-creators.txt"
+          if [[ ! -f "$AUTHORIZED_USERS_FILE" ]]; then
+            echo "Authorized users file not found!"
+            exit 1
+          fi
+          if ! grep -q "^${GITHUB_ACTOR}$" "$AUTHORIZED_USERS_FILE"; then
+            echo "User ${GITHUB_ACTOR} is not authorized to run this workflow."
+            exit 1
+          fi
+      - name: Install podman
+        shell: bash
+        run: |
+          sudo apt-get -y update
+          sudo apt-get -y install podman
+      - name: Pull Quay repository
+        shell: bash
+        run: |
+          podman pull ${QUAY_ODH_DASHBOARD_IMAGE_REPO}
+      - name: Create new release tag off of latest main-tag
+        shell: bash
+        run: |
+          podman tag odh-dashboard:${{ github.event.inputs.existingTag }} ${QUAY_ODH_DASHBOARD_IMAGE_REPO}:${{ github.event.inputs.releaseTag }}
+      - name: Login to quay.io
+        shell: bash
+        env:
+          QUAY_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}
+          QUAY_ROBOT_USERNAME: ${{ secrets.QUAY_ROBOT_USERNAME }}
+        run: |
+          podman login quay.io -u ${QUAY_ROBOT_USERNAME} -p ${QUAY_TOKEN}
+      - name: Push the latest release tag to Quay
+        shell: bash
+        run: |
+          podman push ${QUAY_ODH_DASHBOARD_IMAGE_REPO}:${{ github.event.inputs.releaseTag }}

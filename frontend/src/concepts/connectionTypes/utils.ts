@@ -1,29 +1,57 @@
-import { ProjectKind } from '~/k8sTypes';
-import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
+import { KnownLabels, SecretKind } from '~/k8sTypes';
+import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
 import {
   Connection,
   ConnectionTypeConfigMap,
   ConnectionTypeConfigMapObj,
   ConnectionTypeDataField,
+  connectionTypeDataFields,
+  ConnectionTypeDataFieldTypeUnion,
+  ConnectionTypeField,
   ConnectionTypeFieldType,
   ConnectionTypeFieldTypeUnion,
   ConnectionTypeValueType,
-  isConnectionTypeDataField,
 } from '~/concepts/connectionTypes/types';
 import { enumIterator } from '~/utilities/utils';
 
+export const isConnectionTypeDataFieldType = (
+  type: ConnectionTypeFieldTypeUnion | string,
+): type is ConnectionTypeDataFieldTypeUnion =>
+  connectionTypeDataFields.some((t) => t === type) && type !== ConnectionTypeFieldType.Section;
+
+export const isConnectionTypeDataField = (
+  field: ConnectionTypeField,
+): field is ConnectionTypeDataField => field.type !== ConnectionTypeFieldType.Section;
+
+export const isConnection = (secret: SecretKind): secret is Connection =>
+  !!secret.metadata.annotations &&
+  ('opendatahub.io/connection-type' in secret.metadata.annotations ||
+    'opendatahub.io/connection-type-ref' in secret.metadata.annotations) &&
+  !!secret.metadata.labels &&
+  KnownLabels.DASHBOARD_RESOURCE in secret.metadata.labels;
+
+export const getConnectionTypeRef = (connection: Connection | undefined): string | undefined =>
+  connection?.metadata.annotations['opendatahub.io/connection-type-ref'] ??
+  connection?.metadata.annotations['opendatahub.io/connection-type'];
+
 export const toConnectionTypeConfigMapObj = (
   configMap: ConnectionTypeConfigMap,
-): ConnectionTypeConfigMapObj => ({
-  ...configMap,
-  data: configMap.data
-    ? {
-        category: configMap.data.category ? JSON.parse(configMap.data.category) : undefined,
-        fields: configMap.data.fields ? JSON.parse(configMap.data.fields) : undefined,
-      }
-    : undefined,
-});
+): ConnectionTypeConfigMapObj => {
+  try {
+    return {
+      ...configMap,
+      data: configMap.data
+        ? {
+            category: configMap.data.category ? JSON.parse(configMap.data.category) : undefined,
+            fields: configMap.data.fields ? JSON.parse(configMap.data.fields) : undefined,
+          }
+        : undefined,
+    };
+  } catch (e) {
+    throw new Error('Failed to parse connection type data.');
+  }
+};
 
 export const toConnectionTypeConfigMap = (
   obj: ConnectionTypeConfigMapObj,
@@ -90,29 +118,95 @@ export const fieldNameToEnvVar = (name: string): string => {
   return allUppercase;
 };
 
-const ENV_VAR_NAME_REGEX = new RegExp('^[_a-zA-Z][_a-zA-Z0-9]*$');
+export const ENV_VAR_NAME_REGEX = new RegExp('^[_a-zA-Z][_a-zA-Z0-9]*$');
 export const isValidEnvVar = (name: string): boolean => ENV_VAR_NAME_REGEX.test(name);
 
-export const isModelServingCompatible = (envVars: string[]): boolean =>
-  ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_S3_ENDPOINT', 'AWS_S3_BUCKET'].every(
-    (envVar) => envVars.includes(envVar),
-  );
+export const isUriConnectionType = (connectionType: ConnectionTypeConfigMapObj): boolean =>
+  !!connectionType.data?.fields?.find((f) => isConnectionTypeDataField(f) && f.envVar === 'URI');
+export const isUriConnection = (connection?: Connection): boolean => !!connection?.data?.URI;
 
-export enum CompatibleTypes {
-  ModelServing = 'Model serving',
+export const S3ConnectionTypeKeys = [
+  'AWS_ACCESS_KEY_ID',
+  'AWS_SECRET_ACCESS_KEY',
+  'AWS_S3_ENDPOINT',
+  'AWS_S3_BUCKET',
+];
+
+export enum ModelServingCompatibleTypes {
+  S3ObjectStorage = 'S3 compatible object storage',
+  URI = 'URI',
 }
 
-const compatibilities: Record<CompatibleTypes, (envVars: string[]) => boolean> = {
-  [CompatibleTypes.ModelServing]: isModelServingCompatible,
+const modelServingCompatibleTypesMetadata: Record<
+  ModelServingCompatibleTypes,
+  {
+    name: string;
+    resource: string;
+    envVars: string[];
+    managedType?: string;
+  }
+> = {
+  [ModelServingCompatibleTypes.S3ObjectStorage]: {
+    name: ModelServingCompatibleTypes.S3ObjectStorage,
+    resource: 's3',
+    envVars: S3ConnectionTypeKeys,
+    managedType: 's3',
+  },
+  [ModelServingCompatibleTypes.URI]: {
+    name: ModelServingCompatibleTypes.URI,
+    resource: 'uri-v1',
+    envVars: ['URI'],
+  },
 };
 
-export const getCompatibleTypes = (envVars: string[]): CompatibleTypes[] =>
-  enumIterator(CompatibleTypes).reduce<CompatibleTypes[]>((acc, [, value]) => {
-    if (compatibilities[value](envVars)) {
-      acc.push(value);
+export const isModelServingTypeCompatible = (
+  envVars: string[],
+  type: ModelServingCompatibleTypes,
+): boolean =>
+  modelServingCompatibleTypesMetadata[type].envVars.every((envVar) => envVars.includes(envVar));
+
+const getModelServingCompatibleTypes = (envVars: string[]): ModelServingCompatibleTypes[] =>
+  enumIterator(ModelServingCompatibleTypes).reduce<ModelServingCompatibleTypes[]>(
+    (acc, [, value]) => {
+      if (isModelServingTypeCompatible(envVars, value)) {
+        acc.push(value);
+      }
+      return acc;
+    },
+    [],
+  );
+
+export const isModelServingCompatibleConnection = (connection: Connection): boolean =>
+  getConnectionModelServingCompatibleTypes(connection).length > 0;
+
+export const isModelServingCompatibleConnectionType = (
+  connectionType: ConnectionTypeConfigMapObj,
+): boolean => getConnectionTypeModelServingCompatibleTypes(connectionType).length > 0;
+
+export const getConnectionModelServingCompatibleTypes = (
+  connection: Connection,
+): ModelServingCompatibleTypes[] =>
+  getModelServingCompatibleTypes(
+    Object.entries(connection.data ?? {})
+      .filter(([, value]) => !!value)
+      .map(([key]) => key),
+  ).filter((type) => {
+    const { managedType } = modelServingCompatibleTypesMetadata[type];
+    if (managedType) {
+      return (
+        connection.metadata.annotations['opendatahub.io/connection-type'] === managedType &&
+        connection.metadata.labels['opendatahub.io/managed'] === 'true'
+      );
     }
-    return acc;
-  }, []);
+    return true;
+  });
+
+export const getConnectionTypeModelServingCompatibleTypes = (
+  connectionType: ConnectionTypeConfigMapObj,
+): ModelServingCompatibleTypes[] =>
+  getModelServingCompatibleTypes(
+    connectionType.data?.fields?.filter(isConnectionTypeDataField).map((f) => f.envVar) ?? [],
+  );
 
 export const getDefaultValues = (
   connectionType: ConnectionTypeConfigMapObj,
@@ -128,36 +222,66 @@ export const getDefaultValues = (
   return defaults;
 };
 
+export const withRequiredFields = (
+  connectionType?: ConnectionTypeConfigMapObj,
+  envVars?: string[],
+): ConnectionTypeConfigMapObj | undefined => {
+  if (!connectionType) {
+    return undefined;
+  }
+  const newFields = connectionType.data?.fields?.map((f) => ({
+    ...f,
+    ...(isConnectionTypeDataField(f) && envVars?.includes(f.envVar) && { required: true }),
+  }));
+  return {
+    ...connectionType,
+    data: connectionType.data
+      ? {
+          ...connectionType.data,
+          fields: newFields,
+        }
+      : undefined,
+  };
+};
+
 export const assembleConnectionSecret = (
-  project: ProjectKind,
-  type: ConnectionTypeConfigMapObj,
+  projectName: string,
+  connectionTypeName: string,
   nameDesc: K8sNameDescriptionFieldData,
   values: {
     [key: string]: ConnectionTypeValueType;
   },
 ): Connection => {
   const connectionValuesAsStrings = Object.fromEntries(
-    Object.entries(values).map(([key, value]) => {
-      if (Array.isArray(value)) {
-        return [key, JSON.stringify(value)]; // multi select
-      }
-      return [key, String(value)];
-    }),
+    Object.entries(values)
+      .map(([key, value]) => {
+        if (Array.isArray(value)) {
+          return [key, JSON.stringify(value)]; // multi select
+        }
+        return [key, String(value)];
+      })
+      .filter(([, value]) => !!value),
   );
+
+  const managedType = getModelServingCompatibleTypes(Object.keys(connectionValuesAsStrings)).map(
+    (t) => modelServingCompatibleTypesMetadata[t].managedType,
+  )[0];
+
   return {
     apiVersion: 'v1',
     kind: 'Secret',
     metadata: {
       name: nameDesc.k8sName.value || translateDisplayNameForK8s(nameDesc.name),
-      namespace: project.metadata.name,
+      namespace: projectName,
       labels: {
         'opendatahub.io/dashboard': 'true',
-        'opendatahub.io/managed': 'true',
+        ...(managedType && { 'opendatahub.io/managed': 'true' }),
       },
       annotations: {
-        'opendatahub.io/connection-type': type.metadata.name,
         'openshift.io/display-name': nameDesc.name,
         'openshift.io/description': nameDesc.description,
+        'opendatahub.io/connection-type-ref': connectionTypeName,
+        ...(managedType && { 'opendatahub.io/connection-type': managedType }),
       },
     },
     stringData: connectionValuesAsStrings,
@@ -201,3 +325,49 @@ export const parseConnectionSecretValues = (
 
   return response;
 };
+
+export const getConnectionTypeDisplayName = (
+  connection: Connection,
+  connectionTypes?: ConnectionTypeConfigMapObj[] | ConnectionTypeConfigMapObj,
+): string | undefined => {
+  const ref = getConnectionTypeRef(connection);
+  const matchingType = Array.isArray(connectionTypes)
+    ? connectionTypes.find((type) => type.metadata.name === ref)
+    : connectionTypes;
+  return matchingType ? getDisplayNameFromK8sResource(matchingType) : ref;
+};
+
+export const filterEnabledConnectionTypes = <
+  T extends ConnectionTypeConfigMap | ConnectionTypeConfigMapObj,
+>(
+  connectionTypes: T[],
+): T[] =>
+  connectionTypes.filter((t) => t.metadata.annotations?.['opendatahub.io/disabled'] !== 'true');
+
+export const findSectionFields = (
+  sectionIndex: number,
+  fields: ConnectionTypeField[],
+): ConnectionTypeField[] => {
+  const nextSectionIndex = fields.findIndex(
+    (f, i) => i > sectionIndex && f.type === ConnectionTypeFieldType.Section,
+  );
+
+  return fields.slice(sectionIndex + 1, nextSectionIndex === -1 ? undefined : nextSectionIndex);
+};
+
+export const filterModelServingConnectionTypes = (
+  connectionTypes: ConnectionTypeConfigMapObj[],
+): {
+  key: ModelServingCompatibleTypes;
+  name: string;
+  type: ConnectionTypeConfigMapObj;
+}[] =>
+  enumIterator(ModelServingCompatibleTypes)
+    .map(([, value]) => {
+      const typeMetadata = modelServingCompatibleTypesMetadata[value];
+      const connectionType = connectionTypes.find((t) => t.metadata.name === typeMetadata.resource);
+      return connectionType
+        ? { key: value, name: typeMetadata.name, type: connectionType }
+        : undefined;
+    })
+    .filter((t) => t != null);

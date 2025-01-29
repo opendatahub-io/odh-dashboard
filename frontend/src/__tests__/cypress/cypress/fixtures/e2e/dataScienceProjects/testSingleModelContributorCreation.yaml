@@ -1,0 +1,5 @@
+# testSingleModelContributorCreation.cy.ts Test Data #
+projectSingleModelDisplayName: "Cypress Single Model Test Project"
+projectSingleModelResourceName: "cypress-single-model-test-project" 
+singleModelName: "cypress-single-model"
+modelFilePath: "flan-t5-small/flan-t5-small-caikit"

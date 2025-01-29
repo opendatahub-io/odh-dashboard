@@ -4,11 +4,11 @@ import {
   Checkbox,
   Grid,
   GridItem,
-  Modal,
   Split,
   SplitItem,
   Tooltip,
 } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import { CloseIcon } from '@patternfly/react-icons';
 import * as React from 'react';
 import { allFeatureFlags } from '~/concepts/areas/const';
@@ -62,7 +62,7 @@ const DevFeatureFlagsBanner: React.FC<Props> = ({
   );
   return (
     <>
-      <Banner variant="blue">
+      <Banner color="blue">
         <Split>
           <SplitItem isFilled>
             Feature flags are{' '}

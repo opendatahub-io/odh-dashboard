@@ -1,15 +1,15 @@
 /* eslint-disable camelcase */
 import type {
   ArgoWorkflowPipelineVersion,
-  ExperimentKFv2,
-  PipelineKFv2,
-  PipelineRecurringRunKFv2,
-  PipelineRunKFv2,
-  PipelineVersionKFv2,
+  ExperimentKF,
+  PipelineKF,
+  PipelineRecurringRunKF,
+  PipelineRunKF,
+  PipelineVersionKF,
 } from '~/concepts/pipelines/kfTypes';
 import { buildMockRunKF } from '~/__mocks__';
 import { buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
-import { buildMockPipelineVersionsV2 } from '~/__mocks__/mockPipelineVersionsProxy';
+import { buildMockPipelineVersions } from '~/__mocks__/mockPipelineVersionsProxy';
 import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
 import { buildMockRecurringRunKF } from '~/__mocks__/mockRecurringRunKF';
 import { SearchSelector } from '~/__tests__/cypress/cypress/pages/components/subComponents/SearchSelector';
@@ -57,6 +57,7 @@ export class CreateRunPage {
 
   findPipelineVersionByName(name: string): Cypress.Chainable<JQuery<HTMLTableCellElement>> {
     return this.find()
+      .document()
       .findByTestId('pipeline-version-selector-table-list')
       .find('td')
       .contains(name);
@@ -162,7 +163,7 @@ export class CreateRunPage {
     cy.findByTestId('pipeline-selector-table-list').find('td').contains(name).click();
   }
 
-  mockGetExperiments(namespace: string, experiments: ExperimentKFv2[]): Cypress.Chainable<null> {
+  mockGetExperiments(namespace: string, experiments: ExperimentKF[]): Cypress.Chainable<null> {
     return cy.interceptOdh(
       'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments',
       {
@@ -190,7 +191,7 @@ export class CreateRunPage {
           }
         }
         if (filter) {
-          const { predicates } = JSON.parse(filter.toString());
+          const { predicates } = JSON.parse(decodeURIComponent(filter.toString()));
 
           if (predicates.length > 0) {
             predicates.forEach((predicate: { key: string; string_value: string }) => {
@@ -217,7 +218,7 @@ export class CreateRunPage {
     );
   }
 
-  mockGetPipelines(namespace: string, pipelines: PipelineKFv2[]): Cypress.Chainable<null> {
+  mockGetPipelines(namespace: string, pipelines: PipelineKF[]): Cypress.Chainable<null> {
     return cy.interceptOdh(
       'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines',
       {
@@ -229,20 +230,20 @@ export class CreateRunPage {
 
   mockGetPipelineVersions(
     namespace: string,
-    versions: (PipelineVersionKFv2 | ArgoWorkflowPipelineVersion)[],
+    versions: (PipelineVersionKF | ArgoWorkflowPipelineVersion)[],
     pipelineId: string,
   ): Cypress.Chainable<null> {
     return cy.interceptOdh(
       'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
       { path: { namespace, serviceName: 'dspa', pipelineId } },
-      buildMockPipelineVersionsV2(versions),
+      buildMockPipelineVersions(versions),
     );
   }
 
   mockCreateRun(
     namespace: string,
-    pipelineVersion: PipelineVersionKFv2,
-    { run_id, ...run }: Partial<PipelineRunKFv2>,
+    pipelineVersion: PipelineVersionKF,
+    { run_id, ...run }: Partial<PipelineRunKF>,
   ): Cypress.Chainable<null> {
     return cy.interceptOdh(
       'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs',
@@ -270,8 +271,8 @@ export class CreateRunPage {
 
   mockCreateRecurringRun(
     namespace: string,
-    pipelineVersion: PipelineVersionKFv2,
-    { recurring_run_id, ...recurringRun }: Partial<PipelineRecurringRunKFv2>,
+    pipelineVersion: PipelineVersionKF,
+    { recurring_run_id, ...recurringRun }: Partial<PipelineRecurringRunKF>,
   ): Cypress.Chainable<null> {
     return cy.interceptOdh(
       'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns',

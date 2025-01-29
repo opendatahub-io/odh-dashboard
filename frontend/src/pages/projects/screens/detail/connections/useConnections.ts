@@ -5,23 +5,34 @@ import useFetchState, {
   FetchStateCallbackPromise,
   NotReadyError,
 } from '~/utilities/useFetchState';
-import { Connection, isConnection } from '~/concepts/connectionTypes/types';
-import { LABEL_SELECTOR_DASHBOARD_RESOURCE, LABEL_SELECTOR_DATA_CONNECTION_AWS } from '~/const';
+import { Connection } from '~/concepts/connectionTypes/types';
+import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '~/const';
+import { isConnection, isModelServingCompatibleConnection } from '~/concepts/connectionTypes/utils';
 
-const useConnections = (namespace?: string): FetchState<Connection[]> => {
+const useConnections = (
+  namespace?: string,
+  modelServingCompatible?: boolean,
+): FetchState<Connection[]> => {
   const callback = React.useCallback<FetchStateCallbackPromise<Connection[]>>(
-    (opts) => {
+    async (opts) => {
       if (!namespace) {
         return Promise.reject(new NotReadyError('No namespace'));
       }
 
-      return getSecretsByLabel(
-        `${LABEL_SELECTOR_DASHBOARD_RESOURCE},${LABEL_SELECTOR_DATA_CONNECTION_AWS}`,
+      const secrets = await getSecretsByLabel(
+        `${LABEL_SELECTOR_DASHBOARD_RESOURCE}`,
         namespace,
         opts,
-      ).then((secrets) => secrets.filter((secret) => isConnection(secret)));
+      );
+      let connections = secrets.filter((secret) => isConnection(secret));
+
+      if (modelServingCompatible) {
+        connections = connections.filter(isModelServingCompatibleConnection);
+      }
+
+      return connections;
     },
-    [namespace],
+    [namespace, modelServingCompatible],
   );
 
   return useFetchState(callback, []);

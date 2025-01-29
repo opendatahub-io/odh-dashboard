@@ -6,28 +6,24 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
-  Divider,
   Flex,
   FlexItem,
   Icon,
-  MenuToggle,
   Popover,
-  Select,
-  SelectGroup,
-  SelectList,
-  SelectOption,
+  PopoverPosition,
   Tooltip,
 } from '@patternfly/react-core';
+import text from '@patternfly/react-styles/css/utilities/Text/text';
 import truncateStyles from '@patternfly/react-styles/css/components/Truncate/truncate';
 import { InfoCircleIcon, BlueprintIcon } from '@patternfly/react-icons';
 import { useBrowserStorage } from '~/components/browserStorage';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import {
-  getDescriptionFromK8sResource,
-  getDisplayNameFromK8sResource,
-  getResourceNameFromK8sResource,
-} from '~/concepts/k8s/utils';
+import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { ServiceKind } from '~/k8sTypes';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
+import WhosMyAdministrator from '~/components/WhosMyAdministrator';
+import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
+import { getServerAddress } from './utils';
 
 const MODEL_REGISTRY_FAVORITE_STORAGE_KEY = 'odh.dashboard.model.registry.favorite';
 
@@ -46,7 +42,6 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
     ModelRegistrySelectorContext,
   );
   const selection = modelRegistryServices.find((mr) => mr.metadata.name === modelRegistry);
-  const [isOpen, setIsOpen] = React.useState(false);
   const [favorites, setFavorites] = useBrowserStorage<string[]>(
     MODEL_REGISTRY_FAVORITE_STORAGE_KEY,
     [],
@@ -81,72 +76,50 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
     );
   };
 
-  const options = [
-    <SelectGroup label="All model registries" key="all">
-      <SelectList>
-        {modelRegistryServices.map((mr) => (
-          <SelectOption
-            id={mr.metadata.name}
-            key={mr.metadata.name}
-            value={getResourceNameFromK8sResource(mr)}
-            description={getMRSelectDescription(mr)}
-            isFavorited={favorites.includes(mr.metadata.name)}
-          >
-            {getDisplayNameFromK8sResource(mr)}
-          </SelectOption>
-        ))}
-      </SelectList>
-    </SelectGroup>,
-  ];
+  const allOptions: SimpleSelectOption[] = modelRegistryServices.map((mr) => ({
+    key: mr.metadata.name,
+    label: mr.metadata.name,
+    dropdownLabel: getDisplayNameFromK8sResource(mr),
+    description: getMRSelectDescription(mr),
+    isFavorited: favorites.includes(mr.metadata.name),
+  }));
 
-  const createFavorites = (favIds: string[]) => {
-    const favorite: JSX.Element[] = [];
-
-    options.forEach((item) => {
-      if (item.type === SelectList) {
-        item.props.children.filter(
-          (child: JSX.Element) => favIds.includes(child.props.value) && favorite.push(child),
-        );
-      } else if (item.type === SelectGroup) {
-        item.props.children.props.children.filter(
-          (child: JSX.Element) => favIds.includes(child.props.value) && favorite.push(child),
-        );
-      } else if (favIds.includes(item.props.value)) {
-        favorite.push(item);
-      }
-    });
-
-    return favorite;
-  };
+  const favoriteOptions = (favIds: string[]) =>
+    allOptions.filter((option) => favIds.includes(option.key));
 
   const selector = (
-    <Select
+    <SimpleSelect
       isScrollable
-      toggle={(toggleRef) => (
-        <MenuToggle
-          ref={toggleRef}
-          data-testid="model-registry-selector-dropdown"
-          aria-label="Model registry toggle"
-          id="download-steps-logs-toggle"
-          onClick={() => setIsOpen(!isOpen)}
-          isExpanded={isOpen}
-          isDisabled={modelRegistryServices.length === 0}
-        >
-          {toggleLabel}
-        </MenuToggle>
-      )}
-      onSelect={(_e, value) => {
-        setIsOpen(false);
+      dataTestId="model-registry-selector-dropdown"
+      toggleProps={{ id: 'download-steps-logs-toggle' }}
+      toggleLabel={toggleLabel}
+      aria-label="Model registry toggle"
+      previewDescription={false}
+      onChange={(key) => {
         updatePreferredModelRegistry(
-          modelRegistryServices.find((obj) => obj.metadata.name === value),
+          modelRegistryServices.find((obj) => obj.metadata.name === key),
         );
-        if (typeof value === 'string') {
-          onSelection(value);
-        }
+        onSelection(key);
       }}
-      selected={toggleLabel}
-      onOpenChange={(open) => setIsOpen(open)}
-      isOpen={isOpen}
+      maxMenuHeight="300px"
+      popperProps={{ maxWidth: '400px' }}
+      value={selection?.metadata.name}
+      groupedOptions={[
+        ...(favorites.length > 0
+          ? [
+              {
+                key: 'favorites-group',
+                label: 'Favorites',
+                options: favoriteOptions(favorites),
+              },
+            ]
+          : []),
+        {
+          key: 'all',
+          label: 'All model registries',
+          options: allOptions,
+        },
+      ]}
       onActionClick={(event: React.MouseEvent, value: string, actionId: string) => {
         event.stopPropagation();
         if (actionId === 'fav') {
@@ -158,17 +131,7 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
           }
         }
       }}
-    >
-      {favorites.length > 0 && (
-        <React.Fragment key="favorites-group">
-          <SelectGroup label="Favorites">
-            <SelectList>{createFavorites(favorites)}</SelectList>
-          </SelectGroup>
-          <Divider />
-        </React.Fragment>
-      )}
-      {options}
-    </Select>
+    />
   );
 
   if (primary) {
@@ -176,29 +139,62 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
   }
 
   return (
-    <Flex spaceItems={{ default: 'spaceItemsXs' }} alignItems={{ default: 'alignItemsCenter' }}>
-      <Icon>
-        <BlueprintIcon />
-      </Icon>
-      <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+    <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+      <FlexItem>
+        <Icon>
+          <BlueprintIcon />
+        </Icon>
+      </FlexItem>
+      <FlexItem>
+        <Bullseye>Model registry</Bullseye>
+      </FlexItem>
+      <FlexItem>{selector}</FlexItem>
+      {selection && (
         <FlexItem>
-          <Bullseye>Model registry</Bullseye>
+          <Popover
+            aria-label="Model registry description popover"
+            data-testid="mr-details-popover"
+            position="right"
+            headerContent={`${getDisplayNameFromK8sResource(selection)} details`}
+            bodyContent={
+              <DescriptionList>
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Description</DescriptionListTerm>
+                  <DescriptionListDescription
+                    className={
+                      !getDescriptionFromK8sResource(selection) ? text.textColorDisabled : ''
+                    }
+                  >
+                    {getDescriptionFromK8sResource(selection) || 'No description'}
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Server URL</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <InlineTruncatedClipboardCopy
+                      textToCopy={`https://${getServerAddress(selection)}`}
+                    />
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              </DescriptionList>
+            }
+          >
+            <Button variant="link" icon={<InfoCircleIcon />} data-testid="view-details-button">
+              View details
+            </Button>
+          </Popover>
         </FlexItem>
-        <FlexItem>{selector}</FlexItem>
-        {selection && getDescriptionFromK8sResource(selection) && (
-          <FlexItem>
-            <Popover
-              aria-label="Model registry description popover"
-              headerContent={getDisplayNameFromK8sResource(selection)}
-              bodyContent={getDescriptionFromK8sResource(selection)}
-            >
-              <Button variant="link" icon={<InfoCircleIcon />}>
-                View Description
-              </Button>
-            </Popover>
-          </FlexItem>
-        )}
-      </Flex>
+      )}
+      <FlexItem align={{ default: 'alignRight' }}>
+        <WhosMyAdministrator
+          buttonLabel="Need another registry?"
+          headerContent="Need another registry?"
+          leadText="To request access to a new or existing model registry, contact your administrator."
+          contentTestId="model-registry-help-content"
+          linkTestId="model-registry-help-button"
+          popoverPosition={PopoverPosition.left}
+        />
+      </FlexItem>
     </Flex>
   );
 };

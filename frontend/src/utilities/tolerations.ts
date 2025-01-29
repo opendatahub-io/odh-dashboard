@@ -1,9 +1,9 @@
 import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
-import _ from 'lodash-es';
+import * as _ from 'lodash-es';
 import { Toleration, TolerationEffect, TolerationOperator, TolerationSettings } from '~/types';
 import { DashboardConfigKind, NotebookKind } from '~/k8sTypes';
-import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
-import { AcceleratorProfileState } from './useAcceleratorProfileState';
+import { AcceleratorProfileState } from './useReadAcceleratorState';
+import { AcceleratorProfileFormData } from './useAcceleratorProfileFormState';
 
 export type TolerationChanges = {
   type: 'add' | 'remove' | 'replace' | 'nothing';
@@ -13,7 +13,7 @@ export type TolerationChanges = {
 export const determineTolerations = (
   tolerationSettings?: TolerationSettings,
   initialAcceleratorProfile?: AcceleratorProfileState,
-  selectedAcceleratorProfile?: AcceleratorProfileSelectFieldState,
+  selectedAcceleratorProfile?: AcceleratorProfileFormData,
   existingTolerations?: Toleration[],
 ): Toleration[] => {
   let tolerations = existingTolerations || [];

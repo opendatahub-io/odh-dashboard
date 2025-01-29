@@ -168,10 +168,10 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
           <PipelineNotSupported />
         ) : (
           <PageSection
+            hasBodyWrapper={false}
             isFilled
             padding={{ default: 'noPadding' }}
-            style={{ flexBasis: 0, overflowY: 'hidden' }}
-            variant="light"
+            style={{ flexBasis: 0 }}
           >
             <Flex
               direction={{ default: 'column' }}
@@ -240,9 +240,9 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                   eventKey={PipelineDetailsTab.YAML}
                   activeKey={activeTabKey}
                   hidden={PipelineDetailsTab.YAML !== activeTabKey}
-                  className="pf-v5-u-h-100"
+                  className="pf-v6-u-h-100"
                 >
-                  <TabContentBody hasPadding className="pf-v5-u-h-100">
+                  <TabContentBody hasPadding className="pf-v6-u-h-100">
                     <PipelineDetailsYAML
                       filename={`Pipeline ${
                         getCorePipelineSpec(pipelineVersion?.pipeline_spec)?.pipelineInfo.name ??

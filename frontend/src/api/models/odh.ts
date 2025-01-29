@@ -14,6 +14,13 @@ export const AcceleratorProfileModel: K8sModelCommon = {
   plural: 'acceleratorprofiles',
 };
 
+export const HardwareProfileModel = {
+  apiVersion: 'v1alpha1',
+  apiGroup: 'dashboard.opendatahub.io',
+  kind: 'HardwareProfile',
+  plural: 'hardwareprofiles',
+} satisfies K8sModelCommon;
+
 export const NotebookModel: K8sModelCommon = {
   apiVersion: 'v1',
   apiGroup: 'kubeflow.org',
@@ -33,4 +40,18 @@ export const InferenceServiceModel: K8sModelCommon = {
   apiGroup: 'serving.kserve.io',
   kind: 'InferenceService',
   plural: 'inferenceservices',
+};
+
+export const NIMAccountModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  apiGroup: 'nim.opendatahub.io',
+  kind: 'Account',
+  plural: 'accounts',
+};
+
+export const AuthModel: K8sModelCommon = {
+  apiVersion: 'v1alpha1',
+  apiGroup: 'services.platform.opendatahub.io',
+  kind: 'Auth',
+  plural: 'auths',
 };

@@ -56,13 +56,15 @@ const ExistingDataConnectionField: React.FC<ExistingDataConnectionFieldProps> = 
       data-testid="data-connection-group"
     >
       <TypeaheadSelect
+        id="select-connection"
+        dataTestId="existing-data-connection-select"
         selectOptions={selectOptions}
         selected={selectedDataConnection}
         onSelect={(_ev, selection) => setDataConnection(String(selection))}
         onClearSelection={() => setDataConnection()}
         placeholder={placeholderText}
         noOptionsFoundMessage={(filter) => `No data connection was found for "${filter}"`}
-        isDisabled={!loaded || connections.length === 0}
+        isDisabled={!loaded}
       />
     </FormGroup>
   );

@@ -3,24 +3,36 @@ import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { InferenceServiceModelState, ModelStatus } from '~/pages/modelServing/screens/types';
 import { asEnumMember } from '~/utilities/utils';
 
-export const getInferenceServiceActiveModelState = (
+export const getInferenceServiceModelState = (
   is: InferenceServiceKind,
 ): InferenceServiceModelState =>
-  asEnumMember(is.status?.modelStatus?.states?.activeModelState, InferenceServiceModelState) ||
   asEnumMember(is.status?.modelStatus?.states?.targetModelState, InferenceServiceModelState) ||
+  asEnumMember(is.status?.modelStatus?.states?.activeModelState, InferenceServiceModelState) ||
   InferenceServiceModelState.UNKNOWN;
 
 export const getInferenceServiceStatusMessage = (is: InferenceServiceKind): string => {
   const activeModelState = is.status?.modelStatus?.states?.activeModelState;
   const targetModelState = is.status?.modelStatus?.states?.targetModelState;
 
-  const failedToLoad = InferenceServiceModelState.FAILED_TO_LOAD;
-  const isFailedToLoad = activeModelState === failedToLoad || targetModelState === failedToLoad;
+  const stateMessage = (targetModelState || activeModelState) ?? 'Unknown';
 
-  const lastFailureMessage = is.status?.modelStatus?.lastFailureInfo?.message;
-  const stateMessage = activeModelState ?? targetModelState ?? 'Unknown';
+  if (
+    activeModelState === InferenceServiceModelState.FAILED_TO_LOAD ||
+    targetModelState === InferenceServiceModelState.FAILED_TO_LOAD
+  ) {
+    const lastFailureMessage = is.status?.modelStatus?.lastFailureInfo?.message;
+    return lastFailureMessage || stateMessage;
+  }
 
-  return isFailedToLoad ? lastFailureMessage ?? stateMessage : stateMessage;
+  if (
+    activeModelState === InferenceServiceModelState.LOADED &&
+    (targetModelState === InferenceServiceModelState.LOADING ||
+      targetModelState === InferenceServiceModelState.PENDING)
+  ) {
+    return 'Redeploying';
+  }
+
+  return stateMessage;
 };
 
 export const getInferenceServiceProjectDisplayName = (

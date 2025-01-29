@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Flex, FlexItem, Text, TextContent } from '@patternfly/react-core';
+import { Button, Flex, FlexItem, Content } from '@patternfly/react-core';
 import NotebookRouteLink from '~/pages/projects/notebook/NotebookRouteLink';
 import { NotebookDataState } from '~/pages/projects/notebook/types';
 import { ProjectKind } from '~/k8sTypes';
@@ -47,16 +47,15 @@ const NotebooksCardItems: React.FC<NotebooksCardItemsProps> = ({
           label={getDisplayNameFromK8sResource(notebookState.notebook)}
           notebook={notebookState.notebook}
           isRunning={notebookState.isRunning}
-          isLarge
         />
       ))}
       <Flex key="count" gap={{ default: 'gapMd' }}>
         <FlexItem>
-          <TextContent>
-            <Text component="small">
+          <Content>
+            <Content component="small">
               {listItems.length} of {notebooks.length} workbenches
-            </Text>
-          </TextContent>
+            </Content>
+          </Content>
         </FlexItem>
         <FlexItem>
           <Button

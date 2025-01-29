@@ -5,7 +5,7 @@ import { mockImageStreamK8sResource } from '~/__mocks__/mockImageStreamK8sResour
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
-import { mockPipelineKFv2 } from '~/__mocks__/mockPipelineKF';
+import { mockPipelineKF } from '~/__mocks__/mockPipelineKF';
 import { buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
 import { mockServiceAccountK8sResource } from '~/__mocks__/mockServiceAccountK8sResource';
@@ -22,20 +22,25 @@ import { ServingRuntimePlatform } from '~/types';
 import {
   DataSciencePipelineApplicationModel,
   ImageStreamModel,
+  InferenceServiceModel,
+  NIMAccountModel,
   NotebookModel,
-  PVCModel,
   PodModel,
   ProjectModel,
+  PVCModel,
   RouteModel,
   SecretModel,
   ServiceAccountModel,
-  TemplateModel,
-  InferenceServiceModel,
   ServingRuntimeModel,
+  TemplateModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
 import { asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
+import { NamespaceApplicationCase } from '~/pages/projects/types';
+import { mockNimServingRuntimeTemplate } from '~/__mocks__/mockNimResource';
+import { mockNimAccount } from '~/__mocks__/mockNimAccount';
+import { mockOdhApplication } from '~/__mocks__/mockOdhApplication';
 
 type HandlersProps = {
   isEmpty?: boolean;
@@ -44,18 +49,28 @@ type HandlersProps = {
   disableKServeConfig?: boolean;
   disableKServeMetrics?: boolean;
   disableModelConfig?: boolean;
+  disableNIMConfig?: boolean;
+  enableModelMesh?: boolean;
+  enableNIM?: boolean;
   isEnabled?: string;
   isUnknown?: boolean;
   templates?: boolean;
   imageStreamPythonDependencies?: string;
   v1PipelineServer?: boolean;
   pipelineServerInstalled?: boolean;
+  pipelineServerInitializing?: boolean;
+  pipelineServerErrorMessage?: string;
+  rejectAddSupportServingPlatformProject?: boolean;
+  disableWorkbenches?: boolean;
 };
 
 const initIntercepts = ({
   disableKServeConfig,
   disableKServeMetrics,
   disableModelConfig,
+  disableNIMConfig = true,
+  enableModelMesh,
+  enableNIM = false,
   isEmpty = false,
   imageStreamName = 'test-image',
   imageStreamTag = 'latest',
@@ -65,6 +80,10 @@ const initIntercepts = ({
   templates = false,
   v1PipelineServer = false,
   pipelineServerInstalled = true,
+  pipelineServerInitializing,
+  pipelineServerErrorMessage,
+  rejectAddSupportServingPlatformProject = false,
+  disableWorkbenches = false,
 }: HandlersProps) => {
   cy.interceptK8sList(
     { model: SecretModel, ns: 'test-project' },
@@ -82,18 +101,19 @@ const initIntercepts = ({
     'GET /api/dsc/status',
     mockDscStatus({
       installedComponents: {
-        workbenches: true,
+        workbenches: !disableWorkbenches,
         'data-science-pipelines-operator': true,
         kserve: true,
         'model-mesh': true,
+        'model-registry-operator': true,
       },
     }),
   );
 
   cy.interceptK8sList(
     { model: TemplateModel, ns: 'opendatahub' },
-    mockK8sResourceList(
-      templates
+    mockK8sResourceList([
+      ...(templates
         ? [
             mockServingRuntimeTemplateK8sResource({
               name: 'template-1',
@@ -101,14 +121,19 @@ const initIntercepts = ({
               platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
             }),
           ]
-        : [],
-    ),
+        : []),
+      ...(!disableNIMConfig ? [mockNimServingRuntimeTemplate()] : []),
+    ]),
   );
+  if (!disableNIMConfig) {
+    cy.interceptK8s(TemplateModel, mockNimServingRuntimeTemplate());
+  }
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
       disableKServe: disableKServeConfig,
       disableModelMesh: disableModelConfig,
+      disableNIMModelServing: disableNIMConfig,
       disableKServeMetrics,
     }),
   );
@@ -118,17 +143,26 @@ const initIntercepts = ({
       mockK8sResourceList([
         mockDataSciencePipelineApplicationK8sResource({
           dspVersion: v1PipelineServer ? 'v1' : 'v2',
+          message: pipelineServerErrorMessage,
+          initializing: pipelineServerInitializing,
         }),
       ]),
     );
     cy.interceptK8s(
       DataSciencePipelineApplicationModel,
-      mockDataSciencePipelineApplicationK8sResource({ dspVersion: v1PipelineServer ? 'v1' : 'v2' }),
+      mockDataSciencePipelineApplicationK8sResource({
+        dspVersion: v1PipelineServer ? 'v1' : 'v2',
+        message: pipelineServerErrorMessage,
+        initializing: pipelineServerInitializing,
+      }),
     );
   }
   cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
-  cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
-  cy.interceptK8s(ProjectModel, mockProjectK8sResource({}));
+
+  const mockProject = mockProjectK8sResource({ enableModelMesh, enableNIM });
+  cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProject]));
+  cy.interceptK8s(ProjectModel, mockProject);
+
   cy.interceptK8s(
     RouteModel,
     mockRouteK8sResource({
@@ -150,10 +184,6 @@ const initIntercepts = ({
         namespace: 'test-project',
       }),
     },
-  );
-  cy.interceptK8sList(
-    ProjectModel,
-    mockK8sResourceList([mockProjectK8sResource({ enableModelMesh: undefined })]),
   );
 
   cy.interceptK8sList(
@@ -200,8 +230,8 @@ const initIntercepts = ({
   cy.interceptOdh(
     'GET /api/namespaces/:namespace/:context',
     { path: { namespace: 'test-project', context: '*' } },
-    { applied: true },
-  );
+    rejectAddSupportServingPlatformProject ? { statusCode: 401 } : { applied: true },
+  ).as('addSupportServingPlatformProject');
   cy.interceptK8sList(
     { model: NotebookModel, ns: 'test-project' },
     mockK8sResourceList(
@@ -242,8 +272,21 @@ const initIntercepts = ({
       method: 'GET',
       pathname: `/api/service/pipelines/test-project/dspa/apis/v2beta1/pipelines`,
     },
-    buildMockPipelines(isEmpty ? [] : [mockPipelineKFv2({})]),
+    buildMockPipelines(isEmpty ? [] : [mockPipelineKF({})]),
   );
+
+  cy.interceptOdh('GET /api/components', null, [mockOdhApplication({})]);
+  cy.interceptOdh(
+    'GET /api/integrations/:internalRoute',
+    { path: { internalRoute: 'nim' } },
+    {
+      isInstalled: true,
+      isEnabled: true,
+      canInstall: false,
+      error: '',
+    },
+  );
+  cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
 };
 
 describe('Project Details', () => {
@@ -270,6 +313,21 @@ describe('Project Details', () => {
       projectDetails.showProjectResourceDetails();
       projectDetails.findProjectResourceNameText().should('have.text', 'test-project');
       projectDetails.findProjectResourceKindText().should('have.text', 'Project');
+    });
+
+    it('Should show pipeline server error when the server has errors', () => {
+      initIntercepts({
+        pipelineServerInitializing: true,
+        pipelineServerErrorMessage: 'Data connection unsuccessfully verified',
+      });
+      projectDetails.visit('test-project');
+      projectDetails
+        .findPipelineTimeoutErrorMessage()
+        .should('have.text', 'Data connection unsuccessfully verified');
+      projectDetails.findTab('Pipelines').click();
+      projectDetails
+        .findPipelineTimeoutErrorMessage()
+        .should('have.text', 'Data connection unsuccessfully verified');
     });
 
     it('Should not allow actions for non-provisioning users', () => {
@@ -305,18 +363,56 @@ describe('Project Details', () => {
       projectDetails.shouldHaveNoPlatformSelectedText();
     });
 
-    it('Both model serving platforms are enabled with no serving runtimes templates', () => {
+    it('Both model serving platforms are enabled, no platform selected', () => {
       initIntercepts({ disableKServeConfig: false, disableModelConfig: false });
       projectDetails.visitSection('test-project', 'model-server');
+      projectDetails.findSelectPlatformButton('single').should('exist');
+      projectDetails.findSelectPlatformButton('multi').should('exist');
+    });
 
-      //single-model-serving platform
-      projectDetails.findSingleModelDeployButton().should('have.attr', 'aria-disabled');
-      projectDetails.findSingleModelDeployButton().trigger('mouseenter');
+    it('Only single serving platform enabled, no serving runtimes templates', () => {
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: true,
+      });
+      projectDetails.visitSection('test-project', 'model-server');
+      projectDetails.findTopLevelDeployModelButton().should('have.attr', 'aria-disabled');
+      projectDetails.findTopLevelDeployModelButton().trigger('mouseenter');
       projectDetails.findDeployModelTooltip().should('be.visible');
+    });
 
-      //multi-model-serving platform
-      projectDetails.findMultiModelButton().should('have.attr', 'aria-disabled');
-      projectDetails.findMultiModelButton().trigger('mouseenter');
+    it('Only multi serving platform enabled, no serving runtimes templates', () => {
+      initIntercepts({
+        disableKServeConfig: true,
+        disableModelConfig: false,
+      });
+      projectDetails.visitSection('test-project', 'model-server');
+      projectDetails.findTopLevelAddModelServerButton().should('have.attr', 'aria-disabled');
+      projectDetails.findTopLevelAddModelServerButton().trigger('mouseenter');
+      projectDetails.findDeployModelTooltip().should('be.visible');
+    });
+
+    it('Both model serving platforms are enabled, single-model platform is selected, no serving runtimes templates', () => {
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+        enableModelMesh: false,
+      });
+      projectDetails.visitSection('test-project', 'model-server');
+      projectDetails.findTopLevelDeployModelButton().should('have.attr', 'aria-disabled');
+      projectDetails.findTopLevelDeployModelButton().trigger('mouseenter');
+      projectDetails.findDeployModelTooltip().should('be.visible');
+    });
+
+    it('Both model serving platforms are enabled, multi-model platform is selected, no serving runtimes templates', () => {
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+        enableModelMesh: true,
+      });
+      projectDetails.visitSection('test-project', 'model-server');
+      projectDetails.findTopLevelAddModelServerButton().should('have.attr', 'aria-disabled');
+      projectDetails.findTopLevelAddModelServerButton().trigger('mouseenter');
       projectDetails.findDeployModelTooltip().should('be.visible');
     });
 
@@ -426,6 +522,354 @@ describe('Project Details', () => {
       initIntercepts({ isUnknown: true });
       projectDetails.visitSection('test-project', 'workbenches');
       projectDetails.getNotebookRow('test-notebook').shouldHaveNotebookImageName('unknown');
+    });
+  });
+
+  describe('Selecting a model serving platform', () => {
+    it('Select single-model serving on models tab', () => {
+      initIntercepts({ disableKServeConfig: false, disableModelConfig: false });
+      projectDetails.visitSection('test-project', 'model-server');
+      projectDetails.findSelectPlatformButton('single').click();
+      cy.wait('@addSupportServingPlatformProject').then((interception) => {
+        expect(interception.request.url).to.contain(
+          `/api/namespaces/test-project/${NamespaceApplicationCase.KSERVE_PROMOTION}`,
+        );
+      });
+    });
+
+    it('Un-select single-model serving on models tab', () => {
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+        enableModelMesh: false,
+      });
+      projectDetails.visitSection('test-project', 'model-server');
+      projectDetails.findResetPlatformButton().click();
+      cy.wait('@addSupportServingPlatformProject').then((interception) => {
+        expect(interception.request.url).to.contain(
+          `/api/namespaces/test-project/${NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}`,
+        );
+      });
+    });
+
+    it('Select multi-model serving on models tab', () => {
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+      });
+      projectDetails.visitSection('test-project', 'model-server');
+      projectDetails.findSelectPlatformButton('multi').click();
+      cy.wait('@addSupportServingPlatformProject').then((interception) => {
+        expect(interception.request.url).to.contain(
+          `/api/namespaces/test-project/${NamespaceApplicationCase.MODEL_MESH_PROMOTION}`,
+        );
+      });
+    });
+
+    it('Un-select multi-model serving on models tab', () => {
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+        enableModelMesh: true,
+      });
+      projectDetails.visitSection('test-project', 'model-server');
+      projectDetails.findResetPlatformButton().click();
+      cy.wait('@addSupportServingPlatformProject').then((interception) => {
+        expect(interception.request.url).to.contain(
+          `/api/namespaces/test-project/${NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}`,
+        );
+      });
+    });
+
+    it('Select NIM serving on models tab', () => {
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+        disableNIMConfig: false,
+      });
+      projectDetails.visitSection('test-project', 'model-server');
+      projectDetails.findSelectPlatformButton('nim').click();
+      cy.wait('@addSupportServingPlatformProject').then((interception) => {
+        expect(interception.request.url).to.contain(
+          `/api/namespaces/test-project/${NamespaceApplicationCase.KSERVE_NIM_PROMOTION}`,
+        );
+      });
+    });
+
+    it('Un-select NIM serving on models tab', () => {
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+        disableNIMConfig: false,
+        enableModelMesh: false,
+        enableNIM: true,
+      });
+      projectDetails.visitSection('test-project', 'model-server');
+      projectDetails.findResetPlatformButton().click();
+      cy.wait('@addSupportServingPlatformProject').then((interception) => {
+        expect(interception.request.url).to.contain(
+          `/api/namespaces/test-project/${NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}`,
+        );
+      });
+    });
+
+    it('Show error when failed to select platform on overview tab', () => {
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+        rejectAddSupportServingPlatformProject: true,
+      });
+      projectDetails.visitSection('test-project', 'overview');
+      projectDetails.findSelectPlatformButton('single').click();
+      projectDetails.findErrorSelectingPlatform().should('exist');
+    });
+
+    it('Show error when failed to un-select platform on overview tab', () => {
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+        enableModelMesh: false,
+        rejectAddSupportServingPlatformProject: true,
+      });
+      projectDetails.visitSection('test-project', 'overview');
+      projectDetails.findResetPlatformButton().click();
+      projectDetails.findErrorSelectingPlatform().should('exist');
+    });
+
+    it('Select single-model serving on overview tab', () => {
+      initIntercepts({ disableKServeConfig: false, disableModelConfig: false });
+      projectDetails.visitSection('test-project', 'overview');
+      projectDetails.findSelectPlatformButton('single').click();
+      cy.wait('@addSupportServingPlatformProject').then((interception) => {
+        expect(interception.request.url).to.contain(
+          `/api/namespaces/test-project/${NamespaceApplicationCase.KSERVE_PROMOTION}`,
+        );
+      });
+    });
+
+    it('Un-select single-model serving on overview tab', () => {
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+        enableModelMesh: false,
+      });
+      projectDetails.visitSection('test-project', 'overview');
+      projectDetails.findResetPlatformButton().click();
+      cy.wait('@addSupportServingPlatformProject').then((interception) => {
+        expect(interception.request.url).to.contain(
+          `/api/namespaces/test-project/${NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}`,
+        );
+      });
+    });
+
+    it('Select multi-model serving on overview tab', () => {
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+      });
+      projectDetails.visitSection('test-project', 'overview');
+      projectDetails.findSelectPlatformButton('multi').click();
+      cy.wait('@addSupportServingPlatformProject').then((interception) => {
+        expect(interception.request.url).to.contain(
+          `/api/namespaces/test-project/${NamespaceApplicationCase.MODEL_MESH_PROMOTION}`,
+        );
+      });
+    });
+
+    it('Un-select multi-model serving on overview tab', () => {
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+        enableModelMesh: true,
+      });
+      projectDetails.visitSection('test-project', 'overview');
+      projectDetails.findResetPlatformButton().click();
+      cy.wait('@addSupportServingPlatformProject').then((interception) => {
+        expect(interception.request.url).to.contain(
+          `/api/namespaces/test-project/${NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}`,
+        );
+      });
+    });
+
+    it('Select NIM serving on overview tab', () => {
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+        disableNIMConfig: false,
+      });
+      projectDetails.visitSection('test-project', 'overview');
+      projectDetails.findSelectPlatformButton('nim').click();
+      cy.wait('@addSupportServingPlatformProject').then((interception) => {
+        expect(interception.request.url).to.contain(
+          `/api/namespaces/test-project/${NamespaceApplicationCase.KSERVE_NIM_PROMOTION}`,
+        );
+      });
+    });
+
+    it('Un-select NIM serving on overview tab', () => {
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+        disableNIMConfig: false,
+        enableModelMesh: false,
+        enableNIM: true,
+      });
+      projectDetails.visitSection('test-project', 'overview');
+      projectDetails.findResetPlatformButton().click();
+      cy.wait('@addSupportServingPlatformProject').then((interception) => {
+        expect(interception.request.url).to.contain(
+          `/api/namespaces/test-project/${NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}`,
+        );
+      });
+    });
+
+    it('Show error when failed to select platform on overview tab', () => {
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+        rejectAddSupportServingPlatformProject: true,
+      });
+      projectDetails.visitSection('test-project', 'model-server');
+      projectDetails.findSelectPlatformButton('single').click();
+      projectDetails.findErrorSelectingPlatform().should('exist');
+    });
+
+    it('Show error when failed to un-select platform on overview tab', () => {
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+        enableModelMesh: false,
+        rejectAddSupportServingPlatformProject: true,
+      });
+      projectDetails.visitSection('test-project', 'model-server');
+      projectDetails.findResetPlatformButton().click();
+      projectDetails.findErrorSelectingPlatform().should('exist');
+    });
+  });
+
+  describe('Navigating back to model registry after selecting a platform', () => {
+    it('Navigate back after choosing single-model serving from models tab', () => {
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+        enableModelMesh: false,
+      });
+      projectDetails.visitSection(
+        'test-project',
+        'model-server',
+        '&modelRegistryName=modelregistry-sample&registeredModelId=1&modelVersionId=2',
+      );
+      projectDetails.findBackToRegistryButton().click();
+      cy.url().should(
+        'include',
+        '/modelRegistry/modelregistry-sample/registeredModels/1/versions/2',
+      );
+    });
+
+    it('Navigate back after choosing multi-model serving from models tab', () => {
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+        enableModelMesh: true,
+      });
+      initModelServingIntercepts();
+      projectDetails.visitSection(
+        'test-project',
+        'model-server',
+        '&modelRegistryName=modelregistry-sample&registeredModelId=1&modelVersionId=2',
+      );
+      projectDetails
+        .findDeployModelDropdown()
+        .findDropdownItem('Deploy model from model registry')
+        .click();
+      cy.url().should(
+        'include',
+        '/modelRegistry/modelregistry-sample/registeredModels/1/versions/2',
+      );
+    });
+
+    it('Navigate back after choosing NIM serving from the models tab', () => {
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+        disableNIMConfig: false,
+        enableModelMesh: false,
+        enableNIM: true,
+      });
+      projectDetails.visitSection(
+        'test-project',
+        'model-server',
+        '&modelRegistryName=modelregistry-sample&registeredModelId=1&modelVersionId=2',
+      );
+      projectDetails.findBackToRegistryButton().click();
+      cy.url().should(
+        'include',
+        '/modelRegistry/modelregistry-sample/registeredModels/1/versions/2',
+      );
+    });
+
+    it('Navigate back after choosing single-model serving from overview tab after switching tabs', () => {
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+        enableModelMesh: false,
+      });
+      projectDetails.visitSection(
+        'test-project',
+        'model-server',
+        '&modelRegistryName=modelregistry-sample&registeredModelId=1&modelVersionId=2',
+      );
+      projectDetails.findSectionTab('overview').click();
+      projectDetails.findBackToRegistryButton().click();
+      cy.url().should(
+        'include',
+        '/modelRegistry/modelregistry-sample/registeredModels/1/versions/2',
+      );
+    });
+
+    it('Navigate back after choosing NIM serving from overview tab after switching tabs', () => {
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+        disableNIMConfig: false,
+        enableModelMesh: false,
+        enableNIM: true,
+      });
+      projectDetails.visitSection(
+        'test-project',
+        'model-server',
+        '&modelRegistryName=modelregistry-sample&registeredModelId=1&modelVersionId=2',
+      );
+      projectDetails.findSectionTab('overview').click();
+      projectDetails.findBackToRegistryButton().click();
+      cy.url().should(
+        'include',
+        '/modelRegistry/modelregistry-sample/registeredModels/1/versions/2',
+      );
+    });
+  });
+
+  describe('Workbench disabled', () => {
+    beforeEach(() => {
+      initIntercepts({
+        disableWorkbenches: true,
+      });
+    });
+
+    it('should hide workbench tab when workbenches are disabled', () => {
+      projectDetails.visit('test-project');
+      projectDetails.findTab('Workbenches').should('not.exist');
+    });
+
+    it('should hide workbench card in overview when workbenches are disabled', () => {
+      projectDetails.visitSection('test-project', 'overview');
+      cy.get('h2').contains('Workbench').should('not.exist');
+    });
+
+    it('should hide workbench references in storage table when workbenches are disabled', () => {
+      projectDetails.visitSection('test-project', 'cluster-storages');
+
+      cy.get('th').contains('Connected workbenches').should('not.exist');
     });
   });
 });

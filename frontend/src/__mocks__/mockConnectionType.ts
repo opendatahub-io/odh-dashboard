@@ -38,27 +38,17 @@ export const mockConnectionTypeConfigMapObj = ({
     namespace,
     resourceVersion: '173155965',
     creationTimestamp: '2024-08-29T00:00:00Z',
-    labels: { 'opendatahub.io/dashboard': 'true', 'opendatahub.io/connection-type': 'true' },
+    labels: {
+      'opendatahub.io/dashboard': 'true',
+      'opendatahub.io/connection-type': 'true',
+      ...(preInstalled && { 'platform.opendatahub.io/part-of': 'dashboard' }),
+    },
     annotations: {
       'openshift.io/display-name': displayName,
       'openshift.io/description': description,
-      'opendatahub.io/enabled': enabled ? 'true' : 'false',
+      'opendatahub.io/disabled': enabled ? 'false' : 'true',
       'opendatahub.io/username': username || '',
     },
-    ...(preInstalled
-      ? {
-          ownerReferences: [
-            {
-              apiVersion: 'datasciencecluster.opendatahub.io/v1',
-              kind: 'DataScienceCluster',
-              name: 'default-dsc',
-              uid: '06dd5a40-8473-4d5f-8afa-36885aa26ca9',
-              controller: true,
-              blockOwnerDeletion: true,
-            },
-          ],
-        }
-      : undefined),
   },
   data: {
     category: 'category' in rest ? rest.category : ['Database', 'Testing'],
@@ -308,7 +298,9 @@ const mockFields: ConnectionTypeField[] = [
     description: 'Test boolean',
     envVar: 'boolean_1',
     required: false,
-    properties: {},
+    properties: {
+      label: 'Input label',
+    },
   },
   {
     type: 'boolean',

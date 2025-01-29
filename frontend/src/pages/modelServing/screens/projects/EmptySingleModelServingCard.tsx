@@ -5,97 +5,50 @@ import {
   CardBody,
   CardFooter,
   CardTitle,
-  Text,
-  TextContent,
-  TextVariants,
+  Content,
+  ContentVariants,
 } from '@patternfly/react-core';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { ServingRuntimePlatform } from '~/types';
-import {
-  getSortedTemplates,
-  getTemplateEnabled,
-  getTemplateEnabledForPlatform,
-} from '~/pages/modelServing/customServingRuntimes/utils';
-import ModelServingPlatformButtonAction from '~/pages/modelServing/screens/projects/ModelServingPlatformButtonAction';
-import ManageKServeModal from './kServeModal/ManageKServeModal';
+import ModelServingPlatformSelectButton from '~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
+import { NamespaceApplicationCase } from '~/pages/projects/types';
 
-const EmptySingleModelServingCard: React.FC = () => {
-  const {
-    dataConnections: { data: dataConnections },
-  } = React.useContext(ProjectDetailsContext);
-  const [open, setOpen] = React.useState(false);
+type EmptySingleModelServingCardProps = {
+  setErrorSelectingPlatform: (e?: Error) => void;
+};
 
-  const {
-    servingRuntimes: { refresh: refreshServingRuntime },
-    servingRuntimeTemplates: [templates],
-    servingRuntimeTemplateOrder: { data: templateOrder },
-    servingRuntimeTemplateDisablement: { data: templateDisablement },
-    serverSecrets: { refresh: refreshTokens },
-    inferenceServices: { refresh: refreshInferenceServices },
-    currentProject,
-  } = React.useContext(ProjectDetailsContext);
-
-  const onSubmit = (submit: boolean) => {
-    if (submit) {
-      refreshServingRuntime();
-      refreshInferenceServices();
-      setTimeout(refreshTokens, 500); // need a timeout to wait for tokens creation
-    }
-  };
-
-  const templatesSorted = getSortedTemplates(templates, templateOrder);
-  const templatesEnabled = templatesSorted.filter((template) =>
-    getTemplateEnabled(template, templateDisablement),
-  );
-  const emptyTemplates = templatesEnabled.length === 0;
+const EmptySingleModelServingCard: React.FC<EmptySingleModelServingCardProps> = ({
+  setErrorSelectingPlatform,
+}) => {
+  const { currentProject } = React.useContext(ProjectDetailsContext);
 
   return (
-    <>
-      <Card
-        style={{
-          height: '100%',
-          border: '1px solid var(--pf-v5-global--BorderColor--100)',
-          borderRadius: 16,
-        }}
-        data-testid="single-serving-platform-card"
-      >
-        <CardTitle>
-          <TextContent>
-            <Text component={TextVariants.h2}>Single-model serving platform</Text>
-          </TextContent>
-        </CardTitle>
-        <CardBody>
-          Each model is deployed on its own model server. Choose this option when you want to deploy
-          a large model such as a large language model (LLM).
-        </CardBody>
-        <CardFooter>
-          <Bullseye>
-            <ModelServingPlatformButtonAction
-              isProjectModelMesh={false}
-              emptyTemplates={emptyTemplates}
-              onClick={() => setOpen(true)}
-              variant="secondary"
-              testId="single-serving-deploy-button"
-            />
-          </Bullseye>
-        </CardFooter>
-      </Card>
-      {open ? (
-        <ManageKServeModal
-          projectContext={{
-            currentProject,
-            dataConnections,
-          }}
-          servingRuntimeTemplates={templatesEnabled.filter((template) =>
-            getTemplateEnabledForPlatform(template, ServingRuntimePlatform.SINGLE),
-          )}
-          onClose={(submit) => {
-            onSubmit(submit);
-            setOpen(false);
-          }}
-        />
-      ) : null}
-    </>
+    <Card
+      style={{
+        height: '100%',
+        border: '1px solid var(--pf-t--global--border--color--default)',
+        borderRadius: 16,
+      }}
+      data-testid="single-serving-platform-card"
+    >
+      <CardTitle>
+        <Content component={ContentVariants.h2}>Single-model serving platform</Content>
+      </CardTitle>
+      <CardBody>
+        Each model is deployed on its own model server. Choose this option when you want to deploy a
+        large model such as a large language model (LLM).
+      </CardBody>
+      <CardFooter>
+        <Bullseye>
+          <ModelServingPlatformSelectButton
+            namespace={currentProject.metadata.name}
+            servingPlatform={NamespaceApplicationCase.KSERVE_PROMOTION}
+            setError={setErrorSelectingPlatform}
+            variant="secondary"
+            data-testid="single-serving-select-button"
+          />
+        </Bullseye>
+      </CardFooter>
+    </Card>
   );
 };
 

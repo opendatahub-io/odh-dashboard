@@ -1,5 +1,5 @@
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
-import { InferenceServiceKind, KnownLabels } from '~/k8sTypes';
+import { DeploymentMode, InferenceServiceKind, KnownLabels } from '~/k8sTypes';
 import { genUID } from '~/__mocks__/mockUtils';
 import { ContainerResources } from '~/types';
 
@@ -11,7 +11,9 @@ type MockResourceConfigType = {
   secretName?: string;
   deleted?: boolean;
   isModelMesh?: boolean;
+  missingStatus?: boolean;
   activeModelState?: string;
+  targetModelState?: string;
   url?: string;
   path?: string;
   acceleratorIdentifier?: string;
@@ -22,6 +24,10 @@ type MockResourceConfigType = {
   kserveInternalUrl?: string;
   statusPredictor?: Record<string, string>;
   kserveInternalLabel?: boolean;
+  additionalLabels?: Record<string, string>;
+  args?: string[];
+  env?: Array<{ name: string; value: string }>;
+  isKserveRaw?: boolean;
 };
 
 type InferenceServicek8sError = K8sStatus & {
@@ -69,7 +75,9 @@ export const mockInferenceServiceK8sResource = ({
   secretName = 'test-secret',
   deleted = false,
   isModelMesh = false,
+  missingStatus = false,
   activeModelState = 'Pending',
+  targetModelState = '',
   url = '',
   acceleratorIdentifier = '',
   path = 'path/to/model',
@@ -80,25 +88,34 @@ export const mockInferenceServiceK8sResource = ({
   statusPredictor = undefined,
   kserveInternalUrl = '',
   kserveInternalLabel = false,
+  additionalLabels = {},
+  args = [],
+  env = [],
+  isKserveRaw = false,
 }: MockResourceConfigType): InferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1beta1',
   kind: 'InferenceService',
   metadata: {
     annotations: {
       'openshift.io/display-name': displayName,
-      ...(isModelMesh
-        ? { 'serving.kserve.io/deploymentMode': 'ModelMesh' }
-        : {
-            'serving.knative.openshift.io/enablePassthrough': 'true',
-            'sidecar.istio.io/inject': 'true',
-            'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
-          }),
+      'serving.kserve.io/deploymentMode': isModelMesh
+        ? DeploymentMode.ModelMesh
+        : isKserveRaw
+        ? DeploymentMode.RawDeployment
+        : DeploymentMode.Serverless,
+      ...(!isModelMesh &&
+        !isKserveRaw && {
+          'serving.knative.openshift.io/enablePassthrough': 'true',
+          'sidecar.istio.io/inject': 'true',
+          'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
+        }),
     },
     creationTimestamp: '2023-03-17T16:12:41Z',
     ...(deleted ? { deletionTimestamp: new Date().toUTCString() } : {}),
     generation: 1,
     labels: {
       name,
+      ...additionalLabels,
       [KnownLabels.DASHBOARD_RESOURCE]: 'true',
       ...(kserveInternalLabel && { 'networking.knative.dev/visibility': 'cluster-local' }),
     },
@@ -134,48 +151,52 @@ export const mockInferenceServiceK8sResource = ({
           key: secretName,
           path,
         },
+        args,
+        env,
       },
     },
   },
-  status: {
-    components: {
-      ...(statusPredictor && { predictor: statusPredictor }),
-    },
-    url,
-    conditions: [
-      {
-        lastTransitionTime: '2023-03-17T16:12:41Z',
-        status: 'False',
-        type: 'PredictorReady',
+  status: missingStatus
+    ? undefined
+    : {
+        components: {
+          ...(statusPredictor && { predictor: statusPredictor }),
+        },
+        url,
+        conditions: [
+          {
+            lastTransitionTime: '2023-03-17T16:12:41Z',
+            status: 'False',
+            type: 'PredictorReady',
+          },
+          {
+            lastTransitionTime: '2023-03-17T16:12:41Z',
+            status: 'False',
+            type: 'Ready',
+          },
+        ],
+        modelStatus: {
+          copies: {
+            failedCopies: 0,
+            totalCopies: 0,
+          },
+          lastFailureInfo: {
+            message: lastFailureInfoMessage,
+            modelRevisionName: 'model-size__isvc-59ce37c85b',
+            reason: 'RuntimeUnhealthy',
+            location: '',
+            time: '',
+          },
+          states: {
+            activeModelState,
+            targetModelState,
+          },
+          transitionStatus: '',
+        },
+        ...(kserveInternalUrl && {
+          address: {
+            url: kserveInternalUrl,
+          },
+        }),
       },
-      {
-        lastTransitionTime: '2023-03-17T16:12:41Z',
-        status: 'False',
-        type: 'Ready',
-      },
-    ],
-    modelStatus: {
-      copies: {
-        failedCopies: 0,
-        totalCopies: 0,
-      },
-      lastFailureInfo: {
-        message: lastFailureInfoMessage,
-        modelRevisionName: 'model-size__isvc-59ce37c85b',
-        reason: 'RuntimeUnhealthy',
-        location: '',
-        time: '',
-      },
-      states: {
-        activeModelState,
-        targetModelState: '',
-      },
-      transitionStatus: '',
-    },
-    ...(kserveInternalUrl && {
-      address: {
-        url: kserveInternalUrl,
-      },
-    }),
-  },
 });

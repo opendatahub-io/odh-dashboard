@@ -1,15 +1,9 @@
 import * as React from 'react';
-import {
-  Spinner,
-  EmptyStateVariant,
-  EmptyState,
-  EmptyStateHeader,
-  Truncate,
-} from '@patternfly/react-core';
+import { Spinner, EmptyStateVariant, EmptyState, Truncate } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import {
-  PipelineRecurringRunKFv2,
-  PipelineRunKFv2,
+  PipelineRecurringRunKF,
+  PipelineRunKF,
   RecurringRunStatus,
 } from '~/concepts/pipelines/kfTypes';
 import { getRunDuration } from '~/concepts/pipelines/content/tables/utils';
@@ -29,7 +23,7 @@ import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { RecurringRunTrigger } from '~/concepts/pipelines/content/tables/renderUtils';
 
 type PipelineRunTabDetailsProps = {
-  run?: PipelineRunKFv2 | PipelineRecurringRunKFv2 | null;
+  run?: PipelineRunKF | PipelineRecurringRunKF | null;
   workflowName?: string;
 };
 
@@ -43,9 +37,13 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({ run, work
 
   if (!run || !workflowName) {
     return (
-      <EmptyState variant={EmptyStateVariant.lg} data-id="loading-empty-state">
+      <EmptyState
+        headingLevel="h4"
+        titleText="Loading"
+        variant={EmptyStateVariant.lg}
+        data-id="loading-empty-state"
+      >
         <Spinner size="xl" />
-        <EmptyStateHeader titleText="Loading" headingLevel="h4" />
       </EmptyState>
     );
   }
@@ -58,13 +56,13 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({ run, work
       key: 'Project',
       value: <Link to={`/projects/${namespace}`}>{getDisplayNameFromK8sResource(project)}</Link>,
     },
-    ...(version
-      ? [
+    ...(versionError
+      ? [{ key: 'Pipeline version', value: 'No pipeline version' }]
+      : [
           {
             key: 'Pipeline version',
             value: (
               <PipelineVersionLink
-                displayName={version.display_name}
                 loadingIndicator={<Spinner size="sm" />}
                 loaded={versionLoaded}
                 version={version}
@@ -72,10 +70,7 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({ run, work
               />
             ),
           },
-        ]
-      : versionError
-      ? [{ key: 'Pipeline version', value: 'No pipeline version' }]
-      : []),
+        ]),
     ...(pipeline
       ? [
           {

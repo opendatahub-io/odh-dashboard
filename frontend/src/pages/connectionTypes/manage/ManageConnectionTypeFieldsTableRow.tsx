@@ -6,21 +6,26 @@ import {
   ConnectionTypeField,
   ConnectionTypeFieldType,
   SectionField,
-  isConnectionTypeDataField,
 } from '~/concepts/connectionTypes/types';
-import { defaultValueToString, fieldTypeToString } from '~/concepts/connectionTypes/utils';
+import {
+  defaultValueToString,
+  fieldTypeToString,
+  findSectionFields,
+} from '~/concepts/connectionTypes/utils';
 import type { RowProps } from '~/utilities/useDraggableTableControlled';
 import { columns } from '~/pages/connectionTypes/manage/fieldTableColumns';
-import { ConnectionTypeFieldRemoveModal } from '~/pages/connectionTypes/manage/ConnectionTypeFieldRemoveModal';
+import ConnectionTypeDataFieldRemoveModal from '~/pages/connectionTypes/manage/ConnectionTypeDataFieldRemoveModal';
+import ConnectionTypeSectionRemoveModal from '~/pages/connectionTypes/manage/ConnectionTypeSectionRemoveModal';
 import { TableRowTitleDescription } from '~/components/table';
+import { ValidationContext } from '~/utilities/useValidation';
+import { ValidationErrorCodes } from '~/concepts/connectionTypes/validationUtils';
 
 type Props = {
   row: ConnectionTypeField;
-  rowIndex: number;
   fields: ConnectionTypeField[];
   onEdit: () => void;
-  onRemove: () => void;
-  onDuplicate: (field: ConnectionTypeField) => void;
+  onRemove: (removeSectionFields?: boolean) => void;
+  onDuplicate: () => void;
   onAddField: (parentSection: SectionField) => void;
   onMoveToSection: () => void;
   onChange: (updatedField: ConnectionTypeField) => void;
@@ -28,7 +33,6 @@ type Props = {
 
 const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
   row,
-  rowIndex,
   fields,
   onEdit,
   onRemove,
@@ -38,6 +42,8 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
   onChange,
   ...props
 }) => {
+  const rowIndex = React.useMemo(() => fields.findIndex((f) => f === row), [fields, row]);
+  const { hasValidationIssue } = React.useContext(ValidationContext);
   const showMoveToSection = React.useMemo(() => {
     const parentSection = fields.findLast(
       (f, i) => f.type === ConnectionTypeFieldType.Section && i < rowIndex,
@@ -47,16 +53,6 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
     return potentialSectionsToMoveTo > 0;
   }, [fields, rowIndex]);
   const [showRemoveField, setShowRemoveField] = React.useState<boolean>();
-
-  const isEnvVarConflict = React.useMemo(
-    () =>
-      row.type === ConnectionTypeFieldType.Section
-        ? false
-        : !!fields.find(
-            (f) => f !== row && isConnectionTypeDataField(f) && f.envVar === row.envVar,
-          ),
-    [row, fields],
-  );
 
   if (row.type === ConnectionTypeFieldType.Section) {
     return (
@@ -68,7 +64,6 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
         />
         <Td dataLabel={columns[0].label} data-testid="field-name">
           <TableRowTitleDescription
-            boldTitle={false}
             title={
               <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
                 <FlexItem>
@@ -101,8 +96,9 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
               },
               {
                 title: 'Duplicate',
-                onClick: () => onDuplicate({ ...row, name: `Copy of ${row.name}` }),
+                onClick: () => onDuplicate(),
               },
+              { isSeparator: true },
               {
                 title: 'Remove',
                 onClick: () => setShowRemoveField(true),
@@ -111,13 +107,13 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
           />
         </Td>
         {showRemoveField ? (
-          <ConnectionTypeFieldRemoveModal
-            field={row.name}
-            isSection
-            onClose={(submit) => {
+          <ConnectionTypeSectionRemoveModal
+            field={row}
+            fields={findSectionFields(rowIndex, fields)}
+            onClose={(submit, removeFields) => {
               setShowRemoveField(false);
               if (submit) {
-                onRemove();
+                onRemove(removeFields);
               }
             }}
           />
@@ -135,7 +131,6 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
       />
       <Td dataLabel={columns[0].label} data-testid="field-name" visibility={columns[0].visibility}>
         <TableRowTitleDescription
-          boldTitle={false}
           title={<Truncate content={row.name} />}
           description={row.description}
           truncateDescriptionLines={2}
@@ -146,7 +141,10 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
           <FlexItem>
             <Truncate content={row.envVar || '-'} />
           </FlexItem>
-          {isEnvVarConflict ? (
+          {hasValidationIssue(
+            ['fields', rowIndex, 'envVar'],
+            ValidationErrorCodes.ENV_VAR_CONFLICT,
+          ) ? (
             <FlexItem>
               <Icon
                 status="danger"
@@ -186,7 +184,7 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
             },
             {
               title: 'Duplicate',
-              onClick: () => onDuplicate({ ...row, name: `Copy of ${row.name}` }),
+              onClick: () => onDuplicate(),
             },
             ...(showMoveToSection
               ? [
@@ -196,6 +194,7 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
                   },
                 ]
               : []),
+            { isSeparator: true },
             {
               title: 'Remove',
               onClick: () => setShowRemoveField(true),
@@ -204,9 +203,8 @@ const ManageConnectionTypeFieldsTableRow: React.FC<Props> = ({
         />
       </Td>
       {showRemoveField ? (
-        <ConnectionTypeFieldRemoveModal
-          field={row.name}
-          isSection={false}
+        <ConnectionTypeDataFieldRemoveModal
+          field={row}
           onClose={(submit) => {
             setShowRemoveField(false);
             if (submit) {

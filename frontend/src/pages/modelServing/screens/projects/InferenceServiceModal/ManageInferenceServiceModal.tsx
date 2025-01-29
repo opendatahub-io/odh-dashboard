@@ -1,8 +1,10 @@
 import * as React from 'react';
-import { Form, FormSection, Modal, Stack, StackItem } from '@patternfly/react-core';
+import { Form, FormSection, HelperTextItem } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
   getCreateInferenceServiceLabels,
+  isConnectionPathValid,
   submitInferenceServiceResourceWithDryRun,
   useCreateInferenceServiceObject,
 } from '~/pages/modelServing/screens/projects/utils';
@@ -12,15 +14,20 @@ import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
 import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { AwsKeys } from '~/pages/projects/dataConnections/const';
-import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
-import { containsOnlySlashes, isS3PathValid } from '~/utilities/string';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 import usePrefillDeployModalFromModelRegistry from '~/pages/modelRegistry/screens/RegisteredModels/usePrefillDeployModalFromModelRegistry';
+import useConnectionTypesEnabled from '~/concepts/connectionTypes/useConnectionTypesEnabled';
+import { Connection } from '~/concepts/connectionTypes/types';
+import K8sNameDescriptionField, {
+  useK8sNameDescriptionFieldData,
+} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import DataConnectionSection from './DataConnectionSection';
 import ProjectSection from './ProjectSection';
 import InferenceServiceFrameworkSection from './InferenceServiceFrameworkSection';
 import InferenceServiceServingRuntimeSection from './InferenceServiceServingRuntimeSection';
-import InferenceServiceNameSection from './InferenceServiceNameSection';
+import { ConnectionSection } from './ConnectionSection';
 
 type ManageInferenceServiceModalProps = {
   onClose: (submit: boolean) => void;
@@ -46,11 +53,11 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
   registeredModelDeployInfo,
   shouldFormHidden,
 }) => {
-  const [createData, setCreateData, resetData] = useCreateInferenceServiceObject(editInfo);
+  const [createData, setCreateData] = useCreateInferenceServiceObject(editInfo);
+  const { data: inferenceServiceNameDesc, onDataChange: setInferenceServiceNameDesc } =
+    useK8sNameDescriptionFieldData({ initialData: editInfo });
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
-  const isInferenceServiceNameWithinLimit =
-    translateDisplayNameForK8s(createData.name).length <= 253;
 
   const currentProjectName = projectContext?.currentProject.metadata.name || '';
   const currentServingRuntimeName = projectContext?.currentServingRuntime?.metadata.name || '';
@@ -63,39 +70,55 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
       registeredModelDeployInfo,
     );
 
+  const isConnectionTypesEnabled = useConnectionTypesEnabled();
+  const [connection, setConnection] = React.useState<Connection>();
+  const [isConnectionValid, setIsConnectionValid] = React.useState(false);
+
+  const hasEditInfo = !!editInfo;
   React.useEffect(() => {
-    setCreateData('project', currentProjectName);
-    setCreateData('servingRuntimeName', currentServingRuntimeName);
-  }, [setCreateData, currentProjectName, currentServingRuntimeName]);
+    if (!hasEditInfo) {
+      setCreateData('project', currentProjectName);
+      setCreateData('servingRuntimeName', currentServingRuntimeName);
+    }
+  }, [setCreateData, currentProjectName, currentServingRuntimeName, hasEditInfo]);
+
+  React.useEffect(() => {
+    setCreateData('name', inferenceServiceNameDesc.name);
+    setCreateData('k8sName', inferenceServiceNameDesc.k8sName.value);
+  }, [inferenceServiceNameDesc, setCreateData]);
 
   const storageCanCreate = (): boolean => {
-    if (createData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
-      return createData.storage.dataConnection !== '';
+    if (createData.storage.type === InferenceServiceStorageType.EXISTING_URI) {
+      return !!createData.storage.uri;
     }
-    return isAWSValid(createData.storage.awsData, [AwsKeys.AWS_S3_BUCKET]);
+    if (createData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
+      if (isConnectionTypesEnabled) {
+        return isConnectionValid;
+      }
+      return (
+        createData.storage.dataConnection !== '' && isConnectionPathValid(createData.storage.path)
+      );
+    }
+    // NEW_STORAGE
+    if (isConnectionTypesEnabled) {
+      return isConnectionValid;
+    }
+    return (
+      isAWSValid(createData.storage.awsData, [AwsKeys.AWS_S3_BUCKET]) &&
+      isConnectionPathValid(createData.storage.path)
+    );
   };
 
   const isDisabled =
     actionInProgress ||
-    createData.name.trim() === '' ||
+    !isK8sNameDescriptionDataValid(inferenceServiceNameDesc) ||
     createData.project === '' ||
     createData.format.name === '' ||
     createData.servingRuntimeName === '' ||
-    containsOnlySlashes(createData.storage.path) ||
-    !isS3PathValid(createData.storage.path) ||
-    createData.storage.path === '' ||
-    !isInferenceServiceNameWithinLimit ||
     !storageCanCreate();
 
-  const onBeforeClose = (submitted: boolean) => {
-    onClose(submitted);
-    setError(undefined);
-    setActionInProgress(false);
-    resetData();
-  };
-
   const onSuccess = () => {
-    onBeforeClose(true);
+    onClose(true);
   };
 
   const setErrorModal = (e: Error) => {
@@ -113,11 +136,19 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
         ...getCreateInferenceServiceLabels(registeredModelDeployInfo),
       },
       editInfo,
-      undefined,
+      createData.servingRuntimeName,
+      createData.k8sName,
       true,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      connection,
     )
       .then(() => onSuccess())
       .catch((e) => {
+        setActionInProgress(false);
         setErrorModal(e);
       });
   };
@@ -128,12 +159,12 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
       description="Configure properties for deploying your model"
       variant="medium"
       isOpen
-      onClose={() => onBeforeClose(false)}
+      onClose={() => onClose(false)}
       footer={
         <DashboardModalFooter
           submitLabel={editInfo ? 'Redeploy' : 'Deploy'}
           onSubmit={submit}
-          onCancel={() => onBeforeClose(false)}
+          onCancel={() => onClose(false)}
           isSubmitDisabled={isDisabled}
           error={error}
           alertTitle="Error creating model server"
@@ -142,57 +173,62 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
       showClose
     >
       <Form>
-        <Stack hasGutter>
-          <StackItem>
-            {projectSection || (
-              <ProjectSection
-                projectName={
-                  (projectContext?.currentProject &&
-                    getDisplayNameFromK8sResource(projectContext.currentProject)) ||
-                  editInfo?.metadata.namespace ||
-                  ''
-                }
-              />
-            )}
-          </StackItem>
-          {!shouldFormHidden && (
-            <>
-              <StackItem>
-                <InferenceServiceNameSection
+        {projectSection || (
+          <ProjectSection
+            projectName={
+              (projectContext?.currentProject &&
+                getDisplayNameFromK8sResource(projectContext.currentProject)) ||
+              editInfo?.metadata.namespace ||
+              ''
+            }
+          />
+        )}
+        {!shouldFormHidden && (
+          <>
+            <K8sNameDescriptionField
+              data={inferenceServiceNameDesc}
+              onDataChange={setInferenceServiceNameDesc}
+              dataTestId="inference-service"
+              nameLabel="Model deployment name"
+              nameHelperText={
+                <HelperTextItem>
+                  This is the name of the inference service created when the model is deployed
+                </HelperTextItem>
+              }
+              hideDescription
+            />
+            <InferenceServiceServingRuntimeSection
+              data={createData}
+              setData={setCreateData}
+              currentServingRuntime={projectContext?.currentServingRuntime}
+            />
+            <InferenceServiceFrameworkSection
+              data={createData}
+              setData={setCreateData}
+              servingRuntimeName={projectContext?.currentServingRuntime?.metadata.name}
+              modelContext={projectContext?.currentServingRuntime?.spec.supportedModelFormats}
+              registeredModelFormat={registeredModelDeployInfo?.modelFormat}
+            />
+            <FormSection title="Source model location" id="model-location">
+              {isConnectionTypesEnabled ? (
+                <ConnectionSection
                   data={createData}
                   setData={setCreateData}
-                  isNameValid={isInferenceServiceNameWithinLimit}
+                  setConnection={setConnection}
+                  setIsConnectionValid={setIsConnectionValid}
                 />
-              </StackItem>
-              <StackItem>
-                <InferenceServiceServingRuntimeSection
+              ) : (
+                <DataConnectionSection
                   data={createData}
                   setData={setCreateData}
-                  currentServingRuntime={projectContext?.currentServingRuntime}
+                  loaded={!!projectContext?.dataConnections || dataConnectionsLoaded}
+                  loadError={dataConnectionsLoadError}
+                  dataConnections={dataConnections}
                 />
-              </StackItem>
-              <StackItem>
-                <InferenceServiceFrameworkSection
-                  data={createData}
-                  setData={setCreateData}
-                  modelContext={projectContext?.currentServingRuntime?.spec.supportedModelFormats}
-                  registeredModelFormat={registeredModelDeployInfo?.modelFormat}
-                />
-              </StackItem>
-              <StackItem>
-                <FormSection title="Source model location" id="model-location">
-                  <DataConnectionSection
-                    data={createData}
-                    setData={setCreateData}
-                    loaded={!!projectContext?.dataConnections || dataConnectionsLoaded}
-                    loadError={dataConnectionsLoadError}
-                    dataConnections={dataConnections}
-                  />
-                </FormSection>
-              </StackItem>
-            </>
-          )}
-        </Stack>
+              )}
+            </FormSection>
+          </>
+        )}
       </Form>
     </Modal>
   );

@@ -236,6 +236,31 @@ const initIntercepts = () => {
     },
     mockModelArtifact(),
   ).as('createModelArtifact');
+
+  // Add intercepts for timestamp updates
+  cy.interceptOdh(
+    'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId',
+    {
+      path: {
+        serviceName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        registeredModelId: '1',
+      },
+    },
+    mockRegisteredModel({ id: '1', name: 'Test model name' }),
+  ).as('updateRegisteredModel');
+
+  cy.interceptOdh(
+    'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId',
+    {
+      path: {
+        serviceName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: '6',
+      },
+    },
+    mockModelVersion({ id: '6', name: 'Test version name' }),
+  ).as('updateModelVersion');
 };
 
 describe('Register model page with no preselected model', () => {
@@ -350,6 +375,7 @@ describe('Register model page with no preselected model', () => {
   });
 
   it('Creates expected resources on submit in object storage mode', () => {
+    const veryLongName = 'Test name'.repeat(15); // A string over 128 characters
     registerVersionPage.selectRegisteredModel('Test model 1');
     registerVersionPage.findFormField(FormFieldSelector.VERSION_NAME).type('Test version name');
     registerVersionPage
@@ -359,6 +385,14 @@ describe('Register model page with no preselected model', () => {
       .findFormField(FormFieldSelector.LOCATION_PATH)
       .type('demo-models/flan-t5-small-caikit');
 
+    registerVersionPage.findFormField(FormFieldSelector.VERSION_NAME).clear().type(veryLongName);
+    registerVersionPage.findSubmitButton().should('be.disabled');
+    registerVersionPage
+      .findFormField(FormFieldSelector.VERSION_NAME)
+      .clear()
+      .type('Test version name');
+
+    registerVersionPage.findSubmitButton().should('be.enabled');
     registerVersionPage.findSubmitButton().click();
 
     cy.wait('@createModelVersion').then((interception) => {
@@ -373,7 +407,7 @@ describe('Register model page with no preselected model', () => {
     });
     cy.wait('@createModelArtifact').then((interception) => {
       expect(interception.request.body).to.containSubset({
-        name: 'Test model 1-Test version name-artifact',
+        name: 'Test version name',
         description: 'Test version description',
         customProperties: {},
         state: ModelArtifactState.LIVE,
@@ -428,7 +462,7 @@ describe('Register model page with no preselected model', () => {
     });
     cy.wait('@createModelArtifact').then((interception) => {
       expect(interception.request.body).to.containSubset({
-        name: 'Test model 1-Test version name-artifact',
+        name: 'Test version name',
         description: 'Test version description',
         customProperties: {},
         state: ModelArtifactState.LIVE,
@@ -513,7 +547,7 @@ describe('Register model page with preselected model', () => {
     });
     cy.wait('@createModelArtifact').then((interception) => {
       expect(interception.request.body).to.containSubset({
-        name: 'Test model 1-Test version name-artifact',
+        name: 'Test version name',
         description: 'Test version description',
         customProperties: {},
         state: ModelArtifactState.LIVE,
@@ -568,7 +602,7 @@ describe('Register model page with preselected model', () => {
     });
     cy.wait('@createModelArtifact').then((interception) => {
       expect(interception.request.body).to.containSubset({
-        name: 'Test model 1-Test version name-artifact',
+        name: 'Test version name',
         description: 'Test version description',
         customProperties: {},
         state: ModelArtifactState.LIVE,

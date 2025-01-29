@@ -4,18 +4,16 @@ import {
   Button,
   EmptyState,
   EmptyStateBody,
-  EmptyStateIcon,
-  EmptyStateHeader,
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import {
-  ServingRuntimeKind,
   InferenceServiceKind,
-  TemplateKind,
   ProjectKind,
   SecretKind,
+  ServingRuntimeKind,
+  TemplateKind,
 } from '~/k8sTypes';
 import { DEFAULT_CONTEXT_DATA, DEFAULT_LIST_WATCH_RESULT } from '~/utilities/const';
 import { ContextResourceData, CustomWatchK8sResult } from '~/types';
@@ -24,8 +22,8 @@ import { useDashboardNamespace } from '~/redux/selectors';
 import { DataConnection } from '~/pages/projects/types';
 import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
 import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
-import { ProjectsContext, byName } from '~/concepts/projects/ProjectsContext';
-import { SupportedArea, conditionalArea } from '~/concepts/areas';
+import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import { conditionalArea, SupportedArea } from '~/concepts/areas';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import { useTemplates } from '~/api';
 import useInferenceServices from './useInferenceServices';
@@ -154,12 +152,11 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
       )
     ) : (
       <Bullseye>
-        <EmptyState>
-          <EmptyStateHeader
-            titleText="Problem loading model serving page"
-            icon={<EmptyStateIcon icon={ExclamationCircleIcon} />}
-            headingLevel="h2"
-          />
+        <EmptyState
+          headingLevel="h2"
+          icon={ExclamationCircleIcon}
+          titleText="Problem loading model serving page"
+        >
           <EmptyStateBody>
             {notInstalledError?.message ||
               servingRuntimes.error?.message ||

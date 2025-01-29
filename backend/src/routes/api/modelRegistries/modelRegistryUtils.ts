@@ -1,5 +1,5 @@
 import { KubeFastifyInstance, ModelRegistryKind, RecursivePartial } from '../../../types';
-import { PatchUtils, V1Secret, V1Status } from '@kubernetes/client-node';
+import { PatchUtils, V1ConfigMap, V1Secret, V1Status } from '@kubernetes/client-node';
 import { getClusterStatus } from '../../../utils/resourceUtils';
 
 const MODEL_REGISTRY_API_GROUP = 'modelregistry.opendatahub.io';
@@ -130,13 +130,51 @@ const createModelRegistry = async (
   return response.body;
 };
 
-export const createModelRegistryAndSecret = async (
+const createConfigMapForCACertficate = async (
+  fastify: KubeFastifyInstance,
+  namespace: string,
+  name: string,
+  newDatabaseCACertificate: string,
+): Promise<V1ConfigMap> => {
+  const body: V1ConfigMap = {
+    metadata: {
+      name,
+      namespace,
+    },
+    data: { 'ca.crt': newDatabaseCACertificate },
+  };
+  return await fastify.kube.coreV1Api
+    .createNamespacedConfigMap(namespace, body)
+    .then((response) => response.body);
+};
+
+export const createModelRegistryAndCredentials = async (
   fastify: KubeFastifyInstance,
   modelRegistry: ModelRegistryKind,
   modelRegistryNamespace: string,
   databasePassword?: string,
+  newDatabaseCACertificate?: string,
   dryRunOnly = false,
 ): Promise<ModelRegistryKind> => {
+  let newCACertificateConfigMap: { name: string; key: string };
+  if (newDatabaseCACertificate) {
+    const newConfigMap = await createConfigMapForCACertficate(
+      fastify,
+      modelRegistryNamespace,
+      modelRegistry.spec.mysql.sslRootCertificateConfigMap.name,
+      newDatabaseCACertificate,
+    );
+
+    newCACertificateConfigMap = {
+      name: newConfigMap.metadata.name,
+      key: Object.keys(newConfigMap.data || {})[0],
+    };
+
+    if (modelRegistry.spec.mysql) {
+      modelRegistry.spec.mysql.sslRootCertificateConfigMap = newCACertificateConfigMap;
+    }
+  }
+
   const createBoth = async (dryRun = false) => {
     const dbSpec = getDatabaseSpec(modelRegistry);
     const newSecret =
@@ -246,7 +284,7 @@ const patchModelRegistry = async (
     dryRun ? 'All' : undefined,
     undefined,
     undefined,
-    { headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_PATCH } },
+    { headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH } },
     // patchNamespacedCustomObject doesn't support TS generics and returns body as `object`, so we assert its real type
   ) as Promise<{ body: ModelRegistryKind }>);
   return response.body;
@@ -279,20 +317,43 @@ const updateDatabasePassword = async (
       },
       undefined,
       dryRun ? 'All' : undefined,
+      undefined,
+      undefined,
+      { headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH } },
     );
   } else {
     await deleteDatabasePasswordSecret(fastify, modelRegistry, modelRegistryNamespace);
   }
 };
 
-export const patchModelRegistryAndUpdatePassword = async (
+export const patchModelRegistryAndUpdateCredentials = async (
   fastify: KubeFastifyInstance,
   modelRegistryName: string,
   modelRegistryNamespace: string,
   patchBody: RecursivePartial<ModelRegistryKind>,
   databasePassword?: string,
+  newDatabaseCACertificate?: string,
   dryRunOnly = false,
 ): Promise<ModelRegistryKind> => {
+  let newCACertificateConfigMap: { name: string; key: string };
+  if (newDatabaseCACertificate) {
+    const newConfigMap = await createConfigMapForCACertficate(
+      fastify,
+      modelRegistryNamespace,
+      patchBody.spec.mysql.sslRootCertificateConfigMap.name,
+      newDatabaseCACertificate,
+    );
+
+    newCACertificateConfigMap = {
+      name: newConfigMap.metadata.name,
+      key: Object.keys(newConfigMap.data || {})[0],
+    };
+
+    if (patchBody.spec.mysql) {
+      patchBody.spec.mysql.sslRootCertificateConfigMap = newCACertificateConfigMap;
+    }
+  }
+
   const patchBoth = async (dryRun = false) => {
     const modelRegistry = await patchModelRegistry(
       fastify,

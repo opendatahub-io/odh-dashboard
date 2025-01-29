@@ -1,5 +1,15 @@
 import * as React from 'react';
-import { FormGroup, Label, Split, SplitItem, Truncate } from '@patternfly/react-core';
+import {
+  Button,
+  FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  Label,
+  Split,
+  SplitItem,
+  Truncate,
+} from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
 import { TemplateKind } from '~/k8sTypes';
@@ -10,22 +20,26 @@ import {
 } from '~/pages/modelServing/customServingRuntimes/utils';
 import { isCompatibleWithAccelerator as isCompatibleWithAcceleratorProfile } from '~/pages/projects/screens/spawner/spawnerUtils';
 import SimpleSelect from '~/components/SimpleSelect';
-import { AcceleratorProfileSelectFieldState } from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 
 type ServingRuntimeTemplateSectionProps = {
   data: CreatingServingRuntimeObject;
+  onConfigureParamsClick?: () => void;
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
   templates: TemplateKind[];
   isEditing?: boolean;
-  selectedAcceleratorProfile: AcceleratorProfileSelectFieldState;
+  selectedAcceleratorProfile: AcceleratorProfileFormData;
+  resetModelFormat?: () => void;
 };
 
 const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps> = ({
   data,
+  onConfigureParamsClick,
   setData,
   templates,
   isEditing,
   selectedAcceleratorProfile,
+  resetModelFormat,
 }) => {
   const filteredTemplates = React.useMemo(
     () =>
@@ -62,7 +76,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
     <FormGroup label="Serving runtime" fieldId="serving-runtime-template-selection" isRequired>
       <SimpleSelect
         isFullWidth
-        isDisabled={isEditing || filteredTemplates.length === 0}
+        isDisabled={isEditing}
         dataTestId="serving-runtime-template-selection"
         aria-label="Select a template"
         options={options}
@@ -74,9 +88,31 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
         toggleProps={{ id: 'serving-runtime-template-selection' }}
         value={data.servingRuntimeTemplateName}
         onChange={(name) => {
-          setData('servingRuntimeTemplateName', name);
+          // Avoid onChange function is called twice
+          // In KServe modal, it would set the model framework field to empty if there is only one option
+          if (name !== data.servingRuntimeTemplateName) {
+            setData('servingRuntimeTemplateName', name);
+            // Reset model framework selection when changing the template in KServe modal only
+            if (resetModelFormat) {
+              resetModelFormat();
+            }
+          }
         }}
+        popperProps={{ appendTo: 'inline' }}
       />
+      {data.servingRuntimeTemplateName && onConfigureParamsClick && (
+        <FormHelperText>
+          <HelperText>
+            <HelperTextItem data-testid="serving-runtime-template-helptext">
+              You can optimize model performance by{' '}
+              <Button isInline onClick={() => onConfigureParamsClick()} variant="link">
+                configuring the parameters
+              </Button>{' '}
+              of the selected serving runtime.
+            </HelperTextItem>
+          </HelperText>
+        </FormHelperText>
+      )}
     </FormGroup>
   );
 };

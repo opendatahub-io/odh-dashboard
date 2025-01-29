@@ -34,16 +34,18 @@ module.exports = (env) => {
       rules: [
         {
           test: /\.(tsx|ts|jsx|js)?$/,
+          exclude: [/node_modules/, /__tests__/, /__mocks__/],
           include: [SRC_DIR, COMMON_DIR],
           use: [
             COVERAGE === 'true' && '@jsdevtools/coverage-istanbul-loader',
-            {
-              loader: 'ts-loader',
-              options: {
-                transpileOnly: env !== 'development',
-                experimentalWatchApi: true,
-              },
-            },
+            env === 'development'
+              ? { loader: 'swc-loader' }
+              : {
+                  loader: 'ts-loader',
+                  options: {
+                    transpileOnly: true,
+                  },
+                },
           ],
         },
         {

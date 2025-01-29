@@ -25,6 +25,16 @@ export const connectionTypeDataFields = [
   ConnectionTypeFieldType.URI,
 ];
 
+export type ConnectionTypeDataFieldTypeUnion =
+  | 'boolean'
+  | 'dropdown'
+  | 'file'
+  | 'hidden'
+  | 'numeric'
+  | 'short-text'
+  | 'text'
+  | 'uri';
+
 export type ConnectionTypeFieldTypeUnion =
   | ConnectionTypeFieldType
   | 'boolean'
@@ -107,15 +117,11 @@ export type ConnectionTypeField =
 
 export type ConnectionTypeDataField = Exclude<ConnectionTypeField, SectionField>;
 
-export const isConnectionTypeDataField = (
-  field: ConnectionTypeField,
-): field is ConnectionTypeDataField => field.type !== ConnectionTypeFieldType.Section;
-
 export type ConnectionTypeConfigMap = K8sResourceCommon & {
   metadata: {
     name: string;
     annotations?: DisplayNameAnnotations & {
-      'opendatahub.io/enabled'?: 'true' | 'false';
+      'opendatahub.io/disabled'?: 'true' | 'false';
       'opendatahub.io/username'?: string;
     };
     labels: DashboardLabels & {
@@ -141,10 +147,11 @@ export type ConnectionTypeValueType = ConnectionTypeDataField['properties']['def
 export type Connection = SecretKind & {
   metadata: {
     labels: DashboardLabels & {
-      'opendatahub.io/managed': 'true';
+      'opendatahub.io/managed'?: 'true';
     };
     annotations: DisplayNameAnnotations & {
-      'opendatahub.io/connection-type': string;
+      'opendatahub.io/connection-type'?: 's3' | string;
+      'opendatahub.io/connection-type-ref'?: string;
     };
   };
   data?: {
@@ -152,8 +159,9 @@ export type Connection = SecretKind & {
   };
 };
 
-export const isConnection = (secret: SecretKind): secret is Connection =>
-  !!secret.metadata.annotations &&
-  'opendatahub.io/connection-type' in secret.metadata.annotations &&
-  !!secret.metadata.labels &&
-  secret.metadata.labels['opendatahub.io/managed'] === 'true';
+export type ConnectionTypeFormData = {
+  enabled: boolean;
+  fields: ConnectionTypeField[];
+  username: string;
+  category: string[];
+};

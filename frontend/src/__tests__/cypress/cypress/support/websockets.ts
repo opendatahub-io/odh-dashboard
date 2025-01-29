@@ -32,7 +32,7 @@ export const setup = (on: Cypress.PluginEvents, config: Cypress.PluginConfigOpti
     const wss = new WebSocketServer({ port: Number(config.env.WS_PORT) });
     wss.on('connection', function connection(ws, req) {
       if (req.url) {
-        const { pathname, searchParams } = new URL(req.url, `http://${req.headers.host}`);
+        const { pathname, searchParams } = new URL(req.url, `http://${req.headers.host ?? ''}`);
 
         if (!openSockets.has(pathname)) {
           openSockets.set(pathname, []);

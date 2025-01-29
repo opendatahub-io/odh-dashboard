@@ -23,21 +23,30 @@ const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>
   onChange,
   onValidate,
 }) => {
+  const { variant } = properties;
   React.useEffect(() => {
-    if (!properties.variant) {
+    if (!variant) {
       onChange({ ...properties, variant: 'single' });
     }
-  });
+    // only run when variant is not set
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [variant]);
 
   React.useEffect(() => {
     // filter out empty rows for validation (they will be removed on save)
     const itemsWithoutEmptyRows =
       properties.items?.filter((item) => item.label || item.value) ?? [];
-    const duplicateLabels = itemsWithoutEmptyRows.find((item1, index1) =>
-      properties.items?.find((item2, index2) => item1.label === item2.label && index1 !== index2),
+    const duplicateLabels = itemsWithoutEmptyRows.some(
+      (item1, index1) =>
+        item1.label &&
+        itemsWithoutEmptyRows.some(
+          (item2, index2) => item1.label === item2.label && index1 !== index2,
+        ),
     );
-    const duplicateValues = itemsWithoutEmptyRows.find((item1, index1) =>
-      properties.items?.find((item2, index2) => item1.value === item2.value && index1 !== index2),
+    const duplicateValues = itemsWithoutEmptyRows.some((item1, index1) =>
+      itemsWithoutEmptyRows.some(
+        (item2, index2) => item1.value === item2.value && index1 !== index2,
+      ),
     );
     const noMissingValues = itemsWithoutEmptyRows.every((item) => item.value);
 
@@ -160,7 +169,7 @@ const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>
               >
                 <div>
                   Dropdown item values
-                  <span aria-hidden="true" className={text.dangerColor_100}>
+                  <span aria-hidden="true" className={text.textColorStatusDanger}>
                     {' *'}
                   </span>
                 </div>
@@ -234,6 +243,7 @@ const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>
                 </Td>
                 <Td>
                   <Button
+                    icon={<MinusCircleIcon />}
                     data-testid={`dropdown-item-row-remove-${i}`}
                     variant="plain"
                     aria-label="Remove item"
@@ -245,9 +255,7 @@ const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>
                         setDropdownItems(dropdownItems.filter((_, index) => i !== index));
                       }
                     }}
-                  >
-                    <MinusCircleIcon />
-                  </Button>
+                  />
                 </Td>
               </Tr>
             ))}

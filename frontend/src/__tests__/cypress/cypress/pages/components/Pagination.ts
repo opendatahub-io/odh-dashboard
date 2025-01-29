@@ -34,7 +34,7 @@ class Pagination {
   }
 
   selectToggleOption(name: string) {
-    return this.findMenuToggleButton().parents().findByRole('menuitem', { name }).click();
+    return this.findMenuToggleButton().parents().parents().findByRole('menuitem', { name }).click();
   }
 }
 

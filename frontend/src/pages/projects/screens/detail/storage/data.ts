@@ -5,11 +5,6 @@ import { StorageTableData } from './types';
 
 export const columns: SortableData<StorageTableData>[] = [
   {
-    field: 'expand',
-    label: '',
-    sortable: false,
-  },
-  {
     field: 'name',
     label: 'Name',
     width: 30,
@@ -37,8 +32,14 @@ export const columns: SortableData<StorageTableData>[] = [
     sortable: false,
   },
   {
+    field: 'storage_size',
+    label: 'Storage size',
+    width: 20,
+    sortable: false,
+  },
+  {
     field: 'connected',
-    label: 'Connected workbenches',
+    label: 'Workbench connections',
     width: 20,
     sortable: false,
   },

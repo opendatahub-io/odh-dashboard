@@ -17,7 +17,7 @@ export const mockDocs = (): OdhDocument[] => [
       displayName: 'How to install Python packages on your notebook server',
       durationMinutes: 15,
       type: 'how-to',
-      url: 'https://access.redhat.com/documentation/en-us/red_hat_openshift_data_science/1/html-single/working_on_data_science_projects/index#installing-python-packages-on-your-notebook-server_nb-server/index',
+      url: 'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/working_with_connected_applications/using_the_jupyter_application#installing-python-packages-on-your-notebook-server_connected-apps',
     },
   },
   {
@@ -32,11 +32,11 @@ export const mockDocs = (): OdhDocument[] => [
     },
     spec: {
       appName: 'jupyter',
-      description: 'Update the settings or the notebook image on your notebook server.',
-      displayName: 'How to update notebook server settings',
+      description: 'Manage the settings or the notebook image on your notebook server.',
+      displayName: 'How to manage notebook server settings',
       durationMinutes: 15,
       type: 'how-to',
-      url: 'https://access.redhat.com/documentation/en-us/red_hat_openshift_data_science/1/html-single/how_to_update_notebook_server_settings/index',
+      url: 'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/managing_resources/managing-notebook-servers_notebook-mgmt',
     },
   },
   {
@@ -51,11 +51,11 @@ export const mockDocs = (): OdhDocument[] => [
     },
     spec: {
       appName: 'jupyter',
-      description: 'Connect to data in S3 Storage using environment variables.',
-      displayName: 'How to use data from Amazon S3 buckets',
+      description: 'Connect to data in S3 Storage.',
+      displayName: 'How to use data from an S3-compatible object store',
       durationMinutes: 15,
       type: 'how-to',
-      url: 'https://access.redhat.com/documentation/en-us/red_hat_openshift_data_science/1/html-single/how_to_use_data_from_amazon_s3_buckets/index',
+      url: 'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/working_with_data_in_an_s3-compatible_object_store/index',
     },
   },
   {
@@ -74,7 +74,7 @@ export const mockDocs = (): OdhDocument[] => [
       displayName: 'How to view installed packages on your notebook server',
       durationMinutes: 15,
       type: 'how-to',
-      url: 'https://access.redhat.com/documentation/en-us/red_hat_openshift_data_science/1/html-single/how_to_view_installed_packages_on_your_notebook_server/index',
+      url: 'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/working_with_connected_applications/using_the_jupyter_application#viewing-python-packages-installed-on-your-notebook-server_connected-apps',
     },
   },
 ];

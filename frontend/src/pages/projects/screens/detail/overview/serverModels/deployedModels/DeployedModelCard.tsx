@@ -1,18 +1,17 @@
 import * as React from 'react';
 import {
+  Button,
   CardBody,
   CardFooter,
   CardHeader,
   Flex,
   FlexItem,
   GalleryItem,
-  TextContent,
-  TextList,
-  TextListItem,
-  TextListItemVariants,
-  TextListVariants,
+  Truncate,
+  Content,
+  ContentVariants,
 } from '@patternfly/react-core';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ProjectObjectType } from '~/concepts/design/utils';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import InferenceServiceStatus from '~/pages/modelServing/screens/global/InferenceServiceStatus';
@@ -24,8 +23,6 @@ import InferenceServiceEndpoint from '~/pages/modelServing/screens/global/Infere
 import TypeBorderedCard from '~/concepts/design/TypeBorderedCard';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas/';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
 
 interface DeployedModelCardProps {
   inferenceService: InferenceServiceKind;
@@ -36,19 +33,16 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
   servingRuntime,
 }) => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
+  const navigate = useNavigate();
   const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
   const modelMesh = isModelMesh(inferenceService);
-  const { currentProject } = React.useContext(ProjectDetailsContext);
-  const isKServeNIMEnabled = isProjectNIMSupported(currentProject);
-
-  const modelMetricsSupported =
-    modelMetricsEnabled && (modelMesh || kserveMetricsEnabled) && !isKServeNIMEnabled;
+  const modelMetricsSupported = modelMetricsEnabled && (modelMesh || kserveMetricsEnabled);
 
   const inferenceServiceDisplayName = getDisplayNameFromK8sResource(inferenceService);
 
   return (
     <GalleryItem key={inferenceService.metadata.uid}>
-      <TypeBorderedCard objectType={ProjectObjectType.modelServer}>
+      <TypeBorderedCard isFullHeight objectType={ProjectObjectType.modelServer}>
         <CardHeader>
           <Flex gap={{ default: 'gapSm' }} direction={{ default: 'column' }}>
             <FlexItem>
@@ -61,11 +55,17 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
             <FlexItem>
               <ResourceNameTooltip resource={inferenceService}>
                 {modelMetricsSupported ? (
-                  <Link
-                    to={`/projects/${inferenceService.metadata.namespace}/metrics/model/${inferenceService.metadata.name}`}
+                  <Button
+                    variant="link"
+                    isInline
+                    onClick={() => {
+                      navigate(
+                        `/projects/${inferenceService.metadata.namespace}/metrics/model/${inferenceService.metadata.name}`,
+                      );
+                    }}
                   >
-                    {inferenceServiceDisplayName}
-                  </Link>
+                    <Truncate content={inferenceServiceDisplayName} />
+                  </Button>
                 ) : (
                   inferenceServiceDisplayName
                 )}
@@ -74,25 +74,25 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
           </Flex>
         </CardHeader>
         <CardBody>
-          <TextContent>
-            <TextList component={TextListVariants.dl} style={{ display: 'block' }}>
-              <TextListItem
-                component={TextListItemVariants.dt}
-                style={{ marginBottom: 'var(--pf-v5-global--spacer--xs)' }}
+          <Content>
+            <Content component={ContentVariants.dl} style={{ display: 'block' }}>
+              <Content
+                component={ContentVariants.dt}
+                style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
               >
                 Serving runtime
-              </TextListItem>
-              <TextListItem
-                component={TextListItemVariants.dd}
+              </Content>
+              <Content
+                component={ContentVariants.dd}
                 style={{
-                  fontSize: 'var(--pf-v5-global--FontSize--sm)',
-                  color: !servingRuntime ? 'var(--pf-v5-global--Color--200)' : undefined,
+                  fontSize: 'var(--pf-t--global--font--size--body--sm)',
+                  color: !servingRuntime ? 'var(--pf-t--global--text--color--subtle)' : undefined,
                 }}
               >
                 <InferenceServiceServingRuntime servingRuntime={servingRuntime} />
-              </TextListItem>
-            </TextList>
-          </TextContent>
+              </Content>
+            </Content>
+          </Content>
         </CardBody>
         <CardFooter>
           <InferenceServiceEndpoint

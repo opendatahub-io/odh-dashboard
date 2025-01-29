@@ -123,10 +123,28 @@ class NotebookConfirmModal extends Modal {
   }
 }
 
+class NotebookDeleteModal extends Modal {
+  constructor() {
+    super('Delete workbench?');
+  }
+
+  findDeleteModal() {
+    return cy.get('[data-testid="delete-modal-input"]');
+  }
+
+  findDeleteWorkbenchButton() {
+    return cy.contains('span.pf-v6-c-button__text', 'Delete workbench');
+  }
+}
+
 class NotebookRow extends TableRow {
   shouldHaveNotebookImageName(name: string) {
     this.find().find(`[data-label="Notebook image"]`).find('span').should('have.text', name);
     return this;
+  }
+
+  findNotebookImageAvailability() {
+    return cy.findByTestId('notebook-image-availability');
   }
 
   shouldHaveClusterStorageTitle() {
@@ -165,12 +183,110 @@ class NotebookRow extends TableRow {
     return this.find().findByTestId('notebook-route-link');
   }
 
-  findHaveNotebookStatusText() {
-    return this.find().findByTestId('notebook-status-text');
+  findHaveNotebookStatusText(timeout = 10000) {
+    return this.find().findByTestId('notebook-status-text', { timeout });
+  }
+
+  expectStatusLabelToBe(statusValue: string, timeout?: number) {
+    this.findHaveNotebookStatusText(timeout).should('have.text', statusValue);
+  }
+
+  findNotebookStart() {
+    return this.find().findByTestId('notebook-start-action');
+  }
+
+  findNotebookStop() {
+    return this.find().findByTestId('notebook-stop-action');
   }
 
   findNotebookStatusPopover(name: string) {
     return cy.findByTestId('notebook-status-popover').contains(name);
+  }
+
+  findNotebookDescription(name: string) {
+    return this.find().findByTestId('table-row-title-description').contains(name);
+  }
+}
+
+class AttachExistingStorageModal extends Modal {
+  constructor() {
+    super('Attach Existing Storage');
+  }
+
+  selectExistingPersistentStorage(name: string) {
+    cy.findByTestId('persistent-storage-group')
+      .findByPlaceholderText('Select a persistent storage')
+      .click();
+    cy.findByTestId('persistent-storage-typeahead').contains(name).click();
+  }
+
+  verifyPSDropdownIsDisabled(): void {
+    cy.get('[data-testid="persistent-storage-group"] .pf-v6-c-menu-toggle')
+      .should('have.class', 'pf-m-disabled')
+      .and('have.attr', 'disabled');
+  }
+
+  verifyPSDropdownText(expectedText: string): void {
+    cy.get('[data-testid="persistent-storage-group"] .pf-v6-c-text-input-group__text-input').should(
+      'have.value',
+      expectedText,
+    );
+  }
+
+  findStandardPathInput() {
+    return cy.findByTestId('mount-path-folder-value');
+  }
+
+  findAttachButton() {
+    return cy.findByTestId('modal-submit-button');
+  }
+}
+
+class AttachConnectionModal extends Modal {
+  constructor() {
+    super('Attach existing connections');
+  }
+
+  selectConnectionOption(name: string) {
+    this.find().findByRole('button', { name: 'Connections' }).findSelectOption(name).click();
+    this.find().findByRole('button', { name: 'Connections' }).click();
+  }
+
+  findAttachButton() {
+    return this.find().findByTestId('attach-button');
+  }
+}
+
+class StorageTableRow extends TableRow {
+  private findByDataLabel(label: string) {
+    return this.find().find(`[data-label="${label}"]`);
+  }
+
+  findNameValue() {
+    return this.findByDataLabel('Name');
+  }
+
+  findStorageSizeValue() {
+    return this.findByDataLabel('Storage size');
+  }
+
+  findMountPathValue() {
+    return this.findByDataLabel('Mount path');
+  }
+}
+
+class StorageTable {
+  find() {
+    return cy.findByTestId('cluster-storage-table');
+  }
+
+  getRowById(id: number) {
+    return new StorageTableRow(
+      () =>
+        this.find().findByTestId(['cluster-storage-table-row', id]) as unknown as Cypress.Chainable<
+          JQuery<HTMLTableRowElement>
+        >,
+    );
   }
 }
 
@@ -182,16 +298,16 @@ class CreateSpawnerPage {
     return this;
   }
 
-  findNewStorageRadio() {
-    return cy.findByTestId('persistent-new-storage-type-radio');
+  getStorageTable() {
+    return new StorageTable();
   }
 
-  findExistingStorageRadio() {
-    return cy.findByTestId('persistent-existing-storage-type-radio');
+  getNameInput() {
+    return cy.findByTestId('workbench-name');
   }
 
-  findClusterStorageInput() {
-    return cy.findByTestId('create-new-storage-name');
+  getDescriptionInput() {
+    return cy.findByTestId('workbench-description');
   }
 
   private findPVSizeField() {
@@ -202,11 +318,8 @@ class CreateSpawnerPage {
     return cy.findByTestId('value-unit-select');
   }
 
-  selectExistingPersistentStorage(name: string) {
-    cy.findByTestId('persistent-storage-group')
-      .findByRole('button', { name: 'Typeahead menu toggle' })
-      .click();
-    cy.get('[id="dashboard-page-main"]').findByRole('option', { name }).click();
+  findAttachExistingStorageButton() {
+    return cy.findByTestId('existing-storage-button');
   }
 
   selectPVSize(name: string) {
@@ -275,11 +388,14 @@ class CreateSpawnerPage {
     return cy.findByTestId('existing-data-connection-type-radio');
   }
 
-  selectExistingDataConnection(name: string) {
-    cy.findByTestId('data-connection-group')
-      .findByRole('button', { name: 'Typeahead menu toggle' })
-      .click();
-    cy.get('[id="dashboard-page-main"]').findByRole('option', { name }).click();
+  findExistingDataConnectionSelect() {
+    return cy.findByTestId('existing-data-connection-select');
+  }
+
+  findExistingDataConnectionSelectValueField() {
+    return this.findExistingDataConnectionSelect().findByRole('combobox', {
+      name: 'Type to filter',
+    });
   }
 
   findAwsNameInput() {
@@ -309,6 +425,19 @@ class CreateSpawnerPage {
   findContainerSizeInput(name: string) {
     return cy.findByTestId('container-size-group').contains(name);
   }
+
+  findAttachConnectionButton() {
+    return cy.findByTestId('attach-existing-connection-button');
+  }
+
+  findConnectionsTable() {
+    return cy.findByTestId('connections-table');
+  }
+
+  findConnectionsTableRow(name: string, type: string) {
+    this.findConnectionsTable().find(`[data-label=Name]`).contains(name);
+    this.findConnectionsTable().find(`[data-label=Type]`).contains(type);
+  }
 }
 
 class EditSpawnerPage extends CreateSpawnerPage {
@@ -322,11 +451,6 @@ class EditSpawnerPage extends CreateSpawnerPage {
     cy.testA11y();
   }
 
-  shouldHavePersistentStorage(name: string) {
-    cy.findByTestId('persistent-storage-group').find('input').should('have.value', name);
-    return this;
-  }
-
   shouldHaveNotebookImageSelectInput(name: string) {
     cy.findByTestId('workbench-image-stream-selection').contains(name).should('exist');
     return this;
@@ -335,6 +459,10 @@ class EditSpawnerPage extends CreateSpawnerPage {
   shouldHaveContainerSizeInput(name: string) {
     cy.findByTestId('container-size-group').contains(name).should('exist');
     return this;
+  }
+
+  findAlertMessage() {
+    return cy.findByTestId('env-variable-alert-message');
   }
 
   findCancelButton() {
@@ -358,7 +486,7 @@ class NotFoundSpawnerPage {
   }
 
   shouldHaveErrorMessageTitle(name: string) {
-    cy.findByTestId('error-message-title').should('have.text', name);
+    cy.findByTestId('error-message-title').should('contain.text', name);
     return this;
   }
 
@@ -370,6 +498,9 @@ class NotFoundSpawnerPage {
 export const workbenchPage = new WorkbenchPage();
 export const createSpawnerPage = new CreateSpawnerPage();
 export const notebookConfirmModal = new NotebookConfirmModal();
+export const notebookDeleteModal = new NotebookDeleteModal();
 export const editSpawnerPage = new EditSpawnerPage();
 export const storageModal = new StorageModal();
 export const notFoundSpawnerPage = new NotFoundSpawnerPage();
+export const attachConnectionModal = new AttachConnectionModal();
+export const attachExistingStorageModal = new AttachExistingStorageModal();

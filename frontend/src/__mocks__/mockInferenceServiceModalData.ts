@@ -7,6 +7,7 @@ type MockResourceConfigType = Partial<CreatingInferenceServiceObject>;
 
 export const mockInferenceServiceModalData = ({
   name = 'my-inference-service',
+  k8sName = 'my-inference-service-test',
   project = 'caikit-example',
   servingRuntimeName = 'caikit',
   storage = {
@@ -37,8 +38,10 @@ export const mockInferenceServiceModalData = ({
       },
     },
   },
+  isKServeRawDeployment,
 }: MockResourceConfigType): CreatingInferenceServiceObject => ({
   name,
+  k8sName,
   project,
   servingRuntimeName,
   storage,
@@ -49,4 +52,5 @@ export const mockInferenceServiceModalData = ({
   tokenAuth,
   tokens,
   modelSize,
+  isKServeRawDeployment,
 });

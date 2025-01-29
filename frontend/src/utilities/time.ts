@@ -8,17 +8,8 @@ const printAgo = (time: number, unit: string) => `${time} ${unit}${time > 1 ? 's
 const printIn = (time: number, unit: string) => `in ${time} ${unit}${time > 1 ? 's' : ''}`;
 const leadZero = (v: number) => (v < 10 ? `0${v}` : `${v}`);
 
-export const relativeDuration = (valueInMs: number): string => {
-  let seconds = Math.floor(valueInMs / 1000);
-
-  let minutes = 0;
-  if (seconds > 60) {
-    minutes = Math.floor(seconds / 60);
-    seconds %= 60;
-  }
-
-  return `${minutes}:${leadZero(seconds)}`;
-};
+export const relativeDuration = (valueInMs: number): string =>
+  printSeconds(Math.floor(valueInMs / 1000));
 
 /** As YYYY-MM-DD */
 export const convertDateToSimpleDateString = (date?: Date): string | null => {
@@ -73,6 +64,9 @@ export const ensureTimeFormat = (time: string): string | null => {
 };
 
 export const printSeconds = (seconds: number): string => {
+  if (seconds === 0) {
+    return '0 seconds';
+  }
   const timeBlocks = [
     { unit: 'second', maxPer: 60 },
     { unit: 'minute', maxPer: 60 },
@@ -107,11 +101,10 @@ export const printSeconds = (seconds: number): string => {
         return [thisText, newUnit];
       }
 
-      return [`${currentText}, ${thisText}`, newUnit];
+      return [`${thisText}, ${currentText}`, newUnit];
     },
     ['', seconds],
   );
-
   return text;
 };
 
@@ -182,13 +175,14 @@ export const relativeTime = (current: number, previous: number): string => {
 
 /** Function to convert time strings like "2Hour" to seconds */
 export const convertPeriodicTimeToSeconds = (timeString: string): number => {
-  let numericValue = parseInt(timeString, 10);
+  const numericMatch = timeString.match(/^[\d.eE+-]+/);
+  let numericValue = numericMatch ? parseFloat(numericMatch[0]) : 1;
 
   if (Number.isNaN(numericValue)) {
     numericValue = 1;
   }
 
-  const unit = timeString.toLowerCase().replace(/\d+/g, '');
+  const unit = timeString.replace(/^[\d.eE+-]+/, '').toLowerCase();
 
   switch (unit) {
     case 'hour':

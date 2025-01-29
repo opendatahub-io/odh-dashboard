@@ -12,7 +12,7 @@ class PipelinesGlobal {
   }
 
   navigate() {
-    appChrome.findNavItem('Data Science Pipelines').click();
+    appChrome.findNavItem('Pipelines', 'Data Science Pipelines').click();
     this.wait();
   }
 
@@ -57,6 +57,14 @@ class PipelinesGlobal {
 
   findIsServerIncompatible() {
     return cy.findByTestId('incompatible-pipelines-server');
+  }
+
+  shouldHaveIncompatibleTitleText() {
+    cy.findByTestId('incompatible-pipelines-server-title').should(
+      'contain.text',
+      'Unsupported pipeline and pipeline server version',
+    );
+    return this;
   }
 
   findDeletePipelineServerButton() {

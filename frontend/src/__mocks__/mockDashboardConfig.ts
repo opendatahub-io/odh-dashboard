@@ -1,7 +1,7 @@
 import { DashboardConfigKind, KnownLabels } from '~/k8sTypes';
 import { NotebookSize } from '~/types';
 
-type MockDashboardConfigType = {
+export type MockDashboardConfigType = {
   disableInfo?: boolean;
   disableSupport?: boolean;
   disableClusterManager?: boolean;
@@ -18,12 +18,16 @@ type MockDashboardConfigType = {
   disableKServe?: boolean;
   disableKServeAuth?: boolean;
   disableKServeMetrics?: boolean;
+  disableKServeRaw?: boolean;
   disableModelMesh?: boolean;
   disableAcceleratorProfiles?: boolean;
+  disableHardwareProfiles?: boolean;
   disablePerformanceMetrics?: boolean;
-  disableBiasMetrics?: boolean;
+  disableTrustyBiasMetrics?: boolean;
   disableDistributedWorkloads?: boolean;
   disableModelRegistry?: boolean;
+  disableModelRegistrySecureDB?: boolean;
+  disableServingRuntimeParams?: boolean;
   disableConnectionTypes?: boolean;
   disableStorageClasses?: boolean;
   disableNotebookController?: boolean;
@@ -48,12 +52,16 @@ export const mockDashboardConfig = ({
   disableKServe = false,
   disableKServeAuth = false,
   disableKServeMetrics = true,
+  disableKServeRaw = true,
   disableModelMesh = false,
   disableAcceleratorProfiles = false,
+  disableHardwareProfiles = false,
   disablePerformanceMetrics = false,
-  disableBiasMetrics = false,
+  disableTrustyBiasMetrics = false,
   disableDistributedWorkloads = false,
   disableModelRegistry = false,
+  disableModelRegistrySecureDB = false,
+  disableServingRuntimeParams = false,
   disableConnectionTypes = true,
   disableStorageClasses = false,
   disableNotebookController = false,
@@ -152,15 +160,19 @@ export const mockDashboardConfig = ({
       disableCustomServingRuntimes,
       disablePipelines,
       disableProjectSharing: false,
-      disableBiasMetrics,
+      disableTrustyBiasMetrics,
       disablePerformanceMetrics,
       disableKServe,
       disableKServeAuth,
       disableKServeMetrics,
+      disableKServeRaw,
       disableModelMesh,
       disableAcceleratorProfiles,
+      disableHardwareProfiles,
       disableDistributedWorkloads,
       disableModelRegistry,
+      disableModelRegistrySecureDB,
+      disableServingRuntimeParams,
       disableConnectionTypes,
       disableStorageClasses,
       disableNIMModelServing,

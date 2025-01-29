@@ -7,9 +7,8 @@ type EnsureAPIAvailabilityProps = {
 };
 
 const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children }) => {
-  const { apiAvailable } = usePipelinesAPI();
-
-  if (!apiAvailable) {
+  const { apiAvailable, pipelinesServer } = usePipelinesAPI();
+  if (!apiAvailable && pipelinesServer.compatible) {
     return (
       <Bullseye style={{ minHeight: 150 }} data-testid="pipelines-api-not-available">
         <Spinner />
