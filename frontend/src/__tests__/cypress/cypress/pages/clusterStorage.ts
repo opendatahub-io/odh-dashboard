@@ -125,6 +125,10 @@ class ClusterStorageModal extends Modal {
     return this.find().findByTestId('modal-submit-button');
   }
 
+  findPVStorageSizeValue() {
+    return this.find().find('[aria-label="Input"]');
+  }
+
   private findPVSizeSelectButton() {
     return this.find().findByTestId('value-unit-select');
   }
@@ -233,6 +237,10 @@ class ClusterStorage {
 
   findCreateButtonFromActions() {
     return cy.findByTestId('actions-cluster-storage-button');
+  }
+
+  findKebabToggle() {
+    return cy.get('button[aria-label="Kebab toggle"]');
   }
 }
 
