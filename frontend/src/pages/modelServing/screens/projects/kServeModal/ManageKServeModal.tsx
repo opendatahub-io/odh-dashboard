@@ -313,7 +313,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       showClose
     >
       {!isAuthAvailable && alertVisible && !isRawAvailable && (
-        <NoAuthAlert setAlertVisible={setAlertVisible} />
+        <NoAuthAlert onClose={() => setAlertVisible(false)} />
       )}
       <Form
         onSubmit={(e) => {
@@ -375,7 +375,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                 />
               )}
               {!isAuthAvailable && alertVisible && isRawAvailable && (
-                <NoAuthAlert setAlertVisible={setAlertVisible} />
+                <NoAuthAlert onClose={() => setAlertVisible(false)} />
               )}
               <KServeAutoscalerReplicaSection
                 data={createDataInferenceService}

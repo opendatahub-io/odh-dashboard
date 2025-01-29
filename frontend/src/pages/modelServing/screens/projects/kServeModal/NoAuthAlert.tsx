@@ -1,9 +1,7 @@
 import React from 'react';
 import { Alert, AlertActionCloseButton } from '@patternfly/react-core';
 
-export const NoAuthAlert: React.FC<{ setAlertVisible: (isVisible: boolean) => void }> = ({
-  setAlertVisible,
-}) => (
+export const NoAuthAlert: React.FC<{ onClose: () => void }> = ({ onClose }) => (
   <Alert
     id="no-authorino-installed-alert"
     className="pf-v6-u-mb-md"
@@ -12,7 +10,7 @@ export const NoAuthAlert: React.FC<{ setAlertVisible: (isVisible: boolean) => vo
     isInline
     variant="warning"
     title="Token authentication service not installed"
-    actionClose={<AlertActionCloseButton onClose={() => setAlertVisible(false)} />}
+    actionClose={<AlertActionCloseButton onClose={() => onClose()} />}
   >
     <p>
       The single model serving platform used by this project allows deployed models to be accessible

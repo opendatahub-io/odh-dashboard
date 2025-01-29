@@ -311,7 +311,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
       >
         <Stack hasGutter>
           {!isAuthAvailable && alertVisible && !isRawAvailable && (
-            <NoAuthAlert setAlertVisible={setAlertVisible} />
+            <NoAuthAlert onClose={() => setAlertVisible(false)} />
           )}
           <StackItem>
             <ProjectSection projectName={getProjectName()} />
@@ -345,7 +345,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
             </StackItem>
           )}
           {!isAuthAvailable && alertVisible && isRawAvailable && (
-            <NoAuthAlert setAlertVisible={setAlertVisible} />
+            <NoAuthAlert onClose={() => setAlertVisible(false)} />
           )}
           <StackItem>
             <KServeAutoscalerReplicaSection
