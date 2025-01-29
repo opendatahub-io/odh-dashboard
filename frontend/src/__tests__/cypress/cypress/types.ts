@@ -133,6 +133,10 @@ export type DataScienceProjectData = {
   multiModelAdminName: string;
   modelOpenVinoExamplePath: string;
   projectDCResourceName: string;
+  projectPVStorageResourceName: string;
+  pvStorageName: string;
+  pvStorageDescription: string;
+  pvStorageNameEdited: string;
 };
 
 export type NotebookImageData = {
