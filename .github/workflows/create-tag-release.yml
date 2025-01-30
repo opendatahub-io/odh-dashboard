@@ -12,7 +12,7 @@ on:
         type: string
 
 env:
-  QUAY_ODH_DASHBOARD_IMAGE_REPO: ${{ secrets.QUAY_ODH_DASHBOARD_IMAGE_REPO }}
+  QUAY_ODH_DASHBOARD_IMAGE_REPO: quay.io/repository/opendatahub/odh-dashboard
 
 jobs:
   create-tag:
@@ -42,11 +42,11 @@ jobs:
       - name: Pull Quay repository
         shell: bash
         run: |
-          podman pull ${QUAY_ODH_DASHBOARD_IMAGE_REPO}
+          podman pull $QUAY_ODH_DASHBOARD_IMAGE_REPO
       - name: Create new release tag off of latest main-tag
         shell: bash
         run: |
-          podman tag odh-dashboard:${{ github.event.inputs.existingTag }} ${QUAY_ODH_DASHBOARD_IMAGE_REPO}:${{ github.event.inputs.releaseTag }}
+          podman tag odh-dashboard:${{ github.event.inputs.existingTag }} $QUAY_ODH_DASHBOARD_IMAGE_REPO:${{ github.event.inputs.releaseTag }}
       - name: Login to quay.io
         shell: bash
         env:
@@ -57,4 +57,4 @@ jobs:
       - name: Push the latest release tag to Quay
         shell: bash
         run: |
-          podman push ${QUAY_ODH_DASHBOARD_IMAGE_REPO}:${{ github.event.inputs.releaseTag }}
+          podman push $QUAY_ODH_DASHBOARD_IMAGE_REPO:${{ github.event.inputs.releaseTag }}
