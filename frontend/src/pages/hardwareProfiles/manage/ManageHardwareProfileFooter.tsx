@@ -50,7 +50,7 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
                 <Button
                   isInline
                   variant="link"
-                  onClick={() => navigate(`/hardwareProfiles/edit/${state.name}`)}
+                  onClick={() => navigate(`/hardwareProfiles`)}
                 >
                   View profile details
                 </Button>
