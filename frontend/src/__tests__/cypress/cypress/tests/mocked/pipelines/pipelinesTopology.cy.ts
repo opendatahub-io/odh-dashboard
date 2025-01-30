@@ -692,9 +692,15 @@ describe('Pipeline topology', () => {
 
       pipelineRunDetails
         .findLogs()
+        .should('be.visible')
         .contains(
           'sample log for namespace test-project, pod name iris-training-pipeline-v4zp7-2757091352 and for step step-main',
-        );
+        )
+        .and(($el) => {
+          expect($el.width()).to.be.greaterThan(0);
+          expect($el.height()).to.be.greaterThan(0);
+        });
+
       // test whether single step logs download dropdown item is enabled when logs are available
       pipelineRunDetails.findDownloadStepsToggle().click();
       pipelineRunDetails.findCurrentStepLogs().should('not.be.disabled');
