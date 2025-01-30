@@ -50,7 +50,7 @@ export const ManageAcceleratorProfileFooter: React.FC<ManageAcceleratorProfileFo
                   <Button
                     isInline
                     variant="link"
-                    onClick={() => navigate(`/acceleratorProfiles/edit/${state.name}`)}
+                    onClick={() => navigate(`/acceleratorProfiles`)}
                   >
                     View profile details
                   </Button>
