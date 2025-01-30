@@ -67,7 +67,7 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
 
     if (!enablement || !canInstall || !isAdmin) {
       return (
-        <Tooltip content="This feature has been disabled by an administrator.">
+        <Tooltip content="To enable this application, contact your administrator.">
           <span>{button}</span>
         </Tooltip>
       );
