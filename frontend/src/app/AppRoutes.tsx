@@ -57,7 +57,7 @@ const CustomServingRuntimeRoutes = React.lazy(
 );
 const GroupSettingsPage = React.lazy(() => import('../pages/groupSettings/GroupSettings'));
 const LearningCenterPage = React.lazy(() => import('../pages/learningCenter/LearningCenter'));
-const BYONImagesPage = React.lazy(() => import('../pages/BYONImages/BYONImages'));
+const BYONImageRoutes = React.lazy(() => import('../pages/BYONImages/BYONImageRoutes'));
 const NotFound = React.lazy(() => import('../pages/NotFound'));
 
 const DependencyMissingPage = React.lazy(
@@ -135,7 +135,7 @@ const AppRoutes: React.FC = () => {
 
         {isAdmin && (
           <>
-            <Route path="/notebookImages" element={<BYONImagesPage />} />
+            <Route path="/notebookImages/*" element={<BYONImageRoutes />} />
             <Route path="/clusterSettings" element={<ClusterSettingsPage />} />
             <Route path="/acceleratorProfiles/*" element={<AcceleratorProfileRoutes />} />
             <Route path="/hardwareProfiles/*" element={<HardwareProfileRoutes />} />
