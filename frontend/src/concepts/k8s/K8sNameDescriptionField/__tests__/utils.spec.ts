@@ -2,6 +2,7 @@ import {
   handleUpdateLogic,
   isK8sNameDescriptionDataValid,
   LimitNameResourceType,
+  resourceTypeLimits,
   setupDefaults,
 } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
@@ -69,6 +70,81 @@ describe('setupDefaults', () => {
           value: 'display-name',
           state: {
             immutable: false,
+          },
+        },
+      }),
+    );
+  });
+
+  it('should limit PVC resource name', () => {
+    expect(
+      setupDefaults({
+        initialData: mockProjectK8sResource({
+          displayName:
+            'this is a test this is a test this is a test this is a test this is a test this is a test this is a test this is a test this is a test this is a test this is a test ',
+          k8sName: '',
+          description: 'my description',
+        }),
+        limitNameResourceType: LimitNameResourceType.PVC,
+      }),
+    ).toEqual(
+      mockK8sNameDescriptionFieldData({
+        name: 'this is a test this is a test this is a test this is a test this is a test this is a test this is a test this is a test this is a test this is a test this is a test ',
+        description: 'my description',
+        k8sName: {
+          value: 'this-is-a-test-this-is-a-test-this-is-a-test-this-is-a-test-thi',
+          state: {
+            immutable: false,
+            maxLength: resourceTypeLimits[LimitNameResourceType.PVC],
+          },
+        },
+      }),
+    );
+  });
+
+  it('should limit project/workbench resource name', () => {
+    expect(
+      setupDefaults({
+        initialData: mockProjectK8sResource({
+          displayName:
+            'this is a test this is a test this is a test this is a test this is a test this is a test this is a test this is a test this is a test this is a test this is a test ',
+          k8sName: '',
+          description: 'my description',
+        }),
+        limitNameResourceType: LimitNameResourceType.PROJECT,
+      }),
+    ).toEqual(
+      mockK8sNameDescriptionFieldData({
+        name: 'this is a test this is a test this is a test this is a test this is a test this is a test this is a test this is a test this is a test this is a test this is a test ',
+        description: 'my description',
+        k8sName: {
+          value: 'this-is-a-test-this-is-a-test',
+          state: {
+            immutable: false,
+            maxLength: resourceTypeLimits[LimitNameResourceType.PROJECT],
+          },
+        },
+      }),
+    );
+    expect(
+      setupDefaults({
+        initialData: mockProjectK8sResource({
+          displayName:
+            'this is a test this is a test this is a test this is a test this is a test this is a test this is a test this is a test this is a test this is a test this is a test ',
+          k8sName: '',
+          description: 'my description',
+        }),
+        limitNameResourceType: LimitNameResourceType.WORKBENCH,
+      }),
+    ).toEqual(
+      mockK8sNameDescriptionFieldData({
+        name: 'this is a test this is a test this is a test this is a test this is a test this is a test this is a test this is a test this is a test this is a test this is a test ',
+        description: 'my description',
+        k8sName: {
+          value: 'this-is-a-test-this-is-a-test',
+          state: {
+            immutable: false,
+            maxLength: resourceTypeLimits[LimitNameResourceType.WORKBENCH],
           },
         },
       }),
