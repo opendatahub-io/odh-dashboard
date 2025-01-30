@@ -7,6 +7,7 @@ import {
   translateDisplayNameForK8s,
   translateDisplayNameForK8sAndReport,
 } from '~/concepts/k8s/utils';
+import { K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR } from '~/pages/projects/screens/spawner/const';
 
 describe('getDisplayNameFromK8sResource', () => {
   it('gets the display name when present', () => {
@@ -49,6 +50,10 @@ describe('translateDisplayNameForK8s', () => {
     expect(translateDisplayNameForK8s('-1234', { safeK8sPrefix: 'wb-' })).toBe('wb-1234');
     expect(translateDisplayNameForK8s('-1-', { safeK8sPrefix: 'wb-' })).toBe('wb-1');
     expect(translateDisplayNameForK8s('1-', { safeK8sPrefix: 'wb-' })).toBe('wb-1');
+    expect(translateDisplayNameForK8s('213-workbench-1-tls', { safeK8sPrefix: 'wb-' })).toBe(
+      'wb-213-workbench-1-tls',
+    );
+    expect(translateDisplayNameForK8s('$-12hello', { safeK8sPrefix: 'wb-' })).toBe('wb-12hello');
     expect(translateDisplayNameForK8s('-validcharacters')).toBe(`validcharacters`);
   });
 });
@@ -158,5 +163,39 @@ describe('isValidK8sName', () => {
     expect(isValidK8sName('test-project-1')).toBe(true);
     expect(isValidK8sName('john-does-cool-project')).toBe(true);
     expect(isValidK8sName('ymbols--capitals-and-spaces-these-are-invalid')).toBe(true);
+  });
+});
+
+describe('isValidK8sName for Notebook resource names', () => {
+  it('identifies invalid names', () => {
+    expect(isValidK8sName('', K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR)).toBe(false);
+    expect(isValidK8sName('Test Project 1', K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR)).toBe(false);
+    expect(isValidK8sName("John Doe's Cool Project!", K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR)).toBe(
+      false,
+    );
+    expect(
+      isValidK8sName(
+        '$ymbols & Capitals and Spaces! (These are invalid!)',
+        K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR,
+      ),
+    ).toBe(false);
+    expect(isValidK8sName('--213-workbench-1-tls', K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR)).toBe(
+      false,
+    );
+    expect(isValidK8sName('1234', K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR)).toBe(false);
+    expect(isValidK8sName('213-workbench-1-tls', K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR)).toBe(false);
+  });
+
+  it('identifies valid names', () => {
+    expect(isValidK8sName('test-project-1', K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR)).toBe(true);
+    expect(isValidK8sName('john-does-cool-project', K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR)).toBe(
+      true,
+    );
+    expect(
+      isValidK8sName(
+        'ymbols--capitals-and-spaces-these-are-invalid',
+        K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR,
+      ),
+    ).toBe(true);
   });
 });

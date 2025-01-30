@@ -37,7 +37,11 @@ import useNotebookPVCItems from '~/pages/projects/pvc/useNotebookPVCItems';
 import { getNotebookPVCMountPathMap } from '~/pages/projects/notebook/utils';
 import { getNotebookPVCNames } from '~/pages/projects/pvc/utils';
 import { SpawnerPageSectionID } from './types';
-import { ScrollableSelectorID, SpawnerPageSectionTitles } from './const';
+import {
+  K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR,
+  ScrollableSelectorID,
+  SpawnerPageSectionTitles,
+} from './const';
 import SpawnerFooter from './SpawnerFooter';
 import ImageSelectorField from './imageSelector/ImageSelectorField';
 import ContainerSizeSelector from './deploymentSize/ContainerSizeSelector';
@@ -76,6 +80,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     initialData: existingNotebook,
     limitNameResourceType: LimitNameResourceType.WORKBENCH,
     safePrefix: 'wb-',
+    regexp: K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR,
   });
   const [isAttachStorageModalOpen, setIsAttachStorageModalOpen] = React.useState(false);
   const [isCreateStorageModalOpen, setIsCreateStorageModalOpen] = React.useState(false);

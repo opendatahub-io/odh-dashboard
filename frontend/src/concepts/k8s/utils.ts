@@ -57,10 +57,10 @@ export const translateDisplayNameForK8sAndReport = (
   let translatedName = name
     .trim()
     .toLowerCase()
-    .replace(/^-*/, '') // remove any leading dashes
-    .replace(/-*$/, '') // remove any trailing dashes
     .replace(/\s/g, '-') // spaces to dashes
     .replace(/[^a-z0-9-]/g, '') // remove inverse of good k8s characters
+    .replace(/^-*/, '') // remove any leading dashes
+    .replace(/-*$/, '') // remove any trailing dashes
     .replace(/[-]+/g, '-'); // simplify double dashes ('A - B' turns into 'a---b' where 'a-b' is enough)
 
   /** Allows constant length checks -- modifies translatedName & appliedCriteria */
@@ -84,8 +84,8 @@ export const translateDisplayNameForK8sAndReport = (
       }
       appliedCriteria.safeK8sPrefix = true;
       appliedCriteria.staticPrefix = true;
-    } else if (/^\d+$/.test(translatedName)) {
-      // Avoid pure digit names
+    } else if (/^\d+/.test(translatedName)) {
+      // Avoid names that start with a digit
       translatedName = `${safeK8sPrefix}${translatedName}`;
       appliedCriteria.safeK8sPrefix = true;
     }
