@@ -4,7 +4,7 @@ import { genRandomChars } from '~/utilities/string';
 
 export const PreInstalledName = 'Pre-installed';
 
-export const ownedByDSC = (resource: K8sResourceCommon): boolean =>
+export const isOOTB = (resource: K8sResourceCommon): boolean =>
   !!resource.metadata?.labels?.['platform.opendatahub.io/part-of'];
 export const isK8sDSGResource = (x?: K8sResourceCommon): x is K8sDSGResource =>
   x?.metadata?.name != null;
@@ -15,7 +15,7 @@ export const getResourceNameFromK8sResource = (resource: K8sDSGResource): string
 export const getDescriptionFromK8sResource = (resource: K8sDSGResource): string =>
   resource.metadata.annotations?.['openshift.io/description'] || '';
 export const getCreatorFromK8sResource = (resource: K8sDSGResource): string =>
-  ownedByDSC(resource)
+  isOOTB(resource)
     ? PreInstalledName
     : resource.metadata.annotations?.['opendatahub.io/username'] || 'unknown';
 

@@ -18,7 +18,7 @@ import {
   getCreatorFromK8sResource,
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
-  ownedByDSC,
+  isOOTB,
 } from '~/concepts/k8s/utils';
 import { connectionTypeColumns } from '~/pages/connectionTypes/columns';
 import CategoryLabel from '~/concepts/connectionTypes/CategoryLabel';
@@ -115,11 +115,7 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
         )}
       </Td>
       <Td dataLabel={connectionTypeColumns[3].label} data-testid="connection-type-creator">
-        {ownedByDSC(obj) ? (
-          <Label data-testid="connection-type-user-label">{creator}</Label>
-        ) : (
-          creator
-        )}
+        {isOOTB(obj) ? <Label data-testid="connection-type-user-label">{creator}</Label> : creator}
       </Td>
       <Td
         dataLabel={connectionTypeColumns[4].label}
@@ -146,7 +142,7 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
               title: 'Preview',
               onClick: () => setShowPreview(true),
             },
-            ...(!ownedByDSC(obj)
+            ...(!isOOTB(obj)
               ? [
                   {
                     title: 'Edit',
@@ -158,7 +154,7 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
               title: 'Duplicate',
               onClick: () => navigate(`/connectionTypes/duplicate/${obj.metadata.name}`),
             },
-            ...(!ownedByDSC(obj)
+            ...(!isOOTB(obj)
               ? [
                   { isSeparator: true },
                   {

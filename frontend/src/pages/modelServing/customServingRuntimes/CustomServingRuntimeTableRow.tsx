@@ -5,11 +5,11 @@ import { Label } from '@patternfly/react-core';
 import { TemplateKind } from '~/k8sTypes';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import CustomServingRuntimePlatformsLabelGroup from '~/pages/modelServing/customServingRuntimes/CustomServingRuntimePlatformsLabelGroup';
+import { isOOTB, PreInstalledName } from '~/concepts/k8s/utils';
 import CustomServingRuntimeEnabledToggle from './CustomServingRuntimeEnabledToggle';
 import {
   getServingRuntimeDisplayNameFromTemplate,
   getServingRuntimeNameFromTemplate,
-  isTemplateOOTB,
 } from './utils';
 import CustomServingRuntimeAPIProtocolLabel from './CustomServingRuntimeAPIProtocolLabel';
 
@@ -27,7 +27,7 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
 }) => {
   const navigate = useNavigate();
   const servingRuntimeName = getServingRuntimeNameFromTemplate(template);
-  const templateOOTB = isTemplateOOTB(template);
+  const templateOOTB = isOOTB(template);
 
   return (
     <Tr
@@ -46,7 +46,7 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
         <ResourceNameTooltip resource={template}>
           {getServingRuntimeDisplayNameFromTemplate(template)}
         </ResourceNameTooltip>
-        {templateOOTB && <Label>Pre-installed</Label>}
+        {templateOOTB && <Label data-testid="pre-installed-label">{PreInstalledName}</Label>}
       </Td>
       <Td dataLabel="Enabled">
         <CustomServingRuntimeEnabledToggle template={template} />
