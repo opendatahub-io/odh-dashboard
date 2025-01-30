@@ -47,7 +47,7 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
   }
 
   const renderEnableButton = () => {
-    if (!selectedApp.spec.enable || selectedApp.spec.isEnabled || isEnabled || !isAdmin) {
+    if (!selectedApp.spec.enable || selectedApp.spec.isEnabled || isEnabled) {
       return null;
     }
 
@@ -59,13 +59,13 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
       <Button
         variant={ButtonVariant.secondary}
         onClick={onEnable}
-        isDisabled={!enablement || !canInstall}
+        isDisabled={!enablement || !canInstall || !isAdmin}
       >
         Enable
       </Button>
     );
 
-    if (!enablement || !canInstall) {
+    if (!enablement || !canInstall || !isAdmin) {
       return (
         <Tooltip content="This feature has been disabled by an administrator.">
           <span>{button}</span>
