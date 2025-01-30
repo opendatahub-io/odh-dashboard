@@ -47,11 +47,7 @@ export const ManageAcceleratorProfileFooter: React.FC<ManageAcceleratorProfileFo
                   A new accelerator profile <strong>{state.displayName}</strong> has been created.
                 </StackItem>
                 <StackItem>
-                  <Button
-                    isInline
-                    variant="link"
-                    onClick={() => navigate(`/acceleratorProfiles`)}
-                  >
+                  <Button isInline variant="link"  onClick={() => navigate(`/acceleratorProfiles`)}>
                     View profile details
                   </Button>
                 </StackItem>

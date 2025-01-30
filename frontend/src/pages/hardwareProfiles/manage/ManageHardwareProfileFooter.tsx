@@ -47,11 +47,7 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
                 A new hardware profile <strong>{state.displayName}</strong> has been created.
               </StackItem>
               <StackItem>
-                <Button
-                  isInline
-                  variant="link"
-                  onClick={() => navigate(`/hardwareProfiles`)}
-                >
+                <Button isInline variant="link" onClick={() => navigate(`/hardwareProfiles`)}>
                   View profile details
                 </Button>
               </StackItem>
