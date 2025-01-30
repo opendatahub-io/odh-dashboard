@@ -50,6 +50,13 @@ const mockVersion2 = buildMockPipelineVersion({
 const mockRun = buildMockRunKF({
   display_name: 'test-pipeline-run',
   run_id: 'test-pipeline-run-id',
+  runtime_config: {
+    parameters: {
+      min_max_scaler: false,
+      neighbors: 1,
+      standard_scaler: '["test-1", "test-2", "test-3", "test-4"]',
+    },
+  },
   pipeline_version_reference: {
     pipeline_id: mockPipeline.pipeline_id,
     pipeline_version_id: mockVersion.pipeline_version_id,
@@ -482,6 +489,9 @@ describe('Pipeline topology', () => {
       pipelineRunDetails.findInputParameterTab().click();
       pipelineRunDetails.findDetailItem('min_max_scaler').findValue().contains('False');
       pipelineRunDetails.findDetailItem('neighbors').findValue().contains('1');
+      pipelineRecurringRunDetails
+        .findDetailItem('standard_scaler')
+        .shouldHaveCodeEditorValue('test-1');
     });
 
     it('Test pipeline triggered run YAML output', () => {
