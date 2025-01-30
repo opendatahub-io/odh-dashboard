@@ -371,3 +371,19 @@ export const filterModelServingConnectionTypes = (
         : undefined;
     })
     .filter((t) => t != null);
+
+export const VALID_ENV_VARNAME_REGEX = /^[A-Za-z_][A-Za-z0-9_-]*$/;
+export const STARTS_WITH_DIGIT_REGEX = /^\d/;
+
+export const validateEnvVarName = (name: string): string | undefined => {
+  if (!name) {
+    return undefined;
+  }
+  if (STARTS_WITH_DIGIT_REGEX.test(name)) {
+    return 'Must not start with a digit.';
+  }
+  if (!VALID_ENV_VARNAME_REGEX.test(name)) {
+    return "Must consist of alphabetic characters, digits, '_', '-', or '.'";
+  }
+  return undefined;
+};
