@@ -10,7 +10,7 @@ import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 
-describe('Verify that users can provide admin project permissions to non-admin users', () => {
+describe('Verify that users can provide admin project permissions to non-admin users/groups', () => {
   let testData: DataScienceProjectData;
   let projectName: string;
 
@@ -91,14 +91,8 @@ describe('Verify that users can provide admin project permissions to non-admin u
 
       cy.step('Assign admin group Project Permissions');
       permissions.findAddGroupButton().click();
-      permissions.getGroupTable().findAddInput().type(LDAP_CONTRIBUTOR_GROUP.USERNAME);
-      permissions
-        .getGroupTable()
-        .selectPermission(
-          LDAP_CONTRIBUTOR_GROUP.USERNAME,
-          'Admin Edit the project and manage user access',
-        );
-
+      permissions.getGroupTable().addGroupName(LDAP_CONTRIBUTOR_GROUP.USERNAME);
+      permissions.getGroupTable().selectAdminOption();
       cy.step(
         `Save the group and validate that ${LDAP_CONTRIBUTOR_GROUP.USERNAME} has been saved with admin permissions`,
       );
