@@ -11,6 +11,7 @@ import {
   renderDetailItems,
 } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
 import { ExecutionDetailsPropertiesValueCode } from '~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsPropertiesValue';
+import { NoValue } from '~/components/NoValue';
 
 type PipelineRunTabParametersProps = {
   run: PipelineRecurringRunKF | PipelineRunKF | null;
@@ -71,7 +72,17 @@ const PipelineRunTabParameters: React.FC<PipelineRunTabParametersProps> = ({
         value = initialValue ? 'True' : 'False';
         break;
       case InputDefinitionParameterType.STRING:
-        value = String(initialValue);
+        try {
+          const jsonStringValue = JSON.parse(String(initialValue));
+          if (parseFloat(jsonStringValue)) {
+            throw initialValue;
+          }
+          value = (
+            <ExecutionDetailsPropertiesValueCode code={JSON.stringify(jsonStringValue, null, 2)} />
+          );
+        } catch {
+          value = String(initialValue) || <NoValue />;
+        }
         break;
       case InputDefinitionParameterType.LIST:
         value = (
