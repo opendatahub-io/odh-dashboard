@@ -9,6 +9,13 @@ class ServingRuntimeRow {
     return cy.findByTestId(`serving-runtime ${this.id}`);
   }
 
+  shouldHavePreInstalledLabel(enabled = true) {
+    this.find()
+      .findByTestId('pre-installed-label')
+      .should(enabled ? 'exist' : 'not.exist');
+    return this;
+  }
+
   shouldBeMultiModel(enabled = true) {
     this.find()
       .findByTestId('serving-runtime-platform-label')

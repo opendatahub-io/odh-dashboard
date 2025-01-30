@@ -48,11 +48,19 @@ const modelVersionMocked = mockModelVersion({
   name: 'test model version',
   state: ModelState.LIVE,
 });
+const modelVersionMocked2 = mockModelVersion({
+  id: '2',
+  name: 'model version'.repeat(15),
+  state: ModelState.LIVE,
+});
 const modelArtifactMocked = mockModelArtifact();
 
 const initIntercepts = ({
   registeredModelsSize = 4,
-  modelVersions = [mockModelVersion({ id: '1', name: 'test model version' })],
+  modelVersions = [
+    mockModelVersion({ id: '1', name: 'test model version' }),
+    mockModelVersion({ id: '2', name: modelVersionMocked2.name }),
+  ],
   modelMeshInstalled = true,
   kServeInstalled = true,
 }: HandlersProps) => {
@@ -122,6 +130,18 @@ const initIntercepts = ({
     modelVersionMocked,
   );
 
+  cy.interceptOdh(
+    'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId',
+    {
+      path: {
+        serviceName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: 2,
+      },
+    },
+    modelVersionMocked2,
+  );
+
   cy.interceptK8sList(
     ProjectModel,
     mockK8sResourceList([
@@ -146,6 +166,18 @@ const initIntercepts = ({
         serviceName: 'modelregistry-sample',
         apiVersion: MODEL_REGISTRY_API_VERSION,
         modelVersionId: 1,
+      },
+    },
+    mockModelArtifactList({}),
+  );
+
+  cy.interceptOdh(
+    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts`,
+    {
+      path: {
+        serviceName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: 2,
       },
     },
     mockModelArtifactList({}),
@@ -241,14 +273,17 @@ describe('Deploy model version', () => {
       ]),
     );
     cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
-    const modelVersionRow = modelRegistry.getModelVersionRow('test model version');
+    const modelVersionRow = modelRegistry.getModelVersionRow(modelVersionMocked2.name);
     modelVersionRow.findKebabAction('Deploy').click();
     modelVersionDeployModal.selectProjectByName('KServe project');
 
     // Validate name input field
     kserveModal
       .findModelNameInput()
-      .should('contain.value', `${registeredModelMocked.name} - ${modelVersionMocked.name} - `);
+      .should(
+        'contain.value',
+        `${registeredModelMocked.name} - ${modelVersionMocked2.name}`.slice(0, 63),
+      );
 
     // Validate model framework section
     kserveModal.findModelFrameworkSelect().should('be.disabled');

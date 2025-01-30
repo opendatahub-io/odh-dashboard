@@ -59,6 +59,9 @@ const createServingRuntime = (name: string): K8sDSGResource => ({
 describe('assembleServingRuntimeTemplate', () => {
   it('should assemble serving runtime template with templateName', () => {
     const servingRuntimeMock = JSON.stringify(createServingRuntime('template-1'));
+    const servingRuntimeTemplatesMock = mockServingRuntimeTemplateK8sResource({
+      platforms: [ServingRuntimePlatform.MULTI],
+    });
     const result = assembleServingRuntimeTemplate(
       servingRuntimeMock,
       namespace,
@@ -66,25 +69,23 @@ describe('assembleServingRuntimeTemplate', () => {
       ServingRuntimeAPIProtocol.REST,
       'template-1',
     );
-    expect(result).toStrictEqual(
-      mockServingRuntimeTemplateK8sResource({ platforms: [ServingRuntimePlatform.MULTI] }),
-    );
+    expect(result).toStrictEqual(servingRuntimeTemplatesMock);
   });
   it('should assemble serving runtime template without templateName', () => {
     genRandomCharsMock.mockReturnValue('123');
     const servingRuntimeMock = JSON.stringify(createServingRuntime('template-123'));
+    const servingRuntimeTemplatesMock = mockServingRuntimeTemplateK8sResource({
+      name: 'template-123',
+      platforms: [ServingRuntimePlatform.MULTI],
+    });
+
     const result = assembleServingRuntimeTemplate(
       servingRuntimeMock,
       namespace,
       [ServingRuntimePlatform.MULTI],
       ServingRuntimeAPIProtocol.REST,
     );
-    expect(result).toStrictEqual(
-      mockServingRuntimeTemplateK8sResource({
-        name: 'template-123',
-        platforms: [ServingRuntimePlatform.MULTI],
-      }),
-    );
+    expect(result).toStrictEqual(servingRuntimeTemplatesMock);
   });
 
   it('should throw an error when servingRuntime name doesnt exist', () => {
