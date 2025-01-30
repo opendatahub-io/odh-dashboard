@@ -28,7 +28,11 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({
   wrap = true,
 }) => (
   <div style={{ display: wrap ? 'block' : 'inline-flex' }}>
-    <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
+    <Flex
+      flexWrap={{ default: 'nowrap' }}
+      gap={{ default: 'gapXs' }}
+      alignItems={{ default: 'alignItemsCenter' }}
+    >
       <FlexItem>{children}</FlexItem>
       {resource.metadata?.name && (
         <Popover
