@@ -21,11 +21,15 @@ import { HardwareProfileFormData, ManageHardwareProfileSectionID } from './types
 type ManageHardwareProfileProps = {
   existingHardwareProfile?: HardwareProfileKind;
   duplicatedHardwareProfile?: HardwareProfileKind;
+  contextPath?: string;
+  homepageTitle?: string;
 };
 
 const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
   existingHardwareProfile,
   duplicatedHardwareProfile,
+  contextPath = '/hardwareProfiles',
+  homepageTitle = 'Hardware profiles',
 }) => {
   const [state, setState] = useGenericObjectState<HardwareProfileKind['spec']>(
     DEFAULT_HARDWARE_PROFILE_SPEC,
@@ -87,7 +91,7 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
       }
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem render={() => <Link to="/hardwareProfiles">Hardware profiles</Link>} />
+          <BreadcrumbItem render={() => <Link to={contextPath}>{homepageTitle}</Link>} />
           <BreadcrumbItem isActive>
             {existingHardwareProfile ? 'Edit' : duplicatedHardwareProfile ? 'Duplicate' : 'Create'}{' '}
             hardware profile
@@ -133,6 +137,7 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
           state={formState}
           existingHardwareProfile={existingHardwareProfile}
           validFormData={validFormData}
+          redirectPath={contextPath}
         />
       </PageSection>
     </ApplicationsPage>

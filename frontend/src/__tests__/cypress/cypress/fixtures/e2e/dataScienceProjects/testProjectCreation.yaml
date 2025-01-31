@@ -2,3 +2,34 @@
 projectDisplayName: "Cypress Test Project"
 projectDescription: "Cypress Test project description."
 projectResourceName: "cypress-test-project" 
+invalidResourceNames:
+  - Test-Project
+  - test project
+  - test.project
+  - test:project
+  - test/project
+  - test"project
+  - test[project]
+  - test(project)
+  - test&project
+  - test*project
+  - test?project
+  - largeprojectnametestthatshouldnotwork
+  - Test-Project-Invalid
+  - test project with spaces
+  - test.project.with.dots
+  - test:project:with:colons
+  - test/project/with/slashes
+  - test"project"with"quotes
+  - test[project]with[brackets]
+  - test(project)with(parentheses)
+  - test&project&with&ampersands
+  - test*project*with*asterisks
+  - test?project?with?questions
+  - -testprojectstartshyphen
+  - testprojectendswithhyphen-
+  - TestProjectUpperCase
+  - $testprojectspecialstart
+  - ^testprojectspecialstart
+  - (testproject)parentheses
+  - testprojecttoooooooooooooooooooooooooooooooooooooooooooooooooooolong

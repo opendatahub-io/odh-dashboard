@@ -148,6 +148,7 @@ export type DataScienceProjectData = {
   pvStorageName: string;
   pvStorageDescription: string;
   pvStorageNameEdited: string;
+  invalidResourceNames: string[];
 };
 
 export type NotebookImageData = {

@@ -75,6 +75,12 @@ declare global {
        * @param testId the name of the option
        */
       findSelectOptionByTestId: (testId: string) => Cypress.Chainable<JQuery>;
+      /**
+       * Finds a patternfly checkbox label by test-id and returns a number in that label
+       *
+       * @param testId the test-id of checkbox
+       */
+      findCheckboxLabelNumberByTestId: (testId: string) => Cypress.Chainable<number>;
 
       /**
        * Shortcut to first clear the previous value and then type text into DOM element.
@@ -270,6 +276,27 @@ Cypress.Commands.add('findSelectOption', { prevSubject: 'element' }, (subject, n
     //cy.get('[role=listbox]') TODO fix cases where there are multiple listboxes
     return cy.findByRole('option', { name });
   });
+});
+
+Cypress.Commands.add('findCheckboxLabelNumberByTestId', (testId) => {
+  if (typeof testId !== 'string') {
+    throw new Error(`Invalid testId: expected string, got ${typeof testId}`);
+  }
+  Cypress.log({
+    displayName: 'findCheckboxLabelNumberByTestId',
+    message: `testId: ${JSON.stringify(testId)}`,
+  });
+  const sanitizedTestId = Cypress.$.escapeSelector(testId);
+  return cy
+    .get(`label[for=${sanitizedTestId}--check-box]`)
+    .invoke('text')
+    .then((labelText) => {
+      const numberMatch = labelText.match(/\((\d+)\)/);
+      if (numberMatch) {
+        return parseInt(numberMatch[1], 10);
+      }
+      throw new Error('Number not found in label text');
+    });
 });
 
 Cypress.Commands.add('findSelectOptionByTestId', { prevSubject: 'element' }, (subject, testId) => {

@@ -11,18 +11,26 @@ import {
   Stack,
   TextInput,
   Tooltip,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
 } from '@patternfly/react-core';
 import {
   MinusCircleIcon,
   OutlinedQuestionCircleIcon,
   PlusCircleIcon,
+  ExclamationCircleIcon,
 } from '@patternfly/react-icons';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
+import { validateEnvVarName } from '~/concepts/connectionTypes/utils';
+import { ServingContainer } from '~/k8sTypes';
 
 type EnvironmentVariablesSectionType = {
   predefinedVars?: string[];
-  data: CreatingInferenceServiceObject;
+  data: CreatingInferenceServiceObject & {
+    servingRuntimeEnvVars?: ServingContainer['env'];
+  };
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
 };
 
@@ -50,12 +58,19 @@ const EnvironmentVariablesSection: React.FC<EnvironmentVariablesSectionType> = (
     }
   };
 
-  const updateEnvVar = (indexToUpdate: number, updates: { name?: string; value?: string }) => {
-    if (data.servingRuntimeEnvVars) {
-      const newVars = [...data.servingRuntimeEnvVars];
-      newVars[indexToUpdate] = { ...data.servingRuntimeEnvVars[indexToUpdate], ...updates };
-      setData('servingRuntimeEnvVars', newVars);
-    }
+  const updateEnvVar = (
+    index: number,
+    updates: {
+      name?: string;
+      value?: string;
+      valueFrom?: { secretKeyRef?: { name: string; key: string } };
+    },
+  ) => {
+    const currentVars = data.servingRuntimeEnvVars || [];
+    const newVars: ServingContainer['env'] = [...currentVars];
+    const updatedVar = { ...newVars[index], ...updates };
+    newVars[index] = updatedVar;
+    setData('servingRuntimeEnvVars', newVars);
   };
 
   const labelInfo = () => {
@@ -127,41 +142,52 @@ const EnvironmentVariablesSection: React.FC<EnvironmentVariablesSectionType> = (
       fieldId="serving-runtime-environment-variables"
     >
       <Stack hasGutter>
-        {data.servingRuntimeEnvVars?.map((envVar, index) => (
-          <Split hasGutter key={index}>
-            <SplitItem isFilled>
-              <TextInput
-                data-testid={`serving-runtime-environment-variables-input-name ${index}`}
-                aria-label="env var name"
-                value={envVar.name}
-                onChange={(_event: React.FormEvent<HTMLInputElement>, value: string) =>
-                  updateEnvVar(index, { name: value })
-                }
-                ref={
-                  index === data.servingRuntimeEnvVars!.length - 1 ? lastNameFieldRef : undefined
-                }
-              />
-            </SplitItem>
-            <SplitItem isFilled>
-              <TextInput
-                data-testid={`serving-runtime-environment-variables-input-value ${index}`}
-                aria-label="env var value"
-                value={envVar.value}
-                onChange={(_event: React.FormEvent<HTMLInputElement>, value: string) =>
-                  updateEnvVar(index, { value })
-                }
-              />
-            </SplitItem>
-            <SplitItem>
-              <Button
-                aria-label="remove-environment-variable"
-                onClick={() => removeEnvVar(index)}
-                variant="plain"
-                icon={<MinusCircleIcon />}
-              />
-            </SplitItem>
-          </Split>
-        ))}
+        {data.servingRuntimeEnvVars?.map((envVar, index) => {
+          const error = validateEnvVarName(envVar.name);
+          return (
+            <Split hasGutter key={index}>
+              <SplitItem isFilled>
+                <TextInput
+                  data-testid={`serving-runtime-environment-variables-input-name ${index}`}
+                  aria-label="env var name"
+                  value={envVar.name}
+                  onChange={(_event, value) => updateEnvVar(index, { name: value })}
+                  ref={
+                    index === data.servingRuntimeEnvVars!.length - 1 ? lastNameFieldRef : undefined
+                  }
+                  validated={error ? 'error' : 'default'}
+                />
+                {error && (
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem variant="error" icon={<ExclamationCircleIcon />}>
+                        {error}
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                )}
+              </SplitItem>
+              <SplitItem isFilled>
+                <TextInput
+                  data-testid={`serving-runtime-environment-variables-input-value ${index}`}
+                  aria-label="env var value"
+                  value={envVar.value}
+                  onChange={(_event: React.FormEvent<HTMLInputElement>, value: string) =>
+                    updateEnvVar(index, { value })
+                  }
+                />
+              </SplitItem>
+              <SplitItem>
+                <Button
+                  aria-label="remove-environment-variable"
+                  onClick={() => removeEnvVar(index)}
+                  variant="plain"
+                  icon={<MinusCircleIcon />}
+                />
+              </SplitItem>
+            </Split>
+          );
+        })}
         <Button
           isInline
           data-testid="add-environment-variable"

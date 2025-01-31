@@ -20,6 +20,7 @@ export const customServingRuntimesInitialMock = [
     name: 'template-3',
     displayName: 'OVMS',
     platforms: [ServingRuntimePlatform.MULTI],
+    preInstalled: true,
   }),
   mockServingRuntimeTemplateK8sResource({
     name: 'template-4',
