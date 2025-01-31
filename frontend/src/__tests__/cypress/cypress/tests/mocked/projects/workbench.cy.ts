@@ -601,7 +601,8 @@ describe('Workbench page', () => {
         { op: 'remove', path: '/metadata/annotations/kubeflow-resource-stopped' },
       ]);
     });
-    notebookRow.findNotebookStatusPopover('Waiting for workbench to start...').should('exist');
+
+    notebookRow.findNotebookStatusModal().should('exist');
   });
 
   it('Validate the start button is enabled when the notebook image is deleted', () => {
