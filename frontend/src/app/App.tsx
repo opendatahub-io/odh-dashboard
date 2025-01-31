@@ -44,6 +44,7 @@ type PocConfigType = {
   altNav?: boolean;
 };
 
+const FAVORITE_PROJECTS_KEY = 'odh-favorite-projects';
 const POC_SESSION_KEY = 'odh-poc-flags';
 const ALT_NAV_PARAM = 'altNav';
 
@@ -58,6 +59,10 @@ const App: React.FC = () => {
     null,
     true,
     true,
+  );
+  const [favoriteProjects, setFavoriteProjects] = useBrowserStorage<string[]>(
+    FAVORITE_PROJECTS_KEY,
+    [],
   );
 
   const buildStatuses = useWatchBuildStatus();
@@ -104,9 +109,11 @@ const App: React.FC = () => {
             storageClasses,
             isRHOAI: dashboardConfig.metadata?.namespace === 'redhat-ods-applications',
             altNav,
+            favoriteProjects,
+            setFavoriteProjects,
           }
         : null,
-    [buildStatuses, dashboardConfig, storageClasses, altNav],
+    [dashboardConfig, buildStatuses, storageClasses, altNav, favoriteProjects, setFavoriteProjects],
   );
 
   const isUnauthorized = fetchConfigError?.request?.status === 403;
