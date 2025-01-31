@@ -229,7 +229,14 @@ const LogsTab: React.FC<LogsTabProps> = ({ task, isCached }) => {
       </StackItem>
       <StackItem isFilled id="dashboard-logviewer" style={{ position: 'relative' }}>
         <div
-          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0,
+            height: '50vh',
+          }}
           ref={logsTabRef}
         >
           <DashboardLogViewer

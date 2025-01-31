@@ -31,9 +31,18 @@ export enum LimitNameResourceType {
   /** Workbenches create routes */
   WORKBENCH,
   // TODO: Support Model Serving?
+  PVC,
 }
 /** K8s max DNS subdomain name length */
 const MAX_RESOURCE_NAME_LENGTH = 253;
+
+const MAX_PVC_NAME_LENGTH = 63;
+
+export const resourceTypeLimits: Record<LimitNameResourceType, number> = {
+  [LimitNameResourceType.PROJECT]: ROUTE_BASED_NAME_LENGTH,
+  [LimitNameResourceType.WORKBENCH]: ROUTE_BASED_NAME_LENGTH,
+  [LimitNameResourceType.PVC]: MAX_PVC_NAME_LENGTH,
+};
 
 export const isK8sNameDescriptionType = (
   x?: K8sNameDescriptionType | K8sResourceCommon,
@@ -64,7 +73,7 @@ export const setupDefaults = ({
   }
 
   if (limitNameResourceType != null) {
-    configuredMaxLength = ROUTE_BASED_NAME_LENGTH;
+    configuredMaxLength = resourceTypeLimits[limitNameResourceType];
   }
 
   return handleUpdateLogic({

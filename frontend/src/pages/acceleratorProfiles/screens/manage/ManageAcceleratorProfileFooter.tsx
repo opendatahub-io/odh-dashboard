@@ -14,28 +14,47 @@ import {
   updateAcceleratorProfile,
 } from '~/services/acceleratorProfileService';
 import { AcceleratorProfileFormData } from '~/pages/acceleratorProfiles/screens/manage/types';
+import useNotification from '~/utilities/useNotification';
 
 type ManageAcceleratorProfileFooterProps = {
   state: AcceleratorProfileFormData;
   existingAcceleratorProfile?: AcceleratorProfileKind;
   validFormData: boolean;
+  redirectPath: string;
 };
 
 export const ManageAcceleratorProfileFooter: React.FC<ManageAcceleratorProfileFooterProps> = ({
   state,
   existingAcceleratorProfile,
   validFormData,
+  redirectPath,
 }) => {
   const [errorMessage, setErrorMessage] = React.useState<string>('');
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const navigate = useNavigate();
+  const notification = useNotification();
 
   const onCreateAcceleratorProfile = async () => {
     setIsLoading(true);
     createAcceleratorProfile(state)
       .then((res) => {
         if (res.success) {
-          navigate(`/acceleratorProfiles`);
+          if (redirectPath !== '/acceleratorProfiles') {
+            notification.success(
+              'Accelerator profile has been created.',
+              <Stack hasGutter>
+                <StackItem>
+                  A new accelerator profile <strong>{state.displayName}</strong> has been created.
+                </StackItem>
+                <StackItem>
+                  <Button isInline variant="link" onClick={() => navigate(`/acceleratorProfiles`)}>
+                    View profile details
+                  </Button>
+                </StackItem>
+              </Stack>,
+            );
+          }
+          navigate(redirectPath);
         } else {
           setErrorMessage(res.error || 'Could not create accelerator profile');
         }
@@ -54,7 +73,7 @@ export const ManageAcceleratorProfileFooter: React.FC<ManageAcceleratorProfileFo
       updateAcceleratorProfile(existingAcceleratorProfile.metadata.name, state)
         .then((res) => {
           if (res.success) {
-            navigate(`/acceleratorProfiles`);
+            navigate(redirectPath);
           } else {
             setErrorMessage(res.error || 'Could not update accelerator profile');
           }
@@ -103,7 +122,7 @@ export const ManageAcceleratorProfileFooter: React.FC<ManageAcceleratorProfileFo
             <Button
               variant="link"
               id="cancel-button"
-              onClick={() => navigate(`/acceleratorProfiles`)}
+              onClick={() => navigate(redirectPath)}
               isDisabled={isLoading}
             >
               Cancel

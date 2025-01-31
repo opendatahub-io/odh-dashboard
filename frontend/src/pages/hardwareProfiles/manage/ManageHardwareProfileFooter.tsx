@@ -12,29 +12,50 @@ import { HardwareProfileKind } from '~/k8sTypes';
 import { HardwareProfileFormData } from '~/pages/hardwareProfiles/manage/types';
 import { createHardwareProfile, updateHardwareProfile } from '~/api';
 import { useDashboardNamespace } from '~/redux/selectors';
+import useNotification from '~/utilities/useNotification';
 
 type ManageHardwareProfileFooterProps = {
   state: HardwareProfileFormData;
   existingHardwareProfile?: HardwareProfileKind;
   validFormData: boolean;
+  redirectPath: string;
 };
 
 const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = ({
   state,
   existingHardwareProfile,
   validFormData,
+  redirectPath,
 }) => {
   const [errorMessage, setErrorMessage] = React.useState<string>('');
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const { dashboardNamespace } = useDashboardNamespace();
   const navigate = useNavigate();
+  const notification = useNotification();
 
   const { name, ...spec } = state;
 
   const onCreateHardwareProfile = async () => {
     setIsLoading(true);
     createHardwareProfile(name, spec, dashboardNamespace)
-      .then(() => navigate('/hardwareProfiles'))
+      .then(() => {
+        if (redirectPath !== '/hardwareProfiles') {
+          notification.success(
+            'Hardware profile has been created.',
+            <Stack hasGutter>
+              <StackItem>
+                A new hardware profile <strong>{state.displayName}</strong> has been created.
+              </StackItem>
+              <StackItem>
+                <Button isInline variant="link" onClick={() => navigate(`/hardwareProfiles`)}>
+                  View profile details
+                </Button>
+              </StackItem>
+            </Stack>,
+          );
+        }
+        navigate(redirectPath);
+      })
       .catch((err) => {
         setErrorMessage(err.message);
       })
@@ -47,7 +68,7 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
     if (existingHardwareProfile) {
       setIsLoading(true);
       updateHardwareProfile(spec, existingHardwareProfile, dashboardNamespace)
-        .then(() => navigate(`/hardwareProfiles`))
+        .then(() => navigate(redirectPath))
         .catch((err) => {
           setErrorMessage(err.message);
         })
@@ -88,7 +109,7 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
             <Button
               variant="link"
               id="cancel-button"
-              onClick={() => navigate(`/hardwareProfiles`)}
+              onClick={() => navigate(redirectPath)}
               isDisabled={isLoading}
             >
               Cancel
