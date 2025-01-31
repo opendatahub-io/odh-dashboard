@@ -13,7 +13,7 @@ export const validateWorkbenchEnvironmentVariables = (
   workbench: string,
   variablesToCheck: Record<string, string>,
 ): Cypress.Chainable<CommandLineResult> => {
-  const getPodNameCommand = `oc get pods -n ${namespace} -o custom-columns=NAME:.metadata.name --no-headers`;
+  const getPodNameCommand = `oc get pods -n ${namespace} -o custom-columns=NAME:.metadata.name --no-headers | grep ^${workbench}`;
   cy.log(`Executing command: ${getPodNameCommand}`);
 
   return cy.exec(getPodNameCommand, { failOnNonZeroExit: false }).then((result) => {
