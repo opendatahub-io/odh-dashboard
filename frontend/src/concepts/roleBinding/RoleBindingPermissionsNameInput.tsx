@@ -57,6 +57,7 @@ const RoleBindingPermissionsNameInput: React.FC<RoleBindingPermissionsNameInputP
   }
   return (
     <TypeaheadSelect
+      dataTestId={`role-binding-name-select ${value}`}
       isScrollable
       selectOptions={selectOptions}
       selected={value}

@@ -33,6 +33,12 @@ const LDAP_CONTRIBUTOR_USER: UserAuthConfig = testConfig?.TEST_USER_3 ?? {
   PASSWORD: env.TEST_USER_3_PASSWORD || '',
 };
 
+const LDAP_CONTRIBUTOR_GROUP: UserAuthConfig = testConfig?.TEST_USER_3 ?? {
+  AUTH_TYPE: env.TEST_USER_3_AUTH_TYPE || '',
+  USERNAME: `${env.TEST_USER_3_USERNAME ?? ''}-group`,
+  PASSWORD: env.TEST_USER_3_PASSWORD || '',
+};
+
 const HTPASSWD_CLUSTER_ADMIN_USER: UserAuthConfig = testConfig?.OCP_ADMIN_USER ?? {
   AUTH_TYPE: env.ADMIN_USER_AUTH_TYPE || '',
   USERNAME: env.ADMIN_USER_USERNAME || '',
@@ -73,6 +79,7 @@ const PIP_TRUSTED_HOST = testConfig?.PIP_TRUSTED_HOST;
 // spread the cypressEnv variables into the cypress config
 export const cypressEnv = {
   LDAP_CONTRIBUTOR_USER,
+  LDAP_CONTRIBUTOR_GROUP,
   HTPASSWD_CLUSTER_ADMIN_USER,
   AWS_PIPELINES,
   TEST_NAMESPACE,
