@@ -354,7 +354,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
         <Stack hasGutter>
           {restartNotebooks.length !== 0 && (
             <StackItem>
-              <NotebookRestartAlert notebooks={restartNotebooks} />
+              <NotebookRestartAlert notebooks={restartNotebooks} isCurrent={!!existingNotebook} />
             </StackItem>
           )}
           <StackItem>

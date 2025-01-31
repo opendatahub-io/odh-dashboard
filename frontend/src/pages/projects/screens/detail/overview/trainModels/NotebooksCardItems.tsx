@@ -44,7 +44,6 @@ const NotebooksCardItems: React.FC<NotebooksCardItemsProps> = ({
       {listItems.map((notebookState) => (
         <NotebookRouteLink
           key={notebookState.notebook.metadata.uid}
-          label={getDisplayNameFromK8sResource(notebookState.notebook)}
           notebook={notebookState.notebook}
           isRunning={notebookState.isRunning}
         />

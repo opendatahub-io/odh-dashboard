@@ -16,14 +16,12 @@ export const NotebookActionsColumn: React.FC<Props> = ({
   onNotebookDelete,
 }) => {
   const navigate = useNavigate();
-  const { isStarting, isStopping } = notebookState;
 
   return (
     <ActionsColumn
       id="notebook-actions"
       items={[
         {
-          isDisabled: isStarting || isStopping,
           title: 'Edit workbench',
           onClick: () => {
             navigate(
