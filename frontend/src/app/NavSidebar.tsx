@@ -7,6 +7,8 @@ import {
   NavList,
   PageSidebar,
   PageSidebarBody,
+  Split,
+  SplitItem,
 } from '@patternfly/react-core';
 import { isNavDataGroup, NavDataGroup, NavDataHref, useBuildNavData } from '~/utilities/NavData';
 
@@ -41,7 +43,16 @@ const NavGroup: React.FC<{ item: NavDataGroup; pathname: string }> = ({ item, pa
       data-id={group.id}
       key={group.id}
       id={group.id}
-      title={group.title}
+      title={
+        group.icon ? (
+          <Split hasGutter>
+            <SplitItem>{group.title}</SplitItem>
+            <SplitItem>{group.icon}</SplitItem>
+          </Split>
+        ) : (
+          group.title
+        )
+      }
       groupId={group.id}
       isActive={isActive}
       isExpanded={expanded}

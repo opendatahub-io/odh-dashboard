@@ -1,6 +1,9 @@
 import * as React from 'react';
 import {
+  Button,
   Divider,
+  Icon,
+  Popover,
   Stack,
   StackItem,
   Timestamp,
@@ -9,6 +12,7 @@ import {
 } from '@patternfly/react-core';
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { relativeTime } from '~/utilities/time';
 import { TableRowTitleDescription } from '~/components/table';
 import HardwareProfileEnableToggle from '~/pages/hardwareProfiles/HardwareProfileEnableToggle';
@@ -17,23 +21,25 @@ import NodeResourceTable from '~/pages/hardwareProfiles/nodeResource/NodeResourc
 import NodeSelectorTable from '~/pages/hardwareProfiles/nodeSelector/NodeSelectorTable';
 import TolerationTable from '~/pages/hardwareProfiles/toleration/TolerationTable';
 import { isHardwareProfileOOTB } from '~/pages/hardwareProfiles/utils';
+import { updateHardwareProfile } from '~/api';
+import { useDashboardNamespace } from '~/redux/selectors';
+import { DEFAULT_HARDWARE_PROFILE_SPEC } from './const';
 
 type HardwareProfilesTableRowProps = {
   rowIndex: number;
   hardwareProfile: HardwareProfileKind;
   handleDelete: (cr: HardwareProfileKind) => void;
-  refreshHardwareProfiles: () => void;
 };
 
 const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
   hardwareProfile,
   rowIndex,
   handleDelete,
-  refreshHardwareProfiles,
 }) => {
   const modifiedDate = hardwareProfile.metadata.annotations?.['opendatahub.io/modified-date'];
   const [isExpanded, setExpanded] = React.useState(false);
   const navigate = useNavigate();
+  const { dashboardNamespace } = useDashboardNamespace();
 
   return (
     <Tbody isExpanded={isExpanded}>
@@ -53,13 +59,53 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
             resource={hardwareProfile}
             truncateDescriptionLines={2}
             wrapResourceTitle={false}
+            titleIcon={
+              typeof hardwareProfile.spec.warning !== 'undefined' && (
+                <Popover
+                  hasAutoWidth
+                  headerIcon={
+                    <Icon status="warning">
+                      <ExclamationTriangleIcon />
+                    </Icon>
+                  }
+                  headerContent={hardwareProfile.spec.warning.title}
+                  bodyContent={(hide) => (
+                    <>
+                      <div>{hardwareProfile.spec.warning?.message}</div>
+                      {isHardwareProfileOOTB(hardwareProfile) && (
+                        <Button
+                          variant="link"
+                          component="a"
+                          onClick={async () => {
+                            await updateHardwareProfile(
+                              {
+                                ...DEFAULT_HARDWARE_PROFILE_SPEC,
+                                displayName: hardwareProfile.spec.displayName,
+                                description: hardwareProfile.spec.description,
+                              },
+                              hardwareProfile,
+                              dashboardNamespace,
+                            );
+                            hide();
+                          }}
+                          data-testid="restore-default-hardware-profile"
+                        >
+                          Restore default hardware profile
+                        </Button>
+                      )}
+                    </>
+                  )}
+                >
+                  <Icon status="warning" data-testid="icon-warning">
+                    <ExclamationTriangleIcon />
+                  </Icon>
+                </Popover>
+              )
+            }
           />
         </Td>
         <Td dataLabel="Enabled">
-          <HardwareProfileEnableToggle
-            hardwareProfile={hardwareProfile}
-            refreshHardwareProfiles={refreshHardwareProfiles}
-          />
+          <HardwareProfileEnableToggle hardwareProfile={hardwareProfile} />
         </Td>
         <Td dataLabel="Last modified">
           {modifiedDate && !Number.isNaN(new Date(modifiedDate).getTime()) ? (

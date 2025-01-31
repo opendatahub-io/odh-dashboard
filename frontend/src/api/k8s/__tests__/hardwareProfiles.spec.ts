@@ -17,7 +17,7 @@ import {
   updateHardwareProfile,
 } from '~/api/k8s/hardwareProfiles';
 import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
-import { TolerationEffect, TolerationOperator } from '~/types';
+import { IdentifierResourceType, TolerationEffect, TolerationOperator } from '~/types';
 import { mock200Status, mock404Error } from '~/__mocks__';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
@@ -45,6 +45,7 @@ const data: HardwareProfileKind['spec'] = {
       minCount: '2Gi',
       maxCount: '5Gi',
       defaultCount: '2Gi',
+      resourceType: IdentifierResourceType.MEMORY,
     },
     {
       displayName: 'CPU',
@@ -52,6 +53,7 @@ const data: HardwareProfileKind['spec'] = {
       minCount: '1',
       maxCount: '2',
       defaultCount: '1',
+      resourceType: IdentifierResourceType.CPU,
     },
   ],
   description: 'test description',

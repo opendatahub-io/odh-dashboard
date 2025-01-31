@@ -16,6 +16,7 @@ import {
   TolerationSettings,
   Volume,
   VolumeMount,
+  WarningNotification,
 } from './types';
 import { ModelServingSize } from './pages/modelServing/screens/types';
 
@@ -1253,7 +1254,8 @@ export type HardwareProfileKind = K8sResourceCommon & {
     enabled: boolean;
     description?: string;
     tolerations?: Toleration[];
-    identifiers?: Identifier[];
+    identifiers?: (Identifier & { warning?: boolean })[];
+    warning?: WarningNotification;
     nodeSelectors?: NodeSelector[];
   };
 };

@@ -14,13 +14,9 @@ import HardwareProfilesToolbar from '~/pages/hardwareProfiles/HardwareProfilesTo
 
 type HardwareProfilesTableProps = {
   hardwareProfiles: HardwareProfileKind[];
-  refreshHardwareProfiles: () => void;
 };
 
-const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
-  hardwareProfiles,
-  refreshHardwareProfiles,
-}) => {
+const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({ hardwareProfiles }) => {
   const [deleteHardwareProfile, setDeleteHardwareProfile] = React.useState<HardwareProfileKind>();
   const [filterData, setFilterData] = React.useState<HardwareProfileFilterDataType>(
     initialHardwareProfileFilterData,
@@ -76,7 +72,6 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
             rowIndex={index}
             hardwareProfile={cr}
             handleDelete={(hardwareProfile) => setDeleteHardwareProfile(hardwareProfile)}
-            refreshHardwareProfiles={refreshHardwareProfiles}
           />
         )}
         toolbarContent={
@@ -86,10 +81,7 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
       {deleteHardwareProfile ? (
         <DeleteHardwareProfileModal
           hardwareProfile={deleteHardwareProfile}
-          onClose={(deleted) => {
-            if (deleted) {
-              refreshHardwareProfiles();
-            }
+          onClose={() => {
             setDeleteHardwareProfile(undefined);
           }}
         />

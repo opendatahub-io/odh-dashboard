@@ -7,12 +7,28 @@ import NodeResourceTable from '~/pages/hardwareProfiles/nodeResource/NodeResourc
 import ManageNodeResourceModal from '~/pages/hardwareProfiles/nodeResource/ManageNodeResourceModal';
 import { ManageHardwareProfileSectionTitles } from '~/pages/hardwareProfiles/const';
 import { ManageHardwareProfileSectionID } from '~/pages/hardwareProfiles/manage/types';
-import { EMPTY_IDENTIFIER } from '~/pages/hardwareProfiles/nodeResource/const';
+import {
+  DEFAULT_CPU_IDENTIFIER,
+  DEFAULT_MEMORY_IDENTIFIER,
+  EMPTY_IDENTIFIER,
+} from '~/pages/hardwareProfiles/nodeResource/const';
 
 type ManageNodeResourceSectionProps = {
   nodeResources: Identifier[];
   setNodeResources: (identifiers: Identifier[]) => void;
 };
+
+export const hasCPUandMemory = (nodeResources: Identifier[]): boolean =>
+  nodeResources.some(
+    (identifier) =>
+      identifier.resourceType === IdentifierResourceType.CPU ||
+      identifier.identifier === DEFAULT_CPU_IDENTIFIER,
+  ) &&
+  nodeResources.some(
+    (identifier) =>
+      identifier.resourceType === IdentifierResourceType.MEMORY ||
+      identifier.identifier === DEFAULT_MEMORY_IDENTIFIER,
+  );
 
 const ManageNodeResourceSection: React.FC<ManageNodeResourceSectionProps> = ({
   nodeResources,
@@ -63,14 +79,7 @@ const ManageNodeResourceSection: React.FC<ManageNodeResourceSectionProps> = ({
       >
         Every hardware profile is highly recommended to include CPU and memory resources. Additional
         resources, such as GPUs, can be added here, too.
-        {!(
-          nodeResources.some(
-            (identifier) => identifier.resourceType === IdentifierResourceType.CPU,
-          ) &&
-          nodeResources.some(
-            (identifier) => identifier.resourceType === IdentifierResourceType.MEMORY,
-          )
-        ) && (
+        {!hasCPUandMemory(nodeResources) && (
           <Alert
             title="Missing CPU or Memory node resources"
             isInline
