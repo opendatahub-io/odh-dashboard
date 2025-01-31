@@ -11,7 +11,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import SettingSection from '~/components/SettingSection';
+import CollapsibleSettingSection from '~/components/CollapsibleSettingSection';
 import SimpleSelect from '~/components/SimpleSelect';
 import { ModelServingPlatformEnabled } from '~/types';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
@@ -79,7 +79,7 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
   }, [enabledPlatforms, initialValue, kServeInstalled, modelMeshInstalled]);
 
   return (
-    <SettingSection
+    <CollapsibleSettingSection
       title="Model serving platforms"
       description={
         <Flex spaceItems={{ default: 'spaceItemsXs' }} alignItems={{ default: 'alignItemsCenter' }}>
@@ -202,7 +202,7 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
           </StackItem>
         )}
       </Stack>
-    </SettingSection>
+    </CollapsibleSettingSection>
   );
 };
 

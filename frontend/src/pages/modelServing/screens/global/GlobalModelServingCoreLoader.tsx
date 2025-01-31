@@ -62,7 +62,7 @@ const GlobalModelServingCoreLoader: React.FC<GlobalModelServingCoreLoaderProps> 
   return (
     <ApplicationsPage
       {...renderStateProps}
-      title="Deployed models"
+      title="Model deployments"
       description="Manage and view the health and performance of your deployed models."
       loaded
       headerContent={<ModelServingProjectSelection getRedirectPath={getInvalidRedirectPath} />}

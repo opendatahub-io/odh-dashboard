@@ -1,12 +1,13 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
-import { BreadcrumbItem } from '@patternfly/react-core';
+import { BreadcrumbItem, Flex, FlexItem } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { BreadcrumbDetailsComponentProps } from '~/concepts/pipelines/content/types';
 import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import { experimentsBaseRoute, pipelineRunsBaseRoute, pipelinesBaseRoute } from '~/routes';
 import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { ProjectIcon } from '~/images/icons';
 
 export type GlobalPipelineCoreDetailsProps = {
   pageName: string;
@@ -38,8 +39,17 @@ const GlobalPipelineCoreDetailsInner: React.FC<GlobalPipelineCoreDetailsProps> =
         <BreadcrumbItem
           key="home"
           render={() => (
-            <Link to={homePath}>
-              {pageName} - {getDisplayNameFromK8sResource(project)}
+            <Link to={homePath} style={{ textDecoration: 'none' }}>
+              <Flex
+                spaceItems={{ default: 'spaceItemsXs' }}
+                alignItems={{ default: 'alignItemsCenter' }}
+              >
+                <FlexItem>{pageName} in</FlexItem>
+                <FlexItem>
+                  <ProjectIcon />
+                </FlexItem>
+                <FlexItem>{getDisplayNameFromK8sResource(project)}</FlexItem>
+              </Flex>
             </Link>
           )}
         />,

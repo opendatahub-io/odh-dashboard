@@ -43,7 +43,7 @@ const ModelServingGlobal: React.FC = () => {
       empty={servingRuntimes.length === 0 || inferenceServices.length === 0}
       emptyStatePage={<EmptyModelServing />}
       title={
-        <TitleWithIcon title="Deployed models" objectType={ProjectObjectType.deployedModels} />
+        <TitleWithIcon title="Model deployments" objectType={ProjectObjectType.deployedModels} />
       }
       description="Manage and view the health and performance of your deployed models."
       loadError={notInstalledError}

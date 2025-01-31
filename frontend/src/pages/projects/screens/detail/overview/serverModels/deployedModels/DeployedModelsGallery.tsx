@@ -144,7 +144,7 @@ const DeployedModelsGallery: React.FC<DeployedModelsGalleryProps> = ({
             variant="link"
             onClick={() =>
               navigate(
-                `/projects/${currentProject.metadata.name}?section=${ProjectSectionID.MODEL_SERVER}`,
+                `/projects/${currentProject.metadata.name}?section=${ProjectSectionID.MODEL_DEPLOYMENTS}`,
               )
             }
           >

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { getSecretsByLabel } from '~/api';
+import { getAllSecretsByLabel, getSecretsByLabel } from '~/api';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
@@ -12,18 +12,17 @@ import { isConnection, isModelServingCompatibleConnection } from '~/concepts/con
 const useConnections = (
   namespace?: string,
   modelServingCompatible?: boolean,
+  allowAll?: boolean,
 ): FetchState<Connection[]> => {
   const callback = React.useCallback<FetchStateCallbackPromise<Connection[]>>(
     async (opts) => {
-      if (!namespace) {
+      if (!namespace && !allowAll) {
         return Promise.reject(new NotReadyError('No namespace'));
       }
 
-      const secrets = await getSecretsByLabel(
-        `${LABEL_SELECTOR_DASHBOARD_RESOURCE}`,
-        namespace,
-        opts,
-      );
+      const secrets = namespace
+        ? await getSecretsByLabel(`${LABEL_SELECTOR_DASHBOARD_RESOURCE}`, namespace, opts)
+        : await getAllSecretsByLabel(`${LABEL_SELECTOR_DASHBOARD_RESOURCE}`, opts);
       let connections = secrets.filter((secret) => isConnection(secret));
 
       if (modelServingCompatible) {
@@ -32,7 +31,7 @@ const useConnections = (
 
       return connections;
     },
-    [namespace, modelServingCompatible],
+    [namespace, modelServingCompatible, allowAll],
   );
 
   return useFetchState(callback, []);

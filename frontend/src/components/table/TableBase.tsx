@@ -1,5 +1,7 @@
 import * as React from 'react';
 import {
+  Flex,
+  FlexItem,
   Pagination,
   PaginationProps,
   Skeleton,
@@ -53,6 +55,7 @@ type Props<DataType> = {
   getColumnSort?: GetColumnSort;
   disableItemCount?: boolean;
   hasStickyColumns?: boolean;
+  tableTitle?: React.ReactNode;
 } & EitherNotBoth<
   { disableRowRenderSupport?: boolean },
   { tbodyProps?: TbodyProps & { ref?: React.Ref<HTMLTableSectionElement> } }
@@ -94,9 +97,10 @@ const TableBase = <T,>({
   subColumns,
   hasNestedHeader,
   rowRenderer,
-  enablePagination,
+  enablePagination = false,
   toolbarContent,
   onClearFilters,
+  tableTitle,
   bottomToolbarContent,
   emptyTableView,
   caption,
@@ -122,28 +126,30 @@ const TableBase = <T,>({
   ...props
 }: Props<T>): React.ReactElement => {
   const selectAllRef = React.useRef(null);
-  const showPagination = enablePagination;
+  const showPagination = enablePagination !== false;
 
-  const pagination = (variant: 'top' | 'bottom') => (
-    <Pagination
-      isCompact={enablePagination === 'compact'}
-      {...(!disableItemCount && { itemCount })}
-      perPage={perPage}
-      page={page}
-      onSetPage={onSetPage}
-      onNextClick={onNextClick}
-      onPreviousClick={onPreviousClick}
-      onPerPageSelect={onPerPageSelect}
-      toggleTemplate={toggleTemplate}
-      variant={variant}
-      widgetId="table-pagination"
-      perPageOptions={perPageOptions}
-      menuAppendTo="inline"
-      titles={{
-        paginationAriaLabel: `${variant} pagination`,
-      }}
-    />
-  );
+  const pagination = showPagination
+    ? (variant: 'top' | 'bottom') => (
+        <Pagination
+          isCompact={enablePagination === 'compact'}
+          {...(!disableItemCount && { itemCount })}
+          perPage={perPage}
+          page={page}
+          onSetPage={onSetPage}
+          onNextClick={onNextClick}
+          onPreviousClick={onPreviousClick}
+          onPerPageSelect={onPerPageSelect}
+          toggleTemplate={toggleTemplate}
+          variant={variant}
+          widgetId="table-pagination"
+          perPageOptions={perPageOptions}
+          menuAppendTo="inline"
+          titles={{
+            paginationAriaLabel: `${variant} pagination`,
+          }}
+        />
+      )
+    : null;
 
   // Use a reference to store the heights of table rows once loaded
   const tableRef = React.useRef<HTMLTableElement>(null);
@@ -284,7 +290,7 @@ const TableBase = <T,>({
 
   return (
     <>
-      {(toolbarContent || showPagination) && (
+      {toolbarContent && (
         <Toolbar
           inset={{ default: 'insetNone' }}
           className="pf-v6-u-w-100"
@@ -299,12 +305,34 @@ const TableBase = <T,>({
                 align={{ default: 'alignEnd' }}
                 className="pf-v6-u-pr-lg"
               >
-                {pagination('top')}
+                {pagination && pagination('top')}
               </ToolbarItem>
             )}
           </ToolbarContent>
         </Toolbar>
       )}
+
+      <Flex
+        alignItems={{ default: 'alignItemsCenter' }}
+        justifyContent={{ default: 'justifyContentSpaceBetween' }}
+      >
+        <FlexItem>{tableTitle}</FlexItem>
+        {!toolbarContent && showPagination ? (
+          <FlexItem>
+            <Toolbar inset={{ default: 'insetNone' }} className="pf-v6-u-w-100">
+              <ToolbarContent>
+                <ToolbarItem
+                  variant="pagination"
+                  align={{ default: 'alignEnd' }}
+                  className="pf-v6-u-pr-lg"
+                >
+                  {pagination && pagination('top')}
+                </ToolbarItem>
+              </ToolbarContent>
+            </Toolbar>
+          </FlexItem>
+        ) : null}
+      </Flex>
 
       {hasStickyColumns ? <InnerScrollContainer>{table}</InnerScrollContainer> : table}
 
@@ -319,7 +347,7 @@ const TableBase = <T,>({
           <ToolbarContent alignItems="center">{bottomToolbarContent}</ToolbarContent>
         </Toolbar>
       )}
-      {showPagination && <>{pagination('bottom')}</>}
+      {pagination && <>{pagination('bottom')}</>}
     </>
   );
 };

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Content, Flex, FlexItem } from '@patternfly/react-core';
 import { Table } from '~/components/table';
 import { ProjectKind } from '~/k8sTypes';
 import { getProjectOwner } from '~/concepts/projects/utils';
@@ -13,6 +14,7 @@ import {
   ProjectsFilterDataType,
 } from '~/pages/projects/screens/projects/const';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { AppContext } from '~/app/AppContext';
 import { columns } from './tableData';
 import DeleteProjectModal from './DeleteProjectModal';
 import ManageProjectModal from './ManageProjectModal';
@@ -23,6 +25,7 @@ type ProjectListViewProps = {
 
 const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
   const { projects } = React.useContext(ProjectsContext);
+  const { favoriteProjects } = React.useContext(AppContext);
   const navigate = useNavigate();
   const [filterData, setFilterData] =
     React.useState<ProjectsFilterDataType>(initialProjectsFilterData);
@@ -48,6 +51,22 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
     [projects, filterData],
   );
 
+  const favorites = React.useMemo(
+    () =>
+      favoriteProjects.reduce<ProjectKind[]>((acc, name) => {
+        const project = filteredProjects.find((p) => p.metadata.name === name);
+        if (project) {
+          acc.push(project);
+        }
+        return acc;
+      }, []),
+    [favoriteProjects, filteredProjects],
+  );
+  const otherProjects = React.useMemo(
+    () => filteredProjects.filter((p) => !favoriteProjects.includes(p.metadata.name)),
+    [favoriteProjects, filteredProjects],
+  );
+
   const resetFilters = () => {
     setFilterData(initialProjectsFilterData);
   };
@@ -67,35 +86,77 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
     ? columns
     : columns.filter((column) => column.field !== 'Workbenches');
 
-  return (
-    <>
-      <Table
-        enablePagination
-        loading={false}
-        defaultSortColumn={0}
-        data={filteredProjects}
-        columns={filteredColumns}
-        emptyTableView={<DashboardEmptyTableView onClearFilters={resetFilters} />}
-        data-testid="project-view-table"
-        disableRowRenderSupport
-        rowRenderer={(project) => (
-          <ProjectTableRow
-            key={project.metadata.uid}
-            obj={project}
-            isRefreshing={refreshIds.includes(project.metadata.uid || '')}
-            setEditData={(data) => setEditData(data)}
-            setDeleteData={(data) => setDeleteData(data)}
-          />
-        )}
-        onClearFilters={onClearFilters}
-        toolbarContent={
-          <ProjectsToolbar
-            allowCreate={allowCreate}
-            filterData={filterData}
-            onFilterUpdate={onFilterUpdate}
-          />
-        }
+  const topTableProps = {
+    onClearFilters,
+    toolbarContent: (
+      <ProjectsToolbar
+        allowCreate={allowCreate}
+        filterData={filterData}
+        onFilterUpdate={onFilterUpdate}
       />
+    ),
+  };
+
+  return (
+    <Flex direction={{ default: 'column' }} gap={{ default: 'gapMd' }}>
+      {favorites.length ? (
+        <FlexItem>
+          <Table
+            enablePagination={false}
+            loading={false}
+            defaultSortColumn={0}
+            data={favorites}
+            columns={filteredColumns}
+            emptyTableView={<DashboardEmptyTableView onClearFilters={resetFilters} />}
+            tableTitle={
+              <Content component="h3" style={{ margin: 0 }}>
+                Favorite projects
+              </Content>
+            }
+            data-testid="project-view-favorites-table"
+            disableRowRenderSupport
+            rowRenderer={(project) => (
+              <ProjectTableRow
+                key={project.metadata.uid}
+                obj={project}
+                isRefreshing={refreshIds.includes(project.metadata.uid || '')}
+                setEditData={(data) => setEditData(data)}
+                setDeleteData={(data) => setDeleteData(data)}
+              />
+            )}
+            {...topTableProps}
+          />
+        </FlexItem>
+      ) : null}
+      <FlexItem>
+        <Table
+          enablePagination
+          loading={false}
+          defaultSortColumn={0}
+          data={otherProjects}
+          columns={filteredColumns}
+          emptyTableView={<DashboardEmptyTableView onClearFilters={resetFilters} />}
+          tableTitle={
+            favorites.length ? (
+              <Content component="h3" style={{ margin: 0 }}>
+                Other projects
+              </Content>
+            ) : null
+          }
+          data-testid="project-view-table"
+          disableRowRenderSupport
+          rowRenderer={(project) => (
+            <ProjectTableRow
+              key={project.metadata.uid}
+              obj={project}
+              isRefreshing={refreshIds.includes(project.metadata.uid || '')}
+              setEditData={(data) => setEditData(data)}
+              setDeleteData={(data) => setDeleteData(data)}
+            />
+          )}
+          {...(favorites.length ? {} : topTableProps)}
+        />
+      </FlexItem>
       {!!editData && (
         <ManageProjectModal
           onClose={(newProjectName) => {
@@ -124,7 +185,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
           }}
         />
       ) : null}
-    </>
+    </Flex>
   );
 };
 

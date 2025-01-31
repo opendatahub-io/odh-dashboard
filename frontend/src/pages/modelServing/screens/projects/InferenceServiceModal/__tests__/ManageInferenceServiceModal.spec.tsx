@@ -38,6 +38,9 @@ describe('ManageInferenceServiceModal', () => {
       dashboardConfig: mockDashboardConfig({}),
       storageClasses: [],
       isRHOAI: false,
+      favoriteProjects: [],
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      setFavoriteProjects: () => {},
     });
 
     const currentProject = mockProjectK8sResource({});

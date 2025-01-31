@@ -6,8 +6,10 @@ import DeletePVCModal from '~/pages/projects/pvc/DeletePVCModal';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { getStorageClassConfig } from '~/pages/storageClasses/utils';
 import useStorageClasses from '~/concepts/k8s/useStorageClasses';
+import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import StorageTableRow from './StorageTableRow';
-import { columns } from './data';
+import { getStorageColumns } from './data';
 import { StorageTableData } from './types';
 import ClusterStorageModal from './ClusterStorageModal';
 
@@ -18,6 +20,8 @@ type StorageTableProps = {
 };
 
 const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) => {
+  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const { projects } = React.useContext(ProjectsContext);
   const [deleteStorage, setDeleteStorage] = React.useState<PersistentVolumeClaimKind | undefined>();
   const [editPVC, setEditPVC] = React.useState<PersistentVolumeClaimKind | undefined>();
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
@@ -39,19 +43,16 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
   const shouldShowAlert = isDeprecatedAlert && !alertDismissed && isStorageClassesAvailable;
   const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
 
-  const getStorageColumns = () => {
-    let storageColumns = columns;
-
-    if (!isStorageClassesAvailable) {
-      storageColumns = columns.filter((column) => column.field !== 'storage');
-    }
-
-    if (!workbenchEnabled) {
-      storageColumns = storageColumns.filter((column) => column.field !== 'connected');
-    }
-
-    return storageColumns;
-  };
+  const columns = React.useMemo(
+    () =>
+      getStorageColumns(
+        isStorageClassesAvailable,
+        workbenchEnabled,
+        projects,
+        currentProject.metadata.name,
+      ),
+    [isStorageClassesAvailable, workbenchEnabled, currentProject.metadata.name, projects],
+  );
 
   return (
     <>
@@ -75,7 +76,7 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
       )}
       <Table
         data={storageTableData}
-        columns={getStorageColumns()}
+        columns={columns}
         data-testid="storage-table"
         variant="compact"
         rowRenderer={(data, i) => (

@@ -27,6 +27,7 @@ const ExperimentPipelineRuns: PipelineCoreDetailsPageComponent = ({ breadcrumbPa
       }
       description={experimentRunsPageDescription}
       getRedirectPath={experimentsBaseRoute}
+      showProjectSelector={false}
       overrideChildPadding
       breadcrumb={
         <Breadcrumb>

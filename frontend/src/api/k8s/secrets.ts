@@ -133,6 +133,17 @@ export const getSecret = (
     ),
   );
 
+export const getAllSecretsByLabel = (label: string, opts?: K8sAPIOptions): Promise<SecretKind[]> =>
+  k8sListResource<SecretKind>(
+    applyK8sAPIOptions(
+      {
+        model: SecretModel,
+        queryOptions: { queryParams: { labelSelector: label } },
+      },
+      opts,
+    ),
+  ).then((result) => result.items);
+
 export const getSecretsByLabel = (
   label: string,
   namespace: string,

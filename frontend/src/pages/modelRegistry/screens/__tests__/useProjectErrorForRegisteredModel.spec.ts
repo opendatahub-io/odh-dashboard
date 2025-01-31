@@ -39,6 +39,9 @@ describe('useProjectErrorForRegisteredModel', () => {
       dashboardConfig: mockDashboardConfig({}),
       storageClasses: [],
       isRHOAI: false,
+      favoriteProjects: [],
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      setFavoriteProjects: () => {},
     });
     useAccessReviewMock.mockReturnValue([true, true]);
   });

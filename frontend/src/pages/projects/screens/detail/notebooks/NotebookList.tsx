@@ -13,7 +13,12 @@ import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import useRefreshInterval from '~/utilities/useRefreshInterval';
 import NotebookTable from './NotebookTable';
 
-const NotebookList: React.FC = () => {
+type NotebookListProps = {
+  subHeaderComponent?: React.ReactNode;
+  globalView?: boolean;
+};
+
+const NotebookList: React.FC<NotebookListProps> = ({ subHeaderComponent, globalView }) => {
   const {
     currentProject,
     notebooks: {
@@ -39,11 +44,32 @@ const NotebookList: React.FC = () => {
       .forEach((notebookState) => notebookState.refresh()),
   );
 
+  const emptyState = (
+    <EmptyDetailsView
+      title="Start by creating a workbench"
+      description="A workbench is an isolated area where you can work with models in your preferred IDE, such as a Jupyter notebook. You can add accelerators and data connections, create pipelines, and add cluster storage in your workbench."
+      iconImage={typedEmptyImage(ProjectObjectType.notebook)}
+      imageAlt="create a workbench"
+      createButton={
+        !globalView ? (
+          <Button
+            key={`action-${ProjectSectionID.WORKBENCHES}`}
+            data-testid="create-workbench-button"
+            onClick={() => navigate(`/projects/${projectName}/spawner`)}
+            variant="primary"
+          >
+            Create workbench
+          </Button>
+        ) : null
+      }
+    />
+  );
+
   return (
     <DetailsSection
       objectType={ProjectObjectType.notebook}
       id={ProjectSectionID.WORKBENCHES}
-      title={(!isNotebooksEmpty && ProjectSectionTitles[ProjectSectionID.WORKBENCHES]) || ''}
+      title={ProjectSectionTitles[ProjectSectionID.WORKBENCHES]}
       popover={
         !isNotebooksEmpty && (
           <Popover
@@ -57,6 +83,7 @@ const NotebookList: React.FC = () => {
           </Popover>
         )
       }
+      subHeaderComponent={subHeaderComponent}
       actions={[
         <Button
           key={`action-${ProjectSectionID.WORKBENCHES}`}
@@ -69,29 +96,14 @@ const NotebookList: React.FC = () => {
       ]}
       isLoading={!notebooksLoaded}
       loadError={notebooksError}
-      isEmpty={isNotebooksEmpty}
-      emptyState={
-        <EmptyDetailsView
-          title="Start by creating a workbench"
-          description="A workbench is an isolated area where you can work with models in your preferred IDE, such as a Jupyter notebook. You can add accelerators and data connections, create pipelines, and add cluster storage in your workbench."
-          iconImage={typedEmptyImage(ProjectObjectType.notebook)}
-          imageAlt="create a workbench"
-          createButton={
-            <Button
-              key={`action-${ProjectSectionID.WORKBENCHES}`}
-              data-testid="create-workbench-button"
-              onClick={() => navigate(`/projects/${projectName}/spawner`)}
-              variant="primary"
-            >
-              Create workbench
-            </Button>
-          }
-        />
-      }
+      isEmpty={!globalView && isNotebooksEmpty}
+      emptyState={emptyState}
     >
       {!isNotebooksEmpty ? (
         <NotebookTable notebookStates={notebooks} refresh={refreshNotebooks} />
-      ) : null}
+      ) : (
+        emptyState
+      )}
     </DetailsSection>
   );
 };
