@@ -9,4 +9,4 @@ export type ManageAcceleratorProfileSectionTitlesType = {
   [key in ManageAcceleratorProfileSectionID]: string;
 };
 
-export type AcceleratorProfileFormData = { name?: string } & AcceleratorProfileKind['spec'];
+export type AcceleratorProfileFormData = { name: string } & AcceleratorProfileKind['spec'];

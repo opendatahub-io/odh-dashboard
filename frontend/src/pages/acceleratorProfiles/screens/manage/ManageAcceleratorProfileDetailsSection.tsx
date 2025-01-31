@@ -3,14 +3,13 @@ import React from 'react';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { useSearchParams } from 'react-router-dom';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import { AcceleratorProfileKind } from '~/k8sTypes';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import { AcceleratorProfileFormData } from './types';
 import { IdentifierSelectField } from './IdentifierSelectField';
 
 type ManageAcceleratorProfileDetailsSectionProps = {
   state: AcceleratorProfileFormData;
-  setState: UpdateObjectAtPropAndValue<AcceleratorProfileKind['spec']>;
+  setState: UpdateObjectAtPropAndValue<AcceleratorProfileFormData>;
 };
 
 export const ManageAcceleratorProfileDetailsSection: React.FC<

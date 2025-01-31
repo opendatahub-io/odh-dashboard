@@ -57,6 +57,7 @@ import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
+import { validateEnvVarName } from '~/concepts/connectionTypes/utils';
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 import EnvironmentVariablesSection from './EnvironmentVariablesSection';
 import ServingRuntimeArgsSection from './ServingRuntimeArgsSection';
@@ -204,13 +205,15 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     resourcesArePositive(createDataInferenceService.modelSize.resources) &&
     requestsUnderLimits(createDataInferenceService.modelSize.resources);
 
-  const isDisabledInferenceService =
-    actionInProgress ||
+  const isDisabledInferenceService = () =>
     !isK8sNameDescriptionDataValid(kServeNameDesc) ||
     createDataInferenceService.project === '' ||
     createDataInferenceService.format.name === '' ||
     !storageCanCreate() ||
-    !baseInputValueValid;
+    !baseInputValueValid ||
+    createDataInferenceService.servingRuntimeEnvVars?.some(
+      (envVar) => !envVar.name || !!validateEnvVarName(envVar.name),
+    );
 
   const servingRuntimeSelected = React.useMemo(
     () =>
@@ -328,7 +331,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
           submitLabel={editInfo ? 'Redeploy' : 'Deploy'}
           onSubmit={submit}
           onCancel={() => onBeforeClose(false)}
-          isSubmitDisabled={isDisabledServingRuntime || isDisabledInferenceService}
+          isSubmitDisabled={isDisabledServingRuntime || isDisabledInferenceService()}
           error={error}
           alertTitle="Error creating model server"
         />
