@@ -21,6 +21,7 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import { modelRegistryUrl, registeredModelUrl } from '~/pages/modelRegistry/screens/routeUtils';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { useAppSelector } from '~/redux/hooks';
+import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegisteredModels';
 import { useRegisterModelData } from './useRegisterModelData';
 import { isNameValid, isRegisterModelSubmitDisabled, registerModel } from './utils';
 import RegistrationCommonFormSections from './RegistrationCommonFormSections';
@@ -36,12 +37,21 @@ const RegisterModel: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<Error | undefined>(undefined);
   const [formData, setData] = useRegisterModelData();
-  const isModelNameValid = isNameValid(formData.modelName);
-  const isSubmitDisabled = isSubmitting || isRegisterModelSubmitDisabled(formData);
-  const { modelName, modelDescription } = formData;
   const [registeredModelName, setRegisteredModelName] = React.useState<string>('');
   const [versionName, setVersionName] = React.useState<string>('');
   const [errorName, setErrorName] = React.useState<string | undefined>(undefined);
+  const [registeredModels] = useRegisteredModels();
+
+  const doesModelNameExist = (name: string) =>
+    registeredModels.items.some((model) => model.name === name);
+
+  const isModelNameValid =
+    isNameValid(formData.modelName) && !doesModelNameExist(formData.modelName);
+  const isSubmitDisabled =
+    isSubmitting ||
+    isRegisterModelSubmitDisabled(formData) ||
+    doesModelNameExist(formData.modelName);
+  const { modelName, modelDescription } = formData;
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -104,7 +114,9 @@ const RegisterModel: React.FC = () => {
                     <FormHelperText>
                       <HelperText>
                         <HelperTextItem variant="error">
-                          Cannot exceed {MR_CHARACTER_LIMIT} characters
+                          {doesModelNameExist(modelName)
+                            ? 'Model name already exists'
+                            : `Cannot exceed ${MR_CHARACTER_LIMIT} characters`}
                         </HelperTextItem>
                       </HelperText>
                     </FormHelperText>
