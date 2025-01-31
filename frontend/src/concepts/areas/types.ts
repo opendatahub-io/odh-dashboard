@@ -38,7 +38,6 @@ export enum SupportedArea {
   USER_MANAGEMENT = 'user-management',
   ACCELERATOR_PROFILES = 'accelerator-profiles',
   HARDWARE_PROFILES = 'hardware-profiles',
-  CONNECTION_TYPES = 'connections-types',
   STORAGE_CLASSES = 'storage-classes',
 
   /* DS Projects specific areas */

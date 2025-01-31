@@ -4,7 +4,6 @@ import { Modal } from '@patternfly/react-core/deprecated';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
   getCreateInferenceServiceLabels,
-  isConnectionPathValid,
   submitInferenceServiceResourceWithDryRun,
   useCreateInferenceServiceObject,
 } from '~/pages/modelServing/screens/projects/utils';
@@ -12,18 +11,13 @@ import { InferenceServiceKind, ProjectKind, ServingRuntimeKind } from '~/k8sType
 import { DataConnection } from '~/pages/projects/types';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
-import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
-import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
-import usePrefillDeployModalFromModelRegistry from '~/pages/modelRegistry/screens/RegisteredModels/usePrefillDeployModalFromModelRegistry';
-import useConnectionTypesEnabled from '~/concepts/connectionTypes/useConnectionTypesEnabled';
 import { Connection } from '~/concepts/connectionTypes/types';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
-import DataConnectionSection from './DataConnectionSection';
 import ProjectSection from './ProjectSection';
 import InferenceServiceFrameworkSection from './InferenceServiceFrameworkSection';
 import InferenceServiceServingRuntimeSection from './InferenceServiceServingRuntimeSection';
@@ -62,15 +56,6 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
   const currentProjectName = projectContext?.currentProject.metadata.name || '';
   const currentServingRuntimeName = projectContext?.currentServingRuntime?.metadata.name || '';
 
-  const [dataConnections, dataConnectionsLoaded, dataConnectionsLoadError] =
-    usePrefillDeployModalFromModelRegistry(
-      projectContext,
-      createData,
-      setCreateData,
-      registeredModelDeployInfo,
-    );
-
-  const isConnectionTypesEnabled = useConnectionTypesEnabled();
   const [connection, setConnection] = React.useState<Connection>();
   const [isConnectionValid, setIsConnectionValid] = React.useState(false);
 
@@ -91,22 +76,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     if (createData.storage.type === InferenceServiceStorageType.EXISTING_URI) {
       return !!createData.storage.uri;
     }
-    if (createData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
-      if (isConnectionTypesEnabled) {
-        return isConnectionValid;
-      }
-      return (
-        createData.storage.dataConnection !== '' && isConnectionPathValid(createData.storage.path)
-      );
-    }
-    // NEW_STORAGE
-    if (isConnectionTypesEnabled) {
-      return isConnectionValid;
-    }
-    return (
-      isAWSValid(createData.storage.awsData, [AwsKeys.AWS_S3_BUCKET]) &&
-      isConnectionPathValid(createData.storage.path)
-    );
+    return isConnectionValid;
   };
 
   const isDisabled =
@@ -210,22 +180,12 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
               registeredModelFormat={registeredModelDeployInfo?.modelFormat}
             />
             <FormSection title="Source model location" id="model-location">
-              {isConnectionTypesEnabled ? (
-                <ConnectionSection
-                  data={createData}
-                  setData={setCreateData}
-                  setConnection={setConnection}
-                  setIsConnectionValid={setIsConnectionValid}
-                />
-              ) : (
-                <DataConnectionSection
-                  data={createData}
-                  setData={setCreateData}
-                  loaded={!!projectContext?.dataConnections || dataConnectionsLoaded}
-                  loadError={dataConnectionsLoadError}
-                  dataConnections={dataConnections}
-                />
-              )}
+              <ConnectionSection
+                data={createData}
+                setData={setCreateData}
+                setConnection={setConnection}
+                setIsConnectionValid={setIsConnectionValid}
+              />
             </FormSection>
           </>
         )}

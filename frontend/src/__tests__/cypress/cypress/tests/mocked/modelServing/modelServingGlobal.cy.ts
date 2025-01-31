@@ -29,6 +29,7 @@ import { ServingRuntimePlatform } from '~/types';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { asClusterAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
+import { mockConnectionTypeConfigMap } from '~/__mocks__/mockConnectionType';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -140,6 +141,22 @@ const initIntercepts = ({
       { namespace: 'opendatahub' },
     ),
   );
+  cy.interceptOdh('GET /api/connection-types', [
+    mockConnectionTypeConfigMap({
+      displayName: 'URI - v1',
+      name: 'uri-v1',
+      category: ['existing-category'],
+      fields: [
+        {
+          type: 'uri',
+          name: 'URI field test',
+          envVar: 'URI',
+          required: true,
+          properties: {},
+        },
+      ],
+    }),
+  ]);
 };
 
 describe('Model Serving Global', () => {
@@ -299,23 +316,15 @@ describe('Model Serving Global', () => {
     inferenceServiceModalEdit.findLocationPathInput().type('test-model/');
     inferenceServiceModalEdit.findSubmitButton().should('be.enabled');
 
-    // test that user cant upload on an empty new secret
-    inferenceServiceModalEdit.findNewDataConnectionOption().click();
-    inferenceServiceModalEdit.findLocationPathInput().clear();
+    // test that user cant upload on an empty field
+    inferenceServiceModalEdit.findNewConnectionOption().click();
     inferenceServiceModalEdit.findSubmitButton().should('be.disabled');
-    inferenceServiceModalEdit.findLocationPathInput().type('/');
-    inferenceServiceModalEdit.findSubmitButton().should('be.disabled');
-
-    // test that adding required values validates submit
-    inferenceServiceModalEdit.findLocationNameInput().type('Test Name');
-    inferenceServiceModalEdit.findLocationAccessKeyInput().type('test-key');
-    inferenceServiceModalEdit.findLocationSecretKeyInput().type('test-secret-key');
-    inferenceServiceModalEdit.findLocationEndpointInput().type('test-endpoint');
-    inferenceServiceModalEdit.findLocationBucketInput().type('test-bucket');
-    inferenceServiceModalEdit.findLocationPathInput().clear();
-    inferenceServiceModalEdit.findLocationPathInput().type('test-model/');
+    inferenceServiceModalEdit.findConnectionNameInput().type('Test Name');
+    inferenceServiceModalEdit.findConnectionFieldInput().type('/');
+    inferenceServiceModalEdit.findSubmitButton().click().should('be.disabled');
+    inferenceServiceModalEdit.findConnectionFieldInput().clear().type('https://test');
     inferenceServiceModalEdit.findSubmitButton().should('be.enabled');
-
+    inferenceServiceModalEdit.findExistingConnectionOption().click();
     inferenceServiceModalEdit.findSubmitButton().click();
 
     cy.wait('@editModel').then((interception) => {
@@ -365,11 +374,14 @@ describe('Model Serving Global', () => {
     inferenceServiceModal.findServingRuntimeSelect().should('be.disabled');
     inferenceServiceModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
     inferenceServiceModal.findSubmitButton().should('be.disabled');
-    inferenceServiceModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
-    inferenceServiceModal.findExistingConnectionSelect().should('be.disabled');
+    inferenceServiceModal.findNewConnectionOption().click();
+    inferenceServiceModal.findConnectionNameInput().type('Test Name');
+    inferenceServiceModal.findConnectionFieldInput().type('https://test');
+    inferenceServiceModal.findSubmitButton().should('be.enabled');
+    inferenceServiceModal.findExistingConnectionOption().click();
+    inferenceServiceModal.findExistingConnectionSelect().should('have.attr', 'disabled');
     inferenceServiceModal.findLocationPathInput().type('test-model/');
     inferenceServiceModal.findSubmitButton().should('be.enabled');
-    inferenceServiceModal.findNewDataConnectionOption().click();
     inferenceServiceModal.findLocationPathInput().clear();
     inferenceServiceModal.findSubmitButton().should('be.disabled');
     inferenceServiceModal.findLocationPathInput().type('/');
@@ -386,11 +398,6 @@ describe('Model Serving Global', () => {
       .contains('Invalid path format');
     inferenceServiceModal.findSubmitButton().should('be.disabled');
     inferenceServiceModal.findLocationPathInput().clear();
-    inferenceServiceModal.findLocationNameInput().type('Test Name');
-    inferenceServiceModal.findLocationAccessKeyInput().type('test-key');
-    inferenceServiceModal.findLocationSecretKeyInput().type('test-secret-key');
-    inferenceServiceModal.findLocationEndpointInput().type('test-endpoint');
-    inferenceServiceModal.findLocationBucketInput().type('test-bucket');
     inferenceServiceModal.findLocationPathInput().type('test-model/');
     inferenceServiceModal.findSubmitButton().should('be.enabled');
 
@@ -425,13 +432,13 @@ describe('Model Serving Global', () => {
       } satisfies InferenceServiceKind);
     });
 
-    // Actaul request
+    // Actual request
     cy.wait('@createInferenceService').then((interception) => {
       expect(interception.request.url).not.to.include('?dryRun=All');
     });
 
     cy.get('@createInferenceService.all').then((interceptions) => {
-      expect(interceptions).to.have.length(2); // 1 dry run request and 1 actaul request
+      expect(interceptions).to.have.length(2); // 1 dry run request and 1 actual request
     });
   });
 
@@ -453,8 +460,7 @@ describe('Model Serving Global', () => {
     inferenceServiceModal.findServingRuntimeSelect().should('be.disabled');
     inferenceServiceModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
     inferenceServiceModal.findSubmitButton().should('be.disabled');
-    inferenceServiceModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
-    inferenceServiceModal.findExistingConnectionSelect().should('be.disabled');
+    inferenceServiceModal.findExistingConnectionSelect().should('have.attr', 'disabled');
     inferenceServiceModal.findLocationPathInput().type('test-model/');
     inferenceServiceModal.findSubmitButton().should('be.enabled');
     inferenceServiceModal.findLocationPathInput().type('test-model/');

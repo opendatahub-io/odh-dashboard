@@ -49,7 +49,6 @@ type SpawnerFooterProps = {
   storageData: StorageData[];
   envVariables: EnvVariable[];
   dataConnection: DataConnectionData;
-  isConnectionTypesEnabled?: boolean;
   connections?: Connection[];
   canEnablePipelines: boolean;
 };
@@ -59,7 +58,6 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   storageData,
   envVariables,
   dataConnection,
-  isConnectionTypesEnabled,
   connections = [],
   canEnablePipelines,
 }) => {
@@ -193,10 +191,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       connections,
       dryRun,
     );
-
-    if (isConnectionTypesEnabled) {
-      envFrom = setConnectionsOnEnvFrom(connections, envFrom, projectConnections);
-    }
+    envFrom = setConnectionsOnEnvFrom(connections, envFrom, projectConnections);
 
     const annotations = { ...editNotebook.metadata.annotations };
     if (envFrom.length > 0) {
@@ -256,9 +251,8 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     );
 
     const { volumes, volumeMounts } = pvcVolumeDetails;
-    if (isConnectionTypesEnabled) {
-      envFrom = setConnectionsOnEnvFrom(connections, envFrom, projectConnections);
-    }
+    envFrom = setConnectionsOnEnvFrom(connections, envFrom, projectConnections);
+
     const newStartData: StartNotebookData = {
       ...startNotebookData,
       volumes,

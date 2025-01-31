@@ -82,7 +82,6 @@ const AppRoutes: React.FC = () => {
   const { isAdmin, isAllowed } = useUser();
   const isJupyterEnabled = useCheckJupyterEnabled();
   const isHomeAvailable = useIsAreaAvailable(SupportedArea.HOME).status;
-  const isConnectionTypesAvailable = useIsAreaAvailable(SupportedArea.CONNECTION_TYPES).status;
 
   if (!isAllowed) {
     return (
@@ -140,9 +139,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/acceleratorProfiles/*" element={<AcceleratorProfileRoutes />} />
             <Route path="/hardwareProfiles/*" element={<HardwareProfileRoutes />} />
             <Route path="/servingRuntimes/*" element={<CustomServingRuntimeRoutes />} />
-            {isConnectionTypesAvailable ? (
-              <Route path="/connectionTypes/*" element={<ConnectionTypeRoutes />} />
-            ) : null}
+            <Route path="/connectionTypes/*" element={<ConnectionTypeRoutes />} />
             <Route path="/storageClasses/*" element={<StorageClassesPage />} />
             <Route path="/modelRegistrySettings/*" element={<ModelRegistrySettingsRoutes />} />
             <Route path="/groupSettings" element={<GroupSettingsPage />} />

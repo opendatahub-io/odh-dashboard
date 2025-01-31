@@ -10,7 +10,6 @@ import DividedGallery from '~/concepts/design/DividedGallery';
 import InfoGalleryItem from '~/concepts/design/InfoGalleryItem';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import useConnectionTypesEnabled from '~/concepts/connectionTypes/useConnectionTypesEnabled';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -23,7 +22,6 @@ const ConfigurationSection: React.FC = () => {
   const [open, setOpen] = React.useState<boolean>(true);
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const projectSharingEnabled = useIsAreaAvailable(SupportedArea.DS_PROJECTS_PERMISSIONS).status;
-  const connectionTypesEnabled = useConnectionTypesEnabled();
   const [allowCreate, rbacLoaded] = useAccessReview({
     ...accessReviewResource,
     namespace: currentProject.metadata.name,
@@ -66,46 +64,25 @@ const ConfigurationSection: React.FC = () => {
             )
           }
         />
-        {connectionTypesEnabled ? (
-          <InfoGalleryItem
-            sectionType={SectionType.setup}
-            resourceType={ProjectObjectType.dataConnection}
-            title="Connections"
-            description={
-              <Content component="small">
-                Connections enable you to store and retrieve information that typically should not
-                be stored in code. For example, you can store details (including credentials) for
-                object storage, databases, and more. You can then attach the connections to
-                artifacts in your project, such as workbenches and model servers.
-              </Content>
-            }
-            isOpen={open}
-            onClick={() =>
-              navigate(
-                `/projects/${currentProject.metadata.name}?section=${ProjectSectionID.CONNECTIONS}`,
-              )
-            }
-          />
-        ) : (
-          <InfoGalleryItem
-            sectionType={SectionType.setup}
-            resourceType={ProjectObjectType.dataConnection}
-            title="Data connections"
-            description={
-              <Content component="small">
-                You can add data connections to workbenches to connect your project to data inputs
-                and object storage buckets. You can also use data connections to specify the
-                location of your models during deployment.
-              </Content>
-            }
-            isOpen={open}
-            onClick={() =>
-              navigate(
-                `/projects/${currentProject.metadata.name}?section=${ProjectSectionID.DATA_CONNECTIONS}`,
-              )
-            }
-          />
-        )}
+        <InfoGalleryItem
+          sectionType={SectionType.setup}
+          resourceType={ProjectObjectType.dataConnection}
+          title="Connections"
+          description={
+            <Content component="small">
+              Connections enable you to store and retrieve information that typically should not be
+              stored in code. For example, you can store details (including credentials) for object
+              storage, databases, and more. You can then attach the connections to artifacts in your
+              project, such as workbenches and model servers.
+            </Content>
+          }
+          isOpen={open}
+          onClick={() =>
+            navigate(
+              `/projects/${currentProject.metadata.name}?section=${ProjectSectionID.CONNECTIONS}`,
+            )
+          }
+        />
         {showPermissions ? (
           <InfoGalleryItem
             sectionType={SectionType.setup}
