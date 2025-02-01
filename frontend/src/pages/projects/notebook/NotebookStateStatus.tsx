@@ -1,126 +1,153 @@
 import * as React from 'react';
-import { Button, Label, LabelProps, Popover, Tooltip } from '@patternfly/react-core';
+import { Button, Flex, FlexItem, Tooltip, Truncate } from '@patternfly/react-core';
 import {
-  ExclamationCircleIcon,
-  InProgressIcon,
-  OffIcon,
-  PlayIcon,
-  SyncAltIcon,
-} from '@patternfly/react-icons';
-import { EventStatus } from '~/types';
+  t_global_text_color_regular as RegularColor,
+  t_global_text_color_status_danger_default as DangerColor,
+  t_global_text_color_status_warning_default as WarningColor,
+  t_global_spacer_xs as ExtraSmallSpacerSize,
+} from '@patternfly/react-tokens';
+import { useNavigate } from 'react-router-dom';
+import { EventStatus, NotebookStatus } from '~/types';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
+import { useNotebookStatus } from '~/utilities/notebookControllerUtils';
+import StartNotebookModal from '~/concepts/notebooks/StartNotebookModal';
+import NotebookStatusLabel from '~/concepts/notebooks/NotebookStatusLabel';
 import { NotebookState } from './types';
-import { getEventFullMessage, useNotebookStatus } from './utils';
-import StartNotebookModal from './StartNotebookModal';
 
 type NotebookStateStatusProps = {
   notebookState: NotebookState;
   stopNotebook: () => void;
+  startNotebook: () => void;
+  isVertical?: boolean;
 };
+
+const getNotebookStatusStyles = (notebookStatus?: NotebookStatus | null, isStarting?: boolean) => ({
+  color:
+    notebookStatus?.currentStatus === EventStatus.ERROR
+      ? DangerColor.var
+      : notebookStatus?.currentStatus === EventStatus.WARNING
+      ? WarningColor.var
+      : RegularColor.var,
+  textDecoration:
+    isStarting ||
+    notebookStatus?.currentStatus === EventStatus.ERROR ||
+    notebookStatus?.currentStatus === EventStatus.WARNING
+      ? 'underline dashed'
+      : undefined,
+  textUnderlineOffset: ExtraSmallSpacerSize.var,
+});
 
 const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
   notebookState,
   stopNotebook,
+  startNotebook,
+  isVertical = true,
 }) => {
-  const { notebook, runningPodUid, isStarting, isStopping, isRunning } = notebookState;
-  const [unstableNotebookStatus, events] = useNotebookStatus(notebook, runningPodUid, isStarting);
+  const navigate = useNavigate();
+  const { notebook, isStarting, isRunning, isStopping, runningPodUid } = notebookState;
+  const [unstableNotebookStatus, events] = useNotebookStatus(
+    isStarting,
+    notebook,
+    isRunning,
+    runningPodUid,
+  );
   const notebookStatus = useDeepCompareMemoize(unstableNotebookStatus);
   const isError = notebookStatus?.currentStatus === EventStatus.ERROR;
-  const [isPopoverVisible, setPopoverVisible] = React.useState(false);
+  const isStopped = !isError && !isRunning && !isStarting && !isStopping;
   const [isStartModalOpen, setStartModalOpen] = React.useState(false);
 
-  const statusLabelSettings = React.useMemo((): {
-    label: string;
-    color: LabelProps['color'];
-    icon: React.ReactNode;
-  } => {
-    if (isError) {
-      return { label: 'Failed', color: 'red', icon: <ExclamationCircleIcon /> };
-    }
-    if (isStarting) {
-      return {
-        label: 'Starting',
-        color: 'blue',
-        icon: <InProgressIcon className="odh-u-spin" />,
-      };
-    }
-    if (isStopping) {
-      return {
-        label: 'Stopping',
-        color: 'grey',
-        icon: <SyncAltIcon className="odh-u-spin" />,
-      };
-    }
-    if (isRunning) {
-      return { label: 'Running', color: 'green', icon: <PlayIcon /> };
-    }
-    return { label: 'Stopped', color: 'grey', icon: <OffIcon /> };
-  }, [isError, isRunning, isStarting, isStopping]);
-
-  const StatusLabel = (
-    <Label
-      isCompact
-      color={statusLabelSettings.color}
-      icon={statusLabelSettings.icon}
-      data-testid="notebook-status-text"
-      onClick={isStarting ? () => setPopoverVisible((visible) => !visible) : undefined}
-      style={{ width: 'fit-content' }}
-    >
-      {statusLabelSettings.label}
-    </Label>
-  );
-
-  if (isStarting) {
-    return (
-      <>
-        <Popover
-          alertSeverityVariant={isError ? 'danger' : 'custom'}
-          data-testid="notebook-status-popover"
-          shouldClose={() => setPopoverVisible(false)}
-          isVisible={isPopoverVisible}
-          headerContent="Workbench status"
-          headerIcon={isError ? <ExclamationCircleIcon /> : <InProgressIcon />}
-          bodyContent={
-            events[events.length - 1]
-              ? getEventFullMessage(events[events.length - 1])
-              : 'Waiting for workbench to start...'
-          }
-          footerContent={
-            <Button
-              variant="link"
-              isInline
-              onClick={() => {
-                setPopoverVisible(false);
-                setStartModalOpen(true);
-              }}
-            >
-              Event log
-            </Button>
-          }
-        >
-          {StatusLabel}
-        </Popover>
-        {isStartModalOpen ? (
-          <StartNotebookModal
-            notebookState={notebookState}
-            notebookStatus={notebookStatus}
-            events={events}
-            onClose={(stopped) => {
-              if (stopped) {
-                stopNotebook();
-              }
-              setStartModalOpen(false);
-            }}
-          />
-        ) : null}
-      </>
+  const renderContent = () => {
+    const StatusLabel = (
+      <NotebookStatusLabel
+        isCompact
+        isStarting={isStarting}
+        isRunning={isRunning}
+        isStopping={isStopping}
+        notebookStatus={notebookStatus}
+      />
     );
-  }
 
-  return notebookStatus?.currentStatus === EventStatus.ERROR ? (
-    <Tooltip content={notebookStatus.currentEvent}>{StatusLabel}</Tooltip>
-  ) : (
-    StatusLabel
+    return (
+      <Button variant="link" isInline onClick={() => setStartModalOpen(true)}>
+        <Flex
+          direction={{ default: isVertical ? 'column' : 'row' }}
+          gap={{ default: isVertical ? 'gapXs' : 'gapMd' }}
+        >
+          <FlexItem>
+            {notebookStatus?.currentStatus === EventStatus.ERROR ? (
+              <Tooltip content={notebookStatus.currentEvent}>{StatusLabel}</Tooltip>
+            ) : (
+              StatusLabel
+            )}
+          </FlexItem>
+          {isStarting ? (
+            <FlexItem>
+              <Truncate
+                content={notebookStatus?.currentEvent || 'Waiting for server request to start...'}
+                style={getNotebookStatusStyles(notebookStatus, isStarting)}
+              />
+            </FlexItem>
+          ) : null}
+        </Flex>
+      </Button>
+    );
+  };
+
+  return (
+    <>
+      {renderContent()}
+      {isStartModalOpen ? (
+        <StartNotebookModal
+          notebook={notebook}
+          isStarting={isStarting}
+          isRunning={isRunning}
+          isStopping={isStopping}
+          notebookStatus={notebookStatus}
+          events={events}
+          onClose={(stopped) => {
+            if (stopped) {
+              stopNotebook();
+            }
+            setStartModalOpen(false);
+          }}
+          buttons={
+            <>
+              {isStopped ? (
+                <Button
+                  data-id="start-spawn"
+                  key="start"
+                  variant="primary"
+                  onClick={() => startNotebook()}
+                >
+                  Start workbench
+                </Button>
+              ) : (
+                <Button
+                  data-id="close-spawn"
+                  key="stop"
+                  variant="primary"
+                  onClick={() => stopNotebook()}
+                >
+                  Stop workbench
+                </Button>
+              )}
+              <Button
+                data-id="edit-workbench"
+                key="edit"
+                variant="link"
+                onClick={() => {
+                  navigate(
+                    `/projects/${notebook!.metadata.namespace}/spawner/${notebook!.metadata.name}`,
+                  );
+                }}
+              >
+                Edit workbench
+              </Button>
+            </>
+          }
+        />
+      ) : null}
+    </>
   );
 };
 

@@ -7,7 +7,10 @@ import {
   EventStatus,
   Notebook,
   NotebookControllerUserState,
+  NotebookProgressStep,
   NotebookStatus,
+  ProgressionStep,
+  ProgressionStepTitles,
   ResourceCreator,
   ResourceGetter,
   VariableRow,
@@ -18,7 +21,7 @@ import { EMPTY_USER_STATE } from '~/pages/notebookController/const';
 import useNamespaces from '~/pages/notebookController/useNamespaces';
 import { useAppContext } from '~/app/AppContext';
 import { getRoute } from '~/services/routeService';
-import { EventKind, RoleBindingKind } from '~/k8sTypes';
+import { EventKind, NotebookKind, RoleBindingKind } from '~/k8sTypes';
 import { useWatchNotebookEvents } from '~/api';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 
@@ -238,6 +241,9 @@ export const useNotebookRedirectLink = (): (() => Promise<string>) => {
 export const getEventTimestamp = (event: EventKind): string =>
   event.lastTimestamp || event.eventTime;
 
+export const getEventFullMessage = (event: EventKind): string =>
+  `${getEventTimestamp(event)} [${event.reason}] [${event.type}] ${event.message}`;
+
 const filterEvents = (
   allEvents: EventKind[],
   lastActivity: Date,
@@ -298,15 +304,163 @@ const useLastActivity = (annotationValue?: string): Date | null => {
   return lastOpenActivity.current;
 };
 
+export const getNotebookEventStatus = (
+  event: EventKind,
+  gracePeriod?: boolean,
+): NotebookProgressStep => {
+  const timestamp = new Date(getEventTimestamp(event)).getTime();
+
+  if (event.message.includes('oauth-proxy')) {
+    switch (event.reason) {
+      case 'Pulling':
+        return {
+          step: ProgressionStep.PULLING_OAUTH,
+          status: EventStatus.SUCCESS,
+          timestamp,
+        };
+      case 'Pulled':
+        return {
+          step: ProgressionStep.OAUTH_PULLED,
+          status: EventStatus.SUCCESS,
+          timestamp,
+        };
+      case 'Created':
+        return {
+          step: ProgressionStep.OAUTH_CONTAINER_CREATED,
+          status: EventStatus.SUCCESS,
+          timestamp,
+        };
+      case 'Started':
+        return {
+          step: ProgressionStep.OAUTH_CONTAINER_STARTED,
+          status: EventStatus.SUCCESS,
+          timestamp,
+        };
+      case 'Killing':
+        return {
+          step: ProgressionStep.OAUTH_CONTAINER_STARTED,
+          status: EventStatus.WARNING,
+          timestamp,
+        };
+      default:
+        if (event.type === 'Warning') {
+          return {
+            step: ProgressionStep.OAUTH_CONTAINER_CREATED,
+            status: EventStatus.WARNING,
+            timestamp,
+          };
+        }
+        return {
+          status: EventStatus.WARNING,
+          timestamp,
+        };
+    }
+  }
+
+  switch (event.reason) {
+    case 'SuccessfulCreate':
+      return {
+        step: ProgressionStep.POD_CREATED,
+        status: EventStatus.SUCCESS,
+        timestamp,
+      };
+    case 'Scheduled':
+      return {
+        step: ProgressionStep.POD_ASSIGNED,
+        status: EventStatus.SUCCESS,
+        timestamp,
+      };
+    case 'SuccessfulAttachVolume':
+      return {
+        step: ProgressionStep.PVC_ATTACHED,
+        status: EventStatus.SUCCESS,
+        timestamp,
+      };
+    case 'AddedInterface':
+      return {
+        step: ProgressionStep.INTERFACE_ADDED,
+        status: EventStatus.SUCCESS,
+        timestamp,
+      };
+    case 'Pulling':
+      return {
+        step: ProgressionStep.PULLING_NOTEBOOK_IMAGE,
+        status: EventStatus.SUCCESS,
+        timestamp,
+      };
+    case 'Pulled':
+      return {
+        step: ProgressionStep.NOTEBOOK_IMAGE_PULLED,
+        status: EventStatus.SUCCESS,
+        timestamp,
+      };
+    case 'Created':
+      return {
+        step: ProgressionStep.NOTEBOOK_CONTAINER_CREATED,
+        status: EventStatus.SUCCESS,
+        timestamp,
+      };
+    case 'Started':
+      return {
+        step: ProgressionStep.NOTEBOOK_CONTAINER_STARTED,
+        status: EventStatus.SUCCESS,
+        timestamp,
+      };
+    case 'NotTriggerScaleUp':
+      return {
+        description: 'Failed to scale-up',
+        status: EventStatus.ERROR,
+        timestamp,
+      };
+    case 'TriggeredScaleUp':
+      return {
+        description: 'Pod triggered scale-up',
+        status: EventStatus.INFO,
+        timestamp,
+      };
+    case 'FailedCreate':
+      return {
+        description: 'Failed to create pod',
+        status: EventStatus.ERROR,
+        timestamp,
+      };
+    default: {
+      if (!gracePeriod && event.reason === 'FailedScheduling') {
+        return {
+          description: 'Insufficient resources to start',
+          status: EventStatus.ERROR,
+          timestamp,
+        };
+      }
+      if (!gracePeriod && event.reason === 'BackOff') {
+        return {
+          description: 'ImagePullBackOff',
+          status: EventStatus.ERROR,
+          timestamp,
+        };
+      }
+      if (event.type === 'Warning') {
+        return {
+          description: 'Issue creating workbench container',
+          status: EventStatus.WARNING,
+          timestamp,
+        };
+      }
+      return {
+        description: '',
+        status: EventStatus.WARNING,
+        timestamp,
+      };
+    }
+  }
+};
+
 export const useNotebookStatus = (
   spawnInProgress: boolean,
+  notebook: Notebook | NotebookKind | null,
+  isNotebookRunning: boolean,
+  currentUserNotebookPodUID: string,
 ): [status: NotebookStatus | null, events: EventKind[]] => {
-  const {
-    currentUserNotebook: notebook,
-    currentUserNotebookIsRunning: isNotebookRunning,
-    currentUserNotebookPodUID,
-  } = React.useContext(NotebookControllerContext);
-
   const [events] = useWatchNotebookEvents(
     notebook?.metadata.namespace ?? '',
     notebook?.metadata.name ?? '',
@@ -330,125 +484,106 @@ export const useNotebookStatus = (
   }
 
   // Parse the last event
-  let percentile = 0;
-  let status: EventStatus = EventStatus.IN_PROGRESS;
   const lastItem = filteredEvents[filteredEvents.length - 1];
-  let currentEvent = '';
-  if (lastItem.message.includes('oauth-proxy')) {
-    switch (lastItem.reason) {
-      case 'Pulling': {
-        currentEvent = 'Pulling oauth proxy';
-        percentile = 72;
-        break;
-      }
-      case 'Pulled': {
-        currentEvent = 'Oauth proxy pulled';
-        percentile = 80;
-        break;
-      }
-      case 'Created': {
-        currentEvent = 'Oauth proxy container created';
-        percentile = 88;
-        break;
-      }
-      case 'Started': {
-        currentEvent = 'Oauth proxy container started';
-        percentile = 96;
-        break;
-      }
-      case 'Killing': {
-        currentEvent = 'Stopping container oauth-proxy';
-        status = EventStatus.WARNING;
-        break;
-      }
-      default: {
-        if (lastItem.type === 'Warning') {
-          currentEvent = 'Issue creating oauth proxy container';
-          status = EventStatus.WARNING;
-        }
-      }
-    }
-  } else {
-    switch (lastItem.reason) {
-      case 'SuccessfulCreate': {
-        currentEvent = 'Pod created';
-        percentile = 8;
-        break;
-      }
-      case 'Scheduled': {
-        currentEvent = 'Pod assigned';
-        percentile = 16;
-        break;
-      }
-      case 'SuccessfulAttachVolume': {
-        currentEvent = 'PVC attached';
-        percentile = 24;
-        break;
-      }
-      case 'AddedInterface': {
-        currentEvent = 'Interface added';
-        percentile = 32;
-        break;
-      }
-      case 'Pulling': {
-        currentEvent = 'Pulling notebook image';
-        percentile = 40;
-        break;
-      }
-      case 'Pulled': {
-        currentEvent = 'Notebook image pulled';
-        percentile = 48;
-        break;
-      }
-      case 'Created': {
-        currentEvent = 'Notebook container created';
-        percentile = 56;
-        break;
-      }
-      case 'Started': {
-        currentEvent = 'Notebook container started';
-        percentile = 64;
-        break;
-      }
-      case 'NotTriggerScaleUp':
-        currentEvent = 'Failed to scale-up';
-        status = EventStatus.ERROR;
-        break;
-      case 'TriggeredScaleUp': {
-        currentEvent = 'Pod triggered scale-up';
-        status = EventStatus.INFO;
-        break;
-      }
-      case 'FailedCreate': {
-        currentEvent = 'Failed to create pod';
-        status = EventStatus.ERROR;
-        break;
-      }
-      default: {
-        if (!gracePeriod && lastItem.reason === 'FailedScheduling') {
-          currentEvent = 'Insufficient resources to start';
-          status = EventStatus.ERROR;
-        } else if (!gracePeriod && lastItem.reason === 'BackOff') {
-          currentEvent = 'ImagePullBackOff';
-          status = EventStatus.ERROR;
-        } else if (lastItem.type === 'Warning') {
-          currentEvent = 'Issue creating notebook container';
-          status = EventStatus.WARNING;
-        }
-      }
-    }
-  }
+  const { step, description, status } = getNotebookEventStatus(lastItem, gracePeriod);
 
   return [
     {
-      percentile,
-      currentEvent,
+      currentEvent: step ? ProgressionStepTitles[step] : description ?? '',
       currentEventReason: lastItem.reason,
       currentEventDescription: lastItem.message,
       currentStatus: status,
     },
     thisInstanceEvents,
   ];
+};
+
+const progressionValue = (progressionStep?: ProgressionStep): number => {
+  if (!progressionStep) {
+    return 0;
+  }
+  return Object.values(ProgressionStep).indexOf(progressionStep);
+};
+
+export const compareProgressSteps = (a: NotebookProgressStep, b: NotebookProgressStep): number => {
+  const val = a.timestamp - b.timestamp;
+  return val !== 0 ? val : progressionValue(a.step) - progressionValue(b.step);
+};
+
+export const useNotebookProgress = (
+  notebook: NotebookKind | null,
+  isRunning: boolean,
+  isStopped: boolean,
+  events: EventKind[],
+): NotebookProgressStep[] => {
+  const progressSteps: NotebookProgressStep[] = Object.values(ProgressionStep).map((step) => ({
+    step: ProgressionStep[step],
+    percentile: 0,
+    status: isRunning ? EventStatus.SUCCESS : EventStatus.PENDING,
+    timestamp: 0,
+  }));
+  progressSteps[0].status = isStopped ? EventStatus.PENDING : EventStatus.SUCCESS;
+
+  let progressEvents = events;
+  let gracePeriod = false;
+
+  if (notebook) {
+    const annotationTime = notebook.metadata.annotations?.['notebooks.kubeflow.org/last-activity'];
+    const lastActivity = annotationTime
+      ? new Date(annotationTime)
+      : new Date(notebook.metadata.creationTimestamp ?? 0);
+
+    const [filteredEvents, , period] = filterEvents(events, lastActivity);
+    progressEvents = filteredEvents;
+    gracePeriod = period;
+  }
+
+  const currentProgress = progressEvents
+    .map((event) => getNotebookEventStatus(event, gracePeriod))
+    .toSorted(compareProgressSteps);
+
+  currentProgress.forEach((currentStep) => {
+    if (currentStep.step) {
+      const progressStep = progressSteps.find((step) => step.step === currentStep.step);
+      if (progressStep) {
+        progressStep.status = currentStep.status;
+        progressStep.timestamp = currentStep.timestamp;
+      }
+    }
+  });
+
+  // Some events are not always received, mark all steps prior to the last completed step complete.
+  const lastCompleteIndex = progressSteps.findLastIndex(
+    (step) => step.status === EventStatus.SUCCESS,
+  );
+  if (lastCompleteIndex > 0) {
+    for (let i = 0; i < lastCompleteIndex; i++) {
+      if (progressSteps[i].status === EventStatus.PENDING) {
+        progressSteps[i].status = EventStatus.SUCCESS;
+      }
+    }
+  }
+
+  // Insert the last error or warning after the last pending step
+  if (currentProgress.length) {
+    const lastProgression = currentProgress[currentProgress.length - 1];
+    if (!lastProgression.step) {
+      if (lastProgression.description) {
+        const lastStep = progressSteps.findIndex((step) => step.status === EventStatus.PENDING);
+        if (lastStep === -1) {
+          progressSteps.push(lastProgression);
+          return progressSteps;
+        }
+        return [
+          ...progressSteps.slice(0, lastStep),
+          lastProgression,
+          ...progressSteps.slice(lastStep),
+        ];
+      }
+    }
+  }
+
+  return progressSteps;
 };
 
 export const useCheckJupyterEnabled = (): boolean => {

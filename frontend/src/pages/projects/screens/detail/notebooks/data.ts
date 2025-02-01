@@ -34,15 +34,10 @@ export const columns: SortableData<NotebookState>[] = [
     field: 'status',
     label: 'Status',
     sortable: (a, b) => getNotebookStatusPriority(a) - getNotebookStatusPriority(b),
-    modifier: 'fitContent',
+    width: 20,
   },
   {
-    field: '',
-    label: '',
-    sortable: false,
-  },
-  {
-    field: 'open',
+    field: 'toggle-status',
     label: '',
     sortable: false,
   },
