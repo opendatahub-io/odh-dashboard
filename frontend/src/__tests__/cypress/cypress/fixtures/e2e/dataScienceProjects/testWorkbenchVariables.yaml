@@ -1,0 +1,9 @@
+# testWorkbenchVariables.cy.ts Test Data #
+wbVariablesTestNamespace: 'dsp-wb-variables-test'
+wbVariablesTestDescription: 'This is a test description.'
+configMapYamlPath: "cypress/fixtures/resources/yaml/env_vars_cm.yaml"
+secretYamlPath: "cypress/fixtures/resources/yaml/env_vars_secret.yaml"
+MY_VAR2: 'myvalue2'
+MY_VAR1: 'myvalue1'
+FAKE_ID: 'hello-id'
+FAKE_VALUE: 'hello-value'
