@@ -14,6 +14,7 @@ import {
   Label,
   MenuToggle,
   Popover,
+  Tooltip,
 } from '@patternfly/react-core';
 import { css } from '@patternfly/react-styles';
 import { EllipsisVIcon, ExclamationCircleIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
@@ -31,6 +32,7 @@ import { deleteIntegrationApp } from '~/services/integrationAppService';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 import SupportedAppTitle from './SupportedAppTitle';
 import BrandImage from './BrandImage';
+import { useUser } from '~/redux/selectors';
 
 import './OdhCard.scss';
 
@@ -49,6 +51,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   const disabled = !odhApp.spec.isEnabled;
   const { dashboardConfig } = useAppContext();
   const dispatch = useAppDispatch();
+  const { isAdmin } = useUser();
 
   const onOpenKebab = () => {
     setIsOpen(!isOpen);
@@ -192,6 +195,12 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     </div>
   );
 
+  const disableButton = (
+    <Button variant="link" className="odh-card__disabled-text" isDisabled={!isAdmin}>
+      Disabled
+    </Button>
+  );
+
   const disabledPopover = (
     <Popover
       headerContent={
@@ -204,9 +213,13 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       headerIcon={<ExclamationCircleIcon />}
       alertSeverityVariant="danger"
     >
-      <Button variant="link" className="odh-card__disabled-text">
-        Disabled
-      </Button>
+      {!isAdmin ? (
+        <Tooltip content="To enable this application, contact your administrator.">
+          <span>{disableButton}</span>
+        </Tooltip>
+      ) : (
+        disableButton
+      )}
     </Popover>
   );
 
