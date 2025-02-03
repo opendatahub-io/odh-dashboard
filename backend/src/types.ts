@@ -39,6 +39,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableAcceleratorProfiles: boolean;
       disableHardwareProfiles: boolean;
       disableDistributedWorkloads: boolean;
+      disableModelCatalog: boolean;
       disableModelRegistry: boolean;
       disableModelRegistrySecureDB: boolean;
       disableServingRuntimeParams: boolean;

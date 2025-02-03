@@ -65,6 +65,9 @@ export enum SupportedArea {
   /* Model Registry areas */
   MODEL_REGISTRY = 'model-registry',
   MODEL_REGISTRY_SECURE_DB = 'model-registry-secure-db',
+
+  /* Model catalog areas */
+  MODEL_CATALOG = 'model-catalog',
 }
 
 /** Components deployed by the Operator. Part of the DSC Status. */
