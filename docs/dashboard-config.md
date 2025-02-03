@@ -29,6 +29,7 @@ The following are a list of features that are supported, along with there defaul
 | disableKServeAuth            | false   | Disables the ability to use auth in KServe.                                                          |
 | disableKServeMetrics         | false   | Disables the ability to see KServe Metrics.                                                          |
 | disableKServeRaw             | true    | Disables the option to deploy in raw instead of serverless.                                          |
+| disableKServeOCIModels       | true    | Disables the option to deploy models in the OCI format.                                              |
 | disableModelMesh             | false   | Disables the ability to select ModelMesh as a Serving Platform.                                      |
 | disableAcceleratorProfiles   | false   | Disables Accelerator profiles from the Admin Panel.                                                  |
 | disableHardwareProfiles      | true    | Disables Hardware profiles from the Admin Panel.                                                     |

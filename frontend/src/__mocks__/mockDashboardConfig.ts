@@ -19,6 +19,7 @@ export type MockDashboardConfigType = {
   disableKServeAuth?: boolean;
   disableKServeMetrics?: boolean;
   disableKServeRaw?: boolean;
+  disableKServeOCIModels?: boolean;
   disableModelMesh?: boolean;
   disableAcceleratorProfiles?: boolean;
   disableHardwareProfiles?: boolean;
@@ -53,6 +54,7 @@ export const mockDashboardConfig = ({
   disableKServeAuth = false,
   disableKServeMetrics = true,
   disableKServeRaw = true,
+  disableKServeOCIModels = true,
   disableModelMesh = false,
   disableAcceleratorProfiles = false,
   disableHardwareProfiles = false,
@@ -165,6 +167,7 @@ export const mockDashboardConfig = ({
       disableKServeAuth,
       disableKServeMetrics,
       disableKServeRaw,
+      disableKServeOCIModels,
       disableModelMesh,
       disableAcceleratorProfiles,
       disableHardwareProfiles,
