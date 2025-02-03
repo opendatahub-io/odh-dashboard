@@ -90,7 +90,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   const [spawnStatus, setSpawnStatus] = React.useState<SpawnStatus | null>(null);
   const isError = notebookStatus?.currentStatus === EventStatus.ERROR;
   const isStopped = !isError && !isRunning && !isStarting && !isStopping;
-  const notebookProgress = useNotebookProgress(notebook, isRunning, isStopped, events);
+  const notebookProgress = useNotebookProgress(notebook, isRunning, isStopping, isStopped, events);
   const inProgress = !isStopped && (isStarting || isStopping || !isRunning);
   const [activeTab, setActiveTab] = React.useState<string>(PROGRESS_TAB);
 
@@ -137,7 +137,11 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
 
     const title =
       notebookStatus?.currentEvent ||
-      (isStarting ? 'Waiting for server request to start...' : 'Creating resources...');
+      (isStarting
+        ? 'Waiting for server request to start...'
+        : isStopping
+        ? 'Shutting down the server...'
+        : 'Creating resources...');
 
     return (
       <StackItem>

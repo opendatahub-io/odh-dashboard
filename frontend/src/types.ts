@@ -618,6 +618,7 @@ export enum ProgressionStep {
   OAUTH_PULLED = 'OAUTH_PULLED',
   OAUTH_CONTAINER_CREATED = 'OAUTH_CONTAINER_CREATED',
   OAUTH_CONTAINER_STARTED = 'OAUTH_CONTAINER_STARTED',
+  SERVER_STARTED = 'SERVER_STARTED',
 }
 
 export const ProgressionStepTitles = {
@@ -634,6 +635,7 @@ export const ProgressionStepTitles = {
   [ProgressionStep.OAUTH_PULLED]: 'Oauth proxy pulled',
   [ProgressionStep.OAUTH_CONTAINER_CREATED]: 'Oauth proxy container created',
   [ProgressionStep.OAUTH_CONTAINER_STARTED]: 'Oauth proxy container started',
+  [ProgressionStep.SERVER_STARTED]: 'Server started',
 };
 
 export type NotebookProgressStep = {

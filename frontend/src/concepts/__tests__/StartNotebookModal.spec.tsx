@@ -37,7 +37,7 @@ describe('Start Notebook modal', () => {
     const stepper = screen.getByTestId('notebook-startup-steps');
     expect(stepper).toBeTruthy();
     const steps = screen.getAllByRole('listitem');
-    expect(steps).toHaveLength(13);
+    expect(steps).toHaveLength(14);
     expect(steps[0]).toHaveTextContent('Server requested');
     expect(steps[1]).toHaveTextContent('Pod created');
     expect(steps[2]).toHaveTextContent('Pod assigned');
@@ -51,6 +51,7 @@ describe('Start Notebook modal', () => {
     expect(steps[10]).toHaveTextContent('Oauth proxy pulled');
     expect(steps[11]).toHaveTextContent('Oauth proxy container created');
     expect(steps[12]).toHaveTextContent('Oauth proxy container started');
+    expect(steps[13]).toHaveTextContent('Server started');
   });
 
   it('should show failed notebook startup status', async () => {
@@ -79,7 +80,7 @@ describe('Start Notebook modal', () => {
     const stepper = screen.getByTestId('notebook-startup-steps');
     expect(stepper).toBeTruthy();
     const steps = screen.getAllByRole('listitem');
-    expect(steps).toHaveLength(14);
+    expect(steps).toHaveLength(15);
     expect(steps[1]).toHaveTextContent('Failed to scale-up');
   });
 
@@ -107,9 +108,9 @@ describe('Start Notebook modal', () => {
     // Validate the steps
     const stepper = screen.getByTestId('notebook-startup-steps');
     expect(stepper).toBeTruthy();
-    expect(screen.getAllByRole('listitem')).toHaveLength(13);
+    expect(screen.getAllByRole('listitem')).toHaveLength(14);
     expect(screen.getAllByTestId('step-status-Success')).toHaveLength(10);
-    expect(screen.getAllByTestId('step-status-Pending')).toHaveLength(3);
+    expect(screen.getAllByTestId('step-status-Pending')).toHaveLength(4);
   });
 
   it('should show completed notebook startup status', async () => {
@@ -134,7 +135,35 @@ describe('Start Notebook modal', () => {
     const stepper = screen.getByTestId('notebook-startup-steps');
     expect(stepper).toBeTruthy();
     const steps = screen.getAllByRole('listitem');
-    expect(steps).toHaveLength(13);
-    expect(screen.getAllByTestId('step-status-Success')).toHaveLength(13);
+    expect(steps).toHaveLength(14);
+    expect(screen.getAllByTestId('step-status-Success')).toHaveLength(14);
+  });
+
+  it('should show stopping notebook status', async () => {
+    render(
+      <StartNotebookModal
+        notebookStatus={null}
+        isStarting={false}
+        isStopping
+        isRunning={false}
+        events={[]}
+        onClose={onCloseMock}
+        buttons={null}
+      />,
+    );
+
+    // Validate the header contents
+    const header = screen.getByTestId('notebook-status-modal-header');
+    expect(header).toHaveTextContent('Workbench statusStopping');
+
+    const statusLabel = screen.getByTestId('notebook-latest-status');
+    expect(statusLabel).toHaveTextContent('Shutting down the server');
+
+    // Validate the steps
+    const stepper = screen.getByTestId('notebook-startup-steps');
+    expect(stepper).toBeTruthy();
+    const steps = screen.getAllByRole('listitem');
+    expect(steps).toHaveLength(14);
+    expect(screen.getAllByTestId('step-status-Pending')).toHaveLength(14);
   });
 });
