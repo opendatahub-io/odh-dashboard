@@ -6,7 +6,6 @@ import {
   getCreateInferenceServiceLabels,
   getSubmitInferenceServiceResourceFn,
   getSubmitServingRuntimeResourcesFn,
-  isConnectionPathValid,
   useCreateInferenceServiceObject,
   useCreateServingRuntimeObject,
 } from '~/pages/modelServing/screens/projects/utils';
@@ -35,22 +34,17 @@ import ServingRuntimeSizeSection from '~/pages/modelServing/screens/projects/Ser
 import ServingRuntimeTemplateSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeTemplateSection';
 import ProjectSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSection';
 import { DataConnection, NamespaceApplicationCase } from '~/pages/projects/types';
-import { AwsKeys } from '~/pages/projects/dataConnections/const';
-import { isAWSValid } from '~/pages/projects/screens/spawner/spawnerUtils';
 import InferenceServiceFrameworkSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/InferenceServiceFrameworkSection';
-import DataConnectionSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/DataConnectionSection';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import AuthServingRuntimeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
 import { useAccessReview } from '~/api';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
-import usePrefillDeployModalFromModelRegistry from '~/pages/modelRegistry/screens/RegisteredModels/usePrefillDeployModalFromModelRegistry';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import {
   FormTrackingEventProperties,
   TrackingOutcome,
 } from '~/concepts/analyticsTracking/trackingProperties';
-import useConnectionTypesEnabled from '~/concepts/connectionTypes/useConnectionTypesEnabled';
 import { Connection } from '~/concepts/connectionTypes/types';
 import { ConnectionSection } from '~/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionSection';
 import K8sNameDescriptionField, {
@@ -111,15 +105,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const { data: kServeNameDesc, onDataChange: setKserveNameDesc } = useK8sNameDescriptionFieldData({
     initialData: editInfo?.inferenceServiceEditInfo,
   });
-  const [dataConnections, dataConnectionsLoaded, dataConnectionsLoadError] =
-    usePrefillDeployModalFromModelRegistry(
-      projectContext,
-      createDataInferenceService,
-      setCreateDataInferenceService,
-      registeredModelDeployInfo,
-    );
 
-  const isConnectionTypesEnabled = useConnectionTypesEnabled();
   const [connection, setConnection] = React.useState<Connection>();
   const [isConnectionValid, setIsConnectionValid] = React.useState(false);
 
@@ -181,23 +167,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     if (createDataInferenceService.storage.type === InferenceServiceStorageType.EXISTING_URI) {
       return !!createDataInferenceService.storage.uri;
     }
-    if (createDataInferenceService.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
-      if (isConnectionTypesEnabled) {
-        return isConnectionValid;
-      }
-      return (
-        createDataInferenceService.storage.dataConnection !== '' &&
-        isConnectionPathValid(createDataInferenceService.storage.path)
-      );
-    }
-    // NEW_STORAGE
-    if (isConnectionTypesEnabled) {
-      return isConnectionValid;
-    }
-    return (
-      isAWSValid(createDataInferenceService.storage.awsData, [AwsKeys.AWS_S3_BUCKET]) &&
-      isConnectionPathValid(createDataInferenceService.storage.path)
-    );
+    return isConnectionValid;
   };
 
   const baseInputValueValid =
@@ -445,22 +415,12 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
         </FormSection>
         {!hideForm && (
           <FormSection title="Source model location" id="model-location">
-            {isConnectionTypesEnabled ? (
-              <ConnectionSection
-                data={createDataInferenceService}
-                setData={setCreateDataInferenceService}
-                setConnection={setConnection}
-                setIsConnectionValid={setIsConnectionValid}
-              />
-            ) : (
-              <DataConnectionSection
-                data={createDataInferenceService}
-                setData={setCreateDataInferenceService}
-                loaded={!!projectContext?.dataConnections || dataConnectionsLoaded}
-                loadError={dataConnectionsLoadError}
-                dataConnections={dataConnections}
-              />
-            )}
+            <ConnectionSection
+              data={createDataInferenceService}
+              setData={setCreateDataInferenceService}
+              setConnection={setConnection}
+              setIsConnectionValid={setIsConnectionValid}
+            />
           </FormSection>
         )}
         {servingRuntimeParamsEnabled && (
