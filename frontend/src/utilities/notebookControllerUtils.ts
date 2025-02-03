@@ -513,6 +513,7 @@ export const compareProgressSteps = (a: NotebookProgressStep, b: NotebookProgres
 export const useNotebookProgress = (
   notebook: NotebookKind | null,
   isRunning: boolean,
+  isStopping: boolean,
   isStopped: boolean,
   events: EventKind[],
 ): NotebookProgressStep[] => {
@@ -522,7 +523,7 @@ export const useNotebookProgress = (
     status: isRunning ? EventStatus.SUCCESS : EventStatus.PENDING,
     timestamp: 0,
   }));
-  progressSteps[0].status = isStopped ? EventStatus.PENDING : EventStatus.SUCCESS;
+  progressSteps[0].status = isStopped || isStopping ? EventStatus.PENDING : EventStatus.SUCCESS;
 
   let progressEvents = events;
   let gracePeriod = false;
@@ -561,6 +562,18 @@ export const useNotebookProgress = (
       if (progressSteps[i].status === EventStatus.PENDING) {
         progressSteps[i].status = EventStatus.SUCCESS;
       }
+    }
+  }
+
+  // If the container is started and the server is running, mark the server started step complete
+  if (
+    isRunning &&
+    progressSteps.find((p) => p.step === ProgressionStep.OAUTH_CONTAINER_STARTED)?.status ===
+      EventStatus.SUCCESS
+  ) {
+    const startedStep = progressSteps.find((p) => p.step === ProgressionStep.SERVER_STARTED);
+    if (startedStep) {
+      startedStep.status = EventStatus.SUCCESS;
     }
   }
 
