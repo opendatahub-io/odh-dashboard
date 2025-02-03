@@ -28,6 +28,7 @@ export const allFeatureFlags: string[] = Object.keys({
   disableAcceleratorProfiles: false,
   disableHardwareProfiles: false,
   disableDistributedWorkloads: false,
+  disableModelCatalog: true,
   disableModelRegistry: false,
   disableModelRegistrySecureDB: false,
   disableServingRuntimeParams: false,
@@ -121,6 +122,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.DISTRIBUTED_WORKLOADS]: {
     featureFlags: ['disableDistributedWorkloads'],
     requiredComponents: [StackComponent.KUEUE],
+  },
+  [SupportedArea.MODEL_CATALOG]: {
+    featureFlags: ['disableModelCatalog'],
+    reliantAreas: [SupportedArea.MODEL_REGISTRY],
   },
   [SupportedArea.MODEL_REGISTRY]: {
     featureFlags: ['disableModelRegistry'],

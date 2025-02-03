@@ -73,6 +73,8 @@ spec:
                       type: boolean
                     disableDistributedWorkloads:
                       type: boolean
+                    disableModelCatalog:
+                      type: boolean
                     disableModelRegistry:
                       type: boolean
                     disableModelRegistrySecureDB:

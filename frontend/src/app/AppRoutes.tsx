@@ -74,6 +74,8 @@ const HardwareProfileRoutes = React.lazy(
 
 const StorageClassesPage = React.lazy(() => import('../pages/storageClasses/StorageClassesPage'));
 
+const ModelCatalogRoutes = React.lazy(() => import('../pages/modelCatalog/ModelCatalogRoutes'));
+
 const ModelRegistryRoutes = React.lazy(() => import('../pages/modelRegistry/ModelRegistryRoutes'));
 
 const ExternalRoutes = React.lazy(() => import('../pages/external/ExternalRoutes'));
@@ -119,6 +121,8 @@ const AppRoutes: React.FC = () => {
         />
 
         <Route path="/modelServing/*" element={<ModelServingRoutes />} />
+
+        <Route path="/modelCatalog/*" element={<ModelCatalogRoutes />} />
 
         <Route path="/modelRegistry/*" element={<ModelRegistryRoutes />} />
 

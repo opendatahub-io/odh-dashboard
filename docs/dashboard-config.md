@@ -36,6 +36,7 @@ The following are a list of features that are supported, along with there defaul
 | disableTrustyBiasMetrics     | false   | Disables Model Bias tab from Model Serving metrics.                                                  |
 | disablePerformanceMetrics    | false   | Disables Endpoint Performance tab from Model Serving metrics.                                        |
 | disableDistributedWorkloads  | false   | Disables Distributed Workload Metrics from the dashboard.                                            |
+| disableModelCatalog          | true    | Disables Model Catalog from the dashboard.                                                           |
 | disableModelRegistry         | false   | Disables Model Registry from the dashboard.                                                          |
 | disableModelRegistrySecureDB | false   | Disables Model Registry Secure DB from the dashboard.                                                |
 | disableServingRuntimeParams  | false   | Disables Serving Runtime params from the dashboard.                                                  |
