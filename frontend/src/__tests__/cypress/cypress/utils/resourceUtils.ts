@@ -1,7 +1,14 @@
 import type { ResourcesData } from '~/__tests__/cypress/cypress/types';
+import { resources } from '~/__tests__/cypress/cypress/pages/resources';
 import { createCustomResource, deleteCustomResource } from './oc_commands/customResources';
 
 const applicationNamespace = Cypress.env('TEST_NAMESPACE');
+
+const listView = resources.getListView();
+const cardView = resources.getCardView();
+
+const resourcesToolbar = resources.getLearningCenterToolbar();
+const resourceFilters = resources.getLearningCenterFilters();
 
 export const setupCustomResources = (resourcesData: ResourcesData): Cypress.Chainable<void> => {
   const resourceTypes: (keyof ResourcesData['resources'])[] = [
@@ -96,4 +103,48 @@ export const getResourceValues = (
     howToDescription: resourcesData.resources.CustomHowTo[0].description,
     tutorialDescription: resourcesData.resources.CustomTutorial[0].description,
   };
+};
+
+/**
+ * Verifies whether resource count in filter matches the number of cards
+ *
+ * @param filterId The filter Id to get the resource count of checkbox
+ * @param getViewItems Function that takes Cypress Chainable Jquery HTML element.
+ * @param getParentView Function that takes Cypress Chainable Jquery HTML element.
+ */
+export const verifyResourceCountMatchesView = (
+  filterId: string,
+  getViewItems: () => Cypress.Chainable<JQuery<HTMLElement>>,
+  getParentView: () => Cypress.Chainable<JQuery<HTMLElement>>,
+): void => {
+  resourceFilters.findResourceCountById(filterId).then((resourceCount) => {
+    if (resourceCount === 0) {
+      getParentView().should('not.exist');
+    } else {
+      getViewItems().should('have.length', resourceCount);
+    }
+  });
+};
+
+/**
+ * Verifies card view and list view resources for each filter Id
+ *
+ * @param Id The filter Id to verify resource count
+ */
+export const verifyResourcesForFilter = (Id: string): void => {
+  resourceFilters.findFilter(Id).should('not.be.checked');
+  resourceFilters.findFilter(Id).check();
+  verifyResourceCountMatchesView(
+    Id,
+    () => cardView.findCardItems(),
+    () => cardView.find(),
+  );
+  resourcesToolbar.findListToggleButton().click();
+  verifyResourceCountMatchesView(
+    Id,
+    () => listView.findListItems(),
+    () => listView.find(),
+  );
+  resourceFilters.findFilter(Id).should('be.checked');
+  resourceFilters.findFilter(Id).uncheck();
 };

@@ -14,9 +14,6 @@ export const getTemplateEnabledForPlatform = (
   platform: ServingRuntimePlatform,
 ): boolean => getEnabledPlatformsFromTemplate(template).includes(platform);
 
-export const isTemplateOOTB = (template: TemplateKind): boolean =>
-  template.metadata.labels?.['opendatahub.io/ootb'] === 'true';
-
 export const getSortedTemplates = (templates: TemplateKind[], order: string[]): TemplateKind[] =>
   templates.toSorted(
     (a, b) =>

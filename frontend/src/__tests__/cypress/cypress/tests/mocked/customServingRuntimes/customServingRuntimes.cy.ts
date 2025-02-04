@@ -33,6 +33,18 @@ describe('Custom serving runtimes', () => {
     servingRuntimes.shouldBeSingleModel(true).shouldBeMultiModel(true);
   });
 
+  it('should test pre-installed label', () => {
+    servingRuntimes.getRowById('template-3').shouldHavePreInstalledLabel();
+    servingRuntimes.getRowById('template-3').find().findKebabAction('Edit').should('not.exist');
+    servingRuntimes.getRowById('template-3').find().findKebabAction('Delete').should('not.exist');
+    servingRuntimes.getRowById('template-3').find().findKebabAction('Duplicate').should('exist');
+
+    servingRuntimes.getRowById('template-2').shouldHavePreInstalledLabel(false);
+    servingRuntimes.getRowById('template-2').find().findKebabAction('Delete').should('exist');
+    servingRuntimes.getRowById('template-2').find().findKebabAction('Edit').should('exist');
+    servingRuntimes.getRowById('template-2').find().findKebabAction('Duplicate').should('exist');
+  });
+
   it('should display platform labels in table rows', () => {
     servingRuntimes.getRowById('template-1').shouldBeSingleModel(true);
     servingRuntimes.getRowById('template-2').shouldBeSingleModel(true);

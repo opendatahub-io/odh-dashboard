@@ -5,6 +5,7 @@ import type {
   ResourcesData,
   WBEditTestData,
   WBControlSuiteTestData,
+  WBVariablesTestData,
 } from '~/__tests__/cypress/cypress/types';
 
 // Load fixture function that returns DataScienceProjectData
@@ -42,6 +43,15 @@ export const loadWBControlSuiteFixture = (
 ): Cypress.Chainable<WBControlSuiteTestData> => {
   return cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as WBControlSuiteTestData;
+
+    return data;
+  });
+};
+export const loadWBVariablesFixture = (
+  fixturePath: string,
+): Cypress.Chainable<WBVariablesTestData> => {
+  return cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as WBVariablesTestData;
 
     return data;
   });

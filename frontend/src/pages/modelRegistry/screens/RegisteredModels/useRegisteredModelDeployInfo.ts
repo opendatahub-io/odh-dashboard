@@ -28,8 +28,8 @@ const useRegisteredModelDeployInfo = (
     useModelArtifactsByVersionId(modelVersion.id);
 
   const registeredModelDeployInfo = React.useMemo(() => {
-    const dateString = new Date().toISOString();
-    const modelName = `${registeredModel?.name ?? ''} - ${modelVersion.name} - ${dateString}`;
+    const modelName = `${registeredModel?.name ?? ''} - ${modelVersion.name}`.slice(0, 63);
+
     if (modelArtifactList.size === 0) {
       return {
         registeredModelDeployInfo: {

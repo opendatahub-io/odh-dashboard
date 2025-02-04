@@ -116,6 +116,11 @@ const useModelServingNav = (): NavDataItem[] =>
     { id: 'modelServing', label: 'Model Serving', href: '/modelServing' },
   ]);
 
+const useModelCatalogSectionNav = (): NavDataItem[] =>
+  useAreaCheck(SupportedArea.MODEL_CATALOG, [
+    { id: 'modelCatalog', label: 'Model Catalog', href: '/modelCatalog' },
+  ]);
+
 const useModelRegistrySectionNav = (): NavDataItem[] =>
   useAreaCheck(SupportedArea.MODEL_REGISTRY, [
     { id: 'modelRegistry', label: 'Model Registry', href: '/modelRegistry' },
@@ -152,14 +157,13 @@ const useCustomRuntimesNav = (): NavDataHref[] =>
     },
   ]);
 
-const useConnectionTypesNav = (): NavDataHref[] =>
-  useAreaCheck<NavDataHref>(SupportedArea.CONNECTION_TYPES, [
-    {
-      id: 'settings-connection-types',
-      label: 'Connection types',
-      href: '/connectionTypes',
-    },
-  ]);
+const useConnectionTypesNav = (): NavDataHref[] => [
+  {
+    id: 'settings-connection-types',
+    label: 'Connection types',
+    href: '/connectionTypes',
+  },
+];
 
 const useStorageClassesNav = (): NavDataHref[] =>
   useAreaCheck<NavDataHref>(SupportedArea.STORAGE_CLASSES, [
@@ -239,6 +243,7 @@ export const useBuildNavData = (): NavDataItem[] => [
   ...useDSProjectsNav(),
   ...useDSPipelinesNav(),
   ...useDistributedWorkloadsNav(),
+  ...useModelCatalogSectionNav(),
   ...useModelRegistrySectionNav(),
   ...useModelServingNav(),
   ...useResourcesNav(),

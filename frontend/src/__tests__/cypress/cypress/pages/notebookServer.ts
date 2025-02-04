@@ -61,7 +61,7 @@ class NotebookServer {
   }
 
   findEventlog() {
-    return cy.findByTestId('expand-logs').findByRole('button');
+    return cy.findByTestId('expand-logs');
   }
 
   findStopServerButton() {

@@ -4,7 +4,7 @@ import { genRandomChars } from '~/utilities/string';
 
 export const PreInstalledName = 'Pre-installed';
 
-export const ownedByDSC = (resource: K8sResourceCommon): boolean =>
+export const isOOTB = (resource: K8sResourceCommon): boolean =>
   !!resource.metadata?.labels?.['platform.opendatahub.io/part-of'];
 export const isK8sDSGResource = (x?: K8sResourceCommon): x is K8sDSGResource =>
   x?.metadata?.name != null;
@@ -15,7 +15,7 @@ export const getResourceNameFromK8sResource = (resource: K8sDSGResource): string
 export const getDescriptionFromK8sResource = (resource: K8sDSGResource): string =>
   resource.metadata.annotations?.['openshift.io/description'] || '';
 export const getCreatorFromK8sResource = (resource: K8sDSGResource): string =>
-  ownedByDSC(resource)
+  isOOTB(resource)
     ? PreInstalledName
     : resource.metadata.annotations?.['opendatahub.io/username'] || 'unknown';
 
@@ -57,10 +57,10 @@ export const translateDisplayNameForK8sAndReport = (
   let translatedName = name
     .trim()
     .toLowerCase()
-    .replace(/^-*/, '') // remove any leading dashes
-    .replace(/-*$/, '') // remove any trailing dashes
     .replace(/\s/g, '-') // spaces to dashes
     .replace(/[^a-z0-9-]/g, '') // remove inverse of good k8s characters
+    .replace(/^-*/, '') // remove any leading dashes
+    .replace(/-*$/, '') // remove any trailing dashes
     .replace(/[-]+/g, '-'); // simplify double dashes ('A - B' turns into 'a---b' where 'a-b' is enough)
 
   /** Allows constant length checks -- modifies translatedName & appliedCriteria */
@@ -84,8 +84,8 @@ export const translateDisplayNameForK8sAndReport = (
       }
       appliedCriteria.safeK8sPrefix = true;
       appliedCriteria.staticPrefix = true;
-    } else if (/^\d+$/.test(translatedName)) {
-      // Avoid pure digit names
+    } else if (/^\d+/.test(translatedName)) {
+      // Avoid names that start with a digit
       translatedName = `${safeK8sPrefix}${translatedName}`;
       appliedCriteria.safeK8sPrefix = true;
     }

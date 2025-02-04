@@ -7,6 +7,7 @@ type MockResourceConfigType = {
   displayName?: string;
   replicas?: number;
   platforms?: ServingRuntimePlatform[];
+  preInstalled?: boolean;
   apiProtocol?: ServingRuntimeAPIProtocol;
   isModelmesh?: boolean;
   containerName?: string;
@@ -21,6 +22,7 @@ export const mockServingRuntimeTemplateK8sResource = ({
   isModelmesh = false,
   apiProtocol = ServingRuntimeAPIProtocol.REST,
   platforms,
+  preInstalled = false,
   containerName = 'ovms',
   containerEnvVars = undefined,
 }: MockResourceConfigType): TemplateKind => ({
@@ -31,6 +33,7 @@ export const mockServingRuntimeTemplateK8sResource = ({
     namespace,
     labels: {
       'opendatahub.io/dashboard': 'true',
+      ...(preInstalled && { 'platform.opendatahub.io/part-of': 'modelcontroller' }),
     },
     annotations: {
       'opendatahub.io/modelServingSupport': JSON.stringify(platforms),

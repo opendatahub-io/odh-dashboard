@@ -29,7 +29,6 @@ import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { LimitNameResourceType } from '~/concepts/k8s/K8sNameDescriptionField/utils';
-import useConnectionTypesEnabled from '~/concepts/connectionTypes/useConnectionTypesEnabled';
 import { Connection } from '~/concepts/connectionTypes/types';
 import useNotebookAcceleratorProfileFormState from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileFormState';
 import { StorageData, StorageType } from '~/pages/projects/types';
@@ -37,7 +36,11 @@ import useNotebookPVCItems from '~/pages/projects/pvc/useNotebookPVCItems';
 import { getNotebookPVCMountPathMap } from '~/pages/projects/notebook/utils';
 import { getNotebookPVCNames } from '~/pages/projects/pvc/utils';
 import { SpawnerPageSectionID } from './types';
-import { ScrollableSelectorID, SpawnerPageSectionTitles } from './const';
+import {
+  K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR,
+  ScrollableSelectorID,
+  SpawnerPageSectionTitles,
+} from './const';
 import SpawnerFooter from './SpawnerFooter';
 import ImageSelectorField from './imageSelector/ImageSelectorField';
 import ContainerSizeSelector from './deploymentSize/ContainerSizeSelector';
@@ -57,7 +60,6 @@ import { defaultClusterStorage } from './storage/constants';
 import { ClusterStorageEmptyState } from './storage/ClusterStorageEmptyState';
 import AttachExistingStorageModal from './storage/AttachExistingStorageModal';
 import WorkbenchStorageModal from './storage/WorkbenchStorageModal';
-import DataConnectionField from './dataConnection/DataConnectionField';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
@@ -76,6 +78,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     initialData: existingNotebook,
     limitNameResourceType: LimitNameResourceType.WORKBENCH,
     safePrefix: 'wb-',
+    regexp: K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR,
   });
   const [isAttachStorageModalOpen, setIsAttachStorageModalOpen] = React.useState(false);
   const [isCreateStorageModalOpen, setIsCreateStorageModalOpen] = React.useState(false);
@@ -128,16 +131,10 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   );
   const existingStorageNames = storageData.map((storageDataEntry) => storageDataEntry.name);
 
-  const [dataConnectionData, setDataConnectionData] = useNotebookDataConnection(
-    dataConnections.data,
-    existingNotebook,
-  );
+  const [dataConnectionData] = useNotebookDataConnection(dataConnections.data, existingNotebook);
 
-  const isConnectionTypesEnabled = useConnectionTypesEnabled();
   const [notebookConnections, setNotebookConnections] = React.useState<Connection[]>(
-    isConnectionTypesEnabled && existingNotebook
-      ? getConnectionsFromNotebook(existingNotebook, projectConnections)
-      : [],
+    existingNotebook ? getConnectionsFromNotebook(existingNotebook, projectConnections) : [],
   );
 
   const [envVariables, setEnvVariables, envVariablesLoaded, deletedConfigMaps, deletedSecrets] =
@@ -323,25 +320,15 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                 <ClusterStorageEmptyState />
               )}
             </FormSection>
-
-            {isConnectionTypesEnabled ? (
-              <ConnectionsFormSection
-                project={currentProject}
-                projectConnections={projectConnections}
-                refreshProjectConnections={refreshProjectConnections}
-                notebook={existingNotebook}
-                notebookDisplayName={k8sNameDescriptionData.data.name}
-                selectedConnections={notebookConnections}
-                setSelectedConnections={setNotebookConnections}
-              />
-            ) : (
-              <FormSection title="Data connections">
-                <DataConnectionField
-                  dataConnectionData={dataConnectionData}
-                  setDataConnectionData={setDataConnectionData}
-                />
-              </FormSection>
-            )}
+            <ConnectionsFormSection
+              project={currentProject}
+              projectConnections={projectConnections}
+              refreshProjectConnections={refreshProjectConnections}
+              notebook={existingNotebook}
+              notebookDisplayName={k8sNameDescriptionData.data.name}
+              selectedConnections={notebookConnections}
+              setSelectedConnections={setNotebookConnections}
+            />
           </Form>
         </GenericSidebar>
       </PageSection>
@@ -349,7 +336,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
         <Stack hasGutter>
           {restartNotebooks.length !== 0 && (
             <StackItem>
-              <NotebookRestartAlert notebooks={restartNotebooks} />
+              <NotebookRestartAlert notebooks={restartNotebooks} isCurrent={!!existingNotebook} />
             </StackItem>
           )}
           <StackItem>
@@ -371,7 +358,6 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   storageData={storageData}
                   envVariables={envVariables}
                   dataConnection={dataConnectionData}
-                  isConnectionTypesEnabled={isConnectionTypesEnabled}
                   connections={notebookConnections}
                   canEnablePipelines={canEnablePipelines}
                 />

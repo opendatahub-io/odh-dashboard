@@ -32,6 +32,7 @@ import { ServingRuntimePlatform } from '~/types';
 import { kserveModal } from '~/__tests__/cypress/cypress/pages/modelServing';
 import { mockModelArtifact } from '~/__mocks__/mockModelArtifact';
 import { mockNimAccount } from '~/__mocks__/mockNimAccount';
+import { mockConnectionTypeConfigMap } from '~/__mocks__/mockConnectionType';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 
@@ -48,11 +49,19 @@ const modelVersionMocked = mockModelVersion({
   name: 'test model version',
   state: ModelState.LIVE,
 });
+const modelVersionMocked2 = mockModelVersion({
+  id: '2',
+  name: 'model version'.repeat(15),
+  state: ModelState.LIVE,
+});
 const modelArtifactMocked = mockModelArtifact();
 
 const initIntercepts = ({
   registeredModelsSize = 4,
-  modelVersions = [mockModelVersion({ id: '1', name: 'test model version' })],
+  modelVersions = [
+    mockModelVersion({ id: '1', name: 'test model version' }),
+    mockModelVersion({ id: '2', name: modelVersionMocked2.name }),
+  ],
   modelMeshInstalled = true,
   kServeInstalled = true,
 }: HandlersProps) => {
@@ -122,6 +131,18 @@ const initIntercepts = ({
     modelVersionMocked,
   );
 
+  cy.interceptOdh(
+    'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId',
+    {
+      path: {
+        serviceName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: 2,
+      },
+    },
+    modelVersionMocked2,
+  );
+
   cy.interceptK8sList(
     ProjectModel,
     mockK8sResourceList([
@@ -146,6 +167,18 @@ const initIntercepts = ({
         serviceName: 'modelregistry-sample',
         apiVersion: MODEL_REGISTRY_API_VERSION,
         modelVersionId: 1,
+      },
+    },
+    mockModelArtifactList({}),
+  );
+
+  cy.interceptOdh(
+    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts`,
+    {
+      path: {
+        serviceName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: 2,
       },
     },
     mockModelArtifactList({}),
@@ -179,6 +212,22 @@ const initIntercepts = ({
       { namespace: 'opendatahub' },
     ),
   );
+  cy.interceptOdh('GET /api/connection-types', [
+    mockConnectionTypeConfigMap({
+      displayName: 'URI - v1',
+      name: 'uri-v1',
+      category: ['existing-category'],
+      fields: [
+        {
+          type: 'uri',
+          name: 'URI field test',
+          envVar: 'URI',
+          required: true,
+          properties: {},
+        },
+      ],
+    }),
+  ]);
 
   cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
 };
@@ -241,14 +290,12 @@ describe('Deploy model version', () => {
       ]),
     );
     cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
-    const modelVersionRow = modelRegistry.getModelVersionRow('test model version');
+    const modelVersionRow = modelRegistry.getModelVersionRow(modelVersionMocked2.name);
     modelVersionRow.findKebabAction('Deploy').click();
     modelVersionDeployModal.selectProjectByName('KServe project');
 
     // Validate name input field
-    kserveModal
-      .findModelNameInput()
-      .should('contain.value', `${registeredModelMocked.name} - ${modelVersionMocked.name} - `);
+    kserveModal.findModelNameInput().should('exist');
 
     // Validate model framework section
     kserveModal.findModelFrameworkSelect().should('be.disabled');
@@ -261,19 +308,12 @@ describe('Deploy model version', () => {
       }`,
     ).should('exist');
 
-    // Validate data connection section
-    cy.findByText(
-      "We've auto-switched to create a new data connection and pre-filled the details for you.",
-    ).should('exist');
-    kserveModal.findNewDataConnectionOption().should('be.checked');
-    kserveModal.findLocationNameInput().should('have.value', modelArtifactMocked.storageKey);
-    kserveModal.findLocationBucketInput().should('have.value', 'test-bucket');
-    kserveModal.findLocationRegionInput().should('have.value', 'test-region');
-    kserveModal.findLocationEndpointInput().should('have.value', 'test-endpoint');
-    kserveModal.findLocationPathInput().should('have.value', 'demo-models/test-path');
+    // Validate connection section
+    kserveModal.findExistingConnectionOption().should('be.checked');
+    kserveModal.findLocationPathInput().should('exist');
   });
 
-  it('One match data connection on KServe modal', () => {
+  it('One match connection on KServe modal', () => {
     initIntercepts({});
     cy.interceptK8sList(
       SecretModel,
@@ -300,60 +340,14 @@ describe('Deploy model version', () => {
     modelVersionRow.findKebabAction('Deploy').click();
     modelVersionDeployModal.selectProjectByName('KServe project');
 
-    // Validate data connection section
-    kserveModal.findExistingDataConnectionOption().should('be.checked');
-    kserveModal.findExistingConnectionSelect().should('contain.text', 'Test SecretRecommended');
-    kserveModal.findLocationPathInput().should('have.value', 'demo-models/test-path');
-  });
-
-  it('More than one match data connections on KServe modal', () => {
-    initIntercepts({});
-    cy.interceptK8sList(
-      SecretModel,
-      mockK8sResourceList([
-        mockSecretK8sResource({
-          namespace: 'kserve-project',
-          s3Bucket: 'dGVzdC1idWNrZXQ=',
-          endPoint: 'dGVzdC1lbmRwb2ludA==',
-          region: 'dGVzdC1yZWdpb24=',
-        }),
-        mockSecretK8sResource({
-          name: 'test-secret-2',
-          displayName: 'Test Secret 2',
-          namespace: 'kserve-project',
-          s3Bucket: 'dGVzdC1idWNrZXQ=',
-          endPoint: 'dGVzdC1lbmRwb2ludA==',
-          region: 'dGVzdC1yZWdpb24=',
-        }),
-        mockSecretK8sResource({
-          name: 'test-secret-not-match',
-          displayName: 'Test Secret Not Match',
-          namespace: 'kserve-project',
-          s3Bucket: 'dGVzdC1idWNrZXQ=',
-          endPoint: 'dGVzdC1lbmRwb2ludC1ub3QtbWF0Y2g=', // endpoint not match
-          region: 'dGVzdC1yZWdpb24=',
-        }),
-      ]),
-    );
-
-    cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
-    const modelVersionRow = modelRegistry.getModelVersionRow('test model version');
-    modelVersionRow.findKebabAction('Deploy').click();
-    modelVersionDeployModal.selectProjectByName('KServe project');
-
-    // Validate data connection section
-    kserveModal.findExistingDataConnectionOption().should('be.checked');
-    kserveModal.findExistingConnectionSelect().should('contain.text', 'Select...');
-    kserveModal.findLocationPathInput().should('have.value', 'demo-models/test-path');
-
-    // Make sure recommended label is there
-    kserveModal.selectExistingConnectionSelectOptionByResourceName('test-secret');
-    kserveModal.findExistingConnectionSelect().should('contain.text', 'Recommended');
-
-    kserveModal.selectExistingConnectionSelectOptionByResourceName('test-secret-2');
-    kserveModal.findExistingConnectionSelect().should('contain.text', 'Recommended');
-
-    kserveModal.selectExistingConnectionSelectOptionByResourceName('test-secret-not-match');
-    kserveModal.findExistingConnectionSelect().should('not.contain.text', 'Recommended');
+    // Validate connection section
+    kserveModal.findExistingConnectionOption().should('be.checked');
+    kserveModal.findExistingConnectionSelectValueField().click();
+    kserveModal.selectExistingConnectionSelectOptionByResourceName();
+    kserveModal.findLocationPathInput().type('test-model/');
+    kserveModal.findNewConnectionOption().click();
+    kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
+    kserveModal.findConnectionNameInput().type('Test Name');
+    kserveModal.findConnectionFieldInput().type('https://test');
   });
 });

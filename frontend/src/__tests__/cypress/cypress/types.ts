@@ -94,6 +94,17 @@ export type WBControlSuiteTestData = {
   controlSuiteTestDescription: string;
 };
 
+export type WBVariablesTestData = {
+  wbVariablesTestNamespace: string;
+  wbVariablesTestDescription: string;
+  configMapYamlPath: string;
+  secretYamlPath: string;
+  MY_VAR2: string;
+  MY_VAR1: string;
+  FAKE_ID: string;
+  FAKE_VALUE: string;
+};
+
 export type CommandLineResult = {
   code: number;
   stdout: string;
@@ -137,6 +148,7 @@ export type DataScienceProjectData = {
   pvStorageName: string;
   pvStorageDescription: string;
   pvStorageNameEdited: string;
+  invalidResourceNames: string[];
 };
 
 export type NotebookImageData = {
