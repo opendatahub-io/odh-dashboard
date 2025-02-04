@@ -1,7 +1,6 @@
 import { mockGroupSettings } from '~/__mocks__/mockGroupConfig';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { userManagement } from '~/__tests__/cypress/cypress/pages/userManagement';
-import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
 
 const TEST_USER_4 = {
   AUTH_TYPE: 'ldap-provider-qe',
@@ -53,7 +52,20 @@ describe('Dashboard Navigation - Unauthorized Permission Change', () => {
       userManagement.visit(false);
 
       // Verify unauthorized access using correct test ID
-      pageNotfound.findPage().should('exist');
+      cy.step('Verify unauthorized access');
+      cy.visit('/logout');
+      cy.clearAllCookies();
+      cy.clearAllLocalStorage();
+
+      cy.step('Log in as unauthorized user');
+      cy.visitWithLogin('/', TEST_USER_4);
+
+      cy.step('Attempt to access User Management');
+      cy.visit('/groupSettings', { failOnStatusCode: false });
+
+      // Look for not found page instead of unauthorized error
+      cy.get('[data-testid="not-found-page"]').should('exist');
+      // or
       userManagement.findNavItem().should('not.exist');
 
       // Switch back to admin and remove permissions
@@ -61,25 +73,29 @@ describe('Dashboard Navigation - Unauthorized Permission Change', () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
       userManagement.visit();
 
-      administratorGroupSection.removeChipItem('rhods-users');
+      // Remove old admin group and add a new one
+      administratorGroupSection.removeChipItem('odh-admins');
+      administratorGroupSection.findMultiGroupInput().type('odh-admins-1');
+      administratorGroupSection.findMultiGroupOptions('odh-admins-1').click();
+      administratorGroupSection.findChipItem(/^odh-admins-1$/).should('exist');
+
       cy.interceptOdh('PUT /api/groups-config', mockGroupSettings()).as('removePermissions');
+      userManagement.findSubmitButton().should('be.enabled');
       userManagement.findSubmitButton().click();
       cy.wait('@removePermissions');
       userManagement.shouldHaveSuccessAlertMessage();
 
       // Verify non-admin user cannot access settings
-      cy.clearCookie('_oauth_proxy'); // Clear the admin session
-      cy.clearAllCookies(); // Clear all cookies to be sure
-      cy.clearAllLocalStorage(); // Clear local storage
-
-      // Now try to access as TEST_USER_4
-      cy.step('Log into the application as unauthorized user');
+      cy.clearCookie('_oauth_proxy');
       cy.visitWithLogin('/', TEST_USER_4);
+      userManagement.visit(false);
 
-      cy.step('Try to navigate to User Management settings');
-      userManagement.visit(false); // false parameter prevents waiting for the page to load
-
-      pageNotfound.findPage().should('exist');
+      cy.get('[data-testid="not-found-page"]').should('exist');
+      cy.get('[data-testid="not-found-page-description"]').should(
+        'contain',
+        'Another page might have what you need',
+      );
+      cy.get('[data-testid="home-page-button"]').should('exist');
       userManagement.findNavItem().should('not.exist');
     });
   });
