@@ -10,8 +10,6 @@ import {
 } from '~/concepts/__tests__/mockNotebookStates';
 
 describe('Start Notebook modal', () => {
-  const onCloseMock = jest.fn();
-
   it('should show initial notebook startup status', async () => {
     const mockData = mockInitialStates;
     render(
@@ -21,7 +19,6 @@ describe('Start Notebook modal', () => {
         isStopping={mockData.notebookState.isStopping}
         isRunning={mockData.notebookState.isRunning}
         events={mockData.events}
-        onClose={onCloseMock}
         buttons={null}
       />,
     );
@@ -63,7 +60,6 @@ describe('Start Notebook modal', () => {
         isStopping={mockData.notebookState.isStopping}
         isRunning={mockData.notebookState.isRunning}
         events={mockData.events}
-        onClose={onCloseMock}
         buttons={null}
       />,
     );
@@ -93,7 +89,6 @@ describe('Start Notebook modal', () => {
         isStopping={mockData.notebookState.isStopping}
         isRunning={mockData.notebookState.isRunning}
         events={mockData.events}
-        onClose={onCloseMock}
         buttons={null}
       />,
     );
@@ -122,7 +117,31 @@ describe('Start Notebook modal', () => {
         isStopping={mockData.notebookState.isStopping}
         isRunning={mockData.notebookState.isRunning}
         events={mockData.events}
-        onClose={onCloseMock}
+        buttons={null}
+      />,
+    );
+
+    // Validate the header contents
+    const header = screen.getByTestId('notebook-status-modal-header');
+    expect(header).toHaveTextContent('Workbench statusRunning');
+
+    // Validate the steps
+    const stepper = screen.getByTestId('notebook-startup-steps');
+    expect(stepper).toBeTruthy();
+    const steps = screen.getAllByRole('listitem');
+    expect(steps).toHaveLength(14);
+    expect(screen.getAllByTestId('step-status-Success')).toHaveLength(14);
+  });
+
+  it('should show completed notebook startup status for standalone notebooks', async () => {
+    const mockData = mockCompletedStates;
+    render(
+      <StartNotebookModal
+        notebookStatus={mockData.notebookStatus}
+        isStarting
+        isStopping={mockData.notebookState.isStopping}
+        isRunning={mockData.notebookState.isRunning}
+        events={mockData.events}
         buttons={null}
       />,
     );
@@ -147,7 +166,6 @@ describe('Start Notebook modal', () => {
         isStopping
         isRunning={false}
         events={[]}
-        onClose={onCloseMock}
         buttons={null}
       />,
     );

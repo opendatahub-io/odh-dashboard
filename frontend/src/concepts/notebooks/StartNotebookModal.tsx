@@ -65,8 +65,7 @@ type StartNotebookModalProps = {
   isStopping: boolean;
   notebookStatus: NotebookStatus | null;
   events: EventKind[];
-  onClose: (stopped: boolean) => void;
-  showClose?: boolean;
+  onClose?: () => void;
   buttons: React.ReactNode;
 };
 
@@ -84,7 +83,6 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   isRunning,
   isStopping,
   onClose,
-  showClose = true,
   buttons,
 }) => {
   const [spawnStatus, setSpawnStatus] = React.useState<SpawnStatus | null>(null);
@@ -119,7 +117,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   }, [isRunning, isStarting, notebookStatus]);
 
   const renderLastUpdate = () => {
-    if (isStopped || (spawnStatus?.status !== AlertVariant.danger && !inProgress)) {
+    if (isRunning || isStopped || (spawnStatus?.status !== AlertVariant.danger && !inProgress)) {
       return null;
     }
 
@@ -268,7 +266,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
       appendTo={document.body}
       variant={ModalVariant.small}
       isOpen
-      onClose={showClose ? () => onClose(false) : undefined}
+      onClose={onClose}
       data-testid="notebook-status-modal"
     >
       <ModalHeader
@@ -278,7 +276,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
             <FlexItem>Workbench status</FlexItem>
             <FlexItem>
               <NotebookStatusLabel
-                isStarting={isStarting}
+                isStarting={isStarting && !isRunning}
                 isStopping={isStopping}
                 isRunning={isRunning}
                 notebookStatus={notebookStatus}
