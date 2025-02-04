@@ -29,11 +29,10 @@ import { useAppDispatch } from '~/redux/hooks';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { isInternalRouteIntegrationsApp } from '~/utilities/utils';
 import { deleteIntegrationApp } from '~/services/integrationAppService';
+import { useUser } from '~/redux/selectors';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 import SupportedAppTitle from './SupportedAppTitle';
 import BrandImage from './BrandImage';
-import { useUser } from '~/redux/selectors';
-
 import './OdhCard.scss';
 
 type OdhAppCardProps = {
@@ -201,7 +200,11 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     </Button>
   );
 
-  const disabledPopover = (
+  const disabledContent = !isAdmin ? (
+    <Tooltip content="To enable this application, contact your administrator.">
+      <span>{disableButton}</span>
+    </Tooltip>
+  ) : (
     <Popover
       headerContent={
         <div className="odh-card__disabled-popover-title">
@@ -213,13 +216,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       headerIcon={<ExclamationCircleIcon />}
       alertSeverityVariant="danger"
     >
-      {!isAdmin ? (
-        <Tooltip content="To enable this application, contact your administrator.">
-          <span>{disableButton}</span>
-        </Tooltip>
-      ) : (
-        disableButton
-      )}
+      {disableButton}
     </Popover>
   );
 
@@ -236,7 +233,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
         actions={{
           actions: (
             <>
-              {disabled ? disabledPopover : null}
+              {disabled ? disabledContent : null}
               <Dropdown
                 onSelect={onOpenKebab}
                 onOpenChange={(isOpened) => setIsOpen(isOpened)}
