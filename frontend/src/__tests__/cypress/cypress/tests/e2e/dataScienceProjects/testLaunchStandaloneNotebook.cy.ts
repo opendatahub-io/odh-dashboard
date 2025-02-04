@@ -8,7 +8,7 @@ import {
   deleteNotebook,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
 
-describe('[Known Bugs: RHOAIENG-19271]Verify a Jupyter Notebook can be launched directly from the Data Science Project List View', () => {
+describe('[Known Bugs: RHOAIENG-19280]Verify a Jupyter Notebook can be launched directly from the Data Science Project List View', () => {
   let testData: NotebookImageData;
 
   before(() => {
