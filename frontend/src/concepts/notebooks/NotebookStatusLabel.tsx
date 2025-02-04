@@ -15,6 +15,7 @@ type NotebookStateStatusProps = {
   isRunning: boolean;
   notebookStatus?: NotebookStatus | null;
   isCompact?: boolean;
+  onClick?: LabelProps['onClick'];
 };
 
 const NotebookStatusLabel: React.FC<NotebookStateStatusProps> = ({
@@ -23,6 +24,7 @@ const NotebookStatusLabel: React.FC<NotebookStateStatusProps> = ({
   isRunning,
   notebookStatus,
   isCompact,
+  onClick,
 }) => {
   const isError = notebookStatus?.currentStatus === EventStatus.ERROR;
 
@@ -63,6 +65,7 @@ const NotebookStatusLabel: React.FC<NotebookStateStatusProps> = ({
       icon={statusLabelSettings.icon}
       data-testid="notebook-status-text"
       style={{ width: 'fit-content' }}
+      onClick={onClick}
     >
       {statusLabelSettings.label}
     </Label>

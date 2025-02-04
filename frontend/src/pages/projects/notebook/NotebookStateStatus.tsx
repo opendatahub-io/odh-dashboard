@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Flex, FlexItem, Tooltip, Truncate } from '@patternfly/react-core';
+import { Button, Flex, FlexItem, Truncate } from '@patternfly/react-core';
 import {
   t_global_text_color_regular as RegularColor,
   t_global_text_color_status_danger_default as DangerColor,
@@ -56,46 +56,34 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
   const isStopped = !isError && !isRunning && !isStarting && !isStopping;
   const [isStartModalOpen, setStartModalOpen] = React.useState(false);
 
-  const renderContent = () => {
-    const StatusLabel = (
-      <NotebookStatusLabel
-        isCompact
-        isStarting={isStarting}
-        isRunning={isRunning}
-        isStopping={isStopping}
-        notebookStatus={notebookStatus}
-      />
-    );
-
-    return (
-      <Button variant="link" isInline onClick={() => setStartModalOpen(true)}>
-        <Flex
-          direction={{ default: isVertical ? 'column' : 'row' }}
-          gap={{ default: isVertical ? 'gapXs' : 'gapMd' }}
-        >
-          <FlexItem>
-            {notebookStatus?.currentStatus === EventStatus.ERROR ? (
-              <Tooltip content={notebookStatus.currentEvent}>{StatusLabel}</Tooltip>
-            ) : (
-              StatusLabel
-            )}
-          </FlexItem>
-          {isStarting ? (
+  return (
+    <>
+      <Flex
+        direction={{ default: isVertical ? 'column' : 'row' }}
+        gap={{ default: isVertical ? 'gapXs' : 'gapMd' }}
+        onClick={() => setStartModalOpen(true)}
+      >
+        <FlexItem>
+          <NotebookStatusLabel
+            isCompact
+            isStarting={isStarting}
+            isRunning={isRunning}
+            isStopping={isStopping}
+            notebookStatus={notebookStatus}
+            onClick={() => setStartModalOpen(true)}
+          />
+        </FlexItem>
+        {isStarting ? (
+          <Button variant="link" isInline onClick={() => setStartModalOpen(true)}>
             <FlexItem>
               <Truncate
                 content={notebookStatus?.currentEvent || 'Waiting for server request to start...'}
                 style={getNotebookStatusStyles(notebookStatus, isStarting)}
               />
             </FlexItem>
-          ) : null}
-        </Flex>
-      </Button>
-    );
-  };
-
-  return (
-    <>
-      {renderContent()}
+          </Button>
+        ) : null}
+      </Flex>
       {isStartModalOpen ? (
         <StartNotebookModal
           notebook={notebook}
