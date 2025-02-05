@@ -6,7 +6,7 @@ import { loadPVCEditFixture } from '~/__tests__/cypress/cypress/utils/dataLoader
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 
-describe('Edit and Update a Workbench in RHOAI', () => {
+describe('[Known Bug: RHOAIENG-18414 ]Edit and Update a Workbench in RHOAI', () => {
   let editTestNamespace: string;
   let editedTestNamespace: string;
   let editedTestDescription: string;
@@ -41,7 +41,7 @@ describe('Edit and Update a Workbench in RHOAI', () => {
 
   it(
     'Editing Workbench Name and Description',
-    { tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@Dashboard'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@Dashboard', '@Bug'] },
     () => {
       const workbenchName = editTestNamespace.replace('dsp-', '');
 
