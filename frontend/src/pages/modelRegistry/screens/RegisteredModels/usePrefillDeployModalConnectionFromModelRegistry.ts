@@ -21,6 +21,7 @@ const usePrefillDeployModalConnectionFromModelRegistry = (
 ): [LabeledConnection[], boolean, Error | undefined] => {
   const [fetchedConnections, connectionsLoaded, connectionsLoadError] = useConnections(
     projectContext ? undefined : createData.project,
+    true,
   );
   const allConnections = projectContext?.connections || fetchedConnections;
   const { connections, storageFields } = useLabeledConnections(
@@ -29,7 +30,7 @@ const usePrefillDeployModalConnectionFromModelRegistry = (
   );
 
   React.useEffect(() => {
-    if (registeredModelDeployInfo) {
+    if (registeredModelDeployInfo?.modelArtifactUri) {
       setCreateData('name', registeredModelDeployInfo.modelName);
       const recommendedConnections = connections.filter(
         (dataConnection) => dataConnection.isRecommended,
@@ -65,9 +66,9 @@ const usePrefillDeployModalConnectionFromModelRegistry = (
             alert: {
               type: AlertVariant.info,
               title:
-                "We've auto-switched to create a new data connection and pre-filled the details for you.",
+                "We've auto-switched to create a new connection and pre-filled the details for you.",
               message:
-                'Model location info is available in the registry but no matching data connection in the project. So we automatically switched the option to create a new data connection and prefilled the information.',
+                'Model location info is available in the registry but no matching connection in the project. So we automatically switched the option to create a new data connection and prefilled the information.',
             },
           });
         } else if (recommendedConnections.length === 1) {
