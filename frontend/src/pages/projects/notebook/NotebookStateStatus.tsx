@@ -92,10 +92,7 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
           isStopping={isStopping}
           notebookStatus={notebookStatus}
           events={events}
-          onClose={(stopped) => {
-            if (stopped) {
-              stopNotebook();
-            }
+          onClose={() => {
             setStartModalOpen(false);
           }}
           buttons={
