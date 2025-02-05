@@ -56,6 +56,10 @@ class RegisterModelPage {
   findSubmitButton() {
     return cy.findByTestId('create-button');
   }
+
+  findModelNameError() {
+    return cy.findByTestId('model-name-error');
+  }
 }
 
 export const registerModelPage = new RegisterModelPage();

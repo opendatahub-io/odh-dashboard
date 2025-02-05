@@ -21,8 +21,14 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import { modelRegistryUrl, registeredModelUrl } from '~/pages/modelRegistry/screens/routeUtils';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { useAppSelector } from '~/redux/hooks';
+import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegisteredModels';
 import { useRegisterModelData } from './useRegisterModelData';
-import { isNameValid, isRegisterModelSubmitDisabled, registerModel } from './utils';
+import {
+  isModelNameExisting,
+  isNameValid,
+  isRegisterModelSubmitDisabled,
+  registerModel,
+} from './utils';
 import RegistrationCommonFormSections from './RegistrationCommonFormSections';
 import PrefilledModelRegistryField from './PrefilledModelRegistryField';
 import RegistrationFormFooter from './RegistrationFormFooter';
@@ -36,12 +42,18 @@ const RegisterModel: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<Error | undefined>(undefined);
   const [formData, setData] = useRegisterModelData();
-  const isModelNameValid = isNameValid(formData.modelName);
-  const isSubmitDisabled = isSubmitting || isRegisterModelSubmitDisabled(formData);
-  const { modelName, modelDescription } = formData;
   const [registeredModelName, setRegisteredModelName] = React.useState<string>('');
   const [versionName, setVersionName] = React.useState<string>('');
   const [errorName, setErrorName] = React.useState<string | undefined>(undefined);
+  const [registeredModels, registeredModelsLoaded, registeredModelsLoadError] =
+    useRegisteredModels();
+
+  const isModelNameValid = isNameValid(formData.modelName);
+  const isModelNameDuplicate = isModelNameExisting(formData.modelName, registeredModels);
+  const hasModelNameError = !isModelNameValid || isModelNameDuplicate;
+  const isSubmitDisabled =
+    isSubmitting || isRegisterModelSubmitDisabled(formData, registeredModels);
+  const { modelName, modelDescription } = formData;
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -76,7 +88,8 @@ const RegisterModel: React.FC = () => {
           <BreadcrumbItem>Register model</BreadcrumbItem>
         </Breadcrumb>
       }
-      loaded
+      loaded={registeredModelsLoaded}
+      loadError={registeredModelsLoadError}
       empty={false}
     >
       <PageSection hasBodyWrapper={false} isFilled>
@@ -98,13 +111,15 @@ const RegisterModel: React.FC = () => {
                     name="model-name"
                     value={modelName}
                     onChange={(_e, value) => setData('modelName', value)}
-                    validated={isModelNameValid ? 'default' : 'error'}
+                    validated={hasModelNameError ? 'error' : 'default'}
                   />
-                  {!isModelNameValid && (
+                  {hasModelNameError && (
                     <FormHelperText>
                       <HelperText>
-                        <HelperTextItem variant="error">
-                          Cannot exceed {MR_CHARACTER_LIMIT} characters
+                        <HelperTextItem variant="error" data-testid="model-name-error">
+                          {isModelNameDuplicate
+                            ? 'Model name already exists'
+                            : `Cannot exceed ${MR_CHARACTER_LIMIT} characters`}
                         </HelperTextItem>
                       </HelperText>
                     </FormHelperText>
