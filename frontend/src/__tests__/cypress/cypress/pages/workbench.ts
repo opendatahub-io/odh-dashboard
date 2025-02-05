@@ -449,6 +449,43 @@ class NotFoundSpawnerPage {
   }
 }
 
+class WorkbenchStatusModal extends Modal {
+  constructor() {
+    super('Workbench status');
+  }
+
+  findProgressTab() {
+    return cy.findByTestId('expand-progress');
+  }
+
+  findProgressSteps() {
+    return cy.findByTestId('notebook-startup-steps').find('[data-testid^="step-status-"]');
+  }
+
+  getStepTitle($step: JQuery<HTMLElement>) {
+    return cy.wrap($step).find('[id$="-title"]').invoke('text');
+  }
+
+  assertStepSuccess($step: JQuery<HTMLElement>) {
+    return cy
+      .wrap($step)
+      .should('have.attr', 'data-testid')
+      .and('match', /^step-status-Success/);
+  }
+
+  findEventlogTab() {
+    return cy.findByTestId('expand-logs');
+  }
+
+  findLogEntry(text: string) {
+    return cy.get('ul[data-id="event-logs"]').find('li span').contains(text);
+  }
+
+  getNotebookStatus(expectedStatus: string) {
+    return cy.get('[data-testid="notebook-status-text"]').should('contain.text', expectedStatus);
+  }
+}
+
 export const workbenchPage = new WorkbenchPage();
 export const createSpawnerPage = new CreateSpawnerPage();
 export const notebookConfirmModal = new NotebookConfirmModal();
@@ -458,3 +495,4 @@ export const storageModal = new StorageModal();
 export const notFoundSpawnerPage = new NotFoundSpawnerPage();
 export const attachConnectionModal = new AttachConnectionModal();
 export const attachExistingStorageModal = new AttachExistingStorageModal();
+export const workbenchStatusModal = new WorkbenchStatusModal();

@@ -105,6 +105,11 @@ export type WBVariablesTestData = {
   FAKE_VALUE: string;
 };
 
+export type WBStatusTestData = {
+  wbStatusTestNamespace: string;
+  wbStatusTestDescription: string;
+};
+
 export type CommandLineResult = {
   code: number;
   stdout: string;
