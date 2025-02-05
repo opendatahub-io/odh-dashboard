@@ -55,6 +55,6 @@ describe('Model Catalog core', () => {
     initIntercepts({ disableModelCatalogFeature: false });
     modelCatalog.visit();
     modelCatalog.navigate();
-    modelCatalog.findModelCatalogEmptyState().should('exist');
+    modelCatalog.findModelCatalogCards().should('exist');
   });
 });

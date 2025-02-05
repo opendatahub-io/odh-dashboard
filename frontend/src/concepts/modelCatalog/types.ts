@@ -10,6 +10,7 @@ export enum ArtifactsProtocol {
 
 export type CatalogArtifacts = {
   protocol?: ArtifactsProtocol;
+  createTimeSinceEpoch?: number;
   tags?: string[];
   uri?: string;
 };

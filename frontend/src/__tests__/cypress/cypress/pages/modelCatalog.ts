@@ -45,6 +45,10 @@ class ModelCatalog {
     return cy.findByTestId('empty-model-catalog-state');
   }
 
+  findModelCatalogCards() {
+    return cy.findByTestId('model-catalog-cards');
+  }
+
   findModelCatalogDetailsEmptyState() {
     return cy.findByTestId('empty-model-catalog-details-state');
   }
