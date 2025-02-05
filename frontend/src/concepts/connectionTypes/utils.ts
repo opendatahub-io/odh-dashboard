@@ -14,7 +14,7 @@ import {
   ConnectionTypeValueType,
 } from '~/concepts/connectionTypes/types';
 import { enumIterator } from '~/utilities/utils';
-import { AWSDataEntry } from '~/pages/projects/types';
+import { AWSDataEntry, EnvVariableDataEntry } from '~/pages/projects/types';
 import { AwsKeys } from '~/pages/projects/dataConnections/const';
 
 export const isConnectionTypeDataFieldType = (
@@ -220,6 +220,24 @@ export const getDefaultValues = (
     if (isConnectionTypeDataField(field) && field.properties.defaultValue != null) {
       defaults[field.envVar] = field.properties.defaultValue;
     }
+  }
+  return defaults;
+};
+
+export const getMRConnectionValues = (
+  connectionValues: EnvVariableDataEntry[] | string,
+): { [key: string]: ConnectionTypeValueType } => {
+  const defaults: {
+    [key: string]: ConnectionTypeValueType;
+  } = {};
+  if (typeof connectionValues !== 'string') {
+    connectionValues.map(
+      (connectionValue) => (defaults[connectionValue.key] = connectionValue.value),
+    );
+    return defaults;
+  }
+  if (typeof connectionValues === 'string') {
+    defaults.URI = connectionValues;
   }
   return defaults;
 };

@@ -64,6 +64,7 @@ const ConnectionTypeFormFields: React.FC<Props> = ({
     return unmatched;
   }, [connectionValues, fields]);
 
+  console.log('connectionValues', connectionValues);
   const renderDataFields = (dataFields: ConnectionTypeDataField[]) =>
     dataFields.map((field, i) => {
       const id = `field-${field.envVar}`;

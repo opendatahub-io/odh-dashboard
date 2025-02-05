@@ -1,6 +1,7 @@
 import { AlertVariant } from '@patternfly/react-core';
 import { Connection } from '~/concepts/connectionTypes/types';
 import { ImagePullSecret, SecretKind, ServingContainer, ServingRuntimeKind } from '~/k8sTypes';
+import { ModelLocationType } from '~/pages/modelRegistry/screens/RegisterModel/useRegisterModelData';
 import { DataConnection, EnvVariableDataEntry } from '~/pages/projects/types';
 import { ContainerResources } from '~/types';
 
@@ -92,6 +93,7 @@ export type InferenceServiceStorage = {
   type: InferenceServiceStorageType;
   path: string;
   dataConnection: string;
+  connection?: ModelLocationType | string;
   uri?: string;
   awsData: EnvVariableDataEntry[];
   alert?: {

@@ -61,6 +61,7 @@ const usePrefillDeployModalConnectionFromModelRegistry = (
           setCreateData('storage', {
             awsData: prefilledAWSData,
             dataConnection: '',
+            connection: registeredModelDeployInfo.modelLocationType,
             path: storageFields.path,
             type: InferenceServiceStorageType.NEW_STORAGE,
             alert: {
