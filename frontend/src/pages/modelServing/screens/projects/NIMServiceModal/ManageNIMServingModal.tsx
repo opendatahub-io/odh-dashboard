@@ -140,8 +140,20 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   }, [currentProjectName, setCreateDataInferenceService]);
 
   React.useEffect(() => {
-    setCreateDataInferenceService('modelSize', { name: 'Custom', resources: sizes[0].resources });
-  }, [setCreateDataInferenceService, sizes]);
+    setCreateDataInferenceService('modelSize', {
+      name: 'Custom',
+      resources: {
+        limits: {
+          cpu: '16',
+          memory: '64Gi',
+        },
+        requests: {
+          cpu: '8',
+          memory: '32Gi',
+        },
+      },
+    });
+  }, [setCreateDataInferenceService]);
 
   // Serving Runtime Validation
   const isDisabledServingRuntime =
