@@ -1531,8 +1531,6 @@ describe('Serving Runtime List', () => {
       kserveModal.findLocationPathInput().type('test-model/');
       kserveModal.findSubmitButton().should('be.enabled');
       // raw
-      // kserveModal.findDeploymentModeSelect().should('contain.text', 'Advanced (default)');
-      // kserveModal.findDeploymentModeSelect().findSelectOption('Standard').click();
 
       // test submitting form, the modal should close to indicate success.
       kserveModal.findSubmitButton().click();
