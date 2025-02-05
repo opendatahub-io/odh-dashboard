@@ -24,7 +24,6 @@ import {
 } from '~/pages/projects/types';
 import { useUser } from '~/redux/selectors';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { useAppContext } from '~/app/AppContext';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { Connection } from '~/concepts/connectionTypes/types';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
@@ -34,6 +33,8 @@ import {
 } from '~/concepts/analyticsTracking/trackingProperties';
 import { NotebookKind } from '~/k8sTypes';
 import { getNotebookPVCNames } from '~/pages/projects/pvc/utils';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { isHardwareProfileConfigValid } from '~/concepts/hardwareProfiles/validationUtils';
 import {
   createConfigMapsAndSecretsForNotebook,
   createPvcDataForNotebook,
@@ -64,12 +65,6 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const [error, setError] = React.useState<K8sStatusError>();
 
   const {
-    dashboardConfig: {
-      spec: { notebookController },
-    },
-  } = useAppContext();
-  const tolerationSettings = notebookController?.notebookTolerationSettings;
-  const {
     notebooks: { data: notebooks, refresh: refreshNotebooks },
     dataConnections: { data: existingDataConnections, refresh: refreshDataConnections },
     connections: { data: projectConnections, refresh: refreshConnections },
@@ -78,13 +73,24 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const notebookState = notebooks.find(
     (currentNotebookState) => currentNotebookState.notebook.metadata.name === notebookName,
   );
+
+  const hardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
+
   const editNotebook = notebookState?.notebook;
   const { projectName } = startNotebookData;
   const navigate = useNavigate();
   const [createInProgress, setCreateInProgress] = React.useState(false);
+  const isHardwareProfileValid = hardwareProfilesAvailable
+    ? isHardwareProfileConfigValid({
+        selectedProfile: startNotebookData.podSpecOptions.selectedHardwareProfile,
+        useExistingSettings: false, // does not matter for validation
+        resources: startNotebookData.podSpecOptions.resources,
+      })
+    : true;
   const isButtonDisabled =
     createInProgress ||
-    !checkRequiredFieldsForNotebookStart(startNotebookData, envVariables, dataConnection);
+    !checkRequiredFieldsForNotebookStart(startNotebookData, envVariables, dataConnection) ||
+    !isHardwareProfileValid;
   const { username } = useUser();
   const existingNotebookDataConnection = getNotebookDataConnection(
     editNotebook,
@@ -92,17 +98,13 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   );
 
   const afterStart = (name: string, type: 'created' | 'updated') => {
-    const { selectedAcceleratorProfile, notebookSize, image } = startNotebookData;
+    const { image, podSpecOptions } = startNotebookData;
     const tep: FormTrackingEventProperties = {
-      acceleratorCount: selectedAcceleratorProfile.useExistingSettings
-        ? undefined
-        : selectedAcceleratorProfile.count,
-      accelerator: selectedAcceleratorProfile.profile
-        ? `${selectedAcceleratorProfile.profile.spec.displayName} (${selectedAcceleratorProfile.profile.metadata.name}): ${selectedAcceleratorProfile.profile.spec.identifier}`
-        : selectedAcceleratorProfile.useExistingSettings
-        ? 'Unknown'
-        : 'None',
-      lastSelectedSize: notebookSize.name,
+      containerResources: Object.entries(podSpecOptions.resources)
+        .map(([key, value]) =>
+          Object.entries(value).map(([k, v]) => `${key}.${k}: ${v?.toString() || ''}`),
+        )
+        .join(', '),
       lastSelectedImage: image.imageVersion?.from
         ? `${image.imageVersion.from.name}`
         : `${image.imageStream?.metadata.name || 'unknown image'} - ${
@@ -204,7 +206,6 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       volumes,
       volumeMounts,
       envFrom,
-      tolerationSettings,
     };
     if (dryRun) {
       return updateNotebook(editNotebook, newStartNotebookData, username, { dryRun });
@@ -258,7 +259,6 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       volumes,
       volumeMounts,
       envFrom: [...envFrom, ...existingDataConnection],
-      tolerationSettings,
     };
     return createNotebook(newStartData, username, canEnablePipelines, { dryRun });
   };

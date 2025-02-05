@@ -73,7 +73,7 @@ export const updateHardwareProfile = (
   const oldHardwareProfile = structuredClone(existingHardwareProfile);
   // clean up the resources from the old hardware profile
   oldHardwareProfile.spec.identifiers = [];
-  oldHardwareProfile.spec.nodeSelectors = [];
+  oldHardwareProfile.spec.nodeSelector = {};
   oldHardwareProfile.spec.tolerations = [];
 
   const hardwareProfileResource = _.merge({}, oldHardwareProfile, resource);

@@ -113,7 +113,6 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
       undefined,
       undefined,
       undefined,
-      undefined,
       connection,
     )
       .then(() => onSuccess())

@@ -6,9 +6,9 @@ import {
   k8sListResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mock200Status, mock404Error } from '~/__mocks__/mockK8sStatus';
+import { mockModelServingPodSpecOptions } from '~/__mocks__/mockModelServingPodSpecOptions';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
 import { mockServingRuntimeModalData } from '~/__mocks__/mockServingRuntimeModalData';
@@ -24,9 +24,9 @@ import {
   updateServingRuntime,
 } from '~/api/k8s/servingRuntimes';
 import { ProjectModel, ServingRuntimeModel } from '~/api/models';
+import { ModelServingPodSpecOptions } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { TolerationOperator, TolerationEffect } from '~/types';
 import { ProjectKind, ServingRuntimeKind } from '~/k8sTypes';
-import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
-import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
 
@@ -53,6 +53,7 @@ describe('assembleServingRuntime', () => {
       'test',
       mockServingRuntimeTemplateK8sResource({}).objects[0] as ServingRuntimeKind,
       false,
+      mockModelServingPodSpecOptions({}),
       false, // isEditing
     );
 
@@ -70,6 +71,7 @@ describe('assembleServingRuntime', () => {
       'test',
       mockServingRuntimeK8sResource({ auth: true, route: true }),
       false,
+      mockModelServingPodSpecOptions({}),
       true, // isEditing
     );
 
@@ -87,6 +89,7 @@ describe('assembleServingRuntime', () => {
       'test',
       mockServingRuntimeTemplateK8sResource({}).objects[0] as ServingRuntimeKind,
       false,
+      mockModelServingPodSpecOptions({}),
       false, // isEditing
     );
 
@@ -104,6 +107,7 @@ describe('assembleServingRuntime', () => {
       'test',
       mockServingRuntimeK8sResource({ auth: false, route: false }),
       false,
+      mockModelServingPodSpecOptions({}),
       true, // isEditing
     );
 
@@ -113,19 +117,16 @@ describe('assembleServingRuntime', () => {
   });
 
   it('should add tolerations and gpu on modelmesh', async () => {
-    const acceleratorProfileState: AcceleratorProfileState = {
-      acceleratorProfile: mockAcceleratorProfile({}),
-      acceleratorProfiles: [mockAcceleratorProfile({})],
-      count: 1,
-      unknownProfileDetected: false,
-    };
-
-    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
-      profile: mockAcceleratorProfile({}),
-      count: 1,
-      useExistingSettings: false,
-    };
-
+    const podSpecOption: ModelServingPodSpecOptions = mockModelServingPodSpecOptions({
+      resources: {
+        requests: {
+          'nvidia.com/gpu': 1,
+        },
+        limits: {
+          'nvidia.com/gpu': 1,
+        },
+      },
+    });
     const servingRuntime = assembleServingRuntime(
       mockServingRuntimeModalData({
         externalRoute: true,
@@ -134,9 +135,8 @@ describe('assembleServingRuntime', () => {
       'test',
       mockServingRuntimeK8sResource({ auth: false, route: false }),
       true,
+      podSpecOption,
       false,
-      acceleratorProfileState,
-      selectedAcceleratorProfile,
       true,
     );
 
@@ -146,18 +146,23 @@ describe('assembleServingRuntime', () => {
   });
 
   it('should not add tolerations and gpu on kserve', async () => {
-    const acceleratorProfileState: AcceleratorProfileState = {
-      acceleratorProfile: mockAcceleratorProfile({}),
-      acceleratorProfiles: [mockAcceleratorProfile({})],
-      count: 1,
-      unknownProfileDetected: false,
-    };
-
-    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
-      profile: mockAcceleratorProfile({}),
-      count: 1,
-      useExistingSettings: false,
-    };
+    const podSpecOption: ModelServingPodSpecOptions = mockModelServingPodSpecOptions({
+      resources: {
+        requests: {
+          'nvidia.com/gpu': 1,
+        },
+        limits: {
+          'nvidia.com/gpu': 1,
+        },
+      },
+      tolerations: [
+        {
+          key: 'nvidia.com/gpu',
+          operator: TolerationOperator.EXISTS,
+          effect: TolerationEffect.NO_SCHEDULE,
+        },
+      ],
+    });
 
     const servingRuntime = assembleServingRuntime(
       mockServingRuntimeModalData({
@@ -167,9 +172,8 @@ describe('assembleServingRuntime', () => {
       'test',
       mockServingRuntimeK8sResource({ auth: false, route: false }),
       true,
+      podSpecOption,
       false,
-      acceleratorProfileState,
-      selectedAcceleratorProfile,
       false,
     );
 
@@ -191,9 +195,8 @@ describe('assembleServingRuntime', () => {
       'test',
       mockServingRuntimeK8sResource({ auth: false, route: false }),
       true,
+      mockModelServingPodSpecOptions({}),
       false,
-      undefined,
-      undefined,
       true,
     );
 
@@ -209,9 +212,8 @@ describe('assembleServingRuntime', () => {
       'test',
       mockServingRuntimeK8sResource({ auth: false, route: false }),
       true,
+      mockModelServingPodSpecOptions({}),
       false,
-      undefined,
-      undefined,
       false,
     );
 
@@ -437,9 +439,8 @@ describe('updateServingRuntime', () => {
     'test',
     mockServingRuntimeK8sResource({}),
     true,
+    mockModelServingPodSpecOptions({}),
     false,
-    undefined,
-    undefined,
     false,
   );
   it('should update serving runtimes when isCustomServingRuntimesEnabled is false', async () => {
@@ -447,6 +448,7 @@ describe('updateServingRuntime', () => {
       data: mockServingRuntimeModalData({}),
       existingData,
       isCustomServingRuntimesEnabled: false,
+      podSpecOptions: mockModelServingPodSpecOptions({}),
     };
     k8sUpdateResourceMock.mockResolvedValue(mockServingRuntimeK8sResource({}));
     const result = await updateServingRuntime(option);
@@ -465,6 +467,7 @@ describe('updateServingRuntime', () => {
       data: mockServingRuntimeModalData({}),
       existingData,
       isCustomServingRuntimesEnabled: true,
+      podSpecOptions: mockModelServingPodSpecOptions({}),
     };
     k8sUpdateResourceMock.mockResolvedValue(mockServingRuntimeK8sResource({}));
     const result = await updateServingRuntime(option);
@@ -483,6 +486,7 @@ describe('updateServingRuntime', () => {
       data: mockServingRuntimeModalData({}),
       existingData,
       isCustomServingRuntimesEnabled: true,
+      podSpecOptions: mockModelServingPodSpecOptions({}),
     };
     k8sUpdateResourceMock.mockRejectedValue(new Error('error1'));
     await expect(updateServingRuntime(option)).rejects.toThrow('error1');
@@ -508,9 +512,8 @@ describe('createServingRuntime', () => {
     'test',
     MocksevingRuntime,
     true,
+    mockModelServingPodSpecOptions({}),
     false,
-    undefined,
-    undefined,
     false,
   );
   it('should create serving runtimes when isCustomServingRuntimesEnabled is false', async () => {
@@ -519,6 +522,7 @@ describe('createServingRuntime', () => {
       namespace: 'test',
       servingRuntime: existingData,
       isCustomServingRuntimesEnabled: false,
+      podSpecOptions: mockModelServingPodSpecOptions({}),
     };
     k8sCreateResourceMock.mockResolvedValue(mockServingRuntimeK8sResource({}));
     const result = await createServingRuntime(option);
@@ -541,6 +545,7 @@ describe('createServingRuntime', () => {
       namespace: 'test',
       servingRuntime: existingData,
       isCustomServingRuntimesEnabled: true,
+      podSpecOptions: mockModelServingPodSpecOptions({}),
     };
     k8sCreateResourceMock.mockResolvedValue(mockServingRuntimeK8sResource({}));
     const result = await createServingRuntime(option);
@@ -559,6 +564,7 @@ describe('createServingRuntime', () => {
       namespace: 'test',
       servingRuntime: existingData,
       isCustomServingRuntimesEnabled: true,
+      podSpecOptions: mockModelServingPodSpecOptions({}),
     };
     k8sCreateResourceMock.mockRejectedValue(new Error('error1'));
     await expect(createServingRuntime(option)).rejects.toThrow('error1');

@@ -21,6 +21,7 @@ export type UseAcceleratorProfileFormResult = {
   refresh: () => Promise<AcceleratorProfileState | undefined>;
 };
 
+// TODO: Deprecate accelerator profile UI support in favor for hardware profiles. Remove in https://issues.redhat.com/browse/RHOAIENG-18070
 const useAcceleratorProfileFormState = (
   resources?: ContainerResources,
   tolerations?: Toleration[],

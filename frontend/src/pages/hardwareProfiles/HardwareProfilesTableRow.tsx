@@ -131,11 +131,11 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
                     <Divider />
                   </StackItem>
                 )}
-              {hardwareProfile.spec.nodeSelectors &&
-                hardwareProfile.spec.nodeSelectors.length !== 0 && (
+              {hardwareProfile.spec.nodeSelector &&
+                Object.keys(hardwareProfile.spec.nodeSelector).length !== 0 && (
                   <StackItem>
                     <p className="pf-v6-u-font-weight-bold">Node selectors</p>
-                    <NodeSelectorTable nodeSelectors={hardwareProfile.spec.nodeSelectors} />
+                    <NodeSelectorTable nodeSelector={hardwareProfile.spec.nodeSelector} />
                     <Divider />
                   </StackItem>
                 )}
