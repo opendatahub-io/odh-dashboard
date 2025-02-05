@@ -563,6 +563,10 @@ describe('Serving Runtime List', () => {
         .should('have.text', 'OVMS Model Serving')
         .should('be.enabled');
       inferenceServiceModalEdit.findExistingConnectionSelect().should('have.attr', 'disabled');
+      inferenceServiceModalEdit
+        .findExistingConnectionSelect()
+        .findByRole('combobox')
+        .should('have.value', 'Test Secret');
     });
 
     it('ModelMesh ServingRuntime list', () => {
@@ -785,6 +789,10 @@ describe('Serving Runtime List', () => {
       kserveModal.findSubmitButton().should('be.enabled');
       kserveModal.findExistingConnectionOption().click();
       kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
+      kserveModal
+        .findExistingConnectionSelect()
+        .findByRole('combobox')
+        .should('have.value', 'Test Secret');
       kserveModal.findLocationPathInput().type('test-model/');
       kserveModal.findSubmitButton().should('be.enabled');
       kserveModal.findConfigurationParamsSection().should('exist');
@@ -1292,6 +1300,10 @@ describe('Serving Runtime List', () => {
       kserveModal.findExistingConnectionOption().click();
       kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
       kserveModal.findLocationPathInput().type('test-model/');
+      kserveModal
+        .findExistingConnectionSelect()
+        .findByRole('combobox')
+        .should('have.value', 'Test Secret');
       kserveModal.findSubmitButton().should('be.enabled');
       kserveModal.findLocationPathInput().clear();
 
@@ -1384,6 +1396,10 @@ describe('Serving Runtime List', () => {
       kserveModal.findExternalRouteError().should('not.exist');
       kserveModal.findServiceAccountNameInput().should('have.value', 'default-name');
       kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
+      kserveModal
+        .findExistingConnectionSelect()
+        .findByRole('combobox')
+        .should('have.value', 'Test Secret');
       kserveModal.findLocationPathInput().type('test-model/');
       kserveModal.findSubmitButton().should('be.enabled');
       // raw
@@ -1526,8 +1542,11 @@ describe('Serving Runtime List', () => {
       kserveModal.findAuthenticationCheckbox().check();
       kserveModal.findExternalRouteError().should('not.exist');
       kserveModal.findServiceAccountNameInput().should('have.value', 'default-name');
-      kserveModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
-      kserveModal.findExistingConnectionSelect().should('be.disabled');
+      kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
+      kserveModal
+        .findExistingConnectionSelect()
+        .findByRole('combobox')
+        .should('have.value', 'Test Secret');
       kserveModal.findLocationPathInput().type('test-model/');
       kserveModal.findSubmitButton().should('be.enabled');
       // raw
@@ -2373,6 +2392,10 @@ describe('Serving Runtime List', () => {
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
       kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
+      kserveModal
+        .findExistingConnectionSelect()
+        .findByRole('combobox')
+        .should('have.value', 'Test Secret');
       kserveModal.findLocationPathInput().type('test-model/');
       kserveModal.findSubmitButton().should('be.enabled');
       kserveModal.findSubmitButton().click();
@@ -2407,6 +2430,10 @@ describe('Serving Runtime List', () => {
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
       kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
+      kserveModal
+        .findExistingConnectionSelect()
+        .findByRole('combobox')
+        .should('have.value', 'Test Secret');
       kserveModal.findLocationPathInput().type('test-model/');
       kserveModal.findSubmitButton().should('be.enabled');
       kserveModal.findSubmitButton().click();
