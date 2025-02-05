@@ -11,7 +11,7 @@ const resourceFilters = resources.getLearningCenterFilters();
 describe('Verify the filters on Resources page', () => {
   it(
     'Test whether enabled, resource type, provider and provider type filters are working',
-    { tags: ['@Sanity', '@SanitySet1', '@ODS-489', '@Dashboard', '@Tier1'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ODS-489', '@Dashboard'] },
     () => {
       // Authentication
       cy.step('Log into the application');

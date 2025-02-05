@@ -41,7 +41,7 @@ describe('Edit and Update a Workbench in RHOAI', () => {
 
   it(
     'Editing Workbench Name and Description',
-    { tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@Dashboard', '@Tier1'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@Dashboard'] },
     () => {
       const workbenchName = editTestNamespace.replace('dsp-', '');
 

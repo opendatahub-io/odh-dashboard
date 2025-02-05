@@ -372,7 +372,7 @@ export const filterModelServingConnectionTypes = (
     })
     .filter((t) => t != null);
 
-export const VALID_ENV_VARNAME_REGEX = /^[A-Za-z_][A-Za-z0-9_-]*$/;
+export const VALID_ENV_VARNAME_REGEX = /^[A-Za-z_][A-Za-z0-9_\-.]*$/;
 export const STARTS_WITH_DIGIT_REGEX = /^\d/;
 
 export const validateEnvVarName = (name: string): string | undefined => {

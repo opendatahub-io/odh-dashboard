@@ -199,8 +199,8 @@ class NotebookRow extends TableRow {
     return this.find().findByTestId('notebook-stop-action');
   }
 
-  findNotebookStatusPopover(name: string) {
-    return cy.findByTestId('notebook-status-popover').contains(name);
+  findNotebookStatusModal() {
+    return cy.findByTestId('notebook-status-modal');
   }
 
   findNotebookDescription(name: string) {
@@ -374,52 +374,6 @@ class CreateSpawnerPage {
 
   findAddVariableButton() {
     return cy.findByTestId('add-variable-button');
-  }
-
-  findDataConnectionCheckbox() {
-    return cy.findByTestId('enable-data-connection-checkbox');
-  }
-
-  findNewDataConnectionRadio() {
-    return cy.findByTestId('new-data-connection-radio');
-  }
-
-  findExistingDataConnectionRadio() {
-    return cy.findByTestId('existing-data-connection-type-radio');
-  }
-
-  findExistingDataConnectionSelect() {
-    return cy.findByTestId('existing-data-connection-select');
-  }
-
-  findExistingDataConnectionSelectValueField() {
-    return this.findExistingDataConnectionSelect().findByRole('combobox', {
-      name: 'Type to filter',
-    });
-  }
-
-  findAwsNameInput() {
-    return cy.findByTestId('field Name');
-  }
-
-  findAwsKeyInput() {
-    return cy.findByTestId('field AWS_ACCESS_KEY_ID');
-  }
-
-  findAwsSecretKeyInput() {
-    return cy.findByTestId('field AWS_SECRET_ACCESS_KEY');
-  }
-
-  findEndpointInput() {
-    return cy.findByTestId('field AWS_S3_ENDPOINT');
-  }
-
-  findRegionInput() {
-    return cy.findByTestId('field AWS_DEFAULT_REGION');
-  }
-
-  findBucketInput() {
-    return cy.findByTestId('field AWS_S3_BUCKET');
   }
 
   findContainerSizeInput(name: string) {

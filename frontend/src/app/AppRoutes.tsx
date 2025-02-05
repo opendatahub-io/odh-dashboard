@@ -74,6 +74,8 @@ const HardwareProfileRoutes = React.lazy(
 
 const StorageClassesPage = React.lazy(() => import('../pages/storageClasses/StorageClassesPage'));
 
+const ModelCatalogRoutes = React.lazy(() => import('../pages/modelCatalog/ModelCatalogRoutes'));
+
 const ModelRegistryRoutes = React.lazy(() => import('../pages/modelRegistry/ModelRegistryRoutes'));
 
 const ExternalRoutes = React.lazy(() => import('../pages/external/ExternalRoutes'));
@@ -82,7 +84,6 @@ const AppRoutes: React.FC = () => {
   const { isAdmin, isAllowed } = useUser();
   const isJupyterEnabled = useCheckJupyterEnabled();
   const isHomeAvailable = useIsAreaAvailable(SupportedArea.HOME).status;
-  const isConnectionTypesAvailable = useIsAreaAvailable(SupportedArea.CONNECTION_TYPES).status;
 
   if (!isAllowed) {
     return (
@@ -121,6 +122,8 @@ const AppRoutes: React.FC = () => {
 
         <Route path="/modelServing/*" element={<ModelServingRoutes />} />
 
+        <Route path="/modelCatalog/*" element={<ModelCatalogRoutes />} />
+
         <Route path="/modelRegistry/*" element={<ModelRegistryRoutes />} />
 
         <Route path={globPipelinesAll} element={<GlobalPipelinesRoutes />} />
@@ -140,9 +143,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/acceleratorProfiles/*" element={<AcceleratorProfileRoutes />} />
             <Route path="/hardwareProfiles/*" element={<HardwareProfileRoutes />} />
             <Route path="/servingRuntimes/*" element={<CustomServingRuntimeRoutes />} />
-            {isConnectionTypesAvailable ? (
-              <Route path="/connectionTypes/*" element={<ConnectionTypeRoutes />} />
-            ) : null}
+            <Route path="/connectionTypes/*" element={<ConnectionTypeRoutes />} />
             <Route path="/storageClasses/*" element={<StorageClassesPage />} />
             <Route path="/modelRegistrySettings/*" element={<ModelRegistrySettingsRoutes />} />
             <Route path="/groupSettings" element={<GroupSettingsPage />} />

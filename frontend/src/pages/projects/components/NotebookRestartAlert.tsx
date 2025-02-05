@@ -24,7 +24,7 @@ const NotebookRestartAlert: React.FC<NotebookRestartAlertProps> = ({ notebooks, 
       {isCurrent
         ? 'Updating this workbench will cause it to restart. '
         : 'Running workbenches will restart upon updating. '}
-      To avoid losing your work, save any recent data
+      If you have any unsaved work, save it to avoid losing your data
       {runningNotebooks.length === 0 || isCurrent
         ? '.'
         : ` in the following running workbenches: ${runningNotebooks

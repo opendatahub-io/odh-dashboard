@@ -303,7 +303,6 @@ describe('Project Details', () => {
       projectDetails.visit('test-project');
       projectDetails.shouldBeEmptyState('Workbenches', 'workbenches', true);
       projectDetails.shouldBeEmptyState('Cluster storage', 'cluster-storages', true);
-      projectDetails.shouldBeEmptyState('Data connections', 'data-connections', true);
       projectDetails.shouldBeEmptyState('Pipelines', 'pipelines-projects', true);
     });
 
@@ -458,7 +457,6 @@ describe('Project Details', () => {
       projectDetails.visit('test-project');
       projectDetails.shouldBeEmptyState('Workbenches', 'workbenches', false);
       projectDetails.shouldBeEmptyState('Cluster storage', 'cluster-storages', false);
-      projectDetails.shouldBeEmptyState('Data connections', 'data-connections', false);
       projectDetails.shouldBeEmptyState('Pipelines', 'pipelines-projects', false);
     });
 

@@ -21,24 +21,6 @@ it('Connection types should not be available for non product admins', () => {
   connectionTypesPage.findNavItem().should('not.exist');
 });
 
-it('Connection types should be hidden by feature flag', () => {
-  asProductAdminUser();
-
-  cy.visitWithLogin('/connectionTypes');
-  connectionTypesPage.shouldReturnNotFound();
-
-  cy.interceptOdh(
-    'GET /api/config',
-    mockDashboardConfig({
-      disableConnectionTypes: false,
-    }),
-  );
-
-  cy.interceptOdh('GET /api/connection-types', []);
-  connectionTypesPage.visit();
-  connectionTypesPage.shouldBeEmpty();
-});
-
 describe('Connection types', () => {
   beforeEach(() => {
     asProductAdminUser();
