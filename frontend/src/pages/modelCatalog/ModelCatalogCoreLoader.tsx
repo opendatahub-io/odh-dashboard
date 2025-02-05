@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Outlet } from 'react-router';
 import { conditionalArea, SupportedArea } from '~/concepts/areas';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
@@ -23,14 +24,17 @@ const ModelCatalogCoreLoader: React.FC = conditionalArea(
   };
 
   return (
-    <ApplicationsPage
-      title={
-        <TitleWithIcon title="Model Catalog" objectType={ProjectObjectType.registeredModels} />
-      }
-      {...renderStateProps}
-      loaded
-      provideChildrenPadding
-    />
+    <>
+      <ApplicationsPage
+        title={
+          <TitleWithIcon title="Model Catalog" objectType={ProjectObjectType.registeredModels} />
+        }
+        {...renderStateProps}
+        loaded
+        provideChildrenPadding
+      />
+      <Outlet />
+    </>
   );
 });
 
