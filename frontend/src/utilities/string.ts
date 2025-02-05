@@ -67,12 +67,13 @@ export const joinWithCommaAnd = (
     multiPrefix?: string;
     multiSuffix?: string;
   },
+  joinWord = 'and',
 ): string =>
   items.length > 1
     ? `${options?.multiPrefix ?? ''}${items
         .slice(0, items.length - 1)
         .map((i) => i)
-        .join(', ')}${items.length > 2 ? ',' : ''} and ${items[items.length - 1]}${
+        .join(', ')}${items.length > 2 ? ',' : ''} ${joinWord} ${items[items.length - 1]}${
         options?.multiSuffix ?? ''
       }`
     : `${options?.singlePrefix ?? ''}${items[0]}${options?.singleSuffix ?? ''}`;

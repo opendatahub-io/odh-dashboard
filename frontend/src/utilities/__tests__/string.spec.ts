@@ -192,4 +192,10 @@ describe('joinWithCommaAnd', () => {
       }),
     ).toBe('Prefix item1 suffix.');
   });
+
+  it('should join items with custom join word "or"', () => {
+    expect(joinWithCommaAnd(['item1', 'item2', 'item3'], undefined, 'or')).toBe(
+      'item1, item2, or item3',
+    );
+  });
 });

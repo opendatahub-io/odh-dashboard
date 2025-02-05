@@ -10,12 +10,16 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { UriField } from '~/concepts/connectionTypes/types';
 import { FieldProps } from '~/concepts/connectionTypes/fields/types';
 import DefaultValueTextRenderer from '~/concepts/connectionTypes/fields/DefaultValueTextRenderer';
+import { joinWithCommaAnd } from '~/utilities/string';
 
-const validateUrl = (url?: string) => {
+const validateUrl = (url?: string, supportedSchemes?: string[]) => {
   if (!url) {
     return true;
   }
   try {
+    if (supportedSchemes?.length && !supportedSchemes.some((scheme) => url.startsWith(scheme))) {
+      return false;
+    }
     return !!new URL(url);
   } catch (e) {
     return false;
@@ -32,7 +36,8 @@ const UriFormField: React.FC<FieldProps<UriField>> = ({
   'data-testid': dataTestId,
 }) => {
   const isPreview = mode === 'preview';
-  const [isValid, setIsValid] = React.useState(() => validateUrl(value));
+  const supportedSchemes = field.properties.schemes ?? [];
+  const [isValid, setIsValid] = React.useState(() => validateUrl(value, supportedSchemes));
 
   React.useEffect(() => {
     onValidate?.(isValid);
@@ -56,20 +61,22 @@ const UriFormField: React.FC<FieldProps<UriField>> = ({
             : (_e, v) => {
                 onChange(v);
                 if (!isValid) {
-                  setIsValid(validateUrl(value));
+                  setIsValid(validateUrl(v, supportedSchemes));
                 }
               }
         }
         validated={isValid ? ValidatedOptions.default : ValidatedOptions.error}
         onBlur={() => {
-          setIsValid(validateUrl(value));
+          setIsValid(validateUrl(value, supportedSchemes));
         }}
       />
       {!isValid && (
         <FormHelperText>
           <HelperText data-testid="uri-form-field-helper-text">
             <HelperTextItem icon={<ExclamationCircleIcon />} variant={ValidatedOptions.error}>
-              Invalid URI
+              {supportedSchemes.length
+                ? `URI must start with ${joinWithCommaAnd(supportedSchemes, undefined, 'or')}`
+                : 'Invalid URI'}
             </HelperTextItem>
           </HelperText>
         </FormHelperText>

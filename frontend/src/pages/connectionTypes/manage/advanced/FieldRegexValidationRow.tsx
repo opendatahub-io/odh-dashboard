@@ -9,29 +9,41 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, MinusCircleIcon } from '@patternfly/react-icons';
-import { EXTENSION_REGEX } from '~/concepts/connectionTypes/fields/fieldUtils';
 
-type FileUploadExtensionRowProps = {
-  extension?: string;
+type FieldRegexValidationRowProps = {
+  id: string;
+  value?: string;
   isDuplicate?: boolean;
   onChange: (newValue: string) => void;
   onRemove?: () => void;
   allowRemove: boolean;
   textRef?: React.RefObject<HTMLInputElement>;
+  ariaLabelItem: string;
+  placeholder: string;
+  regexValidation: RegExp;
+  errorMessage: {
+    invalid: string;
+    duplicate: string;
+  };
 };
 
-const FileUploadExtensionRow: React.FC<FileUploadExtensionRowProps> = ({
-  extension,
+const FieldRegexValidationRow: React.FC<FieldRegexValidationRowProps> = ({
+  id,
+  value,
   isDuplicate,
   onRemove,
   allowRemove,
   onChange,
   textRef,
+  ariaLabelItem,
+  placeholder,
+  regexValidation,
+  errorMessage,
 }) => {
   const [isValid, setIsValid] = React.useState<boolean>(!isDuplicate);
 
   React.useEffect(
-    () => setIsValid(extension ? !isDuplicate && EXTENSION_REGEX.test(extension) : true),
+    () => setIsValid(value ? !isDuplicate && regexValidation.test(value) : true),
     // only run on entry or if a duplicate, otherwise wait for blur
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [isDuplicate],
@@ -39,25 +51,25 @@ const FileUploadExtensionRow: React.FC<FileUploadExtensionRowProps> = ({
 
   return (
     <>
-      <InputGroup data-testid="file-upload-extension-row">
+      <InputGroup data-testid={`${id}-row`}>
         <InputGroupItem isFill>
           <TextInput
-            name="file-extension"
-            data-testid="file-upload-extension-row-input"
+            name={id}
+            data-testid={`${id}-row-input`}
             type="text"
-            aria-label="allowed extension"
+            aria-label={`allowed ${ariaLabelItem}`}
             ref={textRef}
-            value={extension || ''}
+            value={value || ''}
             style={{ textTransform: 'lowercase' }}
-            placeholder="Example: .json"
+            placeholder={placeholder}
             onChange={(_ev, val) => {
-              if (!isValid && !isDuplicate && EXTENSION_REGEX.test(val)) {
+              if (!isValid && !isDuplicate && regexValidation.test(val)) {
                 setIsValid(true);
               }
               onChange(val);
             }}
             onBlur={() => {
-              setIsValid(extension ? !isDuplicate && EXTENSION_REGEX.test(extension) : true);
+              setIsValid(value ? !isDuplicate && regexValidation.test(value) : true);
             }}
           />
         </InputGroupItem>
@@ -65,8 +77,8 @@ const FileUploadExtensionRow: React.FC<FileUploadExtensionRowProps> = ({
           <Button
             icon={<MinusCircleIcon />}
             variant="plain"
-            data-testid="file-upload-extension-row-remove"
-            aria-label="remove extension"
+            data-testid={`${id}-row-remove`}
+            aria-label={`remove ${ariaLabelItem}`}
             isDisabled={!allowRemove}
             onClick={onRemove}
           />
@@ -78,11 +90,9 @@ const FileUploadExtensionRow: React.FC<FileUploadExtensionRowProps> = ({
             <HelperTextItem
               icon={<ExclamationCircleIcon />}
               variant="error"
-              data-testid="file-upload-extension-row-error"
+              data-testid={`${id}-row-error`}
             >
-              {isDuplicate
-                ? 'Extension has already been specified.'
-                : `Please enter a valid extension starting with '.'`}
+              {isDuplicate ? errorMessage.duplicate : errorMessage.invalid}
             </HelperTextItem>
           </HelperText>
         </FormHelperText>
@@ -91,4 +101,4 @@ const FileUploadExtensionRow: React.FC<FileUploadExtensionRowProps> = ({
   );
 };
 
-export default FileUploadExtensionRow;
+export default FieldRegexValidationRow;

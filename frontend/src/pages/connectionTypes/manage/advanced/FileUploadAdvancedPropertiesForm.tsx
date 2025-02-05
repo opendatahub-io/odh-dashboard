@@ -8,7 +8,7 @@ import {
 } from '~/concepts/connectionTypes/fields/fieldUtils';
 import { AdvancedFieldProps } from '~/pages/connectionTypes/manage/advanced/types';
 import ExpandableFormSection from '~/components/ExpandableFormSection';
-import FileUploadExtensionRow from '~/pages/connectionTypes/manage/advanced/FileUploadExtensionRow';
+import FieldRegexValidationRow from '~/pages/connectionTypes/manage/advanced/FieldRegexValidationRow';
 
 const FileUploadAdvancedPropertiesForm: React.FC<AdvancedFieldProps<FileField>> = ({
   properties,
@@ -44,9 +44,10 @@ const FileUploadAdvancedPropertiesForm: React.FC<AdvancedFieldProps<FileField>> 
     >
       <FormGroup label="Allow specific files" fieldId="file-types" isStack>
         {displayedExtensions.map((extension, index) => (
-          <FileUploadExtensionRow
+          <FieldRegexValidationRow
+            id="file-upload-extension"
             key={index}
-            extension={extension}
+            value={extension}
             isDuplicate={isDuplicateExtension(index, displayedExtensions)}
             textRef={index === displayedExtensions.length - 1 ? lastTextRef : undefined}
             onChange={(val) => {
@@ -74,6 +75,13 @@ const FileUploadAdvancedPropertiesForm: React.FC<AdvancedFieldProps<FileField>> 
               });
             }}
             allowRemove={displayedExtensions.length > 1 || !!displayedExtensions[0]}
+            ariaLabelItem="extension"
+            placeholder="Example .json"
+            regexValidation={EXTENSION_REGEX}
+            errorMessage={{
+              invalid: `Please enter a valid extension starting with '.'`,
+              duplicate: 'Extension has already been specified.',
+            }}
           />
         ))}
         <Button

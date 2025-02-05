@@ -117,4 +117,39 @@ describe('UriFormField', () => {
       renderResult.unmount();
     });
   });
+
+  it('should validate allow only specified schemes', async () => {
+    let renderResult = render(
+      <UriFormField
+        id="test"
+        field={{
+          type: 'uri',
+          name: 'test-name',
+          envVar: 'test_envVar',
+          properties: {
+            schemes: ['oci://'],
+          },
+        }}
+        value="http://bar.com"
+      />,
+    );
+    expect(screen.queryByTestId('uri-form-field-helper-text')).toBeInTheDocument();
+    renderResult.unmount();
+
+    renderResult = render(
+      <UriFormField
+        id="test"
+        field={{
+          type: 'uri',
+          name: 'test-name',
+          envVar: 'test_envVar',
+          properties: {
+            schemes: ['oci://'],
+          },
+        }}
+        value="oci://quay.io/someregistry/containername:tag"
+      />,
+    );
+    expect(screen.queryByTestId('uri-form-field-helper-text')).not.toBeInTheDocument();
+  });
 });

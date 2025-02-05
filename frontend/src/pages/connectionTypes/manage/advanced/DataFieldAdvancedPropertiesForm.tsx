@@ -5,6 +5,7 @@ import { AdvancedFieldProps } from '~/pages/connectionTypes/manage/advanced/type
 import NumericAdvancedPropertiesForm from '~/pages/connectionTypes/manage/advanced/NumericAdvancedPropertiesForm';
 import FileUploadAdvancedPropertiesForm from '~/pages/connectionTypes/manage/advanced/FileUploadAdvancedPropertiesForm';
 import DropdownAdvancedPropertiesForm from '~/pages/connectionTypes/manage/advanced/DropdownAdvancedPropertiesForm';
+import UriAdvancedPropertiesForm from './UriAdvancedPropertiesForm';
 
 const DataFieldAdvancedPropertiesForm = <T extends ConnectionTypeDataField>(
   props: AdvancedFieldProps<T>,
@@ -23,6 +24,9 @@ const DataFieldAdvancedPropertiesForm = <T extends ConnectionTypeDataField>(
 
       case ConnectionTypeFieldType.Dropdown:
         return DropdownAdvancedPropertiesForm;
+
+      case ConnectionTypeFieldType.URI:
+        return UriAdvancedPropertiesForm;
     }
     return undefined;
   })();
