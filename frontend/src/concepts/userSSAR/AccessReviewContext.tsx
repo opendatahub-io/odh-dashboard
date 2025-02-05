@@ -1,14 +1,15 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { checkAccess } from '~/api';
 import { AccessReviewResourceAttributes } from '~/k8sTypes';
 import useNamespaces from '~/pages/notebookController/useNamespaces';
 
-type AccessReviewCacheThingType = {
+type AccessReviewCacheData = {
   isLoading: boolean;
   canAccess: boolean;
 };
 
-type AccessReviewCacheType = Record<string, AccessReviewCacheThingType | undefined>;
+type AccessReviewCacheType = Record<string, AccessReviewCacheData | undefined>;
 
 type AccessReviewContextType = {
   canIAccess: (resourceAttributes: AccessReviewResourceAttributes) => void;
@@ -22,8 +23,24 @@ export const AccessReviewContext = React.createContext<AccessReviewContextType>(
   genKey: () => '',
 });
 
+/** Top level route changes, we set the cache to empty */
+const useClearCacheOnPathChange = (setAccessReviewCache: (data: AccessReviewCacheType) => void) => {
+  const { pathname } = useLocation();
+  const ref = React.useRef<string>(pathname.split('/')[0]);
+
+  React.useEffect(() => {
+    const root = pathname.split('/')[0];
+    if (ref.current !== root) {
+      // eslint-disable-next-line no-console
+      console.log('New page, clearing access route checks');
+      setAccessReviewCache({});
+    }
+  }, [pathname, setAccessReviewCache]);
+};
+
 export const AccessReviewProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [accessReviewCache, setAccessReviewCache] = React.useState<AccessReviewCacheType>({});
+  useClearCacheOnPathChange(setAccessReviewCache);
   // If namespace is not provided in the data, assume it means the dashboard deployment namespace
   const { dashboardNamespace } = useNamespaces();
 
