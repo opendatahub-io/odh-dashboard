@@ -17,7 +17,10 @@ const validateUrl = (url?: string, supportedSchemes?: string[]) => {
     return true;
   }
   try {
-    if (supportedSchemes?.length && !supportedSchemes.some((scheme) => url.startsWith(scheme))) {
+    if (
+      supportedSchemes?.length &&
+      !supportedSchemes.some((scheme) => url.toLowerCase().startsWith(scheme.toLowerCase()))
+    ) {
       return false;
     }
     return !!new URL(url);
