@@ -42,7 +42,7 @@ describe('Verify Data Science Project - Editing Project Name and Description', (
 
   it(
     'Edit and Update a Data Science Project in RHOAI',
-    { tags: ['@Sanity', '@SanitySet1', '@ODS-2112', '@Dashboard', '@Tier1'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ODS-2112', '@Dashboard'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');

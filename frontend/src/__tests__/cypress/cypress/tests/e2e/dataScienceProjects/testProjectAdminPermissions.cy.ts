@@ -39,7 +39,7 @@ describe('Verify that users can provide admin project permissions to non-admin u
 
   it(
     'Verify that user can be added as an Admin for a Project',
-    { tags: ['@Smoke', '@SmokeSet1', '@ODS-2194', '@ODS-2201', '@Dashboard', '@Tier1'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@ODS-2194', '@ODS-2201', '@Dashboard'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -73,7 +73,7 @@ describe('Verify that users can provide admin project permissions to non-admin u
   );
   it(
     'Verify that user can access the created project with Admin rights',
-    { tags: ['@Smoke', '@SmokeSet1', '@ODS-2194', '@ODS-2201', '@Dashboard', '@Tier1'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@ODS-2194', '@ODS-2201', '@Dashboard'] },
     () => {
       // Authentication and navigation
       cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);

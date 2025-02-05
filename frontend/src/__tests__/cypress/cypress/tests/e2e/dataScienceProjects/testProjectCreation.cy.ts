@@ -44,7 +44,7 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
 
   it(
     'Create and Delete a Data Science Project in RHOAI',
-    { tags: ['@Smoke', '@SmokeSet2', '@ODS-1775', '@Dashboard', '@Tier1'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-1875', '@ODS-1783', '@ODS-1775', '@Dashboard'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -94,7 +94,7 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
   );
   it(
     'Verify users cannot create a project with Empty title',
-    { tags: ['@Sanity', '@SanitySet1', '@ODS-1783', '@Dashboard', '@Tier1'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-1875', '@ODS-1783', '@ODS-1775', '@Dashboard'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -119,7 +119,7 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
   );
   it(
     'Verify User cannot create a project using special characters or long names in the Resource name field',
-    { tags: ['@Sanity', '@SanitySet1', '@ODS-1875', '@Dashboard', '@Tier1'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-1875', '@ODS-1783', '@ODS-1775', '@Dashboard'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
