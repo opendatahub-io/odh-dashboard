@@ -50,6 +50,7 @@ const RegisterModel: React.FC = () => {
 
   const isModelNameValid = isNameValid(formData.modelName);
   const isModelNameDuplicate = isModelNameExisting(formData.modelName, registeredModels);
+  const hasModelNameError = !isModelNameValid || isModelNameDuplicate;
   const isSubmitDisabled =
     isSubmitting || isRegisterModelSubmitDisabled(formData, registeredModels);
   const { modelName, modelDescription } = formData;
@@ -110,12 +111,12 @@ const RegisterModel: React.FC = () => {
                     name="model-name"
                     value={modelName}
                     onChange={(_e, value) => setData('modelName', value)}
-                    validated={isModelNameValid ? 'default' : 'error'}
+                    validated={hasModelNameError ? 'error' : 'default'}
                   />
-                  {!isModelNameValid && (
+                  {hasModelNameError && (
                     <FormHelperText>
                       <HelperText>
-                        <HelperTextItem variant="error">
+                        <HelperTextItem variant="error" data-testid="model-name-error">
                           {isModelNameDuplicate
                             ? 'Model name already exists'
                             : `Cannot exceed ${MR_CHARACTER_LIMIT} characters`}

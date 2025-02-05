@@ -237,6 +237,7 @@ describe('Register model page', () => {
     registerModelPage.findSubmitButton().should('be.enabled');
     registerModelPage.findFormField(FormFieldSelector.MODEL_NAME).clear().type(existingModelName);
     registerModelPage.findSubmitButton().should('be.disabled');
+    registerModelPage.findModelNameError().contains('Model name already exists');
   });
 
   it('Creates expected resources on submit in object storage mode', () => {
