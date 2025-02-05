@@ -145,7 +145,7 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
         servingRuntimeTemplates={getKServeTemplates(templates, templateOrder, templateDisablement)}
         shouldFormHidden={!!error}
         registeredModelDeployInfo={registeredModelDeployInfo}
-        projectContext={{ currentProject: selectedProject, dataConnections, connections }}
+        projectContext={{ currentProject: selectedProject, connections }}
         projectSection={projectSection}
       />
     );

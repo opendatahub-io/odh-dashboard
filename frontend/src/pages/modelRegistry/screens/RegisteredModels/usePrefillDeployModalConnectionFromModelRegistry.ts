@@ -43,7 +43,7 @@ const usePrefillDeployModalConnectionFromModelRegistry = (
           path: '',
           type: InferenceServiceStorageType.EXISTING_STORAGE,
         });
-      } else {
+      } else if (storageFields.s3Fields) {
         const prefilledKeys: (typeof EMPTY_AWS_SECRET_DATA)[number]['key'][] = [
           AwsKeys.NAME,
           AwsKeys.AWS_S3_BUCKET,
@@ -52,17 +52,17 @@ const usePrefillDeployModalConnectionFromModelRegistry = (
         ];
         const prefilledAWSData = [
           { key: AwsKeys.NAME, value: registeredModelDeployInfo.modelArtifactStorageKey || '' },
-          { key: AwsKeys.AWS_S3_BUCKET, value: storageFields.bucket },
-          { key: AwsKeys.S3_ENDPOINT, value: storageFields.endpoint },
-          { key: AwsKeys.DEFAULT_REGION, value: storageFields.region || '' },
+          { key: AwsKeys.AWS_S3_BUCKET, value: storageFields.s3Fields.bucket },
+          { key: AwsKeys.S3_ENDPOINT, value: storageFields.s3Fields.endpoint },
+          { key: AwsKeys.DEFAULT_REGION, value: storageFields.s3Fields.region || '' },
           ...EMPTY_AWS_SECRET_DATA.filter((item) => !prefilledKeys.includes(item.key)),
         ];
         if (recommendedConnections.length === 0) {
           setCreateData('storage', {
             awsData: prefilledAWSData,
             dataConnection: '',
-            connection: registeredModelDeployInfo.modelLocationType,
-            path: storageFields.path,
+            connectionType: registeredModelDeployInfo.modelLocationType,
+            path: storageFields.s3Fields.path,
             type: InferenceServiceStorageType.NEW_STORAGE,
             alert: {
               type: AlertVariant.info,
@@ -76,14 +76,49 @@ const usePrefillDeployModalConnectionFromModelRegistry = (
           setCreateData('storage', {
             awsData: prefilledAWSData,
             dataConnection: recommendedConnections[0].connection.metadata.name,
-            path: storageFields.path,
+            path: storageFields.s3Fields.path,
             type: InferenceServiceStorageType.EXISTING_STORAGE,
           });
         } else {
           setCreateData('storage', {
             awsData: prefilledAWSData,
             dataConnection: '',
-            path: storageFields.path,
+            path: storageFields.s3Fields.path,
+            type: InferenceServiceStorageType.EXISTING_STORAGE,
+          });
+        }
+      } else if (storageFields.uri) {
+        if (recommendedConnections.length === 0) {
+          setCreateData('storage', {
+            awsData: EMPTY_AWS_SECRET_DATA,
+            uri: storageFields.uri,
+            dataConnection: '',
+            connectionType: registeredModelDeployInfo.modelLocationType,
+            path: '',
+            type: InferenceServiceStorageType.NEW_STORAGE,
+            alert: {
+              type: AlertVariant.info,
+              title:
+                "We've auto-switched to create a new connection and pre-filled the details for you.",
+              message:
+                'Model location info is available in the registry but no matching connection in the project. So we automatically switched the option to create a new data connection and prefilled the information.',
+            },
+          });
+        } else if (recommendedConnections.length === 1) {
+          setCreateData('storage', {
+            uri: storageFields.uri,
+            awsData: EMPTY_AWS_SECRET_DATA,
+            dataConnection: recommendedConnections[0].connection.metadata.name,
+            path: '',
+            type: InferenceServiceStorageType.EXISTING_URI,
+          });
+        } else {
+          setCreateData('storage', {
+            uri: storageFields.uri,
+            awsData: EMPTY_AWS_SECRET_DATA,
+            dataConnection: '',
+            connectionType: registeredModelDeployInfo.modelLocationType,
+            path: '',
             type: InferenceServiceStorageType.EXISTING_STORAGE,
           });
         }

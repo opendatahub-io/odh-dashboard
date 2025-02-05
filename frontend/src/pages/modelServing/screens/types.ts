@@ -93,7 +93,7 @@ export type InferenceServiceStorage = {
   type: InferenceServiceStorageType;
   path: string;
   dataConnection: string;
-  connection?: ModelLocationType | string;
+  connectionType?: ModelLocationType | string;
   uri?: string;
   awsData: EnvVariableDataEntry[];
   alert?: {

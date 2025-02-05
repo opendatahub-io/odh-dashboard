@@ -20,7 +20,9 @@ export const objectStorageFieldsToUri = (fields: ObjectStorageFields): string | 
   return `s3://${bucket}/${path}?${searchParams.toString()}`;
 };
 
-export const uriToObjectStorageFields = (uri: string): ObjectStorageFields | null => {
+export const uriToObjectStorageFields = (
+  uri: string,
+): { s3Fields: ObjectStorageFields | null; uri: string | null } | null => {
   try {
     const urlObj = new URL(uri);
     // Some environments include the first token after the protocol (our bucket) in the pathname and some have it as the hostname
@@ -32,7 +34,10 @@ export const uriToObjectStorageFields = (uri: string): ObjectStorageFields | nul
     const endpoint = searchParams.get('endpoint');
     const region = searchParams.get('defaultRegion');
     if (endpoint && bucket && path) {
-      return { endpoint, bucket, region: region || undefined, path };
+      return { s3Fields: { endpoint, bucket, region: region || undefined, path }, uri: null };
+    }
+    if (uri.startsWith('https:')) {
+      return { s3Fields: null, uri };
     }
     return null;
   } catch {

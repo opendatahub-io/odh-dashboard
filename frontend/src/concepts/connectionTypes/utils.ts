@@ -231,9 +231,12 @@ export const getMRConnectionValues = (
     [key: string]: ConnectionTypeValueType;
   } = {};
   if (typeof connectionValues !== 'string') {
-    connectionValues.map(
-      (connectionValue) => (defaults[connectionValue.key] = connectionValue.value),
-    );
+    connectionValues.map((connectionValue) => {
+      if (connectionValue.key !== 'Name') {
+        defaults[connectionValue.key] = connectionValue.value;
+      }
+      return defaults;
+    });
     return defaults;
   }
   if (typeof connectionValues === 'string') {

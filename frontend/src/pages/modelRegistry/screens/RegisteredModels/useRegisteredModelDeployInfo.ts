@@ -44,10 +44,10 @@ const useRegisteredModelDeployInfo = (
     const modelArtifact = modelArtifactList.items[0];
     const storageFields = uriToObjectStorageFields(modelArtifact.uri || '');
     let modelLocationType;
-    if (!storageFields) {
+    if (storageFields?.uri) {
       modelLocationType = 'uri-v1';
     }
-    if (storageFields) {
+    if (storageFields?.s3Fields) {
       modelLocationType = 's3';
     }
     return {

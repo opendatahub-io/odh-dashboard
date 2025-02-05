@@ -107,7 +107,6 @@ const ServeModelButton: React.FC = () => {
           <ManageKServeModal
             projectContext={{
               currentProject: project,
-              dataConnections,
               connections,
             }}
             servingRuntimeTemplates={templatesEnabled.filter((template) =>

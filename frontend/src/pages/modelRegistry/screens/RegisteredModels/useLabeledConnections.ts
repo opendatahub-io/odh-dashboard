@@ -10,7 +10,7 @@ const useLabeledConnections = (
   connections: Connection[] = [],
 ): {
   connections: LabeledConnection[];
-  storageFields: ObjectStorageFields | null;
+  storageFields: { s3Fields: ObjectStorageFields | null; uri: string | null } | null;
 } =>
   React.useMemo(() => {
     if (!modelArtifactUri) {
@@ -27,16 +27,24 @@ const useLabeledConnections = (
       };
     }
     const labeledConnections = connections.map((connection) => {
-      const awsData = convertObjectStorageSecretData(connection);
-      const bucket = awsData.find((data) => data.key === AwsKeys.AWS_S3_BUCKET)?.value;
-      const endpoint = awsData.find((data) => data.key === AwsKeys.S3_ENDPOINT)?.value;
-      const region = awsData.find((data) => data.key === AwsKeys.DEFAULT_REGION)?.value;
-      if (
-        bucket === storageFields.bucket &&
-        endpoint === storageFields.endpoint &&
-        (region === storageFields.region || !storageFields.region)
-      ) {
-        return { connection, isRecommended: true };
+      if (storageFields.s3Fields) {
+        const awsData = convertObjectStorageSecretData(connection);
+        const bucket = awsData.find((data) => data.key === AwsKeys.AWS_S3_BUCKET)?.value;
+        const endpoint = awsData.find((data) => data.key === AwsKeys.S3_ENDPOINT)?.value;
+        const region = awsData.find((data) => data.key === AwsKeys.DEFAULT_REGION)?.value;
+        if (
+          bucket === storageFields.s3Fields.bucket &&
+          endpoint === storageFields.s3Fields.endpoint &&
+          (region === storageFields.s3Fields.region || !storageFields.s3Fields.region)
+        ) {
+          return { connection, isRecommended: true };
+        }
+      }
+      if (storageFields.uri && connection.data?.URI) {
+        const findURI = storageFields.uri === window.atob(connection.data.URI);
+        if (findURI) {
+          return { connection, isRecommended: true };
+        }
       }
       return { connection };
     });

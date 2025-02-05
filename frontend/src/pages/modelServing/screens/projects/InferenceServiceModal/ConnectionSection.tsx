@@ -210,7 +210,7 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
   }>(enabledConnectionTypes.length === 1 ? getDefaultValues(enabledConnectionTypes[0]) : {});
 
   React.useEffect(() => {
-    const locationType = data.storage.connection;
+    const locationType = data.storage.connectionType;
     if (locationType) {
       if (locationType === 's3') {
         setSelectedConnectionType(
@@ -219,13 +219,13 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
             S3ConnectionTypeKeys,
           ),
         );
-        // setConnectionValues(getMRConnectionValues(data.storage.awsData));
+        setConnectionValues(getMRConnectionValues(data.storage.awsData));
       }
       if (data.storage.uri) {
         setSelectedConnectionType(
           withRequiredFields(
             connectionTypes.find(
-              (t) => getResourceNameFromK8sResource(t) === data.storage.connection,
+              (t) => getResourceNameFromK8sResource(t) === data.storage.connectionType,
             ),
             ['URI'],
           ),
@@ -233,10 +233,7 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
         setConnectionValues(getMRConnectionValues(data.storage.uri));
       }
     }
-  }, [data.storage.connection, connectionTypes, data.storage.uri, data.storage.awsData]);
-
-  console.log('data.storage.awsData', data.storage.awsData);
-  console.log('connectionValues', connectionValues);
+  }, [data.storage.connectionType, connectionTypes, data.storage.uri, data.storage.awsData]);
 
   const [validations, setValidations] = React.useState<{
     [key: string]: boolean;
