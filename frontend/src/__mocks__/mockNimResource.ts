@@ -56,6 +56,7 @@ export const mockNimInferenceService = (): InferenceServiceKind => {
       requests: { cpu: '8', memory: '32Gi' },
     },
   });
+
   delete inferenceService.metadata.labels?.name;
   delete inferenceService.metadata.creationTimestamp;
   delete inferenceService.metadata.generation;
