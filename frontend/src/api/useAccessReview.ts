@@ -10,7 +10,7 @@ export const checkAccess = ({
   verb,
   name,
   namespace,
-}: Required<AccessReviewResourceAttributes>): Promise<[allowed: boolean, loaded: boolean]> => {
+}: Required<AccessReviewResourceAttributes>): Promise<boolean> => {
   // Projects are a special case. `namespace` must be set to the project name
   // even though it's a cluster-scoped resource.
   const reviewNamespace =
@@ -35,14 +35,11 @@ export const checkAccess = ({
       resource: selfSubjectAccessReview,
     })
       // TODO: TypeScript doesn't realize this can be inferred as this type and thinks it is boolean[]
-      .then((result): [allowed: boolean, loaded: boolean] => [
-        result.status ? result.status.allowed : true,
-        true,
-      ])
+      .then((result) => result.status?.allowed ?? true)
       .catch((e) => {
         // eslint-disable-next-line no-console
         console.warn('SelfSubjectAccessReview failed', e);
-        return [true, true]; // if it critically fails, don't block SSAR checks; let it fail/succeed on future calls
+        return true; // if it critically fails, don't block SSAR checks; let it fail/succeed on future calls
       })
   );
 };
@@ -73,12 +70,10 @@ export const useAccessReview = (
 
   React.useEffect(() => {
     if (shouldRunCheck) {
-      checkAccess({ group, resource, subresource, verb, name, namespace }).then(
-        ([allowed, loaded]) => {
-          setAllowed(allowed);
-          setIsLoaded(loaded);
-        },
-      );
+      checkAccess({ group, resource, subresource, verb, name, namespace }).then((allowed) => {
+        setAllowed(allowed);
+        setIsLoaded(true);
+      });
     }
   }, [group, name, namespace, resource, subresource, verb, shouldRunCheck]);
 

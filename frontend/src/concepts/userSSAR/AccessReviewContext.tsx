@@ -84,11 +84,11 @@ export const AccessReviewProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       // Determine access
       return checkAccess({ group, resource, subresource, verb, name, namespace }).then(
-        ([allowed, loaded]) => {
+        (allowed) => {
           setAccessReviewCache((oldValue) => ({
             ...oldValue,
             [key]: {
-              isLoading: !loaded,
+              isLoading: false,
               canAccess: allowed,
             },
           }));
