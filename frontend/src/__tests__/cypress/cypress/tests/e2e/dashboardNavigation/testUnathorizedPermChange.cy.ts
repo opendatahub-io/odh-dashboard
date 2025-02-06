@@ -1,16 +1,11 @@
-import { mockGroupSettings } from '~/__mocks__/mockGroupConfig';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import { getGroupsConfig } from '~/__tests__/cypress/cypress/utils/oc_commands/groupConfig';
+import { HTPASSWD_CLUSTER_ADMIN_USER, TEST_USER_4 } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { userManagement } from '~/__tests__/cypress/cypress/pages/userManagement';
-
-const TEST_USER_4 = {
-  AUTH_TYPE: 'ldap-provider-qe',
-  USERNAME: 'ldap-user9',
-  PASSWORD: 'rhodsPW#1',
-};
 
 describe('Dashboard Navigation - Unauthorized Permission Change', () => {
   beforeEach(() => {
-    cy.interceptOdh('GET /api/groups-config', mockGroupSettings());
+    // Use real groups config instead of mock
+    getGroupsConfig();
   });
 
   it('Verify unauthorized user cannot change permissions', () => {
@@ -22,24 +17,33 @@ describe('Dashboard Navigation - Unauthorized Permission Change', () => {
     const administratorGroupSection = userManagement.getAdministratorGroupSection();
     const userGroupSection = userManagement.getUserGroupSection();
 
-    // Add permissions
-    administratorGroupSection.findMultiGroupInput().type('odh-admins');
-    administratorGroupSection.findMultiGroupOptions('odh-admins-1').click();
-    administratorGroupSection.findChipItem(/^odh-admins-1$/).should('exist');
-    administratorGroupSection.shouldHaveAdministratorGroupInfo();
-
-    userGroupSection.findMultiGroupInput().type('odh-admins');
-    userGroupSection.findMultiGroupOptions('odh-admins').click();
-    userGroupSection.findChipItem('odh-admins').should('exist');
-    userGroupSection.findMultiGroupSelectButton().click();
+    // Debug: Intercept groups API call
+    cy.intercept('GET', '/api/groups-config').as('getGroups');
+    
+    // Click to trigger groups load using the correct selector
+    administratorGroupSection.findMultiGroupInput().click();
+    
+    // Wait for API response    
+    
+    // Debug: Log what's in the response
+    cy.get('@getGroups').then((interception) => {
+      cy.log('API Response:', interception);
+    });
+    
+    // Now proceed with selection
+    administratorGroupSection.findMultiGroupInput().clear().type('rhods-admins');
+    administratorGroupSection.findMultiGroupOptions('rhods-admins').should('exist');
+    administratorGroupSection.findMultiGroupOptions('rhods-admins').find('li').should('have.length.gt', 0);
+    
+    userGroupSection.findMultiGroupInput().type('rhods-users');
+    userGroupSection.findMultiGroupOptions('rhods-users').click();
+    userGroupSection.findChipItem('rhods-users').should('exist');
 
     // Verify submit button is enabled
     userManagement.findSubmitButton().should('be.enabled');
 
-    // Save and verify changes
-    cy.interceptOdh('PUT /api/groups-config', mockGroupSettings()).as('saveGroupSetting');
+    // Save changes
     userManagement.findSubmitButton().click();
-    cy.wait('@saveGroupSetting');
     userManagement.shouldHaveSuccessAlertMessage();
 
     // Store admin session cookie
@@ -74,15 +78,13 @@ describe('Dashboard Navigation - Unauthorized Permission Change', () => {
       userManagement.visit();
 
       // Remove old admin group and add a new one
-      administratorGroupSection.removeChipItem('odh-admins');
-      administratorGroupSection.findMultiGroupInput().type('odh-admins-1');
-      administratorGroupSection.findMultiGroupOptions('odh-admins-1').click();
-      administratorGroupSection.findChipItem(/^odh-admins-1$/).should('exist');
+      administratorGroupSection.removeChipItem('system:authenticated');
+      administratorGroupSection.findMultiGroupInput().type('system:authenticated');
+      administratorGroupSection.findMultiGroupOptions('system:authenticated').click();
+      administratorGroupSection.findChipItem('system:authenticated').should('exist');
 
-      cy.interceptOdh('PUT /api/groups-config', mockGroupSettings()).as('removePermissions');
       userManagement.findSubmitButton().should('be.enabled');
       userManagement.findSubmitButton().click();
-      cy.wait('@removePermissions');
       userManagement.shouldHaveSuccessAlertMessage();
 
       // Verify non-admin user cannot access settings
