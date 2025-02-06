@@ -82,7 +82,6 @@ describe('Workbenches - status tests', () => {
 
       cy.step('Verify that each Progress Step in the list displays with a Success icon');
       workbenchStatusModal.findProgressTab().click();
-      workbenchStatusModal.findProgressTab().click();
       workbenchStatusModal.findProgressSteps().each(($step) => {
         workbenchStatusModal.assertStepSuccess($step).then(() => {
           workbenchStatusModal.getStepTitle($step).then((stepTitle) => {

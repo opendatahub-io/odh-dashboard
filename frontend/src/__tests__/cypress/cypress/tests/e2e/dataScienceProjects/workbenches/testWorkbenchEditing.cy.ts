@@ -1,12 +1,17 @@
 import type { WBEditTestData } from '~/__tests__/cypress/cypress/types';
 import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
-import { workbenchPage, createSpawnerPage } from '~/__tests__/cypress/cypress/pages/workbench';
+import {
+  workbenchPage,
+  createSpawnerPage,
+  notebookConfirmModal,
+  workbenchStatusModal,
+} from '~/__tests__/cypress/cypress/pages/workbench';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { loadPVCEditFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 
-describe('[Known Bug: RHOAIENG-18414 ]Edit and Update a Workbench in RHOAI', () => {
+describe('Edit and Update a Workbench in RHOAI', () => {
   let editTestNamespace: string;
   let editedTestNamespace: string;
   let editedTestDescription: string;
@@ -41,7 +46,7 @@ describe('[Known Bug: RHOAIENG-18414 ]Edit and Update a Workbench in RHOAI', () 
 
   it(
     'Editing Workbench Name and Description',
-    { tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@Dashboard', '@Bug'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@Dashboard'] },
     () => {
       const workbenchName = editTestNamespace.replace('dsp-', '');
 
@@ -70,12 +75,22 @@ describe('[Known Bug: RHOAIENG-18414 ]Edit and Update a Workbench in RHOAI', () 
       notebookRow.shouldHaveNotebookImageName('code-server');
       notebookRow.shouldHaveContainerSize('Small');
 
+      // Stop workbench
+      cy.step('Stop workbench and validate it has been stopped');
+      notebookRow.findNotebookStop().click();
+      notebookConfirmModal.findStopWorkbenchButton().click();
+      notebookRow.expectStatusLabelToBe('Stopped', 120000);
+      cy.reload();
+
+      notebookRow.findHaveNotebookStatusText().click();
+      workbenchStatusModal.getNotebookStatus('Stopped');
+      workbenchStatusModal.getModalCloseButton().click();
+
       // Edit the workbench and update
       cy.step('Editing the workbench - both the Name and Description');
       notebookRow.findKebab().click();
       notebookRow.findKebabAction('Edit workbench').click();
-      createSpawnerPage.getNameInput().clear();
-      createSpawnerPage.getNameInput().type(editedTestNamespace);
+      createSpawnerPage.getNameInput().clear().type(editedTestNamespace);
       createSpawnerPage.getDescriptionInput().type(editedTestDescription);
       createSpawnerPage.findSubmitButton().click();
 
@@ -83,7 +98,6 @@ describe('[Known Bug: RHOAIENG-18414 ]Edit and Update a Workbench in RHOAI', () 
       cy.step('Verifying the Edited details display after updating');
       const notebookEditedRow = workbenchPage.getNotebookRow(editedTestNamespace);
       notebookEditedRow.findNotebookDescription(editedTestDescription);
-      notebookEditedRow.expectStatusLabelToBe('Running', 120000);
       notebookEditedRow.shouldHaveNotebookImageName('code-server');
       notebookEditedRow.shouldHaveContainerSize('Small');
     },
