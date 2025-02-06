@@ -6,7 +6,10 @@ Testing SelfSubjectAccessReviews (SSAR) can be quite annoying sometimes for deve
 
 * `cluster-admin`s have all access, you can use those for ease of use of testing all happy paths
 * Make sure you consider the permission for each action and understand the corresponding k8s verb
-* Make sure you set up dev-impersonate variables in your `.env` files; specificially `DEV_IMPERSONATE_USER` and `DEV_IMPERSONATE_PASSWORD` (you can read more about impersonate in our [SDK.md](../../../../docs/SDK.md))
+    * Look at stand-alone actions (buttons, etc)
+    * Look at Kebab items (eg. duplicate => create; edit => update; etc)
+    * Look at in-table actions (eg. toggles; probably patch?)
+* Make sure you set up dev-impersonate variables in your `.env` files; specifically `DEV_IMPERSONATE_USER` and `DEV_IMPERSONATE_PASSWORD` (you can read more about impersonate in our [SDK.md](../../../../docs/SDK.md))
     * Using impersonate to get in as an admin without direct access permissions will help test the functionality
 
 ### Granting Access to Existing Admin Users
