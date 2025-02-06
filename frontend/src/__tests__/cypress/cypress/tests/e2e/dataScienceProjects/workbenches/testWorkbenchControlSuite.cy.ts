@@ -5,6 +5,7 @@ import {
   createSpawnerPage,
   notebookConfirmModal,
   notebookDeleteModal,
+  workbenchStatusModal,
 } from '~/__tests__/cypress/cypress/pages/workbench';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { loadWBControlSuiteFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
@@ -44,7 +45,7 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
 
   it(
     'Starting, Stopping, Launching and Deleting a Workbench',
-    { tags: ['@Sanity', '@SanitySet1', '@ODS-1818', '@ODS-1823', '@Dashboard'] },
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1818', '@ODS-1823', '@ODS-1975', '@Dashboard'] },
     () => {
       const workbenchName = controlSuiteTestNamespace.replace('dsp-', '');
 
@@ -94,6 +95,53 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
       notebookDeleteModal.findDeleteModal().type(workbenchName);
       notebookDeleteModal.findDeleteWorkbenchButton().click();
       workbenchPage.findEmptyState().should('exist');
+    },
+  );
+  it(
+    'Verify that a Workbench can be started and stopped using the Event log controls',
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1818', '@ODS-1823', '@ODS-1975', '@Dashboard'] },
+    () => {
+      const workbenchName = controlSuiteTestNamespace.replace('dsp-', 'secondwb-');
+
+      // Authentication and navigation
+      cy.step('Log into the application');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+      // Project navigation and select workbences
+      cy.step(`Navigate to workbenches tab of Project ${controlSuiteTestNamespace}`);
+      projectListPage.navigate();
+      projectListPage.filterProjectByName(controlSuiteTestNamespace);
+      projectListPage.findProjectLink(controlSuiteTestNamespace).click();
+      projectDetails.findSectionTab('workbenches').click();
+
+      // Create workbench
+      cy.step(`Create workbench ${controlSuiteTestNamespace}`);
+      workbenchPage.findCreateButton().click();
+      createSpawnerPage.getNameInput().fill(workbenchName);
+      createSpawnerPage.getDescriptionInput().type(controlSuiteTestDescription);
+      createSpawnerPage.findNotebookImage('code-server-notebook').click();
+      createSpawnerPage.findSubmitButton().click();
+
+      // Stop the Workbench and validate it has stopped successfully
+      cy.step('Click on Running status and stop the workbench');
+      const notebookRow = workbenchPage.getNotebookRow(workbenchName);
+      notebookRow.findHaveNotebookStatusText().click();
+      workbenchStatusModal.getNotebookStatus('Starting');
+      workbenchStatusModal.findStopWorkbenchFooterButton().click();
+      workbenchStatusModal.findStopWorkbenchButton().click();
+      workbenchStatusModal.getNotebookStatus('Stopped');
+
+      // Start the Workbench and validate it has started successfully
+      cy.step('Restart the workbench and confirm the workbench has started successfully');
+      workbenchStatusModal.findStartWorkbenchFooterButton().click();
+      workbenchStatusModal.getNotebookStatus('Running', 120000);
+      workbenchStatusModal.findProgressTab().click();
+      workbenchStatusModal.findProgressSteps().each(($step) => {
+        workbenchStatusModal.assertStepSuccess($step).then(() => {
+          workbenchStatusModal.getStepTitle($step).then((stepTitle) => {
+            cy.log(`✅ Step "${stepTitle}" is successful`);
+          });
+        });
+      });
     },
   );
 });
