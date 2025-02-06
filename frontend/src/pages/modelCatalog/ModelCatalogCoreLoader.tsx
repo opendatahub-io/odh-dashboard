@@ -27,7 +27,6 @@ const ModelCatalogCoreLoader: React.FC = conditionalArea(
       title={
         <TitleWithIcon title="Model Catalog" objectType={ProjectObjectType.registeredModels} />
       }
-      description="Choose the right model for your business."
       {...renderStateProps}
       loaded
       provideChildrenPadding
