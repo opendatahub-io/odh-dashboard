@@ -47,6 +47,14 @@ export const checkAccess = ({
   );
 };
 
+/**
+ * Used for a non-cached SSAR request.
+ *
+ * Potentially obsolete -- depending on if we need a non-cached variant.
+ *
+ * @see useAccessAllowed - Cached variant
+ * @see verbModelAccess - Helper util for resourceAttributes
+ */
 export const useAccessReview = (
   resourceAttributes: AccessReviewResourceAttributes,
   shouldRunCheck = true,
