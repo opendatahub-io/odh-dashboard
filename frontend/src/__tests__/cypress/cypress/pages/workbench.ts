@@ -510,6 +510,10 @@ class WorkbenchStatusModal extends Modal {
   findStartWorkbenchButton() {
     return cy.findByTestId('start-workbench-button');
   }
+
+  getModalCloseButton() {
+    return cy.get('[aria-label="Close"]');
+  }
 }
 
 export const workbenchPage = new WorkbenchPage();
