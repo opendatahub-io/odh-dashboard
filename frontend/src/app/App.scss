@@ -71,7 +71,19 @@ body,
   &.pf-m-scrollable .pf-v6-c-menu__content {
     overflow: auto;
   }
+
   &.pf-m-drilldown:not(.pf-m-scrollable) {
     overflow: hidden;
   }
 }
+
+.odh-about-dialog {
+  // Hover effect for table cells
+  .hover-cell:hover {
+    background-color: var(--pf-t--global--background--color--secondary--default);
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+    border-radius: 4px;
+  }
+}
+

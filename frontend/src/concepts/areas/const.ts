@@ -1,5 +1,11 @@
 import { DashboardCommonConfig } from '~/k8sTypes';
-import { StackCapability, StackComponent, SupportedArea, SupportedAreasState } from './types';
+import {
+  StackCapability,
+  StackComponent,
+  SupportedArea,
+  SupportedAreasState,
+  DataScienceStackComponent,
+} from './types';
 
 export const allFeatureFlags: string[] = Object.keys({
   enablement: false,
@@ -153,4 +159,20 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disableFineTuning'],
     reliantAreas: [SupportedArea.DS_PIPELINES],
   },
+};
+
+/** Maps each DataScienceStackComponent to its human-readable name **/
+export const DataScienceStackComponentMap: Record<string, string> = {
+  [DataScienceStackComponent.CODE_FLARE]: 'CodeFlare',
+  [DataScienceStackComponent.DASHBOARD]: 'Dashboard',
+  [DataScienceStackComponent.DS_PIPELINES]: 'Data Science Pipelines',
+  [DataScienceStackComponent.KUEUE]: 'Kueue',
+  [DataScienceStackComponent.MODEL_REGISTRY]: 'Model Registry',
+  [DataScienceStackComponent.FEAST_OPERATOR]: 'Feast Operator',
+  [DataScienceStackComponent.K_SERVE]: 'Model server and metrics',
+  [DataScienceStackComponent.MODEL_MESH_SERVING]: 'Model server and metrics',
+  [DataScienceStackComponent.RAY]: 'Ray',
+  [DataScienceStackComponent.TRAINING_OPERATOR]: 'Training Operator',
+  [DataScienceStackComponent.TRUSTY_AI]: 'TrustyAI',
+  [DataScienceStackComponent.WORKBENCHES]: 'Workbenches',
 };

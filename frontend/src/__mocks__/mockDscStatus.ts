@@ -1,5 +1,5 @@
 import { DataScienceClusterKindStatus, K8sCondition } from '~/k8sTypes';
-import { StackComponent } from '~/concepts/areas/types';
+import { DataScienceStackComponent, StackComponent } from '~/concepts/areas/types';
 
 export type MockDscStatus = {
   components?: DataScienceClusterKindStatus['components'];
@@ -10,8 +10,15 @@ export type MockDscStatus = {
 
 export const mockDscStatus = ({
   components = {
-    modelregistry: {
-      registriesNamespace: 'odh-model-registries',
+    [DataScienceStackComponent.K_SERVE]: {
+      managementState: 'Managed',
+      releases: [
+        {
+          name: 'Google ML Metadata',
+          repoUrl: 'https://github.com/google/ml-metadata',
+          version: '1.14.0',
+        },
+      ],
     },
   },
   installedComponents,
