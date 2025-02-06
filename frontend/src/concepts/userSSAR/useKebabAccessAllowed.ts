@@ -3,8 +3,9 @@ import { AccessReviewResourceAttributes } from '~/k8sTypes';
 import { useAccessAllowed } from '~/concepts/userSSAR/useAccessAllowed';
 
 const tooltipArgs = (text: string): Partial<IAction> => ({
-  isAriaDisabled: false,
+  isAriaDisabled: true,
   isDisabled: false,
+  // The tooltip is not working until https://github.com/patternfly/patternfly-react/issues/11358 is fixed
   tooltipProps: { title: text, content: text },
 });
 
@@ -32,7 +33,6 @@ export const useKebabAccessAllowed = (
       return {
         ...action,
         ...tooltipArgs('Loading...'),
-        title: `--${action.title}`,
       };
     });
   }
