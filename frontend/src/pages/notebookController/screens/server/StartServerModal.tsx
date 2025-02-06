@@ -115,7 +115,6 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ spawnInProgress, on
       isStopping={false}
       notebookStatus={notebookStatus}
       events={events}
-      onClose={onClose}
       buttons={renderButtons()}
     />
   );

@@ -14,6 +14,7 @@ import {
   Label,
   MenuToggle,
   Popover,
+  Tooltip,
 } from '@patternfly/react-core';
 import { css } from '@patternfly/react-styles';
 import { EllipsisVIcon, ExclamationCircleIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
@@ -28,10 +29,10 @@ import { useAppDispatch } from '~/redux/hooks';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { isInternalRouteIntegrationsApp } from '~/utilities/utils';
 import { deleteIntegrationApp } from '~/services/integrationAppService';
+import { useUser } from '~/redux/selectors';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 import SupportedAppTitle from './SupportedAppTitle';
 import BrandImage from './BrandImage';
-
 import './OdhCard.scss';
 
 type OdhAppCardProps = {
@@ -49,6 +50,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   const disabled = !odhApp.spec.isEnabled;
   const { dashboardConfig } = useAppContext();
   const dispatch = useAppDispatch();
+  const { isAdmin } = useUser();
 
   const onOpenKebab = () => {
     setIsOpen(!isOpen);
@@ -192,7 +194,17 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     </div>
   );
 
-  const disabledPopover = (
+  const disableButton = (
+    <Button variant="link" className="odh-card__disabled-text" isDisabled={!isAdmin}>
+      Disabled
+    </Button>
+  );
+
+  const disabledContent = !isAdmin ? (
+    <Tooltip content="To enable this application, contact your administrator.">
+      <span>{disableButton}</span>
+    </Tooltip>
+  ) : (
     <Popover
       headerContent={
         <div className="odh-card__disabled-popover-title">
@@ -204,9 +216,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       headerIcon={<ExclamationCircleIcon />}
       alertSeverityVariant="danger"
     >
-      <Button variant="link" className="odh-card__disabled-text">
-        Disabled
-      </Button>
+      {disableButton}
     </Popover>
   );
 
@@ -223,7 +233,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
         actions={{
           actions: (
             <>
-              {disabled ? disabledPopover : null}
+              {disabled ? disabledContent : null}
               <Dropdown
                 onSelect={onOpenKebab}
                 onOpenChange={(isOpened) => setIsOpen(isOpened)}
