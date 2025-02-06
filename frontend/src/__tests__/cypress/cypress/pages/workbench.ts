@@ -484,6 +484,10 @@ class WorkbenchStatusModal extends Modal {
   getNotebookStatus(expectedStatus: string) {
     return cy.get('[data-testid="notebook-status-text"]').should('contain.text', expectedStatus);
   }
+
+  getModalCloseButton() {
+    return cy.get('[aria-label="Close"]');
+  }
 }
 
 export const workbenchPage = new WorkbenchPage();
