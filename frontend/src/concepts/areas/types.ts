@@ -39,6 +39,7 @@ export enum SupportedArea {
   ACCELERATOR_PROFILES = 'accelerator-profiles',
   HARDWARE_PROFILES = 'hardware-profiles',
   STORAGE_CLASSES = 'storage-classes',
+  ADMIN_CONNECTION_TYPES = 'admin-connection-types',
 
   /* DS Projects specific areas */
   DS_PROJECTS_PERMISSIONS = 'ds-projects-permission',

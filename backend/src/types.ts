@@ -43,6 +43,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableModelRegistrySecureDB: boolean;
       disableServingRuntimeParams: boolean;
       disableConnectionTypes: boolean;
+      disableAdminConnectionTypes: boolean;
       disableStorageClasses: boolean;
       disableNIMModelServing: boolean;
     };

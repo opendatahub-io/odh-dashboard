@@ -81,6 +81,8 @@ spec:
                       type: boolean
                     disableNIMModelServing:
                       type: boolean
+                    disableAdminConnectionTypes:
+                      type: boolean
                 groupsConfig:
                   type: object
                   required:

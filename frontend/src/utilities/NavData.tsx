@@ -152,13 +152,14 @@ const useCustomRuntimesNav = (): NavDataHref[] =>
     },
   ]);
 
-const useConnectionTypesNav = (): NavDataHref[] => [
-  {
-    id: 'settings-connection-types',
-    label: 'Connection types',
-    href: '/connectionTypes',
-  },
-];
+  const useConnectionTypesNav = (): NavDataHref[] =>
+  useAreaCheck<NavDataHref>(SupportedArea.ADMIN_CONNECTION_TYPES, [
+    {
+      id: 'settings-connection-types',
+      label: 'Connection types',
+      href: '/connectionTypes',
+    },
+  ]);
 
 const useStorageClassesNav = (): NavDataHref[] =>
   useAreaCheck<NavDataHref>(SupportedArea.STORAGE_CLASSES, [

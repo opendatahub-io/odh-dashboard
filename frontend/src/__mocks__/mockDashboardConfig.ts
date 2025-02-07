@@ -29,6 +29,7 @@ export type MockDashboardConfigType = {
   disableModelRegistrySecureDB?: boolean;
   disableServingRuntimeParams?: boolean;
   disableConnectionTypes?: boolean;
+  disableAdminConnectionTypes?: boolean;
   disableStorageClasses?: boolean;
   disableNotebookController?: boolean;
   notebookSizes?: NotebookSize[];
@@ -174,6 +175,7 @@ export const mockDashboardConfig = ({
       disableServingRuntimeParams,
       disableStorageClasses,
       disableNIMModelServing,
+      disableAdminConnectionTypes: true,
     },
     notebookController: {
       enabled: !disableNotebookController,

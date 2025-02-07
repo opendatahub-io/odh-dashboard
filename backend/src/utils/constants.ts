@@ -69,6 +69,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableModelRegistrySecureDB: false,
       disableServingRuntimeParams: false,
       disableConnectionTypes: false,
+      disableAdminConnectionTypes: true,
       disableStorageClasses: false,
       disableNIMModelServing: true,
     },
