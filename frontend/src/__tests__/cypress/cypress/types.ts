@@ -103,6 +103,10 @@ export type WBVariablesTestData = {
   MY_VAR1: string;
   FAKE_ID: string;
   FAKE_VALUE: string;
+  FAKE_SECRET_KEY: string;
+  FAKE_SECRET_VALUE: string;
+  FAKE_CM_KEY: string;
+  FAKE_CM_VALUE: string;
 };
 
 export type WBStatusTestData = {

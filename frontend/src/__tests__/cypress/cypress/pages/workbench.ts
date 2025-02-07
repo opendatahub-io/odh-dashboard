@@ -78,6 +78,14 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
     this.findUploadPipelineInput().selectFile([filePath], { force: true });
   }
 
+  findKeyInput() {
+    return this.find().findByTestId('key-input');
+  }
+
+  findKeyValue() {
+    return this.find().findByTestId('value-input');
+  }
+
   selectEnvDataType(name: string) {
     this.find()
       .findByTestId('env-data-type-field')
@@ -393,6 +401,7 @@ class CreateSpawnerPage {
     this.findConnectionsTable().find(`[data-label=Type]`).contains(type);
   }
 }
+
 
 class EditSpawnerPage extends CreateSpawnerPage {
   visit(notebookName: string) {
