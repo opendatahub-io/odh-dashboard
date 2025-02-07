@@ -139,6 +139,22 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     }
   }, [currentProjectName, setCreateDataInferenceService]);
 
+  React.useEffect(() => {
+    setCreateDataInferenceService('modelSize', {
+      name: 'Custom',
+      resources: {
+        limits: {
+          cpu: '16',
+          memory: '64Gi',
+        },
+        requests: {
+          cpu: '8',
+          memory: '32Gi',
+        },
+      },
+    });
+  }, [setCreateDataInferenceService]);
+
   // Serving Runtime Validation
   const isDisabledServingRuntime =
     namespace === '' || actionInProgress || createDataServingRuntime.imageName === undefined;
@@ -381,7 +397,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
             acceleratorProfileState={initialAcceleratorProfileState}
             selectedAcceleratorProfile={selectedAcceleratorProfile}
             setSelectedAcceleratorProfile={setSelectedAcceleratorProfile}
-            infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
+            infoContent="Select CPU and memory resources large enough to support the NIM being deployed."
           />
           {isAuthorinoEnabled && (
             <AuthServingRuntimeSection
