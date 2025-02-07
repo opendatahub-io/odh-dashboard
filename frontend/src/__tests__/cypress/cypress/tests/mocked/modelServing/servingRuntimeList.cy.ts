@@ -123,11 +123,7 @@ const initIntercepts = ({
   rejectServingRuntime = false,
   rejectConnection = false,
   requiredCapabilities = [],
-  DscComponents = {
-    modelregistry: {
-      registriesNamespace: 'odh-model-registries',
-    },
-  },
+  DscComponents,
 }: HandlersProps) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
