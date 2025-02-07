@@ -481,8 +481,34 @@ class WorkbenchStatusModal extends Modal {
     return cy.get('ul[data-id="event-logs"]').find('li span').contains(text);
   }
 
-  getNotebookStatus(expectedStatus: string) {
-    return cy.get('[data-testid="notebook-status-text"]').should('contain.text', expectedStatus);
+  getNotebookStatus(expectedStatus: string, timeout?: number) {
+    return cy
+      .get(
+        '[data-testid="notebook-status-text"]',
+        // Only pass timeout if it's explicitly provided
+        timeout !== undefined ? { timeout } : {},
+      )
+      .should('contain.text', expectedStatus);
+  }
+
+  findStopWorkbenchFooterButton() {
+    return cy.get('[data-id="close-spawn"]');
+  }
+
+  findEditWorkbenchFooterButton() {
+    return cy.get('[data-id="edit-workbench"]');
+  }
+
+  findStartWorkbenchFooterButton() {
+    return cy.get('[data-id="start-spawn"]');
+  }
+
+  findStopWorkbenchButton() {
+    return cy.findByTestId('stop-workbench-button');
+  }
+
+  findStartWorkbenchButton() {
+    return cy.findByTestId('start-workbench-button');
   }
 
   getModalCloseButton() {
