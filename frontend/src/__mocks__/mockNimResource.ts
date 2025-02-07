@@ -52,10 +52,11 @@ export const mockNimInferenceService = (): InferenceServiceKind => {
     displayName: 'Test Name',
     kserveInternalLabel: true,
     resources: {
-      limits: { cpu: '2', memory: '8Gi' },
-      requests: { cpu: '1', memory: '4Gi' },
+      limits: { cpu: '16', memory: '64Gi' },
+      requests: { cpu: '8', memory: '32Gi' },
     },
   });
+
   delete inferenceService.metadata.labels?.name;
   delete inferenceService.metadata.creationTimestamp;
   delete inferenceService.metadata.generation;
