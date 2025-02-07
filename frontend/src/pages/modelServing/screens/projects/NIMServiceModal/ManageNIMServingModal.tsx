@@ -1,12 +1,5 @@
 import * as React from 'react';
-import {
-  Alert,
-  AlertActionCloseButton,
-  Form,
-  getUniqueId,
-  Stack,
-  StackItem,
-} from '@patternfly/react-core';
+import { Form, getUniqueId, Stack, StackItem } from '@patternfly/react-core';
 import { Modal } from '@patternfly/react-core/deprecated';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
@@ -54,6 +47,8 @@ import { useNIMPVC } from '~/pages/modelServing/screens/projects/NIMServiceModal
 import AuthServingRuntimeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
 import { useNIMTemplateName } from '~/pages/modelServing/screens/projects/useNIMTemplateName';
 import { KServeDeploymentModeDropdown } from '~/pages/modelServing/screens/projects/kServeModal/KServeDeploymentModeDropdown';
+import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
+import { NoAuthAlert } from './NoAuthAlert';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
 const NIM_NGC_SECRET_NAME = 'ngc-secret';
@@ -87,6 +82,8 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   projectContext,
   editInfo,
 }) => {
+  const { isRawAvailable, isServerlessAvailable } = useKServeDeploymentMode();
+
   const [createDataServingRuntime, setCreateDataServingRuntime, resetDataServingRuntime, sizes] =
     useCreateServingRuntimeObject(editInfo?.servingRuntimeEditInfo);
   const [createDataInferenceService, setCreateDataInferenceService, resetDataInferenceService] =
@@ -96,11 +93,11 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
       editInfo?.secrets,
     );
 
-  const isAuthorinoEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status;
+  const isAuthAvailable =
+    useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status ||
+    createDataInferenceService.isKServeRawDeployment;
   const currentProjectName = projectContext?.currentProject.metadata.name;
   const namespace = currentProjectName || createDataInferenceService.project;
-
-  const isKServeRawEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_RAW).status;
 
   const [translatedName] = translateDisplayNameForK8sAndReport(createDataInferenceService.name, {
     maxLength: 253,
@@ -329,26 +326,8 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
         }}
       >
         <Stack hasGutter>
-          {!isAuthorinoEnabled && alertVisible && (
-            <StackItem>
-              <Alert
-                id="no-authorino-installed-alert"
-                data-testid="no-authorino-installed-alert"
-                isExpandable
-                isInline
-                variant="warning"
-                title="Token authentication service not installed"
-                actionClose={<AlertActionCloseButton onClose={() => setAlertVisible(false)} />}
-              >
-                <p>
-                  The NVIDIA NIM model serving platform used by this project allows deployed models
-                  to be accessible via external routes. It is recommended that token authentication
-                  be enabled to protect these routes. The serving platform requires the Authorino
-                  operator be installed on the cluster for token authentication. Contact a cluster
-                  administrator to install the operator.
-                </p>
-              </Alert>
-            </StackItem>
+          {!isAuthAvailable && alertVisible && !isRawAvailable && (
+            <NoAuthAlert onClose={() => setAlertVisible(false)} />
           )}
           <StackItem>
             <ProjectSection projectName={getProjectName()} />
@@ -372,7 +351,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
           <StackItem>
             <NIMPVCSizeSection pvcSize={pvcSize} setPvcSize={setPvcSize} />
           </StackItem>
-          {isKServeRawEnabled && (
+          {isRawAvailable && isServerlessAvailable && (
             <StackItem>
               <KServeDeploymentModeDropdown
                 isRaw={!!createDataInferenceService.isKServeRawDeployment}
@@ -380,6 +359,9 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
                 isDisabled={!!editInfo}
               />
             </StackItem>
+          )}
+          {!isAuthAvailable && alertVisible && isRawAvailable && (
+            <NoAuthAlert onClose={() => setAlertVisible(false)} />
           )}
           <StackItem>
             <KServeAutoscalerReplicaSection
@@ -399,7 +381,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
             setSelectedAcceleratorProfile={setSelectedAcceleratorProfile}
             infoContent="Select CPU and memory resources large enough to support the NIM being deployed."
           />
-          {isAuthorinoEnabled && (
+          {isAuthAvailable && (
             <AuthServingRuntimeSection
               data={createDataInferenceService}
               setData={setCreateDataInferenceService}
