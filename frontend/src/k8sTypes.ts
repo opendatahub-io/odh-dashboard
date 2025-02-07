@@ -1205,6 +1205,7 @@ export type DashboardCommonConfig = {
   disableServingRuntimeParams: boolean;
   disableStorageClasses: boolean;
   disableNIMModelServing: boolean;
+  disableAdminConnectionTypes: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {

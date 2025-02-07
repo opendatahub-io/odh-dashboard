@@ -47,6 +47,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableConnectionTypes: boolean;
       disableStorageClasses: boolean;
       disableNIMModelServing: boolean;
+      disableAdminConnectionTypes: boolean;
     };
     /** @deprecated -- replacing this with Platform Auth resource -- remove when this is no longer in the CRD */
     groupsConfig?: {
