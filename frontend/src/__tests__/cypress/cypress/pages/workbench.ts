@@ -402,7 +402,6 @@ class CreateSpawnerPage {
   }
 }
 
-
 class EditSpawnerPage extends CreateSpawnerPage {
   visit(notebookName: string) {
     cy.visitWithLogin(`/projects/test-project/spawner/${notebookName}`);
