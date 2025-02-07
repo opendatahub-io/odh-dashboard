@@ -70,7 +70,7 @@ export const mockDashboardConfig = ({
   disableServingRuntimeParams = false,
   disableStorageClasses = false,
   disableNotebookController = false,
-  disableNIMModelServing = true,
+  disableNIMModelServing = false,
   disableFineTuning = true,
   notebookSizes = [
     {

@@ -41,7 +41,7 @@ The following are a list of features that are supported, along with there defaul
 | disableModelRegistrySecureDB | false   | Disables Model Registry Secure DB from the dashboard.                                                |
 | disableServingRuntimeParams  | false   | Disables Serving Runtime params from the dashboard.                                                  |
 | disableStorageClasses        | false   | Disables storage classes settings nav item from the dashboard.                                       |
-| disableNIMModelServing       | true    | Disables components of NIM Model UI from the dashboard.                                              |
+| disableNIMModelServing       | false   | Disables components of NIM Model UI from the dashboard.                                              |
 | disableFineTuning            | true    | Disables Fine tuning from the dashboard.                                                             |
 
 ## Defaults
@@ -73,7 +73,7 @@ spec:
     disablePerformanceMetrics: false
     disableDistributedWorkloads: false
     disableStorageClasses: false
-    disableNIMModelServing: true
+    disableNIMModelServing: false
     disableFineTuning: true
 ```
 
@@ -169,7 +169,7 @@ spec:
     disableKServeMetrics: true
     disableTrustyBiasMetrics: false
     disablePerformanceMetrics: false
-    disableNIMModelServing: true
+    disableNIMModelServing: false
   notebookController:
     enabled: true
     gpuSetting: autodetect
