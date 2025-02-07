@@ -1,9 +1,10 @@
 import React from 'react';
-import { ModelCatalogSource } from '~/concepts/modelCatalog/types';
-import { modelCatalogSourceMock } from '~/concepts/modelCatalog/mockData/modelCatalogSourceMock';
+import { FetchState } from '~/utilities/useFetchState';
+import { ModelCatalogSource } from '../types';
+import useModelCatalogSources from '../useModelCatalogSources';
 
 export type ModelCatalogContextType = {
-  modelCatalogSources: ModelCatalogSource[];
+  modelCatalogSources: FetchState<ModelCatalogSource[]>;
 };
 
 type ModelCatalogContextProviderProps = {
@@ -11,19 +12,21 @@ type ModelCatalogContextProviderProps = {
 };
 
 export const ModelCatalogContext = React.createContext<ModelCatalogContextType>({
-  modelCatalogSources: [],
+  modelCatalogSources: [[], false, undefined, () => Promise.resolve(undefined)],
 });
 
 export const ModelCatalogContextProvider: React.FC<ModelCatalogContextProviderProps> = ({
   children,
 }) => {
-  const modelCatalogSourcesMock = React.useMemo(() => [modelCatalogSourceMock({})], []);
+  const modelCatalogSources = useModelCatalogSources();
+
   const contextValue = React.useMemo(
     () => ({
-      modelCatalogSources: modelCatalogSourcesMock,
+      modelCatalogSources,
     }),
-    [modelCatalogSourcesMock],
+    [modelCatalogSources],
   );
+
   return (
     <ModelCatalogContext.Provider value={contextValue}>{children}</ModelCatalogContext.Provider>
   );
