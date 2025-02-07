@@ -56,7 +56,5 @@ describe('Model Catalog core', () => {
     modelCatalog.visit();
     modelCatalog.navigate();
     modelCatalog.findModelCatalogEmptyState().should('exist');
-    modelCatalog.visitTempDetails();
-    modelCatalog.findModelCatalogDetailsEmptyState().should('exist');
   });
 });

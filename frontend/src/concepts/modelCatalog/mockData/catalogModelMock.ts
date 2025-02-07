@@ -356,7 +356,7 @@ export const catalogModelMock = (partial?: Partial<CatalogModel>): CatalogModel 
   baseModel: [{ repository: 'rhelai1', name: 'granite-8b-code-base' }],
   labels: ['language', 'granite-3.1'],
   tasks: ['text-generation'],
-  create: 1733514949000,
+  createTimeSinceEpoch: 1733514949000,
   lastUpdateTimeSinceEpoch: 1734637721000,
   artifacts: [
     {
