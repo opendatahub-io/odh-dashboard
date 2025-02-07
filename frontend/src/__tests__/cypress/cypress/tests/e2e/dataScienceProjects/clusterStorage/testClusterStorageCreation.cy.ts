@@ -97,7 +97,7 @@ describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
       // Note reload is required to ensure that the new edited name is propagated
       cy.reload();
       clusterStorage.findKebabToggle().click();
-      clusterStorage.getClusterStorageRow(pvStorageName).findKebabAction('Delete storage').click();
+      clusterStorage.getClusterStorageRow(pvStorageNameEdited).findKebabAction('Delete storage').click();
       deleteModal.shouldBeOpen();
       deleteModal.findInput().type(pvStorageNameEdited);
       deleteModal.findSubmitButton().should('be.enabled').click();
