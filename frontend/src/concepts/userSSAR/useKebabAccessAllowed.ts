@@ -19,13 +19,13 @@ export const useKebabAccessAllowed = (
   actions: IAction[],
   resourceAttributes: AccessReviewResourceAttributes,
 ): IAction[] => {
-  const [canAccess, loaded] = useAccessAllowed(resourceAttributes);
+  const [isAllowed, isLoaded] = useAccessAllowed(resourceAttributes);
 
   if (actions.length === 0) {
     return [];
   }
 
-  if (!loaded) {
+  if (!isLoaded) {
     return actions.map((action) => {
       if (action.isSeparator) {
         return action;
@@ -37,7 +37,7 @@ export const useKebabAccessAllowed = (
     });
   }
 
-  if (canAccess) {
+  if (isAllowed) {
     return actions;
   }
 

@@ -29,19 +29,16 @@ export const checkAccess = ({
       },
     },
   };
-  return (
-    k8sCreateResource<SelfSubjectAccessReviewKind>({
-      model: SelfSubjectAccessReviewModel,
-      resource: selfSubjectAccessReview,
-    })
-      // TODO: TypeScript doesn't realize this can be inferred as this type and thinks it is boolean[]
-      .then((result) => result.status?.allowed ?? true)
-      .catch((e) => {
-        // eslint-disable-next-line no-console
-        console.warn('SelfSubjectAccessReview failed', e);
-        return true; // if it critically fails, don't block SSAR checks; let it fail/succeed on future calls
-      })
-  );
+  return k8sCreateResource<SelfSubjectAccessReviewKind>({
+    model: SelfSubjectAccessReviewModel,
+    resource: selfSubjectAccessReview,
+  })
+    .then((result) => result.status?.allowed ?? true)
+    .catch((e) => {
+      // eslint-disable-next-line no-console
+      console.warn('SelfSubjectAccessReview failed', e);
+      return true; // if it critically fails, don't block SSAR checks; let it fail/succeed on future calls
+    });
 };
 
 /**

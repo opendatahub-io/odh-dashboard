@@ -40,21 +40,21 @@ const useAreaCheck = <T,>(
   success: T[],
   resourceAttributes?: AccessReviewResourceAttributes,
 ): T[] => {
-  const [allowList, accessReviewLoaded] = useAccessAllowed(
+  const [isAccessAllowed, isAccessLoaded] = useAccessAllowed(
     resourceAttributes || { verb: '*' },
     !!resourceAttributes,
   );
-  const isAvailable = useIsAreaAvailable(area).status;
+  const isAreaAvailable = useIsAreaAvailable(area).status;
 
   if (!resourceAttributes) {
-    return isAvailable ? success : [];
+    return isAreaAvailable ? success : [];
   }
 
-  if (!accessReviewLoaded) {
+  if (!isAccessLoaded) {
     return [];
   }
 
-  return allowList && isAvailable ? success : [];
+  return isAccessAllowed && isAreaAvailable ? success : [];
 };
 
 const useApplicationsNav = (): NavDataItem[] => {

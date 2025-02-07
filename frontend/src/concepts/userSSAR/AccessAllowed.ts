@@ -19,13 +19,13 @@ export const AccessAllowed: React.FC<AccessAllowedProps> = ({
   children,
   noAccessRender,
 }) => {
-  const [canAccess, loaded] = useAccessAllowed(resourceAttributes);
+  const [isAllowed, isLoaded] = useAccessAllowed(resourceAttributes);
 
-  if (!loaded) {
+  if (!isLoaded) {
     return null;
   }
 
-  if (!canAccess) {
+  if (!isAllowed) {
     return noAccessRender ? noAccessRender() : null;
   }
 

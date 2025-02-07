@@ -15,7 +15,7 @@ import { AccessReviewContext } from '~/concepts/userSSAR/AccessReviewContext';
 export const useAccessAllowed = (
   resourceAttributes: AccessReviewResourceAttributes,
   doCheck = true,
-): [hasAccess: boolean, isLoaded: boolean] => {
+): [isAllowed: boolean, isLoaded: boolean] => {
   const { canIAccess, accessReviewCache, genKey } = React.useContext(AccessReviewContext);
 
   React.useEffect(() => {

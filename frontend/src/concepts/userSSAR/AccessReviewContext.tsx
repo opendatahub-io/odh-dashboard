@@ -79,7 +79,7 @@ export const AccessReviewProvider: React.FC<{ children: React.ReactNode }> = ({ 
         [key]: {
           isLoading: true,
           canAccess: false,
-        },
+        } satisfies AccessReviewCacheData,
       }));
 
       // Determine access
@@ -90,7 +90,7 @@ export const AccessReviewProvider: React.FC<{ children: React.ReactNode }> = ({ 
             [key]: {
               isLoading: false,
               canAccess: allowed,
-            },
+            } satisfies AccessReviewCacheData,
           }));
         },
       );
