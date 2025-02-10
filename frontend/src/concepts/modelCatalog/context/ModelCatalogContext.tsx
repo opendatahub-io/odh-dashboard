@@ -1,10 +1,12 @@
 import React from 'react';
-import { FetchState } from '~/utilities/useFetchState';
+import { FetchStateObject } from '~/types';
 import { ModelCatalogSource } from '~/concepts/modelCatalog/types';
 import { useModelCatalogSources } from '~/concepts/modelCatalog/useModelCatalogSources';
+import { DEFAULT_LIST_FETCH_STATE } from '~/utilities/const';
+import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 
 export type ModelCatalogContextType = {
-  modelCatalogSources: FetchState<ModelCatalogSource[]>;
+  modelCatalogSources: FetchStateObject<ModelCatalogSource[]>;
 };
 
 type ModelCatalogContextProviderProps = {
@@ -12,13 +14,13 @@ type ModelCatalogContextProviderProps = {
 };
 
 export const ModelCatalogContext = React.createContext<ModelCatalogContextType>({
-  modelCatalogSources: [[], false, undefined, () => Promise.resolve(undefined)],
+  modelCatalogSources: DEFAULT_LIST_FETCH_STATE,
 });
 
 export const ModelCatalogContextProvider: React.FC<ModelCatalogContextProviderProps> = ({
   children,
 }) => {
-  const modelCatalogSources = useModelCatalogSources();
+  const modelCatalogSources = useMakeFetchObject(useModelCatalogSources());
 
   const contextValue = React.useMemo(
     () => ({

@@ -26,8 +26,13 @@ export const useModelCatalogSources = (): FetchState<State> => {
       return [];
     }
 
-    const source: ModelCatalogSource = JSON.parse(configMap.data.modelCatalogSource);
-    return [source];
+    try {
+      const source: ModelCatalogSource = JSON.parse(configMap.data.modelCatalogSource);
+      return [source];
+    } catch (e) {
+      // Swallow JSON parse errors and return empty array for temporary summit implementation
+      return [];
+    }
   }, [dashboardNamespace, isModelCatalogAvailable]);
 
   return useFetchState<State>(callback, []);

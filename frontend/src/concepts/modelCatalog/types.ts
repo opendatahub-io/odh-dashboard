@@ -1,6 +1,3 @@
-import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { DashboardLabels } from '~/k8sTypes';
-
 export type BaseModel = {
   catalog?: string;
   repository?: string;
@@ -41,19 +38,4 @@ export type CatalogModel = {
 export type ModelCatalogSource = {
   source: string;
   models: CatalogModel[];
-};
-
-// Temporary type for MVP - will be replaced with remote model catalog sources
-// See: https://issues.redhat.com/browse/RHOAISTRAT-455
-export type ModelCatalogConfigMap = K8sResourceCommon & {
-  metadata: {
-    name: string;
-    labels: DashboardLabels & {
-      'opendatahub.io/model-catalog': 'true';
-    };
-  };
-  data?: {
-    source: string;
-    models: string; // JSON string of CatalogModel[]
-  };
 };
