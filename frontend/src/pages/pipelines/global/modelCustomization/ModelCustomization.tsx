@@ -55,7 +55,7 @@ const ModelCustomization: React.FC = () => {
   };
 
   return (
-    <Drawer isExpanded={isDrawerExpanded} data-testid="drawer model-customization">
+    <Drawer isExpanded={isDrawerExpanded} data-testid="drawer-model-customization">
       <DrawerContent
         panelContent={
           <ModelCustomizationDrawerContent
@@ -88,9 +88,9 @@ const ModelCustomization: React.FC = () => {
                       </StackItem>
                       <StackItem>
                         <Content component={ContentVariants.p} style={{ fontWeight: 'bold' }}>
-                          Prerequisites for fine-tuning
+                          Prerequisites for fine-tuning:
                         </Content>
-                        <Accordion togglePosition="start" data-testid="accordion prerequisites">
+                        <Accordion togglePosition="start" data-testid="accordion-prerequisites">
                           <ModelCustomizationAccordionItem
                             id="taxonomy"
                             title="Taxonomy"
@@ -99,6 +99,7 @@ const ModelCustomization: React.FC = () => {
                           >
                             <Stack>
                               <StackItem>
+                                {/* TODO: Replace with the correct text once available */}
                                 Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
                                 eiusmod tempor incididunt ut labore et dolore magna aliqua.
                               </StackItem>
@@ -249,6 +250,7 @@ const ModelCustomization: React.FC = () => {
                   <CardBody>
                     <Stack hasGutter>
                       <StackItem>
+                        {/* TODO: Replace with the correct text once available */}
                         Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
                         tempor incididunt ut labore et dolore magna aliqua.
                       </StackItem>

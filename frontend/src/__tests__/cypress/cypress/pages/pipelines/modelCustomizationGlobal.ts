@@ -33,11 +33,11 @@ class ModelCustomizationGlobal {
   }
 
   findRoot() {
-    return cy.findByTestId('drawer model-customization');
+    return cy.findByTestId('drawer-model-customization');
   }
 
   findPrerequisitesAccordion() {
-    return this.findRoot().findByTestId('accordion prerequisites');
+    return this.findRoot().findByTestId('accordion-prerequisites');
   }
 
   findPrerequisitesAccordionItem(item: PrerequisitesAccordionItem) {
@@ -64,7 +64,7 @@ class ModelCustomizationGlobal {
   }
 
   findDrawerContent() {
-    return this.findRoot().findByTestId('drawer content');
+    return this.findRoot().findByTestId('drawer-content');
   }
 
   findDrawerContentTitle() {

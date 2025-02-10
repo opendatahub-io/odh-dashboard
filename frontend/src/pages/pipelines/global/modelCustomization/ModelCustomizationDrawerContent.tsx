@@ -43,7 +43,7 @@ const ModelCustomizationDrawerContent = React.forwardRef<
   );
 
   return (
-    <DrawerPanelContent minSize="40%" maxSize="80%" isResizable data-testid="drawer content">
+    <DrawerPanelContent minSize="40%" maxSize="80%" isResizable data-testid="drawer-content">
       <DrawerHead>
         <Title data-testid="title" headingLevel="h3">
           {title}
