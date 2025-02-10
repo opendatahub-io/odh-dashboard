@@ -105,6 +105,13 @@ export type WBVariablesTestData = {
   FAKE_VALUE: string;
 };
 
+export type WBTolerationsTestData = {
+  wbTolerationsTestNamespace: string;
+  wbTolerationsTestDescription: string;
+  workbenchName: string;
+  tolerationValue: string;
+};
+
 export type WBStatusTestData = {
   wbStatusTestNamespace: string;
   wbStatusTestDescription: string;

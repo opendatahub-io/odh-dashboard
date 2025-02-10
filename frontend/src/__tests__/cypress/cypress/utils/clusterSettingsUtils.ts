@@ -3,6 +3,7 @@ import {
   pvcSizeSettings,
   cullerSettings,
   notebookTolerationSettings,
+  clusterSettings,
 } from '~/__tests__/cypress/cypress/pages/clusterSettings';
 import type {
   DashboardConfig,
@@ -149,3 +150,79 @@ export const validateNotebookPodTolerations = (dashboardConfig: DashboardConfig)
     cy.log('Notebook Pod Tolerations Text is not visible, as expected.');
   }
 };
+/**
+ * Handles the toleration settings in the notebook configuration.
+ * This function checks if the toleration checkbox is currently ticked.
+ * If it is not ticked, it will tick the checkbox.
+ * Then, it clears the toleration input field and types the specified toleration value.
+ * Finally, it submits the form to save the settings.
+ *
+ * @param {string} toleration - The toleration value to be set in the input field.
+ */
+export function handleTolerationSettings(toleration: string) {
+  // Find the checkbox
+  notebookTolerationSettings.findEnabledCheckbox().then(($checkbox: JQuery<HTMLElement>) => {
+    const isChecked = $checkbox.is(':checked');
+
+    if (!isChecked) {
+      // If not checked, tick it
+      cy.wrap($checkbox).click().should('be.checked');
+    }
+
+    // Clear the input and type in the toleration
+    notebookTolerationSettings.findKeyInput().clear().type(toleration);
+
+    // Submit the form
+    clusterSettings.findSubmitButton().click();
+  });
+}
+
+/**
+ * Saves the current state of toleration settings (checkbox and input value).
+ * This function captures whether the checkbox is checked and the current value of the input field.
+ *
+ * @returns {Promise<{ isChecked: boolean, tolerationValue: string }>} The saved state of the settings.
+ */
+export function saveTolerationSettings() {
+  return notebookTolerationSettings.findEnabledCheckbox().then(($checkbox: JQuery<HTMLElement>) => {
+    const isChecked = $checkbox.is(':checked'); // Check if checkbox is ticked
+    return notebookTolerationSettings
+      .findKeyInput()
+      .invoke('val')
+      .then((tolerationValue) => {
+        return { isChecked, tolerationValue: tolerationValue as string }; // Return both values
+      });
+  });
+}
+
+/**
+ * Restores the toleration settings to a previously saved state.
+ * This function restores both the checkbox state and input field value to their original settings.
+ *
+ * @param {{ isChecked: boolean, tolerationValue: string }} savedState - The saved state to restore.
+ */
+export function restoreTolerationSettings(savedState: {
+  isChecked: boolean;
+  tolerationValue: string;
+}) {
+  // Ensure the checkbox is checked first
+  notebookTolerationSettings.findEnabledCheckbox().then(($checkbox: JQuery<HTMLElement>) => {
+    if (!$checkbox.is(':checked')) {
+      cy.wrap($checkbox).click(); // Check the checkbox if it's not already checked
+    }
+  });
+
+  // Restore input field value
+  notebookTolerationSettings.findKeyInput().clear().type(savedState.tolerationValue); // Restore input value
+
+  // Restore checkbox state based on savedState
+  notebookTolerationSettings.findEnabledCheckbox().then(($checkbox: JQuery<HTMLElement>) => {
+    const currentChecked = $checkbox.is(':checked');
+    if (currentChecked !== savedState.isChecked) {
+      cy.wrap($checkbox).click(); // Toggle checkbox if needed
+    }
+  });
+
+  // Submit restored settings
+  clusterSettings.findSubmitButton().click();
+}
