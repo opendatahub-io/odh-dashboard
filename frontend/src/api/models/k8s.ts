@@ -89,3 +89,10 @@ export const ServiceAccountModel: K8sModelCommon = {
   kind: 'ServiceAccount',
   plural: 'serviceaccounts',
 };
+
+export const DataScienceClusterModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  apiGroup: 'datasciencecluster.opendatahub.io',
+  kind: 'DataScienceCluster',
+  plural: 'datascienceclusters',
+};
