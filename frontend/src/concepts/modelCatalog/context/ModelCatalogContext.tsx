@@ -1,7 +1,7 @@
 import React from 'react';
 import { FetchState } from '~/utilities/useFetchState';
-import { ModelCatalogSource } from '../types';
-import useModelCatalogSources from '../useModelCatalogSources';
+import { ModelCatalogSource } from '~/concepts/modelCatalog/types';
+import { useModelCatalogSources } from '~/concepts/modelCatalog/useModelCatalogSources';
 
 export type ModelCatalogContextType = {
   modelCatalogSources: FetchState<ModelCatalogSource[]>;

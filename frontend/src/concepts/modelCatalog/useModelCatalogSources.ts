@@ -22,16 +22,12 @@ export const useModelCatalogSources = (): FetchState<State> => {
 
     const configMap = await getConfigMap(dashboardNamespace, MODEL_CATALOG_SOURCE_CONFIGMAP);
 
-    if (!configMap.data || !configMap.data.source || !configMap.data.models) {
+    if (!configMap.data?.modelCatalogSource) {
       return [];
     }
 
-    return [
-      {
-        source: configMap.data.source,
-        models: JSON.parse(configMap.data.models),
-      },
-    ];
+    const source: ModelCatalogSource = JSON.parse(configMap.data.modelCatalogSource);
+    return [source];
   }, [dashboardNamespace, isModelCatalogAvailable]);
 
   return useFetchState<State>(callback, []);
