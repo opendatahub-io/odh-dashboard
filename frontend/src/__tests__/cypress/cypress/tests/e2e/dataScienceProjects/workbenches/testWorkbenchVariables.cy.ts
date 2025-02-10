@@ -39,7 +39,7 @@ describe('Workbenches - variable tests', () => {
   });
   it(
     'Verify user can set environment variables in their workbenches by uploading a yaml Secret and Config Map file.',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1883', '@Dashboard'] },
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1883', '@ODS-1864', '@Dashboard'] },
     () => {
       const workbenchName = projectName;
       const workbenchName2 = projectName.replace('dsp-', 'secondwb-');
@@ -115,7 +115,7 @@ describe('Workbenches - variable tests', () => {
   );
   it(
     'Verify that the user can inject environment variables manually into a workbench using Key / Value',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1883', '@Dashboard'] },
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1883', '@ODS-1864', '@Dashboard'] },
     () => {
       const workbenchName = projectName;
       const workbenchName2 = projectName.replace('dsp-', 'secondwb-');
