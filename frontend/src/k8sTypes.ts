@@ -1275,6 +1275,7 @@ export type DataScienceClusterKindStatus = {
   components?: {
     kserve?: {
       defaultDeploymentMode?: string;
+      serverlessMode?: string;
     };
     modelregistry?: {
       registriesNamespace?: string;
