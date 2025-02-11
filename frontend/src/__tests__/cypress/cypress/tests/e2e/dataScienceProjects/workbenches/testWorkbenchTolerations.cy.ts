@@ -238,13 +238,13 @@ describe('Workbenches - tolerations tests', () => {
           `Resolved Pod Name: ${resolvedPodName} and ${testData.tolerationValueUpdate} displays in the pod as expected`,
         );
       });
-            // Validate that the toleration is not present in the already running pod
-            cy.step('Validate that the toleration is not present in the already running pod');
-            validateWorkbenchTolerations(projectName, testData.workbenchName, null, true).then(
-              (resolvedPodName) => {
-                cy.log(`Pod should be running without tolerations - name: ${resolvedPodName}`);
-              },
-            );
+      // Validate that the toleration is not present in the already running pod
+      cy.step('Validate that the toleration is not present in the already running pod');
+      validateWorkbenchTolerations(projectName, testData.workbenchName, null, true).then(
+        (resolvedPodName) => {
+          cy.log(`Pod should be running without tolerations - name: ${resolvedPodName}`);
+        },
+      );
     },
   );
 });
