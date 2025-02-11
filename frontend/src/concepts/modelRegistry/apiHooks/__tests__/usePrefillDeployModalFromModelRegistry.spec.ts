@@ -1,9 +1,9 @@
 import { renderHook } from '@testing-library/react';
-import usePrefillDeployModalFromModelRegistry from '~/pages/modelRegistry/screens/RegisteredModels/usePrefillDeployModalFromModelRegistry';
 import { ProjectKind } from '~/k8sTypes';
 import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 import { mockInferenceServiceModalData } from '~/__mocks__/mockInferenceServiceModalData';
-import { DataConnection } from '~/pages/projects/types';
+import { Connection } from '~/concepts/connectionTypes/types';
+import usePrefillDeployModalFromModelRegistry from '~/pages/modelRegistry/screens/RegisteredModels/usePrefillDeployModalFromModelRegistry';
 
 describe('usePrefillDeployModalFromModelRegistry', () => {
   const mockProjectContext = {
@@ -15,7 +15,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
         namespace: 'test-namespace',
       },
     } as ProjectKind,
-    dataConnections: [] as DataConnection[],
+    connections: [] as Connection[],
   };
 
   const data = mockInferenceServiceModalData({});

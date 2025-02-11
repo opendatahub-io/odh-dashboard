@@ -10,6 +10,8 @@ import {
   Popover,
   Radio,
   Skeleton,
+  Stack,
+  StackItem,
   Truncate,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
@@ -438,13 +440,26 @@ export const ConnectionSection: React.FC<Props> = ({
         }}
         body={
           data.storage.type === InferenceServiceStorageType.NEW_STORAGE && (
-            <NewConnectionField
-              connectionTypes={connectionTypes}
-              data={data}
-              setData={setData}
-              setNewConnection={setConnection}
-              setIsConnectionValid={setIsConnectionValid}
-            />
+            <Stack hasGutter>
+              {data.storage.alert && (
+                <StackItem>
+                  <Alert
+                    isInline
+                    variant={data.storage.alert.type}
+                    title={data.storage.alert.title}
+                  >
+                    {data.storage.alert.message}
+                  </Alert>
+                </StackItem>
+              )}
+              <NewConnectionField
+                connectionTypes={connectionTypes}
+                data={data}
+                setData={setData}
+                setNewConnection={setConnection}
+                setIsConnectionValid={setIsConnectionValid}
+              />
+            </Stack>
           )
         }
       />

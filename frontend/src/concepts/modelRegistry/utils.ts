@@ -20,7 +20,7 @@ export const objectStorageFieldsToUri = (fields: ObjectStorageFields): string | 
   return `s3://${bucket}/${path}?${searchParams.toString()}`;
 };
 
-export const uriToObjectStorageFields = (
+export const uriToStorageFields = (
   uri: string,
 ): { s3Fields: ObjectStorageFields | null; uri: string | null } | null => {
   try {

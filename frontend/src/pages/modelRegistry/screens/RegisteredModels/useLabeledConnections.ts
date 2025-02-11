@@ -1,7 +1,7 @@
 import React from 'react';
 import { Connection } from '~/concepts/connectionTypes/types';
 import { convertObjectStorageSecretData } from '~/concepts/connectionTypes/utils';
-import { ObjectStorageFields, uriToObjectStorageFields } from '~/concepts/modelRegistry/utils';
+import { ObjectStorageFields, uriToStorageFields } from '~/concepts/modelRegistry/utils';
 import { LabeledConnection } from '~/pages/modelServing/screens/types';
 import { AwsKeys } from '~/pages/projects/dataConnections/const';
 
@@ -19,7 +19,7 @@ const useLabeledConnections = (
         storageFields: null,
       };
     }
-    const storageFields = uriToObjectStorageFields(modelArtifactUri);
+    const storageFields = uriToStorageFields(modelArtifactUri);
     if (!storageFields) {
       return {
         connections: connections.map((connection) => ({ connection })),

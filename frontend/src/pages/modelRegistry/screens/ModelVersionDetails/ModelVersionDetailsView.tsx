@@ -19,7 +19,7 @@ import { getLabels, mergeUpdatedLabels } from '~/pages/modelRegistry/screens/uti
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
-import { uriToObjectStorageFields } from '~/concepts/modelRegistry/utils';
+import { uriToStorageFields } from '~/concepts/modelRegistry/utils';
 import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
 import {
   bumpBothTimestamps,
@@ -42,7 +42,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
 
   const modelArtifact = modelArtifacts.items.length ? modelArtifacts.items[0] : null;
   const { apiState } = React.useContext(ModelRegistryContext);
-  const storageFields = uriToObjectStorageFields(modelArtifact?.uri || '');
+  const storageFields = uriToStorageFields(modelArtifact?.uri || '');
 
   if (!modelArtifactsLoaded) {
     return (

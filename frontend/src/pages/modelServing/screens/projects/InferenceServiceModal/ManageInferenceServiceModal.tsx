@@ -18,7 +18,7 @@ import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
-import usePrefillDeployModalConnectionFromModelRegistry from '~/pages/modelRegistry/screens/RegisteredModels/usePrefillDeployModalConnectionFromModelRegistry';
+import usePrefillDeployModalFromModelRegistry from '~/pages/modelRegistry/screens/RegisteredModels/usePrefillDeployModalFromModelRegistry';
 import ProjectSection from './ProjectSection';
 import InferenceServiceFrameworkSection from './InferenceServiceFrameworkSection';
 import InferenceServiceServingRuntimeSection from './InferenceServiceServingRuntimeSection';
@@ -59,7 +59,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
   const currentServingRuntimeName = projectContext?.currentServingRuntime?.metadata.name || '';
 
   const [connections, connectionsLoaded, connectionsLoadError] =
-    usePrefillDeployModalConnectionFromModelRegistry(
+    usePrefillDeployModalFromModelRegistry(
       projectContext,
       createData,
       setCreateData,

@@ -2,7 +2,7 @@ import React from 'react';
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
-import { uriToObjectStorageFields } from '~/concepts/modelRegistry/utils';
+import { uriToStorageFields } from '~/concepts/modelRegistry/utils';
 
 export type RegisteredModelDeployInfo = {
   modelName: string;
@@ -42,7 +42,7 @@ const useRegisteredModelDeployInfo = (
       };
     }
     const modelArtifact = modelArtifactList.items[0];
-    const storageFields = uriToObjectStorageFields(modelArtifact.uri || '');
+    const storageFields = uriToStorageFields(modelArtifact.uri || '');
     let modelLocationType;
     if (storageFields?.uri) {
       modelLocationType = 'uri-v1';
