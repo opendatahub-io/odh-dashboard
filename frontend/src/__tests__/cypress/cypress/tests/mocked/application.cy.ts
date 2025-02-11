@@ -1,9 +1,5 @@
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
-import {
-  asDisallowedUser,
-  asProductAdminUser,
-  asProjectAdminUser,
-} from '~/__tests__/cypress/cypress/utils/mockUsers';
+import { asDisallowedUser, asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { mockDashboardConfig } from '~/__mocks__';
 import { aboutDialog } from '~/__tests__/cypress/cypress/pages/aboutDialog';
 import { mockConsoleLinks } from '~/__mocks__/mockConsoleLinks';
