@@ -196,6 +196,10 @@ export const isInternalRouteIntegrationsApp = (internalRoute?: string): internal
 export const isIntegrationApp = (app: OdhApplication): app is OdhIntegrationApplication =>
   isInternalRouteIntegrationsApp(app.spec.internalRoute);
 
+/**
+ * DO NOT KEEP USING this  beyond a release.
+ * Useful for when we are writing code against fresh devFlag or custom Operator installations. Unreleased backend features.
+ */
 export const safeExecute = <T>(fn: () => T, defaultValue: T): T => {
   try {
     return fn();
