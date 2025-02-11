@@ -13,9 +13,11 @@ import { useThemeContext } from './ThemeContext';
 
 const RhoaiAboutText = `Red Hat® OpenShift® AI (formerly Red Hat OpenShift Data Science) is a flexible, scalable MLOps platform for data scientists and developers of artificial intelligence and machine learning (AI/ML) applications. Built using open source technologies, OpenShift AI supports the full lifecycle of AI/ML experiments and models, on premise and in the public cloud.`;
 const RhoaiDefaultReleaseName = `OpenShift AI`;
+const RhoaiDefaultComponentReleaseName = `RHOAI`;
 
 const OdhAboutText = `Open Data Hub is an open source AI platform designed for the hybrid cloud. The community seeks to bridge the gap between application developers, data stewards, and data scientists by blending the leading open source AI tools with a unifying and intuitive user experience. Open Data Hub supports the full lifecycle of AI/ML experiments and models.`;
 const OdhDefaultReleaseName = `Open Data Hub`;
+const OdhDefaultComponentReleaseName = `ODH`;
 
 interface AboutDialogProps {
   onClose: () => void;
@@ -133,7 +135,12 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
                   >
                     <Thead>
                       <Tr>
-                        <Th width={10}>RHOAI Component</Th>
+                        <Th width={10}>
+                          {isRHOAI
+                            ? RhoaiDefaultComponentReleaseName
+                            : OdhDefaultComponentReleaseName}{' '}
+                          Component
+                        </Th>
                         <Th width={20}>Upstream component</Th>
                         <Th width={10}>Upstream version</Th>
                       </Tr>
