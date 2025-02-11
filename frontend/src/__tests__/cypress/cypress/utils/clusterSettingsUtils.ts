@@ -251,3 +251,16 @@ export function restoreTolerationSettings(savedState: {
     }
   });
 }
+/**
+ * Disables tolerations with a retry mechanism.
+ * This function navigates to the cluster settings, finds the enabled checkbox, clicks it, and submits the form.
+ * It includes a retry mechanism to ensure the tolerations are disabled.
+ */
+export function disableTolerationsWithRetry(): void {
+  const retryDisableTolerations = () => {
+    notebookTolerationSettings.findEnabledCheckbox().click();
+    clusterSettings.findSubmitButton().click();
+  };
+  retryDisableTolerations();
+  notebookTolerationSettings.findEnabledCheckbox().should('not.be.checked');
+}
