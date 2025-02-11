@@ -195,3 +195,52 @@ export const isInternalRouteIntegrationsApp = (internalRoute?: string): internal
 
 export const isIntegrationApp = (app: OdhApplication): app is OdhIntegrationApplication =>
   isInternalRouteIntegrationsApp(app.spec.internalRoute);
+
+/**
+ * DO NOT KEEP USING this beyond a release.
+ *
+ * This function is intended ONLY for temporary use during active development against
+ * unreleased backend features or custom operator installations. It should be removed
+ * before features are released.
+ *
+ * @param usageExplanation Required explanation of why this temporary safety wrapper is needed
+ * @param removalTrackingLink Required link to issue/ticket tracking removal of this usage
+ * @param fn The function to safely execute
+ * @param defaultValue Fallback value if execution fails
+ * @returns The function result or default value
+ *
+ * @example
+ * // Good: Clear explanation of temporary development need with tracking
+ * safeExecute(
+ *   'Safely checking new DSC spec field that may not exist in current operator version',
+ *   'https://issues.redhat.com/browse/RHOAIENG-####',
+ *   () => dsc.spec.newField.value,
+ *   false,
+ * )
+ *
+ * @example
+ * // Bad: Using as general error handling - use proper error handling instead
+ * safeExecute(
+ *   'Checking user permissions',
+ *   'FooBar not a link',
+ *   () => user.canEdit,
+ *   false,
+ * )
+ */
+export const safeExecute = <T>(
+  usageExplanation: string,
+  removalTrackingLink: string,
+  fn: () => T,
+  defaultValue: T,
+): T => {
+  try {
+    return fn();
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(
+      `Development safety wrapper used: ${usageExplanation} tracking removal in ${removalTrackingLink}`,
+      error,
+    );
+    return defaultValue;
+  }
+};
