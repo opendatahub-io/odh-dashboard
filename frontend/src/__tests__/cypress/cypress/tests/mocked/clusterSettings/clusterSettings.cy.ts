@@ -3,6 +3,7 @@ import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import {
   clusterSettings,
   cullerSettings,
+  instructLabSettings,
   modelServingSettings,
   notebookTolerationSettings,
   pvcSizeSettings,
@@ -11,12 +12,14 @@ import {
 import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 import {
-  asProductAdminUser,
+  asClusterAdminUser,
   asProjectAdminUser,
 } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { StackComponent } from '~/concepts/areas/types';
 import { DeploymentMode } from '~/k8sTypes';
-import { mockDashboardConfig } from '~/__mocks__';
+import { mockDashboardConfig, mockK8sResourceList } from '~/__mocks__';
+import { DataScienceClusterModel } from '~/__tests__/cypress/cypress/utils/models';
+import { mockDsc } from '~/__mocks__/mockDsc';
 
 it('Cluster settings should not be available for non product admins', () => {
   asProjectAdminUser();
@@ -27,7 +30,8 @@ it('Cluster settings should not be available for non product admins', () => {
 
 describe('Cluster Settings', () => {
   beforeEach(() => {
-    asProductAdminUser();
+    asClusterAdminUser();
+    cy.interceptK8sList({ model: DataScienceClusterModel }, mockK8sResourceList([mockDsc({})]));
   });
 
   it('Edit cluster settings', () => {
@@ -106,6 +110,23 @@ describe('Cluster Settings', () => {
         }),
       );
     });
+  });
+
+  it('View instructLab settings', () => {
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableFineTuning: false,
+      }),
+    );
+    cy.interceptOdh('GET /api/cluster-settings', mockClusterSettings({}));
+
+    clusterSettings.visit();
+
+    instructLabSettings.findInstructLabCheckbox().click();
+    instructLabSettings.findSubmitButton().should('be.enabled');
+    instructLabSettings.findInstructLabCheckbox().click();
+    instructLabSettings.findSubmitButton().should('be.disabled');
   });
 
   it('View KServe defaultDeploymentMode', () => {

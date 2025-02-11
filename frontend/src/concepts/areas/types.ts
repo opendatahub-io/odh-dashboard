@@ -39,6 +39,7 @@ export enum SupportedArea {
   ACCELERATOR_PROFILES = 'accelerator-profiles',
   HARDWARE_PROFILES = 'hardware-profiles',
   STORAGE_CLASSES = 'storage-classes',
+  FINE_TUNING = 'fine-tuning',
 
   /* DS Projects specific areas */
   DS_PROJECTS_PERMISSIONS = 'ds-projects-permission',

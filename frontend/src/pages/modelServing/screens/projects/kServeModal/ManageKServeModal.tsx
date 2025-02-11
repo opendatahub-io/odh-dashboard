@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Alert, AlertActionCloseButton, Form, FormSection } from '@patternfly/react-core';
+import { Form, FormSection } from '@patternfly/react-core';
 import { Modal } from '@patternfly/react-core/deprecated';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
@@ -52,10 +52,12 @@ import K8sNameDescriptionField, {
 } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import { validateEnvVarName } from '~/concepts/connectionTypes/utils';
+import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 import EnvironmentVariablesSection from './EnvironmentVariablesSection';
 import ServingRuntimeArgsSection from './ServingRuntimeArgsSection';
 import { KServeDeploymentModeDropdown } from './KServeDeploymentModeDropdown';
+import { NoAuthAlert } from './NoAuthAlert';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -94,6 +96,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   registeredModelDeployInfo,
   shouldFormHidden: hideForm,
 }) => {
+  const { isRawAvailable, isServerlessAvailable } = useKServeDeploymentMode();
+
   const [createDataServingRuntime, setCreateDataServingRuntime, , sizes] =
     useCreateServingRuntimeObject(editInfo?.servingRuntimeEditInfo);
   const [createDataInferenceService, setCreateDataInferenceService] =
@@ -109,11 +113,11 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const [connection, setConnection] = React.useState<Connection>();
   const [isConnectionValid, setIsConnectionValid] = React.useState(false);
 
-  const isAuthorinoEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status;
+  const isAuthAvailable =
+    useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status ||
+    createDataInferenceService.isKServeRawDeployment;
   const currentProjectName = projectContext?.currentProject.metadata.name;
   const namespace = currentProjectName || createDataInferenceService.project;
-
-  const isKServeRawEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_RAW).status;
 
   const {
     initialState: initialAcceleratorProfileState,
@@ -308,25 +312,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       }
       showClose
     >
-      {!isAuthorinoEnabled && alertVisible && (
-        <Alert
-          id="no-authorino-installed-alert"
-          className="pf-v6-u-mb-md"
-          data-testid="no-authorino-installed-alert"
-          isExpandable
-          isInline
-          variant="warning"
-          title="Token authentication service not installed"
-          actionClose={<AlertActionCloseButton onClose={() => setAlertVisible(false)} />}
-        >
-          <p>
-            The single model serving platform used by this project allows deployed models to be
-            accessible via external routes. It is recommended that token authentication be enabled
-            to protect these routes. The serving platform requires the Authorino operator be
-            installed on the cluster for token authentication. Contact a cluster administrator to
-            install the operator.
-          </p>
-        </Alert>
+      {!isAuthAvailable && alertVisible && !isRawAvailable && (
+        <NoAuthAlert onClose={() => setAlertVisible(false)} />
       )}
       <Form
         onSubmit={(e) => {
@@ -378,7 +365,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                 modelContext={servingRuntimeSelected?.spec.supportedModelFormats}
                 registeredModelFormat={registeredModelDeployInfo?.modelFormat}
               />
-              {isKServeRawEnabled && (
+              {isRawAvailable && isServerlessAvailable && (
                 <KServeDeploymentModeDropdown
                   isRaw={!!createDataInferenceService.isKServeRawDeployment}
                   setIsRaw={(isRaw) =>
@@ -386,6 +373,9 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                   }
                   isDisabled={!!editInfo}
                 />
+              )}
+              {!isAuthAvailable && alertVisible && isRawAvailable && (
+                <NoAuthAlert onClose={() => setAlertVisible(false)} />
               )}
               <KServeAutoscalerReplicaSection
                 data={createDataInferenceService}
@@ -408,7 +398,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                 setData={setCreateDataInferenceService}
                 allowCreate={allowCreate}
                 publicRoute
-                showModelRoute={isAuthorinoEnabled}
+                showModelRoute={isAuthAvailable}
               />
             </>
           )}

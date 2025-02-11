@@ -1205,6 +1205,7 @@ export type DashboardCommonConfig = {
   disableServingRuntimeParams: boolean;
   disableStorageClasses: boolean;
   disableNIMModelServing: boolean;
+  disableFineTuning: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {
@@ -1270,11 +1271,70 @@ export type K8sResourceListResult<TResource extends Partial<K8sResourceCommon>> 
   };
 };
 
+export type DataScienceClusterKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+  };
+  spec: {
+    components?: {
+      codeflare?: {
+        managementState: string;
+      };
+      kserve?: {
+        managementState: string;
+        nim: {
+          managementState: string;
+        };
+        serving: {
+          ingressGateway: {
+            certificate: {
+              type: string;
+            };
+          };
+          managementState: string;
+          name: string;
+        };
+      };
+      modelregistry?: {
+        managementState: string;
+        registriesNamespace: string;
+      };
+      trustyai?: {
+        managementState: string;
+      };
+      ray?: {
+        managementState: string;
+      };
+      kueue?: {
+        managementState: string;
+      };
+      workbenches?: {
+        managementState: string;
+      };
+      dashboard?: {
+        managementState: string;
+      };
+      modelmeshserving?: {
+        managementState: string;
+      };
+      datasciencepipelines?: {
+        managementState: string;
+        managedPipelines: { instructLab: { state: string } };
+      };
+      trainingoperator?: {
+        managementState: string;
+      };
+    };
+  };
+  status?: DataScienceClusterKindStatus;
+};
+
 /** We don't need or should ever get the full kind, this is the status section */
 export type DataScienceClusterKindStatus = {
   components?: {
     kserve?: {
       defaultDeploymentMode?: string;
+      serverlessMode?: string;
     };
     modelregistry?: {
       registriesNamespace?: string;

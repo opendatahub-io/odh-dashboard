@@ -18,10 +18,11 @@ import CullerSettings from '~/pages/clusterSettings/CullerSettings';
 import TelemetrySettings from '~/pages/clusterSettings/TelemetrySettings';
 import TolerationSettings from '~/pages/clusterSettings/TolerationSettings';
 import ModelServingPlatformSettings from '~/pages/clusterSettings/ModelServingPlatformSettings';
-import { useDefaultDeploymentMode } from '~/pages/modelServing/useDefaultDeploymentMode';
+import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
+import { toggleInstructLabState } from '~/api/';
 import {
   DEFAULT_CONFIG,
   DEFAULT_PVC_SIZE,
@@ -29,10 +30,13 @@ import {
   MIN_CULLER_TIMEOUT,
   DEFAULT_TOLERATION_VALUE,
 } from './const';
+import { isInstructLabEnabled } from './utils';
+import useDefaultDsc from './useDefaultDsc';
+import InstructLabSettings from './InstructLabSettings';
 
 const ClusterSettings: React.FC = () => {
-  const defaultSingleModelDeploymentMode = useDefaultDeploymentMode();
-
+  const { defaultMode: defaultSingleModelDeploymentMode } = useKServeDeploymentMode();
+  const [dsc, dscLoaded, dscError, refreshDsc] = useDefaultDsc();
   const [loaded, setLoaded] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error>();
@@ -42,6 +46,7 @@ const ClusterSettings: React.FC = () => {
   const [cullerTimeout, setCullerTimeout] = React.useState(DEFAULT_CULLER_TIMEOUT);
   const { dashboardConfig } = useAppContext();
   const modelServingEnabled = useIsAreaAvailable(SupportedArea.MODEL_SERVING).status;
+  const isAreaFineTuningEnabled = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
   const isJupyterEnabled = useCheckJupyterEnabled();
   const [notebookTolerationSettings, setNotebookTolerationSettings] =
     React.useState<NotebookTolerationFormSettings>({
@@ -53,6 +58,9 @@ const ClusterSettings: React.FC = () => {
   const [defaultDeploymentMode, setDefaultDeploymentMode] = React.useState<DeploymentMode>(
     defaultSingleModelDeploymentMode,
   );
+  const instructLabDSCState = isInstructLabEnabled(dsc);
+  const [instructLabEnabled, setInstructLabEnabled] = React.useState<boolean>(instructLabDSCState);
+
   const dispatch = useAppDispatch();
 
   React.useEffect(() => {
@@ -79,14 +87,19 @@ const ClusterSettings: React.FC = () => {
           key: notebookTolerationSettings.key,
         },
         modelServingPlatformEnabled: modelServingEnabledPlatforms,
-      }),
+      }) ||
+      (isAreaFineTuningEnabled && instructLabEnabled !== instructLabDSCState),
     [
+      clusterSettings,
       pvcSize,
       cullerTimeout,
       userTrackingEnabled,
-      clusterSettings,
-      notebookTolerationSettings,
+      notebookTolerationSettings.enabled,
+      notebookTolerationSettings.key,
       modelServingEnabledPlatforms,
+      instructLabEnabled,
+      instructLabDSCState,
+      isAreaFineTuningEnabled,
     ],
   );
 
@@ -101,42 +114,65 @@ const ClusterSettings: React.FC = () => {
       },
       modelServingPlatformEnabled: modelServingEnabledPlatforms,
     };
-    if (!_.isEqual(clusterSettings, newClusterSettings)) {
-      if (
-        Number(newClusterSettings.pvcSize) !== 0 &&
-        Number(newClusterSettings.cullerTimeout) >= MIN_CULLER_TIMEOUT
-      ) {
-        setSaving(true);
-        updateClusterSettings(newClusterSettings)
-          .then((response) => {
-            setSaving(false);
-            if (response.success) {
-              setClusterSettings(newClusterSettings);
-              dispatch(
-                addNotification({
-                  status: AlertVariant.success,
-                  title: 'Cluster settings changes saved',
-                  message: 'It may take up to 2 minutes for configuration changes to be applied.',
-                  timestamp: new Date(),
-                }),
-              );
-            } else {
-              throw new Error(response.error);
-            }
-          })
-          .catch((e) => {
-            setSaving(false);
-            dispatch(
-              addNotification({
-                status: AlertVariant.danger,
-                title: 'Error',
-                message: e.message,
-                timestamp: new Date(),
-              }),
-            );
-          });
-      }
+
+    const clusterSettingsUnchanged = _.isEqual(clusterSettings, newClusterSettings);
+    const instructLabUnchanged = instructLabEnabled === instructLabDSCState;
+
+    if (clusterSettingsUnchanged && instructLabUnchanged) {
+      return;
     }
+
+    if (
+      Number(newClusterSettings.pvcSize) === 0 ||
+      Number(newClusterSettings.cullerTimeout) < MIN_CULLER_TIMEOUT
+    ) {
+      return;
+    }
+
+    setSaving(true);
+
+    const clusterSettingsPromise = clusterSettingsUnchanged
+      ? Promise.resolve()
+      : updateClusterSettings(newClusterSettings).then((response) => {
+          if (!response.success) {
+            throw new Error(response.error);
+          }
+          setClusterSettings(newClusterSettings);
+        });
+
+    const instructLabPromise = instructLabUnchanged
+      ? Promise.resolve()
+      : dsc &&
+        toggleInstructLabState(instructLabEnabled ? 'Managed' : 'Removed', dsc.metadata.name).then(
+          () => {
+            refreshDsc();
+          },
+        );
+
+    Promise.all([clusterSettingsPromise, instructLabPromise])
+      .then(() => {
+        dispatch(
+          addNotification({
+            status: AlertVariant.success,
+            title: 'Cluster settings changes saved',
+            message: 'It may take up to 2 minutes for configuration changes to be applied.',
+            timestamp: new Date(),
+          }),
+        );
+      })
+      .catch((error) => {
+        dispatch(
+          addNotification({
+            status: AlertVariant.danger,
+            title: 'Error',
+            message: error.message,
+            timestamp: new Date(),
+          }),
+        );
+      })
+      .finally(() => {
+        setSaving(false);
+      });
   };
 
   return (
@@ -145,9 +181,9 @@ const ClusterSettings: React.FC = () => {
         <TitleWithIcon title="Cluster settings" objectType={ProjectObjectType.clusterSettings} />
       }
       description="Manage global settings for all users."
-      loaded={loaded}
+      loaded={loaded && dscLoaded}
       empty={false}
-      loadError={loadError}
+      loadError={loadError || dscError}
       errorMessage="Unable to load cluster settings."
       emptyMessage="No cluster settings found."
       provideChildrenPadding
@@ -193,6 +229,15 @@ const ClusterSettings: React.FC = () => {
               initialValue={clusterSettings.notebookTolerationSettings}
               tolerationSettings={notebookTolerationSettings}
               setTolerationSettings={setNotebookTolerationSettings}
+            />
+          </StackItem>
+        )}
+        {isAreaFineTuningEnabled && (
+          <StackItem>
+            <InstructLabSettings
+              initialValue={instructLabDSCState}
+              enabled={instructLabEnabled}
+              setEnabled={setInstructLabEnabled}
             />
           </StackItem>
         )}
