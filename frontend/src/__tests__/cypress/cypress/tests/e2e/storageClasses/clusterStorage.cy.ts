@@ -7,11 +7,12 @@ import { addClusterStorageModal } from '~/__tests__/cypress/cypress/pages/cluste
 import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import { findAddClusterStorageButton } from '~/__tests__/cypress/cypress/utils/clusterStorage';
 import { disableNonDefaultStorageClasses } from '~/__tests__/cypress/cypress/utils/oc_commands/storageClass';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 const dspName = 'qe-cluster-storage-sc-dsp';
 
 describe('Regular Users can make use of the Storage Classes in the Cluster Storage tab from DSP ', () => {
-  before(() => {
+  retryableBefore(() => {
     provisionClusterStorageSCFeature(dspName, LDAP_CONTRIBUTOR_USER.USERNAME);
   });
 

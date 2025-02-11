@@ -8,6 +8,7 @@ import {
   storageClassesPage,
   storageClassesTable,
 } from '~/__tests__/cypress/cypress/pages/storageClasses';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 const scName = 'qe-settings-sc';
 
@@ -15,7 +16,7 @@ const scName = 'qe-settings-sc';
 // describe('An admin user can manage Storage Classes', { testIsolation: false }, () => {
 describe('An admin user can manage Storage Classes from Settings -> Storage classes view', () => {
   let createdStorageClasses: string[];
-  before(() => {
+  retryableBefore(() => {
     // Provision different SCs
     createdStorageClasses = provisionStorageClassFeature(scName);
   });

@@ -11,6 +11,7 @@ import { loadPVCFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { createPersistentVolumeClaim } from '~/__tests__/cypress/cypress/utils/oc_commands/presistentVolumeClaim';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 describe('Workbench and PVSs tests', () => {
   let projectName: string;
@@ -18,7 +19,7 @@ describe('Workbench and PVSs tests', () => {
   let PVCDisplayName: string;
   let PVCSize: string;
 
-  before(() => {
+  retryableBefore(() => {
     return loadPVCFixture('e2e/dataScienceProjects/testProjectWbPV.yaml')
       .then((fixtureData: PVCReplacements) => {
         projectName = fixtureData.NAMESPACE;

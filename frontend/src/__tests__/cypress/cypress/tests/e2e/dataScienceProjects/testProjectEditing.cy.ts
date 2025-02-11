@@ -8,6 +8,7 @@ import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e
 import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 describe('Verify Data Science Project - Editing Project Name and Description', () => {
   let testData: DataScienceProjectData;
@@ -15,7 +16,7 @@ describe('Verify Data Science Project - Editing Project Name and Description', (
   let projectEditedName: string;
 
   // Setup: Load test data and ensure clean state
-  before(() => {
+  retryableBefore(() => {
     return loadDSPFixture('e2e/dataScienceProjects/testProjectEditing.yaml')
       .then((fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
@@ -52,7 +53,7 @@ describe('Verify Data Science Project - Editing Project Name and Description', (
       cy.step(`Navigate to the Project list tab and search for ${projectName}`);
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
-      projectListPage.findProjectLink(projectName).click();
+      projectListPage.findProjectLink('projectName').click();
 
       // Verify project creation
       cy.step(`Verify that the project ${projectName} has been created`);

@@ -7,6 +7,7 @@ import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { AWS_BUCKETS } from '~/__tests__/cypress/cypress/utils/s3Buckets';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 describe('Verify Data Connections - Creation and Deletion', () => {
   let testData: DataScienceProjectData;
@@ -16,7 +17,7 @@ describe('Verify Data Connections - Creation and Deletion', () => {
   let s3SecretKey: string;
 
   // Setup: Load test data and ensure clean state
-  before(() => {
+  retryableBefore(() => {
     const bucketKey = 'BUCKET_1' as const;
     const bucketConfig = AWS_BUCKETS[bucketKey];
 

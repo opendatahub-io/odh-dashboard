@@ -15,6 +15,7 @@ import {
   checkInferenceServiceState,
   provisionProjectForModelServing,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -24,7 +25,7 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_3' as const;
 
 describe('Verify Model Creation and Validation using the UI', () => {
-  before(() => {
+  retryableBefore(() => {
     Cypress.on('uncaught:exception', (err) => {
       if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
         return false;
