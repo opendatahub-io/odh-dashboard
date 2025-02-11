@@ -50,7 +50,7 @@ import { isDataConnectionAWS } from '~/pages/projects/screens/detail/data-connec
 import { containsOnlySlashes, isS3PathValid, removeLeadingSlash } from '~/utilities/string';
 import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 import { getNIMData, getNIMResource } from '~/pages/modelServing/screens/projects/nimUtils';
-import { useDefaultDeploymentMode } from '~/pages/modelServing/useDefaultDeploymentMode';
+import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
 import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import { Connection } from '~/concepts/connectionTypes/types';
 
@@ -220,14 +220,14 @@ export const useCreateInferenceServiceObject = (
   sizes: ModelServingSize[],
 ] => {
   const { dashboardConfig } = useAppContext();
-  const defaultDeploymentMode = useDefaultDeploymentMode();
+  const { defaultMode } = useKServeDeploymentMode();
 
   const sizes = useDeepCompareMemoize(getServingRuntimeSizes(dashboardConfig));
 
   const createInferenceServiceState = useGenericObjectState<CreatingInferenceServiceObject>({
     ...defaultInferenceService,
     modelSize: sizes[0],
-    isKServeRawDeployment: defaultDeploymentMode === DeploymentMode.RawDeployment,
+    isKServeRawDeployment: defaultMode === DeploymentMode.RawDeployment,
   });
 
   const [, setCreateData] = createInferenceServiceState;
