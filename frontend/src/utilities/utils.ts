@@ -195,3 +195,13 @@ export const isInternalRouteIntegrationsApp = (internalRoute?: string): internal
 
 export const isIntegrationApp = (app: OdhApplication): app is OdhIntegrationApplication =>
   isInternalRouteIntegrationsApp(app.spec.internalRoute);
+
+export const safeExecute = <T>(fn: () => T, defaultValue: T): T => {
+  try {
+    return fn();
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('An error occurred:', error);
+    return defaultValue;
+  }
+};
