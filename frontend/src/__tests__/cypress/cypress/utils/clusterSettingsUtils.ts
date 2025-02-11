@@ -259,6 +259,7 @@ export function restoreTolerationSettings(savedState: {
 export function disableTolerationsWithRetry(): void {
   const retryDisableTolerations = () => {
     notebookTolerationSettings.findEnabledCheckbox().click();
+    notebookTolerationSettings.findEnabledCheckbox().should('not.be.checked');
     clusterSettings.findSubmitButton().click();
   };
   retryDisableTolerations();
