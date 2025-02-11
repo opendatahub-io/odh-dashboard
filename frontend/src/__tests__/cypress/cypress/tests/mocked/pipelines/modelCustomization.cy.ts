@@ -2,14 +2,14 @@ import { mockDashboardConfig } from '~/__mocks__';
 import { modelCustomizationGlobal } from '~/__tests__/cypress/cypress/pages/pipelines';
 
 type HandlersProps = {
-  disablePipelines?: boolean; // TODO @caponetto: Replace with `disableFineTuning` when available
+  disableFineTuning?: boolean;
 };
 
-const initIntercepts = ({ disablePipelines = false }: HandlersProps) => {
+const initIntercepts = ({ disableFineTuning = false }: HandlersProps) => {
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
-      disablePipelines,
+      disableFineTuning,
     }),
   );
 };
@@ -18,7 +18,7 @@ describe('Model Customization', () => {
   describe('Feature flag disableFineTuning', () => {
     it('should not show the page if the flag is enabled', () => {
       initIntercepts({
-        disablePipelines: true,
+        disableFineTuning: true,
       });
       modelCustomizationGlobal.visit(false);
       modelCustomizationGlobal.findNavItem().should('not.exist');
@@ -27,7 +27,7 @@ describe('Model Customization', () => {
 
     it('should show the page if the flag is disabled', () => {
       initIntercepts({
-        disablePipelines: false,
+        disableFineTuning: false,
       });
       modelCustomizationGlobal.visit();
       modelCustomizationGlobal.findNavItem().should('exist');
@@ -38,7 +38,7 @@ describe('Model Customization', () => {
   describe('Drawer', () => {
     beforeEach(() => {
       initIntercepts({
-        disablePipelines: false,
+        disableFineTuning: false,
       });
 
       modelCustomizationGlobal.visit();

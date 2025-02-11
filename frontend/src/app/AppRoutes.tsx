@@ -88,8 +88,7 @@ const AppRoutes: React.FC = () => {
   const { isAdmin, isAllowed } = useUser();
   const isJupyterEnabled = useCheckJupyterEnabled();
   const isHomeAvailable = useIsAreaAvailable(SupportedArea.HOME).status;
-  // TODO @caponetto: Replace with Fine-tuning when available
-  const isFineTuningAvailable = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
+  const isFineTuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
 
   if (!isAllowed) {
     return (

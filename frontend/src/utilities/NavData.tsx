@@ -60,8 +60,7 @@ const useDSProjectsNav = (): NavDataItem[] =>
 
 const useDSPipelinesNav = (): NavDataItem[] => {
   const isAvailable = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
-  // TODO @caponetto: Replace with Fine-tuning when available
-  const isFineTuningAvailable = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
+  const isFineTuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
 
   if (!isAvailable) {
     return [];
