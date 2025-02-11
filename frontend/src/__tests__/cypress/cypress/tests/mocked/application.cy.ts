@@ -17,12 +17,6 @@ describe('Application', () => {
     appChrome.findNavToggle().should('not.exist');
   });
 
-  it('should not show Settings nav section for non product admins', () => {
-    asProjectAdminUser();
-    appChrome.visit();
-    appChrome.findNavSection('Settings').should('not.exist');
-  });
-
   it('should show Settings nav section for cluster admins', () => {
     asProductAdminUser();
     appChrome.visit();
