@@ -212,24 +212,42 @@ export function restoreTolerationSettings(savedState: {
   isChecked: boolean;
   tolerationValue: string;
 }): void {
-  // Ensure the checkbox is checked first
-  notebookTolerationSettings.findEnabledCheckbox().then(($checkbox: JQuery<HTMLElement>) => {
-    if (!$checkbox.is(':checked')) {
-      cy.wrap($checkbox).click(); // Check the checkbox if it's not already checked
+  // Define the retry logic
+  const retryRestoreSettings = () => {
+    // Ensure the checkbox is checked first
+    notebookTolerationSettings.findEnabledCheckbox().then(($checkbox: JQuery<HTMLElement>) => {
+      if (!$checkbox.is(':checked')) {
+        cy.wrap($checkbox).click(); // Check the checkbox if it's not already checked
+      }
+    });
+
+    // Restore input field value
+    notebookTolerationSettings.findKeyInput().clear().type(savedState.tolerationValue);
+
+    // Restore checkbox state based on savedState
+    notebookTolerationSettings.findEnabledCheckbox().then(($checkbox: JQuery<HTMLElement>) => {
+      const currentChecked = $checkbox.is(':checked');
+      if (currentChecked !== savedState.isChecked) {
+        cy.wrap($checkbox).click(); // Toggle checkbox if needed
+      }
+    });
+
+    // Submit restored settings
+    clusterSettings.findSubmitButton().click();
+  };
+
+  // Initial attempt
+  retryRestoreSettings();
+
+  // Check for the error message and retry if necessary
+  cy.get('body').then(($body) => {
+    if (
+      $body.find(
+        "div:contains('Toleration key must consist of alphanumeric characters, '-', '_' or '.', and mus')",
+      ).length > 0
+    ) {
+      cy.log('Error message found, retrying...');
+      retryRestoreSettings(); // Retry the function
     }
   });
-
-  // Restore input field value
-  notebookTolerationSettings.findKeyInput().clear().type(savedState.tolerationValue);
-
-  // Restore checkbox state based on savedState
-  notebookTolerationSettings.findEnabledCheckbox().then(($checkbox: JQuery<HTMLElement>) => {
-    const currentChecked = $checkbox.is(':checked');
-    if (currentChecked !== savedState.isChecked) {
-      cy.wrap($checkbox).click(); // Toggle checkbox if needed
-    }
-  });
-
-  // Submit restored settings
-  clusterSettings.findSubmitButton().click();
 }
