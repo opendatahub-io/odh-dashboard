@@ -159,20 +159,20 @@ export const validateNotebookPodTolerations = (dashboardConfig: DashboardConfig)
  *
  * @param {string} toleration - The toleration value to be set in the input field.
  */
-export function handleTolerationSettings(toleration: string) {
-  // Find the checkbox
+export function handleTolerationSettings(toleration: string): void {
   notebookTolerationSettings.findEnabledCheckbox().then(($checkbox: JQuery<HTMLElement>) => {
     const isChecked = $checkbox.is(':checked');
-
     if (!isChecked) {
-      // If not checked, tick it
-      cy.wrap($checkbox).click().should('be.checked');
+      cy.wrap($checkbox).click();
+      cy.wrap($checkbox).should('be.checked');
     }
+  });
 
-    // Clear the input and type in the toleration
+  cy.then(() => {
     notebookTolerationSettings.findKeyInput().clear().type(toleration);
+  });
 
-    // Submit the form
+  cy.then(() => {
     clusterSettings.findSubmitButton().click();
   });
 }
@@ -181,16 +181,23 @@ export function handleTolerationSettings(toleration: string) {
  * Saves the current state of toleration settings (checkbox and input value).
  * This function captures whether the checkbox is checked and the current value of the input field.
  *
- * @returns {Promise<{ isChecked: boolean, tolerationValue: string }>} The saved state of the settings.
+ * @returns {Cypress.Chainable<{ isChecked: boolean, tolerationValue: string }>} The saved state of the settings.
  */
-export function saveTolerationSettings() {
-  return notebookTolerationSettings.findEnabledCheckbox().then(($checkbox: JQuery<HTMLElement>) => {
-    const isChecked = $checkbox.is(':checked'); // Check if checkbox is ticked
+export function saveTolerationSettings(): Cypress.Chainable<{
+  isChecked: boolean;
+  tolerationValue: string;
+}> {
+  return cy.wrap(null).then(() => {
     return notebookTolerationSettings
-      .findKeyInput()
-      .invoke('val')
-      .then((tolerationValue) => {
-        return { isChecked, tolerationValue: tolerationValue as string }; // Return both values
+      .findEnabledCheckbox()
+      .then(($checkbox: JQuery<HTMLElement>) => {
+        const isChecked = $checkbox.is(':checked');
+        return notebookTolerationSettings
+          .findKeyInput()
+          .invoke('val')
+          .then((tolerationValue) => {
+            return { isChecked, tolerationValue: tolerationValue as string };
+          });
       });
   });
 }
@@ -204,7 +211,7 @@ export function saveTolerationSettings() {
 export function restoreTolerationSettings(savedState: {
   isChecked: boolean;
   tolerationValue: string;
-}) {
+}): void {
   // Ensure the checkbox is checked first
   notebookTolerationSettings.findEnabledCheckbox().then(($checkbox: JQuery<HTMLElement>) => {
     if (!$checkbox.is(':checked')) {
@@ -213,7 +220,7 @@ export function restoreTolerationSettings(savedState: {
   });
 
   // Restore input field value
-  notebookTolerationSettings.findKeyInput().clear().type(savedState.tolerationValue); // Restore input value
+  notebookTolerationSettings.findKeyInput().clear().type(savedState.tolerationValue);
 
   // Restore checkbox state based on savedState
   notebookTolerationSettings.findEnabledCheckbox().then(($checkbox: JQuery<HTMLElement>) => {

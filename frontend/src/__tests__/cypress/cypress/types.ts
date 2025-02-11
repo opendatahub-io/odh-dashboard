@@ -110,6 +110,8 @@ export type WBTolerationsTestData = {
   wbTolerationsTestDescription: string;
   workbenchName: string;
   tolerationValue: string;
+  tolerationValueUpdate: string;
+  workbenchName2: string;
 };
 
 export type WBStatusTestData = {
