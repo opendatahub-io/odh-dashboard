@@ -204,27 +204,27 @@ export const isIntegrationApp = (app: OdhApplication): app is OdhIntegrationAppl
  * before features are released.
  *
  * @param usageExplanation Required explanation of why this temporary safety wrapper is needed
+ * @param removalTrackingLink Required link to issue/ticket tracking removal of this usage
  * @param fn The function to safely execute
  * @param defaultValue Fallback value if execution fails
- * @param removalTrackingLink Required link to issue/ticket tracking removal of this usage
  * @returns The function result or default value
  *
  * @example
  * // Good: Clear explanation of temporary development need with tracking
  * safeExecute(
  *   'Safely checking new DSC spec field that may not exist in current operator version',
+ *   'https://issues.redhat.com/browse/RHOAIENG-####',
  *   () => dsc.spec.newField.value,
  *   false,
- *   'https://issues.redhat.com/browse/RHOAIENG-12345'
  * )
  *
  * @example
  * // Bad: Using as general error handling - use proper error handling instead
  * safeExecute(
  *   'Checking user permissions',
+ *   'https://issues.redhat.com/browse/RHOAIENG-####',
  *   () => user.canEdit,
  *   false,
- *   'https://issues.redhat.com/browse/RHOAIENG-####'
  * )
  */
 export const safeExecute = <T>(
