@@ -116,6 +116,7 @@ const setUserConfig = (userConfig: UserConfig = {}, isAllowed = true) => {
         verb,
         group,
         resource,
+        namespace,
         allowed:
           // cluster admin can do everything
           isClusterAdmin
@@ -128,7 +129,10 @@ const setUserConfig = (userConfig: UserConfig = {}, isAllowed = true) => {
             ? isProjectAdmin
             : // product admins will be limited to listing resources
             isProductAdmin
-            ? !EDIT_VERBS.includes(verb)
+            ? // product admins are getting direct access to resources in the deployment namespace (but importantly, not other projects)
+              namespace === 'opendatahub'
+            : !EDIT_VERBS.includes(verb)
+            ? true
             : // everyone else can perform any action within
               !!namespace,
       }),
