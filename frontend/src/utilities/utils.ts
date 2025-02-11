@@ -222,7 +222,7 @@ export const isIntegrationApp = (app: OdhApplication): app is OdhIntegrationAppl
  * // Bad: Using as general error handling - use proper error handling instead
  * safeExecute(
  *   'Checking user permissions',
- *   'https://issues.redhat.com/browse/RHOAIENG-####',
+ *   'FooBar not a link',
  *   () => user.canEdit,
  *   false,
  * )
