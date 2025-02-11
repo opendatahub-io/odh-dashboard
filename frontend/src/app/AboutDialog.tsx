@@ -134,7 +134,7 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
                     data-testid="component-releases-table"
                   >
                     <Thead>
-                      <Tr>
+                      <Tr data-testid="table-row-title">
                         <Th width={10}>
                           {isRHOAI
                             ? RhoaiDefaultComponentReleaseName
@@ -149,7 +149,7 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
                       {groupedComponents.map(([displayName, details]) =>
                         details.releases.length > 0 ? (
                           details.releases.map((release, index) => (
-                            <Tr key={`${displayName}-${index}`}>
+                            <Tr key={`${displayName}-${index}`} data-testid="table-row-data">
                               {index === 0 ? (
                                 <Td rowSpan={details.releases!.length}>{displayName}</Td>
                               ) : null}

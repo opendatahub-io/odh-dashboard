@@ -1,9 +1,10 @@
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
+import { mockDashboardConfig, mockDscStatus, dataScienceStackComponentMap } from '~/__mocks__';
 import { asDisallowedUser, asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { mockDashboardConfig } from '~/__mocks__';
 import { aboutDialog } from '~/__tests__/cypress/cypress/pages/aboutDialog';
 import { mockConsoleLinks } from '~/__mocks__/mockConsoleLinks';
 import { loginDialog } from '~/__tests__/cypress/cypress/pages/loginDialog';
+import { DataScienceStackComponent } from '~/concepts/areas/types';
 
 describe('Application', () => {
   it('should disallow access to the dashboard', () => {
@@ -62,6 +63,25 @@ describe('Application', () => {
     aboutDialog.findChannel().should('contain.text', 'fast');
     aboutDialog.isUserAccessLevel();
     aboutDialog.findLastUpdate().should('contain.text', 'June 25, 2024');
+  });
+
+  it('should show the about modal for ODH component releases table', () => {
+    cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
+
+    appChrome.visit();
+    aboutDialog.show();
+
+    aboutDialog.findTable().should('exist');
+    const row1 = aboutDialog.getComponentReleasesRow(
+      dataScienceStackComponentMap[DataScienceStackComponent.MODEL_REGISTRY],
+    );
+    row1.find().findByText('Kubeflow Model Registry').should('exist');
+    row1.find().findByText('1.14.0').should('exist');
+    const row2 = aboutDialog.getComponentReleasesRow(
+      dataScienceStackComponentMap[DataScienceStackComponent.K_SERVE],
+    );
+    row2.find().findByText('KServe Operator').should('exist');
+    row2.find().findByText('v0.2.13').should('exist');
   });
 
   it('should show the about modal correctly when release name is not available', () => {
