@@ -18,6 +18,7 @@ import {
   handleTolerationSettings,
   saveTolerationSettings,
   restoreTolerationSettings,
+  disableTolerationsWithRetry,
 } from '~/__tests__/cypress/cypress/utils/clusterSettingsUtils';
 
 describe('Workbenches - tolerations tests', () => {
@@ -164,8 +165,8 @@ describe('Workbenches - tolerations tests', () => {
       // Set Pod Tolerations
       cy.step('Navigate to Cluster Settings and disable Pod Tolerations');
       clusterSettings.visit();
-      notebookTolerationSettings.findEnabledCheckbox().click().should('not.be.checked');
-      clusterSettings.findSubmitButton().click();
+      // Use the util to disable tolerations with retry
+      disableTolerationsWithRetry();
 
       // Project navigation
       cy.step(`Navigate to workbenches tab of Project ${projectName}`);
@@ -192,7 +193,7 @@ describe('Workbenches - tolerations tests', () => {
   );
 
   it(
-    'Verifies that a new toleration added to a new workbench',
+    'Verifies that a new toleration is added to a new workbench but not to an already running workbench',
     { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard'] },
     () => {
       // Set Pod Tolerations
@@ -226,7 +227,7 @@ describe('Workbenches - tolerations tests', () => {
       notebookRow2.shouldHaveContainerSize('Small');
 
       // Validate that the pod stops running
-      cy.step('Validated the Tolerations for the second pod');
+      cy.step('Validate the Tolerations for the second pod');
       validateWorkbenchTolerations(
         projectName,
         testData.workbenchName2,
@@ -237,6 +238,13 @@ describe('Workbenches - tolerations tests', () => {
           `Resolved Pod Name: ${resolvedPodName} and ${testData.tolerationValueUpdate} displays in the pod as expected`,
         );
       });
+            // Validate that the toleration is not present in the already running pod
+            cy.step('Validate that the toleration is not present in the already running pod');
+            validateWorkbenchTolerations(projectName, testData.workbenchName, null, true).then(
+              (resolvedPodName) => {
+                cy.log(`Pod should be running without tolerations - name: ${resolvedPodName}`);
+              },
+            );
     },
   );
 });
