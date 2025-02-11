@@ -1,3 +1,4 @@
+import { TableRow } from './components/table';
 import Chainable = Cypress.Chainable;
 
 export class AboutDialog {
@@ -36,6 +37,16 @@ export class AboutDialog {
 
   findLastUpdate(): Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('about-last-update');
+  }
+
+  findTable(): Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('component-releases-table');
+  }
+
+  getComponentReleasesRow(name: string): TableRow {
+    return new TableRow(() =>
+      this.findTable().findAllByTestId('table-row-data').contains(name).parents('tr'),
+    );
   }
 
   isAdminAccessLevel(): Chainable<JQuery<HTMLElement>> {
