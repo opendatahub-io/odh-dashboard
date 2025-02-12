@@ -5,6 +5,8 @@ import {
   DuplicateHardwareProfile,
   EditHardwareProfile,
 } from '~/pages/hardwareProfiles/manage/ManageHardwareProfileWrapper';
+import { accessAllowedRouteHoC, verbModelAccess } from '~/concepts/userSSAR';
+import { HardwareProfileModel } from '~/api';
 import HardwareProfiles from './HardwareProfiles';
 
 const HardwareProfilesRoutes: React.FC = () => (
@@ -17,4 +19,6 @@ const HardwareProfilesRoutes: React.FC = () => (
   </Routes>
 );
 
-export default HardwareProfilesRoutes;
+export default accessAllowedRouteHoC(verbModelAccess('list', HardwareProfileModel))(
+  HardwareProfilesRoutes,
+);

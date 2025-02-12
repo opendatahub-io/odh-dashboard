@@ -24,6 +24,7 @@ import useStorageClasses from '~/concepts/k8s/useStorageClasses';
 import AreaContextProvider from '~/concepts/areas/AreaContext';
 import { NimContextProvider } from '~/concepts/nimServing/NIMAvailabilityContext';
 import { ModelCatalogContextProvider } from '~/concepts/modelCatalog/context/ModelCatalogContext';
+import { AccessReviewProvider } from '~/concepts/userSSAR';
 import useDevFeatureFlags from './useDevFeatureFlags';
 import Header from './Header';
 import AppRoutes from './AppRoutes';
@@ -118,44 +119,46 @@ const App: React.FC = () => {
         </Bullseye>
       ) : (
         <AppContext.Provider value={contextValue}>
-          <Page
-            className="odh-dashboard"
-            isManagedSidebar
-            isContentFilled
-            masthead={
-              <Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />
-            }
-            sidebar={isAllowed ? <NavSidebar /> : undefined}
-            notificationDrawer={
-              <AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />
-            }
-            isNotificationDrawerExpanded={notificationsOpen}
-            mainContainerId={DASHBOARD_MAIN_CONTAINER_ID}
-            data-testid={DASHBOARD_MAIN_CONTAINER_ID}
-            banner={
-              <DevFeatureFlagsBanner
-                dashboardConfig={dashboardConfig.spec.dashboardConfig}
-                {...devFeatureFlagsProps}
-              />
-            }
-          >
-            <ErrorBoundary>
-              <NimContextProvider>
-                {/* This will be moved to modelCatalog routes as part of RHOAIENG-18959 */}
-                <ModelCatalogContextProvider>
-                  <ProjectsContextProvider>
-                    <ModelRegistrySelectorContextProvider>
-                      <QuickStarts>
-                        <AppRoutes />
-                      </QuickStarts>
-                    </ModelRegistrySelectorContextProvider>
-                  </ProjectsContextProvider>
-                </ModelCatalogContextProvider>
-              </NimContextProvider>
-              <ToastNotifications />
-              <TelemetrySetup />
-            </ErrorBoundary>
-          </Page>
+          <AccessReviewProvider>
+            <Page
+              className="odh-dashboard"
+              isManagedSidebar
+              isContentFilled
+              masthead={
+                <Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />
+              }
+              sidebar={isAllowed ? <NavSidebar /> : undefined}
+              notificationDrawer={
+                <AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />
+              }
+              isNotificationDrawerExpanded={notificationsOpen}
+              mainContainerId={DASHBOARD_MAIN_CONTAINER_ID}
+              data-testid={DASHBOARD_MAIN_CONTAINER_ID}
+              banner={
+                <DevFeatureFlagsBanner
+                  dashboardConfig={dashboardConfig.spec.dashboardConfig}
+                  {...devFeatureFlagsProps}
+                />
+              }
+            >
+              <ErrorBoundary>
+                <NimContextProvider>
+                  {/* This will be moved to modelCatalog routes as part of RHOAIENG-18959 */}
+                  <ModelCatalogContextProvider>
+                    <ProjectsContextProvider>
+                      <ModelRegistrySelectorContextProvider>
+                        <QuickStarts>
+                          <AppRoutes />
+                        </QuickStarts>
+                      </ModelRegistrySelectorContextProvider>
+                    </ProjectsContextProvider>
+                  </ModelCatalogContextProvider>
+                </NimContextProvider>
+                <ToastNotifications />
+                <TelemetrySetup />
+              </ErrorBoundary>
+            </Page>
+          </AccessReviewProvider>
         </AppContext.Provider>
       )}
     </AreaContextProvider>

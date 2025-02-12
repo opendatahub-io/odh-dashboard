@@ -9,6 +9,8 @@ import {
   hardwareProfileFilterOptions,
 } from '~/pages/hardwareProfiles/const';
 import SimpleSelect from '~/components/SimpleSelect';
+import { AccessAllowed, verbModelAccess } from '~/concepts/userSSAR';
+import { HardwareProfileModel } from '~/api';
 
 type HardwareProfilesToolbarProps = {
   filterData: HardwareProfileFilterDataType;
@@ -52,16 +54,20 @@ const HardwareProfilesToolbar: React.FC<HardwareProfilesToolbarProps> = ({
       filterData={filterData}
       onFilterUpdate={onFilterUpdate}
     >
-      <ToolbarGroup>
-        <ToolbarItem>
-          <Button
-            data-testid="create-hardware-profile"
-            onClick={() => navigate('/hardwareProfiles/create')}
-          >
-            Create hardware profile
-          </Button>
-        </ToolbarItem>
-      </ToolbarGroup>
+      <AccessAllowed resourceAttributes={verbModelAccess('create', HardwareProfileModel)}>
+        {() => (
+          <ToolbarGroup>
+            <ToolbarItem>
+              <Button
+                data-testid="create-hardware-profile"
+                onClick={() => navigate('/hardwareProfiles/create')}
+              >
+                Create hardware profile
+              </Button>
+            </ToolbarItem>
+          </ToolbarGroup>
+        )}
+      </AccessAllowed>
     </FilterToolbar>
   );
 };
