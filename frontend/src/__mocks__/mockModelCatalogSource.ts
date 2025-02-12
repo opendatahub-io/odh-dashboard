@@ -1,8 +1,8 @@
 import { ModelCatalogSource } from '~/concepts/modelCatalog/types';
-import { catalogModelMock } from '~/concepts/modelCatalog/mockData/catalogModelMock';
+import { mockCatalogModel } from './mockCatalogModel';
 
 export const mockModelCatalogSource = ({
-  models = [catalogModelMock({})],
+  models = [mockCatalogModel({})],
 }: Partial<ModelCatalogSource>): ModelCatalogSource => ({
   source: 'Red Hat',
   models,
