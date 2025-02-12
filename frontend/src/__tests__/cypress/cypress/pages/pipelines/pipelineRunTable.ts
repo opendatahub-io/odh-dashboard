@@ -75,6 +75,40 @@ class PipelineRunsTable {
       'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
       { path: { namespace, serviceName: 'dspa', runId: `${runId}:unarchive` } },
       (req) => {
+        req.reply({
+          body: {},
+        });
+      },
+    );
+  }
+
+  mockRestoreRunFails(runId: string, namespace: string) {
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
+      { path: { namespace, serviceName: 'dspa', runId: `${runId}:unarchive` } },
+      (req) => {
+        req.reply({
+          error: 'Failed to unarchive a run: FailedPreconditionError',
+          code: 9,
+          message: 'Failed to unarchive a run: FailedPreconditionError',
+          details: [
+            {
+              '@type': 'type.googleapis.com/google.rpc.Status',
+              code: 9,
+              message:
+                'Failed to unarchive run c4b8745e-fedb-4127-aee3-77deb54cc7b5 as experiment b83e522a-14a7-4fb0-8399-64a620f0b9c7 must be un-archived first',
+            },
+          ],
+        });
+      },
+    );
+  }
+
+  mockRestoreExperiment(experimentId: string, namespace: string) {
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments/:experimentId',
+      { path: { namespace, serviceName: 'dspa', experimentId: `${experimentId}:unarchive` } },
+      (req) => {
         req.reply({ body: {} });
       },
     );

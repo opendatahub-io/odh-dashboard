@@ -6,7 +6,7 @@ import { TableVariant, Td } from '@patternfly/react-table';
 import { ColumnsIcon } from '@patternfly/react-icons';
 
 import { TableBase, getTableColumnSort, useCheckboxTable } from '~/components/table';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF, PipelineRunKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 import { getPipelineRunColumns } from '~/concepts/pipelines/content/tables/columns';
 import PipelineRunTableRow from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
@@ -24,6 +24,8 @@ import {
   ExperimentContext,
   useContextExperimentArchivedOrDeleted,
 } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import { PipelineRunExperimentsContext } from '~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
+import RestoreRunWithArchivedExperimentModal from '~/pages/pipelines/global/runs/RestoreRunWithArchivedExperimentModal';
 import { CustomMetricsColumnsModal } from './CustomMetricsColumnsModal';
 import { UnavailableMetricValue } from './UnavailableMetricValue';
 import { useMetricColumns } from './useMetricColumns';
@@ -58,6 +60,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
 }) => {
   const navigate = useNavigate();
   const { experiment } = React.useContext(ExperimentContext);
+  const { experiments: allExperiments } = React.useContext(PipelineRunExperimentsContext);
   const { namespace, refreshAllAPI } = usePipelinesAPI();
   const { onClearFilters, ...filterToolbarProps } = usePipelineFilterSearchParams(setFilter);
   const { metricsColumnNames, runs, runArtifactsError, runArtifactsLoaded, metricsNames } =
@@ -82,14 +85,35 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
 
     return acc;
   }, []);
-  const restoreButtonTooltipRef = React.useRef(null);
-  const { isExperimentArchived } = useContextExperimentArchivedOrDeleted();
 
+  const restoreButtonTooltipRef = React.useRef(null);
+  const archivedExperiments = selectedRuns.reduce<ExperimentKF[]>((acc, selectedRun) => {
+    const currentExperiment = allExperiments.find(
+      (e) => e.experiment_id === selectedRun.experiment_id,
+    );
+
+    if (currentExperiment && currentExperiment.storage_state === StorageStateKF.ARCHIVED) {
+      // Create a Set to track unique experiment_id
+      if (
+        !acc.some(
+          (selectedExperiment) =>
+            selectedExperiment.experiment_id === currentExperiment.experiment_id,
+        )
+      ) {
+        acc.push(currentExperiment);
+      }
+    }
+
+    return acc;
+  }, []);
+
+  const { isExperimentArchived: isContextExperimentArchived } =
+    useContextExperimentArchivedOrDeleted();
   const primaryToolbarAction = React.useMemo(() => {
     if (runType === PipelineRunType.ARCHIVED) {
       return (
         <>
-          {isExperimentArchived && (
+          {isContextExperimentArchived && (
             <Tooltip
               content="Archived runs cannot be restored until its associated experiment is restored."
               triggerRef={restoreButtonTooltipRef}
@@ -99,7 +123,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
             data-testid="restore-button"
             variant="primary"
             isDisabled={!selectedIds.length}
-            isAriaDisabled={isExperimentArchived}
+            isAriaDisabled={isContextExperimentArchived}
             onClick={() => setIsRestoreModalOpen(true)}
             ref={restoreButtonTooltipRef}
           >
@@ -121,7 +145,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     );
   }, [
     runType,
-    isExperimentArchived,
+    isContextExperimentArchived,
     selectedIds.length,
     navigate,
     namespace,
@@ -129,7 +153,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   ]);
 
   const compareRunsAction =
-    !isExperimentArchived && runType === PipelineRunType.ACTIVE ? (
+    !isContextExperimentArchived && runType === PipelineRunType.ACTIVE ? (
       <Tooltip content="Select up to 10 runs to compare.">
         <Button
           key="compare-runs"
@@ -273,15 +297,28 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
           }}
         />
       )}
-      {isRestoreModalOpen && (
-        <RestoreRunModal
-          runs={selectedRuns}
-          onCancel={() => {
-            setIsRestoreModalOpen(false);
-            setSelectedIds([]);
-          }}
-        />
-      )}
+      {isRestoreModalOpen &&
+        (!archivedExperiments.length ? (
+          <RestoreRunModal
+            runs={selectedRuns}
+            onCancel={() => {
+              setIsRestoreModalOpen(false);
+              setSelectedIds([]);
+            }}
+          />
+        ) : (
+          <RestoreRunWithArchivedExperimentModal
+            selectedRuns={selectedRuns}
+            archivedExperiments={archivedExperiments}
+            onClose={(restored: boolean) => {
+              if (restored) {
+                refreshAllAPI();
+              }
+              setIsRestoreModalOpen(false);
+              setSelectedIds([]);
+            }}
+          />
+        ))}
       {isDeleteModalOpen && (
         <DeletePipelineRunsModal
           toDeleteResources={selectedRuns}
