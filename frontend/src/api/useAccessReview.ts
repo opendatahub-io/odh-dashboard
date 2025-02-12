@@ -3,14 +3,14 @@ import * as React from 'react';
 import { ProjectModel, SelfSubjectAccessReviewModel } from '~/api/models';
 import { AccessReviewResourceAttributes, SelfSubjectAccessReviewKind } from '~/k8sTypes';
 
-const checkAccess = ({
+export const checkAccess = ({
   group,
   resource,
   subresource,
   verb,
   name,
   namespace,
-}: Required<AccessReviewResourceAttributes>): Promise<SelfSubjectAccessReviewKind> => {
+}: Required<AccessReviewResourceAttributes>): Promise<boolean> => {
   // Projects are a special case. `namespace` must be set to the project name
   // even though it's a cluster-scoped resource.
   const reviewNamespace =
@@ -32,14 +32,28 @@ const checkAccess = ({
   return k8sCreateResource<SelfSubjectAccessReviewKind>({
     model: SelfSubjectAccessReviewModel,
     resource: selfSubjectAccessReview,
-  });
+  })
+    .then((result) => result.status?.allowed ?? true)
+    .catch((e) => {
+      // eslint-disable-next-line no-console
+      console.warn('SelfSubjectAccessReview failed', e);
+      return true; // if it critically fails, don't block SSAR checks; let it fail/succeed on future calls
+    });
 };
 
+/**
+ * Used for a non-cached SSAR request.
+ *
+ * Potentially obsolete -- depending on if we need a non-cached variant.
+ *
+ * @see useAccessAllowed - Cached variant
+ * @see verbModelAccess - Helper util for resourceAttributes
+ */
 export const useAccessReview = (
   resourceAttributes: AccessReviewResourceAttributes,
   shouldRunCheck = true,
 ): [boolean, boolean] => {
-  const [loaded, setLoaded] = React.useState(false);
+  const [isLoaded, setIsLoaded] = React.useState(false);
   const [isAllowed, setAllowed] = React.useState(false);
 
   const {
@@ -53,23 +67,12 @@ export const useAccessReview = (
 
   React.useEffect(() => {
     if (shouldRunCheck) {
-      checkAccess({ group, resource, subresource, verb, name, namespace })
-        .then((result) => {
-          if (result.status) {
-            setAllowed(result.status.allowed);
-          } else {
-            setAllowed(true);
-          }
-          setLoaded(true);
-        })
-        .catch((e) => {
-          // eslint-disable-next-line no-console
-          console.warn('SelfSubjectAccessReview failed', e);
-          setAllowed(true);
-          setLoaded(true);
-        });
+      checkAccess({ group, resource, subresource, verb, name, namespace }).then((allowed) => {
+        setAllowed(allowed);
+        setIsLoaded(true);
+      });
     }
   }, [group, name, namespace, resource, subresource, verb, shouldRunCheck]);
 
-  return [isAllowed, loaded];
+  return [isAllowed, isLoaded];
 };
