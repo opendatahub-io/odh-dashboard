@@ -168,7 +168,7 @@ const ModelCustomization: React.FC = () => {
                                   variant="link"
                                   onClick={() => navigate('/projects')}
                                 >
-                                  Go to projects
+                                  Go to Projects
                                 </Button>
                               </StackItem>
                             </Stack>
