@@ -20,6 +20,7 @@ import {
   restoreTolerationSettings,
   disableTolerationsWithRetry,
 } from '~/__tests__/cypress/cypress/utils/clusterSettingsUtils';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 describe('Workbenches - tolerations tests', () => {
   let testData: WBTolerationsTestData;
@@ -28,7 +29,7 @@ describe('Workbenches - tolerations tests', () => {
   let initialState: { isChecked: boolean; tolerationValue: string };
 
   // Setup: Load test data and ensure clean state
-  before(() => {
+  retryableBefore(() => {
     return loadWBTolerationsFixture('e2e/dataScienceProjects/testWorkbenchTolerations.yaml')
       .then((fixtureData: WBTolerationsTestData) => {
         projectName = fixtureData.wbTolerationsTestNamespace;
