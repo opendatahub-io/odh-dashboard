@@ -9,7 +9,7 @@ import {
 } from '~/__tests__/cypress/cypress/utils/resourceUtils';
 import { checkResources } from '~/__tests__/cypress/cypress/utils/resourceCheckUtils';
 
-describe('Create a custom resource Quickstart by using Dashboard CRDs', () => {
+describe('[Known Product Bug: RHOAIENG-5317]Create a custom resource Quickstart by using Dashboard CRDs', () => {
   let resourcesData: ResourcesData;
   let resourceNames: ReturnType<typeof getResourceValues>;
 
@@ -35,7 +35,7 @@ describe('Create a custom resource Quickstart by using Dashboard CRDs', () => {
 
   it(
     'Upload custom resource and verify',
-    { tags: ['@Smoke', '@SmokeSet2', '@ODS-697', '@Dashboard'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-697', '@Dashboard', '@Bug'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');

@@ -109,6 +109,15 @@ export type WBVariablesTestData = {
   FAKE_CM_VALUE: string;
 };
 
+export type WBTolerationsTestData = {
+  wbTolerationsTestNamespace: string;
+  wbTolerationsTestDescription: string;
+  workbenchName: string;
+  tolerationValue: string;
+  tolerationValueUpdate: string;
+  workbenchName2: string;
+};
+
 export type WBStatusTestData = {
   wbStatusTestNamespace: string;
   wbStatusTestDescription: string;
