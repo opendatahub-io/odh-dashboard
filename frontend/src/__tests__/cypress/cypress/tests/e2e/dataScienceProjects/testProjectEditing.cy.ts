@@ -53,7 +53,7 @@ describe('Verify Data Science Project - Editing Project Name and Description', (
       cy.step(`Navigate to the Project list tab and search for ${projectName}`);
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
-      projectListPage.findProjectLink('projectName').click();
+      projectListPage.findProjectLink(projectName).click();
 
       // Verify project creation
       cy.step(`Verify that the project ${projectName} has been created`);
