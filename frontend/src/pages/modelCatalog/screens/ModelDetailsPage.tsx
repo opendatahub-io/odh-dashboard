@@ -25,7 +25,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
   const model: CatalogModel | null = React.useMemo(
     () =>
       findModelFromModelCatalogSources(
-        modelCatalogSources,
+        modelCatalogSources.data,
         decodedParams.sourceName,
         decodedParams.repositoryName,
         decodedParams.modelName,

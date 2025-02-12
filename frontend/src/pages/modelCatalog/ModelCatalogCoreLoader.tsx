@@ -13,4 +13,3 @@ const ModelCatalogCoreLoader: React.FC = conditionalArea(
 ));
 
 export default ModelCatalogCoreLoader;
-
