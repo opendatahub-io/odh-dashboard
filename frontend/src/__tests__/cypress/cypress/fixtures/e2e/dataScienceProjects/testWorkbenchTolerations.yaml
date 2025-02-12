@@ -1,0 +1,7 @@
+# testWorkbenchTolerations.cy.ts Test Data #
+wbTolerationsTestNamespace: 'dsp-wb-tolerations-test'
+wbTolerationsTestDescription: 'This is a test description.'
+workbenchName: 'dsp-test-wb'
+tolerationValue: 'workbenchtoleration'
+tolerationValueUpdate: 'updatetoleration'
+workbenchName2: 'testworkbench'
