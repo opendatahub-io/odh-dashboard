@@ -60,10 +60,21 @@ const useDSProjectsNav = (): NavDataItem[] =>
 
 const useDSPipelinesNav = (): NavDataItem[] => {
   const isAvailable = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
+  const isFineTuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
 
   if (!isAvailable) {
     return [];
   }
+
+  const modelCustomizationNavChild = isFineTuningAvailable
+    ? [
+        {
+          id: 'modelCustomization',
+          label: 'Model Customization',
+          href: '/modelCustomization',
+        },
+      ]
+    : [];
 
   return [
     {
@@ -80,6 +91,7 @@ const useDSPipelinesNav = (): NavDataItem[] => {
           label: 'Runs',
           href: pipelineRunsRootPath,
         },
+        ...modelCustomizationNavChild,
       ],
     },
     {

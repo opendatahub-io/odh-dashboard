@@ -8,6 +8,7 @@ import {
   globArtifactsAll,
   globExecutionsAll,
   globExperimentsAll,
+  globModelCustomizationAll,
   globPipelineRunsAll,
   globPipelinesAll,
 } from '~/routes';
@@ -43,6 +44,9 @@ const GlobalPipelineExperimentRoutes = React.lazy(
 );
 const GlobalPipelineExecutionsRoutes = React.lazy(
   () => import('../pages/pipelines/GlobalPipelineExecutionsRoutes'),
+);
+const GlobalModelCustomizationRoutes = React.lazy(
+  () => import('../pages/pipelines/GlobalModelCustomizationRoutes'),
 );
 
 const GlobalArtifactsRoutes = React.lazy(() => import('../pages/pipelines/GlobalArtifactsRoutes'));
@@ -84,6 +88,7 @@ const AppRoutes: React.FC = () => {
   const { isAdmin, isAllowed } = useUser();
   const isJupyterEnabled = useCheckJupyterEnabled();
   const isHomeAvailable = useIsAreaAvailable(SupportedArea.HOME).status;
+  const isFineTuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
 
   if (!isAllowed) {
     return (
@@ -131,6 +136,9 @@ const AppRoutes: React.FC = () => {
         <Route path={globExperimentsAll} element={<GlobalPipelineExperimentRoutes />} />
         <Route path={globArtifactsAll} element={<GlobalArtifactsRoutes />} />
         <Route path={globExecutionsAll} element={<GlobalPipelineExecutionsRoutes />} />
+        {isFineTuningAvailable && (
+          <Route path={globModelCustomizationAll} element={<GlobalModelCustomizationRoutes />} />
+        )}
 
         <Route path="/distributedWorkloads/*" element={<GlobalDistributedWorkloadsRoutes />} />
 

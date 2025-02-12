@@ -4,6 +4,7 @@ import { ProjectObjectType, typedColor } from '~/concepts/design/utils';
 import {
   BuildIcon,
   NotebookIcon,
+  CreateAndTrainIcon,
   DataConnectionIcon,
   DeployedModelIcon,
   ProjectIcon,
@@ -74,6 +75,9 @@ const TypedObjectIcon: React.FC<TypedObjectIconProps> = ({
       break;
     case ProjectObjectType.pipelineArtifact:
       Icon = ArtifactIcon;
+      break;
+    case ProjectObjectType.modelCustomization:
+      Icon = CreateAndTrainIcon;
       break;
     case ProjectObjectType.clusterStorage:
       Icon = StorageIcon;
