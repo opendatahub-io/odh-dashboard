@@ -267,6 +267,8 @@ export const assembleConnectionSecret = (
     (t) => modelServingCompatibleTypesMetadata[t].managedType,
   )[0];
 
+  const isPullSecret = !!values['.dockerconfigjson'];
+
   return {
     apiVersion: 'v1',
     kind: 'Secret',
@@ -285,6 +287,7 @@ export const assembleConnectionSecret = (
       },
     },
     stringData: connectionValuesAsStrings,
+    ...(isPullSecret && { type: 'kubernetes.io/dockerconfigjson' }),
   };
 };
 
