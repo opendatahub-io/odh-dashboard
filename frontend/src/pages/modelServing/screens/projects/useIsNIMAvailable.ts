@@ -3,9 +3,13 @@ import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { getIntegrationAppEnablementStatus } from '~/services/integrationAppService';
 import { fetchComponents } from '~/services/componentsServices';
 import useFetchState from '~/utilities/useFetchState';
-import { FAST_POLL_INTERVAL } from '~/utilities/const';
 
-export const useIsNIMAvailable = (): [boolean, boolean, Error | undefined] => {
+export const useIsNIMAvailable = (): [
+  boolean,
+  boolean,
+  Error | undefined,
+  () => Promise<boolean | undefined>,
+] => {
   const isNIMModelServingAvailable = useIsAreaAvailable(SupportedArea.NIM_MODEL).status;
 
   const fetchNIMAvailability = React.useCallback(async () => {
@@ -26,10 +30,13 @@ export const useIsNIMAvailable = (): [boolean, boolean, Error | undefined] => {
     return isInstalled && isEnabled;
   }, [isNIMModelServingAvailable]);
 
-  const [isNIMAvailable, loaded, loadError] = useFetchState<boolean>(fetchNIMAvailability, false, {
-    initialPromisePurity: false,
-    refreshRate: FAST_POLL_INTERVAL,
-  });
+  const [isNIMAvailable, loaded, loadError, refresh] = useFetchState<boolean>(
+    fetchNIMAvailability,
+    false,
+    {
+      initialPromisePurity: false,
+    },
+  );
 
-  return [isNIMAvailable, loaded, loadError];
+  return [isNIMAvailable, loaded, loadError, refresh];
 };

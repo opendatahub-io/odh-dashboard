@@ -9,6 +9,7 @@ import {
 import { addNotification, forceComponentsUpdate } from '~/redux/actions/actions';
 import { useAppDispatch } from '~/redux/hooks';
 import { IntegrationAppStatus, VariablesValidationStatus } from '~/types';
+import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import { isInternalRouteIntegrationsApp } from './utils';
 
 export enum EnableApplicationStatus {
@@ -32,6 +33,7 @@ export const useEnableApplication = (
   const [lastVariablesValidationTimestamp, setLastVariablesValidationTimestamp] =
     React.useState<string>('');
   const dispatch = useAppDispatch();
+  const servingPlatformStatuses = useServingPlatformStatuses();
 
   const dispatchResults = React.useCallback(
     (error?: string) => {
@@ -101,6 +103,12 @@ export const useEnableApplication = (
                 setEnableStatus({ status: EnableApplicationStatus.FAILED, error: e.message });
               }
               dispatchResults(e.message);
+            })
+            .finally(() => {
+              servingPlatformStatuses.refreshNIMAvailability().catch((e) =>
+                /* eslint-disable-next-line no-console */
+                console.error('Failed to refresh NIM availability:', e),
+              );
             });
         } else {
           getValidationStatus(appId)
@@ -137,6 +145,7 @@ export const useEnableApplication = (
     enableStatus.status,
     internalRoute,
     lastVariablesValidationTimestamp,
+    servingPlatformStatuses,
   ]);
 
   React.useEffect(() => {
@@ -180,6 +189,12 @@ export const useEnableApplication = (
               setEnableStatus({ status: EnableApplicationStatus.FAILED, error: e.message });
             }
             dispatchResults(e.message);
+          })
+          .finally(() => {
+            servingPlatformStatuses.refreshNIMAvailability().catch((e) =>
+              /* eslint-disable-next-line no-console */
+              console.error('Failed to refresh NIM availability:', e),
+            );
           });
       } else {
         postValidateIsv(appId, enableValues)
@@ -220,6 +235,7 @@ export const useEnableApplication = (
     enableValues,
     internalRoute,
     lastVariablesValidationTimestamp,
+    servingPlatformStatuses,
   ]);
   return [enableStatus.status, enableStatus.error];
 };
