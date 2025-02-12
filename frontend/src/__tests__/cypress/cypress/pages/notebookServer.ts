@@ -81,7 +81,7 @@ class NotebookServer {
   }
 
   findSuccessAlert() {
-    return cy.findByText('Success', { timeout: 120000 });
+    return cy.findByText('Running', { timeout: 120000 });
   }
 
   findNotebookImage(notebook: string) {

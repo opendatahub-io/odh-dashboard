@@ -88,12 +88,12 @@ export const useEnableApplication = (
                 error:
                   response.variablesValidationStatus === VariablesValidationStatus.SUCCESS
                     ? ''
-                    : 'Variables are not valid',
+                    : response.error,
               });
               dispatchResults(
                 response.variablesValidationStatus === VariablesValidationStatus.SUCCESS
                   ? undefined
-                  : 'Variables are not valid',
+                  : response.error,
               );
             })
             .catch((e) => {
@@ -164,12 +164,12 @@ export const useEnableApplication = (
                     error:
                       response.variablesValidationStatus === VariablesValidationStatus.SUCCESS
                         ? ''
-                        : 'Variables are not valid',
+                        : response.error,
                   });
                   dispatchResults(
                     response.variablesValidationStatus === VariablesValidationStatus.SUCCESS
                       ? undefined
-                      : 'Variables are not valid',
+                      : response.error,
                   );
                 }
               }

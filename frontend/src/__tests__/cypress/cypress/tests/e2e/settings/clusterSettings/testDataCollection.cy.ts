@@ -6,7 +6,7 @@ import {
 import { getCustomResource } from '~/__tests__/cypress/cypress/utils/oc_commands/customResources';
 import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
-describe('[Known Bug: RHOAIENG-18495] Verify That Usage Data Collection Can Be Set In Cluster Settings', () => {
+describe('Verify That Usage Data Collection Can Be Set In Cluster Settings', () => {
   let skipTest = false;
 
   retryableBefore(() => {
@@ -24,7 +24,7 @@ describe('[Known Bug: RHOAIENG-18495] Verify That Usage Data Collection Can Be S
 
   it(
     'Verify Usage Data Collection can be Enabled/Disabled',
-    { tags: ['@Sanity', '@SanitySet1', '@ODS-1218', '@Dashboard', '@Bug'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ODS-1218', '@Dashboard'] },
     () => {
       if (skipTest) {
         cy.log('Skipping test confirmed');
