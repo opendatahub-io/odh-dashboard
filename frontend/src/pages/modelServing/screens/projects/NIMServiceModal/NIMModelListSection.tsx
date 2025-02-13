@@ -110,6 +110,7 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
       <TypeaheadSelect
         selectOptions={options}
         selected={selectedModel}
+        isScrollable
         isDisabled={isEditing}
         onSelect={onSelect}
         placeholder={isEditing ? selectedModel : 'Select NVIDIA NIM to deploy'}
