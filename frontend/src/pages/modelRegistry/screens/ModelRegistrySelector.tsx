@@ -12,6 +12,7 @@ import {
   Popover,
   PopoverPosition,
   Tooltip,
+  Truncate,
 } from '@patternfly/react-core';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
 import truncateStyles from '@patternfly/react-styles/css/components/Truncate/truncate';
@@ -155,7 +156,11 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
             aria-label="Model registry description popover"
             data-testid="mr-details-popover"
             position="right"
-            headerContent={`${getDisplayNameFromK8sResource(selection)} details`}
+            headerContent={
+              // FIXME 'Truncate' can be removed once PF bug is resolved
+              // https://github.com/patternfly/patternfly/issues/7340
+              <Truncate content={`${getDisplayNameFromK8sResource(selection)} details`} />
+            }
             bodyContent={
               <DescriptionList>
                 <DescriptionListGroup>
