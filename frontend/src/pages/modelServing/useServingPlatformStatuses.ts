@@ -12,12 +12,18 @@ const useServingPlatformStatuses = (): ServingPlatformStatuses => {
   const modelMeshInstalled = !!modelMeshStatus.requiredComponents?.[StackComponent.MODEL_MESH];
 
   const { isNIMAvailable, refresh } = React.useContext(NIMAvailabilityContext);
+  const [runOnce, setRunOnce] = React.useState(false);
+
   React.useEffect(() => {
-    refresh().catch((error) =>
-      /* eslint-disable-next-line no-console */
-      console.error('Failed to refresh NIM availability:', error),
-    );
-  });
+    if (!runOnce) {
+      refresh()
+        .then(() => {
+          setRunOnce(true);
+        })
+        // eslint-disable-next-line no-console
+        .catch((error) => console.error('Failed to refresh NIM availability:', error));
+    }
+  }, [refresh, runOnce]);
 
   return {
     kServe: {
