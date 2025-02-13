@@ -32,4 +32,28 @@ describe('useConnectionType', () => {
     expect(renderResult).hookToHaveUpdateCount(3);
     expect(renderResult).hookToBeStable([false, true, true, true]);
   });
+
+  it('should handle errors when name is empty', async () => {
+    mockFetchConnectionType.mockRejectedValue(new Error('No connection type name'));
+    const renderResult = testHook(useConnectionType)('test');
+    expect(renderResult).hookToStrictEqual(standardUseFetchState(undefined));
+    expect(renderResult).hookToHaveUpdateCount(1);
+    //  wait for update
+    await renderResult.waitForNextUpdate();
+    expect(renderResult).hookToStrictEqual(
+      standardUseFetchState(undefined, false, new Error('No connection type name')),
+    );
+    expect(mockFetchConnectionType).toHaveBeenCalledTimes(1);
+    expect(renderResult).hookToHaveUpdateCount(2);
+    expect(renderResult).hookToBeStable([true, true, false, true]);
+    // refresh
+    mockFetchConnectionType.mockRejectedValue(new Error('No connection type name-error2'));
+    await act(() => renderResult.result.current[3]());
+    expect(mockFetchConnectionType).toHaveBeenCalledTimes(2);
+    expect(renderResult).hookToStrictEqual(
+      standardUseFetchState(undefined, false, new Error('No connection type name-error2')),
+    );
+    expect(renderResult).hookToHaveUpdateCount(3);
+    expect(renderResult).hookToBeStable([true, true, false, true]);
+  });
 });
