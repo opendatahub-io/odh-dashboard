@@ -22,7 +22,7 @@ import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymen
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
-import { toggleInstructLabState } from '~/api/';
+import { patchDefaultDeploymentMode, toggleInstructLabState } from '~/api/';
 import {
   DEFAULT_CONFIG,
   DEFAULT_PVC_SIZE,
@@ -35,7 +35,9 @@ import useDefaultDsc from './useDefaultDsc';
 import InstructLabSettings from './InstructLabSettings';
 
 const ClusterSettings: React.FC = () => {
-  const { defaultMode: defaultSingleModelDeploymentMode } = useKServeDeploymentMode();
+  const { defaultMode } = useKServeDeploymentMode();
+  const [defaultSingleModelDeploymentMode, setDefaultSingleModelDeploymentMode] =
+    React.useState<DeploymentMode>(defaultMode);
   const [dsc, dscLoaded, dscError, refreshDsc] = useDefaultDsc();
   const [loaded, setLoaded] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -88,7 +90,8 @@ const ClusterSettings: React.FC = () => {
         },
         modelServingPlatformEnabled: modelServingEnabledPlatforms,
       }) ||
-      (isAreaFineTuningEnabled && instructLabEnabled !== instructLabDSCState),
+      (isAreaFineTuningEnabled && instructLabEnabled !== instructLabDSCState) ||
+      defaultDeploymentMode !== defaultSingleModelDeploymentMode,
     [
       clusterSettings,
       pvcSize,
@@ -100,6 +103,8 @@ const ClusterSettings: React.FC = () => {
       instructLabEnabled,
       instructLabDSCState,
       isAreaFineTuningEnabled,
+      defaultDeploymentMode,
+      defaultSingleModelDeploymentMode,
     ],
   );
 
@@ -117,8 +122,10 @@ const ClusterSettings: React.FC = () => {
 
     const clusterSettingsUnchanged = _.isEqual(clusterSettings, newClusterSettings);
     const instructLabUnchanged = instructLabEnabled === instructLabDSCState;
+    const defaultDeploymentModeUnchanged =
+      defaultDeploymentMode === defaultSingleModelDeploymentMode;
 
-    if (clusterSettingsUnchanged && instructLabUnchanged) {
+    if (clusterSettingsUnchanged && instructLabUnchanged && defaultDeploymentModeUnchanged) {
       return;
     }
 
@@ -149,7 +156,15 @@ const ClusterSettings: React.FC = () => {
           },
         );
 
-    Promise.all([clusterSettingsPromise, instructLabPromise])
+    const defaultDeploymentModePromise = defaultDeploymentModeUnchanged
+      ? Promise.resolve()
+      : dsc &&
+        patchDefaultDeploymentMode(defaultDeploymentMode, dsc.metadata.name).then(() => {
+          setDefaultSingleModelDeploymentMode(defaultDeploymentMode);
+          refreshDsc();
+        });
+
+    Promise.all([clusterSettingsPromise, instructLabPromise, defaultDeploymentModePromise])
       .then(() => {
         dispatch(
           addNotification({
