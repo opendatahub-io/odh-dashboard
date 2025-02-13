@@ -22,7 +22,7 @@ export const ModelCatalogCard: React.FC<{ model: CatalogModel; source: string }>
   model,
   source,
 }) => (
-  <Card>
+  <Card isFullHeight>
     <CardHeader>
       <CardTitle>
         <Flex alignItems={{ default: 'alignItemsCenter' }}>
@@ -57,7 +57,7 @@ export const ModelCatalogCard: React.FC<{ model: CatalogModel; source: string }>
             <SplitItem isFilled>{model.artifacts?.[0]?.tags?.[0]}</SplitItem>
           </Split>
         </StackItem>
-        <StackItem>{model.description}</StackItem>
+        <StackItem isFilled>{model.description}</StackItem>
         <StackItem>
           {(model.tasks ?? []).map((task, index) => (
             <Label variant="outline" key={index}>

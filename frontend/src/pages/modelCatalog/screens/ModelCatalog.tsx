@@ -7,7 +7,7 @@ import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import { conditionalArea, SupportedArea } from '~/concepts/areas';
 import EmptyModelCatalogState from '~/pages/modelCatalog/EmptyModelCatalogState';
 import { ModelCatalogContext } from '~/concepts/modelCatalog/context/ModelCatalogContext';
-import { ModelCatalogCards } from '~/pages/modelCatalog/components/modelCatalogCards';
+import { ModelCatalogCards } from '~/pages/modelCatalog/components/ModelCatalogCards';
 
 const ModelCatalog: React.FC = conditionalArea(
   SupportedArea.MODEL_CATALOG,
