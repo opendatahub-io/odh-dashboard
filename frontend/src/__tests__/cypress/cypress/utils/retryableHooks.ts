@@ -8,8 +8,8 @@
 export const retryableBefore = <T>(fn: () => void | Promise<void> | Cypress.Chainable<T>): void => {
   let shouldRun = true;
 
-  beforeEach(() => {
-    if (!shouldRun) return;
+  beforeEach(function retryableBeforeEach() {
+    if (this.currentTest?.isPending() || !shouldRun) return;
     shouldRun = false;
     cy.wrap(null).then(fn);
   });
