@@ -34,6 +34,7 @@ export const allFeatureFlags: string[] = Object.keys({
   disableServingRuntimeParams: false,
   disableStorageClasses: false,
   disableNIMModelServing: true,
+  disableAdminConnectionTypes: false,
   disableFineTuning: true,
 } satisfies DashboardCommonConfig);
 
@@ -144,6 +145,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.NIM_MODEL]: {
     featureFlags: ['disableNIMModelServing'],
     reliantAreas: [SupportedArea.K_SERVE],
+  },
+  [SupportedArea.ADMIN_CONNECTION_TYPES]: {
+    featureFlags: ['disableAdminConnectionTypes'],
   },
   [SupportedArea.FINE_TUNING]: {
     featureFlags: ['disableFineTuning'],

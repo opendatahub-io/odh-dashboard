@@ -5,12 +5,14 @@ type MockResourceConfigType = {
   group?: string;
   resource?: string;
   allowed?: boolean;
+  namespace?: string;
 };
 
 export const mockSelfSubjectAccessReview = ({
   verb = 'list',
   group = 'serving.kserve.io',
   resource = 'servingruntimes',
+  namespace = 'opendatahub',
   allowed = false,
 }: MockResourceConfigType): SelfSubjectAccessReviewKind => ({
   kind: 'SelfSubjectAccessReview',
@@ -20,6 +22,7 @@ export const mockSelfSubjectAccessReview = ({
       group,
       resource,
       verb,
+      namespace,
     },
   },
   status: {

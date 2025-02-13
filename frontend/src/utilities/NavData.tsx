@@ -8,6 +8,9 @@ import {
   pipelineRunsRootPath,
   pipelinesRootPath,
 } from '~/routes';
+import { HardwareProfileModel } from '~/api';
+import { AccessReviewResourceAttributes } from '~/k8sTypes';
+import { useAccessAllowed, verbModelAccess } from '~/concepts/userSSAR';
 
 type NavDataCommon = {
   id: string;
@@ -32,8 +35,27 @@ export const isNavDataHref = (navData: NavDataItem): navData is NavDataHref => '
 export const isNavDataGroup = (navData: NavDataItem): navData is NavDataGroup =>
   'children' in navData;
 
-const useAreaCheck = <T,>(area: SupportedArea, success: T[]): T[] =>
-  useIsAreaAvailable(area).status ? success : [];
+const useAreaCheck = <T,>(
+  area: SupportedArea,
+  success: T[],
+  resourceAttributes?: AccessReviewResourceAttributes,
+): T[] => {
+  const [isAccessAllowed, isAccessLoaded] = useAccessAllowed(
+    resourceAttributes || { verb: '*' },
+    !!resourceAttributes,
+  );
+  const isAreaAvailable = useIsAreaAvailable(area).status;
+
+  if (!resourceAttributes) {
+    return isAreaAvailable ? success : [];
+  }
+
+  if (!isAccessLoaded) {
+    return [];
+  }
+
+  return isAccessAllowed && isAreaAvailable ? success : [];
+};
 
 const useApplicationsNav = (): NavDataItem[] => {
   const isHomeAvailable = useIsAreaAvailable(SupportedArea.HOME).status;
@@ -50,6 +72,17 @@ const useApplicationsNav = (): NavDataItem[] => {
   ];
 };
 
+/**
+ * @deprecated - when we move to SSAR for all admin navs, remove this.
+ * @see UserState.isAdmin
+ */
+const useIsAdminAreaCheck: typeof useAreaCheck = (...args) => {
+  const { isAdmin } = useUser();
+  const navData = useAreaCheck(...args);
+
+  return isAdmin ? navData : [];
+};
+
 const useHomeNav = (): NavDataItem[] =>
   useAreaCheck(SupportedArea.HOME, [{ id: 'home', label: 'Home', href: '/' }]);
 
@@ -60,10 +93,21 @@ const useDSProjectsNav = (): NavDataItem[] =>
 
 const useDSPipelinesNav = (): NavDataItem[] => {
   const isAvailable = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
+  const isFineTuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
 
   if (!isAvailable) {
     return [];
   }
+
+  const modelCustomizationNavChild = isFineTuningAvailable
+    ? [
+        {
+          id: 'modelCustomization',
+          label: 'Model Customization',
+          href: '/modelCustomization',
+        },
+      ]
+    : [];
 
   return [
     {
@@ -80,6 +124,7 @@ const useDSPipelinesNav = (): NavDataItem[] => {
           label: 'Runs',
           href: pipelineRunsRootPath,
         },
+        ...modelCustomizationNavChild,
       ],
     },
     {
@@ -131,7 +176,7 @@ const useResourcesNav = (): NavDataHref[] => [
 ];
 
 const useCustomNotebooksNav = (): NavDataHref[] =>
-  useAreaCheck<NavDataHref>(SupportedArea.BYON, [
+  useIsAdminAreaCheck<NavDataHref>(SupportedArea.BYON, [
     {
       id: 'settings-notebook-images',
       label: 'Notebook images',
@@ -140,7 +185,7 @@ const useCustomNotebooksNav = (): NavDataHref[] =>
   ]);
 
 const useClusterSettingsNav = (): NavDataHref[] =>
-  useAreaCheck<NavDataHref>(SupportedArea.CLUSTER_SETTINGS, [
+  useIsAdminAreaCheck<NavDataHref>(SupportedArea.CLUSTER_SETTINGS, [
     {
       id: 'settings-cluster-settings',
       label: 'Cluster settings',
@@ -149,7 +194,7 @@ const useClusterSettingsNav = (): NavDataHref[] =>
   ]);
 
 const useCustomRuntimesNav = (): NavDataHref[] =>
-  useAreaCheck<NavDataHref>(SupportedArea.CUSTOM_RUNTIMES, [
+  useIsAdminAreaCheck<NavDataHref>(SupportedArea.CUSTOM_RUNTIMES, [
     {
       id: 'settings-custom-serving-runtimes',
       label: 'Serving runtimes',
@@ -157,16 +202,17 @@ const useCustomRuntimesNav = (): NavDataHref[] =>
     },
   ]);
 
-const useConnectionTypesNav = (): NavDataHref[] => [
-  {
-    id: 'settings-connection-types',
-    label: 'Connection types',
-    href: '/connectionTypes',
-  },
-];
+const useConnectionTypesNav = (): NavDataHref[] =>
+  useIsAdminAreaCheck<NavDataHref>(SupportedArea.ADMIN_CONNECTION_TYPES, [
+    {
+      id: 'settings-connection-types',
+      label: 'Connection types',
+      href: '/connectionTypes',
+    },
+  ]);
 
 const useStorageClassesNav = (): NavDataHref[] =>
-  useAreaCheck<NavDataHref>(SupportedArea.STORAGE_CLASSES, [
+  useIsAdminAreaCheck<NavDataHref>(SupportedArea.STORAGE_CLASSES, [
     {
       id: 'settings-storage-classes',
       label: 'Storage classes',
@@ -175,7 +221,7 @@ const useStorageClassesNav = (): NavDataHref[] =>
   ]);
 
 const useModelRegisterySettingsNav = (): NavDataHref[] =>
-  useAreaCheck<NavDataHref>(SupportedArea.MODEL_REGISTRY, [
+  useIsAdminAreaCheck<NavDataHref>(SupportedArea.MODEL_REGISTRY, [
     {
       id: 'settings-model-registry',
       label: 'Model registry settings',
@@ -184,7 +230,7 @@ const useModelRegisterySettingsNav = (): NavDataHref[] =>
   ]);
 
 const useUserManagementNav = (): NavDataHref[] =>
-  useAreaCheck<NavDataHref>(SupportedArea.USER_MANAGEMENT, [
+  useIsAdminAreaCheck<NavDataHref>(SupportedArea.USER_MANAGEMENT, [
     {
       id: 'settings-group-settings',
       label: 'User management',
@@ -193,7 +239,7 @@ const useUserManagementNav = (): NavDataHref[] =>
   ]);
 
 const useAcceleratorProfilesNav = (): NavDataHref[] =>
-  useAreaCheck<NavDataHref>(SupportedArea.ACCELERATOR_PROFILES, [
+  useIsAdminAreaCheck<NavDataHref>(SupportedArea.ACCELERATOR_PROFILES, [
     {
       id: 'settings-accelerator-profiles',
       label: 'Accelerator profiles',
@@ -202,13 +248,17 @@ const useAcceleratorProfilesNav = (): NavDataHref[] =>
   ]);
 
 const useHardwareProfilesNav = (): NavDataHref[] =>
-  useAreaCheck<NavDataHref>(SupportedArea.HARDWARE_PROFILES, [
-    {
-      id: 'settings-hardware-profiles',
-      label: 'Hardware profiles',
-      href: '/hardwareProfiles',
-    },
-  ]);
+  useAreaCheck<NavDataHref>(
+    SupportedArea.HARDWARE_PROFILES,
+    [
+      {
+        id: 'settings-hardware-profiles',
+        label: 'Hardware profiles',
+        href: '/hardwareProfiles',
+      },
+    ],
+    verbModelAccess('list', HardwareProfileModel),
+  );
 
 const useSettingsNav = (): NavDataGroup[] => {
   const settingsNavs: NavDataHref[] = [
@@ -223,8 +273,7 @@ const useSettingsNav = (): NavDataGroup[] => {
     ...useUserManagementNav(),
   ];
 
-  const { isAdmin } = useUser();
-  if (!isAdmin || settingsNavs.length === 0) {
+  if (settingsNavs.length === 0) {
     return [];
   }
 

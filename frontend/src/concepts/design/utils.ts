@@ -43,6 +43,7 @@ export enum ProjectObjectType {
   pipelineExperiment = 'pipeline-experiment',
   pipelineExecution = 'pipeline-execution',
   pipelineArtifact = 'pipeline-artifact',
+  modelCustomization = 'model-customization',
   clusterStorage = 'cluster-storage',
   model = 'model',
   singleModel = 'single-model',

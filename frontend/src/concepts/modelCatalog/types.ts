@@ -30,7 +30,7 @@ export type CatalogModel = {
   baseModel?: BaseModel[];
   labels?: string[];
   tasks?: string[];
-  create?: number;
+  createTimeSinceEpoch?: number;
   lastUpdateTimeSinceEpoch?: number;
   artifacts?: CatalogArtifacts[];
 };
