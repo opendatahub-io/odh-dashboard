@@ -20,8 +20,8 @@ export const ConnectionModal: React.FC<{
       isOpen
       data-testid="connection-autofill-modal"
       variant="medium"
-      title="Autofill from data connection"
-      description={`Select a project to list its ${modelLocationType} data connections. Select a data connection to autofill the model location.`}
+      title="Autofill from connection"
+      description={`Select a project to list its ${modelLocationType} connections. Select a connection to autofill the model location.`}
       onClose={() => {
         setProject(undefined);
         setConnection(undefined);
@@ -57,7 +57,7 @@ export const ConnectionModal: React.FC<{
             invalidDropdownPlaceholder="Select project"
           />
         </FormGroup>
-        <FormGroup label="Data connection name" isRequired fieldId="autofillConnection">
+        <FormGroup label="Connection name" isRequired fieldId="autofillConnection">
           <ConnectionDropdown
             type={type}
             onSelect={setConnection}
@@ -66,7 +66,9 @@ export const ConnectionModal: React.FC<{
           />
           <FormHelperText>
             <HelperText>
-              {`Data connection list includes only ${modelLocationType} types that contain a bucket.`}
+              {modelLocationType !== 'URI'
+                ? `Connection list includes only ${modelLocationType} types that contain a bucket.`
+                : `Connection list includes only ${modelLocationType} types.`}
             </HelperText>
           </FormHelperText>
         </FormGroup>

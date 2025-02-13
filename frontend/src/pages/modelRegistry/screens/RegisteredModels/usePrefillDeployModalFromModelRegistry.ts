@@ -30,6 +30,12 @@ const usePrefillDeployModalFromModelRegistry = (
   );
 
   React.useEffect(() => {
+    const alert = {
+      type: AlertVariant.info,
+      title: "We've auto-switched to create a new connection and pre-filled the details for you.",
+      message:
+        'Model location info is available in the registry but no matching connection is in the project. So we automatically switched the option to create a new connection and prefilled the information.',
+    };
     if (registeredModelDeployInfo?.modelArtifactUri) {
       setCreateData('name', registeredModelDeployInfo.modelName);
       const recommendedConnections = connections.filter(
@@ -64,13 +70,7 @@ const usePrefillDeployModalFromModelRegistry = (
             connectionType: registeredModelDeployInfo.modelLocationType,
             path: storageFields.s3Fields.path,
             type: InferenceServiceStorageType.NEW_STORAGE,
-            alert: {
-              type: AlertVariant.info,
-              title:
-                "We've auto-switched to create a new connection and pre-filled the details for you.",
-              message:
-                'Model location info is available in the registry but no matching connection in the project. So we automatically switched the option to create a new connection and prefilled the information.',
-            },
+            alert,
           });
         } else if (recommendedConnections.length === 1) {
           setCreateData('storage', {
@@ -96,13 +96,7 @@ const usePrefillDeployModalFromModelRegistry = (
             connectionType: registeredModelDeployInfo.modelLocationType,
             path: '',
             type: InferenceServiceStorageType.NEW_STORAGE,
-            alert: {
-              type: AlertVariant.info,
-              title:
-                "We've auto-switched to create a new connection and pre-filled the details for you.",
-              message:
-                'Model location info is available in the registry but no matching connection in the project. So we automatically switched the option to create a new connection and prefilled the information.',
-            },
+            alert,
           });
         } else if (recommendedConnections.length === 1) {
           setCreateData('storage', {
@@ -110,7 +104,7 @@ const usePrefillDeployModalFromModelRegistry = (
             awsData: EMPTY_AWS_SECRET_DATA,
             dataConnection: recommendedConnections[0].connection.metadata.name,
             path: '',
-            type: InferenceServiceStorageType.EXISTING_URI,
+            type: InferenceServiceStorageType.EXISTING_STORAGE,
           });
         } else {
           setCreateData('storage', {

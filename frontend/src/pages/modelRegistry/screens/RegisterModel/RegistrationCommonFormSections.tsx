@@ -265,7 +265,6 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
               <Button
                 data-testid="uri-autofill-button"
                 variant="link"
-                isInline
                 icon={<OptimizeIcon />}
                 onClick={() => setAutofillModalOpen(true)}
               >

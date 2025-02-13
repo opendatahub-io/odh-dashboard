@@ -124,7 +124,7 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
         isOpen
         onClose={() => onClose(false)}
         actions={[
-          <Button key="deploy" variant="primary" onClick={handleSubmit}>
+          <Button key="deploy" variant="primary" onClick={handleSubmit} isDisabled>
             Deploy
           </Button>,
           <Button key="cancel" variant="link" onClick={() => onClose(false)}>

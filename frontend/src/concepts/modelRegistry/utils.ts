@@ -36,10 +36,7 @@ export const uriToStorageFields = (
     if (endpoint && bucket && path) {
       return { s3Fields: { endpoint, bucket, region: region || undefined, path }, uri: null };
     }
-    if (uri.startsWith('https:')) {
-      return { s3Fields: null, uri };
-    }
-    return null;
+    return { s3Fields: null, uri };
   } catch {
     return null;
   }

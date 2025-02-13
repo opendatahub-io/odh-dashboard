@@ -76,7 +76,7 @@ const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = ({
   const options: TypeaheadSelectOption[] = React.useMemo(
     () =>
       projectConnections.map((connection) => {
-        const { isRecommended } = connection; // Assuming `isRecommended` is part of each connection
+        const { isRecommended } = connection;
         const displayName = getDisplayNameFromK8sResource(connection.connection);
 
         return {

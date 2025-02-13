@@ -39,7 +39,7 @@ export const ConnectionDropdown = ({
 
   const getToggleContent = () => {
     if (!project) {
-      return 'Select a project to view its available data connections';
+      return 'Select a project to view its available connections';
     }
     if (connectionsLoadError) {
       return 'Error loading connections';
@@ -47,17 +47,17 @@ export const ConnectionDropdown = ({
     if (!connectionsLoaded) {
       return (
         <>
-          <Spinner size="sm" /> Loading Data Connections for the selected project...
+          <Spinner size="sm" /> Loading Connections for the selected project...
         </>
       );
     }
     if (!filteredConnections.length) {
-      return 'No available data connections';
+      return 'No available connections';
     }
     if (selectedConnection) {
       return getDisplayNameFromK8sResource(selectedConnection);
     }
-    return 'Select data connection';
+    return 'Select connection';
   };
 
   const onSelectConnection = (

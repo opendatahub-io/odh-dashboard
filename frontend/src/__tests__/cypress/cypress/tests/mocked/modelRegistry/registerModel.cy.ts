@@ -175,9 +175,9 @@ describe('Register model page', () => {
     registerModelPage.findObjectStorageAutofillButton().click();
     registerModelPage
       .findConnectionSelector()
-      .contains('Select a project to view its available data connections');
+      .contains('Select a project to view its available connections');
     registerModelPage.projectDropdown.openAndSelectItem('Test Project', true);
-    registerModelPage.findConnectionSelector().contains('No available data connections');
+    registerModelPage.findConnectionSelector().contains('No available connections');
   });
 
   it('Project selection with connections displays connections and fills form', () => {
@@ -190,9 +190,9 @@ describe('Register model page', () => {
     registerModelPage.findObjectStorageAutofillButton().click();
     registerModelPage
       .findConnectionSelector()
-      .contains('Select a project to view its available data connections');
+      .contains('Select a project to view its available connections');
     registerModelPage.projectDropdown.openAndSelectItem('Test Project', true);
-    registerModelPage.findConnectionSelector().contains('Select data connection');
+    registerModelPage.findConnectionSelector().contains('Select connection');
     registerModelPage.findConnectionSelector().findDropdownItem('Test Secret').click();
     registerModelPage.findAutofillButton().click();
     registerModelPage.findConnectionAutofillModal().should('not.exist');
