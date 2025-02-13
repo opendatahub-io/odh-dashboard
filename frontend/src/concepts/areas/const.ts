@@ -32,7 +32,7 @@ export const allFeatureFlags: string[] = Object.keys({
   disableServingRuntimeParams: false,
   disableConnectionTypes: false,
   disableStorageClasses: false,
-  disableNIMModelServing: true,
+  disableNIMModelServing: false,
 } satisfies DashboardCommonConfig);
 
 export const SupportedAreasStateMap: SupportedAreasState = {
