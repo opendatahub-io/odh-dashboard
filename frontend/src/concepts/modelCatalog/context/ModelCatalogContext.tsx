@@ -1,9 +1,12 @@
 import React from 'react';
+import { FetchStateObject } from '~/types';
 import { ModelCatalogSource } from '~/concepts/modelCatalog/types';
-import { modelCatalogSourceMock } from '~/concepts/modelCatalog/mockData/modelCatalogSourceMock';
+import { useModelCatalogSources } from '~/concepts/modelCatalog/useModelCatalogSources';
+import { DEFAULT_LIST_FETCH_STATE } from '~/utilities/const';
+import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 
 export type ModelCatalogContextType = {
-  modelCatalogSources: ModelCatalogSource[];
+  modelCatalogSources: FetchStateObject<ModelCatalogSource[]>;
 };
 
 type ModelCatalogContextProviderProps = {
@@ -11,19 +14,21 @@ type ModelCatalogContextProviderProps = {
 };
 
 export const ModelCatalogContext = React.createContext<ModelCatalogContextType>({
-  modelCatalogSources: [],
+  modelCatalogSources: DEFAULT_LIST_FETCH_STATE,
 });
 
 export const ModelCatalogContextProvider: React.FC<ModelCatalogContextProviderProps> = ({
   children,
 }) => {
-  const modelCatalogSourcesMock = React.useMemo(() => [modelCatalogSourceMock({})], []);
+  const modelCatalogSources = useMakeFetchObject(useModelCatalogSources());
+
   const contextValue = React.useMemo(
     () => ({
-      modelCatalogSources: modelCatalogSourcesMock,
+      modelCatalogSources,
     }),
-    [modelCatalogSourcesMock],
+    [modelCatalogSources],
   );
+
   return (
     <ModelCatalogContext.Provider value={contextValue}>{children}</ModelCatalogContext.Provider>
   );

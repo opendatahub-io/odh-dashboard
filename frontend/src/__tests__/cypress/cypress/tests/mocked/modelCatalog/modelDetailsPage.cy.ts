@@ -1,5 +1,7 @@
 import { mockDashboardConfig, mockDscStatus } from '~/__mocks__';
+import { mockModelCatalogConfigMap } from '~/__mocks__/mockModelCatalogConfigMap';
 import { modelDetailsPage } from '~/__tests__/cypress/cypress/pages/modelDetailsPage';
+import { ConfigMapModel } from '~/__tests__/cypress/cypress/utils/models';
 
 const initIntercepts = () => {
   cy.interceptOdh(
@@ -16,6 +18,15 @@ const initIntercepts = () => {
     mockDashboardConfig({
       disableModelCatalog: false,
     }),
+  );
+
+  cy.interceptK8s(
+    {
+      model: ConfigMapModel,
+      ns: 'opendatahub',
+      name: 'model-catalog-source-redhat',
+    },
+    mockModelCatalogConfigMap(),
   );
 };
 
