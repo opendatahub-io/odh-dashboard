@@ -3,27 +3,23 @@ import { StackComponent, SupportedArea, useIsAreaAvailable } from '~/concepts/ar
 import { ServingPlatformStatuses } from '~/pages/modelServing/screens/types';
 import { NIMAvailabilityContext } from '~/concepts/nimServing/NIMAvailabilityContext';
 
-const useServingPlatformStatuses = (): ServingPlatformStatuses => {
+const useServingPlatformStatuses = (
+  shouldRefreshNimAvailability = false,
+): ServingPlatformStatuses => {
   const kServeStatus = useIsAreaAvailable(SupportedArea.K_SERVE);
   const modelMeshStatus = useIsAreaAvailable(SupportedArea.MODEL_MESH);
   const kServeEnabled = kServeStatus.status;
   const modelMeshEnabled = modelMeshStatus.status;
   const kServeInstalled = !!kServeStatus.requiredComponents?.[StackComponent.K_SERVE];
   const modelMeshInstalled = !!modelMeshStatus.requiredComponents?.[StackComponent.MODEL_MESH];
-
   const { isNIMAvailable, refresh } = React.useContext(NIMAvailabilityContext);
-  const [runOnce, setRunOnce] = React.useState(false);
 
   React.useEffect(() => {
-    if (!runOnce) {
-      refresh()
-        .then(() => {
-          setRunOnce(true);
-        })
-        // eslint-disable-next-line no-console
-        .catch((error) => console.error('Failed to refresh NIM availability:', error));
+    if (shouldRefreshNimAvailability) {
+      // eslint-disable-next-line no-console
+      refresh().catch((error) => console.error('Failed to refresh NIM availability:', error));
     }
-  }, [refresh, runOnce]);
+  }, [shouldRefreshNimAvailability, refresh]);
 
   return {
     kServe: {
