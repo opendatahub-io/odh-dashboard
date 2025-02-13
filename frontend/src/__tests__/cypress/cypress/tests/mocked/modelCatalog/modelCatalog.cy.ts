@@ -1,7 +1,9 @@
 /* eslint-disable camelcase */
 import { mockDscStatus } from '~/__mocks__';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
+import { mockModelCatalogConfigMap } from '~/__mocks__/mockModelCatalogConfigMap';
 import { modelCatalog } from '~/__tests__/cypress/cypress/pages/modelCatalog';
+import { ConfigMapModel } from '~/__tests__/cypress/cypress/utils/models';
 
 type HandlersProps = {
   disableModelCatalogFeature?: boolean;
@@ -22,6 +24,15 @@ const initIntercepts = ({ disableModelCatalogFeature = false }: HandlersProps) =
     mockDashboardConfig({
       disableModelCatalog: disableModelCatalogFeature,
     }),
+  );
+
+  cy.interceptK8s(
+    {
+      model: ConfigMapModel,
+      ns: 'opendatahub',
+      name: 'model-catalog-source-redhat',
+    },
+    mockModelCatalogConfigMap(),
   );
 };
 
@@ -51,10 +62,10 @@ describe('Model Catalog core', () => {
     modelCatalog.tabEnabled();
   });
 
-  it('Navigates to Model Catalog and tempDetails', () => {
+  it('Navigates to Model Catalog', () => {
     initIntercepts({ disableModelCatalogFeature: false });
     modelCatalog.visit();
     modelCatalog.navigate();
-    modelCatalog.findModelCatalogEmptyState().should('exist');
+    modelCatalog.findModelCatalogCards().should('exist');
   });
 });

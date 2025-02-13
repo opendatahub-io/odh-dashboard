@@ -1,8 +1,6 @@
 class ModelDetailsPage {
   visit() {
-    cy.visitWithLogin(
-      `/modelCatalog/Red%20Hat/rhelai1/granite-8b-code-instruct/1%252E3-1732870892`,
-    );
+    cy.visitWithLogin(`/modelCatalog/Red%20Hat/rhelai1/granite-8b-code-instruct/1%252E3%252E0`);
     this.wait();
   }
 
