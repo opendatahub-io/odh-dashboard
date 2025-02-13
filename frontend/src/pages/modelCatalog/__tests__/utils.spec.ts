@@ -14,7 +14,7 @@ describe('findModelFromModelCatalogSources', () => {
       'Red Hat',
       'rhelai1',
       'granite-8b-code-instruct',
-      '1.3-1732870892',
+      '1.3.0',
     );
     expect(result).toEqual(mockCatalogModel({}));
   });
@@ -24,7 +24,7 @@ describe('findModelFromModelCatalogSources', () => {
       'test',
       'rhelai1',
       'granite-8b-code-instruct',
-      '1.3-1732870892',
+      '1.3.0',
     );
     expect(result).toEqual(null);
   });
@@ -35,7 +35,7 @@ describe('findModelFromModelCatalogSources', () => {
       'Red Hat',
       'test',
       'granite-8b-code-instruct',
-      '1.3-1732870892',
+      '1.3.0',
     );
     expect(result).toEqual(null);
   });
