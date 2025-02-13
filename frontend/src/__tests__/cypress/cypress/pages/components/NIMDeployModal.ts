@@ -14,7 +14,7 @@ class NIMDeployModal extends Modal {
   }
 
   findNIMToDeploy() {
-    return this.find().findByTestId('nim-model-list-selection');
+    return this.find().findByTestId('typeahead-menu-toggle').find('input');
   }
 
   findNimStorageSizeInput() {
