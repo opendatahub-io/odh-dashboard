@@ -269,6 +269,15 @@ declare global {
   }
 }
 
+/** Used for Cypress Skip Tests */
+declare namespace Cypress {
+  interface CurrentTest {
+    title: string;
+    titlePath: string[];
+    tags?: string[];
+  }
+}
+
 export type ApplicationAction = {
   label: string;
   href: string;

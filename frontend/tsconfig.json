@@ -23,7 +23,8 @@
     },
     "importHelpers": true,
     "skipLibCheck": true,
-    "noErrorTruncation": true
+    "noErrorTruncation": true,
+    "types": ["cypress", "@cypress/grep"]
   },
   "include": ["**/*.ts", "**/*.tsx", "**/*.jsx", "**/*.js"],
   "exclude": ["node_modules", "public", "public-cypress", "src/__tests__/cypress"]
