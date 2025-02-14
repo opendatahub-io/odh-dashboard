@@ -45,6 +45,7 @@ type MockResourceConfigType = {
   endPoint?: string;
   region?: string;
   uid?: string;
+  URI?: string;
 };
 
 export const mockSecretK8sResource = ({
@@ -56,6 +57,7 @@ export const mockSecretK8sResource = ({
   endPoint = 'aHR0cHM6Ly9zMy5hbWF6b25hd3MuY29tLw==',
   region = 'dXMtZWFzdC0x',
   uid = genUID('secret'),
+  URI = 'https://some-model.zip',
 }: MockResourceConfigType): SecretKind =>
   mockCustomSecretK8sResource({
     name,
@@ -68,11 +70,16 @@ export const mockSecretK8sResource = ({
       'opendatahub.io/connection-type': connectionType,
       'openshift.io/display-name': displayName,
     },
-    data: {
-      AWS_ACCESS_KEY_ID: 'c2RzZA==',
-      AWS_DEFAULT_REGION: region,
-      AWS_S3_BUCKET: s3Bucket,
-      AWS_S3_ENDPOINT: endPoint,
-      AWS_SECRET_ACCESS_KEY: 'c2RzZA==',
-    },
+    data:
+      connectionType === 's3'
+        ? {
+            AWS_ACCESS_KEY_ID: 'c2RzZA==',
+            AWS_DEFAULT_REGION: region,
+            AWS_S3_BUCKET: s3Bucket,
+            AWS_S3_ENDPOINT: endPoint,
+            AWS_SECRET_ACCESS_KEY: 'c2RzZA==',
+          }
+        : {
+            URI,
+          },
   });

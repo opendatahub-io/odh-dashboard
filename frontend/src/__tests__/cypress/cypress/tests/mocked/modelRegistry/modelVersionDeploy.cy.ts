@@ -32,7 +32,10 @@ import { ServingRuntimePlatform } from '~/types';
 import { kserveModal } from '~/__tests__/cypress/cypress/pages/modelServing';
 import { mockModelArtifact } from '~/__mocks__/mockModelArtifact';
 import { mockNimAccount } from '~/__mocks__/mockNimAccount';
-import { mockConnectionTypeConfigMap } from '~/__mocks__/mockConnectionType';
+import {
+  mockConnectionTypeConfigMap,
+  mockModelServingFields,
+} from '~/__mocks__/mockConnectionType';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 
@@ -61,6 +64,7 @@ const initIntercepts = ({
   modelVersions = [
     mockModelVersion({ id: '1', name: 'test model version' }),
     mockModelVersion({ id: '2', name: modelVersionMocked2.name }),
+    mockModelVersion({ id: '3', name: 'test model version 2' }),
   ],
   modelMeshInstalled = true,
   kServeInstalled = true,
@@ -178,6 +182,20 @@ const initIntercepts = ({
       path: {
         serviceName: 'modelregistry-sample',
         apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: 3,
+      },
+    },
+    mockModelArtifactList({
+      items: [mockModelArtifact({ uri: 'https://demo-models/some-path.zip' })],
+    }),
+  );
+
+  cy.interceptOdh(
+    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts`,
+    {
+      path: {
+        serviceName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
         modelVersionId: 2,
       },
     },
@@ -227,6 +245,13 @@ const initIntercepts = ({
         },
       ],
     }),
+    mockConnectionTypeConfigMap({
+      name: 's3',
+      displayName: 'S3 compatible object storage - v1',
+      description: 'description 2',
+      category: ['existing-category'],
+      fields: mockModelServingFields,
+    }),
   ]);
 
   cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
@@ -274,7 +299,7 @@ describe('Deploy model version', () => {
     cy.findByText('Cannot deploy the model until you configure a model server').should('exist');
   });
 
-  it('Pre-fill deployment information on KServe modal', () => {
+  it('Selects Create Connection in case of no matching connections', () => {
     initIntercepts({});
     cy.interceptK8sList(
       SecretModel,
@@ -309,11 +334,14 @@ describe('Deploy model version', () => {
     ).should('exist');
 
     // Validate connection section
-    kserveModal.findExistingConnectionOption().should('be.checked');
-    kserveModal.findLocationPathInput().should('exist');
+    kserveModal.findNewConnectionOption().should('be.checked');
+    kserveModal.findLocationBucketInput().should('have.value', 'test-bucket');
+    kserveModal.findLocationEndpointInput().should('have.value', 'test-endpoint');
+    kserveModal.findLocationRegionInput().should('have.value', 'test-region');
+    kserveModal.findLocationPathInput().should('have.value', 'demo-models/test-path');
   });
 
-  it('One match connection on KServe modal', () => {
+  it('Prefills when there is one s3 matching connection', () => {
     initIntercepts({});
     cy.interceptK8sList(
       SecretModel,
@@ -342,12 +370,67 @@ describe('Deploy model version', () => {
 
     // Validate connection section
     kserveModal.findExistingConnectionOption().should('be.checked');
-    kserveModal.findExistingConnectionSelectValueField().click();
-    kserveModal.selectExistingConnectionSelectOptionByResourceName();
-    kserveModal.findLocationPathInput().type('test-model/');
-    kserveModal.findNewConnectionOption().click();
-    kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
-    kserveModal.findConnectionNameInput().type('Test Name');
-    kserveModal.findConnectionFieldInput().type('https://test');
+    kserveModal.findExistingConnectionSelectValueField().should('have.value', 'Test Secret');
+    kserveModal.findLocationPathInput().should('have.value', 'demo-models/test-path');
+  });
+
+  it('Prefills when there is one URI matching connection', () => {
+    initIntercepts({});
+    cy.interceptK8sList(
+      SecretModel,
+      mockK8sResourceList([
+        mockSecretK8sResource({
+          namespace: 'kserve-project',
+          connectionType: 'uri-v1',
+          URI: 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw',
+        }),
+      ]),
+    );
+
+    cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
+    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 2');
+    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDeployModal.selectProjectByName('KServe project');
+
+    // Validate connection section
+    kserveModal.findExistingConnectionOption().should('be.checked');
+    kserveModal.findExistingConnectionSelectValueField().should('have.value', 'Test Secret');
+  });
+
+  it('Selects existing connection when there are 2 matching connections', () => {
+    initIntercepts({});
+    cy.interceptK8sList(
+      SecretModel,
+      mockK8sResourceList([
+        mockSecretK8sResource({
+          namespace: 'kserve-project',
+          connectionType: 'uri-v1',
+          URI: 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw',
+        }),
+        mockSecretK8sResource({
+          namespace: 'kserve-project',
+          connectionType: 'uri-v1',
+          displayName: 'Test Secret Match 2',
+          URI: 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw',
+        }),
+      ]),
+    );
+
+    cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
+    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 2');
+    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDeployModal.selectProjectByName('KServe project');
+
+    // Validate connection section
+    kserveModal.findExistingConnectionOption().should('be.checked');
+    kserveModal.findExistingConnectionSelectValueField().should('be.empty');
+    kserveModal
+      .findExistingConnectionSelectValueField()
+      .findSelectOption('Test Secret Recommended Type: URI - v1')
+      .should('exist');
+    kserveModal
+      .findExistingConnectionSelectValueField()
+      .findSelectOption('Test Secret Match 2 Recommended Type: URI - v1')
+      .should('exist');
   });
 });
