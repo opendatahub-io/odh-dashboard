@@ -10,9 +10,10 @@ import {
 import { AppContext } from '~/app/AppContext';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { getServingRuntimeSizes } from '~/pages/modelServing/screens/projects/utils';
-import useServingAcceleratorProfileFormState from '~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
 import { getResourceSize } from '~/pages/modelServing/utils';
 import { formatMemory } from '~/utilities/valueUnits';
+import { useModelServingPodSpecOptionsState } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 
 type ServingRuntimeDetailsProps = {
   obj: ServingRuntimeKind;
@@ -21,10 +22,11 @@ type ServingRuntimeDetailsProps = {
 
 const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj, isvc }) => {
   const { dashboardConfig } = React.useContext(AppContext);
-  const { initialState: initialAcceleratorProfileState } = useServingAcceleratorProfileFormState(
-    obj,
-    isvc,
-  );
+  const isHardwareProfileAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
+  const {
+    acceleratorProfile: { initialState: initialAcceleratorProfileState },
+    hardwareProfile,
+  } = useModelServingPodSpecOptionsState(obj, isvc);
   const enabledAcceleratorProfiles = initialAcceleratorProfileState.acceleratorProfiles.filter(
     (ac) => ac.spec.enabled,
   );
@@ -62,29 +64,48 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj, isvc
           </DescriptionListDescription>
         </DescriptionListGroup>
       )}
-      <DescriptionListGroup>
-        <DescriptionListTerm>Accelerator</DescriptionListTerm>
-        <DescriptionListDescription>
-          {initialAcceleratorProfileState.acceleratorProfile
-            ? `${initialAcceleratorProfileState.acceleratorProfile.spec.displayName}${
-                !initialAcceleratorProfileState.acceleratorProfile.spec.enabled ? ' (disabled)' : ''
-              }`
-            : enabledAcceleratorProfiles.length === 0
-            ? 'No accelerator enabled'
-            : initialAcceleratorProfileState.unknownProfileDetected
-            ? 'Unknown'
-            : 'No accelerator selected'}
-        </DescriptionListDescription>
-      </DescriptionListGroup>
-      {!initialAcceleratorProfileState.unknownProfileDetected &&
-        initialAcceleratorProfileState.acceleratorProfile && (
+      {isHardwareProfileAvailable ? (
+        <DescriptionListGroup>
+          <DescriptionListTerm>Hardware profile</DescriptionListTerm>
+          <DescriptionListDescription>
+            {hardwareProfile.initialHardwareProfile
+              ? `${hardwareProfile.initialHardwareProfile.spec.displayName}${
+                  !hardwareProfile.initialHardwareProfile.spec.enabled ? ' (disabled)' : ''
+                }`
+              : hardwareProfile.formData.useExistingSettings
+              ? 'Unknown'
+              : 'No hardware profile selected'}
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+      ) : (
+        <>
           <DescriptionListGroup>
-            <DescriptionListTerm>Number of accelerators</DescriptionListTerm>
+            <DescriptionListTerm>Accelerator</DescriptionListTerm>
             <DescriptionListDescription>
-              {initialAcceleratorProfileState.count}
+              {initialAcceleratorProfileState.acceleratorProfile
+                ? `${initialAcceleratorProfileState.acceleratorProfile.spec.displayName}${
+                    !initialAcceleratorProfileState.acceleratorProfile.spec.enabled
+                      ? ' (disabled)'
+                      : ''
+                  }`
+                : enabledAcceleratorProfiles.length === 0
+                ? 'No accelerator enabled'
+                : initialAcceleratorProfileState.unknownProfileDetected
+                ? 'Unknown'
+                : 'No accelerator selected'}
             </DescriptionListDescription>
           </DescriptionListGroup>
-        )}
+          {!initialAcceleratorProfileState.unknownProfileDetected &&
+            initialAcceleratorProfileState.acceleratorProfile && (
+              <DescriptionListGroup>
+                <DescriptionListTerm>Number of accelerators</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {initialAcceleratorProfileState.count}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            )}
+        </>
+      )}
     </DescriptionList>
   );
 };

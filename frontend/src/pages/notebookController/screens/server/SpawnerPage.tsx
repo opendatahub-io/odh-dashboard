@@ -341,7 +341,17 @@ const SpawnerPage: React.FC = () => {
             </FormGroup>
           </FormSection>
           <FormSection title="Deployment size">
-            {!isHardwareProfilesAvailable ? (
+            {isHardwareProfilesAvailable ? (
+              <HardwareProfileFormSection
+                data={podSpecOptionsState.hardwareProfile.formData}
+                initialHardwareProfile={podSpecOptionsState.hardwareProfile.initialHardwareProfile}
+                allowExistingSettings={
+                  !!currentUserNotebook &&
+                  !podSpecOptionsState.hardwareProfile.initialHardwareProfile
+                }
+                setData={podSpecOptionsState.hardwareProfile.setFormData}
+              />
+            ) : (
               <>
                 <SizeSelectField
                   data-id="container-size"
@@ -355,16 +365,6 @@ const SpawnerPage: React.FC = () => {
                   setFormData={podSpecOptionsState.acceleratorProfile.setFormData}
                 />
               </>
-            ) : (
-              <HardwareProfileFormSection
-                data={podSpecOptionsState.hardwareProfile.formData}
-                initialHardwareProfile={podSpecOptionsState.hardwareProfile.initialHardwareProfile}
-                allowExistingSettings={
-                  !!currentUserNotebook &&
-                  !podSpecOptionsState.hardwareProfile.initialHardwareProfile
-                }
-                setData={podSpecOptionsState.hardwareProfile.setFormData}
-              />
             )}
           </FormSection>
           <FormSection title="Environment variables" className="odh-notebook-controller__env-var">
