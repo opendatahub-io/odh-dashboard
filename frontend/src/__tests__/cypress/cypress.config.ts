@@ -59,7 +59,6 @@ export default defineConfig({
   },
   defaultCommandTimeout: 10000,
   e2e: {
-    supportFile: 'cypress/support/e2e.ts',
     baseUrl: BASE_URL,
     specPattern: env.CY_MOCK
       ? `cypress/tests/mocked/**/*.cy.ts`
@@ -72,7 +71,6 @@ export default defineConfig({
       cypressHighResolution(on, config);
       coverage(on, config);
       setupWebsockets(on, config);
-      require('@cypress/grep/src/plugin')(config)
       on('task', {
         readJSON(filePath: string) {
           const absPath = path.resolve(__dirname, filePath);
