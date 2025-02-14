@@ -65,7 +65,7 @@ export const mockDashboardConfig = ({
   disableConnectionTypes = true,
   disableStorageClasses = false,
   disableNotebookController = false,
-  disableNIMModelServing = true,
+  disableNIMModelServing = false,
   notebookSizes = [
     {
       name: 'XSmall',
