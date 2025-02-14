@@ -11,11 +11,7 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { Modal } from '@patternfly/react-core/deprecated';
-import {
-  ExclamationCircleIcon,
-  OutlinedQuestionCircleIcon,
-  WarningTriangleIcon,
-} from '@patternfly/react-icons';
+import { OutlinedQuestionCircleIcon, WarningTriangleIcon } from '@patternfly/react-icons';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import {
   ConnectionTypeDataField,
@@ -81,7 +77,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
 
   const isEnvVarValid = !envVar || isValidEnvVar(envVar);
 
-  const isValid = isPropertiesValid && !!name && !!envVar && isEnvVarValid;
+  const isValid = isPropertiesValid && !!name && !!envVar;
 
   // Cast from specific type to generic type
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-explicit-any
@@ -183,16 +179,16 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
               setData('envVar', value);
             }}
             data-testid="field-env-var-input"
-            validated={!isEnvVarValid ? 'error' : isEnvVarConflict ? 'warning' : 'default'}
+            validated={!isEnvVarValid || isEnvVarConflict ? 'warning' : 'default'}
           />
           <FormHelperText>
             <HelperText>
               <HelperTextItem
-                variant={isEnvVarValid ? 'default' : 'error'}
-                icon={isEnvVarValid ? undefined : <ExclamationCircleIcon />}
+                variant={isEnvVarValid ? 'default' : 'warning'}
+                icon={isEnvVarValid ? undefined : <WarningTriangleIcon />}
               >
-                Must start with a letter or underscore. Valid characters include letters, numbers,
-                and underscores ( _ ).
+                For highest compatibility, field must consist of alphanumeric characters, ( - ), ( _
+                ), or ( . )
               </HelperTextItem>
             </HelperText>
             {isEnvVarConflict ? (

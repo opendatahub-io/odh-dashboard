@@ -258,13 +258,14 @@ describe('isValidEnvVar', () => {
     expect(isValidEnvVar('NAME')).toBe(true);
     expect(isValidEnvVar('UNDERSCORE_NAME')).toBe(true);
     expect(isValidEnvVar('has_digits_1234')).toBe(true);
+    expect(isValidEnvVar('.dockerconfigjson')).toBe(true);
   });
 
   it('should be invalid env var', () => {
-    expect(isValidEnvVar('.dot')).toBe(false);
-    expect(isValidEnvVar('has-dash')).toBe(false);
-    expect(isValidEnvVar('1_digit_as_first_char')).toBe(false);
     expect(isValidEnvVar('has space')).toBe(false);
+    expect(isValidEnvVar('has+=')).toBe(false);
+    expect(isValidEnvVar('has!$@#*')).toBe(false);
+    expect(isValidEnvVar('')).toBe(false);
   });
 });
 

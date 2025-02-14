@@ -56,7 +56,7 @@ const UriFormField: React.FC<FieldProps<UriField>> = ({
             : (_e, v) => {
                 onChange(v);
                 if (!isValid) {
-                  setIsValid(validateUrl(value));
+                  setIsValid(validateUrl(v));
                 }
               }
         }
