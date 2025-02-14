@@ -45,7 +45,6 @@ type MockResourceConfigType = {
   endPoint?: string;
   region?: string;
   uid?: string;
-  URI?: string;
 };
 
 export const mockSecretK8sResource = ({
