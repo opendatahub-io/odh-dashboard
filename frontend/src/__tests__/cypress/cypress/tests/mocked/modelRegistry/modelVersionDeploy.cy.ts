@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import {
+  mockCustomSecretK8sResource,
   mockDscStatus,
   mockK8sResourceList,
   mockProjectK8sResource,
@@ -379,10 +380,14 @@ describe('Deploy model version', () => {
     cy.interceptK8sList(
       SecretModel,
       mockK8sResourceList([
-        mockSecretK8sResource({
+        mockCustomSecretK8sResource({
           namespace: 'kserve-project',
-          connectionType: 'uri-v1',
-          URI: 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw',
+          name: 'test-secret',
+          annotations: {
+            'opendatahub.io/connection-type': 'uri-v1',
+            'openshift.io/display-name': 'Test Secret',
+          },
+          data: { URI: 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw' },
         }),
       ]),
     );
@@ -402,16 +407,23 @@ describe('Deploy model version', () => {
     cy.interceptK8sList(
       SecretModel,
       mockK8sResourceList([
-        mockSecretK8sResource({
+        mockCustomSecretK8sResource({
           namespace: 'kserve-project',
-          connectionType: 'uri-v1',
-          URI: 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw',
+          name: 'test-secret',
+          annotations: {
+            'opendatahub.io/connection-type': 'uri-v1',
+            'openshift.io/display-name': 'Test Secret',
+          },
+          data: { URI: 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw' },
         }),
-        mockSecretK8sResource({
+        mockCustomSecretK8sResource({
           namespace: 'kserve-project',
-          connectionType: 'uri-v1',
-          displayName: 'Test Secret Match 2',
-          URI: 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw',
+          name: 'test-secret-2',
+          annotations: {
+            'opendatahub.io/connection-type': 'uri-v1',
+            'openshift.io/display-name': 'Test Secret Match 2',
+          },
+          data: { URI: 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw' },
         }),
       ]),
     );
