@@ -4,7 +4,12 @@ import { getIntegrationAppEnablementStatus } from '~/services/integrationAppServ
 import { fetchComponents } from '~/services/componentsServices';
 import useFetchState from '~/utilities/useFetchState';
 
-export const useIsNIMAvailable = (): [boolean, boolean, Error | undefined] => {
+export const useIsNIMAvailable = (): [
+  boolean,
+  boolean,
+  Error | undefined,
+  () => Promise<boolean | undefined>,
+] => {
   const isNIMModelServingAvailable = useIsAreaAvailable(SupportedArea.NIM_MODEL).status;
 
   const fetchNIMAvailability = React.useCallback(async () => {
@@ -25,9 +30,13 @@ export const useIsNIMAvailable = (): [boolean, boolean, Error | undefined] => {
     return isInstalled && isEnabled;
   }, [isNIMModelServingAvailable]);
 
-  const [isNIMAvailable, loaded, loadError] = useFetchState<boolean>(fetchNIMAvailability, false, {
-    initialPromisePurity: false,
-  });
+  const [isNIMAvailable, loaded, loadError, refresh] = useFetchState<boolean>(
+    fetchNIMAvailability,
+    false,
+    {
+      initialPromisePurity: false,
+    },
+  );
 
-  return [isNIMAvailable, loaded, loadError];
+  return [isNIMAvailable, loaded, loadError, refresh];
 };

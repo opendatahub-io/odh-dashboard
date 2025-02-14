@@ -8,7 +8,7 @@ import PlatformSelectSection from './PlatformSelectSection';
 import DeployedModelsSection from './deployedModels/DeployedModelsSection';
 
 const ServeModelsSection: React.FC = () => {
-  const servingPlatformStatuses = useServingPlatformStatuses();
+  const servingPlatformStatuses = useServingPlatformStatuses(true);
   const {
     modelMesh: { enabled: modelMeshEnabled },
     platformEnabledCount,
