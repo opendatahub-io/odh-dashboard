@@ -34,7 +34,7 @@ const usePrefillDeployModalFromModelRegistry = (
       type: AlertVariant.info,
       title: "We've auto-switched to create a new connection and pre-filled the details for you.",
       message:
-        'Model location info is available in the registry but no matching connection is in the project. So we automatically switched the option to create a new connection and prefilled the information.',
+        'Model location info is available in the registry but there are no matching connections in the project. So we automatically switched the option to create a new connection and prefilled the information.',
     };
     if (registeredModelDeployInfo?.modelArtifactUri) {
       setCreateData('name', registeredModelDeployInfo.modelName);
