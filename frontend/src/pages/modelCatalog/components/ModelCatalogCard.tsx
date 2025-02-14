@@ -9,14 +9,16 @@ import {
   Label,
   Stack,
   StackItem,
-  Button,
   Icon,
   Split,
   SplitItem,
 } from '@patternfly/react-core';
 import { TagIcon } from '@patternfly/react-icons';
+import { Link } from 'react-router-dom';
 import BrandImage from '~/components/BrandImage';
 import { CatalogModel } from '~/concepts/modelCatalog/types';
+import { modelDetailsUrlFromModel } from '~/pages/modelCatalog/routeUtils';
+import { getTagFromModel } from '~/pages/modelCatalog/utils';
 
 export const ModelCatalogCard: React.FC<{ model: CatalogModel; source: string }> = ({
   model,
@@ -38,23 +40,23 @@ export const ModelCatalogCard: React.FC<{ model: CatalogModel; source: string }>
     <CardBody>
       <Stack hasGutter>
         <StackItem>
-          <Button
-            isInline
+          <Link
+            data-testid="model-catalog-detail-link"
+            to={modelDetailsUrlFromModel(model, source) || '#'}
             style={{
               fontSize: 'var(--pf-t--global--font--size--body--default)',
               fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
             }}
-            variant="link"
           >
             {model.name}
-          </Button>
+          </Link>
           <Split hasGutter>
             <SplitItem>
               <Icon>
                 <TagIcon />
               </Icon>
             </SplitItem>
-            <SplitItem isFilled>{model.artifacts?.[0]?.tags?.[0]}</SplitItem>
+            <SplitItem isFilled>{getTagFromModel(model)}</SplitItem>
           </Split>
         </StackItem>
         <StackItem isFilled>{model.description}</StackItem>

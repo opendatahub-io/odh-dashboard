@@ -68,4 +68,16 @@ describe('Model Catalog core', () => {
     modelCatalog.navigate();
     modelCatalog.findModelCatalogCards().should('exist');
   });
+
+  it('Navigates to Model Detail page on link click', () => {
+    initIntercepts({ disableModelCatalogFeature: false });
+    modelCatalog.visit();
+    modelCatalog.navigate();
+    modelCatalog.findModelCatalogCards().should('exist');
+    modelCatalog.findModelCatalogModelDetailLink('granite-8b-code-instruct').click();
+    cy.location('pathname').should(
+      'equal',
+      '/modelCatalog/Red%20Hat/rhelai1/granite-8b-code-instruct/1%252E3%252E0',
+    );
+  });
 });

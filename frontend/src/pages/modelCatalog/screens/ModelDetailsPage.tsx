@@ -1,6 +1,7 @@
 import React from 'react';
 import { useParams } from 'react-router';
-import { Button, Divider } from '@patternfly/react-core';
+import { Breadcrumb, BreadcrumbItem, Button, Divider } from '@patternfly/react-core';
+import { Link } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
@@ -36,6 +37,14 @@ const ModelDetailsPage: React.FC = conditionalArea(
 
   return (
     <ApplicationsPage
+      breadcrumb={
+        <Breadcrumb>
+          <BreadcrumbItem>
+            <Link to="/modelCatalog">Model Catalog</Link>
+          </BreadcrumbItem>
+          <BreadcrumbItem isActive>{decodedParams.modelName}</BreadcrumbItem>
+        </Breadcrumb>
+      }
       title={
         <TitleWithIcon
           title={decodedParams.modelName || ''}
