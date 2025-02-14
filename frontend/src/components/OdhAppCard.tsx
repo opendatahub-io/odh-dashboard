@@ -30,7 +30,6 @@ import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { isInternalRouteIntegrationsApp } from '~/utilities/utils';
 import { deleteIntegrationApp } from '~/services/integrationAppService';
 import { useUser } from '~/redux/selectors';
-import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 import SupportedAppTitle from './SupportedAppTitle';
 import BrandImage from './BrandImage';
@@ -52,7 +51,6 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   const { dashboardConfig } = useAppContext();
   const dispatch = useAppDispatch();
   const { isAdmin } = useUser();
-  const servingPlatformStatuses = useServingPlatformStatuses();
 
   const onOpenKebab = () => {
     setIsOpen(!isOpen);
@@ -91,10 +89,6 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
         .then((response) => {
           if (response.success) {
             handleSuccess();
-            servingPlatformStatuses.refreshNIMAvailability().catch((e) =>
-              /* eslint-disable-next-line no-console */
-              console.error('Failed to refresh NIM availability:', e),
-            );
           } else {
             throw new Error(response.error);
           }
