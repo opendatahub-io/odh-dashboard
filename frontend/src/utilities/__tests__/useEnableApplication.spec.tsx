@@ -6,7 +6,10 @@ import {
 } from '~/services/integrationAppService';
 import * as reduxHooks from '~/redux/hooks';
 import { VariablesValidationStatus } from '~/types';
-import { useEnableApplication, EnableApplicationStatus } from '~/utilities/useEnableApplication';
+import { EnableApplicationStatus, useEnableApplication } from '~/utilities/useEnableApplication';
+import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
+
+jest.mock('~/pages/modelServing/useServingPlatformStatuses');
 
 jest.mock('~/services/validateIsvService', () => ({
   postValidateIsv: jest.fn(),
@@ -27,6 +30,14 @@ describe('useEnableApplication', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (reduxHooks.useAppDispatch as jest.Mock).mockReturnValue(mockDispatch);
+
+    (useServingPlatformStatuses as jest.Mock).mockReturnValue({
+      kServe: { enabled: true, installed: true },
+      kServeNIM: { enabled: true, installed: true },
+      modelMesh: { enabled: false, installed: true },
+      platformEnabledCount: 2,
+      refreshNIMAvailability: jest.fn().mockResolvedValue(true),
+    });
   });
 
   it('should start in IDLE state', () => {

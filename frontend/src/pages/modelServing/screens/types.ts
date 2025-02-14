@@ -119,6 +119,7 @@ export type ServingPlatformStatuses = {
   kServeNIM: PlatformStatus;
   modelMesh: PlatformStatus;
   platformEnabledCount: number;
+  refreshNIMAvailability: () => Promise<boolean | undefined>;
 };
 
 export type LabeledDataConnection = {
