@@ -4,6 +4,7 @@ import {
   decodeParams,
   encodeParams,
   findModelFromModelCatalogSources,
+  getTagFromModel,
 } from '~/pages/modelCatalog/utils';
 
 describe('findModelFromModelCatalogSources', () => {
@@ -72,5 +73,22 @@ describe('decodeParams', () => {
       repositoryName: 'test@12',
       modelName: 'test',
     });
+  });
+});
+
+describe('getTagFromModel', () => {
+  it('should return tag from model version', () => {
+    const result = getTagFromModel({
+      ...mockCatalogModel({}),
+    });
+    expect(result).toBe('1.3.0');
+  });
+
+  it('should return undefined if version is not present', () => {
+    const result = getTagFromModel({
+      ...mockCatalogModel({}),
+      artifacts: [{ tags: [] }],
+    });
+    expect(result).toBe(undefined);
   });
 });
