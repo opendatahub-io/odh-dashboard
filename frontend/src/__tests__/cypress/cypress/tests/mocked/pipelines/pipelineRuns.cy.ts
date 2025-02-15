@@ -25,6 +25,8 @@ import {
   bulkArchiveRunModal,
   duplicateRunPage,
   duplicateSchedulePage,
+  bulkRestoreRunWithArchivedExperimentModal,
+  restoreRunWithArchivedExperimentModal,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
@@ -91,6 +93,31 @@ const mockArchivedRuns = [
       pipeline_id: pipelineId,
       pipeline_version_id: 'test-version-2',
     },
+    experiment_id: 'test-experiment-3',
+    created_at: '2024-02-20T00:00:00Z',
+    state: RuntimeStateKF.SUCCEEDED,
+  }),
+];
+
+const mockArchivedRunsWithArchivedExperiments = [
+  buildMockRunKF({
+    display_name: 'experiment archived run 1',
+    run_id: 'run-1',
+    pipeline_version_reference: {
+      pipeline_id: pipelineId,
+      pipeline_version_id: 'test-version-1',
+    },
+    experiment_id: 'test-experiment-1',
+    created_at: '2024-02-05T00:00:00Z',
+    state: RuntimeStateKF.SUCCEEDED,
+  }),
+  buildMockRunKF({
+    display_name: 'experiment archived run 2',
+    run_id: 'run-2',
+    pipeline_version_reference: {
+      pipeline_id: pipelineId,
+      pipeline_version_id: 'test-version-2',
+    },
     experiment_id: 'test-experiment-2',
     created_at: '2024-02-20T00:00:00Z',
     state: RuntimeStateKF.SUCCEEDED,
@@ -98,7 +125,11 @@ const mockArchivedRuns = [
 ];
 
 const mockExperimentIds = [
-  ...new Set([...mockActiveRuns, ...mockArchivedRuns].map((mockRun) => mockRun.experiment_id)),
+  ...new Set(
+    [...mockActiveRuns, ...mockArchivedRuns, ...mockArchivedRunsWithArchivedExperiments].map(
+      (mockRun) => mockRun.experiment_id,
+    ),
+  ),
 ];
 const mockVersionIds = [
   ...new Set(
@@ -756,6 +787,76 @@ describe('Pipeline runs', () => {
           pipelineRunFilterBar.findSortButtonForArchive('Run').should(be.sortDescending);
         });
       });
+    });
+
+    it('restore multiple runs with archived experiments', () => {
+      archivedRunsTable.mockGetArchivedRuns(
+        [...mockArchivedRuns, ...mockArchivedRunsWithArchivedExperiments],
+        projectName,
+      );
+      pipelineRunsGlobal.visit(projectName, 'archived');
+      [...mockArchivedRuns, ...mockArchivedRunsWithArchivedExperiments].forEach((archivedRun) => {
+        archivedRunsTable.mockRestoreRun(archivedRun.run_id, projectName);
+        if (archivedRun.experiment_id === 'test-experiment-2') {
+          archivedRunsTable.mockRestoreExperiment(archivedRun.experiment_id, projectName);
+        }
+        archivedRunsTable.getRowByName(archivedRun.display_name).findCheckbox().click();
+      });
+      pipelineRunsGlobal.findRestoreRunButton().click();
+      archivedRunsTable.mockGetRuns(
+        [...mockArchivedRuns, ...mockArchivedRunsWithArchivedExperiments],
+        [],
+        projectName,
+      );
+      bulkRestoreRunWithArchivedExperimentModal.findSubmitButton().click();
+      archivedRunsTable.findEmptyState().should('exist');
+    });
+
+    it('handle error when restore multiple runs with archived experiments fails', () => {
+      archivedRunsTable.mockGetArchivedRuns(
+        [...mockArchivedRuns, ...mockArchivedRunsWithArchivedExperiments],
+        projectName,
+      );
+      pipelineRunsGlobal.visit(projectName, 'archived');
+      [...mockArchivedRuns, ...mockArchivedRunsWithArchivedExperiments].forEach((archivedRun) => {
+        archivedRunsTable.mockRestoreRunFails(archivedRun.run_id, projectName);
+        if (archivedRun.experiment_id === 'test-experiment-2') {
+          archivedRunsTable.mockRestoreExperiment(archivedRun.experiment_id, projectName);
+        }
+        archivedRunsTable.getRowByName(archivedRun.display_name).findCheckbox().click();
+      });
+      pipelineRunsGlobal.findRestoreRunButton().click();
+      archivedRunsTable.mockGetRuns(
+        [...mockArchivedRuns, ...mockArchivedRunsWithArchivedExperiments],
+        [],
+        projectName,
+      );
+      bulkRestoreRunWithArchivedExperimentModal.findSubmitButton().click();
+      bulkRestoreRunWithArchivedExperimentModal.findErrorMessage().should('exist');
+
+      [...mockArchivedRuns, ...mockArchivedRunsWithArchivedExperiments].forEach((archivedRun) => {
+        archivedRunsTable.mockRestoreRun(archivedRun.run_id, projectName);
+      });
+      //retry
+      bulkRestoreRunWithArchivedExperimentModal.findRetryButton().click();
+      archivedRunsTable.findEmptyState().should('exist');
+    });
+
+    it('restore a single run', () => {
+      archivedRunsTable.mockGetArchivedRuns(
+        [...mockArchivedRuns, ...mockArchivedRunsWithArchivedExperiments],
+        projectName,
+      );
+      pipelineRunsGlobal.visit(projectName, 'archived');
+      const [, runToRestore] = mockArchivedRunsWithArchivedExperiments;
+
+      archivedRunsTable.mockRestoreRun(runToRestore.run_id, projectName);
+      archivedRunsTable.getRowByName(runToRestore.display_name).findKebabAction('Restore').click();
+
+      archivedRunsTable.mockGetRuns([runToRestore], [mockArchivedRuns[1]], projectName);
+      restoreRunWithArchivedExperimentModal.findAlertMessage().should('exist');
+      restoreRunWithArchivedExperimentModal.findSubmitButton().click();
+      archivedRunsTable.shouldRowNotExist(runToRestore.display_name);
     });
   });
 
