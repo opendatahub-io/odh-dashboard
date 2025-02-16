@@ -81,10 +81,14 @@ export const setUpTokenAuth = async (
   existingSecrets?: SecretKind[],
   opts?: K8sAPIOptions,
 ): Promise<void> => {
-  const { serviceAccountName, roleName, roleBindingName } = getTokenNames(
-    deployedModelName,
-    namespace,
-  );
+  let servingRuntimeName = deployedModelName;
+  
+  if (!servingRuntimeName) {
+    // If we do not have a servingRuntimeName, derive it from the model
+    servingRuntimeName = fillData.name;
+  }
+
+  const { serviceAccountName, roleName, roleBindingName } = getTokenNames(servingRuntimeName, namespace);
 
   const serviceAccount = addOwnerReference(
     assembleServiceAccount(serviceAccountName, namespace),
@@ -171,39 +175,51 @@ export const createRoleBindingIfMissing = async (
     return Promise.reject(e);
   });
 
-export const createSecrets = async (
-  fillData: CreatingServingRuntimeObject | CreatingInferenceServiceObject,
-  deployedModelName: string,
-  namespace: string,
-  existingSecrets?: SecretKind[],
-  opts?: K8sAPIOptions,
-): Promise<void> => {
-  const { serviceAccountName } = getTokenNames(deployedModelName, namespace);
-  const deletedSecrets =
-    existingSecrets
-      ?.map((secret) => secret.metadata.name)
-      .filter((token) => !fillData.tokens.some((tokenEdit) => tokenEdit.editName === token)) || [];
-
-  return Promise.all<K8sStatus | SecretKind>([
-    ...fillData.tokens
-      .filter((token) => translateDisplayNameForK8s(token.name) !== token.editName)
-      .map((token) => {
+  export const createSecrets = async (
+    fillData: CreatingServingRuntimeObject | CreatingInferenceServiceObject,
+    deployedModelName: string,
+    namespace: string,
+    existingSecrets?: SecretKind[],
+    opts?: K8sAPIOptions,
+  ): Promise<void> => {
+    const serviceAccountName =
+      existingSecrets?.[0]?.metadata.annotations?.['kubernetes.io/service-account.name']
+      || getModelServiceAccountName(fillData.name);
+  
+  
+  
+    const deletedSecrets =
+      existingSecrets
+        ?.map((secret) => secret.metadata.name)
+        .filter((token) => !fillData.tokens.some((tokenEdit) => tokenEdit.editName === token)) || [];
+  
+    return Promise.all<K8sStatus | SecretKind>([
+      ...fillData.tokens.map((token) => {
         const secretToken = assembleSecretSA(
           token.name,
           serviceAccountName,
           namespace,
           token.editName,
         );
+  
+        // Preserve existing annotations
+        const existingSecret = existingSecrets?.find(s => s.metadata.name === token.editName);
+        if (existingSecret) {
+          secretToken.metadata.annotations = { ...existingSecret.metadata.annotations };
+        }
+  
+  
         if (token.editName) {
           return replaceSecret(secretToken, opts);
         }
         return createSecret(secretToken, opts);
       }),
-    ...deletedSecrets.map((secret) => deleteSecret(namespace, secret, opts)),
-  ])
-    .then(() => Promise.resolve())
-    .catch((error) => Promise.reject(error));
-};
+      ...deletedSecrets.map((secret) => deleteSecret(namespace, secret, opts)),
+    ])
+      .then(() => Promise.resolve())
+      .catch((error) => Promise.reject(error));
+  };
+  
 
 export const getTokenNames = (servingRuntimeName: string, namespace: string): TokenNames => {
   const name =
