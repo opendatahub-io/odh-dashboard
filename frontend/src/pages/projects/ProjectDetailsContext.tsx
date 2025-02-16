@@ -102,7 +102,6 @@ const ProjectDetailsContextProvider: React.FC = () => {
       }
 
       const { serviceAccountName } = getTokenNames(servingRuntimeName, namespace);
-  
 
       const secrets = serverSecrets.data.filter(
         (secret) =>
