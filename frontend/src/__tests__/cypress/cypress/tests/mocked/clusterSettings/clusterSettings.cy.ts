@@ -129,7 +129,7 @@ describe('Cluster Settings', () => {
     instructLabSettings.findSubmitButton().should('be.disabled');
   });
 
-  it('View KServe defaultDeploymentMode', () => {
+  it('View and Patch KServe defaultDeploymentMode', () => {
     cy.interceptOdh(
       'GET /api/config',
       mockDashboardConfig({
@@ -144,6 +144,7 @@ describe('Cluster Settings', () => {
       }),
     );
     cy.interceptOdh('GET /api/cluster-settings', mockClusterSettings({}));
+    cy.interceptK8s('PATCH', DataScienceClusterModel, mockDsc({}));
 
     clusterSettings.visit();
 
@@ -159,5 +160,24 @@ describe('Cluster Settings', () => {
       .findSinglePlatformDeploymentModeSelect()
       .findSelectOption('Advanced (Serverless and Service Mesh)')
       .should('have.attr', 'aria-selected', 'false');
+
+    modelServingSettings.findSubmitButton().should('be.disabled');
+    modelServingSettings
+      .findSinglePlatformDeploymentModeSelect()
+      .findSelectOption('Advanced (Serverless and Service Mesh)')
+      .click();
+
+    modelServingSettings.findSubmitButton().should('be.enabled');
+    modelServingSettings.findSubmitButton().click();
+    modelServingSettings.findSubmitButton().should('be.disabled');
+
+    modelServingSettings
+      .findSinglePlatformDeploymentModeSelect()
+      .findSelectOption('Standard (No additional dependencies)')
+      .should('have.attr', 'aria-selected', 'false');
+    modelServingSettings
+      .findSinglePlatformDeploymentModeSelect()
+      .findSelectOption('Advanced (Serverless and Service Mesh)')
+      .should('have.attr', 'aria-selected', 'true');
   });
 });
