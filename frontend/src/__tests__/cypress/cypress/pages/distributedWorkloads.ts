@@ -37,6 +37,19 @@ class GlobalDistributedWorkloads {
     this.findRefreshIntervalSelectToggle().findSelectOption(interval).click();
   }
 
+  findRefreshIntervalList() {
+    this.findRefreshIntervalSelectToggle().click();
+    return cy.get('button[role="option"]').then(($options) => {
+      if ($options.length === 0) {
+        cy.log('No refresh interval options found');
+        return [];
+      }
+
+      const optionTexts = $options.map((_, el) => Cypress.$(el).text().trim()).get();
+      return cy.wrap(optionTexts);
+    });
+  }
+
   shouldHaveRefreshInterval(interval: RefreshIntervalTitle) {
     this.findRefreshIntervalSelectToggle().should('contain.text', interval);
   }
@@ -49,10 +62,110 @@ class GlobalDistributedWorkloads {
     return cy.findByTestId('workload-resource-metrics-table');
   }
 
+  findProjectSelect() {
+    return cy.findByTestId('project-selector-toggle');
+  }
+
+  selectProjectByName(name: string) {
+    this.findProjectSelect().click();
+    cy.findByTestId('project-selector-search').fill(name);
+    cy.findByTestId('project-selector-menuList')
+      .contains('button', name)
+      .should('be.visible')
+      .click();
+  }
+
   private wait() {
     this.shouldHavePageTitle();
     cy.testA11y();
   }
 }
 
+class ProjectMetricsTab extends GlobalDistributedWorkloads {
+  findProjectMetricsButton() {
+    return cy.get('button[aria-label="Project metrics tab"]');
+  }
+
+  navigateProjectMetricsPage() {
+    return this.findProjectMetricsButton().click();
+  }
+
+  // Helper function to verify chart legends
+  verifyChartLegend(legendSelector: string, expectedText: string) {
+    cy.get(legendSelector).should('have.text', expectedText);
+  }
+
+  verifyRequestedResources(
+    projectName: string,
+    cpuSharedQuota: number,
+    memorySharedQuota: number,
+    cpuRequested: number,
+    memoryRequested: number,
+  ) {
+    const memoryRequestedRound = Math.round(memoryRequested * 10) / 10;
+
+    // Verify CPU Chart
+    this.verifyChartLegend(
+      '#requested-resources-chart-CPU-ChartLegend-ChartLabel-0',
+      `Requested by ${projectName}: ${cpuRequested}`,
+    );
+    this.verifyChartLegend(
+      '#requested-resources-chart-CPU-ChartLegend-ChartLabel-2',
+      `Total shared quota: ${cpuSharedQuota}`,
+    );
+    this.verifyChartLegend(
+      '#requested-resources-chart-CPU-ChartLegend-ChartLabel-1',
+      `Requested by all projects: ${cpuRequested}`,
+    );
+
+    // Verify Memory Chart
+    this.verifyChartLegend(
+      '#requested-resources-chart-Memory-ChartLegend-ChartLabel-0',
+      `Requested by ${projectName}: ${memoryRequestedRound}`,
+    );
+    this.verifyChartLegend(
+      '#requested-resources-chart-Memory-ChartLegend-ChartLabel-1',
+      `Requested by all projects: ${memoryRequestedRound}`,
+    );
+    this.verifyChartLegend(
+      '#requested-resources-chart-Memory-ChartLegend-ChartLabel-2',
+      `Total shared quota: ${memorySharedQuota}`,
+    );
+  }
+
+  getRequestedResourcesTooltipText(index: number): Cypress.Chainable<string> {
+    return cy
+      .get('svg g path')
+      .eq(index)
+      .then(($pathElement) => {
+        // Trigger mouseover on the path element
+        cy.wrap($pathElement).trigger('mouseover');
+
+        // Get the tooltip element and extract its text
+        return cy
+          .get("[style*='fill: var(--pf-v6-chart-tooltip--Fill']")
+          .should('be.visible')
+          .invoke('text')
+          .then((text) => {
+            // Trigger mouseout to close the tooltip
+            cy.wrap($pathElement).trigger('mouseout');
+            // Return the trimmed tooltip text
+            return cy.wrap(text.trim());
+          });
+      });
+  }
+}
+
+class DistributedWorkloadStatusTab extends GlobalDistributedWorkloads {
+  findDistributedWorkloadStatusButton() {
+    return cy.get('button[aria-label="Distributed workload status tab"]');
+  }
+
+  navigateDistributedWorkloadStatusPage() {
+    return this.findDistributedWorkloadStatusButton().click();
+  }
+}
+
 export const globalDistributedWorkloads = new GlobalDistributedWorkloads();
+export const projectMetricsTab = new ProjectMetricsTab();
+export const distributedWorkloadStatusTab = new DistributedWorkloadStatusTab();
