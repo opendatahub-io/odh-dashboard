@@ -27,6 +27,22 @@ export const mockDsc = ({
           },
         },
       },
+      kserve: {
+        defaultDeploymentMode: 'Severless',
+        managementState: 'Managed',
+        nim: {
+          managementState: 'Managed',
+        },
+        serving: {
+          ingressGateway: {
+            certificate: {
+              type: 'OpenshiftDefaultIngress',
+            },
+          },
+          managementState: 'Managed',
+          name: 'knative-serving',
+        },
+      },
     },
   },
   status: {

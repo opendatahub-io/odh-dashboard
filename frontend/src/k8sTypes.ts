@@ -1282,6 +1282,7 @@ export type DataScienceClusterKind = K8sResourceCommon & {
         managementState: string;
       };
       kserve?: {
+        defaultDeploymentMode: string;
         managementState: string;
         nim: {
           managementState: string;
