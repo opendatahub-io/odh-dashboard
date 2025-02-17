@@ -67,6 +67,7 @@ const usePrefillDeployModalFromModelRegistry = (
           setCreateData('storage', {
             awsData: prefilledAWSData,
             dataConnection: '',
+            // FIXME: Remove connectionType: Look at https://issues.redhat.com/browse/RHOAIENG-19991 for more details
             connectionType: registeredModelDeployInfo.modelLocationType,
             path: storageFields.s3Fields.path,
             type: InferenceServiceStorageType.NEW_STORAGE,
@@ -93,6 +94,7 @@ const usePrefillDeployModalFromModelRegistry = (
             awsData: EMPTY_AWS_SECRET_DATA,
             uri: storageFields.uri,
             dataConnection: '',
+            // FIXME: Remove connectionType: Look at https://issues.redhat.com/browse/RHOAIENG-19991 for more details
             connectionType: registeredModelDeployInfo.modelLocationType,
             path: '',
             type: InferenceServiceStorageType.NEW_STORAGE,
@@ -111,6 +113,7 @@ const usePrefillDeployModalFromModelRegistry = (
             uri: storageFields.uri,
             awsData: EMPTY_AWS_SECRET_DATA,
             dataConnection: '',
+            // FIXME: Remove connectionType: Look at https://issues.redhat.com/browse/RHOAIENG-19991 for more details
             connectionType: registeredModelDeployInfo.modelLocationType,
             path: '',
             type: InferenceServiceStorageType.EXISTING_STORAGE,
