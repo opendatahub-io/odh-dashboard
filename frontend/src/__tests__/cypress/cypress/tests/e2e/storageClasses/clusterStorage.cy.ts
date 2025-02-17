@@ -7,7 +7,10 @@ import { addClusterStorageModal } from '~/__tests__/cypress/cypress/pages/cluste
 import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import { findAddClusterStorageButton } from '~/__tests__/cypress/cypress/utils/clusterStorage';
 import { disableNonDefaultStorageClasses } from '~/__tests__/cypress/cypress/utils/oc_commands/storageClass';
-import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import {
+  retryableBefore,
+  wasSetupPerformed,
+} from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 const dspName = 'qe-cluster-storage-sc-dsp';
 
@@ -17,6 +20,9 @@ describe('Regular Users can make use of the Storage Classes in the Cluster Stora
   });
 
   after(() => {
+    //Check if the Before Method was executed to perform the setup
+    if (!wasSetupPerformed()) return;
+
     tearDownClusterStorageSCFeature(dspName);
   });
 

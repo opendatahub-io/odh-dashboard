@@ -10,7 +10,10 @@ import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e
 import { loadPVCEditFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
-import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import {
+  retryableBefore,
+  wasSetupPerformed,
+} from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 describe('Edit and Update a Workbench in RHOAI', () => {
   let editTestNamespace: string;
@@ -38,6 +41,9 @@ describe('Edit and Update a Workbench in RHOAI', () => {
       });
   });
   after(() => {
+    //Check if the Before Method was executed to perform the setup
+    if (!wasSetupPerformed()) return;
+
     // Delete provisioned Project
     if (editTestNamespace) {
       cy.log(`Deleting Project ${editTestNamespace} after the test has finished.`);

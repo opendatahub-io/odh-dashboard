@@ -9,7 +9,10 @@ import {
 import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
-import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import {
+  retryableBefore,
+  wasSetupPerformed,
+} from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 describe('Verify that users can provide admin project permissions to non-admin users/groups', () => {
   let testData: DataScienceProjectData;
@@ -32,6 +35,9 @@ describe('Verify that users can provide admin project permissions to non-admin u
       });
   });
   after(() => {
+    //Check if the Before Method was executed to perform the setup
+    if (!wasSetupPerformed()) return;
+
     // Delete provisioned Project
     if (projectName) {
       cy.log(`Deleting Project ${projectName} after the test has finished.`);

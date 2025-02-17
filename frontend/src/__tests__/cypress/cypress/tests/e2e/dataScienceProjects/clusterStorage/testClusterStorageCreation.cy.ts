@@ -10,7 +10,10 @@ import {
   updateClusterStorageModal,
 } from '~/__tests__/cypress/cypress/pages/clusterStorage';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import {
+  retryableBefore,
+  wasSetupPerformed,
+} from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
   let testData: DataScienceProjectData;
@@ -47,6 +50,9 @@ describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
       });
   });
   after(() => {
+    //Check if the Before Method was executed to perform the setup
+    if (!wasSetupPerformed()) return;
+
     // Delete provisioned Project
     if (projectName) {
       cy.log(`Deleting Project ${projectName} after the test has finished.`);

@@ -5,12 +5,15 @@
  *
  * @param {() => void | Promise<void> | Cypress.Chainable<any>} fn - The setup function to execute.
  */
+let setupPerformed = false;
+
 export const retryableBefore = <T>(fn: () => void | Promise<void> | Cypress.Chainable<T>): void => {
   let shouldRun = true;
 
   beforeEach(function retryableBeforeEach() {
     if (this.currentTest?.isPending() || !shouldRun) return;
     shouldRun = false;
+    setupPerformed = true;
     cy.wrap(null).then(fn);
   });
 
@@ -20,3 +23,5 @@ export const retryableBefore = <T>(fn: () => void | Promise<void> | Cypress.Chai
     }
   });
 };
+
+export const wasSetupPerformed = (): boolean => setupPerformed;

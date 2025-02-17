@@ -20,7 +20,10 @@ import {
   restoreTolerationSettings,
   disableTolerationsWithRetry,
 } from '~/__tests__/cypress/cypress/utils/clusterSettingsUtils';
-import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import {
+  retryableBefore,
+  wasSetupPerformed,
+} from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 describe('Workbenches - tolerations tests', () => {
   let testData: WBTolerationsTestData;
@@ -49,6 +52,9 @@ describe('Workbenches - tolerations tests', () => {
 
   // Cleanup: Restore original toleration settings and delete the created project
   after(() => {
+    //Check if the Before Method was executed to perform the setup
+    if (!wasSetupPerformed()) return;
+
     // Restore original toleration settings
     clusterSettings.visit();
     cy.log('Restoring Original toleration settings restored');

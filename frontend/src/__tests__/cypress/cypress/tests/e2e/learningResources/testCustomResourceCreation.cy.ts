@@ -8,7 +8,10 @@ import {
   cleanupCustomResources,
 } from '~/__tests__/cypress/cypress/utils/resourceUtils';
 import { checkResources } from '~/__tests__/cypress/cypress/utils/resourceCheckUtils';
-import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import {
+  retryableBefore,
+  wasSetupPerformed,
+} from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 describe('[Known Product Bug: RHOAIENG-5317]Create a custom resource Quickstart by using Dashboard CRDs', () => {
   let resourcesData: ResourcesData;
@@ -31,6 +34,9 @@ describe('[Known Product Bug: RHOAIENG-5317]Create a custom resource Quickstart 
   });
   // Delete custom resources
   after(() => {
+    //Check if the Before Method was executed to perform the setup
+    if (!wasSetupPerformed()) return;
+
     return cleanupCustomResources(resourcesData);
   });
 
