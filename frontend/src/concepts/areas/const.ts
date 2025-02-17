@@ -33,7 +33,7 @@ export const allFeatureFlags: string[] = Object.keys({
   disableModelRegistrySecureDB: false,
   disableServingRuntimeParams: false,
   disableStorageClasses: false,
-  disableNIMModelServing: true,
+  disableNIMModelServing: false,
   disableAdminConnectionTypes: false,
   disableFineTuning: true,
 } satisfies DashboardCommonConfig);

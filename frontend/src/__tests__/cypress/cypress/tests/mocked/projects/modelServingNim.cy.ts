@@ -44,22 +44,43 @@ describe('NIM Model Serving', () => {
 
       // test filling in minimum required fields
       nimDeployModal.findModelNameInput().type('Test Name');
-      nimDeployModal
-        .findNIMToDeploy()
-        .findSelectOption('Snowflake Arctic Embed Large Embedding - 1.0.0')
-        .click();
+      // Click to activate the Typeahead input field
+      nimDeployModal.findNIMToDeploy().click();
+
+      // Type the model name to filter results
+      nimDeployModal.findNIMToDeploy().type('Snowflake Arctic');
+
+      // Wait for dropdown to appear and select the correct option
+      cy.get('[role="listbox"]').contains('Snowflake Arctic Embed Large Embedding - 1.0.0').click();
+
       nimDeployModal.findSubmitButton().should('be.enabled');
 
       nimDeployModal.findNimStorageSizeInput().should('have.value', '30');
-      nimDeployModal.findStorageSizeMinusButton().click();
+
+      // Fix: Ensure Minus button exists before clicking
+      cy.get('[data-testid="pvc-size"] button[aria-label="Minus"]', { timeout: 10000 })
+        .should('exist')
+        .should('be.visible')
+        .click();
+
       nimDeployModal.findNimStorageSizeInput().should('have.value', '29');
-      nimDeployModal.findStorageSizePlusButton().click();
+
+      cy.get('[data-testid="pvc-size"] button[aria-label="Plus"]', { timeout: 10000 })
+        .should('exist')
+        .should('be.visible')
+        .click();
+
       nimDeployModal.findNimStorageSizeInput().should('have.value', '30');
 
+      // Validate model replicas
       nimDeployModal.findNimModelReplicas().should('have.value', '1');
-      nimDeployModal.findNimModelReplicasPlusButton().click();
+
+      cy.get('button[aria-label="Plus"]').eq(1).should('exist').should('be.visible').click();
+
       nimDeployModal.findNimModelReplicas().should('have.value', '2');
-      nimDeployModal.findNimModelReplicasMinusButton().click();
+
+      cy.get('button[aria-label="Minus"]').eq(1).should('exist').should('be.visible').click();
+
       nimDeployModal.findNimModelReplicas().should('have.value', '1');
 
       nimDeployModal.findSubmitButton().click();

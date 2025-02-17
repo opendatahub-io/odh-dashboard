@@ -1,5 +1,7 @@
 import { mockDashboardConfig, mockDscStatus } from '~/__mocks__';
+import { mockModelCatalogConfigMap } from '~/__mocks__/mockModelCatalogConfigMap';
 import { modelDetailsPage } from '~/__tests__/cypress/cypress/pages/modelDetailsPage';
+import { ConfigMapModel } from '~/__tests__/cypress/cypress/utils/models';
 
 const initIntercepts = () => {
   cy.interceptOdh(
@@ -17,6 +19,15 @@ const initIntercepts = () => {
       disableModelCatalog: false,
     }),
   );
+
+  cy.interceptK8s(
+    {
+      model: ConfigMapModel,
+      ns: 'opendatahub',
+      name: 'model-catalog-source-redhat',
+    },
+    mockModelCatalogConfigMap(),
+  );
 };
 
 describe('Model details page', () => {
@@ -30,9 +41,9 @@ describe('Model details page', () => {
       .findLongDescription()
       .should(
         'have.text',
-        'Granite-8B-Code-Instruct is a 8B parameter model fine tuned from\n    Granite-8B-Code-Base on a combination of permissively licensed instruction\n    data to enhance instruction following capabilities including logical\n    reasoning and problem-solving skills.',
+        'Granite-8B-Code-Instruct is a 8B parameter model fine tuned from\nGranite-8B-Code-Base on a combination of permissively licensed instruction\ndata to enhance instruction following capabilities including logical\nreasoning and problem-solving skills.',
       );
-    modelDetailsPage.findModelVersion().should('have.text', 'Version1.3-1732870892');
+    modelDetailsPage.findModelVersion().should('have.text', 'Version1.3.0');
     modelDetailsPage.findModelLicense().should('have.text', 'Licenseapache-2.0');
     modelDetailsPage.findModelProvider().should('have.text', 'ProviderIBM');
     modelDetailsPage

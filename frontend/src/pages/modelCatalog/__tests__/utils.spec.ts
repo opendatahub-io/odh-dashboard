@@ -4,6 +4,7 @@ import {
   decodeParams,
   encodeParams,
   findModelFromModelCatalogSources,
+  getTagFromModel,
 } from '~/pages/modelCatalog/utils';
 
 describe('findModelFromModelCatalogSources', () => {
@@ -14,7 +15,7 @@ describe('findModelFromModelCatalogSources', () => {
       'Red Hat',
       'rhelai1',
       'granite-8b-code-instruct',
-      '1.3-1732870892',
+      '1.3.0',
     );
     expect(result).toEqual(mockCatalogModel({}));
   });
@@ -24,7 +25,7 @@ describe('findModelFromModelCatalogSources', () => {
       'test',
       'rhelai1',
       'granite-8b-code-instruct',
-      '1.3-1732870892',
+      '1.3.0',
     );
     expect(result).toEqual(null);
   });
@@ -35,7 +36,7 @@ describe('findModelFromModelCatalogSources', () => {
       'Red Hat',
       'test',
       'granite-8b-code-instruct',
-      '1.3-1732870892',
+      '1.3.0',
     );
     expect(result).toEqual(null);
   });
@@ -72,5 +73,22 @@ describe('decodeParams', () => {
       repositoryName: 'test@12',
       modelName: 'test',
     });
+  });
+});
+
+describe('getTagFromModel', () => {
+  it('should return tag from model version', () => {
+    const result = getTagFromModel({
+      ...mockCatalogModel({}),
+    });
+    expect(result).toBe('1.3.0');
+  });
+
+  it('should return undefined if version is not present', () => {
+    const result = getTagFromModel({
+      ...mockCatalogModel({}),
+      artifacts: [{ tags: [] }],
+    });
+    expect(result).toBe(undefined);
   });
 });
