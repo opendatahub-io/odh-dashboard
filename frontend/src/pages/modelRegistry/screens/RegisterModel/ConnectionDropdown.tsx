@@ -8,33 +8,38 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import React from 'react';
-import { DataConnection } from '~/pages/projects/types';
-import { getDataConnectionDisplayName } from '~/pages/projects/screens/detail/data-connections/utils';
-// TODO: temporarily importing across pages so not to interfere with ongoing dataconnection work
-import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
+import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
+import { Connection } from '~/concepts/connectionTypes/types';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { ModelLocationType } from './useRegisterModelData';
 
 type ConnectionDropdownProps = {
-  onSelect: (connectionInfo: DataConnection) => void;
+  type: ModelLocationType;
+  onSelect: (connectionInfo: Connection) => void;
   project?: string;
-  selectedConnection?: DataConnection;
+  selectedConnection?: Connection;
 };
 export const ConnectionDropdown = ({
+  type,
   onSelect,
   project,
   selectedConnection,
 }: ConnectionDropdownProps): React.JSX.Element => {
   const [isOpen, setIsOpen] = React.useState(false);
-  const [connections, connectionsLoaded, connectionsLoadError] = useDataConnections(project);
+  const [connections, connectionsLoaded, connectionsLoadError] = useConnections(project, true);
 
   const onToggle = () => {
     setIsOpen(!isOpen);
   };
 
-  const filteredConnections = connections.filter((c) => c.data.data?.AWS_S3_BUCKET);
+  const filteredConnections =
+    type === ModelLocationType.ObjectStorage
+      ? connections.filter((c) => c.data?.AWS_S3_BUCKET)
+      : connections.filter((c) => c.data?.URI);
 
   const getToggleContent = () => {
     if (!project) {
-      return 'Select a project to view its available data connections';
+      return 'Select a project to view its available connections';
     }
     if (connectionsLoadError) {
       return 'Error loading connections';
@@ -42,17 +47,17 @@ export const ConnectionDropdown = ({
     if (!connectionsLoaded) {
       return (
         <>
-          <Spinner size="sm" /> Loading Data Connections for the selected project...
+          <Spinner size="sm" /> Loading Connections for the selected project...
         </>
       );
     }
     if (!filteredConnections.length) {
-      return 'No available data connections';
+      return 'No available connections';
     }
     if (selectedConnection) {
-      return getDataConnectionDisplayName(selectedConnection);
+      return getDisplayNameFromK8sResource(selectedConnection);
     }
-    return 'Select data connection';
+    return 'Select connection';
   };
 
   const onSelectConnection = (
@@ -61,7 +66,7 @@ export const ConnectionDropdown = ({
   ) => {
     setIsOpen(false);
     if (typeof option === 'string') {
-      const value = connections.find((d) => d.data.metadata.name === option);
+      const value = connections.find((d) => d.metadata.name === option);
       if (!value) {
         return;
       }
@@ -90,8 +95,8 @@ export const ConnectionDropdown = ({
         <MenuContent>
           <MenuList>
             {filteredConnections.map((dataItem) => (
-              <MenuItem key={dataItem.data.metadata.name} itemId={dataItem.data.metadata.name}>
-                {getDataConnectionDisplayName(dataItem)}
+              <MenuItem key={dataItem.metadata.name} itemId={dataItem.metadata.name}>
+                {getDisplayNameFromK8sResource(dataItem)}
               </MenuItem>
             ))}
           </MenuList>

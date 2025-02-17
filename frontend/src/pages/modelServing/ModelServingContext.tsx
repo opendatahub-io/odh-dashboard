@@ -26,6 +26,8 @@ import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { conditionalArea, SupportedArea } from '~/concepts/areas';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import { useTemplates } from '~/api';
+import { Connection } from '~/concepts/connectionTypes/types';
+import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
 import useInferenceServices from './useInferenceServices';
 import useServingRuntimes from './useServingRuntimes';
 import useTemplateOrder from './customServingRuntimes/useTemplateOrder';
@@ -37,6 +39,7 @@ type ModelServingContextType = {
   refreshAllData: () => void;
   filterTokens: (servingRuntime?: string) => SecretKind[];
   dataConnections: ContextResourceData<DataConnection>;
+  connections: ContextResourceData<Connection>;
   servingRuntimeTemplates: CustomWatchK8sResult<TemplateKind[]>;
   servingRuntimeTemplateOrder: ContextResourceData<string>;
   servingRuntimeTemplateDisablement: ContextResourceData<string>;
@@ -58,6 +61,7 @@ export const ModelServingContext = React.createContext<ModelServingContextType>(
   refreshAllData: () => undefined,
   filterTokens: () => [],
   dataConnections: DEFAULT_CONTEXT_DATA,
+  connections: DEFAULT_CONTEXT_DATA,
   servingRuntimeTemplates: DEFAULT_LIST_WATCH_RESULT,
   servingRuntimeTemplateOrder: DEFAULT_CONTEXT_DATA,
   servingRuntimeTemplateDisablement: DEFAULT_CONTEXT_DATA,
@@ -92,15 +96,18 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
     useInferenceServices(namespace),
   );
   const dataConnections = useContextResourceData<DataConnection>(useDataConnections(namespace));
+  const connections = useContextResourceData<Connection>(useConnections(namespace));
 
   const servingRuntimeRefresh = servingRuntimes.refresh;
   const inferenceServiceRefresh = inferenceServices.refresh;
   const dataConnectionRefresh = dataConnections.refresh;
+  const connectionRefresh = connections.refresh;
   const refreshAllData = React.useCallback(() => {
     servingRuntimeRefresh();
     inferenceServiceRefresh();
     dataConnectionRefresh();
-  }, [servingRuntimeRefresh, inferenceServiceRefresh, dataConnectionRefresh]);
+    connectionRefresh();
+  }, [servingRuntimeRefresh, inferenceServiceRefresh, dataConnectionRefresh, connectionRefresh]);
 
   const {
     kServe: { installed: kServeInstalled },
@@ -138,7 +145,8 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
     servingRuntimeTemplateOrder.error ||
     servingRuntimeTemplateDisablement.error ||
     serverSecrets.error ||
-    dataConnections.error
+    dataConnections.error ||
+    connections.error
   ) {
     return getErrorComponent ? (
       getErrorComponent(
@@ -148,7 +156,8 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
           servingRuntimeTemplates[2]?.message ||
           servingRuntimeTemplateOrder.error?.message ||
           servingRuntimeTemplateDisablement.error?.message ||
-          dataConnections.error?.message,
+          dataConnections.error?.message ||
+          connections.error?.message,
       )
     ) : (
       <Bullseye>
@@ -165,7 +174,8 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
               servingRuntimeTemplateOrder.error?.message ||
               servingRuntimeTemplateDisablement.error?.message ||
               serverSecrets.error?.message ||
-              dataConnections.error?.message}
+              dataConnections.error?.message ||
+              connections.error?.message}
           </EmptyStateBody>
           <EmptyStateFooter>
             <Button variant="primary" onClick={() => navigate('/projects')}>
@@ -186,6 +196,7 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
         servingRuntimeTemplateOrder,
         servingRuntimeTemplateDisablement,
         dataConnections,
+        connections,
         refreshAllData,
         filterTokens,
         serverSecrets,

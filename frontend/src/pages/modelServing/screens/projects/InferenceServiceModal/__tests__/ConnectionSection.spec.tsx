@@ -68,6 +68,11 @@ describe('ConnectionsFormSection', () => {
         setData={mockSetData}
         setConnection={mockSetConnection}
         setIsConnectionValid={() => undefined}
+        loaded
+        connections={[
+          { connection: mockConnection({ name: 's3-connection' }) },
+          { connection: mockConnection({ name: 'uri-connection' }) },
+        ]}
       />,
     );
 
@@ -98,6 +103,11 @@ describe('ConnectionsFormSection', () => {
         setData={() => undefined}
         setConnection={() => undefined}
         setIsConnectionValid={() => undefined}
+        loaded
+        connections={[
+          { connection: mockConnection({ name: 's3-connection' }) },
+          { connection: mockConnection({ name: 'uri-connection' }) },
+        ]}
       />,
     );
 

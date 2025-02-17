@@ -19,6 +19,8 @@ import {
   FormHelperText,
   HelperTextItem,
   HelperText,
+  FlexItem,
+  Flex,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
 import TruncatedText from '~/components/TruncatedText';
@@ -30,6 +32,7 @@ export interface TypeaheadSelectOption extends Omit<SelectOptionProps, 'content'
   value: string | number;
   /** Indicator for option being selected */
   isSelected?: boolean;
+  dropdownLabel?: React.ReactNode;
 }
 
 export interface TypeaheadSelectProps extends Omit<SelectProps, 'toggle' | 'onSelect'> {
@@ -438,7 +441,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
       >
         <SelectList>
           {filteredSelections.map((option, index) => {
-            const { content, value, ...optionProps } = option;
+            const { content, value, dropdownLabel, ...optionProps } = option;
             return (
               <SelectOption
                 key={value}
@@ -446,7 +449,10 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
                 isFocused={focusedItemIndex === index}
                 {...optionProps}
               >
-                {content}
+                <Flex>
+                  <FlexItem>{content}</FlexItem>
+                  <FlexItem>{dropdownLabel}</FlexItem>
+                </Flex>
               </SelectOption>
             );
           })}

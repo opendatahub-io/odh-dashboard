@@ -33,6 +33,7 @@ const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform, isNIM
     servingRuntimeTemplateOrder: { data: templateOrder },
     servingRuntimeTemplateDisablement: { data: templateDisablement },
     dataConnections: { data: dataConnections },
+    connections: { data: connections },
     serverSecrets: { refresh: refreshTokens },
     inferenceServices: { refresh: refreshInferenceServices },
     currentProject,
@@ -105,7 +106,7 @@ const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform, isNIM
       ) : null}
       {modalShown && !isProjectModelMesh && !isNIM ? (
         <ManageKServeModal
-          projectContext={{ currentProject, dataConnections }}
+          projectContext={{ currentProject, connections }}
           servingRuntimeTemplates={templatesEnabled.filter((template) =>
             getTemplateEnabledForPlatform(template, ServingRuntimePlatform.SINGLE),
           )}

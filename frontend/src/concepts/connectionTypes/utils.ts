@@ -14,6 +14,8 @@ import {
   ConnectionTypeValueType,
 } from '~/concepts/connectionTypes/types';
 import { enumIterator } from '~/utilities/utils';
+import { AWSDataEntry, EnvVariableDataEntry } from '~/pages/projects/types';
+import { AwsKeys } from '~/pages/projects/dataConnections/const';
 
 export const isConnectionTypeDataFieldType = (
   type: ConnectionTypeFieldTypeUnion | string,
@@ -222,6 +224,27 @@ export const getDefaultValues = (
   return defaults;
 };
 
+export const getMRConnectionValues = (
+  connectionValues: EnvVariableDataEntry[] | string,
+): { [key: string]: ConnectionTypeValueType } => {
+  const defaults: {
+    [key: string]: ConnectionTypeValueType;
+  } = {};
+  if (typeof connectionValues !== 'string') {
+    connectionValues.map((connectionValue) => {
+      if (connectionValue.key !== 'Name') {
+        defaults[connectionValue.key] = connectionValue.value;
+      }
+      return defaults;
+    });
+    return defaults;
+  }
+  if (typeof connectionValues === 'string') {
+    defaults.URI = connectionValues;
+  }
+  return defaults;
+};
+
 export const withRequiredFields = (
   connectionType?: ConnectionTypeConfigMapObj,
   envVars?: string[],
@@ -389,4 +412,25 @@ export const validateEnvVarName = (name: string): string | undefined => {
     return "Must consist of alphabetic characters, digits, '_', '-', or '.'";
   }
   return undefined;
+};
+
+export const convertObjectStorageSecretData = (dataConnection: Connection): AWSDataEntry => {
+  let convertedData: { key: AwsKeys; value: string }[] = [];
+  const secretData = dataConnection.data;
+  if (secretData) {
+    convertedData = Object.values(AwsKeys)
+      .filter((key) => key !== AwsKeys.NAME)
+      .map((key: AwsKeys) => ({
+        key,
+        value: secretData[key] ? window.atob(secretData[key]) : '',
+      }));
+  }
+  const convertedSecret: AWSDataEntry = [
+    {
+      key: AwsKeys.NAME,
+      value: getDisplayNameFromK8sResource(dataConnection),
+    },
+    ...convertedData,
+  ];
+  return convertedSecret;
 };
