@@ -90,20 +90,9 @@ export type ModelServerResources = {
   };
 };
 
-export type NotebookResources = {
-  requests?: {
-    cpu?: string;
-    memory?: string;
-  } & Record<string, unknown>;
-  limits?: {
-    cpu?: string;
-    memory?: string;
-  } & Record<string, unknown>;
-};
-
 export type NotebookSize = {
   name: string;
-  resources: NotebookResources;
+  resources: ContainerResources;
   notUserDefined?: boolean;
 };
 
@@ -431,7 +420,7 @@ export type NotebookContainer = {
   envFrom?: EnvFrom[];
   env: EnvironmentVariable[];
   ports?: NotebookPort[];
-  resources?: NotebookResources;
+  resources?: ContainerResources;
   livenessProbe?: Record<string, unknown>;
   readinessProbe?: Record<string, unknown>;
   volumeMounts?: VolumeMount[];
@@ -472,6 +461,7 @@ export type Notebook = K8sResourceCommon & {
         containers: NotebookContainer[];
         volumes?: Volume[];
         tolerations?: Toleration[];
+        nodeSelector?: NodeSelector;
       };
     };
   };
@@ -841,11 +831,20 @@ export enum NotebookState {
   Stopped = 'stopped',
 }
 
+export type PodSpecOptions = {
+  resources: ContainerResources;
+  tolerations: Toleration[];
+  nodeSelector: NodeSelector;
+  affinity: PodAffinity;
+  lastSizeSelection?: string;
+  selectedAcceleratorProfile?: AcceleratorProfileKind;
+  selectedHardwareProfile?: HardwareProfileKind;
+};
+
 export type NotebookData = {
-  notebookSizeName: string;
   imageName: string;
   imageTagName: string;
-  acceleratorProfile?: AcceleratorProfileState;
+  podSpecOptions: PodSpecOptions;
   envVars: EnvVarReducedTypeKeyValues;
   state: NotebookState;
   username?: string;
@@ -979,6 +978,30 @@ export type Toleration = {
   value?: string;
   effect?: TolerationEffect;
   tolerationSeconds?: number;
+};
+
+export type NodeSelector = Record<string, string>;
+
+export type HardwareProfileKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    displayName: string;
+    enabled: boolean;
+    description?: string;
+    tolerations?: Toleration[];
+    identifiers?: {
+      displayName: string;
+      identifier: string;
+      minCount: number | string;
+      maxCount: number | string;
+      defaultCount: number | string;
+      resourceType?: string;
+    }[];
+    nodeSelector?: NodeSelector;
+  };
 };
 
 export type AcceleratorProfileKind = K8sResourceCommon & {

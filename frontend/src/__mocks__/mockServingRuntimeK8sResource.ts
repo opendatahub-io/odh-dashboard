@@ -1,5 +1,5 @@
 import { KnownLabels, ServingRuntimeKind } from '~/k8sTypes';
-import { ServingRuntimeAPIProtocol, ContainerResources } from '~/types';
+import { ServingRuntimeAPIProtocol, ContainerResources, NodeSelector, Toleration } from '~/types';
 
 type MockResourceConfigType = {
   name?: string;
@@ -9,11 +9,14 @@ type MockResourceConfigType = {
   auth?: boolean;
   route?: boolean;
   acceleratorName?: string;
+  hardwareProfileName?: string;
   apiProtocol?: ServingRuntimeAPIProtocol;
   resources?: ContainerResources;
   disableResources?: boolean;
   disableReplicas?: boolean;
   disableModelMeshAnnotations?: boolean;
+  tolerations?: Toleration[];
+  nodeSelector?: NodeSelector;
 };
 
 export const mockServingRuntimeK8sResourceLegacy = ({
@@ -22,6 +25,8 @@ export const mockServingRuntimeK8sResourceLegacy = ({
   replicas = 0,
   auth = false,
   route = false,
+  tolerations = [],
+  nodeSelector = {},
 }: MockResourceConfigType): ServingRuntimeKind => ({
   apiVersion: 'serving.kserve.io/v1alpha1',
   kind: 'ServingRuntime',
@@ -45,6 +50,8 @@ export const mockServingRuntimeK8sResourceLegacy = ({
       runtimeManagementPort: 8888,
       serverType: 'ovms',
     },
+    tolerations,
+    nodeSelector,
     containers: [
       {
         args: [
@@ -98,6 +105,7 @@ export const mockServingRuntimeK8sResource = ({
   route = false,
   displayName = 'OVMS Model Serving',
   acceleratorName = '',
+  hardwareProfileName = '',
   apiProtocol = ServingRuntimeAPIProtocol.REST,
   resources = {
     limits: {
@@ -109,6 +117,8 @@ export const mockServingRuntimeK8sResource = ({
       memory: '4Gi',
     },
   },
+  tolerations,
+  nodeSelector,
   disableResources = false,
   disableReplicas = false,
   disableModelMeshAnnotations = false,
@@ -124,6 +134,7 @@ export const mockServingRuntimeK8sResource = ({
     annotations: {
       'opendatahub.io/template-display-name': 'OpenVINO Serving Runtime (Supports GPUs)',
       'opendatahub.io/accelerator-name': acceleratorName,
+      'opendatahub.io/hardware-profile-name': hardwareProfileName,
       'opendatahub.io/template-name': 'ovms',
       'openshift.io/display-name': displayName,
       'opendatahub.io/apiProtocol': apiProtocol,
@@ -179,5 +190,7 @@ export const mockServingRuntimeK8sResource = ({
       },
     ],
     volumes: [{ name: 'shm', emptyDir: { medium: 'Memory', sizeLimit: '2Gi' } }],
+    ...(tolerations && { tolerations }),
+    ...(nodeSelector && { nodeSelector }),
   },
 });

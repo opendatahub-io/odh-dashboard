@@ -131,13 +131,6 @@ describe('setUpTokenAuth', () => {
     k8sName: 'test-name-sa',
     servingRuntimeTemplateName: '',
     numReplicas: 1,
-    modelSize: {
-      name: '',
-      resources: {
-        requests: {},
-        limits: {},
-      },
-    },
     externalRoute: false,
     tokenAuth: false,
     tokens: [{ uuid: '', name: 'default-name', error: '' }],

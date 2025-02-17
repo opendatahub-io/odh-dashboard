@@ -19,7 +19,9 @@ export const nodeSelectorColumns: SortableData<NodeSelector>[] = [
   },
 ];
 
-export const EMPTY_NODE_SELECTOR: NodeSelector = {
+export type NodeSelectorRow = { key: string; value: string };
+
+export const EMPTY_NODE_SELECTOR: NodeSelectorRow = {
   key: '',
   value: '',
 };

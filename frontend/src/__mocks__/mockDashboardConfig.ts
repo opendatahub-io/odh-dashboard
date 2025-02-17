@@ -1,4 +1,5 @@
 import { DashboardConfigKind, KnownLabels } from '~/k8sTypes';
+import { ModelServingSize } from '~/pages/modelServing/screens/types';
 import { NotebookSize } from '~/types';
 
 export type MockDashboardConfigType = {
@@ -37,6 +38,7 @@ export type MockDashboardConfigType = {
   notebookSizes?: NotebookSize[];
   disableNIMModelServing?: boolean;
   disableFineTuning?: boolean;
+  modelServerSizes?: ModelServingSize[];
 };
 
 export const mockDashboardConfig = ({
@@ -60,7 +62,7 @@ export const mockDashboardConfig = ({
   disableKServeOCIModels = true,
   disableModelMesh = false,
   disableAcceleratorProfiles = false,
-  disableHardwareProfiles = false,
+  disableHardwareProfiles = true,
   disablePerformanceMetrics = false,
   disableTrustyBiasMetrics = false,
   disableDistributedWorkloads = false,
@@ -71,6 +73,47 @@ export const mockDashboardConfig = ({
   disableStorageClasses = false,
   disableNotebookController = false,
   disableNIMModelServing = false,
+  modelServerSizes = [
+    {
+      name: 'Small',
+      resources: {
+        limits: {
+          cpu: '2',
+          memory: '8Gi',
+        },
+        requests: {
+          cpu: '1',
+          memory: '4Gi',
+        },
+      },
+    },
+    {
+      name: 'Medium',
+      resources: {
+        limits: {
+          cpu: '8',
+          memory: '10Gi',
+        },
+        requests: {
+          cpu: '4',
+          memory: '8Gi',
+        },
+      },
+    },
+    {
+      name: 'Large',
+      resources: {
+        limits: {
+          cpu: '10',
+          memory: '20Gi',
+        },
+        requests: {
+          cpu: '6',
+          memory: '16Gi',
+        },
+      },
+    },
+  ],
   disableFineTuning = true,
   notebookSizes = [
     {
@@ -199,47 +242,7 @@ export const mockDashboardConfig = ({
       adminGroups: 'openshift-ai-admins',
       allowedGroups: 'system:authenticated',
     },
-    modelServerSizes: [
-      {
-        name: 'Small',
-        resources: {
-          limits: {
-            cpu: '2',
-            memory: '8Gi',
-          },
-          requests: {
-            cpu: '1',
-            memory: '4Gi',
-          },
-        },
-      },
-      {
-        name: 'Medium',
-        resources: {
-          limits: {
-            cpu: '8',
-            memory: '10Gi',
-          },
-          requests: {
-            cpu: '4',
-            memory: '8Gi',
-          },
-        },
-      },
-      {
-        name: 'Large',
-        resources: {
-          limits: {
-            cpu: '10',
-            memory: '20Gi',
-          },
-          requests: {
-            cpu: '6',
-            memory: '16Gi',
-          },
-        },
-      },
-    ],
+    modelServerSizes,
     notebookSizes,
     templateOrder: ['test-model'],
     templateDisablement: ['test-model'],

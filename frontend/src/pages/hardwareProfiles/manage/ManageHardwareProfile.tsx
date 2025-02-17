@@ -49,7 +49,7 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
     if (existingHardwareProfile) {
       setState('identifiers', existingHardwareProfile.spec.identifiers);
       setState('enabled', existingHardwareProfile.spec.enabled);
-      setState('nodeSelectors', existingHardwareProfile.spec.nodeSelectors);
+      setState('nodeSelector', existingHardwareProfile.spec.nodeSelector);
       setState('tolerations', existingHardwareProfile.spec.tolerations);
     }
   }, [existingHardwareProfile, setState]);
@@ -58,7 +58,7 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
     if (duplicatedHardwareProfile) {
       setState('identifiers', duplicatedHardwareProfile.spec.identifiers);
       setState('enabled', duplicatedHardwareProfile.spec.enabled);
-      setState('nodeSelectors', duplicatedHardwareProfile.spec.nodeSelectors);
+      setState('nodeSelector', duplicatedHardwareProfile.spec.nodeSelector);
       setState('tolerations', duplicatedHardwareProfile.spec.tolerations);
     }
   }, [duplicatedHardwareProfile, setState]);
@@ -123,8 +123,8 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
             setNodeResources={(identifiers) => setState('identifiers', identifiers)}
           />
           <ManageNodeSelectorSection
-            nodeSelectors={state.nodeSelectors ?? []}
-            setNodeSelectors={(nodeSelectors) => setState('nodeSelectors', nodeSelectors)}
+            nodeSelector={state.nodeSelector ?? {}}
+            setNodeSelector={(nodeSelector) => setState('nodeSelector', nodeSelector)}
           />
           <ManageTolerationSection
             tolerations={state.tolerations ?? []}

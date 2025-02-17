@@ -17,30 +17,26 @@ import {
   CreatingServingRuntimeObject,
   SupportedModelFormatsInfo,
 } from '~/pages/modelServing/screens/types';
-import { ContainerResources } from '~/types';
 import { getModelServingRuntimeName } from '~/pages/modelServing/utils';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
-import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
-import { getModelServingProjects } from './projects';
-import { assemblePodSpecOptions, getshmVolume, getshmVolumeMount } from './utils';
+import { getModelServingProjects } from '~/api/k8s/projects';
+import { getshmVolume, getshmVolumeMount } from '~/api/k8s/utils';
+import { ModelServingPodSpecOptions } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 
 export const assembleServingRuntime = (
   data: CreatingServingRuntimeObject,
   namespace: string,
   servingRuntime: ServingRuntimeKind,
   isCustomServingRuntimesEnabled: boolean,
+  podSpecOptions: ModelServingPodSpecOptions,
   isEditing?: boolean,
-  initialAcceleratorProfile?: AcceleratorProfileState,
-  selectedAcceleratorProfile?: AcceleratorProfileFormData,
   isModelMesh?: boolean,
 ): ServingRuntimeKind => {
   const {
     name: displayName,
     k8sName,
     numReplicas,
-    modelSize,
     externalRoute,
     tokenAuth,
     imageName,
@@ -85,7 +81,9 @@ export const assembleServingRuntime = (
         ...(isCustomServingRuntimesEnabled && {
           'opendatahub.io/template-display-name': getDisplayNameFromK8sResource(servingRuntime),
           'opendatahub.io/accelerator-name':
-            selectedAcceleratorProfile?.profile?.metadata.name || '',
+            podSpecOptions.selectedAcceleratorProfile?.metadata.name || '',
+          'opendatahub.io/hardware-profile-name':
+            podSpecOptions.selectedHardwareProfile?.metadata.name || '',
         }),
       },
     };
@@ -94,7 +92,10 @@ export const assembleServingRuntime = (
       ...updatedServingRuntime.metadata,
       annotations: {
         ...annotations,
-        'opendatahub.io/accelerator-name': selectedAcceleratorProfile?.profile?.metadata.name || '',
+        'opendatahub.io/accelerator-name':
+          podSpecOptions.selectedAcceleratorProfile?.metadata.name || '',
+        'opendatahub.io/hardware-profile-name':
+          podSpecOptions.selectedHardwareProfile?.metadata.name || '',
         ...(isCustomServingRuntimesEnabled && { 'openshift.io/display-name': displayName.trim() }),
       },
     };
@@ -105,28 +106,7 @@ export const assembleServingRuntime = (
     updatedServingRuntime.spec.replicas = numReplicas;
   }
 
-  // Accelerator support
-
-  const resourceSettings: ContainerResources = {
-    requests: {
-      cpu: modelSize.resources.requests?.cpu,
-      memory: modelSize.resources.requests?.memory,
-    },
-    limits: {
-      cpu: modelSize.resources.limits?.cpu,
-      memory: modelSize.resources.limits?.memory,
-    },
-  };
-
-  const { affinity, tolerations, resources } = assemblePodSpecOptions(
-    resourceSettings,
-    initialAcceleratorProfile,
-    selectedAcceleratorProfile,
-    undefined,
-    servingRuntime.spec.tolerations,
-    undefined,
-    updatedServingRuntime.spec.containers[0]?.resources,
-  );
+  const { tolerations, resources, nodeSelector } = podSpecOptions;
 
   updatedServingRuntime.spec.containers = servingRuntime.spec.containers.map(
     (container): ServingContainer => {
@@ -145,7 +125,6 @@ export const assembleServingRuntime = (
       return {
         ...containerWithoutResources,
         ...(isModelMesh ? { resources } : {}),
-        affinity,
         volumeMounts,
       };
     },
@@ -163,7 +142,12 @@ export const assembleServingRuntime = (
   }
 
   if (isModelMesh) {
-    updatedServingRuntime.spec.tolerations = tolerations;
+    if (tolerations) {
+      updatedServingRuntime.spec.tolerations = tolerations;
+    }
+    if (nodeSelector) {
+      updatedServingRuntime.spec.nodeSelector = nodeSelector;
+    }
   }
 
   // Volume mount for /dev/shm
@@ -240,28 +224,19 @@ export const updateServingRuntime = (options: {
   existingData: ServingRuntimeKind;
   isCustomServingRuntimesEnabled: boolean;
   opts?: K8sAPIOptions;
-  initialAcceleratorProfile?: AcceleratorProfileState;
-  selectedAcceleratorProfile?: AcceleratorProfileFormData;
+  podSpecOptions: ModelServingPodSpecOptions;
   isModelMesh?: boolean;
 }): Promise<ServingRuntimeKind> => {
-  const {
-    data,
-    existingData,
-    isCustomServingRuntimesEnabled,
-    opts,
-    initialAcceleratorProfile,
-    selectedAcceleratorProfile,
-    isModelMesh,
-  } = options;
+  const { data, existingData, isCustomServingRuntimesEnabled, opts, podSpecOptions, isModelMesh } =
+    options;
 
   const updatedServingRuntime = assembleServingRuntime(
     data,
     existingData.metadata.namespace,
     existingData,
     isCustomServingRuntimesEnabled,
+    podSpecOptions,
     true,
-    initialAcceleratorProfile,
-    selectedAcceleratorProfile,
     isModelMesh,
   );
 
@@ -282,8 +257,7 @@ export const createServingRuntime = (options: {
   servingRuntime: ServingRuntimeKind;
   isCustomServingRuntimesEnabled: boolean;
   opts?: K8sAPIOptions;
-  initialAcceleratorProfile?: AcceleratorProfileState;
-  selectedAcceleratorProfile?: AcceleratorProfileFormData;
+  podSpecOptions: ModelServingPodSpecOptions;
   isModelMesh?: boolean;
 }): Promise<ServingRuntimeKind> => {
   const {
@@ -292,8 +266,7 @@ export const createServingRuntime = (options: {
     servingRuntime,
     isCustomServingRuntimesEnabled,
     opts,
-    initialAcceleratorProfile,
-    selectedAcceleratorProfile,
+    podSpecOptions,
     isModelMesh,
   } = options;
   const assembledServingRuntime = assembleServingRuntime(
@@ -301,9 +274,8 @@ export const createServingRuntime = (options: {
     namespace,
     servingRuntime,
     isCustomServingRuntimesEnabled,
+    podSpecOptions,
     false,
-    initialAcceleratorProfile,
-    selectedAcceleratorProfile,
     isModelMesh,
   );
 

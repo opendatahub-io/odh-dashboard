@@ -75,7 +75,6 @@ export type CreatingInferenceServiceObject = CreatingModelServingObjectCommon & 
 export type CreatingModelServingObjectCommon = {
   name: string;
   k8sName: string;
-  modelSize: ModelServingSize;
   externalRoute: boolean;
   tokenAuth: boolean;
   tokens: ServingRuntimeToken[];

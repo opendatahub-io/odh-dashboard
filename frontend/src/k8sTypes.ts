@@ -106,6 +106,7 @@ export type NotebookAnnotations = Partial<{
   'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
   'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
   'opendatahub.io/accelerator-name': string; // the accelerator attached to the notebook
+  'opendatahub.io/hardware-profile-name': string; // the hardware profile attached to the notebook
   'opendatahub.io/image-display-name': string; // the display name of the image
 }>;
 
@@ -337,6 +338,7 @@ export type PodSpec = {
   initContainers?: PodContainer[];
   volumes?: Volume[];
   tolerations?: Toleration[];
+  nodeSelector?: NodeSelector;
 };
 
 export type NotebookKind = K8sResourceCommon & {
@@ -443,6 +445,7 @@ export type ServingRuntimeKind = K8sResourceCommon & {
     supportedModelFormats?: SupportedModelFormats[];
     replicas?: number;
     tolerations?: Toleration[];
+    nodeSelector?: NodeSelector;
     volumes?: Volume[];
     imagePullSecrets?: { name: string }[];
   };
@@ -487,6 +490,7 @@ export type InferenceServiceKind = K8sResourceCommon & {
   spec: {
     predictor: {
       tolerations?: Toleration[];
+      nodeSelector?: NodeSelector;
       model?: {
         modelFormat?: {
           name: string;
@@ -1257,7 +1261,7 @@ export type HardwareProfileKind = K8sResourceCommon & {
     description?: string;
     tolerations?: Toleration[];
     identifiers?: Identifier[];
-    nodeSelectors?: NodeSelector[];
+    nodeSelector?: NodeSelector;
   };
 };
 

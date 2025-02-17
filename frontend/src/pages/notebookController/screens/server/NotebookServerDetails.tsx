@@ -20,8 +20,9 @@ import {
 import { useAppContext } from '~/app/AppContext';
 import { useWatchImages } from '~/utilities/useWatchImages';
 import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
-import useNotebookAcceleratorProfileFormState from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileFormState';
 import { formatMemory } from '~/utilities/valueUnits';
+import { useNotebookPodSpecOptionsState } from '~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
+import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 import { getNotebookSizes } from './usePreferredNotebookSize';
 
 const NotebookServerDetails: React.FC = () => {
@@ -29,8 +30,12 @@ const NotebookServerDetails: React.FC = () => {
   const { images, loaded } = useWatchImages();
   const [isExpanded, setExpanded] = React.useState(false);
   const { dashboardConfig } = useAppContext();
-  const { initialState: initialAcceleratorProfileState } =
-    useNotebookAcceleratorProfileFormState(notebook);
+  const {
+    acceleratorProfile: { initialState: initialAcceleratorProfileState },
+    hardwareProfile,
+  } = useNotebookPodSpecOptionsState(notebook ?? undefined);
+
+  const isHardwareProfileEnabled = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
 
   const container: PodContainer | undefined = notebook?.spec.template.spec.containers.find(
     (currentContainer) => currentContainer.name === notebook.metadata.name,
@@ -117,23 +122,38 @@ const NotebookServerDetails: React.FC = () => {
             } Memory`}
           </DescriptionListDescription>
         </DescriptionListGroup>
-        <DescriptionListGroup>
-          <DescriptionListTerm>Accelerator</DescriptionListTerm>
-          <DescriptionListDescription>
-            {initialAcceleratorProfileState.acceleratorProfile
-              ? initialAcceleratorProfileState.acceleratorProfile.spec.displayName
-              : initialAcceleratorProfileState.unknownProfileDetected
-              ? 'Unknown'
-              : 'None'}
-          </DescriptionListDescription>
-        </DescriptionListGroup>
-        {!initialAcceleratorProfileState.unknownProfileDetected && (
+        {isHardwareProfileEnabled ? (
           <DescriptionListGroup>
-            <DescriptionListTerm>Number of accelerators</DescriptionListTerm>
+            <DescriptionListTerm>Hardware profile</DescriptionListTerm>
             <DescriptionListDescription>
-              {initialAcceleratorProfileState.count}
+              {hardwareProfile.initialHardwareProfile
+                ? hardwareProfile.initialHardwareProfile.spec.displayName
+                : hardwareProfile.formData.useExistingSettings
+                ? 'Unknown'
+                : 'None'}
             </DescriptionListDescription>
           </DescriptionListGroup>
+        ) : (
+          <>
+            <DescriptionListGroup>
+              <DescriptionListTerm>Accelerator</DescriptionListTerm>
+              <DescriptionListDescription>
+                {initialAcceleratorProfileState.acceleratorProfile
+                  ? initialAcceleratorProfileState.acceleratorProfile.spec.displayName
+                  : initialAcceleratorProfileState.unknownProfileDetected
+                  ? 'Unknown'
+                  : 'None'}
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+            {!initialAcceleratorProfileState.unknownProfileDetected && (
+              <DescriptionListGroup>
+                <DescriptionListTerm>Number of accelerators</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {initialAcceleratorProfileState.count}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            )}
+          </>
         )}
       </DescriptionList>
     </ExpandableSection>

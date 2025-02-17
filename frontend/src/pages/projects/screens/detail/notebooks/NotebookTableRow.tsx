@@ -22,13 +22,13 @@ import useStopNotebookModalAvailability from '~/pages/projects/notebook/useStopN
 import { useAppContext } from '~/app/AppContext';
 import NotebookStateAction from '~/pages/projects/notebook/NotebookStateAction';
 import StopNotebookConfirmModal from '~/pages/projects/notebook/StopNotebookConfirmModal';
+import { useNotebookKindPodSpecOptionsState } from '~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { NotebookImageAvailability } from './const';
 import { NotebookImageDisplayName } from './NotebookImageDisplayName';
 import NotebookStorageBars from './NotebookStorageBars';
 import NotebookSizeDetails from './NotebookSizeDetails';
 import useNotebookImage from './useNotebookImage';
 import useNotebookDeploymentSize from './useNotebookDeploymentSize';
-import useNotebookAcceleratorProfileFormState from './useNotebookAcceleratorProfileFormState';
 
 type NotebookTableRowProps = {
   obj: NotebookState;
@@ -57,7 +57,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
     },
   };
   const [notebookImage, loaded, loadError] = useNotebookImage(obj.notebook);
-  const { initialState: acceleratorProfile } = useNotebookAcceleratorProfileFormState(obj.notebook);
+  const podSpecOptionsState = useNotebookKindPodSpecOptionsState(obj.notebook);
   const [dontShowModalValue] = useStopNotebookModalAvailability();
   const { dashboardConfig } = useAppContext();
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
@@ -72,18 +72,18 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
       tolerationSettings,
       canEnablePipelines && !currentlyHasPipelines(obj.notebook),
     ).then(() => {
-      fireNotebookTrackingEvent('started', obj.notebook, notebookSize, acceleratorProfile);
+      fireNotebookTrackingEvent('started', obj.notebook, podSpecOptionsState);
       obj.refresh().then(() => setInProgress(false));
     });
-  }, [dashboardConfig, obj, canEnablePipelines, notebookSize, acceleratorProfile]);
+  }, [dashboardConfig, obj, canEnablePipelines, podSpecOptionsState]);
 
   const handleStop = React.useCallback(() => {
-    fireNotebookTrackingEvent('stopped', obj.notebook, notebookSize, acceleratorProfile);
+    fireNotebookTrackingEvent('stopped', obj.notebook, podSpecOptionsState);
     setInProgress(true);
     stopNotebook(notebookName, notebookNamespace).then(() => {
       obj.refresh().then(() => setInProgress(false));
     });
-  }, [acceleratorProfile, notebookName, notebookNamespace, notebookSize, obj]);
+  }, [podSpecOptionsState, notebookName, notebookNamespace, obj]);
 
   const onStop = React.useCallback(() => {
     if (dontShowModalValue) {

@@ -38,8 +38,7 @@ export const mockStartNotebookData = ({
       name: 'v1.0.0',
     },
   },
-  notebookSize: {
-    name: 'small',
+  podSpecOptions: {
     resources: {
       requests: {
         memory: '2Gi',
@@ -50,17 +49,16 @@ export const mockStartNotebookData = ({
         cpu: '500m',
       },
     },
-  },
-  initialAcceleratorProfile: {
-    acceleratorProfile: undefined,
-    acceleratorProfiles: [],
-    count: 0,
-    unknownProfileDetected: false,
-  },
-  selectedAcceleratorProfile: {
-    profile: undefined,
-    count: 0,
-    useExistingSettings: false,
+    tolerations: [
+      {
+        key: 'key1',
+        value: 'value1',
+      },
+    ],
+    nodeSelector: {},
+    lastSizeSelection: 'small',
+    selectedAcceleratorProfile: undefined,
+    selectedHardwareProfile: undefined,
   },
   volumes: [
     {
@@ -76,22 +74,6 @@ export const mockStartNotebookData = ({
       name: volumeName,
     },
   ],
-  existingTolerations: [
-    {
-      key: 'key1',
-      value: 'value1',
-    },
-  ],
-  existingResources: {
-    limits: {
-      cpu: '1',
-      memory: '1Gi',
-    },
-    requests: {
-      cpu: '500m',
-      memory: '512Mi',
-    },
-  },
 });
 
 export const mockStorageData: StorageData[] = [

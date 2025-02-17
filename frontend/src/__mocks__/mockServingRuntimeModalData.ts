@@ -7,19 +7,6 @@ export const mockServingRuntimeModalData = ({
   k8sName = 'my-inference-service-test',
   servingRuntimeTemplateName = 'caikit',
   numReplicas = 1,
-  modelSize = {
-    name: 'small',
-    resources: {
-      requests: {
-        cpu: '1',
-        memory: '1Gi',
-      },
-      limits: {
-        cpu: '1',
-        memory: '1Gi',
-      },
-    },
-  },
   externalRoute = false,
   tokenAuth = false,
   tokens = [],
@@ -28,7 +15,6 @@ export const mockServingRuntimeModalData = ({
   k8sName,
   servingRuntimeTemplateName,
   numReplicas,
-  modelSize,
   externalRoute,
   tokenAuth,
   tokens,

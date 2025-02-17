@@ -45,13 +45,13 @@ import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 import useDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
-import useNotebookAcceleratorProfileFormState from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileFormState';
+import HardwareProfileFormSection from '~/concepts/hardwareProfiles/HardwareProfileFormSection';
+import { useNotebookPodSpecOptionsState } from '~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import SizeSelectField from './SizeSelectField';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
 import ImageSelector from './ImageSelector';
-import { usePreferredNotebookSize } from './usePreferredNotebookSize';
 import StartServerModal from './StartServerModal';
 import AcceleratorProfileSelectField from './AcceleratorProfileSelectField';
 
@@ -61,6 +61,7 @@ const SpawnerPage: React.FC = () => {
   const navigate = useNavigate();
   const notification = useNotification();
   const isHomeAvailable = useIsAreaAvailable(SupportedArea.HOME).status;
+  const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
   const { images, loaded, loadError } = useWatchImages();
   const { buildStatuses } = useAppContext();
   const { currentUserNotebook, requestNotebookRefresh, impersonatedUsername, setImpersonating } =
@@ -75,12 +76,7 @@ const SpawnerPage: React.FC = () => {
     image: undefined,
     tag: undefined,
   });
-  const { selectedSize, setSelectedSize, sizes } = usePreferredNotebookSize();
-  const {
-    initialState: acceleratorProfileInitialState,
-    formData: acceleratorProfileFormData,
-    setFormData: setAcceleratorProfileFormData,
-  } = useNotebookAcceleratorProfileFormState(currentUserNotebook);
+  const podSpecOptionsState = useNotebookPodSpecOptionsState(currentUserNotebook ?? undefined);
 
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
@@ -94,7 +90,8 @@ const SpawnerPage: React.FC = () => {
         Object.keys(errors).length > 0 ||
         variables.find((variable) => !variable.name || variable.name === EMPTY_KEY),
     ) ||
-    !defaultStorageClassLoaded;
+    !defaultStorageClassLoaded ||
+    !podSpecOptionsState.hardwareProfile.isFormDataValid;
 
   React.useEffect(() => {
     const setFirstValidImage = () => {
@@ -250,15 +247,15 @@ const SpawnerPage: React.FC = () => {
   const fireStartServerEvent = () => {
     fireFormTrackingEvent('Notebook Server Started', {
       outcome: TrackingOutcome.submit,
-      accelerator: acceleratorProfileFormData.profile
-        ? `${acceleratorProfileFormData.profile.spec.displayName} (${acceleratorProfileFormData.profile.metadata.name}): ${acceleratorProfileFormData.profile.spec.identifier}`
-        : acceleratorProfileFormData.useExistingSettings
-        ? 'Unknown'
-        : 'None',
-      acceleratorCount: acceleratorProfileFormData.useExistingSettings
-        ? undefined
-        : acceleratorProfileFormData.count,
-      lastSelectedSize: selectedSize.name,
+      podSpecOptions: JSON.stringify({
+        notebookSize: podSpecOptionsState.notebooksSize.selectedSize,
+        acceleratorProfile: podSpecOptionsState.acceleratorProfile.formData.profile?.metadata.name,
+        hardwareProfile:
+          podSpecOptionsState.hardwareProfile.formData.selectedProfile?.metadata.name,
+        resources: podSpecOptionsState.podSpecOptions.resources,
+        tolerations: podSpecOptionsState.podSpecOptions.tolerations,
+        nodeSelector: podSpecOptionsState.podSpecOptions.nodeSelector,
+      }),
       lastSelectedImage: `${selectedImageTag.image?.name ?? ''}:${
         selectedImageTag.tag?.name ?? ''
       }`,
@@ -271,15 +268,9 @@ const SpawnerPage: React.FC = () => {
     const envVars = classifyEnvVars(variableRows);
 
     enableNotebook({
-      notebookSizeName: selectedSize.name,
       imageName: selectedImageTag.image?.name || '',
       imageTagName: selectedImageTag.tag?.name || '',
-      acceleratorProfile: acceleratorProfileFormData.profile
-        ? {
-            acceleratorProfile: acceleratorProfileFormData.profile,
-            count: acceleratorProfileFormData.count,
-          }
-        : undefined,
+      podSpecOptions: podSpecOptionsState.podSpecOptions,
       envVars,
       state: NotebookState.Started,
       username: impersonatedUsername || undefined,
@@ -350,17 +341,31 @@ const SpawnerPage: React.FC = () => {
             </FormGroup>
           </FormSection>
           <FormSection title="Deployment size">
-            <SizeSelectField
-              data-id="container-size"
-              value={selectedSize}
-              setValue={(size) => setSelectedSize(size)}
-              sizes={sizes}
-            />
-            <AcceleratorProfileSelectField
-              initialState={acceleratorProfileInitialState}
-              formData={acceleratorProfileFormData}
-              setFormData={setAcceleratorProfileFormData}
-            />
+            {isHardwareProfilesAvailable ? (
+              <HardwareProfileFormSection
+                data={podSpecOptionsState.hardwareProfile.formData}
+                initialHardwareProfile={podSpecOptionsState.hardwareProfile.initialHardwareProfile}
+                allowExistingSettings={
+                  !!currentUserNotebook &&
+                  !podSpecOptionsState.hardwareProfile.initialHardwareProfile
+                }
+                setData={podSpecOptionsState.hardwareProfile.setFormData}
+              />
+            ) : (
+              <>
+                <SizeSelectField
+                  data-id="container-size"
+                  value={podSpecOptionsState.notebooksSize.selectedSize}
+                  setValue={(size) => podSpecOptionsState.notebooksSize.setSelectedSize(size)}
+                  sizes={podSpecOptionsState.notebooksSize.sizes}
+                />
+                <AcceleratorProfileSelectField
+                  initialState={podSpecOptionsState.acceleratorProfile.initialState}
+                  formData={podSpecOptionsState.acceleratorProfile.formData}
+                  setFormData={podSpecOptionsState.acceleratorProfile.setFormData}
+                />
+              </>
+            )}
           </FormSection>
           <FormSection title="Environment variables" className="odh-notebook-controller__env-var">
             {renderEnvironmentVariableRows()}

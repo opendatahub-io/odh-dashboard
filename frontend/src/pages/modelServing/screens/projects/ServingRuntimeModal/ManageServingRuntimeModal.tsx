@@ -14,7 +14,6 @@ import {
 } from '~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
-import useServingAcceleratorProfileFormState from '~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import { ServingRuntimeEditInfo } from '~/pages/modelServing/screens/types';
@@ -28,6 +27,8 @@ import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
+import { useProfileIdentifiers } from '~/concepts/hardwareProfiles/utils';
+import { useModelServingPodSpecOptionsState } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import ServingRuntimeReplicaSection from './ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from './ServingRuntimeSizeSection';
 import ServingRuntimeTemplateSection from './ServingRuntimeTemplateSection';
@@ -49,8 +50,8 @@ const accessReviewResource: AccessReviewResourceAttributes = {
   verb: 'create',
 };
 
-const modelServerAddedName = 'Model Server Added';
-const modelServerEditName = 'Model Server Modified';
+export const modelServerAddedName = 'Model Server Added';
+export const modelServerEditName = 'Model Server Modified';
 
 const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   onClose,
@@ -58,12 +59,13 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   servingRuntimeTemplates,
   editInfo,
 }) => {
-  const [createData, setCreateData, , sizes] = useCreateServingRuntimeObject(editInfo);
-  const {
-    formData: selectedAcceleratorProfile,
-    setFormData: setSelectedAcceleratorProfile,
-    initialState: initialAcceleratorProfile,
-  } = useServingAcceleratorProfileFormState(editInfo?.servingRuntime);
+  const [createData, setCreateData] = useCreateServingRuntimeObject(editInfo);
+  const podSpecOptionsState = useModelServingPodSpecOptionsState(editInfo?.servingRuntime);
+
+  const profileIdentifiers = useProfileIdentifiers(
+    podSpecOptionsState.acceleratorProfile.formData.profile,
+    podSpecOptionsState.hardwareProfile.formData.selectedProfile,
+  );
 
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
@@ -87,8 +89,8 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   const tokenErrors = createData.tokens.filter((token) => token.error !== '').length > 0;
   const baseInputValueValid =
     createData.numReplicas >= 0 &&
-    resourcesArePositive(createData.modelSize.resources) &&
-    requestsUnderLimits(createData.modelSize.resources);
+    resourcesArePositive(podSpecOptionsState.podSpecOptions.resources) &&
+    requestsUnderLimits(podSpecOptionsState.podSpecOptions.resources);
   const servingRuntimeTemplateNameValid = editInfo?.servingRuntime
     ? true
     : !!createData.servingRuntimeTemplateName;
@@ -100,13 +102,8 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     !isK8sNameDescriptionDataValid(modelServerNameDesc) ||
     tokenErrors ||
     !inputValueValid ||
-    !isModelServerEditInfoChanged(
-      createData,
-      sizes,
-      initialAcceleratorProfile,
-      selectedAcceleratorProfile,
-      editInfo,
-    );
+    !isModelServerEditInfoChanged(createData, podSpecOptionsState, editInfo) ||
+    !podSpecOptionsState.hardwareProfile.isFormDataValid;
 
   const servingRuntimeSelected = React.useMemo(
     () =>
@@ -146,7 +143,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
     const props: FormTrackingEventProperties = {
       outcome: TrackingOutcome.submit,
       type: createData.servingRuntimeTemplateName,
-      size: createData.modelSize.name,
+      size: podSpecOptionsState.modelSize.selectedSize.name,
     };
 
     submitServingRuntimeResourcesWithDryRun(
@@ -156,8 +153,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
       namespace,
       editInfo,
       allowCreate,
-      initialAcceleratorProfile,
-      selectedAcceleratorProfile,
+      podSpecOptionsState.podSpecOptions,
       NamespaceApplicationCase.MODEL_MESH_PROMOTION,
       currentProject,
       undefined,
@@ -217,7 +213,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
               setData={setCreateData}
               templates={servingRuntimeTemplates || []}
               isEditing={!!editInfo}
-              selectedAcceleratorProfile={selectedAcceleratorProfile}
+              compatibleIdentifiers={profileIdentifiers}
             />
           </StackItem>
           <StackItem>
@@ -229,14 +225,10 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
             />
           </StackItem>
           <ServingRuntimeSizeSection
-            data={createData}
-            setData={setCreateData}
-            sizes={sizes}
+            podSpecOptionState={podSpecOptionsState}
             servingRuntimeSelected={servingRuntimeSelected}
-            acceleratorProfileState={initialAcceleratorProfile}
-            selectedAcceleratorProfile={selectedAcceleratorProfile}
-            setSelectedAcceleratorProfile={setSelectedAcceleratorProfile}
             infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
+            isEditing={!!editInfo}
           />
           <AuthServingRuntimeSection
             data={createData}

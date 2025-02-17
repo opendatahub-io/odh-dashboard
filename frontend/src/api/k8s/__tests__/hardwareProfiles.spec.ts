@@ -194,7 +194,7 @@ describe('updateHardwareProfile', () => {
         namespace: 'namespace',
         description: 'test description',
         displayName: 'test',
-        nodeSelectors: [],
+        nodeSelector: {},
         annotations: expect.anything(),
       }),
     });
@@ -223,7 +223,7 @@ describe('updateHardwareProfile', () => {
         namespace: 'namespace',
         description: 'test description',
         displayName: 'test',
-        nodeSelectors: [],
+        nodeSelector: {},
         annotations: expect.anything(),
       }),
     });

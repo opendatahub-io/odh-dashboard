@@ -111,9 +111,7 @@ export const getImageStreamDescription = (imageStream: ImageStreamKind): string 
 export const getImageSteamOrder = (imageStream: ImageStreamKind): number =>
   parseInt(imageStream.metadata.annotations?.[IMAGE_ANNOTATIONS.IMAGE_ORDER] || '100');
 
-export const getCompatibleAcceleratorIdentifiers = (
-  object: ImageStreamKind | K8sDSGResource,
-): string[] => {
+export const getCompatibleIdentifiers = (object: ImageStreamKind | K8sDSGResource): string[] => {
   try {
     const annotation = object.metadata.annotations?.['opendatahub.io/recommended-accelerators'];
     // in the format of ["foo.com/gpu", "bar.com/gpu"]
@@ -129,15 +127,15 @@ export const getCompatibleAcceleratorIdentifiers = (
   return [];
 };
 
-export const isCompatibleWithAccelerator = (
-  acceleratorIdentifier?: string,
+export const isCompatibleWithIdentifier = (
+  identifier?: string,
   obj?: ImageStreamKind | K8sDSGResource,
 ): boolean => {
-  if (!obj || !acceleratorIdentifier) {
+  if (!obj || !identifier) {
     return false;
   }
 
-  return getCompatibleAcceleratorIdentifiers(obj).some((cr) => cr === acceleratorIdentifier);
+  return getCompatibleIdentifiers(obj).some((cr) => cr === identifier);
 };
 
 /**

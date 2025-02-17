@@ -27,7 +27,7 @@ import {
 import { Volume, VolumeMount } from '~/types';
 import { getImageStreamDisplayName } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { k8sMergePatchResource } from '~/api/k8sUtils';
-import { assemblePodSpecOptions, getshmVolume, getshmVolumeMount } from './utils';
+import { getshmVolume, getshmVolumeMount } from '~/api/k8s/utils';
 
 export const assembleNotebook = (
   data: StartNotebookData,
@@ -37,16 +37,18 @@ export const assembleNotebook = (
   const {
     projectName,
     notebookData,
-    notebookSize,
     envFrom,
-    initialAcceleratorProfile,
-    selectedAcceleratorProfile,
     image,
     volumes: formVolumes,
     volumeMounts: formVolumeMounts,
-    tolerationSettings,
-    existingTolerations,
-    existingResources,
+    podSpecOptions: {
+      resources,
+      tolerations,
+      nodeSelector,
+      lastSizeSelection,
+      selectedAcceleratorProfile,
+      selectedHardwareProfile,
+    },
   } = data;
   const {
     name: notebookName,
@@ -59,16 +61,6 @@ export const assembleNotebook = (
   const imageSelection = `${image.imageStream?.metadata.name ?? ''}:${
     image.imageVersion?.name ?? ''
   }`;
-
-  const { affinity, tolerations, resources } = assemblePodSpecOptions(
-    notebookSize.resources,
-    initialAcceleratorProfile,
-    selectedAcceleratorProfile,
-    tolerationSettings,
-    existingTolerations,
-    undefined,
-    existingResources,
-  );
 
   const translatedUsername = usernameTranslate(username);
 
@@ -111,11 +103,12 @@ export const assembleNotebook = (
         'openshift.io/display-name': notebookName.trim(),
         'openshift.io/description': description || '',
         'notebooks.opendatahub.io/oauth-logout-url': `${origin}/projects/${projectName}?notebookLogout=${notebookId}`,
-        'notebooks.opendatahub.io/last-size-selection': notebookSize.name,
+        'notebooks.opendatahub.io/last-size-selection': lastSizeSelection || '',
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
         'notebooks.opendatahub.io/inject-oauth': 'true',
         'opendatahub.io/username': username,
-        'opendatahub.io/accelerator-name': selectedAcceleratorProfile.profile?.metadata.name || '',
+        'opendatahub.io/accelerator-name': selectedAcceleratorProfile?.metadata.name || '',
+        'opendatahub.io/hardware-profile-name': selectedHardwareProfile?.metadata.name || '',
       },
       name: notebookId,
       namespace: projectName,
@@ -123,7 +116,6 @@ export const assembleNotebook = (
     spec: {
       template: {
         spec: {
-          affinity,
           enableServiceLinks: false,
           containers: [
             {
@@ -184,6 +176,7 @@ export const assembleNotebook = (
           ],
           volumes,
           tolerations,
+          nodeSelector,
         },
       },
     },

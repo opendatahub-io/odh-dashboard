@@ -31,6 +31,7 @@ type ValueUnitFieldProps = {
   validated?: 'default' | 'error' | 'warning' | 'success' | ValidatedOptions | undefined;
   menuAppendTo?: HTMLElement;
   isDisabled?: boolean;
+  dataTestId?: string;
 };
 
 const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
@@ -43,6 +44,7 @@ const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
   value: fullValue,
   validated,
   isDisabled,
+  dataTestId,
 }) => {
   const [open, setOpen] = React.useState(false);
   const [currentValue, currentUnitOption] = splitValueUnit(fullValue, options);
@@ -67,6 +69,7 @@ const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
             onChange(`${value ?? minAsNumber ?? ''}${currentUnitOption.unit}`);
           }}
           isDisabled={isDisabled}
+          data-testid={dataTestId ? `${dataTestId}-input` : undefined}
         />
       </SplitItem>
       <SplitItem>

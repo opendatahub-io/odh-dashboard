@@ -11,12 +11,10 @@ import { InferenceServiceModel } from '~/api/models';
 import { InferenceServiceKind, K8sAPIOptions, KnownLabels } from '~/k8sTypes';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { ContainerResources } from '~/types';
-import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
-import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
 import { getInferenceServiceDeploymentMode } from '~/pages/modelServing/screens/projects/utils';
+import { parseCommandLine } from '~/api/k8s/utils';
+import { ModelServingPodSpecOptions } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import { getModelServingProjects } from './projects';
-import { assemblePodSpecOptions, parseCommandLine } from './utils';
 
 const applyAuthToInferenceService = (
   inferenceService: InferenceServiceKind,
@@ -80,15 +78,13 @@ export const assembleInferenceService = (
   isModelMesh?: boolean,
   inferenceService?: InferenceServiceKind,
   isStorageNeeded?: boolean,
-  initialAcceleratorProfile?: AcceleratorProfileState,
-  selectedAcceleratorProfile?: AcceleratorProfileFormData,
+  podSpecOptions?: ModelServingPodSpecOptions,
 ): InferenceServiceKind => {
   const {
     storage,
     format,
     servingRuntimeName,
     project,
-    modelSize,
     maxReplicas,
     minReplicas,
     tokenAuth,
@@ -214,26 +210,15 @@ export const assembleInferenceService = (
   );
 
   // Resource and Accelerator support for KServe
-  if (!isModelMesh) {
-    const resourceSettings: ContainerResources = {
-      requests: {
-        cpu: modelSize.resources.requests?.cpu,
-        memory: modelSize.resources.requests?.memory,
-      },
-      limits: {
-        cpu: modelSize.resources.limits?.cpu,
-        memory: modelSize.resources.limits?.memory,
-      },
-    };
+  if (!isModelMesh && podSpecOptions) {
+    const { tolerations, resources, nodeSelector } = podSpecOptions;
 
-    const { tolerations, resources } = assemblePodSpecOptions(
-      resourceSettings,
-      initialAcceleratorProfile,
-      selectedAcceleratorProfile,
-    );
-
-    if (tolerations.length !== 0) {
+    if (tolerations && tolerations.length !== 0) {
       updateInferenceService.spec.predictor.tolerations = tolerations;
+    }
+
+    if (nodeSelector) {
+      updateInferenceService.spec.predictor.nodeSelector = nodeSelector;
     }
 
     updateInferenceService.spec.predictor.model = {
@@ -316,8 +301,7 @@ export const createInferenceService = (
   data: CreatingInferenceServiceObject,
   secretKey?: string,
   isModelMesh?: boolean,
-  initialAcceleratorProfile?: AcceleratorProfileState,
-  selectedAcceleratorProfile?: AcceleratorProfileFormData,
+  podSpecOptions?: ModelServingPodSpecOptions,
   dryRun = false,
   isStorageNeeded?: boolean,
 ): Promise<InferenceServiceKind> => {
@@ -328,8 +312,7 @@ export const createInferenceService = (
     isModelMesh,
     undefined,
     isStorageNeeded,
-    initialAcceleratorProfile,
-    selectedAcceleratorProfile,
+    podSpecOptions,
   );
   return k8sCreateResource<InferenceServiceKind>(
     applyK8sAPIOptions(
@@ -347,8 +330,7 @@ export const updateInferenceService = (
   existingData: InferenceServiceKind,
   secretKey?: string,
   isModelMesh?: boolean,
-  initialAcceleratorProfile?: AcceleratorProfileState,
-  selectedAcceleratorProfile?: AcceleratorProfileFormData,
+  podSpecOptions?: ModelServingPodSpecOptions,
   dryRun = false,
   isStorageNeeded?: boolean,
 ): Promise<InferenceServiceKind> => {
@@ -359,8 +341,7 @@ export const updateInferenceService = (
     isModelMesh,
     existingData,
     isStorageNeeded,
-    initialAcceleratorProfile,
-    selectedAcceleratorProfile,
+    podSpecOptions,
   );
 
   return k8sUpdateResource<InferenceServiceKind>(

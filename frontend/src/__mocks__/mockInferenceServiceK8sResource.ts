@@ -1,7 +1,7 @@
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { DeploymentMode, InferenceServiceKind, KnownLabels } from '~/k8sTypes';
 import { genUID } from '~/__mocks__/mockUtils';
-import { ContainerResources } from '~/types';
+import { ContainerResources, NodeSelector, Toleration } from '~/types';
 
 type MockResourceConfigType = {
   name?: string;
@@ -28,6 +28,8 @@ type MockResourceConfigType = {
   args?: string[];
   env?: Array<{ name: string; value: string }>;
   isKserveRaw?: boolean;
+  tolerations?: Toleration[];
+  nodeSelector?: NodeSelector;
 };
 
 type InferenceServicek8sError = K8sStatus & {
@@ -92,6 +94,8 @@ export const mockInferenceServiceK8sResource = ({
   args = [],
   env = [],
   isKserveRaw = false,
+  tolerations,
+  nodeSelector,
 }: MockResourceConfigType): InferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1beta1',
   kind: 'InferenceService',
@@ -128,6 +132,8 @@ export const mockInferenceServiceK8sResource = ({
     predictor: {
       minReplicas,
       maxReplicas,
+      ...(tolerations && { tolerations }),
+      ...(nodeSelector && { nodeSelector }),
       model: {
         modelFormat: {
           name: 'onnx',

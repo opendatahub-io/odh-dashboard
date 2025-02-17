@@ -159,7 +159,7 @@ describe('Hardware Profile', () => {
           }),
           mockHardwareProfile({
             displayName: 'Test Hardware Profile Empty',
-            nodeSelectors: [],
+            nodeSelector: {},
             identifiers: [],
             tolerations: [],
           }),
@@ -184,7 +184,7 @@ describe('Hardware Profile', () => {
         mockK8sResourceList([
           mockHardwareProfile({
             displayName: 'Test Hardware Profile Empty',
-            nodeSelectors: [],
+            nodeSelector: {},
             identifiers: [],
             tolerations: [{ key: 'test-key' }],
           }),

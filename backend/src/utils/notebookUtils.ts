@@ -1,23 +1,16 @@
 import { getDashboardConfig } from './resourceUtils';
 import { mergeWith } from 'lodash';
 import {
-  ContainerResourceAttributes,
+  ContainerResources,
   EnvironmentVariable,
   ImageInfo,
   ImageTag,
   KubeFastifyInstance,
   Notebook,
-  NotebookAffinity,
   NotebookData,
   NotebookList,
-  NotebookResources,
-  NotebookSize,
-  NotebookTolerationSettings,
   RecursivePartial,
   Route,
-  Toleration,
-  TolerationEffect,
-  TolerationOperator,
   VolumeMount,
 } from '../types';
 import { getUserInfo, usernameTranslate } from './userUtils';
@@ -28,7 +21,7 @@ import {
   V1Role,
   V1RoleBinding,
 } from '@kubernetes/client-node';
-import { DEFAULT_NOTEBOOK_SIZES, DEFAULT_PVC_SIZE, MOUNT_PATH } from './constants';
+import { DEFAULT_PVC_SIZE, MOUNT_PATH } from './constants';
 import { FastifyRequest } from 'fastify';
 import { verifyEnvVars } from './envUtils';
 import { smartMergeArraysWithNameObjects } from './objUtils';
@@ -124,18 +117,6 @@ export const createRBAC = async (
   await fastify.kube.rbac.createNamespacedRoleBinding(namespace, notebookRoleBinding);
 };
 
-const getNotebookSize = (notebookSizeName: string): NotebookSize => {
-  const sizes = getDashboardConfig().spec?.notebookSizes || DEFAULT_NOTEBOOK_SIZES;
-
-  const size = sizes.find((size) => size.name === notebookSizeName);
-
-  if (!size) {
-    throw Error(`Error getting notebook size for ${notebookSizeName}`);
-  }
-
-  return size;
-};
-
 const getImageTag = (image: ImageInfo, imageTagName: string): ImageTag => {
   const tag = image.tags.find((tag) => tag.name === imageTagName);
 
@@ -158,11 +139,8 @@ export const assembleNotebook = async (
   namespace: string,
   pvcName: string,
   envName: string,
-  tolerationSettings: NotebookTolerationSettings,
 ): Promise<Notebook> => {
-  const { notebookSizeName, imageName, imageTagName, envVars } = data;
-
-  const notebookSize = getNotebookSize(notebookSizeName);
+  const { imageName, imageTagName, envVars, podSpecOptions } = data;
 
   let imageUrl = ``;
   let imageSelection = ``;
@@ -192,49 +170,16 @@ export const assembleNotebook = async (
     { mountPath: '/dev/shm', name: 'shm' },
   ];
 
-  const resources: NotebookResources = { ...notebookSize.resources };
-  const tolerations: Toleration[] = [];
+  const {
+    resources,
+    tolerations,
+    affinity,
+    nodeSelector,
+    selectedAcceleratorProfile,
+    selectedHardwareProfile,
+    lastSizeSelection,
+  } = podSpecOptions;
 
-  const affinity: NotebookAffinity = {};
-  if (data.acceleratorProfile?.count > 0) {
-    if (!resources.limits) {
-      resources.limits = {};
-    }
-    if (!resources.requests) {
-      resources.requests = {};
-    }
-    resources.limits[data.acceleratorProfile.acceleratorProfile.spec.identifier] =
-      data.acceleratorProfile.count;
-    resources.requests[data.acceleratorProfile.acceleratorProfile.spec.identifier] =
-      data.acceleratorProfile.count;
-  } else {
-    // step type down to string to avoid type errors
-    const containerResourceKeys: string[] = Object.values(ContainerResourceAttributes);
-
-    Object.keys(resources.limits || {}).forEach((key) => {
-      if (!containerResourceKeys.includes(key)) {
-        delete resources.limits?.[key];
-      }
-    });
-
-    Object.keys(resources.requests || {}).forEach((key) => {
-      if (!containerResourceKeys.includes(key)) {
-        delete resources.requests?.[key];
-      }
-    });
-  }
-
-  if (data.acceleratorProfile?.acceleratorProfile?.spec.tolerations) {
-    tolerations.push(...data.acceleratorProfile.acceleratorProfile.spec.tolerations);
-  }
-
-  if (tolerationSettings?.enabled) {
-    tolerations.push({
-      effect: TolerationEffect.NO_SCHEDULE,
-      key: tolerationSettings.key,
-      operator: TolerationOperator.EXISTS,
-    });
-  }
   const translatedUsername = usernameTranslate(username);
 
   const configMapEnvs = Object.keys(envVars.configMap).map<EnvironmentVariable>((key) => ({
@@ -269,12 +214,12 @@ export const assembleNotebook = async (
       },
       annotations: {
         'notebooks.opendatahub.io/oauth-logout-url': `${url}/notebookController/${translatedUsername}/home`,
-        'notebooks.opendatahub.io/last-size-selection': notebookSize.name,
+        'notebooks.opendatahub.io/last-size-selection': lastSizeSelection,
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
         'opendatahub.io/username': username,
         'kubeflow-resource-stopped': null,
-        'opendatahub.io/accelerator-name':
-          data.acceleratorProfile?.acceleratorProfile.metadata.name || '',
+        'opendatahub.io/accelerator-name': selectedAcceleratorProfile?.metadata.name || '',
+        'opendatahub.io/hardware-profile-name': selectedHardwareProfile?.metadata.name || '',
       },
       name: name,
       namespace: namespace,
@@ -307,7 +252,16 @@ export const assembleNotebook = async (
                 ...configMapEnvs,
                 ...secretEnvs,
               ],
-              resources,
+              resources: {
+                requests: {
+                  cpu: resources.requests?.cpu,
+                  memory: resources.requests?.memory,
+                },
+                limits: {
+                  cpu: resources.limits?.cpu,
+                  memory: resources.limits?.memory,
+                },
+              },
               volumeMounts,
               ports: [
                 {
@@ -344,6 +298,7 @@ export const assembleNotebook = async (
           ],
           volumes,
           tolerations,
+          nodeSelector,
         },
       },
     },
@@ -583,7 +538,7 @@ export const updateNotebook = async (
   }
 };
 
-export const verifyResources = (resources: NotebookResources): NotebookResources => {
+export const verifyResources = (resources: ContainerResources): ContainerResources => {
   if (resources.requests && !resources.limits) {
     resources.limits = resources.requests;
   }
@@ -603,8 +558,6 @@ const generateNotebookResources = async (
   const pvcName = generatePvcNameFromUsername(username);
   const envName = generateEnvVarFileNameFromUsername(username);
   const namespace = getNamespaces(fastify).notebookNamespace;
-  const tolerationSettings =
-    getDashboardConfig().spec.notebookController?.notebookTolerationSettings;
 
   // generate pvc
   try {
@@ -628,7 +581,6 @@ const generateNotebookResources = async (
     namespace,
     pvcName,
     envName,
-    tolerationSettings,
   );
 };
 

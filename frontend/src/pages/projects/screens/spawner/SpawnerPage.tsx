@@ -16,7 +16,7 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ImageStreamAndVersion } from '~/types';
 import GenericSidebar from '~/components/GenericSidebar';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { NotebookKind } from '~/k8sTypes';
+import { HardwareProfileKind, NotebookKind } from '~/k8sTypes';
 import useNotebookImageData from '~/pages/projects/screens/detail/notebooks/useNotebookImageData';
 import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
 import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
@@ -30,11 +30,16 @@ import K8sNameDescriptionField, {
 } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { LimitNameResourceType } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import { Connection } from '~/concepts/connectionTypes/types';
-import useNotebookAcceleratorProfileFormState from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileFormState';
 import { StorageData, StorageType } from '~/pages/projects/types';
 import useNotebookPVCItems from '~/pages/projects/pvc/useNotebookPVCItems';
 import { getNotebookPVCMountPathMap } from '~/pages/projects/notebook/utils';
 import { getNotebookPVCNames } from '~/pages/projects/pvc/utils';
+import HardwareProfileFormSection from '~/concepts/hardwareProfiles/HardwareProfileFormSection';
+import {
+  useProfileIdentifiers,
+  doesImageStreamSupportHardwareProfile,
+} from '~/concepts/hardwareProfiles/utils';
+import { useNotebookKindPodSpecOptionsState } from '~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { SpawnerPageSectionID } from './types';
 import {
   K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR,
@@ -45,10 +50,8 @@ import SpawnerFooter from './SpawnerFooter';
 import ImageSelectorField from './imageSelector/ImageSelectorField';
 import ContainerSizeSelector from './deploymentSize/ContainerSizeSelector';
 import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
-import { getCompatibleAcceleratorIdentifiers } from './spawnerUtils';
 import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
 import { useNotebookDataConnection } from './dataConnection/useNotebookDataConnection';
-import { useNotebookSizeState } from './useNotebookSizeState';
 import useDefaultStorageClass from './storage/useDefaultStorageClass';
 import usePreferredStorageClass from './storage/usePreferredStorageClass';
 import { ConnectionsFormSection } from './connections/ConnectionsFormSection';
@@ -60,6 +63,7 @@ import { defaultClusterStorage } from './storage/constants';
 import { ClusterStorageEmptyState } from './storage/ClusterStorageEmptyState';
 import AttachExistingStorageModal from './storage/AttachExistingStorageModal';
 import WorkbenchStorageModal from './storage/WorkbenchStorageModal';
+import { getCompatibleIdentifiers } from './spawnerUtils';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
@@ -86,13 +90,11 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     imageStream: undefined,
     imageVersion: undefined,
   });
-  const { selectedSize, setSelectedSize, sizes } = useNotebookSizeState(existingNotebook);
-  const [supportedAcceleratorProfiles, setSupportedAcceleratorProfiles] = React.useState<
-    string[] | undefined
-  >();
   const [defaultStorageClass] = useDefaultStorageClass();
   const preferredStorageClass = usePreferredStorageClass();
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
+  const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
+
   const defaultStorageClassName = isStorageClassesAvailable
     ? defaultStorageClass?.metadata.name
     : preferredStorageClass?.metadata.name;
@@ -172,27 +174,42 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     }
   }, [data, loaded, loadError]);
 
-  const {
-    initialState: acceleratorProfileInitialState,
-    formData: acceleratorProfileFormData,
-    setFormData: setAcceleratorProfileFormData,
-  } = useNotebookAcceleratorProfileFormState(existingNotebook);
-
-  React.useEffect(() => {
-    if (selectedImage.imageStream) {
-      setSupportedAcceleratorProfiles(
-        getCompatibleAcceleratorIdentifiers(selectedImage.imageStream),
-      );
-    } else {
-      setSupportedAcceleratorProfiles(undefined);
-    }
-  }, [selectedImage.imageStream]);
-
   const editNotebookDisplayName = existingNotebook
     ? getDisplayNameFromK8sResource(existingNotebook)
     : '';
 
   const sectionIDs = Object.values(SpawnerPageSectionID);
+
+  const {
+    notebooksSize: { selectedSize: notebookSize, setSelectedSize: setNotebookSize, sizes },
+    acceleratorProfile: {
+      initialState: acceleratorProfileInitialState,
+      formData: acceleratorProfileFormData,
+      setFormData: setAcceleratorProfileFormData,
+    },
+    hardwareProfile: {
+      formData: hardwareProfileFormData,
+      setFormData: setHardwareProfileFormData,
+      initialHardwareProfile,
+    },
+    podSpecOptions,
+  } = useNotebookKindPodSpecOptionsState(existingNotebook);
+
+  const profileIdentifiers = useProfileIdentifiers(
+    acceleratorProfileFormData.profile,
+    hardwareProfileFormData.selectedProfile,
+  );
+
+  const isHardwareProfileSupported = React.useCallback(
+    (profile: HardwareProfileKind) => {
+      if (!selectedImage.imageStream) {
+        return false;
+      }
+
+      return doesImageStreamSupportHardwareProfile(profile, selectedImage.imageStream);
+    },
+    [selectedImage.imageStream],
+  );
 
   return (
     <ApplicationsPage
@@ -224,7 +241,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
         aria-label="spawner-page-spawner-section"
       >
         <GenericSidebar sections={sectionIDs} titles={SpawnerPageSectionTitles}>
-          <Form style={{ maxWidth: 625 }}>
+          <Form style={{ maxWidth: 750 }}>
             <FormSection
               id={SpawnerPageSectionID.NAME_DESCRIPTION}
               aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.NAME_DESCRIPTION]}
@@ -243,9 +260,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               <ImageSelectorField
                 selectedImage={selectedImage}
                 setSelectedImage={setSelectedImage}
-                compatibleAcceleratorIdentifier={
-                  acceleratorProfileInitialState.acceleratorProfile?.spec.identifier
-                }
+                compatibleIdentifiers={profileIdentifiers}
               />
             </FormSection>
             <FormSection
@@ -253,17 +268,33 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               id={SpawnerPageSectionID.DEPLOYMENT_SIZE}
               aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.DEPLOYMENT_SIZE]}
             >
-              <ContainerSizeSelector
-                sizes={sizes}
-                setValue={setSelectedSize}
-                value={selectedSize}
-              />
-              <AcceleratorProfileSelectField
-                supportedAcceleratorProfiles={supportedAcceleratorProfiles}
-                initialState={acceleratorProfileInitialState}
-                formData={acceleratorProfileFormData}
-                setFormData={setAcceleratorProfileFormData}
-              />
+              {!isHardwareProfilesAvailable ? (
+                <>
+                  <ContainerSizeSelector
+                    sizes={sizes}
+                    setValue={setNotebookSize}
+                    value={notebookSize}
+                  />
+                  <AcceleratorProfileSelectField
+                    compatibleIdentifiers={
+                      selectedImage.imageStream
+                        ? getCompatibleIdentifiers(selectedImage.imageStream)
+                        : undefined
+                    }
+                    initialState={acceleratorProfileInitialState}
+                    formData={acceleratorProfileFormData}
+                    setFormData={setAcceleratorProfileFormData}
+                  />
+                </>
+              ) : (
+                <HardwareProfileFormSection
+                  data={hardwareProfileFormData}
+                  initialHardwareProfile={initialHardwareProfile}
+                  allowExistingSettings={!!existingNotebook && !initialHardwareProfile}
+                  setData={setHardwareProfileFormData}
+                  isHardwareProfileSupported={isHardwareProfileSupported}
+                />
+              )}
             </FormSection>
             <FormSection
               title={SpawnerPageSectionTitles[SpawnerPageSectionID.ENVIRONMENT_VARIABLES]}
@@ -347,13 +378,9 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                     notebookData: k8sNameDescriptionData.data,
                     projectName: currentProject.metadata.name,
                     image: selectedImage,
-                    notebookSize: selectedSize,
-                    initialAcceleratorProfile: acceleratorProfileInitialState,
-                    selectedAcceleratorProfile: acceleratorProfileFormData,
                     volumes: [],
                     volumeMounts: [],
-                    existingTolerations: existingNotebook?.spec.template.spec.tolerations || [],
-                    existingResources: existingNotebook?.spec.template.spec.containers[0].resources,
+                    podSpecOptions,
                   }}
                   storageData={storageData}
                   envVariables={envVariables}

@@ -11,6 +11,7 @@ import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServic
 import { mockInferenceServiceModalData } from '~/__mocks__/mockInferenceServiceModalData';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mock200Status, mock404Error } from '~/__mocks__/mockK8sStatus';
+import { mockModelServingPodSpecOptions } from '~/__mocks__/mockModelServingPodSpecOptions';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import {
@@ -24,10 +25,10 @@ import {
   updateInferenceService,
 } from '~/api/k8s/inferenceServices';
 import { InferenceServiceModel, ProjectModel } from '~/api/models';
+import { ModelServingPodSpecOptions } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import { DeploymentMode, InferenceServiceKind, ProjectKind } from '~/k8sTypes';
 import { ModelServingSize } from '~/pages/modelServing/screens/types';
-import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
-import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
+import { TolerationEffect, TolerationOperator } from '~/types';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
@@ -166,20 +167,24 @@ describe('assembleInferenceService', () => {
     expect(inferenceService.metadata.annotations?.['openshift.io/display-name']).toBe(name);
   });
 
-  it('should add accelerator if kserve and accelerator found', async () => {
-    const acceleratorProfileState: AcceleratorProfileState = {
-      acceleratorProfile: mockAcceleratorProfile({}),
-      acceleratorProfiles: [mockAcceleratorProfile({})],
-      count: 1,
-      unknownProfileDetected: false,
-    };
-
-    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
-      profile: mockAcceleratorProfile({}),
-      count: 1,
-      useExistingSettings: false,
-    };
-
+  it('should add resources and tolerations if kserve and podSpecOptions found', async () => {
+    const podSpecOption: ModelServingPodSpecOptions = mockModelServingPodSpecOptions({
+      resources: {
+        requests: {
+          'nvidia.com/gpu': 1,
+        },
+        limits: {
+          'nvidia.com/gpu': 1,
+        },
+      },
+      tolerations: [
+        {
+          key: 'nvidia.com/gpu',
+          operator: TolerationOperator.EXISTS,
+          effect: TolerationEffect.NO_SCHEDULE,
+        },
+      ],
+    });
     const inferenceService = assembleInferenceService(
       mockInferenceServiceModalData({}),
       undefined,
@@ -187,8 +192,7 @@ describe('assembleInferenceService', () => {
       false,
       undefined,
       undefined,
-      acceleratorProfileState,
-      selectedAcceleratorProfile,
+      podSpecOption,
     );
 
     expect(inferenceService.spec.predictor.tolerations).toBeDefined();
@@ -199,19 +203,24 @@ describe('assembleInferenceService', () => {
     expect(inferenceService.spec.predictor.model?.resources?.requests?.['nvidia.com/gpu']).toBe(1);
   });
 
-  it('should not add accelerator if modelmesh and accelerator found', async () => {
-    const acceleratorProfileState: AcceleratorProfileState = {
-      acceleratorProfile: mockAcceleratorProfile({}),
-      acceleratorProfiles: [mockAcceleratorProfile({})],
-      count: 1,
-      unknownProfileDetected: false,
-    };
-
-    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
-      profile: mockAcceleratorProfile({}),
-      count: 1,
-      useExistingSettings: false,
-    };
+  it('should not add resources and tolerations if modelmesh', async () => {
+    const podSpecOption: ModelServingPodSpecOptions = mockModelServingPodSpecOptions({
+      resources: {
+        requests: {
+          'nvidia.com/gpu': 1,
+        },
+        limits: {
+          'nvidia.com/gpu': 1,
+        },
+      },
+      tolerations: [
+        {
+          key: 'nvidia.com/gpu',
+          operator: TolerationOperator.EXISTS,
+          effect: TolerationEffect.NO_SCHEDULE,
+        },
+      ],
+    });
 
     const inferenceService = assembleInferenceService(
       mockInferenceServiceModalData({}),
@@ -220,8 +229,7 @@ describe('assembleInferenceService', () => {
       true,
       undefined,
       undefined,
-      acceleratorProfileState,
-      selectedAcceleratorProfile,
+      podSpecOption,
     );
 
     expect(inferenceService.spec.predictor.tolerations).toBeUndefined();
@@ -231,19 +239,7 @@ describe('assembleInferenceService', () => {
   it('should provide max and min replicas if provided', async () => {
     const replicaCount = 2;
 
-    const acceleratorProfileState: AcceleratorProfileState = {
-      acceleratorProfile: mockAcceleratorProfile({}),
-      acceleratorProfiles: [mockAcceleratorProfile({})],
-      count: 1,
-      unknownProfileDetected: false,
-    };
-
-    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
-      profile: mockAcceleratorProfile({}),
-      count: 1,
-      useExistingSettings: false,
-    };
-
+    const podSpecOption: ModelServingPodSpecOptions = mockModelServingPodSpecOptions({});
     const inferenceService = assembleInferenceService(
       mockInferenceServiceModalData({
         maxReplicas: replicaCount,
@@ -254,8 +250,7 @@ describe('assembleInferenceService', () => {
       false,
       undefined,
       undefined,
-      acceleratorProfileState,
-      selectedAcceleratorProfile,
+      podSpecOption,
     );
 
     expect(inferenceService.spec.predictor.maxReplicas).toBe(replicaCount);
@@ -263,18 +258,7 @@ describe('assembleInferenceService', () => {
   });
 
   it('should omit replica count for modelmesh', async () => {
-    const acceleratorProfileState: AcceleratorProfileState = {
-      acceleratorProfile: mockAcceleratorProfile({}),
-      acceleratorProfiles: [mockAcceleratorProfile({})],
-      count: 1,
-      unknownProfileDetected: false,
-    };
-
-    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
-      profile: mockAcceleratorProfile({}),
-      count: 1,
-      useExistingSettings: false,
-    };
+    const podSpecOption: ModelServingPodSpecOptions = mockModelServingPodSpecOptions({});
 
     const inferenceService = assembleInferenceService(
       mockInferenceServiceModalData({}),
@@ -283,8 +267,7 @@ describe('assembleInferenceService', () => {
       true,
       undefined,
       undefined,
-      acceleratorProfileState,
-      selectedAcceleratorProfile,
+      podSpecOption,
     );
 
     expect(inferenceService.spec.predictor.maxReplicas).toBeUndefined();
@@ -292,18 +275,18 @@ describe('assembleInferenceService', () => {
   });
 
   it('should add requests on kserve', async () => {
-    const acceleratorProfileState: AcceleratorProfileState = {
-      acceleratorProfile: mockAcceleratorProfile({}),
-      acceleratorProfiles: [mockAcceleratorProfile({})],
-      count: 1,
-      unknownProfileDetected: false,
-    };
-
-    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
-      profile: mockAcceleratorProfile({}),
-      count: 1,
-      useExistingSettings: false,
-    };
+    const podSpecOption: ModelServingPodSpecOptions = mockModelServingPodSpecOptions({
+      resources: {
+        requests: {
+          cpu: '1',
+          memory: '1Gi',
+        },
+        limits: {
+          cpu: '2',
+          memory: '2Gi',
+        },
+      },
+    });
 
     const modelSize: ModelServingSize = {
       name: 'Small',
@@ -320,14 +303,13 @@ describe('assembleInferenceService', () => {
     };
 
     const inferenceService = assembleInferenceService(
-      mockInferenceServiceModalData({ modelSize }),
+      mockInferenceServiceModalData({}),
       undefined,
       undefined,
       false,
       undefined,
       undefined,
-      acceleratorProfileState,
-      selectedAcceleratorProfile,
+      podSpecOption,
     );
 
     expect(inferenceService.spec.predictor.model?.resources?.requests?.cpu).toBe(
@@ -345,21 +327,7 @@ describe('assembleInferenceService', () => {
   });
 
   it('should omit requests on modelmesh', async () => {
-    const acceleratorProfileState: AcceleratorProfileState = {
-      acceleratorProfile: mockAcceleratorProfile({}),
-      acceleratorProfiles: [mockAcceleratorProfile({})],
-      count: 1,
-      unknownProfileDetected: false,
-    };
-
-    const selectedAcceleratorProfile: AcceleratorProfileFormData = {
-      profile: mockAcceleratorProfile({}),
-      count: 1,
-      useExistingSettings: false,
-    };
-
-    const modelSize: ModelServingSize = {
-      name: 'Small',
+    const podSpecOption: ModelServingPodSpecOptions = mockModelServingPodSpecOptions({
       resources: {
         requests: {
           cpu: '1',
@@ -370,17 +338,16 @@ describe('assembleInferenceService', () => {
           memory: '2Gi',
         },
       },
-    };
+    });
 
     const inferenceService = assembleInferenceService(
-      mockInferenceServiceModalData({ modelSize }),
+      mockInferenceServiceModalData({}),
       undefined,
       undefined,
       true,
       undefined,
       undefined,
-      acceleratorProfileState,
-      selectedAcceleratorProfile,
+      podSpecOption,
     );
 
     expect(inferenceService.spec.predictor.model?.resources).toBeUndefined();

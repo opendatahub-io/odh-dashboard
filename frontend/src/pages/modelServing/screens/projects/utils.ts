@@ -23,18 +23,11 @@ import {
 } from '~/pages/modelServing/screens/types';
 import { ServingRuntimePlatform } from '~/types';
 import { DEFAULT_MODEL_SERVER_SIZES } from '~/pages/modelServing/screens/const';
-import { useAppContext } from '~/app/AppContext';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
-import {
-  getInferenceServiceSize,
-  getServingRuntimeSize,
-  getServingRuntimeTokens,
-  setUpTokenAuth,
-} from '~/pages/modelServing/utils';
-import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
+import { getServingRuntimeTokens, setUpTokenAuth } from '~/pages/modelServing/utils';
 import {
   addSupportServingPlatformProject,
   assembleSecret,
@@ -51,8 +44,8 @@ import { containsOnlySlashes, isS3PathValid, removeLeadingSlash } from '~/utilit
 import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 import { getNIMData, getNIMResource } from '~/pages/modelServing/screens/projects/nimUtils';
 import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
-import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import { Connection } from '~/concepts/connectionTypes/types';
+import { ModelServingPodSpecOptions } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 
 export const getServingRuntimeSizes = (config: DashboardConfigKind): ModelServingSize[] => {
   let sizes = config.spec.modelServerSizes || [];
@@ -114,18 +107,12 @@ export const useCreateServingRuntimeObject = (existingData?: {
   data: CreatingServingRuntimeObject,
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>,
   resetDefaults: () => void,
-  sizes: ModelServingSize[],
 ] => {
-  const { dashboardConfig } = useAppContext();
-
-  const sizes = useDeepCompareMemoize(getServingRuntimeSizes(dashboardConfig));
-
   const createModelState = useGenericObjectState<CreatingServingRuntimeObject>({
     name: '',
     k8sName: '',
     servingRuntimeTemplateName: '',
     numReplicas: 1,
-    modelSize: sizes[0],
     externalRoute: false,
     tokenAuth: false,
     tokens: [],
@@ -143,10 +130,6 @@ export const useCreateServingRuntimeObject = (existingData?: {
 
   const existingNumReplicas = existingData?.servingRuntime?.spec.replicas ?? 1;
 
-  const existingSize = useDeepCompareMemoize(
-    getServingRuntimeSize(sizes, existingData?.servingRuntime),
-  );
-
   const existingExternalRoute =
     existingData?.servingRuntime?.metadata.annotations?.['enable-route'] === 'true';
   const existingTokenAuth =
@@ -161,7 +144,6 @@ export const useCreateServingRuntimeObject = (existingData?: {
       setCreateData('name', existingServingRuntimeName);
       setCreateData('servingRuntimeTemplateName', existingServingRuntimeTemplateName);
       setCreateData('numReplicas', existingNumReplicas);
-      setCreateData('modelSize', existingSize);
       setCreateData('externalRoute', existingExternalRoute);
       setCreateData('tokenAuth', existingTokenAuth);
       setCreateData('tokens', existingTokens);
@@ -171,15 +153,14 @@ export const useCreateServingRuntimeObject = (existingData?: {
     existingServingRuntimeName,
     existingServingRuntimeTemplateName,
     existingNumReplicas,
-    existingSize,
     existingExternalRoute,
     existingTokenAuth,
     existingTokens,
     setCreateData,
-    sizes,
     existingImageName,
   ]);
-  return [...createModelState, sizes];
+
+  return [...createModelState];
 };
 
 export const defaultInferenceService: CreatingInferenceServiceObject = {
@@ -187,10 +168,6 @@ export const defaultInferenceService: CreatingInferenceServiceObject = {
   k8sName: '',
   project: '',
   servingRuntimeName: '',
-  modelSize: {
-    name: '',
-    resources: {},
-  },
   storage: {
     type: InferenceServiceStorageType.EXISTING_STORAGE,
     path: '',
@@ -217,16 +194,11 @@ export const useCreateInferenceServiceObject = (
   data: CreatingInferenceServiceObject,
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>,
   resetDefaults: () => void,
-  sizes: ModelServingSize[],
 ] => {
-  const { dashboardConfig } = useAppContext();
   const { defaultMode } = useKServeDeploymentMode();
-
-  const sizes = useDeepCompareMemoize(getServingRuntimeSizes(dashboardConfig));
 
   const createInferenceServiceState = useGenericObjectState<CreatingInferenceServiceObject>({
     ...defaultInferenceService,
-    modelSize: sizes[0],
     isKServeRawDeployment: defaultMode === DeploymentMode.RawDeployment,
   });
 
@@ -254,9 +226,6 @@ export const useCreateInferenceServiceObject = (
   const existingTokenAuth = !!existingData && isInferenceServiceTokenEnabled(existingData);
 
   const existingTokens = useDeepCompareMemoize(getServingRuntimeTokens(secrets));
-  const existingSize = useDeepCompareMemoize(
-    getInferenceServiceSize(sizes, existingData, existingServingRuntimeData),
-  );
 
   const existingServingRuntimeArgs = existingData?.spec.predictor.model?.args;
 
@@ -268,7 +237,6 @@ export const useCreateInferenceServiceObject = (
       setCreateData('servingRuntimeName', existingServingRuntime);
       setCreateData('project', existingProject);
       setCreateData('isKServeRawDeployment', existingIsKServeRaw);
-      setCreateData('modelSize', existingSize);
       setCreateData('storage', {
         type: existingUri
           ? InferenceServiceStorageType.EXISTING_URI
@@ -297,7 +265,6 @@ export const useCreateInferenceServiceObject = (
     existingStorage,
     existingUri,
     existingFormat,
-    existingSize,
     existingServingRuntime,
     existingProject,
     existingMinReplicas,
@@ -311,7 +278,7 @@ export const useCreateInferenceServiceObject = (
     existingIsKServeRaw,
   ]);
 
-  return [...createInferenceServiceState, sizes];
+  return [...createInferenceServiceState];
 };
 
 export const getProjectModelServingPlatform = (
@@ -382,8 +349,7 @@ const createInferenceServiceAndDataConnection = async (
   inferenceServiceData: CreatingInferenceServiceObject,
   editInfo?: InferenceServiceKind,
   isModelMesh?: boolean,
-  initialAcceleratorProfile?: AcceleratorProfileState,
-  selectedAcceleratorProfile?: AcceleratorProfileFormData,
+  podSpecOptions?: ModelServingPodSpecOptions,
   dryRun = false,
   isStorageNeeded?: boolean,
   connection?: Connection,
@@ -422,8 +388,7 @@ const createInferenceServiceAndDataConnection = async (
       editInfo,
       secret?.metadata.name,
       isModelMesh,
-      initialAcceleratorProfile,
-      selectedAcceleratorProfile,
+      podSpecOptions,
       dryRun,
       isStorageNeeded,
     );
@@ -438,8 +403,7 @@ const createInferenceServiceAndDataConnection = async (
       },
       secret?.metadata.name,
       isModelMesh,
-      initialAcceleratorProfile,
-      selectedAcceleratorProfile,
+      podSpecOptions,
       dryRun,
       isStorageNeeded,
     );
@@ -453,8 +417,7 @@ export const getSubmitInferenceServiceResourceFn = (
   servingRuntimeName: string,
   inferenceServiceName: string,
   isModelMesh?: boolean,
-  initialAcceleratorProfile?: AcceleratorProfileState,
-  selectedAcceleratorProfile?: AcceleratorProfileFormData,
+  podSpecOptions?: ModelServingPodSpecOptions,
   allowCreate?: boolean,
   secrets?: SecretKind[],
   isStorageNeeded?: boolean,
@@ -478,8 +441,7 @@ export const getSubmitInferenceServiceResourceFn = (
       inferenceServiceData,
       editInfo,
       isModelMesh,
-      initialAcceleratorProfile,
-      selectedAcceleratorProfile,
+      podSpecOptions,
       dryRun,
       isStorageNeeded,
       connection,
@@ -517,8 +479,7 @@ export const getSubmitServingRuntimeResourcesFn = (
   namespace: string,
   editInfo: ServingRuntimeEditInfo | undefined,
   allowCreate: boolean,
-  initialAcceleratorProfile: AcceleratorProfileState,
-  selectedAcceleratorProfile: AcceleratorProfileFormData,
+  podSpecOptions: ModelServingPodSpecOptions,
   servingPlatformEnablement: NamespaceApplicationCase,
   currentProject?: ProjectKind,
   name?: string,
@@ -539,10 +500,6 @@ export const getSubmitServingRuntimeResourcesFn = (
   };
 
   const createTokenAuth = servingRuntimeData.tokenAuth && allowCreate;
-
-  const controlledState: AcceleratorProfileFormData = isGpuDisabled(servingRuntimeSelected)
-    ? { count: 0, useExistingSettings: false }
-    : selectedAcceleratorProfile;
 
   if (!editInfo && !currentProject) {
     // This should be impossible to hit on resource creation, current project is undefined only on edit
@@ -566,11 +523,8 @@ export const getSubmitServingRuntimeResourcesFn = (
               data: servingRuntimeData,
               existingData: editInfo.servingRuntime,
               isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
-              opts: {
-                dryRun,
-              },
-              selectedAcceleratorProfile: controlledState,
-              initialAcceleratorProfile,
+              opts: { dryRun },
+              podSpecOptions,
               isModelMesh,
             }),
             ...(isModelMesh
@@ -596,11 +550,8 @@ export const getSubmitServingRuntimeResourcesFn = (
               namespace,
               servingRuntime: servingRuntimeSelected,
               isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
-              opts: {
-                dryRun,
-              },
-              selectedAcceleratorProfile: controlledState,
-              initialAcceleratorProfile,
+              opts: { dryRun },
+              podSpecOptions,
               isModelMesh,
             }).then((servingRuntime) => {
               if (isModelMesh) {

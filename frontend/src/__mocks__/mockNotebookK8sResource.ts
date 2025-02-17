@@ -28,6 +28,7 @@ type MockResourceConfigType = {
   uid?: string;
   additionalVolumeMounts?: VolumeMount[];
   additionalVolumes?: Volume[];
+  hardwareProfileName?: string;
 };
 
 export const mockNotebookK8sResource = ({
@@ -51,6 +52,7 @@ export const mockNotebookK8sResource = ({
   uid = genUID('notebook'),
   additionalVolumeMounts = [],
   additionalVolumes = [],
+  hardwareProfileName = '',
 }: MockResourceConfigType): NotebookKind =>
   _.merge(
     {
@@ -67,6 +69,7 @@ export const mockNotebookK8sResource = ({
           'opendatahub.io/username': user,
           'openshift.io/description': description,
           'openshift.io/display-name': displayName,
+          'opendatahub.io/hardware-profile-name': hardwareProfileName,
         },
         creationTimestamp: '2023-02-14T21:44:13Z',
         generation: 4,
