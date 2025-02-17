@@ -12,6 +12,9 @@ import {
   EmptyStateVariant,
   EmptyState,
   EmptyStateBody,
+  Stack,
+  Split,
+  SplitItem,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
 import { AppNotification } from '~/redux/types';
@@ -77,7 +80,20 @@ const AppNotificationDrawer: React.FC<AppNotificationDrawerProps> = ({ onClose }
                 <NotificationDrawerListItemBody
                   timestamp={calculateRelativeTime(notification.timestamp, currentTime)}
                 >
-                  {notification.message}
+                  <Stack hasGutter>
+                    {notification.message}
+                    {notification.actions && (
+                      <Split hasGutter isWrappable>
+                        {notification.actions.map((action) => (
+                          <SplitItem key={action.title}>
+                            <Button variant="link" isInline component="a" onClick={action.onClick}>
+                              {action.title}
+                            </Button>
+                          </SplitItem>
+                        ))}
+                      </Split>
+                    )}
+                  </Stack>
                 </NotificationDrawerListItemBody>
               </NotificationDrawerListItem>
             ))}
