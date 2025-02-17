@@ -1,7 +1,7 @@
 import { K8sResourceCommon, MatchExpression } from '@openshift/dynamic-plugin-sdk-utils';
 import { EitherNotBoth } from '@openshift/dynamic-plugin-sdk';
 import { AwsKeys } from '~/pages/projects/dataConnections/const';
-import { StackComponent } from '~/concepts/areas/types';
+import { DataScienceStackComponent, StackComponent } from '~/concepts/areas/types';
 import {
   ContainerResourceAttributes,
   ContainerResources,
@@ -1272,6 +1272,25 @@ export type K8sResourceListResult<TResource extends Partial<K8sResourceCommon>> 
   };
 };
 
+/** Represents the status of a component in the DataScienceCluster. */
+export type DataScienceClusterComponentKindStatus = {
+  /**
+   * The management state of the component (e.g., Managed, Unmanaged, Force).
+   * Indicates whether the component is being actively managed or not.
+   */
+  managementState?: string;
+
+  /**
+   * List of releases for the component.
+   * Each release includes the name, the URL of the repository, and the version number.
+   */
+  releases?: Array<{
+    name: string; // Name of the release (e.g., "Kubeflow Pipelines")
+    repoUrl: string; // URL of the repository hosting the release (e.g., GitHub URL)
+    version: string; // Version of the release (e.g., "2.2.0")
+  }>;
+};
+
 export type DataScienceClusterKind = K8sResourceCommon & {
   metadata: {
     name: string;
@@ -1332,12 +1351,24 @@ export type DataScienceClusterKind = K8sResourceCommon & {
 
 /** We don't need or should ever get the full kind, this is the status section */
 export type DataScienceClusterKindStatus = {
+  /**
+   * Status information for individual components within the cluster.
+   *
+   * This field maps each component of the Data Science Cluster to its corresponding status.
+   * The majority of components use `DataScienceClusterComponentKindStatus`, which includes
+   * management state and release details. However, some components require additional
+   * specialized fields, such as `kserve` and `modelregistry`.
+   */
   components?: {
-    kserve?: {
+    [key in DataScienceStackComponent]?: DataScienceClusterComponentKindStatus;
+  } & {
+    /** Status of KServe, including deployment mode and serverless configuration. */
+    [DataScienceStackComponent.K_SERVE]?: DataScienceClusterComponentKindStatus & {
       defaultDeploymentMode?: string;
       serverlessMode?: string;
     };
-    modelregistry?: {
+    /** Status of Model Registry, including its namespace configuration. */
+    [DataScienceStackComponent.MODEL_REGISTRY]?: DataScienceClusterComponentKindStatus & {
       registriesNamespace?: string;
     };
   };
@@ -1356,6 +1387,7 @@ export type DataScienceClusterInitializationKindStatus = {
     name?: string;
     version?: string;
   };
+  components?: Record<string, never>;
   phase?: string;
 };
 

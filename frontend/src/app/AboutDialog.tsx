@@ -1,17 +1,23 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { AboutModal, Alert, Bullseye, Spinner, Content } from '@patternfly/react-core';
+import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
+import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { ODH_LOGO, ODH_LOGO_DARK, ODH_PRODUCT_NAME } from '~/utilities/const';
+import { DataScienceStackComponentMap } from '~/concepts/areas/const';
 import { useUser, useClusterInfo } from '~/redux/selectors';
 import { useAppContext } from '~/app/AppContext';
+import useFetchDscStatus from '~/concepts/areas/useFetchDscStatus';
 import useFetchDsciStatus from '~/concepts/areas/useFetchDsciStatus';
 import { useWatchOperatorSubscriptionStatus } from '~/utilities/useWatchOperatorSubscriptionStatus';
 import { useThemeContext } from './ThemeContext';
 
 const RhoaiAboutText = `Red Hat® OpenShift® AI (formerly Red Hat OpenShift Data Science) is a flexible, scalable MLOps platform for data scientists and developers of artificial intelligence and machine learning (AI/ML) applications. Built using open source technologies, OpenShift AI supports the full lifecycle of AI/ML experiments and models, on premise and in the public cloud.`;
 const RhoaiDefaultReleaseName = `OpenShift AI`;
+const RhoaiDefaultComponentReleaseName = `RHOAI`;
 
 const OdhAboutText = `Open Data Hub is an open source AI platform designed for the hybrid cloud. The community seeks to bridge the gap between application developers, data stewards, and data scientists by blending the leading open source AI tools with a unifying and intuitive user experience. Open Data Hub supports the full lifecycle of AI/ML experiments and models.`;
 const OdhDefaultReleaseName = `Open Data Hub`;
+const OdhDefaultComponentReleaseName = `ODH`;
 
 interface AboutDialogProps {
   onClose: () => void;
@@ -22,10 +28,40 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
   const { isRHOAI } = useAppContext();
   const { theme } = useThemeContext();
   const { serverURL } = useClusterInfo();
+  const [dscStatus, loadedDsc, errorDsc] = useFetchDscStatus();
   const [dsciStatus, loadedDsci, errorDsci] = useFetchDsciStatus();
   const [subStatus, loadedSubStatus, errorSubStatus] = useWatchOperatorSubscriptionStatus();
   const error = errorDsci || errorSubStatus;
-  const loading = (!errorDsci && !loadedDsci) || (!errorSubStatus && !loadedSubStatus);
+  const loading =
+    (!errorDsci && !loadedDsci && !loadedDsc) || (!errorSubStatus && !loadedSubStatus && !errorDsc);
+
+  // Group components by display name while merging releases (excluding 'dashboard')
+  const groupedComponents = useMemo(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const componentMap: Record<string, { releases: any[] }> = {};
+
+    Object.entries(dscStatus?.components || {})
+      .filter(([component]) => component !== 'dashboard') // Exclude dashboard
+      .forEach(([component, details]) => {
+        const displayName = DataScienceStackComponentMap[component];
+        if (!displayName) {
+          return;
+        } // Skip components without a mapped name
+
+        // Initialize if not already present
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (!componentMap[displayName]) {
+          componentMap[displayName] = { releases: [] };
+        }
+
+        // Merge releases from components with the same display name
+        if (details.releases) {
+          componentMap[displayName].releases.push(...details.releases);
+        }
+      });
+
+    return Object.entries(componentMap);
+  }, [dscStatus?.components]);
 
   return (
     <AboutModal
@@ -80,6 +116,75 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
                   })
                 : 'Unknown'}
             </Content>
+          </Content>
+
+          {/* Component Releases Section */}
+          <Content
+            style={{
+              paddingTop: 48,
+              visibility: loading ? 'hidden' : 'visible',
+            }}
+          >
+            <h4>Installed components</h4>
+            {groupedComponents.length > 0 ? (
+              <>
+                <Content>
+                  <Table
+                    aria-label="Component Releases Table"
+                    data-testid="component-releases-table"
+                  >
+                    <Thead>
+                      <Tr data-testid="table-row-title">
+                        <Th width={10}>
+                          {isRHOAI
+                            ? RhoaiDefaultComponentReleaseName
+                            : OdhDefaultComponentReleaseName}{' '}
+                          Component
+                        </Th>
+                        <Th width={20}>Upstream component</Th>
+                        <Th width={10}>Upstream version</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {groupedComponents.map(([displayName, details]) =>
+                        details.releases.length > 0 ? (
+                          details.releases.map((release, index) => (
+                            <Tr key={`${displayName}-${index}`} data-testid="table-row-data">
+                              {index === 0 ? (
+                                <Td rowSpan={details.releases!.length}>{displayName}</Td>
+                              ) : null}
+                              <Td className="hover-cell" style={{ paddingInlineStart: 16 }}>
+                                {release.repoUrl ? (
+                                  <a
+                                    href={release.repoUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    {release.name} <ExternalLinkAltIcon style={{ marginLeft: 8 }} />
+                                  </a>
+                                ) : (
+                                  release.name
+                                )}
+                              </Td>
+                              <Td>{release.version}</Td>
+                            </Tr>
+                          ))
+                        ) : (
+                          <Tr key={displayName}>
+                            <Td>{displayName}</Td>
+                            <Td colSpan={3} style={{ fontStyle: 'italic', color: 'gray' }}>
+                              No releases available
+                            </Td>
+                          </Tr>
+                        ),
+                      )}
+                    </Tbody>
+                  </Table>
+                </Content>
+              </>
+            ) : (
+              <p style={{ fontStyle: 'italic', color: 'gray' }}>No component releases available</p>
+            )}
           </Content>
         </div>
         {error ? (

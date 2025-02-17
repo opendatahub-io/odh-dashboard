@@ -1,5 +1,6 @@
 import { DataScienceClusterKindStatus, K8sCondition } from '~/k8sTypes';
-import { StackComponent } from '~/concepts/areas/types';
+import { DataScienceStackComponent, StackComponent } from '~/concepts/areas/types';
+import { DataScienceStackComponentMap } from '~/concepts/areas/const';
 
 export type MockDscStatus = {
   components?: DataScienceClusterKindStatus['components'];
@@ -10,8 +11,26 @@ export type MockDscStatus = {
 
 export const mockDscStatus = ({
   components = {
-    modelregistry: {
+    [DataScienceStackComponent.MODEL_REGISTRY]: {
+      managementState: 'Managed',
       registriesNamespace: 'odh-model-registries',
+      releases: [
+        {
+          name: 'Kubeflow Model Registry',
+          repoUrl: 'https://github.com/kubeflow/model-registry',
+          version: 'v0.2.13',
+        },
+      ],
+    },
+    [DataScienceStackComponent.K_SERVE]: {
+      managementState: 'Managed',
+      releases: [
+        {
+          name: 'KServe',
+          repoUrl: 'https://github.com/kserve/kserve/',
+          version: 'v0.14.0',
+        },
+      ],
     },
   },
   installedComponents,
@@ -121,3 +140,5 @@ export const mockDscStatus = ({
   ),
   phase,
 });
+
+export const dataScienceStackComponentMap = DataScienceStackComponentMap;
