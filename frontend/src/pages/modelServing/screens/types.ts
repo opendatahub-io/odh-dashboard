@@ -93,6 +93,7 @@ export type InferenceServiceStorage = {
   type: InferenceServiceStorageType;
   path: string;
   dataConnection: string;
+  // FIXME: Remove connectionType. Look at https://issues.redhat.com/browse/RHOAIENG-19991 for more details.
   connectionType?: ModelLocationType | string;
   uri?: string;
   awsData: EnvVariableDataEntry[];

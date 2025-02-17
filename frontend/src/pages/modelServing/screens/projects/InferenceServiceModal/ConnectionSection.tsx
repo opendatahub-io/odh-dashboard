@@ -211,7 +211,9 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
     [key: string]: ConnectionTypeValueType;
   }>(enabledConnectionTypes.length === 1 ? getDefaultValues(enabledConnectionTypes[0]) : {});
 
+  // FIXME: Remove this useEffect. Look at https://issues.redhat.com/browse/RHOAIENG-19991 for more details.
   React.useEffect(() => {
+    // FIXME: Remove connectionType: Look at https://issues.redhat.com/browse/RHOAIENG-19991 for more details
     const locationType = data.storage.connectionType;
     if (locationType) {
       if (locationType === 's3') {

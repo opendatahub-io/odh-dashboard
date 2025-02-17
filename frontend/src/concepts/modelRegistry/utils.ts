@@ -7,6 +7,11 @@ export type ObjectStorageFields = {
   path: string;
 };
 
+export type RegisteredModelLocation = {
+  s3Fields: ObjectStorageFields | null;
+  uri: string | null;
+} | null;
+
 export const objectStorageFieldsToUri = (fields: ObjectStorageFields): string | null => {
   const { endpoint, bucket, region, path } = fields;
   if (!endpoint || !bucket || !path) {
@@ -20,9 +25,7 @@ export const objectStorageFieldsToUri = (fields: ObjectStorageFields): string | 
   return `s3://${bucket}/${path}?${searchParams.toString()}`;
 };
 
-export const uriToStorageFields = (
-  uri: string,
-): { s3Fields: ObjectStorageFields | null; uri: string | null } | null => {
+export const uriToStorageFields = (uri: string): RegisteredModelLocation => {
   try {
     const urlObj = new URL(uri);
     // Some environments include the first token after the protocol (our bucket) in the pathname and some have it as the hostname
