@@ -1,14 +1,34 @@
 import { ActionList, ActionListItem, Button, Stack, StackItem } from '@patternfly/react-core';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { handleSubmit } from '~/concepts/pipelines/content/createRun/submitUtils';
+import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { isRunSchedule } from '~/concepts/pipelines/utils';
+import { RunFormData } from '~/concepts/pipelines/content/createRun/types';
+import useNotification from '~/utilities/useNotification';
+import {
+  NotificationPollerContext,
+  NotificationPollerResponse,
+} from '~/concepts/notificationPoller/NotificationPollerContext';
+import { RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
 
 type FineTunePageFooterProps = {
   isInvalid: boolean;
   onSuccess: () => void;
+  data: RunFormData;
+  contextPath: string;
 };
 
-const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({ isInvalid, onSuccess }) => {
+const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
+  isInvalid,
+  onSuccess,
+  data,
+  contextPath,
+}) => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const { api } = usePipelinesAPI();
+  const { watchForNotification } = React.useContext(NotificationPollerContext);
+  const notification = useNotification();
   const navigate = useNavigate();
 
   return (
@@ -22,8 +42,86 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({ isInvalid, onSu
               isDisabled={isInvalid || isSubmitting}
               onClick={() => {
                 setIsSubmitting(true);
-                onSuccess();
-                setIsSubmitting(false);
+
+                handleSubmit(data, api)
+                  .then((resource) => {
+                    const runId = isRunSchedule(resource)
+                      ? resource.recurring_run_id
+                      : resource.run_id;
+
+                    notification.info(
+                      'InstructLab run started',
+                      `Run for ${resource.display_name} started`,
+                      [
+                        {
+                          title: 'View run details',
+                          onClick: () => {
+                            navigate(`${contextPath}/${runId}`);
+                          },
+                        },
+                      ],
+                    );
+
+                    watchForNotification({
+                      callback: (signal: AbortSignal) =>
+                        api
+                          .getPipelineRun({ signal }, runId)
+                          .then((response): NotificationPollerResponse => {
+                            if (response.state === RuntimeStateKF.SUCCEEDED) {
+                              return {
+                                status: 'success',
+                                title: `${resource.display_name} successfully completed`,
+                                message: `Your new model, ${resource.display_name}, is within the model registry`,
+                                actions: [
+                                  {
+                                    title: 'View in model registry',
+                                    onClick: () => {
+                                      // TODO: navigate to model registry
+                                    },
+                                  },
+                                ],
+                              };
+                            }
+                            if (response.state === RuntimeStateKF.FAILED) {
+                              return {
+                                status: 'error',
+                                title: `${resource.display_name} has failed`,
+                                message: `Your run ${resource.display_name} has failed`,
+                                actions: [
+                                  {
+                                    title: 'View run details',
+                                    onClick: () => {
+                                      navigate(`${contextPath}/${runId}`);
+                                    },
+                                  },
+                                ],
+                              };
+                            }
+                            if (
+                              response.state === RuntimeStateKF.RUNNING ||
+                              response.state === RuntimeStateKF.PENDING
+                            ) {
+                              return { status: 'repoll' };
+                            }
+                            // Stop on any other state
+                            return { status: 'stop' };
+                          })
+                          .catch((e) => {
+                            // eslint-disable-next-line no-console
+                            console.error('Error calling api.getPipelineRun', e);
+                            return { status: 'stop' };
+                          }),
+                      delayRepollMs: 2000,
+                    });
+
+                    onSuccess();
+                  })
+                  .catch(() => {
+                    // TODO: show error in the form
+                  })
+                  .finally(() => {
+                    setIsSubmitting(false);
+                  });
               }}
               isLoading={isSubmitting}
             >
