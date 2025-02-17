@@ -6,6 +6,10 @@ import { loadWBVariablesFixture } from '~/__tests__/cypress/cypress/utils/dataLo
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { validateWorkbenchEnvironmentVariables } from '~/__tests__/cypress/cypress/utils/oc_commands/workbench';
+import {
+  retryableBefore,
+  wasSetupPerformed,
+} from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 describe('Workbenches - variable tests', () => {
   let projectName: string;
@@ -13,7 +17,7 @@ describe('Workbenches - variable tests', () => {
   let testData: WBVariablesTestData;
 
   // Setup: Load test data and ensure clean state
-  beforeEach(() => {
+  retryableBefore(() => {
     return loadWBVariablesFixture('e2e/dataScienceProjects/testWorkbenchVariables.yaml')
       .then((fixtureData: WBVariablesTestData) => {
         testData = fixtureData;
@@ -31,6 +35,9 @@ describe('Workbenches - variable tests', () => {
       });
   });
   afterEach(() => {
+    //Check if the Before Method was executed to perform the setup
+    if (!wasSetupPerformed()) return;
+
     // Delete provisioned Project
     if (projectName) {
       cy.log(`Deleting Project ${projectName} after the test has finished.`);

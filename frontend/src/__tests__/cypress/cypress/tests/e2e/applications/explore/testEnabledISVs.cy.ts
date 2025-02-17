@@ -2,13 +2,14 @@ import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e
 import { explorePage } from '~/__tests__/cypress/cypress/pages/explore';
 import { getOcResourceNames } from '~/__tests__/cypress/cypress/utils/oc_commands/applications';
 import { filterRhoaiIfHidden } from '~/__tests__/cypress/cypress/utils/appCheckUtils';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 const applicationNamespace = Cypress.env('TEST_NAMESPACE');
 
 describe('Verify RHODS Explore Section Contains Only Expected ISVs', () => {
   let expectedISVs: string[];
 
-  before(() => {
+  retryableBefore(() => {
     // Setup: Retrieve the resource names of 'OdhApplication' objects from the OpenShift cluster
     getOcResourceNames(applicationNamespace, 'OdhApplication').then((metadataNames) => {
       // Filter out the 'RHOAI' application if it is marked as hidden in the RHOAI YAML configuration

@@ -4,11 +4,12 @@ import {
   telemetrySettings,
 } from '~/__tests__/cypress/cypress/pages/clusterSettings';
 import { getCustomResource } from '~/__tests__/cypress/cypress/utils/oc_commands/customResources';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 describe('Verify That Usage Data Collection Can Be Set In Cluster Settings', () => {
   let skipTest = false;
 
-  before(() => {
+  retryableBefore(() => {
     // Check if the operator is RHOAI, if its not, skip the test
     cy.step('Check if the operator is RHOAI');
     getCustomResource('redhat-ods-operator', 'Deployment', 'name=rhods-operator').then((result) => {

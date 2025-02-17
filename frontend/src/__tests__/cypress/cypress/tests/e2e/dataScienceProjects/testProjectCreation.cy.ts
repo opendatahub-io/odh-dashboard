@@ -11,12 +11,13 @@ import {
 } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import type { DataScienceProjectData } from '~/__tests__/cypress/cypress/types';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 describe('Verify Data Science Project - Creation and Deletion', () => {
   let testData: DataScienceProjectData;
 
   // Setup: Load test data and ensure clean state
-  before(() => {
+  retryableBefore(() => {
     return cy
       .fixture('e2e/dataScienceProjects/testProjectCreation.yaml', 'utf8')
       .then((yamlContent: string) => {

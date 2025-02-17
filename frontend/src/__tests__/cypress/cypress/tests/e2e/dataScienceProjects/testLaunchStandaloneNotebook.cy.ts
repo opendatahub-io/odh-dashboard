@@ -7,11 +7,12 @@ import {
   waitForPodReady,
   deleteNotebook,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 describe('Verify a Jupyter Notebook can be launched directly from the Data Science Project List View', () => {
   let testData: NotebookImageData;
 
-  before(() => {
+  retryableBefore(() => {
     return cy
       .fixture('e2e/dataScienceProjects/testNotebookCreation.yaml', 'utf8')
       .then((yamlContent: string) => {
