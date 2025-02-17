@@ -444,7 +444,7 @@ export type ServingRuntimeKind = K8sResourceCommon & {
     replicas?: number;
     tolerations?: Toleration[];
     volumes?: Volume[];
-    imagePullSecrets?: { name: string }[];
+    imagePullSecrets?: ImagePullSecret[];
   };
 };
 
@@ -469,6 +469,10 @@ export type InferenceServiceLabels = Partial<{
   'security.opendatahub.io/enable-auth': 'true';
   'networking.kserve.io/visibility': 'exposed';
 }>;
+
+export type ImagePullSecret = {
+  name: string;
+};
 
 export type InferenceServiceKind = K8sResourceCommon & {
   metadata: {
@@ -506,6 +510,7 @@ export type InferenceServiceKind = K8sResourceCommon & {
       };
       maxReplicas?: number;
       minReplicas?: number;
+      imagePullSecrets?: ImagePullSecret[];
     };
   };
   status?: {
@@ -903,9 +908,7 @@ export type WorkloadPodSet = {
       hostPID?: boolean;
       hostUsers?: boolean;
       hostname?: string;
-      imagePullSecrets?: {
-        name?: string;
-      }[];
+      imagePullSecrets?: ImagePullSecret[];
       initContainers?: PodContainer[];
       nodeName?: string;
       nodeSelector?: Record<string, string>;

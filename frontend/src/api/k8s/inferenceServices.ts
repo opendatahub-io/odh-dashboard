@@ -91,6 +91,7 @@ export const assembleInferenceService = (
     modelSize,
     maxReplicas,
     minReplicas,
+    imagePullSecrets,
     tokenAuth,
     externalRoute,
     servingRuntimeArgs,
@@ -131,6 +132,7 @@ export const assembleInferenceService = (
           predictor: {
             ...(!isModelMesh && { minReplicas }),
             ...(!isModelMesh && { maxReplicas }),
+            ...(!isModelMesh && { imagePullSecrets }),
             model: {
               modelFormat: {
                 name: format.name,
@@ -179,6 +181,7 @@ export const assembleInferenceService = (
           predictor: {
             ...(!isModelMesh && { minReplicas }),
             ...(!isModelMesh && { maxReplicas }),
+            ...(!isModelMesh && { imagePullSecrets }),
             model: {
               modelFormat: {
                 name: format.name,

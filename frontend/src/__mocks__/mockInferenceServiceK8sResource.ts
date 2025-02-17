@@ -19,6 +19,7 @@ type MockResourceConfigType = {
   acceleratorIdentifier?: string;
   minReplicas?: number;
   maxReplicas?: number;
+  imagePullSecrets?: Array<{ name: string }>;
   lastFailureInfoMessage?: string;
   resources?: ContainerResources;
   kserveInternalUrl?: string;
@@ -83,6 +84,7 @@ export const mockInferenceServiceK8sResource = ({
   path = 'path/to/model',
   minReplicas = 1,
   maxReplicas = 1,
+  imagePullSecrets = undefined,
   lastFailureInfoMessage = 'Waiting for runtime Pod to become available',
   resources,
   statusPredictor = undefined,
@@ -128,6 +130,7 @@ export const mockInferenceServiceK8sResource = ({
     predictor: {
       minReplicas,
       maxReplicas,
+      imagePullSecrets,
       model: {
         modelFormat: {
           name: 'onnx',

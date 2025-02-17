@@ -268,6 +268,7 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
 type Props = {
   data: CreatingInferenceServiceObject;
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
+  connection: Connection | undefined;
   setConnection: (connection?: Connection) => void;
   setIsConnectionValid: (isValid: boolean) => void;
 };
@@ -275,11 +276,14 @@ type Props = {
 export const ConnectionSection: React.FC<Props> = ({
   data,
   setData,
+  connection,
   setConnection,
   setIsConnectionValid,
 }) => {
   const [connectionTypes] = useWatchConnectionTypes(true);
   const [projectConnections] = useConnections(data.project, true);
+
+  const hasImagePullSecret = React.useMemo(() => !!data.imagePullSecrets, [data.imagePullSecrets]);
 
   const selectedConnection = React.useMemo(
     () =>
@@ -289,9 +293,15 @@ export const ConnectionSection: React.FC<Props> = ({
     [projectConnections, data.storage.dataConnection],
   );
 
+  React.useEffect(() => {
+    if (selectedConnection && !connection) {
+      setConnection(selectedConnection);
+    }
+  }, [selectedConnection, connection, setConnection]);
+
   return (
     <>
-      {data.storage.uri && (
+      {data.storage.uri && !hasImagePullSecret && (
         <Radio
           id="existing-uri-radio"
           name="existing-uri-radio"

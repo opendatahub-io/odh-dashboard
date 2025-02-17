@@ -249,6 +249,7 @@ export const useCreateInferenceServiceObject = (
     existingData?.spec.predictor.minReplicas ?? existingServingRuntimeData?.spec.replicas ?? 1;
   const existingMaxReplicas =
     existingData?.spec.predictor.maxReplicas ?? existingServingRuntimeData?.spec.replicas ?? 1;
+  const existingImagePullSecrets = existingData?.spec.predictor.imagePullSecrets || undefined;
 
   const existingExternalRoute = !!existingData && isInferenceServiceRouteEnabled(existingData);
   const existingTokenAuth = !!existingData && isInferenceServiceTokenEnabled(existingData);
@@ -270,11 +271,14 @@ export const useCreateInferenceServiceObject = (
       setCreateData('isKServeRawDeployment', existingIsKServeRaw);
       setCreateData('modelSize', existingSize);
       setCreateData('storage', {
-        type: existingUri
-          ? InferenceServiceStorageType.EXISTING_URI
-          : InferenceServiceStorageType.EXISTING_STORAGE,
+        type:
+          existingUri && !existingImagePullSecrets
+            ? InferenceServiceStorageType.EXISTING_URI
+            : InferenceServiceStorageType.EXISTING_STORAGE,
         path: existingStorage?.path || '',
-        dataConnection: existingStorage?.key || '',
+        dataConnection: existingImagePullSecrets
+          ? existingImagePullSecrets[0].name
+          : existingStorage?.key || '',
         uri: existingUri || '',
         awsData: EMPTY_AWS_SECRET_DATA,
       });
@@ -291,6 +295,7 @@ export const useCreateInferenceServiceObject = (
       setCreateData('tokens', existingTokens);
       setCreateData('servingRuntimeArgs', existingServingRuntimeArgs);
       setCreateData('servingRuntimeEnvVars', existingServingRuntimeEnvVars);
+      setCreateData('imagePullSecrets', existingImagePullSecrets);
     }
   }, [
     existingName,
@@ -309,6 +314,7 @@ export const useCreateInferenceServiceObject = (
     existingServingRuntimeArgs,
     existingServingRuntimeEnvVars,
     existingIsKServeRaw,
+    existingImagePullSecrets,
   ]);
 
   return [...createInferenceServiceState, sizes];
@@ -390,6 +396,7 @@ const createInferenceServiceAndDataConnection = async (
 ) => {
   let secret;
   let storageUri;
+  let imagePullSecrets;
   if (inferenceServiceData.storage.type === InferenceServiceStorageType.NEW_STORAGE) {
     if (connection) {
       secret = await createSecret(connection, { dryRun });
@@ -409,6 +416,10 @@ const createInferenceServiceAndDataConnection = async (
     storageUri = inferenceServiceData.storage.uri;
   }
 
+  if (connection?.type === 'kubernetes.io/dockerconfigjson') {
+    imagePullSecrets = [{ name: connection.metadata.name }];
+  }
+
   let inferenceService;
   if (editInfo) {
     inferenceService = await updateInferenceService(
@@ -418,6 +429,7 @@ const createInferenceServiceAndDataConnection = async (
           ...inferenceServiceData.storage,
           uri: storageUri,
         },
+        imagePullSecrets,
       },
       editInfo,
       secret?.metadata.name,
@@ -435,6 +447,7 @@ const createInferenceServiceAndDataConnection = async (
           ...inferenceServiceData.storage,
           uri: storageUri,
         },
+        imagePullSecrets,
       },
       secret?.metadata.name,
       isModelMesh,

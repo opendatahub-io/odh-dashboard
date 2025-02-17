@@ -408,6 +408,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
             <ConnectionSection
               data={createDataInferenceService}
               setData={setCreateDataInferenceService}
+              connection={connection}
               setConnection={setConnection}
               setIsConnectionValid={setIsConnectionValid}
             />

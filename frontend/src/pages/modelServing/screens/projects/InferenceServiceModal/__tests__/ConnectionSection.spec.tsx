@@ -66,6 +66,7 @@ describe('ConnectionsFormSection', () => {
           },
         })}
         setData={mockSetData}
+        connection={undefined}
         setConnection={mockSetConnection}
         setIsConnectionValid={() => undefined}
       />,
@@ -96,6 +97,7 @@ describe('ConnectionsFormSection', () => {
           },
         })}
         setData={() => undefined}
+        connection={undefined}
         setConnection={() => undefined}
         setIsConnectionValid={() => undefined}
       />,
@@ -121,6 +123,7 @@ describe('ConnectionsFormSection', () => {
           },
         })}
         setData={mockSetData}
+        connection={undefined}
         setConnection={mockSetConnection}
         setIsConnectionValid={() => undefined}
       />,
@@ -154,6 +157,7 @@ describe('ConnectionsFormSection', () => {
           },
         })}
         setData={() => undefined}
+        connection={undefined}
         setConnection={() => undefined}
         setIsConnectionValid={() => undefined}
       />,

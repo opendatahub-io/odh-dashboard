@@ -183,6 +183,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
               <ConnectionSection
                 data={createData}
                 setData={setCreateData}
+                connection={connection}
                 setConnection={setConnection}
                 setIsConnectionValid={setIsConnectionValid}
               />

@@ -291,6 +291,29 @@ describe('assembleInferenceService', () => {
     expect(inferenceService.spec.predictor.minReplicas).toBeUndefined();
   });
 
+  it('should provide imagePullSecrets if provided', async () => {
+    const imagePullSecret = { name: 'test-quay-pull-secret' };
+
+    const inferenceService = assembleInferenceService(
+      mockInferenceServiceModalData({ imagePullSecrets: [imagePullSecret] }),
+    );
+
+    expect(inferenceService.spec.predictor.imagePullSecrets).toContainEqual(imagePullSecret);
+  });
+
+  it('should omit imagePullSecrets for modelmesh', async () => {
+    const inferenceService = assembleInferenceService(
+      mockInferenceServiceModalData({}),
+      undefined,
+      undefined,
+      true,
+      undefined,
+      undefined,
+    );
+
+    expect(inferenceService.spec.predictor.imagePullSecrets).toBeUndefined();
+  });
+
   it('should add requests on kserve', async () => {
     const acceleratorProfileState: AcceleratorProfileState = {
       acceleratorProfile: mockAcceleratorProfile({}),

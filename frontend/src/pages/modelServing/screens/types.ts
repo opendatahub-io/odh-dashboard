@@ -1,5 +1,5 @@
 import { AlertVariant } from '@patternfly/react-core';
-import { SecretKind, ServingContainer, ServingRuntimeKind } from '~/k8sTypes';
+import { ImagePullSecret, SecretKind, ServingContainer, ServingRuntimeKind } from '~/k8sTypes';
 import { DataConnection, EnvVariableDataEntry } from '~/pages/projects/types';
 import { ContainerResources } from '~/types';
 
@@ -70,6 +70,7 @@ export type CreatingInferenceServiceObject = CreatingModelServingObjectCommon & 
   servingRuntimeArgs?: ServingContainer['args'];
   servingRuntimeEnvVars?: ServingContainer['env'];
   isKServeRawDeployment?: boolean;
+  imagePullSecrets?: ImagePullSecret[];
 };
 
 export type CreatingModelServingObjectCommon = {
