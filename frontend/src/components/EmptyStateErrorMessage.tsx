@@ -19,7 +19,12 @@ const EmptyStateErrorMessage: React.FC<EmptyStateErrorMessageProps> = ({
   bodyText,
   children,
 }) => (
-  <EmptyState headingLevel="h2" icon={PathMissingIcon} titleText={title}>
+  <EmptyState
+    headingLevel="h2"
+    icon={PathMissingIcon}
+    titleText={title}
+    data-testid="empty-state-title"
+  >
     <EmptyStateFooter>
       <Stack hasGutter>
         <StackItem>
