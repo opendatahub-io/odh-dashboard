@@ -34,6 +34,7 @@ import {
   retryPipelineRun,
   getArtifact,
   listArtifacts,
+  getPipelineByName,
 } from '~/api';
 import { PipelineAPIs } from '~/concepts/pipelines/types';
 import { APIState } from '~/concepts/proxy/types';
@@ -64,6 +65,7 @@ const usePipelineAPIState = (
       listExperiments: listExperiments(path),
       listActiveExperiments: listActiveExperiments(path),
       listPipelines: listPipelines(path),
+      getPipelineByName: getPipelineByName(path),
       listPipelineRuns: listPipelineRuns(path),
       listPipelineActiveRuns: listPipelineActiveRuns(path),
       listPipelineArchivedRuns: listPipelineArchivedRuns(path),
