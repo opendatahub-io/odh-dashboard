@@ -1,24 +1,26 @@
-import * as React from 'react';
-import { EmptyState, EmptyStateBody, Title } from '@patternfly/react-core';
+import React from 'react';
+import { EmptyState, EmptyStateBody, EmptyStateVariant } from '@patternfly/react-core';
+import { PlusCircleIcon } from '@patternfly/react-icons';
 
-type EmptyModelCatalogStateProps = {
+type EmptyModelCatalogStateType = {
+  testid?: string;
   title: string;
   description: string;
-  headerIcon: React.ComponentType;
-  testid?: string;
+  headerIcon?: React.ComponentType;
 };
 
-const EmptyModelCatalogState: React.FC<EmptyModelCatalogStateProps> = ({
+const EmptyModelCatalogState: React.FC<EmptyModelCatalogStateType> = ({
+  testid,
   title,
   description,
-  headerIcon: HeaderIcon,
-  testid,
+  headerIcon,
 }) => (
-  <EmptyState data-testid={testid}>
-    <HeaderIcon />
-    <Title headingLevel="h4" size="lg">
-      {title}
-    </Title>
+  <EmptyState
+    icon={headerIcon ?? PlusCircleIcon}
+    titleText={title}
+    variant={EmptyStateVariant.sm}
+    data-testid={testid}
+  >
     <EmptyStateBody>{description}</EmptyStateBody>
   </EmptyState>
 );

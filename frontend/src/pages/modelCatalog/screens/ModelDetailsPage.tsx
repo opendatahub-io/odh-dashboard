@@ -92,7 +92,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
       empty={Boolean(modelCatalogSources.error) || model === null}
       emptyStatePage={
         <EmptyModelCatalogState
-          testid="empty-model-catalog-state"
+          data-testid="empty-model-catalog-state"
           title={modelCatalogSources.error ? 'Details not found' : 'Unable to load model details'}
           description={modelCatalogSources.error?.message || 'Refresh the page or try again later'}
           headerIcon={() => (

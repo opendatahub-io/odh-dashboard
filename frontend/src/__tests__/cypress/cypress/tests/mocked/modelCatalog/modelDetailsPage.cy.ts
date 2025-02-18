@@ -69,39 +69,26 @@ describe('Model details page', () => {
 });
 
 describe('Model Details loading states', () => {
+  beforeEach(() => {
+    initIntercepts();
+  });
   it('should show empty state when configmap is missing (404)', () => {
-    cy.interceptOdh(
-      'GET /api/dsc/status',
-      mockDscStatus({
-        installedComponents: {
-          'model-registry-operator': true,
-        },
-      }),
-    );
-
-    cy.interceptOdh(
-      'GET /api/config',
-      mockDashboardConfig({
-        disableModelCatalog: false,
-      }),
-    );
-
     cy.interceptK8s(
       {
         model: ConfigMapModel,
         ns: 'opendatahub',
         name: 'model-catalog-source-redhat',
       },
-      {
+      { 
         statusCode: 404,
-        body: {
+        body: { 
           kind: 'Status',
           apiVersion: 'v1',
           status: 'Failure',
           message: 'configmaps "model-catalog-source-redhat" not found',
           reason: 'NotFound',
-          code: 404,
-        },
+          code: 404
+        }
       },
     );
     modelDetailsPage.visit();
@@ -118,9 +105,6 @@ describe('Model Details loading states', () => {
       { statusCode: 500 },
     );
 
-    cy.visit(
-      '/modelCatalog/details/source/redhat/repository/granite/model/granite-8b-code-instruct/tag/1.3.0',
-    );
     modelDetailsPage.visit();
     modelDetailsPage.findModelCatalogEmptyState().should('exist');
   });
