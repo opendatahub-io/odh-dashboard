@@ -104,6 +104,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
       onClose={handleClose}
       actions={[
         <Button
+          data-testid="enable-app-submit"
           key="confirm"
           variant="primary"
           onClick={onDoEnableApp}

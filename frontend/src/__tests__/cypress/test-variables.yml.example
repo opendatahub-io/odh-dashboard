@@ -24,3 +24,4 @@ S3:
     ENDPOINT: https://model-bucket-endpoint.com/
 PIP_INDEX_URL: https://pypi.org/simple
 PIP_TRUSTED_HOST: pypi.org
+NGC_API_KEY: bm90IGEgdmFsaWQgYXBpIGtleQo=
