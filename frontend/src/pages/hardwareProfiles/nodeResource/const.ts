@@ -58,3 +58,8 @@ export const DEFAULT_MEMORY_SIZE = {
   maxCount: '8Gi',
   defaultCount: '4Gi',
 };
+
+export const DEFAULT_CPU_IDENTIFIER = 'cpu';
+export const DEFAULT_MEMORY_IDENTIFIER = 'memory';
+export const HARDWARE_PROFILES_DEFAULT_WARNING_MESSAGE =
+  'Select the restore button to restore the Default profile to its initial state.';
