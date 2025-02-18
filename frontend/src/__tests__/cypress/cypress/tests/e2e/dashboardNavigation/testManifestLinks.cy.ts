@@ -1,11 +1,12 @@
 import * as yaml from 'js-yaml';
 import { isUrlExcluded } from '~/__tests__/cypress/cypress/utils/urlExtractor';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 describe('[Known Bug: RHOAIENG-9235] Verify that all the URLs referenced in the Manifest directory are operational', () => {
   let excludedSubstrings: string[];
 
   // Setup: Load test data
-  before(() => {
+  retryableBefore(() => {
     cy.fixture('e2e/dashboardNavigation/testManifestLinks.yaml', 'utf8').then((yamlString) => {
       const yamlData = yaml.load(yamlString) as { excludedSubstrings: string[] };
       excludedSubstrings = yamlData.excludedSubstrings;
