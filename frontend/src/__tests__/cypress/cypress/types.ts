@@ -137,6 +137,7 @@ export type TestConfig = {
   APPLICATIONS_NAMESPACE: NamespaceConfig;
   PIP_INDEX_URL: string;
   PIP_TRUSTED_HOST: string;
+  NGC_API_KEY: string;
 };
 
 export type DataScienceProjectData = {
