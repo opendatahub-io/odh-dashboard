@@ -89,18 +89,20 @@ const ModelDetailsPage: React.FC = conditionalArea(
           </FlexItem>
         </Flex>
       }
-      empty={model === null}
+      empty={Boolean(modelCatalogSources.error) || model === null}
       emptyStatePage={
         <EmptyModelCatalogState
           testid="empty-model-catalog-state"
-          title="Details not found"
-          description="To request access to model catalog, contact your administrator."
+          title={modelCatalogSources.error ? 'Details not found' : 'Unable to load model details'}
+          description={modelCatalogSources.error?.message || 'Refresh the page or try again later'}
           headerIcon={() => (
-            <img src={typedEmptyImage(ProjectObjectType.registeredModels)} alt="" />
+            <img src={typedEmptyImage(ProjectObjectType.registeredModels, 'Error')} alt="" />
           )}
         />
       }
-      loaded={modelCatalogSources.loaded}
+      loaded={!modelCatalogSources.error && modelCatalogSources.loaded}
+      loadError={modelCatalogSources.error || undefined}
+      errorMessage="Unable to load model catalog"
       provideChildrenPadding
     >
       {model && <ModelDetailsView model={model} />}
