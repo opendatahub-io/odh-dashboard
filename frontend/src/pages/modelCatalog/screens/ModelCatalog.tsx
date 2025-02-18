@@ -19,12 +19,31 @@ const ModelCatalog: React.FC = conditionalArea(
     emptyStatePage: (
       <EmptyModelCatalogState
         testid="empty-model-catalog-state"
-        title="Request access to model catalog"
-        description="To request access to model catalog, contact your administrator."
-        headerIcon={() => <img src={typedEmptyImage(ProjectObjectType.registeredModels)} alt="" />}
+        title={
+          modelCatalogSources.error
+            ? 'Unable to load model catalog'
+            : 'Request access to model catalog'
+        }
+        description={
+          modelCatalogSources.error
+            ? 'Refresh the page or try again later'
+            : 'To request access to model catalog, contact your administrator.'
+        }
+        headerIcon={() => (
+          <img
+            src={typedEmptyImage(
+              ProjectObjectType.registeredModels,
+              modelCatalogSources.error ? 'Error' : undefined,
+            )}
+            alt=""
+          />
+        )}
       />
     ),
     headerContent: null,
+    loaded: modelCatalogSources.loaded,
+    loadError: modelCatalogSources.error,
+    errorMessage: 'Unable to load model catalog',
   };
 
   return (
@@ -33,8 +52,6 @@ const ModelCatalog: React.FC = conditionalArea(
         <TitleWithIcon title="Model Catalog" objectType={ProjectObjectType.registeredModels} />
       }
       {...renderStateProps}
-      loaded={modelCatalogSources.loaded}
-      provideChildrenPadding
     >
       <PageSection isFilled>
         <ModelCatalogCards sources={modelCatalogSources.data} />

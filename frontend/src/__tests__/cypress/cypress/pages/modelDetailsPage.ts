@@ -32,6 +32,10 @@ class ModelDetailsPage {
   findModelSourceImageLocation() {
     return cy.findByTestId('source-image-location');
   }
+
+  findModelCatalogEmptyState() {
+    return cy.findByTestId('empty-model-catalog-state');
+  }
 }
 
 export const modelDetailsPage = new ModelDetailsPage();
