@@ -18,7 +18,7 @@ const ModelCatalog: React.FC = conditionalArea(
     empty: modelCatalogSources.data.length === 0,
     emptyStatePage: (
       <EmptyModelCatalogState
-        testid="empty-model-catalog-state"
+        data-testid="empty-model-catalog-state"
         title={
           modelCatalogSources.error
             ? 'Unable to load model catalog'
