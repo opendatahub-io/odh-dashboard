@@ -8,16 +8,16 @@ import { ManageHardwareProfileSectionTitles } from '~/pages/hardwareProfiles/con
 import { ManageHardwareProfileSectionID } from '~/pages/hardwareProfiles/manage/types';
 
 type ManageNodeSelectorSectionProps = {
-  nodeSelectors: NodeSelector[];
-  setNodeSelectors: (nodeSelectors: NodeSelector[]) => void;
+  nodeSelector: NodeSelector;
+  setNodeSelector: (nodeSelector: NodeSelector) => void;
 };
 
 const ManageNodeSelectorSection: React.FC<ManageNodeSelectorSectionProps> = ({
-  nodeSelectors,
-  setNodeSelectors,
+  nodeSelector,
+  setNodeSelector,
 }) => {
   const [isNodeSelectorModalOpen, setIsNodeSelectorModalOpen] = React.useState<boolean>(false);
-  const isEmpty = nodeSelectors.length === 0;
+  const isEmpty = Object.keys(nodeSelector).length === 0;
   return (
     <>
       <FormSection
@@ -44,15 +44,15 @@ const ManageNodeSelectorSection: React.FC<ManageNodeSelectorSectionProps> = ({
         matching labels.
         {!isEmpty && (
           <NodeSelectorTable
-            nodeSelectors={nodeSelectors}
-            onUpdate={(newNodeSelectors) => setNodeSelectors(newNodeSelectors)}
+            nodeSelector={nodeSelector}
+            onUpdate={(newNodeSelector) => setNodeSelector(newNodeSelector)}
           />
         )}
       </FormSection>
       {isNodeSelectorModalOpen && (
         <ManageNodeSelectorModal
           onClose={() => setIsNodeSelectorModalOpen(false)}
-          onSave={(nodeSelector) => setNodeSelectors([...nodeSelectors, nodeSelector])}
+          onSave={(ns) => setNodeSelector({ ...nodeSelector, [ns.key]: ns.value })}
         />
       )}
       {isEmpty && (

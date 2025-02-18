@@ -93,12 +93,14 @@ const initIntercepts = ({
   disableKServeRaw = true,
   projectEnableModelMesh,
   servingRuntimes = [
-    mockServingRuntimeK8sResourceLegacy({}),
+    mockServingRuntimeK8sResourceLegacy({ tolerations: [], nodeSelector: {} }),
     mockServingRuntimeK8sResource({
       name: 'test-model',
       namespace: 'test-project',
       auth: true,
       route: true,
+      tolerations: [],
+      nodeSelector: {},
     }),
   ],
   inferenceServices = [

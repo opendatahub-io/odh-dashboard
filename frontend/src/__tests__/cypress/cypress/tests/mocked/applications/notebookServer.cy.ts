@@ -89,7 +89,27 @@ describe('NotebookServer', () => {
 
     cy.wait('@startNotebookServer').then((interception) => {
       expect(interception.request.body).to.eql({
-        notebookSizeName: 'XSmall',
+        podSpecOptions: {
+          resources: {
+            limits: {
+              cpu: '0.5',
+              memory: '500Mi',
+            },
+            requests: {
+              cpu: '0.1',
+              memory: '100Mi',
+            },
+          },
+          tolerations: [
+            {
+              effect: 'NoSchedule',
+              key: 'NotebooksOnlyChange',
+              operator: 'Exists',
+            },
+          ],
+          nodeSelector: {},
+          lastSizeSelection: 'XSmall',
+        },
         imageName: 'code-server-notebook',
         imageTagName: '2023.2',
         envVars: { configMap: {}, secrets: {} },
@@ -172,18 +192,42 @@ describe('NotebookServer', () => {
 
     cy.wait('@startNotebookServer').then((interception) => {
       expect(interception.request.body).to.eql({
-        notebookSizeName: 'XSmall',
-        imageName: 'code-server-notebook',
-        imageTagName: '2023.2',
-        acceleratorProfile: {
-          count: 1,
-          acceleratorProfile: mockAcceleratorProfile({
+        podSpecOptions: {
+          resources: {
+            limits: {
+              cpu: '0.5',
+              memory: '500Mi',
+              'nvidia.com/gpu': 1,
+            },
+            requests: {
+              cpu: '0.1',
+              memory: '100Mi',
+              'nvidia.com/gpu': 1,
+            },
+          },
+          tolerations: [
+            {
+              key: 'nvidia.com/gpu',
+              operator: 'Exists',
+              effect: 'NoSchedule',
+            },
+            {
+              effect: 'NoSchedule',
+              key: 'NotebooksOnlyChange',
+              operator: 'Exists',
+            },
+          ],
+          nodeSelector: {},
+          lastSizeSelection: 'XSmall',
+          selectedAcceleratorProfile: mockAcceleratorProfile({
             name: 'test-gpu',
             displayName: 'Test GPU',
             namespace: 'opendatahub',
             uid: 'uid',
           }),
         },
+        imageName: 'code-server-notebook',
+        imageTagName: '2023.2',
         envVars: { configMap: {}, secrets: {} },
         state: 'started',
         storageClassName: 'openshift-default-sc',

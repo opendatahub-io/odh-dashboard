@@ -442,7 +442,6 @@ describe('Workbench page', () => {
         spec: {
           template: {
             spec: {
-              affinity: {},
               containers: [
                 {
                   envFrom: [
