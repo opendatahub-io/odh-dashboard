@@ -92,7 +92,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
       empty={Boolean(modelCatalogSources.error) || model === null}
       emptyStatePage={
         <EmptyModelCatalogState
-          data-testid="empty-model-catalog-state"
+          testid="empty-model-catalog-state"
           title={modelCatalogSources.error ? 'Details not found' : 'Unable to load model details'}
           description={modelCatalogSources.error?.message || 'Refresh the page or try again later'}
           headerIcon={() => (
@@ -100,8 +100,8 @@ const ModelDetailsPage: React.FC = conditionalArea(
           )}
         />
       }
-      loaded={!modelCatalogSources.error && modelCatalogSources.loaded}
-      loadError={modelCatalogSources.error || undefined}
+      loaded={modelCatalogSources.loaded}
+      loadError={modelCatalogSources.error}
       errorMessage="Unable to load model catalog"
       provideChildrenPadding
     >

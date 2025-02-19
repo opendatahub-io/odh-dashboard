@@ -15,10 +15,10 @@ const ModelCatalog: React.FC = conditionalArea(
 )(() => {
   const { modelCatalogSources } = React.useContext(ModelCatalogContext);
   const renderStateProps = {
-    empty: modelCatalogSources.data.length === 0,
+    empty: modelCatalogSources.data.length === 0 || !modelCatalogSources.data[0]?.models?.length,
     emptyStatePage: (
       <EmptyModelCatalogState
-        data-testid="empty-model-catalog-state"
+        testid="empty-model-catalog-state"
         title={
           modelCatalogSources.error
             ? 'Unable to load model catalog'

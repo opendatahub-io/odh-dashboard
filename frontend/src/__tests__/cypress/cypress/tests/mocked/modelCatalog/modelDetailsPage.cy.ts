@@ -79,32 +79,18 @@ describe('Model Details loading states', () => {
         ns: 'opendatahub',
         name: 'model-catalog-source-redhat',
       },
-      { 
+      {
         statusCode: 404,
-        body: { 
+        body: {
           kind: 'Status',
           apiVersion: 'v1',
           status: 'Failure',
           message: 'configmaps "model-catalog-source-redhat" not found',
           reason: 'NotFound',
-          code: 404
-        }
+          code: 404,
+        },
       },
     );
-    modelDetailsPage.visit();
-    modelDetailsPage.findModelCatalogEmptyState().should('exist');
-  });
-
-  it('should show error state when configmap fetch fails (non-404)', () => {
-    cy.interceptK8s(
-      {
-        model: ConfigMapModel,
-        ns: 'opendatahub',
-        name: 'model-catalog-source-redhat',
-      },
-      { statusCode: 500 },
-    );
-
     modelDetailsPage.visit();
     modelDetailsPage.findModelCatalogEmptyState().should('exist');
   });
@@ -153,6 +139,29 @@ describe('Model Details loading states', () => {
     modelDetailsPage.findModelCatalogEmptyState().should('exist');
   });
 
+  it('should show error state when configmap fetch fails (non-404)', () => {
+    cy.interceptK8s(
+      {
+        model: ConfigMapModel,
+        ns: 'opendatahub',
+        name: 'model-catalog-source-redhat',
+      },
+      {
+        statusCode: 500,
+        body: {
+          kind: 'Status',
+          apiVersion: 'v1',
+          status: 'Failure',
+          message: 'Internal server error',
+          reason: 'InternalError',
+          code: 500,
+        },
+      },
+    );
+
+    modelDetailsPage.visit();
+    cy.contains('Unable to load model details').should('exist');
+  });
   it('should show model details when configmap has valid data', () => {
     cy.interceptK8s(
       {
