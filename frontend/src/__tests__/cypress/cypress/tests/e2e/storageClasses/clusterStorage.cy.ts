@@ -46,9 +46,7 @@ describe('Regular Users can make use of the Storage Classes in the Cluster Stora
         // Open the Create cluster storage Modal
         findAddClusterStorageButton().click();
 
-        cy.step(
-          'Checking that Storage Classes Dropdown is disabled',
-        );
+        cy.step('Checking that Storage Classes Dropdown is disabled');
         // Check that the SC Dropdown is disabled
         addClusterStorageModal.findStorageClassSelect().should('be.disabled');
       });

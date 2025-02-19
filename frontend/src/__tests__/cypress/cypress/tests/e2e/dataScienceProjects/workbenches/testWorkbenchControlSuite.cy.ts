@@ -52,7 +52,9 @@ describe('[Automation Bug RHOAIENG-20128] Start, Stop, Launch and Delete a Workb
 
   it(
     'Starting, Stopping, Launching and Deleting a Workbench',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1818', '@ODS-1823', '@ODS-1975', '@Dashboard', '@Bug'] },
+    {
+      tags: ['@Sanity', '@SanitySet2', '@ODS-1818', '@ODS-1823', '@ODS-1975', '@Dashboard', '@Bug'],
+    },
     () => {
       const workbenchName = controlSuiteTestNamespace.replace('dsp-', '');
 
@@ -106,7 +108,9 @@ describe('[Automation Bug RHOAIENG-20128] Start, Stop, Launch and Delete a Workb
   );
   it(
     'Verify that a Workbench can be started and stopped using the Event log controls',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1818', '@ODS-1823', '@ODS-1975', '@Dashboard', '@Bug'] },
+    {
+      tags: ['@Sanity', '@SanitySet2', '@ODS-1818', '@ODS-1823', '@ODS-1975', '@Dashboard', '@Bug'],
+    },
     () => {
       const workbenchName = controlSuiteTestNamespace.replace('dsp-', 'secondwb-');
 
