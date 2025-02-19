@@ -11,6 +11,7 @@ import { objectStorageFieldsToUri } from '~/concepts/modelRegistry/utils';
 import {
   ModelLocationType,
   RegisterModelFormData,
+  RegisterCatalogModelFormData,
   RegisterVersionFormData,
   RegistrationCommonFormData,
 } from './useRegisterModelData';
@@ -41,7 +42,7 @@ export const registerModel = async (
       {
         name: formData.modelName,
         description: formData.modelDescription,
-        customProperties: {},
+        customProperties: formData.modelCustomProperties || {},
         owner: author,
         state: ModelState.LIVE,
       },
@@ -55,7 +56,7 @@ export const registerModel = async (
   const {
     data: { modelVersion, modelArtifact },
     errors,
-  } = await registerVersion(apiState, registeredModel, formData, author);
+  } = await registerVersion(apiState, registeredModel, formData, author, true);
 
   return {
     data: { registeredModel, modelVersion, modelArtifact },
@@ -68,6 +69,7 @@ export const registerVersion = async (
   registeredModel: RegisteredModel,
   formData: Omit<RegisterVersionFormData, 'registeredModelId'>,
   author: string,
+  isFirstVersion?: boolean,
 ): Promise<{
   data: RegisterVersionCreatedResources;
   errors: { [key: string]: Error | undefined };
@@ -76,14 +78,20 @@ export const registerVersion = async (
   let modelArtifact;
   const errors: { [key: string]: Error | undefined } = {};
   try {
-    modelVersion = await apiState.api.createModelVersionForRegisteredModel({}, registeredModel.id, {
-      name: formData.versionName,
-      description: formData.versionDescription,
-      customProperties: {},
-      state: ModelState.LIVE,
-      author,
-      registeredModelId: registeredModel.id,
-    });
+    modelVersion = await apiState.api.createModelVersionForRegisteredModel(
+      {},
+      registeredModel.id,
+      {
+        name: formData.versionName,
+        description: formData.versionDescription,
+        customProperties: formData.versionCustomProperties || {},
+        state: ModelState.LIVE,
+        author,
+        registeredModelId: registeredModel.id,
+      },
+      formData.modelCustomProperties || {},
+      isFirstVersion,
+    );
   } catch (e) {
     if (e instanceof Error) {
       errors[ErrorName.MODEL_VERSION] = e;
@@ -153,6 +161,14 @@ export const isRegisterModelSubmitDisabled = (
 
 export const isRegisterVersionSubmitDisabled = (formData: RegisterVersionFormData): boolean =>
   !formData.registeredModelId || isSubmitDisabledForCommonFields(formData);
+
+export const isRegisterCatalogModelSubmitDisabled = (
+  formData: RegisterCatalogModelFormData,
+): boolean =>
+  !formData.modelRegistry ||
+  !formData.modelName ||
+  isSubmitDisabledForCommonFields(formData) ||
+  !isNameValid(formData.modelName);
 
 export const isNameValid = (name: string): boolean => name.length <= MR_CHARACTER_LIMIT;
 

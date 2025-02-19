@@ -8,6 +8,7 @@ import {
   ModelVersion,
   RegisteredModelList,
   RegisteredModel,
+  ModelRegistryCustomProperties,
 } from '~/concepts/modelRegistry/types';
 import { MODEL_REGISTRY_API_VERSION } from '~/concepts/modelRegistry/const';
 import { bumpRegisteredModelTimestamp } from '~/concepts/modelRegistry/utils/updateTimestamps';
@@ -46,6 +47,8 @@ export const createModelVersionForRegisteredModel =
     opts: K8sAPIOptions,
     registeredModelId: string,
     data: CreateModelVersionData,
+    customProperties: ModelRegistryCustomProperties,
+    isFirstVersion?: boolean,
   ): Promise<ModelVersion> => {
     const newVersion = await handleModelRegistryFailures<ModelVersion>(
       proxyCREATE(
@@ -57,11 +60,13 @@ export const createModelVersionForRegisteredModel =
       ),
     );
 
-    await bumpRegisteredModelTimestamp(
-      { patchRegisteredModel: patchRegisteredModel(hostpath) },
-      registeredModelId,
-    );
-
+    if (!isFirstVersion) {
+      await bumpRegisteredModelTimestamp(
+        { patchRegisteredModel: patchRegisteredModel(hostpath) },
+        registeredModelId,
+        customProperties,
+      );
+    }
     return newVersion;
   };
 

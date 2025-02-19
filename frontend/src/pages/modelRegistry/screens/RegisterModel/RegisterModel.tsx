@@ -3,20 +3,13 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   Form,
-  FormGroup,
-  FormHelperText,
-  HelperText,
-  HelperTextItem,
   PageSection,
   Stack,
   StackItem,
-  TextArea,
-  TextInput,
 } from '@patternfly/react-core';
 import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
 import { useParams, useNavigate } from 'react-router';
 import { Link } from 'react-router-dom';
-import FormSection from '~/components/pf-overrides/FormSection';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { modelRegistryUrl, registeredModelUrl } from '~/pages/modelRegistry/screens/routeUtils';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
@@ -32,7 +25,8 @@ import {
 import RegistrationCommonFormSections from './RegistrationCommonFormSections';
 import PrefilledModelRegistryField from './PrefilledModelRegistryField';
 import RegistrationFormFooter from './RegistrationFormFooter';
-import { MR_CHARACTER_LIMIT, SubmitLabel } from './const';
+import { SubmitLabel } from './const';
+import RegisterModelDetailsFormSection from './RegisterModelDetailsFormSection';
 
 const RegisterModel: React.FC = () => {
   const { modelRegistry: mrName } = useParams();
@@ -53,7 +47,6 @@ const RegisterModel: React.FC = () => {
   const hasModelNameError = !isModelNameValid || isModelNameDuplicate;
   const isSubmitDisabled =
     isSubmitting || isRegisterModelSubmitDisabled(formData, registeredModels);
-  const { modelName, modelDescription } = formData;
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -99,42 +92,12 @@ const RegisterModel: React.FC = () => {
               <PrefilledModelRegistryField mrName={mrName} />
             </StackItem>
             <StackItem>
-              <FormSection
-                title="Model details"
-                description="Provide general details that apply to all versions of this model."
-              >
-                <FormGroup label="Model name" isRequired fieldId="model-name">
-                  <TextInput
-                    isRequired
-                    type="text"
-                    id="model-name"
-                    name="model-name"
-                    value={modelName}
-                    onChange={(_e, value) => setData('modelName', value)}
-                    validated={hasModelNameError ? 'error' : 'default'}
-                  />
-                  {hasModelNameError && (
-                    <FormHelperText>
-                      <HelperText>
-                        <HelperTextItem variant="error" data-testid="model-name-error">
-                          {isModelNameDuplicate
-                            ? 'Model name already exists'
-                            : `Cannot exceed ${MR_CHARACTER_LIMIT} characters`}
-                        </HelperTextItem>
-                      </HelperText>
-                    </FormHelperText>
-                  )}
-                </FormGroup>
-                <FormGroup label="Model description" fieldId="model-description">
-                  <TextArea
-                    type="text"
-                    id="model-description"
-                    name="model-description"
-                    value={modelDescription}
-                    onChange={(_e, value) => setData('modelDescription', value)}
-                  />
-                </FormGroup>
-              </FormSection>
+              <RegisterModelDetailsFormSection
+                formData={formData}
+                setData={setData}
+                hasModelNameError={hasModelNameError}
+                isModelNameDuplicate={isModelNameDuplicate}
+              />
               <RegistrationCommonFormSections
                 formData={formData}
                 setData={setData}

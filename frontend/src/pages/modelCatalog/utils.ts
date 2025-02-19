@@ -26,10 +26,7 @@ export const findModelFromModelCatalogSources = (
 
 export const encodeParams = (params: ModelDetailsRouteParams): ModelDetailsRouteParams =>
   Object.fromEntries(
-    Object.entries(params).map(([key, value]) => [
-      key,
-      encodeURIComponent(value).replace(/\./g, '%252E'),
-    ]),
+    Object.entries(params).map(([key, value]) => [key, encodeURIComponent(value)]),
   );
 
 export const decodeParams = (params: Readonly<ModelDetailsRouteParams>): ModelDetailsRouteParams =>

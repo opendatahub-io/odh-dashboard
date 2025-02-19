@@ -20,6 +20,7 @@ import { getKServeTemplates } from '~/pages/modelServing/customServingRuntimes/u
 import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
 import { bumpBothTimestamps } from '~/concepts/modelRegistry/utils/updateTimestamps';
 import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
+import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 
 interface DeployRegisteredModelModalProps {
   modelVersion: ModelVersion;
@@ -51,6 +52,7 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
   const [dataConnections] = useDataConnections(selectedProject?.metadata.name);
   const [connections] = useConnections(selectedProject?.metadata.name, true);
   const error = platformError || projectError;
+  const [rm] = useRegisteredModelById(modelVersion.registeredModelId);
 
   const {
     registeredModelDeployInfo,
@@ -68,12 +70,21 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
         modelRegistryApi.api,
         modelVersion.id,
         modelVersion.registeredModelId,
+        rm?.customProperties || {},
+        modelVersion.customProperties,
       );
       onSubmit?.();
     } catch (submitError) {
       throw new Error('Failed to update timestamps after deployment');
     }
-  }, [modelRegistryApi.api, modelVersion.id, modelVersion.registeredModelId, onSubmit]);
+  }, [
+    modelRegistryApi.api,
+    modelVersion.id,
+    modelVersion.registeredModelId,
+    onSubmit,
+    rm?.customProperties,
+    modelVersion.customProperties,
+  ]);
 
   const onClose = React.useCallback(
     (submit: boolean) => {
