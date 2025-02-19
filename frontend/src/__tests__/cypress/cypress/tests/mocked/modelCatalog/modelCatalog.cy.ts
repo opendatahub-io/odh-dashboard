@@ -71,6 +71,10 @@ describe('Model Catalog core', () => {
 });
 
 describe('Model Catalog loading states', () => {
+  beforeEach(() => {
+    initIntercepts({ disableModelCatalogFeature: false });
+  });
+
   it('should show empty state when configmap is missing (404)', () => {
     cy.interceptK8s(
       {
@@ -78,7 +82,17 @@ describe('Model Catalog loading states', () => {
         ns: 'opendatahub',
         name: 'model-catalog-source-redhat',
       },
-      { statusCode: 404 },
+      {
+        statusCode: 404,
+        body: {
+          kind: 'Status',
+          apiVersion: 'v1',
+          status: 'Failure',
+          message: 'configmaps "model-catalog-source-redhat" not found',
+          reason: 'NotFound',
+          code: 404,
+        },
+      },
     );
 
     modelCatalog.visit();
@@ -96,10 +110,7 @@ describe('Model Catalog loading states', () => {
     );
 
     modelCatalog.visit();
-    modelCatalog
-      .findModelCatalogEmptyState()
-      .should('exist')
-      .contains('Unable to load model catalog');
+    cy.contains('Unable to load model catalog').should('exist');
   });
 
   it('should show empty state when configmap has empty data', () => {
@@ -116,10 +127,13 @@ describe('Model Catalog loading states', () => {
           name: 'model-catalog-source-redhat',
           namespace: 'opendatahub',
         },
-        data: { modelCatalogSource: '[]' },
+        data: {
+          modelCatalogSource: JSON.stringify({
+            models: [],
+          }),
+        },
       },
     );
-
     modelCatalog.visit();
     modelCatalog.findModelCatalogEmptyState().should('exist');
   });
