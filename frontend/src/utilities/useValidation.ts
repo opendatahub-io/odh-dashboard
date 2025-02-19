@@ -78,6 +78,14 @@ export const useValidation = <T>(data: T, schema: z.ZodType<T>): ValidationConte
     );
   }, []);
 
+  const getAllValidationIssues = React.useCallback((path?: (string | number)[]) => {
+    const error = resultRef.current?.error;
+    if (!error) {
+      return [];
+    }
+    return error.issues.filter((issue) => (path ? issue.path.join('.') === path.join('.') : true));
+  }, []);
+
   const hasValidationIssue = React.useCallback(
     (path: (string | number)[], code: string) => getValidationIssue(path, code) !== undefined,
     [getValidationIssue],
@@ -87,6 +95,7 @@ export const useValidation = <T>(data: T, schema: z.ZodType<T>): ValidationConte
     validationResult: resultRef.current,
     getValidationIssue,
     hasValidationIssue,
+    getAllValidationIssues,
   };
 };
 
@@ -94,10 +103,12 @@ export type ValidationContextType<T = unknown> = {
   validationResult: Omit<z.SafeParseReturnType<T, T>, 'data'>;
   getValidationIssue: (path: (string | number)[], code: string) => z.ZodIssue | undefined;
   hasValidationIssue: (path: (string | number)[], code: string) => boolean;
+  getAllValidationIssues: (path?: (string | number)[]) => z.ZodIssue[];
 };
 
 export const ValidationContext = React.createContext<ValidationContextType>({
   validationResult: { error: undefined, success: true },
   getValidationIssue: () => undefined,
   hasValidationIssue: () => false,
+  getAllValidationIssues: () => [],
 });

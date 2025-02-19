@@ -17,13 +17,13 @@ import ImageStreamSelector from './ImageStreamSelector';
 type ImageSelectorFieldProps = {
   selectedImage: ImageStreamAndVersion;
   setSelectedImage: React.Dispatch<React.SetStateAction<ImageStreamAndVersion>>;
-  compatibleAcceleratorIdentifier?: string;
+  compatibleIdentifiers?: string[];
 };
 
 const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
   selectedImage,
   setSelectedImage,
-  compatibleAcceleratorIdentifier,
+  compatibleIdentifiers,
 }) => {
   const { dashboardNamespace } = useDashboardNamespace();
   const buildStatuses = useBuildStatuses(dashboardNamespace);
@@ -71,7 +71,7 @@ const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
         buildStatuses={buildStatuses}
         onImageStreamSelect={onImageStreamSelect}
         selectedImageStream={selectedImage.imageStream}
-        compatibleAcceleratorIdentifier={compatibleAcceleratorIdentifier}
+        compatibleIdentifiers={compatibleIdentifiers}
       />
       <ImageVersionSelector
         data={imageVersionData}

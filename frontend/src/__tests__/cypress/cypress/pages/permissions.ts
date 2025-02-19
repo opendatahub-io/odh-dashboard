@@ -63,6 +63,25 @@ class PermissionTable extends Contextual<HTMLElement> {
       .click();
   }
 
+  addGroupName(name: string) {
+    const userNameCell = permissions.getGroupTable().find().find('[data-label="Username"]');
+    userNameCell.findByRole('button', { name: 'Typeahead menu toggle' }).should('exist').click();
+    userNameCell.children().first().type(`${name}`);
+    //have to do this at top level `cy` because it goes to top of dom
+    cy.findByRole('option', { name: `Select "${name}"` }).click();
+  }
+
+  selectAdminOption() {
+    permissions
+      .getGroupTable()
+      .find()
+      .find('[data-label="Permission"]')
+      .children()
+      .first()
+      .findSelectOption('Admin Edit the project and manage user access')
+      .click();
+  }
+
   findSaveNewButton() {
     return this.find().findByTestId(['save-new-button']);
   }

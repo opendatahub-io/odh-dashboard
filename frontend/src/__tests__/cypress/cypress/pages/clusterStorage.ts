@@ -87,8 +87,15 @@ class ClusterStorageModal extends Modal {
       .findByTestId('cluster-storage-workbench-select');
   }
 
+  findWorkbenchName(row: number) {
+    return this.findWorkbenchTable()
+      .find(`[data-label=Name]`)
+      .eq(row)
+      .findByTestId('typeahead-menu-toggle');
+  }
+
   findWorkbenchSelectValueField(row: number) {
-    return this.findWorkbenchSelect(row).findByRole('combobox', {
+    return this.findWorkbenchName(row).findByRole('combobox', {
       name: 'Type to filter',
     });
   }

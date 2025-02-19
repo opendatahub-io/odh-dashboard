@@ -13,6 +13,10 @@ import {
   provisionProjectForModelServing,
   modelExternalURLOpenVinoTester,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
+import {
+  retryableBefore,
+  wasSetupPerformed,
+} from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -20,8 +24,8 @@ let modelName: string;
 let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 
-describe('[Known Bugs: RHOAIENG-18579,RHOAIENG-18425] Verify Admin Single Model Creation and Validation using the UI', () => {
-  before(() => {
+describe('Verify Admin Single Model Creation and Validation using the UI', () => {
+  retryableBefore(() => {
     Cypress.on('uncaught:exception', (err) => {
       if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
         return false;
@@ -50,13 +54,16 @@ describe('[Known Bugs: RHOAIENG-18579,RHOAIENG-18425] Verify Admin Single Model 
     );
   });
   after(() => {
+    //Check if the Before Method was executed to perform the setup
+    if (!wasSetupPerformed()) return;
+
     // Delete provisioned Project - 5 min timeout to accomadate increased time to delete a project with a model
     deleteOpenShiftProject(projectName, { timeout: 300000 });
   });
 
   it(
     'Verify that an Admin can Serve, Query a Single Model using both the UI and External links',
-    { tags: ['@Smoke', '@SmokeSet3', '@ODS-2626', '@Dashboard', '@Modelserving', '@Bug'] },
+    { tags: ['@Smoke', '@SmokeSet3', '@ODS-2626', '@Dashboard', '@Modelserving'] },
     () => {
       cy.log('Model Name:', modelName);
       // Authentication and navigation

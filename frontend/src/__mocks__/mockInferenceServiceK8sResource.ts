@@ -1,7 +1,7 @@
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { DeploymentMode, InferenceServiceKind, KnownLabels } from '~/k8sTypes';
 import { genUID } from '~/__mocks__/mockUtils';
-import { ContainerResources } from '~/types';
+import { ContainerResources, NodeSelector, Toleration } from '~/types';
 
 type MockResourceConfigType = {
   name?: string;
@@ -19,6 +19,7 @@ type MockResourceConfigType = {
   acceleratorIdentifier?: string;
   minReplicas?: number;
   maxReplicas?: number;
+  imagePullSecrets?: Array<{ name: string }>;
   lastFailureInfoMessage?: string;
   resources?: ContainerResources;
   kserveInternalUrl?: string;
@@ -28,6 +29,8 @@ type MockResourceConfigType = {
   args?: string[];
   env?: Array<{ name: string; value: string }>;
   isKserveRaw?: boolean;
+  tolerations?: Toleration[];
+  nodeSelector?: NodeSelector;
 };
 
 type InferenceServicek8sError = K8sStatus & {
@@ -83,6 +86,7 @@ export const mockInferenceServiceK8sResource = ({
   path = 'path/to/model',
   minReplicas = 1,
   maxReplicas = 1,
+  imagePullSecrets = undefined,
   lastFailureInfoMessage = 'Waiting for runtime Pod to become available',
   resources,
   statusPredictor = undefined,
@@ -92,6 +96,8 @@ export const mockInferenceServiceK8sResource = ({
   args = [],
   env = [],
   isKserveRaw = false,
+  tolerations,
+  nodeSelector,
 }: MockResourceConfigType): InferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1beta1',
   kind: 'InferenceService',
@@ -128,6 +134,9 @@ export const mockInferenceServiceK8sResource = ({
     predictor: {
       minReplicas,
       maxReplicas,
+      imagePullSecrets,
+      ...(tolerations && { tolerations }),
+      ...(nodeSelector && { nodeSelector }),
       model: {
         modelFormat: {
           name: 'onnx',

@@ -3,6 +3,7 @@ import {
   pvcSizeSettings,
   cullerSettings,
   notebookTolerationSettings,
+  clusterSettings,
 } from '~/__tests__/cypress/cypress/pages/clusterSettings';
 import type {
   DashboardConfig,
@@ -149,3 +150,118 @@ export const validateNotebookPodTolerations = (dashboardConfig: DashboardConfig)
     cy.log('Notebook Pod Tolerations Text is not visible, as expected.');
   }
 };
+/**
+ * Handles the toleration settings in the notebook configuration.
+ * This function checks if the toleration checkbox is currently ticked.
+ * If it is not ticked, it will tick the checkbox.
+ * Then, it clears the toleration input field and types the specified toleration value.
+ * Finally, it submits the form to save the settings.
+ *
+ * @param {string} toleration - The toleration value to be set in the input field.
+ */
+export function handleTolerationSettings(toleration: string): void {
+  notebookTolerationSettings.findEnabledCheckbox().then(($checkbox: JQuery<HTMLElement>) => {
+    const isChecked = $checkbox.is(':checked');
+    if (!isChecked) {
+      cy.wrap($checkbox).click();
+      cy.wrap($checkbox).should('be.checked');
+    }
+  });
+
+  cy.then(() => {
+    notebookTolerationSettings.findKeyInput().clear().type(toleration);
+  });
+
+  cy.then(() => {
+    clusterSettings.findSubmitButton().click();
+  });
+}
+
+/**
+ * Saves the current state of toleration settings (checkbox and input value).
+ * This function captures whether the checkbox is checked and the current value of the input field.
+ *
+ * @returns {Cypress.Chainable<{ isChecked: boolean, tolerationValue: string }>} The saved state of the settings.
+ */
+export function saveTolerationSettings(): Cypress.Chainable<{
+  isChecked: boolean;
+  tolerationValue: string;
+}> {
+  return cy.wrap(null).then(() => {
+    return notebookTolerationSettings
+      .findEnabledCheckbox()
+      .then(($checkbox: JQuery<HTMLElement>) => {
+        const isChecked = $checkbox.is(':checked');
+        return notebookTolerationSettings
+          .findKeyInput()
+          .invoke('val')
+          .then((tolerationValue) => {
+            return { isChecked, tolerationValue: tolerationValue as string };
+          });
+      });
+  });
+}
+
+/**
+ * Restores the toleration settings to a previously saved state.
+ * This function restores both the checkbox state and input field value to their original settings.
+ *
+ * @param {{ isChecked: boolean, tolerationValue: string }} savedState - The saved state to restore.
+ */
+export function restoreTolerationSettings(savedState: {
+  isChecked: boolean;
+  tolerationValue: string;
+}): void {
+  // Define the retry logic
+  const retryRestoreSettings = () => {
+    // Ensure the checkbox is checked first
+    notebookTolerationSettings.findEnabledCheckbox().then(($checkbox: JQuery<HTMLElement>) => {
+      if (!$checkbox.is(':checked')) {
+        cy.wrap($checkbox).click(); // Check the checkbox if it's not already checked
+      }
+    });
+
+    // Restore input field value
+    notebookTolerationSettings.findKeyInput().clear().type(savedState.tolerationValue);
+
+    // Restore checkbox state based on savedState
+    notebookTolerationSettings.findEnabledCheckbox().then(($checkbox: JQuery<HTMLElement>) => {
+      const currentChecked = $checkbox.is(':checked');
+      if (currentChecked !== savedState.isChecked) {
+        cy.wrap($checkbox).click(); // Toggle checkbox if needed
+      }
+    });
+
+    // Submit restored settings
+    clusterSettings.findSubmitButton().click();
+  };
+
+  // Initial attempt
+  retryRestoreSettings();
+
+  // Check for the error message and retry if necessary
+  cy.get('body').then(($body) => {
+    if (
+      $body.find(
+        "div:contains('Toleration key must consist of alphanumeric characters, '-', '_' or '.', and mus')",
+      ).length > 0
+    ) {
+      cy.log('Error message found, retrying...');
+      retryRestoreSettings(); // Retry the function
+    }
+  });
+}
+/**
+ * Disables tolerations with a retry mechanism.
+ * This function navigates to the cluster settings, finds the enabled checkbox, clicks it, and submits the form.
+ * It includes a retry mechanism to ensure the tolerations are disabled.
+ */
+export function disableTolerationsWithRetry(): void {
+  const retryDisableTolerations = () => {
+    notebookTolerationSettings.findEnabledCheckbox().click();
+    notebookTolerationSettings.findEnabledCheckbox().should('not.be.checked');
+    clusterSettings.findSubmitButton().click();
+  };
+  retryDisableTolerations();
+  notebookTolerationSettings.findEnabledCheckbox().should('not.be.checked');
+}

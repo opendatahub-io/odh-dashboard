@@ -1,8 +1,17 @@
 import React from 'react';
 import { Td, Tr } from '@patternfly/react-table';
-import { ActionList, ActionListItem, Button, Truncate } from '@patternfly/react-core';
-import { MinusCircleIcon, PencilAltIcon } from '@patternfly/react-icons';
+import {
+  ActionList,
+  ActionListItem,
+  Button,
+  Flex,
+  FlexItem,
+  Icon,
+  Truncate,
+} from '@patternfly/react-core';
+import { ExclamationTriangleIcon, MinusCircleIcon, PencilAltIcon } from '@patternfly/react-icons';
 import { Identifier } from '~/types';
+import { isHardwareProfileIdentifierValid } from '~/pages/hardwareProfiles/utils';
 
 type NodeResourceTableRowProps = {
   identifier: Identifier;
@@ -19,7 +28,16 @@ const NodeResourceTableRow: React.FC<NodeResourceTableRowProps> = ({
 }) => (
   <Tr>
     <Td dataLabel="Resource label">
-      <Truncate content={identifier.displayName} />
+      <Flex>
+        <FlexItem spacer={{ default: 'spacerSm' }}>
+          <Truncate content={identifier.displayName} />
+        </FlexItem>
+        {!isHardwareProfileIdentifierValid(identifier) && (
+          <Icon status="warning">
+            <ExclamationTriangleIcon />
+          </Icon>
+        )}
+      </Flex>
     </Td>
     <Td dataLabel="Resource identifier">
       <Truncate content={identifier.identifier} />

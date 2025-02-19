@@ -25,6 +25,7 @@ export * from './k8s/hardwareProfiles';
 export * from './k8s/clusterQueues';
 export * from './k8s/localQueues';
 export * from './k8s/workloads';
+export * from './k8s/dsc';
 
 // Model registry
 export * from './modelRegistry/custom';

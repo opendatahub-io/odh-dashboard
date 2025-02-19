@@ -102,6 +102,7 @@ export type GetArtifact = (
   view?: string,
 ) => Promise<ArtifactStorage>;
 export type GetPipeline = (opts: K8sAPIOptions, pipelineId: string) => Promise<PipelineKF>;
+export type GetPipelineByName = (opts: K8sAPIOptions, pipelineName: string) => Promise<PipelineKF>;
 export type GetPipelineRun = (opts: K8sAPIOptions, pipelineRunId: string) => Promise<PipelineRunKF>;
 export type GetPipelineRecurringRun = (
   opts: K8sAPIOptions,
@@ -190,6 +191,7 @@ export type PipelineAPIs = {
   listExperiments: ListExperiments;
   listActiveExperiments: ListExperiments;
   listPipelines: ListPipelines;
+  getPipelineByName: GetPipelineByName;
   listArtifacts: ListArtifacts;
   listPipelineRuns: ListPipelineRuns;
   listPipelineActiveRuns: ListPipelineRuns;

@@ -15,13 +15,14 @@ import {
   validateStopIdleNotebooks,
   validateNotebookPodTolerations,
 } from '~/__tests__/cypress/cypress/utils/clusterSettingsUtils';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 describe('Verify that only the Cluster Admin can access Cluster Settings', () => {
   let dashboardConfig: DashboardConfig;
   let notebookControllerConfig: NotebookControllerConfig;
   let notebookControllerCullerConfig: NotebookControllerCullerConfig | string;
 
-  before(() => {
+  retryableBefore(() => {
     // Retrieve the dashboard configuration
     cy.getDashboardConfig().then((config) => {
       dashboardConfig = config as DashboardConfig;

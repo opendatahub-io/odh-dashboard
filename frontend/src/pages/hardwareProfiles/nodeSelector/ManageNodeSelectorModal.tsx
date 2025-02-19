@@ -2,14 +2,13 @@ import React from 'react';
 import { Modal } from '@patternfly/react-core/deprecated';
 import { Form, FormGroup, TextInput } from '@patternfly/react-core';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import { NodeSelector } from '~/types';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
-import { EMPTY_NODE_SELECTOR } from './const';
+import { EMPTY_NODE_SELECTOR, NodeSelectorRow } from './const';
 
 type ManageNodeSelectorModalProps = {
   onClose: () => void;
-  existingNodeSelector?: NodeSelector;
-  onSave: (nodeSelector: NodeSelector) => void;
+  existingNodeSelector?: NodeSelectorRow;
+  onSave: (nodeSelector: NodeSelectorRow) => void;
 };
 
 const ManageNodeSelectorModal: React.FC<ManageNodeSelectorModalProps> = ({
@@ -17,7 +16,7 @@ const ManageNodeSelectorModal: React.FC<ManageNodeSelectorModalProps> = ({
   existingNodeSelector,
   onSave,
 }) => {
-  const [nodeSelector, setNodeSelector] = useGenericObjectState<NodeSelector>(
+  const [nodeSelector, setNodeSelector] = useGenericObjectState<NodeSelectorRow>(
     existingNodeSelector || EMPTY_NODE_SELECTOR,
   );
 

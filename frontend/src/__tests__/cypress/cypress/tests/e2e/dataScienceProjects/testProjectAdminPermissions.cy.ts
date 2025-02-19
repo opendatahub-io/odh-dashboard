@@ -3,18 +3,23 @@ import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pag
 import { permissions } from '~/__tests__/cypress/cypress/pages/permissions';
 import {
   HTPASSWD_CLUSTER_ADMIN_USER,
+  LDAP_CONTRIBUTOR_GROUP,
   LDAP_CONTRIBUTOR_USER,
 } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
+import {
+  retryableBefore,
+  wasSetupPerformed,
+} from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
-describe('Verify that users can provide admin project permissions to non-admin users', () => {
+describe('Verify that users can provide admin project permissions to non-admin users/groups', () => {
   let testData: DataScienceProjectData;
   let projectName: string;
 
   // Setup: Load test data and ensure clean state
-  before(() => {
+  retryableBefore(() => {
     return loadDSPFixture('e2e/dataScienceProjects/testProjectAdminPermissions.yaml')
       .then((fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
@@ -30,6 +35,9 @@ describe('Verify that users can provide admin project permissions to non-admin u
       });
   });
   after(() => {
+    //Check if the Before Method was executed to perform the setup
+    if (!wasSetupPerformed()) return;
+
     // Delete provisioned Project
     if (projectName) {
       cy.log(`Deleting Project ${projectName} after the test has finished.`);
@@ -39,7 +47,9 @@ describe('Verify that users can provide admin project permissions to non-admin u
 
   it(
     'Verify that user can be added as an Admin for a Project',
-    { tags: ['@Smoke', '@SmokeSet1', '@ODS-2194', '@ODS-2201', '@Dashboard', '@Tier1'] },
+    {
+      tags: ['@Smoke', '@SmokeSet1', '@ODS-2194', '@ODS-2201', '@ODS-2208', '@Dashboard'],
+    },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -72,8 +82,40 @@ describe('Verify that users can provide admin project permissions to non-admin u
     },
   );
   it(
+    'Verify user can assign access permissions to user group',
+    {
+      tags: ['@Smoke', '@SmokeSet1', '@ODS-2194', '@ODS-2201', '@ODS-2208', '@Dashboard'],
+    },
+    () => {
+      // Authentication and navigation
+      cy.step('Log into the application');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+
+      // Project navigation, add group and provide admin permissions
+      cy.step(
+        `Navigate to the Project list tab and search for ${testData.projectPermissionResourceName}`,
+      );
+      projectListPage.navigate();
+      projectListPage.filterProjectByName(testData.projectPermissionResourceName);
+      projectListPage.findProjectLink(testData.projectPermissionResourceName).click();
+      projectDetails.findSectionTab('permissions').click();
+
+      cy.step('Assign admin group Project Permissions');
+      permissions.findAddGroupButton().click();
+      permissions.getGroupTable().addGroupName(LDAP_CONTRIBUTOR_GROUP.USERNAME);
+      permissions.getGroupTable().selectAdminOption();
+      cy.step(
+        `Save the group and validate that ${LDAP_CONTRIBUTOR_GROUP.USERNAME} has been saved with admin permissions`,
+      );
+      permissions.getGroupTable().findSaveNewButton().should('exist').and('be.visible').click();
+      cy.contains(LDAP_CONTRIBUTOR_GROUP.USERNAME).should('exist');
+    },
+  );
+  it(
     'Verify that user can access the created project with Admin rights',
-    { tags: ['@Smoke', '@SmokeSet1', '@ODS-2194', '@ODS-2201', '@Dashboard', '@Tier1'] },
+    {
+      tags: ['@Smoke', '@SmokeSet1', '@ODS-2194', '@ODS-2201', '@ODS-2208', '@Dashboard'],
+    },
     () => {
       // Authentication and navigation
       cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);

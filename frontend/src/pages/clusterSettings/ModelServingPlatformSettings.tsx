@@ -15,11 +15,12 @@ import SettingSection from '~/components/SettingSection';
 import SimpleSelect from '~/components/SimpleSelect';
 import { ModelServingPlatformEnabled } from '~/types';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
-import { useAccessReview } from '~/api';
-import { AccessReviewResourceAttributes, DeploymentMode } from '~/k8sTypes';
+import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
+import { DataScienceClusterModel } from '~/api';
+import { DeploymentMode } from '~/k8sTypes';
 import { useOpenShiftURL } from '~/utilities/clusterUtils';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
+import { useAccessAllowed, verbModelAccess } from '~/concepts/userSSAR';
 
 type ModelServingPlatformSettingsProps = {
   initialValue: ModelServingPlatformEnabled;
@@ -29,12 +30,6 @@ type ModelServingPlatformSettingsProps = {
   setDefaultDeploymentMode: (mode: DeploymentMode) => void;
 };
 
-const accessReviewResource: AccessReviewResourceAttributes = {
-  group: 'datasciencecluster.opendatahub.io/v1',
-  resource: 'DataScienceCluster',
-  verb: 'update',
-};
-
 const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> = ({
   initialValue,
   enabledPlatforms,
@@ -42,15 +37,16 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
   defaultDeploymentMode,
   setDefaultDeploymentMode,
 }) => {
-  const isKServeRawEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_RAW).status;
+  const { isRawAvailable, isServerlessAvailable } = useKServeDeploymentMode();
   const [alert, setAlert] = React.useState<{ variant: AlertVariant; message: string }>();
   const {
     kServe: { installed: kServeInstalled },
     modelMesh: { installed: modelMeshInstalled },
   } = useServingPlatformStatuses();
 
-  const [allowUpdate] = useAccessReview(accessReviewResource);
   const url = useOpenShiftURL();
+
+  const [allowedToPatchDSC] = useAccessAllowed(verbModelAccess('patch', DataScienceClusterModel));
 
   React.useEffect(() => {
     const kServeDisabled = !enabledPlatforms.kServe || !kServeInstalled;
@@ -91,7 +87,7 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
               <>
                 To modify the availability of model serving platforms, ask your cluster admin to
                 manage the respective components in the{' '}
-                {allowUpdate && url ? (
+                {allowedToPatchDSC && url ? (
                   <Button
                     isInline
                     variant="link"
@@ -133,7 +129,7 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
             name="singleModelServingPlatformEnabledCheckbox"
             body={
               kServeInstalled &&
-              isKServeRawEnabled && (
+              isRawAvailable && (
                 <FormGroup
                   fieldId="default-deployment-mode-select"
                   label="Default deployment mode"
@@ -155,12 +151,12 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
                       {
                         key: DeploymentMode.RawDeployment,
                         label: 'Standard (No additional dependencies)',
-                        isDisabled: true, // todo: allow admin to update dsc
+                        isDisabled: !allowedToPatchDSC,
                       },
                       {
                         key: DeploymentMode.Serverless,
                         label: 'Advanced (Serverless and Service Mesh)',
-                        isDisabled: true, // todo: allow admin to update dsc
+                        isDisabled: !isServerlessAvailable || !allowedToPatchDSC,
                       },
                     ]}
                     isDisabled={!enabledPlatforms.kServe}

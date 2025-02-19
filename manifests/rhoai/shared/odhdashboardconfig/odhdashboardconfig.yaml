@@ -31,7 +31,7 @@ spec:
     disableModelRegistrySecureDB: false
     disableServingRuntimeParams: false
     disableStorageClasses: false
-    disableNIMModelServing: true
+    disableNIMModelServing: false
   groupsConfig:
     adminGroups: "$(admin_groups)"
     allowedGroups: "system:authenticated"

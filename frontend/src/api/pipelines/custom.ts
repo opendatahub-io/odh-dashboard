@@ -29,6 +29,7 @@ import {
   DeleteExperimentAPI,
   GetArtifactAPI,
   ListArtifactsAPI,
+  GetPipelineByNameAPI,
 } from './callTypes';
 import { handlePipelineFailures } from './errorUtils';
 
@@ -79,6 +80,11 @@ export const getArtifact: GetArtifactAPI = (hostPath) => (opts, artifactId, view
 
 export const getPipeline: GetPipelineAPI = (hostPath) => (opts, pipelineId) =>
   handlePipelineFailures(proxyGET(hostPath, `/apis/v2beta1/pipelines/${pipelineId}`, {}, opts));
+
+export const getPipelineByName: GetPipelineByNameAPI = (hostPath) => (opts, pipelineName) =>
+  handlePipelineFailures(
+    proxyGET(hostPath, `/apis/v2beta1/pipelines/names/${pipelineName}`, {}, opts),
+  );
 
 export const getPipelineRun: GetPipelineRunAPI = (hostPath) => (opts, pipelineRunId) =>
   handlePipelineFailures(proxyGET(hostPath, `/apis/v2beta1/runs/${pipelineRunId}`, {}, opts));

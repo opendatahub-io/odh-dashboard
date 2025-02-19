@@ -88,15 +88,9 @@ spec:
                         description: 'The type of identifier. could be "CPU" or "Memory". Leave it undefined for the other types.'
                         type: string
                         enum: ["CPU", "Memory"]
-                nodeSelectors:
-                  type: array
-                  description: 'Number of node selector available.'
-                  items:
-                    type: object
-                    properties:
-                      key:
-                        type: string
-                        description: 'The key for the node selector.'
-                      value:
-                        type: string
-                        description: 'The value for the node selector.'
+                nodeSelector:
+                  type: object
+                  description: 'The node selector available.'
+                  additionalProperties:
+                    type: string
+                    description: 'The value for the node selector key.'

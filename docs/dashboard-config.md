@@ -29,17 +29,20 @@ The following are a list of features that are supported, along with there defaul
 | disableKServeAuth            | false   | Disables the ability to use auth in KServe.                                                          |
 | disableKServeMetrics         | false   | Disables the ability to see KServe Metrics.                                                          |
 | disableKServeRaw             | true    | Disables the option to deploy in raw instead of serverless.                                          |
+| disableKServeOCIModels       | true    | Disables the option to deploy models in the OCI format.                                              |
 | disableModelMesh             | false   | Disables the ability to select ModelMesh as a Serving Platform.                                      |
 | disableAcceleratorProfiles   | false   | Disables Accelerator profiles from the Admin Panel.                                                  |
 | disableHardwareProfiles      | true    | Disables Hardware profiles from the Admin Panel.                                                     |
 | disableTrustyBiasMetrics     | false   | Disables Model Bias tab from Model Serving metrics.                                                  |
 | disablePerformanceMetrics    | false   | Disables Endpoint Performance tab from Model Serving metrics.                                        |
 | disableDistributedWorkloads  | false   | Disables Distributed Workload Metrics from the dashboard.                                            |
+| disableModelCatalog          | true    | Disables Model Catalog from the dashboard.                                                           |
 | disableModelRegistry         | false   | Disables Model Registry from the dashboard.                                                          |
 | disableModelRegistrySecureDB | false   | Disables Model Registry Secure DB from the dashboard.                                                |
 | disableServingRuntimeParams  | false   | Disables Serving Runtime params from the dashboard.                                                  |
 | disableStorageClasses        | false   | Disables storage classes settings nav item from the dashboard.                                       |
-| disableNIMModelServing       | true    | Disables components of NIM Model UI from the dashboard.                                              |
+| disableNIMModelServing       | false   | Disables components of NIM Model UI from the dashboard.                                              |
+| disableFineTuning            | true    | Disables Fine tuning from the dashboard.                                                             |
 
 ## Defaults
 
@@ -70,7 +73,8 @@ spec:
     disablePerformanceMetrics: false
     disableDistributedWorkloads: false
     disableStorageClasses: false
-    disableNIMModelServing: true
+    disableNIMModelServing: false
+    disableFineTuning: true
 ```
 
 ## Additional fields
@@ -165,7 +169,7 @@ spec:
     disableKServeMetrics: true
     disableTrustyBiasMetrics: false
     disablePerformanceMetrics: false
-    disableNIMModelServing: true
+    disableNIMModelServing: false
   notebookController:
     enabled: true
     gpuSetting: autodetect

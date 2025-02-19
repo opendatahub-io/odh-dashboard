@@ -8,6 +8,10 @@ import {
   pipelineRunDetails,
 } from '~/__tests__/cypress/cypress/pages/pipelines/topology';
 import { provisionProjectForPipelines } from '~/__tests__/cypress/cypress/utils/pipelines';
+import {
+  retryableBefore,
+  wasSetupPerformed,
+} from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 const projectName = 'test-pipelines-prj';
 const dspaSecretName = 'dashboard-dspa-secret';
@@ -16,12 +20,15 @@ const testRunName = 'test-pipelines-run';
 const awsBucket = 'BUCKET_3' as const;
 
 describe('An admin user can import and run a pipeline', { testIsolation: false }, () => {
-  before(() => {
+  retryableBefore(() => {
     // Create a Project for pipelines
     provisionProjectForPipelines(projectName, dspaSecretName, awsBucket);
   });
 
   after(() => {
+    //Check if the Before Method was executed to perform the setup
+    if (!wasSetupPerformed()) return;
+
     // Delete provisioned Project
     deleteOpenShiftProject(projectName);
   });

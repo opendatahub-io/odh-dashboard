@@ -23,8 +23,10 @@ import {
   type ModelArtifact,
 } from '~/concepts/modelRegistry/types';
 import { mockModelRegistryService } from '~/__mocks__/mockModelRegistryService';
+import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
+const existingModelName = 'model1';
 
 const initIntercepts = () => {
   cy.interceptOdh(
@@ -62,6 +64,21 @@ const initIntercepts = () => {
       mockModelRegistryService({ name: 'modelregistry-sample-2' }),
     ]),
   );
+
+  cy.interceptOdh(
+    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models`,
+    {
+      path: { serviceName: 'modelregistry-sample', apiVersion: MODEL_REGISTRY_API_VERSION },
+    },
+    mockRegisteredModelList({
+      items: [
+        mockRegisteredModel({
+          id: '1',
+          name: existingModelName,
+        }),
+      ],
+    }),
+  ).as('getRegisteredModels');
 
   cy.interceptOdh(
     'POST /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models',
@@ -203,6 +220,24 @@ describe('Register model page', () => {
       .findFormField(FormFieldSelector.LOCATION_PATH)
       .type('demo-models/flan-t5-small-caikit');
     registerModelPage.findSubmitButton().should('be.enabled');
+  });
+
+  it('Disables submit if model name is duplicated', () => {
+    registerModelPage.findSubmitButton().should('be.disabled');
+    registerModelPage.findFormField(FormFieldSelector.MODEL_NAME).type('Test model name');
+    registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).type('Test version name');
+    registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_OBJECT_STORAGE).click();
+    registerModelPage
+      .findFormField(FormFieldSelector.LOCATION_ENDPOINT)
+      .type('http://s3.amazonaws.com/');
+    registerModelPage.findFormField(FormFieldSelector.LOCATION_BUCKET).type('test-bucket');
+    registerModelPage
+      .findFormField(FormFieldSelector.LOCATION_PATH)
+      .type('demo-models/flan-t5-small-caikit');
+    registerModelPage.findSubmitButton().should('be.enabled');
+    registerModelPage.findFormField(FormFieldSelector.MODEL_NAME).clear().type(existingModelName);
+    registerModelPage.findSubmitButton().should('be.disabled');
+    registerModelPage.findModelNameError().contains('Model name already exists');
   });
 
   it('Creates expected resources on submit in object storage mode', () => {

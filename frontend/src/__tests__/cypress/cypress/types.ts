@@ -94,6 +94,35 @@ export type WBControlSuiteTestData = {
   controlSuiteTestDescription: string;
 };
 
+export type WBVariablesTestData = {
+  wbVariablesTestNamespace: string;
+  wbVariablesTestDescription: string;
+  configMapYamlPath: string;
+  secretYamlPath: string;
+  MY_VAR2: string;
+  MY_VAR1: string;
+  FAKE_ID: string;
+  FAKE_VALUE: string;
+  FAKE_SECRET_KEY: string;
+  FAKE_SECRET_VALUE: string;
+  FAKE_CM_KEY: string;
+  FAKE_CM_VALUE: string;
+};
+
+export type WBTolerationsTestData = {
+  wbTolerationsTestNamespace: string;
+  wbTolerationsTestDescription: string;
+  workbenchName: string;
+  tolerationValue: string;
+  tolerationValueUpdate: string;
+  workbenchName2: string;
+};
+
+export type WBStatusTestData = {
+  wbStatusTestNamespace: string;
+  wbStatusTestDescription: string;
+};
+
 export type CommandLineResult = {
   code: number;
   stdout: string;
@@ -211,4 +240,14 @@ export type ResourcesData = {
 
 export type NamespaceConfig = {
   APPLICATIONS_NAMESPACE: string;
+};
+
+enum OOTBConnectionTypes {
+  s3 = 'S3 compatible object storage - v1',
+  uri = 'URI - v1',
+}
+
+export type OOTBConnectionTypesData = {
+  s3: OOTBConnectionTypes.s3;
+  uri: OOTBConnectionTypes.uri;
 };

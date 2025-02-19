@@ -47,7 +47,7 @@ export const checkInferenceServiceState = (
   serviceName: string,
 ): Cypress.Chainable<Cypress.Exec> => {
   const ocCommand = `oc get inferenceService ${serviceName} -o json | grep activeModelState`;
-  const maxAttempts = 60; // 5 minutes / 5 seconds = 60 attempts
+  const maxAttempts = 96; // 8 minutes / 5 seconds = 96 attempts
   let attempts = 0;
 
   const checkState = (): Cypress.Chainable<Cypress.Exec> => {

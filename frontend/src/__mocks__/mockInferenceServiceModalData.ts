@@ -22,22 +22,10 @@ export const mockInferenceServiceModalData = ({
   },
   minReplicas = 1,
   maxReplicas = 1,
+  imagePullSecrets = undefined,
   externalRoute = false,
   tokenAuth = false,
   tokens = [],
-  modelSize = {
-    name: 'Small',
-    resources: {
-      requests: {
-        cpu: '1',
-        memory: '1Gi',
-      },
-      limits: {
-        cpu: '2',
-        memory: '2Gi',
-      },
-    },
-  },
   isKServeRawDeployment,
 }: MockResourceConfigType): CreatingInferenceServiceObject => ({
   name,
@@ -48,9 +36,9 @@ export const mockInferenceServiceModalData = ({
   format,
   minReplicas,
   maxReplicas,
+  imagePullSecrets,
   externalRoute,
   tokenAuth,
   tokens,
-  modelSize,
   isKServeRawDeployment,
 });

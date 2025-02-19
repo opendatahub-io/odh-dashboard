@@ -7,11 +7,12 @@ import {
   waitForPodReady,
   deleteNotebook,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 describe('Verify a Jupyter Notebook can be launched directly from the Data Science Project List View', () => {
   let testData: NotebookImageData;
 
-  before(() => {
+  retryableBefore(() => {
     return cy
       .fixture('e2e/dataScienceProjects/testNotebookCreation.yaml', 'utf8')
       .then((yamlContent: string) => {
@@ -23,7 +24,7 @@ describe('Verify a Jupyter Notebook can be launched directly from the Data Scien
 
   it(
     'Verify User Can Access Jupyter Launcher From DS Project Page',
-    { tags: ['@Smoke', '@SmokeSet1', '@ODS-1877', '@Dashboard', '@Tier1'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@ODS-1877', '@Dashboard'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');

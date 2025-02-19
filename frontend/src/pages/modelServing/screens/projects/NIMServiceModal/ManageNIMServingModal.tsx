@@ -1,12 +1,5 @@
 import * as React from 'react';
-import {
-  Alert,
-  AlertActionCloseButton,
-  Form,
-  getUniqueId,
-  Stack,
-  StackItem,
-} from '@patternfly/react-core';
+import { Form, getUniqueId, Stack, StackItem } from '@patternfly/react-core';
 import { Modal } from '@patternfly/react-core/deprecated';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
@@ -27,7 +20,6 @@ import {
 } from '~/k8sTypes';
 import { requestsUnderLimits, resourcesArePositive } from '~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
-import useServingAcceleratorProfileFormState from '~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { ServingRuntimeEditInfo } from '~/pages/modelServing/screens/types';
 import ServingRuntimeSizeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeSizeSection';
@@ -54,6 +46,9 @@ import { useNIMPVC } from '~/pages/modelServing/screens/projects/NIMServiceModal
 import AuthServingRuntimeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
 import { useNIMTemplateName } from '~/pages/modelServing/screens/projects/useNIMTemplateName';
 import { KServeDeploymentModeDropdown } from '~/pages/modelServing/screens/projects/kServeModal/KServeDeploymentModeDropdown';
+import { useModelServingPodSpecOptionsState } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
+import { NoAuthAlert } from './NoAuthAlert';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
 const NIM_NGC_SECRET_NAME = 'ngc-secret';
@@ -87,7 +82,9 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   projectContext,
   editInfo,
 }) => {
-  const [createDataServingRuntime, setCreateDataServingRuntime, resetDataServingRuntime, sizes] =
+  const { isRawAvailable, isServerlessAvailable } = useKServeDeploymentMode();
+
+  const [createDataServingRuntime, setCreateDataServingRuntime, resetDataServingRuntime] =
     useCreateServingRuntimeObject(editInfo?.servingRuntimeEditInfo);
   const [createDataInferenceService, setCreateDataInferenceService, resetDataInferenceService] =
     useCreateInferenceServiceObject(
@@ -96,11 +93,16 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
       editInfo?.secrets,
     );
 
-  const isAuthorinoEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status;
+  const podSpecOptionsState = useModelServingPodSpecOptionsState(
+    editInfo?.servingRuntimeEditInfo?.servingRuntime,
+    editInfo?.inferenceServiceEditInfo,
+  );
+
+  const isAuthAvailable =
+    useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status ||
+    createDataInferenceService.isKServeRawDeployment;
   const currentProjectName = projectContext?.currentProject.metadata.name;
   const namespace = currentProjectName || createDataInferenceService.project;
-
-  const isKServeRawEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_RAW).status;
 
   const [translatedName] = translateDisplayNameForK8sAndReport(createDataInferenceService.name, {
     maxLength: 253,
@@ -109,15 +111,6 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   const [servingRuntimeSelected, setServingRuntimeSelected] = React.useState<
     ServingRuntimeKind | undefined
   >(undefined);
-  const {
-    formData: selectedAcceleratorProfile,
-    setFormData: setSelectedAcceleratorProfile,
-    resetFormData: resetSelectedAcceleratorProfile,
-    initialState: initialAcceleratorProfileState,
-  } = useServingAcceleratorProfileFormState(
-    editInfo?.servingRuntimeEditInfo?.servingRuntime,
-    editInfo?.inferenceServiceEditInfo,
-  );
 
   const customServingRuntimesEnabled = useCustomServingRuntimesEnabled();
   const [allowCreate] = useAccessReview({
@@ -139,21 +132,38 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     }
   }, [currentProjectName, setCreateDataInferenceService]);
 
+  React.useEffect(() => {
+    podSpecOptionsState.modelSize.setSelectedSize({
+      name: 'Custom',
+      resources: {
+        limits: {
+          cpu: '16',
+          memory: '64Gi',
+        },
+        requests: {
+          cpu: '8',
+          memory: '32Gi',
+        },
+      },
+    });
+  }, [podSpecOptionsState]);
+
   // Serving Runtime Validation
   const isDisabledServingRuntime =
     namespace === '' || actionInProgress || createDataServingRuntime.imageName === undefined;
 
   const baseInputValueValid =
     createDataServingRuntime.numReplicas >= 0 &&
-    resourcesArePositive(createDataServingRuntime.modelSize.resources) &&
-    requestsUnderLimits(createDataServingRuntime.modelSize.resources);
+    resourcesArePositive(podSpecOptionsState.podSpecOptions.resources) &&
+    requestsUnderLimits(podSpecOptionsState.podSpecOptions.resources);
 
   const isDisabledInferenceService =
     actionInProgress ||
     createDataInferenceService.name.trim() === '' ||
     createDataInferenceService.project === '' ||
     !translatedName ||
-    !baseInputValueValid;
+    !baseInputValueValid ||
+    !podSpecOptionsState.hardwareProfile.isFormDataValid;
 
   const { dashboardNamespace } = useDashboardNamespace();
   const templateName = useNIMTemplateName();
@@ -188,7 +198,9 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     setActionInProgress(false);
     resetDataServingRuntime();
     resetDataInferenceService();
-    resetSelectedAcceleratorProfile();
+    podSpecOptionsState.acceleratorProfile.resetFormData();
+    podSpecOptionsState.hardwareProfile.resetFormData();
+    podSpecOptionsState.modelSize.setSelectedSize(podSpecOptionsState.modelSize.sizes[0]);
     setAlertVisible(true);
   };
 
@@ -223,8 +235,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
       namespace,
       editInfo?.servingRuntimeEditInfo,
       false,
-      initialAcceleratorProfileState,
-      selectedAcceleratorProfile,
+      podSpecOptionsState.podSpecOptions,
       NamespaceApplicationCase.KSERVE_NIM_PROMOTION,
       projectContext?.currentProject,
       servingRuntimeName,
@@ -238,8 +249,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
       servingRuntimeName,
       inferenceServiceName,
       false,
-      initialAcceleratorProfileState,
-      selectedAcceleratorProfile,
+      podSpecOptionsState.podSpecOptions,
       allowCreate,
       editInfo?.secrets,
       false,
@@ -313,26 +323,8 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
         }}
       >
         <Stack hasGutter>
-          {!isAuthorinoEnabled && alertVisible && (
-            <StackItem>
-              <Alert
-                id="no-authorino-installed-alert"
-                data-testid="no-authorino-installed-alert"
-                isExpandable
-                isInline
-                variant="warning"
-                title="Token authentication service not installed"
-                actionClose={<AlertActionCloseButton onClose={() => setAlertVisible(false)} />}
-              >
-                <p>
-                  The NVIDIA NIM model serving platform used by this project allows deployed models
-                  to be accessible via external routes. It is recommended that token authentication
-                  be enabled to protect these routes. The serving platform requires the Authorino
-                  operator be installed on the cluster for token authentication. Contact a cluster
-                  administrator to install the operator.
-                </p>
-              </Alert>
-            </StackItem>
+          {!isAuthAvailable && alertVisible && !isRawAvailable && (
+            <NoAuthAlert onClose={() => setAlertVisible(false)} />
           )}
           <StackItem>
             <ProjectSection projectName={getProjectName()} />
@@ -356,7 +348,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
           <StackItem>
             <NIMPVCSizeSection pvcSize={pvcSize} setPvcSize={setPvcSize} />
           </StackItem>
-          {isKServeRawEnabled && (
+          {isRawAvailable && isServerlessAvailable && (
             <StackItem>
               <KServeDeploymentModeDropdown
                 isRaw={!!createDataInferenceService.isKServeRawDeployment}
@@ -364,6 +356,9 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
                 isDisabled={!!editInfo}
               />
             </StackItem>
+          )}
+          {!isAuthAvailable && alertVisible && isRawAvailable && (
+            <NoAuthAlert onClose={() => setAlertVisible(false)} />
           )}
           <StackItem>
             <KServeAutoscalerReplicaSection
@@ -374,16 +369,12 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
             />
           </StackItem>
           <ServingRuntimeSizeSection
-            data={createDataInferenceService}
-            setData={setCreateDataInferenceService}
-            sizes={sizes}
+            isEditing={!!editInfo}
             servingRuntimeSelected={servingRuntimeSelected}
-            acceleratorProfileState={initialAcceleratorProfileState}
-            selectedAcceleratorProfile={selectedAcceleratorProfile}
-            setSelectedAcceleratorProfile={setSelectedAcceleratorProfile}
-            infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
+            podSpecOptionState={podSpecOptionsState}
+            infoContent="Select CPU and memory resources large enough to support the NIM being deployed."
           />
-          {isAuthorinoEnabled && (
+          {isAuthAvailable && (
             <AuthServingRuntimeSection
               data={createDataInferenceService}
               setData={setCreateDataInferenceService}

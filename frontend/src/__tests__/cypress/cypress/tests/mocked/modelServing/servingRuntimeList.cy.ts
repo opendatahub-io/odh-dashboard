@@ -34,7 +34,12 @@ import {
 } from '~/__tests__/cypress/cypress/pages/modelServing';
 import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
-import { DeploymentMode, type InferenceServiceKind, type ServingRuntimeKind } from '~/k8sTypes';
+import type {
+  DataScienceClusterKindStatus,
+  InferenceServiceKind,
+  ServingRuntimeKind,
+} from '~/k8sTypes';
+import { DeploymentMode } from '~/k8sTypes';
 import { ServingRuntimePlatform } from '~/types';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { StackCapability } from '~/concepts/areas/types';
@@ -56,6 +61,7 @@ import {
   TemplateModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mockRoleK8sResource } from '~/__mocks__/mockRoleK8sResource';
+import { mockConnectionTypeConfigMap } from '~/__mocks__/mockConnectionType';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -73,8 +79,9 @@ type HandlersProps = {
   roleAlreadyExists?: boolean;
   rejectInferenceService?: boolean;
   rejectServingRuntime?: boolean;
-  rejectDataConnection?: boolean;
+  rejectConnection?: boolean;
   requiredCapabilities?: StackCapability[];
+  DscComponents?: DataScienceClusterKindStatus['components'];
 };
 
 const initIntercepts = ({
@@ -86,12 +93,14 @@ const initIntercepts = ({
   disableKServeRaw = true,
   projectEnableModelMesh,
   servingRuntimes = [
-    mockServingRuntimeK8sResourceLegacy({}),
+    mockServingRuntimeK8sResourceLegacy({ tolerations: [], nodeSelector: {} }),
     mockServingRuntimeK8sResource({
       name: 'test-model',
       namespace: 'test-project',
       auth: true,
       route: true,
+      tolerations: [],
+      nodeSelector: {},
     }),
   ],
   inferenceServices = [
@@ -114,12 +123,14 @@ const initIntercepts = ({
   roleAlreadyExists = false,
   rejectInferenceService = false,
   rejectServingRuntime = false,
-  rejectDataConnection = false,
+  rejectConnection = false,
   requiredCapabilities = [],
+  DscComponents,
 }: HandlersProps) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
+      components: DscComponents,
       installedComponents: { kserve: true, 'model-mesh': true },
     }),
   );
@@ -374,19 +385,37 @@ const initIntercepts = ({
       { namespace: 'opendatahub' },
     ),
   );
+
   cy.interceptK8s(
     'POST',
     {
       model: SecretModel,
       ns: 'test-project',
     },
-    rejectDataConnection
+    rejectConnection
       ? { statusCode: 401 }
       : {
           statusCode: 200,
           body: mockSecretK8sResource({}),
         },
-  ).as('createDataConnectionSecret');
+  ).as('createConnectionSecret');
+
+  cy.interceptOdh('GET /api/connection-types', [
+    mockConnectionTypeConfigMap({
+      displayName: 'URI - v1',
+      name: 'uri-v1',
+      category: ['existing-category'],
+      fields: [
+        {
+          type: 'uri',
+          name: 'URI field test',
+          envVar: 'URI',
+          required: true,
+          properties: {},
+        },
+      ],
+    }),
+  ]).as('getConnectionTypes');
 };
 
 describe('Serving Runtime List', () => {
@@ -439,18 +468,12 @@ describe('Serving Runtime List', () => {
       inferenceServiceModal.findModelNameInput().type('Test Name');
       inferenceServiceModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       inferenceServiceModal.findSubmitButton().should('be.disabled');
-      inferenceServiceModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
-      inferenceServiceModal.findExistingConnectionSelect().should('be.disabled');
-      inferenceServiceModal.findLocationPathInput().type('test-model/');
+      inferenceServiceModal.findNewConnectionOption().click();
+      inferenceServiceModal.findConnectionNameInput().type('Test Name');
+      inferenceServiceModal.findConnectionFieldInput().type('https://test');
       inferenceServiceModal.findSubmitButton().should('be.enabled');
-      inferenceServiceModal.findNewDataConnectionOption().click();
-      inferenceServiceModal.findLocationPathInput().clear();
-      inferenceServiceModal.findSubmitButton().should('be.disabled');
-      inferenceServiceModal.findLocationNameInput().type('Test Name');
-      inferenceServiceModal.findLocationAccessKeyInput().type('test-key');
-      inferenceServiceModal.findLocationSecretKeyInput().type('test-secret-key');
-      inferenceServiceModal.findLocationEndpointInput().type('test-endpoint');
-      inferenceServiceModal.findLocationBucketInput().type('test-bucket');
+      inferenceServiceModal.findExistingConnectionOption().click();
+      inferenceServiceModal.findExistingConnectionSelect().should('have.attr', 'disabled');
       inferenceServiceModal.findLocationPathInput().type('test-model/');
       inferenceServiceModal.findSubmitButton().should('be.enabled');
 
@@ -537,10 +560,11 @@ describe('Serving Runtime List', () => {
         .findServingRuntimeSelect()
         .should('have.text', 'OVMS Model Serving')
         .should('be.enabled');
+      inferenceServiceModalEdit.findExistingConnectionSelect().should('have.attr', 'disabled');
       inferenceServiceModalEdit
         .findExistingConnectionSelect()
-        .should('have.text', 'Test Secret')
-        .should('be.disabled');
+        .findByRole('combobox')
+        .should('have.value', 'Test Secret');
     });
 
     it('ModelMesh ServingRuntime list', () => {
@@ -756,19 +780,19 @@ describe('Serving Runtime List', () => {
       kserveModal.findAuthenticationCheckbox().check();
       kserveModal.findExternalRouteError().should('not.exist');
       kserveModal.findServiceAccountNameInput().should('have.value', 'default-name');
-      kserveModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
-      kserveModal.findExistingConnectionSelect().should('be.disabled');
+      kserveModal.findSubmitButton().should('be.disabled');
+      kserveModal.findNewConnectionOption().click();
+      kserveModal.findConnectionNameInput().type('Test Name');
+      kserveModal.findConnectionFieldInput().type('https://test');
+      kserveModal.findSubmitButton().should('be.enabled');
+      kserveModal.findExistingConnectionOption().click();
+      kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
+      kserveModal
+        .findExistingConnectionSelect()
+        .findByRole('combobox')
+        .should('have.value', 'Test Secret');
       kserveModal.findLocationPathInput().type('test-model/');
       kserveModal.findSubmitButton().should('be.enabled');
-      kserveModal.findNewDataConnectionOption().click();
-      kserveModal.findLocationPathInput().clear();
-      kserveModal.findSubmitButton().should('be.disabled');
-      kserveModal.findLocationNameInput().type('Test Name');
-      kserveModal.findLocationAccessKeyInput().type('test-key');
-      kserveModal.findLocationSecretKeyInput().type('test-secret-key');
-      kserveModal.findLocationEndpointInput().type('test-endpoint');
-      kserveModal.findLocationBucketInput().type('test-bucket');
-      kserveModal.findLocationPathInput().type('test-model/');
       kserveModal.findConfigurationParamsSection().should('exist');
       kserveModal.findServingRuntimeArgumentsSectionInput().type('--arg=value');
       kserveModal.findServingRuntimeEnvVarsSectionAddButton().click();
@@ -993,15 +1017,10 @@ describe('Serving Runtime List', () => {
       kserveModal.findModelNameInput().type('Test Name');
       kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
-      kserveModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
-      kserveModal.findExistingConnectionSelect().should('be.disabled');
-      kserveModal.findNewDataConnectionOption().click();
-      kserveModal.findLocationNameInput().type('Test Name');
-      kserveModal.findLocationAccessKeyInput().type('test-key');
-      kserveModal.findLocationSecretKeyInput().type('test-secret-key');
-      kserveModal.findLocationEndpointInput().type('test-endpoint');
-      kserveModal.findLocationBucketInput().type('test-bucket');
-      kserveModal.findLocationPathInput().type('test-model/');
+      kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
+      kserveModal.findNewConnectionOption().click();
+      kserveModal.findConnectionNameInput().type('Test Name');
+      kserveModal.findConnectionFieldInput().type('https://test');
       kserveModal.findSubmitButton().should('be.enabled');
 
       // test submitting form, an error should appear
@@ -1272,10 +1291,17 @@ describe('Serving Runtime List', () => {
       kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
-      kserveModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
-      kserveModal.findExistingConnectionSelect().should('be.disabled');
-
+      kserveModal.findNewConnectionOption().click();
+      kserveModal.findConnectionNameInput().type('Test Name');
+      kserveModal.findConnectionFieldInput().type('https://test');
+      kserveModal.findSubmitButton().should('be.enabled');
+      kserveModal.findExistingConnectionOption().click();
+      kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
       kserveModal.findLocationPathInput().type('test-model/');
+      kserveModal
+        .findExistingConnectionSelect()
+        .findByRole('combobox')
+        .should('have.value', 'Test Secret');
       kserveModal.findSubmitButton().should('be.enabled');
       kserveModal.findLocationPathInput().clear();
 
@@ -1332,15 +1358,167 @@ describe('Serving Runtime List', () => {
       );
     });
 
-    it('Deploy KServe raw model', () => {
+    it('Deploy KServe raw model (with serverless available)', () => {
+      initIntercepts({
+        disableModelMeshConfig: false,
+        disableKServeConfig: false,
+        disableServingRuntimeParams: false,
+        servingRuntimes: [],
+        requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
+        projectEnableModelMesh: false,
+      });
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableKServeRaw: false,
+        }),
+      );
+
+      projectDetails.visitSection('test-project', 'model-server');
+
+      modelServingSection.findDeployModelButton().click();
+
+      kserveModal.shouldBeOpen();
+
+      // test that you can not submit on empty
+      kserveModal.findSubmitButton().should('be.disabled');
+
+      // test filling in minimum required fields
+      kserveModal.findModelNameInput().type('Test Name');
+      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
+      kserveModal.findSubmitButton().should('be.disabled');
+      // misc.
+      kserveModal.findModelRouteCheckbox().check();
+      kserveModal.findAuthenticationCheckbox().check();
+      kserveModal.findExternalRouteError().should('not.exist');
+      kserveModal.findServiceAccountNameInput().should('have.value', 'default-name');
+      kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
+      kserveModal
+        .findExistingConnectionSelect()
+        .findByRole('combobox')
+        .should('have.value', 'Test Secret');
+      kserveModal.findLocationPathInput().type('test-model/');
+      kserveModal.findSubmitButton().should('be.enabled');
+      // raw
+      kserveModal.findDeploymentModeSelect().should('contain.text', 'Advanced (default)');
+      kserveModal.findDeploymentModeSelect().findSelectOption('Standard').click();
+
+      // test submitting form, the modal should close to indicate success.
+      kserveModal.findSubmitButton().click();
+      kserveModal.shouldBeOpen(false);
+
+      // dry run request
+      cy.wait('@createServingRuntime').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body).to.containSubset({
+          metadata: {
+            name: 'test-name',
+            annotations: {
+              'openshift.io/display-name': 'test-name',
+              'opendatahub.io/apiProtocol': 'REST',
+              'opendatahub.io/template-name': 'template-2',
+              'opendatahub.io/template-display-name': 'Caikit',
+              'opendatahub.io/accelerator-name': '',
+            },
+            namespace: 'test-project',
+          },
+          spec: {
+            protocolVersions: ['grpc-v1'],
+            supportedModelFormats: [
+              { autoSelect: true, name: 'openvino_ir', version: 'opset1' },
+              { autoSelect: true, name: 'onnx', version: '1' },
+            ],
+          },
+        });
+      });
+
+      // Actual request
+      cy.wait('@createServingRuntime').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
+      // the serving runtime should have been created
+      cy.get('@createServingRuntime.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+      });
+
+      cy.wait('@createInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body).to.containSubset({
+          apiVersion: 'serving.kserve.io/v1beta1',
+          kind: 'InferenceService',
+          metadata: {
+            name: 'test-name',
+            namespace: 'test-project',
+            annotations: {
+              'openshift.io/display-name': 'Test Name',
+              'serving.kserve.io/deploymentMode': DeploymentMode.RawDeployment,
+            },
+            labels: {
+              'opendatahub.io/dashboard': 'true',
+              'security.opendatahub.io/enable-auth': 'true',
+              'networking.kserve.io/visibility': 'exposed',
+            },
+          },
+          spec: {
+            predictor: {
+              minReplicas: 1,
+              maxReplicas: 1,
+              model: {
+                modelFormat: { name: 'onnx', version: '1' },
+                runtime: 'test-name',
+                storage: { key: 'test-secret', path: 'test-model/' },
+                resources: {
+                  requests: { cpu: '1', memory: '4Gi' },
+                  limits: { cpu: '2', memory: '8Gi' },
+                },
+              },
+            },
+          },
+        });
+      });
+
+      //dry run request
+      cy.wait('@createRole').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body).to.containSubset({
+          metadata: {
+            name: 'test-name-view-role',
+            namespace: 'test-project',
+            ownerReferences: [],
+          },
+          rules: [
+            {
+              verbs: ['get'],
+              apiGroups: ['serving.kserve.io'],
+              resources: ['inferenceservices'],
+              resourceNames: ['test-name'],
+            },
+          ],
+        });
+      });
+
+      //Actual request
+      cy.wait('@createRole').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
+      cy.get('@createRole.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); //1 dry run request and 1 actual request
+      });
+    });
+
+    it('Deploy KServe raw model (with serverless disabled)', () => {
       initIntercepts({
         disableModelMeshConfig: false,
         disableKServeConfig: false,
         disableServingRuntimeParams: false,
         disableKServeRaw: false,
         servingRuntimes: [],
-        requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
+        requiredCapabilities: [],
         projectEnableModelMesh: false,
+        DscComponents: { kserve: { serverlessMode: 'Removed' } },
       });
 
       projectDetails.visitSection('test-project', 'model-server');
@@ -1362,13 +1540,14 @@ describe('Serving Runtime List', () => {
       kserveModal.findAuthenticationCheckbox().check();
       kserveModal.findExternalRouteError().should('not.exist');
       kserveModal.findServiceAccountNameInput().should('have.value', 'default-name');
-      kserveModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
-      kserveModal.findExistingConnectionSelect().should('be.disabled');
+      kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
+      kserveModal
+        .findExistingConnectionSelect()
+        .findByRole('combobox')
+        .should('have.value', 'Test Secret');
       kserveModal.findLocationPathInput().type('test-model/');
       kserveModal.findSubmitButton().should('be.enabled');
       // raw
-      kserveModal.findDeploymentModeSelect().should('contain.text', 'Advanced (default)');
-      kserveModal.findDeploymentModeSelect().findSelectOption('Standard').click();
 
       // test submitting form, the modal should close to indicate success.
       kserveModal.findSubmitButton().click();
@@ -1729,10 +1908,12 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         disableKServeConfig: true,
         disableModelMeshConfig: false,
+        projectEnableModelMesh: true,
       });
       projectDetails.visitSection('test-project', 'model-server');
 
       modelServingSection.findAddModelServerButton().click();
+      // modelServingGlobal.findSingleServingModelButton().click();
 
       createServingRuntimeModal.shouldBeOpen();
 
@@ -2196,6 +2377,7 @@ describe('Serving Runtime List', () => {
         disableKServeConfig: false,
         servingRuntimes: [],
         rejectInferenceService: true,
+        projectEnableModelMesh: false,
       });
 
       projectDetails.visitSection('test-project', 'model-server');
@@ -2207,8 +2389,11 @@ describe('Serving Runtime List', () => {
       kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
-      kserveModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
-      kserveModal.findExistingConnectionSelect().should('be.disabled');
+      kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
+      kserveModal
+        .findExistingConnectionSelect()
+        .findByRole('combobox')
+        .should('have.value', 'Test Secret');
       kserveModal.findLocationPathInput().type('test-model/');
       kserveModal.findSubmitButton().should('be.enabled');
       kserveModal.findSubmitButton().click();
@@ -2230,6 +2415,7 @@ describe('Serving Runtime List', () => {
         disableKServeConfig: false,
         servingRuntimes: [],
         rejectServingRuntime: true,
+        projectEnableModelMesh: false,
       });
 
       projectDetails.visitSection('test-project', 'model-server');
@@ -2241,8 +2427,11 @@ describe('Serving Runtime List', () => {
       kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
-      kserveModal.findExistingConnectionSelect().should('contain.text', 'Test Secret');
-      kserveModal.findExistingConnectionSelect().should('be.disabled');
+      kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
+      kserveModal
+        .findExistingConnectionSelect()
+        .findByRole('combobox')
+        .should('have.value', 'Test Secret');
       kserveModal.findLocationPathInput().type('test-model/');
       kserveModal.findSubmitButton().should('be.enabled');
       kserveModal.findSubmitButton().click();
@@ -2258,66 +2447,6 @@ describe('Serving Runtime List', () => {
       });
 
       // check url should be dryRun
-    });
-
-    it('Check when Data connection secret dryRun fails', () => {
-      initIntercepts({
-        disableModelMeshConfig: true,
-        disableKServeConfig: false,
-        servingRuntimes: [],
-        rejectDataConnection: true,
-      });
-
-      projectDetails.visitSection('test-project', 'model-server');
-      modelServingSection.findDeployModelButton().click();
-      kserveModal.shouldBeOpen();
-
-      kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
-      kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
-
-      kserveModal.findNewDataConnectionOption().click();
-      kserveModal.findLocationNameInput().type('Test Name');
-      kserveModal.findLocationAccessKeyInput().type('test-key');
-      kserveModal.findLocationSecretKeyInput().type('test-secret-key');
-      kserveModal.findLocationEndpointInput().type('test-endpoint');
-      kserveModal.findLocationBucketInput().type('test-bucket');
-      kserveModal.findLocationPathInput().type('test-model/');
-
-      kserveModal.findSubmitButton().should('be.enabled');
-      kserveModal.findSubmitButton().click();
-
-      // check url should be dryRun
-      cy.wait('@createDataConnectionSecret').then((interception) => {
-        expect(interception.request.url).to.include('?dryRun=All');
-        expect(interception.request.body).to.containSubset({
-          metadata: {
-            name: 'aws-connection-test-name',
-            namespace: 'test-project',
-            annotations: {
-              'openshift.io/display-name': 'Test Name',
-              'opendatahub.io/connection-type': 's3',
-            },
-            labels: { 'opendatahub.io/dashboard': 'true', 'opendatahub.io/managed': 'true' },
-          },
-          stringData: {
-            AWS_ACCESS_KEY_ID: 'test-key',
-            AWS_SECRET_ACCESS_KEY: 'test-secret-key',
-            AWS_S3_BUCKET: 'test-bucket',
-            AWS_S3_ENDPOINT: 'test-endpoint',
-            AWS_DEFAULT_REGION: '',
-          },
-        });
-      });
-
-      cy.get('@createDataConnectionSecret.all').then((interceptions) => {
-        expect(interceptions).to.have.length(1); // 1 dry-run request only
-      });
-
-      // check no createInferenceService call is made as data connection creation failed
-      cy.get('@createInferenceService.all').then((interceptions) => {
-        expect(interceptions).to.have.length(0);
-      });
     });
   });
 

@@ -11,12 +11,13 @@ import {
 } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import type { DataScienceProjectData } from '~/__tests__/cypress/cypress/types';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 describe('Verify Data Science Project - Creation and Deletion', () => {
   let testData: DataScienceProjectData;
 
   // Setup: Load test data and ensure clean state
-  before(() => {
+  retryableBefore(() => {
     return cy
       .fixture('e2e/dataScienceProjects/testProjectCreation.yaml', 'utf8')
       .then((yamlContent: string) => {
@@ -44,7 +45,7 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
 
   it(
     'Create and Delete a Data Science Project in RHOAI',
-    { tags: ['@Smoke', '@SmokeSet2', '@ODS-1775', '@Dashboard', '@Tier1'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-1875', '@ODS-1783', '@ODS-1775', '@Dashboard'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -94,7 +95,7 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
   );
   it(
     'Verify users cannot create a project with Empty title',
-    { tags: ['@Sanity', '@SanitySet1', '@ODS-1783', '@Dashboard', '@Tier1'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-1875', '@ODS-1783', '@ODS-1775', '@Dashboard'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -119,7 +120,7 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
   );
   it(
     'Verify User cannot create a project using special characters or long names in the Resource name field',
-    { tags: ['@Sanity', '@SanitySet1', '@ODS-1875', '@Dashboard', '@Tier1'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-1875', '@ODS-1783', '@ODS-1775', '@Dashboard'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');

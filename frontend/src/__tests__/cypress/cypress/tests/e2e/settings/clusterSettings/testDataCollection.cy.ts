@@ -4,11 +4,12 @@ import {
   telemetrySettings,
 } from '~/__tests__/cypress/cypress/pages/clusterSettings';
 import { getCustomResource } from '~/__tests__/cypress/cypress/utils/oc_commands/customResources';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
-describe('[Known Bug: RHOAIENG-18495] Verify That Usage Data Collection Can Be Set In Cluster Settings', () => {
+describe('Verify That Usage Data Collection Can Be Set In Cluster Settings', () => {
   let skipTest = false;
 
-  before(() => {
+  retryableBefore(() => {
     // Check if the operator is RHOAI, if its not, skip the test
     cy.step('Check if the operator is RHOAI');
     getCustomResource('redhat-ods-operator', 'Deployment', 'name=rhods-operator').then((result) => {
@@ -23,7 +24,7 @@ describe('[Known Bug: RHOAIENG-18495] Verify That Usage Data Collection Can Be S
 
   it(
     'Verify Usage Data Collection can be Enabled/Disabled',
-    { tags: ['@Sanity', '@SanitySet1', '@ODS-1218', '@Dashboard', '@Bug'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ODS-1218', '@Dashboard'] },
     () => {
       if (skipTest) {
         cy.log('Skipping test confirmed');
@@ -51,6 +52,19 @@ describe('[Known Bug: RHOAIENG-18495] Verify That Usage Data Collection Can Be S
       cy.step('Refresh settings view');
       cy.reload();
       telemetrySettings.findEnabledCheckbox().should('not.be.checked');
+
+      // Re-enable data usage collection
+      cy.step('re-enable usage data collection');
+      telemetrySettings.findEnabledCheckbox().click();
+
+      // Save changes in cluster settings
+      cy.step('Save changes and wait for changes to be applied');
+      clusterSettings.findSubmitButton().click();
+
+      // Refresh and verify data collection is re-enabled
+      cy.step('Refresh settings view');
+      cy.reload();
+      telemetrySettings.findEnabledCheckbox().should('be.checked');
     },
   );
 });

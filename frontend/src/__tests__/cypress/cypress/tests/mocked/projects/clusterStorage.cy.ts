@@ -205,7 +205,7 @@ describe('ClusterStorage', () => {
     //connect workbench
     addClusterStorageModal.findAddWorkbenchButton().click();
     addClusterStorageModal.findWorkbenchTable().should('exist');
-    addClusterStorageModal.findWorkbenchSelect(0).should('have.attr', 'disabled');
+    addClusterStorageModal.findWorkbenchName(0).should('have.attr', 'disabled');
     addClusterStorageModal.findWorkbenchSelectValueField(0).should('have.value', 'Test Notebook');
 
     //don't allow duplicate path
@@ -291,7 +291,7 @@ describe('ClusterStorage', () => {
     const clusterStorageRow = clusterStorage.getClusterStorageRow('Existing PVC');
     clusterStorageRow.findKebabAction('Edit storage').click();
     updateClusterStorageModal.findAddWorkbenchButton().click();
-    addClusterStorageModal.findWorkbenchSelect(1).should('have.attr', 'disabled');
+    addClusterStorageModal.findWorkbenchName(1).should('have.attr', 'disabled');
     addClusterStorageModal
       .findWorkbenchSelectValueField(1)
       .should('have.value', 'Another Notebook');
