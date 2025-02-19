@@ -549,24 +549,28 @@ describe('Manage Hardware Profile', () => {
 
   it('invalid id in edit page', () => {
     initIntercepts({ isPresent: false });
-    editHardwareProfile.visit('test-hardware-profile');
-    editHardwareProfile.findErrorText().should('exist');
     cy.interceptK8sList(
       HardwareProfileModel,
-      mockK8sResourceList([mockHardwareProfile({ namespace: 'opendatahub', uid: 'test-12' })]),
+      mockK8sResourceList([
+        mockHardwareProfile({ name: 'test 12', namespace: 'opendatahub', uid: 'test-12' }),
+      ]),
     ).as('listHardwareProfiles');
+    editHardwareProfile.visit('test-hardware-profile');
+    editHardwareProfile.findErrorText().should('exist');
     editHardwareProfile.findViewAllHardwareProfilesButton().click();
     cy.wait('@listHardwareProfiles');
   });
 
   it('invalid id in duplicate page', () => {
     initIntercepts({ isPresent: false });
-    duplicateHardwareProfile.visit('test-hardware-profile');
-    duplicateHardwareProfile.findErrorText().should('exist');
     cy.interceptK8sList(
       HardwareProfileModel,
-      mockK8sResourceList([mockHardwareProfile({ namespace: 'opendatahub', uid: 'test-12' })]),
+      mockK8sResourceList([
+        mockHardwareProfile({ name: 'test 12', namespace: 'opendatahub', uid: 'test-12' }),
+      ]),
     ).as('listHardwareProfiles');
+    duplicateHardwareProfile.visit('test-hardware-profile');
+    duplicateHardwareProfile.findErrorText().should('exist');
     duplicateHardwareProfile.findViewAllHardwareProfilesButton().click();
     cy.wait('@listHardwareProfiles');
   });
