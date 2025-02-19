@@ -61,7 +61,7 @@ class NotebookServer {
   }
 
   findEventlog() {
-    return cy.findByTestId('expand-logs').findByRole('button');
+    return cy.findByTestId('expand-logs');
   }
 
   findStopServerButton() {
@@ -81,7 +81,7 @@ class NotebookServer {
   }
 
   findSuccessAlert() {
-    return cy.findByText('Success', { timeout: 120000 });
+    return cy.findByText('Running', { timeout: 120000 });
   }
 
   findNotebookImage(notebook: string) {

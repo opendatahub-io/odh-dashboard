@@ -118,7 +118,7 @@ export const fieldNameToEnvVar = (name: string): string => {
   return allUppercase;
 };
 
-export const ENV_VAR_NAME_REGEX = new RegExp('^[_a-zA-Z][_a-zA-Z0-9]*$');
+export const ENV_VAR_NAME_REGEX = new RegExp('^[-_.a-zA-Z0-9]+$');
 export const isValidEnvVar = (name: string): boolean => ENV_VAR_NAME_REGEX.test(name);
 
 export const isUriConnectionType = (connectionType: ConnectionTypeConfigMapObj): boolean =>
@@ -267,6 +267,8 @@ export const assembleConnectionSecret = (
     (t) => modelServingCompatibleTypesMetadata[t].managedType,
   )[0];
 
+  const isPullSecret = !!values['.dockerconfigjson'];
+
   return {
     apiVersion: 'v1',
     kind: 'Secret',
@@ -285,6 +287,7 @@ export const assembleConnectionSecret = (
       },
     },
     stringData: connectionValuesAsStrings,
+    ...(isPullSecret && { type: 'kubernetes.io/dockerconfigjson' }),
   };
 };
 
@@ -372,7 +375,7 @@ export const filterModelServingConnectionTypes = (
     })
     .filter((t) => t != null);
 
-export const VALID_ENV_VARNAME_REGEX = /^[A-Za-z_][A-Za-z0-9_-]*$/;
+export const VALID_ENV_VARNAME_REGEX = /^[A-Za-z_][A-Za-z0-9_\-.]*$/;
 export const STARTS_WITH_DIGIT_REGEX = /^\d/;
 
 export const validateEnvVarName = (name: string): string | undefined => {

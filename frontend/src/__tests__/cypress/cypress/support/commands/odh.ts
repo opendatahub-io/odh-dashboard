@@ -458,6 +458,33 @@ declare global {
           response: OdhResponse<ListPipelinesResponseKF | GoogleRpcStatusKF>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: `GET /apis/v2beta1/pipelines/names/:pipelineName`,
+          options: {
+            path: { pipelineName: string };
+            times?: number;
+          },
+          response: OdhResponse<PipelineKF | GoogleRpcStatusKF>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/names/:pipelineName',
+          options: {
+            path: { namespace: string; serviceName: string; pipelineName: string };
+            times?: number;
+          },
+          response: OdhResponse<PipelineKF | GoogleRpcStatusKF>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: `GET /apis/v2beta1/pipelines/:pipelineId/versions`,
+          options: {
+            path: {
+              pipelineId: string;
+            };
+            query?: { sort_by: string };
+            times?: number;
+          },
+          response: OdhResponse<ListPipelinesResponseKF | GoogleRpcStatusKF>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: `POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId`,
           options: { path: { namespace: string; serviceName: string; recurringRunId: string } },
           response: OdhResponse<GoogleRpcStatusKF>,

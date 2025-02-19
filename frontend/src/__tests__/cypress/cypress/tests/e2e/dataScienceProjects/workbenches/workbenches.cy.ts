@@ -11,6 +11,10 @@ import { loadPVCFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { createPersistentVolumeClaim } from '~/__tests__/cypress/cypress/utils/oc_commands/presistentVolumeClaim';
+import {
+  retryableBefore,
+  wasSetupPerformed,
+} from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 describe('Workbench and PVSs tests', () => {
   let projectName: string;
@@ -18,7 +22,7 @@ describe('Workbench and PVSs tests', () => {
   let PVCDisplayName: string;
   let PVCSize: string;
 
-  before(() => {
+  retryableBefore(() => {
     return loadPVCFixture('e2e/dataScienceProjects/testProjectWbPV.yaml')
       .then((fixtureData: PVCReplacements) => {
         projectName = fixtureData.NAMESPACE;
@@ -48,6 +52,9 @@ describe('Workbench and PVSs tests', () => {
   });
 
   after(() => {
+    //Check if the Before Method was executed to perform the setup
+    if (!wasSetupPerformed()) return;
+
     // Delete provisioned Project
     if (projectName) {
       cy.log(`Deleting Project ${projectName} after the test has finished.`);
@@ -57,7 +64,7 @@ describe('Workbench and PVSs tests', () => {
 
   it(
     'Verify users can create a workbench and connect an existent PersistentVolume',
-    { tags: ['@Smoke', '@SmokeSet1', '@ODS-1814', '@Dashboard', '@Tier1'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@ODS-1814', '@Dashboard'] },
     () => {
       const workbenchName = projectName.replace('dsp-', '');
 

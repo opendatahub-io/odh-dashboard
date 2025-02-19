@@ -9,7 +9,12 @@ const PipelineCoreNoProjects: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <EmptyState headingLevel="h4" icon={WrenchIcon} titleText="No data science projects">
+    <EmptyState
+      headingLevel="h4"
+      icon={WrenchIcon}
+      titleText="No data science projects"
+      data-testid="empty-state-title"
+    >
       <EmptyStateBody>
         To create a pipeline server and import a pipeline, first create a data science project.
       </EmptyStateBody>

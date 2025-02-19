@@ -25,12 +25,11 @@ it('Connection types should be hidden by feature flag', () => {
   asProductAdminUser();
 
   cy.visitWithLogin('/connectionTypes');
-  connectionTypesPage.shouldReturnNotFound();
 
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
-      disableConnectionTypes: false,
+      disableAdminConnectionTypes: false,
     }),
   );
 

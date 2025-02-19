@@ -4,6 +4,7 @@ import {
   ModelState,
   ModelVersion,
   RegisteredModel,
+  RegisteredModelList,
 } from '~/concepts/modelRegistry/types';
 import { ModelRegistryAPIState } from '~/concepts/modelRegistry/context/useModelRegistryAPIState';
 import { objectStorageFieldsToUri } from '~/concepts/modelRegistry/utils';
@@ -140,12 +141,19 @@ const isSubmitDisabledForCommonFields = (formData: RegistrationCommonFormData): 
   );
 };
 
-export const isRegisterModelSubmitDisabled = (formData: RegisterModelFormData): boolean =>
+export const isRegisterModelSubmitDisabled = (
+  formData: RegisterModelFormData,
+  registeredModels: RegisteredModelList,
+): boolean =>
   !formData.modelName ||
   isSubmitDisabledForCommonFields(formData) ||
-  !isNameValid(formData.modelName);
+  !isNameValid(formData.modelName) ||
+  isModelNameExisting(formData.modelName, registeredModels);
 
 export const isRegisterVersionSubmitDisabled = (formData: RegisterVersionFormData): boolean =>
   !formData.registeredModelId || isSubmitDisabledForCommonFields(formData);
 
 export const isNameValid = (name: string): boolean => name.length <= MR_CHARACTER_LIMIT;
+
+export const isModelNameExisting = (name: string, registeredModels: RegisteredModelList): boolean =>
+  registeredModels.items.some((model) => model.name === name);

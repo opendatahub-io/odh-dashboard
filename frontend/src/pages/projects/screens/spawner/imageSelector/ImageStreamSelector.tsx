@@ -6,17 +6,18 @@ import {
   compareImageStreamOrder,
   getImageStreamDisplayName,
   getRelatedVersionDescription,
-  isCompatibleWithAccelerator,
+  isCompatibleWithIdentifier,
 } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { ImageStreamKind } from '~/k8sTypes';
 import SimpleSelect from '~/components/SimpleSelect';
+import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 
 type ImageStreamSelectorProps = {
   imageStreams: ImageStreamKind[];
   buildStatuses: BuildStatus[];
   selectedImageStream?: ImageStreamKind;
   onImageStreamSelect: (selection: ImageStreamKind) => void;
-  compatibleAcceleratorIdentifier?: string;
+  compatibleIdentifiers?: string[];
 };
 
 const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
@@ -24,8 +25,10 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
   selectedImageStream,
   onImageStreamSelect,
   buildStatuses,
-  compatibleAcceleratorIdentifier,
+  compatibleIdentifiers,
 }) => {
+  const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
+
   const options = imageStreams.toSorted(compareImageStreamOrder).map((imageStream) => {
     const description = getRelatedVersionDescription(imageStream);
     const displayName = getImageStreamDisplayName(imageStream);
@@ -40,8 +43,12 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
           <SplitItem>{displayName}</SplitItem>
           <SplitItem isFilled />
           <SplitItem>
-            {isCompatibleWithAccelerator(compatibleAcceleratorIdentifier, imageStream) && (
-              <Label color="blue">Compatible with accelerator</Label>
+            {compatibleIdentifiers?.some((identifier) =>
+              isCompatibleWithIdentifier(identifier, imageStream),
+            ) && (
+              <Label color="blue">
+                Compatible with {isHardwareProfilesAvailable ? 'hardware profile' : 'accelerator'}
+              </Label>
             )}
           </SplitItem>
         </Split>

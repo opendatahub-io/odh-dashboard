@@ -63,6 +63,8 @@ spec:
                       type: boolean
                     disableKServeMetrics:
                       type: boolean
+                    disableKServeOCIModels:
+                      type: boolean
                     disableModelMesh:
                       type: boolean
                     disableAcceleratorProfiles:
@@ -70,6 +72,8 @@ spec:
                     disableHardwareProfiles:
                       type: boolean
                     disableDistributedWorkloads:
+                      type: boolean
+                    disableModelCatalog:
                       type: boolean
                     disableModelRegistry:
                       type: boolean
@@ -80,6 +84,10 @@ spec:
                     disableStorageClasses:
                       type: boolean
                     disableNIMModelServing:
+                      type: boolean
+                    disableAdminConnectionTypes:
+                      type: boolean
+                    disableFineTuning:
                       type: boolean
                 groupsConfig:
                   type: object

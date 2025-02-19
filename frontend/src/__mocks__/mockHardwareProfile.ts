@@ -1,11 +1,13 @@
 import { HardwareProfileKind } from '~/k8sTypes';
 import {
   Identifier,
+  IdentifierResourceType,
   NodeSelector,
   Toleration,
   TolerationEffect,
   TolerationOperator,
 } from '~/types';
+import { WarningNotification } from '~/concepts/hardwareProfiles/types';
 import { genUID } from './mockUtils';
 
 type MockResourceConfigType = {
@@ -16,14 +18,19 @@ type MockResourceConfigType = {
   identifiers?: Identifier[];
   description?: string;
   enabled?: boolean;
-  nodeSelectors?: NodeSelector[];
+  nodeSelector?: NodeSelector;
   tolerations?: Toleration[];
   annotations?: Record<string, string>;
+  warning?: WarningNotification;
+  labels?: Record<string, string>;
 };
 
+/*
+The hardware profiles when mocked need to have unique names if they are in a list, or else they won't render properly.
+*/
 export const mockHardwareProfile = ({
   name = 'migrated-gpu',
-  namespace = 'test-project',
+  namespace = 'opendatahub',
   uid = genUID('service'),
   displayName = 'Nvidia GPU',
   identifiers = [
@@ -33,6 +40,7 @@ export const mockHardwareProfile = ({
       minCount: '2Gi',
       maxCount: '5Gi',
       defaultCount: '2Gi',
+      resourceType: IdentifierResourceType.MEMORY,
     },
     {
       displayName: 'CPU',
@@ -40,6 +48,7 @@ export const mockHardwareProfile = ({
       minCount: '1',
       maxCount: '2',
       defaultCount: '1',
+      resourceType: IdentifierResourceType.CPU,
     },
   ],
   description = '',
@@ -51,13 +60,11 @@ export const mockHardwareProfile = ({
       effect: TolerationEffect.NO_SCHEDULE,
     },
   ],
-  nodeSelectors = [
-    {
-      key: 'test',
-      value: 'va;ue',
-    },
-  ],
+  nodeSelector = {
+    test: 'value',
+  },
   annotations,
+  labels,
 }: MockResourceConfigType): HardwareProfileKind => ({
   apiVersion: 'dashboard.opendatahub.io/v1alpha1',
   kind: 'HardwareProfile',
@@ -69,13 +76,14 @@ export const mockHardwareProfile = ({
     resourceVersion: '1309350',
     uid,
     annotations,
+    labels,
   },
   spec: {
     identifiers,
     displayName,
     enabled,
     tolerations,
-    nodeSelectors,
+    nodeSelector,
     description,
   },
 });

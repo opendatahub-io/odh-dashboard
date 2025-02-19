@@ -1,9 +1,5 @@
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
-import {
-  asDisallowedUser,
-  asProductAdminUser,
-  asProjectAdminUser,
-} from '~/__tests__/cypress/cypress/utils/mockUsers';
+import { asDisallowedUser, asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { mockDashboardConfig } from '~/__mocks__';
 import { aboutDialog } from '~/__tests__/cypress/cypress/pages/aboutDialog';
 import { mockConsoleLinks } from '~/__mocks__/mockConsoleLinks';
@@ -15,12 +11,6 @@ describe('Application', () => {
     appChrome.visit();
     appChrome.shouldBeUnauthorized();
     appChrome.findNavToggle().should('not.exist');
-  });
-
-  it('should not show Settings nav section for non product admins', () => {
-    asProjectAdminUser();
-    appChrome.visit();
-    appChrome.findNavSection('Settings').should('not.exist');
   });
 
   it('should show Settings nav section for cluster admins', () => {

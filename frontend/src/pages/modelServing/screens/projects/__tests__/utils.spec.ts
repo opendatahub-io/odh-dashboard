@@ -81,6 +81,7 @@ const getMockServingPlatformStatuses = ({
     installed: modelMeshInstalled,
   },
   platformEnabledCount: [kServeEnabled, nimEnabled, modelMeshEnabled].filter(Boolean).length,
+  refreshNIMAvailability: async () => true,
 });
 
 describe('getProjectModelServingPlatform', () => {

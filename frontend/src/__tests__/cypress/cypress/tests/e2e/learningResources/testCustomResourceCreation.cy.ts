@@ -8,13 +8,17 @@ import {
   cleanupCustomResources,
 } from '~/__tests__/cypress/cypress/utils/resourceUtils';
 import { checkResources } from '~/__tests__/cypress/cypress/utils/resourceCheckUtils';
+import {
+  retryableBefore,
+  wasSetupPerformed,
+} from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
-describe('Create a custom resource Quickstart by using Dashboard CRDs', () => {
+describe('[Known Product Bug: RHOAIENG-5317]Create a custom resource Quickstart by using Dashboard CRDs', () => {
   let resourcesData: ResourcesData;
   let resourceNames: ReturnType<typeof getResourceValues>;
 
   // Setup: Load test data and setup custom resources
-  before(() => {
+  retryableBefore(() => {
     return loadResourcesFixture('e2e/learningResources/testCustomResourceCreation.yaml').then(
       (data) => {
         resourcesData = data;
@@ -30,12 +34,15 @@ describe('Create a custom resource Quickstart by using Dashboard CRDs', () => {
   });
   // Delete custom resources
   after(() => {
+    //Check if the Before Method was executed to perform the setup
+    if (!wasSetupPerformed()) return;
+
     return cleanupCustomResources(resourcesData);
   });
 
   it(
     'Upload custom resource and verify',
-    { tags: ['@Smoke', '@SmokeSet2', '@ODS-697', '@Dashboard'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-697', '@Dashboard', '@Bug'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');

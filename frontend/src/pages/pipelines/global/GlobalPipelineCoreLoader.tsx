@@ -3,14 +3,15 @@ import { Navigate, Outlet, useParams } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import PipelineCoreNoProjects from '~/pages/pipelines/global/PipelineCoreNoProjects';
-import PipelineCoreProjectSelector from '~/pages/pipelines/global/PipelineCoreProjectSelector';
 import { PipelineContextProvider } from '~/concepts/pipelines/context';
 import InvalidProject from '~/concepts/projects/InvalidProject';
+import PipelineCoreProjectSelector from './PipelineCoreProjectSelector';
 
 type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;
 type EmptyStateProps = 'emptyStatePage' | 'empty';
 
 type GlobalPipelineCoreLoaderProps = {
+  strict?: boolean;
   getInvalidRedirectPath: (namespace: string) => string;
 } & Omit<
   ApplicationPageProps,
@@ -20,6 +21,7 @@ type GlobalPipelineCoreLoaderProps = {
 type ApplicationPageRenderState = Pick<ApplicationPageProps, EmptyStateProps>;
 
 const GlobalPipelineCoreLoader: React.FC<GlobalPipelineCoreLoaderProps> = ({
+  strict = false,
   getInvalidRedirectPath,
   ...applicationPageProps
 }) => {
@@ -51,9 +53,17 @@ const GlobalPipelineCoreLoader: React.FC<GlobalPipelineCoreLoaderProps> = ({
       ),
     };
   } else {
-    // Redirect the namespace suffix into the URL
     const redirectProject = preferredProject ?? projects[0];
-    return <Navigate to={getInvalidRedirectPath(redirectProject.metadata.name)} replace />;
+    if (!strict) {
+      // Redirect the namespace suffix into the URL
+      return <Navigate to={getInvalidRedirectPath(redirectProject.metadata.name)} replace />;
+    }
+    renderStateProps = {
+      empty: true,
+      emptyStatePage: (
+        <InvalidProject namespace={namespace} getRedirectPath={getInvalidRedirectPath} />
+      ),
+    };
   }
 
   return (
@@ -61,7 +71,9 @@ const GlobalPipelineCoreLoader: React.FC<GlobalPipelineCoreLoaderProps> = ({
       {...applicationPageProps}
       {...renderStateProps}
       loaded
-      headerContent={<PipelineCoreProjectSelector getRedirectPath={getInvalidRedirectPath} />}
+      headerContent={
+        !strict && <PipelineCoreProjectSelector getRedirectPath={getInvalidRedirectPath} />
+      }
       provideChildrenPadding
     />
   );

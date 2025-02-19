@@ -23,6 +23,7 @@ export const DEFAULT_CONFIG: ClusterSettingsType = {
   },
 };
 export const DEFAULT_TOLERATION_VALUE = 'NotebooksOnly';
-export const TOLERATION_FORMAT = /^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$/;
+export const TOLERATION_FORMAT =
+  /^(?!\/)([A-Za-z0-9][-A-Za-z0-9_/.]*[A-Za-z0-9]|[A-Za-z0-9])(?<!\/)$/;
 export const TOLERATION_FORMAT_ERROR =
-  "Toleration key must consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character.";
+  "Toleration key must consist of alphanumeric characters, '-', '_', '.' or '/', and must start and end with an alphanumeric character.";

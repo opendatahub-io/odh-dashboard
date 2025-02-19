@@ -88,7 +88,7 @@ export const waitForPodReady = (
 export const deleteNotebook = (
   notebookNameContains: string,
 ): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc get notebook -A -o custom-columns=":metadata.namespace,:metadata.name" | grep ${notebookNameContains} | xargs -I {} sh -c 'oc delete notebook -n $(echo {} | cut -d " " -f1) $(echo {} | cut -d " " -f2) --ignore-not-found'`;
+  const ocCommand = `oc get notebooks.kubeflow.org -A -o custom-columns=":metadata.namespace,:metadata.name" | grep ${notebookNameContains} | xargs -I {} sh -c 'oc delete notebook.kubeflow.org -n $(echo {} | cut -d " " -f1) $(echo {} | cut -d " " -f2) --ignore-not-found'`;
   cy.log(`Executing: ${ocCommand}`);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {

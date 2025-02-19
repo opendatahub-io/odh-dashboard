@@ -193,4 +193,72 @@ describe('Connections', () => {
       });
     });
   });
+
+  it('Create an OCI connection', () => {
+    initIntercepts();
+    cy.interceptOdh('GET /api/connection-types', [
+      mockConnectionTypeConfigMap({
+        name: 'OCI',
+        fields: [
+          {
+            name: 'OCI model URI',
+            type: ConnectionTypeFieldType.URI,
+            envVar: 'URI',
+            required: true,
+            properties: {},
+          },
+          {
+            name: 'Pull secret',
+            type: ConnectionTypeFieldType.File,
+            envVar: '.dockerconfigjson',
+            properties: { extensions: ['.dockerconfigjson, .json'] },
+          },
+        ],
+      }),
+    ]);
+    cy.interceptK8s(
+      'POST',
+      {
+        model: SecretModel,
+        ns: 'test-project',
+      },
+      mockSecretK8sResource({}),
+    ).as('createConnection');
+
+    projectDetails.visitSection('test-project', 'connections');
+
+    connectionsPage.findAddConnectionButton().click();
+    cy.findByTestId('connection-name-desc-name').fill('new oci connection');
+    cy.findByTestId(['field', 'URI']).fill('oci://quay.io/myorg/coolmodel:latest');
+    cy.get('input[type="file"]').selectFile(
+      {
+        contents: Cypress.Buffer.from('{"auths":{"quay.io":{"token":"asdf"}}}}'),
+        fileName: '.dockerconfigjson',
+      },
+      { force: true, action: 'drag-drop' },
+    );
+    cy.findByTestId('modal-submit-button').click();
+
+    cy.wait('@createConnection').then((interception) => {
+      expect(interception.request.body).to.eql({
+        apiVersion: 'v1',
+        kind: 'Secret',
+        type: 'kubernetes.io/dockerconfigjson',
+        metadata: {
+          annotations: {
+            'opendatahub.io/connection-type-ref': 'OCI',
+            'openshift.io/description': '',
+            'openshift.io/display-name': 'new oci connection',
+          },
+          labels: { 'opendatahub.io/dashboard': 'true' },
+          name: 'new-oci-connection',
+          namespace: 'test-project',
+        },
+        stringData: {
+          URI: 'oci://quay.io/myorg/coolmodel:latest',
+          '.dockerconfigjson': '{"auths":{"quay.io":{"token":"asdf"}}}}',
+        },
+      });
+    });
+  });
 });
