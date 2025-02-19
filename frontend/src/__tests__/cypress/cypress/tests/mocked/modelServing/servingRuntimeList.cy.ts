@@ -2368,6 +2368,30 @@ describe('Serving Runtime List', () => {
       kserveRow.findToggleButton().click();
       kserveRow.findDescriptionListItem('Token authentication').should('not.exist');
     });
+
+    it('Check token section is always available for kserve raw', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        disableAccelerator: true,
+        disableKServeRaw: false,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'llama-caikit',
+            displayName: 'Llama Caikit',
+            url: 'http://llama-caikit.test-project.svc.cluster.local',
+            activeModelState: 'Loaded',
+            isKserveRaw: true,
+          }),
+        ],
+      });
+      projectDetails.visitSection('test-project', 'model-server');
+      const kserveRow = modelServingSection.getKServeRow('Llama Caikit');
+      kserveRow.findExpansion().should(be.collapsed);
+      kserveRow.findToggleButton().click();
+      kserveRow.findDescriptionListItem('Token authentication').should('exist');
+    });
   });
 
   describe('Dry run check', () => {
