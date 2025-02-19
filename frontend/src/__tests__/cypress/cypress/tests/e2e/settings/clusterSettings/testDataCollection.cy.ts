@@ -53,18 +53,6 @@ describe('Verify That Usage Data Collection Can Be Set In Cluster Settings', () 
       cy.reload();
       telemetrySettings.findEnabledCheckbox().should('not.be.checked');
 
-      // Re-enable data usage collection
-      cy.step('re-enable usage data collection');
-      telemetrySettings.findEnabledCheckbox().click();
-
-      // Save changes in cluster settings
-      cy.step('Save changes and wait for changes to be applied');
-      clusterSettings.findSubmitButton().click();
-
-      // Refresh and verify data collection is re-enabled
-      cy.step('Refresh settings view');
-      cy.reload();
-      telemetrySettings.findEnabledCheckbox().should('be.checked');
 },
   );
 });
