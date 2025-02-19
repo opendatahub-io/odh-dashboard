@@ -1,11 +1,37 @@
+import { Stack, StackItem, Title } from '@patternfly/react-core';
+import React from 'react';
 import { SortableData } from '~/components/table';
-import { HardwareProfileKind } from '~/k8sTypes';
+import { HardwareProfileKind, HardwareProfileVisibleIn } from '~/k8sTypes';
 import {
   ManageHardwareProfileSectionID,
   ManageHardwareProfileSectionTitlesType,
 } from '~/pages/hardwareProfiles/manage/types';
 import { IdentifierResourceType } from '~/types';
 
+const HARDWARE_PROFILE_VISIBILITY_DETAILS: Record<
+  HardwareProfileVisibleIn,
+  {
+    label: string;
+    description: string;
+    areas: string[];
+  }
+> = {
+  [HardwareProfileVisibleIn.NOTEBOOKS]: {
+    label: 'Notebooks',
+    description: 'The hardware profile is visible where notebooks are deployed.',
+    areas: ['Workbenches, Jupyter'],
+  },
+  [HardwareProfileVisibleIn.SERVING]: {
+    label: 'Model serving',
+    description: 'The hardware profile is visible in serving.',
+    areas: ['serving'],
+  },
+  [HardwareProfileVisibleIn.INSTRUCTLAB]: {
+    label: 'Instructlab',
+    description: 'The hardware profile is visible in instructlab.',
+    areas: ['instructlab'],
+  },
+};
 export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
   {
     field: 'expand',
@@ -29,6 +55,43 @@ export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
       },
     },
     width: 15,
+  },
+  {
+    field: 'visibility',
+    label: 'Visibility',
+    sortable: false,
+    info: {
+      popover: (
+        <Stack hasGutter>
+          <StackItem>
+            <Title headingLevel="h4">
+              Indicates the areas where the hardware profile is visible.
+            </Title>
+          </StackItem>
+          {Object.values(HardwareProfileVisibleIn).map((v) => (
+            <StackItem key={v}>
+              <Stack>
+                <StackItem>
+                  <Title headingLevel="h5">{HARDWARE_PROFILE_VISIBILITY_DETAILS[v].label}</Title>
+                </StackItem>
+                <StackItem>
+                  <p>{HARDWARE_PROFILE_VISIBILITY_DETAILS[v].description}</p>
+                </StackItem>
+                <StackItem>
+                  <p>
+                    <i>{HARDWARE_PROFILE_VISIBILITY_DETAILS[v].areas.join(', ')}</i>
+                  </p>
+                </StackItem>
+              </Stack>
+            </StackItem>
+          ))}
+        </Stack>
+      ),
+      popoverProps: {
+        showClose: false,
+      },
+    },
+    width: 30,
   },
   {
     field: 'last_modified',
@@ -74,6 +137,7 @@ export const initialHardwareProfileFilterData: HardwareProfileFilterDataType = {
 
 export const ManageHardwareProfileSectionTitles: ManageHardwareProfileSectionTitlesType = {
   [ManageHardwareProfileSectionID.DETAILS]: 'Details',
+  [ManageHardwareProfileSectionID.VISIBILITY]: 'Visibility',
   [ManageHardwareProfileSectionID.IDENTIFIERS]: 'Node resources',
   [ManageHardwareProfileSectionID.NODE_SELECTORS]: 'Node selectors',
   [ManageHardwareProfileSectionID.TOLERATIONS]: 'Tolerations',

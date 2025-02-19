@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { FormGroup, Stack, StackItem, ExpandableSection } from '@patternfly/react-core';
-import { HardwareProfileKind } from '~/k8sTypes';
+import { HardwareProfileKind, HardwareProfileVisibleIn } from '~/k8sTypes';
 import { useValidation, ValidationContext } from '~/utilities/useValidation';
 import { ContainerResources } from '~/types';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
@@ -13,6 +13,7 @@ type HardwareProfileFormSectionProps = {
   data: HardwareProfileConfig;
   initialHardwareProfile?: HardwareProfileKind;
   allowExistingSettings?: boolean;
+  visibleIn?: HardwareProfileVisibleIn[];
   setData: UpdateObjectAtPropAndValue<HardwareProfileConfig>;
   isHardwareProfileSupported?: (profile: HardwareProfileKind) => boolean;
 };
@@ -21,6 +22,7 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps> = ({
   data,
   initialHardwareProfile,
   allowExistingSettings = false,
+  visibleIn = [],
   setData,
   isHardwareProfileSupported = () => false,
 }) => {
@@ -83,6 +85,7 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps> = ({
         <StackItem>
           <FormGroup label="Hardware profile">
             <HardwareProfileSelect
+              visibleIn={visibleIn}
               isHardwareProfileSupported={isHardwareProfileSupported}
               hardwareProfileConfig={data}
               initialHardwareProfile={initialHardwareProfile}

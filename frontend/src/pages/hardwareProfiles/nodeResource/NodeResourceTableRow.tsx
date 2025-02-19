@@ -45,7 +45,7 @@ const NodeResourceTableRow: React.FC<NodeResourceTableRowProps> = ({
     <Td dataLabel="Resource type">{identifier.resourceType ?? 'Other'}</Td>
     <Td dataLabel="Default">{identifier.defaultCount}</Td>
     <Td dataLabel="Minimum allowed">{identifier.minCount}</Td>
-    <Td dataLabel="Maximum allowed">{identifier.maxCount}</Td>
+    <Td dataLabel="Maximum allowed">{identifier.maxCount ?? 'unrestricted'}</Td>
     {showActions && (
       <Td isActionCell modifier="nowrap" style={{ textAlign: 'right' }}>
         <ActionList isIconList>

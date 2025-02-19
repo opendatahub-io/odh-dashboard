@@ -6,6 +6,11 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
+  Radio,
+  Split,
+  SplitItem,
+  Stack,
+  StackItem,
 } from '@patternfly/react-core';
 import { Identifier, IdentifierResourceType } from '~/types';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
@@ -118,16 +123,47 @@ const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
         size={identifier.minCount}
         setSize={(value) => setIdentifier('minCount', value)}
         isValid={validateMinCount(identifier, unitOptions)}
-        errorMessage="Minimum allowed value cannot exceed the maximum allowed value."
+        errorMessage="Minimum allowed value cannot exceed the maximum allowed value (if specified)."
       />
 
-      <CountFormField
-        label="Maximum allowed"
-        fieldId="maximum-allowed"
-        type={identifier.resourceType}
-        size={identifier.maxCount}
-        setSize={(value) => setIdentifier('maxCount', value)}
-      />
+      <FormGroup label="Maximum allowed" fieldId="maximum-allowed">
+        <Stack hasGutter>
+          <StackItem>
+            <Split hasGutter>
+              <SplitItem>
+                <Radio
+                  id="limited-radio"
+                  name="max-limit"
+                  label="Set maximum limit"
+                  isChecked={identifier.maxCount !== undefined}
+                  onChange={() => setIdentifier('maxCount', identifier.minCount || 1)}
+                  data-testid="node-resource-max-limited"
+                />
+              </SplitItem>
+              <SplitItem>
+                <Radio
+                  id="unlimited-radio"
+                  name="max-limit"
+                  label="No maximum limit"
+                  isChecked={!identifier.maxCount}
+                  onChange={() => setIdentifier('maxCount', undefined)}
+                  data-testid="node-resource-max-unlimited"
+                />
+              </SplitItem>
+            </Split>
+          </StackItem>
+          <StackItem>
+            {identifier.maxCount !== undefined && (
+              <CountFormField
+                fieldId="maximum-allowed-value"
+                type={identifier.resourceType}
+                size={identifier.maxCount}
+                setSize={(value) => setIdentifier('maxCount', value)}
+              />
+            )}
+          </StackItem>
+        </Stack>
+      </FormGroup>
     </Form>
   );
 };

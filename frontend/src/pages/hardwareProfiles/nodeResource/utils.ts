@@ -6,9 +6,11 @@ export const validateDefaultCount = (identifier: Identifier, unitOptions?: UnitO
     ? isLarger(String(identifier.defaultCount), String(identifier.minCount), unitOptions, true) &&
       isLarger(String(identifier.maxCount), String(identifier.defaultCount), unitOptions, true)
     : identifier.defaultCount >= identifier.minCount &&
-      identifier.maxCount >= identifier.defaultCount;
+      (identifier.maxCount ? identifier.maxCount >= identifier.defaultCount : true);
 
 export const validateMinCount = (identifier: Identifier, unitOptions?: UnitOption[]): boolean =>
   unitOptions
     ? isLarger(String(identifier.maxCount), String(identifier.minCount), unitOptions, true)
-    : identifier.maxCount >= identifier.minCount;
+    : identifier.maxCount
+    ? identifier.maxCount >= identifier.minCount
+    : true;

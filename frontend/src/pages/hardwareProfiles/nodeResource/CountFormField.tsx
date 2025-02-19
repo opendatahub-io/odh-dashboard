@@ -6,7 +6,7 @@ import NumberInputWrapper from '~/components/NumberInputWrapper';
 import { IdentifierResourceType } from '~/types';
 
 type CountFormFieldProps = {
-  label: string;
+  label?: string;
   fieldId: string;
   size: number | string;
   setSize: (value: number | string) => void;

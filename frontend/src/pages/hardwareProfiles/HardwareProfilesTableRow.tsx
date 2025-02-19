@@ -2,6 +2,8 @@ import * as React from 'react';
 import {
   Button,
   Divider,
+  Label,
+  LabelGroup,
   Icon,
   List,
   ListItem,
@@ -30,22 +32,45 @@ import {
 } from '~/pages/hardwareProfiles/utils';
 import { HardwareProfileModel, updateHardwareProfile } from '~/api';
 import { useDashboardNamespace } from '~/redux/selectors';
+import MigrationTooltip from './migration/MigrationTooltip';
+import { MigrationAction } from './migration/types';
 import { DEFAULT_HARDWARE_PROFILE_SPEC } from './const';
 
 type HardwareProfilesTableRowProps = {
   rowIndex: number;
   hardwareProfile: HardwareProfileKind;
+  migrationAction?: MigrationAction;
   handleDelete: (cr: HardwareProfileKind) => void;
 };
 
 const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
   hardwareProfile,
   rowIndex,
+  migrationAction,
   handleDelete,
 }) => {
   const modifiedDate = hardwareProfile.metadata.annotations?.['opendatahub.io/modified-date'];
   const [isExpanded, setExpanded] = React.useState(false);
   const navigate = useNavigate();
+
+  const visibleIn: string[] = React.useMemo(() => {
+    if (hardwareProfile.metadata.annotations?.['opendatahub.io/visible-in']) {
+      try {
+        return JSON.parse(hardwareProfile.metadata.annotations['opendatahub.io/visible-in']);
+      } catch (error) {
+        return [];
+      }
+    }
+    return [];
+  }, [hardwareProfile.metadata.annotations]);
+
+  const title = migrationAction ? (
+    <MigrationTooltip migrationAction={migrationAction} wrap={false}>
+      <Truncate content={hardwareProfile.spec.displayName} />
+    </MigrationTooltip>
+  ) : (
+    <Truncate content={hardwareProfile.spec.displayName} />
+  );
   const { dashboardNamespace } = useDashboardNamespace();
   const hardwareProfileWarnings = validateProfileWarning(hardwareProfile);
 
@@ -62,9 +87,9 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
         />
         <Td dataLabel="Name">
           <TableRowTitleDescription
-            title={<Truncate content={hardwareProfile.spec.displayName} />}
+            title={title}
             description={hardwareProfile.spec.description}
-            resource={hardwareProfile}
+            resource={migrationAction ? undefined : hardwareProfile}
             truncateDescriptionLines={2}
             wrapResourceTitle={false}
             titleIcon={
@@ -121,7 +146,26 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
           />
         </Td>
         <Td dataLabel="Enabled">
-          <HardwareProfileEnableToggle hardwareProfile={hardwareProfile} />
+          {migrationAction ? (
+            hardwareProfile.spec.enabled ? (
+              'Enabled'
+            ) : (
+              'Disabled'
+            )
+          ) : (
+            <HardwareProfileEnableToggle hardwareProfile={hardwareProfile} />
+          )}
+        </Td>
+        <Td dataLabel="Visible in">
+          {visibleIn.length === 0 ? (
+            <i>All</i>
+          ) : (
+            <LabelGroup>
+              {visibleIn.map((v) => (
+                <Label key={v}>{v}</Label>
+              ))}
+            </LabelGroup>
+          )}
         </Td>
         <Td dataLabel="Last modified">
           {modifiedDate && !Number.isNaN(new Date(modifiedDate).getTime()) ? (

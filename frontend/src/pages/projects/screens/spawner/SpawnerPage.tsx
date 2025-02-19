@@ -16,7 +16,7 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ImageStreamAndVersion } from '~/types';
 import GenericSidebar from '~/components/GenericSidebar';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { HardwareProfileKind, NotebookKind } from '~/k8sTypes';
+import { HardwareProfileKind, HardwareProfileVisibleIn, NotebookKind } from '~/k8sTypes';
 import useNotebookImageData from '~/pages/projects/screens/detail/notebooks/useNotebookImageData';
 import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
 import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
@@ -293,6 +293,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   allowExistingSettings={!!existingNotebook && !initialHardwareProfile}
                   setData={setHardwareProfileFormData}
                   isHardwareProfileSupported={isHardwareProfileSupported}
+                  visibleIn={[HardwareProfileVisibleIn.NOTEBOOKS]}
                 />
               )}
             </FormSection>

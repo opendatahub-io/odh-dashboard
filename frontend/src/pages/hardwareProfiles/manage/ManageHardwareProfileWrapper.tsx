@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { useParams } from 'react-router';
+import { useParams, useNavigate } from 'react-router-dom';
+
 import {
   Bullseye,
   Button,
@@ -9,14 +10,15 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { useNavigate } from 'react-router-dom';
 import { useDashboardNamespace } from '~/redux/selectors';
 import ManageHardwareProfile from '~/pages/hardwareProfiles/manage/ManageHardwareProfile';
 import useHardwareProfile from '~/pages/hardwareProfiles/useHardwareProfile';
 import { HardwareProfileKind } from '~/k8sTypes';
+import useMigratedHardwareProfiles from '~/pages/hardwareProfiles/migration/useMigratedHardwareProfiles';
+import { MigrationAction } from '~/pages/hardwareProfiles/migration/types';
 
 type ManageHardwareProfileWrapperProps = {
-  children: (data: HardwareProfileKind) => React.ReactNode;
+  children: (data: HardwareProfileKind, migrationAction?: MigrationAction) => React.ReactNode;
 };
 
 const ManageHardwareProfileWrapper: React.FC<ManageHardwareProfileWrapperProps> = ({
@@ -26,8 +28,16 @@ const ManageHardwareProfileWrapper: React.FC<ManageHardwareProfileWrapperProps> 
   const { hardwareProfileName } = useParams();
   const { dashboardNamespace } = useDashboardNamespace();
   const [data, , error] = useHardwareProfile(dashboardNamespace, hardwareProfileName);
+  const { data: migratedHardwareProfiles, getMigrationAction } = useMigratedHardwareProfiles();
 
-  if (error) {
+  const migratedHardwareProfile = migratedHardwareProfiles.find(
+    (profile) => profile.metadata.name === hardwareProfileName,
+  );
+  const migrationAction = migratedHardwareProfile
+    ? getMigrationAction(migratedHardwareProfile.metadata.name)
+    : undefined;
+
+  if (error && !migratedHardwareProfile) {
     return (
       <Bullseye>
         <EmptyState
@@ -51,7 +61,10 @@ const ManageHardwareProfileWrapper: React.FC<ManageHardwareProfileWrapperProps> 
     );
   }
 
-  if (!data) {
+  // Use migrated profile if regular profile not found
+  const profileData = data || migratedHardwareProfile;
+
+  if (!profileData) {
     return (
       <Bullseye>
         <Spinner />
@@ -59,17 +72,21 @@ const ManageHardwareProfileWrapper: React.FC<ManageHardwareProfileWrapperProps> 
     );
   }
 
-  return children(data);
+  return children(profileData, migrationAction);
 };
 
 export const EditHardwareProfile: React.FC = () => (
   <ManageHardwareProfileWrapper>
-    {(data) => <ManageHardwareProfile existingHardwareProfile={data} />}
+    {(data, migrationAction) => (
+      <ManageHardwareProfile existingHardwareProfile={data} migrationAction={migrationAction} />
+    )}
   </ManageHardwareProfileWrapper>
 );
 
 export const DuplicateHardwareProfile: React.FC = () => (
   <ManageHardwareProfileWrapper>
-    {(data) => <ManageHardwareProfile duplicatedHardwareProfile={data} />}
+    {(data, migrationAction) => (
+      <ManageHardwareProfile duplicatedHardwareProfile={data} migrationAction={migrationAction} />
+    )}
   </ManageHardwareProfileWrapper>
 );
