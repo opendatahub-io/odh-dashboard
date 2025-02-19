@@ -10,6 +10,8 @@ import { ModelCustomizationFormData } from '~/concepts/pipelines/content/modelCu
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import FineTunePageFooter from '~/pages/pipelines/global/modelCustomization/FineTunePageFooter';
 import BaseModelSection from '~/pages/pipelines/global/modelCustomization/baseModelSection/BaseModelSection';
+import TeacherModelSection from '~/pages/pipelines/global/modelCustomization/teacherJudgeSection/TeacherModelSection';
+import JudgeModelSection from '~/pages/pipelines/global/modelCustomization/teacherJudgeSection/JudgeModelSection';
 
 type FineTunePageProps = {
   isInvalid: boolean;
@@ -41,6 +43,11 @@ const FineTunePage: React.FC<FineTunePageProps> = ({ isInvalid, onSuccess, data,
         data={data.baseModel}
         setData={(baseModelData) => setData('baseModel', baseModelData)}
       />
+      <TeacherModelSection
+        data={data.teacher}
+        setData={(teacherData) => setData('teacher', teacherData)}
+      />
+      <JudgeModelSection data={data.judge} setData={(judgeData) => setData('judge', judgeData)} />
       <FormSection>
         <FineTunePageFooter isInvalid={isInvalid} onSuccess={onSuccess} data={data} />
       </FormSection>

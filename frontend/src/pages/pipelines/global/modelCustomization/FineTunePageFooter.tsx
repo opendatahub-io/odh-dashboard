@@ -13,6 +13,7 @@ import {
   NotificationWatcherResponse,
 } from '~/concepts/notificationWatcher/NotificationWatcherContext';
 import { RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
+import { createTeacherJudgeSecrets } from '~/pages/pipelines/global/modelCustomization/utils';
 
 type FineTunePageFooterProps = {
   isInvalid: boolean;
@@ -20,7 +21,6 @@ type FineTunePageFooterProps = {
   data: ModelCustomizationFormData;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- TODO remove this line when start using `data`
 const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({ isInvalid, onSuccess, data }) => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const { api } = usePipelinesAPI();
@@ -32,6 +32,12 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({ isInvalid, onSu
 
   // TODO: translate data to `RunFormData`
   const [runFormData] = useRunFormData(null, {});
+
+  const onSubmit = () =>
+    createTeacherJudgeSecrets(namespace, data.teacher, data.judge).then(
+      // Set teacher and judge secret names to run form parameters after they are decided
+      () => undefined,
+    );
 
   return (
     <Stack hasGutter>

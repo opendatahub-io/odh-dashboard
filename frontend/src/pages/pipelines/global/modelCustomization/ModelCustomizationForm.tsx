@@ -18,6 +18,7 @@ import {
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { modelCustomizationRootPath } from '~/routes';
 import { useIlabPipeline } from '~/concepts/pipelines/content/modelCustomizationForm/useIlabPipeline';
+import { ModelCustomizationEndpointType } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
 import FineTunePage from './FineTunePage';
 import {
   BASE_MODEL_INPUT_STORAGE_LOCATION_URI_KEY,
@@ -39,6 +40,18 @@ const ModelCustomizationForm: React.FC = () => {
       name: 'my-granite-model',
       version: 'myModel-v0.0.2',
       inputStorageLocationUri: searchParams.get(BASE_MODEL_INPUT_STORAGE_LOCATION_URI_KEY) ?? '',
+    },
+    teacher: {
+      endpointType: ModelCustomizationEndpointType.PUBLIC,
+      apiToken: '',
+      endpoint: '',
+      modelName: '',
+    },
+    judge: {
+      endpointType: ModelCustomizationEndpointType.PUBLIC,
+      apiToken: '',
+      endpoint: '',
+      modelName: '',
     },
   });
 

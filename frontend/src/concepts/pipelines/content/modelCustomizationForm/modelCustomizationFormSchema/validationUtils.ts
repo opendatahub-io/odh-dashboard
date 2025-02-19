@@ -22,15 +22,23 @@ export const baseModelSchema = z.object({
   inputStorageLocationUri: uriFieldSchema,
 });
 
-export const teacherJudgeModel = z.object({
-  endpointType: z.enum([
-    ModelCustomizationEndpointType.PUBLIC,
-    ModelCustomizationEndpointType.PRIVATE,
-  ]),
+const teacherJudgeBaseSchema = z.object({
   endpoint: uriFieldSchema,
-  username: z.string().min(1, 'Username is required'),
-  password: z.string().min(1, 'Password is required'),
+  modelName: z.string().min(1, 'Model name is required'),
 });
+const teacherJudgePublicSchema = teacherJudgeBaseSchema.extend({
+  endpointType: z.literal(ModelCustomizationEndpointType.PUBLIC),
+  apiToken: z.string(),
+});
+const teacherJudgePrivateSchema = teacherJudgeBaseSchema.extend({
+  endpointType: z.literal(ModelCustomizationEndpointType.PRIVATE),
+  apiToken: z.string().min(1, 'Token is required'),
+});
+
+export const teacherJudgeModel = z.discriminatedUnion('endpointType', [
+  teacherJudgePrivateSchema,
+  teacherJudgePublicSchema,
+]);
 
 export const numericFieldSchema = z
   .object({
@@ -113,8 +121,11 @@ export const fineTunedModelDetailsSchema = z.object({
 export const modelCustomizationFormSchema = z.object({
   projectName: z.object({ value: z.string().min(1, { message: 'Project is required' }) }),
   baseModel: baseModelSchema,
+  teacher: teacherJudgeModel,
+  judge: teacherJudgeModel,
 });
 
 export type ModelCustomizationFormData = z.infer<typeof modelCustomizationFormSchema>;
 
 export type BaseModelFormData = z.infer<typeof baseModelSchema>;
+export type TeacherJudgeFormData = z.infer<typeof teacherJudgeModel>;
