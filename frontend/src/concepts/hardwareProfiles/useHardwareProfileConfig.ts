@@ -1,18 +1,18 @@
 import React, { useRef } from 'react';
-import { HardwareProfileKind } from '~/k8sTypes';
+import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '~/k8sTypes';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import useHardwareProfiles from '~/pages/hardwareProfiles/useHardwareProfiles';
-import { useDashboardNamespace } from '~/redux/selectors';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import { ContainerResources, NodeSelector, Toleration } from '~/types';
 import { isCpuLimitLarger, isMemoryLimitLarger } from '~/utilities/valueUnits';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { useHardwareProfilesByFeatureVisibility } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
 import { isHardwareProfileConfigValid } from './validationUtils';
+import { getContainerResourcesFromHardwareProfile } from './utils';
 
 export type HardwareProfileConfig = {
   selectedProfile?: HardwareProfileKind;
   useExistingSettings: boolean;
-  resources: ContainerResources;
+  resources?: ContainerResources;
 };
 
 export type UseHardwareProfileConfigResult = {
@@ -56,8 +56,9 @@ const matchToHardwareProfile = (
       if (identifier.identifier === 'memory') {
         return (
           // max is larger or equal
-          isMemoryLimitLarger(requestValue.toString(), identifier.maxCount.toString(), true) &&
-          isMemoryLimitLarger(limitValue.toString(), identifier.maxCount.toString(), true) &&
+          (!identifier.maxCount ||
+            (isMemoryLimitLarger(requestValue.toString(), identifier.maxCount.toString(), true) &&
+              isMemoryLimitLarger(limitValue.toString(), identifier.maxCount.toString(), true))) &&
           // min is smaller or equal
           isMemoryLimitLarger(identifier.minCount.toString(), requestValue.toString(), true) &&
           isMemoryLimitLarger(identifier.minCount.toString(), limitValue.toString(), true)
@@ -100,17 +101,13 @@ export const useHardwareProfileConfig = (
   resources?: ContainerResources,
   tolerations?: Toleration[],
   nodeSelector?: NodeSelector,
+  visibleIn?: HardwareProfileFeatureVisibility[],
 ): UseHardwareProfileConfigResult => {
-  const { dashboardNamespace } = useDashboardNamespace();
-  const [profiles, profilesLoaded] = useHardwareProfiles(dashboardNamespace);
+  const [profiles, profilesLoaded] = useHardwareProfilesByFeatureVisibility(visibleIn);
   const initialHardwareProfile = useRef<HardwareProfileKind | undefined>(undefined);
   const [formData, setFormData, resetFormData] = useGenericObjectState<HardwareProfileConfig>({
     selectedProfile: undefined,
     useExistingSettings: false,
-    resources: {
-      requests: {},
-      limits: {},
-    },
   });
 
   const hardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
@@ -120,25 +117,37 @@ export const useHardwareProfileConfig = (
   );
 
   React.useEffect(() => {
-    if (!resources || !profilesLoaded) {
+    if (!profilesLoaded || formData.selectedProfile) {
       return;
     }
 
-    setFormData('resources', resources);
-
     let selectedProfile: HardwareProfileKind | undefined;
-    if (existingHardwareProfileName) {
-      selectedProfile = profiles.find(
-        (profile) => profile.metadata.name === existingHardwareProfileName,
-      );
-    } else {
-      selectedProfile = matchToHardwareProfile(profiles, resources, tolerations, nodeSelector);
+    if (resources && !formData.resources) {
+      setFormData('resources', resources);
+
+      if (existingHardwareProfileName) {
+        selectedProfile = profiles.find(
+          (profile) => profile.metadata.name === existingHardwareProfileName,
+        );
+      } else {
+        selectedProfile = matchToHardwareProfile(profiles, resources, tolerations, nodeSelector);
+      }
+
+      initialHardwareProfile.current = selectedProfile;
+      setFormData('useExistingSettings', !selectedProfile);
     }
 
-    initialHardwareProfile.current = selectedProfile;
+    // if no match or no resources provided, select the first enabled profile
+    if (!selectedProfile) {
+      selectedProfile = profiles.find((profile) => profile.spec.enabled);
+      if (selectedProfile && !formData.resources) {
+        setFormData('resources', getContainerResourcesFromHardwareProfile(selectedProfile));
+      }
+    }
 
-    setFormData('selectedProfile', selectedProfile);
-    setFormData('useExistingSettings', !selectedProfile);
+    if (selectedProfile) {
+      setFormData('selectedProfile', selectedProfile);
+    }
   }, [
     existingHardwareProfileName,
     profiles,
@@ -147,6 +156,8 @@ export const useHardwareProfileConfig = (
     resources,
     tolerations,
     nodeSelector,
+    formData.resources,
+    formData.selectedProfile,
   ]);
 
   return {

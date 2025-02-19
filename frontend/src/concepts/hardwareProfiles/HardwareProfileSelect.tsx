@@ -1,42 +1,103 @@
 import {
-  Alert,
-  AlertVariant,
   Flex,
   FlexItem,
+  HelperTextItem,
+  HelperText,
   Label,
   Split,
   SplitItem,
 } from '@patternfly/react-core';
 import * as React from 'react';
 import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
-import { HardwareProfileKind } from '~/k8sTypes';
-import useHardwareProfiles from '~/pages/hardwareProfiles/useHardwareProfiles';
-import { useDashboardNamespace } from '~/redux/selectors';
+import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '~/k8sTypes';
+import { useHardwareProfilesByFeatureVisibility } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
+import { ValidationContext } from '~/utilities/useValidation';
+import { IdentifierResourceType } from '~/types';
+import { splitValueUnit, CPU_UNITS, MEMORY_UNITS_FOR_PARSING } from '~/utilities/valueUnits';
 import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
 import { HardwareProfileConfig } from './useHardwareProfileConfig';
+import { NotebookPodSpecOptions } from './useNotebookPodSpecOptionsState';
 
 type HardwareProfileSelectProps = {
-  hardwareProfileConfig: HardwareProfileConfig;
   initialHardwareProfile?: HardwareProfileKind;
   allowExistingSettings: boolean;
+  podSpecOptions: NotebookPodSpecOptions;
+  hardwareProfileConfig: HardwareProfileConfig;
   isHardwareProfileSupported: (profile: HardwareProfileKind) => boolean;
   onChange: (profile: HardwareProfileKind | undefined) => void;
+  visibleIn?: HardwareProfileFeatureVisibility[];
 };
 
 const EXISTING_SETTINGS_KEY = '.existing';
 
 const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
-  hardwareProfileConfig,
   initialHardwareProfile,
   allowExistingSettings = false,
+  podSpecOptions,
+  hardwareProfileConfig,
   isHardwareProfileSupported,
   onChange,
+  visibleIn = [],
 }) => {
-  const { dashboardNamespace } = useDashboardNamespace();
-  const [hardwareProfiles, loaded, error] = useHardwareProfiles(dashboardNamespace);
+  const [hardwareProfiles, loaded, error] = useHardwareProfilesByFeatureVisibility(visibleIn);
+
+  const { getAllValidationIssues } = React.useContext(ValidationContext);
+  const validationIssues = getAllValidationIssues(['']);
 
   const options = React.useMemo(() => {
-    const enabledProfiles = hardwareProfiles.filter((hp) => hp.spec.enabled);
+    const enabledProfiles = hardwareProfiles
+      .filter((hp) => hp.spec.enabled)
+      .toSorted((a, b) => {
+        const getProfileScore = (profile: HardwareProfileKind) => {
+          const { identifiers } = profile.spec;
+          if (!identifiers?.length) {
+            return 0;
+          }
+
+          // Check if profile has any unlimited resources (no maxValue)
+          const hasUnlimitedResources = identifiers.some((identifier) => !identifier.maxCount);
+          // Profiles with unlimited resources should sort towards bottom
+          if (hasUnlimitedResources) {
+            return Number.MAX_SAFE_INTEGER;
+          }
+
+          let score = 0;
+
+          // Add up normalized scores for each identifier
+          identifiers.forEach((identifier) => {
+            const maxValue = identifier.maxCount;
+            if (!maxValue) {
+              return;
+            }
+
+            if (identifier.resourceType === IdentifierResourceType.CPU) {
+              // Convert CPU to smallest unit for comparison
+              const [value, unit] = splitValueUnit(maxValue.toString(), CPU_UNITS);
+              score += value * unit.weight;
+            } else if (identifier.resourceType === IdentifierResourceType.MEMORY) {
+              // Convert memory to smallest unit for comparison
+              const [value, unit] = splitValueUnit(maxValue.toString(), MEMORY_UNITS_FOR_PARSING);
+              score += value * unit.weight;
+            } else {
+              score += Number(maxValue);
+            }
+          });
+
+          return score;
+        };
+        // First compare by whether they have extra resources
+        const aHasExtra = (a.spec.identifiers ?? []).length > 2;
+        const bHasExtra = (b.spec.identifiers ?? []).length > 2;
+
+        // If one has extra resources and the other doesn't, sort the extra resources one later
+        if (aHasExtra !== bHasExtra) {
+          return aHasExtra ? 1 : -1;
+        }
+
+        // If they're the same (both have or both don't have extra resources),
+        // then sort by their score
+        return getProfileScore(a) - getProfileScore(b);
+      });
 
     // allow continued use of already selected profile if it is disabled
     if (initialHardwareProfile && !initialHardwareProfile.spec.enabled) {
@@ -100,26 +161,36 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
             placeholder={
               options.length > 0
                 ? 'Select hardware profile...'
+                : error
+                ? 'Error loading hardware profiles'
                 : 'No enabled or valid hardware profiles are available. Contact your administrator.'
             }
             isFullWidth
             isSkeleton={!loaded && !error}
           />
         </FlexItem>
-        {hardwareProfileConfig.selectedProfile && (
-          <FlexItem>
-            <HardwareProfileDetailsPopover hardwareProfileConfig={hardwareProfileConfig} />
-          </FlexItem>
-        )}
+        <FlexItem>
+          {options.length > 0 && (
+            <HardwareProfileDetailsPopover
+              hardwareProfile={hardwareProfileConfig.selectedProfile}
+              tolerations={podSpecOptions.tolerations}
+              nodeSelector={podSpecOptions.nodeSelector}
+              resources={podSpecOptions.resources}
+            />
+          )}
+        </FlexItem>
       </Flex>
-      {error && (
-        <Alert
-          variant={AlertVariant.danger}
-          isInline
-          isPlain
-          title="Error loading hardware profiles"
-        />
-      )}
+      {error ? (
+        <HelperText isLiveRegion>
+          <HelperTextItem variant="error">Error loading hardware profiles</HelperTextItem>
+        </HelperText>
+      ) : loaded && validationIssues.length > 0 ? (
+        validationIssues.map((issue) => (
+          <HelperText isLiveRegion key={issue.message}>
+            <HelperTextItem variant="error">{issue.message}</HelperTextItem>
+          </HelperText>
+        ))
+      ) : null}
     </>
   );
 };

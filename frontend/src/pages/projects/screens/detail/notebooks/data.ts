@@ -31,6 +31,12 @@ export const columns: SortableData<NotebookState>[] = [
     sortable: false,
   },
   {
+    field: 'hardwareProfile',
+    label: 'Hardware profile',
+    width: 15,
+    sortable: false,
+  },
+  {
     field: 'status',
     label: 'Status',
     sortable: (a, b) => getNotebookStatusPriority(a) - getNotebookStatusPriority(b),

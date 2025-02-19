@@ -66,7 +66,6 @@ spec:
                       - displayName
                       - identifier
                       - minCount
-                      - maxCount
                       - defaultCount
                     properties:
                       displayName:
@@ -85,9 +84,9 @@ spec:
                         x-kubernetes-int-or-string: true
                         description: 'The default count can be an integer or a string.'
                       resourceType:
-                        description: 'The type of identifier. could be "CPU" or "Memory". Leave it undefined for the other types.'
+                        description: 'The type of identifier. could be "CPU", "Memory", or "Accelerator". Leave it undefined for the other types.'
                         type: string
-                        enum: ["CPU", "Memory"]
+                        enum: ["CPU", "Memory", "Accelerator"]
                 nodeSelector:
                   type: object
                   description: 'The node selector available.'

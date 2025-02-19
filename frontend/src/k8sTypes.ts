@@ -1247,6 +1247,7 @@ export type DashboardConfigKind = K8sResourceCommon & {
 export type AcceleratorProfileKind = K8sResourceCommon & {
   metadata: {
     name: string;
+    namespace: string;
     annotations?: Partial<{
       'opendatahub.io/modified-date': string;
     }>;
@@ -1260,10 +1261,20 @@ export type AcceleratorProfileKind = K8sResourceCommon & {
   };
 };
 
+export enum HardwareProfileFeatureVisibility {
+  WORKBENCH = 'workbench',
+  MODEL_SERVING = 'model-serving',
+  PIPELINES = 'pipelines',
+}
+
 export type HardwareProfileKind = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;
+    annotations?: Partial<{
+      // JSON stringified HardwareProfileFeatureVisibility[]
+      'opendatahub.io/dashboard-feature-visibility': string;
+    }>;
   };
   spec: {
     displayName: string;

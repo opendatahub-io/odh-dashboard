@@ -8,10 +8,12 @@ import { validateProfileWarning } from './utils';
 
 type HardwareProfileEnableToggleProps = {
   hardwareProfile: HardwareProfileKind;
+  isDisabled?: boolean;
 };
 
 const HardwareProfileEnableToggle: React.FC<HardwareProfileEnableToggleProps> = ({
   hardwareProfile,
+  isDisabled = false,
 }) => {
   const hardwareProfileWarnings = validateProfileWarning(hardwareProfile);
   const { enabled } = hardwareProfile.spec;
@@ -45,7 +47,7 @@ const HardwareProfileEnableToggle: React.FC<HardwareProfileEnableToggleProps> = 
       data-testid="enable-switch"
       id={`${hardwareProfile.metadata.name}-enable-switch`}
       isChecked={enabled && !warning}
-      isDisabled={warning || isLoading}
+      isDisabled={warning || isLoading || isDisabled}
       onChange={(_e, checked) => handleChange(checked)}
     />
   );
