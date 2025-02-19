@@ -66,7 +66,5 @@ describe('Verify That Usage Data Collection Can Be Set In Cluster Settings', () 
       cy.reload();
       telemetrySettings.findEnabledCheckbox().should('be.checked');
     },
-
-},
   );
 });
