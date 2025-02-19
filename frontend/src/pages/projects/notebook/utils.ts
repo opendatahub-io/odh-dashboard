@@ -1,8 +1,7 @@
 import { NotebookKind } from '~/k8sTypes';
-import { NotebookSize } from '~/types';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
-import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
+import { PodSpecOptionsState } from '~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 
 export const hasStopAnnotation = (notebook: NotebookKind): boolean =>
   !!(
@@ -50,21 +49,18 @@ export const getNotebookPVCMountPathMap = (
 export const fireNotebookTrackingEvent = (
   action: 'started' | 'stopped',
   notebook: NotebookKind,
-  size: NotebookSize | null,
-  acceleratorProfile: AcceleratorProfileState,
+  podSpecOptionsState: PodSpecOptionsState,
 ): void => {
   fireFormTrackingEvent(`Workbench ${action === 'started' ? 'Started' : 'Stopped'}`, {
     outcome: TrackingOutcome.submit,
-    acceleratorCount: acceleratorProfile.unknownProfileDetected
-      ? undefined
-      : acceleratorProfile.count,
-    accelerator: acceleratorProfile.acceleratorProfile
-      ? `${acceleratorProfile.acceleratorProfile.spec.displayName} (${acceleratorProfile.acceleratorProfile.metadata.name}): ${acceleratorProfile.acceleratorProfile.spec.identifier}`
-      : acceleratorProfile.unknownProfileDetected
-      ? 'Unknown'
-      : 'None',
-    lastSelectedSize:
-      size?.name || notebook.metadata.annotations?.['notebooks.opendatahub.io/last-size-selection'],
+    podSpecOptions: JSON.stringify({
+      notebookSize: podSpecOptionsState.notebooksSize.selectedSize,
+      acceleratorProfile: podSpecOptionsState.acceleratorProfile.formData.profile?.metadata.name,
+      hardwareProfile: podSpecOptionsState.hardwareProfile.formData.selectedProfile?.metadata.name,
+      resources: podSpecOptionsState.podSpecOptions.resources,
+      tolerations: podSpecOptionsState.podSpecOptions.tolerations,
+      nodeSelector: podSpecOptionsState.podSpecOptions.nodeSelector,
+    }),
     lastSelectedImage:
       notebook.metadata.annotations?.['notebooks.opendatahub.io/last-image-selection'],
     projectName: notebook.metadata.namespace,

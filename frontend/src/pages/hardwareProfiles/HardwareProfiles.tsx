@@ -9,6 +9,8 @@ import {
   Title,
   EmptyStateActions,
   EmptyStateFooter,
+  Alert,
+  Stack,
 } from '@patternfly/react-core';
 import { BanIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
@@ -18,19 +20,21 @@ import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import HardwareProfilesTable from '~/pages/hardwareProfiles/HardwareProfilesTable';
 import { useAccessAllowed, verbModelAccess } from '~/concepts/userSSAR';
 import { HardwareProfileModel } from '~/api';
-import useHardwareProfiles from './useHardwareProfiles';
+import { generateWarningForHardwareProfiles } from '~/pages/hardwareProfiles/utils';
+import { useWatchHardwareProfiles } from '~/utilities/useWatchHardwareProfiles';
 
 const description = `Manage hardware profile settings for users in your organization.`;
 
 const HardwareProfiles: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
-  const [hardwareProfiles, loaded, loadError, refresh] = useHardwareProfiles(dashboardNamespace);
+  const [hardwareProfiles, loaded, loadError] = useWatchHardwareProfiles(dashboardNamespace);
   const navigate = useNavigate();
   const [allowedToCreate, loadedAllowed] = useAccessAllowed(
     verbModelAccess('create', HardwareProfileModel),
   );
 
   const isEmpty = hardwareProfiles.length === 0;
+  const warningMessages = generateWarningForHardwareProfiles(hardwareProfiles);
 
   const noHardwareProfilePageSection = (
     <PageSection isFilled>
@@ -86,10 +90,19 @@ const HardwareProfiles: React.FC = () => {
       emptyStatePage={noHardwareProfilePageSection}
       provideChildrenPadding
     >
-      <HardwareProfilesTable
-        hardwareProfiles={hardwareProfiles}
-        refreshHardwareProfiles={refresh}
-      />
+      <Stack hasGutter>
+        {warningMessages && (
+          <Alert
+            isInline
+            variant="warning"
+            title={warningMessages.title}
+            data-testid="hardware-profiles-error-alert"
+          >
+            <p>{warningMessages.message}</p>
+          </Alert>
+        )}
+        <HardwareProfilesTable hardwareProfiles={hardwareProfiles} />
+      </Stack>
     </ApplicationsPage>
   );
 };

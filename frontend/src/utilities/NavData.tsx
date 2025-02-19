@@ -1,6 +1,8 @@
+import { Icon } from '@patternfly/react-core';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import * as React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { useUser } from '~/redux/selectors';
+import { useDashboardNamespace, useUser } from '~/redux/selectors';
 import {
   artifactsRootPath,
   executionsRootPath,
@@ -8,9 +10,15 @@ import {
   pipelineRunsRootPath,
   pipelinesRootPath,
 } from '~/routes';
+import {
+  generateWarningForHardwareProfiles,
+  HardwareProfileBannerWarningTitles,
+} from '~/pages/hardwareProfiles/utils';
 import { HardwareProfileModel } from '~/api';
 import { AccessReviewResourceAttributes } from '~/k8sTypes';
 import { useAccessAllowed, verbModelAccess } from '~/concepts/userSSAR';
+import { NavWithIcon } from './NavWithIcon';
+import { useWatchHardwareProfiles } from './useWatchHardwareProfiles';
 
 type NavDataCommon = {
   id: string;
@@ -25,6 +33,7 @@ export type NavDataGroup = NavDataCommon & {
   group: {
     id: string;
     title: string;
+    icon?: React.ReactNode;
   };
   children: NavDataHref[];
 };
@@ -247,25 +256,49 @@ const useAcceleratorProfilesNav = (): NavDataHref[] =>
     },
   ]);
 
-const useHardwareProfilesNav = (): NavDataHref[] =>
-  useAreaCheck<NavDataHref>(
-    SupportedArea.HARDWARE_PROFILES,
-    [
-      {
-        id: 'settings-hardware-profiles',
-        label: 'Hardware profiles',
-        href: '/hardwareProfiles',
-      },
-    ],
-    verbModelAccess('list', HardwareProfileModel),
-  );
+const useHardwareProfilesNav = (): {
+  isWarning: boolean;
+  hardwareProfileNavItems: NavDataHref[];
+} => {
+  const { dashboardNamespace } = useDashboardNamespace();
+  const [hardwareProfiles] = useWatchHardwareProfiles(dashboardNamespace);
+  const warning = generateWarningForHardwareProfiles(hardwareProfiles);
+  const isWarning = !!warning && warning.title === HardwareProfileBannerWarningTitles.ALL_INVALID;
+  return {
+    isWarning,
+    hardwareProfileNavItems: useAreaCheck<NavDataHref>(
+      SupportedArea.HARDWARE_PROFILES,
+      [
+        {
+          id: 'settings-hardware-profiles',
+          label: isWarning ? (
+            <NavWithIcon
+              title="Hardware profiles"
+              icon={
+                <Icon status="warning" isInline>
+                  <ExclamationTriangleIcon />
+                </Icon>
+              }
+            />
+          ) : (
+            'Hardware profiles'
+          ),
+          href: '/hardwareProfiles',
+        },
+      ],
+      verbModelAccess('list', HardwareProfileModel),
+    ),
+  };
+};
 
 const useSettingsNav = (): NavDataGroup[] => {
+  const { isWarning, hardwareProfileNavItems } = useHardwareProfilesNav();
+
   const settingsNavs: NavDataHref[] = [
     ...useCustomNotebooksNav(),
     ...useClusterSettingsNav(),
     ...useAcceleratorProfilesNav(),
-    ...useHardwareProfilesNav(),
+    ...hardwareProfileNavItems,
     ...useCustomRuntimesNav(),
     ...useConnectionTypesNav(),
     ...useStorageClassesNav(),
@@ -280,7 +313,15 @@ const useSettingsNav = (): NavDataGroup[] => {
   return [
     {
       id: 'settings',
-      group: { id: 'settings', title: 'Settings' },
+      group: {
+        id: 'settings',
+        title: 'Settings',
+        icon: isWarning ? (
+          <Icon status="warning" isInline>
+            <ExclamationTriangleIcon />
+          </Icon>
+        ) : undefined,
+      },
       children: settingsNavs,
     },
   ];

@@ -2,13 +2,13 @@ import React from 'react';
 import { Td, Tr } from '@patternfly/react-table';
 import { ActionList, ActionListItem, Button, Truncate } from '@patternfly/react-core';
 import { MinusCircleIcon, PencilAltIcon } from '@patternfly/react-icons';
-import { NodeSelector } from '~/types';
+import { NodeSelectorRow } from './const';
 
 type NodeSelectorTableRowProps = {
-  nodeSelector: NodeSelector;
+  nodeSelector: NodeSelectorRow;
   showActions: boolean;
-  onEdit: (nodeSelector: NodeSelector) => void;
-  onDelete: (nodeSelector: NodeSelector) => void;
+  onEdit: (nodeSelector: NodeSelectorRow) => void;
+  onDelete: (nodeSelector: NodeSelectorRow) => void;
 };
 
 const NodeSelectorTableRow: React.FC<NodeSelectorTableRowProps> = ({

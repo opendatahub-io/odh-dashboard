@@ -3,17 +3,24 @@ import { TableBase } from '~/components/table';
 import { NodeSelector } from '~/types';
 import NodeSelectorTableRow from '~/pages/hardwareProfiles/nodeSelector/NodeSelectorTableRow';
 import ManageNodeSelectorModal from '~/pages/hardwareProfiles/nodeSelector/ManageNodeSelectorModal';
-import { nodeSelectorColumns } from './const';
+import { nodeSelectorColumns, NodeSelectorRow } from './const';
 
 type NodeSelectorTableProps = {
-  nodeSelectors: NodeSelector[];
-  onUpdate?: (selectors: NodeSelector[]) => void;
+  nodeSelector: NodeSelector;
+  onUpdate?: (selectors: NodeSelector) => void;
 };
 
-const NodeSelectorTable: React.FC<NodeSelectorTableProps> = ({ nodeSelectors, onUpdate }) => {
+const NodeSelectorTable: React.FC<NodeSelectorTableProps> = ({ nodeSelector, onUpdate }) => {
   const viewOnly = !onUpdate;
-  const [editNodeSelector, setEditNodeSelector] = React.useState<NodeSelector | undefined>();
+  const [editNodeSelector, setEditNodeSelector] = React.useState<
+    { key: string; value: string } | undefined
+  >();
   const [currentIndex, setCurrentIndex] = React.useState<number | undefined>();
+
+  const data: NodeSelectorRow[] = React.useMemo(
+    () => Object.entries(nodeSelector).map(([key, value]) => ({ key, value })),
+    [nodeSelector],
+  );
 
   return (
     <>
@@ -21,7 +28,7 @@ const NodeSelectorTable: React.FC<NodeSelectorTableProps> = ({ nodeSelectors, on
         variant="compact"
         data-testid="hardware-profile-node-selectors-table"
         id="hardware-profile-node-selectors-table"
-        data={nodeSelectors}
+        data={data}
         columns={
           viewOnly
             ? nodeSelectorColumns.filter((column) => column.field !== 'actions')
@@ -32,13 +39,13 @@ const NodeSelectorTable: React.FC<NodeSelectorTableProps> = ({ nodeSelectors, on
             key={rowIndex}
             nodeSelector={cr}
             showActions={!viewOnly}
-            onEdit={(nodeSelector) => {
-              setEditNodeSelector(nodeSelector);
+            onEdit={(ns) => {
+              setEditNodeSelector(ns);
               setCurrentIndex(rowIndex);
             }}
             onDelete={() => {
-              const updatedNodeSelectors = [...nodeSelectors];
-              updatedNodeSelectors.splice(rowIndex, 1);
+              const updatedNodeSelectors = { ...nodeSelector };
+              delete updatedNodeSelectors[data[rowIndex].key];
               onUpdate?.(updatedNodeSelectors);
             }}
           />
@@ -51,10 +58,11 @@ const NodeSelectorTable: React.FC<NodeSelectorTableProps> = ({ nodeSelectors, on
             setEditNodeSelector(undefined);
             setCurrentIndex(undefined);
           }}
-          onSave={(nodeSelector) => {
+          onSave={(ns) => {
             if (currentIndex !== undefined) {
-              const updatedNodeSelectors = [...nodeSelectors];
-              updatedNodeSelectors[currentIndex] = nodeSelector;
+              const updatedNodeSelectors = { ...nodeSelector };
+              delete updatedNodeSelectors[data[currentIndex].key];
+              updatedNodeSelectors[ns.key] = ns.value;
               onUpdate?.(updatedNodeSelectors);
             }
           }}

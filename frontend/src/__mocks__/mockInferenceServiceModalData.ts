@@ -26,19 +26,6 @@ export const mockInferenceServiceModalData = ({
   externalRoute = false,
   tokenAuth = false,
   tokens = [],
-  modelSize = {
-    name: 'Small',
-    resources: {
-      requests: {
-        cpu: '1',
-        memory: '1Gi',
-      },
-      limits: {
-        cpu: '2',
-        memory: '2Gi',
-      },
-    },
-  },
   isKServeRawDeployment,
 }: MockResourceConfigType): CreatingInferenceServiceObject => ({
   name,
@@ -53,6 +40,5 @@ export const mockInferenceServiceModalData = ({
   externalRoute,
   tokenAuth,
   tokens,
-  modelSize,
   isKServeRawDeployment,
 });

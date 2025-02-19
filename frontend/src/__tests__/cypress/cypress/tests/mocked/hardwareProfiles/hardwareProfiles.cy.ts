@@ -6,12 +6,13 @@ import { mock200Status, mockK8sResourceList } from '~/__mocks__';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
+import { IdentifierResourceType } from '~/types';
 
 const initIntercepts = () => {
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: 'opendatahub' },
     mockK8sResourceList([
-      mockHardwareProfile({ displayName: 'Test Hardware Profile' }),
+      mockHardwareProfile({ name: 'Test Hardware Profile', displayName: 'Test Hardware Profile' }),
       mockHardwareProfile({
         name: 'test-hardware-profile-delete',
         displayName: 'Test Hardware Profile Delete',
@@ -34,6 +35,7 @@ describe('Hardware Profile', () => {
         mockK8sResourceList(
           Array.from({ length: totalItems }, (_, i) =>
             mockHardwareProfile({
+              name: `test-hardware-profile-${i}`,
               displayName: `Test Hardware Profile - ${i}`,
               description: `hardware profile ${i}`,
             }),
@@ -110,7 +112,7 @@ describe('Hardware Profile', () => {
         'DELETE',
         {
           model: HardwareProfileModel,
-          ns: 'test-project',
+          ns: 'opendatahub',
           name: 'test-hardware-profile-delete',
         },
         mock200Status({}),
@@ -123,29 +125,339 @@ describe('Hardware Profile', () => {
       cy.wait('@delete');
     });
 
-    it('toggle hardware profile enablement', () => {
+    it('toggle hardware profile enable', () => {
       initIntercepts();
-      cy.interceptK8s('PATCH', HardwareProfileModel, mockHardwareProfile({})).as(
-        'toggleHardwareProfile',
-      );
+      cy.interceptK8s(
+        'PATCH',
+        HardwareProfileModel,
+        mockHardwareProfile({
+          name: 'test-hardware-profile-delete',
+        }),
+      ).as('enableHardwareProfile');
       hardwareProfile.visit();
       hardwareProfile.getRow('Test Hardware Profile Delete').findEnabled().should('not.be.checked');
-      hardwareProfile.getRow('Test Hardware Profile').findEnabled().should('be.checked');
-      hardwareProfile.getRow('Test Hardware Profile').findEnableSwitch().click();
-
-      cy.wait('@toggleHardwareProfile').then((interception) => {
-        expect(interception.request.body).to.eql([
-          { op: 'replace', path: '/spec/enabled', value: false },
-        ]);
-      });
-      hardwareProfile.getRow('Test Hardware Profile').findEnabled().should('not.be.checked');
-      hardwareProfile.getRow('Test Hardware Profile').findEnableSwitch().click();
-      cy.wait('@toggleHardwareProfile').then((interception) => {
+      hardwareProfile.getRow('Test Hardware Profile Delete').findEnableSwitch().click();
+      cy.wait('@enableHardwareProfile').then((interception) => {
         expect(interception.request.body).to.eql([
           { op: 'replace', path: '/spec/enabled', value: true },
         ]);
       });
+    });
+
+    it('toggle hardware profile disable', () => {
+      initIntercepts();
+      cy.interceptK8s(
+        'PATCH',
+        HardwareProfileModel,
+        mockHardwareProfile({
+          name: 'Test Hardware Profile',
+        }),
+      ).as('disableHardwareProfile');
+      hardwareProfile.visit();
+      hardwareProfile.getRow('Test Hardware Profile Delete').findEnabled().should('not.be.checked');
       hardwareProfile.getRow('Test Hardware Profile').findEnabled().should('be.checked');
+      hardwareProfile.getRow('Test Hardware Profile').findEnableSwitch().click();
+      cy.wait('@disableHardwareProfile').then((interception) => {
+        expect(interception.request.body).to.eql([
+          { op: 'replace', path: '/spec/enabled', value: false },
+        ]);
+      });
+    });
+  });
+
+  describe('hardware profile errors', () => {
+    it('shows warning when all hardware profiles are disabled.', () => {
+      const totalItems = 5;
+      cy.interceptK8sList(
+        HardwareProfileModel,
+        mockK8sResourceList(
+          Array.from({ length: totalItems }, (_, i) =>
+            mockHardwareProfile({
+              name: `Test Hardware Profile - ${i}`,
+              displayName: `Test Hardware Profile - ${i}`,
+              description: `hardware profile ${i}`,
+              enabled: false,
+            }),
+          ),
+        ),
+      );
+      hardwareProfile.visit();
+      const warningBanner = hardwareProfile.findHardwareProfileBanner();
+      warningBanner.findTitle('All hardware profiles are disabled');
+      warningBanner.findDescription(
+        'You must have at least one hardware profile enabled for users to create workbenches or deploy models. Enable one or more profiles in the table below',
+      );
+    });
+
+    it('shows warning when all hardware profiles are incomplete.', () => {
+      const mockedHardwareProfiles = [
+        mockHardwareProfile({
+          name: 'Test Hardware Profile - 1',
+          displayName: 'Test Hardware Profile - 1',
+          description: 'hardware profile 1',
+          labels: {
+            'opendatahub.io/ootb': 'true',
+          },
+          identifiers: [
+            {
+              displayName: 'CPU',
+              identifier: 'cpu',
+              minCount: '1',
+              maxCount: '2',
+              defaultCount: '1',
+              resourceType: IdentifierResourceType.CPU,
+            },
+          ],
+        }),
+        mockHardwareProfile({
+          name: 'Test Hardware Profile - 2',
+          displayName: 'Test Hardware Profile - 2',
+          description: 'hardware profile 2',
+          identifiers: [],
+        }),
+      ];
+      cy.interceptK8sList(HardwareProfileModel, mockK8sResourceList(mockedHardwareProfiles));
+      hardwareProfile.visit();
+      const warningBanner = hardwareProfile.findHardwareProfileBanner();
+      warningBanner.findTitle('All hardware profiles are incomplete');
+      warningBanner.findDescription(
+        'All of your defined hardware profiles are missing either CPU or Memory. This is not recommended',
+      );
+    });
+
+    it('shows warning when some hardware profiles are incomplete.', () => {
+      const mockedHardwareProfiles = [
+        mockHardwareProfile({
+          name: 'Test Hardware Profile - 1',
+          displayName: 'Test Hardware Profile - 1',
+          description: 'hardware profile 1',
+          labels: {
+            'opendatahub.io/ootb': 'true',
+          },
+          identifiers: [
+            {
+              displayName: 'CPU',
+              identifier: 'cpu',
+              minCount: '1',
+              maxCount: '2',
+              defaultCount: '1',
+              resourceType: IdentifierResourceType.CPU,
+            },
+          ],
+        }),
+        mockHardwareProfile({
+          name: 'Test Hardware Profile - 2',
+          displayName: 'Test Hardware Profile - 2',
+          description: 'hardware profile 2',
+          identifiers: [
+            {
+              displayName: 'Memory',
+              identifier: 'memory',
+              minCount: '2Gi',
+              maxCount: '5Gi',
+              defaultCount: '2Gi',
+              resourceType: IdentifierResourceType.MEMORY,
+            },
+            {
+              displayName: 'CPU',
+              identifier: 'cpu',
+              minCount: '1',
+              maxCount: '2',
+              defaultCount: '1',
+              resourceType: IdentifierResourceType.CPU,
+            },
+          ],
+        }),
+      ];
+      cy.interceptK8sList(HardwareProfileModel, mockK8sResourceList(mockedHardwareProfiles));
+      hardwareProfile.visit();
+      const warningBanner = hardwareProfile.findHardwareProfileBanner();
+      warningBanner.findTitle('One or more hardware profiles are incomplete');
+      warningBanner.findDescription(
+        'One or more of your defined hardware profiles are missing either CPU or Memory. This is not recommended.',
+      );
+    });
+
+    it('restore hardware profile', () => {
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          mockHardwareProfile({
+            name: 'test-hardware-profile-restore',
+            displayName: 'Test Hardware Profile Restore',
+            labels: {
+              'opendatahub.io/ootb': 'true',
+            },
+            identifiers: [],
+          }),
+        ]),
+      );
+      cy.interceptK8s(
+        'PUT',
+        {
+          model: HardwareProfileModel,
+          ns: 'opendatahub',
+          name: 'test-hardware-profile-restore',
+        },
+        mock200Status({}),
+      ).as('restore');
+      hardwareProfile.visit();
+      const row = hardwareProfile.getRow('Test Hardware Profile Restore');
+      row.findEnableSwitch().should('not.be.checked');
+      row.findWarningIconButton().click();
+      hardwareProfile.findRestoreDefaultHardwareProfileButton().click();
+      cy.wait('@restore');
+    });
+
+    it('shows errors for all invalid.', () => {
+      const mockedHardwareProfiles = [
+        mockHardwareProfile({
+          name: 'Test Hardware Profile - 1',
+          displayName: 'Test Hardware Profile - 1',
+          description: 'hardware profile 1',
+          identifiers: [
+            {
+              displayName: 'Memory',
+              identifier: 'memory',
+              minCount: '2Gi',
+              maxCount: '-5Gi',
+              defaultCount: '2Gi',
+              resourceType: IdentifierResourceType.MEMORY,
+            },
+            {
+              displayName: 'CPU',
+              identifier: 'cpu',
+              minCount: '1',
+              maxCount: '2',
+              defaultCount: '1',
+              resourceType: IdentifierResourceType.CPU,
+            },
+          ],
+        }),
+        mockHardwareProfile({
+          name: 'Test Hardware Profile - 2',
+          displayName: 'Test Hardware Profile - 2',
+          description: 'hardware profile 2',
+          identifiers: [
+            {
+              displayName: 'Memory',
+              identifier: 'memory',
+              minCount: '-2Gi',
+              maxCount: '5Gi',
+              defaultCount: '2Gi',
+              resourceType: IdentifierResourceType.MEMORY,
+            },
+            {
+              displayName: 'CPU',
+              identifier: 'cpu',
+              minCount: '-1',
+              maxCount: '2',
+              defaultCount: '1',
+              resourceType: IdentifierResourceType.CPU,
+            },
+          ],
+        }),
+      ];
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList(mockedHardwareProfiles),
+      );
+      hardwareProfile.visit();
+      const warningBanner = hardwareProfile.findHardwareProfileBanner();
+      warningBanner.findTitle('All hardware profiles are invalid');
+      warningBanner.findDescription(
+        'You must have at least one valid hardware profile enabled for users to create workbenches or deploy models. Take the appropriate actions below to re-validate your profiles.',
+      );
+    });
+
+    it('shows errors for some invalid.', () => {
+      const mockedHardwareProfiles = [
+        mockHardwareProfile({
+          name: 'Test Hardware Profile - 1',
+          displayName: 'Test Hardware Profile - 1',
+          description: 'hardware profile 1',
+          identifiers: [
+            {
+              displayName: 'Memory',
+              identifier: 'memory',
+              minCount: 'Gi',
+              maxCount: '5Gi',
+              defaultCount: '2Gi',
+              resourceType: IdentifierResourceType.MEMORY,
+            },
+            {
+              displayName: 'CPU',
+              identifier: 'cpu',
+              minCount: '1',
+              maxCount: '2',
+              defaultCount: '1',
+              resourceType: IdentifierResourceType.CPU,
+            },
+          ],
+        }),
+        mockHardwareProfile({
+          name: 'Test Hardware Profile - 2',
+          displayName: 'Test Hardware Profile - 2',
+          description: 'hardware profile 2',
+          identifiers: [
+            {
+              displayName: 'Memory',
+              identifier: 'memory',
+              minCount: '-2Gi',
+              maxCount: '5Gi',
+              defaultCount: '2Gi',
+              resourceType: IdentifierResourceType.MEMORY,
+            },
+            {
+              displayName: 'CPU',
+              identifier: 'cpu',
+              minCount: '-1',
+              maxCount: '2',
+              defaultCount: '1',
+              resourceType: IdentifierResourceType.CPU,
+            },
+          ],
+        }),
+        mockHardwareProfile({
+          name: 'Test Hardware Profile - 3',
+          displayName: 'Test Hardware Profile - 3',
+          description: 'hardware profile 3',
+          identifiers: [
+            {
+              displayName: 'Memory',
+              identifier: 'memory',
+              minCount: '5Gi',
+              maxCount: '22Gi',
+              defaultCount: '7Gi',
+              resourceType: IdentifierResourceType.MEMORY,
+            },
+            {
+              displayName: 'CPU',
+              identifier: 'cpu',
+              minCount: '1',
+              maxCount: '2',
+              defaultCount: '1',
+              resourceType: IdentifierResourceType.CPU,
+            },
+          ],
+        }),
+      ];
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList(mockedHardwareProfiles),
+      );
+      hardwareProfile.visit();
+      const warningBanner = hardwareProfile.findHardwareProfileBanner();
+      warningBanner.findTitle('One or more hardware profiles are invalid');
+      warningBanner.findDescription(
+        'One or more of your defined hardware profiles are invalid. Take the appropriate actions below to revalidate your profiles.',
+      );
+      const row1 = hardwareProfile.getRow('Test Hardware Profile - 1');
+      row1.findEnabled().should('not.be.checked');
+      const row2 = hardwareProfile.getRow('Test Hardware Profile - 2');
+      row2.findEnabled().should('not.be.checked');
+      const row3 = hardwareProfile.getRow('Test Hardware Profile - 3');
+      row3.findEnabled().should('be.checked');
     });
   });
 
@@ -155,11 +467,13 @@ describe('Hardware Profile', () => {
         { model: HardwareProfileModel, ns: 'opendatahub' },
         mockK8sResourceList([
           mockHardwareProfile({
+            name: 'Test Hardware Profile',
             displayName: 'Test Hardware Profile',
           }),
           mockHardwareProfile({
+            name: 'Test Hardware Profile Empty',
             displayName: 'Test Hardware Profile Empty',
-            nodeSelectors: [],
+            nodeSelector: {},
             identifiers: [],
             tolerations: [],
           }),
@@ -183,8 +497,9 @@ describe('Hardware Profile', () => {
         { model: HardwareProfileModel, ns: 'opendatahub' },
         mockK8sResourceList([
           mockHardwareProfile({
+            name: 'Test Hardware Profile Empty',
             displayName: 'Test Hardware Profile Empty',
-            nodeSelectors: [],
+            nodeSelector: {},
             identifiers: [],
             tolerations: [{ key: 'test-key' }],
           }),

@@ -1,6 +1,11 @@
 import * as React from 'react';
 import {
+  Button,
   Divider,
+  Icon,
+  List,
+  ListItem,
+  Popover,
   Stack,
   StackItem,
   Timestamp,
@@ -9,6 +14,7 @@ import {
 } from '@patternfly/react-core';
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { relativeTime } from '~/utilities/time';
 import { TableRowTitleDescription } from '~/components/table';
 import HardwareProfileEnableToggle from '~/pages/hardwareProfiles/HardwareProfileEnableToggle';
@@ -16,26 +22,32 @@ import { HardwareProfileKind } from '~/k8sTypes';
 import NodeResourceTable from '~/pages/hardwareProfiles/nodeResource/NodeResourceTable';
 import NodeSelectorTable from '~/pages/hardwareProfiles/nodeSelector/NodeSelectorTable';
 import TolerationTable from '~/pages/hardwareProfiles/toleration/TolerationTable';
-import { isHardwareProfileOOTB } from '~/pages/hardwareProfiles/utils';
-import { HardwareProfileModel } from '~/api';
 import { useKebabAccessAllowed, verbModelAccess } from '~/concepts/userSSAR';
+import {
+  createHardwareProfileWarningTitle,
+  isHardwareProfileOOTB,
+  validateProfileWarning,
+} from '~/pages/hardwareProfiles/utils';
+import { HardwareProfileModel, updateHardwareProfile } from '~/api';
+import { useDashboardNamespace } from '~/redux/selectors';
+import { DEFAULT_HARDWARE_PROFILE_SPEC } from './const';
 
 type HardwareProfilesTableRowProps = {
   rowIndex: number;
   hardwareProfile: HardwareProfileKind;
   handleDelete: (cr: HardwareProfileKind) => void;
-  refreshHardwareProfiles: () => void;
 };
 
 const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
   hardwareProfile,
   rowIndex,
   handleDelete,
-  refreshHardwareProfiles,
 }) => {
   const modifiedDate = hardwareProfile.metadata.annotations?.['opendatahub.io/modified-date'];
   const [isExpanded, setExpanded] = React.useState(false);
   const navigate = useNavigate();
+  const { dashboardNamespace } = useDashboardNamespace();
+  const hardwareProfileWarnings = validateProfileWarning(hardwareProfile);
 
   return (
     <Tbody isExpanded={isExpanded}>
@@ -55,13 +67,61 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
             resource={hardwareProfile}
             truncateDescriptionLines={2}
             wrapResourceTitle={false}
+            titleIcon={
+              hardwareProfileWarnings.length > 0 && (
+                <Popover
+                  hasAutoWidth
+                  headerIcon={
+                    <Icon status="warning">
+                      <ExclamationTriangleIcon />
+                    </Icon>
+                  }
+                  headerContent={createHardwareProfileWarningTitle(hardwareProfile)}
+                  bodyContent={(hide) => (
+                    <>
+                      {hardwareProfileWarnings.length === 1 ? (
+                        <div>{hardwareProfileWarnings[0].message}</div>
+                      ) : (
+                        <List>
+                          {hardwareProfileWarnings.map((warning, index) => (
+                            <ListItem key={index}>{warning.message}</ListItem>
+                          ))}
+                        </List>
+                      )}
+                      {isHardwareProfileOOTB(hardwareProfile) && (
+                        <Button
+                          variant="link"
+                          component="a"
+                          onClick={async () => {
+                            await updateHardwareProfile(
+                              {
+                                ...DEFAULT_HARDWARE_PROFILE_SPEC,
+                                displayName: hardwareProfile.spec.displayName,
+                                description: hardwareProfile.spec.description,
+                              },
+                              hardwareProfile,
+                              dashboardNamespace,
+                            );
+                            hide();
+                          }}
+                          data-testid="restore-default-hardware-profile"
+                        >
+                          Restore default hardware profile
+                        </Button>
+                      )}
+                    </>
+                  )}
+                >
+                  <Icon status="warning" data-testid="icon-warning">
+                    <ExclamationTriangleIcon />
+                  </Icon>
+                </Popover>
+              )
+            }
           />
         </Td>
         <Td dataLabel="Enabled">
-          <HardwareProfileEnableToggle
-            hardwareProfile={hardwareProfile}
-            refreshHardwareProfiles={refreshHardwareProfiles}
-          />
+          <HardwareProfileEnableToggle hardwareProfile={hardwareProfile} />
         </Td>
         <Td dataLabel="Last modified">
           {modifiedDate && !Number.isNaN(new Date(modifiedDate).getTime()) ? (
@@ -131,11 +191,11 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
                     <Divider />
                   </StackItem>
                 )}
-              {hardwareProfile.spec.nodeSelectors &&
-                hardwareProfile.spec.nodeSelectors.length !== 0 && (
+              {hardwareProfile.spec.nodeSelector &&
+                Object.keys(hardwareProfile.spec.nodeSelector).length !== 0 && (
                   <StackItem>
                     <p className="pf-v6-u-font-weight-bold">Node selectors</p>
-                    <NodeSelectorTable nodeSelectors={hardwareProfile.spec.nodeSelectors} />
+                    <NodeSelectorTable nodeSelector={hardwareProfile.spec.nodeSelector} />
                     <Divider />
                   </StackItem>
                 )}

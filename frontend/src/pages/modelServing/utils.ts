@@ -42,8 +42,7 @@ import {
   ModelServingSize,
   ServingRuntimeToken,
 } from '~/pages/modelServing/screens/types';
-import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
-import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
+import { ModelServingPodSpecOptionsState } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 
 type TokenNames = {
   serviceAccountName: string;
@@ -320,47 +319,39 @@ export const getServingRuntimeTokens = (tokens?: SecretKind[]): ServingRuntimeTo
     error: '',
   }));
 
-const isAcceleratorProfileChanged = (
-  initialAcceleratorProfile: AcceleratorProfileState,
-  selectedAcceleratorProfile: AcceleratorProfileFormData,
-) => {
-  // both are none, check if it's using existing
-  if (!selectedAcceleratorProfile.profile && !initialAcceleratorProfile.acceleratorProfile) {
-    if (selectedAcceleratorProfile.useExistingSettings) {
-      return !selectedAcceleratorProfile.useExistingSettings;
-    }
-    return false;
-  }
+const isPodSpecOptionsChanged = (
+  currentPodSpecOptionsState: ModelServingPodSpecOptionsState,
+  existingServingRuntime?: ServingRuntimeKind,
+): boolean => {
+  const initialSize = currentPodSpecOptionsState.podSpecOptions.resources;
+  const currentSize = getServingRuntimeOrReturnEmpty(existingServingRuntime);
 
-  // one is none, another is set, changed
-  if (!selectedAcceleratorProfile.profile || !initialAcceleratorProfile.acceleratorProfile) {
-    return true;
-  }
+  const initialTolerations = currentPodSpecOptionsState.podSpecOptions.tolerations;
+  const currentTolerations = existingServingRuntime?.spec.tolerations;
 
-  // compare the name, gpu count
+  const currentNodeSelector = existingServingRuntime?.spec.nodeSelector;
+  const initialNodeSelector = currentPodSpecOptionsState.podSpecOptions.nodeSelector;
+
   return (
-    selectedAcceleratorProfile.profile.metadata.name !==
-      initialAcceleratorProfile.acceleratorProfile.metadata.name ||
-    selectedAcceleratorProfile.count !== initialAcceleratorProfile.count
+    !_.isEqual(initialSize, currentSize) ||
+    !_.isEqual(initialTolerations, currentTolerations) ||
+    !_.isEqual(initialNodeSelector, currentNodeSelector)
   );
 };
 
 export const isModelServerEditInfoChanged = (
   createData: CreatingServingRuntimeObject,
-  sizes: ModelServingSize[],
-  initialAcceleratorProfile: AcceleratorProfileState,
-  selectedAcceleratorProfile: AcceleratorProfileFormData,
+  podSpecOptionsState: ModelServingPodSpecOptionsState,
   editInfo?: ServingRuntimeEditInfo,
 ): boolean =>
   editInfo?.servingRuntime
     ? getDisplayNameFromK8sResource(editInfo.servingRuntime) !== createData.name ||
       editInfo.servingRuntime.spec.replicas !== createData.numReplicas ||
-      !_.isEqual(getServingRuntimeSize(sizes, editInfo.servingRuntime), createData.modelSize) ||
       editInfo.servingRuntime.metadata.annotations?.['enable-route'] !==
         String(createData.externalRoute) ||
       editInfo.servingRuntime.metadata.annotations['enable-auth'] !==
         String(createData.tokenAuth) ||
-      isAcceleratorProfileChanged(initialAcceleratorProfile, selectedAcceleratorProfile) ||
+      isPodSpecOptionsChanged(podSpecOptionsState, editInfo.servingRuntime) ||
       (createData.tokenAuth &&
         !_.isEqual(
           getServingRuntimeTokens(editInfo.secrets)

@@ -5,13 +5,9 @@
 import { K8sResourceCommon, WatchK8sResult } from '@openshift/dynamic-plugin-sdk-utils';
 import { AxiosError } from 'axios';
 import { EnvironmentFromVariable } from '~/pages/projects/types';
-import {
-  AcceleratorProfileKind,
-  DashboardCommonConfig,
-  ImageStreamKind,
-  ImageStreamSpecTagType,
-} from './k8sTypes';
+import { DashboardCommonConfig, ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
+import { PodSpecOptions } from './concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 
 export type DevFeatureFlags = {
   devFeatureFlags: Partial<DashboardCommonConfig> | null;
@@ -319,10 +315,7 @@ export type Identifier = {
   resourceType?: IdentifierResourceType;
 };
 
-export type NodeSelector = {
-  key: string;
-  value: string;
-};
+export type NodeSelector = Record<string, string>;
 
 export type PodContainer = {
   name: string;
@@ -367,6 +360,7 @@ export type Notebook = K8sResourceCommon & {
         containers: PodContainer[];
         volumes?: Volume[];
         tolerations?: Toleration[];
+        nodeSelector?: NodeSelector;
       };
     };
   };
@@ -646,13 +640,9 @@ export type NotebookProgressStep = {
 };
 
 export type NotebookData = {
-  notebookSizeName: string;
   imageName: string;
   imageTagName: string;
-  acceleratorProfile?: {
-    acceleratorProfile: AcceleratorProfileKind;
-    count: number;
-  };
+  podSpecOptions: PodSpecOptions;
   envVars: EnvVarReducedTypeKeyValues;
   state: NotebookState;
   // only used for admin calls, regular users cannot use this field

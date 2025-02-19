@@ -18,9 +18,9 @@ import {
   getServingRuntimeNameFromTemplate,
   isServingRuntimeKind,
 } from '~/pages/modelServing/customServingRuntimes/utils';
-import { isCompatibleWithAccelerator as isCompatibleWithAcceleratorProfile } from '~/pages/projects/screens/spawner/spawnerUtils';
+import { isCompatibleWithIdentifier } from '~/pages/projects/screens/spawner/spawnerUtils';
 import SimpleSelect from '~/components/SimpleSelect';
-import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 type ServingRuntimeTemplateSectionProps = {
   data: CreatingServingRuntimeObject;
@@ -28,7 +28,7 @@ type ServingRuntimeTemplateSectionProps = {
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
   templates: TemplateKind[];
   isEditing?: boolean;
-  selectedAcceleratorProfile: AcceleratorProfileFormData;
+  compatibleIdentifiers?: string[];
   resetModelFormat?: () => void;
 };
 
@@ -38,9 +38,10 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
   setData,
   templates,
   isEditing,
-  selectedAcceleratorProfile,
+  compatibleIdentifiers,
   resetModelFormat,
 }) => {
+  const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
   const filteredTemplates = React.useMemo(
     () =>
       templates.filter((template) => {
@@ -63,10 +64,13 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
         </SplitItem>
         <SplitItem isFilled />
         <SplitItem>
-          {isCompatibleWithAcceleratorProfile(
-            selectedAcceleratorProfile.profile?.spec.identifier,
-            template.objects[0],
-          ) && <Label color="blue">Compatible with accelerator</Label>}
+          {compatibleIdentifiers?.some((identifier) =>
+            isCompatibleWithIdentifier(identifier, template.objects[0]),
+          ) && (
+            <Label color="blue">
+              Compatible with {isHardwareProfilesAvailable ? 'hardware profile' : 'accelerator'}
+            </Label>
+          )}
         </SplitItem>
       </Split>
     ),
