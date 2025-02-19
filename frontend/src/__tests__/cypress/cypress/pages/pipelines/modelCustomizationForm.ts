@@ -40,4 +40,31 @@ class ModelCustomizationFormGlobal {
   }
 }
 
+class TaxonomySection {
+  findTaxonomyUrl() {
+    return cy.findByTestId('taxonomy-github-url');
+  }
+
+  findSshKeyRadio() {
+    return cy.findByTestId('ssh-key-radio');
+  }
+
+  findUsernameAndTokenRadio() {
+    return cy.findByTestId('username-and-token-radio');
+  }
+
+  findTaxonomySShKey() {
+    return cy.findByTestId('taxonomy-ssh-key');
+  }
+
+  findTaxonomyUsername() {
+    return cy.findByTestId('taxonomy-username');
+  }
+
+  findTaxonomyToken() {
+    return cy.findAllByTestId('taxonomy-token');
+  }
+}
+
 export const modelCustomizationFormGlobal = new ModelCustomizationFormGlobal();
+export const taxonomySection = new TaxonomySection();

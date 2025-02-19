@@ -1,5 +1,8 @@
 /* eslint-disable camelcase */
-import { modelCustomizationFormGlobal } from '~/__tests__/cypress/cypress/pages/pipelines/modelCustomizationForm';
+import {
+  modelCustomizationFormGlobal,
+  taxonomySection,
+} from '~/__tests__/cypress/cypress/pages/pipelines/modelCustomizationForm';
 import {
   buildMockPipeline,
   buildMockPipelines,
@@ -46,6 +49,15 @@ describe('Model Customization Form', () => {
     modelCustomizationFormGlobal.visit(projectName);
     cy.wait('@getAllPipelines');
     cy.wait('@getAllPipelineVersions');
+    taxonomySection.findTaxonomyUrl().fill('http://github.com');
+    taxonomySection.findSshKeyRadio().check();
+
+    taxonomySection.findTaxonomySShKey().fill('test');
+    modelCustomizationFormGlobal.findSubmitButton().should('not.be.disabled');
+
+    taxonomySection.findUsernameAndTokenRadio().check();
+    taxonomySection.findTaxonomyUsername().fill('test');
+    taxonomySection.findTaxonomyToken().fill('test');
     modelCustomizationFormGlobal.findSubmitButton().should('not.be.disabled');
   });
   it('Should not submit', () => {
