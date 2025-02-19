@@ -2,15 +2,17 @@ import {
   ModelRegistryAPIs,
   ModelState,
   ModelRegistryMetadataType,
+  RegisteredModel,
+  ModelVersion,
 } from '~/concepts/modelRegistry/types';
 
 type MinimalModelRegistryAPI = Pick<ModelRegistryAPIs, 'patchRegisteredModel'>;
 
 export const bumpModelVersionTimestamp = async (
   api: ModelRegistryAPIs,
-  modelVersionId: string,
+  modelVersions: ModelVersion,
 ): Promise<void> => {
-  if (!modelVersionId) {
+  if (!modelVersions.id) {
     throw new Error('Model version ID is required');
   }
 
@@ -23,6 +25,7 @@ export const bumpModelVersionTimestamp = async (
         // to fix this issue. see https://issues.redhat.com/browse/RHOAIENG-17614
         state: ModelState.LIVE,
         customProperties: {
+          ...modelVersions.customProperties,
           _lastModified: {
             metadataType: ModelRegistryMetadataType.STRING,
             // eslint-disable-next-line camelcase
@@ -30,7 +33,7 @@ export const bumpModelVersionTimestamp = async (
           },
         },
       },
-      modelVersionId,
+      modelVersions.id,
     );
   } catch (error) {
     throw new Error(
@@ -43,9 +46,9 @@ export const bumpModelVersionTimestamp = async (
 
 export const bumpRegisteredModelTimestamp = async (
   api: MinimalModelRegistryAPI,
-  registeredModelId: string,
+  registeredModels: RegisteredModel,
 ): Promise<void> => {
-  if (!registeredModelId) {
+  if (!registeredModels.id) {
     throw new Error('Registered model ID is required');
   }
 
@@ -56,6 +59,7 @@ export const bumpRegisteredModelTimestamp = async (
       {
         state: ModelState.LIVE,
         customProperties: {
+          ...registeredModels.customProperties,
           // This is a workaround to update the timestamp on the backend. There is a bug opened for model registry team
           // to fix this issue. see https://issues.redhat.com/browse/RHOAIENG-17614
           _lastModified: {
@@ -65,7 +69,7 @@ export const bumpRegisteredModelTimestamp = async (
           },
         },
       },
-      registeredModelId,
+      registeredModels.id,
     );
   } catch (error) {
     throw new Error(
@@ -78,11 +82,11 @@ export const bumpRegisteredModelTimestamp = async (
 
 export const bumpBothTimestamps = async (
   api: ModelRegistryAPIs,
-  modelVersionId: string,
-  registeredModelId: string,
+  registeredModels: RegisteredModel,
+  modelVersions: ModelVersion,
 ): Promise<void> => {
   await Promise.all([
-    bumpModelVersionTimestamp(api, modelVersionId),
-    bumpRegisteredModelTimestamp(api, registeredModelId),
+    bumpModelVersionTimestamp(api, modelVersions),
+    bumpRegisteredModelTimestamp(api, registeredModels),
   ]);
 };
