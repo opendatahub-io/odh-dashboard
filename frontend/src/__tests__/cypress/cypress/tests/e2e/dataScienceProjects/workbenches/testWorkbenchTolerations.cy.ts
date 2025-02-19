@@ -25,7 +25,7 @@ import {
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
-describe('Workbenches - tolerations tests', () => {
+describe('[Automation bug RHOAIENG-20099] Workbenches - tolerations tests', () => {
   let testData: WBTolerationsTestData;
   let projectName: string;
   let projectDescription: string;
@@ -70,7 +70,7 @@ describe('Workbenches - tolerations tests', () => {
 
   it(
     'Validate pod tolerations are applied to a Workbench',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard'] },
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard', '@Bug'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -130,7 +130,7 @@ describe('Workbenches - tolerations tests', () => {
 
   it(
     'Validate pod tolerations for a stopped workbench',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard'] },
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard', '@Bug'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -163,7 +163,7 @@ describe('Workbenches - tolerations tests', () => {
 
   it(
     'Validate pod tolerations when a workbench is restarted with tolerations and tolerations are disabled',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard'] },
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard', '@Bug'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -201,7 +201,7 @@ describe('Workbenches - tolerations tests', () => {
 
   it(
     'Verifies that a new toleration is added to a new workbench but not to an already running workbench',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard'] },
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard', '@Bug'] },
     () => {
       // Set Pod Tolerations
       cy.step('Navigate to Cluster Settings, save and set pod tolerations');
