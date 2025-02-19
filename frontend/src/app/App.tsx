@@ -23,7 +23,7 @@ import { ModelRegistrySelectorContextProvider } from '~/concepts/modelRegistry/c
 import useStorageClasses from '~/concepts/k8s/useStorageClasses';
 import AreaContextProvider from '~/concepts/areas/AreaContext';
 import { NimContextProvider } from '~/concepts/nimServing/NIMAvailabilityContext';
-import { NotificationPollerContextProvider } from '~/concepts/notificationPoller/NotificationPollerContext';
+import { NotificationWatcherContextProvider } from '~/concepts/notificationWatcher/NotificationWatcherContext';
 import { AccessReviewProvider } from '~/concepts/userSSAR';
 import useDevFeatureFlags from './useDevFeatureFlags';
 import Header from './Header';
@@ -146,9 +146,9 @@ const App: React.FC = () => {
                   <ProjectsContextProvider>
                     <ModelRegistrySelectorContextProvider>
                       <QuickStarts>
-                        <NotificationPollerContextProvider>
+                        <NotificationWatcherContextProvider>
                           <AppRoutes />
-                        </NotificationPollerContextProvider>
+                        </NotificationWatcherContextProvider>
                       </QuickStarts>
                     </ModelRegistrySelectorContextProvider>
                   </ProjectsContextProvider>

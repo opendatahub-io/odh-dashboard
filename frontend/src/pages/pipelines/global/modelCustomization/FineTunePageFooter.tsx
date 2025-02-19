@@ -7,9 +7,9 @@ import { isRunSchedule } from '~/concepts/pipelines/utils';
 import { RunFormData } from '~/concepts/pipelines/content/createRun/types';
 import useNotification from '~/utilities/useNotification';
 import {
-  NotificationPollerContext,
-  NotificationPollerResponse,
-} from '~/concepts/notificationPoller/NotificationPollerContext';
+  NotificationWatcherContext,
+  NotificationWatcherResponse,
+} from '~/concepts/notificationWatcher/NotificationWatcherContext';
 import { RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
 
 type FineTunePageFooterProps = {
@@ -27,7 +27,7 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const { api } = usePipelinesAPI();
-  const { watchForNotification } = React.useContext(NotificationPollerContext);
+  const { registerNotification } = React.useContext(NotificationWatcherContext);
   const notification = useNotification();
   const navigate = useNavigate();
 
@@ -62,11 +62,11 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
                       ],
                     );
 
-                    watchForNotification({
+                    registerNotification({
                       callback: (signal: AbortSignal) =>
                         api
                           .getPipelineRun({ signal }, runId)
-                          .then((response): NotificationPollerResponse => {
+                          .then((response): NotificationWatcherResponse => {
                             if (response.state === RuntimeStateKF.SUCCEEDED) {
                               return {
                                 status: 'success',
@@ -111,7 +111,6 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
                             console.error('Error calling api.getPipelineRun', e);
                             return { status: 'stop' };
                           }),
-                      delayRepollMs: 2000,
                     });
 
                     onSuccess();

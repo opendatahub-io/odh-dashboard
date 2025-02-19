@@ -1,11 +1,11 @@
 import React, { act } from 'react';
 import { render, waitFor } from '@testing-library/react';
 import {
-  FinalNotificationPollerResponse,
-  NotificationPollerContext,
-  NotificationPollerContextProvider,
-  NotificationPollerResponse,
-} from '~/concepts/notificationPoller/NotificationPollerContext';
+  FinalNotificationWatcherResponse,
+  NotificationWatcherContext,
+  NotificationWatcherContextProvider,
+  NotificationWatcherResponse,
+} from '~/concepts/notificationWatcher/NotificationWatcherContext';
 import useNotification from '~/utilities/useNotification';
 
 jest.mock('~/utilities/useNotification', () => {
@@ -25,7 +25,7 @@ const createCallbackMock = ({
   finalResponse,
   repollCount = 0,
 }: {
-  finalResponse: FinalNotificationPollerResponse;
+  finalResponse: FinalNotificationWatcherResponse;
   repollCount?: number;
 }) => {
   const callbackMock = jest.fn();
@@ -36,36 +36,36 @@ const createCallbackMock = ({
   return callbackMock;
 };
 
-const renderTestComponent = (callbackMocks: jest.Mock[], delayRepollMs = 0) => {
+const renderTestComponent = (callbackMocks: jest.Mock[], callbackDelay = 0) => {
   const TestComponent = () => {
-    const { watchForNotification } = React.useContext(NotificationPollerContext);
+    const { registerNotification } = React.useContext(NotificationWatcherContext);
 
     React.useEffect(() => {
       act(() => {
         callbackMocks.forEach((callbackMock) =>
-          watchForNotification({ callback: callbackMock, delayRepollMs }),
+          registerNotification({ callback: callbackMock, callbackDelay }),
         );
       });
-    }, [watchForNotification]);
+    }, [registerNotification]);
 
     return null;
   };
 
   render(
-    <NotificationPollerContextProvider>
+    <NotificationWatcherContextProvider>
       <TestComponent />
-    </NotificationPollerContextProvider>,
+    </NotificationWatcherContextProvider>,
   );
 };
 
-describe('NotificationPollerContextProvider', () => {
+describe('NotificationWatcherContextProvider', () => {
   afterEach(() => {
     jest.clearAllMocks();
     jest.useRealTimers();
   });
 
   it("should trigger 'success' notification", async () => {
-    const finalResponse: FinalNotificationPollerResponse = {
+    const finalResponse: FinalNotificationWatcherResponse = {
       status: 'success',
       title: 'Success Title',
       message: 'Success Message',
@@ -75,9 +75,8 @@ describe('NotificationPollerContextProvider', () => {
 
     renderTestComponent([callbackMock]);
 
-    expect(callbackMock).toHaveBeenCalledTimes(1);
-
     await waitFor(() => {
+      expect(callbackMock).toHaveBeenCalledTimes(1);
       expect(useNotificationMock().success).toHaveBeenCalledWith(
         finalResponse.title,
         finalResponse.message,
@@ -87,7 +86,7 @@ describe('NotificationPollerContextProvider', () => {
   });
 
   it("should trigger 'error' notification", async () => {
-    const finalResponse: NotificationPollerResponse = {
+    const finalResponse: NotificationWatcherResponse = {
       status: 'error',
       title: 'Error Title',
       message: 'Error Message',
@@ -98,9 +97,8 @@ describe('NotificationPollerContextProvider', () => {
 
     renderTestComponent([callbackMock]);
 
-    expect(callbackMock).toHaveBeenCalledTimes(1);
-
     await waitFor(() => {
+      expect(callbackMock).toHaveBeenCalledTimes(1);
       expect(useNotificationMock().error).toHaveBeenCalledWith(
         finalResponse.title,
         finalResponse.message,
@@ -114,9 +112,8 @@ describe('NotificationPollerContextProvider', () => {
 
     renderTestComponent([callbackMock]);
 
-    expect(callbackMock).toHaveBeenCalledTimes(1);
-
     await waitFor(() => {
+      expect(callbackMock).toHaveBeenCalledTimes(1);
       Object.values(useNotificationMock()).forEach((fn) => {
         expect(fn).not.toHaveBeenCalled();
       });
@@ -129,7 +126,7 @@ describe('NotificationPollerContextProvider', () => {
     const repollCount = 3;
     const repollDelayMs = 1000;
 
-    const finalResponse: NotificationPollerResponse = {
+    const finalResponse: NotificationWatcherResponse = {
       status: 'success',
       title: 'Repoll with delay Success Title',
       message: 'Repoll with delay Success Message',
@@ -140,7 +137,7 @@ describe('NotificationPollerContextProvider', () => {
 
     renderTestComponent([callbackMock], repollDelayMs);
 
-    expect(callbackMock).toHaveBeenCalledTimes(1);
+    expect(callbackMock).toHaveBeenCalledTimes(0);
 
     act(() => {
       jest.advanceTimersByTime(repollCount * repollDelayMs);
@@ -160,7 +157,7 @@ describe('NotificationPollerContextProvider', () => {
   });
 
   it("should retry when response is 'repoll' (single callback)", async () => {
-    const finalResponse: NotificationPollerResponse = {
+    const finalResponse: NotificationWatcherResponse = {
       status: 'success',
       title: 'Repoll Success Title',
       message: 'Repoll Success Message',
@@ -170,8 +167,6 @@ describe('NotificationPollerContextProvider', () => {
     const callbackMock = createCallbackMock({ finalResponse, repollCount: 3 });
 
     renderTestComponent([callbackMock]);
-
-    expect(callbackMock).toHaveBeenCalledTimes(1);
 
     await waitFor(() => {
       expect(callbackMock).toHaveBeenCalledTimes(4);
@@ -199,44 +194,11 @@ describe('NotificationPollerContextProvider', () => {
 
     renderTestComponent(callbackMocks);
 
-    repollCounts.forEach((_, index) => {
-      expect(callbackMocks[index]).toHaveBeenCalledTimes(1);
-    });
-
     await waitFor(() => {
       repollCounts.forEach((repollCount, index) => {
         expect(callbackMocks[index]).toHaveBeenCalledTimes(repollCount + 1);
         expect(useNotificationMock().success).toHaveBeenCalledTimes(3);
       });
     });
-  });
-
-  it('should propagate errors up to the caller', async () => {
-    const error = new Error('Test error');
-    const callbackMock = jest.fn().mockRejectedValueOnce(error);
-
-    const TestComponent = () => {
-      const { watchForNotification } = React.useContext(NotificationPollerContext);
-
-      React.useEffect(() => {
-        act(() => {
-          watchForNotification({ callback: callbackMock })
-            .then(() => {
-              throw new Error('This should not be called');
-            })
-            .catch((e) => {
-              expect(e).toBe(error);
-            });
-        });
-      }, [watchForNotification]);
-
-      return null;
-    };
-
-    render(
-      <NotificationPollerContextProvider>
-        <TestComponent />
-      </NotificationPollerContextProvider>,
-    );
   });
 });
