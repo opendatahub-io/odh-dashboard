@@ -59,7 +59,8 @@ export const NotificationWatcherContextProvider: React.FC<
           return;
         }
 
-        switch (response.status) {
+        const { status } = response;
+        switch (status) {
           case 'success':
             notification.success(response.title, response.message, response.actions);
             break;
@@ -72,6 +73,13 @@ export const NotificationWatcherContextProvider: React.FC<
           case 'stop':
             // Do nothing more
             break;
+          default: {
+            // If you see a compilation error here, it means that you have added a new status to the
+            // NotificationWatcherResponse type but forgot to handle it in the switch statement above.
+            const value: never = status;
+            // eslint-disable-next-line no-console
+            console.error('Unreachable code', value);
+          }
         }
       }, callbackDelay);
 

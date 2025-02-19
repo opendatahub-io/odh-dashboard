@@ -1,10 +1,12 @@
 import { ActionList, ActionListItem, Button, Stack, StackItem } from '@patternfly/react-core';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ModelCustomizationFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
+import useRunFormData from '~/concepts/pipelines/content/createRun/useRunFormData';
 import { handleSubmit } from '~/concepts/pipelines/content/createRun/submitUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { isRunSchedule } from '~/concepts/pipelines/utils';
-import { RunFormData } from '~/concepts/pipelines/content/createRun/types';
+import { globalPipelineRunsRoute } from '~/routes';
 import useNotification from '~/utilities/useNotification';
 import {
   NotificationWatcherContext,
@@ -15,21 +17,21 @@ import { RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
 type FineTunePageFooterProps = {
   isInvalid: boolean;
   onSuccess: () => void;
-  data: RunFormData;
-  contextPath: string;
+  data: ModelCustomizationFormData;
 };
 
-const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
-  isInvalid,
-  onSuccess,
-  data,
-  contextPath,
-}) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- TODO remove this line when start using `data`
+const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({ isInvalid, onSuccess, data }) => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const { api } = usePipelinesAPI();
   const { registerNotification } = React.useContext(NotificationWatcherContext);
   const notification = useNotification();
   const navigate = useNavigate();
+  const { namespace } = usePipelinesAPI();
+  const contextPath = globalPipelineRunsRoute(namespace);
+
+  // TODO: translate data to `RunFormData`
+  const [runFormData] = useRunFormData(null, {});
 
   return (
     <Stack hasGutter>
@@ -43,7 +45,7 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
               onClick={() => {
                 setIsSubmitting(true);
 
-                handleSubmit(data, api)
+                handleSubmit(runFormData, api)
                   .then((resource) => {
                     const runId = isRunSchedule(resource)
                       ? resource.recurring_run_id

@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Form, FormGroup, FormSection } from '@patternfly/react-core';
-import useRunFormData from '~/concepts/pipelines/content/createRun/useRunFormData';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import {
@@ -11,7 +10,6 @@ import { ModelCustomizationFormData } from '~/concepts/pipelines/content/modelCu
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import FineTunePageFooter from '~/pages/pipelines/global/modelCustomization/FineTunePageFooter';
 import BaseModelSection from '~/pages/pipelines/global/modelCustomization/baseModelSection/BaseModelSection';
-import { globalPipelineRunsRoute } from '~/routes';
 
 type FineTunePageProps = {
   isInvalid: boolean;
@@ -22,11 +20,7 @@ type FineTunePageProps = {
 
 const FineTunePage: React.FC<FineTunePageProps> = ({ isInvalid, onSuccess, data, setData }) => {
   const projectDetailsDescription = 'This project is used for running your pipeline';
-  const { namespace, project } = usePipelinesAPI();
-  const contextPath = globalPipelineRunsRoute(namespace);
-
-  // TODO: translate ilab form data to `RunFormData`
-  const [formData] = useRunFormData(null, {});
+  const { project } = usePipelinesAPI();
 
   return (
     <Form data-testid="fineTunePageForm">
@@ -48,12 +42,7 @@ const FineTunePage: React.FC<FineTunePageProps> = ({ isInvalid, onSuccess, data,
         setData={(baseModelData) => setData('baseModel', baseModelData)}
       />
       <FormSection>
-        <FineTunePageFooter
-          isInvalid={isInvalid}
-          onSuccess={onSuccess}
-          contextPath={contextPath}
-          data={formData}
-        />
+        <FineTunePageFooter isInvalid={isInvalid} onSuccess={onSuccess} data={data} />
       </FormSection>
     </Form>
   );

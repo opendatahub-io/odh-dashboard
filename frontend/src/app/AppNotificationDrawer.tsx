@@ -83,7 +83,7 @@ const AppNotificationDrawer: React.FC<AppNotificationDrawerProps> = ({ onClose }
                 >
                   <Stack hasGutter>
                     <StackItem>{notification.message}</StackItem>
-                    {notification.actions?.length && (
+                    {notification.actions && notification.actions.length > 0 && (
                       <StackItem>
                         <Split hasGutter isWrappable>
                           {notification.actions.map((action) => (
