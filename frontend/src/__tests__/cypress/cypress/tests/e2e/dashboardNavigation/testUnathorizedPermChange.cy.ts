@@ -23,13 +23,6 @@ describe('Dashboard Navigation - Unauthorized Permission Change', () => {
     // Click to trigger groups load using the correct selector
     administratorGroupSection.findMultiGroupInput().click();
     
-    // Wait for API response    
-    
-    // Debug: Log what's in the response
-    cy.get('@getGroups').then((interception) => {
-      cy.log('API Response:', interception);
-    });
-    
     // Now proceed with selection
     administratorGroupSection.findMultiGroupInput().clear().type('rhods-admins');
     administratorGroupSection.findMultiGroupOptions('rhods-admins').should('exist');
