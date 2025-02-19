@@ -6,8 +6,9 @@ import DashboardSearchField, { SearchType } from '~/concepts/dashboard/Dashboard
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import { useDashboardNamespace } from '~/redux/selectors';
 import useAcceleratorProfiles from '~/pages/notebookController/screens/server/useAcceleratorProfiles';
-import useHardwareProfiles from '~/pages/hardwareProfiles/useHardwareProfiles';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { HardwareProfileFeatureVisibility } from '~/k8sTypes';
+import { useHardwareProfilesByFeatureVisibility } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
 import ManageBYONImageModal from './BYONImageModal/ManageBYONImageModal';
 import DeleteBYONImageModal from './BYONImageModal/DeleteBYONImageModal';
 import { columns } from './tableData';
@@ -48,7 +49,9 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, refres
 
   const { dashboardNamespace } = useDashboardNamespace();
   const acceleratorProfiles = useAcceleratorProfiles(dashboardNamespace);
-  const hardwareProfiles = useHardwareProfiles(dashboardNamespace);
+  const hardwareProfiles = useHardwareProfilesByFeatureVisibility([
+    HardwareProfileFeatureVisibility.WORKBENCH,
+  ]);
 
   const isHardwareProfileAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
 

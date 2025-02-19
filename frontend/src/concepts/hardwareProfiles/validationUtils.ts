@@ -14,6 +14,7 @@ import { HardwareProfileKind } from '~/k8sTypes';
 import { HardwareProfileConfig } from './useHardwareProfileConfig';
 import { HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE } from './const';
 import { HardwareProfileWarningType } from './types';
+import { formatResourceValue } from './utils';
 
 export enum ValidationErrorCodes {
   LIMIT_BELOW_REQUEST = 'limit_below_request',
@@ -25,19 +26,19 @@ export type ResourceSchema = z.ZodEffects<
   string | number
 >;
 
-export const createCpuSchema = (minCount: ValueUnitCPU, maxCount: ValueUnitCPU): ResourceSchema =>
+export const createCpuSchema = (minCount: ValueUnitCPU, maxCount?: ValueUnitCPU): ResourceSchema =>
   z.union([z.string(), z.number()]).superRefine((val, ctx) => {
     const stringVal = String(val);
     if (isCpuLimitLarger(stringVal, minCount)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `Must be at least ${minCount}`,
+        message: `Must be at least ${formatResourceValue(minCount)}`,
       });
     }
-    if (isCpuLimitLarger(maxCount, stringVal)) {
+    if (maxCount && isCpuLimitLarger(maxCount, stringVal)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `Must not exceed ${maxCount}`,
+        message: `Must not exceed ${formatResourceValue(maxCount)}`,
       });
     }
   });
@@ -52,13 +53,13 @@ export const createMemorySchema = (
     if (isMemoryLimitLarger(stringVal, minCount)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `Must be at least ${minCount}`,
+        message: `Must be at least ${formatResourceValue(minCount)}`,
       });
     }
     if (isMemoryLimitLarger(maxCount, stringVal)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `Must not exceed ${maxCount}`,
+        message: `Must not exceed ${formatResourceValue(maxCount)}`,
       });
     }
   });
@@ -76,13 +77,13 @@ export const createNumericSchema = (minCount: number, maxCount: number): Resourc
     if (value < minCount) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `Must be at least ${minCount}`,
+        message: `Must be at least ${formatResourceValue(minCount)}`,
       });
     }
     if (value > maxCount) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `Must not exceed ${maxCount}`,
+        message: `Must not exceed ${formatResourceValue(maxCount)}`,
       });
     }
   });
@@ -155,6 +156,10 @@ export const hardwareProfileValidationSchema = z
   });
 
 export const isHardwareProfileConfigValid = (data: HardwareProfileConfig): boolean => {
+  // if no resources, and not using existing settings, then not valid
+  if (!data.useExistingSettings && !data.resources) {
+    return false;
+  }
   const result = hardwareProfileValidationSchema.safeParse(data);
   return result.success;
 };
@@ -167,7 +172,7 @@ export const hardwareProfileWarningSchema = z
         displayName: z.string(),
         identifier: z.string(),
         minCount: z.string().or(z.number()),
-        maxCount: z.string().or(z.number()),
+        maxCount: z.string().or(z.number()).optional(),
         defaultCount: z.string().or(z.number()),
         resourceType: z
           .enum([IdentifierResourceType.CPU, IdentifierResourceType.MEMORY])
@@ -206,7 +211,7 @@ export const hardwareProfileWarningSchema = z
           });
           isNegative = true;
         }
-        if (identifier.maxCount.toString().at(0) === '-') {
+        if (identifier.maxCount && identifier.maxCount.toString().at(0) === '-') {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: createIdentifierWarningMessage(
@@ -245,11 +250,9 @@ export const hardwareProfileWarningSchema = z
           determineUnit(identifier),
           true,
         );
-        const [maxCount] = splitValueUnit(
-          identifier.maxCount.toString(),
-          determineUnit(identifier),
-          true,
-        );
+        const [maxCount] = identifier.maxCount
+          ? splitValueUnit(identifier.maxCount.toString(), determineUnit(identifier), true)
+          : [undefined];
         const [defaultCount] = splitValueUnit(
           identifier.defaultCount.toString(),
           determineUnit(identifier),
@@ -269,7 +272,7 @@ export const hardwareProfileWarningSchema = z
             },
           });
         }
-        if (!Number.isInteger(maxCount)) {
+        if (maxCount !== undefined && !Number.isInteger(maxCount)) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: createIdentifierWarningMessage(
@@ -297,7 +300,7 @@ export const hardwareProfileWarningSchema = z
             },
           });
         }
-        if (minCount > maxCount) {
+        if (maxCount !== undefined && minCount > maxCount) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: createIdentifierWarningMessage(
@@ -313,7 +316,7 @@ export const hardwareProfileWarningSchema = z
             },
           });
         }
-        if (defaultCount < minCount || defaultCount > maxCount) {
+        if (defaultCount < minCount || (maxCount !== undefined && defaultCount > maxCount)) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: createIdentifierWarningMessage(

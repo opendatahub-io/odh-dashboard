@@ -22,6 +22,7 @@ type TrainingHardwareSectionProps = {
   storageClass: string;
   setStorageClass: (data: string) => void;
   setHardwareFormData: (data: ModelCustomizationFormData['hardware']) => void;
+  hardwareFormData: ModelCustomizationFormData['hardware'];
 };
 
 const TrainingHardwareSection: React.FC<TrainingHardwareSectionProps> = ({
@@ -32,6 +33,7 @@ const TrainingHardwareSection: React.FC<TrainingHardwareSectionProps> = ({
   storageClass,
   setStorageClass,
   setHardwareFormData,
+  hardwareFormData,
 }) => {
   const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
@@ -61,6 +63,7 @@ const TrainingHardwareSection: React.FC<TrainingHardwareSectionProps> = ({
         <TrainingHardwareProfileFormSection
           data={podSpecOptionsState.hardwareProfile.formData}
           setData={podSpecOptionsState.hardwareProfile.setFormData}
+          hardwareFormData={hardwareFormData}
         />
       ) : (
         <TrainingAcceleratorFormSection podSpecOptionsState={podSpecOptionsState} />

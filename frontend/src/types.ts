@@ -7,7 +7,7 @@ import { AxiosError } from 'axios';
 import { EnvironmentFromVariable } from '~/pages/projects/types';
 import { DashboardCommonConfig, ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
-import { PodSpecOptions } from './concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
+import { NotebookPodSpecOptions } from './concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 
 export type DevFeatureFlags = {
   devFeatureFlags: Partial<DashboardCommonConfig> | null;
@@ -304,13 +304,14 @@ export type Toleration = {
 export enum IdentifierResourceType {
   CPU = 'CPU',
   MEMORY = 'Memory',
+  ACCELERATOR = 'Accelerator',
 }
 
 export type Identifier = {
   displayName: string;
   identifier: string;
   minCount: number | string;
-  maxCount: number | string;
+  maxCount?: number | string;
   defaultCount: number | string;
   resourceType?: IdentifierResourceType;
 };
@@ -643,7 +644,7 @@ export type NotebookProgressStep = {
 export type NotebookData = {
   imageName: string;
   imageTagName: string;
-  podSpecOptions: PodSpecOptions;
+  podSpecOptions: NotebookPodSpecOptions;
   envVars: EnvVarReducedTypeKeyValues;
   state: NotebookState;
   // only used for admin calls, regular users cannot use this field

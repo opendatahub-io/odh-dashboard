@@ -9,10 +9,12 @@ import { validateProfileWarning } from './utils';
 
 type HardwareProfileEnableToggleProps = {
   hardwareProfile: HardwareProfileKind;
+  isDisabled?: boolean;
 };
 
 const HardwareProfileEnableToggle: React.FC<HardwareProfileEnableToggleProps> = ({
   hardwareProfile,
+  isDisabled = false,
 }) => {
   const hardwareProfileWarnings = validateProfileWarning(hardwareProfile);
   const { enabled } = hardwareProfile.spec;
@@ -24,7 +26,7 @@ const HardwareProfileEnableToggle: React.FC<HardwareProfileEnableToggleProps> = 
   const [hasAccess, hasLoadedAccess] = useAccessAllowed(
     verbModelAccess('patch', HardwareProfileModel),
   );
-  const canToggleSwitch = warning || isLoading || !hasAccess || !hasLoadedAccess;
+  const canToggleSwitch = warning || isLoading || !hasAccess || !hasLoadedAccess || isDisabled;
 
   const handleChange = (checked: boolean) => {
     setLoading(true);

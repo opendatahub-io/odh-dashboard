@@ -1,4 +1,8 @@
-import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import {
+  HardwareProfileFeatureVisibility,
+  InferenceServiceKind,
+  ServingRuntimeKind,
+} from '~/k8sTypes';
 import {
   useHardwareProfileConfig,
   UseHardwareProfileConfigResult,
@@ -17,7 +21,9 @@ const useServingHardwareProfileConfig = (
   const nodeSelector =
     inferenceService?.spec.predictor.nodeSelector || servingRuntime?.spec.nodeSelector;
 
-  return useHardwareProfileConfig(name, resources, tolerations, nodeSelector);
+  return useHardwareProfileConfig(name, resources, tolerations, nodeSelector, [
+    HardwareProfileFeatureVisibility.MODEL_SERVING,
+  ]);
 };
 
 export default useServingHardwareProfileConfig;

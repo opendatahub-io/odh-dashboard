@@ -14,6 +14,8 @@ import CPUField from '~/components/CPUField';
 import MemoryField from '~/components/MemoryField';
 import NumberInputWrapper from '~/components/NumberInputWrapper';
 import { ValidationContext } from '~/utilities/useValidation';
+import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
+import { formatResourceValue } from './utils';
 
 type HardwareProfileCustomizeProps = {
   identifiers: Identifier[];
@@ -104,7 +106,18 @@ const HardwareProfileCustomize: React.FC<HardwareProfileCustomizeProps> = ({
     })();
 
     return (
-      <FormGroup label={`${identifier.displayName} ${type}`}>
+      <FormGroup
+        label={`${identifier.displayName} ${type}`}
+        labelHelp={
+          <DashboardHelpTooltip
+            content={
+              type === 'requests'
+                ? `The minimum amount of ${identifier.identifier} that will be reserved for this workload. The scheduler will only place the workload on nodes that can provide this amount.`
+                : `The maximum amount of ${identifier.identifier} that this workload is allowed to use. If exceeded, the workload may be terminated or throttled.`
+            }
+          />
+        }
+      >
         {field}
         <FormHelperText>
           <HelperText>
@@ -114,7 +127,10 @@ const HardwareProfileCustomize: React.FC<HardwareProfileCustomizeProps> = ({
               </HelperTextItem>
             )}
             <HelperTextItem>
-              Min = {identifier.minCount}, Max = {identifier.maxCount}
+              Min = {formatResourceValue(identifier.minCount, identifier.resourceType)}, Max ={' '}
+              {identifier.maxCount === undefined
+                ? 'unrestricted'
+                : formatResourceValue(identifier.maxCount, identifier.resourceType)}
             </HelperTextItem>
           </HelperText>
         </FormHelperText>
