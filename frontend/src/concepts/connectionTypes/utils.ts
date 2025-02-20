@@ -134,9 +134,12 @@ export const S3ConnectionTypeKeys = [
   'AWS_S3_BUCKET',
 ];
 
+export const OCIConnectionTypeKeys = ['ACCESS_TYPE', '.dockerconfigjson', 'OCI_HOST'];
+
 export enum ModelServingCompatibleTypes {
   S3ObjectStorage = 'S3 compatible object storage',
   URI = 'URI',
+  OCI = 'OCI compliant registry',
 }
 
 const modelServingCompatibleTypesMetadata: Record<
@@ -158,6 +161,11 @@ const modelServingCompatibleTypesMetadata: Record<
     name: ModelServingCompatibleTypes.URI,
     resource: 'uri-v1',
     envVars: ['URI'],
+  },
+  [ModelServingCompatibleTypes.OCI]: {
+    name: ModelServingCompatibleTypes.OCI,
+    resource: 'oci-v1',
+    envVars: OCIConnectionTypeKeys,
   },
 };
 

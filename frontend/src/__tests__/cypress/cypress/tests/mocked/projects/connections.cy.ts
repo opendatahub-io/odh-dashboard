@@ -198,20 +198,35 @@ describe('Connections', () => {
     initIntercepts();
     cy.interceptOdh('GET /api/connection-types', [
       mockConnectionTypeConfigMap({
-        name: 'OCI',
+        name: 'oci-v1',
+        displayName: 'OCI compliant registry - v1',
         fields: [
           {
-            name: 'OCI model URI',
-            type: ConnectionTypeFieldType.URI,
-            envVar: 'URI',
-            required: true,
-            properties: {},
+            name: 'Access type',
+            type: ConnectionTypeFieldType.Dropdown,
+            envVar: 'ACCESS_TYPE',
+            required: false,
+            properties: {
+              variant: 'multi',
+              items: [
+                { label: 'Push secret', value: 'Push' },
+                { label: 'Pull secret', value: 'Pull' },
+              ],
+            },
           },
           {
-            name: 'Pull secret',
+            name: 'Secret details',
             type: ConnectionTypeFieldType.File,
             envVar: '.dockerconfigjson',
+            required: true,
             properties: { extensions: ['.dockerconfigjson, .json'] },
+          },
+          {
+            name: 'Base URL / Registry URI',
+            type: ConnectionTypeFieldType.ShortText,
+            envVar: 'OCI_HOST',
+            required: true,
+            properties: {},
           },
         ],
       }),
@@ -229,7 +244,7 @@ describe('Connections', () => {
 
     connectionsPage.findAddConnectionButton().click();
     cy.findByTestId('connection-name-desc-name').fill('new oci connection');
-    cy.findByTestId(['field', 'URI']).fill('oci://quay.io/myorg/coolmodel:latest');
+    cy.findByTestId(['field', 'OCI_HOST']).fill('quay.io/myorg');
     cy.get('input[type="file"]').selectFile(
       {
         contents: Cypress.Buffer.from('{"auths":{"quay.io":{"token":"asdf"}}}}'),
@@ -243,21 +258,21 @@ describe('Connections', () => {
       expect(interception.request.body).to.eql({
         apiVersion: 'v1',
         kind: 'Secret',
-        type: 'kubernetes.io/dockerconfigjson',
         metadata: {
-          annotations: {
-            'opendatahub.io/connection-type-ref': 'OCI',
-            'openshift.io/description': '',
-            'openshift.io/display-name': 'new oci connection',
-          },
-          labels: { 'opendatahub.io/dashboard': 'true' },
           name: 'new-oci-connection',
           namespace: 'test-project',
+          labels: { 'opendatahub.io/dashboard': 'true' },
+          annotations: {
+            'openshift.io/display-name': 'new oci connection',
+            'openshift.io/description': '',
+            'opendatahub.io/connection-type-ref': 'oci-v1',
+          },
         },
         stringData: {
-          URI: 'oci://quay.io/myorg/coolmodel:latest',
+          OCI_HOST: 'quay.io/myorg',
           '.dockerconfigjson': '{"auths":{"quay.io":{"token":"asdf"}}}}',
         },
+        type: 'kubernetes.io/dockerconfigjson',
       });
     });
   });

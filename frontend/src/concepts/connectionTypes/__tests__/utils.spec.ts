@@ -403,6 +403,26 @@ describe('getConnectionModelServingCompatibleTypes', () => {
         }),
       ),
     ).toEqual([ModelServingCompatibleTypes.S3ObjectStorage, ModelServingCompatibleTypes.URI]);
+    expect(
+      getConnectionModelServingCompatibleTypes(
+        mockConnection({
+          data: {
+            ACCESS_TYPE: '["Pull"]',
+            OCI_HOST: 'quay.io',
+            '.dockerconfigjson': '{stuff}',
+          },
+        }),
+      ),
+    ).toEqual([ModelServingCompatibleTypes.OCI]);
+    expect(
+      getConnectionModelServingCompatibleTypes(
+        mockConnection({
+          data: {
+            OCI_HOST: 'quay.io',
+          },
+        }),
+      ),
+    ).toEqual([]);
   });
 });
 
