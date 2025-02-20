@@ -1,5 +1,5 @@
 import React from 'react';
-import { getConfigMap } from '~/api';
+import { getConfigMap, isK8sStatus } from '~/api';
 import useNamespaces from '~/pages/notebookController/useNamespaces';
 import { useIsAreaAvailable } from '~/concepts/areas';
 import { SupportedArea } from '~/concepts/areas/types';
@@ -11,6 +11,10 @@ type State = ModelCatalogSource[];
 
 // Temporary implementation for MVP - will be replaced with API for remote model catalog sources
 // See: https://issues.redhat.com/browse/RHOAISTRAT-455
+
+const isModelCatalogSource = (obj: unknown): obj is ModelCatalogSource =>
+  typeof obj === 'object' && obj !== null; // Add more specific checks based on ModelCatalogSource type
+
 export const useModelCatalogSources = (): FetchState<State> => {
   const { dashboardNamespace } = useNamespaces();
   const isModelCatalogAvailable = useIsAreaAvailable(SupportedArea.MODEL_CATALOG).status;
@@ -20,18 +24,32 @@ export const useModelCatalogSources = (): FetchState<State> => {
       throw new NotReadyError('Model catalog feature is not enabled');
     }
 
-    const configMap = await getConfigMap(dashboardNamespace, MODEL_CATALOG_SOURCE_CONFIGMAP);
-
-    if (!configMap.data?.modelCatalogSource) {
-      return [];
-    }
-
     try {
-      const source: ModelCatalogSource = JSON.parse(configMap.data.modelCatalogSource);
-      return [source];
-    } catch (e) {
-      // Swallow JSON parse errors and return empty array for temporary summit implementation
-      return [];
+      const configMap = await getConfigMap(dashboardNamespace, MODEL_CATALOG_SOURCE_CONFIGMAP);
+      if (!configMap.data || !configMap.data.modelCatalogSource) {
+        return [];
+      }
+
+      try {
+        const parsed = JSON.parse(configMap.data.modelCatalogSource);
+        if (isModelCatalogSource(parsed)) {
+          return [parsed];
+        }
+        return [];
+      } catch (e) {
+        // Swallow JSON parse errors and return empty array
+        return [];
+      }
+    } catch (e: unknown) {
+      if (
+        typeof e === 'object' &&
+        e != null &&
+        'statusObject' in e &&
+        isK8sStatus(e.statusObject)
+      ) {
+        return [];
+      }
+      throw e;
     }
   }, [dashboardNamespace, isModelCatalogAvailable]);
 
