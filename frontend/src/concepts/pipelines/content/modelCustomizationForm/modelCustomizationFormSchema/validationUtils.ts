@@ -1,31 +1,25 @@
 import { z } from 'zod';
 import { ModelCustomizationEndpointType, ModelCustomizationRunType } from './types';
 
-export const modelRegistrySchema = z.object({
-  properties: z.object({
-    modelRegistryName: z.string(),
-    modelName: z.string(),
-    modelVersion: z.string(),
-  }),
-});
+export const uriFieldSchema = z.string().refine(
+  (value) => {
+    if (!value) {
+      return true;
+    }
+    try {
+      return !!new URL(value);
+    } catch (e) {
+      return false;
+    }
+  },
+  { message: 'Invalid URI' },
+);
 
-export const uriFieldSchema = z.object({
-  value: z
-    .string()
-    .optional()
-    .refine(
-      (value) => {
-        if (!value) {
-          return true;
-        }
-        try {
-          return !!new URL(value);
-        } catch (e) {
-          return false;
-        }
-      },
-      { message: 'Invalid URI' },
-    ),
+export const baseModelSchema = z.object({
+  registryName: z.string(),
+  name: z.string(),
+  version: z.string(),
+  inputStorageLocationUri: uriFieldSchema,
 });
 
 export const teacherJudgeModel = z.object({
@@ -118,4 +112,9 @@ export const fineTunedModelDetailsSchema = z.object({
 
 export const modelCustomizationFormSchema = z.object({
   projectName: z.object({ value: z.string().min(1, { message: 'Project is required' }) }),
+  baseModel: baseModelSchema,
 });
+
+export type ModelCustomizationFormData = z.infer<typeof modelCustomizationFormSchema>;
+
+export type BaseModelFormData = z.infer<typeof baseModelSchema>;
