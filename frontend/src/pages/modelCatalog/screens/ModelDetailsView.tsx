@@ -9,12 +9,12 @@ import {
   SidebarContent,
   SidebarPanel,
 } from '@patternfly/react-core';
+import { TagIcon } from '@patternfly/react-icons';
 import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
 import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
 import { CatalogModel } from '~/concepts/modelCatalog/types';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
-import { TagIcon } from '@patternfly/react-icons';
-import { getTagFromModel } from '../utils';
+import { getTagFromModel } from '~/pages/modelCatalog/utils';
 import ExternalLink from '~/components/ExternalLink';
 import MarkdownView from '~/components/MarkdownView';
 
@@ -31,7 +31,10 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({ model }) => (
           <p data-testid="model-long-description">{model.longDescription}</p>
           <h2>Model Card</h2>
         </Content>
-        <MarkdownView markdown={model.readme || 'No model card'} />
+        <MarkdownView
+          data-testid="model-card-markdown"
+          markdown={model.readme || 'No model card'}
+        />
       </SidebarContent>
       <SidebarPanel>
         <DescriptionList isFillColumns>
@@ -42,20 +45,26 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({ model }) => (
             {getTagFromModel(model)}
           </DashboardDescriptionListGroup>
           <DashboardDescriptionListGroup title="Labels">
-            {!model.labels?.length ? 'no labels' : model.labels.map((label, index) => (
-              <Label
-                variant={'outline'}
-                data-testid="label"
-                key={index}
-                marginWidth={3}
-                style={{ marginRight: '3px' }}
-              >
-                {label}
-              </Label>
-            ))}
+            {!model.labels?.length
+              ? 'no labels'
+              : model.labels.map((label, index) => (
+                  <Label
+                    variant="outline"
+                    data-testid="label"
+                    key={index}
+                    marginWidth={3}
+                    style={{ marginRight: '3px' }}
+                  >
+                    {label}
+                  </Label>
+                ))}
           </DashboardDescriptionListGroup>
           <DashboardDescriptionListGroup title="License" groupTestId="model-license">
-            <ExternalLink text={'Agreement'} to={model.licenseLink || ''} />
+            <ExternalLink
+              text="Agreement"
+              to={model.licenseLink || ''}
+              testId="model-license-link"
+            />
           </DashboardDescriptionListGroup>
           <DashboardDescriptionListGroup title="Provider" groupTestId="model-provider">
             {model.provider}

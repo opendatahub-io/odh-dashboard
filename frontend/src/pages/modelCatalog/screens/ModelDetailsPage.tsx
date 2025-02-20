@@ -12,6 +12,7 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
+import { TagIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import { conditionalArea, SupportedArea } from '~/concepts/areas';
@@ -24,9 +25,8 @@ import {
   getTagFromModel,
 } from '~/pages/modelCatalog/utils';
 import { ModelDetailsRouteParams } from '~/pages/modelCatalog/const';
-import ModelDetailsView from './ModelDetailsView';
 import BrandImage from '~/components/BrandImage';
-import { TagIcon } from '@patternfly/react-icons';
+import ModelDetailsView from './ModelDetailsView';
 
 const ModelDetailsPage: React.FC = conditionalArea(
   SupportedArea.MODEL_CATALOG,
@@ -49,7 +49,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
       ),
     [modelCatalogSources, decodedParams],
   );
-  console.log({ model });
+
   return (
     <ApplicationsPage
       breadcrumb={

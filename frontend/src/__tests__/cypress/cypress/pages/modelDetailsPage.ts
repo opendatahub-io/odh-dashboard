@@ -21,8 +21,8 @@ class ModelDetailsPage {
     return cy.findByTestId('model-version');
   }
 
-  findModelLicense() {
-    return cy.findByTestId('model-license');
+  findModelLicenseLink() {
+    return cy.findByTestId('model-license').findByTestId('model-license-link');
   }
 
   findModelProvider() {
@@ -31,6 +31,10 @@ class ModelDetailsPage {
 
   findModelSourceImageLocation() {
     return cy.findByTestId('source-image-location');
+  }
+
+  findModelCardMarkdown() {
+    return cy.findByTestId('model-card-markdown');
   }
 }
 
