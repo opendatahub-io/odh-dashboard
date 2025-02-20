@@ -24,6 +24,7 @@ import { useAppContext } from '~/app/AppContext';
 import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { useIntegratedAppStatus } from '~/pages/exploreApplication/useIntegratedAppStatus';
 import { useUser } from '~/redux/selectors';
+import { NIMAvailabilityContext } from '~/concepts/nimServing/NIMAvailabilityContext';
 
 const DEFAULT_BETA_TEXT =
   'This application is available for early access prior to official ' +
@@ -41,13 +42,13 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
   const { enablement } = dashboardConfig.spec.dashboardConfig;
   const [{ isEnabled, canInstall, error }, loaded] = useIntegratedAppStatus(selectedApp);
   const { isAdmin } = useUser();
-
+  const { isNIMAvailable, refresh } = React.useContext(NIMAvailabilityContext);
+  console.log(isNIMAvailable);
   if (!selectedApp) {
     return null;
   }
-
   const renderEnableButton = () => {
-    if (!selectedApp.spec.enable || selectedApp.spec.isEnabled || isEnabled) {
+    if (!selectedApp.spec.enable || selectedApp.spec.isEnabled || isEnabled || isNIMAvailable) {
       return null;
     }
 

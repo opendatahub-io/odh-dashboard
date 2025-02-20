@@ -8,6 +8,7 @@ import { EnableApplicationStatus, useEnableApplication } from '~/utilities/useEn
 import { asEnumMember } from '~/utilities/utils';
 import EnableVariable from './EnableVariable';
 import './EnableModal.scss';
+import useServingPlatformStatuses from '../modelServing/useServingPlatformStatuses';
 
 type EnableModalProps = {
   selectedApp: OdhApplication;
@@ -35,7 +36,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
       element.focus();
     }
   };
-
+  const servingPlatformStatuses = useServingPlatformStatuses(true);
   const updateEnableValue = (key: string, value: string): void => {
     const updatedValues = {
       ...enableValues,
@@ -47,6 +48,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
   const onDoEnableApp = () => {
     setPostError('');
     setValidationInProgress(true);
+    servingPlatformStatuses.refreshNIMAvailability();
   };
 
   const handleClose = React.useCallback(() => {
@@ -65,6 +67,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
       /* eslint-enable no-param-reassign */
 
       handleClose();
+      servingPlatformStatuses.refreshNIMAvailability();
     }
     if (validationInProgress && validationStatus === EnableApplicationStatus.FAILED) {
       setValidationInProgress(false);
