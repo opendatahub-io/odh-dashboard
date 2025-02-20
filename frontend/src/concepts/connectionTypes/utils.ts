@@ -239,9 +239,8 @@ export const getMRConnectionValues = (
     });
     return defaults;
   }
-  if (typeof connectionValues === 'string') {
-    defaults.URI = connectionValues;
-  }
+  defaults.URI = connectionValues;
+
   return defaults;
 };
 

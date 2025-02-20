@@ -449,10 +449,14 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
                 isFocused={focusedItemIndex === index}
                 {...optionProps}
               >
-                <Flex>
-                  <FlexItem>{content}</FlexItem>
-                  <FlexItem>{dropdownLabel}</FlexItem>
-                </Flex>
+                {dropdownLabel ? (
+                  <Flex>
+                    <FlexItem>{content}</FlexItem>
+                    <FlexItem>{dropdownLabel}</FlexItem>
+                  </Flex>
+                ) : (
+                  content
+                )}
               </SelectOption>
             );
           })}

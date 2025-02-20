@@ -145,7 +145,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                 <>
                   <DashboardDescriptionListGroup
                     title="Endpoint"
-                    isEmpty={modelArtifacts.size === 0 || !storageFields.s3Fields.endpoint}
+                    isEmpty={!storageFields.s3Fields.endpoint}
                     contentWhenEmpty="No endpoint"
                   >
                     <InlineTruncatedClipboardCopy
@@ -155,7 +155,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                   </DashboardDescriptionListGroup>
                   <DashboardDescriptionListGroup
                     title="Region"
-                    isEmpty={modelArtifacts.size === 0 || !storageFields.s3Fields.region}
+                    isEmpty={!storageFields.s3Fields.region}
                     contentWhenEmpty="No region"
                   >
                     <InlineTruncatedClipboardCopy
@@ -165,7 +165,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                   </DashboardDescriptionListGroup>
                   <DashboardDescriptionListGroup
                     title="Bucket"
-                    isEmpty={modelArtifacts.size === 0 || !storageFields.s3Fields.bucket}
+                    isEmpty={!storageFields.s3Fields.bucket}
                     contentWhenEmpty="No bucket"
                   >
                     <InlineTruncatedClipboardCopy
@@ -175,7 +175,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                   </DashboardDescriptionListGroup>
                   <DashboardDescriptionListGroup
                     title="Path"
-                    isEmpty={modelArtifacts.size === 0 || !storageFields.s3Fields.path}
+                    isEmpty={!storageFields.s3Fields.path}
                     contentWhenEmpty="No path"
                   >
                     <InlineTruncatedClipboardCopy
@@ -189,7 +189,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                 <>
                   <DashboardDescriptionListGroup
                     title="URI"
-                    isEmpty={modelArtifacts.size === 0 || !modelArtifact?.uri}
+                    isEmpty={!modelArtifact?.uri}
                     contentWhenEmpty="No URI"
                   >
                     <InlineTruncatedClipboardCopy

@@ -124,6 +124,9 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
         isOpen
         onClose={() => onClose(false)}
         actions={[
+          // The Deploy button is disabled as this particular return of the Modal
+          // only happens when there's not a valid selected project, otherwise we'll
+          // render the ManageKServeModal or ManageInferenceServiceModal
           <Button key="deploy" variant="primary" onClick={handleSubmit} isDisabled>
             Deploy
           </Button>,
