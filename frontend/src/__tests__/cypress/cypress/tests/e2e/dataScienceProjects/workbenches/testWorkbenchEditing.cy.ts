@@ -15,7 +15,7 @@ import {
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
-describe('Edit and Update a Workbench in RHOAI', () => {
+describe('[Automation Bug RHOAIENG-20128] Edit and Update a Workbench in RHOAI', () => {
   let editTestNamespace: string;
   let editedTestNamespace: string;
   let editedTestDescription: string;
@@ -53,7 +53,7 @@ describe('Edit and Update a Workbench in RHOAI', () => {
 
   it(
     'Editing Workbench Name and Description',
-    { tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@Dashboard'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@Dashboard', '@Bug'] },
     () => {
       const workbenchName = editTestNamespace.replace('dsp-', '');
 
