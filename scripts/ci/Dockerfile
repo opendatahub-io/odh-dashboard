@@ -7,7 +7,7 @@ ARG CYPRESS_CACHE=$USER_HOME/.cypress-cache
 ARG CHROME=https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
 ARG OCP_CLI=https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz
 ARG NVM_INSTALLER=https://raw.githubusercontent.com/creationix/nvm/v0.39.7/install.sh
-ARG NODE_VERSION=v20.15.0
+ARG NODE_VERSION=v20.18.0
 
 USER root
 
