@@ -124,7 +124,7 @@ describe('NotificationWatcherContextProvider', () => {
     jest.useFakeTimers();
 
     const repollCount = 3;
-    const repollDelayMs = 1000;
+    const callbackDelay = 1000;
 
     const finalResponse: NotificationWatcherResponse = {
       status: 'success',
@@ -135,12 +135,12 @@ describe('NotificationWatcherContextProvider', () => {
 
     const callbackMock = createCallbackMock({ finalResponse, repollCount });
 
-    renderTestComponent([callbackMock], repollDelayMs);
+    renderTestComponent([callbackMock], callbackDelay);
 
     expect(callbackMock).toHaveBeenCalledTimes(0);
 
     act(() => {
-      jest.advanceTimersByTime(repollCount * repollDelayMs);
+      jest.advanceTimersByTime(repollCount * callbackDelay);
     });
 
     await waitFor(
@@ -152,7 +152,7 @@ describe('NotificationWatcherContextProvider', () => {
           finalResponse.actions,
         );
       },
-      { timeout: (repollCount + 1) * repollDelayMs },
+      { timeout: (repollCount + 1) * callbackDelay },
     );
   });
 
@@ -200,5 +200,84 @@ describe('NotificationWatcherContextProvider', () => {
         expect(useNotificationMock().success).toHaveBeenCalledTimes(3);
       });
     });
+  });
+
+  it('should not propagate errors up to the consumer', async () => {
+    const error = new Error('Test error');
+    const callbackMock = jest.fn().mockRejectedValueOnce(error);
+    const errorTracker = jest.fn();
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+    const TestComponent = () => {
+      const { registerNotification } = React.useContext(NotificationWatcherContext);
+
+      React.useEffect(() => {
+        act(() => {
+          try {
+            registerNotification({ callback: callbackMock, callbackDelay: 0 });
+          } catch (err) {
+            errorTracker(err);
+          }
+        });
+      }, [registerNotification]);
+
+      return null;
+    };
+
+    render(
+      <NotificationWatcherContextProvider>
+        <TestComponent />
+      </NotificationWatcherContextProvider>,
+    );
+
+    await waitFor(() => {
+      expect(callbackMock).toHaveBeenCalledTimes(1);
+    });
+    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.anything(), error);
+    expect(errorTracker).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('should catch errors thrown by callbackMock when handled properly', async () => {
+    const error = new Error('Test error');
+    const callbackMock = jest.fn().mockRejectedValueOnce(error);
+    const errorTracker = jest.fn();
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+    const TestComponent = () => {
+      const { registerNotification } = React.useContext(NotificationWatcherContext);
+
+      React.useEffect(() => {
+        act(() => {
+          registerNotification({
+            callback: async () => {
+              try {
+                await callbackMock();
+                return { status: 'repoll' };
+              } catch (err) {
+                errorTracker(err);
+                return { status: 'stop' };
+              }
+            },
+            callbackDelay: 0,
+          });
+        });
+      }, [registerNotification]);
+
+      return null;
+    };
+
+    render(
+      <NotificationWatcherContextProvider>
+        <TestComponent />
+      </NotificationWatcherContextProvider>,
+    );
+
+    await waitFor(() => {
+      expect(callbackMock).toHaveBeenCalledTimes(1);
+    });
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+    expect(errorTracker).toHaveBeenCalledWith(error);
+    consoleErrorSpy.mockRestore();
   });
 });

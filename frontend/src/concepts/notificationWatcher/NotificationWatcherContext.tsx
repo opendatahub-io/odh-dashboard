@@ -44,43 +44,50 @@ export const NotificationWatcherContextProvider: React.FC<
   );
 
   const invoke = React.useCallback(
-    async (itemToInvoke: NotificationWatcherItem, signal: AbortSignal) => {
+    (itemToInvoke: NotificationWatcherItem, signal: AbortSignal) => {
       const callbackDelay = itemToInvoke.callbackDelay ?? POLL_INTERVAL;
 
-      const timeoutId = setTimeout(async () => {
+      const timeoutId = setTimeout(() => {
         timeoutIdsMapRef.current.delete(itemToInvoke);
-        const response = await itemToInvoke.callback(signal);
 
-        if (response.status !== 'repoll') {
-          abortControllersMapRef.current.delete(itemToInvoke);
-        }
+        itemToInvoke
+          .callback(signal)
+          .then((response) => {
+            if (response.status !== 'repoll') {
+              abortControllersMapRef.current.delete(itemToInvoke);
+            }
 
-        if (signal.aborted) {
-          return;
-        }
+            if (signal.aborted) {
+              return;
+            }
 
-        const { status } = response;
-        switch (status) {
-          case 'success':
-            notification.success(response.title, response.message, response.actions);
-            break;
-          case 'error':
-            notification.error(response.title, response.message, response.actions);
-            break;
-          case 'repoll':
-            await invoke(itemToInvoke, signal);
-            break;
-          case 'stop':
-            // Do nothing more
-            break;
-          default: {
-            // If you see a compilation error here, it means that you have added a new status to the
-            // NotificationWatcherResponse type but forgot to handle it in the switch statement above.
-            const value: never = status;
+            const { status } = response;
+            switch (status) {
+              case 'success':
+                notification.success(response.title, response.message, response.actions);
+                break;
+              case 'error':
+                notification.error(response.title, response.message, response.actions);
+                break;
+              case 'repoll':
+                invoke(itemToInvoke, signal);
+                break;
+              case 'stop':
+                // Do nothing more
+                break;
+              default: {
+                // If you see a compilation error here, it means that you have added a new status to the
+                // NotificationWatcherResponse type but forgot to handle it in the switch statement above.
+                const value: never = status;
+                // eslint-disable-next-line no-console
+                console.error('Unreachable code', value);
+              }
+            }
+          })
+          .catch((error) => {
             // eslint-disable-next-line no-console
-            console.error('Unreachable code', value);
-          }
-        }
+            console.error('Uncaught error:', error);
+          });
       }, callbackDelay);
 
       timeoutIdsMapRef.current.set(itemToInvoke, timeoutId);
