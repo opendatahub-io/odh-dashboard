@@ -1,17 +1,32 @@
 import React from 'react';
 import { useParams } from 'react-router';
-import { Breadcrumb, BreadcrumbItem, Button, Divider } from '@patternfly/react-core';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  Content,
+  ContentVariants,
+  Flex,
+  FlexItem,
+  Label,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import { conditionalArea, SupportedArea } from '~/concepts/areas';
 import { ModelCatalogContext } from '~/concepts/modelCatalog/context/ModelCatalogContext';
 import { CatalogModel } from '~/concepts/modelCatalog/types';
 import EmptyModelCatalogState from '~/pages/modelCatalog/EmptyModelCatalogState';
-import { decodeParams, findModelFromModelCatalogSources } from '~/pages/modelCatalog/utils';
+import {
+  decodeParams,
+  findModelFromModelCatalogSources,
+  getTagFromModel,
+} from '~/pages/modelCatalog/utils';
 import { ModelDetailsRouteParams } from '~/pages/modelCatalog/const';
 import ModelDetailsView from './ModelDetailsView';
+import BrandImage from '~/components/BrandImage';
+import { TagIcon } from '@patternfly/react-icons';
 
 const ModelDetailsPage: React.FC = conditionalArea(
   SupportedArea.MODEL_CATALOG,
@@ -34,7 +49,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
       ),
     [modelCatalogSources, decodedParams],
   );
-
+  console.log({ model });
   return (
     <ApplicationsPage
       breadcrumb={
@@ -46,10 +61,33 @@ const ModelDetailsPage: React.FC = conditionalArea(
         </Breadcrumb>
       }
       title={
-        <TitleWithIcon
-          title={decodedParams.modelName || ''}
-          objectType={ProjectObjectType.registeredModels}
-        />
+        <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+          <FlexItem>
+            <BrandImage src={model?.logo ?? ''} alt="" />
+          </FlexItem>
+          <FlexItem>
+            <Stack>
+              <StackItem>
+                <Flex
+                  spaceItems={{ default: 'spaceItemsSm' }}
+                  alignItems={{ default: 'alignItemsCenter' }}
+                >
+                  <FlexItem>{decodedParams.modelName}</FlexItem>
+                  {model && (
+                    <Label variant="outline" icon={<TagIcon />}>
+                      {getTagFromModel(model)}
+                    </Label>
+                  )}
+                </Flex>
+              </StackItem>
+              {model && (
+                <StackItem>
+                  <Content component={ContentVariants.small}>Provided by {model.provider}</Content>
+                </StackItem>
+              )}
+            </Stack>
+          </FlexItem>
+        </Flex>
       }
       empty={model === null}
       emptyStatePage={
@@ -62,12 +100,10 @@ const ModelDetailsPage: React.FC = conditionalArea(
           )}
         />
       }
-      loaded
+      loaded={modelCatalogSources.loaded}
       provideChildrenPadding
-      headerAction={<Button data-testid="register-model-button">Register model</Button>}
     >
-      <Divider />
-      {model !== null && <ModelDetailsView model={model} />}
+      {model && <ModelDetailsView model={model} />}
     </ApplicationsPage>
   );
 });
