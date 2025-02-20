@@ -11,7 +11,7 @@ import {
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
-describe('Workbenches - variable tests', () => {
+describe('[Automation Bug RHOAIENG-20128] Workbenches - variable tests', () => {
   let projectName: string;
   let projectDescription: string;
   let testData: WBVariablesTestData;
@@ -34,7 +34,7 @@ describe('Workbenches - variable tests', () => {
         cy.log(`Project ${projectName} confirmed to be created and verified successfully`);
       });
   });
-  afterEach(() => {
+  after(() => {
     //Check if the Before Method was executed to perform the setup
     if (!wasSetupPerformed()) return;
 
@@ -46,7 +46,7 @@ describe('Workbenches - variable tests', () => {
   });
   it(
     'Verify user can set environment variables in their workbenches by uploading a yaml Secret and Config Map file.',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1883', '@ODS-1864', '@Dashboard'] },
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Bug'] },
     () => {
       const workbenchName = projectName;
       const workbenchName2 = projectName.replace('dsp-', 'secondwb-');
@@ -122,7 +122,7 @@ describe('Workbenches - variable tests', () => {
   );
   it(
     'Verify that the user can inject environment variables manually into a workbench using Key / Value',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1883', '@ODS-1864', '@Dashboard'] },
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Bug'] },
     () => {
       const workbenchName = projectName;
       const workbenchName2 = projectName.replace('dsp-', 'secondwb-');
