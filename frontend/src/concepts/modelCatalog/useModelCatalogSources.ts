@@ -11,6 +11,10 @@ type State = ModelCatalogSource[];
 
 // Temporary implementation for MVP - will be replaced with API for remote model catalog sources
 // See: https://issues.redhat.com/browse/RHOAISTRAT-455
+
+const isModelCatalogSource = (obj: unknown): obj is ModelCatalogSource =>
+  typeof obj === 'object' && obj !== null; // Add more specific checks based on ModelCatalogSource type
+
 export const useModelCatalogSources = (): FetchState<State> => {
   const { dashboardNamespace } = useNamespaces();
   const isModelCatalogAvailable = useIsAreaAvailable(SupportedArea.MODEL_CATALOG).status;
@@ -22,31 +26,29 @@ export const useModelCatalogSources = (): FetchState<State> => {
 
     try {
       const configMap = await getConfigMap(dashboardNamespace, MODEL_CATALOG_SOURCE_CONFIGMAP);
-      /* eslint-enable @typescript-eslint/no-unsafe-member-access */
-
       if (!configMap.data || !configMap.data.modelCatalogSource) {
         return [];
       }
 
       try {
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        const source = JSON.parse(configMap.data.modelCatalogSource) as ModelCatalogSource;
-        return [source];
+        const parsed = JSON.parse(configMap.data.modelCatalogSource);
+        if (isModelCatalogSource(parsed)) {
+          return [parsed];
+        }
+        return [];
       } catch (e) {
         // Swallow JSON parse errors and return empty array
         return [];
       }
     } catch (e: unknown) {
-      // Check if error is a 404
       if (
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        'statusObject' in (e as object) &&
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        isK8sStatus((e as { statusObject: unknown }).statusObject)
+        typeof e === 'object' &&
+        e != null &&
+        'statusObject' in e &&
+        isK8sStatus(e.statusObject)
       ) {
         return [];
       }
-      // Re-throw other errors
       throw e;
     }
   }, [dashboardNamespace, isModelCatalogAvailable]);
