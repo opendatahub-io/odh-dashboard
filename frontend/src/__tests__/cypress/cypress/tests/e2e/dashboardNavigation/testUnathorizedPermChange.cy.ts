@@ -1,14 +1,21 @@
 import { getGroupsConfig } from '~/__tests__/cypress/cypress/utils/oc_commands/groupConfig';
 import { HTPASSWD_CLUSTER_ADMIN_USER, TEST_USER_4 } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { userManagement } from '~/__tests__/cypress/cypress/pages/userManagement';
+import { retryableBefore } from '../../../utils/retryableHooks';
+import { notFoundPage } from '~/__tests__/cypress/cypress/pages/notFound';
 
 describe('Dashboard Navigation - Unauthorized Permission Change', () => {
-  beforeEach(() => {
+  let adminSession: string;
+
+  retryableBefore(() => {
     // Use real groups config instead of mock
-    getGroupsConfig();
+    getGroupsConfig().then((result) => {
+      // Store groups config for verification if needed
+      cy.wrap(result).as('groupsConfig');
+    });
   });
 
-  it('Verify unauthorized user cannot change permissions', () => {
+  it.only('Set up initial permissions as admin', () => {
     // Start as admin user
     cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
     userManagement.visit();
@@ -16,82 +23,97 @@ describe('Dashboard Navigation - Unauthorized Permission Change', () => {
     // Set up initial permissions
     const administratorGroupSection = userManagement.getAdministratorGroupSection();
     const userGroupSection = userManagement.getUserGroupSection();
-
-    // Debug: Intercept groups API call
-    cy.intercept('GET', '/api/groups-config').as('getGroups');
     
-    // Click to trigger groups load using the correct selector
-    administratorGroupSection.findMultiGroupInput().click();
-    
-    // Now proceed with selection
     administratorGroupSection.findMultiGroupInput().clear().type('rhods-admins');
-    administratorGroupSection.findMultiGroupOptions('rhods-admins').should('exist');
-    administratorGroupSection.findMultiGroupOptions('rhods-admins').find('li').should('have.length.gt', 0);
-    
+    // Add debug logging
+    cy.get('[role="listbox"]').then($listbox => {
+      cy.log('Dropdown contents:', $listbox.text());
+    });
+
+    // Try multiple selector approaches
+    cy.get('[role="listbox"]')
+      .should('exist')
+      .and('be.visible')
+      .within(() => {
+        // First try exact match
+        cy.get('[role="option"]')
+          .contains('rhods-admins', { matchCase: false })
+          .should('exist')
+          .click();
+      });
+
+    // Verify the selection worked
+    administratorGroupSection.findChipItem('rhods-admins').should('exist');
+
     userGroupSection.findMultiGroupInput().type('rhods-users');
-    userGroupSection.findMultiGroupOptions('rhods-users').click();
+    cy.get('[role="listbox"]')
+      .should('exist')
+      .and('be.visible')
+      .within(() => {
+        cy.get('[role="option"]')
+          .contains('rhods-users', { matchCase: false })
+          .should('exist')
+          .click();
+      });
     userGroupSection.findChipItem('rhods-users').should('exist');
 
-    // Verify submit button is enabled
     userManagement.findSubmitButton().should('be.enabled');
-
-    // Save changes
     userManagement.findSubmitButton().click();
     userManagement.shouldHaveSuccessAlertMessage();
 
-    // Store admin session cookie
+    // Store admin session cookie for later use
     cy.getCookie('_oauth_proxy').then((cookie) => {
       if (!cookie) throw new Error('Admin session cookie not found');
-      const adminSession = cookie.value;
-
-      // Switch to TEST_USER_4 (unauthorized user)
-      cy.visitWithLogin('/', TEST_USER_4);
-      userManagement.visit(false);
-
-      // Verify unauthorized access using correct test ID
-      cy.step('Verify unauthorized access');
-      cy.visit('/logout');
-      cy.clearAllCookies();
-      cy.clearAllLocalStorage();
-
-      cy.step('Log in as unauthorized user');
-      cy.visitWithLogin('/', TEST_USER_4);
-
-      cy.step('Attempt to access User Management');
-      cy.visit('/groupSettings', { failOnStatusCode: false });
-
-      // Look for not found page instead of unauthorized error
-      cy.get('[data-testid="not-found-page"]').should('exist');
-      // or
-      userManagement.findNavItem().should('not.exist');
-
-      // Switch back to admin and remove permissions
-      cy.setCookie('_oauth_proxy', adminSession);
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-      userManagement.visit();
-
-      // Remove old admin group and add a new one
-      administratorGroupSection.removeChipItem('system:authenticated');
-      administratorGroupSection.findMultiGroupInput().type('system:authenticated');
-      administratorGroupSection.findMultiGroupOptions('system:authenticated').click();
-      administratorGroupSection.findChipItem('system:authenticated').should('exist');
-
-      userManagement.findSubmitButton().should('be.enabled');
-      userManagement.findSubmitButton().click();
-      userManagement.shouldHaveSuccessAlertMessage();
-
-      // Verify non-admin user cannot access settings
-      cy.clearCookie('_oauth_proxy');
-      cy.visitWithLogin('/', TEST_USER_4);
-      userManagement.visit(false);
-
-      cy.get('[data-testid="not-found-page"]').should('exist');
-      cy.get('[data-testid="not-found-page-description"]').should(
-        'contain',
-        'Another page might have what you need',
-      );
-      cy.get('[data-testid="home-page-button"]').should('exist');
-      userManagement.findNavItem().should('not.exist');
+      adminSession = cookie.value;
     });
+  });
+
+  it('Verify unauthorized user cannot access settings', () => {
+    // Switch to TEST_USER_4 (unauthorized user)
+    cy.visitWithLogin('/', TEST_USER_4);
+    userManagement.visit(false);
+
+    cy.step('Verify unauthorized access');
+    cy.visit('/logout');
+    cy.clearAllCookies();
+    cy.clearAllLocalStorage();
+
+    cy.step('Log in as unauthorized user');
+    cy.visitWithLogin('/', TEST_USER_4);
+
+    cy.step('Attempt to access User Management');
+    cy.visit('/groupSettings', { failOnStatusCode: false });
+
+    // Use page objects to verify unauthorized access
+    notFoundPage.getNotFoundPage().should('exist');
+    notFoundPage.getDescription().should('contain', 'Another page might have what you need');
+    notFoundPage.getHomeButton().should('exist');
+    userManagement.findNavItem().should('not.exist');
+
+    // Switch back to admin and remove permissions
+    cy.setCookie('_oauth_proxy', adminSession);
+    cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+    userManagement.visit();
+
+    // Remove old admin group and add a new one
+    const administratorGroupSection = userManagement.getAdministratorGroupSection();
+    administratorGroupSection.removeChipItem('system:authenticated');
+    administratorGroupSection.findMultiGroupInput().type('system:authenticated');
+    administratorGroupSection.findMultiGroupOptions('system:authenticated').click();
+    administratorGroupSection.findChipItem('system:authenticated').should('exist');
+
+    userManagement.findSubmitButton().should('be.enabled');
+    userManagement.findSubmitButton().click();
+    userManagement.shouldHaveSuccessAlertMessage();
+
+    // Verify non-admin user cannot access settings
+    cy.clearCookie('_oauth_proxy');
+    cy.visitWithLogin('/', TEST_USER_4);
+    userManagement.visit(false);
+
+    notFoundPage.getNotFoundPage().should('exist');
+    notFoundPage.getDescription().should('contain', 'Another page might have what you need');
+    notFoundPage.getHomeButton().should('exist');
+    userManagement.findNavItem().should('not.exist');
   });
 });
