@@ -6,9 +6,8 @@ import {
   filterLiveModels,
   filterLiveVersions,
   getLastCreatedItem,
-  ObjectStorageFields,
   objectStorageFieldsToUri,
-  uriToObjectStorageFields,
+  uriToStorageFields,
 } from '~/concepts/modelRegistry/utils';
 import { RegisteredModel, ModelState, ModelVersion } from '~/concepts/modelRegistry/types';
 
@@ -79,53 +78,66 @@ describe('objectStorageFieldsToUri', () => {
   });
 });
 
-describe('uriToObjectStorageFields', () => {
+describe('uriToStorageFields', () => {
   it('converts URI to fields with all params present', () => {
-    const fields = uriToObjectStorageFields(
+    const fields = uriToStorageFields(
       's3://test-bucket/demo-models/flan-t5-small-caikit?endpoint=http%3A%2F%2Fs3.amazonaws.com%2F&defaultRegion=us-east-1',
     );
     expect(fields).toEqual({
-      endpoint: 'http://s3.amazonaws.com/',
-      bucket: 'test-bucket',
-      region: 'us-east-1',
-      path: 'demo-models/flan-t5-small-caikit',
-    } satisfies ObjectStorageFields);
+      s3Fields: {
+        endpoint: 'http://s3.amazonaws.com/',
+        bucket: 'test-bucket',
+        region: 'us-east-1',
+        path: 'demo-models/flan-t5-small-caikit',
+      },
+      uri: null,
+    });
   });
 
   it('converts URI to fields with region missing', () => {
-    const fields = uriToObjectStorageFields(
+    const fields = uriToStorageFields(
       's3://test-bucket/demo-models/flan-t5-small-caikit?endpoint=http%3A%2F%2Fs3.amazonaws.com%2F',
     );
     expect(fields).toEqual({
-      endpoint: 'http://s3.amazonaws.com/',
-      bucket: 'test-bucket',
-      path: 'demo-models/flan-t5-small-caikit',
-      region: undefined,
-    } satisfies ObjectStorageFields);
+      s3Fields: {
+        endpoint: 'http://s3.amazonaws.com/',
+        bucket: 'test-bucket',
+        path: 'demo-models/flan-t5-small-caikit',
+        region: undefined,
+      },
+      uri: null,
+    });
   });
 
   it('falls back to null if endpoint is missing', () => {
-    const fields = uriToObjectStorageFields('s3://test-bucket/demo-models/flan-t5-small-caikit');
+    const fields = uriToStorageFields('s3://test-bucket/demo-models/flan-t5-small-caikit');
     expect(fields).toBeNull();
   });
 
   it('falls back to null if path is missing', () => {
-    const fields = uriToObjectStorageFields(
+    const fields = uriToStorageFields(
       's3://test-bucket/?endpoint=http%3A%2F%2Fs3.amazonaws.com%2F&defaultRegion=us-east-1',
     );
     expect(fields).toBeNull();
   });
 
   it('falls back to null if bucket is missing', () => {
-    const fields = uriToObjectStorageFields(
+    const fields = uriToStorageFields(
       's3://?endpoint=http%3A%2F%2Fs3.amazonaws.com%2F&defaultRegion=us-east-1',
     );
     expect(fields).toBeNull();
   });
 
   it('falls back to null if the URI is malformed', () => {
-    const fields = uriToObjectStorageFields('test-bucket/demo-models/flan-t5-small-caikit');
+    const fields = uriToStorageFields('test-bucket/demo-models/flan-t5-small-caikit');
     expect(fields).toBeNull();
+  });
+  it('returns the same URI', () => {
+    const fields = uriToStorageFields('https://model-repository/folder.zip');
+    expect(fields).toEqual({
+      s3Fields: null,
+      uri: 'https://model-repository/folder.zip',
+    });
   });
 });
 

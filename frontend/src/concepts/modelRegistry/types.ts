@@ -1,4 +1,5 @@
 import { K8sAPIOptions } from '~/k8sTypes';
+import { ModelLocationType } from '~/pages/modelRegistry/screens/RegisterModel/useRegisterModelData';
 
 export enum ModelState {
   LIVE = 'LIVE',
@@ -100,6 +101,7 @@ export type ModelArtifact = ModelRegistryBase & {
   storagePath?: string;
   modelFormatVersion?: string;
   serviceAccountName?: string;
+  modelLocationType?: ModelLocationType;
   artifactType: string;
 };
 
