@@ -8,7 +8,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import { DeploymentMode, InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import InferenceServiceTableRow from '~/pages/modelServing/screens/global/InferenceServiceTableRow';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import ServingRuntimeDetails from '~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeDetails';
@@ -38,7 +38,9 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
   onEditKServe,
   onDeleteKServe,
 }) => {
-  const isAuthorinoEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status;
+  const isAuthAvailable =
+    useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status ||
+    obj.metadata.annotations?.['serving.kserve.io/deploymentMode'] === DeploymentMode.RawDeployment;
 
   const [isExpanded, setExpanded] = React.useState(false);
   const {
@@ -92,7 +94,7 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
                   <ServingRuntimeDetails obj={servingRuntime} isvc={obj} />
                 </StackItem>
               )}
-              {isAuthorinoEnabled && (
+              {isAuthAvailable && (
                 <StackItem>
                   <DescriptionList
                     {...(!isInferenceServiceTokenEnabled(obj) && {
