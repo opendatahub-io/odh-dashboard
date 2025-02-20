@@ -6,11 +6,13 @@ import { fireLinkTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUti
 type ExternalLinkProps = {
   text: string;
   to: string;
+  testId?: string;
 };
 
-const ExternalLink: React.FC<ExternalLinkProps> = ({ text, to }) => (
+const ExternalLink: React.FC<ExternalLinkProps> = ({ text, to, testId }) => (
   <Button
     variant="link"
+    data-testid={testId}
     isInline
     onClick={() => {
       window.open(to);
