@@ -14,6 +14,8 @@ import {
   ConnectionTypeValueType,
 } from '~/concepts/connectionTypes/types';
 import { enumIterator } from '~/utilities/utils';
+import { AWSDataEntry, EnvVariableDataEntry } from '~/pages/projects/types';
+import { AwsKeys } from '~/pages/projects/dataConnections/const';
 
 export const isConnectionTypeDataFieldType = (
   type: ConnectionTypeFieldTypeUnion | string,
@@ -132,9 +134,12 @@ export const S3ConnectionTypeKeys = [
   'AWS_S3_BUCKET',
 ];
 
+export const OCIConnectionTypeKeys = ['ACCESS_TYPE', '.dockerconfigjson', 'OCI_HOST'];
+
 export enum ModelServingCompatibleTypes {
   S3ObjectStorage = 'S3 compatible object storage',
   URI = 'URI',
+  OCI = 'OCI compliant registry',
 }
 
 const modelServingCompatibleTypesMetadata: Record<
@@ -156,6 +161,11 @@ const modelServingCompatibleTypesMetadata: Record<
     name: ModelServingCompatibleTypes.URI,
     resource: 'uri-v1',
     envVars: ['URI'],
+  },
+  [ModelServingCompatibleTypes.OCI]: {
+    name: ModelServingCompatibleTypes.OCI,
+    resource: 'oci-v1',
+    envVars: OCIConnectionTypeKeys,
   },
 };
 
@@ -219,6 +229,26 @@ export const getDefaultValues = (
       defaults[field.envVar] = field.properties.defaultValue;
     }
   }
+  return defaults;
+};
+
+export const getMRConnectionValues = (
+  connectionValues: EnvVariableDataEntry[] | string,
+): { [key: string]: ConnectionTypeValueType } => {
+  const defaults: {
+    [key: string]: ConnectionTypeValueType;
+  } = {};
+  if (typeof connectionValues !== 'string') {
+    connectionValues.map((connectionValue) => {
+      if (connectionValue.key !== 'Name') {
+        defaults[connectionValue.key] = connectionValue.value;
+      }
+      return defaults;
+    });
+    return defaults;
+  }
+  defaults.URI = connectionValues;
+
   return defaults;
 };
 
@@ -389,4 +419,25 @@ export const validateEnvVarName = (name: string): string | undefined => {
     return "Must consist of alphabetic characters, digits, '_', '-', or '.'";
   }
   return undefined;
+};
+
+export const convertObjectStorageSecretData = (dataConnection: Connection): AWSDataEntry => {
+  let convertedData: { key: AwsKeys; value: string }[] = [];
+  const secretData = dataConnection.data;
+  if (secretData) {
+    convertedData = Object.values(AwsKeys)
+      .filter((key) => key !== AwsKeys.NAME)
+      .map((key: AwsKeys) => ({
+        key,
+        value: secretData[key] ? window.atob(secretData[key]) : '',
+      }));
+  }
+  const convertedSecret: AWSDataEntry = [
+    {
+      key: AwsKeys.NAME,
+      value: getDisplayNameFromK8sResource(dataConnection),
+    },
+    ...convertedData,
+  ];
+  return convertedSecret;
 };

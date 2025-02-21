@@ -1,4 +1,5 @@
 import {
+  mockCustomSecretK8sResource,
   mockDashboardConfig,
   mockDscStatus,
   mockK8sResourceList,
@@ -24,6 +25,7 @@ import {
 } from '~/concepts/modelRegistry/types';
 import { mockModelRegistryService } from '~/__mocks__/mockModelRegistryService';
 import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
+import { KnownLabels } from '~/k8sTypes';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 const existingModelName = 'model1';
@@ -162,6 +164,18 @@ describe('Register model page', () => {
     registerModelPage.findObjectStorageAutofillButton().should('not.exist');
   });
 
+  it('Has URI autofill button if URI is selected', () => {
+    registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_URI).click();
+    registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_URI).should('be.checked');
+    registerModelPage.findURIAutofillButton().should('be.visible');
+  });
+
+  it('Does not have URI autofill button if URI is not selected', () => {
+    registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_OBJECT_STORAGE).click();
+    registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_URI).should('not.be.checked');
+    registerModelPage.findURIAutofillButton().should('not.exist');
+  });
+
   it('Can open Object storage autofill modal', () => {
     registerModelPage.findConnectionAutofillModal().should('not.exist');
     registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_OBJECT_STORAGE).click();
@@ -169,15 +183,33 @@ describe('Register model page', () => {
     registerModelPage.findConnectionAutofillModal().should('exist');
   });
 
-  it('Project selection with no connections displays message stating no connections available', () => {
+  it('Can open URI autofill modal', () => {
+    registerModelPage.findConnectionAutofillModal().should('not.exist');
+    registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_URI).click();
+    registerModelPage.findURIAutofillButton().click();
+    registerModelPage.findConnectionAutofillModal().should('exist');
+  });
+
+  it('Project selection with no connections displays message stating no object storage connections available', () => {
     registerModelPage.findConnectionAutofillModal().should('not.exist');
     registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_OBJECT_STORAGE).click();
     registerModelPage.findObjectStorageAutofillButton().click();
     registerModelPage
       .findConnectionSelector()
-      .contains('Select a project to view its available data connections');
+      .contains('Select a project to view its available connections');
     registerModelPage.projectDropdown.openAndSelectItem('Test Project', true);
-    registerModelPage.findConnectionSelector().contains('No available data connections');
+    registerModelPage.findConnectionSelector().contains('No available connections');
+  });
+
+  it('Project selection with no connections displays message stating no URI connections available', () => {
+    registerModelPage.findConnectionAutofillModal().should('not.exist');
+    registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_URI).click();
+    registerModelPage.findURIAutofillButton().click();
+    registerModelPage
+      .findConnectionSelector()
+      .contains('Select a project to view its available connections');
+    registerModelPage.projectDropdown.openAndSelectItem('Test Project', true);
+    registerModelPage.findConnectionSelector().contains('No available connections');
   });
 
   it('Project selection with connections displays connections and fills form', () => {
@@ -190,9 +222,9 @@ describe('Register model page', () => {
     registerModelPage.findObjectStorageAutofillButton().click();
     registerModelPage
       .findConnectionSelector()
-      .contains('Select a project to view its available data connections');
+      .contains('Select a project to view its available connections');
     registerModelPage.projectDropdown.openAndSelectItem('Test Project', true);
-    registerModelPage.findConnectionSelector().contains('Select data connection');
+    registerModelPage.findConnectionSelector().contains('Select connection');
     registerModelPage.findConnectionSelector().findDropdownItem('Test Secret').click();
     registerModelPage.findAutofillButton().click();
     registerModelPage.findConnectionAutofillModal().should('not.exist');
@@ -205,6 +237,40 @@ describe('Register model page', () => {
     registerModelPage
       .findFormField(FormFieldSelector.LOCATION_REGION)
       .should('have.value', 'us-east-1');
+  });
+
+  it('Project selection with connections displays connections and fills form', () => {
+    cy.interceptK8sList(
+      SecretModel,
+      mockK8sResourceList([
+        mockCustomSecretK8sResource({
+          namespace: 'test-project',
+          name: 'test-secret',
+          labels: {
+            [KnownLabels.DATA_CONNECTION_AWS]: 'false',
+          },
+          annotations: {
+            'opendatahub.io/connection-type': 'uri-v1',
+            'openshift.io/display-name': 'Test Secret',
+          },
+          data: { URI: 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw' },
+        }),
+      ]),
+    );
+    registerModelPage.findConnectionAutofillModal().should('not.exist');
+    registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_URI).click();
+    registerModelPage.findURIAutofillButton().click();
+    registerModelPage
+      .findConnectionSelector()
+      .contains('Select a project to view its available connections');
+    registerModelPage.projectDropdown.openAndSelectItem('Test Project', true);
+    registerModelPage.findConnectionSelector().contains('Select connection');
+    registerModelPage.findConnectionSelector().findDropdownItem('Test Secret').click();
+    registerModelPage.findAutofillButton().click();
+    registerModelPage.findConnectionAutofillModal().should('not.exist');
+    registerModelPage
+      .findFormField(FormFieldSelector.LOCATION_URI)
+      .should('have.value', 'https://demo-models/some-path.zip');
   });
 
   it('Disables submit until required fields are filled in object storage mode', () => {

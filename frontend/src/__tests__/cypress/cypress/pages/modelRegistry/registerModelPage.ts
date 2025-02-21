@@ -41,6 +41,10 @@ class RegisterModelPage {
     return cy.findByTestId('object-storage-autofill-button');
   }
 
+  findURIAutofillButton() {
+    return cy.findByTestId('uri-autofill-button');
+  }
+
   findConnectionAutofillModal() {
     return cy.findByTestId('connection-autofill-modal');
   }

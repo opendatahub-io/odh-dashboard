@@ -2,11 +2,13 @@ import React from 'react';
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
+import { uriToStorageFields } from '~/concepts/modelRegistry/utils';
 
 export type RegisteredModelDeployInfo = {
   modelName: string;
   modelFormat?: string;
   modelArtifactUri?: string;
+  modelLocationType?: string;
   modelArtifactStorageKey?: string;
   modelVersionId?: string;
   registeredModelId?: string;
@@ -40,6 +42,14 @@ const useRegisteredModelDeployInfo = (
       };
     }
     const modelArtifact = modelArtifactList.items[0];
+    const storageFields = uriToStorageFields(modelArtifact.uri || '');
+    let modelLocationType;
+    if (storageFields?.uri) {
+      modelLocationType = 'uri-v1';
+    }
+    if (storageFields?.s3Fields) {
+      modelLocationType = 's3';
+    }
     return {
       registeredModelDeployInfo: {
         modelName,
@@ -47,6 +57,7 @@ const useRegisteredModelDeployInfo = (
           ? `${modelArtifact.modelFormatName} - ${modelArtifact.modelFormatVersion ?? ''}`
           : undefined,
         modelArtifactUri: modelArtifact.uri,
+        modelLocationType,
         modelArtifactStorageKey: modelArtifact.storageKey,
         modelVersionId: modelVersion.id,
         registeredModelId: modelVersion.registeredModelId,
