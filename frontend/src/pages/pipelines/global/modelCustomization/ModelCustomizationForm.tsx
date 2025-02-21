@@ -10,10 +10,14 @@ import GenericSidebar from '~/components/GenericSidebar';
 import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import { useValidation, ValidationContext } from '~/utilities/useValidation';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
-import { modelCustomizationFormSchema } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
+import {
+  ModelCustomizationFormData,
+  modelCustomizationFormSchema,
+} from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { modelCustomizationRootPath } from '~/routes';
 import { useIlabPipeline } from '~/concepts/pipelines/content/modelCustomizationForm/useIlabPipeline';
+import { ModelCustomizationEndpointType } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
 import FineTunePage from './FineTunePage';
 import { FineTunePageSections, fineTunePageSectionTitles } from './const';
 
@@ -21,8 +25,20 @@ const ModelCustomizationForm: React.FC = () => {
   const { project } = usePipelinesAPI();
   const [ilabPipeline, ilabPipelineLoaded, ilabPipelineLoadError] = useIlabPipeline();
 
-  const [data] = useGenericObjectState({
+  const [data, setData] = useGenericObjectState<ModelCustomizationFormData>({
     projectName: { value: project.metadata.name },
+    teacher: {
+      endpointType: ModelCustomizationEndpointType.PUBLIC,
+      apiToken: '',
+      endpoint: '',
+      modelName: '',
+    },
+    judge: {
+      endpointType: ModelCustomizationEndpointType.PUBLIC,
+      apiToken: '',
+      endpoint: '',
+      modelName: '',
+    },
   });
 
   const validation = useValidation(data, modelCustomizationFormSchema);
@@ -60,6 +76,8 @@ const ModelCustomizationForm: React.FC = () => {
                     )}/${encodeURIComponent(ilabPipeline?.pipeline_version_id ?? '')}/view`,
                   )
                 }
+                data={data}
+                setData={setData}
               />
             </GenericSidebar>
           </PageSection>

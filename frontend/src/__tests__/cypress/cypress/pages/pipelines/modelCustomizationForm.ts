@@ -40,4 +40,26 @@ class ModelCustomizationFormGlobal {
   }
 }
 
+class TeacherModelSection {
+  findEndpointInput() {
+    return cy.findByTestId('teacher-endpoint-input');
+  }
+
+  findModelNameInput() {
+    return cy.findByTestId('teacher-model-name-input');
+  }
+}
+
+class JudgeModelSection {
+  findEndpointInput() {
+    return cy.findByTestId('judge-endpoint-input');
+  }
+
+  findModelNameInput() {
+    return cy.findByTestId('judge-model-name-input');
+  }
+}
+
 export const modelCustomizationFormGlobal = new ModelCustomizationFormGlobal();
+export const teacherModelSection = new TeacherModelSection();
+export const judgeModelSection = new JudgeModelSection();
