@@ -156,7 +156,7 @@ describe('Workbench Hardware Profiles', () => {
 
     // Navigate to workbench creation
     projectDetails.visit(projectName);
-    projectDetails.findSectionTab('workbenches').click({ force: true });
+    projectDetails.findSectionTab('workbenches').click();
     workbenchPage.findCreateButton().click();
 
     // wait for hardware profile select to be loaded in
@@ -175,7 +175,7 @@ describe('Workbench Hardware Profiles', () => {
 
     // Navigate to workbench creation
     projectDetails.visit(projectName);
-    projectDetails.findSectionTab('workbenches').click({ force: true });
+    projectDetails.findSectionTab('workbenches').click();
     workbenchPage.findCreateButton().click();
 
     // Select profile and open customization
@@ -197,7 +197,7 @@ describe('Workbench Hardware Profiles', () => {
 
     // Navigate to workbench creation
     projectDetails.visit(projectName);
-    projectDetails.findSectionTab('workbenches').click({ force: true });
+    projectDetails.findSectionTab('workbenches').click();
     workbenchPage.findCreateButton().click();
 
     // Verify hardware profile section does not exist
