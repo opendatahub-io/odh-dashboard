@@ -155,7 +155,7 @@ const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
           <StackItem>
             {identifier.maxCount !== undefined && (
               <CountFormField
-                fieldId="maximum-allowed-value"
+                fieldId="maximum-allowed"
                 type={identifier.resourceType}
                 size={identifier.maxCount}
                 setSize={(value) => setIdentifier('maxCount', value)}
