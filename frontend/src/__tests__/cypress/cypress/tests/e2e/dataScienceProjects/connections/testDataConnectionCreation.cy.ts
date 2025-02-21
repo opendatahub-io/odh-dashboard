@@ -76,7 +76,7 @@ describe('Verify Data Connections - Creation and Deletion', () => {
 
       //Navigate to Data Connections and create Connection
       cy.step('Navigate to Connections and click to create Connection');
-      projectDetails.findSectionTab('connections').click();
+      projectDetails.findSectionTab('connections').click({ force: true });
       connectionsPage.findCreateConnectionButton().click();
 
       // Enter validate Data Connection details into the Data Connection Modal

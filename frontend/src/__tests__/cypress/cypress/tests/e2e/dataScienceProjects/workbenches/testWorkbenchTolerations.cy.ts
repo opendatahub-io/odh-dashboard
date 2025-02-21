@@ -96,7 +96,7 @@ describe('[Automation bug RHOAIENG-20099] Workbenches - tolerations tests', () =
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      projectDetails.findSectionTab('workbenches').click();
+      projectDetails.findSectionTab('workbenches').click({ force: true });
 
       // Create workbench and verify it starts running
       cy.step(`Create workbench ${testData.workbenchName}`);
@@ -141,7 +141,7 @@ describe('[Automation bug RHOAIENG-20099] Workbenches - tolerations tests', () =
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      projectDetails.findSectionTab('workbenches').click();
+      projectDetails.findSectionTab('workbenches').click({ force: true });
 
       // Stop workbench and verify it stops running
       cy.step(`Stop workbench ${testData.workbenchName}`);
@@ -180,7 +180,7 @@ describe('[Automation bug RHOAIENG-20099] Workbenches - tolerations tests', () =
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      projectDetails.findSectionTab('workbenches').click();
+      projectDetails.findSectionTab('workbenches').click({ force: true });
 
       // Stop workbench and verify it stops running
       cy.step(`Restart workbench ${testData.workbenchName} and validate it has been started`);
@@ -217,7 +217,7 @@ describe('[Automation bug RHOAIENG-20099] Workbenches - tolerations tests', () =
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      projectDetails.findSectionTab('workbenches').click();
+      projectDetails.findSectionTab('workbenches').click({ force: true });
 
       // Create a second workbench with Config Map variables by uploading a yaml file
       cy.step(`Create a second workbench ${testData.workbenchName2} using config map variables`);

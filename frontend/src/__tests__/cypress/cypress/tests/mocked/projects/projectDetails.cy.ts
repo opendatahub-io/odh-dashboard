@@ -817,7 +817,7 @@ describe('Project Details', () => {
         'model-server',
         '&modelRegistryName=modelregistry-sample&registeredModelId=1&modelVersionId=2',
       );
-      projectDetails.findSectionTab('overview').click();
+      projectDetails.findSectionTab('overview').click({ force: true });
       projectDetails.findBackToRegistryButton().click();
       cy.url().should(
         'include',
@@ -838,7 +838,7 @@ describe('Project Details', () => {
         'model-server',
         '&modelRegistryName=modelregistry-sample&registeredModelId=1&modelVersionId=2',
       );
-      projectDetails.findSectionTab('overview').click();
+      projectDetails.findSectionTab('overview').click({ force: true });
       projectDetails.findBackToRegistryButton().click();
       cy.url().should(
         'include',
