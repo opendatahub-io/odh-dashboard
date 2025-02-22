@@ -19,6 +19,30 @@ export const NIMAvailabilityContext = React.createContext<NIMAvailabilityContext
   refresh: async () => undefined,
 });
 
+const useNIMAvailabilitySync = (isNIMAvailable: boolean) => {
+  const [syncedIsNIMAvailable, setSyncedIsNIMAvailable] = React.useState(isNIMAvailable);
+  const channel = React.useRef(new BroadcastChannel('nim_availability'));
+
+  React.useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      setSyncedIsNIMAvailable(event.data);
+    };
+    const channelCurrent = channel.current;
+    channelCurrent.addEventListener('message', handleMessage);
+    return () => channelCurrent.removeEventListener('message', handleMessage);
+  }, []);
+
+  React.useEffect(() => {
+    channel.current.postMessage(syncedIsNIMAvailable);
+  }, [syncedIsNIMAvailable]);
+
+  React.useEffect(() => {
+    setSyncedIsNIMAvailable(isNIMAvailable);
+  }, [isNIMAvailable]);
+
+  return syncedIsNIMAvailable;
+};
+
 export const NimContextProvider: React.FC<NIMAvailabilityContextProviderProps> = ({
   children,
   ...props
@@ -26,10 +50,11 @@ export const NimContextProvider: React.FC<NIMAvailabilityContextProviderProps> =
 
 const EnabledNimContextProvider: React.FC<NIMAvailabilityContextProviderProps> = ({ children }) => {
   const [isNIMAvailable, loaded, error, refresh] = useIsNIMAvailable();
+  const syncedIsNIMAvailable = useNIMAvailabilitySync(isNIMAvailable);
 
   const contextValue = React.useMemo(
-    () => ({ isNIMAvailable, loaded, error, refresh }),
-    [isNIMAvailable, loaded, error, refresh],
+    () => ({ isNIMAvailable: syncedIsNIMAvailable, loaded, error, refresh }),
+    [syncedIsNIMAvailable, loaded, error, refresh],
   );
 
   return (
