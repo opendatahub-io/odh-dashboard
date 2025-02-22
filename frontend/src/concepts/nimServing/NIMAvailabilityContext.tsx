@@ -27,8 +27,9 @@ const useNIMAvailabilitySync = (isNIMAvailable: boolean) => {
     const handleMessage = (event: MessageEvent) => {
       setSyncedIsNIMAvailable(event.data);
     };
-    channel.current.addEventListener('message', handleMessage);
-    return () => channel.current.removeEventListener('message', handleMessage);
+    const channelCurrent = channel.current;
+    channelCurrent.addEventListener('message', handleMessage);
+    return () => channelCurrent.removeEventListener('message', handleMessage);
   }, []);
 
   React.useEffect(() => {

@@ -42,8 +42,7 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
   const { enablement } = dashboardConfig.spec.dashboardConfig;
   const [{ isEnabled, canInstall, error }, loaded] = useIntegratedAppStatus(selectedApp);
   const { isAdmin } = useUser();
-  const { isNIMAvailable, refresh } = React.useContext(NIMAvailabilityContext);
-  console.log(isNIMAvailable);
+  const { isNIMAvailable } = React.useContext(NIMAvailabilityContext);
   if (!selectedApp) {
     return null;
   }

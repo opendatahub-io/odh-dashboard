@@ -6,9 +6,9 @@ import { isEmpty, values } from 'lodash-es';
 import { OdhApplication } from '~/types';
 import { EnableApplicationStatus, useEnableApplication } from '~/utilities/useEnableApplication';
 import { asEnumMember } from '~/utilities/utils';
+import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import EnableVariable from './EnableVariable';
 import './EnableModal.scss';
-import useServingPlatformStatuses from '../modelServing/useServingPlatformStatuses';
 
 type EnableModalProps = {
   selectedApp: OdhApplication;
@@ -79,6 +79,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
     validationErrorMessage,
     validationInProgress,
     validationStatus,
+    servingPlatformStatuses,
   ]);
 
   React.useEffect(() => {
