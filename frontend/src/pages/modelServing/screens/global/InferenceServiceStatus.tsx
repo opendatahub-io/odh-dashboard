@@ -8,6 +8,7 @@ import {
 } from '@patternfly/react-icons';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
+import { NIMAvailabilityContext } from '~/concepts/nimServing/NIMAvailabilityContext';
 import { getInferenceServiceModelState, getInferenceServiceStatusMessage } from './utils';
 import { useModelStatus } from './useModelStatus';
 
@@ -118,10 +119,11 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
         return 'Inference Service Status';
     }
   };
+  const { isNIMAvailable } = React.useContext(NIMAvailabilityContext);
 
   const bodyContent = modelStatus?.failedToSchedule
     ? 'Insufficient resources'
-    : getInferenceServiceStatusMessage(inferenceService, servingRuntime);
+    : getInferenceServiceStatusMessage(inferenceService, servingRuntime, isNIMAvailable);
 
   return (
     <Popover

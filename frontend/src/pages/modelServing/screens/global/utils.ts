@@ -2,11 +2,7 @@ import { InferenceServiceKind, ProjectKind, PodKind, ServingRuntimeKind } from '
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { InferenceServiceModelState, ModelStatus } from '~/pages/modelServing/screens/types';
 import { asEnumMember } from '~/utilities/utils';
-import { useAppContext } from '~/app/AppContext';
-import { useIntegratedAppStatus } from '~/pages/exploreApplication/useIntegratedAppStatus';
-import { NIMAvailabilityContext } from '~/concepts/nimServing/NIMAvailabilityContext';
-import React from 'react';
-import { getDisplayNameFromServingRuntimeTemplate } from '../../customServingRuntimes/utils';
+import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
 
 export const getInferenceServiceModelState = (
   is: InferenceServiceKind,
@@ -18,12 +14,10 @@ export const getInferenceServiceModelState = (
 export const getInferenceServiceStatusMessage = (
   is: InferenceServiceKind,
   ServingRuntime?: ServingRuntimeKind,
+  isNIMAvailable?: boolean,
 ): string => {
-  const { isNIMAvailable } = React.useContext(NIMAvailabilityContext);
   const isNIMModel =
-    isNIMAvailable &&
-    ServingRuntime &&
-    getDisplayNameFromServingRuntimeTemplate(ServingRuntime) === 'NVIDIA NIM';
+    ServingRuntime && getDisplayNameFromServingRuntimeTemplate(ServingRuntime) === 'NVIDIA NIM';
   const activeModelState = is.status?.modelStatus?.states?.activeModelState;
   const targetModelState = is.status?.modelStatus?.states?.targetModelState;
 
