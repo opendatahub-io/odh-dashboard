@@ -1,7 +1,12 @@
-import { InferenceServiceKind, ProjectKind, PodKind } from '~/k8sTypes';
+import { InferenceServiceKind, ProjectKind, PodKind, ServingRuntimeKind } from '~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { InferenceServiceModelState, ModelStatus } from '~/pages/modelServing/screens/types';
 import { asEnumMember } from '~/utilities/utils';
+import { useAppContext } from '~/app/AppContext';
+import { useIntegratedAppStatus } from '~/pages/exploreApplication/useIntegratedAppStatus';
+import { NIMAvailabilityContext } from '~/concepts/nimServing/NIMAvailabilityContext';
+import React from 'react';
+import { getDisplayNameFromServingRuntimeTemplate } from '../../customServingRuntimes/utils';
 
 export const getInferenceServiceModelState = (
   is: InferenceServiceKind,
@@ -10,16 +15,26 @@ export const getInferenceServiceModelState = (
   asEnumMember(is.status?.modelStatus?.states?.activeModelState, InferenceServiceModelState) ||
   InferenceServiceModelState.UNKNOWN;
 
-export const getInferenceServiceStatusMessage = (is: InferenceServiceKind): string => {
+export const getInferenceServiceStatusMessage = (
+  is: InferenceServiceKind,
+  ServingRuntime?: ServingRuntimeKind,
+): string => {
+  const { isNIMAvailable } = React.useContext(NIMAvailabilityContext);
+  const isNIMModel =
+    isNIMAvailable &&
+    ServingRuntime &&
+    getDisplayNameFromServingRuntimeTemplate(ServingRuntime) === 'NVIDIA NIM';
   const activeModelState = is.status?.modelStatus?.states?.activeModelState;
   const targetModelState = is.status?.modelStatus?.states?.targetModelState;
 
   const stateMessage = (targetModelState || activeModelState) ?? 'Unknown';
-
   if (
     activeModelState === InferenceServiceModelState.FAILED_TO_LOAD ||
     targetModelState === InferenceServiceModelState.FAILED_TO_LOAD
   ) {
+    if (isNIMModel && !isNIMAvailable) {
+      return 'Model failed to load due to disabled NIM or invalid API key.';
+    }
     const lastFailureMessage = is.status?.modelStatus?.lastFailureInfo?.message;
     return lastFailureMessage || stateMessage;
   }
@@ -29,7 +44,9 @@ export const getInferenceServiceStatusMessage = (is: InferenceServiceKind): stri
     (targetModelState === InferenceServiceModelState.LOADING ||
       targetModelState === InferenceServiceModelState.PENDING)
   ) {
-    return 'Redeploying';
+    return isNIMModel && !isNIMAvailable
+      ? 'Model is pending due to disabled NIM or invalid API key.'
+      : 'Redeploying';
   }
 
   return stateMessage;

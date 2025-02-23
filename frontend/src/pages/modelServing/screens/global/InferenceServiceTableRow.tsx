@@ -101,7 +101,11 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
       )}
 
       <Td dataLabel="Status">
-        <InferenceServiceStatus inferenceService={inferenceService} isKserve={!modelMesh} />
+        <InferenceServiceStatus
+          inferenceService={inferenceService}
+          isKserve={!modelMesh}
+          servingRuntime={servingRuntime}
+        />
       </Td>
 
       {columnNames.includes(ColumnField.Kebab) && (
