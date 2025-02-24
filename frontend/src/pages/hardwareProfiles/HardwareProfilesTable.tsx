@@ -11,13 +11,20 @@ import {
 import HardwareProfilesTableRow from '~/pages/hardwareProfiles/HardwareProfilesTableRow';
 import DeleteHardwareProfileModal from '~/pages/hardwareProfiles/DeleteHardwareProfileModal';
 import HardwareProfilesToolbar from '~/pages/hardwareProfiles/HardwareProfilesToolbar';
+import { MigrationAction } from './migration/types';
 
 type HardwareProfilesTableProps = {
   hardwareProfiles: HardwareProfileKind[];
+  getMigrationAction: (name: string) => MigrationAction | undefined;
 };
 
-const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({ hardwareProfiles }) => {
-  const [deleteHardwareProfile, setDeleteHardwareProfile] = React.useState<HardwareProfileKind>();
+const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
+  hardwareProfiles,
+  getMigrationAction,
+}) => {
+  const [deleteHardwareProfile, setDeleteHardwareProfile] = React.useState<
+    { hardwareProfile: HardwareProfileKind; migrationAction?: MigrationAction } | undefined
+  >();
   const [filterData, setFilterData] = React.useState<HardwareProfileFilterDataType>(
     initialHardwareProfileFilterData,
   );
@@ -66,21 +73,28 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({ hardwareP
         defaultSortColumn={1}
         emptyTableView={<DashboardEmptyTableView onClearFilters={resetFilters} />}
         disableRowRenderSupport
-        rowRenderer={(cr, index) => (
-          <HardwareProfilesTableRow
-            key={cr.metadata.name}
-            rowIndex={index}
-            hardwareProfile={cr}
-            handleDelete={(hardwareProfile) => setDeleteHardwareProfile(hardwareProfile)}
-          />
-        )}
+        rowRenderer={(cr, index) => {
+          const migrationAction = getMigrationAction(cr.metadata.name);
+          return (
+            <HardwareProfilesTableRow
+              key={cr.metadata.name}
+              rowIndex={index}
+              hardwareProfile={cr}
+              handleDelete={(hardwareProfile) =>
+                setDeleteHardwareProfile({ hardwareProfile, migrationAction })
+              }
+              migrationAction={migrationAction}
+            />
+          );
+        }}
         toolbarContent={
           <HardwareProfilesToolbar onFilterUpdate={onFilterUpdate} filterData={filterData} />
         }
       />
       {deleteHardwareProfile ? (
         <DeleteHardwareProfileModal
-          hardwareProfile={deleteHardwareProfile}
+          hardwareProfile={deleteHardwareProfile.hardwareProfile}
+          migrationAction={deleteHardwareProfile.migrationAction}
           onClose={() => {
             setDeleteHardwareProfile(undefined);
           }}

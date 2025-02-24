@@ -1,8 +1,8 @@
 import { HardwareProfileKind } from '~/k8sTypes';
-import { determineUnit, splitValueUnit } from '~/utilities/valueUnits';
 import { Identifier } from '~/types';
 import { HardwareProfileWarningType, WarningNotification } from '~/concepts/hardwareProfiles/types';
 import { hardwareProfileWarningSchema } from '~/concepts/hardwareProfiles/validationUtils';
+import { determineUnit, splitValueUnit } from '~/utilities/valueUnits';
 import { HARDWARE_PROFILES_DEFAULT_WARNING_MESSAGE } from './nodeResource/const';
 import { hasCPUandMemory } from './manage/ManageNodeResourceSection';
 
@@ -96,7 +96,7 @@ export const isHardwareProfileIdentifierValid = (identifier: Identifier): boolea
   try {
     if (
       identifier.minCount.toString().at(0) === '-' ||
-      identifier.maxCount.toString().at(0) === '-' ||
+      (identifier.maxCount && identifier.maxCount.toString().at(0) === '-') ||
       identifier.defaultCount.toString().at(0) === '-'
     ) {
       return false;
@@ -106,11 +106,9 @@ export const isHardwareProfileIdentifierValid = (identifier: Identifier): boolea
       determineUnit(identifier),
       true,
     );
-    const [maxCount] = splitValueUnit(
-      identifier.maxCount.toString(),
-      determineUnit(identifier),
-      true,
-    );
+    const [maxCount] = identifier.maxCount
+      ? splitValueUnit(identifier.maxCount.toString(), determineUnit(identifier), true)
+      : [undefined];
     const [defaultCount] = splitValueUnit(
       identifier.defaultCount.toString(),
       determineUnit(identifier),
@@ -118,11 +116,11 @@ export const isHardwareProfileIdentifierValid = (identifier: Identifier): boolea
     );
     if (
       !Number.isInteger(minCount) ||
-      !Number.isInteger(maxCount) ||
+      (maxCount !== undefined && !Number.isInteger(maxCount)) ||
       !Number.isInteger(defaultCount) ||
-      minCount > maxCount ||
+      (maxCount && minCount > maxCount) ||
       defaultCount < minCount ||
-      defaultCount > maxCount
+      (maxCount && defaultCount > maxCount)
     ) {
       return false;
     }

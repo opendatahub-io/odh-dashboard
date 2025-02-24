@@ -1,7 +1,7 @@
 import React from 'react';
-import { useDashboardNamespace } from '~/redux/selectors';
 import { MultiSelection } from '~/components/MultiSelection';
-import useHardwareProfiles from '~/pages/hardwareProfiles/useHardwareProfiles';
+import { HardwareProfileVisibleIn } from '~/k8sTypes';
+import { useHardwareProfilesByArea } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByArea';
 
 type HardwareProfileIdentifierMultiselectProps = {
   data: string[];
@@ -11,8 +11,7 @@ type HardwareProfileIdentifierMultiselectProps = {
 export const HardwareProfileIdentifierMultiselect: React.FC<
   HardwareProfileIdentifierMultiselectProps
 > = ({ data, setData }) => {
-  const { dashboardNamespace } = useDashboardNamespace();
-  const [hardwareProfiles] = useHardwareProfiles(dashboardNamespace);
+  const [hardwareProfiles] = useHardwareProfilesByArea([HardwareProfileVisibleIn.NOTEBOOKS]);
 
   const identifiers = React.useMemo(() => {
     const uniqueIdentifiers = new Set<string>(data);

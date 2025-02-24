@@ -38,6 +38,7 @@ describe('ManageInferenceServiceModal', () => {
       dashboardConfig: mockDashboardConfig({}),
       storageClasses: [],
       isRHOAI: false,
+      refreshDashboardConfig: jest.fn(),
     });
 
     const currentProject = mockProjectK8sResource({});

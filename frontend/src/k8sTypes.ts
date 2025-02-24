@@ -1240,6 +1240,7 @@ export type DashboardConfigKind = K8sResourceCommon & {
 export type AcceleratorProfileKind = K8sResourceCommon & {
   metadata: {
     name: string;
+    namespace: string;
     annotations?: Partial<{
       'opendatahub.io/modified-date': string;
     }>;
@@ -1253,10 +1254,20 @@ export type AcceleratorProfileKind = K8sResourceCommon & {
   };
 };
 
+export enum HardwareProfileVisibleIn {
+  NOTEBOOKS = 'notebooks',
+  SERVING = 'serving',
+  INSTRUCTLAB = 'instructlab',
+}
+
 export type HardwareProfileKind = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;
+    annotations?: Partial<{
+      // JSON stringified HardwareProfileVisibleIn[]
+      'opendatahub.io/visible-in': string;
+    }>;
   };
   spec: {
     displayName: string;

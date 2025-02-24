@@ -9,9 +9,8 @@ import {
 } from '@patternfly/react-core';
 import * as React from 'react';
 import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
-import { HardwareProfileKind } from '~/k8sTypes';
-import useHardwareProfiles from '~/pages/hardwareProfiles/useHardwareProfiles';
-import { useDashboardNamespace } from '~/redux/selectors';
+import { HardwareProfileKind, HardwareProfileVisibleIn } from '~/k8sTypes';
+import { useHardwareProfilesByArea } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByArea';
 import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
 import { HardwareProfileConfig } from './useHardwareProfileConfig';
 
@@ -21,6 +20,7 @@ type HardwareProfileSelectProps = {
   allowExistingSettings: boolean;
   isHardwareProfileSupported: (profile: HardwareProfileKind) => boolean;
   onChange: (profile: HardwareProfileKind | undefined) => void;
+  visibleIn?: HardwareProfileVisibleIn[];
 };
 
 const EXISTING_SETTINGS_KEY = '.existing';
@@ -31,9 +31,9 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   allowExistingSettings = false,
   isHardwareProfileSupported,
   onChange,
+  visibleIn = [],
 }) => {
-  const { dashboardNamespace } = useDashboardNamespace();
-  const [hardwareProfiles, loaded, error] = useHardwareProfiles(dashboardNamespace);
+  const [hardwareProfiles, loaded, error] = useHardwareProfilesByArea(visibleIn);
 
   const options = React.useMemo(() => {
     const enabledProfiles = hardwareProfiles.filter((hp) => hp.spec.enabled);

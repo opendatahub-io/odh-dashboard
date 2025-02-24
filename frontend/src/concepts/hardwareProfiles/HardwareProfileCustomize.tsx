@@ -104,7 +104,7 @@ const HardwareProfileCustomize: React.FC<HardwareProfileCustomizeProps> = ({
               </HelperTextItem>
             )}
             <HelperTextItem>
-              Min = {identifier.minCount}, Max = {identifier.maxCount}
+              Min = {identifier.minCount}, Max = {identifier.maxCount || 'unrestricted'}
             </HelperTextItem>
           </HelperText>
         </FormHelperText>

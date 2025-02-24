@@ -56,8 +56,9 @@ const matchToHardwareProfile = (
       if (identifier.identifier === 'memory') {
         return (
           // max is larger or equal
-          isMemoryLimitLarger(requestValue.toString(), identifier.maxCount.toString(), true) &&
-          isMemoryLimitLarger(limitValue.toString(), identifier.maxCount.toString(), true) &&
+          (!identifier.maxCount ||
+            (isMemoryLimitLarger(requestValue.toString(), identifier.maxCount.toString(), true) &&
+              isMemoryLimitLarger(limitValue.toString(), identifier.maxCount.toString(), true))) &&
           // min is smaller or equal
           isMemoryLimitLarger(identifier.minCount.toString(), requestValue.toString(), true) &&
           isMemoryLimitLarger(identifier.minCount.toString(), limitValue.toString(), true)

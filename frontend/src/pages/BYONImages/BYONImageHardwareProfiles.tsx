@@ -11,13 +11,12 @@ import {
 import { PlusIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { BYONImage } from '~/types';
-import { HardwareProfileKind } from '~/k8sTypes';
-import { FetchState } from '~/utilities/useFetchState';
 import { filterHardwareProfilesByRecommendedIdentifiers } from '~/pages/BYONImages/utils';
+import { useHardwareProfilesByArea } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByArea';
 
 type BYONImageHardwareProfilesProps = {
   image: BYONImage;
-  hardwareProfiles: FetchState<HardwareProfileKind[]>;
+  hardwareProfiles: ReturnType<typeof useHardwareProfilesByArea>;
 };
 
 const BYONImageHardwareProfiles: React.FC<BYONImageHardwareProfilesProps> = ({
