@@ -67,7 +67,7 @@ describe('[Automation Bug RHOAIENG-20128] Start, Stop, Launch and Delete a Workb
       projectListPage.navigate();
       projectListPage.filterProjectByName(controlSuiteTestNamespace);
       projectListPage.findProjectLink(controlSuiteTestNamespace).click();
-      projectDetails.findSectionTab('workbenches').click();
+      projectDetails.findSectionTab('workbenches').click({ force: true });
 
       // Create workbench
       cy.step(`Create workbench ${controlSuiteTestNamespace}`);
@@ -122,7 +122,7 @@ describe('[Automation Bug RHOAIENG-20128] Start, Stop, Launch and Delete a Workb
       projectListPage.navigate();
       projectListPage.filterProjectByName(controlSuiteTestNamespace);
       projectListPage.findProjectLink(controlSuiteTestNamespace).click();
-      projectDetails.findSectionTab('workbenches').click();
+      projectDetails.findSectionTab('workbenches').click({ force: true });
 
       // Create workbench
       cy.step(`Create workbench ${controlSuiteTestNamespace}`);
