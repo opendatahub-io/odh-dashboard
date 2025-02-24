@@ -12,8 +12,12 @@ type State = ModelCatalogSource[];
 // Temporary implementation for MVP - will be replaced with API for remote model catalog sources
 // See: https://issues.redhat.com/browse/RHOAISTRAT-455
 
-const isModelCatalogSource = (obj: unknown): obj is ModelCatalogSource =>
-  typeof obj === 'object' && obj !== null; // Add more specific checks based on ModelCatalogSource type
+const isK8sNotFoundError = (e: unknown): boolean =>
+  typeof e === 'object' &&
+  e != null &&
+  'statusObject' in e &&
+  isK8sStatus(e.statusObject) &&
+  e.statusObject.code === 404;
 
 export const useModelCatalogSources = (): FetchState<State> => {
   const { dashboardNamespace } = useNamespaces();
@@ -30,23 +34,11 @@ export const useModelCatalogSources = (): FetchState<State> => {
         return [];
       }
 
-      try {
-        const parsed = JSON.parse(configMap.data.modelCatalogSource);
-        if (isModelCatalogSource(parsed)) {
-          return [parsed];
-        }
-        return [];
-      } catch (e) {
-        // Swallow JSON parse errors and return empty array
-        return [];
-      }
+      const parsed = JSON.parse(configMap.data.modelCatalogSource);
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      return parsed ? [parsed as ModelCatalogSource] : [];
     } catch (e: unknown) {
-      if (
-        typeof e === 'object' &&
-        e != null &&
-        'statusObject' in e &&
-        isK8sStatus(e.statusObject)
-      ) {
+      if (isK8sNotFoundError(e)) {
         return [];
       }
       throw e;

@@ -117,28 +117,6 @@ describe('Model Details loading states', () => {
     modelDetailsPage.findModelCatalogEmptyState().should('exist');
   });
 
-  it('should show empty state when configmap has malformed data', () => {
-    cy.interceptK8s(
-      {
-        model: ConfigMapModel,
-        ns: 'opendatahub',
-        name: 'model-catalog-source-redhat',
-      },
-      {
-        apiVersion: 'v1',
-        kind: 'ConfigMap',
-        metadata: {
-          name: 'model-catalog-source-redhat',
-          namespace: 'opendatahub',
-        },
-        data: { modelCatalogSource: 'invalid JSON here' },
-      },
-    );
-
-    modelDetailsPage.visit();
-    modelDetailsPage.findModelCatalogEmptyState().should('exist');
-  });
-
   it('should show error state when configmap fetch fails (non-404)', () => {
     cy.interceptK8s(
       {
@@ -160,8 +138,31 @@ describe('Model Details loading states', () => {
     );
 
     modelDetailsPage.visit();
-    cy.contains('Unable to load model details').should('exist');
+    cy.contains('Unable to load model catalog').should('exist');
   });
+
+  it('should show error state when configmap has malformed data', () => {
+    cy.interceptK8s(
+      {
+        model: ConfigMapModel,
+        ns: 'opendatahub',
+        name: 'model-catalog-source-redhat',
+      },
+      {
+        apiVersion: 'v1',
+        kind: 'ConfigMap',
+        metadata: {
+          name: 'model-catalog-source-redhat',
+          namespace: 'opendatahub',
+        },
+        data: { modelCatalogSource: 'invalid JSON here' },
+      },
+    );
+
+    modelDetailsPage.visit();
+    cy.contains('Unable to load model catalog').should('exist');
+  });
+
   it('should show model details when configmap has valid data', () => {
     cy.interceptK8s(
       {

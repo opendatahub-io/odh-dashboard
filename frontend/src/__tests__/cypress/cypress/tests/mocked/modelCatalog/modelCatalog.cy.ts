@@ -118,7 +118,17 @@ describe('Model Catalog loading states', () => {
         ns: 'opendatahub',
         name: 'model-catalog-source-redhat',
       },
-      { statusCode: 500 },
+      {
+        statusCode: 500,
+        body: {
+          kind: 'Status',
+          apiVersion: 'v1',
+          status: 'Failure',
+          message: 'Internal server error',
+          reason: 'InternalError',
+          code: 500,
+        },
+      },
     );
 
     modelCatalog.visit();
@@ -140,9 +150,7 @@ describe('Model Catalog loading states', () => {
           namespace: 'opendatahub',
         },
         data: {
-          modelCatalogSource: JSON.stringify({
-            models: [],
-          }),
+          modelCatalogSource: '',
         },
       },
     );
@@ -169,7 +177,7 @@ describe('Model Catalog loading states', () => {
     );
 
     modelCatalog.visit();
-    modelCatalog.findModelCatalogEmptyState().should('exist');
+    cy.contains('Unable to load model catalog').should('exist');
   });
 
   it('should show model catalog when configmap has valid data', () => {
