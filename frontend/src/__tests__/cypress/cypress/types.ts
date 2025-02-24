@@ -123,6 +123,13 @@ export type WBStatusTestData = {
   wbStatusTestDescription: string;
 };
 
+export type WBNegativeTestsData = {
+  wbNegativeTestNamespace: string;
+  pvcNegativeTestName: string;
+  pvcNegativeTestDisplayName: string;
+  pvcNegativeSize: string;
+};
+
 export type CommandLineResult = {
   code: number;
   stdout: string;
