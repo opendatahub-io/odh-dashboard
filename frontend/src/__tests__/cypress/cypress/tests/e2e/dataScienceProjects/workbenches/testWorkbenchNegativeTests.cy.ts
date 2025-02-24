@@ -1,4 +1,4 @@
-import type { WBStatusTestData } from '~/__tests__/cypress/cypress/types';
+import type { WBNegativeTestsData } from '~/__tests__/cypress/cypress/types';
 import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import {
   workbenchPage,
@@ -6,7 +6,7 @@ import {
   workbenchStatusModal,
 } from '~/__tests__/cypress/cypress/pages/workbench';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { loadWBStatusFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
+import { loadWBNegativeTestsFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import {
@@ -14,16 +14,14 @@ import {
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
-describe('Workbenches - status tests', () => {
+describe('Workbenches - negative tests', () => {
   let projectName: string;
-  let projectDescription: string;
 
   // Setup: Load test data and ensure clean state
   retryableBefore(() => {
-    return loadWBStatusFixture('e2e/dataScienceProjects/testWorkbenchStatus.yaml')
-      .then((fixtureData: WBStatusTestData) => {
-        projectName = fixtureData.wbStatusTestNamespace;
-        projectDescription = fixtureData.wbStatusTestDescription;
+    return loadWBNegativeTestsFixture('e2e/dataScienceProjects/testWorkbenchNegativeTests.yaml')
+      .then((fixtureData: WBNegativeTestsData) => {
+        projectName = fixtureData.wbNegativeTestNamespace;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
@@ -48,8 +46,8 @@ describe('Workbenches - status tests', () => {
   });
 
   it(
-    'Verify user can access progress and event log - validate status and successful workbench creation',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1970', '@Dashboard', '@Workbenches'] },
+    'Verify UI informs users about workbenches failed to start',
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1973', '@Dashboard', '@Workbenches'] },
     () => {
       const workbenchName = projectName.replace('dsp-', '');
 
@@ -68,41 +66,19 @@ describe('Workbenches - status tests', () => {
       cy.step(`Create workbench ${workbenchName}`);
       workbenchPage.findCreateButton().click();
       createSpawnerPage.getNameInput().fill(workbenchName);
-      createSpawnerPage.getDescriptionInput().type(projectDescription);
       createSpawnerPage.findNotebookImage('code-server-notebook').click();
+      createSpawnerPage.findContainerSizeInput('Small').click();
+      cy.contains('X Large').click();
+
       createSpawnerPage.findSubmitButton().click();
 
-      // Wait for workbench to run
-      cy.step(`Wait for workbench ${workbenchName} to display a "Running" status`);
+      // Confirm that the Workbench does not start
+      cy.step(`Wait for workbench ${workbenchName} to display a "Failed" status`);
       const notebookRow = workbenchPage.getNotebookRow(workbenchName);
-      notebookRow.findNotebookDescription(projectDescription);
-      notebookRow.expectStatusLabelToBe('Running', 120000);
-      notebookRow.shouldHaveNotebookImageName('code-server');
-      notebookRow.shouldHaveContainerSize('Small');
+      notebookRow.expectStatusLabelToBe('Failed', 120000);
 
-      // Click on 'Running' status and validate the Progress steps
-      cy.step(
-        'Click on Running status, validate the Running status and navigate to the Progress tab',
-      );
       notebookRow.findHaveNotebookStatusText().click();
-      workbenchStatusModal.getNotebookStatus('Running');
-
-      cy.step('Verify that each Progress Step in the list displays with a Success icon');
-      workbenchStatusModal.findProgressTab().click();
-      workbenchStatusModal.findProgressSteps().each(($step) => {
-        workbenchStatusModal.assertStepSuccess($step).then(() => {
-          workbenchStatusModal.getStepTitle($step).then((stepTitle) => {
-            cy.log(`✅ Step "${stepTitle}" is successful`);
-          });
-        });
-      });
-
-      // Click on the Events log and validate that successful list messages display
-      cy.step('Verify that each Events log in the list displays with a Successful Message');
-      workbenchStatusModal.findEventlogTab().click();
-      workbenchStatusModal.findLogEntry('Created container oauth-proxy');
-      workbenchStatusModal.findLogEntry('Started container oauth-proxy');
-      workbenchStatusModal.findLogEntry('Successfully pulled image');
+      workbenchStatusModal.getNotebookStatus('Failed');
     },
   );
 });
