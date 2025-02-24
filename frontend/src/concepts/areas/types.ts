@@ -87,6 +87,24 @@ export enum StackComponent {
   MODEL_REGISTRY = 'model-registry-operator',
 }
 
+/** The possible component names that are used as keys in the `components` object of the DSC Status.
+ * Each component's key (e.g., 'codeflare', 'dashboard', etc.) maps to a specific component status.
+ **/
+export enum DataScienceStackComponent {
+  CODE_FLARE = 'codeflare',
+  DASHBOARD = 'dashboard',
+  DS_PIPELINES = 'datasciencepipelines',
+  K_SERVE = 'kserve',
+  KUEUE = 'kueue',
+  MODEL_MESH_SERVING = 'modelmeshserving',
+  MODEL_REGISTRY = 'modelregistry',
+  FEAST_OPERATOR = 'feastoperator',
+  RAY = 'ray',
+  TRAINING_OPERATOR = 'trainingoperator',
+  TRUSTY_AI = 'trustyai',
+  WORKBENCHES = 'workbenches',
+}
+
 /** Capabilities of the Operator. Part of the DSCI Status. */
 export enum StackCapability {
   SERVICE_MESH = 'CapabilityServiceMesh',
