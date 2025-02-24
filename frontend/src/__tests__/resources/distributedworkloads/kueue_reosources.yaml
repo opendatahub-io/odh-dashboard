@@ -1,0 +1,32 @@
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ResourceFlavor
+metadata:
+  name: "${flavorName}"
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ClusterQueue
+metadata:
+  name: "${clusterQueueName}"
+spec:
+  namespaceSelector: {} 
+  resourceGroups:
+  - coveredResources: ["cpu", "memory", "nvidia.com/gpu"]
+    flavors:
+    - name: "${flavorName}"
+      resources:
+      - name: "cpu"
+        nominalQuota: ${cpuQuota}
+      - name: "memory"
+        nominalQuota: ${memoryQuota}Gi
+      - name: "nvidia.com/gpu"
+        nominalQuota: 0
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: LocalQueue
+metadata:
+  namespace: "${namespace}"
+  name: "dynamic-user-queue"
+  annotations:
+      "kueue.x-k8s.io/default-queue": "true"
+spec:
+  clusterQueue: "${clusterQueueName}"

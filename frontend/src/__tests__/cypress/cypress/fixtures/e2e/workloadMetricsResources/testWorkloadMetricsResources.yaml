@@ -1,0 +1,8 @@
+# Workload metrics test data
+projectName: "test-dw-ui-proj"
+resourceFlavour: "test-resource-flavor"
+clusterQueue: "test-cluster-queue"
+localQueue: "test-local-queue"
+cpuQuota: 5
+memoryQuota: 36
+refreshIntervals: ["15 seconds", "30 seconds", "1 minute", "5 minutes", "15 minutes", "30 minutes", "1 hour", "2 hours", "1 day"]
