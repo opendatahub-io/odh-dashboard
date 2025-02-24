@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { ModelCustomizationEndpointType, ModelCustomizationRunType } from './types';
+import {
+  FineTuneTaxonomyType,
+  ModelCustomizationEndpointType,
+  ModelCustomizationRunType,
+} from './types';
 
 export const modelRegistrySchema = z.object({
   properties: z.object({
@@ -116,6 +120,29 @@ export const fineTunedModelDetailsSchema = z.object({
   modelStorageLocation: z.string(),
 });
 
+export const fineTuneTaxonomySchema = z.object({
+  url: z.string().min(1, 'Taxonomy Git URL is required'),
+  secret: z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal(FineTuneTaxonomyType.SSH_KEY),
+      sshKey: z.string().min(1, 'SSH Key is required'),
+      username: z.string().optional(),
+      token: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal(FineTuneTaxonomyType.USERNAME_TOKEN),
+      username: z.string().min(1, 'Username is required'),
+      token: z.string().min(1, 'Token is required'),
+      sshKey: z.string().optional(),
+    }),
+  ]),
+});
+
+export type FineTuneTaxonomyFormData = z.infer<typeof fineTuneTaxonomySchema>;
+
 export const modelCustomizationFormSchema = z.object({
   projectName: z.object({ value: z.string().min(1, { message: 'Project is required' }) }),
+  taxonomy: fineTuneTaxonomySchema,
 });
+
+export type ModelCustomizationFormData = z.infer<typeof modelCustomizationFormSchema>;
