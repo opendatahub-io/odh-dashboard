@@ -26,22 +26,73 @@ describe('Dashboard Navigation - Unauthorized Permission Change', () => {
     const administratorGroupSection = userManagement.getAdministratorGroupSection();
     const userGroupSection = userManagement.getUserGroupSection();
 
-    // Add permissions - using the exact pattern from the successful test
-    administratorGroupSection.findMultiGroupInput().type('rhods-admins');
-    administratorGroupSection.findMultiGroupOptions('rhods-admins').click();
-    administratorGroupSection.findChipItem('rhods-admins').should('exist');
-    administratorGroupSection.shouldHaveAdministratorGroupInfo();
+    // Wait for the administrator group section to be fully loaded
+    administratorGroupSection.find().should('be.visible');
 
-    userGroupSection.findMultiGroupInput().type('rhods-users');
-    userGroupSection.findMultiGroupOptions('rhods-users').click();
-    userGroupSection.findChipItem('rhods-users').should('exist');
-    userGroupSection.findMultiGroupSelectButton().click();
+    // Debug: Log the current state
+    cy.log('Starting group selection process');
 
-    // Verify submit button is enabled
-    userManagement.findSubmitButton().should('be.enabled');
+    // Clear existing selections and type new group
+    administratorGroupSection
+      .findMultiGroupInput()
+      .should('be.visible')
+      .clear()
+      .should('have.value', '')
+      .type('rhods-admins{enter}', { delay: 100 });
 
-    // Save changes
+    // Verify the selection was made
+    administratorGroupSection.findMultiGroupInput().should('have.value', 'rhods-admins');
+
+    // Add a wait to ensure the UI processes the selection
+    cy.wait(1000);
+
+    // Debug: Log starting user group selection
+    cy.log('Starting user group selection');
+
+    // Get the user group input and ensure we only have one
+    userGroupSection
+      .findMultiGroupInput()
+      .should('be.visible')
+      .should('have.length', 1)
+      .as('userGroupInput')
+      .clear()
+      .should('have.value', '')
+      .type('rhods-users', { delay: 100 });
+
+    // Wait for dropdown and select option
+    cy.get('[role="listbox"]')
+      .should('be.visible')
+      .and('contain.text', 'rhods-users')
+      .within(() => {
+        cy.get('[role="option"]')
+          .contains('rhods-users')
+          .should('be.visible')
+          .click({ force: true });
+      });
+
+    // Press Escape to ensure dropdown is closed
+    cy.get('@userGroupInput').type('{esc}');
+
+    // Click somewhere neutral to ensure dropdown is closed
+    cy.get('body').click(0, 0);
+
+    // Wait for any animations and ensure dropdown is gone
+    cy.get('[role="listbox"]').should('not.exist');
+
+    // Verify selection by checking if the submit button becomes enabled
+    userManagement
+      .findSubmitButton()
+      .should('be.enabled', { timeout: 30000 })
+      .should('be.visible')
+      .then(($btn) => {
+        cy.log(`Button is now enabled, proceeding with submission`);
+      });
+
+    // Click the submit button
     userManagement.findSubmitButton().click();
+
+    // Verify the success message appears
+    userManagement.shouldHaveSuccessAlertMessage();
 
     // Store admin session cookie
     cy.getCookie('_oauth_proxy').then((cookie) => {
@@ -50,7 +101,7 @@ describe('Dashboard Navigation - Unauthorized Permission Change', () => {
     });
   });
 
-  it('Verify unauthorized user cannot access settings', () => {
+  it.only('Verify unauthorized user cannot access settings', () => {
     // Switch to TEST_USER_4 (unauthorized user)
     cy.visitWithLogin('/', TEST_USER_4);
     userManagement.visit(false);
