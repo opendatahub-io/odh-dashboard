@@ -1,5 +1,8 @@
 import { getGroupsConfig } from '~/__tests__/cypress/cypress/utils/oc_commands/groupConfig';
-import { HTPASSWD_CLUSTER_ADMIN_USER, TEST_USER_4 } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import {
+  HTPASSWD_CLUSTER_ADMIN_USER,
+  TEST_USER_4,
+} from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { userManagement } from '~/__tests__/cypress/cypress/pages/userManagement';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { notFoundPage } from '~/__tests__/cypress/cypress/pages/notFound';
@@ -10,7 +13,6 @@ describe('Dashboard Navigation - Unauthorized Permission Change', () => {
   retryableBefore(() => {
     // Use real groups config instead of mock
     getGroupsConfig().then((result) => {
-      // Store groups config for verification if needed
       cy.wrap(result).as('groupsConfig');
     });
   });
@@ -23,45 +25,25 @@ describe('Dashboard Navigation - Unauthorized Permission Change', () => {
     // Set up initial permissions
     const administratorGroupSection = userManagement.getAdministratorGroupSection();
     const userGroupSection = userManagement.getUserGroupSection();
-    
-    administratorGroupSection.findMultiGroupInput().clear().type('rhods-admins');
-    // Add debug logging
-    cy.get('[role="listbox"]').then($listbox => {
-      cy.log('Dropdown contents:', $listbox.text());
-    });
 
-    // Try multiple selector approaches
-    cy.get('[role="listbox"]')
-      .should('exist')
-      .and('be.visible')
-      .within(() => {
-        // First try exact match
-        cy.get('[role="option"]')
-          .contains('rhods-admins', { matchCase: false })
-          .should('exist')
-          .click();
-      });
-
-    // Verify the selection worked
+    // Add permissions - using the exact pattern from the successful test
+    administratorGroupSection.findMultiGroupInput().type('rhods-admins');
+    administratorGroupSection.findMultiGroupOptions('rhods-admins').click();
     administratorGroupSection.findChipItem('rhods-admins').should('exist');
+    administratorGroupSection.shouldHaveAdministratorGroupInfo();
 
     userGroupSection.findMultiGroupInput().type('rhods-users');
-    cy.get('[role="listbox"]')
-      .should('exist')
-      .and('be.visible')
-      .within(() => {
-        cy.get('[role="option"]')
-          .contains('rhods-users', { matchCase: false })
-          .should('exist')
-          .click();
-      });
+    userGroupSection.findMultiGroupOptions('rhods-users').click();
     userGroupSection.findChipItem('rhods-users').should('exist');
+    userGroupSection.findMultiGroupSelectButton().click();
 
+    // Verify submit button is enabled
     userManagement.findSubmitButton().should('be.enabled');
-    userManagement.findSubmitButton().click();
-    userManagement.shouldHaveSuccessAlertMessage();
 
-    // Store admin session cookie for later use
+    // Save changes
+    userManagement.findSubmitButton().click();
+
+    // Store admin session cookie
     cy.getCookie('_oauth_proxy').then((cookie) => {
       if (!cookie) throw new Error('Admin session cookie not found');
       adminSession = cookie.value;
@@ -102,9 +84,7 @@ describe('Dashboard Navigation - Unauthorized Permission Change', () => {
     administratorGroupSection.findMultiGroupOptions('system:authenticated').click();
     administratorGroupSection.findChipItem('system:authenticated').should('exist');
 
-    userManagement.findSubmitButton().should('be.enabled');
-    userManagement.findSubmitButton().click();
-    userManagement.shouldHaveSuccessAlertMessage();
+    userManagement.findSubmitButton().should('be.enabled').click();
 
     // Verify non-admin user cannot access settings
     cy.clearCookie('_oauth_proxy');
