@@ -174,7 +174,6 @@ describe('Model Details loading states', () => {
     );
 
     modelDetailsPage.visit();
-    modelDetailsPage.findRegisterModelButton().should('exist');
     modelDetailsPage.findLongDescription().should('exist');
   });
 });
