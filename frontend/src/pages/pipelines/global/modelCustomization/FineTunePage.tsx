@@ -42,7 +42,7 @@ const FineTunePage: React.FC<FineTunePageProps> = ({ isInvalid, onSuccess, data,
         setData={(baseModelData) => setData('baseModel', baseModelData)}
       />
       <FormSection>
-        <FineTunePageFooter isInvalid={isInvalid} onSuccess={onSuccess} />
+        <FineTunePageFooter isInvalid={isInvalid} onSuccess={onSuccess} data={data} />
       </FormSection>
     </Form>
   );
