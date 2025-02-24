@@ -34,9 +34,8 @@ export const useModelCatalogSources = (): FetchState<State> => {
         return [];
       }
 
-      const parsed = JSON.parse(configMap.data.modelCatalogSource);
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      return parsed ? [parsed as ModelCatalogSource] : [];
+      const parsed: ModelCatalogSource | undefined = JSON.parse(configMap.data.modelCatalogSource);
+      return parsed ? [parsed] : [];
     } catch (e: unknown) {
       if (isK8sNotFoundError(e)) {
         return [];
