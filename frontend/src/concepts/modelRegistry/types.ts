@@ -178,6 +178,8 @@ export type CreateModelVersionForRegisteredModel = (
   opts: K8sAPIOptions,
   registeredModelId: string,
   data: CreateModelVersionData,
+  customProperties: ModelRegistryCustomProperties,
+  isFirstVersion?: boolean,
 ) => Promise<ModelVersion>;
 
 export type CreateModelArtifact = (

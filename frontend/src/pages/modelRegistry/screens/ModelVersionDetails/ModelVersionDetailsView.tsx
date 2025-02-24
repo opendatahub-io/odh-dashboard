@@ -25,6 +25,7 @@ import {
   bumpBothTimestamps,
   bumpRegisteredModelTimestamp,
 } from '~/concepts/modelRegistry/utils/updateTimestamps';
+import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 
 type ModelVersionDetailsViewProps = {
   modelVersion: ModelVersion;
@@ -43,6 +44,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
   const modelArtifact = modelArtifacts.items.length ? modelArtifacts.items[0] : null;
   const { apiState } = React.useContext(ModelRegistryContext);
   const storageFields = uriToStorageFields(modelArtifact?.uri || '');
+  const [rm] = useRegisteredModelById(mv.registeredModelId);
 
   if (!modelArtifactsLoaded) {
     return (
@@ -58,14 +60,24 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
       return;
     }
 
-    await bumpRegisteredModelTimestamp(apiState.api, mv.registeredModelId);
+    await bumpRegisteredModelTimestamp(
+      apiState.api,
+      mv.registeredModelId,
+      rm?.customProperties || {},
+    );
     refresh();
   };
 
   const handleArtifactUpdate = async (updatePromise: Promise<unknown>): Promise<void> => {
     try {
       await updatePromise;
-      await bumpBothTimestamps(apiState.api, mv.id, mv.registeredModelId);
+      await bumpBothTimestamps(
+        apiState.api,
+        mv.id,
+        mv.registeredModelId,
+        rm?.customProperties || {},
+        mv.customProperties,
+      );
       refreshModelArtifacts();
     } catch (error) {
       throw new Error(

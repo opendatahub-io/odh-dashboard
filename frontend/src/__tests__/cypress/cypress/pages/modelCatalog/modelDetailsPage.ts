@@ -1,6 +1,10 @@
 class ModelDetailsPage {
   visit() {
-    cy.visitWithLogin(`/modelCatalog/Red%20Hat/rhelai1/granite-8b-code-instruct/1%252E3%252E0`);
+    const sourceName = 'Red%20Hat';
+    const repositoryName = 'rhelai1';
+    const modelName = 'granite-8b-code-instruct';
+    const tag = '1%252E3%252E0';
+    cy.visitWithLogin(`/modelCatalog/${sourceName}/${repositoryName}/${modelName}/${tag}`);
     this.wait();
   }
 
@@ -35,6 +39,10 @@ class ModelDetailsPage {
 
   findModelCardMarkdown() {
     return cy.findByTestId('model-card-markdown');
+  }
+
+  findRegisterCatalogModelPopover() {
+    return cy.findByTestId('register-catalog-model-popover');
   }
 }
 

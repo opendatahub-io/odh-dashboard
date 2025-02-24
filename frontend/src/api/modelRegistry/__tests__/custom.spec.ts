@@ -109,15 +109,20 @@ describe('createModelVersion', () => {
 describe('createModelVersionForRegisteredModel', () => {
   it('should call proxyCREATE and handleModelRegistryFailures to create model version for a model', () => {
     expect(
-      createModelVersionForRegisteredModel('hostPath')(K8sAPIOptionsMock, '1', {
-        description: 'test',
-        externalID: '1',
-        author: 'test author',
-        registeredModelId: '1',
-        name: 'test new model version',
-        state: ModelState.LIVE,
-        customProperties: {},
-      }),
+      createModelVersionForRegisteredModel('hostPath')(
+        K8sAPIOptionsMock,
+        '1',
+        {
+          description: 'test',
+          externalID: '1',
+          author: 'test author',
+          registeredModelId: '1',
+          name: 'test new model version',
+          state: ModelState.LIVE,
+          customProperties: {},
+        },
+        {},
+      ),
     ).toEqual(mockResultPromise);
     expect(proxyCREATEMock).toHaveBeenCalledTimes(1);
     expect(proxyCREATEMock).toHaveBeenCalledWith(

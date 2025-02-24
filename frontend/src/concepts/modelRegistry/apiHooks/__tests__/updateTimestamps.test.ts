@@ -39,7 +39,7 @@ describe('updateTimestamps', () => {
 
   describe('bumpModelVersionTimestamp', () => {
     it('should successfully update model version timestamp', async () => {
-      await bumpModelVersionTimestamp(mockApi, fakeModelVersionId);
+      await bumpModelVersionTimestamp(mockApi, fakeModelVersionId, {});
 
       expect(mockApi.patchModelVersion).toHaveBeenCalledWith(
         {},
@@ -58,7 +58,7 @@ describe('updateTimestamps', () => {
     });
 
     it('should throw error if modelVersionId is empty', async () => {
-      await expect(bumpModelVersionTimestamp(mockApi, '')).rejects.toThrow(
+      await expect(bumpModelVersionTimestamp(mockApi, '', {})).rejects.toThrow(
         'Model version ID is required',
       );
     });
@@ -69,7 +69,7 @@ describe('updateTimestamps', () => {
       const mockFn = mockApi.patchModelVersion;
       mockFn.mockRejectedValue(new Error(errorMessage));
 
-      await expect(bumpModelVersionTimestamp(mockApi, fakeModelVersionId)).rejects.toThrow(
+      await expect(bumpModelVersionTimestamp(mockApi, fakeModelVersionId, {})).rejects.toThrow(
         `Failed to update model version timestamp: ${errorMessage}`,
       );
     });
@@ -77,7 +77,7 @@ describe('updateTimestamps', () => {
 
   describe('bumpRegisteredModelTimestamp', () => {
     it('should successfully update registered model timestamp', async () => {
-      await bumpRegisteredModelTimestamp(mockApi, fakeRegisteredModelId);
+      await bumpRegisteredModelTimestamp(mockApi, fakeRegisteredModelId, {});
 
       expect(mockApi.patchRegisteredModel).toHaveBeenCalledWith(
         {},
@@ -96,7 +96,7 @@ describe('updateTimestamps', () => {
     });
 
     it('should throw error if registeredModelId is empty', async () => {
-      await expect(bumpRegisteredModelTimestamp(mockApi, '')).rejects.toThrow(
+      await expect(bumpRegisteredModelTimestamp(mockApi, '', {})).rejects.toThrow(
         'Registered model ID is required',
       );
     });
@@ -107,9 +107,9 @@ describe('updateTimestamps', () => {
       const mockFn = mockApi.patchRegisteredModel;
       mockFn.mockRejectedValue(new Error(errorMessage));
 
-      await expect(bumpRegisteredModelTimestamp(mockApi, fakeRegisteredModelId)).rejects.toThrow(
-        `Failed to update registered model timestamp: ${errorMessage}`,
-      );
+      await expect(
+        bumpRegisteredModelTimestamp(mockApi, fakeRegisteredModelId, {}),
+      ).rejects.toThrow(`Failed to update registered model timestamp: ${errorMessage}`);
     });
   });
 
@@ -118,7 +118,7 @@ describe('updateTimestamps', () => {
       mockApi.patchModelVersion.mockResolvedValue({} as ModelVersion);
       mockApi.patchRegisteredModel.mockResolvedValue({} as RegisteredModel);
 
-      await bumpBothTimestamps(mockApi, fakeModelVersionId, fakeRegisteredModelId);
+      await bumpBothTimestamps(mockApi, fakeModelVersionId, fakeRegisteredModelId, {}, {});
 
       expect(mockApi.patchModelVersion).toHaveBeenCalled();
       expect(mockApi.patchRegisteredModel).toHaveBeenCalled();
@@ -129,7 +129,7 @@ describe('updateTimestamps', () => {
       mockApi.patchModelVersion.mockRejectedValue(new Error(errorMessage));
 
       await expect(
-        bumpBothTimestamps(mockApi, fakeModelVersionId, fakeRegisteredModelId),
+        bumpBothTimestamps(mockApi, fakeModelVersionId, fakeRegisteredModelId, {}, {}),
       ).rejects.toThrow();
     });
   });
