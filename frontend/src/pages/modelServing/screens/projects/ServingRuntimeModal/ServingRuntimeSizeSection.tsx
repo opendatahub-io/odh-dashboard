@@ -71,12 +71,8 @@ const ServingRuntimeSizeSection = ({
     <>
       {isHardwareProfileEnabled ? (
         <HardwareProfileFormSection
-          data={podSpecOptionState.hardwareProfile.formData}
-          initialHardwareProfile={podSpecOptionState.hardwareProfile.initialHardwareProfile}
-          allowExistingSettings={
-            isEditing && !podSpecOptionState.hardwareProfile.initialHardwareProfile
-          }
-          setData={podSpecOptionState.hardwareProfile.setFormData}
+          podSpecOptionsState={podSpecOptionState}
+          isEditing={isEditing}
           isHardwareProfileSupported={isHardwareProfileSupported}
           visibleIn={[HardwareProfileVisibleIn.SERVING]}
         />

@@ -169,3 +169,8 @@ export const validateProfileWarning = (
   }
   return warningMessages;
 };
+
+export const isHardwareProfileValid = (hardwareProfile: HardwareProfileKind): boolean => {
+  const warnings = validateProfileWarning(hardwareProfile);
+  return warnings.length === 0;
+};

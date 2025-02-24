@@ -1,13 +1,8 @@
 import React from 'react';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
-import { ContainerResources, NodeSelector, Toleration } from '~/types';
+import { ContainerResources } from '~/types';
 import { assemblePodSpecOptions } from '~/utilities/podSpec';
-import {
-  AcceleratorProfileKind,
-  HardwareProfileKind,
-  InferenceServiceKind,
-  ServingRuntimeKind,
-} from '~/k8sTypes';
+import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import useServingAcceleratorProfileFormState from '~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
 import { useAppContext } from '~/app/AppContext';
 import { getServingRuntimeSizes, isGpuDisabled } from '~/pages/modelServing/screens/projects/utils';
@@ -15,13 +10,9 @@ import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 import { ModelServingSize } from '~/pages/modelServing/screens/types';
 import { getInferenceServiceSize } from '~/pages/modelServing/utils';
 import useServingHardwareProfileConfig from './useServingHardwareProfileConfig';
+import { PodSpecOptions, PodSpecOptionsState } from './types';
 
-export type ModelServingPodSpecOptions = {
-  resources: ContainerResources;
-  tolerations?: Toleration[];
-  nodeSelector?: NodeSelector;
-  selectedAcceleratorProfile?: AcceleratorProfileKind;
-  selectedHardwareProfile?: HardwareProfileKind;
+export type ModelServingPodSpecOptions = PodSpecOptions & {
   selectedModelSize?: ModelServingSize;
 };
 
@@ -31,11 +22,8 @@ export type ModelServingSizeState = {
   setSelectedSize: (modelSize: ModelServingSize) => void;
 };
 
-export type ModelServingPodSpecOptionsState = {
+export type ModelServingPodSpecOptionsState = PodSpecOptionsState<ModelServingPodSpecOptions> & {
   modelSize: ModelServingSizeState;
-  acceleratorProfile: ReturnType<typeof useServingAcceleratorProfileFormState>;
-  hardwareProfile: ReturnType<typeof useServingHardwareProfileConfig>;
-  podSpecOptions: ModelServingPodSpecOptions;
 };
 
 export const useModelServingPodSpecOptionsState = (

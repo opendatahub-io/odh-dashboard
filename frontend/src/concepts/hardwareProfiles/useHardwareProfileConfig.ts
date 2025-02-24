@@ -1,18 +1,18 @@
 import React, { useRef } from 'react';
-import { HardwareProfileKind } from '~/k8sTypes';
+import { HardwareProfileKind, HardwareProfileVisibleIn } from '~/k8sTypes';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import useHardwareProfiles from '~/pages/hardwareProfiles/useHardwareProfiles';
-import { useDashboardNamespace } from '~/redux/selectors';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import { ContainerResources, NodeSelector, Toleration } from '~/types';
 import { isCpuLimitLarger, isMemoryLimitLarger } from '~/utilities/valueUnits';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { useHardwareProfilesByArea } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByArea';
 import { isHardwareProfileConfigValid } from './validationUtils';
+import { getContainerResourcesFromHardwareProfile } from './utils';
 
 export type HardwareProfileConfig = {
   selectedProfile?: HardwareProfileKind;
   useExistingSettings: boolean;
-  resources: ContainerResources;
+  resources?: ContainerResources;
 };
 
 export type UseHardwareProfileConfigResult = {
@@ -101,17 +101,13 @@ export const useHardwareProfileConfig = (
   resources?: ContainerResources,
   tolerations?: Toleration[],
   nodeSelector?: NodeSelector,
+  visibleIn?: HardwareProfileVisibleIn[],
 ): UseHardwareProfileConfigResult => {
-  const { dashboardNamespace } = useDashboardNamespace();
-  const [profiles, profilesLoaded] = useHardwareProfiles(dashboardNamespace);
+  const [profiles, profilesLoaded] = useHardwareProfilesByArea(visibleIn);
   const initialHardwareProfile = useRef<HardwareProfileKind | undefined>(undefined);
   const [formData, setFormData, resetFormData] = useGenericObjectState<HardwareProfileConfig>({
     selectedProfile: undefined,
     useExistingSettings: false,
-    resources: {
-      requests: {},
-      limits: {},
-    },
   });
 
   const hardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
@@ -121,22 +117,33 @@ export const useHardwareProfileConfig = (
   );
 
   React.useEffect(() => {
-    if (!resources || !profilesLoaded) {
+    if (!profilesLoaded) {
       return;
     }
 
     setFormData('resources', resources);
 
     let selectedProfile: HardwareProfileKind | undefined;
-    if (existingHardwareProfileName) {
-      selectedProfile = profiles.find(
-        (profile) => profile.metadata.name === existingHardwareProfileName,
-      );
-    } else {
-      selectedProfile = matchToHardwareProfile(profiles, resources, tolerations, nodeSelector);
+    // if resources are provided, try to match to an existing profile
+    if (resources) {
+      if (existingHardwareProfileName) {
+        selectedProfile = profiles.find(
+          (profile) => profile.metadata.name === existingHardwareProfileName,
+        );
+      } else {
+        selectedProfile = matchToHardwareProfile(profiles, resources, tolerations, nodeSelector);
+      }
+
+      initialHardwareProfile.current = selectedProfile;
     }
 
-    initialHardwareProfile.current = selectedProfile;
+    // if no match, select the first enabled profile
+    if (!selectedProfile) {
+      selectedProfile = profiles.find((profile) => profile.spec.enabled);
+      if (selectedProfile) {
+        setFormData('resources', getContainerResourcesFromHardwareProfile(selectedProfile));
+      }
+    }
 
     setFormData('selectedProfile', selectedProfile);
     setFormData('useExistingSettings', !selectedProfile);

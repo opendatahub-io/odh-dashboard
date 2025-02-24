@@ -154,6 +154,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
 
   const baseInputValueValid =
     createDataServingRuntime.numReplicas >= 0 &&
+    podSpecOptionsState.podSpecOptions.resources &&
     resourcesArePositive(podSpecOptionsState.podSpecOptions.resources) &&
     requestsUnderLimits(podSpecOptionsState.podSpecOptions.resources);
 

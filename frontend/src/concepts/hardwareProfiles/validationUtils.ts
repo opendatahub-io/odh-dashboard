@@ -106,16 +106,36 @@ export const createHardwareProfileValidationSchema = (
 
   return z
     .object({
-      selectedProfile: z.any(),
-      resources: z.object({
-        requests: z.object(requestsShape),
-        limits: z.object(limitsShape),
-      }),
+      selectedProfile: z.any().optional(),
+      resources: z
+        .object({
+          requests: z.object(requestsShape),
+          limits: z.object(limitsShape),
+        })
+        .optional(),
       useExistingSettings: z.boolean(),
     })
     .superRefine((data, ctx) => {
+      // if no resources, skip validation
+      if (!data.resources) {
+        return;
+      }
+
+      // Check for CPU and memory presence
+      const hasCpu = 'cpu' in data.resources.requests || 'cpu' in data.resources.limits;
+      const hasMemory = 'memory' in data.resources.requests || 'memory' in data.resources.limits;
+
+      if (!hasCpu || !hasMemory) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Both CPU and memory must be specified in either requests or limits',
+          path: [''],
+        });
+      }
+
+      // Existing validation for limits vs requests
       Object.entries(data.resources.requests).forEach(([identifier, request]) => {
-        const limit = data.resources.limits[identifier];
+        const limit = data.resources?.limits[identifier];
         const isValid =
           identifier === 'cpu'
             ? isCpuLimitLarger(request, limit, true)
@@ -136,6 +156,10 @@ export const createHardwareProfileValidationSchema = (
 };
 
 export const isHardwareProfileConfigValid = (data: HardwareProfileConfig): boolean => {
+  // if no resources, and not using existing settings, then not valid
+  if (!data.useExistingSettings && !data.resources) {
+    return false;
+  }
   const schema = createHardwareProfileValidationSchema(data.selectedProfile);
   const result = schema.safeParse(data);
   return result.success;

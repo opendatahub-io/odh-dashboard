@@ -1,8 +1,8 @@
 import {
-  Alert,
-  AlertVariant,
   Flex,
   FlexItem,
+  HelperTextItem,
+  HelperText,
   Label,
   Split,
   SplitItem,
@@ -11,13 +11,16 @@ import * as React from 'react';
 import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { HardwareProfileKind, HardwareProfileVisibleIn } from '~/k8sTypes';
 import { useHardwareProfilesByArea } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByArea';
+import { ValidationContext } from '~/utilities/useValidation';
 import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
 import { HardwareProfileConfig } from './useHardwareProfileConfig';
+import { NotebookPodSpecOptions } from './useNotebookPodSpecOptionsState';
 
 type HardwareProfileSelectProps = {
-  hardwareProfileConfig: HardwareProfileConfig;
   initialHardwareProfile?: HardwareProfileKind;
   allowExistingSettings: boolean;
+  podSpecOptions: NotebookPodSpecOptions;
+  hardwareProfileConfig: HardwareProfileConfig;
   isHardwareProfileSupported: (profile: HardwareProfileKind) => boolean;
   onChange: (profile: HardwareProfileKind | undefined) => void;
   visibleIn?: HardwareProfileVisibleIn[];
@@ -26,14 +29,18 @@ type HardwareProfileSelectProps = {
 const EXISTING_SETTINGS_KEY = '.existing';
 
 const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
-  hardwareProfileConfig,
   initialHardwareProfile,
   allowExistingSettings = false,
+  podSpecOptions,
+  hardwareProfileConfig,
   isHardwareProfileSupported,
   onChange,
   visibleIn = [],
 }) => {
   const [hardwareProfiles, loaded, error] = useHardwareProfilesByArea(visibleIn);
+
+  const { getAllValidationIssues } = React.useContext(ValidationContext);
+  const validationIssues = getAllValidationIssues(['']);
 
   const options = React.useMemo(() => {
     const enabledProfiles = hardwareProfiles.filter((hp) => hp.spec.enabled);
@@ -100,26 +107,36 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
             placeholder={
               options.length > 0
                 ? 'Select hardware profile...'
+                : error
+                ? 'Error loading hardware profiles'
                 : 'No enabled or valid hardware profiles are available. Contact your administrator.'
             }
             isFullWidth
             isSkeleton={!loaded && !error}
           />
         </FlexItem>
-        {hardwareProfileConfig.selectedProfile && (
-          <FlexItem>
-            <HardwareProfileDetailsPopover hardwareProfileConfig={hardwareProfileConfig} />
-          </FlexItem>
-        )}
+        <FlexItem>
+          {options.length > 0 && (
+            <HardwareProfileDetailsPopover
+              hardwareProfile={hardwareProfileConfig.selectedProfile}
+              tolerations={podSpecOptions.tolerations}
+              nodeSelector={podSpecOptions.nodeSelector}
+              resources={podSpecOptions.resources}
+            />
+          )}
+        </FlexItem>
       </Flex>
-      {error && (
-        <Alert
-          variant={AlertVariant.danger}
-          isInline
-          isPlain
-          title="Error loading hardware profiles"
-        />
-      )}
+      {error ? (
+        <HelperText isLiveRegion>
+          <HelperTextItem variant="error">Error loading hardware profiles</HelperTextItem>
+        </HelperText>
+      ) : loaded && validationIssues.length > 0 ? (
+        validationIssues.map((issue) => (
+          <HelperText isLiveRegion key={issue.message}>
+            <HelperTextItem variant="error">{issue.message}</HelperTextItem>
+          </HelperText>
+        ))
+      ) : null}
     </>
   );
 };

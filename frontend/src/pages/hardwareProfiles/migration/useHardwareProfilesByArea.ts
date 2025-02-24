@@ -1,5 +1,6 @@
 import React from 'react';
 import { HardwareProfileKind, HardwareProfileVisibleIn } from '~/k8sTypes';
+import { isHardwareProfileValid } from '~/pages/hardwareProfiles/utils';
 import useMigratedHardwareProfiles from './useMigratedHardwareProfiles';
 
 export const useHardwareProfilesByArea = (
@@ -12,9 +13,15 @@ export const useHardwareProfilesByArea = (
 ] => {
   const { data: hardwareProfiles, loaded, loadError, refresh } = useMigratedHardwareProfiles();
 
+  // only show valid profiles
+  const validHardwareProfiles = React.useMemo(
+    () => hardwareProfiles.filter((profile) => isHardwareProfileValid(profile)),
+    [hardwareProfiles],
+  );
+
   const filteredHardwareProfiles = React.useMemo(
     () =>
-      hardwareProfiles.filter((profile) => {
+      validHardwareProfiles.filter((profile) => {
         try {
           if (!profile.metadata.annotations?.['opendatahub.io/visible-in']) {
             return true;
@@ -26,7 +33,7 @@ export const useHardwareProfilesByArea = (
           return true;
         }
       }),
-    [hardwareProfiles, areas],
+    [validHardwareProfiles, areas],
   );
 
   return [filteredHardwareProfiles, loaded, loadError, refresh];

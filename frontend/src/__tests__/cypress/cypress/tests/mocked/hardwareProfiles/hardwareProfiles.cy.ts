@@ -2,13 +2,20 @@ import { hardwareProfile } from '~/__tests__/cypress/cypress/pages/hardwareProfi
 import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { HardwareProfileModel } from '~/__tests__/cypress/cypress/utils/models';
-import { mock200Status, mockK8sResourceList } from '~/__mocks__';
+import { mock200Status, mockDashboardConfig, mockK8sResourceList } from '~/__mocks__';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
 import { IdentifierResourceType } from '~/types';
 
 const initIntercepts = () => {
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({
+      modelServerSizes: [],
+      notebookSizes: [],
+    }),
+  );
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: 'opendatahub' },
     mockK8sResourceList([
@@ -25,6 +32,7 @@ const initIntercepts = () => {
 describe('Hardware Profile', () => {
   beforeEach(() => {
     asProductAdminUser();
+    initIntercepts();
   });
 
   describe('main table', () => {

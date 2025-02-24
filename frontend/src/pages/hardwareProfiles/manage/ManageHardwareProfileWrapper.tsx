@@ -85,8 +85,6 @@ export const EditHardwareProfile: React.FC = () => (
 
 export const DuplicateHardwareProfile: React.FC = () => (
   <ManageHardwareProfileWrapper>
-    {(data, migrationAction) => (
-      <ManageHardwareProfile duplicatedHardwareProfile={data} migrationAction={migrationAction} />
-    )}
+    {(data) => <ManageHardwareProfile duplicatedHardwareProfile={data} />}
   </ManageHardwareProfileWrapper>
 );

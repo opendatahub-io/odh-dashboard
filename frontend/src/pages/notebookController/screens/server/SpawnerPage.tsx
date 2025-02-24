@@ -344,13 +344,8 @@ const SpawnerPage: React.FC = () => {
           <FormSection title="Deployment size">
             {isHardwareProfilesAvailable ? (
               <HardwareProfileFormSection
-                data={podSpecOptionsState.hardwareProfile.formData}
-                initialHardwareProfile={podSpecOptionsState.hardwareProfile.initialHardwareProfile}
-                allowExistingSettings={
-                  !!currentUserNotebook &&
-                  !podSpecOptionsState.hardwareProfile.initialHardwareProfile
-                }
-                setData={podSpecOptionsState.hardwareProfile.setFormData}
+                podSpecOptionsState={podSpecOptionsState}
+                isEditing={!!currentUserNotebook}
                 visibleIn={[HardwareProfileVisibleIn.NOTEBOOKS]}
               />
             ) : (

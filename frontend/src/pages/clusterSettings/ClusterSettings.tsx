@@ -50,6 +50,7 @@ const ClusterSettings: React.FC = () => {
   const modelServingEnabled = useIsAreaAvailable(SupportedArea.MODEL_SERVING).status;
   const isAreaFineTuningEnabled = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
   const isJupyterEnabled = useCheckJupyterEnabled();
+  const isHardwareProfileEnabled = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
   const [notebookTolerationSettings, setNotebookTolerationSettings] =
     React.useState<NotebookTolerationFormSettings>({
       enabled: false,
@@ -238,7 +239,7 @@ const ClusterSettings: React.FC = () => {
             />
           </StackItem>
         )}
-        {isJupyterEnabled && (
+        {isJupyterEnabled && isHardwareProfileEnabled && (
           <StackItem>
             <TolerationSettings
               initialValue={clusterSettings.notebookTolerationSettings}

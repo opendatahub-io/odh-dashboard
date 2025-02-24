@@ -180,6 +180,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
 
   const sectionIDs = Object.values(SpawnerPageSectionID);
 
+  const podSpecOptionsState = useNotebookKindPodSpecOptionsState(existingNotebook);
   const {
     notebooksSize: { selectedSize: notebookSize, setSelectedSize: setNotebookSize, sizes },
     acceleratorProfile: {
@@ -187,13 +188,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
       formData: acceleratorProfileFormData,
       setFormData: setAcceleratorProfileFormData,
     },
-    hardwareProfile: {
-      formData: hardwareProfileFormData,
-      setFormData: setHardwareProfileFormData,
-      initialHardwareProfile,
-    },
-    podSpecOptions,
-  } = useNotebookKindPodSpecOptionsState(existingNotebook);
+    hardwareProfile: { formData: hardwareProfileFormData },
+  } = podSpecOptionsState;
 
   const profileIdentifiers = useProfileIdentifiers(
     acceleratorProfileFormData.profile,
@@ -288,10 +284,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                 </>
               ) : (
                 <HardwareProfileFormSection
-                  data={hardwareProfileFormData}
-                  initialHardwareProfile={initialHardwareProfile}
-                  allowExistingSettings={!!existingNotebook && !initialHardwareProfile}
-                  setData={setHardwareProfileFormData}
+                  isEditing={!!existingNotebook}
+                  podSpecOptionsState={podSpecOptionsState}
                   isHardwareProfileSupported={isHardwareProfileSupported}
                   visibleIn={[HardwareProfileVisibleIn.NOTEBOOKS]}
                 />
@@ -381,7 +375,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                     image: selectedImage,
                     volumes: [],
                     volumeMounts: [],
-                    podSpecOptions,
+                    podSpecOptions: podSpecOptionsState.podSpecOptions,
                   }}
                   storageData={storageData}
                   envVariables={envVariables}

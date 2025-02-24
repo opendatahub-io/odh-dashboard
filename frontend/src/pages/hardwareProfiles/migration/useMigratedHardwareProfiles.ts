@@ -5,9 +5,10 @@ import useAcceleratorProfiles from '~/pages/notebookController/screens/server/us
 import { useDashboardNamespace } from '~/redux/selectors';
 import { useAppContext } from '~/app/AppContext';
 import { Toleration, TolerationEffect, TolerationOperator } from '~/types';
-import { useWatchHardwareProfiles } from '~/utilities/useWatchHardwareProfiles';
 import { DEFAULT_NOTEBOOK_SIZES } from '~/pages/notebookController/const';
 import { DEFAULT_MODEL_SERVER_SIZES } from '~/pages/modelServing/screens/const';
+import { useWatchHardwareProfiles } from '~/utilities/useWatchHardwareProfiles';
+
 import {
   getMinMaxResourceSize,
   createAcceleratorHardwareProfiles,

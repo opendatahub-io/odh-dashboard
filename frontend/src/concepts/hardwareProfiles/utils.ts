@@ -1,7 +1,7 @@
 import React from 'react';
 import { ImageStreamKind, AcceleratorProfileKind, HardwareProfileKind } from '~/k8sTypes';
 import { getCompatibleIdentifiers } from '~/pages/projects/screens/spawner/spawnerUtils';
-import { Toleration, NodeSelector, Identifier } from '~/types';
+import { Toleration, NodeSelector, Identifier, ContainerResources } from '~/types';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 
 export const formatToleration = (toleration: Toleration): string => {
@@ -80,4 +80,33 @@ export const sortIdentifiers = (identifiers: Identifier[]): Identifier[] => {
     ...(memoryIdentifier ? [memoryIdentifier] : []),
     ...otherIdentifiers,
   ];
+};
+
+export const getContainerResourcesFromHardwareProfile = (
+  hardwareProfile: HardwareProfileKind,
+): ContainerResources => {
+  const emptyRecord: Record<string, string | number> = {};
+
+  const newRequests =
+    hardwareProfile.spec.identifiers?.reduce(
+      (acc: Record<string, string | number>, identifier) => {
+        acc[identifier.identifier] = identifier.defaultCount;
+        return acc;
+      },
+      { ...emptyRecord },
+    ) ?? emptyRecord;
+
+  const newLimits =
+    hardwareProfile.spec.identifiers?.reduce(
+      (acc: Record<string, string | number>, identifier) => {
+        acc[identifier.identifier] = identifier.defaultCount;
+        return acc;
+      },
+      { ...emptyRecord },
+    ) ?? emptyRecord;
+
+  return {
+    requests: newRequests,
+    limits: newLimits,
+  };
 };
