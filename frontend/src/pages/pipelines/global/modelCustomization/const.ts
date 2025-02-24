@@ -9,3 +9,5 @@ export const fineTunePageSectionTitles: Record<FineTunePageSections, string> = {
 };
 
 export const ILAB_PIPELINE_NAME = 'instructlab';
+
+export const BASE_MODEL_INPUT_STORAGE_LOCATION_URI_KEY = 'baseModelInputStorageLocationUri';

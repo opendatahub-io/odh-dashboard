@@ -34,6 +34,28 @@ const InlineEditText: React.FC<InlineEditTextProps> = ({
     setShowUnsupportedMessage(!(isEditing || isEmpty || checkSupported(inputValue)));
   }, [isEditing, inputValue, isEmpty, checkSupported]);
 
+  const handleSave = () => {
+    onSave(inputValue);
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setInputValue(text);
+    setIsEditing(false);
+  };
+
+  const handleTextInputKeyDown = (e: React.KeyboardEvent) => {
+    switch (e.key) {
+      case 'Enter':
+        e.preventDefault();
+        handleSave();
+        break;
+      case 'Escape':
+        handleCancel();
+        break;
+    }
+  };
+
   return (
     <Stack>
       <StackItem>
@@ -47,14 +69,16 @@ const InlineEditText: React.FC<InlineEditTextProps> = ({
                   onChange={(_, value) => setInputValue(value)}
                   autoFocus
                   style={{ maxWidth: '100%' }}
+                  onKeyDown={(e) => {
+                    handleTextInputKeyDown(e);
+                  }}
                 />
               </FlexItem>
               <FlexItem>
                 <Button
                   variant="plain"
                   onClick={() => {
-                    onSave(inputValue);
-                    setIsEditing(false);
+                    handleSave();
                   }}
                   aria-label="Save"
                 >
@@ -63,8 +87,7 @@ const InlineEditText: React.FC<InlineEditTextProps> = ({
                 <Button
                   variant="plain"
                   onClick={() => {
-                    setInputValue(text);
-                    setIsEditing(false);
+                    handleCancel();
                   }}
                   aria-label="Cancel"
                 >

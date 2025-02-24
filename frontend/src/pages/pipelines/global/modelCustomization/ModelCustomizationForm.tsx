@@ -19,9 +19,11 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { modelCustomizationRootPath } from '~/routes';
 import { useIlabPipeline } from '~/concepts/pipelines/content/modelCustomizationForm/useIlabPipeline';
 import FineTunePage from './FineTunePage';
-import { FineTunePageSections, fineTunePageSectionTitles } from './const';
-
-const BASE_MODEL_INPUT_STORAGE_LOCATION_URI_PARAM_NAME = 'baseModelInputStorageLocationUri';
+import {
+  BASE_MODEL_INPUT_STORAGE_LOCATION_URI_KEY,
+  FineTunePageSections,
+  fineTunePageSectionTitles,
+} from './const';
 
 const ModelCustomizationForm: React.FC = () => {
   const { project } = usePipelinesAPI();
@@ -32,11 +34,11 @@ const ModelCustomizationForm: React.FC = () => {
   const [data, setData] = useGenericObjectState<ModelCustomizationFormData>({
     projectName: { value: project.metadata.name },
     baseModel: {
+      // TODO: Replace values with actual data
       registryName: 'Registry1',
       name: 'my-granite-model',
       version: 'myModel-v0.0.2',
-      inputStorageLocationUri:
-        searchParams.get(BASE_MODEL_INPUT_STORAGE_LOCATION_URI_PARAM_NAME) ?? '',
+      inputStorageLocationUri: searchParams.get(BASE_MODEL_INPUT_STORAGE_LOCATION_URI_KEY) ?? '',
     },
   });
 
