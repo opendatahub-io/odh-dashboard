@@ -1,5 +1,10 @@
 import React from 'react';
-import { Alert, AlertActionCloseButton, AlertVariant } from '@patternfly/react-core';
+import {
+  Alert,
+  AlertActionCloseButton,
+  AlertActionLink,
+  AlertVariant,
+} from '@patternfly/react-core';
 import { AppNotification } from '~/redux/types';
 import { ackNotification, hideNotification } from '~/redux/actions/actions';
 import { useAppDispatch } from '~/redux/hooks';
@@ -41,6 +46,17 @@ const ToastNotification: React.FC<ToastNotificationProps> = ({ notification }) =
       title={notification.title}
       actionClose={
         <AlertActionCloseButton onClose={() => dispatch(ackNotification(notification))} />
+      }
+      actionLinks={
+        notification.actions && (
+          <>
+            {notification.actions.map((action) => (
+              <AlertActionLink key={action.title} onClick={action.onClick}>
+                {action.title}
+              </AlertActionLink>
+            ))}
+          </>
+        )
       }
       onMouseEnter={() => setMouseOver(true)}
       onMouseLeave={() => setMouseOver(false)}
