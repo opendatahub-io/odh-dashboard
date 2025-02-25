@@ -43,10 +43,9 @@ describe('useHardwareProfileConfig', () => {
       formData: {
         selectedProfile: undefined,
         useExistingSettings: false,
-        resources: { requests: {}, limits: {} },
       },
       initialHardwareProfile: undefined,
-      isFormDataValid: true,
+      isFormDataValid: false,
       setFormData: expect.any(Function),
       resetFormData: expect.any(Function),
     });
@@ -173,7 +172,6 @@ describe('useHardwareProfileConfig', () => {
     expect(state.formData).toEqual({
       selectedProfile: undefined,
       useExistingSettings: false,
-      resources: { requests: {}, limits: {} },
     });
   });
 });

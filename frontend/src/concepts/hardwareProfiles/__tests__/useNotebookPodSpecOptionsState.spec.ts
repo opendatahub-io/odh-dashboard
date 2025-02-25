@@ -126,8 +126,6 @@ describe('useNotebookPodSpecOptionsState', () => {
           requests: {},
           limits: {},
         },
-        tolerations: [],
-        nodeSelector: {},
         lastSizeSelection: expect.any(String),
         selectedAcceleratorProfile: undefined,
         selectedHardwareProfile: undefined,

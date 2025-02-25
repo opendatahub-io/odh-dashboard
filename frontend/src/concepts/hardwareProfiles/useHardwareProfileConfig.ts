@@ -135,6 +135,7 @@ export const useHardwareProfileConfig = (
       }
 
       initialHardwareProfile.current = selectedProfile;
+      setFormData('useExistingSettings', !selectedProfile);
     }
 
     // if no match, select the first enabled profile
@@ -146,7 +147,6 @@ export const useHardwareProfileConfig = (
     }
 
     setFormData('selectedProfile', selectedProfile);
-    setFormData('useExistingSettings', !selectedProfile);
   }, [
     existingHardwareProfileName,
     profiles,
