@@ -526,7 +526,7 @@ spec:
         - name: name
           value: sast-coverity-check-oci-ta
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-sast-coverity-check-oci-ta:0.2@sha256:d7bcba417b64c8b955803c6584b67b13a9c60330ac79e9f43964770916c48a57
+          value: quay.io/konflux-ci/tekton-catalog/task-sast-coverity-check-oci-ta:0.2@sha256:e700c44c14bd6c8d40510a87376ffd42a1900f05a228b64219edc2dcd51010a8
         - name: kind
           value: task
         resolver: bundles
