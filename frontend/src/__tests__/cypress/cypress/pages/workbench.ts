@@ -314,6 +314,14 @@ class CreateSpawnerPage {
     return cy.findByTestId('workbench-name');
   }
 
+  getEditResourceLink() {
+    return cy.findByTestId('workbench-editResourceLink');
+  }
+
+  getResourceInput() {
+    return cy.findByTestId('workbench-resourceName');
+  }
+
   getDescriptionInput() {
     return cy.findByTestId('workbench-description');
   }

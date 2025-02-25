@@ -125,9 +125,7 @@ export type WBStatusTestData = {
 
 export type WBNegativeTestsData = {
   wbNegativeTestNamespace: string;
-  pvcNegativeTestName: string;
-  pvcNegativeTestDisplayName: string;
-  pvcNegativeSize: string;
+  invalidResourceNames: string[];
 };
 
 export type CommandLineResult = {
