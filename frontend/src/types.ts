@@ -553,6 +553,7 @@ export type Volume = {
   };
   secret?: {
     secretName: string;
+    optional?: boolean;
   };
 };
 

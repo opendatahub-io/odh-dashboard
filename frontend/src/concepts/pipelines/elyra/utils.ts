@@ -42,6 +42,7 @@ export const getElyraVolume = (): Volume => ({
   name: ELYRA_VOLUME_NAME,
   secret: {
     secretName: ELYRA_SECRET_NAME,
+    optional: true,
   },
 });
 
