@@ -34,7 +34,7 @@ import {
   DeploymentMode,
 } from '~/k8sTypes';
 import { ContainerResources } from '~/types';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import {
   CreatingInferenceServiceObject,
   CreatingServingRuntimeObject,
@@ -53,7 +53,8 @@ type TokenNames = {
 export const getModelServingRuntimeName = (namespace: string): string =>
   `model-server-${namespace}`;
 
-export const getModelServiceAccountName = (name: string): string => `${name}-sa`;
+export const getModelServiceAccountName = (name: string): string =>
+  `${translateDisplayNameForK8s(name)}-sa`;
 
 export const getModelRole = (name: string): string => `${name}-view-role`;
 export const getModelRoleBinding = (name: string): string => `${name}-view`;
@@ -222,7 +223,9 @@ export const createSecrets = async (
 
 export const getTokenNames = (servingRuntimeName: string, namespace: string): TokenNames => {
   const name =
-    servingRuntimeName !== '' ? servingRuntimeName : getModelServingRuntimeName(namespace);
+    servingRuntimeName !== ''
+      ? translateDisplayNameForK8s(servingRuntimeName)
+      : getModelServingRuntimeName(namespace);
 
   const serviceAccountName = getModelServiceAccountName(name);
   const roleName = getModelRole(name);
