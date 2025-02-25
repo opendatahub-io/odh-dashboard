@@ -25,7 +25,7 @@ const JudgeModelSection: React.FC<JudgeModelSectionProps> = ({ data, setData }) 
     {/* TODO: add link to judge model */}
     <div>
       Select or create a connection to specify the judge model to deploy for use in model
-      evaluation.
+      evaluation.{' '}
       <Button isInline variant="link">
         Learn more about how to deploy a judge model
       </Button>

@@ -55,6 +55,22 @@ export const assembleSecret = (
   };
 };
 
+export const assembleSecretTeacher = (
+  projectName: string,
+  data: Record<string, string>,
+): SecretKind => {
+  const k8sName = `teacher-secret-${genRandomChars()}`;
+  return assembleSecret(projectName, data, 'generic', k8sName);
+};
+
+export const assembleSecretJudge = (
+  projectName: string,
+  data: Record<string, string>,
+): SecretKind => {
+  const k8sName = `judge-secret-${genRandomChars()}`;
+  return assembleSecret(projectName, data, 'generic', k8sName);
+};
+
 export const assembleISSecretBody = (
   assignableData: Record<string, string>,
 ): [Record<string, string>, string] => {
