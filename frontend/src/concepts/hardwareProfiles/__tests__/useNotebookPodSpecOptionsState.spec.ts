@@ -70,7 +70,6 @@ describe('useNotebookPodSpecOptionsState', () => {
       buildStatuses: [],
       storageClasses: [],
       isRHOAI: false,
-      refreshDashboardConfig: jest.fn(),
     });
 
     mockUseNotebookSizeState.mockReturnValue({

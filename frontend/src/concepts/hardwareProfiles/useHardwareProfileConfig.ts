@@ -117,15 +117,14 @@ export const useHardwareProfileConfig = (
   );
 
   React.useEffect(() => {
-    if (!profilesLoaded) {
+    if (!profilesLoaded || formData.selectedProfile) {
       return;
     }
 
-    setFormData('resources', resources);
-
     let selectedProfile: HardwareProfileKind | undefined;
-    // if resources are provided, try to match to an existing profile
-    if (resources) {
+    if (resources && !formData.resources) {
+      setFormData('resources', resources);
+
       if (existingHardwareProfileName) {
         selectedProfile = profiles.find(
           (profile) => profile.metadata.name === existingHardwareProfileName,
@@ -138,15 +137,17 @@ export const useHardwareProfileConfig = (
       setFormData('useExistingSettings', !selectedProfile);
     }
 
-    // if no match, select the first enabled profile
+    // if no match or no resources provided, select the first enabled profile
     if (!selectedProfile) {
       selectedProfile = profiles.find((profile) => profile.spec.enabled);
-      if (selectedProfile) {
+      if (selectedProfile && !formData.resources) {
         setFormData('resources', getContainerResourcesFromHardwareProfile(selectedProfile));
       }
     }
 
-    setFormData('selectedProfile', selectedProfile);
+    if (selectedProfile) {
+      setFormData('selectedProfile', selectedProfile);
+    }
   }, [
     existingHardwareProfileName,
     profiles,
@@ -155,6 +156,8 @@ export const useHardwareProfileConfig = (
     resources,
     tolerations,
     nodeSelector,
+    formData.resources,
+    formData.selectedProfile,
   ]);
 
   return {

@@ -25,7 +25,6 @@ const mockUseDashboardNamespace = jest.mocked(useDashboardNamespace);
 describe('useMigratedHardwareProfiles', () => {
   const namespace = 'test-namespace';
   const refreshAcceleratorProfiles = jest.fn();
-  const refreshDashboardConfig = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -38,7 +37,6 @@ describe('useMigratedHardwareProfiles', () => {
         notebookSizes: [],
         modelServerSizes: [],
       }),
-      refreshDashboardConfig,
       buildStatuses: [],
       storageClasses: [],
       isRHOAI: false,
@@ -97,7 +95,6 @@ describe('useMigratedHardwareProfiles', () => {
         notebookSizes,
         modelServerSizes: [],
       }),
-      refreshDashboardConfig,
       buildStatuses: [],
       storageClasses: [],
       isRHOAI: false,
@@ -123,7 +120,6 @@ describe('useMigratedHardwareProfiles', () => {
         notebookSizes: [],
         modelServerSizes,
       }),
-      refreshDashboardConfig,
       buildStatuses: [],
       storageClasses: [],
       isRHOAI: false,
@@ -144,7 +140,6 @@ describe('useMigratedHardwareProfiles', () => {
       dashboardConfig: mockDashboardConfig({
         notebookSizes: DEFAULT_NOTEBOOK_SIZES,
       }),
-      refreshDashboardConfig,
       buildStatuses: [],
       storageClasses: [],
       isRHOAI: false,

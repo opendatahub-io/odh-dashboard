@@ -39,7 +39,6 @@ describe('useProjectErrorForRegisteredModel', () => {
       dashboardConfig: mockDashboardConfig({}),
       storageClasses: [],
       isRHOAI: false,
-      refreshDashboardConfig: jest.fn(),
     });
     useAccessReviewMock.mockReturnValue([true, true]);
   });

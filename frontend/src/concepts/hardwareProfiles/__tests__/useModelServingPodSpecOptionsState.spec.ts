@@ -69,7 +69,6 @@ describe('useModelServingPodSpecOptionsState', () => {
       buildStatuses: [],
       storageClasses: [],
       isRHOAI: false,
-      refreshDashboardConfig: jest.fn(),
     });
 
     mockUseHardwareProfileConfig.mockReturnValue({

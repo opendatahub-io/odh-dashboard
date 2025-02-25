@@ -3,12 +3,12 @@ import { HardwareProfileKind, HardwareProfileVisibleIn } from '~/k8sTypes';
 import { deleteAcceleratorProfile, patchModelServingSizes, patchNotebookSizes } from '~/api';
 import useAcceleratorProfiles from '~/pages/notebookController/screens/server/useAcceleratorProfiles';
 import { useDashboardNamespace } from '~/redux/selectors';
-import { useAppContext } from '~/app/AppContext';
 import { Toleration, TolerationEffect, TolerationOperator } from '~/types';
 import { DEFAULT_NOTEBOOK_SIZES } from '~/pages/notebookController/const';
 import { DEFAULT_MODEL_SERVER_SIZES } from '~/pages/modelServing/screens/const';
 import { useWatchHardwareProfiles } from '~/utilities/useWatchHardwareProfiles';
 
+import { useApplicationSettings } from '~/app/useApplicationSettings';
 import {
   getMinMaxResourceSize,
   createAcceleratorHardwareProfiles,
@@ -24,7 +24,7 @@ const useMigratedHardwareProfiles = (): {
   getMigrationAction: (name: string) => MigrationAction | undefined;
 } => {
   const { dashboardNamespace } = useDashboardNamespace();
-  const { dashboardConfig, refreshDashboardConfig } = useAppContext();
+  const { dashboardConfig, refresh: refreshDashboardConfig } = useApplicationSettings();
 
   const [
     acceleratorProfiles,
@@ -39,7 +39,7 @@ const useMigratedHardwareProfiles = (): {
   const [migratedHardwareProfiles, migrationMap] = React.useMemo<
     [HardwareProfileKind[] | null, Record<string, MigrationAction>]
   >(() => {
-    if (!loadedAcceleratorProfiles || !loadedHardwareProfiles) {
+    if (!loadedAcceleratorProfiles || !loadedHardwareProfiles || !dashboardConfig) {
       return [null, {}];
     }
 

@@ -48,7 +48,6 @@ const App: React.FC = () => {
     dashboardConfig: dashboardConfigFromServer,
     loaded: configLoaded,
     loadError: fetchConfigError,
-    refresh: refreshDashboardConfig,
   } = useApplicationSettings();
 
   const { dashboardConfig, ...devFeatureFlagsProps } =
@@ -66,10 +65,9 @@ const App: React.FC = () => {
             dashboardConfig,
             storageClasses,
             isRHOAI: dashboardConfig.metadata?.namespace === 'redhat-ods-applications',
-            refreshDashboardConfig,
           }
         : null,
-    [buildStatuses, dashboardConfig, storageClasses, refreshDashboardConfig],
+    [buildStatuses, dashboardConfig, storageClasses],
   );
 
   const isUnauthorized = fetchConfigError?.request?.status === 403;

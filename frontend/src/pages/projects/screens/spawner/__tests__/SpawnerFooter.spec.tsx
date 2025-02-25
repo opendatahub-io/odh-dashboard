@@ -60,7 +60,6 @@ useAppContextMock.mockReturnValue({
   dashboardConfig: mockDashboardConfig({}),
   storageClasses: [],
   isRHOAI: false,
-  refreshDashboardConfig: jest.fn(),
 });
 
 const useUserMock = jest.mocked(useUser);

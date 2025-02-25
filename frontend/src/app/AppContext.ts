@@ -7,7 +7,6 @@ type AppContextProps = {
   dashboardConfig: DashboardConfigKind;
   storageClasses: StorageClassKind[];
   isRHOAI: boolean;
-  refreshDashboardConfig: () => Promise<void>;
 };
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
