@@ -6,7 +6,7 @@ import { KubeFastifyInstance } from '../../../types';
 import {
   DEV_IMPERSONATE_PASSWORD,
   DEV_IMPERSONATE_USER,
-  DEV_OATH_PREFIX,
+  DEV_OAUTH_PREFIX,
 } from '../../../utils/constants';
 import { createCustomError } from '../../../utils/requestUtils';
 import { devRoute } from '../../../utils/route-security';
@@ -20,7 +20,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         if (doImpersonate) {
           const apiPath = fastify.kube.config.getCurrentCluster().server;
           const namedHost = apiPath.slice('https://api.'.length).split(':')[0];
-          const url = `https://${DEV_OATH_PREFIX}.${namedHost}/oauth/authorize?response_type=token&client_id=openshift-challenging-client`;
+          const url = `https://${DEV_OAUTH_PREFIX}.${namedHost}/oauth/authorize?response_type=token&client_id=openshift-challenging-client`;
           // Custom call, don't use proxy
           const httpsRequest = https
             .get(
