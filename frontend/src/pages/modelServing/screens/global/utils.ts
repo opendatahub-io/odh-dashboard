@@ -1,7 +1,8 @@
-import { InferenceServiceKind, ProjectKind, PodKind } from '~/k8sTypes';
+import { InferenceServiceKind, ProjectKind, PodKind, ServingRuntimeKind } from '~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { InferenceServiceModelState, ModelStatus } from '~/pages/modelServing/screens/types';
 import { asEnumMember } from '~/utilities/utils';
+import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
 
 export const getInferenceServiceModelState = (
   is: InferenceServiceKind,
@@ -10,7 +11,13 @@ export const getInferenceServiceModelState = (
   asEnumMember(is.status?.modelStatus?.states?.activeModelState, InferenceServiceModelState) ||
   InferenceServiceModelState.UNKNOWN;
 
-export const getInferenceServiceStatusMessage = (is: InferenceServiceKind): string => {
+export const getInferenceServiceStatusMessage = (
+  is: InferenceServiceKind,
+  ServingRuntime?: ServingRuntimeKind,
+  isNIMAvailable?: boolean,
+): string => {
+  const isNIMModel =
+    ServingRuntime && getDisplayNameFromServingRuntimeTemplate(ServingRuntime) === 'NVIDIA NIM';
   const activeModelState = is.status?.modelStatus?.states?.activeModelState;
   const targetModelState = is.status?.modelStatus?.states?.targetModelState;
 
@@ -21,7 +28,9 @@ export const getInferenceServiceStatusMessage = (is: InferenceServiceKind): stri
     targetModelState === InferenceServiceModelState.FAILED_TO_LOAD
   ) {
     const lastFailureMessage = is.status?.modelStatus?.lastFailureInfo?.message;
-    return lastFailureMessage || stateMessage;
+    return isNIMModel && !isNIMAvailable
+      ? 'NVIDIA NIM is currently not enabled.'
+      : lastFailureMessage || stateMessage;
   }
 
   if (
@@ -32,7 +41,7 @@ export const getInferenceServiceStatusMessage = (is: InferenceServiceKind): stri
     return 'Redeploying';
   }
 
-  return stateMessage;
+  return isNIMModel && !isNIMAvailable ? 'NVIDIA NIM is currently not enabled.' : stateMessage;
 };
 
 export const getInferenceServiceProjectDisplayName = (
