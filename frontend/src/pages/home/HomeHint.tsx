@@ -10,21 +10,22 @@ import {
   Content,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
-import { useNavigate } from 'react-router-dom';
-import jupyterImg from '~/images/jupyter.svg';
 import { useBrowserStorage } from '~/components/browserStorage';
-import { ODH_PRODUCT_NAME } from '~/utilities/const';
-import { useCheckJupyterEnabled } from '~/utilities/notebookControllerUtils';
+import TitleWithIcon from '~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '~/concepts/design/utils';
+import ExternalLink from '~/components/ExternalLink';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 const HomeHint: React.FC = () => {
-  const navigate = useNavigate();
   const [hintHidden, setHintHidden] = useBrowserStorage<boolean>(
     'odh.dashboard.landing.hint',
     false,
   );
-  const jupyterEnabled = useCheckJupyterEnabled();
+  const isHardwareProfileAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
 
-  if (hintHidden || !jupyterEnabled) {
+  const releaseNoteDocumentation =
+    'https://docs.redhat.com/en/documentation/red_hat_openshift_ai/2025';
+  if (hintHidden || !isHardwareProfileAvailable) {
     return null;
   }
 
@@ -38,7 +39,17 @@ const HomeHint: React.FC = () => {
           >
             <FlexItem>
               <Content>
-                <Content component="h2">Looking for the previous landing page?</Content>
+                <Content component="h2">
+                  <TitleWithIcon
+                    title={
+                      <>
+                        Hardware profiles, formerly &quot;Accelerator profiles&quot;, have new
+                        features
+                      </>
+                    }
+                    objectType={ProjectObjectType.acceleratorProfile}
+                  />
+                </Content>
               </Content>
             </FlexItem>
             <FlexItem>
@@ -59,35 +70,18 @@ const HomeHint: React.FC = () => {
             gap={{ default: 'gapMd' }}
             flexWrap={{ default: 'nowrap' }}
           >
-            <img
-              data-testid="jupyter-hint-icon"
-              src={jupyterImg}
-              alt="Jupyter"
-              style={{
-                height: 42,
-                maxWidth: 'unset',
-                backgroundColor: 'var(--pf-t--color--white)',
-                padding: 'var(--pf-t--global--spacer--xs)',
-                borderRadius: 'var(--pf-t--global--border--radius--small)',
-              }}
-            />
             <FlexItem>
               <Content>
                 <Content component="p" data-testid="hint-body-text">
-                  {ODH_PRODUCT_NAME} has a new landing page. You can access applications that are
-                  enabled for your organization, such as Jupyter, from the{' '}
-                  <Button
-                    data-testid="home-page-hint-navigate"
-                    variant="link"
-                    isInline
-                    component="a"
-                    style={{ fontSize: 'var(--pf-t--global--font--size--body--default)' }}
-                    onClick={() => navigate('/enabled')}
-                  >
-                    Enabled applications
-                  </Button>{' '}
-                  page.
+                  Hardware profiles offer more flexibility by enabling administrators to create
+                  profiles for additional types of identifiers, limit workload resource allocations,
+                  and target workloads to specific nodes by including tolerations and nodeSelectors
+                  in profiles.
                 </Content>
+                <ExternalLink
+                  text="Find the 2.19 release notes in the documentation"
+                  to={releaseNoteDocumentation}
+                />
               </Content>
             </FlexItem>
           </Flex>
