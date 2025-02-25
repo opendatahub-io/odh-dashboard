@@ -1,29 +1,32 @@
 import { z } from 'zod';
 import { ModelCustomizationEndpointType, ModelCustomizationRunType } from './types';
 
-export const uriFieldSchema = z.string().refine(
-  (value) => {
-    if (!value) {
-      return true;
-    }
-    try {
-      return !!new URL(value);
-    } catch (e) {
-      return false;
-    }
-  },
-  { message: 'Invalid URI' },
-);
+export const uriFieldSchemaBase = (
+  isOptional: boolean,
+): z.ZodEffects<z.ZodString, string, string> =>
+  z.string().refine(
+    (value) => {
+      if (!value) {
+        return !!isOptional;
+      }
+      try {
+        return !!new URL(value);
+      } catch (e) {
+        return false;
+      }
+    },
+    { message: 'Invalid URI' },
+  );
 
 export const baseModelSchema = z.object({
   registryName: z.string(),
   name: z.string(),
   version: z.string(),
-  inputStorageLocationUri: uriFieldSchema,
+  inputStorageLocationUri: uriFieldSchemaBase(true),
 });
 
 const teacherJudgeBaseSchema = z.object({
-  endpoint: uriFieldSchema,
+  endpoint: uriFieldSchemaBase(false),
   modelName: z.string().min(1, 'Model name is required'),
 });
 const teacherJudgePublicSchema = teacherJudgeBaseSchema.extend({
