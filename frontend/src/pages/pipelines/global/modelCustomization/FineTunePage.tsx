@@ -12,15 +12,25 @@ import FineTunePageFooter from '~/pages/pipelines/global/modelCustomization/Fine
 import BaseModelSection from '~/pages/pipelines/global/modelCustomization/baseModelSection/BaseModelSection';
 import TeacherModelSection from '~/pages/pipelines/global/modelCustomization/teacherJudgeSection/TeacherModelSection';
 import JudgeModelSection from '~/pages/pipelines/global/modelCustomization/teacherJudgeSection/JudgeModelSection';
+import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 
 type FineTunePageProps = {
   isInvalid: boolean;
   onSuccess: () => void;
   data: ModelCustomizationFormData;
   setData: UpdateObjectAtPropAndValue<ModelCustomizationFormData>;
+  ilabPipeline: PipelineKF | null;
+  ilabPipelineVersion: PipelineVersionKF | null;
 };
 
-const FineTunePage: React.FC<FineTunePageProps> = ({ isInvalid, onSuccess, data, setData }) => {
+const FineTunePage: React.FC<FineTunePageProps> = ({
+  isInvalid,
+  onSuccess,
+  data,
+  setData,
+  ilabPipeline,
+  ilabPipelineVersion,
+}) => {
   const projectDetailsDescription = 'This project is used for running your pipeline';
   const { project } = usePipelinesAPI();
 
@@ -49,7 +59,13 @@ const FineTunePage: React.FC<FineTunePageProps> = ({ isInvalid, onSuccess, data,
       />
       <JudgeModelSection data={data.judge} setData={(judgeData) => setData('judge', judgeData)} />
       <FormSection>
-        <FineTunePageFooter isInvalid={isInvalid} onSuccess={onSuccess} data={data} />
+        <FineTunePageFooter
+          isInvalid={isInvalid}
+          onSuccess={onSuccess}
+          data={data}
+          ilabPipeline={ilabPipeline}
+          ilabPipelineVersion={ilabPipelineVersion}
+        />
       </FormSection>
     </Form>
   );

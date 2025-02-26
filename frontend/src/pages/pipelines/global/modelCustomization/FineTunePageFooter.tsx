@@ -20,19 +20,25 @@ import {
   NotificationWatcherResponse,
 } from '~/concepts/notificationWatcher/NotificationWatcherContext';
 import {
+  PipelineKF,
   PipelineRecurringRunKF,
   PipelineRunKF,
+  PipelineVersionKF,
   RuntimeStateKF,
 } from '~/concepts/pipelines/kfTypes';
 import {
   createTeacherJudgeSecrets,
   translateIlabFormToTeacherJudge,
 } from '~/pages/pipelines/global/modelCustomization/utils';
+import { genRandomChars } from '~/utilities/string';
+import { RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
 
 type FineTunePageFooterProps = {
   isInvalid: boolean;
   onSuccess: () => void;
   data: ModelCustomizationFormData;
+  ilabPipeline: PipelineKF | null;
+  ilabPipelineVersion: PipelineVersionKF | null;
 };
 
 type FineTunePageFooterSubmitPresetValues = {
@@ -40,7 +46,13 @@ type FineTunePageFooterSubmitPresetValues = {
   judgeSecretName?: string;
 };
 
-const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({ isInvalid, onSuccess, data }) => {
+const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
+  isInvalid,
+  onSuccess,
+  data,
+  ilabPipeline,
+  ilabPipelineVersion,
+}) => {
   const [error, setError] = React.useState<Error>();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const { api } = usePipelinesAPI();
@@ -51,7 +63,15 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({ isInvalid, onSu
   const contextPath = globalPipelineRunsRoute(namespace);
 
   // TODO: translate data to `RunFormData`
-  const [runFormData] = useRunFormData(null, {});
+  const [runFormData] = useRunFormData(null, {
+    nameDesc: {
+      name: `ilab-${genRandomChars()}`,
+      description: '',
+    },
+    runType: { type: RunTypeOption.ONE_TRIGGER },
+    pipeline: ilabPipeline,
+    version: ilabPipelineVersion,
+  });
 
   const onSubmit = async (dryRun: boolean, presetValues?: FineTunePageFooterSubmitPresetValues) => {
     const { teacherSecretName, judgeSecretName } = presetValues || {};

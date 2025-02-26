@@ -28,7 +28,12 @@ import {
 
 const ModelCustomizationForm: React.FC = () => {
   const { project } = usePipelinesAPI();
-  const [ilabPipeline, ilabPipelineLoaded, ilabPipelineLoadError] = useIlabPipeline();
+  const {
+    ilabPipeline,
+    ilabPipelineVersion,
+    loaded: ilabPipelineLoaded,
+    loadError: ilabPipelineLoadError,
+  } = useIlabPipeline();
 
   const [searchParams] = useSearchParams();
 
@@ -86,12 +91,14 @@ const ModelCustomizationForm: React.FC = () => {
                 onSuccess={() =>
                   navigate(
                     `/pipelines/${encodeURIComponent(project.metadata.name)}/${encodeURIComponent(
-                      ilabPipeline?.pipeline_id ?? '',
-                    )}/${encodeURIComponent(ilabPipeline?.pipeline_version_id ?? '')}/view`,
+                      ilabPipelineVersion?.pipeline_id ?? '',
+                    )}/${encodeURIComponent(ilabPipelineVersion?.pipeline_version_id ?? '')}/view`,
                   )
                 }
                 data={data}
                 setData={setData}
+                ilabPipeline={ilabPipeline}
+                ilabPipelineVersion={ilabPipelineVersion}
               />
             </GenericSidebar>
           </PageSection>
