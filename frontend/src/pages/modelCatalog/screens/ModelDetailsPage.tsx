@@ -101,6 +101,8 @@ const ModelDetailsPage: React.FC = conditionalArea(
         />
       }
       loaded={modelCatalogSources.loaded}
+      loadError={modelCatalogSources.error}
+      errorMessage="Unable to load model catalog"
       provideChildrenPadding
     >
       {model && <ModelDetailsView model={model} />}
