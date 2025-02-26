@@ -7,7 +7,7 @@ import useFetchState, {
 } from '~/utilities/useFetchState';
 import { Connection } from '~/concepts/connectionTypes/types';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '~/const';
-import { isConnection, isModelServingCompatibleConnection } from '~/concepts/connectionTypes/utils';
+import { isConnection, isModelServingCompatible } from '~/concepts/connectionTypes/utils';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 const useConnections = (
@@ -30,7 +30,7 @@ const useConnections = (
       let connections = secrets.filter((secret) => isConnection(secret));
 
       if (modelServingCompatible) {
-        connections = connections.filter(isModelServingCompatibleConnection);
+        connections = connections.filter((c) => isModelServingCompatible(c));
       }
       if (!isOciEnabled) {
         connections = connections.filter(

@@ -46,7 +46,7 @@ import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymen
 import { Connection } from '~/concepts/connectionTypes/types';
 import { ModelServingPodSpecOptions } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import {
-  isModelServingTypeCompatible,
+  isModelServingCompatible,
   ModelServingCompatibleTypes,
 } from '~/concepts/connectionTypes/utils';
 
@@ -708,20 +708,20 @@ export const getCreateInferenceServiceLabels = (
 };
 
 export const isModelPathValid = (connection: Connection, path: string, uri?: string): boolean => {
-  if (isModelServingTypeCompatible(connection, ModelServingCompatibleTypes.URI)) {
+  if (isModelServingCompatible(connection, ModelServingCompatibleTypes.URI)) {
     return true;
   }
   if (containsOnlySlashes(path)) {
     return false;
   }
   if (
-    isModelServingTypeCompatible(connection, ModelServingCompatibleTypes.S3ObjectStorage) &&
+    isModelServingCompatible(connection, ModelServingCompatibleTypes.S3ObjectStorage) &&
     !isS3PathValid(path)
   ) {
     return false;
   }
   if (
-    isModelServingTypeCompatible(connection, ModelServingCompatibleTypes.OCI) &&
+    isModelServingCompatible(connection, ModelServingCompatibleTypes.OCI) &&
     (!uri || uri.length <= 'oci://'.length)
   ) {
     return false;
