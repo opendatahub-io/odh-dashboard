@@ -36,6 +36,10 @@ class ModelDetailsPage {
   findModelCardMarkdown() {
     return cy.findByTestId('model-card-markdown');
   }
+
+  findModelCatalogEmptyState() {
+    return cy.findByTestId('empty-model-catalog-state');
+  }
 }
 
 export const modelDetailsPage = new ModelDetailsPage();

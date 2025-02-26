@@ -20,7 +20,7 @@ import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
-import useDetectedAccelerators from './useDetectedAccelerators';
+import useAcceleratorCountWarning from './useAcceleratorCountWarning';
 
 type AcceleratorProfileSelectFieldProps = {
   compatibleIdentifiers?: string[];
@@ -39,32 +39,10 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
   formData,
   setFormData,
 }) => {
-  const [detectedAccelerators] = useDetectedAccelerators();
-
-  const generateAcceleratorCountWarning = (newSize: number) => {
-    if (!formData.profile) {
-      return '';
-    }
-
-    const { identifier } = formData.profile.spec;
-
-    const detectedAcceleratorCount = Object.entries(detectedAccelerators.available).find(
-      ([id]) => identifier === id,
-    )?.[1];
-
-    if (detectedAcceleratorCount === undefined) {
-      return `No accelerator detected with the identifier ${identifier}.`;
-    }
-    if (newSize > detectedAcceleratorCount) {
-      return `Only ${detectedAcceleratorCount} accelerator${
-        detectedAcceleratorCount > 1 ? 's' : ''
-      } detected.`;
-    }
-
-    return '';
-  };
-
-  const acceleratorCountWarning = generateAcceleratorCountWarning(formData.count);
+  const acceleratorCountWarning = useAcceleratorCountWarning(
+    formData.count,
+    formData.profile?.spec.identifier,
+  );
 
   const isAcceleratorProfileSupported = (cr: AcceleratorProfileKind) =>
     compatibleIdentifiers?.includes(cr.spec.identifier);
