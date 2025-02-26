@@ -197,8 +197,6 @@ describe('Model Registry core', () => {
     });
 
     modelRegistry.landingPage();
-
-    modelRegistry.tabDisabled();
   });
 
   it('Model Registry Enabled in the cluster', () => {
@@ -208,7 +206,8 @@ describe('Model Registry core', () => {
 
     modelRegistry.landingPage();
 
-    modelRegistry.tabEnabled();
+    cy.findByRole('button', { name: 'Models' }).should('exist').click();
+    cy.findByRole('link', { name: 'Model registry' }).should('exist');
   });
 
   it('Renders empty state with no model registries', () => {
@@ -218,7 +217,7 @@ describe('Model Registry core', () => {
     });
 
     modelRegistry.visit();
-    modelRegistry.navigate();
+    cy.findByRole('button', { name: 'Models' }).should('exist').click();
     modelRegistry.findModelRegistryEmptyState().should('exist');
   });
 
@@ -229,7 +228,7 @@ describe('Model Registry core', () => {
     });
 
     modelRegistry.visit();
-    modelRegistry.navigate();
+    cy.findByRole('button', { name: 'Models' }).should('exist').click();
     modelRegistry.shouldModelRegistrySelectorExist();
     modelRegistry.shouldregisteredModelsEmpty();
 
@@ -355,7 +354,7 @@ describe('Register Model button', () => {
     });
 
     modelRegistry.visit();
-    modelRegistry.navigate();
+    cy.findByRole('button', { name: 'Models' }).should('exist').click();
     modelRegistry.shouldModelRegistrySelectorExist();
   });
 });

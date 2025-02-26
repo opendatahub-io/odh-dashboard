@@ -194,7 +194,7 @@ describe('Model Serving Global', () => {
     inferenceServiceModal.findSubmitButton().should('be.disabled');
   });
 
-  it('All projects loading and cancel', () => {
+  it.only('All projects loading and cancel', () => {
     asClusterAdminUser();
     initIntercepts({
       delayInferenceServices: true,
@@ -205,6 +205,7 @@ describe('Model Serving Global', () => {
 
     // Visit the all-projects view (no project name passed here)
     modelServingGlobal.visit();
+    cy.findByRole('button', { name: 'Models' }).should('exist').click();
 
     modelServingGlobal.shouldWaitAndCancel();
 

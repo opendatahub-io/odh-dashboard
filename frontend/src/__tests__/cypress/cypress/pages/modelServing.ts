@@ -13,12 +13,12 @@ class ModelServingGlobal {
   }
 
   navigate() {
-    appChrome.findNavItem('Model Serving').click();
+    appChrome.findNavItem('Model deployments').click();
     this.wait();
   }
 
   private wait() {
-    cy.findByTestId('app-page-title').should('have.text', 'Deployed models');
+    cy.findByTestId('app-page-title').should('have.text', 'Model deployments');
     cy.testA11y();
   }
 
