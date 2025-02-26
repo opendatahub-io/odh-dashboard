@@ -14,7 +14,6 @@ import {
   Popover,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import { TagIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import { conditionalArea, SupportedArea } from '~/concepts/areas';
@@ -32,6 +31,7 @@ import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/M
 import { registerCatalogModel } from '~/pages/modelCatalog/routeUtils';
 import PopoverListContent from '~/components/PopoverListContent';
 import { FindAdministratorOptions } from '~/pages/projects/screens/projects/const';
+import { RhUiTagIcon } from '~/images/icons';
 import ModelDetailsView from './ModelDetailsView';
 
 const ModelDetailsPage: React.FC = conditionalArea(
@@ -82,7 +82,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
                 >
                   <FlexItem>{decodedParams.modelName}</FlexItem>
                   {model && (
-                    <Label variant="outline" icon={<TagIcon />}>
+                    <Label variant="outline" icon={<RhUiTagIcon />}>
                       {getTagFromModel(model)}
                     </Label>
                   )}
