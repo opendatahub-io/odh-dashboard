@@ -38,6 +38,10 @@ class ModelCustomizationFormGlobal {
   findEmptyState() {
     return cy.findByTestId('empty-state-title');
   }
+
+  findSimpleRunButton() {
+    return cy.findByTestId('simple-run-radio');
+  }
 }
 
 export const modelCustomizationFormGlobal = new ModelCustomizationFormGlobal();

@@ -46,6 +46,7 @@ describe('Model Customization Form', () => {
     modelCustomizationFormGlobal.visit(projectName);
     cy.wait('@getAllPipelines');
     cy.wait('@getAllPipelineVersions');
+    modelCustomizationFormGlobal.findSimpleRunButton().click();
     modelCustomizationFormGlobal.findSubmitButton().should('not.be.disabled');
   });
   it('Should not submit', () => {
@@ -70,7 +71,7 @@ describe('Model Customization Form', () => {
     ).as('getIlabPipeline');
     modelCustomizationFormGlobal.visit(projectName);
     cy.wait('@getAllPipelines');
-    modelCustomizationFormGlobal.findSubmitButton().should('be.disabled');
+    modelCustomizationFormGlobal.findSubmitButton().should('not.exist');
   });
 });
 

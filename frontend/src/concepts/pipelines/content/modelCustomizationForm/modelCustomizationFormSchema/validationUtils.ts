@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { ModelCustomizationEndpointType, ModelCustomizationRunType } from './types';
+import {
+  HyperparameterFields,
+  RunTypeFormat,
+} from '~/pages/pipelines/global/modelCustomization/const';
+import { InputDefinitionParameterType } from '~/concepts/pipelines/kfTypes';
+import { ModelCustomizationEndpointType } from './types';
 
 export const uriFieldSchema = z.string().refine(
   (value) => {
@@ -34,7 +39,7 @@ export const teacherJudgeModel = z.object({
 
 export const numericFieldSchema = z
   .object({
-    value: z.number().optional(),
+    value: z.number(),
     unit: z.string().optional(),
     min: z.number().optional(),
     max: z.number().optional(),
@@ -59,7 +64,6 @@ export const numericFieldSchema = z
       });
     }
     if (
-      data.value != null &&
       data.min != null &&
       !Number.isNaN(data.value) &&
       !Number.isNaN(data.min) &&
@@ -75,7 +79,6 @@ export const numericFieldSchema = z
       });
     }
     if (
-      data.value != null &&
       data.max != null &&
       !Number.isNaN(data.value) &&
       !Number.isNaN(data.max) &&
@@ -92,6 +95,68 @@ export const numericFieldSchema = z
     }
   });
 
+export const hyperparameterBaseSchema = z.object({
+  description: z.string(),
+  isOptional: z.boolean(),
+  parameterType: z.nativeEnum(InputDefinitionParameterType),
+});
+
+export const hyperparameterNumericFieldSchema = hyperparameterBaseSchema
+  .extend({
+    defaultValue: z.number().positive(),
+  })
+  .superRefine((data, ctx) => {
+    if (
+      data.parameterType === InputDefinitionParameterType.INTEGER &&
+      !Number.isInteger(data.defaultValue)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'The default value must be an integer',
+        path: ['isInt'],
+      });
+    }
+    if (!Number.isNaN(data.defaultValue) && data.defaultValue < 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.too_small,
+        message: 'The default value must be greater than the lower threshold',
+        path: ['value'],
+        minimum: 0,
+        inclusive: false,
+        type: 'number',
+      });
+    }
+  });
+
+export const hyperparameterEvaluationFieldSchema = hyperparameterBaseSchema
+  .extend({
+    defaultValue: z.string(),
+  })
+  .superRefine((data, ctx) => {
+    if (Number.isNaN(Number(data.defaultValue)) && data.defaultValue !== 'auto') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'The default value must be either auto or a positive integer string 1',
+        path: ['defaultValue'],
+      });
+    }
+    if (
+      !Number.isNaN(Number(data.defaultValue)) &&
+      (Number(data.defaultValue) < 1 || !Number.isInteger(Number(data.defaultValue)))
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'The default value must be either auto or a positive integer string 2',
+        path: ['defaultValue'],
+      });
+    }
+  });
+
+export const hyperparameterFieldSchema = z.record(
+  z.nativeEnum(HyperparameterFields),
+  hyperparameterNumericFieldSchema.or(hyperparameterEvaluationFieldSchema),
+);
+
 export const trainingHardwareFormSchema = z.object({
   hardwareProfile: z.object({
     value: z.string().min(1, 'Hardware profile is required'),
@@ -99,10 +164,7 @@ export const trainingHardwareFormSchema = z.object({
   accelerators: numericFieldSchema,
 });
 
-export const runTypeSchema = z.enum([
-  ModelCustomizationRunType.FULL_RUN,
-  ModelCustomizationRunType.SIMPLE_RUN,
-]);
+export const runTypeSchema = z.nativeEnum(RunTypeFormat);
 
 export const fineTunedModelDetailsSchema = z.object({
   registry: z.string(),
@@ -111,7 +173,11 @@ export const fineTunedModelDetailsSchema = z.object({
 });
 
 export const modelCustomizationFormSchema = z.object({
-  projectName: z.object({ value: z.string().min(1, { message: 'Project is required' }) }),
+  projectName: z.object({
+    value: z.string().min(1, { message: 'Project is required' }),
+  }),
+  runType: z.object({ value: runTypeSchema }),
+  hyperparameters: hyperparameterFieldSchema,
   baseModel: baseModelSchema,
 });
 
