@@ -30,7 +30,6 @@ import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/c
 import { getServingRuntimeTokens, setUpTokenAuth } from '~/pages/modelServing/utils';
 import {
   addSupportServingPlatformProject,
-  assembleSecret,
   createInferenceService,
   createPvc,
   createSecret,
@@ -336,22 +335,6 @@ export const getProjectModelServingPlatform = (
   };
 };
 
-export const createAWSSecret = (
-  createData: CreatingInferenceServiceObject,
-  dryRun: boolean,
-): Promise<SecretKind> =>
-  createSecret(
-    assembleSecret(
-      createData.project,
-      createData.storage.awsData.reduce<Record<string, string>>(
-        (acc, { key, value }) => ({ ...acc, [key]: value }),
-        {},
-      ),
-      'aws',
-    ),
-    { dryRun },
-  );
-
 const createInferenceServiceAndDataConnection = async (
   inferenceServiceData: CreatingInferenceServiceObject,
   editInfo?: InferenceServiceKind,
@@ -368,14 +351,14 @@ const createInferenceServiceAndDataConnection = async (
     secret = await createSecret(connection, { dryRun });
     if (connection.stringData?.URI) {
       storageUri = connection.stringData.URI;
-    } else {
+    } else if (inferenceServiceData.storage.uri) {
       storageUri = inferenceServiceData.storage.uri;
     }
   }
   if (inferenceServiceData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
     if (connection?.data?.URI) {
       storageUri = window.atob(connection.data.URI);
-    } else {
+    } else if (inferenceServiceData.storage.uri) {
       storageUri = inferenceServiceData.storage.uri;
     }
   }
