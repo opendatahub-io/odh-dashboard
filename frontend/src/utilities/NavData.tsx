@@ -97,31 +97,47 @@ const useHomeNav = (): NavDataItem[] =>
 
 const useDSProjectsNav = (): NavDataItem[] =>
   useAreaCheck(SupportedArea.DS_PROJECTS_VIEW, [
-    { id: 'dsg', label: 'Data Science Projects', href: '/projects' },
+    { id: 'dsg', label: 'Data science projects', href: '/projects' },
   ]);
+
+const useModelsNav = (): NavDataItem[] => {
+  const isFineTuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
+
+  const modelCustomizationNavChild = isFineTuningAvailable
+    ? [{ id: 'modelCustomization', label: 'Model customization', href: '/modelCustomization' }]
+    : [];
+
+  return [
+    {
+      id: 'models',
+      group: { id: 'models', title: 'Models' },
+      children: [
+        ...useAreaCheck(SupportedArea.MODEL_CATALOG, [
+          { id: 'modelCatalog', label: 'Model catalog', href: '/modelCatalog' },
+        ]),
+        ...useAreaCheck(SupportedArea.MODEL_REGISTRY, [
+          { id: 'modelRegistry', label: 'Model registry', href: '/modelRegistry' },
+        ]),
+        ...useAreaCheck(SupportedArea.MODEL_SERVING, [
+          { id: 'modelServing', label: 'Model deployments', href: '/modelServing' },
+        ]),
+        ...modelCustomizationNavChild,
+      ],
+    },
+  ];
+};
 
 const useDSPipelinesNav = (): NavDataItem[] => {
   const isAvailable = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
-  const isFineTuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
 
   if (!isAvailable) {
     return [];
   }
 
-  const modelCustomizationNavChild = isFineTuningAvailable
-    ? [
-        {
-          id: 'modelCustomization',
-          label: 'Model Customization',
-          href: '/modelCustomization',
-        },
-      ]
-    : [];
-
   return [
     {
       id: 'pipelines-and-runs',
-      group: { id: 'pipelines-and-runs', title: 'Data Science Pipelines' },
+      group: { id: 'pipelines-and-runs', title: 'Data science pipelines' },
       children: [
         {
           id: 'pipelines',
@@ -133,7 +149,6 @@ const useDSPipelinesNav = (): NavDataItem[] => {
           label: 'Runs',
           href: pipelineRunsRootPath,
         },
-        ...modelCustomizationNavChild,
       ],
     },
     {
@@ -162,22 +177,7 @@ const useDSPipelinesNav = (): NavDataItem[] => {
 
 const useDistributedWorkloadsNav = (): NavDataItem[] =>
   useAreaCheck(SupportedArea.DISTRIBUTED_WORKLOADS, [
-    { id: 'workloadMetrics', label: 'Distributed Workload Metrics', href: '/distributedWorkloads' },
-  ]);
-
-const useModelServingNav = (): NavDataItem[] =>
-  useAreaCheck(SupportedArea.MODEL_SERVING, [
-    { id: 'modelServing', label: 'Model Serving', href: '/modelServing' },
-  ]);
-
-const useModelCatalogSectionNav = (): NavDataItem[] =>
-  useAreaCheck(SupportedArea.MODEL_CATALOG, [
-    { id: 'modelCatalog', label: 'Model Catalog', href: '/modelCatalog' },
-  ]);
-
-const useModelRegistrySectionNav = (): NavDataItem[] =>
-  useAreaCheck(SupportedArea.MODEL_REGISTRY, [
-    { id: 'modelRegistry', label: 'Model Registry', href: '/modelRegistry' },
+    { id: 'workloadMetrics', label: 'Distributed workloads', href: '/distributedWorkloads' },
   ]);
 
 const useResourcesNav = (): NavDataHref[] => [
@@ -329,13 +329,11 @@ const useSettingsNav = (): NavDataGroup[] => {
 
 export const useBuildNavData = (): NavDataItem[] => [
   ...useHomeNav(),
-  ...useApplicationsNav(),
   ...useDSProjectsNav(),
+  ...useModelsNav(),
   ...useDSPipelinesNav(),
   ...useDistributedWorkloadsNav(),
-  ...useModelCatalogSectionNav(),
-  ...useModelRegistrySectionNav(),
-  ...useModelServingNav(),
+  ...useApplicationsNav(),
   ...useResourcesNav(),
   ...useSettingsNav(),
 ];
