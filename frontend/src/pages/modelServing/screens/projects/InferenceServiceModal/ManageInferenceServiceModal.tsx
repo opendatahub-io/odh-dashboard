@@ -190,6 +190,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
             />
             <FormSection title="Source model location" id="model-location">
               <ConnectionSection
+                existingUriOption={editInfo?.spec.predictor.model?.storageUri}
                 data={createData}
                 setData={setCreateData}
                 loaded={!!projectContext?.connections || connectionsLoaded}

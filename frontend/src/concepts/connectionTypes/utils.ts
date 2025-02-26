@@ -123,9 +123,23 @@ export const fieldNameToEnvVar = (name: string): string => {
 export const ENV_VAR_NAME_REGEX = new RegExp('^[-_.a-zA-Z0-9]+$');
 export const isValidEnvVar = (name: string): boolean => ENV_VAR_NAME_REGEX.test(name);
 
-export const isUriConnectionType = (connectionType: ConnectionTypeConfigMapObj): boolean =>
-  !!connectionType.data?.fields?.find((f) => isConnectionTypeDataField(f) && f.envVar === 'URI');
-export const isUriConnection = (connection?: Connection): boolean => !!connection?.data?.URI;
+export const isS3Connection = (connection?: Connection): boolean =>
+  !!(
+    connection?.data?.AWS_ACCESS_KEY_ID &&
+    connection.data.AWS_ACCESS_KEY_ID &&
+    connection.data.AWS_S3_ENDPOINT &&
+    connection.data.AWS_S3_BUCKET
+  ) ||
+  !!(
+    connection?.stringData?.AWS_ACCESS_KEY_ID &&
+    connection.stringData.AWS_ACCESS_KEY_ID &&
+    connection.stringData.AWS_S3_ENDPOINT &&
+    connection.stringData.AWS_S3_BUCKET
+  );
+export const isUriConnection = (connection?: Connection): boolean =>
+  !!connection?.data?.URI || !!connection?.stringData?.URI;
+export const isOciConnection = (connection?: Connection): boolean =>
+  !!connection?.data?.OCI_HOST || !!connection?.stringData?.OCI_HOST;
 
 export const S3ConnectionTypeKeys = [
   'AWS_ACCESS_KEY_ID',

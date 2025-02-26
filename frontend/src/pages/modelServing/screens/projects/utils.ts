@@ -46,6 +46,7 @@ import { getNIMData, getNIMResource } from '~/pages/modelServing/screens/project
 import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
 import { Connection } from '~/concepts/connectionTypes/types';
 import { ModelServingPodSpecOptions } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { isOciConnection, isS3Connection, isUriConnection } from '~/concepts/connectionTypes/utils';
 
 export const getServingRuntimeSizes = (config: DashboardConfigKind): ModelServingSize[] => {
   let sizes = config.spec.modelServerSizes || [];
@@ -363,19 +364,19 @@ const createInferenceServiceAndDataConnection = async (
   let secret;
   let storageUri;
   let imagePullSecrets;
-  if (inferenceServiceData.storage.type === InferenceServiceStorageType.NEW_STORAGE) {
-    if (connection) {
-      secret = await createSecret(connection, { dryRun });
-      if (connection.stringData?.URI) {
-        storageUri = connection.stringData.URI;
-      }
+  if (inferenceServiceData.storage.type === InferenceServiceStorageType.NEW_STORAGE && connection) {
+    secret = await createSecret(connection, { dryRun });
+    if (connection.stringData?.URI) {
+      storageUri = connection.stringData.URI;
     } else {
-      secret = await createAWSSecret(inferenceServiceData, dryRun);
+      storageUri = inferenceServiceData.storage.uri;
     }
   }
   if (inferenceServiceData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
     if (connection?.data?.URI) {
       storageUri = window.atob(connection.data.URI);
+    } else {
+      storageUri = inferenceServiceData.storage.uri;
     }
   }
   if (inferenceServiceData.storage.type === InferenceServiceStorageType.EXISTING_URI) {
@@ -720,8 +721,21 @@ export const getCreateInferenceServiceLabels = (
   return undefined;
 };
 
-export const isConnectionPathValid = (path: string): boolean =>
-  !(containsOnlySlashes(path) || !isS3PathValid(path) || path === '');
+export const isModelPathValid = (connection: Connection, path: string, uri?: string): boolean => {
+  if (isUriConnection(connection)) {
+    return true;
+  }
+  if (containsOnlySlashes(path)) {
+    return false;
+  }
+  if (isS3Connection(connection) && !isS3PathValid(path)) {
+    return false;
+  }
+  if (isOciConnection(connection) && (!uri || uri.length <= 'oci://'.length)) {
+    return false;
+  }
+  return true;
+};
 
 export const fetchInferenceServiceCount = async (namespace: string): Promise<number> => {
   try {
