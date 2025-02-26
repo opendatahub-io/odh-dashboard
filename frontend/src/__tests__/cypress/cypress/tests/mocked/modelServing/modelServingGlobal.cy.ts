@@ -194,7 +194,7 @@ describe('Model Serving Global', () => {
     inferenceServiceModal.findSubmitButton().should('be.disabled');
   });
 
-  it.only('All projects loading and cancel', () => {
+  it('All projects loading and cancel', () => {
     asClusterAdminUser();
     initIntercepts({
       delayInferenceServices: true,
