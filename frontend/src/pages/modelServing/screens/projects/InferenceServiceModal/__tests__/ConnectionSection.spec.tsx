@@ -84,7 +84,17 @@ describe('ConnectionsFormSection', () => {
         setIsConnectionValid={() => undefined}
         loaded
         connections={[
-          { connection: mockConnection({ name: 's3-connection' }) },
+          {
+            connection: mockConnection({
+              name: 's3-connection',
+              data: {
+                AWS_ACCESS_KEY_ID: 'test',
+                AWS_SECRET_ACCESS_KEY: 'test',
+                AWS_S3_ENDPOINT: 'test',
+                AWS_S3_BUCKET: 'test',
+              },
+            }),
+          },
           { connection: mockConnection({ name: 'uri-connection' }) },
         ]}
       />,
@@ -120,7 +130,17 @@ describe('ConnectionsFormSection', () => {
         setIsConnectionValid={() => undefined}
         loaded
         connections={[
-          { connection: mockConnection({ name: 's3-connection' }) },
+          {
+            connection: mockConnection({
+              name: 's3-connection',
+              data: {
+                AWS_ACCESS_KEY_ID: 'test',
+                AWS_SECRET_ACCESS_KEY: 'test',
+                AWS_S3_ENDPOINT: 'test',
+                AWS_S3_BUCKET: 'test',
+              },
+            }),
+          },
           { connection: mockConnection({ name: 'uri-connection' }) },
         ]}
       />,
