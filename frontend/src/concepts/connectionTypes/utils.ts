@@ -148,7 +148,7 @@ export const S3ConnectionTypeKeys = [
   'AWS_S3_BUCKET',
 ];
 
-export const OCIConnectionTypeKeys = ['ACCESS_TYPE', '.dockerconfigjson', 'OCI_HOST'];
+export const OCIConnectionTypeKeys = ['.dockerconfigjson', 'OCI_HOST'];
 
 export enum ModelServingCompatibleTypes {
   S3ObjectStorage = 'S3 compatible object storage',
