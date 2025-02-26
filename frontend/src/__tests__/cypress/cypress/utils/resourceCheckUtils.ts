@@ -12,9 +12,11 @@ export const checkResources = (resourceInfoList: ResourceInfo[]): void => {
 
   resourceInfoList.forEach((resourceInfo) => {
     cy.log(`Checking for resource: ${resourceInfo.name}`);
+    cy.log(`Resource metaDataName: ${resourceInfo.metaDataName}`);
 
     // Clear the search input and type the resource name
     resources.getLearningCenterToolbar().findSearchInput().clear().type(resourceInfo.name);
+    cy.log(`Attempting to find card with metaDataName: ${resourceInfo.metaDataName}`);
 
     // Check if the resource card is visible by looking for its metadata name
     resources
