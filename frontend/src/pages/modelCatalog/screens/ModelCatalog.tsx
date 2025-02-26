@@ -30,7 +30,7 @@ const ModelCatalog: React.FC = conditionalArea(
   return (
     <ApplicationsPage
       title={
-        <TitleWithIcon title="Model Catalog" objectType={ProjectObjectType.registeredModels} />
+        <TitleWithIcon title="Model catalog" objectType={ProjectObjectType.registeredModels} />
       }
       {...renderStateProps}
       loaded={modelCatalogSources.loaded}

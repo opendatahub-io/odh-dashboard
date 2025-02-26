@@ -101,12 +101,6 @@ const useDSProjectsNav = (): NavDataItem[] =>
   ]);
 
 const useModelsNav = (): NavDataItem[] => {
-  const isFineTuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
-
-  const modelCustomizationNavChild = isFineTuningAvailable
-    ? [{ id: 'modelCustomization', label: 'Model customization', href: '/modelCustomization' }]
-    : [];
-
   return [
     {
       id: 'models',
@@ -121,7 +115,9 @@ const useModelsNav = (): NavDataItem[] => {
         ...useAreaCheck(SupportedArea.MODEL_SERVING, [
           { id: 'modelServing', label: 'Model deployments', href: '/modelServing' },
         ]),
-        ...modelCustomizationNavChild,
+        ...useAreaCheck(SupportedArea.FINE_TUNING, [
+          { id: 'modelCustomization', label: 'Model customization', href: '/modelCustomization' },
+        ]),
       ],
     },
   ];
