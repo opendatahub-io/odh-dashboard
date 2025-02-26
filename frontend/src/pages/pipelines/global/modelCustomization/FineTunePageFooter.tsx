@@ -24,12 +24,20 @@ import {
   PipelineRunKF,
   RuntimeStateKF,
 } from '~/concepts/pipelines/kfTypes';
-import { createTeacherJudgeSecrets } from '~/pages/pipelines/global/modelCustomization/utils';
+import {
+  createTeacherJudgeSecrets,
+  translateIlabFormToTeacherJudge,
+} from '~/pages/pipelines/global/modelCustomization/utils';
 
 type FineTunePageFooterProps = {
   isInvalid: boolean;
   onSuccess: () => void;
   data: ModelCustomizationFormData;
+};
+
+type FineTunePageFooterSubmitPresetValues = {
+  teacherSecretName?: string;
+  judgeSecretName?: string;
 };
 
 const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({ isInvalid, onSuccess, data }) => {
@@ -45,27 +53,31 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({ isInvalid, onSu
   // TODO: translate data to `RunFormData`
   const [runFormData] = useRunFormData(null, {});
 
-  const onSubmit = async (dryRun: boolean) => {
+  const onSubmit = async (dryRun: boolean, presetValues?: FineTunePageFooterSubmitPresetValues) => {
+    const { teacherSecretName, judgeSecretName } = presetValues || {};
     const [teacherSecret, judgeSecret] = await createTeacherJudgeSecrets(
       namespace,
       data.teacher,
       data.judge,
       dryRun,
+      teacherSecretName,
+      judgeSecretName,
     );
-    return handleSubmit(
+    const run = await handleSubmit(
       {
         ...runFormData,
         params: {
           ...runFormData.params,
-          /* eslint-disable camelcase */
-          teacher_secret: teacherSecret.metadata.name,
-          judge_secret: judgeSecret.metadata.name,
-          /* eslint-enable camelcase */
+          ...translateIlabFormToTeacherJudge(
+            teacherSecret.metadata.name,
+            judgeSecret.metadata.name,
+          ),
         },
       },
       api,
       dryRun,
     );
+    return { run, teacherSecret, judgeSecret };
   };
 
   const afterSubmit = (resource: PipelineRunKF | PipelineRecurringRunKF) => {
@@ -154,11 +166,16 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({ isInvalid, onSu
               onClick={() => {
                 setError(undefined);
                 setIsSubmitting(true);
+                // dry-run network calls first
                 onSubmit(true)
-                  .then(() =>
-                    onSubmit(false)
-                      .then((resource) => {
-                        afterSubmit(resource);
+                  .then(({ teacherSecret, judgeSecret }) =>
+                    // get the dry-run values and do the real network calls
+                    onSubmit(false, {
+                      teacherSecretName: teacherSecret.metadata.name,
+                      judgeSecretName: judgeSecret.metadata.name,
+                    })
+                      .then(({ run }) => {
+                        afterSubmit(run);
                         setIsSubmitting(false);
                         onSuccess();
                       })

@@ -27,7 +27,7 @@ export const baseModelSchema = z.object({
 
 const teacherJudgeBaseSchema = z.object({
   endpoint: uriFieldSchemaBase(false),
-  modelName: z.string().min(1, 'Model name is required'),
+  modelName: z.string().trim().min(1, 'Model name is required'),
 });
 const teacherJudgePublicSchema = teacherJudgeBaseSchema.extend({
   endpointType: z.literal(ModelCustomizationEndpointType.PUBLIC),
@@ -35,7 +35,7 @@ const teacherJudgePublicSchema = teacherJudgeBaseSchema.extend({
 });
 const teacherJudgePrivateSchema = teacherJudgeBaseSchema.extend({
   endpointType: z.literal(ModelCustomizationEndpointType.PRIVATE),
-  apiToken: z.string().min(1, 'Token is required'),
+  apiToken: z.string().trim().min(1, 'Token is required'),
 });
 
 export const teacherJudgeModel = z.discriminatedUnion('endpointType', [
