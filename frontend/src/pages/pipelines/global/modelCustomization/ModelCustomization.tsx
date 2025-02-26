@@ -55,7 +55,7 @@ const ModelCustomization: React.FC = () => {
   };
 
   return (
-    <Drawer isExpanded={isDrawerExpanded} data-testid="drawer-model-customization">
+    <Drawer isExpanded={isDrawerExpanded} data-testid="drawer-model-customization" isInline>
       <DrawerContent
         panelContent={
           <ModelCustomizationDrawerContent
