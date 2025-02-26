@@ -9,6 +9,7 @@ import {
   Timestamp,
   TimestampTooltipVariant,
   Tooltip,
+  Truncate,
 } from '@patternfly/react-core';
 import {
   CheckIcon,
@@ -92,7 +93,7 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
             />
           ) : (
             <Content component="p">
-              {roleBindingName}
+              <Truncate content={roleBindingName} />
               {` `}
               {isDefaultGroup && (
                 <Popover
