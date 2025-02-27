@@ -7,17 +7,17 @@ import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChe
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { validateWorkbenchEnvironmentVariables } from '~/__tests__/cypress/cypress/utils/oc_commands/workbench';
 import {
-  retryableBefore,
+  retryableBeforeEach,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
-describe('[Automation Bug RHOAIENG-20128] Workbenches - variable tests', () => {
+describe('Workbenches - variable tests', () => {
   let projectName: string;
   let projectDescription: string;
   let testData: WBVariablesTestData;
 
   // Setup: Load test data and ensure clean state
-  retryableBefore(() => {
+  retryableBeforeEach(() => {
     return loadWBVariablesFixture('e2e/dataScienceProjects/testWorkbenchVariables.yaml')
       .then((fixtureData: WBVariablesTestData) => {
         testData = fixtureData;
@@ -46,7 +46,7 @@ describe('[Automation Bug RHOAIENG-20128] Workbenches - variable tests', () => {
   });
   it(
     'Verify user can set environment variables in their workbenches by uploading a yaml Secret and Config Map file.',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Bug'] },
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'] },
     () => {
       const workbenchName = projectName;
       const workbenchName2 = projectName.replace('dsp-', 'secondwb-');
@@ -122,7 +122,7 @@ describe('[Automation Bug RHOAIENG-20128] Workbenches - variable tests', () => {
   );
   it(
     'Verify that the user can inject environment variables manually into a workbench using Key / Value',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Bug'] },
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'] },
     () => {
       const workbenchName = projectName;
       const workbenchName2 = projectName.replace('dsp-', 'secondwb-');

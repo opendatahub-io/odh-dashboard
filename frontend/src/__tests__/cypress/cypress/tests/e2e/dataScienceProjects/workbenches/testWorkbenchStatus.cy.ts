@@ -14,7 +14,7 @@ import {
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
-describe('[Automation Bug RHOAIENG-20128] Workbenches - status tests', () => {
+describe('Workbenches - status tests', () => {
   let projectName: string;
   let projectDescription: string;
 
@@ -49,7 +49,7 @@ describe('[Automation Bug RHOAIENG-20128] Workbenches - status tests', () => {
 
   it(
     'Verify user can access progress and event log - validate status and successful workbench creation',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1970', '@Dashboard', '@Bug'] },
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1970', '@Dashboard', '@Workbenches'] },
     () => {
       const workbenchName = projectName.replace('dsp-', '');
 

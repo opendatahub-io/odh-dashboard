@@ -1,0 +1,33 @@
+# testWorkbenchNegativeTests.cy.ts Test Data #
+  wbNegativeTestNamespace: 'dsp-wb-negative-test'
+  invalidResourceNames:
+  - Test-workbench
+  - test workbench
+  - test.workbench
+  - test:workbench
+  - test/workbench
+  - test"workbench
+  - test[workbench]
+  - test(workbench)
+  - test&workbench
+  - test*workbench
+  - test?workbench
+  - largeworkbenchnametestthatshouldnotwork
+  - Test-workbench-Invalid
+  - test workbench with spaces
+  - test.workbench.with.dots
+  - test:workbench:with:colons
+  - test/workbench/with/slashes
+  - test"workbench"with"quotes
+  - test[workbench]with[brackets]
+  - test(workbench)with(parentheses)
+  - test&workbench&with&ampersands
+  - test*workbench*with*asterisks
+  - test?workbench?with?questions
+  - -testworkbenchstartshyphen
+  - testworkbenchendswithhyphen-
+  - TestworkbenchUpperCase
+  - $testworkbenchspecialstart
+  - ^testworkbenchspecialstart
+  - (testworkbench)parentheses
+  - testworkbenchtoooooooooooooooooooooooooooooooooooooooooooooooooooolong
