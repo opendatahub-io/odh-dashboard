@@ -1,14 +1,15 @@
 import React, { useMemo } from 'react';
 import { AboutModal, Alert, Bullseye, Spinner, Content } from '@patternfly/react-core';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
-import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { ODH_LOGO, ODH_LOGO_DARK, ODH_PRODUCT_NAME } from '~/utilities/const';
 import { DataScienceStackComponentMap } from '~/concepts/areas/const';
+import { DataScienceClusterComponentKindStatus } from '~/k8sTypes';
 import { useUser, useClusterInfo } from '~/redux/selectors';
 import { useAppContext } from '~/app/AppContext';
 import useFetchDscStatus from '~/concepts/areas/useFetchDscStatus';
 import useFetchDsciStatus from '~/concepts/areas/useFetchDsciStatus';
 import { useWatchOperatorSubscriptionStatus } from '~/utilities/useWatchOperatorSubscriptionStatus';
+import ExternalLink from '~/components/ExternalLink';
 import { useThemeContext } from './ThemeContext';
 
 const RhoaiAboutText = `Red Hat® OpenShift® AI (formerly Red Hat OpenShift Data Science) is a flexible, scalable MLOps platform for data scientists and developers of artificial intelligence and machine learning (AI/ML) applications. Built using open source technologies, OpenShift AI supports the full lifecycle of AI/ML experiments and models, on premise and in the public cloud.`;
@@ -38,7 +39,10 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
   // Group components by display name while merging releases (excluding 'dashboard')
   const groupedComponents = useMemo(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const componentMap: Record<string, { releases: any[] }> = {};
+    const componentMap: Record<
+      string,
+      { releases: NonNullable<DataScienceClusterComponentKindStatus['releases']> } | undefined
+    > = {};
 
     Object.entries(dscStatus?.components || {})
       .filter(([component]) => component !== 'dashboard') // Exclude dashboard
@@ -49,7 +53,6 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
         } // Skip components without a mapped name
 
         // Initialize if not already present
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (!componentMap[displayName]) {
           componentMap[displayName] = { releases: [] };
         }
@@ -127,63 +130,53 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
           >
             <h4>Installed components</h4>
             {groupedComponents.length > 0 ? (
-              <>
-                <Content>
-                  <Table
-                    aria-label="Component Releases Table"
-                    data-testid="component-releases-table"
-                  >
-                    <Thead>
-                      <Tr data-testid="table-row-title">
-                        <Th width={10}>
-                          {isRHOAI
-                            ? RhoaiDefaultComponentReleaseName
-                            : OdhDefaultComponentReleaseName}{' '}
-                          Component
-                        </Th>
-                        <Th width={20}>Upstream component</Th>
-                        <Th width={10}>Upstream version</Th>
+              <Table aria-label="Component Releases Table" data-testid="component-releases-table">
+                <Thead>
+                  <Tr data-testid="table-row-title">
+                    <Th modifier="wrap">
+                      {isRHOAI ? RhoaiDefaultComponentReleaseName : OdhDefaultComponentReleaseName}{' '}
+                      Component
+                    </Th>
+                    <Th modifier="wrap">Upstream component</Th>
+                    <Th modifier="wrap">Upstream version</Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {groupedComponents.map(([displayName, details]) =>
+                    details?.releases && details.releases.length > 0 ? (
+                      details.releases.map((release, index) => (
+                        <Tr key={`${displayName}-${index}`} data-testid="table-row-data">
+                          {index === 0 ? (
+                            <Td rowSpan={details.releases.length}>{displayName}</Td>
+                          ) : null}
+                          <Td
+                            className="hover-cell"
+                            style={{
+                              paddingInlineStart: 'var(--pf-v6-c-table--cell--Padding--base)',
+                            }}
+                          >
+                            {release.repoUrl ? (
+                              <ExternalLink text={release.name} to={release.repoUrl} />
+                            ) : (
+                              release.name
+                            )}
+                          </Td>
+                          <Td>{release.version}</Td>
+                        </Tr>
+                      ))
+                    ) : (
+                      <Tr key={displayName}>
+                        <Td>{displayName}</Td>
+                        <Td colSpan={3} style={{ fontStyle: 'italic', color: 'gray' }}>
+                          No releases available
+                        </Td>
                       </Tr>
-                    </Thead>
-                    <Tbody>
-                      {groupedComponents.map(([displayName, details]) =>
-                        details.releases.length > 0 ? (
-                          details.releases.map((release, index) => (
-                            <Tr key={`${displayName}-${index}`} data-testid="table-row-data">
-                              {index === 0 ? (
-                                <Td rowSpan={details.releases!.length}>{displayName}</Td>
-                              ) : null}
-                              <Td className="hover-cell" style={{ paddingInlineStart: 16 }}>
-                                {release.repoUrl ? (
-                                  <a
-                                    href={release.repoUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                  >
-                                    {release.name} <ExternalLinkAltIcon style={{ marginLeft: 8 }} />
-                                  </a>
-                                ) : (
-                                  release.name
-                                )}
-                              </Td>
-                              <Td>{release.version}</Td>
-                            </Tr>
-                          ))
-                        ) : (
-                          <Tr key={displayName}>
-                            <Td>{displayName}</Td>
-                            <Td colSpan={3} style={{ fontStyle: 'italic', color: 'gray' }}>
-                              No releases available
-                            </Td>
-                          </Tr>
-                        ),
-                      )}
-                    </Tbody>
-                  </Table>
-                </Content>
-              </>
+                    ),
+                  )}
+                </Tbody>
+              </Table>
             ) : (
-              <p style={{ fontStyle: 'italic', color: 'gray' }}>No component releases available</p>
+              <p>No component releases available</p>
             )}
           </Content>
         </div>

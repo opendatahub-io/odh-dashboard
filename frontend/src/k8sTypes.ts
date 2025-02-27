@@ -1293,8 +1293,8 @@ export type DataScienceClusterComponentKindStatus = {
    */
   releases?: Array<{
     name: string; // Name of the release (e.g., "Kubeflow Pipelines")
-    repoUrl: string; // URL of the repository hosting the release (e.g., GitHub URL)
-    version: string; // Version of the release (e.g., "2.2.0")
+    repoUrl?: string; // URL of the repository hosting the release (e.g., GitHub URL)
+    version?: string; // Version of the release (e.g., "2.2.0")
   }>;
 };
 
