@@ -15,11 +15,16 @@ export type ContinueState =
 
 export const useContinueState = (): ContinueState => {
   const { pipelinesServer } = usePipelinesAPI();
-  const [ilabPipeline, ilabPipelineLoaded, ilabPipelineLoadError] = useIlabPipeline();
+  const {
+    ilabPipeline,
+    loaded: ilabPipelineLoaded,
+    loadError: ilabPipelineLoadError,
+  } = useIlabPipeline();
 
   const continueState = React.useMemo<ContinueState>(() => {
-    const isLoading =
-      pipelinesServer.initializing || (!ilabPipelineLoaded && !ilabPipelineLoadError);
+    const isLoadingIlabPipeline =
+      pipelinesServer.installed && !ilabPipelineLoaded && !ilabPipelineLoadError;
+    const isLoading = pipelinesServer.initializing || isLoadingIlabPipeline;
 
     if (isLoading) {
       return { canContinue: false, isLoading: true };

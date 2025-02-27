@@ -23,7 +23,9 @@ describe('useContinueState', () => {
   });
 
   it('is loading and cannot continue because the ilab pipeline is not loaded', () => {
-    mockUsePipelinesAPI.mockReturnValue({ pipelinesServer: { initializing: false } });
+    mockUsePipelinesAPI.mockReturnValue({
+      pipelinesServer: { initializing: false, installed: true },
+    });
     mockUseIlabPipeline.mockReturnValue([null, false, null]);
 
     const renderResult = testHook(useContinueState)();
