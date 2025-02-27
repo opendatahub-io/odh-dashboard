@@ -37,6 +37,7 @@ const HyperparameterNumericField: React.FC<HyperparameterNumericFieldProps> = ({
       }}
       isDisabled={isDisabled}
       intOnly={isInt}
+      data-testid={`${field}-numeric-field`}
     />
   </FormGroup>
 );

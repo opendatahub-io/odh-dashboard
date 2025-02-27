@@ -28,7 +28,7 @@ const HyperparameterLongNumberField: React.FC<HyperparameterLongNumberFieldProps
     <FormGroup isRequired={isRequired} label={label}>
       <TextInput
         aria-readonly={!onChange}
-        data-testid={`${label}-name`}
+        data-testid={`${label}-long-number-field`}
         id={`${label}-name`}
         name={`${label}-name`}
         isRequired

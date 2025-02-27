@@ -43,6 +43,7 @@ const HyperparameterEvaluationField: React.FC<HyperparameterEvaluationFieldProps
             onChange={() => {
               onChange(field, 'auto');
             }}
+            data-testid={`${field}-auto-evaluation-field`}
           />
         </StackItem>
         <StackItem>
@@ -66,6 +67,7 @@ const HyperparameterEvaluationField: React.FC<HyperparameterEvaluationFieldProps
                 isInt
               />
             }
+            data-testid={`${field}-exact-evaluation-field`}
           />
         </StackItem>
       </Stack>
