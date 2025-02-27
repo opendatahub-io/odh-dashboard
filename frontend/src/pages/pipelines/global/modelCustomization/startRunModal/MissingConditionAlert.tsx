@@ -1,17 +1,20 @@
 import * as React from 'react';
 import { Alert, AlertProps, Button, Stack, StackItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
-import { ContinueCondition } from '~/pages/pipelines/global/modelCustomization/startRunModal/types';
+import {
+  useContinueState,
+  ContinueCondition,
+} from '~/pages/pipelines/global/modelCustomization/startRunModal/useContinueState';
 
 type MissingConditionAlertProps = {
-  missingCondition: ContinueCondition;
   selectedProject: string;
+  setIsLoadingProject: (isLoading: boolean) => void;
+  setCanContinue: (canContinue: boolean) => void;
 };
 
-const ALERT_CONFIG: Record<
-  ContinueCondition,
-  Pick<AlertProps, 'variant' | 'children' | 'title'>
-> = {
+type PickedAlertProps = Pick<AlertProps, 'variant' | 'children' | 'title'>;
+
+const ALERT_CONFIG: Record<ContinueCondition, PickedAlertProps> = {
   ilabPipelineInstalled: {
     variant: 'warning',
     title: 'InstructLab pipeline not installed',
@@ -39,16 +42,36 @@ const ALERT_CONFIG: Record<
 };
 
 const MissingConditionAlert: React.FC<MissingConditionAlertProps> = ({
-  missingCondition: condition,
   selectedProject,
+  setIsLoadingProject,
+  setCanContinue,
 }) => {
   const navigate = useNavigate();
-  const config = ALERT_CONFIG[condition];
+  const [alertProps, setAlertProps] = React.useState<PickedAlertProps | null>(null);
+  const continueState = useContinueState();
+
+  React.useEffect(() => {
+    setAlertProps(null);
+    setCanContinue(continueState.canContinue);
+    setIsLoadingProject(continueState.isLoading);
+
+    if (continueState.isLoading) {
+      return;
+    }
+
+    if (!continueState.canContinue) {
+      setAlertProps(ALERT_CONFIG[continueState.unmetCondition]);
+    }
+  }, [continueState, setCanContinue, setIsLoadingProject]);
+
+  if (!alertProps) {
+    return null;
+  }
 
   return (
-    <Alert isInline variant={config.variant} title={config.title}>
+    <Alert isInline variant={alertProps.variant} title={alertProps.title}>
       <Stack hasGutter>
-        <StackItem>{config.children}</StackItem>
+        <StackItem>{alertProps.children}</StackItem>
         <StackItem>
           <Button
             data-testid="go-to-pipelines"
