@@ -64,27 +64,30 @@ const MissingConditionAlert: React.FC<MissingConditionAlertProps> = ({
     }
   }, [continueState, setCanContinue, setIsLoadingProject]);
 
-  if (!alertProps) {
-    return null;
-  }
-
   return (
-    <Alert isInline variant={alertProps.variant} title={alertProps.title}>
-      <Stack hasGutter>
-        <StackItem>{alertProps.children}</StackItem>
-        <StackItem>
-          <Button
-            data-testid="go-to-pipelines"
-            variant="link"
-            isInline
-            component="a"
-            onClick={() => navigate(`/pipelines/${selectedProject}`)}
-          >
-            Go to pipelines
-          </Button>
-        </StackItem>
-      </Stack>
-    </Alert>
+    alertProps && (
+      <Alert
+        isInline
+        variant={alertProps.variant}
+        title={alertProps.title}
+        data-testid="missing-condition-alert"
+      >
+        <Stack hasGutter>
+          <StackItem>{alertProps.children}</StackItem>
+          <StackItem>
+            <Button
+              data-testid="go-to-pipelines"
+              variant="link"
+              isInline
+              component="a"
+              onClick={() => navigate(`/pipelines/${selectedProject}`)}
+            >
+              Go to pipelines
+            </Button>
+          </StackItem>
+        </Stack>
+      </Alert>
+    )
   );
 };
 
