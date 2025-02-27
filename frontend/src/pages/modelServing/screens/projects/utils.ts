@@ -45,7 +45,10 @@ import { getNIMData, getNIMResource } from '~/pages/modelServing/screens/project
 import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
 import { Connection } from '~/concepts/connectionTypes/types';
 import { ModelServingPodSpecOptions } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
-import { isOciConnection, isS3Connection, isUriConnection } from '~/concepts/connectionTypes/utils';
+import {
+  isModelServingTypeCompatible,
+  ModelServingCompatibleTypes,
+} from '~/concepts/connectionTypes/utils';
 
 export const getServingRuntimeSizes = (config: DashboardConfigKind): ModelServingSize[] => {
   let sizes = config.spec.modelServerSizes || [];
@@ -705,16 +708,22 @@ export const getCreateInferenceServiceLabels = (
 };
 
 export const isModelPathValid = (connection: Connection, path: string, uri?: string): boolean => {
-  if (isUriConnection(connection)) {
+  if (isModelServingTypeCompatible(connection, ModelServingCompatibleTypes.URI)) {
     return true;
   }
   if (containsOnlySlashes(path)) {
     return false;
   }
-  if (isS3Connection(connection) && !isS3PathValid(path)) {
+  if (
+    isModelServingTypeCompatible(connection, ModelServingCompatibleTypes.S3ObjectStorage) &&
+    !isS3PathValid(path)
+  ) {
     return false;
   }
-  if (isOciConnection(connection) && (!uri || uri.length <= 'oci://'.length)) {
+  if (
+    isModelServingTypeCompatible(connection, ModelServingCompatibleTypes.OCI) &&
+    (!uri || uri.length <= 'oci://'.length)
+  ) {
     return false;
   }
   return true;

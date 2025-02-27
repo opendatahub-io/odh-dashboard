@@ -32,13 +32,11 @@ import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescription
 import {
   assembleConnectionSecret,
   getConnectionTypeDisplayName,
-  getConnectionTypeModelServingCompatibleTypes,
   getConnectionTypeRef,
   getDefaultValues,
   getMRConnectionValues,
   isConnectionTypeDataField,
-  isOciConnection,
-  isS3Connection,
+  isModelServingTypeCompatible,
   ModelServingCompatibleTypes,
   S3ConnectionTypeKeys,
   withRequiredFields,
@@ -176,16 +174,19 @@ const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = ({
           />
         )}
       </FormGroup>
-      {selectedConnection && isS3Connection(selectedConnection) && (
-        <ConnectionS3FolderPathField folderPath={folderPath} setFolderPath={setFolderPath} />
-      )}
-      {selectedConnection && isOciConnection(selectedConnection) && (
-        <ConnectionOciPathField
-          ociHost={window.atob(selectedConnection.data?.OCI_HOST ?? '')}
-          modelUri={modelUri}
-          setModelUri={setModelUri}
-        />
-      )}
+      {selectedConnection &&
+        isModelServingTypeCompatible(
+          selectedConnection,
+          ModelServingCompatibleTypes.S3ObjectStorage,
+        ) && <ConnectionS3FolderPathField folderPath={folderPath} setFolderPath={setFolderPath} />}
+      {selectedConnection &&
+        isModelServingTypeCompatible(selectedConnection, ModelServingCompatibleTypes.OCI) && (
+          <ConnectionOciPathField
+            ociHost={window.atob(selectedConnection.data?.OCI_HOST ?? '')}
+            modelUri={modelUri}
+            setModelUri={setModelUri}
+          />
+        )}
     </>
   );
 };
@@ -326,16 +327,17 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
         }
       />
       {selectedConnectionType &&
-        getConnectionTypeModelServingCompatibleTypes(selectedConnectionType)[0] ===
-          ModelServingCompatibleTypes.S3ObjectStorage && (
+        isModelServingTypeCompatible(
+          selectedConnectionType,
+          ModelServingCompatibleTypes.S3ObjectStorage,
+        ) && (
           <ConnectionS3FolderPathField
             folderPath={data.storage.path}
             setFolderPath={(path) => setData('storage', { ...data.storage, path })}
           />
         )}
       {selectedConnectionType &&
-        getConnectionTypeModelServingCompatibleTypes(selectedConnectionType)[0] ===
-          ModelServingCompatibleTypes.OCI && (
+        isModelServingTypeCompatible(selectedConnectionType, ModelServingCompatibleTypes.OCI) && (
           <ConnectionOciPathField modelUri={modelUri} setModelUri={setModelUri} />
         )}
     </FormSection>

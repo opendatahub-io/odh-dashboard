@@ -1,5 +1,8 @@
 import { mockConnection } from '~/__mocks__/mockConnection';
-import { mockConnectionTypeConfigMapObj } from '~/__mocks__/mockConnectionType';
+import {
+  mockConnectionTypeConfigMapObj,
+  mockModelServingFields,
+} from '~/__mocks__/mockConnectionType';
 import {
   ConnectionTypeFieldType,
   DropdownField,
@@ -442,5 +445,38 @@ describe('isModelServingTypeCompatible', () => {
     ).toBe(true);
     expect(isModelServingTypeCompatible(['invalid'], ModelServingCompatibleTypes.URI)).toBe(false);
     expect(isModelServingTypeCompatible(['URI'], ModelServingCompatibleTypes.URI)).toBe(true);
+  });
+
+  it('should identify model serving compatible connections', () => {
+    expect(
+      isModelServingTypeCompatible(mockConnection({}), ModelServingCompatibleTypes.S3ObjectStorage),
+    ).toBe(false);
+    expect(
+      isModelServingTypeCompatible(
+        mockConnection({
+          data: {
+            AWS_ACCESS_KEY_ID: 'keyid',
+            AWS_SECRET_ACCESS_KEY: 'accesskey',
+            AWS_S3_ENDPOINT: 'endpoint',
+            AWS_S3_BUCKET: 'bucket',
+          },
+        }),
+        ModelServingCompatibleTypes.S3ObjectStorage,
+      ),
+    ).toBe(true);
+  });
+
+  it('should identify model serving compatible connection types', () => {
+    expect(
+      isModelServingTypeCompatible(mockConnection({}), ModelServingCompatibleTypes.S3ObjectStorage),
+    ).toBe(false);
+    expect(
+      isModelServingTypeCompatible(
+        mockConnectionTypeConfigMapObj({
+          fields: mockModelServingFields,
+        }),
+        ModelServingCompatibleTypes.S3ObjectStorage,
+      ),
+    ).toBe(true);
   });
 });
