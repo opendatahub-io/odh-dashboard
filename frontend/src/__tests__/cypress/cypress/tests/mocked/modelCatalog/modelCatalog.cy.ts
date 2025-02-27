@@ -44,7 +44,8 @@ describe('Model Catalog core', () => {
 
     modelCatalog.landingPage();
 
-    modelCatalog.tabDisabled();
+    cy.findByRole('button', { name: 'Models' }).click();
+    cy.findByRole('link', { name: 'Model catalog' }).should('not.exist');
 
     cy.visitWithLogin(`/modelCatalog`);
     modelCatalog.findModelCatalogNotFoundState().should('exist');
@@ -59,20 +60,21 @@ describe('Model Catalog core', () => {
 
     modelCatalog.landingPage();
 
-    modelCatalog.tabEnabled();
+    cy.findByRole('button', { name: 'Models' }).click();
+    cy.findByRole('link', { name: 'Model catalog' }).should('exist');
   });
 
   it('Navigates to Model Catalog', () => {
     initIntercepts({ disableModelCatalogFeature: false });
     modelCatalog.visit();
-    modelCatalog.navigate();
+    cy.findByRole('button', { name: 'Models' }).should('exist').click();
     modelCatalog.findModelCatalogCards().should('exist');
   });
 
   it('Navigates to Model Detail page on link click', () => {
     initIntercepts({ disableModelCatalogFeature: false });
     modelCatalog.visit();
-    modelCatalog.navigate();
+    cy.findByRole('button', { name: 'Models' }).should('exist').click();
     modelCatalog.findModelCatalogCards().should('exist');
     modelCatalog.findModelCatalogModelDetailLink('granite-8b-code-instruct').click();
     cy.location('pathname').should(
