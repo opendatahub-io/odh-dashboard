@@ -469,7 +469,6 @@ export type InferenceServiceAnnotations = Partial<{
 
 export type InferenceServiceLabels = Partial<{
   'networking.knative.dev/visibility': string;
-  'security.opendatahub.io/enable-auth': 'true';
   'networking.kserve.io/visibility': 'exposed';
 }>;
 
