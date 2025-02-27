@@ -22,6 +22,7 @@ import 'cypress-plugin-steps';
 import './commands';
 import { asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { addCommands as webSocketsAddCommands } from './websockets';
+import 'cypress-real-events';
 
 // Define a custom type for test options that includes tags.
 type TestOptions = {
