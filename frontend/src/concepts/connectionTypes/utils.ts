@@ -16,6 +16,7 @@ import {
 import { enumIterator } from '~/utilities/utils';
 import { AWSDataEntry, EnvVariableDataEntry } from '~/pages/projects/types';
 import { AwsKeys } from '~/pages/projects/dataConnections/const';
+import { isSecretKind } from '~/pages/projects/screens/spawner/environmentVariables/utils';
 
 export const isConnectionTypeDataFieldType = (
   type: ConnectionTypeFieldTypeUnion | string,
@@ -25,6 +26,18 @@ export const isConnectionTypeDataFieldType = (
 export const isConnectionTypeDataField = (
   field: ConnectionTypeField,
 ): field is ConnectionTypeDataField => field.type !== ConnectionTypeFieldType.Section;
+
+export const isConnectionType = (object: unknown): object is ConnectionTypeConfigMapObj =>
+  typeof object === 'object' &&
+  !!object &&
+  'metadata' in object &&
+  !!object.metadata &&
+  typeof object.metadata === 'object' &&
+  'labels' in object.metadata &&
+  !!object.metadata.labels &&
+  typeof object.metadata.labels === 'object' &&
+  'opendatahub.io/connection-type' in object.metadata.labels &&
+  object.metadata.labels['opendatahub.io/connection-type'] === 'true';
 
 export const isConnection = (secret: SecretKind): secret is Connection =>
   !!secret.metadata.annotations &&
@@ -123,24 +136,20 @@ export const fieldNameToEnvVar = (name: string): string => {
 export const ENV_VAR_NAME_REGEX = new RegExp('^[-_.a-zA-Z0-9]+$');
 export const isValidEnvVar = (name: string): boolean => ENV_VAR_NAME_REGEX.test(name);
 
-export const isUriConnectionType = (connectionType: ConnectionTypeConfigMapObj): boolean =>
-  !!connectionType.data?.fields?.find((f) => isConnectionTypeDataField(f) && f.envVar === 'URI');
-export const isUriConnection = (connection?: Connection): boolean => !!connection?.data?.URI;
+export enum ModelServingCompatibleTypes {
+  S3ObjectStorage = 'S3 compatible object storage',
+  URI = 'URI',
+  OCI = 'OCI compliant registry',
+}
 
+export const URIConnectionTypeKeys = ['URI'];
+export const OCIConnectionTypeKeys = ['.dockerconfigjson', 'OCI_HOST'];
 export const S3ConnectionTypeKeys = [
   'AWS_ACCESS_KEY_ID',
   'AWS_SECRET_ACCESS_KEY',
   'AWS_S3_ENDPOINT',
   'AWS_S3_BUCKET',
 ];
-
-export const OCIConnectionTypeKeys = ['ACCESS_TYPE', '.dockerconfigjson', 'OCI_HOST'];
-
-export enum ModelServingCompatibleTypes {
-  S3ObjectStorage = 'S3 compatible object storage',
-  URI = 'URI',
-  OCI = 'OCI compliant registry',
-}
 
 const modelServingCompatibleTypesMetadata: Record<
   ModelServingCompatibleTypes,
@@ -160,7 +169,7 @@ const modelServingCompatibleTypesMetadata: Record<
   [ModelServingCompatibleTypes.URI]: {
     name: ModelServingCompatibleTypes.URI,
     resource: 'uri-v1',
-    envVars: ['URI'],
+    envVars: URIConnectionTypeKeys,
   },
   [ModelServingCompatibleTypes.OCI]: {
     name: ModelServingCompatibleTypes.OCI,
@@ -170,10 +179,24 @@ const modelServingCompatibleTypesMetadata: Record<
 };
 
 export const isModelServingTypeCompatible = (
-  envVars: string[],
+  input: string[] | Connection | ConnectionTypeConfigMapObj,
   type: ModelServingCompatibleTypes,
-): boolean =>
-  modelServingCompatibleTypesMetadata[type].envVars.every((envVar) => envVars.includes(envVar));
+): boolean => {
+  if (isSecretKind(input) && isConnection(input)) {
+    return modelServingCompatibleTypesMetadata[type].envVars.every((envVar) =>
+      Object.keys(input.data || input.stringData || []).includes(envVar),
+    );
+  }
+  if (isConnectionType(input)) {
+    const fieldEnvs = input.data?.fields?.map((f) => isConnectionTypeDataField(f) && f.envVar);
+    return modelServingCompatibleTypesMetadata[type].envVars.every((envVar) =>
+      fieldEnvs?.includes(envVar),
+    );
+  }
+  return modelServingCompatibleTypesMetadata[type].envVars.every((envVar) =>
+    input.includes(envVar),
+  );
+};
 
 const getModelServingCompatibleTypes = (envVars: string[]): ModelServingCompatibleTypes[] =>
   enumIterator(ModelServingCompatibleTypes).reduce<ModelServingCompatibleTypes[]>(

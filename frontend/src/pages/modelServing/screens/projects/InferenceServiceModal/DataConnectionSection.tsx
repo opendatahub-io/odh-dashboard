@@ -9,7 +9,7 @@ import {
 import AWSField from '~/pages/projects/dataConnections/AWSField';
 import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import DataConnectionExistingField from './DataConnectionExistingField';
-import DataConnectionFolderPathField from './DataConnectionFolderPathField';
+import ConnectionS3FolderPathField from './ConnectionS3FolderPathField';
 
 type DataConnectionSectionType = {
   data: CreatingInferenceServiceObject;
@@ -100,7 +100,7 @@ const DataConnectionSection: React.FC<DataConnectionSectionType> = ({
                     />
                   </StackItem>
                   <StackItem>
-                    <DataConnectionFolderPathField
+                    <ConnectionS3FolderPathField
                       folderPath={data.storage.path}
                       setFolderPath={(path) => setData('storage', { ...data.storage, path })}
                     />

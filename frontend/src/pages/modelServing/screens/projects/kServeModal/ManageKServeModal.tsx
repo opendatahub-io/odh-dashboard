@@ -412,6 +412,9 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
         {!hideForm && (
           <FormSection title="Source model location" id="model-location">
             <ConnectionSection
+              existingUriOption={
+                editInfo?.inferenceServiceEditInfo?.spec.predictor.model?.storageUri
+              }
               data={createDataInferenceService}
               setData={setCreateDataInferenceService}
               loaded={!!projectContext?.connections || connectionsLoaded}
