@@ -62,6 +62,7 @@ class ModelCustomizationFormGlobal {
   findRadioInput(name: string) {
     return cy.findByTestId(name);
   }
+<<<<<<< HEAD
 }
 
 class TeacherModelSection {
@@ -82,6 +83,8 @@ class JudgeModelSection {
   findModelNameInput() {
     return cy.findByTestId('judge-model-name-input');
   }
+=======
+>>>>>>> 9ba965c1431b2dcc17bbff67b3841d7dfaa255e0
 }
 
 export const modelCustomizationFormGlobal = new ModelCustomizationFormGlobal();

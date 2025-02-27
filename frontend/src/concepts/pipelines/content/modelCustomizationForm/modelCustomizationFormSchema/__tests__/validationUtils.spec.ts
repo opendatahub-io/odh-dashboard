@@ -1,10 +1,10 @@
 import { ModelCustomizationEndpointType } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
 import {
-  TeacherJudgeFormData,
-  teacherJudgeModel,
   hyperparameterEvaluationFieldSchema,
   hyperparameterNumericFieldSchema,
   runTypeSchema,
+  TeacherJudgeFormData,
+  teacherJudgeModel,
 } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import { InputDefinitionParameterType } from '~/concepts/pipelines/kfTypes';
 import { RunTypeFormat } from '~/pages/pipelines/global/modelCustomization/const';
