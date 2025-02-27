@@ -203,9 +203,6 @@ describe('Hardware Profile', () => {
           name: 'Test Hardware Profile - 1',
           displayName: 'Test Hardware Profile - 1',
           description: 'hardware profile 1',
-          labels: {
-            'opendatahub.io/ootb': 'true',
-          },
           identifiers: [
             {
               displayName: 'CPU',
@@ -239,9 +236,6 @@ describe('Hardware Profile', () => {
           name: 'Test Hardware Profile - 1',
           displayName: 'Test Hardware Profile - 1',
           description: 'hardware profile 1',
-          labels: {
-            'opendatahub.io/ootb': 'true',
-          },
           identifiers: [
             {
               displayName: 'CPU',
@@ -284,37 +278,6 @@ describe('Hardware Profile', () => {
       warningBanner.findDescription(
         'One or more of your defined hardware profiles are missing either CPU or Memory. This is not recommended.',
       );
-    });
-
-    it('restore hardware profile', () => {
-      cy.interceptK8sList(
-        { model: HardwareProfileModel, ns: 'opendatahub' },
-        mockK8sResourceList([
-          mockHardwareProfile({
-            name: 'test-hardware-profile-restore',
-            displayName: 'Test Hardware Profile Restore',
-            labels: {
-              'opendatahub.io/ootb': 'true',
-            },
-            identifiers: [],
-          }),
-        ]),
-      );
-      cy.interceptK8s(
-        'PUT',
-        {
-          model: HardwareProfileModel,
-          ns: 'opendatahub',
-          name: 'test-hardware-profile-restore',
-        },
-        mock200Status({}),
-      ).as('restore');
-      hardwareProfile.visit();
-      const row = hardwareProfile.getRow('Test Hardware Profile Restore');
-      row.findEnableSwitch().should('not.be.checked');
-      row.findWarningIconButton().click();
-      hardwareProfile.findRestoreDefaultHardwareProfileButton().click();
-      cy.wait('@restore');
     });
 
     it('shows errors for all invalid.', () => {

@@ -115,9 +115,6 @@ describe('validateProfileWarning', () => {
   it('should generate warnings for invalid identifier counts', () => {
     const hardwareProfileMock = mockHardwareProfile({
       uid: 'test-4',
-      labels: {
-        'opendatahub.io/ootb': 'true',
-      },
       enabled: false,
       identifiers: [
         {
@@ -147,67 +144,10 @@ describe('validateProfileWarning', () => {
     ]);
   });
 
-  it('should generate warnings for a default profile without resources', () => {
-    const hardwareProfileMock = mockHardwareProfile({
-      uid: 'test-5',
-      enabled: false,
-      labels: {
-        'opendatahub.io/ootb': 'true',
-      },
-      identifiers: [],
-    });
-    const hardwareProfilesResult = validateProfileWarning(hardwareProfileMock);
-    expect(hardwareProfilesResult).toEqual([
-      {
-        type: HardwareProfileWarningType.HARDWARE_PROFILES_MISSING_CPU_MEMORY,
-        message:
-          'Omitting CPU or Memory resources is not recommended. Select the restore button to restore the Default profile to its initial state.',
-      },
-    ]);
-  });
-
-  it('should generate warnings for a default profile outside of min/max range', () => {
-    const hardwareProfileMock = mockHardwareProfile({
-      uid: 'test-6',
-      enabled: false,
-      labels: {
-        'opendatahub.io/ootb': 'true',
-      },
-      identifiers: [
-        {
-          displayName: 'Memory',
-          identifier: 'memory',
-          resourceType: IdentifierResourceType.MEMORY,
-          minCount: '0Gi',
-          maxCount: '5Gi',
-          defaultCount: '2Gi',
-        },
-        {
-          displayName: 'CPU',
-          identifier: 'cpu',
-          resourceType: IdentifierResourceType.CPU,
-          minCount: '5',
-          maxCount: '10',
-          defaultCount: '11',
-        },
-      ],
-    });
-    const hardwareProfilesResult = validateProfileWarning(hardwareProfileMock);
-    expect(hardwareProfilesResult).toEqual([
-      {
-        type: HardwareProfileWarningType.OTHER,
-        message: `The default count for ${IdentifierResourceType.CPU} must be between the minimum allowed ${IdentifierResourceType.CPU} and maximum allowed ${IdentifierResourceType.CPU}. Select the restore button to restore the Default profile to its initial state.`,
-      },
-    ]);
-  });
-
   it('should generate warnings for decimal minimum and maximum count', () => {
     const hardwareProfileMock = mockHardwareProfile({
       uid: 'test-7',
       enabled: true,
-      labels: {
-        'opendatahub.io/ootb': 'true',
-      },
       identifiers: [
         {
           displayName: 'Memory',

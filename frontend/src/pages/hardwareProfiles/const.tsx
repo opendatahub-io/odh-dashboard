@@ -138,7 +138,7 @@ export const initialHardwareProfileFilterData: HardwareProfileFilterDataType = {
 export const ManageHardwareProfileSectionTitles: ManageHardwareProfileSectionTitlesType = {
   [ManageHardwareProfileSectionID.DETAILS]: 'Details',
   [ManageHardwareProfileSectionID.VISIBILITY]: 'Visibility',
-  [ManageHardwareProfileSectionID.IDENTIFIERS]: 'Node resources',
+  [ManageHardwareProfileSectionID.IDENTIFIERS]: 'Resource requests and limits',
   [ManageHardwareProfileSectionID.NODE_SELECTORS]: 'Node selectors',
   [ManageHardwareProfileSectionID.TOLERATIONS]: 'Tolerations',
 };

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Stack, StackItem } from '@patternfly/react-core';
+import { Stack, StackItem } from '@patternfly/react-core';
 import { deleteHardwareProfile } from '~/api';
 import { HardwareProfileKind } from '~/k8sTypes';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
@@ -11,26 +11,6 @@ type DeleteHardwareProfileModalProps = {
   onClose: (deleted: boolean) => void;
 };
 
-const migrationAlertMessage = (migrationAction: MigrationAction) => {
-  switch (migrationAction.source.type) {
-    case MigrationSourceType.ACCELERATOR_PROFILE:
-      return (
-        <>
-          This action will delete the source accelerator profile,{' '}
-          <b>{migrationAction.source.resource.metadata?.name ?? migrationAction.source.label}</b>,
-          resulting in any dependent translated hardware profiles being lost.
-        </>
-      );
-    case MigrationSourceType.SERVING_CONTAINER_SIZE:
-    case MigrationSourceType.NOTEBOOK_CONTAINER_SIZE:
-      return (
-        <>
-          This action will delete the source container size, <b>{migrationAction.source.label}</b>,
-          from the dashboard config.
-        </>
-      );
-  }
-};
 const DeleteHardwareProfileModal: React.FC<DeleteHardwareProfileModalProps> = ({
   hardwareProfile,
   migrationAction,
@@ -47,9 +27,14 @@ const DeleteHardwareProfileModal: React.FC<DeleteHardwareProfileModalProps> = ({
 
   return (
     <DeleteModal
-      title="Delete hardware profile?"
+      title={migrationAction ? 'Delete hardware profile and source?' : 'Delete hardware profile?'}
       onClose={() => onBeforeClose(false)}
       submitButtonLabel="Delete"
+      deleteName={
+        migrationAction
+          ? `Delete ${migrationAction.targetProfiles.length + 1} and hardware profile`
+          : hardwareProfile.spec.displayName
+      }
       onDelete={() => {
         setIsDeleting(true);
 
@@ -75,24 +60,25 @@ const DeleteHardwareProfileModal: React.FC<DeleteHardwareProfileModalProps> = ({
       }}
       deleting={isDeleting}
       error={error}
-      deleteName={hardwareProfile.spec.displayName}
     >
       <Stack hasGutter>
         <StackItem>
-          This action cannot be undone. Workloads already deployed using this profile will not be
-          affected by this action.
+          {migrationAction ? (
+            <>
+              The <b>{hardwareProfile.spec.displayName}</b> simulated hardware profile and its
+              source
+              {migrationAction.source.type === MigrationSourceType.ACCELERATOR_PROFILE
+                ? ' accelerator profile'
+                : migrationAction.source.type === MigrationSourceType.SERVING_CONTAINER_SIZE
+                ? ' model serving container size'
+                : ' notebook container size'}
+              , {migrationAction.source.label}, will be deleted. Deployed workloads using this
+              profile will not be affected.
+            </>
+          ) : (
+            'This action cannot be undone. Workloads already deployed using this profile will not be affected by this action.'
+          )}
         </StackItem>
-        {migrationAction && (
-          <StackItem>
-            <Alert
-              isInline
-              variant="warning"
-              title="You are deleting a translated hardware profile's source."
-            >
-              {migrationAlertMessage(migrationAction)}
-            </Alert>
-          </StackItem>
-        )}
       </Stack>
     </DeleteModal>
   );

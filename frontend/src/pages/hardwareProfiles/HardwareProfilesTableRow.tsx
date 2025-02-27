@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  Button,
   Divider,
   Label,
   LabelGroup,
@@ -27,20 +26,18 @@ import TolerationTable from '~/pages/hardwareProfiles/toleration/TolerationTable
 import { useKebabAccessAllowed, verbModelAccess } from '~/concepts/userSSAR';
 import {
   createHardwareProfileWarningTitle,
-  isHardwareProfileOOTB,
   validateProfileWarning,
 } from '~/pages/hardwareProfiles/utils';
-import { HardwareProfileModel, updateHardwareProfile } from '~/api';
-import { useDashboardNamespace } from '~/redux/selectors';
+import { HardwareProfileModel } from '~/api';
 import MigrationTooltip from './migration/MigrationTooltip';
 import { MigrationAction } from './migration/types';
-import { DEFAULT_HARDWARE_PROFILE_SPEC } from './const';
 
 type HardwareProfilesTableRowProps = {
   rowIndex: number;
   hardwareProfile: HardwareProfileKind;
   migrationAction?: MigrationAction;
   handleDelete: (cr: HardwareProfileKind) => void;
+  handleMigrate: (migrationAction: MigrationAction) => void;
 };
 
 const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
@@ -48,6 +45,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
   rowIndex,
   migrationAction,
   handleDelete,
+  handleMigrate,
 }) => {
   const modifiedDate = hardwareProfile.metadata.annotations?.['opendatahub.io/modified-date'];
   const [isExpanded, setExpanded] = React.useState(false);
@@ -65,13 +63,16 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
   }, [hardwareProfile.metadata.annotations]);
 
   const title = migrationAction ? (
-    <MigrationTooltip migrationAction={migrationAction} wrap={false}>
+    <MigrationTooltip
+      migrationAction={migrationAction}
+      wrap={false}
+      onMigrate={() => handleMigrate(migrationAction)}
+    >
       <Truncate content={hardwareProfile.spec.displayName} />
     </MigrationTooltip>
   ) : (
     <Truncate content={hardwareProfile.spec.displayName} />
   );
-  const { dashboardNamespace } = useDashboardNamespace();
   const hardwareProfileWarnings = validateProfileWarning(hardwareProfile);
 
   return (
@@ -102,7 +103,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
                     </Icon>
                   }
                   headerContent={createHardwareProfileWarningTitle(hardwareProfile)}
-                  bodyContent={(hide) => (
+                  bodyContent={() => (
                     <>
                       {hardwareProfileWarnings.length === 1 ? (
                         <div>{hardwareProfileWarnings[0].message}</div>
@@ -112,27 +113,6 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
                             <ListItem key={index}>{warning.message}</ListItem>
                           ))}
                         </List>
-                      )}
-                      {isHardwareProfileOOTB(hardwareProfile) && (
-                        <Button
-                          variant="link"
-                          component="a"
-                          onClick={async () => {
-                            await updateHardwareProfile(
-                              {
-                                ...DEFAULT_HARDWARE_PROFILE_SPEC,
-                                displayName: hardwareProfile.spec.displayName,
-                                description: hardwareProfile.spec.description,
-                              },
-                              hardwareProfile,
-                              dashboardNamespace,
-                            );
-                            hide();
-                          }}
-                          data-testid="restore-default-hardware-profile"
-                        >
-                          Restore default hardware profile
-                        </Button>
                       )}
                     </>
                   )}
@@ -185,15 +165,13 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
           <ActionsColumn
             items={[
               ...useKebabAccessAllowed(
-                isHardwareProfileOOTB(hardwareProfile)
-                  ? []
-                  : [
-                      {
-                        title: 'Edit',
-                        onClick: () =>
-                          navigate(`/hardwareProfiles/edit/${hardwareProfile.metadata.name}`),
-                      },
-                    ],
+                [
+                  {
+                    title: 'Edit',
+                    onClick: () =>
+                      navigate(`/hardwareProfiles/edit/${hardwareProfile.metadata.name}`),
+                  },
+                ],
                 verbModelAccess('update', HardwareProfileModel),
               ),
               ...useKebabAccessAllowed(
@@ -207,15 +185,19 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
                 verbModelAccess('create', HardwareProfileModel),
               ),
               ...useKebabAccessAllowed(
-                isHardwareProfileOOTB(hardwareProfile)
-                  ? []
-                  : [
-                      { isSeparator: true },
-                      {
-                        title: 'Delete',
-                        onClick: () => handleDelete(hardwareProfile),
-                      },
-                    ],
+                migrationAction
+                  ? [{ title: 'Migrate', onClick: () => handleMigrate(migrationAction) }]
+                  : [],
+                verbModelAccess('create', HardwareProfileModel),
+              ),
+              ...useKebabAccessAllowed(
+                [
+                  { isSeparator: true },
+                  {
+                    title: 'Delete',
+                    onClick: () => handleDelete(hardwareProfile),
+                  },
+                ],
                 verbModelAccess('delete', HardwareProfileModel),
               ),
             ]}

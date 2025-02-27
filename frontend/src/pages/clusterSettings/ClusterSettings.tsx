@@ -239,7 +239,7 @@ const ClusterSettings: React.FC = () => {
             />
           </StackItem>
         )}
-        {isJupyterEnabled && isHardwareProfileEnabled && (
+        {isJupyterEnabled && !isHardwareProfileEnabled && (
           <StackItem>
             <TolerationSettings
               initialValue={clusterSettings.notebookTolerationSettings}

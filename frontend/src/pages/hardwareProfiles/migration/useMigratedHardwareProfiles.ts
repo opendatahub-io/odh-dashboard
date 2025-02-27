@@ -96,7 +96,7 @@ const useMigratedHardwareProfiles = (): {
         source: {
           type: MigrationSourceType.ACCELERATOR_PROFILE,
           resource: acceleratorProfile,
-          label: acceleratorProfileName,
+          label: acceleratorProfile.spec.displayName,
         },
         targetProfiles: newHardwareProfiles,
         deleteSourceResource: async (opts) =>

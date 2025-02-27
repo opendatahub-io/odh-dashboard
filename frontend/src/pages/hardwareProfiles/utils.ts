@@ -14,9 +14,6 @@ export enum HardwareProfileBannerWarningTitles {
   SOME_INCOMPLETE = 'One or more hardware profiles are incomplete',
 }
 
-export const isHardwareProfileOOTB = (hardwareProfile: HardwareProfileKind): boolean =>
-  hardwareProfile.metadata.labels?.['opendatahub.io/ootb'] === 'true';
-
 const generateWarningTitle = (
   hasEnabled: boolean,
   allInvalid: boolean,
@@ -137,10 +134,7 @@ type HardwareProfileWarning = {
 
 export const createHardwareProfileWarningTitle = (hardwareProfile: HardwareProfileKind): string => {
   const complete = hasCPUandMemory(hardwareProfile.spec.identifiers ?? []);
-  const isDefault = isHardwareProfileOOTB(hardwareProfile);
-  return `${complete ? 'Invalid' : 'Incomplete'} ${
-    isDefault ? 'default hardware' : 'hardware'
-  } profile`;
+  return `${complete ? 'Invalid' : 'Incomplete'} hardware profile`;
 };
 
 export const createIdentifierWarningMessage = (message: string, isDefault: boolean): string =>
@@ -155,8 +149,7 @@ export const validateProfileWarning = (
 ): HardwareProfileWarning[] => {
   const warningMessages: HardwareProfileWarning[] = [];
   const identifiers = hardwareProfile.spec.identifiers ?? [];
-  const isDefault = isHardwareProfileOOTB(hardwareProfile);
-  const warnings = hardwareProfileWarningSchema.safeParse({ isDefault, value: identifiers });
+  const warnings = hardwareProfileWarningSchema.safeParse({ isDefault: false, value: identifiers });
   if (warnings.error) {
     warnings.error.issues.forEach((issue) => {
       if ('params' in issue && typeof issue.params !== 'undefined') {

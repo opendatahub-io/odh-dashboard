@@ -12,6 +12,7 @@ import HardwareProfilesTableRow from '~/pages/hardwareProfiles/HardwareProfilesT
 import DeleteHardwareProfileModal from '~/pages/hardwareProfiles/DeleteHardwareProfileModal';
 import HardwareProfilesToolbar from '~/pages/hardwareProfiles/HardwareProfilesToolbar';
 import { MigrationAction } from './migration/types';
+import MigrationModal from './migration/MigrationModal';
 
 type HardwareProfilesTableProps = {
   hardwareProfiles: HardwareProfileKind[];
@@ -24,6 +25,9 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
 }) => {
   const [deleteHardwareProfile, setDeleteHardwareProfile] = React.useState<
     { hardwareProfile: HardwareProfileKind; migrationAction?: MigrationAction } | undefined
+  >();
+  const [migrateModalMigrationAction, setMigrateModalMigrationAction] = React.useState<
+    MigrationAction | undefined
   >();
   const [filterData, setFilterData] = React.useState<HardwareProfileFilterDataType>(
     initialHardwareProfileFilterData,
@@ -83,6 +87,7 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
               handleDelete={(hardwareProfile) =>
                 setDeleteHardwareProfile({ hardwareProfile, migrationAction })
               }
+              handleMigrate={(ma) => setMigrateModalMigrationAction(ma)}
               migrationAction={migrationAction}
             />
           );
@@ -91,6 +96,12 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
           <HardwareProfilesToolbar onFilterUpdate={onFilterUpdate} filterData={filterData} />
         }
       />
+      {migrateModalMigrationAction && (
+        <MigrationModal
+          migrationAction={migrateModalMigrationAction}
+          onClose={() => setMigrateModalMigrationAction(undefined)}
+        />
+      )}
       {deleteHardwareProfile ? (
         <DeleteHardwareProfileModal
           hardwareProfile={deleteHardwareProfile.hardwareProfile}

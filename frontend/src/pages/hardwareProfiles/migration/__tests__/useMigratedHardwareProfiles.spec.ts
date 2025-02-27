@@ -4,22 +4,22 @@ import { mockDashboardConfig } from '~/__mocks__';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import { useWatchHardwareProfiles } from '~/utilities/useWatchHardwareProfiles';
 import useAcceleratorProfiles from '~/pages/notebookController/screens/server/useAcceleratorProfiles';
-import { useAppContext } from '~/app/AppContext';
 import { useDashboardNamespace } from '~/redux/selectors';
 import { DEFAULT_NOTEBOOK_SIZES } from '~/pages/notebookController/const';
 import useMigratedHardwareProfiles from '~/pages/hardwareProfiles/migration/useMigratedHardwareProfiles';
 import { MigrationSourceType } from '~/pages/hardwareProfiles/migration/types';
+import { useApplicationSettings } from '~/app/useApplicationSettings';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
 
 jest.mock('~/utilities/useWatchHardwareProfiles');
 jest.mock('~/pages/notebookController/screens/server/useAcceleratorProfiles');
-jest.mock('~/app/AppContext');
+jest.mock('~/app/useApplicationSettings');
 jest.mock('~/redux/selectors');
 
 const mockUseWatchHardwareProfiles = jest.mocked(useWatchHardwareProfiles);
 const mockUseAcceleratorProfiles = jest.mocked(useAcceleratorProfiles);
-const mockUseAppContext = jest.mocked(useAppContext);
+const mockUseApplicationSettings = jest.mocked(useApplicationSettings);
 const mockUseDashboardNamespace = jest.mocked(useDashboardNamespace);
 
 describe('useMigratedHardwareProfiles', () => {
@@ -31,15 +31,15 @@ describe('useMigratedHardwareProfiles', () => {
 
     mockUseDashboardNamespace.mockReturnValue({ dashboardNamespace: namespace });
 
-    mockUseAppContext.mockReturnValue({
+    mockUseApplicationSettings.mockReturnValue({
       dashboardConfig: mockDashboardConfig({
         disableNotebookController: false,
         notebookSizes: [],
         modelServerSizes: [],
       }),
-      buildStatuses: [],
-      storageClasses: [],
-      isRHOAI: false,
+      loaded: true,
+      loadError: undefined,
+      refresh: jest.fn(),
     });
 
     mockUseWatchHardwareProfiles.mockReturnValue([[], true, undefined]);
@@ -90,14 +90,14 @@ describe('useMigratedHardwareProfiles', () => {
   it('should migrate notebook sizes', () => {
     const notebookSizes = [{ name: 'Small', resources: { requests: { cpu: '1', memory: '1Gi' } } }];
 
-    mockUseAppContext.mockReturnValue({
+    mockUseApplicationSettings.mockReturnValue({
       dashboardConfig: mockDashboardConfig({
         notebookSizes,
         modelServerSizes: [],
       }),
-      buildStatuses: [],
-      storageClasses: [],
-      isRHOAI: false,
+      loaded: true,
+      loadError: undefined,
+      refresh: jest.fn(),
     });
 
     const renderResult = testHook(useMigratedHardwareProfiles)();
@@ -115,14 +115,14 @@ describe('useMigratedHardwareProfiles', () => {
       { name: 'Medium', resources: { requests: { cpu: '2', memory: '2Gi' } } },
     ];
 
-    mockUseAppContext.mockReturnValue({
+    mockUseApplicationSettings.mockReturnValue({
       dashboardConfig: mockDashboardConfig({
         notebookSizes: [],
         modelServerSizes,
       }),
-      buildStatuses: [],
-      storageClasses: [],
-      isRHOAI: false,
+      loaded: true,
+      loadError: undefined,
+      refresh: jest.fn(),
     });
 
     const renderResult = testHook(useMigratedHardwareProfiles)();
@@ -136,13 +136,13 @@ describe('useMigratedHardwareProfiles', () => {
   });
 
   it('should handle notebook tolerations', () => {
-    mockUseAppContext.mockReturnValue({
+    mockUseApplicationSettings.mockReturnValue({
       dashboardConfig: mockDashboardConfig({
         notebookSizes: DEFAULT_NOTEBOOK_SIZES,
       }),
-      buildStatuses: [],
-      storageClasses: [],
-      isRHOAI: false,
+      loaded: true,
+      loadError: undefined,
+      refresh: jest.fn(),
     });
 
     const renderResult = testHook(useMigratedHardwareProfiles)();

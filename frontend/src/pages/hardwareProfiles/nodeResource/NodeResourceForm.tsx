@@ -21,7 +21,9 @@ import {
   DEFAULT_CPU_SIZE,
   DEFAULT_MEMORY_SIZE,
   EMPTY_IDENTIFIER,
+  HARDWARE_PROFILE_COLUMN_HELP_TOOLTIP,
 } from '~/pages/hardwareProfiles/nodeResource/const';
+import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
 import { validateDefaultCount, validateMinCount } from './utils';
 import CountFormField from './CountFormField';
 
@@ -114,6 +116,7 @@ const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
         setSize={(value) => setIdentifier('defaultCount', value)}
         isValid={validateDefaultCount(identifier, unitOptions)}
         errorMessage="Default must be equal to or between the minimum and maximum allowed limits."
+        tooltip={HARDWARE_PROFILE_COLUMN_HELP_TOOLTIP.defaultCount}
       />
 
       <CountFormField
@@ -124,9 +127,14 @@ const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
         setSize={(value) => setIdentifier('minCount', value)}
         isValid={validateMinCount(identifier, unitOptions)}
         errorMessage="Minimum allowed value cannot exceed the maximum allowed value (if specified)."
+        tooltip={HARDWARE_PROFILE_COLUMN_HELP_TOOLTIP.minCount}
       />
 
-      <FormGroup label="Maximum allowed" fieldId="maximum-allowed">
+      <FormGroup
+        label="Maximum allowed"
+        fieldId="maximum-allowed"
+        labelHelp={<DashboardHelpTooltip content={HARDWARE_PROFILE_COLUMN_HELP_TOOLTIP.maxCount} />}
+      >
         <Stack hasGutter>
           <StackItem>
             <Split hasGutter>
