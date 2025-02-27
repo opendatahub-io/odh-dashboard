@@ -1279,6 +1279,52 @@ export type K8sResourceListResult<TResource extends Partial<K8sResourceCommon>> 
   };
 };
 
+/** Represents a component in the DataScienceCluster. */
+export type DataScienceClusterComponent = {
+  /**
+   * The management state of the component (e.g., Managed, Unmanaged, Force).
+   * Indicates whether the component is being actively managed or not.
+   */
+  managementState?: string;
+};
+
+/** Defines a DataScienceCluster with various components. */
+export type DataScienceClusterKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+  };
+  spec: {
+    components?: {
+      [key in DataScienceStackComponent]?: DataScienceClusterComponent;
+    } & {
+      /** KServe, ModelRegistry and Data Science Pipeline components, including further specific configuration. */
+      [DataScienceStackComponent.K_SERVE]?: DataScienceClusterComponent & {
+        defaultDeploymentMode?: string;
+        nim: {
+          managementState: string;
+        };
+        serving: {
+          ingressGateway: {
+            certificate: {
+              type: string;
+            };
+          };
+          managementState: string;
+          name: string;
+        };
+      };
+      [DataScienceStackComponent.MODEL_REGISTRY]?: DataScienceClusterComponent & {
+        registriesNamespace: string;
+      };
+      [DataScienceStackComponent.DS_PIPELINES]?: DataScienceClusterComponent & {
+        managementState: string;
+        managedPipelines: { instructLab: { state: string } };
+      };
+    };
+  };
+  status?: DataScienceClusterKindStatus;
+};
+
 /** Represents the status of a component in the DataScienceCluster. */
 export type DataScienceClusterComponentStatus = {
   /**
@@ -1296,65 +1342,6 @@ export type DataScienceClusterComponentStatus = {
     repoUrl?: string; // URL of the repository hosting the release (e.g., GitHub URL)
     version?: string; // Version of the release (e.g., "2.2.0")
   }>;
-};
-
-export type DataScienceClusterKind = K8sResourceCommon & {
-  metadata: {
-    name: string;
-  };
-  spec: {
-    components?: {
-      codeflare?: {
-        managementState: string;
-      };
-      kserve?: {
-        defaultDeploymentMode: string;
-        managementState: string;
-        nim: {
-          managementState: string;
-        };
-        serving: {
-          ingressGateway: {
-            certificate: {
-              type: string;
-            };
-          };
-          managementState: string;
-          name: string;
-        };
-      };
-      modelregistry?: {
-        managementState: string;
-        registriesNamespace: string;
-      };
-      trustyai?: {
-        managementState: string;
-      };
-      ray?: {
-        managementState: string;
-      };
-      kueue?: {
-        managementState: string;
-      };
-      workbenches?: {
-        managementState: string;
-      };
-      dashboard?: {
-        managementState: string;
-      };
-      modelmeshserving?: {
-        managementState: string;
-      };
-      datasciencepipelines?: {
-        managementState: string;
-        managedPipelines: { instructLab: { state: string } };
-      };
-      trainingoperator?: {
-        managementState: string;
-      };
-    };
-  };
-  status?: DataScienceClusterKindStatus;
 };
 
 /** We don't need or should ever get the full kind, this is the status section */
