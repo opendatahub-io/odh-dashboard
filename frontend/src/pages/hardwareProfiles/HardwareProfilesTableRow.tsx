@@ -12,6 +12,7 @@ import {
   Timestamp,
   TimestampTooltipVariant,
   Truncate,
+  Tooltip,
 } from '@patternfly/react-core';
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
@@ -19,7 +20,7 @@ import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { relativeTime } from '~/utilities/time';
 import { TableRowTitleDescription } from '~/components/table';
 import HardwareProfileEnableToggle from '~/pages/hardwareProfiles/HardwareProfileEnableToggle';
-import { HardwareProfileKind } from '~/k8sTypes';
+import { HardwareProfileKind, HardwareProfileUseCases } from '~/k8sTypes';
 import NodeResourceTable from '~/pages/hardwareProfiles/nodeResource/NodeResourceTable';
 import NodeSelectorTable from '~/pages/hardwareProfiles/nodeSelector/NodeSelectorTable';
 import TolerationTable from '~/pages/hardwareProfiles/toleration/TolerationTable';
@@ -31,6 +32,7 @@ import {
 import { HardwareProfileModel } from '~/api';
 import MigrationTooltip from './migration/MigrationTooltip';
 import { MigrationAction } from './migration/types';
+import { HardwareProfileUseCaseTitles } from './manage/const';
 
 type HardwareProfilesTableRowProps = {
   rowIndex: number;
@@ -51,7 +53,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
   const [isExpanded, setExpanded] = React.useState(false);
   const navigate = useNavigate();
 
-  const visibleIn: string[] = React.useMemo(() => {
+  const useCases: HardwareProfileUseCases[] = React.useMemo(() => {
     if (hardwareProfile.metadata.annotations?.['opendatahub.io/use-cases']) {
       try {
         return JSON.parse(hardwareProfile.metadata.annotations['opendatahub.io/use-cases']);
@@ -125,26 +127,24 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
             }
           />
         </Td>
-        <Td dataLabel="Enabled">
-          {migrationAction ? (
-            hardwareProfile.spec.enabled ? (
-              'Enabled'
-            ) : (
-              'Disabled'
-            )
-          ) : (
-            <HardwareProfileEnableToggle hardwareProfile={hardwareProfile} />
-          )}
-        </Td>
-        <Td dataLabel="Visible in">
-          {visibleIn.length === 0 ? (
-            <i>All</i>
+        <Td dataLabel="Use cases">
+          {useCases.length === 0 ? (
+            <i>All use cases</i>
           ) : (
             <LabelGroup>
-              {visibleIn.map((v) => (
-                <Label key={v}>{v}</Label>
+              {useCases.map((v) => (
+                <Label key={v}>{HardwareProfileUseCaseTitles[v]}</Label>
               ))}
             </LabelGroup>
+          )}
+        </Td>
+        <Td dataLabel="Enabled">
+          {migrationAction ? (
+            <Tooltip content="This proposed profile requires migration before it can be modified.">
+              <span>{hardwareProfile.spec.enabled ? 'Enabled' : 'Disabled'}</span>
+            </Tooltip>
+          ) : (
+            <HardwareProfileEnableToggle hardwareProfile={hardwareProfile} />
           )}
         </Td>
         <Td dataLabel="Last modified">

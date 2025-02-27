@@ -65,7 +65,7 @@ const DeleteHardwareProfileModal: React.FC<DeleteHardwareProfileModalProps> = ({
         <StackItem>
           {migrationAction ? (
             <>
-              The simulated hardware profiles <b>{hardwareProfile.spec.displayName}</b>
+              The proposed hardware profiles <b>{hardwareProfile.spec.displayName}</b>
               {migrationAction.targetProfiles.length > 0 && (
                 <>
                   {' and '}

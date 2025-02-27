@@ -28,6 +28,11 @@ export const useHardwareProfilesByUseCase = (
           }
 
           const visibleIn = JSON.parse(profile.metadata.annotations['opendatahub.io/use-cases']);
+
+          if (visibleIn.length === 0) {
+            return true;
+          }
+
           return useCases ? useCases.some((a) => visibleIn.includes(a)) : true;
         } catch (error) {
           return true;

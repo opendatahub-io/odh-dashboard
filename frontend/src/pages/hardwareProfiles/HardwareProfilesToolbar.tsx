@@ -11,6 +11,8 @@ import {
 import SimpleSelect from '~/components/SimpleSelect';
 import { AccessAllowed, verbModelAccess } from '~/concepts/userSSAR';
 import { HardwareProfileModel } from '~/api';
+import { HardwareProfileUseCases } from '~/k8sTypes';
+import { HardwareProfileUseCaseTitles } from './manage/const';
 
 type HardwareProfilesToolbarProps = {
   filterData: HardwareProfileFilterDataType;
@@ -45,6 +47,20 @@ const HardwareProfilesToolbar: React.FC<HardwareProfilesToolbarProps> = ({
             options={Object.values(HardwareProfileEnableType).map((v) => ({
               key: v,
               label: v,
+            }))}
+            onChange={(v) => onChange(v)}
+            popperProps={{ maxWidth: undefined }}
+          />
+        ),
+        [HardwareProfileFilterOptions.useCases]: ({ value, onChange, ...props }) => (
+          <SimpleSelect
+            {...props}
+            dataTestId="hardware-profile-filter-use-cases-select"
+            value={value}
+            aria-label="Hardware profile use cases"
+            options={Object.values(HardwareProfileUseCases).map((v) => ({
+              key: v,
+              label: HardwareProfileUseCaseTitles[v],
             }))}
             onChange={(v) => onChange(v)}
             popperProps={{ maxWidth: undefined }}

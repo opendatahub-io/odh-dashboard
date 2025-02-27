@@ -5,15 +5,11 @@ import { MultiSelection, type SelectionOptions } from '~/components/MultiSelecti
 import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
 import { ManageHardwareProfileSectionTitles } from '~/pages/hardwareProfiles/const';
 import { ManageHardwareProfileSectionID } from './types';
+import { HardwareProfileUseCaseTitles } from './const';
 
 type HardwareProfileUseCaseSectionProps = {
   useCases: string[];
   setUseCases: (useCases: string[]) => void;
-};
-const OptionTitles: Record<HardwareProfileUseCases, string> = {
-  [HardwareProfileUseCases.WORKBENCH]: 'Workbenches',
-  [HardwareProfileUseCases.MODEL_SERVING]: 'Model serving',
-  [HardwareProfileUseCases.PIPELINES]: 'Pipelines',
 };
 
 export const HardwareProfileUseCaseSection: React.FC<HardwareProfileUseCaseSectionProps> = ({
@@ -24,7 +20,7 @@ export const HardwareProfileUseCaseSection: React.FC<HardwareProfileUseCaseSecti
   const useCaseOptions: SelectionOptions[] = Object.values(HardwareProfileUseCases).map(
     (value) => ({
       id: value,
-      name: OptionTitles[value],
+      name: HardwareProfileUseCaseTitles[value],
       selected: useCases.includes(value),
     }),
   );

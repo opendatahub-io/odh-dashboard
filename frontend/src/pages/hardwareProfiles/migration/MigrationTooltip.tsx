@@ -59,7 +59,7 @@ const MigrationTooltip: React.FC<ResourceNameTooltipProps> = ({
             bodyContent={
               <Stack hasGutter>
                 <StackItem>
-                  This simulated hardware profile was created from{' '}
+                  This proposed hardware profile was created from{' '}
                   {MIGRATION_SOURCE_TYPE_LABELS[migrationAction.source.type]} and requires migration
                   before it can be modified.
                   <br />

@@ -134,7 +134,7 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
             variant="warning"
             title="Updating this profile will trigger migration"
           >
-            You are editing a simulated hardware profile,{' '}
+            You are editing a proposed hardware profile,{' '}
             <strong>{migrationAction.source.label}</strong>, that was created from{' '}
             {MIGRATION_SOURCE_TYPE_LABELS[migrationAction.source.type]}.
             <br />
@@ -143,7 +143,7 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
             <List>
               {migrationAction.targetProfiles.length > 1 ? (
                 <ListItem>
-                  Multiple simulated hardware profiles depend on this resource. The following
+                  Multiple proposed hardware profiles depend on this resource. The following
                   hardware profile resources will be created:{' '}
                   <strong>
                     {migrationAction.targetProfiles
@@ -169,7 +169,7 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
               </ListItem>
             </List>
             <br />
-            Deployed workloads using this simulated profile will be unaffected by the migration.
+            Deployed workloads using this proposed profile will be unaffected by the migration.
           </Alert>
         </StackItem>
       )}
@@ -195,11 +195,11 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
               onClick={existingHardwareProfile ? onUpdateHardwareProfile : onCreateHardwareProfile}
               data-testid="hardware-profile-create-button"
             >
-              {existingHardwareProfile
-                ? 'Update'
-                : migrationAction
-                ? 'Update and migrate'
-                : 'Create'}
+              {migrationAction
+                ? 'Update and migrate '
+                : existingHardwareProfile
+                ? 'Update '
+                : 'Create '}
               hardware profile
             </Button>
           </ActionListItem>

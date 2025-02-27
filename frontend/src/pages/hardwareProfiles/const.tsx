@@ -20,21 +20,29 @@ export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
     width: 40,
   },
   {
-    field: 'enablement',
-    label: 'Enabled',
-    sortable: false,
-    info: {
-      popover: 'Indicates whether the hardware profile is available for new resources.',
-      popoverProps: {
-        showClose: false,
-      },
-    },
-    width: 15,
-  },
-  {
     field: 'useCases',
     label: 'Use cases',
-    sortable: false,
+    sortable: (a: HardwareProfileKind, b: HardwareProfileKind): number => {
+      try {
+        const aUseCases = JSON.parse(
+          a.metadata.annotations?.['opendatahub.io/use-cases'] ?? '[]',
+        ).toSorted();
+        const bUseCases = JSON.parse(
+          b.metadata.annotations?.['opendatahub.io/use-cases'] ?? '[]',
+        ).toSorted();
+
+        // First sort by length
+        const lengthDiff = aUseCases.length - bUseCases.length;
+        if (lengthDiff !== 0) {
+          return lengthDiff;
+        }
+
+        // Compare the sorted arrays element by element
+        return aUseCases.join().localeCompare(bUseCases.join());
+      } catch {
+        return 0;
+      }
+    },
     info: {
       popover: (
         <>
@@ -47,6 +55,18 @@ export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
       },
     },
     width: 30,
+  },
+  {
+    field: 'enablement',
+    label: 'Enabled',
+    sortable: false,
+    info: {
+      popover: 'Indicates whether the hardware profile is available for new resources.',
+      popoverProps: {
+        showClose: false,
+      },
+    },
+    width: 15,
   },
   {
     field: 'last_modified',
@@ -73,11 +93,13 @@ export enum HardwareProfileEnableType {
 export enum HardwareProfileFilterOptions {
   name = 'Name',
   enabled = 'Enabled',
+  useCases = 'Use cases',
 }
 
 export const hardwareProfileFilterOptions = {
   [HardwareProfileFilterOptions.name]: 'Name',
   [HardwareProfileFilterOptions.enabled]: 'Enabled',
+  [HardwareProfileFilterOptions.useCases]: 'Use cases',
 };
 
 export type HardwareProfileFilterDataType = Record<
@@ -88,6 +110,7 @@ export type HardwareProfileFilterDataType = Record<
 export const initialHardwareProfileFilterData: HardwareProfileFilterDataType = {
   [HardwareProfileFilterOptions.name]: '',
   [HardwareProfileFilterOptions.enabled]: undefined,
+  [HardwareProfileFilterOptions.useCases]: undefined,
 };
 
 export const ManageHardwareProfileSectionTitles: ManageHardwareProfileSectionTitlesType = {

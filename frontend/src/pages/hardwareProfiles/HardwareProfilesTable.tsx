@@ -41,9 +41,20 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
       hardwareProfiles.filter((cr) => {
         const nameFilter = filterData.Name?.toLowerCase();
         const enableFilter = filterData.Enabled;
-
+        const useCasesFilter = filterData['Use cases'];
         if (nameFilter && !cr.spec.displayName.toLowerCase().includes(nameFilter)) {
           return false;
+        }
+
+        try {
+          if (cr.metadata.annotations?.['opendatahub.io/use-cases']) {
+            const useCases = JSON.parse(cr.metadata.annotations['opendatahub.io/use-cases']);
+            if (useCasesFilter && !useCases.includes(useCasesFilter)) {
+              return false;
+            }
+          }
+        } catch (e) {
+          // If the use cases are not set, don't filter
         }
 
         return (
