@@ -38,6 +38,30 @@ class ModelCustomizationFormGlobal {
   findEmptyState() {
     return cy.findByTestId('empty-state-title');
   }
+
+  findSimpleRunButton() {
+    return cy.findByTestId('simple-run-radio');
+  }
+
+  findExpandableSectionButton() {
+    return cy.findByTestId('hyperparameters-expandable').findByRole('button', {
+      name: 'Customize resource requests and limits',
+    });
+  }
+
+  findNumericInputPlusButton(name: string) {
+    return cy.findByTestId(name).findByRole('button', {
+      name: 'Plus',
+    });
+  }
+
+  findLongNumberInput(name: string) {
+    return cy.findByTestId(name);
+  }
+
+  findRadioInput(name: string) {
+    return cy.findByTestId(name);
+  }
 }
 
 class TeacherModelSection {
