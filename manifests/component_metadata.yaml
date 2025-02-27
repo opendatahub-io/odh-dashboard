@@ -1,0 +1,8 @@
+releases:
+  - name: ODH Dashboard
+    version: 2.31.0
+    repoUrl: https://github.com/opendatahub-io/odh-dashboard
+    supportedArchitectures:
+      - amd64
+      - ppc64le
+      - s390x
