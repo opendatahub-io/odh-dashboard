@@ -1280,7 +1280,7 @@ export type K8sResourceListResult<TResource extends Partial<K8sResourceCommon>> 
 };
 
 /** Represents the status of a component in the DataScienceCluster. */
-export type DataScienceClusterComponentKindStatus = {
+export type DataScienceClusterComponentStatus = {
   /**
    * The management state of the component (e.g., Managed, Unmanaged, Force).
    * Indicates whether the component is being actively managed or not.
@@ -1363,20 +1363,20 @@ export type DataScienceClusterKindStatus = {
    * Status information for individual components within the cluster.
    *
    * This field maps each component of the Data Science Cluster to its corresponding status.
-   * The majority of components use `DataScienceClusterComponentKindStatus`, which includes
+   * The majority of components use `DataScienceClusterComponentStatus`, which includes
    * management state and release details. However, some components require additional
    * specialized fields, such as `kserve` and `modelregistry`.
    */
   components?: {
-    [key in DataScienceStackComponent]?: DataScienceClusterComponentKindStatus;
+    [key in DataScienceStackComponent]?: DataScienceClusterComponentStatus;
   } & {
     /** Status of KServe, including deployment mode and serverless configuration. */
-    [DataScienceStackComponent.K_SERVE]?: DataScienceClusterComponentKindStatus & {
+    [DataScienceStackComponent.K_SERVE]?: DataScienceClusterComponentStatus & {
       defaultDeploymentMode?: string;
       serverlessMode?: string;
     };
     /** Status of Model Registry, including its namespace configuration. */
-    [DataScienceStackComponent.MODEL_REGISTRY]?: DataScienceClusterComponentKindStatus & {
+    [DataScienceStackComponent.MODEL_REGISTRY]?: DataScienceClusterComponentStatus & {
       registriesNamespace?: string;
     };
   };

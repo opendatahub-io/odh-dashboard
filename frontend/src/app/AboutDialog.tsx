@@ -3,7 +3,7 @@ import { AboutModal, Alert, Bullseye, Spinner, Content } from '@patternfly/react
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { ODH_LOGO, ODH_LOGO_DARK, ODH_PRODUCT_NAME } from '~/utilities/const';
 import { DataScienceStackComponentMap } from '~/concepts/areas/const';
-import { DataScienceClusterComponentKindStatus } from '~/k8sTypes';
+import { DataScienceClusterComponentStatus } from '~/k8sTypes';
 import { useUser, useClusterInfo } from '~/redux/selectors';
 import { useAppContext } from '~/app/AppContext';
 import useFetchDscStatus from '~/concepts/areas/useFetchDscStatus';
@@ -41,7 +41,7 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const componentMap: Record<
       string,
-      { releases: NonNullable<DataScienceClusterComponentKindStatus['releases']> } | undefined
+      { releases: NonNullable<DataScienceClusterComponentStatus['releases']> } | undefined
     > = {};
 
     Object.entries(dscStatus?.components || {})
