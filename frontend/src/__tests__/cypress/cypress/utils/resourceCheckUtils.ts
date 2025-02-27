@@ -12,23 +12,20 @@ export const checkResources = (resourceInfoList: ResourceInfo[]): void => {
   resourceInfoList.forEach((resourceInfo: ResourceInfo) => {
     cy.log(`Checking for resource: ${JSON.stringify(resourceInfo, null, 2)}`);
 
-    // Clear the search input and type the resource name
     resources.getLearningCenterToolbar().findSearchInput().clear().type(resourceInfo.name);
 
-    // Check if the resource card is visible by looking for its metadata name
     cy.log(`Attempting to find card with metaDataName: ${resourceInfo.metaDataName}`);
 
     resources
-      .getCardView(180000)
+      .getCardViewResourceCheck(180000)
       .getCard(resourceInfo.metaDataName)
       .find()
-      .should('exist')
       .then(($card) => {
-        if ($card.length > 0 && $card.is(':visible')) {
+        if ($card.length > 0) {
+          cy.wrap($card).should('exist').and('be.visible');
           cy.log(`✅ Resource found: ${resourceInfo.name}`);
         } else {
           cy.log(`❌ Resource not found: ${resourceInfo.name}`);
-          // Additional logging for debugging
           cy.get('.odh-card')
             .its('length')
             .then((count) => cy.log(`Number of .odh-card elements: ${count}`));
