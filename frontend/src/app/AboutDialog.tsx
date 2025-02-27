@@ -150,7 +150,6 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
                             <Td rowSpan={details.releases.length}>{displayName}</Td>
                           ) : null}
                           <Td
-                            className="hover-cell"
                             style={{
                               paddingInlineStart: 'var(--pf-v6-c-table--cell--Padding--base)',
                             }}
