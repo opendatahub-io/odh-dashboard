@@ -1,30 +1,30 @@
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
-import { HardwareProfileVisibleIn } from '~/k8sTypes';
+import { HardwareProfileUseCases } from '~/k8sTypes';
 import useMigratedHardwareProfiles from '~/pages/hardwareProfiles/migration/useMigratedHardwareProfiles';
-import { useHardwareProfilesByArea } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByArea';
+import { useHardwareProfilesByUseCase } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByUseCase';
 
 jest.mock('../useMigratedHardwareProfiles');
 
 const mockUseMigratedHardwareProfiles = jest.mocked(useMigratedHardwareProfiles);
 
-describe('useHardwareProfilesByArea', () => {
+describe('useHardwareProfilesByUseCase', () => {
   const refresh = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('should return all profiles when no areas specified', () => {
+  it('should return all profiles when no use cases specified', () => {
     const profiles = [
       mockHardwareProfile({
         annotations: {
-          'opendatahub.io/visible-in': JSON.stringify(['notebooks']),
+          'opendatahub.io/use-cases': JSON.stringify(['notebooks']),
         },
       }),
       mockHardwareProfile({
         annotations: {
-          'opendatahub.io/visible-in': JSON.stringify(['serving']),
+          'opendatahub.io/use-cases': JSON.stringify(['serving']),
         },
       }),
     ];
@@ -37,7 +37,7 @@ describe('useHardwareProfilesByArea', () => {
       getMigrationAction: jest.fn(),
     });
 
-    const renderResult = testHook(useHardwareProfilesByArea)();
+    const renderResult = testHook(useHardwareProfilesByUseCase)();
     const [data, loaded, loadError] = renderResult.result.current;
 
     expect(data).toEqual(profiles);
@@ -46,15 +46,15 @@ describe('useHardwareProfilesByArea', () => {
     expect(renderResult).hookToHaveUpdateCount(1);
   });
 
-  it('should filter profiles by area', () => {
+  it('should filter profiles by use case', () => {
     const notebookProfile = mockHardwareProfile({
       annotations: {
-        'opendatahub.io/visible-in': JSON.stringify(['notebooks']),
+        'opendatahub.io/use-cases': JSON.stringify(['notebooks']),
       },
     });
     const servingProfile = mockHardwareProfile({
       annotations: {
-        'opendatahub.io/visible-in': JSON.stringify(['serving']),
+        'opendatahub.io/use-cases': JSON.stringify(['serving']),
       },
     });
 
@@ -66,7 +66,9 @@ describe('useHardwareProfilesByArea', () => {
       getMigrationAction: jest.fn(),
     });
 
-    const renderResult = testHook(useHardwareProfilesByArea)([HardwareProfileVisibleIn.NOTEBOOKS]);
+    const renderResult = testHook(useHardwareProfilesByUseCase)([
+      HardwareProfileUseCases.WORKBENCH,
+    ]);
     const [data] = renderResult.result.current;
 
     expect(data).toEqual([notebookProfile]);
@@ -76,7 +78,7 @@ describe('useHardwareProfilesByArea', () => {
   it('should include profiles with invalid visible-in annotation', () => {
     const invalidProfile = mockHardwareProfile({
       annotations: {
-        'opendatahub.io/visible-in': 'invalid-json',
+        'opendatahub.io/use-cases': 'invalid-json',
       },
     });
 
@@ -88,7 +90,9 @@ describe('useHardwareProfilesByArea', () => {
       getMigrationAction: jest.fn(),
     });
 
-    const renderResult = testHook(useHardwareProfilesByArea)([HardwareProfileVisibleIn.NOTEBOOKS]);
+    const renderResult = testHook(useHardwareProfilesByUseCase)([
+      HardwareProfileUseCases.WORKBENCH,
+    ]);
     const [data] = renderResult.result.current;
 
     expect(data).toEqual([invalidProfile]);
@@ -106,7 +110,9 @@ describe('useHardwareProfilesByArea', () => {
       getMigrationAction: jest.fn(),
     });
 
-    const renderResult = testHook(useHardwareProfilesByArea)([HardwareProfileVisibleIn.NOTEBOOKS]);
+    const renderResult = testHook(useHardwareProfilesByUseCase)([
+      HardwareProfileUseCases.WORKBENCH,
+    ]);
     const [data] = renderResult.result.current;
 
     expect(data).toEqual([profileWithoutAnnotation]);
@@ -123,7 +129,7 @@ describe('useHardwareProfilesByArea', () => {
       getMigrationAction: jest.fn(),
     });
 
-    const renderResult = testHook(useHardwareProfilesByArea)();
+    const renderResult = testHook(useHardwareProfilesByUseCase)();
     const [data, loaded, loadError] = renderResult.result.current;
 
     expect(data).toEqual([]);

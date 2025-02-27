@@ -1,11 +1,11 @@
 import React, { useRef } from 'react';
-import { HardwareProfileKind, HardwareProfileVisibleIn } from '~/k8sTypes';
+import { HardwareProfileKind, HardwareProfileUseCases } from '~/k8sTypes';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
 import { ContainerResources, NodeSelector, Toleration } from '~/types';
 import { isCpuLimitLarger, isMemoryLimitLarger } from '~/utilities/valueUnits';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { useHardwareProfilesByArea } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByArea';
+import { useHardwareProfilesByUseCase } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByUseCase';
 import { isHardwareProfileConfigValid } from './validationUtils';
 import { getContainerResourcesFromHardwareProfile } from './utils';
 
@@ -101,9 +101,9 @@ export const useHardwareProfileConfig = (
   resources?: ContainerResources,
   tolerations?: Toleration[],
   nodeSelector?: NodeSelector,
-  visibleIn?: HardwareProfileVisibleIn[],
+  visibleIn?: HardwareProfileUseCases[],
 ): UseHardwareProfileConfigResult => {
-  const [profiles, profilesLoaded] = useHardwareProfilesByArea(visibleIn);
+  const [profiles, profilesLoaded] = useHardwareProfilesByUseCase(visibleIn);
   const initialHardwareProfile = useRef<HardwareProfileKind | undefined>(undefined);
   const [formData, setFormData, resetFormData] = useGenericObjectState<HardwareProfileConfig>({
     selectedProfile: undefined,

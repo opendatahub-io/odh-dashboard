@@ -47,7 +47,7 @@ import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties
 import useDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 import HardwareProfileFormSection from '~/concepts/hardwareProfiles/HardwareProfileFormSection';
 import { useNotebookPodSpecOptionsState } from '~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
-import { HardwareProfileVisibleIn } from '~/k8sTypes';
+import { HardwareProfileUseCases } from '~/k8sTypes';
 import SizeSelectField from './SizeSelectField';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
@@ -346,7 +346,7 @@ const SpawnerPage: React.FC = () => {
               <HardwareProfileFormSection
                 podSpecOptionsState={podSpecOptionsState}
                 isEditing={!!currentUserNotebook}
-                visibleIn={[HardwareProfileVisibleIn.NOTEBOOKS]}
+                visibleIn={[HardwareProfileUseCases.WORKBENCH]}
               />
             ) : (
               <>

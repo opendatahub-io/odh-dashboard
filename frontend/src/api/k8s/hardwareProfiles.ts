@@ -40,7 +40,7 @@ export const assembleHardwareProfile = (
     namespace,
     annotations: {
       'opendatahub.io/modified-date': new Date().toISOString(),
-      'opendatahub.io/visible-in': JSON.stringify(visibility),
+      'opendatahub.io/use-cases': JSON.stringify(visibility),
     },
   },
   spec: data,

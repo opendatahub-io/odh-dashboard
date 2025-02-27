@@ -18,6 +18,7 @@ import { UnitOption } from '~/utilities/valueUnits';
 import SimpleSelect from '~/components/SimpleSelect';
 import { asEnumMember } from '~/utilities/utils';
 import {
+  DEFAULT_ACCELERATOR_SIZE,
   DEFAULT_CPU_SIZE,
   DEFAULT_MEMORY_SIZE,
   EMPTY_IDENTIFIER,
@@ -97,6 +98,12 @@ const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
                 setIdentifier('minCount', DEFAULT_MEMORY_SIZE.minCount);
                 setIdentifier('maxCount', DEFAULT_MEMORY_SIZE.maxCount);
                 setIdentifier('defaultCount', DEFAULT_MEMORY_SIZE.defaultCount);
+                break;
+              case IdentifierResourceType.ACCELERATOR:
+                setIdentifier('resourceType', resourceType);
+                setIdentifier('minCount', DEFAULT_ACCELERATOR_SIZE.minCount);
+                setIdentifier('maxCount', DEFAULT_ACCELERATOR_SIZE.maxCount);
+                setIdentifier('defaultCount', DEFAULT_ACCELERATOR_SIZE.defaultCount);
                 break;
               default:
                 setIdentifier('resourceType', undefined);

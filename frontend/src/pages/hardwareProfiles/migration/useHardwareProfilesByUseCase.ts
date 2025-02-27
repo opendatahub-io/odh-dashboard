@@ -1,10 +1,10 @@
 import React from 'react';
-import { HardwareProfileKind, HardwareProfileVisibleIn } from '~/k8sTypes';
+import { HardwareProfileKind, HardwareProfileUseCases } from '~/k8sTypes';
 import { isHardwareProfileValid } from '~/pages/hardwareProfiles/utils';
 import useMigratedHardwareProfiles from './useMigratedHardwareProfiles';
 
-export const useHardwareProfilesByArea = (
-  areas?: HardwareProfileVisibleIn[],
+export const useHardwareProfilesByUseCase = (
+  useCases?: HardwareProfileUseCases[],
 ): [
   data: HardwareProfileKind[],
   loaded: boolean,
@@ -23,17 +23,17 @@ export const useHardwareProfilesByArea = (
     () =>
       validHardwareProfiles.filter((profile) => {
         try {
-          if (!profile.metadata.annotations?.['opendatahub.io/visible-in']) {
+          if (!profile.metadata.annotations?.['opendatahub.io/use-cases']) {
             return true;
           }
 
-          const visibleIn = JSON.parse(profile.metadata.annotations['opendatahub.io/visible-in']);
-          return areas ? areas.some((a) => visibleIn.includes(a)) : true;
+          const visibleIn = JSON.parse(profile.metadata.annotations['opendatahub.io/use-cases']);
+          return useCases ? useCases.some((a) => visibleIn.includes(a)) : true;
         } catch (error) {
           return true;
         }
       }),
-    [validHardwareProfiles, areas],
+    [validHardwareProfiles, useCases],
   );
 
   return [filteredHardwareProfiles, loaded, loadError, refresh];

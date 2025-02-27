@@ -28,7 +28,12 @@ const ManageHardwareProfileWrapper: React.FC<ManageHardwareProfileWrapperProps> 
   const { hardwareProfileName } = useParams();
   const { dashboardNamespace } = useDashboardNamespace();
   const [data, , error] = useHardwareProfile(dashboardNamespace, hardwareProfileName);
-  const { data: migratedHardwareProfiles, getMigrationAction } = useMigratedHardwareProfiles();
+  const {
+    data: migratedHardwareProfiles,
+    getMigrationAction,
+    loaded: migratedProfilesLoaded,
+    loadError: migratedProfilesError,
+  } = useMigratedHardwareProfiles();
 
   const migratedHardwareProfile = migratedHardwareProfiles.find(
     (profile) => profile.metadata.name === hardwareProfileName,
@@ -37,6 +42,15 @@ const ManageHardwareProfileWrapper: React.FC<ManageHardwareProfileWrapperProps> 
     ? getMigrationAction(migratedHardwareProfile.metadata.name)
     : undefined;
 
+  if (!migratedProfilesLoaded && !migratedProfilesError) {
+    return (
+      <Bullseye>
+        <Spinner />
+      </Bullseye>
+    );
+  }
+
+  // Only show error if both regular profile failed and no migrated profile exists
   if (error && !migratedHardwareProfile) {
     return (
       <Bullseye>

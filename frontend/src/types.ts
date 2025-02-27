@@ -304,6 +304,7 @@ export type Toleration = {
 export enum IdentifierResourceType {
   CPU = 'CPU',
   MEMORY = 'Memory',
+  ACCELERATOR = 'Accelerator',
 }
 
 export type Identifier = {

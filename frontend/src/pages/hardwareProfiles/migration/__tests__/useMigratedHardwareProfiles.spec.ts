@@ -149,7 +149,7 @@ describe('useMigratedHardwareProfiles', () => {
     const { data } = renderResult.result.current;
 
     const notebookProfile = data.find((profile) =>
-      profile.metadata.annotations?.['opendatahub.io/visible-in']?.includes('notebooks'),
+      profile.metadata.annotations?.['opendatahub.io/use-cases']?.includes('notebooks'),
     );
     expect(notebookProfile?.spec.tolerations).toEqual([
       {

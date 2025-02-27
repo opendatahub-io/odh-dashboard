@@ -1,6 +1,6 @@
 import * as _ from 'lodash-es';
 import { DeepPartial } from 'redux';
-import { AcceleratorProfileKind, HardwareProfileKind, HardwareProfileVisibleIn } from '~/k8sTypes';
+import { AcceleratorProfileKind, HardwareProfileKind, HardwareProfileUseCases } from '~/k8sTypes';
 import { IdentifierResourceType, Toleration, Identifier, NotebookSize } from '~/types';
 import { isCpuLarger, isMemoryLarger } from '~/utilities/valueUnits';
 import { HardwareProfileModel } from '~/api';
@@ -117,7 +117,7 @@ const createCpuMemoryIdentifiers = (sizes: ContainerSizeLimits) => [
 const transformAcceleratorProfileToHardwareProfile = (
   acceleratorProfile: AcceleratorProfileKind,
   hardwareProfile?: DeepPartial<HardwareProfileKind>,
-  visibleIn: HardwareProfileVisibleIn[] = [],
+  visibleIn: HardwareProfileUseCases[] = [],
 ): HardwareProfileKind => {
   const baseProfile = {
     apiVersion: `${HardwareProfileModel.apiGroup}/${HardwareProfileModel.apiVersion}`,
@@ -127,7 +127,7 @@ const transformAcceleratorProfileToHardwareProfile = (
       namespace: acceleratorProfile.metadata.namespace,
       annotations: {
         ...acceleratorProfile.metadata.annotations,
-        'opendatahub.io/visible-in': JSON.stringify(visibleIn),
+        'opendatahub.io/use-cases': JSON.stringify(visibleIn),
         'opendatahub.io/modified-date': new Date().toISOString(),
       },
     },
@@ -172,7 +172,7 @@ export const createAcceleratorHardwareProfiles = (
         identifiers: createCpuMemoryIdentifiers(notebookMaxSizes),
       },
     },
-    [HardwareProfileVisibleIn.NOTEBOOKS],
+    [HardwareProfileUseCases.WORKBENCH],
   ),
   transformAcceleratorProfileToHardwareProfile(
     acceleratorProfile,
@@ -182,7 +182,7 @@ export const createAcceleratorHardwareProfiles = (
         identifiers: createCpuMemoryIdentifiers(servingMaxSizes),
       },
     },
-    [HardwareProfileVisibleIn.SERVING],
+    [HardwareProfileUseCases.MODEL_SERVING],
   ),
 ];
 
@@ -191,7 +191,7 @@ export const transformContainerSizeToHardwareProfile = (
   name: string,
   namespace: string,
   hardwareProfile?: DeepPartial<HardwareProfileKind>,
-  visibleIn: HardwareProfileVisibleIn[] = [],
+  visibleIn: HardwareProfileUseCases[] = [],
 ): HardwareProfileKind => {
   const sizes = getMinMaxResourceSize([containerSize]);
   const baseProfile = {
@@ -201,7 +201,7 @@ export const transformContainerSizeToHardwareProfile = (
       name: translateDisplayNameForK8s(name),
       namespace,
       annotations: {
-        'opendatahub.io/visible-in': JSON.stringify(visibleIn),
+        'opendatahub.io/use-cases': JSON.stringify(visibleIn),
         'opendatahub.io/modified-date': new Date().toISOString(),
       },
     },

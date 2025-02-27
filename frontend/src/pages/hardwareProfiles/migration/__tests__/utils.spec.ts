@@ -1,5 +1,5 @@
 import { NotebookSize } from '~/types';
-import { HardwareProfileVisibleIn } from '~/k8sTypes';
+import { HardwareProfileUseCases } from '~/k8sTypes';
 import {
   getMinMaxResourceSize,
   createAcceleratorHardwareProfiles,
@@ -73,7 +73,7 @@ describe('transformContainerSizeToHardwareProfile', () => {
       'test-profile',
       'test-namespace',
       undefined,
-      [HardwareProfileVisibleIn.NOTEBOOKS],
+      [HardwareProfileUseCases.WORKBENCH],
     );
 
     expect(result).toMatchObject({
@@ -81,7 +81,7 @@ describe('transformContainerSizeToHardwareProfile', () => {
         name: 'test-profile',
         namespace: 'test-namespace',
         annotations: {
-          'opendatahub.io/visible-in': JSON.stringify([HardwareProfileVisibleIn.NOTEBOOKS]),
+          'opendatahub.io/use-cases': JSON.stringify([HardwareProfileUseCases.WORKBENCH]),
         },
       },
       spec: {
@@ -144,7 +144,7 @@ describe('createAcceleratorHardwareProfiles', () => {
       metadata: {
         name: 'test-profile-notebooks',
         annotations: {
-          'opendatahub.io/visible-in': JSON.stringify([HardwareProfileVisibleIn.NOTEBOOKS]),
+          'opendatahub.io/use-cases': JSON.stringify([HardwareProfileUseCases.WORKBENCH]),
         },
       },
       spec: {
@@ -158,7 +158,7 @@ describe('createAcceleratorHardwareProfiles', () => {
       metadata: {
         name: 'test-profile-serving',
         annotations: {
-          'opendatahub.io/visible-in': JSON.stringify([HardwareProfileVisibleIn.SERVING]),
+          'opendatahub.io/use-cases': JSON.stringify([HardwareProfileUseCases.MODEL_SERVING]),
         },
       },
       spec: {

@@ -74,6 +74,12 @@ export const DEFAULT_CPU_SIZE = {
   defaultCount: 2,
 };
 
+export const DEFAULT_ACCELERATOR_SIZE = {
+  minCount: 1,
+  maxCount: 2,
+  defaultCount: 1,
+};
+
 export const DEFAULT_MEMORY_SIZE = {
   minCount: '2Gi',
   maxCount: '8Gi',

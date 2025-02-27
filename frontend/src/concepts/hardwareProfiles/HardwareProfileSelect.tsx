@@ -9,8 +9,8 @@ import {
 } from '@patternfly/react-core';
 import * as React from 'react';
 import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
-import { HardwareProfileKind, HardwareProfileVisibleIn } from '~/k8sTypes';
-import { useHardwareProfilesByArea } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByArea';
+import { HardwareProfileKind, HardwareProfileUseCases } from '~/k8sTypes';
+import { useHardwareProfilesByUseCase } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByUseCase';
 import { ValidationContext } from '~/utilities/useValidation';
 import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
 import { HardwareProfileConfig } from './useHardwareProfileConfig';
@@ -23,7 +23,7 @@ type HardwareProfileSelectProps = {
   hardwareProfileConfig: HardwareProfileConfig;
   isHardwareProfileSupported: (profile: HardwareProfileKind) => boolean;
   onChange: (profile: HardwareProfileKind | undefined) => void;
-  visibleIn?: HardwareProfileVisibleIn[];
+  visibleIn?: HardwareProfileUseCases[];
 };
 
 const EXISTING_SETTINGS_KEY = '.existing';
@@ -37,7 +37,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   onChange,
   visibleIn = [],
 }) => {
-  const [hardwareProfiles, loaded, error] = useHardwareProfilesByArea(visibleIn);
+  const [hardwareProfiles, loaded, error] = useHardwareProfilesByUseCase(visibleIn);
 
   const { getAllValidationIssues } = React.useContext(ValidationContext);
   const validationIssues = getAllValidationIssues(['']);

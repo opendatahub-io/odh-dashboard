@@ -52,9 +52,9 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
   const navigate = useNavigate();
 
   const visibleIn: string[] = React.useMemo(() => {
-    if (hardwareProfile.metadata.annotations?.['opendatahub.io/visible-in']) {
+    if (hardwareProfile.metadata.annotations?.['opendatahub.io/use-cases']) {
       try {
-        return JSON.parse(hardwareProfile.metadata.annotations['opendatahub.io/visible-in']);
+        return JSON.parse(hardwareProfile.metadata.annotations['opendatahub.io/use-cases']);
       } catch (error) {
         return [];
       }

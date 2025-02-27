@@ -1254,10 +1254,10 @@ export type AcceleratorProfileKind = K8sResourceCommon & {
   };
 };
 
-export enum HardwareProfileVisibleIn {
-  NOTEBOOKS = 'notebooks',
-  SERVING = 'serving',
-  INSTRUCTLAB = 'instructlab',
+export enum HardwareProfileUseCases {
+  WORKBENCH = 'workbench',
+  MODEL_SERVING = 'model-serving',
+  PIPELINES = 'pipelines',
 }
 
 export type HardwareProfileKind = K8sResourceCommon & {
@@ -1266,7 +1266,7 @@ export type HardwareProfileKind = K8sResourceCommon & {
     namespace: string;
     annotations?: Partial<{
       // JSON stringified HardwareProfileVisibleIn[]
-      'opendatahub.io/visible-in': string;
+      'opendatahub.io/use-cases': string;
     }>;
   };
   spec: {

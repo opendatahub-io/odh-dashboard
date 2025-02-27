@@ -1,5 +1,5 @@
 import React from 'react';
-import { HardwareProfileKind, HardwareProfileVisibleIn } from '~/k8sTypes';
+import { HardwareProfileKind, HardwareProfileUseCases } from '~/k8sTypes';
 import { deleteAcceleratorProfile, patchModelServingSizes, patchNotebookSizes } from '~/api';
 import useAcceleratorProfiles from '~/pages/notebookController/screens/server/useAcceleratorProfiles';
 import { useDashboardNamespace } from '~/redux/selectors';
@@ -24,7 +24,11 @@ const useMigratedHardwareProfiles = (): {
   getMigrationAction: (name: string) => MigrationAction | undefined;
 } => {
   const { dashboardNamespace } = useDashboardNamespace();
-  const { dashboardConfig, refresh: refreshDashboardConfig } = useApplicationSettings();
+  const {
+    dashboardConfig,
+    refresh: refreshDashboardConfig,
+    loadError: loadErrorDashboardConfig,
+  } = useApplicationSettings();
 
   const [
     acceleratorProfiles,
@@ -129,7 +133,7 @@ const useMigratedHardwareProfiles = (): {
             tolerations: notebooksOnlyToleration ? [notebooksOnlyToleration] : undefined,
           },
         },
-        [HardwareProfileVisibleIn.NOTEBOOKS],
+        [HardwareProfileUseCases.WORKBENCH],
       );
 
       const migrationAction: MigrationAction = {
@@ -162,7 +166,7 @@ const useMigratedHardwareProfiles = (): {
         name,
         dashboardNamespace,
         undefined,
-        [HardwareProfileVisibleIn.SERVING],
+        [HardwareProfileUseCases.MODEL_SERVING],
       );
 
       const migrationAction: MigrationAction = {
@@ -214,7 +218,8 @@ const useMigratedHardwareProfiles = (): {
   }, [refreshAcceleratorProfiles, refreshDashboardConfig]);
 
   const loaded = migratedHardwareProfiles !== null;
-  const loadError = loadErrorAcceleratorProfiles || loadErrorHardwareProfiles;
+  const loadError =
+    loadErrorAcceleratorProfiles || loadErrorHardwareProfiles || loadErrorDashboardConfig;
 
   return {
     data: migratedHardwareProfiles ?? [],

@@ -13,7 +13,7 @@ import { FetchState } from '~/utilities/useFetchState';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import BYONImageHardwareProfiles from '~/pages/BYONImages/BYONImageHardwareProfiles';
 import { TableRowTitleDescription } from '~/components/table';
-import { useHardwareProfilesByArea } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByArea';
+import { useHardwareProfilesByUseCase } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByUseCase';
 import ImageErrorStatus from './ImageErrorStatus';
 import BYONImageStatusToggle from './BYONImageStatusToggle';
 import { convertBYONImageToK8sResource } from './utils';
@@ -24,7 +24,7 @@ type BYONImagesTableRowProps = {
   obj: BYONImage;
   rowIndex: number;
   acceleratorProfiles: FetchState<AcceleratorProfileKind[]>;
-  hardwareProfiles: ReturnType<typeof useHardwareProfilesByArea>;
+  hardwareProfiles: ReturnType<typeof useHardwareProfilesByUseCase>;
   onEditImage: (obj: BYONImage) => void;
   onDeleteImage: (obj: BYONImage) => void;
 };

@@ -1,7 +1,7 @@
 import React from 'react';
 import { MultiSelection } from '~/components/MultiSelection';
-import { HardwareProfileVisibleIn } from '~/k8sTypes';
-import { useHardwareProfilesByArea } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByArea';
+import { HardwareProfileUseCases } from '~/k8sTypes';
+import { useHardwareProfilesByUseCase } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByUseCase';
 
 type HardwareProfileIdentifierMultiselectProps = {
   data: string[];
@@ -11,7 +11,7 @@ type HardwareProfileIdentifierMultiselectProps = {
 export const HardwareProfileIdentifierMultiselect: React.FC<
   HardwareProfileIdentifierMultiselectProps
 > = ({ data, setData }) => {
-  const [hardwareProfiles] = useHardwareProfilesByArea([HardwareProfileVisibleIn.NOTEBOOKS]);
+  const [hardwareProfiles] = useHardwareProfilesByUseCase([HardwareProfileUseCases.WORKBENCH]);
 
   const identifiers = React.useMemo(() => {
     const uniqueIdentifiers = new Set<string>(data);

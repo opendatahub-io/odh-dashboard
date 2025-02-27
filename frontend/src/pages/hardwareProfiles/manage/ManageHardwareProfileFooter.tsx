@@ -43,11 +43,11 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
   const navigate = useNavigate();
   const notification = useNotification();
 
-  const { name, visibility, ...spec } = state;
+  const { name, useCases, ...spec } = state;
 
   const onCreateHardwareProfile = async () => {
     setIsLoading(true);
-    createHardwareProfile(name, spec, dashboardNamespace, visibility)
+    createHardwareProfile(name, spec, dashboardNamespace, useCases)
       .then(() => {
         if (redirectPath !== '/hardwareProfiles') {
           notification.success(
@@ -95,7 +95,7 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
               existingHardwareProfile.metadata.name,
               spec,
               dashboardNamespace,
-              visibility,
+              useCases,
               {
                 dryRun,
               },
@@ -103,7 +103,7 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
           );
         } else {
           promises.push(
-            updateHardwareProfile(spec, existingHardwareProfile, dashboardNamespace, visibility, {
+            updateHardwareProfile(spec, existingHardwareProfile, dashboardNamespace, useCases, {
               dryRun,
             }),
           );
@@ -128,7 +128,12 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
     <Stack hasGutter>
       {migrationAction && (
         <StackItem>
-          <Alert isInline variant="warning" title="Updating this profile will trigger migration">
+          <Alert
+            isExpandable
+            isInline
+            variant="warning"
+            title="Updating this profile will trigger migration"
+          >
             You are editing a simulated hardware profile,{' '}
             <strong>{migrationAction.source.label}</strong>, that was created from{' '}
             {MIGRATION_SOURCE_TYPE_LABELS[migrationAction.source.type]}.

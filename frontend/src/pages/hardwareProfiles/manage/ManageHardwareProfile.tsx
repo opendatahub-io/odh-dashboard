@@ -18,7 +18,7 @@ import ManageHardwareProfileFooter from '~/pages/hardwareProfiles/manage/ManageH
 import ManageNodeResourceSection from '~/pages/hardwareProfiles/manage/ManageNodeResourceSection';
 import { MigrationAction } from '~/pages/hardwareProfiles/migration/types';
 import { HardwareProfileFormData, ManageHardwareProfileSectionID } from './types';
-import { HardwareProfileVisibilitySection } from './HardwareProfileVisibilitySection';
+import { HardwareProfileUseCaseSection } from './HardwareProfileUseCaseSection';
 
 type ManageHardwareProfileProps = {
   existingHardwareProfile?: HardwareProfileKind;
@@ -38,7 +38,7 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
   const [state, setState] = useGenericObjectState<HardwareProfileKind['spec']>(
     DEFAULT_HARDWARE_PROFILE_SPEC,
   );
-  const [visibility, setVisibility] = React.useState<string[]>([]);
+  const [useCases, setUseCases] = React.useState<string[]>([]);
   const { data: profileNameDesc, onDataChange: setProfileNameDesc } =
     useK8sNameDescriptionFieldData({
       initialData: existingHardwareProfile
@@ -59,16 +59,16 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
 
       // set the visibility from the annotations
       try {
-        if (existingHardwareProfile.metadata.annotations?.['opendatahub.io/visible-in']) {
+        if (existingHardwareProfile.metadata.annotations?.['opendatahub.io/use-cases']) {
           const visibleIn = JSON.parse(
-            existingHardwareProfile.metadata.annotations['opendatahub.io/visible-in'],
+            existingHardwareProfile.metadata.annotations['opendatahub.io/use-cases'],
           );
-          setVisibility(visibleIn);
+          setUseCases(visibleIn);
         } else {
-          setVisibility([]);
+          setUseCases([]);
         }
       } catch (error) {
-        setVisibility([]);
+        setUseCases([]);
       }
     }
   }, [existingHardwareProfile, setState]);
@@ -80,18 +80,18 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
       setState('nodeSelector', duplicatedHardwareProfile.spec.nodeSelector);
       setState('tolerations', duplicatedHardwareProfile.spec.tolerations);
 
-      // set the visibility from the annotations
+      // set the use cases from the annotations
       try {
-        if (duplicatedHardwareProfile.metadata.annotations?.['opendatahub.io/visible-in']) {
+        if (duplicatedHardwareProfile.metadata.annotations?.['opendatahub.io/use-cases']) {
           const visibleIn = JSON.parse(
-            duplicatedHardwareProfile.metadata.annotations['opendatahub.io/visible-in'],
+            duplicatedHardwareProfile.metadata.annotations['opendatahub.io/use-cases'],
           );
-          setVisibility(visibleIn);
+          setUseCases(visibleIn);
         } else {
-          setVisibility([]);
+          setUseCases([]);
         }
       } catch (error) {
-        setVisibility([]);
+        setUseCases([]);
       }
     }
   }, [duplicatedHardwareProfile, setState]);
@@ -102,9 +102,9 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
       name: profileNameDesc.k8sName.value,
       displayName: profileNameDesc.name.trim(),
       description: profileNameDesc.description,
-      visibility,
+      useCases,
     }),
-    [state, profileNameDesc, visibility],
+    [state, profileNameDesc, useCases],
   );
 
   const validFormData = isK8sNameDescriptionDataValid(profileNameDesc);
@@ -152,7 +152,7 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
               dataTestId="hardware-profile-name-desc"
             />
           </FormSection>
-          <HardwareProfileVisibilitySection visibility={visibility} setVisibility={setVisibility} />
+          <HardwareProfileUseCaseSection useCases={useCases} setUseCases={setUseCases} />
           <ManageNodeResourceSection
             nodeResources={state.identifiers ?? []}
             setNodeResources={(identifiers) => setState('identifiers', identifiers)}

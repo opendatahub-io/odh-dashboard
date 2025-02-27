@@ -1,4 +1,4 @@
-import { HardwareProfileVisibleIn, NotebookKind } from '~/k8sTypes';
+import { HardwareProfileUseCases, NotebookKind } from '~/k8sTypes';
 import { Notebook } from '~/types';
 import {
   useHardwareProfileConfig,
@@ -16,7 +16,7 @@ const useNotebookHardwareProfileConfig = (
   const nodeSelector = notebook?.spec.template.spec.nodeSelector;
 
   return useHardwareProfileConfig(name, resources, tolerations, nodeSelector, [
-    HardwareProfileVisibleIn.NOTEBOOKS,
+    HardwareProfileUseCases.WORKBENCH,
   ]);
 };
 

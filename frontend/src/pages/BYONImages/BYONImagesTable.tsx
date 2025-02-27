@@ -7,8 +7,8 @@ import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableVie
 import { useDashboardNamespace } from '~/redux/selectors';
 import useAcceleratorProfiles from '~/pages/notebookController/screens/server/useAcceleratorProfiles';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { HardwareProfileVisibleIn } from '~/k8sTypes';
-import { useHardwareProfilesByArea } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByArea';
+import { HardwareProfileUseCases } from '~/k8sTypes';
+import { useHardwareProfilesByUseCase } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByUseCase';
 import ManageBYONImageModal from './BYONImageModal/ManageBYONImageModal';
 import DeleteBYONImageModal from './BYONImageModal/DeleteBYONImageModal';
 import { columns } from './tableData';
@@ -49,7 +49,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, refres
 
   const { dashboardNamespace } = useDashboardNamespace();
   const acceleratorProfiles = useAcceleratorProfiles(dashboardNamespace);
-  const hardwareProfiles = useHardwareProfilesByArea([HardwareProfileVisibleIn.NOTEBOOKS]);
+  const hardwareProfiles = useHardwareProfilesByUseCase([HardwareProfileUseCases.WORKBENCH]);
 
   const isHardwareProfileAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
 

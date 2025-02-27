@@ -4,7 +4,7 @@ import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
 import { useHardwareProfileConfig } from '~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import * as areasUtils from '~/concepts/areas';
 import * as reduxSelectors from '~/redux/selectors';
-import * as useHardwareProfilesModule from '~/pages/hardwareProfiles/migration/useHardwareProfilesByArea';
+import * as useHardwareProfilesModule from '~/pages/hardwareProfiles/migration/useHardwareProfilesByUseCase';
 
 jest.mock('~/concepts/areas', () => ({
   ...jest.requireActual('~/concepts/areas'),
@@ -18,7 +18,7 @@ jest.mock('~/redux/selectors', () => ({
 }));
 
 const mockUseIsAreaAvailable = jest.mocked(areasUtils.useIsAreaAvailable);
-const mockUseHardwareProfiles = jest.mocked(useHardwareProfilesModule.useHardwareProfilesByArea);
+const mockUseHardwareProfiles = jest.mocked(useHardwareProfilesModule.useHardwareProfilesByUseCase);
 const mockUseDashboardNamespace = jest.mocked(reduxSelectors.useDashboardNamespace);
 
 describe('useHardwareProfileConfig', () => {
