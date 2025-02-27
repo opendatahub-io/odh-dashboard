@@ -1,6 +1,8 @@
 import React from 'react';
 import { useNavigate, useParams } from 'react-router';
 import {
+  ActionList,
+  ActionListItem,
   Breadcrumb,
   BreadcrumbItem,
   Content,
@@ -14,9 +16,10 @@ import {
   Popover,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
-import { conditionalArea, SupportedArea } from '~/concepts/areas';
+import { conditionalArea, SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { ModelCatalogContext } from '~/concepts/modelCatalog/context/ModelCatalogContext';
 import { CatalogModel } from '~/concepts/modelCatalog/types';
 import EmptyModelCatalogState from '~/pages/modelCatalog/EmptyModelCatalogState';
@@ -33,6 +36,8 @@ import PopoverListContent from '~/components/PopoverListContent';
 import { FindAdministratorOptions } from '~/pages/projects/screens/projects/const';
 import { RhUiTagIcon } from '~/images/icons';
 import ModelDetailsView from './ModelDetailsView';
+import { modelCustomizationRootPath } from '~/routes';
+import RhUiControlsIcon from '~/images/icons/RhUiControlsIcon';
 
 const ModelDetailsPage: React.FC = conditionalArea(
   SupportedArea.MODEL_CATALOG,
@@ -56,6 +61,39 @@ const ModelDetailsPage: React.FC = conditionalArea(
         decodedParams.tag,
       ),
     [modelCatalogSources, decodedParams],
+  );
+
+  const fineTuneActionItem = (
+    <Popover
+      minWidth="min-content"
+      aria-label="Popover for fine tuning the model"
+      headerContent="How to tune this model?"
+      headerIcon={<RhUiControlsIcon />}
+      bodyContent={
+        <div>
+          To fine-tune this model, you must first register it to an OpenShift AI model registry,
+          then click Lab tune.
+        </div>
+      }
+      footerContent={
+        <ActionList>
+          <ActionListItem>
+            <Button variant="secondary" onClick={() => navigate(registerCatalogModel(params))}>
+              Register model
+            </Button>
+          </ActionListItem>
+          <ActionListItem>
+            <Button variant="link" onClick={() => navigate(modelCustomizationRootPath)}>
+              Learn more about model customization
+            </Button>
+          </ActionListItem>
+        </ActionList>
+      }
+    >
+      <Button icon={<OutlinedQuestionCircleIcon />} variant="link">
+        Tune this model?
+      </Button>
+    </Popover>
   );
 
   return (
@@ -115,23 +153,26 @@ const ModelDetailsPage: React.FC = conditionalArea(
       headerAction={
         loaded &&
         (modelRegistryServices.length === 0 ? (
-          <Popover
-            headerContent="Register to model registry?"
-            triggerAction="hover"
-            data-testid="register-catalog-model-popover"
-            bodyContent={
-              <PopoverListContent
-                data-testid="Register-model-button-popover"
-                leadText="To request access to the model registry, contact your administrator."
-                listHeading="Your administrator might be:"
-                listItems={FindAdministratorOptions}
-              />
-            }
-          >
-            <Button data-testid="register-model-button" isAriaDisabled>
-              Register model
-            </Button>
-          </Popover>
+          <>
+            {useIsAreaAvailable(SupportedArea.FINE_TUNING).status && fineTuneActionItem}
+            <Popover
+              headerContent="Register to model registry?"
+              triggerAction="hover"
+              data-testid="register-catalog-model-popover"
+              bodyContent={
+                <PopoverListContent
+                  data-testid="Register-model-button-popover"
+                  leadText="To request access to the model registry, contact your administrator."
+                  listHeading="Your administrator might be:"
+                  listItems={FindAdministratorOptions}
+                />
+              }
+            >
+              <Button data-testid="register-model-button" isAriaDisabled>
+                Register model
+              </Button>
+            </Popover>
+          </>
         ) : (
           <Button
             data-testid="register-model-button"
