@@ -59,7 +59,6 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
           setOptions(fetchedOptions);
           setError('');
           
-          console.log('First four models:', modelInfos);
           if (isEditing) {
             const modelName = inferenceServiceData.format.name;
             const modelInfo = modelInfos.find((model) => model.name === modelName);
