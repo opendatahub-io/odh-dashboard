@@ -32,33 +32,37 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
         const modelInfos = await fetchNIMModelNames();
         if (modelInfos && modelInfos.length > 0) {
           const normalizeVersion = (tag: string) => {
-            // Convert "1", "1.0" into "1.0.0"
             if (/^\d+(\.\d+)*$/.test(tag)) {
               const parts = tag.split('.').map(Number);
-              while (parts.length < 3) parts.push(0); // Ensure it's in "X.Y.Z" format
+              while (parts.length < 3) {
+                parts.push(0);
+              }
               return parts.join('.');
             }
-            return tag; // Keep non-numeric tags unchanged
+            return tag;
           };
           const seen = new Set<string>();
-          const fetchedOptions = modelInfos.flatMap((modelInfo) =>
-            modelInfo.tags.map((tag) => {
-              const normalizedTag = normalizeVersion(tag);
-              const value: string | number = `${modelInfo.name}-${normalizedTag}`; // Ensure it matches TypeaheadSelectOption
-              const content = `${modelInfo.displayName} - ${normalizedTag}`;
-  
-              if (!seen.has(value.toString())) {
-                seen.add(value.toString());
-                return { value, content } as TypeaheadSelectOption; // Explicitly cast as TypeaheadSelectOption
-              }
-              return null; // Mark duplicates as null
-            })
-          ).filter((option): option is TypeaheadSelectOption => option !== null); // Remove null values
-          
+          const fetchedOptions = modelInfos
+            .flatMap((modelInfo) =>
+              modelInfo.tags.map((tag) => {
+                const normalizedTag = normalizeVersion(tag);
+                const value: string | number = `${modelInfo.name}-${normalizedTag}`;
+                const content = `${modelInfo.displayName} - ${normalizedTag}`;
+
+                if (!seen.has(value.toString())) {
+                  seen.add(value.toString());
+                  const option: TypeaheadSelectOption = { value, content };
+                  return option;
+                }
+                return null;
+              }),
+            )
+            .filter((option): option is TypeaheadSelectOption => option !== null);
+
           setModelList(modelInfos);
           setOptions(fetchedOptions);
           setError('');
-          
+
           if (isEditing) {
             const modelName = inferenceServiceData.format.name;
             const modelInfo = modelInfos.find((model) => model.name === modelName);
