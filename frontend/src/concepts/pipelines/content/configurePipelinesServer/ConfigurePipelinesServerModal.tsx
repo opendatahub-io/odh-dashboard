@@ -6,6 +6,8 @@ import { createPipelinesCR, deleteSecret } from '~/api';
 import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
 import { EMPTY_AWS_PIPELINE_DATA } from '~/pages/projects/dataConnections/const';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
+import SamplePipelineSettingsSection from '~/concepts/pipelines/content/configurePipelinesServer/SamplePipelineSettingsSection';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
 import {
@@ -23,6 +25,7 @@ type ConfigurePipelinesServerModalProps = {
 const FORM_DEFAULTS: PipelineServerConfigType = {
   database: { useDefault: true, value: EMPTY_DATABASE_CONNECTION },
   objectStorage: { newValue: EMPTY_AWS_PIPELINE_DATA },
+  enableInstructLab: false,
 };
 
 export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerModalProps> = ({
@@ -33,6 +36,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState<Error>();
   const [config, setConfig] = React.useState<PipelineServerConfigType>(FORM_DEFAULTS);
+  const isFineTuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
 
   const databaseIsValid = config.database.useDefault
     ? true
@@ -130,6 +134,9 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
               dataConnections={dataConnections}
             />
             <PipelinesDatabaseSection setConfig={setConfig} config={config} />
+            {isFineTuningAvailable && (
+              <SamplePipelineSettingsSection setConfig={setConfig} config={config} />
+            )}
           </Form>
         </StackItem>
       </Stack>
