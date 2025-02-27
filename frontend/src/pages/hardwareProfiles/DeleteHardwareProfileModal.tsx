@@ -65,15 +65,21 @@ const DeleteHardwareProfileModal: React.FC<DeleteHardwareProfileModalProps> = ({
         <StackItem>
           {migrationAction ? (
             <>
-              The <b>{hardwareProfile.spec.displayName}</b> simulated hardware profile and its
-              source
+              The simulated hardware profiles <b>{hardwareProfile.spec.displayName}</b>
+              {migrationAction.targetProfiles.length > 0 && (
+                <>
+                  {' and '}
+                  <b>{migrationAction.targetProfiles.join(', ')}</b>
+                </>
+              )}{' '}
+              and their source
               {migrationAction.source.type === MigrationSourceType.ACCELERATOR_PROFILE
                 ? ' accelerator profile'
                 : migrationAction.source.type === MigrationSourceType.SERVING_CONTAINER_SIZE
                 ? ' model serving container size'
                 : ' notebook container size'}
-              , {migrationAction.source.label}, will be deleted. Deployed workloads using this
-              profile will not be affected.
+              , {migrationAction.source.label}, will be deleted. Deployed workloads using these
+              profiles will not be affected.
             </>
           ) : (
             'This action cannot be undone. Workloads already deployed using this profile will not be affected by this action.'
