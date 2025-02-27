@@ -19,12 +19,31 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { modelCustomizationRootPath } from '~/routes';
 import { useIlabPipeline } from '~/concepts/pipelines/content/modelCustomizationForm/useIlabPipeline';
 import { ModelCustomizationEndpointType } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
+import { getInputDefinitionParams } from '~/concepts/pipelines/content/createRun/utils';
+import { useLatestPipelineVersion } from '~/concepts/pipelines/apiHooks/useLatestPipelineVersion';
+import { ParametersKF } from '~/concepts/pipelines/kfTypes';
+import { isEnumMember } from '~/utilities/utils';
 import FineTunePage from './FineTunePage';
 import {
   BASE_MODEL_INPUT_STORAGE_LOCATION_URI_KEY,
   FineTunePageSections,
   fineTunePageSectionTitles,
+  HyperparameterFields,
+  RunTypeFormat,
 } from './const';
+
+const extractHyperparameters = (ilabPipelineParameters: ParametersKF): ParametersKF => {
+  let hyperparameters = {};
+  for (const key of Object.keys(ilabPipelineParameters)) {
+    if (isEnumMember(key, HyperparameterFields)) {
+      hyperparameters = {
+        ...hyperparameters,
+        [key]: ilabPipelineParameters[key],
+      };
+    }
+  }
+  return hyperparameters;
+};
 
 const ModelCustomizationForm: React.FC = () => {
   const { project } = usePipelinesAPI();
@@ -34,7 +53,8 @@ const ModelCustomizationForm: React.FC = () => {
     loaded: ilabPipelineLoaded,
     loadError: ilabPipelineLoadError,
   } = useIlabPipeline();
-
+  const [pipelineVersion] = useLatestPipelineVersion(ilabPipeline?.pipeline_id);
+  const ilabPipelineParams = getInputDefinitionParams(pipelineVersion);
   const [searchParams] = useSearchParams();
 
   const [data, setData] = useGenericObjectState<ModelCustomizationFormData>({
@@ -58,12 +78,18 @@ const ModelCustomizationForm: React.FC = () => {
       endpoint: '',
       modelName: '',
     },
+    runType: { value: RunTypeFormat.FULL },
+    hyperparameters: extractHyperparameters(ilabPipelineParams ?? {}),
   });
 
   const validation = useValidation(data, modelCustomizationFormSchema);
   const isValid = validation.validationResult.success;
   const canSubmit = ilabPipelineLoaded && isValid;
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    setData('hyperparameters', extractHyperparameters(ilabPipelineParams ?? {}));
+  }, [ilabPipelineParams, setData]);
 
   return (
     <ValidationContext.Provider value={validation}>
@@ -76,33 +102,37 @@ const ModelCustomizationForm: React.FC = () => {
             <BreadcrumbItem>Start an InstructLab run</BreadcrumbItem>
           </Breadcrumb>
         }
-        loaded
+        loaded={ilabPipelineLoaded}
         empty={false}
       >
-        <EnsureAPIAvailability>
-          <PageSection hasBodyWrapper={false} isFilled>
-            <GenericSidebar
-              sections={Object.values(FineTunePageSections)}
-              titles={fineTunePageSectionTitles}
-              maxWidth={175}
-            >
-              <FineTunePage
-                isInvalid={!canSubmit || !!ilabPipelineLoadError}
-                onSuccess={() =>
-                  navigate(
-                    `/pipelines/${encodeURIComponent(project.metadata.name)}/${encodeURIComponent(
-                      ilabPipelineVersion?.pipeline_id ?? '',
-                    )}/${encodeURIComponent(ilabPipelineVersion?.pipeline_version_id ?? '')}/view`,
-                  )
-                }
-                data={data}
-                setData={setData}
-                ilabPipeline={ilabPipeline}
-                ilabPipelineVersion={ilabPipelineVersion}
-              />
-            </GenericSidebar>
-          </PageSection>
-        </EnsureAPIAvailability>
+        {ilabPipelineLoaded && (
+          <EnsureAPIAvailability>
+            <PageSection hasBodyWrapper={false} isFilled>
+              <GenericSidebar
+                sections={Object.values(FineTunePageSections)}
+                titles={fineTunePageSectionTitles}
+                maxWidth={175}
+              >
+                <FineTunePage
+                  isInvalid={!canSubmit || !!ilabPipelineLoadError}
+                  onSuccess={() =>
+                    navigate(
+                      `/pipelines/${encodeURIComponent(project.metadata.name)}/${encodeURIComponent(
+                        ilabPipelineVersion?.pipeline_id ?? '',
+                      )}/${encodeURIComponent(
+                        ilabPipelineVersion?.pipeline_version_id ?? '',
+                      )}/view`,
+                    )
+                  }
+                  data={data}
+                  setData={setData}
+                  ilabPipeline={ilabPipeline}
+                  ilabPipelineVersion={ilabPipelineVersion}
+                />
+              </GenericSidebar>
+            </PageSection>
+          </EnsureAPIAvailability>
+        )}
       </ApplicationsPage>
     </ValidationContext.Provider>
   );

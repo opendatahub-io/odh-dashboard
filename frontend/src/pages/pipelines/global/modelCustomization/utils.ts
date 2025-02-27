@@ -1,7 +1,12 @@
 import { assembleSecretJudge, assembleSecretTeacher, createSecret } from '~/api';
 import { ModelCustomizationEndpointType } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
-import { TeacherJudgeFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
+import {
+  HyperparametersFormData,
+  ModelCustomizationFormData,
+  TeacherJudgeFormData,
+} from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import { SecretKind } from '~/k8sTypes';
+import { RunTypeFormat } from './const';
 
 export const createTeacherJudgeSecrets = (
   projectName: string,
@@ -59,4 +64,20 @@ export const translateIlabFormToTeacherJudge = (
   teacher_secret: teacherSecretName,
   judge_secret: judgeSecretName,
   /* eslint-enable camelcase */
+});
+
+export const translateIlabFormToRunType = (
+  data: ModelCustomizationFormData,
+): {
+  runType: RunTypeFormat;
+} => ({
+  runType: data.runType.value,
+});
+
+export const translateIlabFormToHyperparameters = (
+  data: ModelCustomizationFormData,
+): {
+  hyperparameters: HyperparametersFormData;
+} => ({
+  hyperparameters: data.hyperparameters,
 });
