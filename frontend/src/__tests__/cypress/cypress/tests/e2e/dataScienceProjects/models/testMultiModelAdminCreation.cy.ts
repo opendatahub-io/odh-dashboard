@@ -65,15 +65,7 @@ describe('[Automation Bug RHOAIENG-20591] Verify Admin Multi Model Creation and 
   it(
     'Verify that an Admin can Serve, Query a Multi Model using both the UI and External links',
     {
-      tags: [
-        '@Smoke',
-        '@SmokeSet3',
-        '@ODS-2053',
-        '@ODS-2054',
-        '@Dashboard',
-        '@Modelserving',
-        '@Bug',
-      ],
+      tags: ['@Smoke', '@SmokeSet3', '@ODS-2053', '@ODS-2054', '@Dashboard', '@Modelserving', '@Bug'],
     },
     () => {
       cy.log('Model Name:', modelName);
