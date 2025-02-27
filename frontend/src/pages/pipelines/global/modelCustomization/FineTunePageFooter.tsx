@@ -65,7 +65,7 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
   // TODO: translate data to `RunFormData`
   const [runFormData] = useRunFormData(null, {
     nameDesc: {
-      name: `ilab-${genRandomChars()}`,
+      name: `lab-${genRandomChars()}`,
       description: '',
     },
     runType: { type: RunTypeOption.ONE_TRIGGER },
