@@ -40,7 +40,7 @@ describe('Regular Users can make use of the Storage Classes in the Cluster Stora
       projectListPage.findProjectLink(dspName).click();
       cy.step('Navigate to the Cluster Storage tab and disable all non-default storage classes');
       // Go to cluster storage tab
-      projectDetails.findSectionTab('cluster-storages').click();
+      projectDetails.findSectionTab('cluster-storages').realClick();
       // Disable all non-default storage classes
       disableNonDefaultStorageClasses().then(() => {
         // Open the Create cluster storage Modal

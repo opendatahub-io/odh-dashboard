@@ -63,7 +63,7 @@ describe('Workbenches - negative tests', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      projectDetails.findSectionTab('workbenches').click();
+      projectDetails.findSectionTab('workbenches').realClick();
 
       // Create workbench
       cy.step(`Create workbench ${workbenchName}`);
@@ -98,7 +98,7 @@ describe('Workbenches - negative tests', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      projectDetails.findSectionTab('workbenches').click();
+      projectDetails.findSectionTab('workbenches').realClick();
 
       // Create workbench
       cy.step(`Create workbench ${workbenchName}`);

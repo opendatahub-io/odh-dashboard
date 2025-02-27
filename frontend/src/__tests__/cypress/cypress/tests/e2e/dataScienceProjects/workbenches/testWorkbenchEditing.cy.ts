@@ -66,7 +66,7 @@ describe('Edit and Update a Workbench in RHOAI', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(editTestNamespace);
       projectListPage.findProjectLink(editTestNamespace).click();
-      projectDetails.findSectionTab('workbenches').click();
+      projectDetails.findSectionTab('workbenches').realClick();
 
       // Create workbench
       cy.step(`Create workbench ${editTestNamespace} using storage ${pvcEditDisplayName}`);

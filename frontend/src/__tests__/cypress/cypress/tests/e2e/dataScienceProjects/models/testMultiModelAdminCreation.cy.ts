@@ -83,7 +83,7 @@ describe('[Verify Admin Multi Model Creation and Validation using the UI', () =>
 
       // Navigate to Model Serving tab and Deploy a Multi Model
       cy.step('Navigate to Model Serving and click to Deploy a Model Server');
-      projectDetails.findSectionTab('model-server').click();
+      projectDetails.findSectionTab('model-server').realClick();
       modelServingGlobal.findMultiModelButton().click();
       modelServingSection.findAddModelServerButton().click();
       createServingRuntimeModal.findModelServerName().type(testData.multiModelAdminName);

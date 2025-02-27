@@ -80,7 +80,7 @@ describe('[Product Bug RHOAIENG-20213] Verify Admin Single Model Creation and Va
 
       // Navigate to Model Serving tab and Deploy a Single Model
       cy.step('Navigate to Model Serving and click to Deploy a Single Model');
-      projectDetails.findSectionTab('model-server').click();
+      projectDetails.findSectionTab('model-server').realClick();
       modelServingGlobal.findSingleServingModelButton().click();
       modelServingGlobal.findDeployModelButton().click();
 

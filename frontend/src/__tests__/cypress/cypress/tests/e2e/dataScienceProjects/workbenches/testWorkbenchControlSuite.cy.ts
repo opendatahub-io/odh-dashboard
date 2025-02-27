@@ -138,7 +138,7 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(controlSuiteTestNamespace);
       projectListPage.findProjectLink(controlSuiteTestNamespace).click();
-      projectDetails.findSectionTab('workbenches').click();
+      projectDetails.findSectionTab('workbenches').realClick();
 
       // Create workbench
       cy.step(`Create workbench ${controlSuiteTestNamespace}`);
