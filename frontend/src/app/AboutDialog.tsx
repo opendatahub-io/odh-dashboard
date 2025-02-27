@@ -166,9 +166,7 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
                     ) : (
                       <Tr key={displayName}>
                         <Td>{displayName}</Td>
-                        <Td colSpan={3} style={{ fontStyle: 'italic', color: 'gray' }}>
-                          No releases available
-                        </Td>
+                        <Td colSpan={3}>No releases available</Td>
                       </Tr>
                     ),
                   )}
