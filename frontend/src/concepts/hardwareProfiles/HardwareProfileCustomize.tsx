@@ -14,6 +14,7 @@ import CPUField from '~/components/CPUField';
 import MemoryField from '~/components/MemoryField';
 import NumberInputWrapper from '~/components/NumberInputWrapper';
 import { ValidationContext } from '~/utilities/useValidation';
+import { formatResourceValue } from './utils';
 
 type HardwareProfileCustomizeProps = {
   identifiers: Identifier[];
@@ -104,7 +105,10 @@ const HardwareProfileCustomize: React.FC<HardwareProfileCustomizeProps> = ({
               </HelperTextItem>
             )}
             <HelperTextItem>
-              Min = {identifier.minCount}, Max = {identifier.maxCount || 'unrestricted'}
+              Min = {formatResourceValue(identifier.minCount, identifier.resourceType)}, Max ={' '}
+              {identifier.maxCount === undefined
+                ? 'unrestricted'
+                : formatResourceValue(identifier.maxCount, identifier.resourceType)}
             </HelperTextItem>
           </HelperText>
         </FormHelperText>

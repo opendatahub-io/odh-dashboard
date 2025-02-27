@@ -5,6 +5,8 @@ import {
   ActionList,
   ActionListItem,
   Button,
+  List,
+  ListItem,
 } from '@patternfly/react-core';
 import React from 'react';
 import { useNavigate } from 'react-router';
@@ -15,10 +17,10 @@ import {
   createHardwareProfileFromResource,
   updateHardwareProfile,
 } from '~/api';
-import { useDashboardNamespace } from '~/redux/selectors';
 import useNotification from '~/utilities/useNotification';
-import { MigrationAction } from '~/pages/hardwareProfiles/migration/types';
+import { MigrationAction, MigrationSourceType } from '~/pages/hardwareProfiles/migration/types';
 import { MIGRATION_SOURCE_TYPE_LABELS } from '~/pages/hardwareProfiles/migration/MigrationTooltip';
+import { useDashboardNamespace } from '~/redux/selectors';
 
 type ManageHardwareProfileFooterProps = {
   state: HardwareProfileFormData;
@@ -126,31 +128,43 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
     <Stack hasGutter>
       {migrationAction && (
         <StackItem>
-          <Alert
-            isInline
-            variant="warning"
-            title="Saving this hardware profile will trigger a migration"
-          >
-            You are editing a hardware profile that has been translated from a{' '}
-            {MIGRATION_SOURCE_TYPE_LABELS[migrationAction.source.type]}. This action will create a
-            new hardware profile and delete the source resource,{' '}
-            <b>{migrationAction.source.label}</b>
-            {migrationAction.targetProfiles.length > 1 && (
-              <>
-                <br />
-                <br />
-                Additionally, the following simulated hardware profiles dependent on the same source
-                will be created:{' '}
-                <b>
-                  {migrationAction.targetProfiles
-                    .filter(
-                      (profile) => profile.metadata.name !== existingHardwareProfile?.metadata.name,
-                    )
-                    .map((profile) => profile.metadata.name)
-                    .join(', ')}
-                </b>
-              </>
-            )}
+          <Alert isInline variant="warning" title="Updating this profile will trigger migration">
+            You are editing a simulated hardware profile,{' '}
+            <strong>{migrationAction.source.label}</strong>, that was created from{' '}
+            {MIGRATION_SOURCE_TYPE_LABELS[migrationAction.source.type]}.
+            <br />
+            <br />
+            The following changes will occur:
+            <List>
+              {migrationAction.targetProfiles.length > 1 ? (
+                <ListItem>
+                  Multiple simulated hardware profiles depend on this resource. The following
+                  hardware profile resources will be created:{' '}
+                  <strong>
+                    {migrationAction.targetProfiles
+                      .map((profile) => profile.metadata.name)
+                      .join(', ')}
+                  </strong>
+                </ListItem>
+              ) : (
+                <ListItem>
+                  A hardware profile resource,{' '}
+                  <strong>{migrationAction.targetProfiles[0].metadata.name}</strong>, will be
+                  created
+                </ListItem>
+              )}
+              <ListItem>
+                The source{' '}
+                {migrationAction.source.type === MigrationSourceType.ACCELERATOR_PROFILE
+                  ? 'accelerator profile'
+                  : migrationAction.source.type === MigrationSourceType.SERVING_CONTAINER_SIZE
+                  ? 'model serving container size'
+                  : 'notebook container size'}{' '}
+                will be deleted
+              </ListItem>
+            </List>
+            <br />
+            Deployed workloads using this simulated profile will be unaffected by the migration.
           </Alert>
         </StackItem>
       )}
@@ -176,7 +190,12 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
               onClick={existingHardwareProfile ? onUpdateHardwareProfile : onCreateHardwareProfile}
               data-testid="hardware-profile-create-button"
             >
-              {existingHardwareProfile ? 'Update' : 'Create'} hardware profile
+              {existingHardwareProfile
+                ? 'Update'
+                : migrationAction
+                ? 'Update and migrate'
+                : 'Create'}
+              hardware profile
             </Button>
           </ActionListItem>
           <ActionListItem>

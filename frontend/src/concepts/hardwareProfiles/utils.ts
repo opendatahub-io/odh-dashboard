@@ -1,8 +1,15 @@
 import React from 'react';
 import { ImageStreamKind, AcceleratorProfileKind, HardwareProfileKind } from '~/k8sTypes';
 import { getCompatibleIdentifiers } from '~/pages/projects/screens/spawner/spawnerUtils';
-import { Toleration, NodeSelector, Identifier, ContainerResources } from '~/types';
+import {
+  Toleration,
+  NodeSelector,
+  Identifier,
+  ContainerResources,
+  IdentifierResourceType,
+} from '~/types';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
+import { splitValueUnit, CPU_UNITS, MEMORY_UNITS_FOR_PARSING } from '~/utilities/valueUnits';
 
 export const formatToleration = (toleration: Toleration): string => {
   const parts = [`Key = ${toleration.key}`];
@@ -109,4 +116,23 @@ export const getContainerResourcesFromHardwareProfile = (
     requests: newRequests,
     limits: newLimits,
   };
+};
+
+export const formatResourceValue = (
+  v: string | number,
+  resourceType?: IdentifierResourceType,
+): string | number => {
+  const valueStr = typeof v === 'number' ? v.toString() : v;
+  switch (resourceType) {
+    case IdentifierResourceType.CPU: {
+      const [cpuValue, cpuUnit] = splitValueUnit(valueStr, CPU_UNITS);
+      return `${cpuValue}${cpuUnit.unit}`;
+    }
+    case IdentifierResourceType.MEMORY: {
+      const [memoryValue, memoryUnit] = splitValueUnit(valueStr, MEMORY_UNITS_FOR_PARSING);
+      return `${memoryValue}${memoryUnit.unit}`;
+    }
+    default:
+      return v;
+  }
 };

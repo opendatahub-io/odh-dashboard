@@ -14,6 +14,7 @@ import { IdentifierResourceType } from '~/types';
 import { HardwareProfileConfig } from './useHardwareProfileConfig';
 import { HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE } from './const';
 import { HardwareProfileWarningType } from './types';
+import { formatResourceValue } from './utils';
 
 export enum ValidationErrorCodes {
   LIMIT_BELOW_REQUEST = 'limit_below_request',
@@ -31,13 +32,13 @@ const createCpuSchema = (minCount: ValueUnitCPU, maxCount?: ValueUnitCPU): Resou
     if (isCpuLimitLarger(stringVal, minCount)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `Must be at least ${minCount}`,
+        message: `Must be at least ${formatResourceValue(minCount)}`,
       });
     }
     if (maxCount && isCpuLimitLarger(maxCount, stringVal)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `Must not exceed ${maxCount}`,
+        message: `Must not exceed ${formatResourceValue(maxCount)}`,
       });
     }
   });
@@ -49,13 +50,13 @@ const createMemorySchema = (minCount: ValueUnitString, maxCount: ValueUnitString
     if (isMemoryLimitLarger(stringVal, minCount)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `Must be at least ${minCount}`,
+        message: `Must be at least ${formatResourceValue(minCount)}`,
       });
     }
     if (isMemoryLimitLarger(maxCount, stringVal)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `Must not exceed ${maxCount}`,
+        message: `Must not exceed ${formatResourceValue(maxCount)}`,
       });
     }
   });
@@ -73,13 +74,13 @@ const createNumericSchema = (minCount: number, maxCount: number): ResourceSchema
     if (value < minCount) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `Must be at least ${minCount}`,
+        message: `Must be at least ${formatResourceValue(minCount)}`,
       });
     }
     if (value > maxCount) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `Must not exceed ${maxCount}`,
+        message: `Must not exceed ${formatResourceValue(maxCount)}`,
       });
     }
   });
