@@ -28,6 +28,7 @@ import {
 } from '~/concepts/pipelines/kfTypes';
 import {
   createTeacherJudgeSecrets,
+  translateIlabFormToHyperparameters,
   translateIlabFormToTeacherJudge,
 } from '~/pages/pipelines/global/modelCustomization/utils';
 import { genRandomChars } from '~/utilities/string';
@@ -92,6 +93,7 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
             teacherSecret.metadata.name,
             judgeSecret.metadata.name,
           ),
+          ...translateIlabFormToHyperparameters(data),
         },
       },
       api,

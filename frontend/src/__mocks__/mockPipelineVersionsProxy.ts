@@ -3,6 +3,7 @@ import {
   ArgoWorkflowPipelineVersion,
   ArtifactType,
   InputDefinitionParameterType,
+  InputOutputDefinition,
   PipelineKFCallCommon,
   PipelineVersionKF,
 } from '~/concepts/pipelines/kfTypes';
@@ -243,6 +244,19 @@ export const mockPipelineVersionsList: PipelineVersionKF[] = [
 
 export const buildMockPipelineVersion = (
   pipelineVersion?: Partial<PipelineVersionKF>,
+  inputDefinitions: InputOutputDefinition = {
+    parameters: {
+      min_max_scaler: {
+        parameterType: InputDefinitionParameterType.BOOLEAN,
+      },
+      neighbors: {
+        parameterType: InputDefinitionParameterType.INTEGER,
+      },
+      standard_scaler: {
+        parameterType: InputDefinitionParameterType.STRING,
+      },
+    },
+  },
 ): PipelineVersionKF => {
   /* eslint-disable @typescript-eslint/naming-convention */
   const display_name = pipelineVersion?.display_name || 'Test pipeline version';
@@ -493,19 +507,7 @@ export const buildMockPipelineVersion = (
               },
             },
           },
-          inputDefinitions: {
-            parameters: {
-              min_max_scaler: {
-                parameterType: InputDefinitionParameterType.BOOLEAN,
-              },
-              neighbors: {
-                parameterType: InputDefinitionParameterType.INTEGER,
-              },
-              standard_scaler: {
-                parameterType: InputDefinitionParameterType.STRING,
-              },
-            },
-          },
+          inputDefinitions,
         },
         schemaVersion: '2.1.0',
         sdkVersion: 'kfp-2.6.0',

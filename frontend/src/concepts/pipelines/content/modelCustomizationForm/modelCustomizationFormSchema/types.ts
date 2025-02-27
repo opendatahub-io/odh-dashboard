@@ -1,9 +1,11 @@
-export enum ModelCustomizationRunType {
-  FULL_RUN = 'Full run',
-  SIMPLE_RUN = 'Simple run',
-}
-
 export enum ModelCustomizationEndpointType {
   PUBLIC = 'Public',
   PRIVATE = 'Private',
+}
+
+export enum ProjectFields {
+  PROJECT_NAME = 'projectName',
+  RUN_TYPE = 'runType',
+  HYPERPARAMETERS = 'hyperparameters',
+  BASE_MODEL = 'baseModel',
 }
