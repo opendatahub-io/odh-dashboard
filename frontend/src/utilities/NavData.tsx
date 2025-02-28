@@ -2,7 +2,7 @@ import { Icon } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import * as React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { useDashboardNamespace, useUser } from '~/redux/selectors';
+import { useUser } from '~/redux/selectors';
 import {
   artifactsRootPath,
   executionsRootPath,
@@ -17,8 +17,8 @@ import {
 import { HardwareProfileModel } from '~/api';
 import { AccessReviewResourceAttributes } from '~/k8sTypes';
 import { useAccessAllowed, verbModelAccess } from '~/concepts/userSSAR';
+import useMigratedHardwareProfiles from '~/pages/hardwareProfiles/migration/useMigratedHardwareProfiles';
 import { NavWithIcon } from './NavWithIcon';
-import { useWatchHardwareProfiles } from './useWatchHardwareProfiles';
 
 type NavDataCommon = {
   id: string;
@@ -241,21 +241,28 @@ const useUserManagementNav = (): NavDataHref[] =>
     },
   ]);
 
-const useAcceleratorProfilesNav = (): NavDataHref[] =>
-  useIsAdminAreaCheck<NavDataHref>(SupportedArea.ACCELERATOR_PROFILES, [
-    {
-      id: 'settings-accelerator-profiles',
-      label: 'Accelerator profiles',
-      href: '/acceleratorProfiles',
-    },
-  ]);
+const useAcceleratorProfilesNav = (): NavDataHref[] => {
+  const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
+
+  return useIsAdminAreaCheck<NavDataHref>(
+    SupportedArea.ACCELERATOR_PROFILES,
+    isHardwareProfilesAvailable
+      ? []
+      : [
+          {
+            id: 'settings-accelerator-profiles',
+            label: 'Accelerator profiles',
+            href: '/acceleratorProfiles',
+          },
+        ],
+  );
+};
 
 const useHardwareProfilesNav = (): {
   isWarning: boolean;
   hardwareProfileNavItems: NavDataHref[];
 } => {
-  const { dashboardNamespace } = useDashboardNamespace();
-  const [hardwareProfiles] = useWatchHardwareProfiles(dashboardNamespace);
+  const { data: hardwareProfiles } = useMigratedHardwareProfiles();
   const warning = generateWarningForHardwareProfiles(hardwareProfiles);
   const isWarning = !!warning && warning.title === HardwareProfileBannerWarningTitles.ALL_INVALID;
   return {

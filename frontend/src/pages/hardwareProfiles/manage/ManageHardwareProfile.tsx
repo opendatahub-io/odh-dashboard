@@ -16,13 +16,16 @@ import ManageNodeSelectorSection from '~/pages/hardwareProfiles/manage/ManageNod
 import ManageTolerationSection from '~/pages/hardwareProfiles/manage/ManageTolerationSection';
 import ManageHardwareProfileFooter from '~/pages/hardwareProfiles/manage/ManageHardwareProfileFooter';
 import ManageNodeResourceSection from '~/pages/hardwareProfiles/manage/ManageNodeResourceSection';
+import { MigrationAction } from '~/pages/hardwareProfiles/migration/types';
 import { HardwareProfileFormData, ManageHardwareProfileSectionID } from './types';
+import { HardwareProfileUseCaseSection } from './HardwareProfileUseCaseSection';
 
 type ManageHardwareProfileProps = {
   existingHardwareProfile?: HardwareProfileKind;
   duplicatedHardwareProfile?: HardwareProfileKind;
   contextPath?: string;
   homepageTitle?: string;
+  migrationAction?: MigrationAction;
 };
 
 const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
@@ -30,10 +33,12 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
   duplicatedHardwareProfile,
   contextPath = '/hardwareProfiles',
   homepageTitle = 'Hardware profiles',
+  migrationAction,
 }) => {
   const [state, setState] = useGenericObjectState<HardwareProfileKind['spec']>(
     DEFAULT_HARDWARE_PROFILE_SPEC,
   );
+  const [useCases, setUseCases] = React.useState<string[]>([]);
   const { data: profileNameDesc, onDataChange: setProfileNameDesc } =
     useK8sNameDescriptionFieldData({
       initialData: existingHardwareProfile
@@ -51,6 +56,20 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
       setState('enabled', existingHardwareProfile.spec.enabled);
       setState('nodeSelector', existingHardwareProfile.spec.nodeSelector);
       setState('tolerations', existingHardwareProfile.spec.tolerations);
+
+      // set the visibility from the annotations
+      try {
+        if (existingHardwareProfile.metadata.annotations?.['opendatahub.io/use-cases']) {
+          const visibleIn = JSON.parse(
+            existingHardwareProfile.metadata.annotations['opendatahub.io/use-cases'],
+          );
+          setUseCases(visibleIn);
+        } else {
+          setUseCases([]);
+        }
+      } catch (error) {
+        setUseCases([]);
+      }
     }
   }, [existingHardwareProfile, setState]);
 
@@ -60,6 +79,20 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
       setState('enabled', duplicatedHardwareProfile.spec.enabled);
       setState('nodeSelector', duplicatedHardwareProfile.spec.nodeSelector);
       setState('tolerations', duplicatedHardwareProfile.spec.tolerations);
+
+      // set the use cases from the annotations
+      try {
+        if (duplicatedHardwareProfile.metadata.annotations?.['opendatahub.io/use-cases']) {
+          const visibleIn = JSON.parse(
+            duplicatedHardwareProfile.metadata.annotations['opendatahub.io/use-cases'],
+          );
+          setUseCases(visibleIn);
+        } else {
+          setUseCases([]);
+        }
+      } catch (error) {
+        setUseCases([]);
+      }
     }
   }, [duplicatedHardwareProfile, setState]);
 
@@ -69,8 +102,9 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
       name: profileNameDesc.k8sName.value,
       displayName: profileNameDesc.name.trim(),
       description: profileNameDesc.description,
+      useCases,
     }),
-    [state, profileNameDesc],
+    [state, profileNameDesc, useCases],
   );
 
   const validFormData = isK8sNameDescriptionDataValid(profileNameDesc);
@@ -118,6 +152,7 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
               dataTestId="hardware-profile-name-desc"
             />
           </FormSection>
+          <HardwareProfileUseCaseSection useCases={useCases} setUseCases={setUseCases} />
           <ManageNodeResourceSection
             nodeResources={state.identifiers ?? []}
             setNodeResources={(identifiers) => setState('identifiers', identifiers)}
@@ -138,6 +173,7 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
           existingHardwareProfile={existingHardwareProfile}
           validFormData={validFormData}
           redirectPath={contextPath}
+          migrationAction={migrationAction}
         />
       </PageSection>
     </ApplicationsPage>

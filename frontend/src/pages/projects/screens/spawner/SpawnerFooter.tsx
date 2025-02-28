@@ -100,7 +100,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const afterStart = (name: string, type: 'created' | 'updated') => {
     const { image, podSpecOptions } = startNotebookData;
     const tep: FormTrackingEventProperties = {
-      containerResources: Object.entries(podSpecOptions.resources)
+      containerResources: Object.entries(podSpecOptions.resources || {})
         .map(([key, value]) =>
           Object.entries(value).map(([k, v]) => `${key}.${k}: ${v?.toString() || ''}`),
         )

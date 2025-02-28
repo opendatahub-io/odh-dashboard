@@ -89,6 +89,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   const tokenErrors = createData.tokens.filter((token) => token.error !== '').length > 0;
   const baseInputValueValid =
     createData.numReplicas >= 0 &&
+    podSpecOptionsState.podSpecOptions.resources &&
     resourcesArePositive(podSpecOptionsState.podSpecOptions.resources) &&
     requestsUnderLimits(podSpecOptionsState.podSpecOptions.resources);
   const servingRuntimeTemplateNameValid = editInfo?.servingRuntime
