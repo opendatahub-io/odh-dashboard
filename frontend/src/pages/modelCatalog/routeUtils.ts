@@ -16,3 +16,6 @@ export const modelDetailsUrlFromModel = (model: CatalogModel, source: string): s
     modelName: model.name,
     tag: getTagFromModel(model),
   });
+
+export const registerCatalogModel = (params: ModelDetailsRouteParams): string =>
+  `${modelDetailsUrl(params)}/register`;
