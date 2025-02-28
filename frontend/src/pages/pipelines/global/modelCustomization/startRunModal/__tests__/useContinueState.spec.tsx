@@ -55,7 +55,7 @@ describe('useContinueState', () => {
     mockUsePipelinesAPI.mockReturnValue({
       pipelinesServer: { initializing: false, installed: true, compatible: true, timedOut: true },
     });
-    mockUseIlabPipeline.mockReturnValue([null, true, null]);
+    mockUseIlabPipeline.mockReturnValue({ loaded: true, loadError: null });
 
     const renderResult = testHook(useContinueState)();
     expect(renderResult.result.current).toEqual({
@@ -69,7 +69,7 @@ describe('useContinueState', () => {
     mockUsePipelinesAPI.mockReturnValue({
       pipelinesServer: { initializing: false, installed: true, compatible: false, timedOut: false },
     });
-    mockUseIlabPipeline.mockReturnValue([null, false, new Error('Load error')]);
+    mockUseIlabPipeline.mockReturnValue({ loaded: false, loadError: new Error('Load error') });
 
     const renderResult = testHook(useContinueState)();
     expect(renderResult.result.current).toEqual({
@@ -83,7 +83,7 @@ describe('useContinueState', () => {
     mockUsePipelinesAPI.mockReturnValue({
       pipelinesServer: { initializing: false, installed: true, compatible: true, timedOut: false },
     });
-    mockUseIlabPipeline.mockReturnValue([null, true, null]);
+    mockUseIlabPipeline.mockReturnValue({ loaded: true, loadError: null });
 
     const renderResult = testHook(useContinueState)();
     expect(renderResult.result.current).toEqual({
@@ -97,7 +97,7 @@ describe('useContinueState', () => {
     mockUsePipelinesAPI.mockReturnValue({
       pipelinesServer: { initializing: false, installed: true, compatible: true, timedOut: false },
     });
-    mockUseIlabPipeline.mockReturnValue([{}, true, null]);
+    mockUseIlabPipeline.mockReturnValue({ loaded: true, loadError: null, ilabPipeline: {} });
 
     const renderResult = testHook(useContinueState)();
     expect(renderResult.result.current).toEqual({ canContinue: true, isLoading: false });
