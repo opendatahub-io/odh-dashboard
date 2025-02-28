@@ -59,7 +59,7 @@ describe('Workbenches - variable tests', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      projectDetails.findSectionTab('workbenches').click();
+      cy.retryClick(() => projectDetails.findSectionTab('workbenches'));
 
       // Create workbench with Secret variables by uploading a yaml file
       cy.step(`Create workbench ${workbenchName} using secret variables`);
@@ -135,7 +135,7 @@ describe('Workbenches - variable tests', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      projectDetails.findSectionTab('workbenches').click();
+      cy.retryClick(() => projectDetails.findSectionTab('workbenches'));
 
       // Create workbench with Secret variables via Key / Value
       cy.step(`Create workbench ${workbenchName} using secret variables`);

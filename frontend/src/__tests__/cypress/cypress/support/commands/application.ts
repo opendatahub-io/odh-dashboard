@@ -1,5 +1,6 @@
 import type { MatcherOptions } from '@testing-library/cypress';
 import type { Matcher, MatcherOptions as DTLMatcherOptions } from '@testing-library/dom';
+import { recurse } from 'cypress-recurse';
 import type { UserAuthConfig, DashboardConfig } from '~/__tests__/cypress/cypress/types';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
@@ -125,7 +126,6 @@ declare global {
        */
       // eslint-disable-next-line @typescript-eslint/method-signature-style
       findByTestId(id: Matcher | Matcher[], options?: MatcherOptions): Chainable<JQuery>;
-
       /**
        * Overwrite `findAllByTestId` to support an array of Matchers.
        * When an array of Matches is supplied, parses the data-testid attribute value as a
@@ -176,6 +176,20 @@ declare global {
       getNotebookControllerCullerConfig: (
         key?: string,
       ) => Cypress.Chainable<DashboardConfig | unknown>;
+
+      /**
+       * Custom command to retry clicking an element multiple times.
+       * @param getElement Function that returns a Cypress chainable representing the element to be clicked.
+       * @param maxAttempts Maximum number of attempts to click the element (default: 3).
+       * @param delay Delay in milliseconds between attempts (default: 1000).
+       * @returns Cypress.Chainable<void>
+       */
+      retryClick: (
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        getElement: () => Cypress.Chainable<any>,
+        maxAttempts?: number,
+        delay?: number,
+      ) => Cypress.Chainable<void>;
     }
   }
 }
@@ -212,6 +226,38 @@ Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUS
     });
   }
 });
+
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+function retryClick(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getElement: () => Cypress.Chainable<any>,
+  maxAttempts = 3,
+  delay = 1000,
+): Cypress.Chainable<void> {
+  return recurse(
+    () => getElement(),
+    ($el) => {
+      $el.click();
+      return true;
+    },
+    {
+      log: false,
+      timeout: maxAttempts * delay,
+      delay,
+      limit: maxAttempts,
+      error: `Failed to click element after ${maxAttempts} attempts`,
+    },
+  );
+}
+
+Cypress.Commands.add(
+  'retryClick',
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (getElement: () => Cypress.Chainable<any>, maxAttempts = 3, delay = 1000) => {
+    return retryClick(getElement, maxAttempts, delay);
+  },
+);
 
 Cypress.Commands.add('findKebab', { prevSubject: 'element' }, (subject, isDropdownToggle) => {
   Cypress.log({ displayName: 'findKebab' });

@@ -76,7 +76,7 @@ describe('Workbench and PVSs tests', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      projectDetails.findSectionTab('workbenches').click();
+      cy.retryClick(() => projectDetails.findSectionTab('workbenches'));
 
       cy.step(`Create Workbench ${projectName} using storage ${PVCDisplayName}`);
       workbenchPage.findCreateButton().click();
@@ -96,7 +96,7 @@ describe('Workbench and PVSs tests', () => {
       notebookRow.shouldHaveContainerSize('Small');
 
       cy.step(`Check the cluster storage ${PVCDisplayName} is now connected to ${workbenchName}`);
-      projectDetails.findSectionTab('cluster-storages').click();
+      cy.retryClick(() => projectDetails.findSectionTab('cluster-storages'));
       const csRow = clusterStorage.getClusterStorageRow(PVCDisplayName);
       csRow.findConnectedWorkbenches().should('have.text', workbenchName);
     },

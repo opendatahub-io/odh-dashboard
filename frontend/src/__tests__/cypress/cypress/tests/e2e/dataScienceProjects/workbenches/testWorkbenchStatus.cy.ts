@@ -62,7 +62,7 @@ describe('Workbenches - status tests', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      projectDetails.findSectionTab('workbenches').click();
+      cy.retryClick(() => projectDetails.findSectionTab('workbenches'));
 
       // Create workbench
       cy.step(`Create workbench ${workbenchName}`);

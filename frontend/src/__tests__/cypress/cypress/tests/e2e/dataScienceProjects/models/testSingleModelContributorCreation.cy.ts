@@ -85,7 +85,7 @@ describe('Verify Model Creation and Validation using the UI', () => {
 
       // Navigate to Model Serving tab and Deploy a Single Model
       cy.step('Navigate to Model Serving and click to Deploy a Single Model');
-      projectDetails.findSectionTab('model-server').click();
+      cy.retryClick(() => projectDetails.findSectionTab('model-server'));
       modelServingGlobal.findSingleServingModelButton().click();
       modelServingGlobal.findDeployModelButton().click();
 
