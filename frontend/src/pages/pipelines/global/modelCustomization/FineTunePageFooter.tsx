@@ -9,7 +9,11 @@ import {
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { ModelCustomizationFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
+import {
+  isAcceleratorConfigValid,
+  isIlabHardwareProfileConfigValid,
+  ModelCustomizationFormData,
+} from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import useRunFormData from '~/concepts/pipelines/content/createRun/useRunFormData';
 import { handleSubmit } from '~/concepts/pipelines/content/createRun/submitUtils';
 import { isRunSchedule } from '~/concepts/pipelines/utils';
@@ -32,15 +36,19 @@ import {
   createTaxonomySecret,
   translateIlabFormToTaxonomyInput,
   translateIlabFormToBaseModelInput,
+  translateIlabFormToHardwareInput,
 } from '~/pages/pipelines/global/modelCustomization/utils';
 import { genRandomChars } from '~/utilities/string';
 import { RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
 import { ValidationContext } from '~/utilities/useValidation';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { IlabPodSpecOptions } from './useIlabPodSpecOptionsState';
 
 type FineTunePageFooterProps = {
   canSubmit: boolean;
   onSuccess: () => void;
   data: ModelCustomizationFormData;
+  podSpecOptions: IlabPodSpecOptions;
   ilabPipeline: PipelineKF | null;
   ilabPipelineVersion: PipelineVersionKF | null;
 };
@@ -55,6 +63,7 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
   canSubmit,
   onSuccess,
   data,
+  podSpecOptions,
   ilabPipeline,
   ilabPipelineVersion,
 }) => {
@@ -66,8 +75,16 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
   const navigate = useNavigate();
   const contextPath = globalPipelineRunsRoute(namespace);
 
+  const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
+  const isHardwareProfileValid = isHardwareProfilesAvailable
+    ? isIlabHardwareProfileConfigValid({
+        selectedProfile: podSpecOptions.selectedHardwareProfile,
+        resources: podSpecOptions.resources,
+      })
+    : isAcceleratorConfigValid(podSpecOptions);
+
   const { validationResult } = React.useContext(ValidationContext);
-  const isValid = validationResult.success;
+  const isValid = validationResult.success && isHardwareProfileValid;
 
   // TODO: translate data to `RunFormData`
   const [runFormData] = useRunFormData(null, {
@@ -108,6 +125,7 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
           ),
           ...translateIlabFormToTaxonomyInput(data, taxonomySecret.metadata.name),
           ...translateIlabFormToBaseModelInput(data),
+          ...translateIlabFormToHardwareInput(podSpecOptions, data),
         },
       },
       api,

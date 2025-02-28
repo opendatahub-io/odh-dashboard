@@ -11,7 +11,7 @@ import { isHardwareProfileConfigValid } from './validationUtils';
 
 export type HardwareProfileConfig = {
   selectedProfile?: HardwareProfileKind;
-  useExistingSettings: boolean;
+  useExistingSettings?: boolean;
   resources: ContainerResources;
 };
 

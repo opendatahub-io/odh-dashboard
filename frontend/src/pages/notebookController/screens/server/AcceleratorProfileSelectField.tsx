@@ -28,6 +28,7 @@ type AcceleratorProfileSelectFieldProps = {
   infoContent?: string;
   initialState: AcceleratorProfileState;
   formData: AcceleratorProfileFormData;
+  isRequired?: boolean;
   setFormData: UpdateObjectAtPropAndValue<AcceleratorProfileFormData>;
 };
 
@@ -37,6 +38,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
   infoContent,
   initialState,
   formData,
+  isRequired = false,
   setFormData,
 }) => {
   const acceleratorCountWarning = useAcceleratorCountWarning(
@@ -132,6 +134,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
         <FormGroup
           label="Accelerator"
           fieldId="modal-notebook-accelerator"
+          isRequired={isRequired}
           labelHelp={
             infoContent ? (
               <Popover bodyContent={<div>{infoContent}</div>}>

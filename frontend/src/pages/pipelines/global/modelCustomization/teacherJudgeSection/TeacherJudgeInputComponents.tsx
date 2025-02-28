@@ -90,6 +90,7 @@ const TeacherJudgeInputBase: React.FC<TeacherJudgeInputBaseProps> = ({
         />
       ) : (
         <TextInput
+          aria-label={`${label} input`}
           value={value}
           isRequired
           id={fieldId}

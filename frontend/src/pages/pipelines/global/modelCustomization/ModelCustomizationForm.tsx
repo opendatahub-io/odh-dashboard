@@ -28,6 +28,8 @@ import {
 import { ModelCustomizationRouterState } from '~/routes';
 import FineTunePage from './FineTunePage';
 import { FineTunePageSections, fineTunePageSectionTitles } from './const';
+import { useIlabPodSpecOptionsState } from './useIlabPodSpecOptionsState';
+import { getParamsValueFromPipelineInput } from './utils';
 
 const ModelCustomizationForm: React.FC = () => {
   const { project } = usePipelinesAPI();
@@ -69,8 +71,24 @@ const ModelCustomizationForm: React.FC = () => {
       endpoint: '',
       modelName: '',
     },
+    trainingNode: 1,
+    storageClass: '',
   });
 
+  // training node default value from pipeline spec
+  React.useEffect(() => {
+    if (ilabPipelineVersion) {
+      const trainingNodeDefaultValue = getParamsValueFromPipelineInput(
+        ilabPipelineVersion,
+        'train_num_workers',
+      )?.defaultValue;
+      if (trainingNodeDefaultValue) {
+        setData('trainingNode', Number(trainingNodeDefaultValue));
+      }
+    }
+  }, [ilabPipelineVersion, setData]);
+
+  const podSpecOptionsState = useIlabPodSpecOptionsState(ilabPipelineVersion);
   const validation = useValidation(data, modelCustomizationFormSchema);
   const navigate = useNavigate();
 
@@ -123,6 +141,7 @@ const ModelCustomizationForm: React.FC = () => {
             >
               <FineTunePage
                 canSubmit={ilabPipelineLoaded || !!ilabPipelineLoadError}
+                podSpecOptionsState={podSpecOptionsState}
                 onSuccess={() =>
                   navigate(
                     `/pipelines/${encodeURIComponent(project.metadata.name)}/${encodeURIComponent(
@@ -134,6 +153,7 @@ const ModelCustomizationForm: React.FC = () => {
                 setData={setData}
                 ilabPipeline={ilabPipeline}
                 ilabPipelineVersion={ilabPipelineVersion}
+                ilabPipelineLoaded={ilabPipelineLoaded}
               />
             </GenericSidebar>
           </PageSection>

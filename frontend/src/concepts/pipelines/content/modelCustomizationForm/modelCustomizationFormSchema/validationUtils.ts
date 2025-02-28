@@ -1,4 +1,13 @@
 import { z } from 'zod';
+import { IlabPodSpecOptions } from '~/pages/pipelines/global/modelCustomization/useIlabPodSpecOptionsState';
+import { HardwareProfileKind } from '~/k8sTypes';
+import {
+  createCpuSchema,
+  createMemorySchema,
+  createNumericSchema,
+  ResourceSchema,
+} from '~/concepts/hardwareProfiles/validationUtils';
+import { HardwareProfileConfig } from '~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import {
   FineTuneTaxonomyType,
   ModelCustomizationEndpointType,
@@ -117,6 +126,104 @@ export const trainingHardwareFormSchema = z.object({
   accelerators: numericFieldSchema,
 });
 
+export const createIlabHardwareProfileValidationSchema = (
+  hardwareProfile?: HardwareProfileKind,
+): z.ZodType<HardwareProfileConfig> => {
+  const requestsShape: Record<string, ResourceSchema> = {};
+  const limitsShape: Record<string, ResourceSchema> = {};
+
+  hardwareProfile?.spec.identifiers?.forEach((identifier) => {
+    let schema: ResourceSchema;
+    if (identifier.identifier === 'cpu') {
+      schema = createCpuSchema(identifier.minCount, identifier.maxCount);
+    } else if (identifier.identifier === 'memory') {
+      schema = createMemorySchema(String(identifier.minCount), String(identifier.maxCount));
+    } else {
+      schema = createNumericSchema(Number(identifier.minCount), Number(identifier.maxCount));
+    }
+
+    requestsShape[identifier.identifier] = schema;
+    limitsShape[identifier.identifier] = schema;
+  });
+
+  return z.object({
+    selectedProfile: z.any(),
+    resources: z.object({
+      requests: z.object(requestsShape),
+    }),
+  });
+};
+
+export const isIlabHardwareProfileConfigValid = (data: HardwareProfileConfig): boolean => {
+  const schema = createIlabHardwareProfileValidationSchema(data.selectedProfile);
+  const result = schema.safeParse(data);
+  return result.success;
+};
+
+export const createAcceleratorResourcesSchema: z.ZodType<IlabPodSpecOptions> = z.object({
+  selectedAcceleratorProfile: z.any(),
+  selectedHardwareProfile: z.any(),
+  tolerations: z.any(),
+  nodeSelector: z.record(z.string()).optional(),
+  resources: z
+    .object({
+      requests: z
+        .object({
+          cpu: z
+            .union([z.string(), z.number()])
+            .optional()
+            .refine(
+              (val) => {
+                if (val && typeof val === 'number') {
+                  return val > 0;
+                }
+                if (val && typeof val === 'string') {
+                  return parseFloat(val) > 0;
+                }
+                return false;
+              },
+              { message: 'CPU must be greater than 0' },
+            ),
+
+          memory: z
+            .string()
+            .optional()
+            .refine(
+              (val) => {
+                if (val) {
+                  const memoryValue = parseFloat(val);
+                  return memoryValue > 0;
+                }
+                return false;
+              },
+              { message: 'Memory must be greater than 0' },
+            ),
+        })
+        .catchall(z.union([z.string(), z.number()]).optional())
+        .optional(),
+    })
+    .superRefine((data, ctx) => {
+      const keys = Object.keys(data.requests ?? {});
+
+      const otherKeys = keys.filter((key) => key !== 'cpu' && key !== 'memory');
+
+      if (otherKeys.length < 1) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `must contain a extra key`,
+        });
+      }
+    }),
+});
+
+export const isAcceleratorConfigValid = (podSpecOptions: IlabPodSpecOptions): boolean => {
+  if (!podSpecOptions.selectedAcceleratorProfile) {
+    return false;
+  }
+  const result = createAcceleratorResourcesSchema.safeParse(podSpecOptions);
+  return result.success;
+};
+
 export const runTypeSchema = z.enum([
   ModelCustomizationRunType.FULL_RUN,
   ModelCustomizationRunType.SIMPLE_RUN,
@@ -160,6 +267,8 @@ export const modelCustomizationFormSchema = z.object({
   outputModel: outputModelSchema,
   teacher: teacherJudgeModel,
   judge: teacherJudgeModel,
+  trainingNode: z.number().refine((val) => val > 0, { message: 'Number must be greater than 0' }),
+  storageClass: z.string().trim().min(1, { message: 'storage class is required' }),
 });
 
 export type ModelCustomizationFormData = z.infer<typeof modelCustomizationFormSchema>;
