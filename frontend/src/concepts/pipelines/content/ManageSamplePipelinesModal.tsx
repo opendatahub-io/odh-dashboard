@@ -54,10 +54,17 @@ const ManageSamplePipelinesModal: React.FC<ManageSamplePipelinesModalProps> = ({
     )
       .then((dspa) => {
         const isEnabled = dspa.spec.apiServer?.managedPipelines?.instructLab?.state === 'Managed';
-        notification.info(
-          isEnabled ? 'InstructLab pipeline enabled' : 'InstructLab pipeline disabled',
-          isEnabled ? 'The server will restart for this process.' : '',
-        );
+        if (isEnabled) {
+          notification.info(
+            'InstructLab pipeline enabled',
+            'The server will restart for this process.',
+          );
+        } else {
+          notification.success(
+            'Automatic updates for InstructLab pipeline disabled',
+            'Your InstructLab pipeline will no longer receive automatic updates.',
+          );
+        }
         unregisterNotification(ilabPipelineNotificationWatcher);
         if (isEnabled && !notificationWatcherRef.current) {
           notificationWatcherRef.current = true;
@@ -141,6 +148,15 @@ const ManageSamplePipelinesModal: React.FC<ManageSamplePipelinesModalProps> = ({
               isInline
               variant="warning"
               title="The pipeline server will restart, this could take a few minutes. When it restarts, the new pipeline will be available."
+            />
+          </StackItem>
+        ) : null}
+        {isInstructLabEnabled && !checked ? (
+          <StackItem>
+            <Alert
+              isInline
+              variant="warning"
+              title="If you wish to no longer have the InstructLab pipeline, you must manually delete it."
             />
           </StackItem>
         ) : null}
