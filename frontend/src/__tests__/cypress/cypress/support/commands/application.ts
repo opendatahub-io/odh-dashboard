@@ -237,6 +237,7 @@ function retryClick(
 ): Cypress.Chainable<void> {
   return recurse(
     () => getElement(),
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     ($el) => {
       $el.click();
       return true;
