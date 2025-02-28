@@ -569,3 +569,39 @@ export const mockModelServingFields: ConnectionTypeField[] = [
     properties: {},
   },
 ];
+
+export const mockOciConnectionType = (): ConnectionTypeConfigMapObj =>
+  mockConnectionTypeConfigMapObj({
+    name: 'oci',
+    fields: [
+      {
+        type: 'dropdown',
+        name: 'Access type',
+        description:
+          'Access type can be push (push for uploading data), pull (pull for accessing resources), or both depending on the use case. E.g. Pull/both for deploying a model, push/both for InstructLab fine-tune runs.',
+        envVar: 'ACCESS_TYPE',
+        required: false,
+        properties: {
+          variant: 'multi',
+          items: [
+            { label: 'Push secret', value: 'Push' },
+            { label: 'Pull secret', value: 'Pull' },
+          ],
+        },
+      },
+      {
+        type: 'file',
+        name: 'Secret details',
+        envVar: '.dockerconfigjson',
+        required: true,
+        properties: { extensions: ['.dockerconfigjson', '.json'] },
+      },
+      {
+        type: 'short-text',
+        name: 'Registry host',
+        envVar: 'OCI_HOST',
+        required: true,
+        properties: {},
+      },
+    ],
+  });
