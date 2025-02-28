@@ -1,0 +1,22 @@
+import React from 'react';
+type ApplicationsPageProps = {
+    title?: React.ReactNode;
+    breadcrumb?: React.ReactNode;
+    description?: React.ReactNode;
+    loaded: boolean;
+    empty: boolean;
+    loadError?: Error;
+    children?: React.ReactNode;
+    errorMessage?: string;
+    emptyMessage?: string;
+    emptyStatePage?: React.ReactNode;
+    headerAction?: React.ReactNode;
+    headerContent?: React.ReactNode;
+    provideChildrenPadding?: boolean;
+    removeChildrenTopPadding?: boolean;
+    subtext?: React.ReactNode;
+    loadingContent?: React.ReactNode;
+    noHeader?: boolean;
+};
+declare const ApplicationsPage: React.FC<ApplicationsPageProps>;
+export default ApplicationsPage;

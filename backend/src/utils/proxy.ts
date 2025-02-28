@@ -221,6 +221,9 @@ export const registerProxy = async (
     upstream,
     replyOptions: {
       getUpstream: () => upstream,
+      queryString: {
+        namespace: 'odh-model-registries',
+      },
     },
     preHandler: async (request, reply) => {
       if (checkRequestLimitExceeded(request, fastify, reply)) {

@@ -12,6 +12,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { ModelRegistrySelectorContextProvider } from '@mf/modelRegistry/plugin';
 import ErrorBoundary from '~/components/error/ErrorBoundary';
 import ToastNotifications from '~/components/ToastNotifications';
 import { useWatchBuildStatus } from '~/utilities/useWatchBuildStatus';
@@ -19,7 +20,7 @@ import { useUser } from '~/redux/selectors';
 import { DASHBOARD_MAIN_CONTAINER_ID } from '~/utilities/const';
 import useDetectUser from '~/utilities/useDetectUser';
 import ProjectsContextProvider from '~/concepts/projects/ProjectsContext';
-import { ModelRegistrySelectorContextProvider } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
+// import { ModelRegistrySelectorContextProvider } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import useStorageClasses from '~/concepts/k8s/useStorageClasses';
 import AreaContextProvider from '~/concepts/areas/AreaContext';
 import { NimContextProvider } from '~/concepts/nimServing/NIMAvailabilityContext';

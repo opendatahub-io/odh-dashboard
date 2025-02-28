@@ -1,6 +1,7 @@
 import { Icon } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import * as React from 'react';
+import { navItems, adminNavItems } from '@mf/modelRegistry/plugin';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { useDashboardNamespace, useUser } from '~/redux/selectors';
 import {
@@ -19,6 +20,9 @@ import { AccessReviewResourceAttributes } from '~/k8sTypes';
 import { useAccessAllowed, verbModelAccess } from '~/concepts/userSSAR';
 import { NavWithIcon } from './NavWithIcon';
 import { useWatchHardwareProfiles } from './useWatchHardwareProfiles';
+
+// const modelRegistryPlugin = import('@mf/modelRegistry/plugin');
+// console.log(modelRegistryPlugin);
 
 type NavDataCommon = {
   id: string;
@@ -108,9 +112,10 @@ const useModelsNav = (): NavDataItem[] => [
       ...useAreaCheck(SupportedArea.MODEL_CATALOG, [
         { id: 'modelCatalog', label: 'Model catalog', href: '/modelCatalog' },
       ]),
-      ...useAreaCheck(SupportedArea.MODEL_REGISTRY, [
-        { id: 'modelRegistry', label: 'Model registry', href: '/modelRegistry' },
-      ]),
+      ...useAreaCheck(
+        SupportedArea.MODEL_REGISTRY,
+        navItems.map((item, i) => ({ ...item, id: `modelRegistry-${i}` })),
+      ),
       ...useAreaCheck(SupportedArea.MODEL_SERVING, [
         { id: 'modelServing', label: 'Model deployments', href: '/modelServing' },
       ]),
@@ -223,14 +228,20 @@ const useStorageClassesNav = (): NavDataHref[] =>
     },
   ]);
 
+// const useModelRegisterySettingsNav = (): NavDataHref[] =>
+// useIsAdminAreaCheck<NavDataHref>(SupportedArea.MODEL_REGISTRY, [
+//   {
+//     id: 'settings-model-registry',
+//     label: 'Model registry settings',
+//     href: '/modelRegistrySettings',
+//   },
+// ]);
+
 const useModelRegisterySettingsNav = (): NavDataHref[] =>
-  useIsAdminAreaCheck<NavDataHref>(SupportedArea.MODEL_REGISTRY, [
-    {
-      id: 'settings-model-registry',
-      label: 'Model registry settings',
-      href: '/modelRegistrySettings',
-    },
-  ]);
+  useIsAdminAreaCheck<NavDataHref>(
+    SupportedArea.MODEL_REGISTRY,
+    adminNavItems.map((item, i) => ({ ...item, id: `modelRegistry-${i}` })),
+  );
 
 const useUserManagementNav = (): NavDataHref[] =>
   useIsAdminAreaCheck<NavDataHref>(SupportedArea.USER_MANAGEMENT, [

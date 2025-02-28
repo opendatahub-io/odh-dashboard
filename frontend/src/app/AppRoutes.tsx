@@ -1,5 +1,6 @@
 import React from 'react';
 import { Route, Routes } from 'react-router-dom';
+import { routes, adminRoutes } from '@mf/modelRegistry/plugin';
 import { InvalidArgoDeploymentAlert } from '~/concepts/pipelines/content/InvalidArgoDeploymentAlert';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import UnauthorizedError from '~/pages/UnauthorizedError';
@@ -15,8 +16,10 @@ import {
 import { useCheckJupyterEnabled } from '~/utilities/notebookControllerUtils';
 import { SupportedArea } from '~/concepts/areas';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
-import ModelRegistrySettingsRoutes from '~/pages/modelRegistrySettings/ModelRegistrySettingsRoutes';
+// import ModelRegistrySettingsRoutes from '~/pages/modelRegistrySettings/ModelRegistrySettingsRoutes';
 import ConnectionTypeRoutes from '~/pages/connectionTypes/ConnectionTypeRoutes';
+
+// const modelRegistryPlugin = import('@mf/modelRegistry/plugin');
 
 const HomePage = React.lazy(() => import('../pages/home/Home'));
 
@@ -80,7 +83,9 @@ const StorageClassesPage = React.lazy(() => import('../pages/storageClasses/Stor
 
 const ModelCatalogRoutes = React.lazy(() => import('../pages/modelCatalog/ModelCatalogRoutes'));
 
-const ModelRegistryRoutes = React.lazy(() => import('../pages/modelRegistry/ModelRegistryRoutes'));
+// const ModelRegistryRoutes = React.lazy(() => import('../pages/modelRegistry/ModelRegistryRoutes'));
+
+// const Test = React.lazy(() => import('@mf/modelRegistry/Test'));
 
 const ExternalRoutes = React.lazy(() => import('../pages/external/ExternalRoutes'));
 
@@ -129,7 +134,7 @@ const AppRoutes: React.FC = () => {
 
         <Route path="/modelCatalog/*" element={<ModelCatalogRoutes />} />
 
-        <Route path="/modelRegistry/*" element={<ModelRegistryRoutes />} />
+        {/* <Route path="/modelRegistry/*" element={<ModelRegistryRoutes />} /> */}
 
         <Route path={globPipelinesAll} element={<GlobalPipelinesRoutes />} />
         <Route path={globPipelineRunsAll} element={<GlobalPipelineRunsRoutes />} />
@@ -144,6 +149,10 @@ const AppRoutes: React.FC = () => {
 
         <Route path="/dependency-missing/:area" element={<DependencyMissingPage />} />
 
+        {routes.map((item) => (
+          <Route key={item.path} path={item.path} element={item.element} />
+        ))}
+
         {isAdmin && (
           <>
             <Route path="/notebookImages/*" element={<BYONImageRoutes />} />
@@ -152,11 +161,17 @@ const AppRoutes: React.FC = () => {
             <Route path="/servingRuntimes/*" element={<CustomServingRuntimeRoutes />} />
             <Route path="/connectionTypes/*" element={<ConnectionTypeRoutes />} />
             <Route path="/storageClasses/*" element={<StorageClassesPage />} />
-            <Route path="/modelRegistrySettings/*" element={<ModelRegistrySettingsRoutes />} />
+            {/* <Route path="/modelRegistrySettings/*" element={<ModelRegistrySettingsRoutes />} /> */}
             <Route path="/groupSettings" element={<GroupSettingsPage />} />
+
+            {adminRoutes.map((item) => (
+              <Route key={item.path} path={item.path} element={item.element} />
+            ))}
           </>
         )}
         <Route path="/hardwareProfiles/*" element={<HardwareProfileRoutes />} />
+
+        {/* <Route path="/modulefederation/modelRegistry" element={<Test />} /> */}
 
         <Route path="*" element={<NotFound />} />
       </Routes>
