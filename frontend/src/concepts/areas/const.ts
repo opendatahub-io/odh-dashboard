@@ -165,14 +165,14 @@ export const SupportedAreasStateMap: SupportedAreasState = {
 export const DataScienceStackComponentMap: Record<string, string> = {
   [DataScienceStackComponent.CODE_FLARE]: 'CodeFlare',
   [DataScienceStackComponent.DASHBOARD]: 'Dashboard',
-  [DataScienceStackComponent.DS_PIPELINES]: 'Data Science Pipelines',
+  [DataScienceStackComponent.DS_PIPELINES]: 'Data science pipelines',
   [DataScienceStackComponent.KUEUE]: 'Kueue',
-  [DataScienceStackComponent.MODEL_REGISTRY]: 'Model Registry',
-  [DataScienceStackComponent.FEAST_OPERATOR]: 'Feast Operator',
+  [DataScienceStackComponent.MODEL_REGISTRY]: 'Model registry',
+  [DataScienceStackComponent.FEAST_OPERATOR]: 'Feast operator',
   [DataScienceStackComponent.K_SERVE]: 'Model server and metrics',
   [DataScienceStackComponent.MODEL_MESH_SERVING]: 'Model server and metrics',
   [DataScienceStackComponent.RAY]: 'Ray',
-  [DataScienceStackComponent.TRAINING_OPERATOR]: 'Training Operator',
+  [DataScienceStackComponent.TRAINING_OPERATOR]: 'Training operator',
   [DataScienceStackComponent.TRUSTY_AI]: 'TrustyAI',
   [DataScienceStackComponent.WORKBENCHES]: 'Workbenches',
 };
