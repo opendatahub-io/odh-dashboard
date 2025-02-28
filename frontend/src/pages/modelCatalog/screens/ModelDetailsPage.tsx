@@ -1,5 +1,5 @@
 import React from 'react';
-import { useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -10,6 +10,8 @@ import {
   Label,
   Stack,
   StackItem,
+  Button,
+  Popover,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { TagIcon } from '@patternfly/react-icons';
@@ -26,6 +28,10 @@ import {
 } from '~/pages/modelCatalog/utils';
 import { ModelDetailsRouteParams } from '~/pages/modelCatalog/const';
 import BrandImage from '~/components/BrandImage';
+import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
+import { registerCatalogModel } from '~/pages/modelCatalog/routeUtils';
+import PopoverListContent from '~/components/PopoverListContent';
+import { FindAdministratorOptions } from '~/pages/projects/screens/projects/const';
 import ModelDetailsView from './ModelDetailsView';
 
 const ModelDetailsPage: React.FC = conditionalArea(
@@ -33,10 +39,12 @@ const ModelDetailsPage: React.FC = conditionalArea(
   true,
 )(() => {
   const params = useParams<ModelDetailsRouteParams>();
-
+  const navigate = useNavigate();
   const { modelCatalogSources } = React.useContext(ModelCatalogContext);
-
   const decodedParams = decodeParams(params);
+  const { modelRegistryServices, modelRegistryServicesLoaded, modelRegistryServicesLoadError } =
+    React.useContext(ModelRegistrySelectorContext);
+  const loaded = modelRegistryServicesLoaded && modelCatalogSources.loaded;
 
   const model: CatalogModel | null = React.useMemo(
     () =>
@@ -100,10 +108,39 @@ const ModelDetailsPage: React.FC = conditionalArea(
           )}
         />
       }
-      loaded={modelCatalogSources.loaded}
-      loadError={modelCatalogSources.error}
+      loadError={modelRegistryServicesLoadError || modelCatalogSources.error}
+      loaded={loaded}
       errorMessage="Unable to load model catalog"
       provideChildrenPadding
+      headerAction={
+        loaded &&
+        (modelRegistryServices.length === 0 ? (
+          <Popover
+            headerContent="Register to model registry?"
+            triggerAction="hover"
+            data-testid="register-catalog-model-popover"
+            bodyContent={
+              <PopoverListContent
+                data-testid="Register-model-button-popover"
+                leadText="To request access to the model registry, contact your administrator."
+                listHeading="Your administrator might be:"
+                listItems={FindAdministratorOptions}
+              />
+            }
+          >
+            <Button data-testid="register-model-button" isAriaDisabled>
+              Register model
+            </Button>
+          </Popover>
+        ) : (
+          <Button
+            data-testid="register-model-button"
+            onClick={() => navigate(registerCatalogModel(params))}
+          >
+            Register model
+          </Button>
+        ))
+      }
     >
       {model && <ModelDetailsView model={model} />}
     </ApplicationsPage>

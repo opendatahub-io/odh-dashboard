@@ -20,6 +20,7 @@ import { getKServeTemplates } from '~/pages/modelServing/customServingRuntimes/u
 import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
 import { bumpBothTimestamps } from '~/concepts/modelRegistry/utils/updateTimestamps';
 import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
+import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 
 interface DeployRegisteredModelModalProps {
   modelVersion: ModelVersion;
@@ -51,6 +52,12 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
   const [dataConnections] = useDataConnections(selectedProject?.metadata.name);
   const [connections] = useConnections(selectedProject?.metadata.name, true);
   const error = platformError || projectError;
+  const [
+    registeredModels,
+    registeredModelLoaded,
+    registeredModelLoadError,
+    refreshRegisteredModel,
+  ] = useRegisteredModelById(modelVersion.registeredModelId);
 
   const {
     registeredModelDeployInfo,
@@ -58,22 +65,22 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
     error: deployInfoError,
   } = useRegisteredModelDeployInfo(modelVersion, preferredModelRegistry?.metadata.name);
 
+  const loaded = deployInfoLoaded && registeredModelLoaded;
+  const loadError = deployInfoError || registeredModelLoadError;
+
   const handleSubmit = React.useCallback(async () => {
-    if (!modelVersion.registeredModelId) {
+    if (!modelVersion.registeredModelId || !registeredModels) {
       return;
     }
 
     try {
-      await bumpBothTimestamps(
-        modelRegistryApi.api,
-        modelVersion.id,
-        modelVersion.registeredModelId,
-      );
+      await bumpBothTimestamps(modelRegistryApi.api, registeredModels, modelVersion);
+      refreshRegisteredModel();
       onSubmit?.();
     } catch (submitError) {
       throw new Error('Failed to update timestamps after deployment');
     }
-  }, [modelRegistryApi.api, modelVersion.id, modelVersion.registeredModelId, onSubmit]);
+  }, [modelRegistryApi.api, modelVersion, onSubmit, registeredModels, refreshRegisteredModel]);
 
   const onClose = React.useCallback(
     (submit: boolean) => {
@@ -104,11 +111,11 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
   ) {
     const modalForm = (
       <Form>
-        {deployInfoError ? (
-          <Alert variant="danger" isInline title={deployInfoError.name}>
-            {deployInfoError.message}
+        {loadError ? (
+          <Alert variant="danger" isInline title={loadError.name}>
+            {loadError.message}
           </Alert>
-        ) : !deployInfoLoaded ? (
+        ) : !loaded ? (
           <Spinner />
         ) : (
           <FormSection title="Model deployment">{projectSection}</FormSection>
