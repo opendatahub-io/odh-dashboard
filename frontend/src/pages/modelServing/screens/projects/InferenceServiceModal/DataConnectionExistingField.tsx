@@ -18,7 +18,7 @@ import {
 import { filterOutConnectionsWithoutBucket } from '~/pages/modelServing/screens/projects/utils';
 import { getDataConnectionDisplayName } from '~/pages/projects/screens/detail/data-connections/utils';
 import SimpleSelect from '~/components/SimpleSelect';
-import DataConnectionFolderPathField from './DataConnectionFolderPathField';
+import ConnectionS3FolderPathField from './ConnectionS3FolderPathField';
 
 type DataConnectionExistingFieldType = {
   data: CreatingInferenceServiceObject;
@@ -96,7 +96,7 @@ const DataConnectionExistingField: React.FC<DataConnectionExistingFieldType> = (
         </FormGroup>
       </StackItem>
       <StackItem>
-        <DataConnectionFolderPathField
+        <ConnectionS3FolderPathField
           folderPath={data.storage.path}
           setFolderPath={(path) => setData('storage', { ...data.storage, path })}
         />

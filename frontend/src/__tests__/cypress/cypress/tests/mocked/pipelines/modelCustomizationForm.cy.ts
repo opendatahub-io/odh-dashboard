@@ -1,5 +1,9 @@
 /* eslint-disable camelcase */
-import { modelCustomizationFormGlobal } from '~/__tests__/cypress/cypress/pages/pipelines/modelCustomizationForm';
+import {
+  judgeModelSection,
+  modelCustomizationFormGlobal,
+  teacherModelSection,
+} from '~/__tests__/cypress/cypress/pages/pipelines/modelCustomizationForm';
 import {
   buildMockPipeline,
   buildMockPipelines,
@@ -46,6 +50,10 @@ describe('Model Customization Form', () => {
     modelCustomizationFormGlobal.visit(projectName);
     cy.wait('@getAllPipelines');
     cy.wait('@getAllPipelineVersions');
+    teacherModelSection.findEndpointInput().type('http://test.com');
+    teacherModelSection.findModelNameInput().type('test');
+    judgeModelSection.findEndpointInput().type('http://test.com');
+    judgeModelSection.findModelNameInput().type('test');
     modelCustomizationFormGlobal.findSubmitButton().should('not.be.disabled');
   });
   it('Should not submit', () => {

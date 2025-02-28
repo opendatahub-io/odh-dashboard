@@ -36,8 +36,8 @@ import {
   getDefaultValues,
   getMRConnectionValues,
   isConnectionTypeDataField,
-  isUriConnection,
-  isUriConnectionType,
+  isModelServingTypeCompatible,
+  ModelServingCompatibleTypes,
   S3ConnectionTypeKeys,
   withRequiredFields,
 } from '~/concepts/connectionTypes/utils';
@@ -51,8 +51,9 @@ import {
 } from '~/pages/modelServing/screens/types';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
-import { isConnectionPathValid } from '~/pages/modelServing/screens/projects/utils';
-import DataConnectionFolderPathField from './DataConnectionFolderPathField';
+import { isModelPathValid } from '~/pages/modelServing/screens/projects/utils';
+import ConnectionS3FolderPathField from './ConnectionS3FolderPathField';
+import ConnectionOciPathField from './ConnectionOciPathField';
 
 type ExistingConnectionFieldProps = {
   connectionTypes: ConnectionTypeConfigMapObj[];
@@ -61,6 +62,8 @@ type ExistingConnectionFieldProps = {
   onSelect: (connection: Connection) => void;
   folderPath: string;
   setFolderPath: (path: string) => void;
+  modelUri?: string;
+  setModelUri: (uri?: string) => void;
   setIsConnectionValid: (isValid: boolean) => void;
 };
 
@@ -71,6 +74,8 @@ const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = ({
   onSelect,
   folderPath,
   setFolderPath,
+  modelUri,
+  setModelUri,
   setIsConnectionValid,
 }) => {
   const options: TypeaheadSelectOption[] = React.useMemo(
@@ -127,10 +132,9 @@ const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = ({
 
   React.useEffect(() => {
     setIsConnectionValid(
-      !!selectedConnection &&
-        (isUriConnection(selectedConnection) ? true : isConnectionPathValid(folderPath)),
+      !!selectedConnection && isModelPathValid(selectedConnection, folderPath, modelUri),
     );
-  }, [folderPath, selectedConnection, setIsConnectionValid]);
+  }, [folderPath, modelUri, selectedConnection, setIsConnectionValid]);
 
   return (
     <>
@@ -170,9 +174,19 @@ const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = ({
           />
         )}
       </FormGroup>
-      {selectedConnection && !isUriConnection(selectedConnection) && (
-        <DataConnectionFolderPathField folderPath={folderPath} setFolderPath={setFolderPath} />
-      )}
+      {selectedConnection &&
+        isModelServingTypeCompatible(
+          selectedConnection,
+          ModelServingCompatibleTypes.S3ObjectStorage,
+        ) && <ConnectionS3FolderPathField folderPath={folderPath} setFolderPath={setFolderPath} />}
+      {selectedConnection &&
+        isModelServingTypeCompatible(selectedConnection, ModelServingCompatibleTypes.OCI) && (
+          <ConnectionOciPathField
+            ociHost={window.atob(selectedConnection.data?.OCI_HOST ?? '')}
+            modelUri={modelUri}
+            setModelUri={setModelUri}
+          />
+        )}
     </>
   );
 };
@@ -182,6 +196,8 @@ type NewConnectionFieldProps = {
   data: CreatingInferenceServiceObject;
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
   setNewConnection: (connection: Connection) => void;
+  modelUri?: string;
+  setModelUri: (uri?: string) => void;
   setIsConnectionValid: (isValid: boolean) => void;
 };
 
@@ -190,6 +206,8 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
   data,
   setData,
   setNewConnection,
+  modelUri,
+  setModelUri,
   setIsConnectionValid,
 }) => {
   const enabledConnectionTypes = React.useMemo(
@@ -258,27 +276,26 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
   );
 
   React.useEffect(() => {
+    let newConnection;
     if (selectedConnectionType) {
-      setNewConnection(
-        assembleConnectionSecret(
-          data.project,
-          getResourceNameFromK8sResource(selectedConnectionType),
-          nameDescData,
-          connectionValues,
-        ),
+      newConnection = assembleConnectionSecret(
+        data.project,
+        getResourceNameFromK8sResource(selectedConnectionType),
+        nameDescData,
+        connectionValues,
       );
+      setNewConnection(newConnection);
     }
     setIsConnectionValid(
       isFormValid &&
-        !!selectedConnectionType &&
-        (isUriConnectionType(selectedConnectionType)
-          ? true
-          : isConnectionPathValid(data.storage.path)),
+        !!newConnection &&
+        isModelPathValid(newConnection, data.storage.path, modelUri),
     );
   }, [
     connectionValues,
     data.project,
     data.storage.path,
+    modelUri,
     isFormValid,
     nameDescData,
     selectedConnectionType,
@@ -309,17 +326,26 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
           setValidations((prev) => ({ ...prev, [field.envVar]: isValid }))
         }
       />
-      {selectedConnectionType && !isUriConnectionType(selectedConnectionType) && (
-        <DataConnectionFolderPathField
-          folderPath={data.storage.path}
-          setFolderPath={(path) => setData('storage', { ...data.storage, path })}
-        />
-      )}
+      {selectedConnectionType &&
+        isModelServingTypeCompatible(
+          selectedConnectionType,
+          ModelServingCompatibleTypes.S3ObjectStorage,
+        ) && (
+          <ConnectionS3FolderPathField
+            folderPath={data.storage.path}
+            setFolderPath={(path) => setData('storage', { ...data.storage, path })}
+          />
+        )}
+      {selectedConnectionType &&
+        isModelServingTypeCompatible(selectedConnectionType, ModelServingCompatibleTypes.OCI) && (
+          <ConnectionOciPathField modelUri={modelUri} setModelUri={setModelUri} />
+        )}
     </FormSection>
   );
 };
 
 type Props = {
+  existingUriOption?: string;
   data: CreatingInferenceServiceObject;
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
   connection: Connection | undefined;
@@ -331,6 +357,7 @@ type Props = {
 };
 
 export const ConnectionSection: React.FC<Props> = ({
+  existingUriOption,
   data,
   setData,
   connection,
@@ -369,7 +396,7 @@ export const ConnectionSection: React.FC<Props> = ({
 
   return (
     <>
-      {data.storage.uri && !hasImagePullSecret && (
+      {existingUriOption && !hasImagePullSecret && (
         <Radio
           id="existing-uri-radio"
           name="existing-uri-radio"
@@ -380,6 +407,7 @@ export const ConnectionSection: React.FC<Props> = ({
             setData('storage', {
               ...data.storage,
               type: InferenceServiceStorageType.EXISTING_URI,
+              uri: existingUriOption,
               alert: undefined,
             });
           }}
@@ -397,6 +425,7 @@ export const ConnectionSection: React.FC<Props> = ({
           setData('storage', {
             ...data.storage,
             type: InferenceServiceStorageType.EXISTING_STORAGE,
+            uri: undefined,
             alert: undefined,
           });
         }}
@@ -419,6 +448,8 @@ export const ConnectionSection: React.FC<Props> = ({
                 }}
                 folderPath={data.storage.path}
                 setFolderPath={(path) => setData('storage', { ...data.storage, path })}
+                modelUri={data.storage.uri}
+                setModelUri={(uri) => setData('storage', { ...data.storage, uri })}
                 setIsConnectionValid={setIsConnectionValid}
               />
             )
@@ -437,6 +468,7 @@ export const ConnectionSection: React.FC<Props> = ({
           setData('storage', {
             ...data.storage,
             type: InferenceServiceStorageType.NEW_STORAGE,
+            uri: undefined,
             alert: undefined,
           });
         }}
@@ -459,6 +491,8 @@ export const ConnectionSection: React.FC<Props> = ({
                 data={data}
                 setData={setData}
                 setNewConnection={setConnection}
+                modelUri={data.storage.uri}
+                setModelUri={(uri) => setData('storage', { ...data.storage, uri })}
                 setIsConnectionValid={setIsConnectionValid}
               />
             </Stack>

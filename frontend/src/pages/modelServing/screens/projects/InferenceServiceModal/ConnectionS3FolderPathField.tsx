@@ -10,12 +10,12 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/ex
 import { containsOnlySlashes, isS3PathValid } from '~/utilities/string';
 import useDebounceCallback from '~/utilities/useDebounceCallback';
 
-type DataConnectionFolderPathFieldProps = {
+type ConnectionFolderPathFieldProps = {
   folderPath: string;
   setFolderPath: (folderPath: string) => void;
 };
 
-const DataConnectionFolderPathField: React.FC<DataConnectionFolderPathFieldProps> = ({
+const ConnectionS3FolderPathField: React.FC<ConnectionFolderPathFieldProps> = ({
   folderPath,
   setFolderPath,
 }) => {
@@ -74,4 +74,4 @@ const DataConnectionFolderPathField: React.FC<DataConnectionFolderPathFieldProps
   );
 };
 
-export default DataConnectionFolderPathField;
+export default ConnectionS3FolderPathField;

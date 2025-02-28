@@ -10,7 +10,7 @@ const DistributedWorkloadsNoProjects: React.FC = () => {
   return (
     <EmptyState headingLevel="h4" icon={WrenchIcon} titleText="No data science projects">
       <EmptyStateBody>
-        To view distributed workload metrics, first create a data science project.
+        To view distributed workloads, first create a data science project.
       </EmptyStateBody>
       <EmptyStateFooter>
         <NewProjectButton

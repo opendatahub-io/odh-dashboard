@@ -27,6 +27,7 @@ import { convertPeriodicTimeToSeconds, convertToDate } from '~/utilities/time';
 const createRun = async (
   formData: SafeRunFormData,
   createPipelineRun: PipelineAPIs['createPipelineRun'],
+  dryRun?: boolean,
 ): Promise<PipelineRunKF> => {
   /* eslint-disable camelcase */
   const data: CreatePipelineRunKFData = {
@@ -44,7 +45,7 @@ const createRun = async (
   };
 
   /* eslint-enable camelcase */
-  return createPipelineRun({}, data);
+  return createPipelineRun({ dryRun }, data);
 };
 
 export const convertDateDataToKFDateTime = (dateData?: RunDateTime): DateTimeKF | null => {
@@ -58,6 +59,7 @@ export const convertDateDataToKFDateTime = (dateData?: RunDateTime): DateTimeKF 
 const createRecurringRun = async (
   formData: SafeRunFormData,
   createPipelineRecurringRun: PipelineAPIs['createPipelineRecurringRun'],
+  dryRun?: boolean,
 ): Promise<PipelineRecurringRunKF> => {
   if (formData.runType.type !== RunTypeOption.SCHEDULED) {
     return Promise.reject(new Error('Cannot create a schedule with incomplete data.'));
@@ -109,13 +111,14 @@ const createRecurringRun = async (
   };
   /* eslint-enable camelcase */
 
-  return createPipelineRecurringRun({}, data);
+  return createPipelineRecurringRun({ dryRun }, data);
 };
 
 /** Returns the relative path to navigate to from the namespace qualified route */
 export const handleSubmit = (
   formData: RunFormData,
   api: PipelineAPIs,
+  dryRun?: boolean,
 ): Promise<PipelineRunKF | PipelineRecurringRunKF> => {
   if (!isFilledRunFormData(formData)) {
     throw new Error('Form data was incomplete.');
@@ -123,9 +126,9 @@ export const handleSubmit = (
 
   switch (formData.runType.type) {
     case RunTypeOption.ONE_TRIGGER:
-      return createRun(formData, api.createPipelineRun);
+      return createRun(formData, api.createPipelineRun, dryRun);
     case RunTypeOption.SCHEDULED:
-      return createRecurringRun(formData, api.createPipelineRecurringRun);
+      return createRecurringRun(formData, api.createPipelineRecurringRun, dryRun);
     default:
       // eslint-disable-next-line no-console
       console.error('Unknown run type', formData.runType);

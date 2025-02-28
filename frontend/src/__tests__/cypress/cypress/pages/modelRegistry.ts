@@ -64,13 +64,13 @@ class ModelRegistry {
   }
 
   navigate() {
-    appChrome.findNavItem('Model Registry').click();
+    appChrome.findNavItem('Model registry').click();
     this.wait();
   }
 
   private wait() {
     cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('Model Registry');
+    cy.findByTestId('app-page-title').contains('Model registry');
     cy.testA11y();
   }
 
