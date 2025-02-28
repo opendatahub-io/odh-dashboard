@@ -92,7 +92,7 @@ describe('Automation Bug RHOAIENG-20591] Verify Admin Multi Model Creation and V
 
       // Navigate to Model Serving tab and Deploy a Multi Model
       cy.step('Navigate to Model Serving and click to Deploy a Model Server');
-      retryClickTab(() => projectDetails.findSectionTab('model server'), 'model server');
+      retryClickTab(() => projectDetails.findSectionTab('model-server'), 'model-server');
       modelServingGlobal.findMultiModelButton().click();
       modelServingSection.findAddModelServerButton().click();
       createServingRuntimeModal.findModelServerName().type(testData.multiModelAdminName);
