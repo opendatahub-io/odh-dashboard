@@ -17,7 +17,7 @@ class ModelCatalog {
   }
 
   navigate() {
-    appChrome.findNavItem('Model Catalog').click();
+    appChrome.findNavItem('Model catalog').click();
     this.wait();
   }
 
@@ -27,17 +27,17 @@ class ModelCatalog {
 
   private wait() {
     cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('Model Catalog');
+    cy.findByTestId('app-page-title').contains('Model catalog');
     cy.testA11y();
   }
 
   tabEnabled() {
-    appChrome.findNavItem('Model Catalog').should('exist');
+    appChrome.findNavItem('Model catalog').should('exist');
     return this;
   }
 
   tabDisabled() {
-    appChrome.findNavItem('Model Catalog').should('not.exist');
+    appChrome.findNavItem('Model catalog').should('not.exist');
     return this;
   }
 

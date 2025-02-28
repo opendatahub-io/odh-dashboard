@@ -13,7 +13,7 @@ class GlobalDistributedWorkloads {
   }
 
   findNavItem() {
-    return appChrome.findNavItem('Distributed Workload Metrics');
+    return appChrome.findNavItem('Distributed workloads');
   }
 
   shouldNotFoundPage() {
@@ -26,7 +26,7 @@ class GlobalDistributedWorkloads {
   }
 
   shouldHavePageTitle() {
-    return cy.findByTestId('app-page-title').should('have.text', 'Distributed Workload Metrics');
+    return cy.findByTestId('app-page-title').should('have.text', 'Distributed workloads');
   }
 
   findRefreshIntervalSelectToggle() {

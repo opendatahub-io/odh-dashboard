@@ -18,7 +18,7 @@ const ModelCatalog: React.FC = conditionalArea(
   return (
     <ApplicationsPage
       title={
-        <TitleWithIcon title="Model Catalog" objectType={ProjectObjectType.registeredModels} />
+        <TitleWithIcon title="Model catalog" objectType={ProjectObjectType.registeredModels} />
       }
       empty={modelCatalogSources.data.length === 0}
       emptyStatePage={

@@ -10,6 +10,5 @@ excludedSubstrings:
   - localhost
   - console-openshift-console.apps.test-cluster.example.com/
   - console-openshift-console.apps.test-cluster.example.com
-  - repo.anaconda.cloud/repo/t/$
   - figma.com/figma/ns
   - scikit-learn.org/stable/getting_started.html

@@ -205,6 +205,7 @@ describe('Model Serving Global', () => {
 
     // Visit the all-projects view (no project name passed here)
     modelServingGlobal.visit();
+    cy.findByRole('button', { name: 'Models' }).should('exist').click();
 
     modelServingGlobal.shouldWaitAndCancel();
 

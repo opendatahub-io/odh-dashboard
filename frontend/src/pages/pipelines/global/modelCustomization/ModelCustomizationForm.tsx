@@ -18,6 +18,7 @@ import {
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { modelCustomizationRootPath } from '~/routes';
 import { useIlabPipeline } from '~/concepts/pipelines/content/modelCustomizationForm/useIlabPipeline';
+import { ModelCustomizationEndpointType } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
 import FineTunePage from './FineTunePage';
 import {
   BASE_MODEL_INPUT_STORAGE_LOCATION_URI_KEY,
@@ -27,7 +28,12 @@ import {
 
 const ModelCustomizationForm: React.FC = () => {
   const { project } = usePipelinesAPI();
-  const [ilabPipeline, ilabPipelineLoaded, ilabPipelineLoadError] = useIlabPipeline();
+  const {
+    ilabPipeline,
+    ilabPipelineVersion,
+    loaded: ilabPipelineLoaded,
+    loadError: ilabPipelineLoadError,
+  } = useIlabPipeline();
 
   const [searchParams] = useSearchParams();
 
@@ -39,6 +45,18 @@ const ModelCustomizationForm: React.FC = () => {
       name: 'my-granite-model',
       version: 'myModel-v0.0.2',
       inputStorageLocationUri: searchParams.get(BASE_MODEL_INPUT_STORAGE_LOCATION_URI_KEY) ?? '',
+    },
+    teacher: {
+      endpointType: ModelCustomizationEndpointType.PUBLIC,
+      apiToken: '',
+      endpoint: '',
+      modelName: '',
+    },
+    judge: {
+      endpointType: ModelCustomizationEndpointType.PUBLIC,
+      apiToken: '',
+      endpoint: '',
+      modelName: '',
     },
   });
 
@@ -73,12 +91,14 @@ const ModelCustomizationForm: React.FC = () => {
                 onSuccess={() =>
                   navigate(
                     `/pipelines/${encodeURIComponent(project.metadata.name)}/${encodeURIComponent(
-                      ilabPipeline?.pipeline_id ?? '',
-                    )}/${encodeURIComponent(ilabPipeline?.pipeline_version_id ?? '')}/view`,
+                      ilabPipelineVersion?.pipeline_id ?? '',
+                    )}/${encodeURIComponent(ilabPipelineVersion?.pipeline_version_id ?? '')}/view`,
                   )
                 }
                 data={data}
                 setData={setData}
+                ilabPipeline={ilabPipeline}
+                ilabPipelineVersion={ilabPipelineVersion}
               />
             </GenericSidebar>
           </PageSection>
