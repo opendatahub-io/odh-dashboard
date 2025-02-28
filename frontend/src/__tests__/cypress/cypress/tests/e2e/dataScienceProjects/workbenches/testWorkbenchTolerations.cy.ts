@@ -24,6 +24,7 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryClickTab } from '~/__tests__/cypress/cypress/utils/tabUtils';
 
 describe('[Automation Bug RHOAIENG-20099] Workbenches - tolerations tests', () => {
   let testData: WBTolerationsTestData;
@@ -96,7 +97,7 @@ describe('[Automation Bug RHOAIENG-20099] Workbenches - tolerations tests', () =
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      cy.retryClick(() => projectDetails.findSectionTab('workbenches'));
+      retryClickTab(() => projectDetails.findSectionTab('workbenches'), 'workbenches');
 
       // Create workbench and verify it starts running
       cy.step(`Create workbench ${testData.workbenchName}`);
@@ -141,7 +142,7 @@ describe('[Automation Bug RHOAIENG-20099] Workbenches - tolerations tests', () =
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      cy.retryClick(() => projectDetails.findSectionTab('workbenches'));
+      retryClickTab(() => projectDetails.findSectionTab('workbenches'), 'workbenches');
 
       // Stop workbench and verify it stops running
       cy.step(`Stop workbench ${testData.workbenchName}`);
@@ -180,7 +181,7 @@ describe('[Automation Bug RHOAIENG-20099] Workbenches - tolerations tests', () =
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      cy.retryClick(() => projectDetails.findSectionTab('workbenches'));
+      retryClickTab(() => projectDetails.findSectionTab('workbenches'), 'workbenches');
 
       // Stop workbench and verify it stops running
       cy.step(`Restart workbench ${testData.workbenchName} and validate it has been started`);
@@ -217,7 +218,7 @@ describe('[Automation Bug RHOAIENG-20099] Workbenches - tolerations tests', () =
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      cy.retryClick(() => projectDetails.findSectionTab('workbenches'));
+      retryClickTab(() => projectDetails.findSectionTab('workbenches'), 'workbenches');
 
       // Create a second workbench with Config Map variables by uploading a yaml file
       cy.step(`Create a second workbench ${testData.workbenchName2} using config map variables`);

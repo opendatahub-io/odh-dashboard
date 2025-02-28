@@ -15,6 +15,7 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryClickTab } from '~/__tests__/cypress/cypress/utils/tabUtils';
 
 describe('Workbench and PVSs tests', () => {
   let projectName: string;
@@ -76,7 +77,7 @@ describe('Workbench and PVSs tests', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      cy.retryClick(() => projectDetails.findSectionTab('workbenches'));
+      retryClickTab(() => projectDetails.findSectionTab('workbenches'), 'workbenches');
 
       cy.step(`Create Workbench ${projectName} using storage ${PVCDisplayName}`);
       workbenchPage.findCreateButton().click();
@@ -96,7 +97,7 @@ describe('Workbench and PVSs tests', () => {
       notebookRow.shouldHaveContainerSize('Small');
 
       cy.step(`Check the cluster storage ${PVCDisplayName} is now connected to ${workbenchName}`);
-      cy.retryClick(() => projectDetails.findSectionTab('cluster-storages'));
+      retryClickTab(() => projectDetails.findSectionTab('cluster-storages'), 'cluster-storages');
       const csRow = clusterStorage.getClusterStorageRow(PVCDisplayName);
       csRow.findConnectedWorkbenches().should('have.text', workbenchName);
     },

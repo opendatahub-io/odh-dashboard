@@ -18,6 +18,7 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryClickTab } from '~/__tests__/cypress/cypress/utils/tabUtils';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -91,7 +92,7 @@ describe('Automation Bug RHOAIENG-20591] Verify Admin Multi Model Creation and V
 
       // Navigate to Model Serving tab and Deploy a Multi Model
       cy.step('Navigate to Model Serving and click to Deploy a Model Server');
-      cy.retryClick(() => projectDetails.findSectionTab('model-server'));
+      retryClickTab(() => projectDetails.findSectionTab('model server'), 'model server');
       modelServingGlobal.findMultiModelButton().click();
       modelServingSection.findAddModelServerButton().click();
       createServingRuntimeModal.findModelServerName().type(testData.multiModelAdminName);

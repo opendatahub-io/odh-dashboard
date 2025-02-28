@@ -10,6 +10,7 @@ import {
   retryableBeforeEach,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryClickTab } from '~/__tests__/cypress/cypress/utils/tabUtils';
 
 describe('Workbenches - variable tests', () => {
   let projectName: string;
@@ -59,7 +60,7 @@ describe('Workbenches - variable tests', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      cy.retryClick(() => projectDetails.findSectionTab('workbenches'));
+      retryClickTab(() => projectDetails.findSectionTab('workbenches'), 'workbenches');
 
       // Create workbench with Secret variables by uploading a yaml file
       cy.step(`Create workbench ${workbenchName} using secret variables`);
@@ -135,7 +136,7 @@ describe('Workbenches - variable tests', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      cy.retryClick(() => projectDetails.findSectionTab('workbenches'));
+      retryClickTab(() => projectDetails.findSectionTab('workbenches'), 'workbenches');
 
       // Create workbench with Secret variables via Key / Value
       cy.step(`Create workbench ${workbenchName} using secret variables`);

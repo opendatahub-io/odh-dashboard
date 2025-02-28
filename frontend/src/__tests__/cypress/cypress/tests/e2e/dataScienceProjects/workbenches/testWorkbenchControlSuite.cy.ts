@@ -15,6 +15,7 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryClickTab } from '~/__tests__/cypress/cypress/utils/tabUtils';
 
 describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
   let controlSuiteTestNamespace: string;
@@ -75,7 +76,7 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(controlSuiteTestNamespace);
       projectListPage.findProjectLink(controlSuiteTestNamespace).click();
-      cy.retryClick(() => projectDetails.findSectionTab('workbenches'));
+      retryClickTab(() => projectDetails.findSectionTab('workbenches'), 'workbenches');
 
       // Create workbench
       cy.step(`Create workbench ${controlSuiteTestNamespace}`);
@@ -138,7 +139,7 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(controlSuiteTestNamespace);
       projectListPage.findProjectLink(controlSuiteTestNamespace).click();
-      cy.retryClick(() => projectDetails.findSectionTab('workbenches'));
+      retryClickTab(() => projectDetails.findSectionTab('workbenches'), 'workbenches');
 
       // Create workbench
       cy.step(`Create workbench ${controlSuiteTestNamespace}`);

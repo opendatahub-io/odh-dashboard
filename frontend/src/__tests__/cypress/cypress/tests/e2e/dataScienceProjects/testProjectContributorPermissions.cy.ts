@@ -12,6 +12,7 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryClickTab } from '~/__tests__/cypress/cypress/utils/tabUtils';
 
 describe('Verify that users can provide contributor project permissions to non-admin users', () => {
   let testData: DataScienceProjectData;
@@ -59,7 +60,7 @@ describe('Verify that users can provide contributor project permissions to non-a
       projectListPage.navigate();
       projectListPage.filterProjectByName(testData.projectContributorResourceName);
       projectListPage.findProjectLink(testData.projectContributorResourceName).click();
-      cy.retryClick(() => projectDetails.findSectionTab('permissions'));
+      retryClickTab(() => projectDetails.findSectionTab('permissions'), 'permissions');
 
       cy.step('Assign contributor user Project Permissions');
       permissions.findAddUserButton().click();

@@ -13,6 +13,7 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryClickTab } from '~/__tests__/cypress/cypress/utils/tabUtils';
 
 describe('Workbenches - status tests', () => {
   let projectName: string;
@@ -62,7 +63,7 @@ describe('Workbenches - status tests', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      cy.retryClick(() => projectDetails.findSectionTab('workbenches'));
+      retryClickTab(() => projectDetails.findSectionTab('workbenches'), 'workbenches');
 
       // Create workbench
       cy.step(`Create workbench ${workbenchName}`);

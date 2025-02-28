@@ -13,6 +13,7 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryClickTab } from '~/__tests__/cypress/cypress/utils/tabUtils';
 
 describe('Verify that users can provide admin project permissions to non-admin users/groups', () => {
   let testData: DataScienceProjectData;
@@ -62,7 +63,7 @@ describe('Verify that users can provide admin project permissions to non-admin u
       projectListPage.navigate();
       projectListPage.filterProjectByName(testData.projectPermissionResourceName);
       projectListPage.findProjectLink(testData.projectPermissionResourceName).click();
-      cy.retryClick(() => projectDetails.findSectionTab('permissions'));
+      retryClickTab(() => projectDetails.findSectionTab('permissions'), 'permissions');
 
       cy.step('Assign admin user Project Permissions');
       permissions.findAddUserButton().click();
@@ -98,7 +99,7 @@ describe('Verify that users can provide admin project permissions to non-admin u
       projectListPage.navigate();
       projectListPage.filterProjectByName(testData.projectPermissionResourceName);
       projectListPage.findProjectLink(testData.projectPermissionResourceName).click();
-      cy.retryClick(() => projectDetails.findSectionTab('permissions'));
+      retryClickTab(() => projectDetails.findSectionTab('permissions'), 'permissions');
 
       cy.step('Assign admin group Project Permissions');
       permissions.findAddGroupButton().click();
@@ -126,7 +127,7 @@ describe('Verify that users can provide admin project permissions to non-admin u
       projectListPage.navigate();
       projectListPage.filterProjectByName(testData.projectPermissionResourceName);
       projectListPage.findProjectLink(testData.projectPermissionResourceName).click();
-      cy.retryClick(() => projectDetails.findSectionTab('permissions'));
+      retryClickTab(() => projectDetails.findSectionTab('permissions'), 'permissions');
     },
   );
 });

@@ -14,6 +14,7 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryClickTab } from '~/__tests__/cypress/cypress/utils/tabUtils';
 
 describe('Edit and Update a Workbench in RHOAI', () => {
   let editTestNamespace: string;
@@ -66,7 +67,7 @@ describe('Edit and Update a Workbench in RHOAI', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(editTestNamespace);
       projectListPage.findProjectLink(editTestNamespace).click();
-      cy.retryClick(() => projectDetails.findSectionTab('workbenches'));
+      retryClickTab(() => projectDetails.findSectionTab('workbenches'), 'workbenches');
 
       // Create workbench
       cy.step(`Create workbench ${editTestNamespace} using storage ${pvcEditDisplayName}`);

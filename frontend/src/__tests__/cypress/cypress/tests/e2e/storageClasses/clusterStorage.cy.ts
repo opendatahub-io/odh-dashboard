@@ -11,6 +11,7 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryClickTab } from '~/__tests__/cypress/cypress/utils/tabUtils';
 
 const dspName = 'qe-cluster-storage-sc-dsp';
 
@@ -40,7 +41,7 @@ describe('Regular Users can make use of the Storage Classes in the Cluster Stora
       projectListPage.findProjectLink(dspName).click();
       cy.step('Navigate to the Cluster Storage tab and disable all non-default storage classes');
       // Go to cluster storage tab
-      cy.retryClick(() => projectDetails.findSectionTab('cluster-storages'));
+      retryClickTab(() => projectDetails.findSectionTab('cluster-storages'), 'cluster-storages');
       // Disable all non-default storage classes
       disableNonDefaultStorageClasses().then(() => {
         // Open the Create cluster storage Modal

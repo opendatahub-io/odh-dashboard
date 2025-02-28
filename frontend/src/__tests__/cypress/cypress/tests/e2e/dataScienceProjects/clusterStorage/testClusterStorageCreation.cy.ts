@@ -14,6 +14,7 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryClickTab } from '~/__tests__/cypress/cypress/utils/tabUtils';
 
 describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
   let testData: DataScienceProjectData;
@@ -78,7 +79,7 @@ describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
 
       //Navigate to Cluster Storage and click to Add Storage
       cy.step('Navigate to Cluster Storage and click to create Cluster Storage');
-      cy.retryClick(() => projectDetails.findSectionTab('cluster-storages'));
+      retryClickTab(() => projectDetails.findSectionTab('cluster storages'), 'cluster storages');
       clusterStorage.findCreateButton().click();
 
       // Enter validate Cluster Storage details into the Cluster Storage Modal

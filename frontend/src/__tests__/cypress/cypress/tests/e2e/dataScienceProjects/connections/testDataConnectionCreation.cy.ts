@@ -11,6 +11,7 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryClickTab } from '~/__tests__/cypress/cypress/utils/tabUtils';
 
 describe('Verify Data Connections - Creation and Deletion', () => {
   let testData: DataScienceProjectData;
@@ -76,7 +77,7 @@ describe('Verify Data Connections - Creation and Deletion', () => {
 
       //Navigate to Data Connections and create Connection
       cy.step('Navigate to Connections and click to create Connection');
-      cy.retryClick(() => projectDetails.findSectionTab('connections'));
+      retryClickTab(() => projectDetails.findSectionTab('connections'), 'connections');
       connectionsPage.findCreateConnectionButton().click();
 
       // Enter validate Data Connection details into the Data Connection Modal

@@ -19,6 +19,7 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryClickTab } from '~/__tests__/cypress/cypress/utils/tabUtils';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -85,7 +86,7 @@ describe('Verify Model Creation and Validation using the UI', () => {
 
       // Navigate to Model Serving tab and Deploy a Single Model
       cy.step('Navigate to Model Serving and click to Deploy a Single Model');
-      cy.retryClick(() => projectDetails.findSectionTab('model-server'));
+      retryClickTab(() => projectDetails.findSectionTab('model server'), 'model server');
       modelServingGlobal.findSingleServingModelButton().click();
       modelServingGlobal.findDeployModelButton().click();
 

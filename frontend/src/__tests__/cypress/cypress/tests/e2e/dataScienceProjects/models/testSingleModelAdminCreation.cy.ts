@@ -17,6 +17,7 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryClickTab } from '~/__tests__/cypress/cypress/utils/tabUtils';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -24,7 +25,7 @@ let modelName: string;
 let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 
-describe('[Product Bug RHOAIENG-20213] Verify Admin Single Model Creation and Validation using the UI', () => {
+describe('[Model Serving Bug RHOAIENG-20213] Verify Admin Single Model Creation and Validation using the UI', () => {
   retryableBefore(() => {
     Cypress.on('uncaught:exception', (err) => {
       if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
@@ -80,7 +81,7 @@ describe('[Product Bug RHOAIENG-20213] Verify Admin Single Model Creation and Va
 
       // Navigate to Model Serving tab and Deploy a Single Model
       cy.step('Navigate to Model Serving and click to Deploy a Single Model');
-      cy.retryClick(() => projectDetails.findSectionTab('model-server'));
+      retryClickTab(() => projectDetails.findSectionTab('model server'), 'model server');
       modelServingGlobal.findSingleServingModelButton().click();
       modelServingGlobal.findDeployModelButton().click();
 

@@ -13,6 +13,7 @@ import {
   retryableBeforeEach,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryClickTab } from '~/__tests__/cypress/cypress/utils/tabUtils';
 
 describe('Workbenches - negative tests', () => {
   let testData: WBNegativeTestsData;
@@ -63,7 +64,7 @@ describe('Workbenches - negative tests', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      cy.retryClick(() => projectDetails.findSectionTab('workbenches'));
+      retryClickTab(() => projectDetails.findSectionTab('workbenches'), 'workbenches');
 
       // Create workbench
       cy.step(`Create workbench ${workbenchName}`);
@@ -98,7 +99,7 @@ describe('Workbenches - negative tests', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      projectDetails.findSectionTab('workbenches').click();
+      retryClickTab(() => projectDetails.findSectionTab('workbenches'), 'workbenches');
 
       // Create workbench
       cy.step(`Create workbench ${workbenchName}`);
