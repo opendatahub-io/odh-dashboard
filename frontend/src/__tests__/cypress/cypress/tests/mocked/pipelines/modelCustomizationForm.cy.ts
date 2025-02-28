@@ -210,9 +210,9 @@ export const initIntercepts = (
   ).as('getIlabPipeline');
 
   cy.interceptOdh(
-    'GET /apis/v2beta1/pipelines/:pipelineId/versions',
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
     {
-      path: { pipelineId: 'instructlab' },
+      path: { namespace: projectName, serviceName: 'dspa', pipelineId: 'instructlab' },
     },
     buildMockPipelines([initialMockPipelineVersion]),
   ).as('getAllPipelineVersions');
