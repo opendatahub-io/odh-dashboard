@@ -17,11 +17,14 @@ import TeacherModelSection from '~/pages/pipelines/global/modelCustomization/tea
 import JudgeModelSection from '~/pages/pipelines/global/modelCustomization/teacherJudgeSection/JudgeModelSection';
 import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { FineTuneTaxonomySection } from './FineTuneTaxonomySection';
+import TrainingHardwareSection from './trainingHardwareSection/TrainingHardwareSection';
+import { PodSpecOptionsState } from './usePodSpecOptionsState';
 
 type FineTunePageProps = {
   isInvalid: boolean;
   onSuccess: () => void;
   data: ModelCustomizationFormData;
+  podSpecOptionsState: PodSpecOptionsState;
   setData: UpdateObjectAtPropAndValue<ModelCustomizationFormData>;
   ilabPipeline: PipelineKF | null;
   ilabPipelineVersion: PipelineVersionKF | null;
@@ -32,6 +35,7 @@ const FineTunePage: React.FC<FineTunePageProps> = ({
   onSuccess,
   data,
   setData,
+  podSpecOptionsState,
   ilabPipeline,
   ilabPipelineVersion,
 }) => {
@@ -68,10 +72,17 @@ const FineTunePage: React.FC<FineTunePageProps> = ({
         setData={(teacherData) => setData('teacher', teacherData)}
       />
       <JudgeModelSection data={data.judge} setData={(judgeData) => setData('judge', judgeData)} />
+      <TrainingHardwareSection
+        podSpecOptionsState={podSpecOptionsState}
+        data={data}
+        setData={setData}
+      />
+
       <FormSection>
         <FineTunePageFooter
           isInvalid={isInvalid}
           onSuccess={onSuccess}
+          podSpecOptions={podSpecOptionsState.podSpecOptions}
           data={data}
           ilabPipeline={ilabPipeline}
           ilabPipelineVersion={ilabPipelineVersion}

@@ -31,14 +31,17 @@ import {
   translateIlabFormToTeacherJudge,
   createTaxonomySecret,
   translateIlabFormToTaxonomyInput,
+  translateIlabFormToHardwareInput,
 } from '~/pages/pipelines/global/modelCustomization/utils';
 import { genRandomChars } from '~/utilities/string';
 import { RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
+import { PodSpecOptions } from './usePodSpecOptionsState';
 
 type FineTunePageFooterProps = {
   isInvalid: boolean;
   onSuccess: () => void;
   data: ModelCustomizationFormData;
+  podSpecOptions: PodSpecOptions;
   ilabPipeline: PipelineKF | null;
   ilabPipelineVersion: PipelineVersionKF | null;
 };
@@ -53,6 +56,7 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
   isInvalid,
   onSuccess,
   data,
+  podSpecOptions,
   ilabPipeline,
   ilabPipelineVersion,
 }) => {
@@ -102,6 +106,7 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
             judgeSecret.metadata.name,
           ),
           ...translateIlabFormToTaxonomyInput(data, taxonomySecret.metadata.name),
+          ...translateIlabFormToHardwareInput(podSpecOptions, data),
         },
       },
       api,
