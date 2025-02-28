@@ -3,6 +3,7 @@ import {
   judgeModelSection,
   modelCustomizationFormGlobal,
   teacherModelSection,
+  taxonomySection,
 } from '~/__tests__/cypress/cypress/pages/pipelines/modelCustomizationForm';
 import {
   buildMockPipeline,
@@ -50,10 +51,17 @@ describe('Model Customization Form', () => {
     modelCustomizationFormGlobal.visit(projectName);
     cy.wait('@getAllPipelines');
     cy.wait('@getAllPipelineVersions');
+
     teacherModelSection.findEndpointInput().type('http://test.com');
     teacherModelSection.findModelNameInput().type('test');
     judgeModelSection.findEndpointInput().type('http://test.com');
     judgeModelSection.findModelNameInput().type('test');
+    taxonomySection.findTaxonomyUrl().type('http://github.git');
+    taxonomySection.findSshKeyRadio().check();
+    taxonomySection.findTaxonomySShKey().type('test');
+    taxonomySection.findUsernameAndTokenRadio().check();
+    taxonomySection.findTaxonomyUsername().fill('test');
+    taxonomySection.findTaxonomyToken().fill('test');
     modelCustomizationFormGlobal.findSubmitButton().should('not.be.disabled');
   });
   it('Should not submit', () => {
@@ -210,9 +218,9 @@ export const initIntercepts = (
   ).as('getIlabPipeline');
 
   cy.interceptOdh(
-    'GET /apis/v2beta1/pipelines/:pipelineId/versions',
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
     {
-      path: { pipelineId: 'instructlab' },
+      path: { namespace: projectName, serviceName: 'dspa', pipelineId: 'instructlab' },
     },
     buildMockPipelines([initialMockPipelineVersion]),
   ).as('getAllPipelineVersions');
