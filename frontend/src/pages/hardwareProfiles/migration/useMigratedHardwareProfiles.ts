@@ -18,6 +18,7 @@ import { MigrationAction, MigrationSourceType } from './types';
 
 const useMigratedHardwareProfiles = (): {
   data: HardwareProfileKind[];
+  migratedHardwareProfiles: HardwareProfileKind[] | null;
   loaded: boolean;
   loadError?: Error;
   refresh: () => Promise<void>;
@@ -192,7 +193,6 @@ const useMigratedHardwareProfiles = (): {
 
     return [
       [
-        ...hardwareProfiles,
         ...migratedAcceleratorProfiles,
         ...migratedNotebookContainerSizes,
         ...migratedServingContainerSizes,
@@ -203,7 +203,6 @@ const useMigratedHardwareProfiles = (): {
     acceleratorProfiles,
     dashboardConfig,
     dashboardNamespace,
-    hardwareProfiles,
     loadedAcceleratorProfiles,
     loadedHardwareProfiles,
     refreshAcceleratorProfiles,
@@ -221,8 +220,14 @@ const useMigratedHardwareProfiles = (): {
   const loadError =
     loadErrorAcceleratorProfiles || loadErrorHardwareProfiles || loadErrorDashboardConfig;
 
+  const allHardwareProfiles = React.useMemo(
+    () => [...(migratedHardwareProfiles ?? []), ...hardwareProfiles],
+    [migratedHardwareProfiles, hardwareProfiles],
+  );
+
   return {
-    data: migratedHardwareProfiles ?? [],
+    data: allHardwareProfiles,
+    migratedHardwareProfiles,
     loaded,
     loadError,
     refresh,

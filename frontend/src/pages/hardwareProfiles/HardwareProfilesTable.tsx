@@ -17,11 +17,13 @@ import MigrationModal from './migration/MigrationModal';
 type HardwareProfilesTableProps = {
   hardwareProfiles: HardwareProfileKind[];
   getMigrationAction: (name: string) => MigrationAction | undefined;
+  isMigratedTable?: boolean;
 };
 
 const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
   hardwareProfiles,
   getMigrationAction,
+  isMigratedTable = false,
 }) => {
   const [deleteHardwareProfile, setDeleteHardwareProfile] = React.useState<
     { hardwareProfile: HardwareProfileKind; migrationAction?: MigrationAction } | undefined
@@ -76,6 +78,11 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
     [setFilterData],
   );
 
+  const filteredColumns = React.useMemo(
+    () => hardwareProfileColumns.filter((column) => isMigratedTable || column.field !== 'source'),
+    [isMigratedTable],
+  );
+
   return (
     <>
       <Table
@@ -84,7 +91,7 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
         id="hardware-profile-table"
         enablePagination
         data={filteredHardwareProfiles}
-        columns={hardwareProfileColumns}
+        columns={filteredColumns}
         defaultSortColumn={1}
         emptyTableView={<DashboardEmptyTableView onClearFilters={resetFilters} />}
         disableRowRenderSupport
@@ -104,7 +111,11 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
           );
         }}
         toolbarContent={
-          <HardwareProfilesToolbar onFilterUpdate={onFilterUpdate} filterData={filterData} />
+          <HardwareProfilesToolbar
+            onFilterUpdate={onFilterUpdate}
+            filterData={filterData}
+            showCreateButton={!isMigratedTable}
+          />
         }
       />
       {migrateModalMigrationAction && (

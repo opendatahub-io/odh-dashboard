@@ -30,8 +30,7 @@ import {
   validateProfileWarning,
 } from '~/pages/hardwareProfiles/utils';
 import { HardwareProfileModel } from '~/api';
-import MigrationTooltip from './migration/MigrationTooltip';
-import { MigrationAction } from './migration/types';
+import { MigrationAction, MigrationSourceType } from './migration/types';
 import { HardwareProfileUseCaseTitles } from './manage/const';
 
 type HardwareProfilesTableRowProps = {
@@ -64,17 +63,6 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
     return [];
   }, [hardwareProfile.metadata.annotations]);
 
-  const title = migrationAction ? (
-    <MigrationTooltip
-      migrationAction={migrationAction}
-      wrap={false}
-      onMigrate={() => handleMigrate(migrationAction)}
-    >
-      <Truncate content={hardwareProfile.spec.displayName} />
-    </MigrationTooltip>
-  ) : (
-    <Truncate content={hardwareProfile.spec.displayName} />
-  );
   const hardwareProfileWarnings = validateProfileWarning(hardwareProfile);
 
   return (
@@ -90,7 +78,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
         />
         <Td dataLabel="Name">
           <TableRowTitleDescription
-            title={title}
+            title={<Truncate content={hardwareProfile.spec.displayName} />}
             description={hardwareProfile.spec.description}
             resource={migrationAction ? undefined : hardwareProfile}
             truncateDescriptionLines={2}
@@ -127,6 +115,20 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
             }
           />
         </Td>
+        {migrationAction && (
+          <Td dataLabel="Source">
+            <TableRowTitleDescription
+              title={
+                migrationAction.source.type === MigrationSourceType.ACCELERATOR_PROFILE
+                  ? 'Accelerator profile'
+                  : migrationAction.source.type === MigrationSourceType.SERVING_CONTAINER_SIZE
+                  ? 'Model serving container size'
+                  : 'Notebook container size'
+              }
+              resource={migrationAction.source.resource}
+            />
+          </Td>
+        )}
         <Td dataLabel="Use cases">
           {useCases.length === 0 ? (
             <i>All use cases</i>

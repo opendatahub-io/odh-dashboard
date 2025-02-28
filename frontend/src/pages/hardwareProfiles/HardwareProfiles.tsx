@@ -11,6 +11,8 @@ import {
   EmptyStateFooter,
   Alert,
   Stack,
+  StackItem,
+  ExpandableSection,
 } from '@patternfly/react-core';
 import { BanIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
@@ -20,24 +22,29 @@ import HardwareProfilesTable from '~/pages/hardwareProfiles/HardwareProfilesTabl
 import { useAccessAllowed, verbModelAccess } from '~/concepts/userSSAR';
 import { HardwareProfileModel } from '~/api';
 import { generateWarningForHardwareProfiles } from '~/pages/hardwareProfiles/utils';
+import { useWatchHardwareProfiles } from '~/utilities/useWatchHardwareProfiles';
+import { useDashboardNamespace } from '~/redux/selectors';
 import useMigratedHardwareProfiles from './migration/useMigratedHardwareProfiles';
 
 const description = `Manage hardware profile settings for users in your organization.`;
 
 const HardwareProfiles: React.FC = () => {
+  const { dashboardNamespace } = useDashboardNamespace();
   const {
-    data: hardwareProfiles,
+    data: allMigratedHardwareProfiles,
+    migratedHardwareProfiles,
     loaded,
     loadError,
     getMigrationAction,
   } = useMigratedHardwareProfiles();
+  const [hardwareProfiles] = useWatchHardwareProfiles(dashboardNamespace);
   const navigate = useNavigate();
   const [allowedToCreate, loadedAllowed] = useAccessAllowed(
     verbModelAccess('create', HardwareProfileModel),
   );
 
-  const isEmpty = hardwareProfiles.length === 0;
-  const warningMessages = generateWarningForHardwareProfiles(hardwareProfiles);
+  const isEmpty = allMigratedHardwareProfiles.length === 0;
+  const warningMessages = generateWarningForHardwareProfiles(allMigratedHardwareProfiles);
 
   const noHardwareProfilePageSection = (
     <PageSection isFilled>
@@ -104,10 +111,45 @@ const HardwareProfiles: React.FC = () => {
             <p>{warningMessages.message}</p>
           </Alert>
         )}
-        <HardwareProfilesTable
-          hardwareProfiles={hardwareProfiles}
-          getMigrationAction={getMigrationAction}
-        />
+        {/* <StackItem>
+          <Title headingLevel="h2">Created profiles</Title>
+        </StackItem> */}
+        <StackItem>
+          Profiles created by {ODH_PRODUCT_NAME} administrators to target workbench, model
+          deployment and pipeline workloads to hardware nodes.
+        </StackItem>
+        <StackItem>
+          <HardwareProfilesTable
+            hardwareProfiles={hardwareProfiles}
+            getMigrationAction={getMigrationAction}
+          />
+        </StackItem>
+        {migratedHardwareProfiles && migratedHardwareProfiles.length > 0 && (
+          <>
+            <StackItem>
+              <Title headingLevel="h2">Legacy profiles</Title>
+            </StackItem>
+            <StackItem>
+              Profiles created by the system from existing accelerator profiles in the ODH dashboard
+              config or existing custom workbench container sizes. These profiles cannot be applied
+              to new workbenches, model deployments or pipeline workloads. Migrating this profile
+              converts it to a Created profile and deletes its existing Kubernetes resource.
+              Deployed workloads using legacy profiles will be unaffected by the migration.
+            </StackItem>
+            <StackItem>
+              <ExpandableSection
+                toggleTextExpanded={`Hide legacy profiles (${migratedHardwareProfiles.length})`}
+                toggleTextCollapsed={`Show legacy profiles (${migratedHardwareProfiles.length})`}
+              >
+                <HardwareProfilesTable
+                  isMigratedTable
+                  hardwareProfiles={migratedHardwareProfiles}
+                  getMigrationAction={getMigrationAction}
+                />
+              </ExpandableSection>
+            </StackItem>
+          </>
+        )}
       </Stack>
     </ApplicationsPage>
   );

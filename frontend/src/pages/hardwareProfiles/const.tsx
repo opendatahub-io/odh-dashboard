@@ -20,6 +20,12 @@ export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
     width: 40,
   },
   {
+    field: 'source',
+    label: 'Source',
+    sortable: false,
+    width: 20,
+  },
+  {
     field: 'useCases',
     label: 'Use cases',
     sortable: (a: HardwareProfileKind, b: HardwareProfileKind): number => {

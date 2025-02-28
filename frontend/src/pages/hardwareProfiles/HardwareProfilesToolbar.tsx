@@ -17,11 +17,13 @@ import { HardwareProfileUseCaseTitles } from './manage/const';
 type HardwareProfilesToolbarProps = {
   filterData: HardwareProfileFilterDataType;
   onFilterUpdate: (key: string, value?: string | { label: string; value: string }) => void;
+  showCreateButton?: boolean;
 };
 
 const HardwareProfilesToolbar: React.FC<HardwareProfilesToolbarProps> = ({
   filterData,
   onFilterUpdate,
+  showCreateButton = true,
 }) => {
   const navigate = useNavigate();
 
@@ -71,18 +73,20 @@ const HardwareProfilesToolbar: React.FC<HardwareProfilesToolbarProps> = ({
       onFilterUpdate={onFilterUpdate}
     >
       <AccessAllowed resourceAttributes={verbModelAccess('create', HardwareProfileModel)}>
-        {() => (
-          <ToolbarGroup>
-            <ToolbarItem>
-              <Button
-                data-testid="create-hardware-profile"
-                onClick={() => navigate('/hardwareProfiles/create')}
-              >
-                Create hardware profile
-              </Button>
-            </ToolbarItem>
-          </ToolbarGroup>
-        )}
+        {() =>
+          showCreateButton && (
+            <ToolbarGroup>
+              <ToolbarItem>
+                <Button
+                  data-testid="create-hardware-profile"
+                  onClick={() => navigate('/hardwareProfiles/create')}
+                >
+                  Create hardware profile
+                </Button>
+              </ToolbarItem>
+            </ToolbarGroup>
+          )
+        }
       </AccessAllowed>
     </FilterToolbar>
   );
