@@ -8,7 +8,7 @@ import useReadAcceleratorState, { AcceleratorProfileState } from './useReadAccel
 export type AcceleratorProfileFormData = {
   profile?: AcceleratorProfileKind;
   count: number;
-  useExistingSettings: boolean;
+  useExistingSettings?: boolean;
 };
 
 export type UseAcceleratorProfileFormResult = {

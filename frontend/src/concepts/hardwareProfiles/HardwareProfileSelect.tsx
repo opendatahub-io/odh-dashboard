@@ -10,14 +10,17 @@ import {
 import * as React from 'react';
 import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { HardwareProfileKind } from '~/k8sTypes';
-import useHardwareProfiles from '~/pages/hardwareProfiles/useHardwareProfiles';
-import { useDashboardNamespace } from '~/redux/selectors';
 import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
 import { HardwareProfileConfig } from './useHardwareProfileConfig';
 
 type HardwareProfileSelectProps = {
   hardwareProfileConfig: HardwareProfileConfig;
   initialHardwareProfile?: HardwareProfileKind;
+  previewDescription?: boolean;
+  hardwareProfiles: HardwareProfileKind[];
+  hardwareProfilesLoaded: boolean;
+  hardwareProfilesError: Error | undefined;
+  selectOptions?: SimpleSelectOption[];
   allowExistingSettings: boolean;
   isHardwareProfileSupported: (profile: HardwareProfileKind) => boolean;
   onChange: (profile: HardwareProfileKind | undefined) => void;
@@ -28,14 +31,16 @@ const EXISTING_SETTINGS_KEY = '.existing';
 const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   hardwareProfileConfig,
   initialHardwareProfile,
+  previewDescription = false,
+  hardwareProfiles,
+  hardwareProfilesLoaded,
+  hardwareProfilesError,
+  selectOptions,
   allowExistingSettings = false,
   isHardwareProfileSupported,
   onChange,
 }) => {
-  const { dashboardNamespace } = useDashboardNamespace();
-  const [hardwareProfiles, loaded, error] = useHardwareProfiles(dashboardNamespace);
-
-  const options = React.useMemo(() => {
+  const selections = React.useMemo(() => {
     const enabledProfiles = hardwareProfiles.filter((hp) => hp.spec.enabled);
 
     // allow continued use of already selected profile if it is disabled
@@ -76,12 +81,15 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     return formattedOptions;
   }, [hardwareProfiles, initialHardwareProfile, allowExistingSettings, isHardwareProfileSupported]);
 
+  const options = selectOptions ?? selections;
+
   return (
     <>
       <Flex direction={{ default: 'row' }} spaceItems={{ default: 'spaceItemsSm' }}>
         <FlexItem grow={{ default: 'grow' }}>
           <SimpleSelect
             dataTestId="hardware-profile-select"
+            previewDescription={previewDescription}
             options={options}
             value={
               hardwareProfileConfig.selectedProfile?.metadata.name ??
@@ -103,7 +111,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                 : 'No enabled or valid hardware profiles are available. Contact your administrator.'
             }
             isFullWidth
-            isSkeleton={!loaded && !error}
+            isSkeleton={!hardwareProfilesLoaded && !hardwareProfilesError}
           />
         </FlexItem>
         {hardwareProfileConfig.selectedProfile && (
@@ -112,7 +120,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
           </FlexItem>
         )}
       </Flex>
-      {error && (
+      {hardwareProfilesError && (
         <Alert
           variant={AlertVariant.danger}
           isInline
