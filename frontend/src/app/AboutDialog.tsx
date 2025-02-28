@@ -62,7 +62,14 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
         }
       });
 
-    return Object.entries(componentMap);
+    // Sort components by display name
+    const result = Object.entries(componentMap).toSorted((a, b) => a[0].localeCompare(b[0]));
+    result.forEach(([, details]) => {
+      // sort in place
+      // eslint-disable-next-line no-restricted-properties
+      details?.releases.sort((a, b) => a.name.localeCompare(b.name));
+    });
+    return result;
   }, [dscStatus?.components]);
 
   return (
