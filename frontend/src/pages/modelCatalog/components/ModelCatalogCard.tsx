@@ -12,13 +12,14 @@ import {
   Icon,
   Split,
   SplitItem,
+  CardFooter,
 } from '@patternfly/react-core';
-import { TagIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import BrandImage from '~/components/BrandImage';
 import { CatalogModel } from '~/concepts/modelCatalog/types';
 import { modelDetailsUrlFromModel } from '~/pages/modelCatalog/routeUtils';
 import { getTagFromModel } from '~/pages/modelCatalog/utils';
+import { RhUiTagIcon } from '~/images/icons';
 
 export const ModelCatalogCard: React.FC<{ model: CatalogModel; source: string }> = ({
   model,
@@ -52,22 +53,24 @@ export const ModelCatalogCard: React.FC<{ model: CatalogModel; source: string }>
           </Link>
           <Split hasGutter>
             <SplitItem>
-              <Icon>
-                <TagIcon />
+              <Icon isInline>
+                <RhUiTagIcon />
               </Icon>
+              <span style={{ marginLeft: 'var(--pf-t--global--spacer--xs)' }}>
+                {getTagFromModel(model)}
+              </span>
             </SplitItem>
-            <SplitItem isFilled>{getTagFromModel(model)}</SplitItem>
           </Split>
         </StackItem>
         <StackItem isFilled>{model.description}</StackItem>
-        <StackItem>
-          {(model.tasks ?? []).map((task, index) => (
-            <Label variant="outline" key={index}>
-              {task}
-            </Label>
-          ))}
-        </StackItem>
       </Stack>
     </CardBody>
+    <CardFooter>
+      {(model.tasks ?? []).map((task, index) => (
+        <Label variant="outline" key={index}>
+          {task}
+        </Label>
+      ))}
+    </CardFooter>
   </Card>
 );
