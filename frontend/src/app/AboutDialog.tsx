@@ -36,16 +36,15 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
   const loading =
     (!errorDsci && !loadedDsci && !loadedDsc) || (!errorSubStatus && !loadedSubStatus && !errorDsc);
 
-  // Group components by display name while merging releases (excluding 'dashboard')
+  // Group components by display name while merging releases
   const groupedComponents = useMemo(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const componentMap: Record<
       string,
       { releases: NonNullable<DataScienceClusterComponentStatus['releases']> } | undefined
     > = {};
 
     Object.entries(dscStatus?.components || {})
-      .filter(([component]) => component !== 'dashboard') // Exclude dashboard
+      .filter(([, details]) => details.managementState !== 'Removed') // Exclude components with 'Removed' state
       .forEach(([component, details]) => {
         const displayName = DataScienceStackComponentMap[component];
         if (!displayName) {
@@ -135,7 +134,7 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
                   <Tr data-testid="table-row-title">
                     <Th modifier="wrap">
                       {isRHOAI ? RhoaiDefaultComponentReleaseName : OdhDefaultComponentReleaseName}{' '}
-                      Component
+                      component
                     </Th>
                     <Th modifier="wrap">Upstream component</Th>
                     <Th modifier="wrap">Upstream version</Th>
@@ -166,14 +165,15 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
                     ) : (
                       <Tr key={displayName}>
                         <Td>{displayName}</Td>
-                        <Td colSpan={3}>No releases available</Td>
+                        <Td>-</Td>
+                        <Td>-</Td>
                       </Tr>
                     ),
                   )}
                 </Tbody>
               </Table>
             ) : (
-              <p>No component releases available</p>
+              <p>No installed components</p>
             )}
           </Content>
         </div>

@@ -1282,10 +1282,10 @@ export type K8sResourceListResult<TResource extends Partial<K8sResourceCommon>> 
 /** Represents a component in the DataScienceCluster. */
 export type DataScienceClusterComponent = {
   /**
-   * The management state of the component (e.g., Managed, Unmanaged, Force).
+   * The management state of the component (e.g., Managed, Removed).
    * Indicates whether the component is being actively managed or not.
    */
-  managementState?: string;
+  managementState?: 'Managed' | 'Removed';
 };
 
 /** Defines a DataScienceCluster with various components. */
@@ -1317,7 +1317,6 @@ export type DataScienceClusterKind = K8sResourceCommon & {
         registriesNamespace: string;
       };
       [DataScienceStackComponent.DS_PIPELINES]?: DataScienceClusterComponent & {
-        managementState: string;
         managedPipelines: { instructLab: { state: string } };
       };
     };
@@ -1328,10 +1327,10 @@ export type DataScienceClusterKind = K8sResourceCommon & {
 /** Represents the status of a component in the DataScienceCluster. */
 export type DataScienceClusterComponentStatus = {
   /**
-   * The management state of the component (e.g., Managed, Unmanaged, Force).
+   * The management state of the component (e.g., Managed, Removed).
    * Indicates whether the component is being actively managed or not.
    */
-  managementState?: string;
+  managementState?: 'Managed' | 'Removed';
 
   /**
    * List of releases for the component.
