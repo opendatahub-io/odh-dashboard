@@ -8,10 +8,10 @@ import {
 } from '@patternfly/react-core';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { ModelCustomizationFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import useRunFormData from '~/concepts/pipelines/content/createRun/useRunFormData';
 import { handleSubmit } from '~/concepts/pipelines/content/createRun/submitUtils';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { isRunSchedule } from '~/concepts/pipelines/utils';
 import { globalPipelineRunsRoute } from '~/routes';
 import useNotification from '~/utilities/useNotification';
@@ -29,6 +29,8 @@ import {
 import {
   createTeacherJudgeSecrets,
   translateIlabFormToTeacherJudge,
+  createTaxonomySecret,
+  translateIlabFormToTaxonomyInput,
 } from '~/pages/pipelines/global/modelCustomization/utils';
 import { genRandomChars } from '~/utilities/string';
 import { RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
@@ -44,6 +46,7 @@ type FineTunePageFooterProps = {
 type FineTunePageFooterSubmitPresetValues = {
   teacherSecretName?: string;
   judgeSecretName?: string;
+  taxonomySecretName?: string;
 };
 
 const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
@@ -55,11 +58,10 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
 }) => {
   const [error, setError] = React.useState<Error>();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const { api } = usePipelinesAPI();
+  const { api, namespace } = usePipelinesAPI();
   const { registerNotification } = React.useContext(NotificationWatcherContext);
   const notification = useNotification();
   const navigate = useNavigate();
-  const { namespace } = usePipelinesAPI();
   const contextPath = globalPipelineRunsRoute(namespace);
 
   // TODO: translate data to `RunFormData`
@@ -74,7 +76,7 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
   });
 
   const onSubmit = async (dryRun: boolean, presetValues?: FineTunePageFooterSubmitPresetValues) => {
-    const { teacherSecretName, judgeSecretName } = presetValues || {};
+    const { teacherSecretName, judgeSecretName, taxonomySecretName } = presetValues || {};
     const [teacherSecret, judgeSecret] = await createTeacherJudgeSecrets(
       namespace,
       data.teacher,
@@ -82,6 +84,13 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
       dryRun,
       teacherSecretName,
       judgeSecretName,
+    );
+
+    const taxonomySecret = await createTaxonomySecret(
+      data.taxonomy,
+      namespace,
+      dryRun,
+      taxonomySecretName,
     );
     const run = await handleSubmit(
       {
@@ -92,12 +101,13 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
             teacherSecret.metadata.name,
             judgeSecret.metadata.name,
           ),
+          ...translateIlabFormToTaxonomyInput(data, taxonomySecret.metadata.name),
         },
       },
       api,
       dryRun,
     );
-    return { run, teacherSecret, judgeSecret };
+    return { run, teacherSecret, judgeSecret, taxonomySecret };
   };
 
   const afterSubmit = (resource: PipelineRunKF | PipelineRecurringRunKF) => {
@@ -188,11 +198,12 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
                 setIsSubmitting(true);
                 // dry-run network calls first
                 onSubmit(true)
-                  .then(({ teacherSecret, judgeSecret }) =>
+                  .then(({ teacherSecret, judgeSecret, taxonomySecret }) =>
                     // get the dry-run values and do the real network calls
                     onSubmit(false, {
                       teacherSecretName: teacherSecret.metadata.name,
                       judgeSecretName: judgeSecret.metadata.name,
+                      taxonomySecretName: taxonomySecret.metadata.name,
                     })
                       .then(({ run }) => {
                         afterSubmit(run);

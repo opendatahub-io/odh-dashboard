@@ -3,16 +3,20 @@ import { Form, FormGroup, FormSection } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import {
+  FineTuneTaxonomyFormData,
+  ModelCustomizationFormData,
+} from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
+import {
   FineTunePageSections,
   fineTunePageSectionTitles,
 } from '~/pages/pipelines/global/modelCustomization/const';
-import { ModelCustomizationFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import FineTunePageFooter from '~/pages/pipelines/global/modelCustomization/FineTunePageFooter';
 import BaseModelSection from '~/pages/pipelines/global/modelCustomization/baseModelSection/BaseModelSection';
 import TeacherModelSection from '~/pages/pipelines/global/modelCustomization/teacherJudgeSection/TeacherModelSection';
 import JudgeModelSection from '~/pages/pipelines/global/modelCustomization/teacherJudgeSection/JudgeModelSection';
 import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { FineTuneTaxonomySection } from './FineTuneTaxonomySection';
 
 type FineTunePageProps = {
   isInvalid: boolean;
@@ -52,6 +56,12 @@ const FineTunePage: React.FC<FineTunePageProps> = ({
       <BaseModelSection
         data={data.baseModel}
         setData={(baseModelData) => setData('baseModel', baseModelData)}
+      />
+      <FineTuneTaxonomySection
+        data={data.taxonomy}
+        setData={(dataTaxonomy: FineTuneTaxonomyFormData) => {
+          setData('taxonomy', dataTaxonomy);
+        }}
       />
       <TeacherModelSection
         data={data.teacher}
