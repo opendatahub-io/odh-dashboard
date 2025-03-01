@@ -22,6 +22,8 @@ import { useAccessAllowed, verbModelAccess } from '~/concepts/userSSAR';
 import { HardwareProfileModel } from '~/api';
 import { generateWarningForHardwareProfiles } from '~/pages/hardwareProfiles/utils';
 import { useWatchHardwareProfiles } from '~/utilities/useWatchHardwareProfiles';
+import { ProjectObjectType } from '~/concepts/design/utils';
+import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 
 const description = `Manage hardware profile settings for users in your organization.`;
 
@@ -81,7 +83,12 @@ const HardwareProfiles: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="Hardware profiles"
+      title={
+        <TitleWithIcon
+          title="Hardware profiles"
+          objectType={ProjectObjectType.acceleratorProfile}
+        />
+      }
       description={description}
       loaded={loaded && loadedAllowed}
       empty={isEmpty}

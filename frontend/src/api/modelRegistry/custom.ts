@@ -46,6 +46,8 @@ export const createModelVersionForRegisteredModel =
     opts: K8sAPIOptions,
     registeredModelId: string,
     data: CreateModelVersionData,
+    registeredModel: RegisteredModel,
+    isFirstVersion?: boolean,
   ): Promise<ModelVersion> => {
     const newVersion = await handleModelRegistryFailures<ModelVersion>(
       proxyCREATE(
@@ -57,11 +59,12 @@ export const createModelVersionForRegisteredModel =
       ),
     );
 
-    await bumpRegisteredModelTimestamp(
-      { patchRegisteredModel: patchRegisteredModel(hostpath) },
-      registeredModelId,
-    );
-
+    if (!isFirstVersion) {
+      await bumpRegisteredModelTimestamp(
+        { patchRegisteredModel: patchRegisteredModel(hostpath) },
+        registeredModel,
+      );
+    }
     return newVersion;
   };
 

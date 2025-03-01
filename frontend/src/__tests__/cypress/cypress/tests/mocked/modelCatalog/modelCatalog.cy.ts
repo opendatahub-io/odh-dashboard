@@ -2,7 +2,7 @@
 import { mockDscStatus } from '~/__mocks__';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockModelCatalogConfigMap } from '~/__mocks__/mockModelCatalogConfigMap';
-import { modelCatalog } from '~/__tests__/cypress/cypress/pages/modelCatalog';
+import { modelCatalog } from '~/__tests__/cypress/cypress/pages/modelCatalog/modelCatalog';
 import { ConfigMapModel } from '~/__tests__/cypress/cypress/utils/models';
 
 type HandlersProps = {
@@ -79,7 +79,7 @@ describe('Model Catalog core', () => {
     modelCatalog.findModelCatalogModelDetailLink('granite-8b-code-instruct').click();
     cy.location('pathname').should(
       'equal',
-      '/modelCatalog/Red%20Hat/rhelai1/granite-8b-code-instruct/1%252E3%252E0',
+      '/modelCatalog/Red%20Hat/rhelai1/granite-8b-code-instruct/1.3.0',
     );
   });
 });

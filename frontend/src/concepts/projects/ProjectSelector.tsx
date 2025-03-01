@@ -16,6 +16,8 @@ type ProjectSelectorProps = {
   showTitle?: boolean;
   selectorLabel?: string;
   isFullWidth?: boolean;
+  placeholder?: string;
+  isLoading?: boolean;
 };
 
 const ProjectSelector: React.FC<ProjectSelectorProps> = ({
@@ -28,6 +30,8 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   showTitle = false,
   selectorLabel = 'Project',
   isFullWidth = false,
+  placeholder = undefined,
+  isLoading = false,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
   const selection = projects.find(byName(namespace));
@@ -41,7 +45,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
 
   const selectionDisplayName = selection
     ? getDisplayNameFromK8sResource(selection)
-    : invalidDropdownPlaceholder ?? namespace;
+    : invalidDropdownPlaceholder ?? placeholder ?? namespace;
 
   const filteredProjects = filterLabel
     ? projects.filter((project) => project.metadata.labels?.[filterLabel] !== undefined)
@@ -59,6 +63,8 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
       searchFocusOnOpen
       searchPlaceholder="Project name"
       searchValue={searchText}
+      isLoading={isLoading}
+      isDisabled={isLoading}
       toggleText={toggleLabel}
       toggleVariant={primary ? 'primary' : undefined}
     >
