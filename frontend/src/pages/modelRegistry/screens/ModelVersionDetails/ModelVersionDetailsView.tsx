@@ -25,6 +25,7 @@ import {
   bumpBothTimestamps,
   bumpRegisteredModelTimestamp,
 } from '~/concepts/modelRegistry/utils/updateTimestamps';
+import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 
 type ModelVersionDetailsViewProps = {
   modelVersion: ModelVersion;
@@ -43,8 +44,21 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
   const modelArtifact = modelArtifacts.items.length ? modelArtifacts.items[0] : null;
   const { apiState } = React.useContext(ModelRegistryContext);
   const storageFields = uriToStorageFields(modelArtifact?.uri || '');
+  const [
+    registeredModels,
+    registeredModelLoaded,
+    registeredModelLoadError,
+    refreshRegisteredModel,
+  ] = useRegisteredModelById(mv.registeredModelId);
 
-  if (!modelArtifactsLoaded) {
+  const loaded = modelArtifactsLoaded && registeredModelLoaded;
+  const loadError = modelArtifactsLoadError || registeredModelLoadError;
+  const refreshBoth = () => {
+    refreshModelArtifacts();
+    refreshRegisteredModel();
+  };
+
+  if (!loaded) {
     return (
       <Bullseye>
         <Spinner size="xl" />
@@ -54,19 +68,21 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
   const handleVersionUpdate = async (updatePromise: Promise<unknown>): Promise<void> => {
     await updatePromise;
 
-    if (!mv.registeredModelId) {
+    if (!mv.registeredModelId || !registeredModels) {
       return;
     }
 
-    await bumpRegisteredModelTimestamp(apiState.api, mv.registeredModelId);
+    await bumpRegisteredModelTimestamp(apiState.api, registeredModels);
     refresh();
   };
 
   const handleArtifactUpdate = async (updatePromise: Promise<unknown>): Promise<void> => {
     try {
       await updatePromise;
-      await bumpBothTimestamps(apiState.api, mv.id, mv.registeredModelId);
-      refreshModelArtifacts();
+      if (registeredModels) {
+        await bumpBothTimestamps(apiState.api, registeredModels, mv);
+        refreshBoth();
+      }
     } catch (error) {
       throw new Error(
         `Failed to update artifact: ${error instanceof Error ? error.message : String(error)}`,
@@ -134,9 +150,9 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
         <Title style={{ margin: '1em 0' }} headingLevel={ContentVariants.h3}>
           Model location
         </Title>
-        {modelArtifactsLoadError ? (
-          <Alert variant="danger" isInline title={modelArtifactsLoadError.name}>
-            {modelArtifactsLoadError.message}
+        {loadError ? (
+          <Alert variant="danger" isInline title={loadError.name}>
+            {loadError.message}
           </Alert>
         ) : (
           <>

@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { ModelCustomizationEndpointType, ModelCustomizationRunType } from './types';
+import {
+  FineTuneTaxonomyType,
+  ModelCustomizationEndpointType,
+  ModelCustomizationRunType,
+} from './types';
 
 export const uriFieldSchemaBase = (
   isOptional: boolean,
@@ -121,8 +125,34 @@ export const fineTunedModelDetailsSchema = z.object({
   modelStorageLocation: z.string(),
 });
 
+export const fineTuneTaxonomySchema = z.object({
+  url: z
+    .string()
+    .url()
+    .refine((url) => url.endsWith('.git'), {
+      message: 'Invalid Git URL',
+    }),
+  secret: z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal(FineTuneTaxonomyType.SSH_KEY),
+      sshKey: z.string().trim().min(1, 'SSH Key is required'),
+      username: z.string().optional(),
+      token: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal(FineTuneTaxonomyType.USERNAME_TOKEN),
+      username: z.string().trim().min(1, 'Username is required'),
+      token: z.string().trim().min(1, 'Token is required'),
+      sshKey: z.string().optional(),
+    }),
+  ]),
+});
+
+export type FineTuneTaxonomyFormData = z.infer<typeof fineTuneTaxonomySchema>;
+
 export const modelCustomizationFormSchema = z.object({
   projectName: z.object({ value: z.string().min(1, { message: 'Project is required' }) }),
+  taxonomy: fineTuneTaxonomySchema,
   baseModel: baseModelSchema,
   teacher: teacherJudgeModel,
   judge: teacherJudgeModel,

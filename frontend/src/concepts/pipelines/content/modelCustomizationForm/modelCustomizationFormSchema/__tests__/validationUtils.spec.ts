@@ -25,6 +25,7 @@ describe('TeacherJudgeSchema', () => {
     const result = teacherJudgeModel.safeParse(field);
     expect(result.success).toBe(false);
   });
+
   it('should validate when it is private with token', () => {
     const field: TeacherJudgeFormData = {
       endpointType: ModelCustomizationEndpointType.PRIVATE,
