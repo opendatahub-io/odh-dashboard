@@ -27,7 +27,6 @@ spec:
     disableKServeMetrics: false
     disableModelMesh: false
     disableDistributedWorkloads: false
-    disableModelCatalog: false
     disableModelRegistry: false
     disableModelRegistrySecureDB: false
     disableServingRuntimeParams: false

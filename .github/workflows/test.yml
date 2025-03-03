@@ -5,7 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18.x]
+        node-version: [20.x]
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js ${{ matrix.node-version }}
@@ -41,7 +41,7 @@ jobs:
             ${{ github.workspace }}/node_modules
             ${{ github.workspace }}/backend/node_modules
             ${{ github.workspace }}/frontend/node_modules
-          key: ${{ runner.os }}-18.x-modules-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-20.x-modules-${{ hashFiles('**/package-lock.json') }}
       - name: Run linting and formatting checks
         run: npm run lint:frontend:backend
 
@@ -58,7 +58,7 @@ jobs:
             ${{ github.workspace }}/node_modules
             ${{ github.workspace }}/backend/node_modules
             ${{ github.workspace }}/frontend/node_modules
-          key: ${{ runner.os }}-18.x-modules-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-20.x-modules-${{ hashFiles('**/package-lock.json') }}
       - name: Run backend unit tests with coverage
         run: |
           npm run test:backend:unit-coverage
@@ -147,7 +147,7 @@ jobs:
             ${{ github.workspace }}/node_modules
             ${{ github.workspace }}/backend/node_modules
             ${{ github.workspace }}/frontend/node_modules
-          key: ${{ runner.os }}-18.x-modules-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-20.x-modules-${{ hashFiles('**/package-lock.json') }}
       - name: Run Cypress Mock tests
         run: |
           if [ "${{ matrix.test-group }}" == "default" ]; then
@@ -225,7 +225,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18.x]
+        node-version: [20.x]
     needs:
       - Setup
       - Lint

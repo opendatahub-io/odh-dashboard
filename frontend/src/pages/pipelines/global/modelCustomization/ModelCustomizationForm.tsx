@@ -18,7 +18,10 @@ import {
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { modelCustomizationRootPath } from '~/routes';
 import { useIlabPipeline } from '~/concepts/pipelines/content/modelCustomizationForm/useIlabPipeline';
-import { ModelCustomizationEndpointType } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
+import {
+  ModelCustomizationEndpointType,
+  FineTuneTaxonomyType,
+} from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
 import FineTunePage from './FineTunePage';
 import {
   BASE_MODEL_INPUT_STORAGE_LOCATION_URI_KEY,
@@ -45,6 +48,14 @@ const ModelCustomizationForm: React.FC = () => {
       name: 'my-granite-model',
       version: 'myModel-v0.0.2',
       inputStorageLocationUri: searchParams.get(BASE_MODEL_INPUT_STORAGE_LOCATION_URI_KEY) ?? '',
+    },
+    taxonomy: {
+      url: '',
+
+      secret: {
+        type: FineTuneTaxonomyType.SSH_KEY,
+        sshKey: '',
+      },
     },
     teacher: {
       endpointType: ModelCustomizationEndpointType.PUBLIC,

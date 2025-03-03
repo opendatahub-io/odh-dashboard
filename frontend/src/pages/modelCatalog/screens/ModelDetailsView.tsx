@@ -9,7 +9,6 @@ import {
   SidebarContent,
   SidebarPanel,
 } from '@patternfly/react-core';
-import { TagIcon } from '@patternfly/react-icons';
 import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
 import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
 import { CatalogModel } from '~/concepts/modelCatalog/types';
@@ -17,6 +16,7 @@ import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimest
 import { getTagFromModel } from '~/pages/modelCatalog/utils';
 import ExternalLink from '~/components/ExternalLink';
 import MarkdownView from '~/components/MarkdownView';
+import { RhUiTagIcon } from '~/images/icons';
 
 type ModelDetailsViewProps = {
   model: CatalogModel;
@@ -40,7 +40,7 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({ model }) => (
         <DescriptionList isFillColumns>
           <DashboardDescriptionListGroup title="Version" groupTestId="model-version">
             <Icon isInline>
-              <TagIcon />
+              <RhUiTagIcon />
             </Icon>{' '}
             {getTagFromModel(model)}
           </DashboardDescriptionListGroup>
