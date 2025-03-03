@@ -1,7 +1,6 @@
 import { Breadcrumb, BreadcrumbItem, PageSection } from '@patternfly/react-core';
 import * as React from 'react';
-import { useNavigate } from 'react-router';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import {
   modelCustomizationFormPageDescription,
@@ -39,14 +38,14 @@ const ModelCustomizationForm: React.FC = () => {
   } = useIlabPipeline();
 
   const [searchParams] = useSearchParams();
+  const { modelRegistry, modelVersionId, registeredModelId } = useParams();
 
   const [data, setData] = useGenericObjectState<ModelCustomizationFormData>({
     projectName: { value: project.metadata.name },
     baseModel: {
-      // TODO: Replace values with actual data
-      registryName: 'Registry1',
-      name: 'my-granite-model',
-      version: 'myModel-v0.0.2',
+      registryName: modelRegistry ?? '',
+      name: registeredModelId ?? '',
+      version: modelVersionId ?? '',
       inputStorageLocationUri: searchParams.get(BASE_MODEL_INPUT_STORAGE_LOCATION_URI_KEY) ?? '',
     },
     taxonomy: {
