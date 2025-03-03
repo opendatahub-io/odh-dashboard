@@ -11,7 +11,7 @@ import {
   TextInput,
   Truncate,
 } from '@patternfly/react-core';
-import { CheckIcon, ExternalLinkSquareAltIcon, TimesIcon } from '@patternfly/react-icons';
+import { CheckIcon, ExternalLinkAltIcon, TimesIcon } from '@patternfly/react-icons';
 import { KeyValuePair } from '~/types';
 import { EitherNotBoth } from '~/typeHelpers';
 import { isValidHttpUrl } from './utils';
@@ -149,7 +149,7 @@ const ModelPropertiesTableRow: React.FC<ModelPropertiesTableRowProps> = ({
             {isValidHttpUrl(value) ? (
               <Button
                 variant="link"
-                icon={<ExternalLinkSquareAltIcon />}
+                icon={<ExternalLinkAltIcon />}
                 iconPosition="end"
                 component="a"
                 href={value}
