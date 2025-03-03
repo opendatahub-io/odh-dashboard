@@ -14,6 +14,7 @@ import {
   StackItem,
   Button,
   Popover,
+  ActionListGroup,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
@@ -35,9 +36,9 @@ import { registerCatalogModel } from '~/pages/modelCatalog/routeUtils';
 import PopoverListContent from '~/components/PopoverListContent';
 import { FindAdministratorOptions } from '~/pages/projects/screens/projects/const';
 import { RhUiTagIcon } from '~/images/icons';
-import ModelDetailsView from './ModelDetailsView';
 import { modelCustomizationRootPath } from '~/routes';
 import RhUiControlsIcon from '~/images/icons/RhUiControlsIcon';
+import ModelDetailsView from './ModelDetailsView';
 
 const ModelDetailsPage: React.FC = conditionalArea(
   SupportedArea.MODEL_CATALOG,
@@ -49,6 +50,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
   const decodedParams = decodeParams(params);
   const { modelRegistryServices, modelRegistryServicesLoaded, modelRegistryServicesLoadError } =
     React.useContext(ModelRegistrySelectorContext);
+  const tuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
   const loaded = modelRegistryServicesLoaded && modelCatalogSources.loaded;
 
   const model: CatalogModel | null = React.useMemo(
@@ -63,8 +65,42 @@ const ModelDetailsPage: React.FC = conditionalArea(
     [modelCatalogSources, decodedParams],
   );
 
+  const registerModelButton = (isSecondary = false) =>
+    modelRegistryServices.length === 0 ? (
+      <Popover
+        headerContent="Register to model registry?"
+        triggerAction="hover"
+        data-testid="register-catalog-model-popover"
+        bodyContent={
+          <PopoverListContent
+            data-testid="Register-model-button-popover"
+            leadText="To request access to the model registry, contact your administrator."
+            listHeading="Your administrator might be:"
+            listItems={FindAdministratorOptions}
+          />
+        }
+      >
+        <Button
+          data-testid="register-model-button"
+          isAriaDisabled
+          variant={isSecondary ? 'secondary' : 'primary'}
+        >
+          Register model
+        </Button>
+      </Popover>
+    ) : (
+      <Button
+        variant={isSecondary ? 'secondary' : 'primary'}
+        data-testid="register-model-button"
+        onClick={() => navigate(registerCatalogModel(params))}
+      >
+        Register model
+      </Button>
+    );
+
   const fineTuneActionItem = (
     <Popover
+      data-testid="tune-model-popover"
       minWidth="min-content"
       aria-label="Popover for fine tuning the model"
       headerContent="How to tune this model?"
@@ -77,20 +113,18 @@ const ModelDetailsPage: React.FC = conditionalArea(
       }
       footerContent={
         <ActionList>
-          <ActionListItem>
-            <Button variant="secondary" onClick={() => navigate(registerCatalogModel(params))}>
-              Register model
-            </Button>
-          </ActionListItem>
-          <ActionListItem>
-            <Button variant="link" onClick={() => navigate(modelCustomizationRootPath)}>
-              Learn more about model customization
-            </Button>
-          </ActionListItem>
+          <ActionListGroup>
+            <ActionListItem>{registerModelButton(true)}</ActionListItem>
+            <ActionListItem>
+              <Button variant="link" onClick={() => navigate(modelCustomizationRootPath)}>
+                Learn more about model customization
+              </Button>
+            </ActionListItem>
+          </ActionListGroup>
         </ActionList>
       }
     >
-      <Button icon={<OutlinedQuestionCircleIcon />} variant="link">
+      <Button icon={<OutlinedQuestionCircleIcon />} variant="link" data-testid="tune-model-button">
         Tune this model?
       </Button>
     </Popover>
@@ -151,36 +185,14 @@ const ModelDetailsPage: React.FC = conditionalArea(
       errorMessage="Unable to load model catalog"
       provideChildrenPadding
       headerAction={
-        loaded &&
-        (modelRegistryServices.length === 0 ? (
-          <>
-            {useIsAreaAvailable(SupportedArea.FINE_TUNING).status && fineTuneActionItem}
-            <Popover
-              headerContent="Register to model registry?"
-              triggerAction="hover"
-              data-testid="register-catalog-model-popover"
-              bodyContent={
-                <PopoverListContent
-                  data-testid="Register-model-button-popover"
-                  leadText="To request access to the model registry, contact your administrator."
-                  listHeading="Your administrator might be:"
-                  listItems={FindAdministratorOptions}
-                />
-              }
-            >
-              <Button data-testid="register-model-button" isAriaDisabled>
-                Register model
-              </Button>
-            </Popover>
-          </>
-        ) : (
-          <Button
-            data-testid="register-model-button"
-            onClick={() => navigate(registerCatalogModel(params))}
-          >
-            Register model
-          </Button>
-        ))
+        loaded && (
+          <ActionList>
+            <ActionListGroup>
+              {tuningAvailable && fineTuneActionItem}
+              {registerModelButton()}
+            </ActionListGroup>
+          </ActionList>
+        )
       }
     >
       {model && <ModelDetailsView model={model} />}
