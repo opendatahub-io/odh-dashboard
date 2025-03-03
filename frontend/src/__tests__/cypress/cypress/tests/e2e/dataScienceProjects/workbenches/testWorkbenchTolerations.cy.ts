@@ -25,7 +25,7 @@ import {
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
-describe('[Automation Bug RHOAIENG-20099] Workbenches - tolerations tests', () => {
+describe('[Automation Bug: RHOAIENG-20099] Workbenches - tolerations tests', () => {
   let testData: WBTolerationsTestData;
   let projectName: string;
   let projectDescription: string;
