@@ -10,7 +10,7 @@ const GlobalModelCustomizationRoutes: React.FC = () => (
   <ProjectsRoutes>
     <Route path="/" element={<GlobalModelCustomization />} />
     <Route
-      path="fine-tune/:modelRegistry/:registeredModelId/:modelVersionId/:namespace"
+      path="fine-tune/:namespace?"
       element={<GlobalPipelineCoreLoader strict getInvalidRedirectPath={getInvalidRedirectPath} />}
     >
       <Route index element={<ModelCustomizationForm />} />

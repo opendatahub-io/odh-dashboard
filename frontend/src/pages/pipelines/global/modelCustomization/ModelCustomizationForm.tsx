@@ -1,6 +1,6 @@
 import { Breadcrumb, BreadcrumbItem, PageSection } from '@patternfly/react-core';
 import * as React from 'react';
-import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import {
   modelCustomizationFormPageDescription,
@@ -25,12 +25,9 @@ import {
   modelVersionUrl,
   modelRegistryUrl,
 } from '~/pages/modelRegistry/screens/routeUtils';
+import { ModelCustomizationRouterState } from '~/routes';
 import FineTunePage from './FineTunePage';
-import {
-  BASE_MODEL_INPUT_STORAGE_LOCATION_URI_KEY,
-  FineTunePageSections,
-  fineTunePageSectionTitles,
-} from './const';
+import { FineTunePageSections, fineTunePageSectionTitles } from './const';
 
 const ModelCustomizationForm: React.FC = () => {
   const { project } = usePipelinesAPI();
@@ -41,16 +38,16 @@ const ModelCustomizationForm: React.FC = () => {
     loadError: ilabPipelineLoadError,
   } = useIlabPipeline();
 
-  const [searchParams] = useSearchParams();
-  const { modelRegistry, modelVersionId, registeredModelId } = useParams();
+  const { state }: { state?: ModelCustomizationRouterState } = useLocation();
 
   const [data, setData] = useGenericObjectState<ModelCustomizationFormData>({
     projectName: { value: project.metadata.name },
+    outputModel: {
+      outputModelName: state?.registeredModelName ?? '',
+      outputModelRegistryApiUrl: state?.outputModelRegistryApiUrl ?? '',
+    },
     baseModel: {
-      registryName: modelRegistry ?? '',
-      name: registeredModelId ?? '',
-      version: modelVersionId ?? '',
-      inputStorageLocationUri: searchParams.get(BASE_MODEL_INPUT_STORAGE_LOCATION_URI_KEY) ?? '',
+      sdgBaseModel: state?.inputModelLocationUri ?? '',
     },
     taxonomy: {
       url: '',
@@ -75,8 +72,6 @@ const ModelCustomizationForm: React.FC = () => {
   });
 
   const validation = useValidation(data, modelCustomizationFormSchema);
-  const isValid = validation.validationResult.success;
-  const canSubmit = ilabPipelineLoaded && isValid;
   const navigate = useNavigate();
 
   return (
@@ -86,26 +81,32 @@ const ModelCustomizationForm: React.FC = () => {
         description={modelCustomizationFormPageDescription}
         breadcrumb={
           <Breadcrumb>
-            <BreadcrumbItem to={modelRegistry ? modelRegistryUrl(modelRegistry) : undefined}>
-              {modelRegistry}
+            <BreadcrumbItem
+              to={state?.modelRegistryName ? modelRegistryUrl(state.modelRegistryName) : undefined}
+            >
+              {state?.modelRegistryDisplayName}
             </BreadcrumbItem>
             <BreadcrumbItem
               to={
-                registeredModelId && modelRegistry
-                  ? registeredModelUrl(registeredModelId, modelRegistry)
+                state?.registeredModelId && state.modelRegistryName
+                  ? registeredModelUrl(state.registeredModelId, state.modelRegistryName)
                   : undefined
               }
             >
-              {registeredModelId}
+              {state?.registeredModelName}
             </BreadcrumbItem>
             <BreadcrumbItem
               to={
-                modelVersionId && registeredModelId && modelRegistry
-                  ? modelVersionUrl(modelVersionId, registeredModelId, modelRegistry)
+                state?.modelVersionId && state.registeredModelId && state.modelRegistryName
+                  ? modelVersionUrl(
+                      state.modelVersionId,
+                      state.registeredModelId,
+                      state.modelRegistryName,
+                    )
                   : undefined
               }
             >
-              {modelVersionId}
+              {state?.modelVersionName}
             </BreadcrumbItem>
             <BreadcrumbItem>Start an InstructLab run</BreadcrumbItem>
           </Breadcrumb>
@@ -121,7 +122,7 @@ const ModelCustomizationForm: React.FC = () => {
               maxWidth={175}
             >
               <FineTunePage
-                isInvalid={!canSubmit || !!ilabPipelineLoadError}
+                canSubmit={ilabPipelineLoaded || !!ilabPipelineLoadError}
                 onSuccess={() =>
                   navigate(
                     `/pipelines/${encodeURIComponent(project.metadata.name)}/${encodeURIComponent(
