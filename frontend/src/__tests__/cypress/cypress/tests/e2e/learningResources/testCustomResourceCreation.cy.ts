@@ -13,17 +13,29 @@ import {
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
-describe('[Product Bug: RHOAIENG-5317]Create a custom resource Quickstart by using Dashboard CRDs', () => {
+describe('Create a custom resource Quickstart by using Dashboard CRDs', () => {
   let resourcesData: ResourcesData;
   let resourceNames: ReturnType<typeof getResourceValues>;
 
   // Setup: Load test data and setup custom resources
   retryableBefore(() => {
     return loadResourcesFixture('e2e/learningResources/testCustomResourceCreation.yaml').then(
-      (data) => {
+      (data: ResourcesData) => {
         resourcesData = data;
         resourceNames = getResourceValues(resourcesData);
-        cy.log(`Loaded resources data: ${JSON.stringify(resourcesData, null, 2)}`);
+
+        // Log each resource type and its contents
+        Object.entries(resourcesData.resources).forEach(([resourceType, resourceList]) => {
+          cy.log(`Resource Type: ${resourceType}`);
+          resourceList.forEach((resource, index) => {
+            cy.log(`Resource ${index + 1}:`);
+            cy.log(JSON.stringify(resource, null, 2));
+          });
+        });
+
+        // Log resource names
+        cy.log('Resource Names:');
+        cy.log(JSON.stringify(resourceNames, null, 2));
 
         const quickStartResource = resourcesData.resources.CustomQuickStart[0];
         cy.log(`YAML path for CustomQuickStart: ${quickStartResource.yamlPath}`);
@@ -42,7 +54,7 @@ describe('[Product Bug: RHOAIENG-5317]Create a custom resource Quickstart by usi
 
   it(
     'Upload custom resource and verify',
-    { tags: ['@Smoke', '@SmokeSet2', '@ODS-697', '@Dashboard', '@Bug'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-697', '@Dashboard'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');

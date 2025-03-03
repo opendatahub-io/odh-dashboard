@@ -26,6 +26,12 @@ class Resources {
     );
   }
 
+  getCardViewResourceCheck(timeout: number = Cypress.config('defaultCommandTimeout')) {
+    return new CardViewResourceCheck(() =>
+      cy.findByTestId('learning-center-card-view', { timeout }),
+    );
+  }
+
   getListView() {
     return new ListView(() => cy.findByTestId('learning-center-list-view'));
   }
@@ -189,6 +195,28 @@ class LearningCenterToolbar extends Contextual<HTMLElement> {
 
   selectResourceOrder(order: string) {
     this.findSortOrderToggle().parents().findByTestId(order).click();
+  }
+}
+
+class CardViewResourceCheck extends Contextual<HTMLElement> {
+  getCard(id: string) {
+    return new Card(() => {
+      return this.find().then(($el) => {
+        cy.log('Current CardView content:', $el.html());
+
+        // Try to find the card by ID using different selectors
+        const card = $el.find(`[data-testid="card ${id}"], [data-testid="card-${id}"], #${id}`);
+
+        if (card.length === 0) {
+          cy.log(`Card with id ${id} not found`);
+          return cy.wrap(Cypress.$());
+        }
+
+        const cardId = card.attr('id') || 'unknown';
+        cy.log(`Card found: ${cardId}`);
+        return cy.wrap(card);
+      });
+    });
   }
 }
 
