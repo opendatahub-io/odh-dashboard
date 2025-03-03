@@ -163,3 +163,16 @@ export const filterRegisteredModels = (
 
 export const getServerAddress = (resource: ServiceKind): string =>
   resource.metadata.annotations?.['routing.opendatahub.io/external-address-rest'] || '';
+
+export const isValidHttpUrl = (value: string): boolean => {
+  try {
+    const url = new URL(value);
+    const isHttp = url.protocol === 'http:' || url.protocol === 'https:';
+    // Domain validation
+    const domainPattern = /^(?!-)[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/;
+
+    return isHttp && domainPattern.test(url.hostname);
+  } catch {
+    return false;
+  }
+};
