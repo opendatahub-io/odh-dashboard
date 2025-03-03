@@ -1,5 +1,5 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
+import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import type { DataScienceProjectData, AWSS3BucketDetails } from '~/__tests__/cypress/cypress/types';
 import { connectionsPage, addConnectionModal } from '~/__tests__/cypress/cypress/pages/connections';
@@ -76,7 +76,7 @@ describe('Verify Data Connections - Creation and Deletion', () => {
 
       //Navigate to Data Connections and create Connection
       cy.step('Navigate to Connections and click to create Connection');
-      projectDetails.findSectionTab('connections').click();
+      cy.visit(`projects/${projectName}?section=connections`);
       connectionsPage.findCreateConnectionButton().click();
 
       // Enter validate Data Connection details into the Data Connection Modal
