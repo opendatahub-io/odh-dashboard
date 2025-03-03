@@ -148,7 +148,15 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
                 variant="info"
                 title={
                   <div className="odh-enable-modal__progress-title">
-                    <Spinner size="md" /> Validating your entries
+                    <Spinner size="md" />
+                    {selectedApp.metadata.name === 'nvidia-nim' ? (
+                      <div>
+                        Contacting NVIDIA to validate the license key.
+                        <div>This can take a few minutes.</div>
+                      </div>
+                    ) : (
+                      'Validating your entries'
+                    )}
                   </div>
                 }
                 aria-live="polite"
