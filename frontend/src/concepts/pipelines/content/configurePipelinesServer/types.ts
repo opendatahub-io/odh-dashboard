@@ -10,4 +10,5 @@ export type PipelineServerConfigType = {
     value: EnvVariableDataEntry[];
   };
   objectStorage: ObjectStorageNew;
+  enableInstructLab: boolean;
 };

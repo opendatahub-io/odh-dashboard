@@ -22,7 +22,7 @@ import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymen
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
-import { patchDefaultDeploymentMode, toggleInstructLabState } from '~/api/';
+import { patchDefaultDeploymentMode } from '~/api/';
 import {
   DEFAULT_CONFIG,
   DEFAULT_PVC_SIZE,
@@ -30,9 +30,7 @@ import {
   MIN_CULLER_TIMEOUT,
   DEFAULT_TOLERATION_VALUE,
 } from './const';
-import { isInstructLabEnabled } from './utils';
 import useDefaultDsc from './useDefaultDsc';
-import InstructLabSettings from './InstructLabSettings';
 
 const ClusterSettings: React.FC = () => {
   const { defaultMode } = useKServeDeploymentMode();
@@ -48,7 +46,6 @@ const ClusterSettings: React.FC = () => {
   const [cullerTimeout, setCullerTimeout] = React.useState(DEFAULT_CULLER_TIMEOUT);
   const { dashboardConfig } = useAppContext();
   const modelServingEnabled = useIsAreaAvailable(SupportedArea.MODEL_SERVING).status;
-  const isAreaFineTuningEnabled = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
   const isJupyterEnabled = useCheckJupyterEnabled();
   const [notebookTolerationSettings, setNotebookTolerationSettings] =
     React.useState<NotebookTolerationFormSettings>({
@@ -60,8 +57,6 @@ const ClusterSettings: React.FC = () => {
   const [defaultDeploymentMode, setDefaultDeploymentMode] = React.useState<DeploymentMode>(
     defaultSingleModelDeploymentMode,
   );
-  const instructLabDSCState = isInstructLabEnabled(dsc);
-  const [instructLabEnabled, setInstructLabEnabled] = React.useState<boolean>(instructLabDSCState);
 
   const dispatch = useAppDispatch();
 
@@ -89,9 +84,7 @@ const ClusterSettings: React.FC = () => {
           key: notebookTolerationSettings.key,
         },
         modelServingPlatformEnabled: modelServingEnabledPlatforms,
-      }) ||
-      (isAreaFineTuningEnabled && instructLabEnabled !== instructLabDSCState) ||
-      defaultDeploymentMode !== defaultSingleModelDeploymentMode,
+      }) || defaultDeploymentMode !== defaultSingleModelDeploymentMode,
     [
       clusterSettings,
       pvcSize,
@@ -100,9 +93,6 @@ const ClusterSettings: React.FC = () => {
       notebookTolerationSettings.enabled,
       notebookTolerationSettings.key,
       modelServingEnabledPlatforms,
-      instructLabEnabled,
-      instructLabDSCState,
-      isAreaFineTuningEnabled,
       defaultDeploymentMode,
       defaultSingleModelDeploymentMode,
     ],
@@ -121,11 +111,10 @@ const ClusterSettings: React.FC = () => {
     };
 
     const clusterSettingsUnchanged = _.isEqual(clusterSettings, newClusterSettings);
-    const instructLabUnchanged = instructLabEnabled === instructLabDSCState;
     const defaultDeploymentModeUnchanged =
       defaultDeploymentMode === defaultSingleModelDeploymentMode;
 
-    if (clusterSettingsUnchanged && instructLabUnchanged && defaultDeploymentModeUnchanged) {
+    if (clusterSettingsUnchanged && defaultDeploymentModeUnchanged) {
       return;
     }
 
@@ -147,15 +136,6 @@ const ClusterSettings: React.FC = () => {
           setClusterSettings(newClusterSettings);
         });
 
-    const instructLabPromise = instructLabUnchanged
-      ? Promise.resolve()
-      : dsc &&
-        toggleInstructLabState(instructLabEnabled ? 'Managed' : 'Removed', dsc.metadata.name).then(
-          () => {
-            refreshDsc();
-          },
-        );
-
     const defaultDeploymentModePromise = defaultDeploymentModeUnchanged
       ? Promise.resolve()
       : dsc &&
@@ -164,7 +144,7 @@ const ClusterSettings: React.FC = () => {
           refreshDsc();
         });
 
-    Promise.all([clusterSettingsPromise, instructLabPromise, defaultDeploymentModePromise])
+    Promise.all([clusterSettingsPromise, defaultDeploymentModePromise])
       .then(() => {
         dispatch(
           addNotification({
@@ -244,15 +224,6 @@ const ClusterSettings: React.FC = () => {
               initialValue={clusterSettings.notebookTolerationSettings}
               tolerationSettings={notebookTolerationSettings}
               setTolerationSettings={setNotebookTolerationSettings}
-            />
-          </StackItem>
-        )}
-        {isAreaFineTuningEnabled && (
-          <StackItem>
-            <InstructLabSettings
-              initialValue={instructLabDSCState}
-              enabled={instructLabEnabled}
-              setEnabled={setInstructLabEnabled}
             />
           </StackItem>
         )}

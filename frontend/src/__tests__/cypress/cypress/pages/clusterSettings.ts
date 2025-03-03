@@ -109,16 +109,9 @@ class NotebookTolerationSettings extends ClusterSettings {
   }
 }
 
-class InstructLabSettings extends ClusterSettings {
-  findInstructLabCheckbox() {
-    return cy.findByTestId('instructlab-enabled-checkbox');
-  }
-}
-
 export const clusterSettings = new ClusterSettings();
 export const modelServingSettings = new ModelSergingSettings();
 export const pvcSizeSettings = new PVCSizeSettings();
 export const cullerSettings = new CullterSettings();
 export const telemetrySettings = new TelemetrySettings();
 export const notebookTolerationSettings = new NotebookTolerationSettings();
-export const instructLabSettings = new InstructLabSettings();

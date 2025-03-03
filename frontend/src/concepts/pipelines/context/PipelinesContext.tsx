@@ -9,7 +9,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { DSPipelineKind, ProjectKind } from '~/k8sTypes';
+import { DSPipelineKind, DSPipelineManagedPipelinesKind, ProjectKind } from '~/k8sTypes';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import DeletePipelineServerModal from '~/concepts/pipelines/content/DeletePipelineServerModal';
 import { ConfigurePipelinesServerModal } from '~/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
@@ -43,6 +43,7 @@ type PipelineContext = {
   getRecurringRunInformation: GetRecurringRunInformationType;
   apiState: PipelineAPIState;
   metadataStoreServiceClient: MetadataStoreServicePromiseClient;
+  managedPipelines: DSPipelineManagedPipelinesKind | undefined;
 };
 
 const PipelinesContext = React.createContext<PipelineContext>({
@@ -66,6 +67,7 @@ const PipelinesContext = React.createContext<PipelineContext>({
   apiState: { apiAvailable: false, api: null as unknown as PipelineAPIState['api'] },
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   metadataStoreServiceClient: null as unknown as MetadataStoreServicePromiseClient,
+  managedPipelines: undefined,
 });
 
 type PipelineContextProviderProps = {
@@ -150,6 +152,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
         refreshAPIState,
         getRecurringRunInformation,
         metadataStoreServiceClient,
+        managedPipelines: pipelineNamespaceCR?.spec.apiServer?.managedPipelines,
       }}
     >
       {children}
@@ -177,6 +180,8 @@ type UsePipelinesAPI = PipelineAPIState & {
   getRecurringRunInformation: GetRecurringRunInformationType;
   refreshAllAPI: () => void;
   metadataStoreServiceClient: MetadataStoreServicePromiseClient;
+  refreshState: () => void;
+  managedPipelines: DSPipelineManagedPipelinesKind | undefined;
 };
 
 export const usePipelinesAPI = (): UsePipelinesAPI => {
@@ -192,6 +197,8 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     refreshAPIState: refreshAllAPI,
     getRecurringRunInformation,
     metadataStoreServiceClient,
+    managedPipelines,
+    refreshState,
   } = React.useContext(PipelinesContext);
 
   const pipelinesServer: UsePipelinesAPI['pipelinesServer'] = {
@@ -209,6 +216,8 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     refreshAllAPI,
     getRecurringRunInformation,
     metadataStoreServiceClient,
+    managedPipelines,
+    refreshState,
     ...apiState,
   };
 };

@@ -663,6 +663,12 @@ export type DSPipelineExternalStorageKind = {
   };
 };
 
+export type DSPipelineManagedPipelinesKind = {
+  instructLab?: {
+    state: 'Removed' | 'Managed';
+  };
+};
+
 export type DSPipelineKind = K8sResourceCommon & {
   metadata: {
     name: string;
@@ -678,6 +684,7 @@ export type DSPipelineKind = K8sResourceCommon & {
         name: string;
       }>;
       enableSamplePipeline: boolean;
+      managedPipelines?: DSPipelineManagedPipelinesKind;
     }>;
     database?: Partial<{
       externalDB: Partial<{
@@ -1297,7 +1304,7 @@ export type DataScienceClusterKind = K8sResourceCommon & {
     components?: {
       [key in DataScienceStackComponent]?: DataScienceClusterComponent;
     } & {
-      /** KServe, ModelRegistry and Data Science Pipeline components, including further specific configuration. */
+      /** KServe and ModelRegistry components, including further specific configuration. */
       [DataScienceStackComponent.K_SERVE]?: DataScienceClusterComponent & {
         defaultDeploymentMode?: string;
         nim: {
@@ -1315,9 +1322,6 @@ export type DataScienceClusterKind = K8sResourceCommon & {
       };
       [DataScienceStackComponent.MODEL_REGISTRY]?: DataScienceClusterComponent & {
         registriesNamespace: string;
-      };
-      [DataScienceStackComponent.DS_PIPELINES]?: DataScienceClusterComponent & {
-        managedPipelines: { instructLab: { state: string } };
       };
     };
   };

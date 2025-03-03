@@ -27,6 +27,7 @@ describe('configure pipeline server utils', () => {
         objectStorage: {
           newValue: [{ key: 'AWS_S3_ENDPOINT', value: '' }],
         },
+        enableInstructLab: false,
       } as PipelineServerConfigType);
 
     type SecretsResponse = Parameters<typeof createDSPipelineResourceSpec>[1];
@@ -55,6 +56,14 @@ describe('configure pipeline server utils', () => {
               secretName: '',
             },
             scheme: 'https',
+          },
+        },
+        apiServer: {
+          enableSamplePipeline: false,
+          managedPipelines: {
+            instructLab: {
+              state: 'Removed',
+            },
           },
         },
       });
@@ -153,6 +162,14 @@ describe('configure pipeline server utils', () => {
             pipelineDBName: 'db-name',
             port: '8080',
             username: 'test-user',
+          },
+        },
+        apiServer: {
+          enableSamplePipeline: false,
+          managedPipelines: {
+            instructLab: {
+              state: 'Removed',
+            },
           },
         },
       });

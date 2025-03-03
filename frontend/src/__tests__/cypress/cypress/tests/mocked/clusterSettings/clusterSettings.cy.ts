@@ -3,7 +3,6 @@ import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import {
   clusterSettings,
   cullerSettings,
-  instructLabSettings,
   modelServingSettings,
   notebookTolerationSettings,
   pvcSizeSettings,
@@ -110,23 +109,6 @@ describe('Cluster Settings', () => {
         }),
       );
     });
-  });
-
-  it('View instructLab settings', () => {
-    cy.interceptOdh(
-      'GET /api/config',
-      mockDashboardConfig({
-        disableFineTuning: false,
-      }),
-    );
-    cy.interceptOdh('GET /api/cluster-settings', mockClusterSettings({}));
-
-    clusterSettings.visit();
-
-    instructLabSettings.findInstructLabCheckbox().click();
-    instructLabSettings.findSubmitButton().should('be.enabled');
-    instructLabSettings.findInstructLabCheckbox().click();
-    instructLabSettings.findSubmitButton().should('be.disabled');
   });
 
   it('View and Patch KServe defaultDeploymentMode', () => {
