@@ -210,7 +210,16 @@ const getModelServingCompatibleTypes = (envVars: string[]): ModelServingCompatib
   );
 
 export const isModelServingCompatibleConnection = (connection: Connection): boolean =>
-  getConnectionModelServingCompatibleTypes(connection).length > 0;
+  getConnectionModelServingCompatibleTypes(connection).length > 0 &&
+  isPullOCIAccessType(connection);
+
+export const isPullOCIAccessType = (connection: Connection): boolean => {
+  const accessType = connection.data?.ACCESS_TYPE
+    ? window.atob(connection.data.ACCESS_TYPE)
+    : undefined;
+
+  return accessType === undefined || accessType.includes('Pull') || accessType === '[]';
+};
 
 export const isModelServingCompatibleConnectionType = (
   connectionType: ConnectionTypeConfigMapObj,

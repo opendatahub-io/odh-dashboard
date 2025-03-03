@@ -331,6 +331,41 @@ describe('isModelServingCompatibleConnection', () => {
         }),
       ),
     ).toBe(true);
+    expect(
+      isModelServingCompatibleConnection(
+        mockConnection({
+          connectionType: 'oci-v1',
+          data: {
+            ACCESS_TYPE: 'Push',
+            '.dockerconfigjson': '{}',
+            OCI_HOST: 'quay.io',
+          },
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      isModelServingCompatibleConnection(
+        mockConnection({
+          connectionType: 'oci-v1',
+          data: {
+            ACCESS_TYPE: 'UHVsbA==', // Have to encode the string "Pull" since we decode it in the utils
+            '.dockerconfigjson': '{}',
+            OCI_HOST: 'quay.io',
+          },
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      isModelServingCompatibleConnection(
+        mockConnection({
+          connectionType: 'oci-v1',
+          data: {
+            '.dockerconfigjson': '{}',
+            OCI_HOST: 'quay.io',
+          },
+        }),
+      ),
+    ).toBe(true);
   });
 });
 
