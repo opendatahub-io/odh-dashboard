@@ -6,8 +6,9 @@ import {
   InProgressIcon,
   OutlinedQuestionCircleIcon,
 } from '@patternfly/react-icons';
-import { InferenceServiceKind } from '~/k8sTypes';
+import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
+import { NIMAvailabilityContext } from '~/concepts/nimServing/NIMAvailabilityContext';
 import { getInferenceServiceModelState, getInferenceServiceStatusMessage } from './utils';
 import { useModelStatus } from './useModelStatus';
 
@@ -15,12 +16,14 @@ type InferenceServiceStatusProps = {
   inferenceService: InferenceServiceKind;
   isKserve: boolean;
   iconSize?: React.ComponentProps<typeof Icon>['iconSize'];
+  servingRuntime?: ServingRuntimeKind;
 };
 
 const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
   inferenceService,
   isKserve,
   iconSize,
+  servingRuntime,
 }) => {
   const [modelStatus] = useModelStatus(
     inferenceService.metadata.namespace,
@@ -116,10 +119,11 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
         return 'Inference Service Status';
     }
   };
+  const { isNIMAvailable } = React.useContext(NIMAvailabilityContext);
 
   const bodyContent = modelStatus?.failedToSchedule
     ? 'Insufficient resources'
-    : getInferenceServiceStatusMessage(inferenceService);
+    : getInferenceServiceStatusMessage(inferenceService, servingRuntime, isNIMAvailable);
 
   return (
     <Popover
