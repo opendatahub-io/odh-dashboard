@@ -74,7 +74,7 @@ class Card extends Contextual<HTMLElement> {
   }
 }
 
-class CardView extends Contextual<HTMLElement> {
+export class CardView extends Contextual<HTMLElement> {
   getCard(id: string) {
     return new Card(() => this.find().findByTestId(['card', id]));
   }

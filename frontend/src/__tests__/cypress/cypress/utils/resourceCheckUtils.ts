@@ -1,4 +1,4 @@
-import { resources } from '~/__tests__/cypress/cypress/pages/resources';
+import { resources, CardView  } from '~/__tests__/cypress/cypress/pages/resources';
 
 interface ResourceInfo {
   name: string;
@@ -6,7 +6,10 @@ interface ResourceInfo {
   description: string;
 }
 
-// Specify the return type of the function
+export const getCardWithWait = (cardView: CardView, id: string, timeout: number = 180000): Cypress.Chainable<JQuery<HTMLElement>> => {
+  return cardView.getCard(id).find().should('exist').and('be.visible', { timeout });
+};
+
 export const checkResources = (resourceInfoList: ResourceInfo[]): void => {
   cy.log(`Starting resource check for ${resourceInfoList.length} resources.`);
 
@@ -16,18 +19,13 @@ export const checkResources = (resourceInfoList: ResourceInfo[]): void => {
     // Clear the search input and type the resource name
     resources.getLearningCenterToolbar().findSearchInput().clear().type(resourceInfo.name);
 
-    // Check if the resource card is visible by looking for its metadata name
-    resources
-      .getCardView(180000)
-      .getCard(resourceInfo.metaDataName)
-      .find()
+    // Use the new getCardWithWait utility
+    getCardWithWait(resources.getCardView(180000), resourceInfo.metaDataName)
       .should('exist')
+      .and('be.visible')
       .then(($card) => {
-        if ($card.length > 0 && $card.is(':visible')) {
-          cy.log(`✅ Resource found: ${resourceInfo.name}`);
-        } else {
-          cy.log(`❌ Resource not found: ${resourceInfo.name}`);
-        }
+        cy.log(`✅ Resource found: ${resourceInfo.name}`);
+        // Additional checks can be performed here if needed
       });
   });
 };
