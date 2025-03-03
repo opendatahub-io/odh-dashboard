@@ -12,10 +12,12 @@ export const useIlabPipeline = (): {
   loadError: Error | undefined;
   refresh: () => Promise<PipelineVersionKF | null | undefined>;
 } => {
-  const { pipelinesServer } = usePipelinesAPI();
+  const { pipelinesServer, apiAvailable } = usePipelinesAPI();
   const [ilabPipeline, ilabPipelineLoaded, ilabPipelineLoadError, refreshIlabPipeline] =
     usePipelineByName(
-      pipelinesServer.compatible && pipelinesServer.installed ? ILAB_PIPELINE_NAME : '',
+      apiAvailable && pipelinesServer.compatible && pipelinesServer.installed
+        ? ILAB_PIPELINE_NAME
+        : '',
     );
   const [
     ilabPipelineVersion,
