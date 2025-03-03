@@ -22,12 +22,16 @@ import {
   ModelCustomizationEndpointType,
   FineTuneTaxonomyType,
 } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
+import { isHardwareProfileConfigValid } from '~/concepts/hardwareProfiles/validationUtils';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import FineTunePage from './FineTunePage';
 import {
   BASE_MODEL_INPUT_STORAGE_LOCATION_URI_KEY,
   FineTunePageSections,
   fineTunePageSectionTitles,
 } from './const';
+import { usePodSpecOptionsState } from './usePodSpecOptionsState';
+import { getTrainingNodeFromPipelineInput } from './utils';
 
 const ModelCustomizationForm: React.FC = () => {
   const { project } = usePipelinesAPI();
@@ -69,11 +73,35 @@ const ModelCustomizationForm: React.FC = () => {
       endpoint: '',
       modelName: '',
     },
+    trainingNode: 0,
+    storageClass: '',
   });
 
+  React.useEffect(() => {
+    if (ilabPipelineLoaded) {
+      const trainingNodeDefaultValue = getTrainingNodeFromPipelineInput(
+        ilabPipelineVersion,
+        'train_num_workers',
+      )?.defaultValue;
+      setData('trainingNode', Number(trainingNodeDefaultValue));
+    }
+  }, [ilabPipelineVersion, ilabPipelineLoaded, setData]);
+
+  const podSpecOptionsState = usePodSpecOptionsState();
+  const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
+
+  const isHardwareProfileValid = isHardwareProfilesAvailable
+    ? podSpecOptionsState.podSpecOptions.selectedHardwareProfile
+      ? isHardwareProfileConfigValid({
+          selectedProfile: podSpecOptionsState.podSpecOptions.selectedHardwareProfile,
+          useExistingSettings: false,
+          resources: podSpecOptionsState.podSpecOptions.resources,
+        })
+      : false
+    : !!podSpecOptionsState.podSpecOptions.selectedAcceleratorProfile;
   const validation = useValidation(data, modelCustomizationFormSchema);
   const isValid = validation.validationResult.success;
-  const canSubmit = ilabPipelineLoaded && isValid;
+  const canSubmit = ilabPipelineLoaded && isValid && isHardwareProfileValid;
   const navigate = useNavigate();
 
   return (
@@ -99,6 +127,7 @@ const ModelCustomizationForm: React.FC = () => {
             >
               <FineTunePage
                 isInvalid={!canSubmit || !!ilabPipelineLoadError}
+                podSpecOptionsState={podSpecOptionsState}
                 onSuccess={() =>
                   navigate(
                     `/pipelines/${encodeURIComponent(project.metadata.name)}/${encodeURIComponent(

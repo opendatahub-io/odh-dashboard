@@ -19,6 +19,7 @@ import useDefaultStorageClass from './useDefaultStorageClass';
 type StorageClassSelectProps = {
   storageClassName?: string;
   setStorageClassName: (name: string) => void;
+  isRequired?: boolean;
   disableStorageClassSelect?: boolean;
   menuAppendTo?: HTMLElement | 'inline';
 };
@@ -26,6 +27,7 @@ type StorageClassSelectProps = {
 const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
   storageClassName,
   setStorageClassName,
+  isRequired = false,
   disableStorageClassSelect,
   menuAppendTo,
 }) => {
@@ -93,7 +95,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
   }
 
   return hasStorageClassConfigs ? (
-    <FormGroup label="Storage class" fieldId="storage-class">
+    <FormGroup label="Storage class" fieldId="storage-class" isRequired={isRequired}>
       <SimpleSelect
         dataTestId="storage-classes-selector"
         id="storage-classes-selector"

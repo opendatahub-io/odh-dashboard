@@ -156,6 +156,8 @@ export const modelCustomizationFormSchema = z.object({
   baseModel: baseModelSchema,
   teacher: teacherJudgeModel,
   judge: teacherJudgeModel,
+  trainingNode: z.number().min(0, { message: 'Value must be greater than or equal to 0' }),
+  storageClass: z.string().trim().min(1, { message: 'storage class is required' }),
 });
 
 export type ModelCustomizationFormData = z.infer<typeof modelCustomizationFormSchema>;
