@@ -15,12 +15,16 @@ import {
   modelCustomizationFormSchema,
 } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { modelCustomizationRootPath } from '~/routes';
 import { useIlabPipeline } from '~/concepts/pipelines/content/modelCustomizationForm/useIlabPipeline';
 import {
   ModelCustomizationEndpointType,
   FineTuneTaxonomyType,
 } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
+import {
+  registeredModelUrl,
+  modelVersionUrl,
+  modelRegistryUrl,
+} from '~/pages/modelRegistry/screens/routeUtils';
 import FineTunePage from './FineTunePage';
 import {
   BASE_MODEL_INPUT_STORAGE_LOCATION_URI_KEY,
@@ -82,7 +86,27 @@ const ModelCustomizationForm: React.FC = () => {
         description={modelCustomizationFormPageDescription}
         breadcrumb={
           <Breadcrumb>
-            <BreadcrumbItem to={modelCustomizationRootPath}>Model customization</BreadcrumbItem>
+            <BreadcrumbItem to={modelRegistry ? modelRegistryUrl(modelRegistry) : undefined}>
+              {modelRegistry}
+            </BreadcrumbItem>
+            <BreadcrumbItem
+              to={
+                registeredModelId && modelRegistry
+                  ? registeredModelUrl(registeredModelId, modelRegistry)
+                  : undefined
+              }
+            >
+              {registeredModelId}
+            </BreadcrumbItem>
+            <BreadcrumbItem
+              to={
+                modelVersionId && registeredModelId && modelRegistry
+                  ? modelVersionUrl(modelVersionId, registeredModelId, modelRegistry)
+                  : undefined
+              }
+            >
+              {modelVersionId}
+            </BreadcrumbItem>
             <BreadcrumbItem>Start an InstructLab run</BreadcrumbItem>
           </Breadcrumb>
         }
