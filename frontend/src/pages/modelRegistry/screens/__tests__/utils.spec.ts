@@ -17,6 +17,7 @@ import {
   mergeUpdatedLabels,
   filterRegisteredModels,
   sortModelVersionsByCreateTime,
+  isValidHttpUrl,
 } from '~/pages/modelRegistry/screens/utils';
 import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 
@@ -355,5 +356,51 @@ describe('sortModelVersionsByCreateTime', () => {
 
     const result = sortModelVersionsByCreateTime(modelVersions);
     expect(result).toEqual([modelVersions[1], modelVersions[0]]);
+  });
+});
+
+describe('isValidHttpUrl', () => {
+  it('should return true for a valid HTTPS URL', () => {
+    expect(isValidHttpUrl('https://example.com')).toBe(true);
+  });
+
+  it('should return true for a valid HTTP URL', () => {
+    expect(isValidHttpUrl('http://example.com')).toBe(true);
+  });
+
+  it('should return false for a URL with an unsupported protocol', () => {
+    expect(isValidHttpUrl('ftp://example.com')).toBe(false);
+  });
+
+  it('should return false for an invalid URL string', () => {
+    expect(isValidHttpUrl('random text')).toBe(false);
+  });
+
+  it('should return false for an empty string', () => {
+    expect(isValidHttpUrl('')).toBe(false);
+  });
+
+  it('should return false for a string without a protocol', () => {
+    expect(isValidHttpUrl('www.example.com')).toBe(false);
+  });
+
+  it('should return false for null input', () => {
+    expect(isValidHttpUrl(null as unknown as string)).toBe(false);
+  });
+
+  it('should return false for undefined input', () => {
+    expect(isValidHttpUrl(undefined as unknown as string)).toBe(false);
+  });
+
+  it('should return false for a number input', () => {
+    expect(isValidHttpUrl(12345 as unknown as string)).toBe(false);
+  });
+
+  it('should return false for a URL with a missing domain', () => {
+    expect(isValidHttpUrl('http://')).toBe(false);
+  });
+
+  it('should return false for a URL with an invalid format', () => {
+    expect(isValidHttpUrl('http://example..com')).toBe(false);
   });
 });
