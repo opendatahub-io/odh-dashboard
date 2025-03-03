@@ -20,26 +20,16 @@ const applyAuthToInferenceService = (
   inferenceService: InferenceServiceKind,
   tokenAuth: boolean,
   isModelMesh?: boolean,
-  isKServeRaw?: boolean,
 ) => {
   const updateInferenceService = structuredClone(inferenceService);
-  if (!updateInferenceService.metadata.labels) {
-    updateInferenceService.metadata.labels = {};
-  }
   if (!updateInferenceService.metadata.annotations) {
     updateInferenceService.metadata.annotations = {};
   }
   delete updateInferenceService.metadata.annotations['security.opendatahub.io/enable-auth'];
-  delete updateInferenceService.metadata.labels['security.opendatahub.io/enable-auth'];
 
   // KServe
   if (!isModelMesh && tokenAuth) {
-    if (isKServeRaw) {
-      updateInferenceService.metadata.labels['security.opendatahub.io/enable-auth'] = 'true';
-    } else {
-      // serverless
-      updateInferenceService.metadata.annotations['security.opendatahub.io/enable-auth'] = 'true';
-    }
+    updateInferenceService.metadata.annotations['security.opendatahub.io/enable-auth'] = 'true';
   }
 
   return updateInferenceService;
@@ -203,7 +193,6 @@ export const assembleInferenceService = (
     updateInferenceService,
     tokenAuth,
     isModelMesh,
-    data.isKServeRawDeployment,
   );
   updateInferenceService = applyRoutingToInferenceService(
     updateInferenceService,

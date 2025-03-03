@@ -69,9 +69,7 @@ export const isInferenceServiceKServeRaw = (inferenceService: InferenceServiceKi
   DeploymentMode.RawDeployment;
 
 export const isInferenceServiceTokenEnabled = (inferenceService: InferenceServiceKind): boolean =>
-  isInferenceServiceKServeRaw(inferenceService)
-    ? inferenceService.metadata.labels?.['security.opendatahub.io/enable-auth'] === 'true'
-    : inferenceService.metadata.annotations?.['security.opendatahub.io/enable-auth'] === 'true';
+  inferenceService.metadata.annotations?.['security.opendatahub.io/enable-auth'] === 'true';
 
 export const isInferenceServiceRouteEnabled = (inferenceService: InferenceServiceKind): boolean =>
   isInferenceServiceKServeRaw(inferenceService)
