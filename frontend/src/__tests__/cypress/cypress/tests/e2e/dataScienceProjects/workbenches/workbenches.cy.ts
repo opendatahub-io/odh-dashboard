@@ -76,7 +76,7 @@ describe('Workbench and PVSs tests', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      projectDetails.findSectionTab('workbenches').click();
+      cy.visit(`projects/${projectName}?section=workbenches`);
 
       cy.step(`Create Workbench ${projectName} using storage ${PVCDisplayName}`);
       workbenchPage.findCreateButton().click();

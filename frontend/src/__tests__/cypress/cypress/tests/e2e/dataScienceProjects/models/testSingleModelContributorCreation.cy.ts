@@ -5,7 +5,7 @@ import {
 } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { LDAP_CONTRIBUTOR_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
+import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import {
   modelServingGlobal,
   inferenceServiceModal,
@@ -85,7 +85,7 @@ describe('Verify Model Creation and Validation using the UI', () => {
 
       // Navigate to Model Serving tab and Deploy a Single Model
       cy.step('Navigate to Model Serving and click to Deploy a Single Model');
-      projectDetails.findSectionTab('model-server').click();
+      cy.visit(`projects/${projectName}?section=model-server`);
       modelServingGlobal.findSingleServingModelButton().click();
       modelServingGlobal.findDeployModelButton().click();
 

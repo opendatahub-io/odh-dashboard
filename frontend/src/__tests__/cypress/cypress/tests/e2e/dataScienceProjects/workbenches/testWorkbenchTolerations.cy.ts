@@ -96,7 +96,7 @@ describe('[Automation Bug RHOAIENG-20099] Workbenches - tolerations tests', () =
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      projectDetails.findSectionTab('workbenches').click();
+      cy.visit(`projects/${projectName}?section=workbenches`);
 
       // Create workbench and verify it starts running
       cy.step(`Create workbench ${testData.workbenchName}`);
@@ -141,7 +141,7 @@ describe('[Automation Bug RHOAIENG-20099] Workbenches - tolerations tests', () =
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      projectDetails.findSectionTab('workbenches').click();
+      cy.visit(`projects/${projectName}?section=workbenches`);
 
       // Stop workbench and verify it stops running
       cy.step(`Stop workbench ${testData.workbenchName}`);
@@ -180,7 +180,7 @@ describe('[Automation Bug RHOAIENG-20099] Workbenches - tolerations tests', () =
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      projectDetails.findSectionTab('workbenches').click();
+      cy.visit(`projects/${projectName}?section=workbenches`);
 
       // Stop workbench and verify it stops running
       cy.step(`Restart workbench ${testData.workbenchName} and validate it has been started`);

@@ -1,5 +1,5 @@
 import type { DataScienceProjectData, DashboardConfig } from '~/__tests__/cypress/cypress/types';
-import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
+import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
@@ -78,7 +78,7 @@ describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
 
       //Navigate to Cluster Storage and click to Add Storage
       cy.step('Navigate to Cluster Storage and click to create Cluster Storage');
-      projectDetails.findSectionTab('cluster-storages').click();
+      cy.visit(`projects/${projectName}?section=cluster-storages`);
       clusterStorage.findCreateButton().click();
 
       // Enter validate Cluster Storage details into the Cluster Storage Modal

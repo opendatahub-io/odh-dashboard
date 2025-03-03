@@ -2,7 +2,7 @@ import type { DataScienceProjectData } from '~/__tests__/cypress/cypress/types';
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
+import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import {
   modelServingGlobal,
   inferenceServiceModal,
@@ -91,7 +91,7 @@ describe('Automation Bug RHOAIENG-20591] Verify Admin Multi Model Creation and V
 
       // Navigate to Model Serving tab and Deploy a Multi Model
       cy.step('Navigate to Model Serving and click to Deploy a Model Server');
-      projectDetails.findSectionTab('model-server').click();
+      cy.visit(`projects/${projectName}?section=model-server`);
       modelServingGlobal.findMultiModelButton().click();
       modelServingSection.findAddModelServerButton().click();
       createServingRuntimeModal.findModelServerName().type(testData.multiModelAdminName);
