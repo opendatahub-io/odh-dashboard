@@ -1,20 +1,22 @@
 import React from 'react';
-import { Skeleton } from '@patternfly/react-core';
+import { Label, Skeleton, Split, SplitItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import { TableText } from '@patternfly/react-table';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { experimentRunsRoute } from '~/routes';
 import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
 import { NoRunContent } from '~/concepts/pipelines/content/tables/renderUtils';
+import TruncatedText from '~/components/TruncatedText';
 
 type PipelineRunTableRowExperimentProps = {
   experiment?: ExperimentKF | null;
+  isExperimentArchived?: boolean;
   loaded: boolean;
   error?: Error;
 };
 
 const PipelineRunTableRowExperiment: React.FC<PipelineRunTableRowExperimentProps> = ({
   experiment,
+  isExperimentArchived,
   loaded,
   error,
 }) => {
@@ -28,9 +30,18 @@ const PipelineRunTableRowExperiment: React.FC<PipelineRunTableRowExperimentProps
     return <NoRunContent />;
   }
   return (
-    <Link to={experimentRunsRoute(namespace, experiment.experiment_id)}>
-      <TableText wrapModifier="truncate">{experiment.display_name}</TableText>
-    </Link>
+    <Split hasGutter>
+      <SplitItem>
+        <Link to={experimentRunsRoute(namespace, experiment.experiment_id)}>
+          <TruncatedText content={experiment.display_name} maxLines={1} />
+        </Link>
+      </SplitItem>
+      {isExperimentArchived && (
+        <SplitItem>
+          <Label isCompact>Archived</Label>
+        </SplitItem>
+      )}
+    </Split>
   );
 };
 
