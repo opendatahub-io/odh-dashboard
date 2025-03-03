@@ -44,12 +44,8 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
   const modelArtifact = modelArtifacts.items.length ? modelArtifacts.items[0] : null;
   const { apiState } = React.useContext(ModelRegistryContext);
   const storageFields = uriToStorageFields(modelArtifact?.uri || '');
-  const [
-    registeredModels,
-    registeredModelLoaded,
-    registeredModelLoadError,
-    refreshRegisteredModel,
-  ] = useRegisteredModelById(mv.registeredModelId);
+  const [registeredModel, registeredModelLoaded, registeredModelLoadError, refreshRegisteredModel] =
+    useRegisteredModelById(mv.registeredModelId);
 
   const loaded = modelArtifactsLoaded && registeredModelLoaded;
   const loadError = modelArtifactsLoadError || registeredModelLoadError;
@@ -68,19 +64,19 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
   const handleVersionUpdate = async (updatePromise: Promise<unknown>): Promise<void> => {
     await updatePromise;
 
-    if (!mv.registeredModelId || !registeredModels) {
+    if (!mv.registeredModelId || !registeredModel) {
       return;
     }
 
-    await bumpRegisteredModelTimestamp(apiState.api, registeredModels);
+    await bumpRegisteredModelTimestamp(apiState.api, registeredModel);
     refresh();
   };
 
   const handleArtifactUpdate = async (updatePromise: Promise<unknown>): Promise<void> => {
     try {
       await updatePromise;
-      if (registeredModels) {
-        await bumpBothTimestamps(apiState.api, registeredModels, mv);
+      if (registeredModel) {
+        await bumpBothTimestamps(apiState.api, registeredModel, mv);
         refreshBoth();
       }
     } catch (error) {
