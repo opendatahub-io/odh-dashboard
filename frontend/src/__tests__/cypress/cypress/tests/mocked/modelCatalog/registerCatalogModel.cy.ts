@@ -104,7 +104,7 @@ const initIntercepts = ({
       id: '2',
       name: 'Version 1',
       customProperties: {
-        Licence: {
+        License: {
           metadataType: ModelRegistryMetadataType.STRING,
           string_value: 'https://www.apache.org/licenses/LICENSE-2.0.txt',
         },
@@ -235,7 +235,7 @@ describe('Register catalog model page', () => {
         customProperties: {
           language: { string_value: '', metadataType: ModelRegistryMetadataType.STRING },
           'granite-3.1': { string_value: '', metadataType: ModelRegistryMetadataType.STRING },
-          Licence: {
+          License: {
             string_value: 'https://www.apache.org/licenses/LICENSE-2.0.txt',
             metadataType: ModelRegistryMetadataType.STRING,
           },
