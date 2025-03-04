@@ -76,6 +76,7 @@ const EnvironmentVariablesSection: React.FC<EnvironmentVariablesSectionType> = (
   const labelInfo = () => {
     const button = (
       <Button
+        isInline
         data-testid="view-predefined-vars-button"
         variant="link"
         isAriaDisabled={!predefinedVars}
