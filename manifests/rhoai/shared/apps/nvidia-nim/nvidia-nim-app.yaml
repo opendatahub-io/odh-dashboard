@@ -23,6 +23,7 @@ spec:
     title: Enter NVIDIA AI Enterprise license key
     actionLabel: Submit
     description: ''
+    inProgressText: Contacting NVIDIA to validate the license key. This can take a few minutes.
     variables:
       api_key: password
     variableDisplayText:
