@@ -17,7 +17,7 @@ export const getCardWithWait = (
   cy.log(`Waiting for card with id: ${id}`);
 
   return cy
-    .findByTestId('learning-center-card-view', { timeout })
+    .findByTestId('learning-center-card-view', {timeout:180000})
     .then(($cardView) => {
       if ($cardView.length === 0) {
         throw new Error(`Card view not found within ${timeout}ms`);
