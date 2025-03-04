@@ -59,7 +59,7 @@ const FineTunePage: React.FC<FineTunePageProps> = ({
       <BaseModelSection
         data={data.baseModel}
         setData={(baseModelData) => setData('baseModel', baseModelData)}
-        registryName={state?.modelRegistryName}
+        registryName={state?.modelRegistryDisplayName}
         inputModelName={state?.registeredModelName}
         inputModelVersionName={state?.modelVersionName}
       />
