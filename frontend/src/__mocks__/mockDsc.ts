@@ -21,11 +21,6 @@ export const mockDsc = ({
     components: {
       datasciencepipelines: {
         managementState: 'Managed',
-        managedPipelines: {
-          instructLab: {
-            state: 'Managed',
-          },
-        },
       },
       kserve: {
         defaultDeploymentMode: 'Severless',
