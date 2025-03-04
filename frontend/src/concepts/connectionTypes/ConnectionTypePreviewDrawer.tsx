@@ -48,7 +48,7 @@ const ConnectionTypePreviewDrawer: React.FC<Props> = ({ children, isExpanded, on
         <Card>
           <CardBody>
             <Form>
-              <Title headingLevel="h1">Add connection</Title>
+              <Title headingLevel="h1">Create connection</Title>
               <ConnectionTypeForm isPreview connectionType={obj} />
             </Form>
           </CardBody>
