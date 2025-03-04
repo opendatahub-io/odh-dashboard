@@ -150,7 +150,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
                   <div className="odh-enable-modal__progress-title">
                     <Spinner size="md" />
                     {enable.inProgressText ? (
-                      <div>{enable.inProgressText}</div>
+                      <div style={{ whiteSpace: 'pre-line' }}>{enable.inProgressText}</div>
                     ) : (
                       'Validating your entries'
                     )}
