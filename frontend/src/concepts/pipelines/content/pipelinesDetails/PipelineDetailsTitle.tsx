@@ -3,6 +3,7 @@ import { Label, Split, SplitItem, Truncate } from '@patternfly/react-core';
 import { PipelineRunKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 import { computeRunStatus } from '~/concepts/pipelines/content/utils';
 import PipelineRunTypeLabel from '~/concepts/pipelines/content/PipelineRunTypeLabel';
+import { useIsPipelineRunRegistered } from '~/concepts/pipelines/content/tables/pipelineRun/utils';
 
 type RecurringRunTitleProps = {
   run: PipelineRunKF;
@@ -18,6 +19,7 @@ const PipelineDetailsTitle: React.FC<RecurringRunTitleProps> = ({
   const { icon, label, color } = computeRunStatus(run);
 
   const isArchived = run.storage_state === StorageStateKF.ARCHIVED;
+  const isPipelineRunRegistered = useIsPipelineRunRegistered(run);
 
   return (
     <>
@@ -36,6 +38,11 @@ const PipelineDetailsTitle: React.FC<RecurringRunTitleProps> = ({
             <Label color={color} icon={icon} data-testid="status-icon">
               {label}
             </Label>
+          </SplitItem>
+        )}
+        {isPipelineRunRegistered && (
+          <SplitItem>
+            <Label color="green">Model registered</Label>
           </SplitItem>
         )}
         {isArchived && (

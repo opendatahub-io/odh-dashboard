@@ -21,6 +21,8 @@ import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVer
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { RecurringRunTrigger } from '~/concepts/pipelines/content/tables/renderUtils';
+import { usePipelineRunArtifactModelData } from './artifacts/usePipelineRunArtifactModelData';
+import PipelineRunRegisteredModelDetails from './PipelineRunRegisteredModelDetails';
 
 type PipelineRunTabDetailsProps = {
   run?: PipelineRunKF | PipelineRecurringRunKF | null;
@@ -47,6 +49,9 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({ run, work
       </EmptyState>
     );
   }
+
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const artifactModelData = isPipelineRun(run) ? usePipelineRunArtifactModelData(run) : [];
 
   const runId = isPipelineRun(run) ? run.run_id : run.recurring_run_id;
 
@@ -81,6 +86,23 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({ run, work
       : []),
     { key: 'Run ID', value: runId },
     { key: 'Workflow name', value: workflowName },
+    {
+      key: 'Registered models',
+      value: (
+        <>
+          {artifactModelData?.length ? (
+            artifactModelData.map((data) => (
+              <PipelineRunRegisteredModelDetails
+                key={data.modelVersionId}
+                artifactModelData={data}
+              />
+            ))
+          ) : (
+            <span>No model details available</span>
+          )}
+        </>
+      ),
+    },
     ...(!isPipelineRecurringRun(run)
       ? [
           { key: 'Started', value: asTimestamp(new Date(run.created_at)) },

@@ -69,20 +69,53 @@ describe('ArtifactDetails', () => {
         getType: jest.fn(() => 'system.Artifact'),
         getUri: jest.fn(() => 's3://namespace/bucket/path/to/artifact'),
         getPropertiesMap: jest.fn(() => []),
-        getCustomPropertiesMap: jest.fn(() => [
-          [
-            'display_name',
-            {
-              stringValue: 'vertex_model',
-            },
-          ],
-          [
-            'resourceName',
-            {
-              stringValue: '12.15',
-            },
-          ],
-        ]),
+        getCustomPropertiesMap: jest.fn(
+          () =>
+            new Map([
+              [
+                'display_name',
+                {
+                  getStringValue: () => 'vertex_model',
+                },
+              ],
+              [
+                'resourceName',
+                {
+                  getStringValue: () => '12.15',
+                },
+              ],
+              [
+                'registeredModelName',
+                {
+                  getStringValue: () => 'Model name',
+                },
+              ],
+              [
+                'modelRegistryName',
+                {
+                  getStringValue: () => 'Registry name',
+                },
+              ],
+              [
+                'modelVersionName',
+                {
+                  getStringValue: () => 'v1',
+                },
+              ],
+              [
+                'modelVersionId',
+                {
+                  getStringValue: () => '1',
+                },
+              ],
+              [
+                'registeredModelId',
+                {
+                  getStringValue: () => '1',
+                },
+              ],
+            ]),
+        ),
         getState: jest.fn(() => 2),
         getCreateTimeSinceEpoch: jest.fn(() => 1711113121829),
         getLastUpdateTimeSinceEpoch: jest.fn(() => 1711113121829),
@@ -103,6 +136,36 @@ describe('ArtifactDetails', () => {
               'resourceName',
               {
                 stringValue: '12.15',
+              },
+            ],
+            [
+              'registeredModelName',
+              {
+                stringValue: 'Model name',
+              },
+            ],
+            [
+              'modelRegistryName',
+              {
+                stringValue: 'Registry name',
+              },
+            ],
+            [
+              'modelVersionName',
+              {
+                stringValue: 'v1',
+              },
+            ],
+            [
+              'modelVersionId',
+              {
+                stringValue: '1',
+              },
+            ],
+            [
+              'registeredModelId',
+              {
+                stringValue: '1',
               },
             ],
           ],

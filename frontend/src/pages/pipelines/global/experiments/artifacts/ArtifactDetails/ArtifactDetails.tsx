@@ -18,15 +18,20 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 
 import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import { getArtifactName } from '~/pages/pipelines/global/experiments/artifacts/utils';
+import {
+  getArtifactName,
+  getIsArtifactModelRegistered,
+} from '~/pages/pipelines/global/experiments/artifacts/utils';
 import { ArtifactDetailsTabKey } from '~/pages/pipelines/global/experiments/artifacts/constants';
 import { useGetArtifactById } from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactById';
 import { ArtifactOverviewDetails } from './ArtifactOverviewDetails';
+import ArtifactDetailsTitle from './ArtifactDetailsTitle';
 
 export const ArtifactDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) => {
   const { artifactId } = useParams();
   const [artifact, isArtifactLoaded, artifactError] = useGetArtifactById(Number(artifactId));
   const artifactName = getArtifactName(artifact);
+  const isArtifactModelRegistered = getIsArtifactModelRegistered(artifact);
 
   if (artifactError) {
     return (
@@ -51,7 +56,12 @@ export const ArtifactDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPa
 
   return (
     <ApplicationsPage
-      title={artifactName}
+      title={
+        <ArtifactDetailsTitle
+          name={artifactName}
+          isArtifactModelRegistered={isArtifactModelRegistered}
+        />
+      }
       loaded={isArtifactLoaded}
       loadError={artifactError}
       breadcrumb={
