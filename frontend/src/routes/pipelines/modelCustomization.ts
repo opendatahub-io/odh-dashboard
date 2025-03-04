@@ -1,8 +1,9 @@
 export const modelCustomizationRootPath = '/modelCustomization';
 export const globModelCustomizationAll = `${modelCustomizationRootPath}/*`;
+export const modelCustomizationFineTunePath = `${modelCustomizationRootPath}/fine-tune`;
 
 export const getModelCustomizationPath = (namespace: string): string =>
-  `${modelCustomizationRootPath}/fine-tune/${namespace}`;
+  `${modelCustomizationFineTunePath}/${namespace}`;
 
 export type ModelCustomizationRouterState = {
   modelRegistryName: string;
