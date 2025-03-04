@@ -52,12 +52,8 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
   const [dataConnections] = useDataConnections(selectedProject?.metadata.name);
   const [connections] = useConnections(selectedProject?.metadata.name, true);
   const error = platformError || projectError;
-  const [
-    registeredModels,
-    registeredModelLoaded,
-    registeredModelLoadError,
-    refreshRegisteredModel,
-  ] = useRegisteredModelById(modelVersion.registeredModelId);
+  const [registeredModel, registeredModelLoaded, registeredModelLoadError, refreshRegisteredModel] =
+    useRegisteredModelById(modelVersion.registeredModelId);
 
   const {
     registeredModelDeployInfo,
@@ -69,18 +65,18 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
   const loadError = deployInfoError || registeredModelLoadError;
 
   const handleSubmit = React.useCallback(async () => {
-    if (!modelVersion.registeredModelId || !registeredModels) {
+    if (!modelVersion.registeredModelId || !registeredModel) {
       return;
     }
 
     try {
-      await bumpBothTimestamps(modelRegistryApi.api, registeredModels, modelVersion);
+      await bumpBothTimestamps(modelRegistryApi.api, registeredModel, modelVersion);
       refreshRegisteredModel();
       onSubmit?.();
     } catch (submitError) {
       throw new Error('Failed to update timestamps after deployment');
     }
-  }, [modelRegistryApi.api, modelVersion, onSubmit, registeredModels, refreshRegisteredModel]);
+  }, [modelRegistryApi.api, modelVersion, onSubmit, registeredModel, refreshRegisteredModel]);
 
   const onClose = React.useCallback(
     (submit: boolean) => {
