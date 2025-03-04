@@ -64,12 +64,11 @@ const useNotebookPodSpecOptionsStateBase = (
   const existingNodeSelector = existingNotebook?.spec.template.spec.nodeSelector;
 
   // create new pod spec options from form data
-  const annotationData = {
-    lastSizeSelection: notebookSizeState.selectedSize.name,
-    selectedAcceleratorProfile: acceleratorProfileFormState.formData.profile,
-    selectedHardwareProfile: hardwareProfileConfig.formData.selectedProfile,
-  };
+
   if (isHardwareProfilesAvailable) {
+    const annotationData = {
+      selectedHardwareProfile: hardwareProfileConfig.formData.selectedProfile,
+    };
     if (hardwareProfileConfig.formData.useExistingSettings) {
       // if using existing settings, use existing pod spec options
       podSpecOptions = {
@@ -103,7 +102,8 @@ const useNotebookPodSpecOptionsStateBase = (
       resources,
       tolerations,
       nodeSelector: {},
-      ...annotationData,
+      lastSizeSelection: notebookSizeState.selectedSize.name,
+      selectedAcceleratorProfile: acceleratorProfileFormState.formData.profile,
     };
   }
 

@@ -120,33 +120,42 @@ export const useHardwareProfileConfig = (
     if (!profilesLoaded || formData.selectedProfile) {
       return;
     }
+    // only set form state if not already set
+    if (!formData.resources) {
+      let selectedProfile: HardwareProfileKind | undefined;
 
-    let selectedProfile: HardwareProfileKind | undefined;
-    if (resources && !formData.resources) {
-      setFormData('resources', resources);
+      // if editing, try to select existing profile
+      if (resources) {
+        // maintain current resources if editing
+        setFormData('resources', resources);
 
-      if (existingHardwareProfileName) {
-        selectedProfile = profiles.find(
-          (profile) => profile.metadata.name === existingHardwareProfileName,
-        );
+        // try to match to existing profile
+        if (existingHardwareProfileName) {
+          selectedProfile = profiles.find(
+            (profile) => profile.metadata.name === existingHardwareProfileName,
+          );
+        } else {
+          selectedProfile = matchToHardwareProfile(profiles, resources, tolerations, nodeSelector);
+        }
+
+        initialHardwareProfile.current = selectedProfile;
+      }
+
+      // if not editing existing profile, select the first enabled profile
+      else {
+        selectedProfile = profiles.find((profile) => profile.spec.enabled);
+        if (selectedProfile) {
+          setFormData('resources', getContainerResourcesFromHardwareProfile(selectedProfile));
+        }
+      }
+
+      // set the selected profile if found, otherwise set to use existing settings
+      if (selectedProfile) {
+        setFormData('selectedProfile', selectedProfile);
       } else {
-        selectedProfile = matchToHardwareProfile(profiles, resources, tolerations, nodeSelector);
+        setFormData('resources', resources);
+        setFormData('useExistingSettings', true);
       }
-
-      initialHardwareProfile.current = selectedProfile;
-      setFormData('useExistingSettings', !selectedProfile);
-    }
-
-    // if no match or no resources provided, select the first enabled profile
-    if (!selectedProfile) {
-      selectedProfile = profiles.find((profile) => profile.spec.enabled);
-      if (selectedProfile && !formData.resources) {
-        setFormData('resources', getContainerResourcesFromHardwareProfile(selectedProfile));
-      }
-    }
-
-    if (selectedProfile) {
-      setFormData('selectedProfile', selectedProfile);
     }
   }, [
     existingHardwareProfileName,
