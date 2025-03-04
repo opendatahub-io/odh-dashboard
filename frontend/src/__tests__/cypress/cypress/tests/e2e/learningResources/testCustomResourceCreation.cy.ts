@@ -14,7 +14,6 @@ import {
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 describe('Create a custom resource Quickstart by using Dashboard CRDs', () => {
-
   let resourcesData: ResourcesData;
   let resourceNames: ReturnType<typeof getResourceValues>;
 

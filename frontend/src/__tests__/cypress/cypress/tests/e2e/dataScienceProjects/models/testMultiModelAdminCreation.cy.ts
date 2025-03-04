@@ -26,7 +26,6 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 
 describe('[Automation Bug: RHOAIENG-20591] Verify Admin Multi Model Creation and Validation using the UI', () => {
-
   retryableBefore(() => {
     Cypress.on('uncaught:exception', (err) => {
       if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
