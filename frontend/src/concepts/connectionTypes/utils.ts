@@ -14,9 +14,7 @@ import {
   ConnectionTypeValueType,
 } from '~/concepts/connectionTypes/types';
 import { enumIterator } from '~/utilities/utils';
-import { AWSDataEntry, EnvVariableDataEntry } from '~/pages/projects/types';
-import { AwsKeys } from '~/pages/projects/dataConnections/const';
-import { isSecretKind } from '~/pages/projects/screens/spawner/environmentVariables/utils';
+import { EnvVariableDataEntry } from '~/pages/projects/types';
 
 export const isConnectionTypeDataFieldType = (
   type: ConnectionTypeFieldTypeUnion | string,
@@ -439,25 +437,4 @@ export const validateEnvVarName = (name: string): string | undefined => {
     return "Must consist of alphabetic characters, digits, '_', '-', or '.'";
   }
   return undefined;
-};
-
-export const convertObjectStorageSecretData = (dataConnection: Connection): AWSDataEntry => {
-  let convertedData: { key: AwsKeys; value: string }[] = [];
-  const secretData = dataConnection.data;
-  if (secretData) {
-    convertedData = Object.values(AwsKeys)
-      .filter((key) => key !== AwsKeys.NAME)
-      .map((key: AwsKeys) => ({
-        key,
-        value: secretData[key] ? window.atob(secretData[key]) : '',
-      }));
-  }
-  const convertedSecret: AWSDataEntry = [
-    {
-      key: AwsKeys.NAME,
-      value: getDisplayNameFromK8sResource(dataConnection),
-    },
-    ...convertedData,
-  ];
-  return convertedSecret;
 };

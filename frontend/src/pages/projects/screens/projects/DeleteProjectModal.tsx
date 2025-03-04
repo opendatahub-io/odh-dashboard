@@ -55,7 +55,7 @@ const DeleteProjectModal: React.FC<DeleteProjectModalProps> = ({ deleteData, onC
       deleteName={displayName}
       error={error}
     >
-      This action cannot be undone. It will destroy all workbenches, storages, data connections and
+      This action cannot be undone. It will destroy all workbenches, storages, connections and
       other resources in <strong>{displayName}</strong>.
     </DeleteModal>
   );

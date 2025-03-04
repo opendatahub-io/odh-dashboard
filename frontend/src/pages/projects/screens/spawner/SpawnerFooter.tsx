@@ -17,7 +17,6 @@ import {
   updateNotebook,
 } from '~/api';
 import {
-  DataConnectionData,
   EnvVariable,
   StartNotebookData,
   StorageData,
@@ -42,14 +41,13 @@ import {
   updatePvcDataForNotebook,
 } from './service';
 import { checkRequiredFieldsForNotebookStart, getPvcVolumeDetails } from './spawnerUtils';
-import { getNotebookDataConnection } from './dataConnection/useNotebookDataConnection';
+// import { getNotebookDataConnection } from './dataConnection/useNotebookDataConnection';
 import { setConnectionsOnEnvFrom } from './connections/utils';
 
 type SpawnerFooterProps = {
   startNotebookData: StartNotebookData;
   storageData: StorageData[];
   envVariables: EnvVariable[];
-  dataConnection: DataConnectionData;
   connections?: Connection[];
   canEnablePipelines: boolean;
 };
@@ -58,7 +56,6 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   startNotebookData,
   storageData,
   envVariables,
-  dataConnection,
   connections = [],
   canEnablePipelines,
 }) => {
@@ -66,7 +63,6 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
 
   const {
     notebooks: { data: notebooks, refresh: refreshNotebooks },
-    dataConnections: { data: existingDataConnections, refresh: refreshDataConnections },
     connections: { data: projectConnections, refresh: refreshConnections },
   } = React.useContext(ProjectDetailsContext);
   const { notebookName } = useParams();
@@ -89,13 +85,9 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     : true;
   const isButtonDisabled =
     createInProgress ||
-    !checkRequiredFieldsForNotebookStart(startNotebookData, envVariables, dataConnection) ||
+    !checkRequiredFieldsForNotebookStart(startNotebookData, envVariables) ||
     !isHardwareProfileValid;
   const { username } = useUser();
-  const existingNotebookDataConnection = getNotebookDataConnection(
-    editNotebook,
-    existingDataConnections,
-  );
 
   const afterStart = (name: string, type: 'created' | 'updated') => {
     const { image, podSpecOptions } = startNotebookData;
@@ -113,9 +105,6 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       imageName: image.imageStream?.metadata.name,
       projectName,
       notebookName: name,
-      dataConnectionType: dataConnection.creating?.type?.toString(),
-      dataConnectionCategory: dataConnection.creating?.values?.category?.toString(),
-      dataConnectionEnabled: dataConnection.enabled,
       outcome: TrackingOutcome.submit,
       success: true,
     };
@@ -123,7 +112,6 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     fireFormTrackingEvent(`Workbench ${type === 'created' ? 'Created' : 'Updated'}`, tep);
 
     refreshNotebooks();
-    refreshDataConnections();
     refreshConnections();
 
     navigate(`/projects/${projectName}?section=${ProjectSectionID.WORKBENCHES}`);
@@ -188,8 +176,6 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       projectName,
       editNotebook,
       envVariables,
-      dataConnection,
-      existingNotebookDataConnection,
       connections,
       dryRun,
     );
@@ -229,14 +215,6 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   };
 
   const createNotebookPromise = async (dryRun: boolean) => {
-    const newDataConnection =
-      dataConnection.enabled && dataConnection.type === 'creating' && dataConnection.creating
-        ? [dataConnection.creating]
-        : [];
-    const existingDataConnection =
-      dataConnection.enabled && dataConnection.type === 'existing' && dataConnection.existing
-        ? [dataConnection.existing]
-        : [];
 
     const { pvcRequests, restartConnectedNotebooksPromises } = getPvcRequests(dryRun);
 
@@ -247,7 +225,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
 
     let envFrom = await createConfigMapsAndSecretsForNotebook(
       projectName,
-      [...envVariables, ...newDataConnection],
+      [...envVariables],
       dryRun,
     );
 
@@ -258,7 +236,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       ...startNotebookData,
       volumes,
       volumeMounts,
-      envFrom: [...envFrom, ...existingDataConnection],
+      envFrom: [...envFrom],
     };
     return createNotebook(newStartData, username, canEnablePipelines, { dryRun });
   };
