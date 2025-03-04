@@ -5,6 +5,8 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import { pipelineVersionDetailsRoute } from '~/routes';
 import { getNameEqualsFilter } from '~/concepts/pipelines/utils';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 import { usePipelineImportModalData } from './useImportModalData';
 import PipelineImportBase from './PipelineImportBase';
 import { PipelineUploadOption } from './utils';
@@ -14,6 +16,7 @@ type PipelineImportModalProps = {
   redirectAfterImport?: boolean;
 };
 
+const pipelineImported = 'Pipeline Imported';
 const PipelineImportModal: React.FC<PipelineImportModalProps> = ({
   redirectAfterImport = true,
   onClose,
@@ -24,6 +27,9 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({
 
   const handleClose = React.useCallback(
     async (pipeline?: PipelineKF) => {
+      if (!pipeline) {
+        fireFormTrackingEvent(pipelineImported, { outcome: TrackingOutcome.cancel });
+      }
       onClose(pipeline);
 
       if (pipeline && redirectAfterImport) {
@@ -46,6 +52,10 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({
 
   const submitAction = React.useCallback(() => {
     const { name, description, fileContents, pipelineUrl, uploadOption } = modalData;
+    fireFormTrackingEvent(pipelineImported, {
+      outcome: TrackingOutcome.submit,
+      mode: uploadOption === PipelineUploadOption.FILE_UPLOAD ? 'file' : 'url',
+    });
     if (uploadOption === PipelineUploadOption.FILE_UPLOAD) {
       return api.uploadPipeline({}, name, description, fileContents);
     }

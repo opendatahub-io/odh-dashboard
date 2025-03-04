@@ -6,6 +6,11 @@ import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import useDeleteStatuses from '~/concepts/pipelines/content/useDeleteStatuses';
 import DeletePipelineModalExpandableSection from '~/concepts/pipelines/content/DeletePipelineModalExpandableSection';
 import { getPipelineAndVersionDeleteString } from '~/concepts/pipelines/content/utils';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import {
+  FormTrackingEventProperties,
+  TrackingOutcome,
+} from '~/concepts/analyticsTracking/trackingProperties';
 
 type DeletePipelinesModalProps = {
   toDeletePipelines?: PipelineKF[];
@@ -37,6 +42,7 @@ const DeletePipelinesModal: React.FC<DeletePipelinesModalProps> = ({
 
   let deleteTitle;
   let deleteName;
+  let isDeleteVersion = false;
   let deleteDescription = <>This action cannot be undone.</>;
   if (resourceCount > 1) {
     deleteTitle = 'Delete pipelines?';
@@ -62,6 +68,7 @@ const DeletePipelinesModal: React.FC<DeletePipelinesModalProps> = ({
     }
   } else if (toDeletePipelineVersions.length === 1) {
     deleteTitle = 'Delete pipeline version?';
+    isDeleteVersion = true;
     deleteName = toDeletePipelineVersions[0].version.display_name;
     deleteDescription = (
       <>
@@ -74,10 +81,22 @@ const DeletePipelinesModal: React.FC<DeletePipelinesModalProps> = ({
     deleteName = toDeletePipelines[0].display_name;
   }
 
+  const fireFormTrackingEventForPipeline = (properties: FormTrackingEventProperties) => {
+    fireFormTrackingEvent(
+      isDeleteVersion ? 'Pipeline Version Deleted' : 'Pipeline Deleted',
+      properties,
+    );
+  };
+
   return (
     <DeleteModal
       title={deleteTitle}
-      onClose={() => onBeforeClose(false)}
+      onClose={() => {
+        onBeforeClose(false);
+        fireFormTrackingEventForPipeline({
+          outcome: TrackingOutcome.cancel,
+        });
+      }}
       deleting={deleting}
       error={error}
       onDelete={() => {
@@ -102,10 +121,21 @@ const DeletePipelinesModal: React.FC<DeletePipelinesModalProps> = ({
 
         if (allPromises.length === 1) {
           allPromises[0]
-            .then(() => onBeforeClose(true))
+            .then(() => {
+              onBeforeClose(true);
+              fireFormTrackingEventForPipeline({
+                outcome: TrackingOutcome.submit,
+                success: true,
+              });
+            })
             .catch((e) => {
               setError(e);
               setDeleting(false);
+              fireFormTrackingEventForPipeline({
+                outcome: TrackingOutcome.submit,
+                success: false,
+                error: e,
+              });
             });
         } else {
           //TODO: prefer a refactor for the use case to not depend on the index in the delete modal.
@@ -116,6 +146,10 @@ const DeletePipelinesModal: React.FC<DeletePipelinesModalProps> = ({
               results.map((result) => (result.status === 'fulfilled' ? true : result.reason)),
             ),
           );
+          fireFormTrackingEventForPipeline({
+            outcome: TrackingOutcome.submit,
+            success: true,
+          });
         }
       }}
       submitButtonLabel="Delete"
