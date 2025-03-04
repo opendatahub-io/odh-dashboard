@@ -33,7 +33,11 @@ import { ModelCatalogContext } from '~/concepts/modelCatalog/context/ModelCatalo
 import { CatalogModel } from '~/concepts/modelCatalog/types';
 import ModelRegistrySelector from '~/pages/modelRegistry/screens/ModelRegistrySelector';
 import useModelRegistryAPIState from '~/concepts/modelRegistry/context/useModelRegistryAPIState';
-import { decodeParams, findModelFromModelCatalogSources } from '~/pages/modelCatalog/utils';
+import {
+  decodeParams,
+  findModelFromModelCatalogSources,
+  getTagFromModel,
+} from '~/pages/modelCatalog/utils';
 import {
   ModelRegistryCustomProperties,
   ModelRegistryMetadataType,
@@ -84,7 +88,7 @@ const RegisterCatalogModel: React.FC = () => {
   React.useEffect(() => {
     if (model) {
       const labels: ModelRegistryCustomProperties = {};
-      setData('modelName', model.name);
+      setData('modelName', `${model.name}-${getTagFromModel(model) || ''}`);
       setData('modelDescription', model.longDescription?.replace(/\s*\n\s*/g, ' ') ?? '');
       setData('versionName', 'Version 1');
       setData('modelLocationType', ModelLocationType.URI);
