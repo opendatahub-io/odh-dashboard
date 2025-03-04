@@ -9,7 +9,7 @@ import {
 } from '~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
 import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
-describe('[Automation Bug RHOAIENG-20207] Verify a Jupyter Notebook can be launched directly from the Data Science Project List View', () => {
+describe('[Automation Bug: RHOAIENG-20207] Verify a Jupyter Notebook can be launched directly from the Data Science Project List View', () => {
   let testData: NotebookImageData;
 
   retryableBefore(() => {

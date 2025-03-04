@@ -1,5 +1,5 @@
 import type { DataScienceProjectData } from '~/__tests__/cypress/cypress/types';
-import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
+import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import { permissions } from '~/__tests__/cypress/cypress/pages/permissions';
 import {
   HTPASSWD_CLUSTER_ADMIN_USER,
@@ -62,7 +62,9 @@ describe('Verify that users can provide admin project permissions to non-admin u
       projectListPage.navigate();
       projectListPage.filterProjectByName(testData.projectPermissionResourceName);
       projectListPage.findProjectLink(testData.projectPermissionResourceName).click();
-      projectDetails.findSectionTab('permissions').click();
+      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
+      // Reapply projectDetails.findSectionTab('permissions').click();
+      cy.visit(`projects/${projectName}?section=permissions`);
 
       cy.step('Assign admin user Project Permissions');
       permissions.findAddUserButton().click();
@@ -98,7 +100,9 @@ describe('Verify that users can provide admin project permissions to non-admin u
       projectListPage.navigate();
       projectListPage.filterProjectByName(testData.projectPermissionResourceName);
       projectListPage.findProjectLink(testData.projectPermissionResourceName).click();
-      projectDetails.findSectionTab('permissions').click();
+      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
+      // Reapply projectDetails.findSectionTab('permissions').click();
+      cy.visit(`projects/${projectName}?section=permissions`);
 
       cy.step('Assign admin group Project Permissions');
       permissions.findAddGroupButton().click();
@@ -126,7 +130,9 @@ describe('Verify that users can provide admin project permissions to non-admin u
       projectListPage.navigate();
       projectListPage.filterProjectByName(testData.projectPermissionResourceName);
       projectListPage.findProjectLink(testData.projectPermissionResourceName).click();
-      projectDetails.findSectionTab('permissions').click();
+      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
+      // Reapply projectDetails.findSectionTab('permissions').click();
+      cy.visit(`projects/${projectName}?section=permissions`);
     },
   );
 });
