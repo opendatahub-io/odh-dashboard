@@ -147,3 +147,19 @@ export const translateIlabFormToTaxonomyInput = (
   // eslint-disable-next-line camelcase
   sdg_repo_secret: secretName,
 });
+
+export const translateIlabFormToBaseModelInput = (
+  data: ModelCustomizationFormData,
+): {
+  output_model_registry_api_url: string;
+  output_model_name: string;
+  sdg_base_model: string;
+} => ({
+  // eslint-disable-next-line camelcase
+  output_model_registry_api_url: data.outputModel.outputModelRegistryApiUrl,
+  // eslint-disable-next-line camelcase
+  output_model_name: data.outputModel.outputModelName,
+  // eslint-disable-next-line camelcase
+  sdg_base_model: data.baseModel.sdgBaseModel,
+  // TODO more output model fields
+});
