@@ -6,8 +6,15 @@ interface ResourceInfo {
   description: string;
 }
 
-export const getCardWithWait = (cardView: CardView, id: string, timeout: number = 180000): Cypress.Chainable<JQuery<HTMLElement>> => {
-  return cardView.getCard(id).find().should('exist').and('be.visible', { timeout });
+export const getCardWithWait = (cardView: CardView, id: string | undefined, timeout: number = 180000): Cypress.Chainable<JQuery<HTMLElement>> => {
+  if (!id) {
+    throw new Error('The "id" parameter is undefined. Ensure that metaDataName is correctly passed.');
+  }
+
+  cy.log(`Waiting for card with id: ${id}`);
+
+  // Apply timeout to the Cypress command that supports it
+  return cardView.getCard(id).find().should('exist', { timeout }).and('be.visible');
 };
 
 export const checkResources = (resourceInfoList: ResourceInfo[]): void => {
