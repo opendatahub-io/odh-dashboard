@@ -99,7 +99,7 @@ const RegisterCatalogModel: React.FC = () => {
       setData('modelCustomProperties', labels);
       setData('versionCustomProperties', {
         ...labels,
-        Licence: {
+        License: {
           // eslint-disable-next-line camelcase
           string_value: model.licenseLink || '',
           metadataType: ModelRegistryMetadataType.STRING,

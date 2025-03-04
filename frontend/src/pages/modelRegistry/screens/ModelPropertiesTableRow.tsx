@@ -9,10 +9,12 @@ import {
   HelperText,
   HelperTextItem,
   TextInput,
+  Truncate,
 } from '@patternfly/react-core';
-import { CheckIcon, TimesIcon } from '@patternfly/react-icons';
+import { CheckIcon, ExternalLinkAltIcon, TimesIcon } from '@patternfly/react-icons';
 import { KeyValuePair } from '~/types';
 import { EitherNotBoth } from '~/typeHelpers';
+import { isValidHttpUrl } from './utils';
 
 type ModelPropertiesTableRowProps = {
   allExistingKeys: string[];
@@ -144,7 +146,21 @@ const ModelPropertiesTableRow: React.FC<ModelPropertiesTableRowProps> = ({
             onToggle={(_event, isExpanded) => setIsValueExpanded(isExpanded)}
             isExpanded={isValueExpanded}
           >
-            {value}
+            {isValidHttpUrl(value) ? (
+              <Button
+                variant="link"
+                icon={<ExternalLinkAltIcon />}
+                iconPosition="end"
+                component="a"
+                href={value}
+                target="_blank"
+                isInline
+              >
+                <Truncate content={value} />
+              </Button>
+            ) : (
+              value
+            )}
           </ExpandableSection>
         )}
       </Td>
