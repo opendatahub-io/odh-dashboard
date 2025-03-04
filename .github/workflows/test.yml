@@ -1,33 +1,32 @@
 name: Test
 on: [push, pull_request]
+env:
+  NODE_VERSION: 18.x
 jobs:
   Tests:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [18.x]
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Node.js ${{ matrix.node-version }}
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4.1.0
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: ${{ env.NODE_VERSION }}
       - name: Node.js modules cache, repository
         uses: actions/cache@v4
         id: repo-cache
         with:
           path: ${{ github.workspace }}/node_modules
-          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-repo-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-repo-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.node-version }}-modules-repo
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-repo
       - name: Node.js modules cache, backend
         uses: actions/cache@v4
         id: backend-cache
         with:
           path: ${{ github.workspace }}/backend/node_modules
-          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-backend-${{ hashFiles('**/backend/package-lock.json') }}
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-backend-${{ hashFiles('**/backend/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.node-version }}-modules-backend
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-backend
       - name: Node.js modules cache, frontend
         uses: actions/cache@v4
         id: frontend-cache
@@ -35,9 +34,9 @@ jobs:
           path: |
             ~/.cache/Cypress
             ${{ github.workspace }}/frontend/node_modules
-          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-frontend-${{ hashFiles('**/frontend/package-lock.json') }}
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-frontend-${{ hashFiles('**/frontend/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.node-version }}-modules-frontend
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-frontend
       - name: Install Node.js packages
         if: ${{ steps.repo-cache.outputs.cache-hit != 'true' || steps.backend-cache.outputs.cache-hit != 'true' || steps.frontend-cache.outputs.cache-hit != 'true' }}
         run: npm install
