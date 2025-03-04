@@ -18,6 +18,10 @@ import {
   modelVersionListUrl,
 } from '~/pages/modelRegistry/screens/routeUtils';
 import DeployRegisteredModelModal from '~/pages/modelRegistry/screens/components/DeployRegisteredModelModal';
+import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
+import StartRunModal from '~/pages/pipelines/global/modelCustomization/startRunModal/StartRunModal';
+import { useModelVersionTuningData } from '~/concepts/modelRegistry/hooks/useModelVersionTuningData';
+import { getModelCustomizationPath } from '~/routes/pipelines/modelCustomization';
 
 interface ModelVersionsDetailsHeaderActionsProps {
   mv: ModelVersion;
@@ -32,12 +36,19 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
 }) => {
   const { apiState } = React.useContext(ModelRegistryContext);
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const isFineTuningEnabled = useIsAreaAvailable(SupportedArea.FINE_TUNING);
 
   const navigate = useNavigate();
   const [isOpenActionDropdown, setOpenActionDropdown] = React.useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const [isDeployModalOpen, setIsDeployModalOpen] = React.useState(false);
+  const [isLabTuneModalOpen, setIsLabTuneModalOpen] = React.useState(false);
   const tooltipRef = React.useRef<HTMLButtonElement>(null);
+
+  const { tuningData, loaded, loadError } = useModelVersionTuningData(
+    isLabTuneModalOpen ? mv.id : null,
+    mv,
+  );
 
   return (
     <ActionList>
@@ -50,6 +61,17 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
       >
         Deploy
       </Button>
+      {isFineTuningEnabled && (
+        <Button
+          id="lab-tune-button"
+          aria-label="Lab tune version"
+          variant={ButtonVariant.secondary}
+          onClick={() => setIsLabTuneModalOpen(true)}
+          data-testid="lab-tune-button"
+        >
+          Lab tune
+        </Button>
+      )}
       <Dropdown
         isOpen={isOpenActionDropdown}
         onSelect={() => setOpenActionDropdown(false)}
@@ -69,6 +91,16 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
         )}
       >
         <DropdownList>
+          {isFineTuningEnabled && (
+            <DropdownItem
+              id="lab-tune-dropdown-button"
+              aria-label="Lab tune model version"
+              key="lab-tune-dropdown-button"
+              onClick={() => setIsLabTuneModalOpen(true)}
+            >
+              Lab tune
+            </DropdownItem>
+          )}
           <DropdownItem
             isAriaDisabled={hasDeployment}
             id="archive-version-button"
@@ -84,6 +116,22 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
           </DropdownItem>
         </DropdownList>
       </Dropdown>
+      {isLabTuneModalOpen && (
+        <StartRunModal
+          onCancel={() => setIsLabTuneModalOpen(false)}
+          onSubmit={(selectedProject) => {
+            if (tuningData) {
+              navigate(
+                `${getModelCustomizationPath(selectedProject)}?${new URLSearchParams(
+                  tuningData as Record<string, string>,
+                ).toString()}`,
+              );
+            }
+          }}
+          loaded={loaded}
+          loadError={loadError}
+        />
+      )}
       {isDeployModalOpen ? (
         <DeployRegisteredModelModal
           onSubmit={() => {
@@ -92,7 +140,7 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
               modelVersionDeploymentsUrl(
                 mv.id,
                 mv.registeredModelId,
-                preferredModelRegistry?.metadata.name,
+                preferredModelRegistry?.metadata?.name,
               ),
             );
           }}
@@ -114,7 +162,8 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
               )
               .then(() =>
                 navigate(
-                  modelVersionListUrl(mv.registeredModelId, preferredModelRegistry?.metadata.name),
+                  modelVersionListUrl(mv.registeredModelId,     preferredModelRegistry?.metadata?.name,
+                  ),
                 ),
               )
           }
