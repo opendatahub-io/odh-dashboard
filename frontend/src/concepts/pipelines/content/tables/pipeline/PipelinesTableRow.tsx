@@ -87,7 +87,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
             isDisabled={disableDelete}
             tooltip={disableDelete ? DISABLE_TOOLTIP : undefined}
           />
-          <Td modifier="truncate">
+          <Td>
             <TableRowTitleDescription
               title={
                 loading ? (
