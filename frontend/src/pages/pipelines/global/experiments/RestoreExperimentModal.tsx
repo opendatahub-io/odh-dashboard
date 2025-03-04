@@ -32,6 +32,7 @@ export const RestoreExperimentModal: React.FC<RestoreExperimentModalProps> = ({
       onSubmit={onSubmit}
       title={`Restore experiment${isSingleRestoring ? '' : 's'}?`}
       testId="restore-experiment-modal"
+      what="experiment"
       alertTitle={`Error restoring ${
         isSingleRestoring ? experiments[0].display_name : 'experiments'
       }`}

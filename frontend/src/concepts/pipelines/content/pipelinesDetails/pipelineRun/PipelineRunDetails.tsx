@@ -30,6 +30,8 @@ import { FetchState } from '~/utilities/useFetchState';
 import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import PipelineNotSupported from '~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineNotSupported';
 import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 import { usePipelineRunArtifacts } from './artifacts';
 import { PipelineRunDetailsTabs } from './PipelineRunDetailsTabs';
 
@@ -167,6 +169,10 @@ const PipelineRunDetails: React.FC<
         type={PipelineRunType.ARCHIVED}
         toDeleteResources={deleting && run ? [run] : []}
         onClose={(deleteComplete) => {
+          fireFormTrackingEvent('Pipeline Run Deleted', {
+            outcome: TrackingOutcome.submit,
+            success: true,
+          });
           if (deleteComplete) {
             navigate(contextPath);
           } else {

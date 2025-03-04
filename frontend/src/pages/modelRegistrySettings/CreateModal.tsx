@@ -28,13 +28,15 @@ import K8sNameDescriptionField, {
 } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import useModelRegistryCertificateNames from '~/concepts/modelRegistrySettings/useModelRegistryCertificateNames';
 import {
+  constructRequestBody,
   findConfigMap,
   findSecureDBType,
-  constructRequestBody,
   isClusterWideCABundleEnabled,
   isOpenshiftCAbundleEnabled,
 } from '~/pages/modelRegistrySettings/utils';
 import { RecursivePartial } from '~/typeHelpers';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 import { CreateMRSecureDBSection, SecureDBInfo } from './CreateMRSecureDBSection';
 import ModelRegistryDatabasePassword from './ModelRegistryDatabasePassword';
 import { ResourceType, SecureDBRType } from './const';
@@ -121,6 +123,11 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
     }
   }, [mr]);
 
+  const onCancelClose = () => {
+    fireFormTrackingEvent('Model Registry Created', { outcome: TrackingOutcome.cancel });
+    onBeforeClose();
+  };
+
   const onBeforeClose = () => {
     setIsSubmitting(false);
     setError(undefined);
@@ -171,10 +178,21 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
           newDatabaseCACertificate,
         });
         await refresh();
+        fireFormTrackingEvent('Model Registry Created', {
+          outcome: TrackingOutcome.submit,
+          success: true,
+          mode: 'update',
+        });
         onBeforeClose();
       } catch (e) {
         if (e instanceof Error) {
           setError(e);
+          fireFormTrackingEvent('Model Registry Created', {
+            outcome: TrackingOutcome.submit,
+            success: false,
+            error: e.message,
+            mode: 'update',
+          });
         }
         setIsSubmitting(false);
       }
@@ -224,11 +242,22 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
           databasePassword: password,
           newDatabaseCACertificate,
         });
+        fireFormTrackingEvent('Model Registry Created', {
+          outcome: TrackingOutcome.submit,
+          success: true,
+          mode: 'create',
+        });
         await refresh();
         onBeforeClose();
       } catch (e) {
         if (e instanceof Error) {
           setError(e);
+          fireFormTrackingEvent('Model Registry Created', {
+            outcome: TrackingOutcome.submit,
+            success: false,
+            mode: 'create',
+            error: e.message,
+          });
         }
         setIsSubmitting(false);
       }
@@ -251,19 +280,19 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
     <Modal
       isOpen
       title={`${mr ? 'Edit' : 'Create'} model registry`}
-      onClose={onBeforeClose}
+      onClose={onCancelClose}
       actions={[
         <Button key="create-button" variant="primary" isDisabled={!canSubmit()} onClick={onSubmit}>
           Create
         </Button>,
-        <Button key="cancel-button" variant="secondary" onClick={onBeforeClose}>
+        <Button key="cancel-button" variant="secondary" onClick={onCancelClose}>
           Cancel
         </Button>,
       ]}
       variant="medium"
       footer={
         <DashboardModalFooter
-          onCancel={onBeforeClose}
+          onCancel={onCancelClose}
           onSubmit={onSubmit}
           submitLabel={mr ? 'Update' : 'Create'}
           isSubmitLoading={isSubmitting}

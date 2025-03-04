@@ -3,6 +3,8 @@ import { Button } from '@patternfly/react-core';
 import { Modal } from '@patternfly/react-core/deprecated';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 
 interface RestoreModalProps {
   onCancel: () => void;
@@ -11,6 +13,7 @@ interface RestoreModalProps {
   alertTitle: string;
   children: React.ReactNode;
   testId: string;
+  what: string;
 }
 
 export const RestoreModal: React.FC<RestoreModalProps> = ({
@@ -20,6 +23,7 @@ export const RestoreModal: React.FC<RestoreModalProps> = ({
   children,
   testId,
   alertTitle,
+  what,
 }) => {
   const { refreshAllAPI } = usePipelinesAPI();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -29,6 +33,10 @@ export const RestoreModal: React.FC<RestoreModalProps> = ({
     setIsSubmitting(true);
     try {
       await onSubmit();
+      fireFormTrackingEvent(
+        what === 'run' ? 'Archived Pipeline Run Restored' : 'Archived Experiment Restored',
+        { outcome: TrackingOutcome.submit, success: true },
+      );
       refreshAllAPI();
       setIsSubmitting(false);
       onCancel();
@@ -36,9 +44,18 @@ export const RestoreModal: React.FC<RestoreModalProps> = ({
       if (e instanceof Error) {
         setError(e);
       }
+      fireFormTrackingEvent(
+        what === 'run' ? 'Archived Pipeline Run Restored' : 'Archived Experiment Restored',
+        {
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: e instanceof Error ? e.message : 'unknown error',
+        },
+      );
+
       setIsSubmitting(false);
     }
-  }, [onSubmit, refreshAllAPI, onCancel]);
+  }, [onSubmit, refreshAllAPI, onCancel, what]);
 
   return (
     <Modal
