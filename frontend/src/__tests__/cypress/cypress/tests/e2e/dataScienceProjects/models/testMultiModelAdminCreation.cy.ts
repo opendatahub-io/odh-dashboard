@@ -91,6 +91,8 @@ describe('[Automation Bug: RHOAIENG-20591] Verify Admin Multi Model Creation and
 
       // Navigate to Model Serving tab and Deploy a Multi Model
       cy.step('Navigate to Model Serving and click to Deploy a Model Server');
+      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
+      // Reapply projectDetails.findSectionTab('model-server').click();
       cy.visit(`projects/${projectName}?section=model-server`);
       modelServingGlobal.findMultiModelButton().click();
       modelServingSection.findAddModelServerButton().click();

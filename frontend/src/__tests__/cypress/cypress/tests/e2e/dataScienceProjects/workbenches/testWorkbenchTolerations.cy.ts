@@ -96,6 +96,8 @@ describe('[Automation Bug: RHOAIENG-20099] Workbenches - tolerations tests', () 
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
+      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
+      // Reapply projectDetails.findSectionTab('workbenches').click();
       cy.visit(`projects/${projectName}?section=workbenches`);
 
       // Create workbench and verify it starts running
@@ -141,6 +143,8 @@ describe('[Automation Bug: RHOAIENG-20099] Workbenches - tolerations tests', () 
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
+      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
+      // Reapply projectDetails.findSectionTab('workbenches').click();
       cy.visit(`projects/${projectName}?section=workbenches`);
 
       // Stop workbench and verify it stops running
@@ -180,6 +184,8 @@ describe('[Automation Bug: RHOAIENG-20099] Workbenches - tolerations tests', () 
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
+      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
+      // Reapply projectDetails.findSectionTab('workbenches').click();
       cy.visit(`projects/${projectName}?section=workbenches`);
 
       // Stop workbench and verify it stops running
@@ -217,7 +223,9 @@ describe('[Automation Bug: RHOAIENG-20099] Workbenches - tolerations tests', () 
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      projectDetails.findSectionTab('workbenches').click();
+      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
+      // Reapply projectDetails.findSectionTab('workbenches').click();
+      cy.visit(`projects/${projectName}?section=workbenches`);
 
       // Create a second workbench with Config Map variables by uploading a yaml file
       cy.step(`Create a second workbench ${testData.workbenchName2} using config map variables`);

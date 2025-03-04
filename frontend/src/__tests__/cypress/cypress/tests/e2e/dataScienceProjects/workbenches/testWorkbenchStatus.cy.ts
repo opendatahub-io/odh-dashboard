@@ -62,6 +62,8 @@ describe('Workbenches - status tests', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
+      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
+      // Reapply projectDetails.findSectionTab('workbenches').click();
       cy.visit(`projects/${projectName}?section=workbenches`);
 
       // Create workbench

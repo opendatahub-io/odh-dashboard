@@ -62,6 +62,8 @@ describe('Verify that users can provide admin project permissions to non-admin u
       projectListPage.navigate();
       projectListPage.filterProjectByName(testData.projectPermissionResourceName);
       projectListPage.findProjectLink(testData.projectPermissionResourceName).click();
+      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
+      // Reapply projectDetails.findSectionTab('permissions').click();
       cy.visit(`projects/${projectName}?section=permissions`);
 
       cy.step('Assign admin user Project Permissions');
@@ -98,6 +100,8 @@ describe('Verify that users can provide admin project permissions to non-admin u
       projectListPage.navigate();
       projectListPage.filterProjectByName(testData.projectPermissionResourceName);
       projectListPage.findProjectLink(testData.projectPermissionResourceName).click();
+      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
+      // Reapply projectDetails.findSectionTab('permissions').click();
       cy.visit(`projects/${projectName}?section=permissions`);
 
       cy.step('Assign admin group Project Permissions');
@@ -126,6 +130,8 @@ describe('Verify that users can provide admin project permissions to non-admin u
       projectListPage.navigate();
       projectListPage.filterProjectByName(testData.projectPermissionResourceName);
       projectListPage.findProjectLink(testData.projectPermissionResourceName).click();
+      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
+      // Reapply projectDetails.findSectionTab('permissions').click();
       cy.visit(`projects/${projectName}?section=permissions`);
     },
   );

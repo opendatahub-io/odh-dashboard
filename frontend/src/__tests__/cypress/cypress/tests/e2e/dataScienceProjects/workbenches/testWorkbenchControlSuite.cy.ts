@@ -75,7 +75,8 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(controlSuiteTestNamespace);
       projectListPage.findProjectLink(controlSuiteTestNamespace).click();
-      projectDetails.findSectionTab('workbenches').click();
+      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
+      // Reapply projectDetails.findSectionTab('workbenches').click();
       cy.visit(`projects/${controlSuiteTestNamespace}?section=workbenches`);
 
       // Create workbench
@@ -139,6 +140,8 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(controlSuiteTestNamespace);
       projectListPage.findProjectLink(controlSuiteTestNamespace).click();
+      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
+      // Reapply projectDetails.findSectionTab('workbenches').click();
       cy.visit(`projects/${controlSuiteTestNamespace}?section=workbenches`);
 
       // Create workbench

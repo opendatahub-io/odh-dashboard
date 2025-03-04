@@ -76,6 +76,8 @@ describe('Workbench and PVSs tests', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
+      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
+      // Reapply projectDetails.findSectionTab('workbenches').click();
       cy.visit(`projects/${projectName}?section=workbenches`);
 
       cy.step(`Create Workbench ${projectName} using storage ${PVCDisplayName}`);
@@ -96,7 +98,9 @@ describe('Workbench and PVSs tests', () => {
       notebookRow.shouldHaveContainerSize('Small');
 
       cy.step(`Check the cluster storage ${PVCDisplayName} is now connected to ${workbenchName}`);
-      projectDetails.findSectionTab('cluster-storages').click();
+      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
+      // Reapply projectDetails.findSectionTab('cluster-storages').click();
+      cy.visit(`projects/${projectName}?section=cluster-storages`);
       const csRow = clusterStorage.getClusterStorageRow(PVCDisplayName);
       csRow.findConnectedWorkbenches().should('have.text', workbenchName);
     },

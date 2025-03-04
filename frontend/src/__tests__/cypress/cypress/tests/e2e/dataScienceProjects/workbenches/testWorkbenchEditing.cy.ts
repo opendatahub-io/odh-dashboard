@@ -66,6 +66,8 @@ describe('Edit and Update a Workbench in RHOAI', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(editTestNamespace);
       projectListPage.findProjectLink(editTestNamespace).click();
+      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
+      // Reapply projectDetails.findSectionTab('workbenches').click();
       cy.visit(`projects/${editTestNamespace}?section=workbenches`);
 
       // Create workbench

@@ -1,6 +1,6 @@
 import yaml from 'js-yaml';
 import type { WBNegativeTestsData } from '~/__tests__/cypress/cypress/types';
-import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
+import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import {
   workbenchPage,
   createSpawnerPage,
@@ -14,7 +14,7 @@ import {
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
-describe('Workbenches - negative tests', () => {
+describe('[Product Bug RHOAIENG-21039] Workbenches - negative tests', () => {
   let testData: WBNegativeTestsData;
   let projectName: string;
 
@@ -50,7 +50,7 @@ describe('Workbenches - negative tests', () => {
 
   it(
     'Verify UI informs users about workbenches failed to start',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1973', '@Dashboard', '@Workbenches'] },
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1973', '@Dashboard', '@Workbenches', '@Bug'] },
     () => {
       const workbenchName = projectName.replace('dsp-', '');
 
@@ -63,7 +63,7 @@ describe('Workbenches - negative tests', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      cy.visit(`projects/${projectName}?section=workbenches`);
+      projectDetails.findSectionTab('workbenches').click();
 
       // Create workbench
       cy.step(`Create workbench ${workbenchName}`);
@@ -85,7 +85,7 @@ describe('Workbenches - negative tests', () => {
   );
   it(
     'Verify User cannot create a workbench using special characters or long names in the Resource name field',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1973', '@Dashboard', '@Workbenches'] },
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1973', '@Dashboard', '@Workbenches', '@Bug'] },
     () => {
       const workbenchName = projectName.replace('dsp-', '');
 
@@ -98,7 +98,7 @@ describe('Workbenches - negative tests', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      cy.visit(`projects/${projectName}?section=workbenches`);
+      projectDetails.findSectionTab('workbenches').click();
 
       // Create workbench
       cy.step(`Create workbench ${workbenchName}`);

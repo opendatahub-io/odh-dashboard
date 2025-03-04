@@ -59,6 +59,8 @@ describe('Verify that users can provide contributor project permissions to non-a
       projectListPage.navigate();
       projectListPage.filterProjectByName(testData.projectContributorResourceName);
       projectListPage.findProjectLink(testData.projectContributorResourceName).click();
+      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
+      // Reapply projectDetails.findSectionTab('permissions').click();
       cy.visit(`projects/${projectName}?section=permissions`);
 
       cy.step('Assign contributor user Project Permissions');

@@ -76,6 +76,8 @@ describe('Verify Data Connections - Creation and Deletion', () => {
 
       //Navigate to Data Connections and create Connection
       cy.step('Navigate to Connections and click to create Connection');
+      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
+      // Reapply projectDetails.findSectionTab('connections').click();
       cy.visit(`projects/${projectName}?section=connections`);
       connectionsPage.findCreateConnectionButton().click();
 

@@ -40,6 +40,8 @@ describe('Regular Users can make use of the Storage Classes in the Cluster Stora
       projectListPage.findProjectLink(dspName).click();
       cy.step('Navigate to the Cluster Storage tab and disable all non-default storage classes');
       // Go to cluster storage tab
+      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
+      // Reapply projectDetails.findSectionTab('cluster-storages').click();
       cy.visit(`projects/${dspName}?section=cluster-storages`);
       // Disable all non-default storage classes
       disableNonDefaultStorageClasses().then(() => {
