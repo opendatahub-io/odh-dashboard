@@ -17,14 +17,16 @@ export const getCardWithWait = (
   cy.log(`Waiting for card with id: ${id}`);
 
   return cy
-    .findByTestId('learning-center-card-view', {timeout:180000})
+    .get('[data-testid="learning-center-card-view"]', { timeout })
+    .should('exist')
+    .and('be.visible')
     .then(($cardView) => {
       if ($cardView.length === 0) {
         throw new Error(`Card view not found within ${timeout}ms`);
       }
       return cy.wrap($cardView);
     })
-    .findByTestId(['card', id])
+    .get(`[data-testid="card ${id}"]`, { timeout })
     .should('exist')
     .and('be.visible')
     .then(($card) => {
