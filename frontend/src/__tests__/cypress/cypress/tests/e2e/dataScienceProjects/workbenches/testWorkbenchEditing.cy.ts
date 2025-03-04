@@ -1,5 +1,5 @@
 import type { WBEditTestData } from '~/__tests__/cypress/cypress/types';
-import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
+import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import {
   workbenchPage,
   createSpawnerPage,
@@ -66,7 +66,9 @@ describe('Edit and Update a Workbench in RHOAI', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(editTestNamespace);
       projectListPage.findProjectLink(editTestNamespace).click();
-      projectDetails.findSectionTab('workbenches').click();
+      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
+      // Reapply projectDetails.findSectionTab('workbenches').click();
+      cy.visit(`projects/${editTestNamespace}?section=workbenches`);
 
       // Create workbench
       cy.step(`Create workbench ${editTestNamespace} using storage ${pvcEditDisplayName}`);
