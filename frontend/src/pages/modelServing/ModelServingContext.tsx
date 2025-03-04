@@ -19,8 +19,6 @@ import { DEFAULT_CONTEXT_DATA, DEFAULT_LIST_WATCH_RESULT } from '~/utilities/con
 import { ContextResourceData, CustomWatchK8sResult } from '~/types';
 import { useContextResourceData } from '~/utilities/useContextResourceData';
 import { useDashboardNamespace } from '~/redux/selectors';
-import { DataConnection } from '~/pages/projects/types';
-import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
 import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { conditionalArea, SupportedArea } from '~/concepts/areas';
@@ -38,7 +36,6 @@ import useServingRuntimeSecrets from './screens/projects/useServingRuntimeSecret
 type ModelServingContextType = {
   refreshAllData: () => void;
   filterTokens: (servingRuntime?: string) => SecretKind[];
-  dataConnections: ContextResourceData<DataConnection>;
   connections: ContextResourceData<Connection>;
   servingRuntimeTemplates: CustomWatchK8sResult<TemplateKind[]>;
   servingRuntimeTemplateOrder: ContextResourceData<string>;
@@ -60,7 +57,6 @@ type ModelServingContextProviderProps = {
 export const ModelServingContext = React.createContext<ModelServingContextType>({
   refreshAllData: () => undefined,
   filterTokens: () => [],
-  dataConnections: DEFAULT_CONTEXT_DATA,
   connections: DEFAULT_CONTEXT_DATA,
   servingRuntimeTemplates: DEFAULT_LIST_WATCH_RESULT,
   servingRuntimeTemplateOrder: DEFAULT_CONTEXT_DATA,
@@ -95,19 +91,16 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
   const inferenceServices = useContextResourceData<InferenceServiceKind>(
     useInferenceServices(namespace),
   );
-  const dataConnections = useContextResourceData<DataConnection>(useDataConnections(namespace));
   const connections = useContextResourceData<Connection>(useConnections(namespace));
 
   const servingRuntimeRefresh = servingRuntimes.refresh;
   const inferenceServiceRefresh = inferenceServices.refresh;
-  const dataConnectionRefresh = dataConnections.refresh;
   const connectionRefresh = connections.refresh;
   const refreshAllData = React.useCallback(() => {
     servingRuntimeRefresh();
     inferenceServiceRefresh();
-    dataConnectionRefresh();
     connectionRefresh();
-  }, [servingRuntimeRefresh, inferenceServiceRefresh, dataConnectionRefresh, connectionRefresh]);
+  }, [servingRuntimeRefresh, inferenceServiceRefresh, connectionRefresh]);
 
   const {
     kServe: { installed: kServeInstalled },
@@ -145,7 +138,6 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
     servingRuntimeTemplateOrder.error ||
     servingRuntimeTemplateDisablement.error ||
     serverSecrets.error ||
-    dataConnections.error ||
     connections.error
   ) {
     return getErrorComponent ? (
@@ -156,7 +148,6 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
           servingRuntimeTemplates[2]?.message ||
           servingRuntimeTemplateOrder.error?.message ||
           servingRuntimeTemplateDisablement.error?.message ||
-          dataConnections.error?.message ||
           connections.error?.message,
       )
     ) : (
@@ -174,7 +165,6 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
               servingRuntimeTemplateOrder.error?.message ||
               servingRuntimeTemplateDisablement.error?.message ||
               serverSecrets.error?.message ||
-              dataConnections.error?.message ||
               connections.error?.message}
           </EmptyStateBody>
           <EmptyStateFooter>
@@ -195,7 +185,6 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
         servingRuntimeTemplates,
         servingRuntimeTemplateOrder,
         servingRuntimeTemplateDisablement,
-        dataConnections,
         connections,
         refreshAllData,
         filterTokens,

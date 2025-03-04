@@ -17,7 +17,6 @@ import {
 } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { getKServeTemplates } from '~/pages/modelServing/customServingRuntimes/utils';
-import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
 import { bumpBothTimestamps } from '~/concepts/modelRegistry/utils/updateTimestamps';
 import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
 
@@ -48,7 +47,6 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
   );
   const { loaded: projectDeployStatusLoaded, error: projectError } =
     useProjectErrorForRegisteredModel(selectedProject?.metadata.name, platform);
-  const [dataConnections] = useDataConnections(selectedProject?.metadata.name);
   const [connections] = useConnections(selectedProject?.metadata.name, true);
   const error = platformError || projectError;
 
@@ -159,7 +157,7 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
       onClose={onClose}
       shouldFormHidden={!!error}
       registeredModelDeployInfo={registeredModelDeployInfo}
-      projectContext={{ currentProject: selectedProject, dataConnections, connections }}
+      projectContext={{ currentProject: selectedProject, connections }}
       projectSection={projectSection}
     />
   );

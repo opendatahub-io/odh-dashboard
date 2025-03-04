@@ -3,14 +3,11 @@ import { NotebookSize, Volume, VolumeMount } from '~/types';
 import { BuildKind, ImageStreamKind, ImageStreamSpecTagType, K8sDSGResource } from '~/k8sTypes';
 import {
   ConfigMapCategory,
-  DataConnectionData,
   EnvVariable,
   EnvVariableDataEntry,
   SecretCategory,
   StartNotebookData,
 } from '~/pages/projects/types';
-import { AWS_FIELDS } from '~/pages/projects/dataConnections/const';
-import { FieldOptions } from '~/components/FieldList';
 import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import { formatMemory } from '~/utilities/valueUnits';
 import {
@@ -273,27 +270,8 @@ export const checkVersionRecommended = (imageVersion: ImageStreamSpecTagType): b
 
 export const isValidGenericKey = (key: string): boolean => !!key;
 
-export const isAWSValid = (
-  values: EnvVariableDataEntry[],
-  additionalRequiredFields?: string[],
-): boolean =>
-  values.every(({ key, value }) =>
-    getAdditionalRequiredAWSFields(additionalRequiredFields)
-      .filter((field) => field.isRequired)
-      .map((field) => field.key)
-      .includes(key)
-      ? !!value
-      : true,
-  );
 
-export const getAdditionalRequiredAWSFields = (
-  additionalRequiredFields?: string[],
-): FieldOptions[] =>
-  additionalRequiredFields
-    ? AWS_FIELDS.map((field) =>
-        additionalRequiredFields.includes(field.key) ? { ...field, isRequired: true } : field,
-      )
-    : AWS_FIELDS;
+
 
 export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => {
   if (envVariables.length === 0) {
@@ -315,8 +293,6 @@ export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => 
       case ConfigMapCategory.UPLOAD:
       case SecretCategory.UPLOAD:
         return values.every(({ key, value }) => isValidGenericKey(key) && !!value);
-      case SecretCategory.AWS:
-        return isAWSValid(values);
       default:
         return false;
     }
@@ -336,7 +312,6 @@ export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => 
 export const checkRequiredFieldsForNotebookStart = (
   startNotebookData: StartNotebookData,
   envVariables: EnvVariable[],
-  dataConnection: DataConnectionData,
 ): boolean => {
   const { projectName, notebookData, image } = startNotebookData;
   const isNotebookDataValid = !!(
@@ -346,15 +321,7 @@ export const checkRequiredFieldsForNotebookStart = (
     image.imageVersion
   );
 
-  const newDataConnectionInvalid =
-    dataConnection.type === 'creating' &&
-    !(dataConnection.creating?.values?.data && isAWSValid(dataConnection.creating.values.data));
-  const existingDataConnectionInvalid =
-    dataConnection.type === 'existing' && !dataConnection.existing?.secretRef.name;
-  const isDataConnectionValid =
-    !dataConnection.enabled || (!newDataConnectionInvalid && !existingDataConnectionInvalid);
-
-  return isNotebookDataValid && isEnvVariableDataValid(envVariables) && isDataConnectionValid;
+  return isNotebookDataValid && isEnvVariableDataValid(envVariables);
 };
 
 export const isInvalidBYONImageStream = (imageStream: ImageStreamKind): boolean => {

@@ -51,7 +51,6 @@ import ImageSelectorField from './imageSelector/ImageSelectorField';
 import ContainerSizeSelector from './deploymentSize/ContainerSizeSelector';
 import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
 import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
-import { useNotebookDataConnection } from './dataConnection/useNotebookDataConnection';
 import useDefaultStorageClass from './storage/useDefaultStorageClass';
 import usePreferredStorageClass from './storage/usePreferredStorageClass';
 import { ConnectionsFormSection } from './connections/ConnectionsFormSection';
@@ -72,7 +71,6 @@ type SpawnerPageProps = {
 const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const {
     currentProject,
-    dataConnections,
     connections: { data: projectConnections, refresh: refreshProjectConnections },
     notebooks: { data: notebooks },
   } = React.useContext(ProjectDetailsContext);
@@ -133,8 +131,6 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   );
   const existingStorageNames = storageData.map((storageDataEntry) => storageDataEntry.name);
 
-  const [dataConnectionData] = useNotebookDataConnection(dataConnections.data, existingNotebook);
-
   const [notebookConnections, setNotebookConnections] = React.useState<Connection[]>(
     existingNotebook ? getConnectionsFromNotebook(existingNotebook, projectConnections) : [],
   );
@@ -142,7 +138,6 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const [envVariables, setEnvVariables, envVariablesLoaded, deletedConfigMaps, deletedSecrets] =
     useNotebookEnvVariables(existingNotebook, [
       ...notebookConnections.map((connection) => connection.metadata.name),
-      dataConnectionData.existing?.secretRef.name || '',
     ]);
 
   const notebooksUsingPVCsWithSizeChanges = React.useMemo(() => {
@@ -384,7 +379,6 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   }}
                   storageData={storageData}
                   envVariables={envVariables}
-                  dataConnection={dataConnectionData}
                   connections={notebookConnections}
                   canEnablePipelines={canEnablePipelines}
                 />

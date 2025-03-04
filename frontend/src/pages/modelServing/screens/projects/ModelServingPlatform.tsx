@@ -76,7 +76,6 @@ const ModelServingPlatform: React.FC = () => {
     servingRuntimeTemplates: [templates, templatesLoaded, templateError],
     servingRuntimeTemplateOrder: { data: templateOrder },
     servingRuntimeTemplateDisablement: { data: templateDisablement },
-    dataConnections: { data: dataConnections },
     connections: { data: connections },
     serverSecrets: { refresh: refreshTokens },
     inferenceServices: { refresh: refreshInferenceServices },
@@ -191,7 +190,6 @@ const ModelServingPlatform: React.FC = () => {
     if (isKServeNIMEnabled) {
       return (
         <ManageNIMServingModal
-          projectContext={{ currentProject, dataConnections }}
           onClose={onSubmit}
         />
       );

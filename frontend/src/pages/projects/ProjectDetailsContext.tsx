@@ -28,8 +28,6 @@ import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { Connection } from '~/concepts/connectionTypes/types';
 import { useGroups, useTemplates } from '~/api';
 import { NotebookState } from './notebook/types';
-import { DataConnection } from './types';
-import useDataConnections from './screens/detail/data-connections/useDataConnections';
 import useProjectNotebookStates from './notebook/useProjectNotebookStates';
 import useProjectPvcs from './screens/detail/storage/useProjectPvcs';
 import useProjectSharing from './projectSharing/useProjectSharing';
@@ -40,7 +38,6 @@ type ProjectDetailsContextType = {
   filterTokens: (servingRuntime?: string) => SecretKind[];
   notebooks: ContextResourceData<NotebookState>;
   pvcs: ContextResourceData<PersistentVolumeClaimKind>;
-  dataConnections: ContextResourceData<DataConnection>;
   connections: ContextResourceData<Connection>;
   servingRuntimes: ContextResourceData<ServingRuntimeKind>;
   servingRuntimeTemplates: CustomWatchK8sResult<TemplateKind[]>;
@@ -57,7 +54,6 @@ export const ProjectDetailsContext = React.createContext<ProjectDetailsContextTy
   filterTokens: () => [],
   notebooks: DEFAULT_CONTEXT_DATA,
   pvcs: DEFAULT_CONTEXT_DATA,
-  dataConnections: DEFAULT_CONTEXT_DATA,
   connections: DEFAULT_CONTEXT_DATA,
   servingRuntimes: DEFAULT_CONTEXT_DATA,
   servingRuntimeTemplates: DEFAULT_LIST_WATCH_RESULT,
@@ -77,7 +73,6 @@ const ProjectDetailsContextProvider: React.FC = () => {
   useSyncPreferredProject(project);
   const notebooks = useContextResourceData<NotebookState>(useProjectNotebookStates(namespace));
   const pvcs = useContextResourceData<PersistentVolumeClaimKind>(useProjectPvcs(namespace));
-  const dataConnections = useContextResourceData<DataConnection>(useDataConnections(namespace));
   const connections = useContextResourceData<Connection>(useConnections(namespace));
   const servingRuntimes = useContextResourceData<ServingRuntimeKind>(useServingRuntimes(namespace));
   const servingRuntimeTemplates = useTemplates(dashboardNamespace);
@@ -123,7 +118,6 @@ const ProjectDetailsContextProvider: React.FC = () => {
             currentProject: project,
             notebooks,
             pvcs,
-            dataConnections,
             connections,
             servingRuntimes,
             servingRuntimeTemplates,
@@ -140,7 +134,6 @@ const ProjectDetailsContextProvider: React.FC = () => {
       project,
       notebooks,
       pvcs,
-      dataConnections,
       connections,
       servingRuntimes,
       servingRuntimeTemplates,

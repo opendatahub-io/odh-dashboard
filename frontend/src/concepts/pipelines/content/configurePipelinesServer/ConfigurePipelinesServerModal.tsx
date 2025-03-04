@@ -3,11 +3,8 @@ import { Alert, Form, Stack, StackItem } from '@patternfly/react-core';
 import { Modal } from '@patternfly/react-core/deprecated';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { createPipelinesCR, deleteSecret } from '~/api';
-import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
-import { EMPTY_AWS_PIPELINE_DATA } from '~/pages/projects/dataConnections/const';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
-import { ObjectStorageSection } from './ObjectStorageSection';
 import {
   DATABASE_CONNECTION_FIELDS,
   EMPTY_DATABASE_CONNECTION,
@@ -22,14 +19,13 @@ type ConfigurePipelinesServerModalProps = {
 
 const FORM_DEFAULTS: PipelineServerConfigType = {
   database: { useDefault: true, value: EMPTY_DATABASE_CONNECTION },
-  objectStorage: { newValue: EMPTY_AWS_PIPELINE_DATA },
+  objectStorage: { newValue: EMPTY_DATABASE_CONNECTION },
 };
 
 export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerModalProps> = ({
   onClose,
 }) => {
   const { project, namespace } = usePipelinesAPI();
-  const [dataConnections, loaded] = useDataConnections(namespace);
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState<Error>();
   const [config, setConfig] = React.useState<PipelineServerConfigType>(FORM_DEFAULTS);
@@ -123,12 +119,6 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
               submit();
             }}
           >
-            <ObjectStorageSection
-              setConfig={setConfig}
-              config={config}
-              loaded={loaded}
-              dataConnections={dataConnections}
-            />
             <PipelinesDatabaseSection setConfig={setConfig} config={config} />
           </Form>
         </StackItem>

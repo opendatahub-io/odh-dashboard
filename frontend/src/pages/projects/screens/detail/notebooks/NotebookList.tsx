@@ -48,7 +48,7 @@ const NotebookList: React.FC = () => {
         !isNotebooksEmpty && (
           <Popover
             headerContent="About workbenches"
-            bodyContent="A workbench is an isolated area where you can work with models in your preferred IDE, such as a Jupyter notebook. You can add accelerators and data connections, create pipelines, and add cluster storage in your workbench."
+            bodyContent="A workbench is an isolated area where you can work with models in your preferred IDE, such as a Jupyter notebook. You can add accelerators and connections, create pipelines, and add cluster storage in your workbench."
           >
             <DashboardPopupIconButton
               icon={<OutlinedQuestionCircleIcon />}
@@ -73,7 +73,7 @@ const NotebookList: React.FC = () => {
       emptyState={
         <EmptyDetailsView
           title="Start by creating a workbench"
-          description="A workbench is an isolated area where you can work with models in your preferred IDE, such as a Jupyter notebook. You can add accelerators and data connections, create pipelines, and add cluster storage in your workbench."
+          description="A workbench is an isolated area where you can work with models in your preferred IDE, such as a Jupyter notebook. You can add accelerators and connections, create pipelines, and add cluster storage in your workbench."
           iconImage={typedEmptyImage(ProjectObjectType.notebook)}
           imageAlt="create a workbench"
           createButton={
