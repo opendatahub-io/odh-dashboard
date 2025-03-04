@@ -66,6 +66,8 @@ describe('Model details page', () => {
         'have.text',
         'Granite-8B-Code-Instruct is a 8B parameter model fine tuned from\nGranite-8B-Code-Base on a combination of permissively licensed instruction\ndata to enhance instruction following capabilities including logical\nreasoning and problem-solving skills.',
       );
+    cy.reload();
+    verifyRelativeURL('/modelCatalog/Red%20Hat/rhelai1/granite-8b-code-instruct/1%252E3%252E0');
     modelDetailsPage
       .findModelCardMarkdown()
       .should('include.text', 'ibm-granite/granite-3.1-8b-base');
