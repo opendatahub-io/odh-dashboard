@@ -1,4 +1,5 @@
-import { resources, CardView  } from '~/__tests__/cypress/cypress/pages/resources';
+import type { CardView } from '~/__tests__/cypress/cypress/pages/resources';
+import { resources } from '~/__tests__/cypress/cypress/pages/resources';
 
 interface ResourceInfo {
   name: string;
@@ -6,9 +7,15 @@ interface ResourceInfo {
   description: string;
 }
 
-export const getCardWithWait = (cardView: CardView, id: string | undefined, timeout: number = 180000): Cypress.Chainable<JQuery<HTMLElement>> => {
+export const getCardWithWait = (
+  cardView: CardView,
+  id: string | undefined,
+  timeout = 180000,
+): Cypress.Chainable<JQuery<HTMLElement>> => {
   if (!id) {
-    throw new Error('The "id" parameter is undefined. Ensure that metaDataName is correctly passed.');
+    throw new Error(
+      'The "id" parameter is undefined. Ensure that metaDataName is correctly passed.',
+    );
   }
 
   cy.log(`Waiting for card with id: ${id}`);
@@ -26,11 +33,10 @@ export const checkResources = (resourceInfoList: ResourceInfo[]): void => {
     // Clear the search input and type the resource name
     resources.getLearningCenterToolbar().findSearchInput().clear().type(resourceInfo.name);
 
-    // Use the new getCardWithWait utility
     getCardWithWait(resources.getCardView(180000), resourceInfo.metaDataName)
       .should('exist')
       .and('be.visible')
-      .then(($card) => {
+      .then(() => {
         cy.log(`✅ Resource found: ${resourceInfo.name}`);
         // Additional checks can be performed here if needed
       });
