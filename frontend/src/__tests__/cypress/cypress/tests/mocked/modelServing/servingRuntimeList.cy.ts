@@ -1454,10 +1454,10 @@ describe('Serving Runtime List', () => {
             annotations: {
               'openshift.io/display-name': 'Test Name',
               'serving.kserve.io/deploymentMode': DeploymentMode.RawDeployment,
+              'security.opendatahub.io/enable-auth': 'true',
             },
             labels: {
               'opendatahub.io/dashboard': 'true',
-              'security.opendatahub.io/enable-auth': 'true',
               'networking.kserve.io/visibility': 'exposed',
             },
           },
@@ -1599,10 +1599,10 @@ describe('Serving Runtime List', () => {
             annotations: {
               'openshift.io/display-name': 'Test Name',
               'serving.kserve.io/deploymentMode': DeploymentMode.RawDeployment,
+              'security.opendatahub.io/enable-auth': 'true',
             },
             labels: {
               'opendatahub.io/dashboard': 'true',
-              'security.opendatahub.io/enable-auth': 'true',
               'networking.kserve.io/visibility': 'exposed',
             },
           },
