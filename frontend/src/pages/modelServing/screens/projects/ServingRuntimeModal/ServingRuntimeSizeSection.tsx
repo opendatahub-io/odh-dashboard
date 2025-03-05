@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FormGroup, Stack, StackItem, Popover, Icon } from '@patternfly/react-core';
+import { FormGroup, Icon, Popover, Stack, StackItem } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { HardwareProfileKind, ServingRuntimeKind } from '~/k8sTypes';
 import { isGpuDisabled } from '~/pages/modelServing/screens/projects/utils';
@@ -10,6 +10,7 @@ import { formatMemory } from '~/utilities/valueUnits';
 import { ModelServingPodSpecOptionsState } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import HardwareProfileFormSection from '~/concepts/hardwareProfiles/HardwareProfileFormSection';
+import { ModelServingSize } from '~/pages/modelServing/screens/types';
 import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
 
 type ServingRuntimeSizeSectionProps = {
@@ -17,6 +18,7 @@ type ServingRuntimeSizeSectionProps = {
   servingRuntimeSelected?: ServingRuntimeKind;
   infoContent?: string;
   isEditing?: boolean;
+  nimDefaults?: ModelServingSize;
 };
 
 const ServingRuntimeSizeSection = ({
@@ -24,15 +26,21 @@ const ServingRuntimeSizeSection = ({
   servingRuntimeSelected,
   infoContent,
   isEditing = false,
+  nimDefaults,
 }: ServingRuntimeSizeSectionProps): React.ReactNode => {
   const isHardwareProfileEnabled = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
 
   const gpuDisabled = servingRuntimeSelected ? isGpuDisabled(servingRuntimeSelected) : false;
+
+  const customResources = nimDefaults
+    ? nimDefaults.resources
+    : podSpecOptionState.modelSize.sizes[0].resources;
+
   const sizeCustom = [
     ...podSpecOptionState.modelSize.sizes,
     {
       name: 'Custom',
-      resources: podSpecOptionState.modelSize.sizes[0].resources,
+      resources: customResources,
     },
   ];
 
