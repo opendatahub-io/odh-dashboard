@@ -53,7 +53,8 @@ type TokenNames = {
 export const getModelServingRuntimeName = (namespace: string): string =>
   `model-server-${namespace}`;
 
-export const getModelServiceAccountName = (name: string): string => `${name}-sa`;
+export const getModelServiceAccountName = (name: string): string =>
+  `${translateDisplayNameForK8s(name)}-sa`;
 
 export const getModelRole = (name: string): string => `${name}-view-role`;
 export const getModelRoleBinding = (name: string): string => `${name}-view`;
@@ -81,8 +82,15 @@ export const setUpTokenAuth = async (
   existingSecrets?: SecretKind[],
   opts?: K8sAPIOptions,
 ): Promise<void> => {
+  let servingRuntimeName = deployedModelName;
+
+  if (!servingRuntimeName) {
+    // If we do not have a servingRuntimeName, derive it from the model
+    servingRuntimeName = fillData.name;
+  }
+
   const { serviceAccountName, roleName, roleBindingName } = getTokenNames(
-    deployedModelName,
+    servingRuntimeName,
     namespace,
   );
 
@@ -178,27 +186,35 @@ export const createSecrets = async (
   existingSecrets?: SecretKind[],
   opts?: K8sAPIOptions,
 ): Promise<void> => {
-  const { serviceAccountName } = getTokenNames(deployedModelName, namespace);
+  const serviceAccountName =
+    existingSecrets?.[0]?.metadata.annotations?.['kubernetes.io/service-account.name'] ||
+    getModelServiceAccountName(fillData.name);
+
   const deletedSecrets =
     existingSecrets
       ?.map((secret) => secret.metadata.name)
       .filter((token) => !fillData.tokens.some((tokenEdit) => tokenEdit.editName === token)) || [];
 
   return Promise.all<K8sStatus | SecretKind>([
-    ...fillData.tokens
-      .filter((token) => translateDisplayNameForK8s(token.name) !== token.editName)
-      .map((token) => {
-        const secretToken = assembleSecretSA(
-          token.name,
-          serviceAccountName,
-          namespace,
-          token.editName,
-        );
-        if (token.editName) {
-          return replaceSecret(secretToken, opts);
-        }
-        return createSecret(secretToken, opts);
-      }),
+    ...fillData.tokens.map((token) => {
+      const secretToken = assembleSecretSA(
+        token.name,
+        serviceAccountName,
+        namespace,
+        token.editName,
+      );
+
+      // Preserve existing annotations
+      const existingSecret = existingSecrets?.find((s) => s.metadata.name === token.editName);
+      if (existingSecret) {
+        secretToken.metadata.annotations = { ...existingSecret.metadata.annotations };
+      }
+
+      if (token.editName) {
+        return replaceSecret(secretToken, opts);
+      }
+      return createSecret(secretToken, opts);
+    }),
     ...deletedSecrets.map((secret) => deleteSecret(namespace, secret, opts)),
   ])
     .then(() => Promise.resolve())
@@ -207,7 +223,9 @@ export const createSecrets = async (
 
 export const getTokenNames = (servingRuntimeName: string, namespace: string): TokenNames => {
   const name =
-    servingRuntimeName !== '' ? servingRuntimeName : getModelServingRuntimeName(namespace);
+    servingRuntimeName !== ''
+      ? translateDisplayNameForK8s(servingRuntimeName)
+      : getModelServingRuntimeName(namespace);
 
   const serviceAccountName = getModelServiceAccountName(name);
   const roleName = getModelRole(name);
