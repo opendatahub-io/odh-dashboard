@@ -338,6 +338,7 @@ export type OdhApplication = {
       variableDisplayText?: { [key: string]: string };
       variableHelpText?: { [key: string]: string };
       variables?: { [key: string]: string };
+      inProgressText?: string;
     };
     enableCR: {
       field?: string;
