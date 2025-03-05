@@ -98,6 +98,12 @@ export const useWatchGroups = (): {
         updateAuthGroups(group, groupsData)
           .then((groupsResponse) => {
             setGroupSettings(groupsResponse);
+            // The permissions are immediate -- the cache of the old world ResourceWatcher is 2 mins
+            // Update this to direct permissions with RHOAIENG-16988 -- it will be immediate
+            notification.success(
+              'Group settings changes saved',
+              'It may take up to 2 minutes for configuration changes to be applied.',
+            );
           })
           .catch((error) => {
             setLoadError(error);
