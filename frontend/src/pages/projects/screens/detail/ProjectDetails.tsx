@@ -56,7 +56,7 @@ const ProjectDetails: React.FC = () => {
       title={
         <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
           <HeaderIcon type={ProjectObjectType.projectContext} sectionType={SectionType.general} />
-          <FlexItem style={{ maxWidth: 'calc(100% - var(--pf-t--global--spacer--2xl))' }}>
+          <FlexItem flex={{ default: 'flex_1' }}>
             <ResourceNameTooltip resource={currentProject} wrap={false}>
               <Truncate content={displayName} />
             </ResourceNameTooltip>

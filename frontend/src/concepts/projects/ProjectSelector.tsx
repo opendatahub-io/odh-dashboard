@@ -120,7 +120,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
           <FlexItem>
             <Bullseye>{selectorLabel}</Bullseye>
           </FlexItem>
-          <FlexItem style={{ maxWidth: 'min(90%, 50vw)' }}>{selector}</FlexItem>
+          <FlexItem flex={{ default: 'flex_1' }}>{selector}</FlexItem>
         </Flex>
       </Flex>
     );
