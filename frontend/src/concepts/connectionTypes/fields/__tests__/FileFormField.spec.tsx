@@ -89,6 +89,6 @@ describe('FileFormField', () => {
     act(() => {
       fireEvent.change(contentInput, { target: { value: 'new-value' } });
     });
-    expect(onChange).not.toHaveBeenCalled();
+    expect(onChange).toHaveBeenCalled();
   });
 });
