@@ -488,6 +488,34 @@ class ModelServingSection {
     return this.find().findByTestId('status-tooltip');
   }
 
+  waitForStatusToolTipValue(value: string, timeout: number) {
+    // First wait for status-tooltip to be visible
+    cy.findByTestId('status-tooltip', { timeout: 60000 }).should('be.visible').click();
+    // Wait for model tooltip status to be Loaded, fail early if Failed
+    cy.findByTestId('model-status-tooltip', { timeout: timeout })
+      .should('contain', value)
+      .then(($tooltip) => {
+        const tooltipText = $tooltip.text();
+        //   if (tooltipText.includes('Failed')) {
+        //     // BUG: https://issues.redhat.com/browse/NVPE-169
+        //     // https://issues.redhat.com/browse/RHOAIENG-20232
+        //     // throw new Error(`Tooltip status is Failed: ${tooltipText}`);
+        //   }
+        if (tooltipText.includes('Loaded')) {
+          cy.log('Tooltip status is Loaded');
+          return;
+        }
+
+        if (
+          tooltipText.includes('Unknown') ||
+          tooltipText.includes('Progressing') ||
+          tooltipText.includes('Failed') // BUG: should use above logic once fixed
+        ) {
+          cy.log(`Waiting for tooltip status to change to Loaded, current status: ${tooltipText}`);
+        }
+      });
+  }
+
   findKServeTableHeaderButton(name: string) {
     return this.findKServeTable().find('thead').findByRole('button', { name });
   }
