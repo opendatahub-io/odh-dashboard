@@ -39,7 +39,9 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
   const navigate = useNavigate();
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const { apiState } = React.useContext(ModelRegistryContext);
-  const isFineTuningEnabled = useIsAreaAvailable(SupportedArea.FINE_TUNING);
+  const isKServeOciEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_OCI).status;
+  const isFineTuningEnabled = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
+  const isLabTuneEnabled = isKServeOciEnabled && isFineTuningEnabled;
 
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
@@ -67,14 +69,14 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
           title: 'Deploy',
           onClick: () => setIsDeployModalOpen(true),
         },
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        ...((isFineTuningEnabled && [
-          {
-            title: 'Lab tune',
-            onClick: () => setTuningModelVersionId(mv.id),
-          },
-        ]) ||
-          []),
+        ...(isLabTuneEnabled
+          ? [
+              {
+                title: 'Lab tune',
+                onClick: () => setTuningModelVersionId(mv.id),
+              },
+            ]
+          : []),
         { isSeparator: true },
         {
           title: 'Archive model version',
