@@ -74,6 +74,7 @@ const FileFormField: React.FC<FieldProps<FileField>> = ({
         browseButtonText="Upload"
         clearButtonText="Clear"
         onDataChange={isPreview || !onChange ? undefined : (e, content) => onChange(content)}
+        onTextChange={isPreview || !onChange ? undefined : (e, content) => onChange(content)}
         onFileInputChange={(_e, file) => setFilename(file.name)}
         isClearButtonDisabled={rejectedReason ? false : undefined}
         onClearClick={() => {
