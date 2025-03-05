@@ -46,6 +46,7 @@ describe('Model Customization Form', () => {
     modelCustomizationFormGlobal.invalidVisit();
     modelCustomizationFormGlobal.findEmptyState().should('exist');
   });
+  // TODO: update this test once the tunning button is available
   it('Should submit', () => {
     initIntercepts({});
     modelCustomizationFormGlobal.visit(projectName);
@@ -62,7 +63,7 @@ describe('Model Customization Form', () => {
     taxonomySection.findUsernameAndTokenRadio().check();
     taxonomySection.findTaxonomyUsername().fill('test');
     taxonomySection.findTaxonomyToken().fill('test');
-    modelCustomizationFormGlobal.findSubmitButton().should('not.be.disabled');
+    modelCustomizationFormGlobal.findSubmitButton().should('be.disabled');
   });
   it('Should not submit', () => {
     initIntercepts({});

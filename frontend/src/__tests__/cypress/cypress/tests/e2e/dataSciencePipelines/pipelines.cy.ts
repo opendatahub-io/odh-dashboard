@@ -20,7 +20,7 @@ const testRunName = 'test-pipelines-run';
 const awsBucket = 'BUCKET_3' as const;
 
 describe(
-  '[Pipelines Bug: RHOAIENG-20642] An admin user can import and run a pipeline',
+  '[Product Bug: RHOAIENG-20642] An admin user can import and run a pipeline',
   { testIsolation: false },
   () => {
     retryableBefore(() => {

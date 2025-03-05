@@ -4,7 +4,7 @@ import {
   tearDownClusterStorageSCFeature,
 } from '~/__tests__/cypress/cypress/utils/storageClass';
 import { addClusterStorageModal } from '~/__tests__/cypress/cypress/pages/clusterStorage';
-import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
+import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import { findAddClusterStorageButton } from '~/__tests__/cypress/cypress/utils/clusterStorage';
 import { disableNonDefaultStorageClasses } from '~/__tests__/cypress/cypress/utils/oc_commands/storageClass';
 import {
@@ -40,7 +40,9 @@ describe('Regular Users can make use of the Storage Classes in the Cluster Stora
       projectListPage.findProjectLink(dspName).click();
       cy.step('Navigate to the Cluster Storage tab and disable all non-default storage classes');
       // Go to cluster storage tab
-      projectDetails.findSectionTab('cluster-storages').click();
+      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
+      // Reapply projectDetails.findSectionTab('cluster-storages').click();
+      cy.visit(`projects/${dspName}?section=cluster-storages`);
       // Disable all non-default storage classes
       disableNonDefaultStorageClasses().then(() => {
         // Open the Create cluster storage Modal
