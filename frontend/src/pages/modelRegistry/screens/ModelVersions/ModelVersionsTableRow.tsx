@@ -44,13 +44,16 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
   const [isDeployModalOpen, setIsDeployModalOpen] = React.useState(false);
-  const [isLabTuneModalOpen, setIsLabTuneModalOpen] = React.useState(false);
   const [tuningModelVersionId, setTuningModelVersionId] = React.useState<string | null>(null);
 
   const { tuningData, loaded, loadError } = useModelVersionTuningData(
     tuningModelVersionId,
     tuningModelVersionId === mv.id ? mv : null,
   );
+
+  if (!preferredModelRegistry) {
+    return null;
+  }
 
   const actions: IAction[] = isArchiveRow
     ? [
@@ -64,14 +67,14 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
           title: 'Deploy',
           onClick: () => setIsDeployModalOpen(true),
         },
-        ...(isFineTuningEnabled
-          ? [
-              {
-                title: 'Lab tune',
-                onClick: () => setTuningModelVersionId(mv.id),
-              },
-            ]
-          : []),
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        ...((isFineTuningEnabled && [
+          {
+            title: 'Lab tune',
+            onClick: () => setTuningModelVersionId(mv.id),
+          },
+        ]) ||
+          []),
         { isSeparator: true },
         {
           title: 'Archive model version',
@@ -94,18 +97,18 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
                   ? archiveModelVersionDetailsUrl(
                       mv.id,
                       mv.registeredModelId,
-                      preferredModelRegistry?.metadata?.name || undefined,
+                      preferredModelRegistry.metadata.name,
                     )
                   : isArchiveRow
                   ? modelVersionArchiveDetailsUrl(
                       mv.id,
                       mv.registeredModelId,
-                      preferredModelRegistry?.metadata?.name || undefined,
+                      preferredModelRegistry.metadata.name,
                     )
                   : modelVersionUrl(
                       mv.id,
                       mv.registeredModelId,
-                      preferredModelRegistry?.metadata?.name || undefined,
+                      preferredModelRegistry.metadata.name,
                     )
               }
             >
@@ -153,7 +156,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
                   modelVersionDeploymentsUrl(
                     mv.id,
                     mv.registeredModelId,
-                    preferredModelRegistry?.metadata?.name || undefined,
+                    preferredModelRegistry.metadata.name,
                   ),
                 );
               }}
@@ -178,7 +181,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
                       modelVersionUrl(
                         mv.id,
                         mv.registeredModelId,
-                        preferredModelRegistry?.metadata?.name || undefined,
+                        preferredModelRegistry.metadata.name,
                       ),
                     ),
                   )
@@ -186,17 +189,15 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
               modelVersionName={mv.name}
             />
           ) : null}
-          {tuningModelVersionId && (
+          {tuningModelVersionId && tuningData && (
             <StartRunModal
               onCancel={() => setTuningModelVersionId(null)}
               onSubmit={(selectedProject) => {
-                if (tuningData) {
-                  navigate(
-                    `${getModelCustomizationPath(selectedProject)}?${new URLSearchParams(
-                      tuningData as Record<string, string>,
-                    ).toString()}`,
-                  );
-                }
+                navigate(
+                  `${getModelCustomizationPath(selectedProject)}?${new URLSearchParams(
+                    tuningData,
+                  ).toString()}`,
+                );
               }}
               loaded={loaded}
               loadError={loadError}
