@@ -37,7 +37,7 @@ export const formatNodeSelector = (selector: NodeSelector): string[] =>
   Object.entries(selector).map(([key, value]) => `Key = ${key}; Value = ${value}`);
 
 export const formatResource = (identifier: string, request: string, limit: string): string =>
-  `Identifier: ${identifier}; Request: ${request}; Limit: ${limit}`;
+  `${identifier}: Request = ${request}; Limit = ${limit}`;
 
 export const useProfileIdentifiers = (
   acceleratorProfile?: AcceleratorProfileKind,
