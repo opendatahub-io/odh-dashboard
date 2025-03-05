@@ -1,7 +1,6 @@
 import { Breadcrumb, BreadcrumbItem, PageSection } from '@patternfly/react-core';
 import * as React from 'react';
-import { useNavigate } from 'react-router';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import {
   modelCustomizationFormPageDescription,
@@ -16,18 +15,19 @@ import {
   modelCustomizationFormSchema,
 } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { modelCustomizationRootPath } from '~/routes';
 import { useIlabPipeline } from '~/concepts/pipelines/content/modelCustomizationForm/useIlabPipeline';
 import {
   ModelCustomizationEndpointType,
   FineTuneTaxonomyType,
 } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
-import FineTunePage from './FineTunePage';
 import {
-  BASE_MODEL_INPUT_STORAGE_LOCATION_URI_KEY,
-  FineTunePageSections,
-  fineTunePageSectionTitles,
-} from './const';
+  registeredModelUrl,
+  modelVersionUrl,
+  modelRegistryUrl,
+} from '~/pages/modelRegistry/screens/routeUtils';
+import { ModelCustomizationRouterState } from '~/routes';
+import FineTunePage from './FineTunePage';
+import { FineTunePageSections, fineTunePageSectionTitles } from './const';
 
 const ModelCustomizationForm: React.FC = () => {
   const { project } = usePipelinesAPI();
@@ -38,16 +38,16 @@ const ModelCustomizationForm: React.FC = () => {
     loadError: ilabPipelineLoadError,
   } = useIlabPipeline();
 
-  const [searchParams] = useSearchParams();
+  const { state }: { state?: ModelCustomizationRouterState } = useLocation();
 
   const [data, setData] = useGenericObjectState<ModelCustomizationFormData>({
     projectName: { value: project.metadata.name },
+    outputModel: {
+      outputModelName: state?.registeredModelName ?? '',
+      outputModelRegistryApiUrl: state?.outputModelRegistryApiUrl ?? '',
+    },
     baseModel: {
-      // TODO: Replace values with actual data
-      registryName: 'Registry1',
-      name: 'my-granite-model',
-      version: 'myModel-v0.0.2',
-      inputStorageLocationUri: searchParams.get(BASE_MODEL_INPUT_STORAGE_LOCATION_URI_KEY) ?? '',
+      sdgBaseModel: state?.inputModelLocationUri ?? '',
     },
     taxonomy: {
       url: '',
@@ -72,8 +72,6 @@ const ModelCustomizationForm: React.FC = () => {
   });
 
   const validation = useValidation(data, modelCustomizationFormSchema);
-  const isValid = validation.validationResult.success;
-  const canSubmit = ilabPipelineLoaded && isValid;
   const navigate = useNavigate();
 
   return (
@@ -83,7 +81,33 @@ const ModelCustomizationForm: React.FC = () => {
         description={modelCustomizationFormPageDescription}
         breadcrumb={
           <Breadcrumb>
-            <BreadcrumbItem to={modelCustomizationRootPath}>Model customization</BreadcrumbItem>
+            <BreadcrumbItem
+              to={state?.modelRegistryName ? modelRegistryUrl(state.modelRegistryName) : undefined}
+            >
+              {state?.modelRegistryDisplayName}
+            </BreadcrumbItem>
+            <BreadcrumbItem
+              to={
+                state?.registeredModelId && state.modelRegistryName
+                  ? registeredModelUrl(state.registeredModelId, state.modelRegistryName)
+                  : undefined
+              }
+            >
+              {state?.registeredModelName}
+            </BreadcrumbItem>
+            <BreadcrumbItem
+              to={
+                state?.modelVersionId && state.registeredModelId && state.modelRegistryName
+                  ? modelVersionUrl(
+                      state.modelVersionId,
+                      state.registeredModelId,
+                      state.modelRegistryName,
+                    )
+                  : undefined
+              }
+            >
+              {state?.modelVersionName}
+            </BreadcrumbItem>
             <BreadcrumbItem>Start an InstructLab run</BreadcrumbItem>
           </Breadcrumb>
         }
@@ -98,7 +122,7 @@ const ModelCustomizationForm: React.FC = () => {
               maxWidth={175}
             >
               <FineTunePage
-                isInvalid={!canSubmit || !!ilabPipelineLoadError}
+                canSubmit={ilabPipelineLoaded || !!ilabPipelineLoadError}
                 onSuccess={() =>
                   navigate(
                     `/pipelines/${encodeURIComponent(project.metadata.name)}/${encodeURIComponent(

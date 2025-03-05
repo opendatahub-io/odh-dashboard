@@ -5,6 +5,7 @@ import { POLL_INTERVAL } from '~/utilities/const';
 
 export type NotificationWatcherContextType = {
   registerNotification: (item: NotificationWatcherItem) => void;
+  unregisterNotification: (id: symbol) => void;
 };
 
 type NotificationWatcherContextProviderProps = {
@@ -28,10 +29,15 @@ export type NotificationWatcherCallback = (
 export type NotificationWatcherItem = {
   callbackDelay?: number;
   callback: NotificationWatcherCallback;
+  /**
+   * Optionally provided to unregister the notification listener async
+   */
+  id?: symbol;
 };
 
 export const NotificationWatcherContext = React.createContext<NotificationWatcherContextType>({
   registerNotification: () => undefined,
+  unregisterNotification: () => undefined,
 });
 
 export const NotificationWatcherContextProvider: React.FC<
@@ -115,7 +121,23 @@ export const NotificationWatcherContextProvider: React.FC<
     [invoke],
   );
 
-  const contextValue = React.useMemo(() => ({ registerNotification }), [registerNotification]);
+  const unregisterNotification = React.useCallback((id: symbol) => {
+    timeoutIdsMapRef.current.forEach((value, key) => {
+      if (key.id === id) {
+        clearTimeout(value);
+      }
+    });
+    abortControllersMapRef.current.forEach((value, key) => {
+      if (key.id === id) {
+        value.abort();
+      }
+    });
+  }, []);
+
+  const contextValue = React.useMemo(
+    () => ({ registerNotification, unregisterNotification }),
+    [registerNotification, unregisterNotification],
+  );
 
   return (
     <NotificationWatcherContext.Provider value={contextValue}>

@@ -23,10 +23,13 @@ export const uriFieldSchemaBase = (
   );
 
 export const baseModelSchema = z.object({
-  registryName: z.string(),
-  name: z.string(),
-  version: z.string(),
-  inputStorageLocationUri: uriFieldSchemaBase(true),
+  sdgBaseModel: uriFieldSchemaBase(true),
+});
+
+export const outputModelSchema = z.object({
+  outputModelName: z.string().trim().min(1, 'Model name is required'),
+  outputModelRegistryApiUrl: z.string().trim().min(1, 'Model registry API URL is required'),
+  // TODO more output model fields
 });
 
 const teacherJudgeBaseSchema = z.object({
@@ -154,6 +157,7 @@ export const modelCustomizationFormSchema = z.object({
   projectName: z.object({ value: z.string().min(1, { message: 'Project is required' }) }),
   taxonomy: fineTuneTaxonomySchema,
   baseModel: baseModelSchema,
+  outputModel: outputModelSchema,
   teacher: teacherJudgeModel,
   judge: teacherJudgeModel,
 });
@@ -161,4 +165,5 @@ export const modelCustomizationFormSchema = z.object({
 export type ModelCustomizationFormData = z.infer<typeof modelCustomizationFormSchema>;
 
 export type BaseModelFormData = z.infer<typeof baseModelSchema>;
+export type OutputModelFormData = z.infer<typeof outputModelSchema>;
 export type TeacherJudgeFormData = z.infer<typeof teacherJudgeModel>;
