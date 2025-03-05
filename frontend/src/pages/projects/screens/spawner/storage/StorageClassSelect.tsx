@@ -19,13 +19,17 @@ import useDefaultStorageClass from './useDefaultStorageClass';
 type StorageClassSelectProps = {
   storageClassName?: string;
   setStorageClassName: (name: string) => void;
+  isRequired?: boolean;
+  isIlab?: boolean;
   disableStorageClassSelect?: boolean;
   menuAppendTo?: HTMLElement | 'inline';
 };
 
 const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
   storageClassName,
+  isIlab,
   setStorageClassName,
+  isRequired = false,
   disableStorageClassSelect,
   menuAppendTo,
 }) => {
@@ -93,7 +97,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
   }
 
   return hasStorageClassConfigs ? (
-    <FormGroup label="Storage class" fieldId="storage-class">
+    <FormGroup label="Storage class" fieldId="storage-class" isRequired={isRequired}>
       <SimpleSelect
         dataTestId="storage-classes-selector"
         id="storage-classes-selector"
@@ -119,14 +123,14 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
               The selected storage class is deprecated.
             </HelperTextItem>
           </HelperText>
-        ) : (
+        ) : !isIlab ? (
           <Alert
             variant="info"
             title="The storage class cannot be changed after creation."
             isInline
             isPlain
           />
-        )}
+        ) : null}
       </FormHelperText>
     </FormGroup>
   ) : (

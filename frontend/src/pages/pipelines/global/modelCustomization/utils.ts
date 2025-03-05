@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import { assembleSecretJudge, assembleSecretTeacher, createSecret } from '~/api';
 import {
   FineTuneTaxonomyType,
@@ -8,8 +9,11 @@ import {
   ModelCustomizationFormData,
   TeacherJudgeFormData,
 } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
-import { SecretKind } from '~/k8sTypes';
+import { ParameterKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { HardwareProfileKind, SecretKind } from '~/k8sTypes';
+import { NodeSelector, Toleration } from '~/types';
 import { genRandomChars } from '~/utilities/string';
+import { IlabPodSpecOptions } from './useIlabPodSpecOptionsState';
 
 export const createTeacherJudgeSecrets = (
   projectName: string,
@@ -24,14 +28,12 @@ export const createTeacherJudgeSecrets = (
       assembleSecretTeacher(
         projectName,
         {
-          /* eslint-disable camelcase */
           api_token:
             teacherData.endpointType === ModelCustomizationEndpointType.PRIVATE
               ? teacherData.apiToken.trim()
               : '',
           endpoint: teacherData.endpoint.trim(),
           model_name: teacherData.modelName.trim(),
-          /* eslint-enable camelcase */
         },
         teacherSecretName,
       ),
@@ -41,14 +43,12 @@ export const createTeacherJudgeSecrets = (
       assembleSecretJudge(
         projectName,
         {
-          /* eslint-disable camelcase */
           api_token:
             judgeData.endpointType === ModelCustomizationEndpointType.PRIVATE
               ? judgeData.apiToken.trim()
               : '',
           endpoint: judgeData.endpoint.trim(),
           model_name: judgeData.modelName.trim(),
-          /* eslint-enable camelcase */
         },
         judgeSecretName,
       ),
@@ -63,10 +63,8 @@ export const translateIlabFormToTeacherJudge = (
   teacher_secret: string;
   judge_secret: string;
 } => ({
-  /* eslint-disable camelcase */
   teacher_secret: teacherSecretName,
   judge_secret: judgeSecretName,
-  /* eslint-enable camelcase */
 });
 
 export const createAuthSecret = async (
@@ -163,3 +161,98 @@ export const translateIlabFormToBaseModelInput = (
   sdg_base_model: data.baseModel.sdgBaseModel,
   // TODO more output model fields
 });
+
+type HardwareInputType = {
+  train_num_workers: number;
+  k8s_storage_class_name: string;
+  train_node_selectors?: NodeSelector;
+  train_tolerations?: Toleration[];
+  train_cpu_per_worker: string | number;
+  train_memory_per_worker: string;
+  train_gpu_identifier: string;
+  eval_gpu_identifier: string;
+  train_gpu_per_worker: string | number;
+};
+
+export const translateIlabFormToHardwareInput = (
+  podSpecOptions: IlabPodSpecOptions,
+  data: ModelCustomizationFormData,
+): HardwareInputType => {
+  const getHardwareTrainingGpuValue = () => {
+    const otherIdentifier = podSpecOptions.selectedHardwareProfile?.spec.identifiers?.filter(
+      (i) => i.identifier !== 'cpu' && i.identifier !== 'memory',
+    );
+    const identifierValue = otherIdentifier
+      ? podSpecOptions.resources.requests?.[otherIdentifier[0].identifier]
+      : '';
+
+    return {
+      train_gpu_identifier: otherIdentifier?.[0].identifier ?? '',
+      eval_gpu_identifier: otherIdentifier?.[0].identifier ?? '',
+      train_gpu_per_worker: identifierValue ?? '',
+    };
+  };
+
+  return {
+    ...(podSpecOptions.selectedHardwareProfile
+      ? getHardwareTrainingGpuValue()
+      : {
+          train_gpu_identifier: podSpecOptions.selectedAcceleratorProfile?.spec.identifier ?? '',
+          eval_gpu_identifier: podSpecOptions.selectedAcceleratorProfile?.spec.identifier ?? '',
+          train_gpu_per_worker:
+            podSpecOptions.resources.requests?.[
+              podSpecOptions.selectedAcceleratorProfile?.spec.identifier ?? ''
+            ] ?? '',
+        }),
+    train_cpu_per_worker: podSpecOptions.resources.requests?.cpu ?? '',
+    train_memory_per_worker: podSpecOptions.resources.requests?.memory ?? '',
+    ...(podSpecOptions.tolerations?.length && { train_tolerations: podSpecOptions.tolerations }),
+    ...(podSpecOptions.nodeSelector?.length && {
+      train_node_selectors: podSpecOptions.nodeSelector,
+    }),
+    train_num_workers: data.trainingNode,
+    k8s_storage_class_name: data.storageClass,
+  };
+};
+
+export const filterHardwareProfilesForTraining = (
+  profiles: HardwareProfileKind[],
+): HardwareProfileKind[] =>
+  profiles.reduce<HardwareProfileKind[]>((accumulator, profile) => {
+    const cpuIdentifier = profile.spec.identifiers?.find((id) => id.identifier === 'cpu');
+
+    const memoryIdentifier = profile.spec.identifiers?.find((id) => id.identifier === 'memory');
+    if (!cpuIdentifier || !memoryIdentifier) {
+      return accumulator;
+    }
+
+    const otherIdentifiers = profile.spec.identifiers?.filter(
+      (id) => id.identifier !== 'cpu' && id.identifier !== 'memory',
+    );
+
+    if (!otherIdentifiers || otherIdentifiers.length !== 1) {
+      return accumulator;
+    }
+
+    const gpuIdentifier = otherIdentifiers[0];
+
+    accumulator.push({
+      ...profile,
+      spec: {
+        ...profile.spec,
+        identifiers: [cpuIdentifier, memoryIdentifier, gpuIdentifier],
+      },
+    });
+
+    return accumulator;
+  }, []);
+
+export const getParamsValueFromPipelineInput = (
+  pipeline: PipelineVersionKF | null,
+  paramName: string,
+): ParameterKF | undefined => {
+  if (!pipeline) {
+    return undefined;
+  }
+  return pipeline.pipeline_spec.pipeline_spec?.root.inputDefinitions?.parameters?.[paramName];
+};

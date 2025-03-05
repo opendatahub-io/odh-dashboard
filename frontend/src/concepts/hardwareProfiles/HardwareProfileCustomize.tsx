@@ -17,12 +17,14 @@ import { ValidationContext } from '~/utilities/useValidation';
 
 type HardwareProfileCustomizeProps = {
   identifiers: Identifier[];
+  onlyShowLimit?: boolean;
   data: ContainerResources;
   setData: (data: ContainerResources) => void;
 };
 
 const HardwareProfileCustomize: React.FC<HardwareProfileCustomizeProps> = ({
   identifiers,
+  onlyShowLimit,
   data,
   setData,
 }) => {
@@ -118,7 +120,7 @@ const HardwareProfileCustomize: React.FC<HardwareProfileCustomizeProps> = ({
         <StackItem key={identifier.identifier}>
           <Grid hasGutter md={12} lg={6}>
             <GridItem>{renderField(identifier, 'requests')}</GridItem>
-            <GridItem>{renderField(identifier, 'limits')}</GridItem>
+            {!onlyShowLimit && <GridItem>{renderField(identifier, 'limits')}</GridItem>}
           </Grid>
         </StackItem>
       ))}

@@ -101,7 +101,23 @@ class TaxonomySection {
   }
 }
 
+class HardwareSection {
+  private findHardwareProfileSelect() {
+    return cy.findByTestId('hardware-profile-select');
+  }
+
+  selectProfile(name: string): void {
+    this.findHardwareProfileSelect().click();
+    cy.findByRole('option', { name }).click();
+  }
+
+  findTrainingNodePlusButton() {
+    return cy.findByTestId('training-node').findByRole('button', { name: 'Plus', hidden: true });
+  }
+}
+
 export const modelCustomizationFormGlobal = new ModelCustomizationFormGlobal();
 export const teacherModelSection = new TeacherModelSection();
 export const judgeModelSection = new JudgeModelSection();
 export const taxonomySection = new TaxonomySection();
+export const hardwareSection = new HardwareSection();

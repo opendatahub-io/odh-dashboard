@@ -19,13 +19,13 @@ export enum ValidationErrorCodes {
   LIMIT_BELOW_REQUEST = 'limit_below_request',
 }
 
-type ResourceSchema = z.ZodEffects<
+export type ResourceSchema = z.ZodEffects<
   z.ZodUnion<[z.ZodString, z.ZodNumber]>,
   string | number,
   string | number
 >;
 
-const createCpuSchema = (minCount: ValueUnitCPU, maxCount: ValueUnitCPU): ResourceSchema =>
+export const createCpuSchema = (minCount: ValueUnitCPU, maxCount: ValueUnitCPU): ResourceSchema =>
   z.union([z.string(), z.number()]).superRefine((val, ctx) => {
     const stringVal = String(val);
     if (isCpuLimitLarger(stringVal, minCount)) {
@@ -42,7 +42,10 @@ const createCpuSchema = (minCount: ValueUnitCPU, maxCount: ValueUnitCPU): Resour
     }
   });
 
-const createMemorySchema = (minCount: ValueUnitString, maxCount: ValueUnitString): ResourceSchema =>
+export const createMemorySchema = (
+  minCount: ValueUnitString,
+  maxCount: ValueUnitString,
+): ResourceSchema =>
   z.union([z.string(), z.number()]).superRefine((val, ctx) => {
     const stringVal = String(val);
 
@@ -60,7 +63,7 @@ const createMemorySchema = (minCount: ValueUnitString, maxCount: ValueUnitString
     }
   });
 
-const createNumericSchema = (minCount: number, maxCount: number): ResourceSchema =>
+export const createNumericSchema = (minCount: number, maxCount: number): ResourceSchema =>
   z.union([z.string(), z.number()]).superRefine((val, ctx) => {
     const value = Number(val);
     if (Number.isNaN(value)) {

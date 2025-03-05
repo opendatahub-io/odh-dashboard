@@ -50,6 +50,7 @@ export const FineTuneTaxonomySection = ({
         }
       >
         <TextInput
+          aria-label="taxonomy github url"
           data-testid="taxonomy-github-url"
           value={data.url}
           onChange={(_event, value) => setData({ ...data, url: value })}
@@ -91,6 +92,7 @@ export const FineTuneTaxonomySection = ({
             data.secret.type === FineTuneTaxonomyType.SSH_KEY && (
               <FormGroup label="SSH key" isRequired>
                 <TextInput
+                  aria-label="taxonomy ssh key"
                   data-testid="taxonomy-ssh-key"
                   value={data.secret.sshKey}
                   onChange={(_e, value) =>
@@ -126,6 +128,7 @@ export const FineTuneTaxonomySection = ({
               <>
                 <FormGroup label="Username" fieldId="username" isRequired>
                   <TextInput
+                    aria-label="taxonomy username"
                     data-testid="taxonomy-username"
                     value={data.secret.username}
                     onChange={(_e, value) =>

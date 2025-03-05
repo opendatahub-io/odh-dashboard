@@ -19,11 +19,15 @@ import JudgeModelSection from '~/pages/pipelines/global/modelCustomization/teach
 import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { ModelCustomizationRouterState } from '~/routes';
 import { FineTuneTaxonomySection } from './FineTuneTaxonomySection';
+import TrainingHardwareSection from './trainingHardwareSection/TrainingHardwareSection';
+import { IlabPodSpecOptionsState } from './useIlabPodSpecOptionsState';
 
 type FineTunePageProps = {
   canSubmit: boolean;
   onSuccess: () => void;
   data: ModelCustomizationFormData;
+  ilabPipelineLoaded: boolean;
+  podSpecOptionsState: IlabPodSpecOptionsState;
   setData: UpdateObjectAtPropAndValue<ModelCustomizationFormData>;
   ilabPipeline: PipelineKF | null;
   ilabPipelineVersion: PipelineVersionKF | null;
@@ -31,9 +35,11 @@ type FineTunePageProps = {
 
 const FineTunePage: React.FC<FineTunePageProps> = ({
   canSubmit,
+  ilabPipelineLoaded,
   onSuccess,
   data,
   setData,
+  podSpecOptionsState,
   ilabPipeline,
   ilabPipelineVersion,
 }) => {
@@ -74,10 +80,19 @@ const FineTunePage: React.FC<FineTunePageProps> = ({
         setData={(teacherData) => setData('teacher', teacherData)}
       />
       <JudgeModelSection data={data.judge} setData={(judgeData) => setData('judge', judgeData)} />
+      <TrainingHardwareSection
+        podSpecOptionsState={podSpecOptionsState}
+        ilabPipelineLoaded={ilabPipelineLoaded}
+        trainingNode={data.trainingNode}
+        setTrainingNode={(trainingNodeValue: number) => setData('trainingNode', trainingNodeValue)}
+        storageClass={data.storageClass}
+        setStorageClass={(storageClassName: string) => setData('storageClass', storageClassName)}
+      />
       <FormSection>
         <FineTunePageFooter
           canSubmit={canSubmit}
           onSuccess={onSuccess}
+          podSpecOptions={podSpecOptionsState.podSpecOptions}
           data={data}
           ilabPipeline={ilabPipeline}
           ilabPipelineVersion={ilabPipelineVersion}
