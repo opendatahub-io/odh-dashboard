@@ -41,7 +41,7 @@ import {
 import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
 import {
   filterModelServingConnectionTypes,
-  getConnectionTypeModelServingCompatibleTypes,
+  getModelServingCompatibility,
 } from '~/concepts/connectionTypes/utils';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import SimpleMenuActions from '~/components/SimpleMenuActions';
@@ -130,7 +130,7 @@ const ManageConnectionTypePage: React.FC<Props> = ({ prefill, isEdit, onSave }) 
   );
 
   const modelServingCompatibleTypes = React.useMemo(
-    () => getConnectionTypeModelServingCompatibleTypes(connectionTypeObj),
+    () => getModelServingCompatibility(connectionTypeObj),
     [connectionTypeObj],
   );
 

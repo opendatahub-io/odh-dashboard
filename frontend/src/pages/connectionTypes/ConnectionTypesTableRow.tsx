@@ -22,7 +22,7 @@ import {
 } from '~/concepts/k8s/utils';
 import { connectionTypeColumns } from '~/pages/connectionTypes/columns';
 import CategoryLabel from '~/concepts/connectionTypes/CategoryLabel';
-import { getConnectionTypeModelServingCompatibleTypes } from '~/concepts/connectionTypes/utils';
+import { getModelServingCompatibility } from '~/concepts/connectionTypes/utils';
 import CompatibilityLabel from '~/concepts/connectionTypes/CompatibilityLabel';
 import ConnectionTypePreviewModal from '~/concepts/connectionTypes/ConnectionTypePreviewModal';
 
@@ -78,10 +78,7 @@ const ConnectionTypesTableRow: React.FC<ConnectionTypesTableRowProps> = ({
       });
   };
 
-  const compatibleTypes = React.useMemo(
-    () => getConnectionTypeModelServingCompatibleTypes(obj),
-    [obj],
-  );
+  const compatibleTypes = React.useMemo(() => getModelServingCompatibility(obj), [obj]);
 
   return (
     <Tr>

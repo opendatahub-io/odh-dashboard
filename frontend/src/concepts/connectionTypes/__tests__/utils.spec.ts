@@ -13,9 +13,8 @@ import {
   defaultValueToString,
   fieldNameToEnvVar,
   fieldTypeToString,
-  getConnectionModelServingCompatibleTypes,
-  isModelServingCompatibleConnection,
-  isModelServingTypeCompatible,
+  getModelServingCompatibility,
+  isModelServingCompatible,
   isValidEnvVar,
   ModelServingCompatibleTypes,
   toConnectionTypeConfigMap,
@@ -272,23 +271,27 @@ describe('isValidEnvVar', () => {
   });
 });
 
-describe('isModelServingCompatibleConnection', () => {
+describe('isModelServingCompatible', () => {
   it('should identify model serving compatible connections', () => {
-    expect(isModelServingCompatibleConnection(mockConnection({}))).toBe(false);
+    expect(isModelServingCompatible(mockConnection({}))).toBe(false);
     expect(
-      isModelServingCompatibleConnection(
+      isModelServingCompatible(mockConnection({}), ModelServingCompatibleTypes.S3ObjectStorage),
+    ).toBe(false);
+    expect(
+      isModelServingCompatible(
         mockConnection({
           data: {
-            AWS_ACCESS_KEY_ID: 'test',
-            AWS_SECRET_ACCESS_KEY: 'test',
-            AWS_S3_ENDPOINT: 'test',
-            AWS_S3_BUCKET: 'test',
+            AWS_ACCESS_KEY_ID: 'keyid',
+            AWS_SECRET_ACCESS_KEY: 'accesskey',
+            AWS_S3_ENDPOINT: 'endpoint',
+            AWS_S3_BUCKET: 'bucket',
           },
         }),
+        ModelServingCompatibleTypes.S3ObjectStorage,
       ),
     ).toBe(true);
     expect(
-      isModelServingCompatibleConnection(
+      isModelServingCompatible(
         mockConnection({
           connectionType: 'test',
           data: {
@@ -301,7 +304,7 @@ describe('isModelServingCompatibleConnection', () => {
       ),
     ).toBe(false);
     expect(
-      isModelServingCompatibleConnection(
+      isModelServingCompatible(
         mockConnection({
           managed: false,
           data: {
@@ -314,7 +317,7 @@ describe('isModelServingCompatibleConnection', () => {
       ),
     ).toBe(false);
     expect(
-      isModelServingCompatibleConnection(
+      isModelServingCompatible(
         mockConnection({
           data: {
             AWS_ACCESS_KEY_ID: 'test',
@@ -323,7 +326,7 @@ describe('isModelServingCompatibleConnection', () => {
       ),
     ).toBe(false);
     expect(
-      isModelServingCompatibleConnection(
+      isModelServingCompatible(
         mockConnection({
           data: {
             URI: 'test',
@@ -331,14 +334,77 @@ describe('isModelServingCompatibleConnection', () => {
         }),
       ),
     ).toBe(true);
+    expect(
+      isModelServingCompatible(
+        mockConnection({
+          connectionType: 'oci-v1',
+          data: {
+            ACCESS_TYPE: 'Push',
+            '.dockerconfigjson': '{}',
+            OCI_HOST: 'quay.io',
+          },
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      isModelServingCompatible(
+        mockConnection({
+          connectionType: 'oci-v1',
+          data: {
+            ACCESS_TYPE: window.btoa('["Pull"]'), // Have to encode the string "Pull" since we decode it in isModelServingCompatible
+            '.dockerconfigjson': '{}',
+            OCI_HOST: 'quay.io',
+          },
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      isModelServingCompatible(
+        mockConnection({
+          connectionType: 'oci-v1',
+          data: {
+            '.dockerconfigjson': '{}',
+            OCI_HOST: 'quay.io',
+          },
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it('should identify model serving compatible env vars', () => {
+    expect(
+      isModelServingCompatible(['AWS_ACCESS_KEY_ID'], ModelServingCompatibleTypes.S3ObjectStorage),
+    ).toBe(false);
+    expect(
+      isModelServingCompatible(
+        ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_S3_ENDPOINT', 'AWS_S3_BUCKET'],
+        ModelServingCompatibleTypes.S3ObjectStorage,
+      ),
+    ).toBe(true);
+    expect(isModelServingCompatible(['invalid'], ModelServingCompatibleTypes.URI)).toBe(false);
+    expect(isModelServingCompatible(['URI'], ModelServingCompatibleTypes.URI)).toBe(true);
+  });
+
+  it('should identify model serving compatible connection types', () => {
+    expect(
+      isModelServingCompatible(mockConnection({}), ModelServingCompatibleTypes.S3ObjectStorage),
+    ).toBe(false);
+    expect(
+      isModelServingCompatible(
+        mockConnectionTypeConfigMapObj({
+          fields: mockModelServingFields,
+        }),
+        ModelServingCompatibleTypes.S3ObjectStorage,
+      ),
+    ).toBe(true);
   });
 });
 
-describe('getConnectionModelServingCompatibleTypes', () => {
+describe('getModelServingCompatibility', () => {
   it('should identify model serving compatible connections', () => {
-    expect(getConnectionModelServingCompatibleTypes(mockConnection({}))).toEqual([]);
+    expect(getModelServingCompatibility(mockConnection({}))).toEqual([]);
     expect(
-      getConnectionModelServingCompatibleTypes(
+      getModelServingCompatibility(
         mockConnection({
           data: {
             AWS_ACCESS_KEY_ID: 'test',
@@ -350,7 +416,7 @@ describe('getConnectionModelServingCompatibleTypes', () => {
       ),
     ).toEqual([ModelServingCompatibleTypes.S3ObjectStorage]);
     expect(
-      getConnectionModelServingCompatibleTypes(
+      getModelServingCompatibility(
         mockConnection({
           connectionType: 'test',
           data: {
@@ -363,7 +429,7 @@ describe('getConnectionModelServingCompatibleTypes', () => {
       ),
     ).toEqual([]);
     expect(
-      getConnectionModelServingCompatibleTypes(
+      getModelServingCompatibility(
         mockConnection({
           managed: false,
           data: {
@@ -376,7 +442,7 @@ describe('getConnectionModelServingCompatibleTypes', () => {
       ),
     ).toEqual([]);
     expect(
-      getConnectionModelServingCompatibleTypes(
+      getModelServingCompatibility(
         mockConnection({
           data: {
             AWS_ACCESS_KEY_ID: 'test',
@@ -385,7 +451,7 @@ describe('getConnectionModelServingCompatibleTypes', () => {
       ),
     ).toEqual([]);
     expect(
-      getConnectionModelServingCompatibleTypes(
+      getModelServingCompatibility(
         mockConnection({
           data: {
             URI: 'test',
@@ -394,7 +460,7 @@ describe('getConnectionModelServingCompatibleTypes', () => {
       ),
     ).toEqual([ModelServingCompatibleTypes.URI]);
     expect(
-      getConnectionModelServingCompatibleTypes(
+      getModelServingCompatibility(
         mockConnection({
           data: {
             AWS_ACCESS_KEY_ID: 'test',
@@ -407,10 +473,10 @@ describe('getConnectionModelServingCompatibleTypes', () => {
       ),
     ).toEqual([ModelServingCompatibleTypes.S3ObjectStorage, ModelServingCompatibleTypes.URI]);
     expect(
-      getConnectionModelServingCompatibleTypes(
+      getModelServingCompatibility(
         mockConnection({
           data: {
-            ACCESS_TYPE: '["Pull"]',
+            ACCESS_TYPE: window.btoa('["Pull"]'), // Have to encode the string "Pull" since we decode it in isModelServingCompatible
             OCI_HOST: 'quay.io',
             '.dockerconfigjson': '{stuff}',
           },
@@ -418,7 +484,7 @@ describe('getConnectionModelServingCompatibleTypes', () => {
       ),
     ).toEqual([ModelServingCompatibleTypes.OCI]);
     expect(
-      getConnectionModelServingCompatibleTypes(
+      getModelServingCompatibility(
         mockConnection({
           data: {
             OCI_HOST: 'quay.io',
@@ -426,57 +492,5 @@ describe('getConnectionModelServingCompatibleTypes', () => {
         }),
       ),
     ).toEqual([]);
-  });
-});
-
-describe('isModelServingTypeCompatible', () => {
-  it('should identify model serving compatible env vars', () => {
-    expect(
-      isModelServingTypeCompatible(
-        ['AWS_ACCESS_KEY_ID'],
-        ModelServingCompatibleTypes.S3ObjectStorage,
-      ),
-    ).toBe(false);
-    expect(
-      isModelServingTypeCompatible(
-        ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_S3_ENDPOINT', 'AWS_S3_BUCKET'],
-        ModelServingCompatibleTypes.S3ObjectStorage,
-      ),
-    ).toBe(true);
-    expect(isModelServingTypeCompatible(['invalid'], ModelServingCompatibleTypes.URI)).toBe(false);
-    expect(isModelServingTypeCompatible(['URI'], ModelServingCompatibleTypes.URI)).toBe(true);
-  });
-
-  it('should identify model serving compatible connections', () => {
-    expect(
-      isModelServingTypeCompatible(mockConnection({}), ModelServingCompatibleTypes.S3ObjectStorage),
-    ).toBe(false);
-    expect(
-      isModelServingTypeCompatible(
-        mockConnection({
-          data: {
-            AWS_ACCESS_KEY_ID: 'keyid',
-            AWS_SECRET_ACCESS_KEY: 'accesskey',
-            AWS_S3_ENDPOINT: 'endpoint',
-            AWS_S3_BUCKET: 'bucket',
-          },
-        }),
-        ModelServingCompatibleTypes.S3ObjectStorage,
-      ),
-    ).toBe(true);
-  });
-
-  it('should identify model serving compatible connection types', () => {
-    expect(
-      isModelServingTypeCompatible(mockConnection({}), ModelServingCompatibleTypes.S3ObjectStorage),
-    ).toBe(false);
-    expect(
-      isModelServingTypeCompatible(
-        mockConnectionTypeConfigMapObj({
-          fields: mockModelServingFields,
-        }),
-        ModelServingCompatibleTypes.S3ObjectStorage,
-      ),
-    ).toBe(true);
   });
 });
