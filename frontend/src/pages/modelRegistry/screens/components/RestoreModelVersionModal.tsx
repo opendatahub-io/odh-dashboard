@@ -2,6 +2,8 @@ import * as React from 'react';
 import { Modal } from '@patternfly/react-core/deprecated';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import useNotification from '~/utilities/useNotification';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 
 interface RestoreModelVersionModalProps {
   onCancel: () => void;
@@ -9,6 +11,7 @@ interface RestoreModelVersionModalProps {
   modelVersionName: string;
 }
 
+const eventName = 'Archived Model Version Restored';
 export const RestoreModelVersionModal: React.FC<RestoreModelVersionModalProps> = ({
   onCancel,
   onSubmit,
@@ -22,17 +25,31 @@ export const RestoreModelVersionModal: React.FC<RestoreModelVersionModalProps> =
     onCancel();
   }, [onCancel]);
 
+  const onCancelClose = React.useCallback(() => {
+    fireFormTrackingEvent(eventName, { outcome: TrackingOutcome.cancel });
+    onClose();
+  }, [onClose]);
+
   const onConfirm = React.useCallback(async () => {
     setIsSubmitting(true);
 
     try {
       await onSubmit();
+      fireFormTrackingEvent(eventName, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+      });
       onClose();
       notification.success(`${modelVersionName} restored.`);
     } catch (e) {
       if (e instanceof Error) {
         setError(e);
       }
+      fireFormTrackingEvent(eventName, {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: e instanceof Error ? e.message : 'unknown error',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -43,10 +60,10 @@ export const RestoreModelVersionModal: React.FC<RestoreModelVersionModalProps> =
       isOpen
       title="Restore model version?"
       variant="small"
-      onClose={onClose}
+      onClose={onCancelClose}
       footer={
         <DashboardModalFooter
-          onCancel={onClose}
+          onCancel={onCancelClose}
           onSubmit={onConfirm}
           submitLabel="Restore"
           isSubmitLoading={isSubmitting}

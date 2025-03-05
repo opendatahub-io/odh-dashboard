@@ -6,6 +6,11 @@ import { isFilledRunFormData } from '~/concepts/pipelines/content/createRun/util
 import { handleSubmit } from '~/concepts/pipelines/content/createRun/submitUtils';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { isRunSchedule } from '~/concepts/pipelines/utils';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import {
+  FormTrackingEventProperties,
+  TrackingOutcome,
+} from '~/concepts/analyticsTracking/trackingProperties';
 
 type RunPageFooterProps = {
   data: RunFormData;
@@ -40,8 +45,19 @@ const RunPageFooter: React.FC<RunPageFooterProps> = ({ data, contextPath }) => {
               onClick={() => {
                 setSubmitting(true);
                 setError(null);
+                const properties: FormTrackingEventProperties = {
+                  outcome: TrackingOutcome.submit,
+                  success: true,
+                  type: data.runType.type,
+                };
+
+                if (data.runType.type === RunTypeOption.SCHEDULED) {
+                  properties.scheduleType = data.runType.data.triggerType;
+                }
+
                 handleSubmit(data, api)
                   .then((resource) => {
+                    fireFormTrackingEvent('Pipeline Run Triggered', properties);
                     const detailsPath = isRunSchedule(resource)
                       ? resource.recurring_run_id
                       : resource.run_id;
@@ -51,6 +67,7 @@ const RunPageFooter: React.FC<RunPageFooterProps> = ({ data, contextPath }) => {
                   .catch((e) => {
                     setSubmitting(false);
                     setError(e);
+                    fireFormTrackingEvent('Pipeline Run Triggered', properties);
                   });
               }}
             >
@@ -58,7 +75,16 @@ const RunPageFooter: React.FC<RunPageFooterProps> = ({ data, contextPath }) => {
             </Button>
           </SplitItem>
           <SplitItem>
-            <Button variant="secondary" onClick={() => history.back()}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                fireFormTrackingEvent('Pipeline Run Triggered', {
+                  outcome: TrackingOutcome.cancel,
+                });
+
+                history.back();
+              }}
+            >
               Cancel
             </Button>
           </SplitItem>

@@ -38,6 +38,7 @@ export const ArchiveExperimentModal: React.FC<ArchiveExperimentModalProps> = ({
       onSubmit={onSubmit}
       onCancel={onCancel}
       testId="archive-experiment-modal"
+      whatToArchive="experiments"
     >
       {isSingleArchiving ? (
         <>
