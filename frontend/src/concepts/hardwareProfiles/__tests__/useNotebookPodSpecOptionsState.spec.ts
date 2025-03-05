@@ -125,10 +125,6 @@ describe('useNotebookPodSpecOptionsState', () => {
           requests: {},
           limits: {},
         },
-        tolerations: [],
-        nodeSelector: {},
-        lastSizeSelection: expect.any(String),
-        selectedAcceleratorProfile: undefined,
         selectedHardwareProfile: undefined,
       },
     });
@@ -171,8 +167,6 @@ describe('useNotebookPodSpecOptionsState', () => {
       },
       tolerations: hardwareProfile.spec.tolerations,
       nodeSelector: hardwareProfile.spec.nodeSelector,
-      lastSizeSelection: expect.any(String),
-      selectedAcceleratorProfile: undefined,
       selectedHardwareProfile: hardwareProfile,
     });
   });

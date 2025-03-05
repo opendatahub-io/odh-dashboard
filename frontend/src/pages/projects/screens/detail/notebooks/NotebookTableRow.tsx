@@ -23,6 +23,7 @@ import { useAppContext } from '~/app/AppContext';
 import NotebookStateAction from '~/pages/projects/notebook/NotebookStateAction';
 import StopNotebookConfirmModal from '~/pages/projects/notebook/StopNotebookConfirmModal';
 import { useNotebookKindPodSpecOptionsState } from '~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { NotebookImageAvailability } from './const';
 import { NotebookImageDisplayName } from './NotebookImageDisplayName';
 import NotebookStorageBars from './NotebookStorageBars';
@@ -68,6 +69,10 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
   const { name: notebookName, namespace: notebookNamespace } = obj.notebook.metadata;
+  const isHardwareProfileAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
+  const {
+    hardwareProfile: { initialHardwareProfile },
+  } = useNotebookKindPodSpecOptionsState(obj.notebook);
 
   const onStart = React.useCallback(() => {
     setInProgress(true);
@@ -173,7 +178,11 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
             spaceItems={{ default: 'spaceItemsXs' }}
             alignItems={{ default: 'alignItemsCenter' }}
           >
-            <FlexItem>{notebookSize?.name ?? <i>{lastDeployedSize.name}</i>}</FlexItem>
+            <FlexItem>
+              {isHardwareProfileAvailable
+                ? initialHardwareProfile?.spec.displayName ?? <i>Custom</i>
+                : notebookSize?.name ?? <i>{lastDeployedSize.name}</i>}
+            </FlexItem>
           </Flex>
         </Td>
         <Td dataLabel="Status">

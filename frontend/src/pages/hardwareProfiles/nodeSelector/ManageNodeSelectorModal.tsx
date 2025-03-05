@@ -47,6 +47,7 @@ const ManageNodeSelectorModal: React.FC<ManageNodeSelectorModalProps> = ({
             value={nodeSelector.key}
             onChange={(_, value) => setNodeSelector('key', value)}
             data-testid="node-selector-key-input"
+            placeholder="Example, node.kubernetes.io/instance-type"
           />
         </FormGroup>
         <FormGroup label="Value" fieldId="value" isRequired>
@@ -55,6 +56,7 @@ const ManageNodeSelectorModal: React.FC<ManageNodeSelectorModalProps> = ({
             value={nodeSelector.value}
             onChange={(_, value) => setNodeSelector('value', value)}
             data-testid="node-selector-value-input"
+            placeholder="Example, m4.xlarge"
           />
         </FormGroup>
       </Form>

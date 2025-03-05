@@ -1,8 +1,15 @@
 import React from 'react';
 import { ImageStreamKind, AcceleratorProfileKind, HardwareProfileKind } from '~/k8sTypes';
 import { getCompatibleIdentifiers } from '~/pages/projects/screens/spawner/spawnerUtils';
-import { Toleration, NodeSelector, Identifier } from '~/types';
+import {
+  Toleration,
+  NodeSelector,
+  Identifier,
+  ContainerResources,
+  IdentifierResourceType,
+} from '~/types';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
+import { splitValueUnit, CPU_UNITS, MEMORY_UNITS_FOR_PARSING } from '~/utilities/valueUnits';
 
 export const formatToleration = (toleration: Toleration): string => {
   const parts = [`Key = ${toleration.key}`];
@@ -30,7 +37,7 @@ export const formatNodeSelector = (selector: NodeSelector): string[] =>
   Object.entries(selector).map(([key, value]) => `Key = ${key}; Value = ${value}`);
 
 export const formatResource = (identifier: string, request: string, limit: string): string =>
-  `Identifier: ${identifier}; Request: ${request}; Limit: ${limit}`;
+  `${identifier}: Request = ${request}; Limit = ${limit}`;
 
 export const useProfileIdentifiers = (
   acceleratorProfile?: AcceleratorProfileKind,
@@ -80,4 +87,52 @@ export const sortIdentifiers = (identifiers: Identifier[]): Identifier[] => {
     ...(memoryIdentifier ? [memoryIdentifier] : []),
     ...otherIdentifiers,
   ];
+};
+
+export const getContainerResourcesFromHardwareProfile = (
+  hardwareProfile: HardwareProfileKind,
+): ContainerResources => {
+  const emptyRecord: Record<string, string | number> = {};
+
+  const newRequests =
+    hardwareProfile.spec.identifiers?.reduce(
+      (acc: Record<string, string | number>, identifier) => {
+        acc[identifier.identifier] = identifier.defaultCount;
+        return acc;
+      },
+      { ...emptyRecord },
+    ) ?? emptyRecord;
+
+  const newLimits =
+    hardwareProfile.spec.identifiers?.reduce(
+      (acc: Record<string, string | number>, identifier) => {
+        acc[identifier.identifier] = identifier.defaultCount;
+        return acc;
+      },
+      { ...emptyRecord },
+    ) ?? emptyRecord;
+
+  return {
+    requests: newRequests,
+    limits: newLimits,
+  };
+};
+
+export const formatResourceValue = (
+  v: string | number,
+  resourceType?: IdentifierResourceType,
+): string | number => {
+  const valueStr = typeof v === 'number' ? v.toString() : v;
+  switch (resourceType) {
+    case IdentifierResourceType.CPU: {
+      const [cpuValue, cpuUnit] = splitValueUnit(valueStr, CPU_UNITS);
+      return `${cpuValue} ${cpuUnit.name}`;
+    }
+    case IdentifierResourceType.MEMORY: {
+      const [memoryValue, memoryUnit] = splitValueUnit(valueStr, MEMORY_UNITS_FOR_PARSING);
+      return `${memoryValue} ${memoryUnit.name}`;
+    }
+    default:
+      return v;
+  }
 };

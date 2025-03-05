@@ -3,22 +3,24 @@ import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
 import { useHardwareProfileConfig } from '~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import * as areasUtils from '~/concepts/areas';
-import * as useHardwareProfilesModule from '~/pages/hardwareProfiles/useHardwareProfiles';
 import * as reduxSelectors from '~/redux/selectors';
+import * as useHardwareProfilesModule from '~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
 
 jest.mock('~/concepts/areas', () => ({
   ...jest.requireActual('~/concepts/areas'),
   useIsAreaAvailable: jest.fn(),
 }));
 
-jest.mock('~/pages/hardwareProfiles/useHardwareProfiles');
+jest.mock('~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility');
 
 jest.mock('~/redux/selectors', () => ({
   useDashboardNamespace: jest.fn(),
 }));
 
 const mockUseIsAreaAvailable = jest.mocked(areasUtils.useIsAreaAvailable);
-const mockUseHardwareProfiles = jest.mocked(useHardwareProfilesModule.default);
+const mockUseHardwareProfiles = jest.mocked(
+  useHardwareProfilesModule.useHardwareProfilesByFeatureVisibility,
+);
 const mockUseDashboardNamespace = jest.mocked(reduxSelectors.useDashboardNamespace);
 
 describe('useHardwareProfileConfig', () => {
@@ -43,10 +45,9 @@ describe('useHardwareProfileConfig', () => {
       formData: {
         selectedProfile: undefined,
         useExistingSettings: false,
-        resources: { requests: {}, limits: {} },
       },
       initialHardwareProfile: undefined,
-      isFormDataValid: true,
+      isFormDataValid: false,
       setFormData: expect.any(Function),
       resetFormData: expect.any(Function),
     });
@@ -173,7 +174,6 @@ describe('useHardwareProfileConfig', () => {
     expect(state.formData).toEqual({
       selectedProfile: undefined,
       useExistingSettings: false,
-      resources: { requests: {}, limits: {} },
     });
   });
 });

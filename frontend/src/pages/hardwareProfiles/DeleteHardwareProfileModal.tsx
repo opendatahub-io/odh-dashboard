@@ -1,15 +1,20 @@
 import React from 'react';
+import { Stack, StackItem } from '@patternfly/react-core';
 import { deleteHardwareProfile } from '~/api';
 import { HardwareProfileKind } from '~/k8sTypes';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
+import { MigrationAction } from './migration/types';
+import { MIGRATION_SOURCE_TYPE_LABELS } from './migration/const';
 
 type DeleteHardwareProfileModalProps = {
   hardwareProfile: HardwareProfileKind;
+  migrationAction?: MigrationAction;
   onClose: (deleted: boolean) => void;
 };
 
 const DeleteHardwareProfileModal: React.FC<DeleteHardwareProfileModalProps> = ({
   hardwareProfile,
+  migrationAction,
   onClose,
 }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -23,12 +28,29 @@ const DeleteHardwareProfileModal: React.FC<DeleteHardwareProfileModalProps> = ({
 
   return (
     <DeleteModal
-      title="Delete hardware profile?"
+      title={migrationAction ? 'Delete hardware profile and source?' : 'Delete hardware profile?'}
       onClose={() => onBeforeClose(false)}
       submitButtonLabel="Delete"
+      deleteName={
+        migrationAction
+          ? `Delete ${migrationAction.dependentProfiles.length + 2} resources` // dependent profiles + target profile + source
+          : hardwareProfile.spec.displayName
+      }
       onDelete={() => {
         setIsDeleting(true);
-        deleteHardwareProfile(hardwareProfile.metadata.name, hardwareProfile.metadata.namespace)
+
+        const deletePromise = () => {
+          if (migrationAction) {
+            return migrationAction.deleteSourceResource();
+          }
+
+          return deleteHardwareProfile(
+            hardwareProfile.metadata.name,
+            hardwareProfile.metadata.namespace,
+          );
+        };
+
+        deletePromise()
           .then(() => {
             onBeforeClose(true);
           })
@@ -39,10 +61,35 @@ const DeleteHardwareProfileModal: React.FC<DeleteHardwareProfileModalProps> = ({
       }}
       deleting={isDeleting}
       error={error}
-      deleteName={hardwareProfile.spec.displayName}
     >
-      This action cannot be undone. Workloads already deployed using this profile will not be
-      affected by this action.
+      <Stack hasGutter>
+        {migrationAction && (
+          <>
+            <StackItem>
+              The <b>{migrationAction.targetProfile.spec.displayName}</b> legacy hardware profile
+              {migrationAction.dependentProfiles.length > 0 && (
+                <>
+                  , dependent legacy hardware profiles:{' '}
+                  <b>
+                    {migrationAction.dependentProfiles
+                      .map((profile) => profile.spec.displayName)
+                      .join(', ')}
+                  </b>
+                </>
+              )}{' '}
+              and the source {MIGRATION_SOURCE_TYPE_LABELS[migrationAction.source.type]},{' '}
+              {migrationAction.source.label} will be deleted.
+            </StackItem>
+          </>
+        )}
+        <StackItem>
+          Deployed workloads using{' '}
+          {migrationAction && migrationAction.dependentProfiles.length > 0
+            ? 'these profiles '
+            : 'this profile '}
+          will not be affected.
+        </StackItem>
+      </Stack>
     </DeleteModal>
   );
 };
