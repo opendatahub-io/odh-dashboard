@@ -43,9 +43,8 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
   const [isLabTuneModalOpen, setIsLabTuneModalOpen] = React.useState(false);
   const tooltipRef = React.useRef<HTMLButtonElement>(null);
 
-  const isKServeOciEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_OCI);
-  const isFineTuningEnabled = useIsAreaAvailable(SupportedArea.FINE_TUNING);
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const isKServeOciEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_OCI).status;
+  const isFineTuningEnabled = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
   const isLabTuneEnabled = isKServeOciEnabled && isFineTuningEnabled;
 
   const { tuningData, loaded, loadError } = useModelVersionTuningData(
