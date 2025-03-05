@@ -75,27 +75,60 @@ describe('ArtifactsTable', () => {
             getType: jest.fn(() => 'system.Artifact'),
             getUri: jest.fn(() => 'https://test-artifact!-aiplatform.googleapis.com/v1/12.15'),
             getPropertiesMap: jest.fn(() => []),
-            getCustomPropertiesMap: jest.fn(() => [
-              [
-                'display_name',
-                {
-                  stringValue: 'vertex_model',
-                },
-              ],
-              [
-                'resourceName',
-                {
-                  stringValue: '12.15',
-                },
-              ],
-            ]),
+            getCustomPropertiesMap: jest.fn(
+              () =>
+                new Map([
+                  [
+                    'display_name',
+                    {
+                      getStringValue: () => 'vertex_model',
+                    },
+                  ],
+                  [
+                    'resourceName',
+                    {
+                      getStringValue: () => '12.15',
+                    },
+                  ],
+                  [
+                    'registeredModelName',
+                    {
+                      getStringValue: () => 'Model name',
+                    },
+                  ],
+                  [
+                    'modelRegistryName',
+                    {
+                      getStringValue: () => 'Registry name',
+                    },
+                  ],
+                  [
+                    'modelVersionName',
+                    {
+                      getStringValue: () => 'v1',
+                    },
+                  ],
+                  [
+                    'modelVersionId',
+                    {
+                      getStringValue: () => '1',
+                    },
+                  ],
+                  [
+                    'registeredModelId',
+                    {
+                      getStringValue: () => '1',
+                    },
+                  ],
+                ]),
+            ),
             getState: jest.fn(() => 2),
             getCreateTimeSinceEpoch: jest.fn(() => Date.now()),
             toObject: jest.fn(() => ({
               id: 1,
               typeId: 14,
               type: 'system.Artifact',
-              uri: 'https://test-artifact!-aiplatform.googleapis.com/v1/12.15',
+              uri: 's3://namespace/bucket/path/to/artifact',
               propertiesMap: [],
               customPropertiesMap: [
                 [
@@ -110,9 +143,40 @@ describe('ArtifactsTable', () => {
                     stringValue: '12.15',
                   },
                 ],
+                [
+                  'registeredModelName',
+                  {
+                    stringValue: 'Model name',
+                  },
+                ],
+                [
+                  'modelRegistryName',
+                  {
+                    stringValue: 'Registry name',
+                  },
+                ],
+                [
+                  'modelVersionName',
+                  {
+                    stringValue: 'v1',
+                  },
+                ],
+                [
+                  'modelVersionId',
+                  {
+                    stringValue: '1',
+                  },
+                ],
+                [
+                  'registeredModelId',
+                  {
+                    stringValue: '1',
+                  },
+                ],
               ],
               state: 2,
-              createTimeSinceEpoch: new Date(),
+              createTimeSinceEpoch: 1711113121829,
+              lastUpdateTimeSinceEpoch: 1711113121829,
             })),
           },
           {
@@ -121,20 +185,53 @@ describe('ArtifactsTable', () => {
             getType: jest.fn(() => 'system.Dataset'),
             getUri: jest.fn(() => 'https://test2-artifact!-aiplatform.googleapis.com/v1/12.10'),
             getPropertiesMap: jest.fn(() => []),
-            getCustomPropertiesMap: jest.fn(() => [
-              [
-                'display_name',
-                {
-                  stringValue: 'iris_dataset',
-                },
-              ],
-              [
-                'resourceName',
-                {
-                  stringValue: '12.10',
-                },
-              ],
-            ]),
+            getCustomPropertiesMap: jest.fn(
+              () =>
+                new Map([
+                  [
+                    'display_name',
+                    {
+                      getStringValue: () => 'iris_dataset',
+                    },
+                  ],
+                  [
+                    'resourceName',
+                    {
+                      getStringValue: () => '12.10',
+                    },
+                  ],
+                  [
+                    'registeredModelName',
+                    {
+                      getStringValue: () => 'Model name',
+                    },
+                  ],
+                  [
+                    'modelRegistryName',
+                    {
+                      getStringValue: () => 'Registry name',
+                    },
+                  ],
+                  [
+                    'modelVersionName',
+                    {
+                      getStringValue: () => 'v1',
+                    },
+                  ],
+                  [
+                    'modelVersionId',
+                    {
+                      getStringValue: () => '1',
+                    },
+                  ],
+                  [
+                    'registeredModelId',
+                    {
+                      getStringValue: () => '1',
+                    },
+                  ],
+                ]),
+            ),
             getState: jest.fn(() => 2),
             getCreateTimeSinceEpoch: jest.fn(() => 1611399342384),
             toObject: jest.fn(() => ({
@@ -153,6 +250,36 @@ describe('ArtifactsTable', () => {
                   'resourceName',
                   {
                     stringValue: '12.10',
+                  },
+                ],
+                [
+                  'registeredModelName',
+                  {
+                    stringValue: 'Model name',
+                  },
+                ],
+                [
+                  'modelRegistryName',
+                  {
+                    stringValue: 'Registry name',
+                  },
+                ],
+                [
+                  'modelVersionName',
+                  {
+                    stringValue: 'v1',
+                  },
+                ],
+                [
+                  'modelVersionId',
+                  {
+                    stringValue: '1',
+                  },
+                ],
+                [
+                  'registeredModelId',
+                  {
+                    stringValue: '1',
                   },
                 ],
               ],

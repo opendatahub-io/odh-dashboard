@@ -24,6 +24,7 @@ import {
 } from '~/pages/pipelines/global/experiments/ExperimentContext';
 import { getDashboardMainContainer } from '~/utilities/utils';
 import usePipelineRunExperimentInfo from '~/concepts/pipelines/content/tables/usePipelineRunExperimentInfo';
+import { useIsPipelineRunRegistered } from './utils';
 
 type PipelineRunTableRowProps = {
   checkboxProps: Omit<React.ComponentProps<typeof CheckboxTd>, 'id'>;
@@ -56,6 +57,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const { isExperimentArchived, isExperimentDeleted } =
     useContextExperimentArchivedOrDeleted(experiment);
+  const isPipelineRunRegistered = useIsPipelineRunRegistered(run);
 
   const actions: IAction[] = React.useMemo(() => {
     const duplicateAction: IAction = {
@@ -146,7 +148,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
           stickyLeftOffset: '45px',
         })}
       >
-        <PipelineRunTableRowTitle run={run} />
+        <PipelineRunTableRowTitle run={run} isModelRegistered={isPipelineRunRegistered} />
       </Td>
       <Td modifier="truncate" dataLabel="Pipeline">
         <PipelineVersionLink version={version} error={versionError} loaded={isVersionLoaded} />

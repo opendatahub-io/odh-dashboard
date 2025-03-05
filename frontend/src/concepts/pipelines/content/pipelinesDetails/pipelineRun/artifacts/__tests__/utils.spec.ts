@@ -1,5 +1,8 @@
 import { Artifact, Value } from '~/third_party/mlmd';
-import { getArtifactProperties } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
+import {
+  getArtifactModelData,
+  getArtifactProperties,
+} from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
 
 describe('getArtifactProperties', () => {
   const mockArtifact = new Artifact();
@@ -27,5 +30,49 @@ describe('getArtifactProperties', () => {
       { name: 'metric-int', value: '10' },
       { name: 'metric-string', value: 'some string' },
     ]);
+  });
+});
+
+describe('getArtifactModelData', () => {
+  const createMockArtifact = (properties: Record<string, string | undefined>): Artifact =>
+    ({
+      getCustomPropertiesMap: () => ({
+        get: (key: string) => ({
+          getStringValue: () => properties[key],
+        }),
+      }),
+    } as Artifact);
+
+  it('returns an empty object when artifact is undefined', () => {
+    expect(getArtifactModelData(undefined)).toEqual({});
+  });
+
+  it('returns an empty object when artifact has no custom properties', () => {
+    const mockArtifact = createMockArtifact({});
+    expect(getArtifactModelData(mockArtifact)).toEqual({});
+  });
+
+  it('returns an object with some properties when only some exist', () => {
+    const mockArtifact = createMockArtifact({ registeredModelName: 'model-1' });
+    expect(getArtifactModelData(mockArtifact)).toEqual({
+      registeredModelName: 'model-1',
+    });
+  });
+
+  it('returns an object with all properties when all model data exist', () => {
+    const mockArtifact = createMockArtifact({
+      registeredModelName: 'model-1',
+      modelRegistryName: 'registry-1',
+      modelVersionName: 'v1',
+      modelVersionId: '123',
+      registeredModelId: 'reg-123',
+    });
+    expect(getArtifactModelData(mockArtifact)).toEqual({
+      registeredModelName: 'model-1',
+      modelRegistryName: 'registry-1',
+      modelVersionName: 'v1',
+      modelVersionId: '123',
+      registeredModelId: 'reg-123',
+    });
   });
 });
