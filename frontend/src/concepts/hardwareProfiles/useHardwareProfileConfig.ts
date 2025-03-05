@@ -126,9 +126,6 @@ export const useHardwareProfileConfig = (
 
       // if editing, try to select existing profile
       if (resources) {
-        // maintain current resources if editing
-        setFormData('resources', resources);
-
         // try to match to existing profile
         if (existingHardwareProfileName) {
           selectedProfile = profiles.find(
@@ -139,6 +136,9 @@ export const useHardwareProfileConfig = (
         }
 
         initialHardwareProfile.current = selectedProfile;
+        setFormData('resources', resources);
+        setFormData('useExistingSettings', !selectedProfile);
+        setFormData('selectedProfile', selectedProfile);
       }
 
       // if not editing existing profile, select the first enabled profile
@@ -146,15 +146,8 @@ export const useHardwareProfileConfig = (
         selectedProfile = profiles.find((profile) => profile.spec.enabled);
         if (selectedProfile) {
           setFormData('resources', getContainerResourcesFromHardwareProfile(selectedProfile));
+          setFormData('selectedProfile', selectedProfile);
         }
-      }
-
-      // set the selected profile if found, otherwise set to use existing settings
-      if (selectedProfile) {
-        setFormData('selectedProfile', selectedProfile);
-      } else {
-        setFormData('resources', resources);
-        setFormData('useExistingSettings', true);
       }
     }
   }, [
