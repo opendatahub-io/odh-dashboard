@@ -197,7 +197,7 @@ describe('Register catalog model page', () => {
     registerModelPage.findSubmitButton().should('be.enabled');
     registerModelPage
       .findFormField(FormFieldSelector.MODEL_NAME)
-      .should('have.value', 'granite-8b-code-instruct');
+      .should('have.value', 'granite-8b-code-instruct-1.3.0');
     registerModelPage
       .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
       .should(
@@ -217,7 +217,7 @@ describe('Register catalog model page', () => {
     registerModelPage.findSubmitButton().click();
     cy.wait('@createRegisteredModel').then((interception) => {
       expect(interception.request.body).to.containSubset({
-        name: 'granite-8b-code-instruct',
+        name: 'granite-8b-code-instruct-1.3.0',
         description:
           'Granite-8B-Code-Instruct is a 8B parameter model fine tuned from Granite-8B-Code-Base on a combination of permissively licensed instruction data to enhance instruction following capabilities including logical reasoning and problem-solving skills.',
         customProperties: {
