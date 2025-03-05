@@ -1,9 +1,11 @@
 import { z } from 'zod';
 import {
-  FineTuneTaxonomyType,
-  ModelCustomizationEndpointType,
-  ModelCustomizationRunType,
-} from './types';
+  HyperparameterFields,
+  RunTypeFormat,
+} from '~/pages/pipelines/global/modelCustomization/const';
+import { InputDefinitionParameterType } from '~/concepts/pipelines/kfTypes';
+import { isEnumMember } from '~/utilities/utils';
+import { FineTuneTaxonomyType, ModelCustomizationEndpointType } from './types';
 
 export const uriFieldSchemaBase = (
   isOptional: boolean,
@@ -50,77 +52,115 @@ export const teacherJudgeModel = z.discriminatedUnion('endpointType', [
   teacherJudgePublicSchema,
 ]);
 
-export const numericFieldSchema = z
-  .object({
-    value: z.number().optional(),
-    unit: z.string().optional(),
-    min: z.number().optional(),
-    max: z.number().optional(),
+export const hyperparameterBaseSchema = z.object({
+  description: z.string().optional(),
+  isOptional: z.boolean(),
+  parameterType: z.nativeEnum(InputDefinitionParameterType),
+});
+
+export const hyperparameterOptionalSchema = hyperparameterBaseSchema
+  .extend({
+    defaultValue: z.union([z.number().optional(), z.string().optional(), z.boolean().optional()]),
+  })
+  .refine(
+    (data) => {
+      if (!data.isOptional && typeof data.defaultValue === 'undefined') {
+        return false;
+      }
+      return true;
+    },
+    { message: 'Default value is not optional.' },
+  );
+
+export const hyperparameterBooleanSchema = hyperparameterBaseSchema.extend({
+  defaultValue: z.boolean(),
+});
+
+export const hyperparameterNumericFieldSchema = hyperparameterBaseSchema
+  .extend({
+    defaultValue: z.number().positive(),
   })
   .superRefine((data, ctx) => {
-    if (data.min != null && data.max != null && data.min >= data.max) {
+    if (
+      data.parameterType === InputDefinitionParameterType.INTEGER &&
+      !Number.isInteger(data.defaultValue)
+    ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.too_big,
-        message: 'The lower threshold must be less than the upper threshold',
-        path: ['min'],
-        maximum: data.max,
-        inclusive: false,
-        type: 'number',
-      });
-      ctx.addIssue({
-        code: z.ZodIssueCode.too_small,
-        message: 'The upper threshold must be greater than the lower threshold',
-        path: ['max'],
-        minimum: data.min,
-        inclusive: false,
-        type: 'number',
+        code: z.ZodIssueCode.custom,
+        message: 'The default value must be an integer',
+        path: ['isInt'],
       });
     }
-    if (
-      data.value != null &&
-      data.min != null &&
-      !Number.isNaN(data.value) &&
-      !Number.isNaN(data.min) &&
-      data.value < data.min
-    ) {
+    if (!Number.isNaN(data.defaultValue) && data.defaultValue < 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.too_small,
         message: 'The default value must be greater than the lower threshold',
         path: ['value'],
-        minimum: data.min,
-        inclusive: false,
-        type: 'number',
-      });
-    }
-    if (
-      data.value != null &&
-      data.max != null &&
-      !Number.isNaN(data.value) &&
-      !Number.isNaN(data.max) &&
-      data.value > data.max
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.too_big,
-        message: 'The default value must be less than the upper threshold',
-        path: ['value'],
-        maximum: data.max,
+        minimum: 0,
         inclusive: false,
         type: 'number',
       });
     }
   });
 
-export const trainingHardwareFormSchema = z.object({
-  hardwareProfile: z.object({
-    value: z.string().min(1, 'Hardware profile is required'),
-  }),
-  accelerators: numericFieldSchema,
-});
+export const hyperparameterStringSchema = hyperparameterBaseSchema
+  .extend({
+    defaultValue: z.string(),
+  })
+  .refine(
+    (value) => {
+      if (!value.isOptional && value.defaultValue.length === 0) {
+        return false;
+      }
+      return true;
+    },
+    { message: 'Default value lengh must be greater than 0' },
+  );
 
-export const runTypeSchema = z.enum([
-  ModelCustomizationRunType.FULL_RUN,
-  ModelCustomizationRunType.SIMPLE_RUN,
-]);
+export const hyperparameterEvaluationFieldSchema = hyperparameterBaseSchema
+  .extend({
+    defaultValue: z.string(),
+  })
+  .superRefine((data, ctx) => {
+    if (Number.isNaN(Number(data.defaultValue)) && data.defaultValue !== 'auto') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'The default value must be either auto or a positive integer string 1',
+        path: ['defaultValue'],
+      });
+    }
+    if (
+      !Number.isNaN(Number(data.defaultValue)) &&
+      (Number(data.defaultValue) < 1 || !Number.isInteger(Number(data.defaultValue)))
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'The default value must be either auto or a positive integer string 2',
+        path: ['defaultValue'],
+      });
+    }
+  });
+
+export const hyperparameterFieldSchema = z.record(
+  z.nativeEnum(HyperparameterFields),
+  z.union([
+    hyperparameterNumericFieldSchema,
+    hyperparameterEvaluationFieldSchema,
+    hyperparameterStringSchema,
+    hyperparameterOptionalSchema,
+    hyperparameterBooleanSchema,
+  ]),
+);
+
+export const runTypeSchema = z.string().refine(
+  (value) => {
+    if (!isEnumMember(value, RunTypeFormat)) {
+      return false;
+    }
+    return true;
+  },
+  { message: 'Invalid Run Type' },
+);
 
 export const fineTunedModelDetailsSchema = z.object({
   registry: z.string(),
@@ -156,6 +196,8 @@ export type FineTuneTaxonomyFormData = z.infer<typeof fineTuneTaxonomySchema>;
 export const modelCustomizationFormSchema = z.object({
   projectName: z.object({ value: z.string().min(1, { message: 'Project is required' }) }),
   taxonomy: fineTuneTaxonomySchema,
+  runType: z.object({ value: runTypeSchema }),
+  hyperparameters: hyperparameterFieldSchema,
   baseModel: baseModelSchema,
   outputModel: outputModelSchema,
   teacher: teacherJudgeModel,
@@ -167,3 +209,4 @@ export type ModelCustomizationFormData = z.infer<typeof modelCustomizationFormSc
 export type BaseModelFormData = z.infer<typeof baseModelSchema>;
 export type OutputModelFormData = z.infer<typeof outputModelSchema>;
 export type TeacherJudgeFormData = z.infer<typeof teacherJudgeModel>;
+export type HyperparametersFormData = z.infer<typeof hyperparameterFieldSchema>;

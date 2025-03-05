@@ -5,11 +5,16 @@ import {
 } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
 import {
   FineTuneTaxonomyFormData,
+  HyperparametersFormData,
   ModelCustomizationFormData,
   TeacherJudgeFormData,
 } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import { SecretKind } from '~/k8sTypes';
 import { genRandomChars } from '~/utilities/string';
+import { getInputDefinitionParams } from '~/concepts/pipelines/content/createRun/utils';
+import { PipelineVersionKF, ParametersKF } from '~/concepts/pipelines/kfTypes';
+import { isEnumMember } from '~/utilities/utils';
+import { HyperparameterFields } from './const';
 
 export const createTeacherJudgeSecrets = (
   projectName: string,
@@ -163,3 +168,35 @@ export const translateIlabFormToBaseModelInput = (
   sdg_base_model: data.baseModel.sdgBaseModel,
   // TODO more output model fields
 });
+
+export const translateIlabFormToRunType = (
+  data: ModelCustomizationFormData,
+): {
+  runType: string;
+} => ({
+  runType: data.runType.value,
+});
+
+export const translateIlabFormToHyperparameters = (
+  data: ModelCustomizationFormData,
+): {
+  hyperparameters: HyperparametersFormData;
+} => ({
+  hyperparameters: data.hyperparameters,
+});
+
+export const filterHyperparameters = (pipelineVersion: PipelineVersionKF | null): ParametersKF => {
+  let hyperparameters = {};
+  const ilabPipelineParams = getInputDefinitionParams(pipelineVersion);
+  if (typeof ilabPipelineParams !== 'undefined') {
+    for (const key of Object.keys(ilabPipelineParams)) {
+      if (isEnumMember(key, HyperparameterFields)) {
+        hyperparameters = {
+          ...hyperparameters,
+          [key]: ilabPipelineParams[key],
+        };
+      }
+    }
+  }
+  return hyperparameters;
+};
