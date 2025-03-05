@@ -25,17 +25,19 @@ describe('Verify OOTB Connection Types', () => {
       connectionTypesPage.shouldHaveConnectionTypes();
       const uri = connectionTypesPage.getConnectionTypeRow(testData.uri);
       const s3 = connectionTypesPage.getConnectionTypeRow(testData.s3);
+      const oci = connectionTypesPage.getConnectionTypeRow(testData.oci);
 
       cy.step('Ensure Pre-installed label is present on OOTB Connections');
       connectionTypesPage.shouldHaveConnectionTypes();
       uri.shouldShowPreInstalledLabel();
       s3.shouldShowPreInstalledLabel();
+      oci.shouldShowPreInstalledLabel();
 
       cy.step('Ensure OOTB connections are not editable or deletable');
-      ['Edit', 'Delete'].forEach((action) => {
-        s3.find().findKebabAction(action).should('not.exist');
-        s3.findKebab().click(); // need to close the kebab since the popup will block the next row's kebab
-        uri.find().findKebabAction(action).should('not.exist');
+      [uri, s3, oci].forEach((row) => {
+        row.find().findKebabAction('Edit').should('not.exist');
+        row.find().findKebabAction('Delete').should('not.exist');
+        row.findKebab().click();
       });
     },
   );
