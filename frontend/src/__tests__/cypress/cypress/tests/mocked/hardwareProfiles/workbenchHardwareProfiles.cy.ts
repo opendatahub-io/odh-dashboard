@@ -166,8 +166,12 @@ describe('Workbench Hardware Profiles', () => {
     hardwareProfileSection.findSelect().should('exist');
 
     // Verify available profiles
-    hardwareProfileSection.selectProfile('Small Profile');
-    hardwareProfileSection.selectProfile('Large Profile');
+    hardwareProfileSection.selectProfile(
+      'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
+    );
+    hardwareProfileSection.selectProfile(
+      'Large Profile CPU: Request = 4; Limit = 4; Memory: Request = 8Gi; Limit = 8Gi',
+    );
   });
 
   it('should validate hardware profile customization within limits', () => {
@@ -179,15 +183,17 @@ describe('Workbench Hardware Profiles', () => {
     workbenchPage.findCreateButton().click();
 
     // Select profile and open customization
-    hardwareProfileSection.selectProfile('Small Profile');
+    hardwareProfileSection.selectProfile(
+      'Large Profile CPU: Request = 4; Limit = 4; Memory: Request = 8Gi; Limit = 8Gi',
+    );
     hardwareProfileSection.findCustomizeButton().click();
 
     // Test CPU validation
-    hardwareProfileSection.verifyResourceValidation('cpu-requests', '3', 'Must not exceed 2');
+    hardwareProfileSection.verifyResourceValidation('cpu-requests', '3', 'Must be at least 4');
     hardwareProfileSection.verifyResourceValidation('cpu-requests', '1');
 
     // Test Memory validation
-    hardwareProfileSection.verifyResourceValidation('memory-requests', '1', 'Must be at least 2Gi');
+    hardwareProfileSection.verifyResourceValidation('memory-requests', '1', 'Must be at least 8Gi');
     hardwareProfileSection.verifyResourceValidation('memory-requests', '5');
     hardwareProfileSection.verifyResourceValidation('memory-requests', '3');
   });
