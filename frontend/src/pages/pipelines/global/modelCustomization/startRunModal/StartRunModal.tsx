@@ -13,11 +13,11 @@ export type StartRunModalProps = {
   loadError?: Error | null;
 };
 
-const StartRunModal: React.FC<StartRunModalProps> = ({ 
-  onSubmit, 
-  onCancel, 
-  loaded = true, 
-  loadError = null 
+const StartRunModal: React.FC<StartRunModalProps> = ({
+  onSubmit,
+  onCancel,
+  loaded = true,
+  loadError = null,
 }) => {
   const [selectedProject, setSelectedProject] = React.useState<string | null>(null);
   const [isLoadingProject, setIsLoadingProject] = React.useState<boolean>(false);

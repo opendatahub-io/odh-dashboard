@@ -21,7 +21,7 @@ export const ModelRegistrySelectorContext = React.createContext<ModelRegistrySel
   modelRegistryServicesLoaded: false,
   modelRegistryServicesLoadError: undefined,
   modelRegistryServices: [],
-  preferredModelRegistry:  null,
+  preferredModelRegistry: null,
   updatePreferredModelRegistry: () => undefined,
   refreshRulesReview: () => undefined,
 });
@@ -39,7 +39,9 @@ export const ModelRegistrySelectorContextProvider: React.FC<
   return children;
 };
 
-const EnabledModelRegistrySelectorContextProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
+const EnabledModelRegistrySelectorContextProvider: React.FC<React.PropsWithChildren> = ({
+  children,
+}) => {
   const { dscStatus } = React.useContext(AreaContext);
   const {
     modelRegistryServices = [],
@@ -47,9 +49,11 @@ const EnabledModelRegistrySelectorContextProvider: React.FC<React.PropsWithChild
     error,
     refreshRulesReview,
   } = useModelRegistryServices(dscStatus?.components?.modelregistry?.registriesNamespace || '');
-  const [preferredModelRegistry, setPreferredModelRegistry] = React.useState<ServiceKind | null>(null);
+  const [preferredModelRegistry, setPreferredModelRegistry] = React.useState<ServiceKind | null>(
+    null,
+  );
 
-  const updatePreferredModelRegistry = (modelRegistry: ServiceKind | undefined) => 
+  const updatePreferredModelRegistry = (modelRegistry: ServiceKind | undefined) =>
     setPreferredModelRegistry(modelRegistry ?? null);
 
   const contextValue = React.useMemo(
