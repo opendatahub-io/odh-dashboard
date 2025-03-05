@@ -28,7 +28,7 @@ export const allFeatureFlags: string[] = Object.keys({
   disableKServe: false,
   disableKServeAuth: false,
   disableKServeMetrics: false,
-  disableKServeRaw: true,
+  disableKServeRaw: false,
   disableKServeOCIModels: true,
   disableModelMesh: false,
   disableAcceleratorProfiles: false,
