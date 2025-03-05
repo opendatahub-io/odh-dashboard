@@ -6,6 +6,9 @@ import {
   Label,
   Split,
   SplitItem,
+  Truncate,
+  Stack,
+  StackItem,
 } from '@patternfly/react-core';
 import * as React from 'react';
 import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
@@ -17,6 +20,7 @@ import { splitValueUnit, CPU_UNITS, MEMORY_UNITS_FOR_PARSING } from '~/utilities
 import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
 import { HardwareProfileConfig } from './useHardwareProfileConfig';
 import { NotebookPodSpecOptions } from './useNotebookPodSpecOptionsState';
+import { formatResource } from './utils';
 
 type HardwareProfileSelectProps = {
   initialHardwareProfile?: HardwareProfileKind;
@@ -112,7 +116,30 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
       return {
         key: profile.metadata.name,
         label: displayName,
-        description: profile.spec.description,
+        description: (
+          <Stack>
+            {profile.spec.description && (
+              <StackItem>
+                <Truncate content={profile.spec.description} />
+              </StackItem>
+            )}
+            {profile.spec.identifiers && (
+              <StackItem>
+                <Truncate
+                  content={profile.spec.identifiers
+                    .map((identifier) =>
+                      formatResource(
+                        identifier.displayName,
+                        identifier.defaultCount.toString(),
+                        identifier.defaultCount.toString(),
+                      ),
+                    )
+                    .join('; ')}
+                />
+              </StackItem>
+            )}
+          </Stack>
+        ),
         dropdownLabel: (
           <Split>
             <SplitItem>{displayName}</SplitItem>
@@ -143,6 +170,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
         <FlexItem grow={{ default: 'grow' }}>
           <SimpleSelect
             dataTestId="hardware-profile-select"
+            previewDescription={false}
             options={options}
             value={
               hardwareProfileConfig.selectedProfile?.metadata.name ??
