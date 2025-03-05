@@ -50,9 +50,8 @@ describe('Model Customization Form', () => {
   it('Should submit', () => {
     initIntercepts({});
     modelCustomizationFormGlobal.visit(projectName);
-    cy.wait('@getAllPipelines');
-    cy.wait('@getAllPipelineVersions');
-
+    cy.wait('@getIlabPipeline');
+    cy.wait('@getIlabPipelineVersions');
     teacherModelSection.findEndpointInput().type('http://test.com');
     teacherModelSection.findModelNameInput().type('test');
     judgeModelSection.findEndpointInput().type('http://test.com');
@@ -68,13 +67,6 @@ describe('Model Customization Form', () => {
   it('Should not submit', () => {
     initIntercepts({});
     cy.interceptOdh(
-      'GET /apis/v2beta1/pipelines/names/:pipelineName',
-      {
-        path: { pipelineName: 'instructlab' },
-      },
-      buildMockPipeline(invalidMockPipeline),
-    ).as('getAllPipelines');
-    cy.interceptOdh(
       'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/names/:pipelineName',
       {
         path: {
@@ -86,7 +78,7 @@ describe('Model Customization Form', () => {
       buildMockPipeline(invalidMockPipeline),
     ).as('getIlabPipeline');
     modelCustomizationFormGlobal.visit(projectName);
-    cy.wait('@getAllPipelines');
+    cy.wait('@getIlabPipeline');
     modelCustomizationFormGlobal.findSubmitButton().should('be.disabled');
   });
 });
@@ -199,14 +191,6 @@ export const initIntercepts = (
   );
 
   cy.interceptOdh(
-    'GET /apis/v2beta1/pipelines/names/:pipelineName',
-    {
-      path: { pipelineName: 'instructlab' },
-    },
-    buildMockPipeline(initialMockPipeline),
-  ).as('getAllPipelines');
-
-  cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/names/:pipelineName',
     {
       path: {
@@ -224,5 +208,5 @@ export const initIntercepts = (
       path: { namespace: projectName, serviceName: 'dspa', pipelineId: 'instructlab' },
     },
     buildMockPipelines([initialMockPipelineVersion]),
-  ).as('getAllPipelineVersions');
+  ).as('getIlabPipelineVersions');
 };
