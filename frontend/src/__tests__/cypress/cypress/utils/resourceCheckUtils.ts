@@ -6,28 +6,57 @@ interface ResourceInfo {
   description: string;
 }
 
-// Specify the return type of the function
+export const getCardWithWait = (
+  id: string | undefined,
+  timeout = 180000,
+): Cypress.Chainable<JQuery<HTMLElement>> => {
+  if (!id) {
+    throw new Error(`Invalid card ID: undefined`);
+  }
+
+  cy.log(`Waiting for card with id: ${id}`);
+
+  return cy
+    .get('[data-testid="learning-center-card-view"]', { timeout })
+    .should('exist')
+    .and('be.visible')
+    .then(($cardView) => {
+      if ($cardView.length === 0) {
+        throw new Error(`Card view not found within ${timeout}ms`);
+      }
+      return cy.wrap($cardView);
+    })
+    .get(`[data-testid="card ${id}"]`, { timeout })
+    .should('exist')
+    .and('be.visible')
+    .then(($card) => {
+      if ($card.length === 0) {
+        throw new Error(`Card with id '${id}' not found or not visible within ${timeout}ms`);
+      }
+      return $card;
+    });
+};
+
 export const checkResources = (resourceInfoList: ResourceInfo[]): void => {
   cy.log(`Starting resource check for ${resourceInfoList.length} resources.`);
 
   resourceInfoList.forEach((resourceInfo) => {
     cy.log(`Checking for resource: ${resourceInfo.name}`);
 
-    // Clear the search input and type the resource name
     resources.getLearningCenterToolbar().findSearchInput().clear().type(resourceInfo.name);
 
-    // Check if the resource card is visible by looking for its metadata name
-    resources
-      .getCardView(180000)
-      .getCard(resourceInfo.metaDataName)
-      .find()
-      .should('exist')
-      .then(($card) => {
-        if ($card.length > 0 && $card.is(':visible')) {
-          cy.log(`✅ Resource found: ${resourceInfo.name}`);
-        } else {
-          cy.log(`❌ Resource not found: ${resourceInfo.name}`);
-        }
+    cy.wrap(null)
+      .then(() => {
+        return getCardWithWait(resourceInfo.metaDataName, 180000);
+      })
+      .then(() => {
+        cy.log(`✅ Resource found: ${resourceInfo.name}`);
+        // Additional actions can be performed here if needed
       });
+  });
+
+  Cypress.on('fail', (error) => {
+    cy.log(`❌ Error finding resource: ${error.message}`);
+    throw error; // Re-throw the error to fail the test
   });
 };
