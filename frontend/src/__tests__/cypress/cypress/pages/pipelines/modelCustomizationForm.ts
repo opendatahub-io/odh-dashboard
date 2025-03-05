@@ -1,6 +1,21 @@
 class ModelCustomizationFormGlobal {
   visit(projectName: string, empty = false) {
-    cy.visitWithLogin(`/modelCustomization/instructlab/${projectName}`);
+    const state = {
+      modelRegistryName: 'test-registry',
+      modelRegistryDisplayName: 'Test Registry',
+      registeredModelId: 'model-123',
+      registeredModelName: 'test-model',
+      modelVersionId: 'version-123',
+      inputModelLocationUri: 'test-uri',
+      outputModelRegistryApiUrl: 'test-api-url',
+    };
+
+    cy.visit('/', {
+      onBeforeLoad(win) {
+        win.history.pushState(state, '', `/modelCustomization/fine-tune/${projectName}`);
+      },
+    });
+
     if (empty) {
       this.emptyWait();
     } else {
@@ -9,7 +24,7 @@ class ModelCustomizationFormGlobal {
   }
 
   invalidVisit() {
-    cy.visitWithLogin('/modelCustomization/instructlab');
+    cy.visitWithLogin('/modelCustomization/fine-tune');
     this.emptyWait();
   }
 

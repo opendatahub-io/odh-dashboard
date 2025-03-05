@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Form, FormGroup, FormSection } from '@patternfly/react-core';
+import { useLocation } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import {
@@ -16,10 +17,11 @@ import BaseModelSection from '~/pages/pipelines/global/modelCustomization/baseMo
 import TeacherModelSection from '~/pages/pipelines/global/modelCustomization/teacherJudgeSection/TeacherModelSection';
 import JudgeModelSection from '~/pages/pipelines/global/modelCustomization/teacherJudgeSection/JudgeModelSection';
 import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { ModelCustomizationRouterState } from '~/routes';
 import { FineTuneTaxonomySection } from './FineTuneTaxonomySection';
 
 type FineTunePageProps = {
-  isInvalid: boolean;
+  canSubmit: boolean;
   onSuccess: () => void;
   data: ModelCustomizationFormData;
   setData: UpdateObjectAtPropAndValue<ModelCustomizationFormData>;
@@ -28,7 +30,7 @@ type FineTunePageProps = {
 };
 
 const FineTunePage: React.FC<FineTunePageProps> = ({
-  isInvalid,
+  canSubmit,
   onSuccess,
   data,
   setData,
@@ -37,6 +39,7 @@ const FineTunePage: React.FC<FineTunePageProps> = ({
 }) => {
   const projectDetailsDescription = 'This project is used for running your pipeline';
   const { project } = usePipelinesAPI();
+  const { state }: { state?: ModelCustomizationRouterState } = useLocation();
 
   return (
     <Form data-testid="fineTunePageForm">
@@ -56,6 +59,9 @@ const FineTunePage: React.FC<FineTunePageProps> = ({
       <BaseModelSection
         data={data.baseModel}
         setData={(baseModelData) => setData('baseModel', baseModelData)}
+        registryName={state?.modelRegistryDisplayName}
+        inputModelName={state?.registeredModelName}
+        inputModelVersionName={state?.modelVersionName}
       />
       <FineTuneTaxonomySection
         data={data.taxonomy}
@@ -70,7 +76,7 @@ const FineTunePage: React.FC<FineTunePageProps> = ({
       <JudgeModelSection data={data.judge} setData={(judgeData) => setData('judge', judgeData)} />
       <FormSection>
         <FineTunePageFooter
-          isInvalid={isInvalid}
+          canSubmit={canSubmit}
           onSuccess={onSuccess}
           data={data}
           ilabPipeline={ilabPipeline}

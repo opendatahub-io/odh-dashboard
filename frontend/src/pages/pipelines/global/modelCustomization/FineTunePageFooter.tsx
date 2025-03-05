@@ -31,12 +31,14 @@ import {
   translateIlabFormToTeacherJudge,
   createTaxonomySecret,
   translateIlabFormToTaxonomyInput,
+  translateIlabFormToBaseModelInput,
 } from '~/pages/pipelines/global/modelCustomization/utils';
 import { genRandomChars } from '~/utilities/string';
 import { RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
+import { ValidationContext } from '~/utilities/useValidation';
 
 type FineTunePageFooterProps = {
-  isInvalid: boolean;
+  canSubmit: boolean;
   onSuccess: () => void;
   data: ModelCustomizationFormData;
   ilabPipeline: PipelineKF | null;
@@ -50,7 +52,7 @@ type FineTunePageFooterSubmitPresetValues = {
 };
 
 const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
-  isInvalid,
+  canSubmit,
   onSuccess,
   data,
   ilabPipeline,
@@ -63,6 +65,9 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
   const notification = useNotification();
   const navigate = useNavigate();
   const contextPath = globalPipelineRunsRoute(namespace);
+
+  const { validationResult } = React.useContext(ValidationContext);
+  const isValid = validationResult.success;
 
   // TODO: translate data to `RunFormData`
   const [runFormData] = useRunFormData(null, {
@@ -102,6 +107,7 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
             judgeSecret.metadata.name,
           ),
           ...translateIlabFormToTaxonomyInput(data, taxonomySecret.metadata.name),
+          ...translateIlabFormToBaseModelInput(data),
         },
       },
       api,
@@ -192,7 +198,7 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
             <Button
               variant="primary"
               data-testid="model-customization-submit-button"
-              isDisabled={isInvalid || isSubmitting}
+              isDisabled={!isValid || isSubmitting || !canSubmit}
               onClick={() => {
                 setError(undefined);
                 setIsSubmitting(true);

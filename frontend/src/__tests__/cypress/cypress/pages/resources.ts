@@ -74,12 +74,12 @@ class Card extends Contextual<HTMLElement> {
   }
 }
 
-class CardView extends Contextual<HTMLElement> {
-  getCard(id: string) {
+export class CardView extends Contextual<HTMLElement> {
+  getCard(id: string): Card {
     return new Card(() => this.find().findByTestId(['card', id]));
   }
 
-  findCardItems() {
+  findCardItems(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findAllByTestId(['card']);
   }
 }
