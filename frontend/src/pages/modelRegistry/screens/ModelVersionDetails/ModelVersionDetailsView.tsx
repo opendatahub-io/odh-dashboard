@@ -5,6 +5,7 @@ import {
   Flex,
   FlexItem,
   ContentVariants,
+  Content,
   Title,
   Bullseye,
   Spinner,
@@ -20,6 +21,7 @@ import {
   getLabels,
   getProperties,
   isPipelineRunExist,
+  getCustomPropString,
   mergeUpdatedLabels,
 } from '~/pages/modelRegistry/screens/utils';
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
@@ -35,6 +37,8 @@ import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegiste
 import { globalPipelineRunDetailsRoute } from '~/routes';
 import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
 import { pipelineRunSpecificKeys } from './const';
+import { ModelDetailsRouteParams } from '~/pages/modelCatalog/const';
+import { getModelDetailsUrl } from '~/pages/modelCatalog/routeUtils';
 
 type ModelVersionDetailsViewProps = {
   modelVersion: ModelVersion;
@@ -49,7 +53,6 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
 }) => {
   const [modelArtifacts, modelArtifactsLoaded, modelArtifactsLoadError, refreshModelArtifacts] =
     useModelArtifactsByVersionId(mv.id);
-
   const modelArtifact = modelArtifacts.items.length ? modelArtifacts.items[0] : null;
   const { apiState } = React.useContext(ModelRegistryContext);
   const storageFields = uriToStorageFields(modelArtifact?.uri || '');
@@ -96,6 +99,16 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
     }
   };
 
+  const modelDetailsRouteParams: ModelDetailsRouteParams = {
+    sourceName: getCustomPropString(mv.customProperties, "_registeredFromCatalogSourceName"),
+    repositoryName: getCustomPropString(mv.customProperties, "_registeredFromCatalogRepositoryName"),
+    modelName: getCustomPropString(mv.customProperties, "_registeredFromCatalogModelName"),
+    tag: getCustomPropString(mv.customProperties, "_registeredFromCatalogTag"),
+  }
+  const modelDetailsUrl = getModelDetailsUrl(modelDetailsRouteParams);
+  console.log({modelDetailsRouteParams, modelDetailsUrl});
+
+  
   return (
     <Flex
       direction={{ default: 'column', md: 'row' }}
@@ -192,6 +205,16 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
               </Flex>
             </DashboardDescriptionListGroup>
           )}
+          {modelDetailsUrl && <DashboardDescriptionListGroup
+            title="Registered from"
+            isEmpty={!mv.id}
+          >
+            <Link to={modelDetailsUrl}>
+              <span style={{fontWeight: 'var(--pf-t--global--font--weight--body--bold)'}}>{modelDetailsRouteParams.modelName} ({modelDetailsRouteParams.tag})</span>
+            </Link>{' '}
+            in Model catalog
+          </DashboardDescriptionListGroup>
+          }
         </DescriptionList>
 
         <Title style={{ margin: '1em 0' }} headingLevel={ContentVariants.h3}>

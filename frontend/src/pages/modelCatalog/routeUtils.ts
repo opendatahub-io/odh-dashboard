@@ -4,13 +4,16 @@ import { encodeParams, getTagFromModel } from './utils';
 
 export const modelCatalogUrl = (): string => `/modelCatalog`;
 
-export const modelDetailsUrl = (params: ModelDetailsRouteParams): string => {
+export const getModelDetailsUrl = (params: ModelDetailsRouteParams): string => {
+  if (!params.sourceName || !params.repositoryName || !params.modelName || !params.tag) {
+    return '';
+  }
   const { sourceName = '', repositoryName = '', modelName = '', tag = '' } = encodeParams(params);
   return `${modelCatalogUrl()}/${sourceName}/${repositoryName}/${modelName}/${tag}`;
 };
 
 export const modelDetailsUrlFromModel = (model: CatalogModel, source: string): string =>
-  modelDetailsUrl({
+  getModelDetailsUrl({
     sourceName: source,
     repositoryName: model.repository,
     modelName: model.name,
@@ -18,4 +21,4 @@ export const modelDetailsUrlFromModel = (model: CatalogModel, source: string): s
   });
 
 export const registerCatalogModel = (params: ModelDetailsRouteParams): string =>
-  `${modelDetailsUrl(params)}/register`;
+  `${getModelDetailsUrl(params)}/register`;

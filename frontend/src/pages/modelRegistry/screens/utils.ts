@@ -46,7 +46,7 @@ export const getProperties = <T extends ModelRegistryCustomProperties>(
   return Object.keys(customProperties).reduce((acc, key) => {
     // _lastModified is a property that is required to update the timestamp on the backend and we have a workaround for it. It should be resolved by
     // backend team See https://issues.redhat.com/browse/RHOAIENG-17614 .
-    if (key === '_lastModified') {
+    if (key === '_lastModified' || /^_registeredFromCatalog/.test(key)) {
       return acc;
     }
 
@@ -80,6 +80,17 @@ export const mergeUpdatedProperty = (
     };
   }
   return customPropertiesCopy;
+};
+
+export const getCustomPropString = <T extends ModelRegistryCustomProperties>(
+  customProperties: T,
+  key: string,
+): string => {
+  const prop = customProperties[key];
+  if (prop.metadataType === 'MetadataStringValue') {
+    return prop.string_value;
+  }
+  return '';
 };
 
 export const filterModelVersions = (
