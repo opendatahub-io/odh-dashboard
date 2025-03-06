@@ -21,7 +21,7 @@ const COL_EXPAND: SortableData<InferenceServiceKind> = {
 };
 const COL_NAME: SortableData<InferenceServiceKind> = {
   field: ColumnField.Name,
-  label: 'Model name',
+  label: 'Model deployment name',
   width: 20,
   sortable: (a, b) =>
     getDisplayNameFromK8sResource(a).localeCompare(getDisplayNameFromK8sResource(b)),

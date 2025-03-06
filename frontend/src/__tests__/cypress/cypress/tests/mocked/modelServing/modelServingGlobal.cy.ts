@@ -594,10 +594,10 @@ describe('Model Serving Global', () => {
       // Verify only rows with the typed run name exist
       modelServingGlobal.getModelRow('Test Inference Service').should('exist');
       // Verify sort button works
-      modelServingGlobal.findSortButton('Model name').click();
-      modelServingGlobal.findSortButton('Model name').should(be.sortDescending);
-      modelServingGlobal.findSortButton('Model name').click();
-      modelServingGlobal.findSortButton('Model name').should(be.sortAscending);
+      modelServingGlobal.findSortButton('Model deployment name').click();
+      modelServingGlobal.findSortButton('Model deployment name').should(be.sortDescending);
+      modelServingGlobal.findSortButton('Model deployment name').click();
+      modelServingGlobal.findSortButton('Model deployment name').should(be.sortAscending);
 
       // Search for non-existent run name
       modelServingGlobalToolbar.findSearchInput().clear().type('Test Service');
