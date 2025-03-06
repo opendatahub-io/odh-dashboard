@@ -1,5 +1,4 @@
 import React from 'react';
-import { useLocation } from 'react-router-dom';
 import { checkAccess } from '~/api';
 import { AccessReviewResourceAttributes } from '~/k8sTypes';
 import useNamespaces from '~/pages/notebookController/useNamespaces';
@@ -9,17 +8,7 @@ type AccessReviewCacheData = {
   canAccess: boolean;
 };
 
-type AccessReviewCacheType = Record<
-  /** Key */
-  string,
-  AccessReviewCacheData | undefined
->;
-
-type RouteAccessReviewCacheType = Record<
-  /** Route location */
-  string,
-  AccessReviewCacheType
->;
+type AccessReviewCacheType = Record<string, AccessReviewCacheData | undefined>;
 
 type AccessReviewContextType = {
   canIAccess: (resourceAttributes: AccessReviewResourceAttributes) => void;
@@ -33,41 +22,9 @@ export const AccessReviewContext = React.createContext<AccessReviewContextType>(
   genKey: () => '',
 });
 
-const useRoutePart = (): string => {
-  const { pathname } = useLocation();
-  // We only care about the first part of the route `/foobar`; "foobar" string
-  return pathname.split('/')[1] ?? '';
-};
-
-/** Top level route changes, we set the cache to empty */
-const useClearCacheOnPathChange = (resetFunc: (routeToReset: string) => void) => {
-  const routePart = useRoutePart();
-  const ref = React.useRef<string>(routePart);
-
-  React.useEffect(() => {
-    if (ref.current !== routePart) {
-      // eslint-disable-next-line no-console
-      console.log('New page, clearing access route checks');
-      resetFunc(ref.current);
-      ref.current = routePart;
-    }
-  }, [routePart, resetFunc]);
-};
-
 export const AccessReviewProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [accessReviewCache, setAccessReviewCache] = React.useState<RouteAccessReviewCacheType>({});
-  const routePart = useRoutePart();
+  const [accessReviewCache, setAccessReviewCache] = React.useState<AccessReviewCacheType>({});
   const keysRef = React.useRef(new Set());
-  useClearCacheOnPathChange(
-    React.useCallback((routeToReset) => {
-      setAccessReviewCache((data) => {
-        const rest = { ...data };
-        delete rest[routeToReset];
-        return rest;
-      });
-      keysRef.current.clear();
-    }, []),
-  );
   // If namespace is not provided in the data, assume it means the dashboard deployment namespace
   const { dashboardNamespace } = useNamespaces();
 
@@ -100,46 +57,40 @@ export const AccessReviewProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return;
       }
 
+      // Temporarily set loading state
       keysRef.current.add(key);
       setAccessReviewCache((oldValue) => ({
         ...oldValue,
-        [routePart]: {
-          ...oldValue[routePart],
-          [key]: {
-            isLoading: true,
-            canAccess: false,
-          } satisfies AccessReviewCacheData,
-        },
+        [key]: {
+          isLoading: true,
+          canAccess: false,
+        } satisfies AccessReviewCacheData,
       }));
 
       // Determine access
       return checkAccess({ group, resource, subresource, verb, name, namespace }).then(
         (allowed) => {
-          console.debug('<<<<<< returned', verb, allowed);
           setAccessReviewCache((oldValue) => ({
             ...oldValue,
-            [routePart]: {
-              ...oldValue[routePart],
-              [key]: {
-                isLoading: false,
-                canAccess: allowed,
-              } satisfies AccessReviewCacheData,
-            },
+            [key]: {
+              isLoading: false,
+              canAccess: allowed,
+            } satisfies AccessReviewCacheData,
           }));
         },
       );
     },
-    [routePart, dashboardNamespace, genKey],
+    [dashboardNamespace, genKey],
   );
 
   const contextObject = React.useMemo(
     () =>
       ({
         canIAccess,
-        accessReviewCache: accessReviewCache[routePart] ?? {},
+        accessReviewCache,
         genKey,
       } satisfies AccessReviewContextType),
-    [canIAccess, accessReviewCache, routePart, genKey],
+    [genKey, accessReviewCache, canIAccess],
   );
 
   return (
