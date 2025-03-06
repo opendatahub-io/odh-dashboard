@@ -12,6 +12,7 @@ import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 
 type HandlersProps = {
   modelRegistries?: ServiceKind[];
+  disableFineTuning?: boolean;
 };
 
 const initIntercepts = ({
@@ -23,12 +24,14 @@ const initIntercepts = ({
       description: '',
     }),
   ],
+  disableFineTuning = false,
 }: HandlersProps) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
       installedComponents: {
         'model-registry-operator': true,
+        'data-science-pipelines-operator': true,
       },
     }),
   );
@@ -37,6 +40,7 @@ const initIntercepts = ({
     'GET /api/config',
     mockDashboardConfig({
       disableModelCatalog: false,
+      disableFineTuning,
     }),
   );
 
@@ -108,6 +112,19 @@ describe('Model details page', () => {
       '/modelCatalog/Red%20Hat/rhelai1/granite-8b-code-instruct/1%252E3%252E0/register',
     );
   });
+});
+
+it('Should show tune action item with popover when fineTuning is enabled', () => {
+  initIntercepts({});
+  modelDetailsPage.visit();
+  modelDetailsPage.findTuneModelButton().click();
+  modelDetailsPage.findTuneModelPopover().should('be.visible');
+});
+
+it('Should not show tune action item with popover when fineTuning is disabled', () => {
+  initIntercepts({ disableFineTuning: true });
+  modelDetailsPage.visit();
+  modelDetailsPage.findTuneModelButton().should('not.exist');
 });
 
 describe('Model Details loading states', () => {

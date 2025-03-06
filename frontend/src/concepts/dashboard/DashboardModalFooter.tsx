@@ -19,7 +19,7 @@ type DashboardModalFooterProps = {
   isSubmitLoading?: boolean;
   isCancelDisabled?: boolean;
   alertTitle?: string;
-  error?: Error;
+  error?: Error | React.ReactNode;
   alertLinks?: React.ReactNode;
 };
 
@@ -46,7 +46,7 @@ const DashboardModalFooter: React.FC<DashboardModalFooterProps> = ({
           title={alertTitle}
           actionLinks={alertLinks}
         >
-          {error.message}
+          {error instanceof Error ? error.message : error}
         </Alert>
       </StackItem>
     )}

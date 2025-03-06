@@ -8,10 +8,10 @@ const cardView = resources.getCardView();
 const resourcesToolbar = resources.getLearningCenterToolbar();
 const resourceFilters = resources.getLearningCenterFilters();
 
-describe('Verify the filters on Resources page', () => {
+describe('[Automation Bug: RHOAIENG-21088] Verify the filters on Resources page', () => {
   it(
     'Test whether enabled, resource type, provider and provider type filters are working',
-    { tags: ['@Sanity', '@SanitySet1', '@ODS-489', '@Dashboard'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ODS-489', '@Dashboard', '@Bug'] },
     () => {
       // Authentication
       cy.step('Log into the application');

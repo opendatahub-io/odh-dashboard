@@ -178,11 +178,33 @@ const modelServingCompatibleTypesMetadata: Record<
   },
 };
 
-export const isModelServingTypeCompatible = (
+export const isModelServingCompatible = (
   input: string[] | Connection | ConnectionTypeConfigMapObj,
-  type: ModelServingCompatibleTypes,
+  type?: ModelServingCompatibleTypes,
 ): boolean => {
+  if (!type) {
+    return getModelServingCompatibility(input).length > 0;
+  }
   if (isSecretKind(input) && isConnection(input)) {
+    if (type === ModelServingCompatibleTypes.OCI) {
+      const accessType =
+        input.stringData?.ACCESS_TYPE || window.atob(input.data?.ACCESS_TYPE ?? '');
+      if (!(accessType.includes('Pull') || accessType === '[]' || accessType === '')) {
+        return false;
+      }
+    }
+
+    const { managedType } = modelServingCompatibleTypesMetadata[type];
+    if (
+      managedType &&
+      !(
+        input.metadata.annotations['opendatahub.io/connection-type'] === managedType &&
+        input.metadata.labels['opendatahub.io/managed'] === 'true'
+      )
+    ) {
+      return false;
+    }
+
     return modelServingCompatibleTypesMetadata[type].envVars.every((envVar) =>
       Object.keys(input.data || input.stringData || []).includes(envVar),
     );
@@ -198,10 +220,12 @@ export const isModelServingTypeCompatible = (
   );
 };
 
-const getModelServingCompatibleTypes = (envVars: string[]): ModelServingCompatibleTypes[] =>
+export const getModelServingCompatibility = (
+  input: string[] | Connection | ConnectionTypeConfigMapObj,
+): ModelServingCompatibleTypes[] =>
   enumIterator(ModelServingCompatibleTypes).reduce<ModelServingCompatibleTypes[]>(
     (acc, [, value]) => {
-      if (isModelServingTypeCompatible(envVars, value)) {
+      if (isModelServingCompatible(input, value)) {
         acc.push(value);
       }
       return acc;
@@ -209,37 +233,22 @@ const getModelServingCompatibleTypes = (envVars: string[]): ModelServingCompatib
     [],
   );
 
-export const isModelServingCompatibleConnection = (connection: Connection): boolean =>
-  getConnectionModelServingCompatibleTypes(connection).length > 0;
-
-export const isModelServingCompatibleConnectionType = (
-  connectionType: ConnectionTypeConfigMapObj,
-): boolean => getConnectionTypeModelServingCompatibleTypes(connectionType).length > 0;
-
-export const getConnectionModelServingCompatibleTypes = (
-  connection: Connection,
-): ModelServingCompatibleTypes[] =>
-  getModelServingCompatibleTypes(
-    Object.entries(connection.data ?? {})
-      .filter(([, value]) => !!value)
-      .map(([key]) => key),
-  ).filter((type) => {
-    const { managedType } = modelServingCompatibleTypesMetadata[type];
-    if (managedType) {
-      return (
-        connection.metadata.annotations['opendatahub.io/connection-type'] === managedType &&
-        connection.metadata.labels['opendatahub.io/managed'] === 'true'
-      );
-    }
-    return true;
-  });
-
-export const getConnectionTypeModelServingCompatibleTypes = (
-  connectionType: ConnectionTypeConfigMapObj,
-): ModelServingCompatibleTypes[] =>
-  getModelServingCompatibleTypes(
-    connectionType.data?.fields?.filter(isConnectionTypeDataField).map((f) => f.envVar) ?? [],
-  );
+export const filterModelServingConnectionTypes = (
+  connectionTypes: ConnectionTypeConfigMapObj[],
+): {
+  key: ModelServingCompatibleTypes;
+  name: string;
+  type: ConnectionTypeConfigMapObj;
+}[] =>
+  enumIterator(ModelServingCompatibleTypes)
+    .map(([, value]) => {
+      const typeMetadata = modelServingCompatibleTypesMetadata[value];
+      const connectionType = connectionTypes.find((t) => t.metadata.name === typeMetadata.resource);
+      return connectionType
+        ? { key: value, name: typeMetadata.name, type: connectionType }
+        : undefined;
+    })
+    .filter((t) => t != null);
 
 export const getDefaultValues = (
   connectionType: ConnectionTypeConfigMapObj,
@@ -316,7 +325,7 @@ export const assembleConnectionSecret = (
       .filter(([, value]) => !!value),
   );
 
-  const managedType = getModelServingCompatibleTypes(Object.keys(connectionValuesAsStrings)).map(
+  const managedType = getModelServingCompatibility(Object.keys(connectionValuesAsStrings)).map(
     (t) => modelServingCompatibleTypesMetadata[t].managedType,
   )[0];
 
@@ -410,23 +419,6 @@ export const findSectionFields = (
 
   return fields.slice(sectionIndex + 1, nextSectionIndex === -1 ? undefined : nextSectionIndex);
 };
-
-export const filterModelServingConnectionTypes = (
-  connectionTypes: ConnectionTypeConfigMapObj[],
-): {
-  key: ModelServingCompatibleTypes;
-  name: string;
-  type: ConnectionTypeConfigMapObj;
-}[] =>
-  enumIterator(ModelServingCompatibleTypes)
-    .map(([, value]) => {
-      const typeMetadata = modelServingCompatibleTypesMetadata[value];
-      const connectionType = connectionTypes.find((t) => t.metadata.name === typeMetadata.resource);
-      return connectionType
-        ? { key: value, name: typeMetadata.name, type: connectionType }
-        : undefined;
-    })
-    .filter((t) => t != null);
 
 export const VALID_ENV_VARNAME_REGEX = /^[A-Za-z_][A-Za-z0-9_\-.]*$/;
 export const STARTS_WITH_DIGIT_REGEX = /^\d/;

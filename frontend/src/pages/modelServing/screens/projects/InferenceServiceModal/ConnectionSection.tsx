@@ -36,7 +36,7 @@ import {
   getDefaultValues,
   getMRConnectionValues,
   isConnectionTypeDataField,
-  isModelServingTypeCompatible,
+  isModelServingCompatible,
   ModelServingCompatibleTypes,
   S3ConnectionTypeKeys,
   withRequiredFields,
@@ -50,7 +50,6 @@ import {
   LabeledConnection,
 } from '~/pages/modelServing/screens/types';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
 import { isModelPathValid } from '~/pages/modelServing/screens/projects/utils';
 import ConnectionS3FolderPathField from './ConnectionS3FolderPathField';
 import ConnectionOciPathField from './ConnectionOciPathField';
@@ -175,12 +174,12 @@ const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = ({
         )}
       </FormGroup>
       {selectedConnection &&
-        isModelServingTypeCompatible(
+        isModelServingCompatible(
           selectedConnection,
           ModelServingCompatibleTypes.S3ObjectStorage,
         ) && <ConnectionS3FolderPathField folderPath={folderPath} setFolderPath={setFolderPath} />}
       {selectedConnection &&
-        isModelServingTypeCompatible(selectedConnection, ModelServingCompatibleTypes.OCI) && (
+        isModelServingCompatible(selectedConnection, ModelServingCompatibleTypes.OCI) && (
           <ConnectionOciPathField
             ociHost={window.atob(selectedConnection.data?.OCI_HOST ?? '')}
             modelUri={modelUri}
@@ -327,7 +326,7 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
         }
       />
       {selectedConnectionType &&
-        isModelServingTypeCompatible(
+        isModelServingCompatible(
           selectedConnectionType,
           ModelServingCompatibleTypes.S3ObjectStorage,
         ) && (
@@ -337,7 +336,7 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
           />
         )}
       {selectedConnectionType &&
-        isModelServingTypeCompatible(selectedConnectionType, ModelServingCompatibleTypes.OCI) && (
+        isModelServingCompatible(selectedConnectionType, ModelServingCompatibleTypes.OCI) && (
           <ConnectionOciPathField modelUri={modelUri} setModelUri={setModelUri} />
         )}
     </FormSection>
@@ -368,21 +367,20 @@ export const ConnectionSection: React.FC<Props> = ({
   connections,
 }) => {
   const [connectionTypes] = useWatchConnectionTypes(true);
-  const [projectConnections] = useConnections(data.project, true);
 
   const hasImagePullSecret = React.useMemo(() => !!data.imagePullSecrets, [data.imagePullSecrets]);
 
   const selectedConnection = React.useMemo(
     () =>
-      projectConnections.find(
-        (c) => getResourceNameFromK8sResource(c) === data.storage.dataConnection,
+      connections?.find(
+        (c) => getResourceNameFromK8sResource(c.connection) === data.storage.dataConnection,
       ),
-    [projectConnections, data.storage.dataConnection],
+    [connections, data.storage.dataConnection],
   );
 
   React.useEffect(() => {
     if (selectedConnection && !connection) {
-      setConnection(selectedConnection);
+      setConnection(selectedConnection.connection);
     }
   }, [selectedConnection, connection, setConnection]);
 
@@ -438,7 +436,7 @@ export const ConnectionSection: React.FC<Props> = ({
               <ExistingConnectionField
                 connectionTypes={connectionTypes}
                 projectConnections={connections}
-                selectedConnection={selectedConnection}
+                selectedConnection={selectedConnection?.connection}
                 onSelect={(selection) => {
                   setConnection(selection);
                   setData('storage', {
