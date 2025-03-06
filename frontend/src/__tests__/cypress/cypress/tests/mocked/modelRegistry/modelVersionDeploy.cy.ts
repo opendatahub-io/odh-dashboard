@@ -46,6 +46,7 @@ type HandlersProps = {
   modelVersions?: ModelVersion[];
   modelMeshInstalled?: boolean;
   kServeInstalled?: boolean;
+  disableOci?: boolean;
 };
 
 const registeredModelMocked = mockRegisteredModel({ name: 'test-1' });
@@ -72,11 +73,13 @@ const initIntercepts = ({
   ],
   modelMeshInstalled = true,
   kServeInstalled = true,
+  disableOci = true,
 }: HandlersProps) => {
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
       disableModelRegistry: false,
+      disableKServeOCIModels: disableOci,
     }),
   );
   cy.interceptOdh(
@@ -374,7 +377,7 @@ describe('Deploy model version', () => {
   });
 
   it('Selects Create Connection in case of no matching OCI connections', () => {
-    initIntercepts({});
+    initIntercepts({ disableOci: false });
     cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version 3');
     modelVersionRow.findKebabAction('Deploy').click();
@@ -392,7 +395,7 @@ describe('Deploy model version', () => {
     kserveModal.findModelURITextBox().should('have.value', 'test.io/test/private:test');
   });
 
-  it('Selects Current URI in case of known registry OCI connections', () => {
+  it('Selects Current URI in case of built-in registry OCI connections', () => {
     initIntercepts({});
     cy.interceptK8sList(
       SecretModel,
@@ -557,6 +560,7 @@ describe('Deploy model version', () => {
 
     // Validate connection section
     kserveModal.findExistingConnectionOption().should('be.checked');
+    cy.findByText('test.io/test').should('exist');
     kserveModal.findModelURITextBox().should('have.value', 'test.io/test/private:test');
   });
 
