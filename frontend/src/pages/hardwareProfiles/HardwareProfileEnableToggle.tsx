@@ -1,9 +1,10 @@
 import React from 'react';
 import { Switch } from '@patternfly/react-core';
 import useNotification from '~/utilities/useNotification';
-import { toggleHardwareProfileEnablement } from '~/api';
+import { HardwareProfileModel, toggleHardwareProfileEnablement } from '~/api';
 import { HardwareProfileKind } from '~/k8sTypes';
 import { HardwareProfileWarningType } from '~/concepts/hardwareProfiles/types';
+import { useAccessAllowed, verbModelAccess } from '~/concepts/userSSAR';
 import { validateProfileWarning } from './utils';
 
 type HardwareProfileEnableToggleProps = {
@@ -20,6 +21,10 @@ const HardwareProfileEnableToggle: React.FC<HardwareProfileEnableToggleProps> = 
   );
   const [isLoading, setLoading] = React.useState(false);
   const notification = useNotification();
+  const [hasAccess, hasLoadedAccess] = useAccessAllowed(
+    verbModelAccess('patch', HardwareProfileModel),
+  );
+  const canToggleSwitch = warning || isLoading || !hasAccess || !hasLoadedAccess;
 
   const handleChange = (checked: boolean) => {
     setLoading(true);
@@ -45,7 +50,7 @@ const HardwareProfileEnableToggle: React.FC<HardwareProfileEnableToggleProps> = 
       data-testid="enable-switch"
       id={`${hardwareProfile.metadata.name}-enable-switch`}
       isChecked={enabled && !warning}
-      isDisabled={warning || isLoading}
+      isDisabled={canToggleSwitch}
       onChange={(_e, checked) => handleChange(checked)}
     />
   );

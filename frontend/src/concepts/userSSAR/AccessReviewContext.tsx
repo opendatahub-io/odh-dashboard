@@ -9,7 +9,17 @@ type AccessReviewCacheData = {
   canAccess: boolean;
 };
 
-type AccessReviewCacheType = Record<string, AccessReviewCacheData | undefined>;
+type AccessReviewCacheType = Record<
+  /** Key */
+  string,
+  AccessReviewCacheData | undefined
+>;
+
+type RouteAccessReviewCacheType = Record<
+  /** Route location */
+  string,
+  AccessReviewCacheType
+>;
 
 type AccessReviewContextType = {
   canIAccess: (resourceAttributes: AccessReviewResourceAttributes) => void;
@@ -23,24 +33,41 @@ export const AccessReviewContext = React.createContext<AccessReviewContextType>(
   genKey: () => '',
 });
 
-/** Top level route changes, we set the cache to empty */
-const useClearCacheOnPathChange = (setAccessReviewCache: (data: AccessReviewCacheType) => void) => {
+const useRoutePart = (): string => {
   const { pathname } = useLocation();
-  const ref = React.useRef<string>(pathname.split('/')[0]);
+  // We only care about the first part of the route `/foobar`; "foobar" string
+  return pathname.split('/')[1] ?? '';
+};
+
+/** Top level route changes, we set the cache to empty */
+const useClearCacheOnPathChange = (resetFunc: (routeToReset: string) => void) => {
+  const routePart = useRoutePart();
+  const ref = React.useRef<string>(routePart);
 
   React.useEffect(() => {
-    const root = pathname.split('/')[0];
-    if (ref.current !== root) {
+    if (ref.current !== routePart) {
       // eslint-disable-next-line no-console
       console.log('New page, clearing access route checks');
-      setAccessReviewCache({});
+      resetFunc(ref.current);
+      ref.current = routePart;
     }
-  }, [pathname, setAccessReviewCache]);
+  }, [routePart, resetFunc]);
 };
 
 export const AccessReviewProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [accessReviewCache, setAccessReviewCache] = React.useState<AccessReviewCacheType>({});
-  useClearCacheOnPathChange(setAccessReviewCache);
+  const [accessReviewCache, setAccessReviewCache] = React.useState<RouteAccessReviewCacheType>({});
+  const routePart = useRoutePart();
+  const keysRef = React.useRef(new Set());
+  useClearCacheOnPathChange(
+    React.useCallback((routeToReset) => {
+      setAccessReviewCache((data) => {
+        const rest = { ...data };
+        delete rest[routeToReset];
+        return rest;
+      });
+      keysRef.current.clear();
+    }, []),
+  );
   // If namespace is not provided in the data, assume it means the dashboard deployment namespace
   const { dashboardNamespace } = useNamespaces();
 
@@ -68,44 +95,51 @@ export const AccessReviewProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const key = genKey(attrs);
       const { group = '', resource = '', subresource = '', verb, name = '', namespace } = attrs;
 
-      if (key in accessReviewCache) {
+      if (keysRef.current.has(key)) {
         // Key is in cache, no need to fetch
         return;
       }
 
-      // Temporarily set loading state
+      keysRef.current.add(key);
       setAccessReviewCache((oldValue) => ({
         ...oldValue,
-        [key]: {
-          isLoading: true,
-          canAccess: false,
-        } satisfies AccessReviewCacheData,
+        [routePart]: {
+          ...oldValue[routePart],
+          [key]: {
+            isLoading: true,
+            canAccess: false,
+          } satisfies AccessReviewCacheData,
+        },
       }));
 
       // Determine access
       return checkAccess({ group, resource, subresource, verb, name, namespace }).then(
         (allowed) => {
+          console.debug('<<<<<< returned', verb, allowed);
           setAccessReviewCache((oldValue) => ({
             ...oldValue,
-            [key]: {
-              isLoading: false,
-              canAccess: allowed,
-            } satisfies AccessReviewCacheData,
+            [routePart]: {
+              ...oldValue[routePart],
+              [key]: {
+                isLoading: false,
+                canAccess: allowed,
+              } satisfies AccessReviewCacheData,
+            },
           }));
         },
       );
     },
-    [accessReviewCache, dashboardNamespace, genKey],
+    [routePart, dashboardNamespace, genKey],
   );
 
   const contextObject = React.useMemo(
     () =>
       ({
         canIAccess,
-        accessReviewCache,
+        accessReviewCache: accessReviewCache[routePart] ?? {},
         genKey,
       } satisfies AccessReviewContextType),
-    [genKey, accessReviewCache, canIAccess],
+    [canIAccess, accessReviewCache, routePart, genKey],
   );
 
   return (
