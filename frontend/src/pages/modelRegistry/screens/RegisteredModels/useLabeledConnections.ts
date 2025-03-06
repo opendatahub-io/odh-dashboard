@@ -1,7 +1,7 @@
 import React from 'react';
 import { Connection } from '~/concepts/connectionTypes/types';
 import { convertObjectStorageSecretData } from '~/concepts/connectionTypes/utils';
-import { ObjectStorageFields, uriToStorageFields } from '~/concepts/modelRegistry/utils';
+import { RegisteredModelLocation, uriToStorageFields } from '~/concepts/modelRegistry/utils';
 import { LabeledConnection } from '~/pages/modelServing/screens/types';
 import { AwsKeys } from '~/pages/projects/dataConnections/const';
 
@@ -10,7 +10,7 @@ const useLabeledConnections = (
   connections: Connection[] = [],
 ): {
   connections: LabeledConnection[];
-  storageFields: { s3Fields: ObjectStorageFields | null; uri: string | null } | null;
+  storageFields: RegisteredModelLocation;
 } =>
   React.useMemo(() => {
     if (!modelArtifactUri) {
@@ -37,6 +37,12 @@ const useLabeledConnections = (
           endpoint === storageFields.s3Fields.endpoint &&
           (region === storageFields.s3Fields.region || !storageFields.s3Fields.region)
         ) {
+          return { connection, isRecommended: true };
+        }
+      }
+      if (storageFields.ociUri && connection.data?.OCI_HOST) {
+        const findURI = storageFields.ociUri.includes(window.atob(connection.data.OCI_HOST));
+        if (findURI) {
           return { connection, isRecommended: true };
         }
       }

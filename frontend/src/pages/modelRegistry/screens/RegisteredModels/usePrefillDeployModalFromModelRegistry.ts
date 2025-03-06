@@ -118,6 +118,47 @@ const usePrefillDeployModalFromModelRegistry = (
             type: InferenceServiceStorageType.EXISTING_STORAGE,
           });
         }
+      } else if (storageFields.ociUri) {
+        if (storageFields.ociUri.includes('oci://registry.redhat.io/')) {
+          setCreateData('storage', {
+            uri: storageFields.ociUri,
+            awsData: EMPTY_AWS_SECRET_DATA,
+            dataConnection: '',
+            // FIXME: Remove connectionType: Look at https://issues.redhat.com/browse/RHOAIENG-19991 for more details
+            connectionType: '',
+            path: '',
+            type: InferenceServiceStorageType.EXISTING_URI,
+          });
+        } else if (recommendedConnections.length === 0) {
+          setCreateData('storage', {
+            awsData: EMPTY_AWS_SECRET_DATA,
+            uri: storageFields.ociUri,
+            dataConnection: '',
+            // FIXME: Remove connectionType: Look at https://issues.redhat.com/browse/RHOAIENG-19991 for more details
+            connectionType: registeredModelDeployInfo.modelLocationType,
+            path: '',
+            type: InferenceServiceStorageType.NEW_STORAGE,
+            alert,
+          });
+        } else if (recommendedConnections.length === 1) {
+          setCreateData('storage', {
+            uri: storageFields.ociUri,
+            awsData: EMPTY_AWS_SECRET_DATA,
+            dataConnection: recommendedConnections[0].connection.metadata.name,
+            path: '',
+            type: InferenceServiceStorageType.EXISTING_STORAGE,
+          });
+        } else {
+          setCreateData('storage', {
+            uri: storageFields.ociUri,
+            awsData: EMPTY_AWS_SECRET_DATA,
+            dataConnection: '',
+            // FIXME: Remove connectionType: Look at https://issues.redhat.com/browse/RHOAIENG-19991 for more details
+            connectionType: registeredModelDeployInfo.modelLocationType,
+            path: '',
+            type: InferenceServiceStorageType.EXISTING_STORAGE,
+          });
+        }
       }
     }
   }, [connections, storageFields, registeredModelDeployInfo, setCreateData]);

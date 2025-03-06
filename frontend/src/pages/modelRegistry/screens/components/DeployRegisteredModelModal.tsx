@@ -47,11 +47,8 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
     selectedProject,
     servingPlatformStatuses,
   );
-  const { loaded: projectDeployStatusLoaded, error: projectError } =
-    useProjectErrorForRegisteredModel(selectedProject?.metadata.name, platform);
   const [dataConnections] = useDataConnections(selectedProject?.metadata.name);
   const [connections] = useConnections(selectedProject?.metadata.name, true);
-  const error = platformError || projectError;
   const [registeredModel, registeredModelLoaded, registeredModelLoadError, refreshRegisteredModel] =
     useRegisteredModelById(modelVersion.registeredModelId);
 
@@ -60,6 +57,13 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
     loaded: deployInfoLoaded,
     error: deployInfoError,
   } = useRegisteredModelDeployInfo(modelVersion, preferredModelRegistry?.metadata.name);
+
+  const isOciModel = registeredModelDeployInfo.modelArtifactUri?.includes('oci://');
+  const platformToUse = platform || (isOciModel ? ServingRuntimePlatform.SINGLE : undefined);
+  const { loaded: projectDeployStatusLoaded, error: projectError } =
+    useProjectErrorForRegisteredModel(selectedProject?.metadata.name, platformToUse);
+
+  const error = platformError || projectError;
 
   const loaded = deployInfoLoaded && registeredModelLoaded;
   const loadError = deployInfoError || registeredModelLoadError;
@@ -97,13 +101,14 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
       modelRegistryName={preferredModelRegistry?.metadata.name}
       registeredModelId={modelVersion.registeredModelId}
       modelVersionId={modelVersion.id}
+      isOciModel={isOciModel}
     />
   );
 
   if (
-    (platform === ServingRuntimePlatform.MULTI && !projectDeployStatusLoaded) ||
+    (platformToUse === ServingRuntimePlatform.MULTI && !projectDeployStatusLoaded) ||
     !selectedProject ||
-    !platform
+    !platformToUse
   ) {
     const modalForm = (
       <Form>
@@ -113,6 +118,15 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
           </Alert>
         ) : !loaded ? (
           <Spinner />
+        ) : isOciModel ? (
+          <FormSection title="Model deployment">
+            <Alert
+              variant="info"
+              isInline
+              title="This model uses an OCI storage location which supports deploying to only the single-model serving platform. Projects using the multi-model serving platform are excluded from the project selector."
+            />
+            {projectSection}
+          </FormSection>
         ) : (
           <FormSection title="Model deployment">{projectSection}</FormSection>
         )}
@@ -144,7 +158,7 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
     );
   }
 
-  if (platform === ServingRuntimePlatform.SINGLE) {
+  if (platformToUse === ServingRuntimePlatform.SINGLE) {
     return (
       <ManageKServeModal
         onClose={onClose}
@@ -153,6 +167,7 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
         registeredModelDeployInfo={registeredModelDeployInfo}
         projectContext={{ currentProject: selectedProject, connections }}
         projectSection={projectSection}
+        existingUriOption={registeredModelDeployInfo.modelArtifactUri}
       />
     );
   }

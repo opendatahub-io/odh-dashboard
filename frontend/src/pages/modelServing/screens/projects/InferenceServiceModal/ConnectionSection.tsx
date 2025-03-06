@@ -38,7 +38,9 @@ import {
   isConnectionTypeDataField,
   isModelServingCompatible,
   ModelServingCompatibleTypes,
+  OCIConnectionTypeKeys,
   S3ConnectionTypeKeys,
+  URIConnectionTypeKeys,
   withRequiredFields,
 } from '~/concepts/connectionTypes/utils';
 import { ConnectionDetailsHelperText } from '~/concepts/connectionTypes/ConnectionDetailsHelperText';
@@ -248,10 +250,20 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
             connectionTypes.find(
               (t) => getResourceNameFromK8sResource(t) === data.storage.connectionType,
             ),
-            ['URI'],
+            URIConnectionTypeKeys,
           ),
         );
         setConnectionValues(getMRConnectionValues(data.storage.uri));
+      }
+      if (data.storage.uri?.startsWith('oci:')) {
+        setSelectedConnectionType(
+          withRequiredFields(
+            connectionTypes.find(
+              (t) => getResourceNameFromK8sResource(t) === data.storage.connectionType,
+            ),
+            OCIConnectionTypeKeys,
+          ),
+        );
       }
     }
   }, [data.storage.connectionType, connectionTypes, data.storage.uri, data.storage.awsData]);

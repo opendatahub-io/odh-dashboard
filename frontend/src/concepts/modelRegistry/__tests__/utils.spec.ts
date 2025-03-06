@@ -91,6 +91,7 @@ describe('uriToStorageFields', () => {
         path: 'demo-models/flan-t5-small-caikit',
       },
       uri: null,
+      ociUri: null,
     });
   });
 
@@ -106,6 +107,7 @@ describe('uriToStorageFields', () => {
         region: undefined,
       },
       uri: null,
+      ociUri: null,
     });
   });
 
@@ -137,6 +139,15 @@ describe('uriToStorageFields', () => {
     expect(fields).toEqual({
       s3Fields: null,
       uri: 'https://model-repository/folder.zip',
+      ociUri: null,
+    });
+  });
+  it('returns ociUri in case URI is OCI', () => {
+    const fields = uriToStorageFields('oci://quay.io/test');
+    expect(fields).toEqual({
+      s3Fields: null,
+      uri: null,
+      ociUri: 'oci://quay.io/test',
     });
   });
 });
