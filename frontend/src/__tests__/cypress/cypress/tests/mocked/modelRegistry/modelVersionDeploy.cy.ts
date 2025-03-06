@@ -375,23 +375,6 @@ describe('Deploy model version', () => {
 
   it('Selects Create Connection in case of no matching OCI connections', () => {
     initIntercepts({});
-    cy.interceptK8sList(
-      SecretModel,
-      mockK8sResourceList([
-        mockCustomSecretK8sResource({
-          namespace: 'kserve-project',
-          name: 'test-secret',
-          annotations: {
-            'opendatahub.io/connection-type': 'oci-v1',
-            'openshift.io/display-name': 'Test Secret',
-          },
-          data: {
-            '.dockerconfigjson': 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw',
-            OCI_HOST: 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw',
-          },
-        }),
-      ]),
-    );
     cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version 3');
     modelVersionRow.findKebabAction('Deploy').click();
