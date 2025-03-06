@@ -19,7 +19,8 @@ const ProjectSelectorNavigator: React.FC<ProjectSelectorProps> = ({
     <ProjectSelector
       {...projectSelectorProps}
       onSelection={(projectName) => {
-        updatePreferredProject(projects.find(byName(projectName)) || null);
+        const match = projectName ? projects.find(byName(projectName)) ?? null : null;
+        updatePreferredProject(match);
         navigate(getRedirectPath(projectName));
       }}
       namespace={namespace ?? ''}
