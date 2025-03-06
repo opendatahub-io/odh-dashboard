@@ -46,7 +46,6 @@ type HandlersProps = {
   modelVersions?: ModelVersion[];
   modelMeshInstalled?: boolean;
   kServeInstalled?: boolean;
-  disableOci?: boolean;
 };
 
 const registeredModelMocked = mockRegisteredModel({ name: 'test-1' });
@@ -73,13 +72,11 @@ const initIntercepts = ({
   ],
   modelMeshInstalled = true,
   kServeInstalled = true,
-  disableOci = true,
 }: HandlersProps) => {
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
       disableModelRegistry: false,
-      disableKServeOCIModels: disableOci,
     }),
   );
   cy.interceptOdh(
@@ -377,7 +374,7 @@ describe('Deploy model version', () => {
   });
 
   it('Selects Create Connection in case of no matching OCI connections', () => {
-    initIntercepts({ disableOci: false });
+    initIntercepts({});
     cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version 3');
     modelVersionRow.findKebabAction('Deploy').click();
