@@ -20,13 +20,12 @@ const usePrefillDeployModalFromModelRegistry = (
   registeredModelDeployInfo?: RegisteredModelDeployInfo,
 ): [LabeledConnection[], boolean, Error | undefined] => {
   const [fetchedConnections, connectionsLoaded, connectionsLoadError] = useConnections(
-    projectContext ? undefined : createData.project,
+    projectContext ? projectContext.currentProject.metadata.name : createData.project,
     true,
   );
-  const allConnections = projectContext?.connections || fetchedConnections;
   const { connections, storageFields } = useLabeledConnections(
     registeredModelDeployInfo?.modelArtifactUri,
-    allConnections,
+    fetchedConnections,
   );
 
   React.useEffect(() => {

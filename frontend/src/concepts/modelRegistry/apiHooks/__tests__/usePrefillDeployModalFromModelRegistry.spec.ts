@@ -5,6 +5,15 @@ import { mockInferenceServiceModalData } from '~/__mocks__/mockInferenceServiceM
 import { Connection } from '~/concepts/connectionTypes/types';
 import usePrefillDeployModalFromModelRegistry from '~/pages/modelRegistry/screens/RegisteredModels/usePrefillDeployModalFromModelRegistry';
 
+jest.mock('~/concepts/areas/useIsAreaAvailable', () => () => ({
+  status: true,
+  featureFlags: {},
+  reliantAreas: {},
+  requiredComponents: {},
+  requiredCapabilities: {},
+  customCondition: jest.fn(),
+}));
+
 describe('usePrefillDeployModalFromModelRegistry', () => {
   const mockProjectContext = {
     currentProject: {
