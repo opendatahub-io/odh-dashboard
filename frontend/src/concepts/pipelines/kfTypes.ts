@@ -326,7 +326,13 @@ export type UrlKF = {
   pipeline_url: string;
 };
 
-export type RuntimeConfigParamValue = string | number | boolean | object | Array<object> | null;
+export type RuntimeConfigParamValue =
+  | string
+  | number
+  | boolean
+  | object
+  | Array<object>
+  | undefined;
 export type RuntimeConfigParameters = Record<string, RuntimeConfigParamValue>;
 
 export type PipelineSpecRuntimeConfig = {
