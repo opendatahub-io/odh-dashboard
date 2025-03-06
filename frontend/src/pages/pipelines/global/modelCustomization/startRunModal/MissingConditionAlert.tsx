@@ -16,13 +16,13 @@ type PickedAlertProps = Pick<AlertProps, 'variant' | 'children' | 'title'>;
 
 const ALERT_CONFIG: Record<ContinueCondition, PickedAlertProps> = {
   ilabPipelineInstalled: {
-    variant: 'warning',
+    variant: 'danger',
     title: 'InstructLab pipeline not installed',
     children:
       'This project is missing an InstructLab pipeline. You can import the InstructLab pipeline into your project.',
   },
   pipelineServerConfigured: {
-    variant: 'warning',
+    variant: 'danger',
     title: 'Pipeline server not configured',
     children:
       'To utilize InstructLab fine-tuning you need a pipeline server configured with an InstructLab pipeline.',
