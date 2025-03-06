@@ -20,6 +20,14 @@ class ModelVersionDetails {
     return cy.findByTestId('model-version-id');
   }
 
+  findRegisteredFrom() {
+    return cy.findByTestId('registered-from');
+  }
+
+  findPipelineRunLink() {
+    return cy.findByTestId('pipeline-run-link');
+  }
+
   findDescription() {
     return cy.findByTestId('model-version-description');
   }

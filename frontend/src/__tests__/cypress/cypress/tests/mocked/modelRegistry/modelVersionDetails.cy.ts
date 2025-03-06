@@ -98,6 +98,18 @@ const mockModelVersions = mockModelVersion({
       metadataType: ModelRegistryMetadataType.STRING,
       string_value: '',
     },
+    _registeredFromPipelineProject: {
+      metadataType: ModelRegistryMetadataType.STRING,
+      string_value: 'test-project',
+    },
+    _registeredFromPipelineRunId: {
+      metadataType: ModelRegistryMetadataType.STRING,
+      string_value: 'pipelinerun1',
+    },
+    _registeredFromPipelineRunName: {
+      metadataType: ModelRegistryMetadataType.STRING,
+      string_value: 'pipeline-run-test',
+    },
   },
 });
 
@@ -238,11 +250,21 @@ describe('Model version details', () => {
 
     it('Model version details tab', () => {
       modelVersionDetails.findVersionId().contains('1');
+      modelVersionDetails.findRegisteredFrom().should('exist');
+      modelVersionDetails.findExpandControlButton().should('have.text', 'Show 2 more properties');
+      modelVersionDetails.findExpandControlButton().click();
+      modelVersionDetails.findPropertiesTableRows().should('have.length', 7);
+      modelVersionDetails
+        .findRegisteredFrom()
+        .should('have.text', 'Run pipeline-run-test intest-project');
       modelVersionDetails.findDescription().should('have.text', 'Description of model version');
       modelVersionDetails.findStorageEndpoint().contains('test-endpoint');
       modelVersionDetails.findStorageRegion().contains('test-region');
       modelVersionDetails.findStorageBucket().contains('test-bucket');
       modelVersionDetails.findStoragePath().contains('demo-models/test-path');
+      modelVersionDetails.findPipelineRunLink().should('have.text', 'Run pipeline-run-test in');
+      modelVersionDetails.findPipelineRunLink().click();
+      verifyRelativeURL('/pipelineRuns/test-project/runs/pipelinerun1');
     });
 
     it('should add a property', () => {
@@ -290,6 +312,18 @@ describe('Model version details', () => {
             'Label x': { metadataType: 'MetadataStringValue', string_value: '' },
             'Label y': { metadataType: 'MetadataStringValue', string_value: '' },
             'Label z': { metadataType: 'MetadataStringValue', string_value: '' },
+            _registeredFromPipelineProject: {
+              metadataType: 'MetadataStringValue',
+              string_value: 'test-project',
+            },
+            _registeredFromPipelineRunId: {
+              metadataType: 'MetadataStringValue',
+              string_value: 'pipelinerun1',
+            },
+            _registeredFromPipelineRunName: {
+              metadataType: 'MetadataStringValue',
+              string_value: 'pipeline-run-test',
+            },
             edit_key: { string_value: 'edit_value', metadataType: 'MetadataStringValue' },
           },
         });
@@ -321,6 +355,18 @@ describe('Model version details', () => {
             'Label x': { metadataType: 'MetadataStringValue', string_value: '' },
             'Label y': { metadataType: 'MetadataStringValue', string_value: '' },
             'Label z': { metadataType: 'MetadataStringValue', string_value: '' },
+            _registeredFromPipelineProject: {
+              metadataType: 'MetadataStringValue',
+              string_value: 'test-project',
+            },
+            _registeredFromPipelineRunId: {
+              metadataType: 'MetadataStringValue',
+              string_value: 'pipelinerun1',
+            },
+            _registeredFromPipelineRunName: {
+              metadataType: 'MetadataStringValue',
+              string_value: 'pipeline-run-test',
+            },
           },
         });
       });
