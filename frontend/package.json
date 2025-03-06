@@ -38,6 +38,7 @@
     "test:unit-coverage": "run-s test:lint test:type-check test:jest:coverage",
     "test:cypress-ci": "npx concurrently -P -k -s first \"npm run cypress:server:build && npm run cypress:server\" \"npx wait-on tcp:127.0.0.1:9001 && npm run cypress:run:mock -- {@}\" -- ",
     "test:cypress-ci:coverage": "npx concurrently -P -k -s first \"npm run cypress:server:build:coverage && npm run cypress:server\" \"npx wait-on tcp:127.0.0.1:9001 && npm run cypress:run:mock:coverage -- {@}\" -- ",
+    "test:cypress-ci:coverage:nobuild": "npx concurrently -P -k -s first \"npm run cypress:server\" \"npx wait-on tcp:127.0.0.1:9001 && npm run cypress:run:mock:coverage -- {@}\" -- ",
     "coverage:merge": "rimraf coverage && istanbul-merge --out coverage/coverage-final.json jest-coverage/coverage-final.json src/__tests__/cypress/coverage/coverage-final.json && nyc report --reporter html -t coverage --report-dir coverage/report && nyc report --reporter json-summary -t coverage --report-dir coverage",
     "cypress:open": "cypress open --project src/__tests__/cypress",
     "cypress:e2e": "npx cypress run --env grepTags=@Dashboard+-@Bug --browser=chrome --project src/__tests__/cypress",
