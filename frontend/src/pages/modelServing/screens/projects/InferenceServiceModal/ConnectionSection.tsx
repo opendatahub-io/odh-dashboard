@@ -410,6 +410,7 @@ export const ConnectionSection: React.FC<Props> = ({
         <Radio
           id="existing-uri-radio"
           name="existing-uri-radio"
+          data-testid="existing-uri-radio"
           label="Current URI"
           isChecked={data.storage.type === InferenceServiceStorageType.EXISTING_URI}
           onChange={() => {

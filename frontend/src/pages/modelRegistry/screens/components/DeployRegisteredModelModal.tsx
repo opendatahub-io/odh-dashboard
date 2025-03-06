@@ -121,6 +121,7 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
         ) : isOciModel ? (
           <FormSection title="Model deployment">
             <Alert
+              data-testid="oci-deploy-kserve-alert"
               variant="info"
               isInline
               title="This model uses an OCI storage location which supports deploying to only the single-model serving platform. Projects using the multi-model serving platform are excluded from the project selector."

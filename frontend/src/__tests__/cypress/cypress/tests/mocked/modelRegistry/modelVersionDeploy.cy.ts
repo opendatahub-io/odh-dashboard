@@ -37,6 +37,7 @@ import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,
 } from '~/__mocks__/mockConnectionType';
+import { ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 
@@ -66,6 +67,8 @@ const initIntercepts = ({
     mockModelVersion({ id: '1', name: 'test model version' }),
     mockModelVersion({ id: '2', name: modelVersionMocked2.name }),
     mockModelVersion({ id: '3', name: 'test model version 2' }),
+    mockModelVersion({ id: '4', name: 'test model version 3' }),
+    mockModelVersion({ id: '5', name: 'test model version 4' }),
   ],
   modelMeshInstalled = true,
   kServeInstalled = true,
@@ -197,6 +200,34 @@ const initIntercepts = ({
       path: {
         serviceName: 'modelregistry-sample',
         apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: 4,
+      },
+    },
+    mockModelArtifactList({
+      items: [mockModelArtifact({ uri: 'oci://test.io/test/private:test' })],
+    }),
+  );
+
+  cy.interceptOdh(
+    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts`,
+    {
+      path: {
+        serviceName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: 5,
+      },
+    },
+    mockModelArtifactList({
+      items: [mockModelArtifact({ uri: 'oci://registry.redhat.io/rhel/private:test' })],
+    }),
+  );
+
+  cy.interceptOdh(
+    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts`,
+    {
+      path: {
+        serviceName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
         modelVersionId: 2,
       },
     },
@@ -253,6 +284,39 @@ const initIntercepts = ({
       category: ['existing-category'],
       fields: mockModelServingFields,
     }),
+    mockConnectionTypeConfigMap({
+      name: 'oci-v1',
+      displayName: 'OCI compliant registry - v1',
+      fields: [
+        {
+          name: 'Access type',
+          type: ConnectionTypeFieldType.Dropdown,
+          envVar: 'ACCESS_TYPE',
+          required: false,
+          properties: {
+            variant: 'multi',
+            items: [
+              { label: 'Push secret', value: 'Push' },
+              { label: 'Pull secret', value: 'Pull' },
+            ],
+          },
+        },
+        {
+          name: 'Secret details',
+          type: ConnectionTypeFieldType.File,
+          envVar: '.dockerconfigjson',
+          required: true,
+          properties: { extensions: ['.dockerconfigjson, .json'] },
+        },
+        {
+          name: 'Base URL / Registry URI',
+          type: ConnectionTypeFieldType.ShortText,
+          envVar: 'OCI_HOST',
+          required: true,
+          properties: {},
+        },
+      ],
+    }),
   ]);
 
   cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
@@ -298,6 +362,87 @@ describe('Deploy model version', () => {
     cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([]));
     modelVersionDeployModal.selectProjectByName('Model mesh project');
     cy.findByText('Cannot deploy the model until you configure a model server').should('exist');
+  });
+
+  it('OCI info alert is visible in case of OCI models', () => {
+    initIntercepts({});
+    cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
+    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 3');
+    modelVersionRow.findKebabAction('Deploy').click();
+    cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([]));
+    cy.findByTestId('oci-deploy-kserve-alert').should('exist');
+  });
+
+  it('Selects Create Connection in case of no matching OCI connections', () => {
+    initIntercepts({});
+    cy.interceptK8sList(
+      SecretModel,
+      mockK8sResourceList([
+        mockCustomSecretK8sResource({
+          namespace: 'kserve-project',
+          name: 'test-secret',
+          annotations: {
+            'opendatahub.io/connection-type': 'oci-v1',
+            'openshift.io/display-name': 'Test Secret',
+          },
+          data: {
+            '.dockerconfigjson': 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw',
+            OCI_HOST: 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw',
+          },
+        }),
+      ]),
+    );
+    cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
+    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 3');
+    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDeployModal.selectProjectByName('KServe project');
+
+    // Validate name input field
+    kserveModal.findModelNameInput().should('exist');
+
+    // Validate model framework section
+    kserveModal.findModelFrameworkSelect().should('be.disabled');
+    cy.findByText('The format of the source model is').should('not.exist');
+
+    // Validate connection section
+    kserveModal.findNewConnectionOption().should('be.checked');
+    kserveModal.findModelURITextBox().should('have.value', 'test.io/test/private:test');
+  });
+
+  it('Selects Current URI in case of known registry OCI connections', () => {
+    initIntercepts({});
+    cy.interceptK8sList(
+      SecretModel,
+      mockK8sResourceList([
+        mockCustomSecretK8sResource({
+          namespace: 'kserve-project',
+          name: 'test-secret',
+          annotations: {
+            'opendatahub.io/connection-type': 'oci-v1',
+            'openshift.io/display-name': 'Test Secret',
+          },
+          data: {
+            '.dockerconfigjson': 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw',
+            OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWw=',
+          },
+        }),
+      ]),
+    );
+    cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
+    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 4');
+    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDeployModal.selectProjectByName('KServe project');
+
+    // Validate name input field
+    kserveModal.findModelNameInput().should('exist');
+
+    // Validate model framework section
+    kserveModal.findModelFrameworkSelect().should('be.disabled');
+    cy.findByText('The format of the source model is').should('not.exist');
+
+    // Validate connection section
+    kserveModal.findExistingUriOption().should('be.checked');
+    cy.findByText('oci://registry.redhat.io/rhel/private:test').should('exist');
   });
 
   it('Selects Create Connection in case of no matching connections', () => {
@@ -400,6 +545,36 @@ describe('Deploy model version', () => {
     // Validate connection section
     kserveModal.findExistingConnectionOption().should('be.checked');
     kserveModal.findExistingConnectionSelectValueField().should('have.value', 'Test Secret');
+  });
+
+  it('Prefills when there is one OCI matching connection', () => {
+    initIntercepts({});
+    cy.interceptK8sList(
+      SecretModel,
+      mockK8sResourceList([
+        mockCustomSecretK8sResource({
+          namespace: 'kserve-project',
+          name: 'test-secret',
+          annotations: {
+            'opendatahub.io/connection-type': 'oci-v1',
+            'openshift.io/display-name': 'Test Secret',
+          },
+          data: {
+            '.dockerconfigjson': 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw',
+            OCI_HOST: 'dGVzdC5pby90ZXN0',
+          },
+        }),
+      ]),
+    );
+
+    cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
+    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 3');
+    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDeployModal.selectProjectByName('KServe project');
+
+    // Validate connection section
+    kserveModal.findExistingConnectionOption().should('be.checked');
+    kserveModal.findModelURITextBox().should('have.value', 'test.io/test/private:test');
   });
 
   it('Selects existing connection when there are 2 matching connections', () => {
