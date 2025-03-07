@@ -1,10 +1,10 @@
 import { CatalogModel } from '~/concepts/modelCatalog/types';
-import { ModelDetailsRouteParams } from './const';
+import { CatalogModelCustomProps } from './const';
 import { encodeParams, getTagFromModel } from './utils';
 
 export const modelCatalogUrl = (): string => `/modelCatalog`;
 
-export const getModelDetailsUrl = (params: ModelDetailsRouteParams): string => {
+export const getModelDetailsUrl = (params: CatalogModelCustomProps): string => {
   if (!params.sourceName || !params.repositoryName || !params.modelName || !params.tag) {
     return '';
   }
@@ -20,5 +20,5 @@ export const modelDetailsUrlFromModel = (model: CatalogModel, source: string): s
     tag: getTagFromModel(model),
   });
 
-export const registerCatalogModel = (params: ModelDetailsRouteParams): string =>
+export const registerCatalogModel = (params: CatalogModelCustomProps): string =>
   `${getModelDetailsUrl(params)}/register`;

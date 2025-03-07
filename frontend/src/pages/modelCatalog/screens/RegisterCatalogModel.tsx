@@ -24,7 +24,7 @@ import {
   registerModel,
 } from '~/pages/modelRegistry/screens/RegisterModel/utils';
 import { SubmitLabel } from '~/pages/modelRegistry/screens/RegisterModel/const';
-import { ModelDetailsRouteParams } from '~/pages/modelCatalog/const';
+import { CatalogModelCustomProps } from '~/pages/modelCatalog/const';
 import { getModelDetailsUrl } from '~/pages/modelCatalog/routeUtils';
 import RegisterModelDetailsFormSection from '~/pages/modelRegistry/screens/RegisterModel/RegisterModelDetailsFormSection';
 import RegistrationFormFooter from '~/pages/modelRegistry/screens/RegisterModel/RegistrationFormFooter';
@@ -46,7 +46,7 @@ import {
 
 const RegisterCatalogModel: React.FC = () => {
   const navigate = useNavigate();
-  const params = useParams<ModelDetailsRouteParams>();
+  const params = useParams<CatalogModelCustomProps>();
   const decodedParams = React.useMemo(() => decodeParams(params), [params]);
 
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
@@ -107,8 +107,8 @@ const RegisterCatalogModel: React.FC = () => {
         .filter(([key]) => /^\w+$/.test(key))
         .reduce((acc: ModelRegistryCustomProperties, [key, value]) => {
           if (typeof value === 'string') {
-            // eslint-disable-next-line camelcase
             acc[`_registeredFromCatalog${capitalize(key)}`] = {
+              // eslint-disable-next-line camelcase
               string_value: value,
               metadataType: ModelRegistryMetadataType.STRING,
             };

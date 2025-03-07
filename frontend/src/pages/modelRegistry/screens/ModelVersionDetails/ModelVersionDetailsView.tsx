@@ -5,7 +5,6 @@ import {
   Flex,
   FlexItem,
   ContentVariants,
-  Content,
   Title,
   Bullseye,
   Spinner,
@@ -19,10 +18,9 @@ import { EditableLabelsDescriptionListGroup } from '~/components/EditableLabelsD
 import ModelPropertiesDescriptionListGroup from '~/pages/modelRegistry/screens/ModelPropertiesDescriptionListGroup';
 import {
   getLabels,
-  getProperties,
-  isPipelineRunExist,
-  getCustomPropString,
   mergeUpdatedLabels,
+  getCatalogModelCustomProps,
+  getPipelineModelCustomProps,
 } from '~/pages/modelRegistry/screens/utils';
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
@@ -36,8 +34,7 @@ import {
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { globalPipelineRunDetailsRoute } from '~/routes';
 import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
-import { pipelineRunSpecificKeys } from './const';
-import { ModelDetailsRouteParams } from '~/pages/modelCatalog/const';
+import { CatalogModelCustomProps } from '~/pages/modelCatalog/const';
 import { getModelDetailsUrl } from '~/pages/modelCatalog/routeUtils';
 
 type ModelVersionDetailsViewProps = {
@@ -56,7 +53,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
   const modelArtifact = modelArtifacts.items.length ? modelArtifacts.items[0] : null;
   const { apiState } = React.useContext(ModelRegistryContext);
   const storageFields = uriToStorageFields(modelArtifact?.uri || '');
-  const filteredProperties = getProperties(mv.customProperties);
+  const pipelineCustomProperties = getPipelineModelCustomProps(mv.customProperties);
   const [registeredModel, registeredModelLoaded, registeredModelLoadError, refreshRegisteredModel] =
     useRegisteredModelById(mv.registeredModelId);
 
@@ -99,16 +96,11 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
     }
   };
 
-  const modelDetailsRouteParams: ModelDetailsRouteParams = {
-    sourceName: getCustomPropString(mv.customProperties, "_registeredFromCatalogSourceName"),
-    repositoryName: getCustomPropString(mv.customProperties, "_registeredFromCatalogRepositoryName"),
-    modelName: getCustomPropString(mv.customProperties, "_registeredFromCatalogModelName"),
-    tag: getCustomPropString(mv.customProperties, "_registeredFromCatalogTag"),
-  }
-  const modelDetailsUrl = getModelDetailsUrl(modelDetailsRouteParams);
-  console.log({modelDetailsRouteParams, modelDetailsUrl});
+  const catalogModelCustomProps: CatalogModelCustomProps = getCatalogModelCustomProps(
+    mv.customProperties,
+  );
+  const modelDetailsUrl = getModelDetailsUrl(catalogModelCustomProps);
 
-  
   return (
     <Flex
       direction={{ default: 'column', md: 'row' }}
@@ -165,7 +157,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
           >
             <InlineTruncatedClipboardCopy testId="model-version-id" textToCopy={mv.id} />
           </DashboardDescriptionListGroup>
-          {isPipelineRunExist(mv.customProperties, pipelineRunSpecificKeys) && (
+          {Object.values(pipelineCustomProperties).every((value) => !!value) && (
             <DashboardDescriptionListGroup title="Registered from">
               <Flex
                 spaceItems={{ default: 'spaceItemsXs' }}
@@ -178,11 +170,11 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                     <Link
                       style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
                       to={globalPipelineRunDetailsRoute(
-                        filteredProperties[pipelineRunSpecificKeys[0]].string_value,
-                        filteredProperties[pipelineRunSpecificKeys[1]].string_value,
+                        pipelineCustomProperties.project,
+                        pipelineCustomProperties.runId,
                       )}
                     >
-                      {filteredProperties[pipelineRunSpecificKeys[2]].string_value}
+                      {pipelineCustomProperties.runId}
                     </Link>
                   }{' '}
                   in
@@ -200,21 +192,21 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                     fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
                   }}
                 >
-                  {filteredProperties[pipelineRunSpecificKeys[0]].string_value}
+                  {pipelineCustomProperties.project}
                 </FlexItem>
               </Flex>
             </DashboardDescriptionListGroup>
           )}
-          {modelDetailsUrl && <DashboardDescriptionListGroup
-            title="Registered from"
-            isEmpty={!mv.id}
-          >
-            <Link to={modelDetailsUrl}>
-              <span style={{fontWeight: 'var(--pf-t--global--font--weight--body--bold)'}}>{modelDetailsRouteParams.modelName} ({modelDetailsRouteParams.tag})</span>
-            </Link>{' '}
-            in Model catalog
-          </DashboardDescriptionListGroup>
-          }
+          {modelDetailsUrl && (
+            <DashboardDescriptionListGroup title="Registered from" isEmpty={!mv.id}>
+              <Link to={modelDetailsUrl}>
+                <span style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
+                  {catalogModelCustomProps.modelName} ({catalogModelCustomProps.tag})
+                </span>
+              </Link>{' '}
+              in Model catalog
+            </DashboardDescriptionListGroup>
+          )}
         </DescriptionList>
 
         <Title style={{ margin: '1em 0' }} headingLevel={ContentVariants.h3}>

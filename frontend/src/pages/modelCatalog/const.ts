@@ -1,4 +1,4 @@
-export type ModelDetailsRouteParams = {
+export type CatalogModelCustomProps = {
   sourceName?: string;
   repositoryName?: string;
   modelName?: string;

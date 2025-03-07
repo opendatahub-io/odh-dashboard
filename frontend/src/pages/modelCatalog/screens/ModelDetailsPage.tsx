@@ -29,7 +29,7 @@ import {
   findModelFromModelCatalogSources,
   getTagFromModel,
 } from '~/pages/modelCatalog/utils';
-import { ModelDetailsRouteParams } from '~/pages/modelCatalog/const';
+import { CatalogModelCustomProps } from '~/pages/modelCatalog/const';
 import BrandImage from '~/components/BrandImage';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { registerCatalogModel } from '~/pages/modelCatalog/routeUtils';
@@ -44,7 +44,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
   SupportedArea.MODEL_CATALOG,
   true,
 )(() => {
-  const params = useParams<ModelDetailsRouteParams>();
+  const params = useParams<CatalogModelCustomProps>();
   const navigate = useNavigate();
   const { modelCatalogSources } = React.useContext(ModelCatalogContext);
   const decodedParams = decodeParams(params);
