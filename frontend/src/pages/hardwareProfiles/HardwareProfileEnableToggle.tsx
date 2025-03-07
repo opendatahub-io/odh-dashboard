@@ -27,8 +27,6 @@ const HardwareProfileEnableToggle: React.FC<HardwareProfileEnableToggleProps> = 
     verbModelAccess('patch', HardwareProfileModel),
   );
   const canNotToggleSwitch = warning || isLoading || !hasAccess || !hasLoadedAccess || isDisabled;
-  console.log('canNotToggleSwitch', canNotToggleSwitch);
-  console.log(warning, isLoading, !hasAccess, !hasLoadedAccess, isDisabled);
 
   const handleChange = (checked: boolean) => {
     setLoading(true);
