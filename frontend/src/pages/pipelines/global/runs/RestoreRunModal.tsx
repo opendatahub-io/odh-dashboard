@@ -24,6 +24,7 @@ export const RestoreRunModal: React.FC<RestoreRunModalProps> = ({ runs, onCancel
       onCancel={onCancel}
       onSubmit={onSubmit}
       testId="restore-run-modal"
+      what="run"
       alertTitle={`Error restoring ${isSingleRestoring ? runs[0].display_name : 'runs'}`}
     >
       {isSingleRestoring ? (

@@ -17,12 +17,16 @@ import { ValidationContext } from '~/utilities/useValidation';
 
 type HardwareProfileCustomizeProps = {
   identifiers: Identifier[];
+  hardwareValidationPath?: string[];
+  hideLimitOption?: boolean;
   data: ContainerResources;
   setData: (data: ContainerResources) => void;
 };
 
 const HardwareProfileCustomize: React.FC<HardwareProfileCustomizeProps> = ({
   identifiers,
+  hardwareValidationPath = [],
+  hideLimitOption,
   data,
   setData,
 }) => {
@@ -52,9 +56,15 @@ const HardwareProfileCustomize: React.FC<HardwareProfileCustomizeProps> = ({
           ...data[type],
           [identifier.identifier]: v,
         },
+        ...(hideLimitOption && { limits: { ...data.limits, [identifier.identifier]: v } }),
       });
 
-    const validationIssues = getAllValidationIssues(['resources', type, identifier.identifier]);
+    const validationIssues = getAllValidationIssues([
+      ...hardwareValidationPath,
+      'resources',
+      type,
+      identifier.identifier,
+    ]);
     const validated = validationIssues.length > 0 ? 'error' : 'default';
 
     const field = (() => {
@@ -118,7 +128,7 @@ const HardwareProfileCustomize: React.FC<HardwareProfileCustomizeProps> = ({
         <StackItem key={identifier.identifier}>
           <Grid hasGutter md={12} lg={6}>
             <GridItem>{renderField(identifier, 'requests')}</GridItem>
-            <GridItem>{renderField(identifier, 'limits')}</GridItem>
+            {!hideLimitOption && <GridItem>{renderField(identifier, 'limits')}</GridItem>}
           </Grid>
         </StackItem>
       ))}

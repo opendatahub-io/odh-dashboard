@@ -4,7 +4,9 @@ import { HardwareProfileKind } from '~/k8sTypes';
 import { useValidation, ValidationContext } from '~/utilities/useValidation';
 import { ContainerResources } from '~/types';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import { createHardwareProfileValidationSchema } from './validationUtils';
+import { useDashboardNamespace } from '~/redux/selectors';
+import useHardwareProfiles from '~/pages/hardwareProfiles/useHardwareProfiles';
+import { hardwareProfileValidationSchema } from './validationUtils';
 import HardwareProfileSelect from './HardwareProfileSelect';
 import HardwareProfileCustomize from './HardwareProfileCustomize';
 import { HardwareProfileConfig } from './useHardwareProfileConfig';
@@ -24,13 +26,10 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps> = ({
   setData,
   isHardwareProfileSupported = () => false,
 }) => {
-  const validationSchema = React.useMemo(
-    () => createHardwareProfileValidationSchema(data.selectedProfile),
-    [data.selectedProfile],
-  );
-
-  const validation = useValidation(data, validationSchema);
+  const { dashboardNamespace } = useDashboardNamespace();
+  const validation = useValidation(data, hardwareProfileValidationSchema);
   const hasValidationErrors = Object.keys(validation.getAllValidationIssues()).length > 0;
+  const [hardwareProfiles, loaded, error] = useHardwareProfiles(dashboardNamespace);
 
   const [isExpanded, setIsExpanded] = React.useState(hasValidationErrors);
 
@@ -83,6 +82,10 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps> = ({
         <StackItem>
           <FormGroup label="Hardware profile">
             <HardwareProfileSelect
+              previewDescription
+              hardwareProfiles={hardwareProfiles}
+              hardwareProfilesLoaded={loaded}
+              hardwareProfilesError={error}
               isHardwareProfileSupported={isHardwareProfileSupported}
               hardwareProfileConfig={data}
               initialHardwareProfile={initialHardwareProfile}
