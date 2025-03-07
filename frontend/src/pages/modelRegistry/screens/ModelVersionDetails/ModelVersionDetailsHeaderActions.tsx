@@ -7,6 +7,8 @@ import {
   Button,
   ButtonVariant,
   ActionList,
+  ActionListItem,
+  ActionListGroup,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
 import { ArchiveModelVersionModal } from '~/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
@@ -18,6 +20,10 @@ import {
   modelVersionListUrl,
 } from '~/pages/modelRegistry/screens/routeUtils';
 import DeployRegisteredModelModal from '~/pages/modelRegistry/screens/components/DeployRegisteredModelModal';
+import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
+import StartRunModal from '~/pages/pipelines/global/modelCustomization/startRunModal/StartRunModal';
+import { useModelVersionTuningData } from '~/concepts/modelRegistry/hooks/useModelVersionTuningData';
+import { getModelCustomizationPath } from '~/routes/pipelines/modelCustomization';
 
 interface ModelVersionsDetailsHeaderActionsProps {
   mv: ModelVersion;
@@ -32,12 +38,23 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
 }) => {
   const { apiState } = React.useContext(ModelRegistryContext);
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
-
   const navigate = useNavigate();
   const [isOpenActionDropdown, setOpenActionDropdown] = React.useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const [isDeployModalOpen, setIsDeployModalOpen] = React.useState(false);
+  const [isLabTuneModalOpen, setIsLabTuneModalOpen] = React.useState(false);
   const tooltipRef = React.useRef<HTMLButtonElement>(null);
+
+  const isFineTuningEnabled = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
+
+  const { tuningData, loaded, loadError } = useModelVersionTuningData(
+    isLabTuneModalOpen ? mv.id : null,
+    mv,
+  );
+
+  if (!preferredModelRegistry) {
+    return null;
+  }
 
   return (
     <ActionList>
@@ -50,6 +67,17 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
       >
         Deploy
       </Button>
+      {isFineTuningEnabled && (
+        <ActionListGroup>
+          <ActionList>
+            <ActionListItem data-testid="lab-tune-button" aria-label="Lab tune version">
+              <Button variant="secondary" onClick={() => setIsLabTuneModalOpen(true)}>
+                Lab tune
+              </Button>
+            </ActionListItem>
+          </ActionList>
+        </ActionListGroup>
+      )}
       <Dropdown
         isOpen={isOpenActionDropdown}
         onSelect={() => setOpenActionDropdown(false)}
@@ -84,7 +112,21 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
           </DropdownItem>
         </DropdownList>
       </Dropdown>
-      {isDeployModalOpen ? (
+      {isLabTuneModalOpen ? (
+        <StartRunModal
+          onCancel={() => setIsLabTuneModalOpen(false)}
+          onSubmit={(selectedProject) => {
+            navigate(
+              `${getModelCustomizationPath(selectedProject)}?${new URLSearchParams(
+                tuningData!,
+              ).toString()}`,
+            );
+          }}
+          loaded={loaded}
+          loadError={loadError}
+        />
+      ) : null}
+      {isDeployModalOpen && (
         <DeployRegisteredModelModal
           onSubmit={() => {
             refresh();
@@ -92,15 +134,15 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
               modelVersionDeploymentsUrl(
                 mv.id,
                 mv.registeredModelId,
-                preferredModelRegistry?.metadata.name,
+                preferredModelRegistry.metadata.name,
               ),
             );
           }}
           onCancel={() => setIsDeployModalOpen(false)}
           modelVersion={mv}
         />
-      ) : null}
-      {isArchiveModalOpen ? (
+      )}
+      {isArchiveModalOpen && (
         <ArchiveModelVersionModal
           onCancel={() => setIsArchiveModalOpen(false)}
           onSubmit={() =>
@@ -114,13 +156,13 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
               )
               .then(() =>
                 navigate(
-                  modelVersionListUrl(mv.registeredModelId, preferredModelRegistry?.metadata.name),
+                  modelVersionListUrl(mv.registeredModelId, preferredModelRegistry.metadata.name),
                 ),
               )
           }
           modelVersionName={mv.name}
         />
-      ) : null}
+      )}
     </ActionList>
   );
 };

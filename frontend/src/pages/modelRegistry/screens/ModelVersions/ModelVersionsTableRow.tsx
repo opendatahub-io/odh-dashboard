@@ -16,6 +16,10 @@ import { ArchiveModelVersionModal } from '~/pages/modelRegistry/screens/componen
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { RestoreModelVersionModal } from '~/pages/modelRegistry/screens/components/RestoreModelVersionModal';
 import DeployRegisteredModelModal from '~/pages/modelRegistry/screens/components/DeployRegisteredModelModal';
+import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
+import StartRunModal from '~/pages/pipelines/global/modelCustomization/startRunModal/StartRunModal';
+import { useModelVersionTuningData } from '~/concepts/modelRegistry/hooks/useModelVersionTuningData';
+import { getModelCustomizationPath } from '~/routes/pipelines/modelCustomization';
 
 type ModelVersionsTableRowProps = {
   modelVersion: ModelVersion;
@@ -34,10 +38,22 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
 }) => {
   const navigate = useNavigate();
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const { apiState } = React.useContext(ModelRegistryContext);
+  const isFineTuningEnabled = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
+
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
   const [isDeployModalOpen, setIsDeployModalOpen] = React.useState(false);
-  const { apiState } = React.useContext(ModelRegistryContext);
+  const [tuningModelVersionId, setTuningModelVersionId] = React.useState<string | null>(null);
+
+  const { tuningData, loaded, loadError } = useModelVersionTuningData(
+    tuningModelVersionId,
+    tuningModelVersionId === mv.id ? mv : null,
+  );
+
+  if (!preferredModelRegistry) {
+    return null;
+  }
 
   const actions: IAction[] = isArchiveRow
     ? [
@@ -51,6 +67,14 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
           title: 'Deploy',
           onClick: () => setIsDeployModalOpen(true),
         },
+        ...(isFineTuningEnabled
+          ? [
+              {
+                title: 'Lab tune',
+                onClick: () => setTuningModelVersionId(mv.id),
+              },
+            ]
+          : []),
         { isSeparator: true },
         {
           title: 'Archive model version',
@@ -73,18 +97,18 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
                   ? archiveModelVersionDetailsUrl(
                       mv.id,
                       mv.registeredModelId,
-                      preferredModelRegistry?.metadata.name,
+                      preferredModelRegistry.metadata.name,
                     )
                   : isArchiveRow
                   ? modelVersionArchiveDetailsUrl(
                       mv.id,
                       mv.registeredModelId,
-                      preferredModelRegistry?.metadata.name,
+                      preferredModelRegistry.metadata.name,
                     )
                   : modelVersionUrl(
                       mv.id,
                       mv.registeredModelId,
-                      preferredModelRegistry?.metadata.name,
+                      preferredModelRegistry.metadata.name,
                     )
               }
             >
@@ -132,7 +156,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
                   modelVersionDeploymentsUrl(
                     mv.id,
                     mv.registeredModelId,
-                    preferredModelRegistry?.metadata.name,
+                    preferredModelRegistry.metadata.name,
                   ),
                 );
               }}
@@ -157,7 +181,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
                       modelVersionUrl(
                         mv.id,
                         mv.registeredModelId,
-                        preferredModelRegistry?.metadata.name,
+                        preferredModelRegistry.metadata.name,
                       ),
                     ),
                   )
@@ -165,6 +189,20 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
               modelVersionName={mv.name}
             />
           ) : null}
+          {tuningModelVersionId && tuningData && (
+            <StartRunModal
+              onCancel={() => setTuningModelVersionId(null)}
+              onSubmit={(selectedProject) => {
+                navigate(
+                  `${getModelCustomizationPath(selectedProject)}?${new URLSearchParams(
+                    tuningData,
+                  ).toString()}`,
+                );
+              }}
+              loaded={loaded}
+              loadError={loadError}
+            />
+          )}
         </Td>
       )}
     </Tr>

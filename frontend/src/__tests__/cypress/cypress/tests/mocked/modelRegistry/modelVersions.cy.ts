@@ -271,4 +271,51 @@ describe('Model Versions', () => {
     cy.go('back');
     verifyRelativeURL('/modelRegistry/modelregistry-sample/registeredModels/1/versions');
   });
+
+  it('should show Lab tune option in kebab menu', () => {
+    initIntercepts({
+      disableModelRegistryFeature: false,
+    });
+
+    // Enable fine-tuning feature
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableModelRegistry: false,
+        disableFineTuning: false,
+      }),
+    );
+
+    // Mock DSC status with required components
+    cy.interceptOdh(
+      'GET /api/dsc/status',
+      mockDscStatus({
+        installedComponents: {
+          'model-registry-operator': true,
+          'data-science-pipelines-operator': true,
+        },
+      }),
+    );
+
+    // Mock tuning data endpoint
+    cy.interceptOdh(
+      'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/tuning',
+      {
+        method: 'GET',
+        path: {
+          serviceName: 'modelregistry-sample',
+          apiVersion: MODEL_REGISTRY_API_VERSION,
+          modelVersionId: '1',
+        },
+      },
+      mockModelVersion({ id: '1', name: 'model version' }),
+    ).as('getTuningData');
+
+    modelRegistry.visit();
+    const registeredModelRow = modelRegistry.getRow('Fraud detection model');
+    registeredModelRow.findName().contains('Fraud detection model').click();
+
+    const modelVersionRow = modelRegistry.getModelVersionRow('model version');
+    modelVersionRow.findKebabAction('Lab tune').click();
+  });
 });
