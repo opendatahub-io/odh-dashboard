@@ -75,7 +75,7 @@
     "axios": "^1.6.4",
     "classnames": "^2.2.6",
     "compare-versions": "^3.6.0",
-    "dompurify": "^2.2.6",
+    "dompurify": "^3.2.4",
     "google-protobuf": "^3.11.2",
     "grpc-web": "^1.2.1",
     "lodash-es": "^4.17.15",
@@ -205,6 +205,7 @@
     "@patternfly/react-topology": {
       "react": "^18.2.0"
     },
-    "ws": "^8.17.1"
+    "ws": "^8.17.1",
+    "dompurify": "^3.2.4"
   }
 }
