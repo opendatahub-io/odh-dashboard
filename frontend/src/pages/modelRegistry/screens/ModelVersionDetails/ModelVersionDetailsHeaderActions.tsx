@@ -7,6 +7,8 @@ import {
   Button,
   ButtonVariant,
   ActionList,
+  ActionListItem,
+  ActionListGroup,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
 import { ArchiveModelVersionModal } from '~/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
@@ -43,9 +45,7 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
   const [isLabTuneModalOpen, setIsLabTuneModalOpen] = React.useState(false);
   const tooltipRef = React.useRef<HTMLButtonElement>(null);
 
-  const isKServeOciEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_OCI).status;
   const isFineTuningEnabled = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
-  const isLabTuneEnabled = isKServeOciEnabled && isFineTuningEnabled;
 
   const { tuningData, loaded, loadError } = useModelVersionTuningData(
     isLabTuneModalOpen ? mv.id : null,
@@ -67,17 +67,16 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
       >
         Deploy
       </Button>
-      {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
-      {isLabTuneEnabled && (
-        <Button
-          id="lab-tune-button"
-          aria-label="Lab tune version"
-          variant={ButtonVariant.secondary}
-          onClick={() => setIsLabTuneModalOpen(true)}
-          data-testid="lab-tune-button"
-        >
-          Lab tune
-        </Button>
+      {isFineTuningEnabled && (
+        <ActionListGroup>
+          <ActionList>
+            <ActionListItem data-testid="lab-tune-button" aria-label="Lab tune version">
+              <Button variant="secondary" onClick={() => setIsLabTuneModalOpen(true)}>
+                Lab tune
+              </Button>
+            </ActionListItem>
+          </ActionList>
+        </ActionListGroup>
       )}
       <Dropdown
         isOpen={isOpenActionDropdown}

@@ -31,8 +31,7 @@ export const useModelVersionTuningData = (
 
   const [artifacts, loaded, loadError] = useModelArtifactsByVersionId(modelVersionId || undefined);
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  const inputModelLocationUri = artifacts?.items[0]?.uri;
+  const inputModelLocationUri = artifacts.items[0]?.uri;
   const modelRegistryDisplayName = registryService
     ? getDisplayNameFromK8sResource(registryService)
     : '';

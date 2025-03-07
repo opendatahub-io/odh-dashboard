@@ -158,6 +158,14 @@ class ModelVersionDetails {
   findSaveLabelsButton() {
     return cy.findByTestId('editable-labels-group-save');
   }
+
+  findLabTuneButton() {
+    return cy.findByTestId('lab-tune-button');
+  }
+
+  findStartRunModal() {
+    return cy.findByTestId('start-run-modal');
+  }
 }
 
 class PropertyRow extends TableRow {}
