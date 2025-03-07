@@ -28,6 +28,7 @@ import {
 } from '~/concepts/pipelines/kfTypes';
 import {
   createTeacherJudgeSecrets,
+  translateIlabFormToHyperparameters,
   translateIlabFormToTeacherJudge,
   createTaxonomySecret,
   translateIlabFormToTaxonomyInput,
@@ -109,6 +110,7 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
           ...translateIlabFormToTaxonomyInput(data, taxonomySecret.metadata.name),
           ...translateIlabFormToBaseModelInput(data),
           ...translateIlabFormToHardwareInput(data),
+          ...translateIlabFormToHyperparameters(data),
         },
       },
       api,

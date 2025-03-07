@@ -7,10 +7,6 @@ import {
   FineTuneTaxonomyFormData,
   ModelCustomizationFormData,
 } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
-import {
-  FineTunePageSections,
-  fineTunePageSectionTitles,
-} from '~/pages/pipelines/global/modelCustomization/const';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import FineTunePageFooter from '~/pages/pipelines/global/modelCustomization/FineTunePageFooter';
 import BaseModelSection from '~/pages/pipelines/global/modelCustomization/baseModelSection/BaseModelSection';
@@ -18,8 +14,12 @@ import TeacherModelSection from '~/pages/pipelines/global/modelCustomization/tea
 import JudgeModelSection from '~/pages/pipelines/global/modelCustomization/teacherJudgeSection/JudgeModelSection';
 import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { ModelCustomizationRouterState } from '~/routes';
+import RunTypeSection from '~/pages/pipelines/global/modelCustomization/RunTypeSection';
 import { FineTuneTaxonomySection } from './FineTuneTaxonomySection';
 import TrainingHardwareSection from './trainingHardwareSection/TrainingHardwareSection';
+import { FineTunePageSections, fineTunePageSectionTitles } from './const';
+import HyperparameterPageSection from './HyperparameterSection/HyperparameterPageSection';
+import { filterHyperparameters } from './utils';
 
 type FineTunePageProps = {
   canSubmit: boolean;
@@ -40,17 +40,17 @@ const FineTunePage: React.FC<FineTunePageProps> = ({
   ilabPipeline,
   ilabPipelineVersion,
 }) => {
-  const projectDetailsDescription = 'This project is used for running your pipeline';
   const { project } = usePipelinesAPI();
   const { state }: { state?: ModelCustomizationRouterState } = useLocation();
+  const { hyperparameters } = filterHyperparameters(ilabPipelineVersion);
 
   return (
-    <Form data-testid="fineTunePageForm">
+    <Form data-testid="fineTunePageForm" maxWidth="500px">
       <FormSection
         id={FineTunePageSections.PROJECT_DETAILS}
         title={fineTunePageSectionTitles[FineTunePageSections.PROJECT_DETAILS]}
       >
-        {projectDetailsDescription}
+        This project is used for running your pipeline
         <FormGroup
           label="Data Science Project"
           fieldId="model-customization-projectName"
@@ -86,6 +86,8 @@ const FineTunePage: React.FC<FineTunePageProps> = ({
         setStorageClass={(storageClassName: string) => setData('storageClass', storageClassName)}
         setHardwareFormData={(hardwareFormData) => setData('hardware', hardwareFormData)}
       />
+      <RunTypeSection data={data} setData={setData} />
+      <HyperparameterPageSection data={data} hyperparameters={hyperparameters} setData={setData} />
       <FormSection>
         <FineTunePageFooter
           canSubmit={canSubmit}
