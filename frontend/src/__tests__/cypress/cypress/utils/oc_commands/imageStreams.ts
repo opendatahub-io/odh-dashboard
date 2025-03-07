@@ -3,6 +3,15 @@ import type { CommandLineResult } from '~/__tests__/cypress/cypress/types';
 interface NotebookImageInfo {
     image: string;
     name: string | null;
+    versions: string[];
+}
+
+interface ImageStreamTag {
+    name: string;
+    annotations: {
+        'opendatahub.io/image-tag-outdated'?: string;
+        [key: string]: string | undefined;
+    };
 }
 
 export const getNotebookImageNames = (
@@ -12,26 +21,86 @@ export const getNotebookImageNames = (
     cy.log(`Executing command: ${getImageStreamsCommand}`);
 
     return cy.exec(getImageStreamsCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
+        cy.log(`Image Streams command result:`, JSON.stringify(result, null, 2));
         const imageStreams = result.stdout.split('\n').filter(line => line.trim());
         cy.log(`Image Streams found: ${imageStreams.join(', ')}`);
 
-        const notebookImagePromises = imageStreams.map(image => {
-            const getNotebookImageNameCommand = `oc get imagestream/${image} -n ${namespace} -o jsonpath='{.metadata.annotations.opendatahub\\.io/notebook-image-name}'`;
-            cy.log(`Executing command for ${image}: ${getNotebookImageNameCommand}`);
+        // Process each image stream sequentially using a recursive function
+        const processImageStreams = (
+            streams: string[],
+            index: number,
+            accumulator: (NotebookImageInfo | null)[]
+        ): Cypress.Chainable<(NotebookImageInfo | null)[]> => {
+            if (index >= streams.length) {
+                return cy.wrap(accumulator);
+            }
+
+            const image = streams[index];
+            const getNotebookImageNameCommand = `oc get imagestream/${image} -n ${namespace} -o jsonpath='{.metadata.labels.opendatahub\\.io/notebook-image}'`;
+            cy.log(`Executing get imagestream command for ${image}: ${getNotebookImageNameCommand}`);
 
             return cy.exec(getNotebookImageNameCommand, { failOnNonZeroExit: false }).then((nameResult: CommandLineResult) => {
-                const name = nameResult.stdout.trim() || null;
-                const statusIcon = name ? '✅' : '❌';
-                cy.log(`${statusIcon} Notebook Image Found for ${image}: ${name || 'Not found'}`);
-                cy.log(`Raw result for ${image}: ${JSON.stringify(nameResult)}`); // Added line
-                return cy.wrap({ image, name });
-            });
-        });
+                cy.log(`getNotebookImageNameCommand result for ${image}:`, JSON.stringify(nameResult, null, 2));
+                const output = nameResult.stdout.trim();
+                const isNotebookImage = output === 'true' || output === 'true%';
+                const statusIcon = isNotebookImage ? '✅' : '❌';
+                cy.log(`${statusIcon} Notebook Image Found for ${image}: ${isNotebookImage ? 'true' : 'Not found'} (Output: "${output}")`);
 
-        // Wait for all promises to resolve and wrap the final result
-        return Cypress.Promise.all(notebookImagePromises).then(results => {
-            cy.log(`Final Notebook Image Infos (pre-wrap): ${JSON.stringify(results)}`); // Modified line
-            return results; // Return resolved array
-        });
+                if (!isNotebookImage) {
+                    // Wrap the accumulator before returning
+                    return cy.wrap([...accumulator, null]).then(newAccumulator => {
+                        return processImageStreams(streams, index + 1, newAccumulator);
+                    });
+                }
+
+                const getImageNameCommand = `oc get imagestream/${image} -n ${namespace} -o jsonpath='{.metadata.annotations.opendatahub\\.io/notebook-image-name}'`;
+                cy.log(`Executing get ImageName command for ${image}: ${getImageNameCommand}`);
+                
+                return cy.exec(getImageNameCommand, { failOnNonZeroExit: false }).then((imageNameResult: CommandLineResult) => {
+                    cy.log(`Image name command result for ${image}:`, JSON.stringify(imageNameResult, null, 2));
+                    const imageName = imageNameResult.stdout.trim().replace('%', '') || null;
+                    cy.log(`Image name for ${image}: ${imageName || 'Not found'}`);
+
+                    const getTagsCommand = `oc get imagestream/${image} -n ${namespace} -o json`;
+                    cy.log(`Executing get Tags command for ${image}: ${getTagsCommand}`);
+                    
+                    return cy.exec(getTagsCommand, { failOnNonZeroExit: false }).then((tagsResult: CommandLineResult) => {
+                        
+                        let validTags: string[] = [];
+                        try {
+                            const imageStreamData = JSON.parse(tagsResult.stdout);
+                            validTags = (imageStreamData.spec.tags as ImageStreamTag[])
+                                .filter((tag: ImageStreamTag) => !tag.annotations['opendatahub.io/image-tag-outdated'])
+                                .map((tag: ImageStreamTag) => tag.name)
+                                .sort((a: string, b: string) => 
+                                    b.localeCompare(a, undefined, { numeric: true, sensitivity: 'base' })
+                                );
+
+                            cy.log(`✅ Valid tags for ${image}:`, JSON.stringify(validTags, null, 2));
+                        } catch (error) {
+                            cy.log(`❌ Error parsing tags for ${image}:`, error);
+                        }
+
+                        const imageInfo: NotebookImageInfo = { 
+                            image, 
+                            name: imageName, 
+                            versions: validTags 
+                        };
+                        
+                        // Wrap the new accumulator before returning
+                        return cy.wrap([...accumulator, imageInfo]).then(newAccumulator => {
+                            return processImageStreams(streams, index + 1, newAccumulator);
+                        });
+                    });
+                });
+            });
+        };
+
+        // Start processing with empty accumulator
+        return processImageStreams(imageStreams, 0, []);
+    }).then((results: (NotebookImageInfo | null)[]) => {
+        const filteredResults = results.filter((result): result is NotebookImageInfo => result !== null);
+        cy.log(`Final Notebook Image Infos: ${JSON.stringify(filteredResults, null, 2)}`);
+        return cy.wrap(filteredResults);
     });
 };
