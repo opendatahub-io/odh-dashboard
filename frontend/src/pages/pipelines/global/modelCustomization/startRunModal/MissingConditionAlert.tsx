@@ -81,7 +81,7 @@ const MissingConditionAlert: React.FC<MissingConditionAlertProps> = ({
               component="a"
               onClick={() => navigate(`/pipelines/${selectedProject}`)}
             >
-              Go to pipelines
+              Go to <b>Pipelines</b>
             </Button>
           </StackItem>
         </Stack>
