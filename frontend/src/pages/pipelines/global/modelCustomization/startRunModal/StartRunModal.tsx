@@ -18,7 +18,7 @@ const StartRunModal: React.FC<StartRunModalProps> = ({ onSubmit, onCancel }) => 
 
   return (
     <Modal
-      title="Start an InstructLab run"
+      title="Start a LAB-tuning run"
       isOpen
       onClose={onCancel}
       footer={
