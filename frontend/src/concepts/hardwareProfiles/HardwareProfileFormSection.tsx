@@ -31,7 +31,7 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
   const hasValidationErrors = Object.keys(validation.getAllValidationIssues()).length > 0;
   const [hardwareProfiles, loaded, error] = useHardwareProfilesByFeatureVisibility(visibleIn);
 
-  const [isExpanded, setIsExpanded] = React.useState(hasValidationErrors);
+  const [isExpanded, setIsExpanded] = React.useState(false);
 
   React.useEffect(() => {
     if (initialHardwareProfile && hasValidationErrors) {
