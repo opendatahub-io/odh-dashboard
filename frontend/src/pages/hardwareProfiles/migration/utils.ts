@@ -186,7 +186,7 @@ export const createAcceleratorHardwareProfiles = (
         identifiers: createCpuMemoryIdentifiers(servingMaxSizes),
       },
     },
-    [HardwareProfileFeatureVisibility.MODEL_SERVING],
+    [HardwareProfileFeatureVisibility.MODEL_SERVING, HardwareProfileFeatureVisibility.PIPELINES],
   ),
 ];
 
