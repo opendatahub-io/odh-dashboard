@@ -66,11 +66,23 @@ export const waitForPodReady = (
   namespace?: string,
 ): Cypress.Chainable<CommandLineResult> => {
   const namespaceFlag = namespace ? `-n ${namespace}` : '-A';
-  const ocCommand = `oc get pods ${namespaceFlag} --no-headers | awk '$2 ~ /^${podNameContains}/ {print $1, $2}' | xargs -tn2 oc wait --for=condition=Ready pod --timeout=${timeout} -n`;
-  cy.log(`Executing: ${ocCommand}`);
+  const getPodsCommand = `oc get pods ${namespaceFlag} --no-headers -o custom-columns="NAMESPACE:.metadata.namespace,NAME:.metadata.name" | grep -E "${podNameContains}"`;
+  const waitForPodCommand = `while read -r namespace pod; do 
+      echo "Waiting for pod: $pod in namespace: $namespace"; 
+      oc wait --for=condition=Ready pod/$pod -n "$namespace" --timeout=${timeout} && exit 0 || echo "$pod in $namespace is not ready"; 
+    done`;
+  const retry = `while true; do 
+      pods=$(${getPodsCommand}); 
+      if [ -n "$pods" ]; then 
+        echo "$pods" | ${waitForPodCommand}; 
+      fi; 
+      sleep 2; 
+    done`;
+
+  cy.log(`Executing: ${retry}`);
 
   return cy
-    .exec(ocCommand, { failOnNonZeroExit: false, timeout: 300000 })
+    .exec(retry, { failOnNonZeroExit: false, timeout: 300000 })
     .then((result: CommandLineResult) => {
       if (result.code !== 0) {
         throw new Error(`Pod readiness check failed: ${result.stderr}`);
@@ -78,6 +90,7 @@ export const waitForPodReady = (
       cy.log(`Pod is ready: ${result.stdout}`);
     });
 };
+
 
 /**
  * Deletes notebooks matching a given name pattern across all namespaces.
