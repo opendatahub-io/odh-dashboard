@@ -1,6 +1,16 @@
 import * as React from 'react';
 import { Modal } from '@patternfly/react-core/deprecated';
-import { Button, Form, FormGroup, Stack, StackItem } from '@patternfly/react-core';
+import {
+  Button,
+  Flex,
+  FlexItem,
+  Form,
+  FormGroup,
+  HelperText,
+  HelperTextItem,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import ProjectSelector from '~/concepts/projects/ProjectSelector';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { PipelineContextProvider } from '~/concepts/pipelines/context';
@@ -53,7 +63,7 @@ const StartRunModal: React.FC<StartRunModalProps> = ({ onSubmit, onCancel }) => 
               LAB method
             </Button>{' '}
             with the InstructLab pipeline. To create a LAB-tuning run, you must have a taxonomy
-            stored in a git repository, and a configured teacher and judge model.{' '}
+            stored in a git repository, and a configured teacher and judge model.
           </StackItem>
           <StackItem>
             <Button
@@ -66,7 +76,7 @@ const StartRunModal: React.FC<StartRunModalProps> = ({ onSubmit, onCancel }) => 
                 // TODO: Link to documentation
               }}
             >
-              Learn more about LAB-tuning prerequisites.
+              Learn more about LAB-tuning prerequisites
             </Button>
             .
           </StackItem>
@@ -75,20 +85,37 @@ const StartRunModal: React.FC<StartRunModalProps> = ({ onSubmit, onCancel }) => 
               label="Data science project"
               fieldId="start-run-modal-project-name"
               isRequired
+              labelHelp={
+                <HelperText>
+                  <HelperTextItem>
+                    Select a project for the InstructLab pipeline to run in.
+                  </HelperTextItem>
+                </HelperText>
+              }
             >
               <Stack hasGutter>
                 <StackItem>
-                  <ProjectSelector
-                    isFullWidth
-                    onSelection={(projectName) => {
-                      setSelectedProject(projectName);
-                    }}
-                    namespace={selectedProject ?? ''}
-                    placeholder="Select a project for the InstructLab pipeline to run in."
-                    isLoading={isLoadingProject}
-                  />
+                  <Flex gap={{ default: 'gapSm' }} direction={{ default: 'column' }}>
+                    <FlexItem>
+                      <ProjectSelector
+                        isFullWidth
+                        onSelection={(projectName) => {
+                          setSelectedProject(projectName);
+                        }}
+                        namespace={selectedProject ?? ''}
+                        placeholder="Select a Data science project"
+                        isLoading={isLoadingProject}
+                      />
+                    </FlexItem>
+                    <FlexItem>
+                      <HelperText>
+                        <HelperTextItem>
+                          The InstructLab pipeline will run in the selected project
+                        </HelperTextItem>
+                      </HelperText>
+                    </FlexItem>
+                  </Flex>
                 </StackItem>
-                <StackItem>The InstructLab pipeline will run in the selected project</StackItem>
                 {selectedProject && (
                   <StackItem>
                     <PipelineContextProvider namespace={selectedProject}>
