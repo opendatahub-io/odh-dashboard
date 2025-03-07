@@ -24,6 +24,8 @@ import {
   ExperimentContext,
   useContextExperimentArchivedOrDeleted,
 } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 import { PipelineRunExperimentsContext } from '~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
 import RestoreRunWithArchivedExperimentModal from '~/pages/pipelines/global/runs/RestoreRunWithArchivedExperimentModal';
 import { CustomMetricsColumnsModal } from './CustomMetricsColumnsModal';
@@ -324,6 +326,11 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
           toDeleteResources={selectedRuns}
           type={PipelineRunType.ARCHIVED}
           onClose={(deleted) => {
+            fireFormTrackingEvent('Archived Pipeline Run Deleted', {
+              outcome: TrackingOutcome.submit,
+              success: true,
+            });
+
             if (deleted) {
               refreshAllAPI();
             }

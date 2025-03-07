@@ -4,6 +4,8 @@ import { Modal } from '@patternfly/react-core/deprecated';
 import { ModelRegistryKind } from '~/k8sTypes';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { deleteModelRegistryBackend } from '~/services/modelRegistrySettingsService';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 
 type DeleteModelRegistryModalProps = {
   modelRegistry: ModelRegistryKind;
@@ -11,6 +13,7 @@ type DeleteModelRegistryModalProps = {
   refresh: () => Promise<unknown>;
 };
 
+const eventName = 'Model Registry Deleted';
 const DeleteModelRegistryModal: React.FC<DeleteModelRegistryModalProps> = ({
   modelRegistry: mr,
   onClose,
@@ -28,17 +31,33 @@ const DeleteModelRegistryModal: React.FC<DeleteModelRegistryModalProps> = ({
     onClose();
   };
 
+  const onCancelClose = () => {
+    fireFormTrackingEvent(eventName, {
+      outcome: TrackingOutcome.cancel,
+    });
+    onBeforeClose();
+  };
+
   const onConfirm = async () => {
     setIsSubmitting(true);
     setError(undefined);
     try {
       await deleteModelRegistryBackend(mr.metadata.name);
       await refresh();
+      fireFormTrackingEvent(eventName, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+      });
       onBeforeClose();
     } catch (e) {
       if (e instanceof Error) {
         setError(e);
       }
+      fireFormTrackingEvent(eventName, {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: e instanceof Error ? e.message : 'unknown error',
+      });
       setIsSubmitting(false);
     }
   };
@@ -56,7 +75,7 @@ const DeleteModelRegistryModal: React.FC<DeleteModelRegistryModalProps> = ({
           submitLabel="Delete model registry"
           submitButtonVariant="danger"
           onSubmit={onConfirm}
-          onCancel={onBeforeClose}
+          onCancel={onCancelClose}
           isSubmitLoading={isSubmitting}
           isSubmitDisabled={isDisabled}
           error={error}

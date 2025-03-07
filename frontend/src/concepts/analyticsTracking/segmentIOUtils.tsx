@@ -32,6 +32,10 @@ export const fireMiscTrackingEvent = (
   fireTrackingEvent(eventName, properties);
 };
 
+export const fireSimpleTrackingEvent = (eventName: string): void => {
+  fireTrackingEvent(eventName, {});
+};
+
 /*
  * This fires a segment 'track' event.
  *
