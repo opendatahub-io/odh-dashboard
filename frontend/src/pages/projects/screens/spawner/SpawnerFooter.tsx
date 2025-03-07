@@ -41,7 +41,6 @@ import {
   updatePvcDataForNotebook,
 } from './service';
 import { checkRequiredFieldsForNotebookStart, getPvcVolumeDetails } from './spawnerUtils';
-// import { getNotebookDataConnection } from './dataConnection/useNotebookDataConnection';
 import { setConnectionsOnEnvFrom } from './connections/utils';
 
 type SpawnerFooterProps = {
