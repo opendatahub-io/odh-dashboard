@@ -11,9 +11,13 @@ import { ExperimentContext } from '~/pages/pipelines/global/experiments/Experime
 
 type PipelineRunTableRowTitleProps = {
   run: PipelineRunKF;
+  isModelRegistered?: boolean;
 };
 
-const PipelineRunTableRowTitle: React.FC<PipelineRunTableRowTitleProps> = ({ run }) => {
+const PipelineRunTableRowTitle: React.FC<PipelineRunTableRowTitleProps> = ({
+  run,
+  isModelRegistered,
+}) => {
   const { namespace } = usePipelinesAPI();
   const { experiment } = React.useContext(ExperimentContext);
 
@@ -32,7 +36,7 @@ const PipelineRunTableRowTitle: React.FC<PipelineRunTableRowTitleProps> = ({ run
       }
       description={run.description}
       descriptionAsMarkdown
-      label={<PipelineRunTypeLabel run={run} isCompact />}
+      label={<PipelineRunTypeLabel run={run} isCompact isModelRegistered={isModelRegistered} />}
     />
   );
 };

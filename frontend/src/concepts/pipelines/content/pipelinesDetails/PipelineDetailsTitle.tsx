@@ -8,12 +8,14 @@ type RecurringRunTitleProps = {
   run: PipelineRunKF;
   statusIcon?: boolean;
   pipelineRunLabel?: boolean;
+  isRegistered?: boolean;
 };
 
 const PipelineDetailsTitle: React.FC<RecurringRunTitleProps> = ({
   run,
   statusIcon,
   pipelineRunLabel,
+  isRegistered,
 }) => {
   const { icon, label, color } = computeRunStatus(run);
 
@@ -36,6 +38,11 @@ const PipelineDetailsTitle: React.FC<RecurringRunTitleProps> = ({
             <Label color={color} icon={icon} data-testid="status-icon">
               {label}
             </Label>
+          </SplitItem>
+        )}
+        {isRegistered && (
+          <SplitItem>
+            <Label color="green">Model registered</Label>
           </SplitItem>
         )}
         {isArchived && (

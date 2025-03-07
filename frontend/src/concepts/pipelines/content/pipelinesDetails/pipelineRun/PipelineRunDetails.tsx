@@ -30,6 +30,7 @@ import { FetchState } from '~/utilities/useFetchState';
 import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import PipelineNotSupported from '~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineNotSupported';
 import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
+import { isPipelineRunRegistered } from '~/concepts/pipelines/content/tables/pipelineRun/utils';
 import { usePipelineRunArtifacts } from './artifacts';
 import { PipelineRunDetailsTabs } from './PipelineRunDetailsTabs';
 
@@ -62,6 +63,7 @@ const PipelineRunDetails: React.FC<
     artifacts,
   );
   const isInvalidPipelineVersion = isArgoWorkflow(version?.pipeline_spec);
+  const isRegistered = isPipelineRunRegistered(artifacts);
 
   const selectedNode = React.useMemo(() => {
     if (isInvalidPipelineVersion) {
@@ -108,7 +110,16 @@ const PipelineRunDetails: React.FC<
     <>
       <ApplicationsPage
         title={
-          run ? <PipelineDetailsTitle run={run} statusIcon pipelineRunLabel /> : 'Error loading run'
+          run ? (
+            <PipelineDetailsTitle
+              run={run}
+              statusIcon
+              pipelineRunLabel
+              isRegistered={isRegistered}
+            />
+          ) : (
+            'Error loading run'
+          )
         }
         subtext={
           run && (
@@ -160,6 +171,7 @@ const PipelineRunDetails: React.FC<
                 sidePanel={panelContent}
               />
             }
+            artifacts={artifacts}
           />
         )}
       </ApplicationsPage>

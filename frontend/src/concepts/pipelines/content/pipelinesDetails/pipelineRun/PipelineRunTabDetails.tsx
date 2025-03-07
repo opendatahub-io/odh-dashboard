@@ -21,13 +21,21 @@ import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVer
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { RecurringRunTrigger } from '~/concepts/pipelines/content/tables/renderUtils';
+import { Artifact } from '~/third_party/mlmd';
+import PipelineRunRegisteredModelDetails from './PipelineRunRegisteredModelDetails';
+import { getArtifactModelData } from './artifacts/utils';
 
 type PipelineRunTabDetailsProps = {
   run?: PipelineRunKF | PipelineRecurringRunKF | null;
   workflowName?: string;
+  artifacts?: Artifact[];
 };
 
-const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({ run, workflowName }) => {
+const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
+  run,
+  workflowName,
+  artifacts,
+}) => {
   const { namespace, project } = usePipelinesAPI();
   const [version, versionLoaded, versionError] = usePipelineVersionById(
     run?.pipeline_version_reference?.pipeline_id,
@@ -47,6 +55,8 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({ run, work
       </EmptyState>
     );
   }
+
+  const artifactModelData = artifacts?.map((artifact) => getArtifactModelData(artifact));
 
   const runId = isPipelineRun(run) ? run.run_id : run.recurring_run_id;
 
@@ -81,6 +91,23 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({ run, work
       : []),
     { key: 'Run ID', value: runId },
     { key: 'Workflow name', value: workflowName },
+    {
+      key: 'Registered models',
+      value: (
+        <>
+          {artifactModelData?.length ? (
+            artifactModelData.map((data) => (
+              <PipelineRunRegisteredModelDetails
+                key={data.modelVersionId}
+                artifactModelData={data}
+              />
+            ))
+          ) : (
+            <span>No model details available</span>
+          )}
+        </>
+      ),
+    },
     ...(!isPipelineRecurringRun(run)
       ? [
           { key: 'Started', value: asTimestamp(new Date(run.created_at)) },
