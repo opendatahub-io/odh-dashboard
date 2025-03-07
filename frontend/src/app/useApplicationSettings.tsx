@@ -18,7 +18,7 @@ export const useApplicationSettings = (): {
   const setRefreshMarker = useTimeBasedRefresh();
 
   const refresh = () =>
-    fetchDashboardConfig()
+    fetchDashboardConfig(true)
       .then((config) => {
         setDashboardConfig(config);
         setLoaded(true);
