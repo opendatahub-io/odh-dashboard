@@ -102,3 +102,24 @@ export const deleteNotebook = (
     }
   });
 };
+
+/**
+ * Deletes odh-nim-account in the TEST_NAMESPACE.
+ *
+ * @returns A Cypress chainable that performs the account deletion process.
+ */
+export const deleteNIMAccount = (): Cypress.Chainable<CommandLineResult> => {
+  const ocCommand = `oc delete account odh-nim-account -n ${Cypress.env('TEST_NAMESPACE')}`;
+  cy.log(`Executing: ${ocCommand}`);
+
+  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
+    if (result.code !== 0) {
+      throw new Error(`Command failed with code ${result.stderr}`);
+    }
+    if (result.stdout.trim() === '') {
+      cy.log('No accounts found');
+    } else {
+      cy.log(`Account deletion: ${result.stdout}`);
+    }
+  });
+};
