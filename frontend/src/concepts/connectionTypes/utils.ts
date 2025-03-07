@@ -279,7 +279,9 @@ export const getMRConnectionValues = (
     });
     return defaults;
   }
-  defaults.URI = connectionValues;
+  if (!connectionValues.startsWith('oci:')) {
+    defaults.URI = connectionValues;
+  }
 
   return defaults;
 };

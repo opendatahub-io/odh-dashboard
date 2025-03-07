@@ -248,20 +248,21 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                   </DashboardDescriptionListGroup>
                 </>
               )}
-              {storageFields?.uri && (
-                <>
-                  <DashboardDescriptionListGroup
-                    title="URI"
-                    isEmpty={!modelArtifact?.uri}
-                    contentWhenEmpty="No URI"
-                  >
-                    <InlineTruncatedClipboardCopy
-                      testId="storage-uri"
-                      textToCopy={modelArtifact?.uri || ''}
-                    />
-                  </DashboardDescriptionListGroup>
-                </>
-              )}
+              {storageFields?.uri ||
+                (storageFields?.ociUri && (
+                  <>
+                    <DashboardDescriptionListGroup
+                      title="URI"
+                      isEmpty={!modelArtifact?.uri}
+                      contentWhenEmpty="No URI"
+                    >
+                      <InlineTruncatedClipboardCopy
+                        testId="storage-uri"
+                        textToCopy={modelArtifact?.uri || ''}
+                      />
+                    </DashboardDescriptionListGroup>
+                  </>
+                ))}
             </DescriptionList>
             <Divider style={{ marginTop: '1em' }} />
             <Title style={{ margin: '1em 0' }} headingLevel={ContentVariants.h3}>
