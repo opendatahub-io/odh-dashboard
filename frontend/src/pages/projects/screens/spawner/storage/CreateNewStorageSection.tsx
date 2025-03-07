@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FormSection, HelperTextItem } from '@patternfly/react-core';
+import { Alert, FormSection, HelperTextItem } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { StorageData, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import PVSizeField from '~/pages/projects/components/PVSizeField';
@@ -80,6 +80,14 @@ const CreateNewStorageSection = <D extends StorageData>({
         <StorageClassSelect
           storageClassName={data.storageClassName}
           setStorageClassName={(name) => setData('storageClassName', name)}
+          additionalHelperText={
+            <Alert
+              variant="info"
+              title="The storage class cannot be changed after creation."
+              isInline
+              isPlain
+            />
+          }
           disableStorageClassSelect={disableStorageClassSelect}
           menuAppendTo={menuAppendTo}
         />
