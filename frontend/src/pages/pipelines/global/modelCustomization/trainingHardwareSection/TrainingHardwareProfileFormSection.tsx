@@ -97,7 +97,8 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
         </Popover>
       </StackItem>
       {data.selectedProfile?.spec.identifiers &&
-        data.selectedProfile.spec.identifiers.length > 0 && (
+        data.selectedProfile.spec.identifiers.length > 0 &&
+        data.resources && (
           <StackItem>
             <ExpandableSection
               isIndented

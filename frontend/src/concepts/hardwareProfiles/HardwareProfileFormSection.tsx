@@ -63,7 +63,6 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
           <FormGroup label="Hardware profile" isRequired>
             <HardwareProfileSelect
               hardwareProfileConfig={formData}
-              visibleIn={visibleIn}
               previewDescription
               hardwareProfiles={hardwareProfiles}
               hardwareProfilesLoaded={loaded}
