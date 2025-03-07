@@ -10,16 +10,18 @@ import type {
   RegisteredModelList,
 } from '~/concepts/modelRegistry/types';
 import type {
+  ConfigMapKind,
+  ConsoleLinkKind,
   DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
   OdhQuickStart,
   RoleBindingKind,
+  SecretKind,
   ServingRuntimeKind,
   TemplateKind,
   NotebookKind,
   ModelRegistryKind,
-  ConsoleLinkKind,
 } from '~/k8sTypes';
 
 import type { StartNotebookData } from '~/pages/projects/types';
@@ -585,6 +587,20 @@ declare global {
             path: { username: string };
           },
           response: OdhResponse<{ notebook: NotebookKind; isRunning: boolean }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/envs/configmap/openshift-ai-notebooks/:filename',
+          options: {
+            path: { filename: string };
+          },
+          response: OdhResponse<ConfigMapKind>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/envs/secret/openshift-ai-notebooks/:filename',
+          options: {
+            path: { filename: string };
+          },
+          response: OdhResponse<SecretKind>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/artifacts/:artifactId',

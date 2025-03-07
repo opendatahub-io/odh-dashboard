@@ -1,7 +1,13 @@
 import _ from 'lodash-es';
 import { KnownLabels, NotebookKind } from '~/k8sTypes';
 import { DEFAULT_NOTEBOOK_SIZES } from '~/pages/projects/screens/spawner/const';
-import { ContainerResources, TolerationEffect, TolerationOperator, VolumeMount } from '~/types';
+import {
+  ContainerResources,
+  TolerationEffect,
+  TolerationOperator,
+  VolumeMount,
+  EnvironmentVariable,
+} from '~/types';
 import { genUID } from '~/__mocks__/mockUtils';
 import { RecursivePartial } from '~/typeHelpers';
 import { EnvironmentFromVariable } from '~/pages/projects/types';
@@ -13,6 +19,7 @@ type MockResourceConfigType = {
   user?: string;
   description?: string;
   envFrom?: EnvironmentFromVariable[];
+  additionalEnvs?: EnvironmentVariable[];
   resources?: ContainerResources;
   image?: string;
   lastImageSelection?: string;
@@ -31,7 +38,7 @@ export const mockNotebookK8sResource = ({
       },
     },
   ],
-
+  additionalEnvs = [],
   namespace = 'test-project',
   user = 'test-user',
   description = '',
@@ -106,6 +113,7 @@ export const mockNotebookK8sResource = ({
                     value:
                       'image-registry.openshift-image-registry.svc:5000/opendatahub/code-server-notebook:2023.2',
                   },
+                  ...additionalEnvs,
                 ],
                 envFrom,
                 image,
