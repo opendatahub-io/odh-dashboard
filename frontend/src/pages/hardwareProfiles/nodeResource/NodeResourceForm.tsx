@@ -23,15 +23,24 @@ import CountFormField from './CountFormField';
 type NodeResourceFormProps = {
   identifier: Identifier;
   setIdentifier: UpdateObjectAtPropAndValue<Identifier>;
+  setData: UpdateObjectAtPropAndValue<{
+    resourceLabel: string;
+    resourceIdentifier: string;
+  }>;
   unitOptions?: UnitOption[];
   isUniqueIdentifier?: boolean;
+  resourceLabelErrorMessage?: string;
+  resourceIdentifierErrorMessage?: string;
 };
 
 const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
   identifier,
   setIdentifier,
+  setData,
   unitOptions,
   isUniqueIdentifier,
+  resourceLabelErrorMessage,
+  resourceIdentifierErrorMessage,
 }) => {
   const validated = isUniqueIdentifier ? 'default' : 'error';
 
@@ -39,16 +48,33 @@ const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
     <Form>
       <FormGroup isRequired label="Resource label" fieldId="resource-label">
         <TextInput
+          id="node-resource-label-input"
           value={identifier.displayName || ''}
-          onChange={(_, value) => setIdentifier('displayName', value)}
+          onChange={(_, value) => {
+            setData('resourceLabel', value);
+            setIdentifier('displayName', value);
+          }}
           data-testid="node-resource-label-input"
         />
+        {resourceLabelErrorMessage && (
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem data-testid="resource-label-limits-error" variant="error">
+                {resourceLabelErrorMessage}
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
+        )}
       </FormGroup>
 
       <FormGroup isRequired label="Resource identifier" fieldId="resource-identifier">
         <TextInput
+          id="node-resource-identifier-input"
           value={identifier.identifier || ''}
-          onChange={(_, value) => setIdentifier('identifier', value)}
+          onChange={(_, value) => {
+            setData('resourceIdentifier', value);
+            setIdentifier('identifier', value);
+          }}
           validated={validated}
           data-testid="node-resource-identifier-input"
         />
@@ -58,6 +84,15 @@ const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
               <HelperTextItem data-testid="resource-identifier-error" variant="error">
                 Another resource with the same identifier already exists. The resource identifier
                 must be unique.
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
+        )}
+        {resourceIdentifierErrorMessage && (
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem data-testid="resource-identifier-limits-error" variant="error">
+                {resourceIdentifierErrorMessage}
               </HelperTextItem>
             </HelperText>
           </FormHelperText>
