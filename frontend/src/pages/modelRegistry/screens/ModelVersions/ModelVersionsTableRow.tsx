@@ -39,9 +39,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
   const navigate = useNavigate();
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const { apiState } = React.useContext(ModelRegistryContext);
-  const isKServeOciEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_OCI).status;
   const isFineTuningEnabled = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
-  const isLabTuneEnabled = isKServeOciEnabled && isFineTuningEnabled;
 
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
@@ -69,7 +67,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
           title: 'Deploy',
           onClick: () => setIsDeployModalOpen(true),
         },
-        ...(isLabTuneEnabled
+        ...(isFineTuningEnabled
           ? [
               {
                 title: 'Lab tune',
