@@ -1,6 +1,16 @@
 import * as React from 'react';
 import { Modal } from '@patternfly/react-core/deprecated';
-import { Button, Form, FormGroup, Stack, StackItem } from '@patternfly/react-core';
+import {
+  Button,
+  Flex,
+  FlexItem,
+  Form,
+  FormGroup,
+  HelperText,
+  HelperTextItem,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import ProjectSelector from '~/concepts/projects/ProjectSelector';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { PipelineContextProvider } from '~/concepts/pipelines/context';
@@ -18,7 +28,7 @@ const StartRunModal: React.FC<StartRunModalProps> = ({ onSubmit, onCancel }) => 
 
   return (
     <Modal
-      title="Start an InstructLab run"
+      title="Start a LAB-tuning run"
       isOpen
       onClose={onCancel}
       footer={
@@ -39,8 +49,7 @@ const StartRunModal: React.FC<StartRunModalProps> = ({ onSubmit, onCancel }) => 
       <Form>
         <Stack hasGutter>
           <StackItem>
-            Fine-tune your models to improve their performance, accuracy, and task specialization,
-            using the{' '}
+            Tune a model using the{' '}
             <Button
               data-testid="lab-method"
               variant="link"
@@ -52,9 +61,11 @@ const StartRunModal: React.FC<StartRunModalProps> = ({ onSubmit, onCancel }) => 
               }}
             >
               LAB method
-            </Button>
-            . Before creating a run, a taxonomy is needed and a teacher and judge model must be
-            configured.{' '}
+            </Button>{' '}
+            with the InstructLab pipeline. To create a LAB-tuning run, you must have a taxonomy
+            stored in a git repository, and a configured teacher and judge model.
+          </StackItem>
+          <StackItem>
             <Button
               data-testid="learn-more-prerequisites"
               variant="link"
@@ -65,7 +76,7 @@ const StartRunModal: React.FC<StartRunModalProps> = ({ onSubmit, onCancel }) => 
                 // TODO: Link to documentation
               }}
             >
-              Learn more about prerequisites for InstructLab fine-tuning
+              Learn more about LAB-tuning prerequisites
             </Button>
             .
           </StackItem>
@@ -74,20 +85,37 @@ const StartRunModal: React.FC<StartRunModalProps> = ({ onSubmit, onCancel }) => 
               label="Data science project"
               fieldId="start-run-modal-project-name"
               isRequired
+              labelHelp={
+                <HelperText>
+                  <HelperTextItem>
+                    Select a project for the InstructLab pipeline to run in.
+                  </HelperTextItem>
+                </HelperText>
+              }
             >
               <Stack hasGutter>
                 <StackItem>
-                  <ProjectSelector
-                    isFullWidth
-                    onSelection={(projectName) => {
-                      setSelectedProject(projectName);
-                    }}
-                    namespace={selectedProject ?? ''}
-                    placeholder="Select a Data science project"
-                    isLoading={isLoadingProject}
-                  />
+                  <Flex gap={{ default: 'gapSm' }} direction={{ default: 'column' }}>
+                    <FlexItem>
+                      <ProjectSelector
+                        isFullWidth
+                        onSelection={(projectName) => {
+                          setSelectedProject(projectName);
+                        }}
+                        namespace={selectedProject ?? ''}
+                        placeholder="Select a Data science project"
+                        isLoading={isLoadingProject}
+                      />
+                    </FlexItem>
+                    <FlexItem>
+                      <HelperText>
+                        <HelperTextItem>
+                          The InstructLab pipeline will run in the selected project
+                        </HelperTextItem>
+                      </HelperText>
+                    </FlexItem>
+                  </Flex>
                 </StackItem>
-                <StackItem>The InstructLab pipeline will run in the selected project</StackItem>
                 {selectedProject && (
                   <StackItem>
                     <PipelineContextProvider namespace={selectedProject}>
