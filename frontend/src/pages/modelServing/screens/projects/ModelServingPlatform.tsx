@@ -190,6 +190,7 @@ const ModelServingPlatform: React.FC = () => {
     if (isKServeNIMEnabled) {
       return (
         <ManageNIMServingModal
+          projectContext={{ currentProject }}
           onClose={onSubmit}
         />
       );
