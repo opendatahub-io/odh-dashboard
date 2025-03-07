@@ -5,6 +5,8 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import PipelineSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineSelector';
 import { getNameEqualsFilter } from '~/concepts/pipelines/utils';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 import { generatePipelineVersionName, PipelineUploadOption } from './utils';
 import { usePipelineVersionImportModalData } from './useImportModalData';
 import PipelineImportBase from './PipelineImportBase';
@@ -14,6 +16,7 @@ type PipelineVersionImportModalProps = {
   onClose: (pipelineVersion?: PipelineVersionKF, pipeline?: PipelineKF | null) => void;
 };
 
+const eventName = 'Pipeline Version Updated';
 const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
   existingPipeline,
   onClose,
@@ -42,6 +45,11 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
     const { name, description, fileContents, pipelineUrl, uploadOption, pipeline } = modalData;
     const pipelineId = pipeline?.pipeline_id || '';
 
+    fireFormTrackingEvent(eventName, {
+      outcome: TrackingOutcome.submit,
+      mode: uploadOption === PipelineUploadOption.FILE_UPLOAD ? 'file' : 'url',
+    });
+
     if (uploadOption === PipelineUploadOption.FILE_UPLOAD) {
       return api.uploadPipelineVersion({}, name, description, fileContents, pipelineId);
     }
@@ -61,6 +69,9 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
       submitButtonText="Upload"
       onClose={(result, pipeline) => {
         onClose(result && 'pipeline_version_id' in result ? result : undefined, pipeline);
+        if (!pipeline) {
+          fireFormTrackingEvent(eventName, { outcome: TrackingOutcome.cancel });
+        }
       }}
       data={modalData}
       setData={setData}

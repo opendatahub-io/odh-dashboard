@@ -17,6 +17,14 @@ class ModelDetailsPage {
     return cy.findByTestId('register-model-button');
   }
 
+  findTuneModelButton() {
+    return cy.findByTestId('tune-model-button');
+  }
+
+  findTuneModelPopover() {
+    return cy.findByTestId('tune-model-popover');
+  }
+
   findLongDescription() {
     return cy.findByTestId('model-long-description');
   }

@@ -26,6 +26,7 @@ type InferenceServiceTableProps = {
   filterTokens?: (servingRuntime?: string | undefined) => SecretKind[];
 } & Partial<Pick<React.ComponentProps<typeof Table>, 'enablePagination' | 'toolbarContent'>>;
 
+const eventName = 'Model Deleted';
 const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
   inferenceServices,
   servingRuntimes,
@@ -99,7 +100,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
               : undefined
           }
           onClose={(deleted) => {
-            fireFormTrackingEvent('Model Deleted', {
+            fireFormTrackingEvent(eventName, {
               outcome: deleted ? TrackingOutcome.submit : TrackingOutcome.cancel,
               type: 'multi',
             });

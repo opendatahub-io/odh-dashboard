@@ -1,21 +1,15 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-
 import { TextInput } from '@patternfly/react-core';
-import { TableVariant, Td, Tr } from '@patternfly/react-table';
-
+import { TableVariant } from '@patternfly/react-table';
 import { Artifact } from '~/third_party/mlmd';
 import { TableBase } from '~/components/table';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
-import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
 import SimpleSelect from '~/components/SimpleSelect';
 import { ArtifactType } from '~/concepts/pipelines/kfTypes';
-import { useMlmdListContext, usePipelinesAPI } from '~/concepts/pipelines/context';
-import { artifactsDetailsRoute } from '~/routes';
-import { ArtifactUriLink } from '~/concepts/pipelines/content/artifacts/ArtifactUriLink';
+import { useMlmdListContext } from '~/concepts/pipelines/context';
 import FilterToolbar from '~/components/FilterToolbar';
 import { FilterOptions, columns, initialFilterData, options } from './constants';
-import { getArtifactName } from './utils';
+import ArtifactsTableRow from './ArtifactsTableRow';
 
 interface ArtifactsTableProps {
   artifacts: Artifact[] | null | undefined;
@@ -34,7 +28,6 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
     setPageToken: setRequestToken,
     setMaxResultSize,
   } = useMlmdListContext(nextPageToken);
-  const { namespace } = usePipelinesAPI();
   const [page, setPage] = React.useState(1);
   const [filterData, setFilterData] = React.useState(initialFilterData);
   const onClearFilters = React.useCallback(() => setFilterData(initialFilterData), []);
@@ -144,27 +137,6 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
     [filterData, onFilterUpdate],
   );
 
-  const rowRenderer = React.useCallback(
-    (artifact: Artifact) => (
-      <Tr key={artifact.getId()}>
-        <Td dataLabel="Artifact">
-          <Link to={artifactsDetailsRoute(namespace, artifact.getId())}>
-            {getArtifactName(artifact)}
-          </Link>
-        </Td>
-        <Td dataLabel="ID">{artifact.getId()}</Td>
-        <Td dataLabel="Type">{artifact.getType()}</Td>
-        <Td dataLabel="URI">
-          <ArtifactUriLink artifact={artifact} />
-        </Td>
-        <Td dataLabel="Created">
-          <PipelinesTableRowTime date={new Date(artifact.getCreateTimeSinceEpoch())} />
-        </Td>
-      </Tr>
-    ),
-    [namespace],
-  );
-
   return (
     <TableBase
       loading={!isLoaded}
@@ -186,7 +158,7 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
       onClearFilters={onClearFilters}
       toolbarContent={toolbarContent}
       emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
-      rowRenderer={rowRenderer}
+      rowRenderer={(artifact) => <ArtifactsTableRow artifact={artifact} />}
       variant={TableVariant.compact}
       data-testid="artifacts-list-table"
       id="artifacts-list-table"

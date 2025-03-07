@@ -32,6 +32,7 @@ const ServingRuntimeArgsSection: React.FC<ServingRuntimeArgsSectionType> = ({
   const servingRuntimeArgsLabelInfo = () => {
     const button = (
       <Button
+        isInline
         data-testid="view-predefined-args-button"
         variant="link"
         isAriaDisabled={!predefinedArgs}

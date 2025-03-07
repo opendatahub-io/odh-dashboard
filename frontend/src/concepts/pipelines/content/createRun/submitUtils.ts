@@ -148,6 +148,11 @@ const normalizeInputParams = (
     const inputDefinitionParams = getInputDefinitionParams(version);
     const paramType = inputDefinitionParams?.[paramKey].parameterType;
 
+    if (paramValue === undefined || paramValue === '') {
+      acc[paramKey] = undefined;
+      return acc;
+    }
+
     switch (paramType) {
       case InputDefinitionParameterType.INTEGER:
         acc[paramKey] = parseInt(String(paramValue));

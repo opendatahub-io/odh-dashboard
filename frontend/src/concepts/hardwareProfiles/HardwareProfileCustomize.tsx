@@ -8,21 +8,30 @@ import {
   GridItem,
   Stack,
   StackItem,
+  Popover,
+  Button,
 } from '@patternfly/react-core';
+import { QuestionCircleIcon } from '@patternfly/react-icons';
 import { ContainerResources, Identifier } from '~/types';
 import CPUField from '~/components/CPUField';
 import MemoryField from '~/components/MemoryField';
 import NumberInputWrapper from '~/components/NumberInputWrapper';
 import { ValidationContext } from '~/utilities/useValidation';
+import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
+import { formatResourceValue } from './utils';
 
 type HardwareProfileCustomizeProps = {
   identifiers: Identifier[];
+  hardwareValidationPath?: string[];
+  hideLimitOption?: boolean;
   data: ContainerResources;
   setData: (data: ContainerResources) => void;
 };
 
 const HardwareProfileCustomize: React.FC<HardwareProfileCustomizeProps> = ({
   identifiers,
+  hardwareValidationPath = [],
+  hideLimitOption,
   data,
   setData,
 }) => {
@@ -52,9 +61,15 @@ const HardwareProfileCustomize: React.FC<HardwareProfileCustomizeProps> = ({
           ...data[type],
           [identifier.identifier]: v,
         },
+        ...(hideLimitOption && { limits: { ...data.limits, [identifier.identifier]: v } }),
       });
 
-    const validationIssues = getAllValidationIssues(['resources', type, identifier.identifier]);
+    const validationIssues = getAllValidationIssues([
+      ...hardwareValidationPath,
+      'resources',
+      type,
+      identifier.identifier,
+    ]);
     const validated = validationIssues.length > 0 ? 'error' : 'default';
 
     const field = (() => {
@@ -94,7 +109,18 @@ const HardwareProfileCustomize: React.FC<HardwareProfileCustomizeProps> = ({
     })();
 
     return (
-      <FormGroup label={`${identifier.displayName} ${type}`}>
+      <FormGroup
+        label={`${identifier.displayName} ${type}`}
+        labelHelp={
+          <DashboardHelpTooltip
+            content={
+              type === 'requests'
+                ? `The minimum amount of ${identifier.identifier} that will be reserved for this workload. The scheduler will only place the workload on nodes that can provide this amount.`
+                : `The maximum amount of ${identifier.identifier} that this workload is allowed to use. If exceeded, the workload may be terminated or throttled.`
+            }
+          />
+        }
+      >
         {field}
         <FormHelperText>
           <HelperText>
@@ -104,7 +130,10 @@ const HardwareProfileCustomize: React.FC<HardwareProfileCustomizeProps> = ({
               </HelperTextItem>
             )}
             <HelperTextItem>
-              Min = {identifier.minCount}, Max = {identifier.maxCount}
+              Min = {formatResourceValue(identifier.minCount, identifier.resourceType)}, Max ={' '}
+              {identifier.maxCount === undefined
+                ? 'unrestricted'
+                : formatResourceValue(identifier.maxCount, identifier.resourceType)}
             </HelperTextItem>
           </HelperText>
         </FormHelperText>
@@ -118,10 +147,57 @@ const HardwareProfileCustomize: React.FC<HardwareProfileCustomizeProps> = ({
         <StackItem key={identifier.identifier}>
           <Grid hasGutter md={12} lg={6}>
             <GridItem>{renderField(identifier, 'requests')}</GridItem>
-            <GridItem>{renderField(identifier, 'limits')}</GridItem>
+            {!hideLimitOption && <GridItem>{renderField(identifier, 'limits')}</GridItem>}
           </Grid>
         </StackItem>
       ))}
+      <StackItem>
+        <Popover
+          headerContent="Requests and Limits"
+          minWidth="50rem"
+          bodyContent={
+            <Stack hasGutter>
+              <StackItem>
+                <p>
+                  <strong>Requests:</strong> Kubernetes defines requests as a guaranteed minimum
+                  amount of a resource to be used by a container. It will set the minimum amount of
+                  the resource for the container to consume. Your workload will be scheduled on a
+                  node with the requested amount of resources available.
+                </p>
+              </StackItem>
+              <StackItem>
+                <p>
+                  <strong>Limits:</strong> Kubernetes defines limits as a maximum amount of a
+                  resource to be used by a container. This means that the container can never
+                  consume more than the memory amount or CPU/accelerator amount indicated. If your
+                  workload consumes more than the resource limit the container may either be
+                  throttled or killed
+                </p>
+              </StackItem>
+              <StackItem>
+                <p>
+                  You can set resource requests and limits to values within the minimum and maximum
+                  bounds set by your administrator.
+                </p>
+              </StackItem>
+              <StackItem>
+                <p>
+                  Learn more about requests and limits by visiting the Kubernetes documentation.
+                </p>
+              </StackItem>
+            </Stack>
+          }
+        >
+          <Button
+            variant="link"
+            isInline
+            icon={<QuestionCircleIcon />}
+            data-testid="requests-limits-info-button"
+          >
+            Learn more about requests and limits
+          </Button>
+        </Popover>
+      </StackItem>
     </Stack>
   );
 };

@@ -187,6 +187,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
 
   const baseInputValueValid =
     createDataInferenceService.maxReplicas >= 0 &&
+    podSpecOptionsState.podSpecOptions.resources &&
     resourcesArePositive(podSpecOptionsState.podSpecOptions.resources) &&
     requestsUnderLimits(podSpecOptionsState.podSpecOptions.resources);
 
