@@ -89,7 +89,7 @@ export const isEmptyDateKF = (date: DateTimeKF): boolean => {
 
 export const normalizeInputParamValue = (
   initialValue: RuntimeConfigParamValue,
-): string | number => {
+): string | number | undefined => {
   let value = initialValue;
 
   if (typeof value === 'boolean') {
