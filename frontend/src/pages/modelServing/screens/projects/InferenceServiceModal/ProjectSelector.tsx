@@ -57,19 +57,11 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
               }
             }}
             value={selectedProject?.metadata.name}
-            options={
-              isOciModel
-                ? kserveProjects.map((project) => ({
-                    key: project.metadata.name,
-                    value: project.metadata.name,
-                    label: getDisplayNameFromK8sResource(project),
-                  }))
-                : projects.map((project) => ({
-                    key: project.metadata.name,
-                    value: project.metadata.name,
-                    label: getDisplayNameFromK8sResource(project),
-                  }))
-            }
+            options={(isOciModel ? kserveProjects : projects).map((project) => ({
+              key: project.metadata.name,
+              value: project.metadata.name,
+              label: getDisplayNameFromK8sResource(project),
+            }))}
             dataTestId="deploy-model-project-selector"
             toggleLabel={
               selectedProject

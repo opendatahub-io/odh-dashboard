@@ -20,6 +20,7 @@ import {
   isValidHttpUrl,
   filterCustomProperties,
   isPipelineRunExist,
+  isRedHatRegistryUri,
 } from '~/pages/modelRegistry/screens/utils';
 import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import { pipelineRunSpecificKeys } from '~/pages/modelRegistry/screens/ModelVersionDetails/const';
@@ -473,5 +474,15 @@ describe('isPipelineRunExist', () => {
       pipelineRunSpecificKeys,
     );
     expect(result).toEqual(false);
+  });
+});
+
+describe('isRedHatRegistryUri', () => {
+  it('should return true for RedHat registry URI', () => {
+    expect(isRedHatRegistryUri('oci://registry.redhat.io/test/test')).toBe(true);
+  });
+
+  it('should return false for non-RedHat registry URI', () => {
+    expect(isValidHttpUrl('http://example.com')).toBe(true);
   });
 });

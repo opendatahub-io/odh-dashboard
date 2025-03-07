@@ -21,6 +21,7 @@ import useDataConnections from '~/pages/projects/screens/detail/data-connections
 import { bumpBothTimestamps } from '~/concepts/modelRegistry/utils/updateTimestamps';
 import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
+import { isRedHatRegistryUri } from '~/pages/modelRegistry/screens/utils';
 
 interface DeployRegisteredModelModalProps {
   modelVersion: ModelVersion;
@@ -168,7 +169,12 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
         registeredModelDeployInfo={registeredModelDeployInfo}
         projectContext={{ currentProject: selectedProject, connections }}
         projectSection={projectSection}
-        existingUriOption={registeredModelDeployInfo.modelArtifactUri}
+        existingUriOption={
+          registeredModelDeployInfo.modelArtifactUri &&
+          isRedHatRegistryUri(registeredModelDeployInfo.modelArtifactUri)
+            ? registeredModelDeployInfo.modelArtifactUri
+            : undefined
+        }
       />
     );
   }
