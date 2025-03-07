@@ -5,6 +5,7 @@ import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import SearchSelector from '~/components/searchSelector/SearchSelector';
 import { ProjectKind } from '~/k8sTypes';
 import { ProjectIcon } from '~/images/icons';
+import StartRunModal from '~/pages/pipelines/global/modelCustomization/startRunModal/StartRunModal';
 
 type ProjectSelectorProps = {
   onSelection: (projectName: string) => void;
@@ -120,6 +121,8 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
           <FlexItem>
             <Bullseye>{selectorLabel}</Bullseye>
           </FlexItem>
+          <StartRunModal onSubmit={(selectedProject) => {}} onCancel={() => {}} />
+
           <FlexItem flex={{ default: 'flex_1' }}>{selector}</FlexItem>
         </Flex>
       </Flex>
