@@ -2,7 +2,7 @@ import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { ImageStreamAndVersion, KeyValuePair, Volume, VolumeMount } from '~/types';
 import { AWSSecretKind, PersistentVolumeClaimKind } from '~/k8sTypes';
 import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
-import { PodSpecOptions } from '~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
+import { NotebookPodSpecOptions } from '~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { AwsKeys } from './dataConnections/const';
 
 export type UpdateObjectAtPropAndValue<T> = <K extends keyof T>(
@@ -72,7 +72,7 @@ export type StartNotebookData = {
   projectName: string;
   notebookData: K8sNameDescriptionFieldData;
   image: ImageStreamAndVersion;
-  podSpecOptions: PodSpecOptions;
+  podSpecOptions: NotebookPodSpecOptions;
   volumes?: Volume[];
   volumeMounts?: VolumeMount[];
   envFrom?: EnvironmentFromVariable[];

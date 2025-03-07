@@ -16,7 +16,7 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ImageStreamAndVersion } from '~/types';
 import GenericSidebar from '~/components/GenericSidebar';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { HardwareProfileKind, NotebookKind } from '~/k8sTypes';
+import { HardwareProfileKind, HardwareProfileFeatureVisibility, NotebookKind } from '~/k8sTypes';
 import useNotebookImageData from '~/pages/projects/screens/detail/notebooks/useNotebookImageData';
 import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
 import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
@@ -180,6 +180,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
 
   const sectionIDs = Object.values(SpawnerPageSectionID);
 
+  const podSpecOptionsState = useNotebookKindPodSpecOptionsState(existingNotebook);
   const {
     notebooksSize: { selectedSize: notebookSize, setSelectedSize: setNotebookSize, sizes },
     acceleratorProfile: {
@@ -187,13 +188,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
       formData: acceleratorProfileFormData,
       setFormData: setAcceleratorProfileFormData,
     },
-    hardwareProfile: {
-      formData: hardwareProfileFormData,
-      setFormData: setHardwareProfileFormData,
-      initialHardwareProfile,
-    },
-    podSpecOptions,
-  } = useNotebookKindPodSpecOptionsState(existingNotebook);
+    hardwareProfile: { formData: hardwareProfileFormData },
+  } = podSpecOptionsState;
 
   const profileIdentifiers = useProfileIdentifiers(
     acceleratorProfileFormData.profile,
@@ -288,11 +284,10 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                 </>
               ) : (
                 <HardwareProfileFormSection
-                  data={hardwareProfileFormData}
-                  initialHardwareProfile={initialHardwareProfile}
-                  allowExistingSettings={!!existingNotebook && !initialHardwareProfile}
-                  setData={setHardwareProfileFormData}
+                  isEditing={!!existingNotebook}
+                  podSpecOptionsState={podSpecOptionsState}
                   isHardwareProfileSupported={isHardwareProfileSupported}
+                  visibleIn={[HardwareProfileFeatureVisibility.WORKBENCH]}
                 />
               )}
             </FormSection>
@@ -380,7 +375,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                     image: selectedImage,
                     volumes: [],
                     volumeMounts: [],
-                    podSpecOptions,
+                    podSpecOptions: podSpecOptionsState.podSpecOptions,
                   }}
                   storageData={storageData}
                   envVariables={envVariables}

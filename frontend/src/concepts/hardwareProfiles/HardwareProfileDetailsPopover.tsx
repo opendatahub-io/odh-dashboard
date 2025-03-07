@@ -11,18 +11,23 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { QuestionCircleIcon } from '@patternfly/react-icons';
-import { HardwareProfileConfig } from './useHardwareProfileConfig';
+import { Toleration, NodeSelector, ContainerResources } from '~/types';
+import { HardwareProfileKind } from '~/k8sTypes';
 import { formatToleration, formatNodeSelector, formatResource } from './utils';
 
 type HardwareProfileDetailsPopoverProps = {
-  hardwareProfileConfig: HardwareProfileConfig;
+  tolerations?: Toleration[];
+  nodeSelector?: NodeSelector;
+  resources?: ContainerResources;
+  hardwareProfile?: HardwareProfileKind;
 };
 
 const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps> = ({
-  hardwareProfileConfig,
+  tolerations,
+  nodeSelector,
+  resources,
+  hardwareProfile,
 }) => {
-  const profile = hardwareProfileConfig.selectedProfile;
-
   const renderSection = (title: string, items: string[]) => (
     <DescriptionList>
       <DescriptionListGroup>
@@ -39,30 +44,40 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
   );
 
   const allResources = React.useMemo(() => {
-    const requests = hardwareProfileConfig.resources.requests || {};
-    const limits = hardwareProfileConfig.resources.limits || {};
+    const requests = resources?.requests || {};
+    const limits = resources?.limits || {};
     const identifiers = new Set([...Object.keys(requests), ...Object.keys(limits)]);
 
     return Array.from(identifiers).map((identifier) => ({
       identifier,
       request: requests[identifier]?.toString() || '',
       limit: limits[identifier]?.toString() || '',
-      displayName: profile?.spec.identifiers?.find((id) => id.identifier === identifier)
+      displayName: hardwareProfile?.spec.identifiers?.find((id) => id.identifier === identifier)
         ?.displayName,
     }));
-  }, [hardwareProfileConfig.resources.requests, hardwareProfileConfig.resources.limits, profile]);
+  }, [resources, hardwareProfile]);
 
-  if (!profile) {
+  if (!tolerations && !nodeSelector && !resources) {
     return null;
   }
 
   return (
     <Popover
       hasAutoWidth
-      headerContent={`${profile.spec.displayName} details`}
+      headerContent={
+        hardwareProfile ? `${hardwareProfile.spec.displayName} details` : 'Existing settings'
+      }
       bodyContent={
         <Stack hasGutter data-testid="hardware-profile-details">
-          {profile.spec.description && <StackItem>{profile.spec.description}</StackItem>}
+          {hardwareProfile ? (
+            hardwareProfile.spec.description && (
+              <StackItem>
+                <Truncate content={hardwareProfile.spec.description} />
+              </StackItem>
+            )
+          ) : (
+            <StackItem>No matching hardware profile found, using existing settings.</StackItem>
+          )}
 
           {allResources.length > 0 &&
             allResources.map((resource) => (
@@ -73,18 +88,18 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
               </StackItem>
             ))}
 
-          {profile.spec.tolerations && profile.spec.tolerations.length > 0 && (
+          {tolerations && tolerations.length > 0 && (
             <StackItem>
               {renderSection(
                 'Tolerations',
-                profile.spec.tolerations.map((toleration) => formatToleration(toleration)),
+                tolerations.map((toleration) => formatToleration(toleration)),
               )}
             </StackItem>
           )}
 
-          {profile.spec.nodeSelector && (
+          {nodeSelector && Object.keys(nodeSelector).length > 0 && (
             <StackItem>
-              {renderSection('Node selectors', formatNodeSelector(profile.spec.nodeSelector))}
+              {renderSection('Node selectors', formatNodeSelector(nodeSelector))}
             </StackItem>
           )}
         </Stack>

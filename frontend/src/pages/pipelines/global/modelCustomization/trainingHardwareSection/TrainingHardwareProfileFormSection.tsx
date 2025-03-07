@@ -6,21 +6,17 @@ import {
   ExpandableSection,
   Popover,
   Button,
-  Split,
-  SplitItem,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { HardwareProfileKind } from '~/k8sTypes';
+import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '~/k8sTypes';
 import { ValidationContext } from '~/utilities/useValidation';
 import { ContainerResources } from '~/types';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { HardwareProfileConfig } from '~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import HardwareProfileCustomize from '~/concepts/hardwareProfiles/HardwareProfileCustomize';
 import HardwareProfileSelect from '~/concepts/hardwareProfiles/HardwareProfileSelect';
-import { useDashboardNamespace } from '~/redux/selectors';
-import useHardwareProfiles from '~/pages/hardwareProfiles/useHardwareProfiles';
 import { filterHardwareProfilesForTraining } from '~/pages/pipelines/global/modelCustomization/utils';
-import { SimpleSelectOption } from '~/components/SimpleSelect';
+import { useHardwareProfilesByFeatureVisibility } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
 
 type TrainingHardwareProfileFormSectionProps = {
   data: HardwareProfileConfig;
@@ -36,8 +32,9 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
     Object.keys(getAllValidationIssues(['hardware', 'hardwareProfileConfig'])).length > 0;
 
   const [isExpanded, setIsExpanded] = React.useState(hasValidationErrors);
-  const { dashboardNamespace } = useDashboardNamespace();
-  const [hardwareProfiles, loaded, error] = useHardwareProfiles(dashboardNamespace);
+  const [hardwareProfiles, loaded, error] = useHardwareProfilesByFeatureVisibility([
+    HardwareProfileFeatureVisibility.PIPELINES,
+  ]);
 
   const onProfileSelect = (profile?: HardwareProfileKind) => {
     if (profile) {
@@ -65,59 +62,12 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
     [hardwareProfiles],
   );
 
-  const selectionOptions = React.useMemo(() => {
-    const enabledProfiles = filteredHardwareProfiles.filter((hp) => hp.spec.enabled);
-
-    const formattedOptions: SimpleSelectOption[] = enabledProfiles.map((profile) => {
-      const displayName = `${profile.spec.displayName}${
-        !profile.spec.enabled ? ' (disabled)' : ''
-      }`;
-      const identifierDescriptions = profile.spec.identifiers
-        ?.map((identifier) => {
-          const { defaultCount } = identifier;
-
-          return `${identifier.identifier}: Request=${defaultCount}, Limit=${defaultCount}`;
-        })
-        .join('; ');
-
-      const tolerationDescriptions = profile.spec.tolerations
-        ?.map(({ key, value }) => `${key}:${value ?? 'null'}`)
-        .join('; ');
-
-      // Format nodeSelector information
-      const nodeSelectorDescriptions = Object.entries(profile.spec.nodeSelector ?? {})
-        .map(([key, value]) => `${key}:${value}`)
-        .join('; ');
-
-      return {
-        key: profile.metadata.name,
-        label: displayName,
-        description: (
-          <Split>
-            <SplitItem>{identifierDescriptions}</SplitItem>
-            <SplitItem>
-              {tolerationDescriptions && `tolerations: ${tolerationDescriptions}`}
-            </SplitItem>
-            <SplitItem>
-              {Object.keys(profile.spec.nodeSelector ?? {}).length
-                ? `nodeSelector: ${nodeSelectorDescriptions}`
-                : ''}
-            </SplitItem>
-          </Split>
-        ),
-      };
-    });
-
-    return formattedOptions;
-  }, [filteredHardwareProfiles]);
-
   return (
     <Stack hasGutter data-testid="hardware-profile-section">
       <StackItem>
         <FormGroup label="Training hardware profile" isRequired>
           <HardwareProfileSelect
             allowExistingSettings={false}
-            selectOptions={selectionOptions}
             isHardwareProfileSupported={() => false}
             hardwareProfiles={filteredHardwareProfiles}
             hardwareProfilesLoaded={loaded}
@@ -142,7 +92,8 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
         </Popover>
       </StackItem>
       {data.selectedProfile?.spec.identifiers &&
-        data.selectedProfile.spec.identifiers.length > 0 && (
+        data.selectedProfile.spec.identifiers.length > 0 &&
+        data.resources && (
           <StackItem>
             <ExpandableSection
               isIndented
