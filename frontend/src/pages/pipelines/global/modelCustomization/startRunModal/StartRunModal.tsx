@@ -53,8 +53,7 @@ const StartRunModal: React.FC<StartRunModalProps> = ({
             </StackItem>
           )}
           <StackItem>
-            Fine-tune your models to improve their performance, accuracy, and task specialization,
-            using the{' '}
+            Tune a model using the{' '}
             <Button
               data-testid="lab-method"
               variant="link"
@@ -66,9 +65,11 @@ const StartRunModal: React.FC<StartRunModalProps> = ({
               }}
             >
               LAB method
-            </Button>
-            . Before creating a run, a taxonomy is needed and a teacher and judge model must be
-            configured.{' '}
+            </Button>{' '}
+            with the InstructLab pipeline. To create a LAB-tuning run, you must have a taxonomy
+            stored in a git repository, and a configured teacher and judge model.{' '}
+          </StackItem>
+          <StackItem>
             <Button
               data-testid="learn-more-prerequisites"
               variant="link"
@@ -79,7 +80,7 @@ const StartRunModal: React.FC<StartRunModalProps> = ({
                 // TODO: Link to documentation
               }}
             >
-              Learn more about prerequisites for InstructLab fine-tuning
+              Learn more about LAB-tuning prerequisites.
             </Button>
             .
           </StackItem>
@@ -97,7 +98,7 @@ const StartRunModal: React.FC<StartRunModalProps> = ({
                       setSelectedProject(projectName);
                     }}
                     namespace={selectedProject ?? ''}
-                    placeholder="Select a Data science project"
+                    placeholder="Select a project for the InstructLab pipeline to run in."
                     isLoading={isLoadingProject}
                   />
                 </StackItem>
