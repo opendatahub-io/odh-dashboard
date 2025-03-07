@@ -12,7 +12,7 @@ import { connectionsPage } from '~/__tests__/cypress/cypress/pages/connections';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
 
-const initIntercepts = ({ isEmpty = false, disableOci = true }) => {
+const initIntercepts = ({ isEmpty = false }) => {
   cy.interceptK8sList(
     ProjectModel,
     mockK8sResourceList([mockProjectK8sResource({ k8sName: 'test-project' })]),
@@ -39,7 +39,6 @@ const initIntercepts = ({ isEmpty = false, disableOci = true }) => {
     'GET /api/config',
     mockDashboardConfig({
       disableConnectionTypes: false,
-      disableKServeOCIModels: disableOci,
     }),
   );
   cy.interceptOdh('GET /api/connection-types', [mockConnectionTypeConfigMap({})]);
@@ -196,7 +195,7 @@ describe('Connections', () => {
   });
 
   it('Create an OCI connection', () => {
-    initIntercepts({ disableOci: false });
+    initIntercepts({});
     cy.interceptOdh('GET /api/connection-types', [
       mockConnectionTypeConfigMap({
         name: 'oci-v1',
