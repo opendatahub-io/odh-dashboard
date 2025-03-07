@@ -1,17 +1,18 @@
 import * as React from 'react';
 import {
-  Tooltip,
+  Divider,
   Dropdown,
   DropdownItem,
-  MenuToggle,
-  Divider,
   DropdownList,
+  MenuToggle,
+  Tooltip,
 } from '@patternfly/react-core';
 import { EllipsisVIcon } from '@patternfly/react-icons';
-import { DeleteServerModal, ViewServerModal, usePipelinesAPI } from '~/concepts/pipelines/context';
+import { DeleteServerModal, usePipelinesAPI, ViewServerModal } from '~/concepts/pipelines/context';
 import { PipelineAndVersionContext } from '~/concepts/pipelines/content/PipelineAndVersionContext';
 import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesModal';
 import { getDashboardMainContainer } from '~/utilities/utils';
+import { fireSimpleTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 
 type PipelineServerActionsProps = {
   variant?: 'kebab' | 'dropdown';
@@ -65,7 +66,13 @@ const PipelineServerActions: React.FC<PipelineServerActionsProps> = ({ variant, 
     >
       <DropdownList>
         {[
-          <DropdownItem key="view-server-details" onClick={() => setViewOpen(true)}>
+          <DropdownItem
+            key="view-server-details"
+            onClick={() => {
+              setViewOpen(true);
+              fireSimpleTrackingEvent('Pipeline Server Config Viewed');
+            }}
+          >
             View pipeline server configuration
           </DropdownItem>,
           ...(pipelinesServer.compatible

@@ -280,7 +280,8 @@ const useHardwareProfilesNav = (): {
           href: '/hardwareProfiles',
         },
       ],
-      verbModelAccess('list', HardwareProfileModel),
+      // TODO: Determine if create is the best value -- RHOAIENG-21129
+      verbModelAccess('create', HardwareProfileModel),
     ),
   };
 };

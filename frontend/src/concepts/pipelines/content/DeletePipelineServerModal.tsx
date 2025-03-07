@@ -3,11 +3,14 @@ import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { deleteServer } from '~/concepts/pipelines/utils';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 
 type DeletePipelineServerModalProps = {
   onClose: (deleted: boolean) => void;
 };
 
+const eventName = 'Pipeline Server Deleted';
 const DeletePipelineServerModal: React.FC<DeletePipelineServerModalProps> = ({ onClose }) => {
   const [deleting, setDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
@@ -28,10 +31,21 @@ const DeletePipelineServerModal: React.FC<DeletePipelineServerModalProps> = ({ o
       onDelete={() => {
         setDeleting(true);
         deleteServer(namespace, pipelinesServer.name)
-          .then(() => onBeforeClose(true))
+          .then(() => {
+            onBeforeClose(true);
+            fireFormTrackingEvent(eventName, {
+              outcome: TrackingOutcome.submit,
+              success: true,
+            });
+          })
           .catch((e) => {
             onBeforeClose(false);
             setError(e);
+            fireFormTrackingEvent(eventName, {
+              outcome: TrackingOutcome.submit,
+              success: false,
+              error: e,
+            });
           });
       }}
       submitButtonLabel="Delete pipeline server"
