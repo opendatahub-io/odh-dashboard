@@ -144,6 +144,7 @@ describe('Hardware Profile', () => {
       ).as('enableHardwareProfile');
       hardwareProfile.visit();
       hardwareProfile.getRow('Test Hardware Profile Delete').findEnabled().should('not.be.checked');
+      hardwareProfile.getRow('Test Hardware Profile Delete').findEnabled().should('be.enabled');
       hardwareProfile.getRow('Test Hardware Profile Delete').findEnableSwitch().click();
       cy.wait('@enableHardwareProfile').then((interception) => {
         expect(interception.request.body).to.eql([
@@ -164,6 +165,7 @@ describe('Hardware Profile', () => {
       hardwareProfile.visit();
       hardwareProfile.getRow('Test Hardware Profile Delete').findEnabled().should('not.be.checked');
       hardwareProfile.getRow('Test Hardware Profile').findEnabled().should('be.checked');
+      hardwareProfile.getRow('Test Hardware Profile').findEnabled().should('be.enabled');
       hardwareProfile.getRow('Test Hardware Profile').findEnableSwitch().click();
       cy.wait('@disableHardwareProfile').then((interception) => {
         expect(interception.request.body).to.eql([
