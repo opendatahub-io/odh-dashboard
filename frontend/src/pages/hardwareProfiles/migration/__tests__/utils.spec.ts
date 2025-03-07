@@ -164,6 +164,7 @@ describe('createAcceleratorHardwareProfiles', () => {
         annotations: {
           'opendatahub.io/dashboard-feature-visibility': JSON.stringify([
             HardwareProfileFeatureVisibility.MODEL_SERVING,
+            HardwareProfileFeatureVisibility.PIPELINES,
           ]),
         },
       },

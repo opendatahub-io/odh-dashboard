@@ -97,7 +97,7 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
             </StackItem>
           )}
 
-          {nodeSelector && (
+          {nodeSelector && Object.keys(nodeSelector).length > 0 && (
             <StackItem>
               {renderSection('Node selectors', formatNodeSelector(nodeSelector))}
             </StackItem>

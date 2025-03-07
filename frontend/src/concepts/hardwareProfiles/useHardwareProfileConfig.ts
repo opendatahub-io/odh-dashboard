@@ -108,6 +108,10 @@ export const useHardwareProfileConfig = (
   const [formData, setFormData, resetFormData] = useGenericObjectState<HardwareProfileConfig>({
     selectedProfile: undefined,
     useExistingSettings: false,
+    resources: {
+      requests: {},
+      limits: {},
+    },
   });
 
   const hardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;

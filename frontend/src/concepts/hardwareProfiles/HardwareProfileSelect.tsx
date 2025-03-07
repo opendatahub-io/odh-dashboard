@@ -18,7 +18,6 @@ import { IdentifierResourceType } from '~/types';
 import { splitValueUnit, CPU_UNITS, MEMORY_UNITS_FOR_PARSING } from '~/utilities/valueUnits';
 import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
 import { HardwareProfileConfig } from './useHardwareProfileConfig';
-import { PodSpecOptions } from './types';
 import { formatResource } from './utils';
 
 type HardwareProfileSelectProps = {
@@ -28,7 +27,6 @@ type HardwareProfileSelectProps = {
   hardwareProfilesLoaded: boolean;
   hardwareProfilesError: Error | undefined;
   allowExistingSettings: boolean;
-  podSpecOptions: PodSpecOptions;
   hardwareProfileConfig: HardwareProfileConfig;
   isHardwareProfileSupported: (profile: HardwareProfileKind) => boolean;
   onChange: (profile: HardwareProfileKind | undefined) => void;
@@ -43,7 +41,6 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   hardwareProfilesLoaded,
   hardwareProfilesError,
   allowExistingSettings = false,
-  podSpecOptions,
   hardwareProfileConfig,
   isHardwareProfileSupported,
   onChange,
@@ -204,9 +201,9 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
           {options.length > 0 && (
             <HardwareProfileDetailsPopover
               hardwareProfile={hardwareProfileConfig.selectedProfile}
-              tolerations={podSpecOptions.tolerations}
-              nodeSelector={podSpecOptions.nodeSelector}
-              resources={podSpecOptions.resources}
+              tolerations={hardwareProfileConfig.selectedProfile?.spec.tolerations}
+              nodeSelector={hardwareProfileConfig.selectedProfile?.spec.nodeSelector}
+              resources={hardwareProfileConfig.resources}
             />
           )}
         </FlexItem>

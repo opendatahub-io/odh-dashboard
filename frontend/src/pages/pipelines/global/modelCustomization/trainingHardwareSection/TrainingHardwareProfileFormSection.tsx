@@ -74,11 +74,6 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
             hardwareProfilesError={error}
             hardwareProfileConfig={data}
             onChange={onProfileSelect}
-            podSpecOptions={{
-              tolerations: data.selectedProfile?.spec.tolerations,
-              nodeSelector: data.selectedProfile?.spec.nodeSelector,
-              resources: data.resources,
-            }}
           />
         </FormGroup>
       </StackItem>

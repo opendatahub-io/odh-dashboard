@@ -25,7 +25,6 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
 }) => {
   const {
     hardwareProfile: { formData, initialHardwareProfile, setFormData },
-    podSpecOptions,
   } = podSpecOptionsState;
 
   const validation = useValidation(formData, hardwareProfileValidationSchema);
@@ -69,7 +68,6 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
               hardwareProfilesError={error}
               isHardwareProfileSupported={isHardwareProfileSupported}
               initialHardwareProfile={initialHardwareProfile}
-              podSpecOptions={podSpecOptions}
               onChange={onProfileSelect}
               allowExistingSettings={isEditing && !initialHardwareProfile}
             />
