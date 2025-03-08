@@ -2,13 +2,20 @@ import { hardwareProfile } from '~/__tests__/cypress/cypress/pages/hardwareProfi
 import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { HardwareProfileModel } from '~/__tests__/cypress/cypress/utils/models';
-import { mock200Status, mockK8sResourceList } from '~/__mocks__';
+import { mock200Status, mockDashboardConfig, mockK8sResourceList } from '~/__mocks__';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
 import { IdentifierResourceType } from '~/types';
 
 const initIntercepts = () => {
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({
+      modelServerSizes: [],
+      notebookSizes: [],
+    }),
+  );
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: 'opendatahub' },
     mockK8sResourceList([
@@ -25,6 +32,7 @@ const initIntercepts = () => {
 describe('Hardware Profile', () => {
   beforeEach(() => {
     asProductAdminUser();
+    initIntercepts();
   });
 
   describe('main table', () => {
@@ -136,6 +144,7 @@ describe('Hardware Profile', () => {
       ).as('enableHardwareProfile');
       hardwareProfile.visit();
       hardwareProfile.getRow('Test Hardware Profile Delete').findEnabled().should('not.be.checked');
+      hardwareProfile.getRow('Test Hardware Profile Delete').findEnabled().should('be.enabled');
       hardwareProfile.getRow('Test Hardware Profile Delete').findEnableSwitch().click();
       cy.wait('@enableHardwareProfile').then((interception) => {
         expect(interception.request.body).to.eql([
@@ -156,6 +165,7 @@ describe('Hardware Profile', () => {
       hardwareProfile.visit();
       hardwareProfile.getRow('Test Hardware Profile Delete').findEnabled().should('not.be.checked');
       hardwareProfile.getRow('Test Hardware Profile').findEnabled().should('be.checked');
+      hardwareProfile.getRow('Test Hardware Profile').findEnabled().should('be.enabled');
       hardwareProfile.getRow('Test Hardware Profile').findEnableSwitch().click();
       cy.wait('@disableHardwareProfile').then((interception) => {
         expect(interception.request.body).to.eql([
@@ -195,9 +205,6 @@ describe('Hardware Profile', () => {
           name: 'Test Hardware Profile - 1',
           displayName: 'Test Hardware Profile - 1',
           description: 'hardware profile 1',
-          labels: {
-            'opendatahub.io/ootb': 'true',
-          },
           identifiers: [
             {
               displayName: 'CPU',
@@ -231,9 +238,6 @@ describe('Hardware Profile', () => {
           name: 'Test Hardware Profile - 1',
           displayName: 'Test Hardware Profile - 1',
           description: 'hardware profile 1',
-          labels: {
-            'opendatahub.io/ootb': 'true',
-          },
           identifiers: [
             {
               displayName: 'CPU',
@@ -276,37 +280,6 @@ describe('Hardware Profile', () => {
       warningBanner.findDescription(
         'One or more of your defined hardware profiles are missing either CPU or Memory. This is not recommended.',
       );
-    });
-
-    it('restore hardware profile', () => {
-      cy.interceptK8sList(
-        { model: HardwareProfileModel, ns: 'opendatahub' },
-        mockK8sResourceList([
-          mockHardwareProfile({
-            name: 'test-hardware-profile-restore',
-            displayName: 'Test Hardware Profile Restore',
-            labels: {
-              'opendatahub.io/ootb': 'true',
-            },
-            identifiers: [],
-          }),
-        ]),
-      );
-      cy.interceptK8s(
-        'PUT',
-        {
-          model: HardwareProfileModel,
-          ns: 'opendatahub',
-          name: 'test-hardware-profile-restore',
-        },
-        mock200Status({}),
-      ).as('restore');
-      hardwareProfile.visit();
-      const row = hardwareProfile.getRow('Test Hardware Profile Restore');
-      row.findEnableSwitch().should('not.be.checked');
-      row.findWarningIconButton().click();
-      hardwareProfile.findRestoreDefaultHardwareProfileButton().click();
-      cy.wait('@restore');
     });
 
     it('shows errors for all invalid.', () => {

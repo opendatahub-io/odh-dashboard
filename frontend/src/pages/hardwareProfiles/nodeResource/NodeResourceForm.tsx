@@ -6,6 +6,11 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
+  Radio,
+  Split,
+  SplitItem,
+  Stack,
+  StackItem,
 } from '@patternfly/react-core';
 import { Identifier, IdentifierResourceType } from '~/types';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
@@ -13,10 +18,13 @@ import { UnitOption } from '~/utilities/valueUnits';
 import SimpleSelect from '~/components/SimpleSelect';
 import { asEnumMember } from '~/utilities/utils';
 import {
+  DEFAULT_ACCELERATOR_SIZE,
   DEFAULT_CPU_SIZE,
   DEFAULT_MEMORY_SIZE,
   EMPTY_IDENTIFIER,
+  HARDWARE_PROFILE_COLUMN_HELP_TOOLTIP,
 } from '~/pages/hardwareProfiles/nodeResource/const';
+import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
 import { validateDefaultCount, validateMinCount } from './utils';
 import CountFormField from './CountFormField';
 
@@ -91,6 +99,12 @@ const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
                 setIdentifier('maxCount', DEFAULT_MEMORY_SIZE.maxCount);
                 setIdentifier('defaultCount', DEFAULT_MEMORY_SIZE.defaultCount);
                 break;
+              case IdentifierResourceType.ACCELERATOR:
+                setIdentifier('resourceType', resourceType);
+                setIdentifier('minCount', DEFAULT_ACCELERATOR_SIZE.minCount);
+                setIdentifier('maxCount', DEFAULT_ACCELERATOR_SIZE.maxCount);
+                setIdentifier('defaultCount', DEFAULT_ACCELERATOR_SIZE.defaultCount);
+                break;
               default:
                 setIdentifier('resourceType', undefined);
                 setIdentifier('minCount', EMPTY_IDENTIFIER.minCount);
@@ -109,6 +123,7 @@ const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
         setSize={(value) => setIdentifier('defaultCount', value)}
         isValid={validateDefaultCount(identifier, unitOptions)}
         errorMessage="Default must be equal to or between the minimum and maximum allowed limits."
+        tooltip={HARDWARE_PROFILE_COLUMN_HELP_TOOLTIP.defaultCount}
       />
 
       <CountFormField
@@ -118,16 +133,52 @@ const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
         size={identifier.minCount}
         setSize={(value) => setIdentifier('minCount', value)}
         isValid={validateMinCount(identifier, unitOptions)}
-        errorMessage="Minimum allowed value cannot exceed the maximum allowed value."
+        errorMessage="Minimum allowed value cannot exceed the maximum allowed value (if specified)."
+        tooltip={HARDWARE_PROFILE_COLUMN_HELP_TOOLTIP.minCount}
       />
 
-      <CountFormField
+      <FormGroup
         label="Maximum allowed"
         fieldId="maximum-allowed"
-        type={identifier.resourceType}
-        size={identifier.maxCount}
-        setSize={(value) => setIdentifier('maxCount', value)}
-      />
+        labelHelp={<DashboardHelpTooltip content={HARDWARE_PROFILE_COLUMN_HELP_TOOLTIP.maxCount} />}
+      >
+        <Stack hasGutter>
+          <StackItem>
+            <Split hasGutter>
+              <SplitItem>
+                <Radio
+                  id="limited-radio"
+                  name="max-limit"
+                  label="Set maximum limit"
+                  isChecked={identifier.maxCount !== undefined}
+                  onChange={() => setIdentifier('maxCount', identifier.minCount || 1)}
+                  data-testid="node-resource-max-limited"
+                />
+              </SplitItem>
+              <SplitItem>
+                <Radio
+                  id="unlimited-radio"
+                  name="max-limit"
+                  label="No maximum limit"
+                  isChecked={!identifier.maxCount}
+                  onChange={() => setIdentifier('maxCount', undefined)}
+                  data-testid="node-resource-max-unlimited"
+                />
+              </SplitItem>
+            </Split>
+          </StackItem>
+          <StackItem>
+            {identifier.maxCount !== undefined && (
+              <CountFormField
+                fieldId="maximum-allowed"
+                type={identifier.resourceType}
+                size={identifier.maxCount}
+                setSize={(value) => setIdentifier('maxCount', value)}
+              />
+            )}
+          </StackItem>
+        </Stack>
+      </FormGroup>
     </Form>
   );
 };

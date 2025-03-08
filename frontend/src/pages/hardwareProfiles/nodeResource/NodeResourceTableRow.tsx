@@ -12,6 +12,7 @@ import {
 import { ExclamationTriangleIcon, MinusCircleIcon, PencilAltIcon } from '@patternfly/react-icons';
 import { Identifier } from '~/types';
 import { isHardwareProfileIdentifierValid } from '~/pages/hardwareProfiles/utils';
+import { formatResourceValue } from '~/concepts/hardwareProfiles/utils';
 
 type NodeResourceTableRowProps = {
   identifier: Identifier;
@@ -43,9 +44,17 @@ const NodeResourceTableRow: React.FC<NodeResourceTableRowProps> = ({
       <Truncate content={identifier.identifier} />
     </Td>
     <Td dataLabel="Resource type">{identifier.resourceType ?? 'Other'}</Td>
-    <Td dataLabel="Default">{identifier.defaultCount}</Td>
-    <Td dataLabel="Minimum allowed">{identifier.minCount}</Td>
-    <Td dataLabel="Maximum allowed">{identifier.maxCount}</Td>
+    <Td dataLabel="Default">
+      {formatResourceValue(identifier.defaultCount, identifier.resourceType)}
+    </Td>
+    <Td dataLabel="Minimum allowed">
+      {formatResourceValue(identifier.minCount, identifier.resourceType)}
+    </Td>
+    <Td dataLabel="Maximum allowed">
+      {identifier.maxCount
+        ? formatResourceValue(identifier.maxCount, identifier.resourceType)
+        : 'unrestricted'}
+    </Td>
     {showActions && (
       <Td isActionCell modifier="nowrap" style={{ textAlign: 'right' }}>
         <ActionList isIconList>
