@@ -128,6 +128,10 @@ export type WBNegativeTestsData = {
   invalidResourceNames: string[];
 };
 
+export type WBImagesTestData = {
+  wbImagesTestNamespace: string;
+};
+
 export type CommandLineResult = {
   code: number;
   stdout: string;
