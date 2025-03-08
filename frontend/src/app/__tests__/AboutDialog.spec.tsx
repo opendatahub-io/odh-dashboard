@@ -60,6 +60,7 @@ describe('AboutDialog', () => {
     dashboardConfig: DashboardConfigKind;
     storageClasses: StorageClassKind[];
     isRHOAI: boolean;
+    refreshDashboardConfig: jest.Mock;
   };
   let userInfo: UserState;
   const clusterInfo: ClusterState = { serverURL: 'https://test-server.com' };
@@ -78,6 +79,7 @@ describe('AboutDialog', () => {
       dashboardConfig,
       storageClasses: [],
       isRHOAI: false,
+      refreshDashboardConfig: jest.fn(),
     };
     dsciStatus = {
       conditions: [],

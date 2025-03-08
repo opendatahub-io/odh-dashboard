@@ -72,7 +72,7 @@ export const useIlabPodSpecOptionsState = (
 
     if (isHardwareProfilesAvailable) {
       podSpecOptions = {
-        resources: hardwareProfile.formData.resources,
+        resources: hardwareProfile.formData.resources ?? {},
         tolerations: hardwareProfile.formData.selectedProfile?.spec.tolerations,
         nodeSelector: hardwareProfile.formData.selectedProfile?.spec.nodeSelector,
       };
@@ -118,8 +118,8 @@ export const useIlabPodSpecOptionsState = (
       hardwareProfileConfig: {
         ...hardwareProfile.formData,
         resources: {
-          requests: hardwareProfile.formData.resources.requests ?? {},
-          limits: hardwareProfile.formData.resources.limits ?? {},
+          requests: hardwareProfile.formData.resources?.requests ?? {},
+          limits: hardwareProfile.formData.resources?.limits ?? {},
         },
       },
     });

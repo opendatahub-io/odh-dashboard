@@ -469,7 +469,6 @@ export type InferenceServiceAnnotations = Partial<{
 
 export type InferenceServiceLabels = Partial<{
   'networking.knative.dev/visibility': string;
-  'security.opendatahub.io/enable-auth': 'true';
   'networking.kserve.io/visibility': 'exposed';
 }>;
 
@@ -1246,6 +1245,7 @@ export type DashboardConfigKind = K8sResourceCommon & {
 export type AcceleratorProfileKind = K8sResourceCommon & {
   metadata: {
     name: string;
+    namespace: string;
     annotations?: Partial<{
       'opendatahub.io/modified-date': string;
     }>;
@@ -1259,10 +1259,20 @@ export type AcceleratorProfileKind = K8sResourceCommon & {
   };
 };
 
+export enum HardwareProfileFeatureVisibility {
+  WORKBENCH = 'workbench',
+  MODEL_SERVING = 'model-serving',
+  PIPELINES = 'pipelines',
+}
+
 export type HardwareProfileKind = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;
+    annotations?: Partial<{
+      // JSON stringified HardwareProfileFeatureVisibility[]
+      'opendatahub.io/dashboard-feature-visibility': string;
+    }>;
   };
   spec: {
     displayName: string;

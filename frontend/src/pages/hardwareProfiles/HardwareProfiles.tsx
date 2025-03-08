@@ -11,32 +11,51 @@ import {
   EmptyStateFooter,
   Alert,
   Stack,
+  StackItem,
+  ExpandableSection,
 } from '@patternfly/react-core';
 import { BanIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import { useDashboardNamespace } from '~/redux/selectors';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import HardwareProfilesTable from '~/pages/hardwareProfiles/HardwareProfilesTable';
 import { useAccessAllowed, verbModelAccess } from '~/concepts/userSSAR';
 import { HardwareProfileModel } from '~/api';
 import { generateWarningForHardwareProfiles } from '~/pages/hardwareProfiles/utils';
 import { useWatchHardwareProfiles } from '~/utilities/useWatchHardwareProfiles';
+import { useDashboardNamespace } from '~/redux/selectors';
 import { ProjectObjectType } from '~/concepts/design/utils';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
+import useMigratedHardwareProfiles from './migration/useMigratedHardwareProfiles';
 
 const description = `Manage hardware profile settings for users in your organization.`;
 
 const HardwareProfiles: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
-  const [hardwareProfiles, loaded, loadError] = useWatchHardwareProfiles(dashboardNamespace);
+  const {
+    data: migratedHardwareProfiles,
+    loaded: loadedMigratedHardwareProfiles,
+    loadError: loadErrorMigratedHardwareProfiles,
+    getMigrationAction,
+  } = useMigratedHardwareProfiles(dashboardNamespace);
+  const [hardwareProfiles, loadedHardwareProfiles, loadErrorHardwareProfiles] =
+    useWatchHardwareProfiles(dashboardNamespace);
+
+  const allMigratedHardwareProfiles = React.useMemo(
+    () => [...migratedHardwareProfiles, ...hardwareProfiles],
+    [migratedHardwareProfiles, hardwareProfiles],
+  );
+
+  const loaded = loadedMigratedHardwareProfiles && loadedHardwareProfiles;
+  const loadError = loadErrorMigratedHardwareProfiles || loadErrorHardwareProfiles;
+
   const navigate = useNavigate();
   const [allowedToCreate, loadedAllowed] = useAccessAllowed(
     verbModelAccess('create', HardwareProfileModel),
   );
 
-  const isEmpty = hardwareProfiles.length === 0;
-  const warningMessages = generateWarningForHardwareProfiles(hardwareProfiles);
+  const isEmpty = allMigratedHardwareProfiles.length === 0;
+  const warningMessages = generateWarningForHardwareProfiles(allMigratedHardwareProfiles);
 
   const noHardwareProfilePageSection = (
     <PageSection isFilled>
@@ -99,16 +118,54 @@ const HardwareProfiles: React.FC = () => {
     >
       <Stack hasGutter>
         {warningMessages && (
-          <Alert
-            isInline
-            variant="warning"
-            title={warningMessages.title}
-            data-testid="hardware-profiles-error-alert"
-          >
-            <p>{warningMessages.message}</p>
-          </Alert>
+          <StackItem>
+            <Alert
+              isInline
+              variant="warning"
+              title={warningMessages.title}
+              data-testid="hardware-profiles-error-alert"
+            >
+              <p>{warningMessages.message}</p>
+            </Alert>
+          </StackItem>
         )}
-        <HardwareProfilesTable hardwareProfiles={hardwareProfiles} />
+        {migratedHardwareProfiles.length > 0 ? (
+          <>
+            <StackItem>
+              <HardwareProfilesTable
+                hardwareProfiles={hardwareProfiles}
+                getMigrationAction={getMigrationAction}
+              />
+            </StackItem>
+            <StackItem>
+              <Title headingLevel="h2">
+                {hardwareProfiles.length > 0 ? 'Legacy profiles' : 'Migrate your legacy profiles'}
+              </Title>
+            </StackItem>
+            <StackItem>
+              Your accelerator profiles and existing custom workbench and model deployment container
+              sizes have been converted to legacy profiles. Migrate them to hardware profiles, which
+              offer more flexibility. Deployed workloads using legacy profiles will be unaffected by
+              the migration.
+            </StackItem>
+            <StackItem>
+              <ExpandableSection
+                toggleTextExpanded={`Hide legacy profiles (${migratedHardwareProfiles.length})`}
+                toggleTextCollapsed={`Show legacy profiles (${migratedHardwareProfiles.length})`}
+              >
+                <HardwareProfilesTable
+                  isMigratedTable
+                  hardwareProfiles={migratedHardwareProfiles}
+                  getMigrationAction={getMigrationAction}
+                />
+              </ExpandableSection>
+            </StackItem>
+          </>
+        ) : (
+          <StackItem>
+            <HardwareProfilesTable hardwareProfiles={hardwareProfiles} />
+          </StackItem>
+        )}
       </Stack>
     </ApplicationsPage>
   );

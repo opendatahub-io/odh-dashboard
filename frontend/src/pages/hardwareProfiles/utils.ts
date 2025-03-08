@@ -1,8 +1,8 @@
 import { HardwareProfileKind } from '~/k8sTypes';
-import { determineUnit, splitValueUnit } from '~/utilities/valueUnits';
 import { Identifier } from '~/types';
 import { HardwareProfileWarningType, WarningNotification } from '~/concepts/hardwareProfiles/types';
 import { hardwareProfileWarningSchema } from '~/concepts/hardwareProfiles/validationUtils';
+import { determineUnit, splitValueUnit } from '~/utilities/valueUnits';
 import { HARDWARE_PROFILES_DEFAULT_WARNING_MESSAGE } from './nodeResource/const';
 import { hasCPUandMemory } from './manage/ManageNodeResourceSection';
 
@@ -13,9 +13,6 @@ export enum HardwareProfileBannerWarningTitles {
   ALL_INCOMPLETE = 'All hardware profiles are incomplete',
   SOME_INCOMPLETE = 'One or more hardware profiles are incomplete',
 }
-
-export const isHardwareProfileOOTB = (hardwareProfile: HardwareProfileKind): boolean =>
-  hardwareProfile.metadata.labels?.['opendatahub.io/ootb'] === 'true';
 
 const generateWarningTitle = (
   hasEnabled: boolean,
@@ -96,7 +93,7 @@ export const isHardwareProfileIdentifierValid = (identifier: Identifier): boolea
   try {
     if (
       identifier.minCount.toString().at(0) === '-' ||
-      identifier.maxCount.toString().at(0) === '-' ||
+      (identifier.maxCount && identifier.maxCount.toString().at(0) === '-') ||
       identifier.defaultCount.toString().at(0) === '-'
     ) {
       return false;
@@ -106,11 +103,9 @@ export const isHardwareProfileIdentifierValid = (identifier: Identifier): boolea
       determineUnit(identifier),
       true,
     );
-    const [maxCount] = splitValueUnit(
-      identifier.maxCount.toString(),
-      determineUnit(identifier),
-      true,
-    );
+    const [maxCount] = identifier.maxCount
+      ? splitValueUnit(identifier.maxCount.toString(), determineUnit(identifier), true)
+      : [undefined];
     const [defaultCount] = splitValueUnit(
       identifier.defaultCount.toString(),
       determineUnit(identifier),
@@ -118,11 +113,11 @@ export const isHardwareProfileIdentifierValid = (identifier: Identifier): boolea
     );
     if (
       !Number.isInteger(minCount) ||
-      !Number.isInteger(maxCount) ||
+      (maxCount !== undefined && !Number.isInteger(maxCount)) ||
       !Number.isInteger(defaultCount) ||
-      minCount > maxCount ||
+      (maxCount && minCount > maxCount) ||
       defaultCount < minCount ||
-      defaultCount > maxCount
+      (maxCount && defaultCount > maxCount)
     ) {
       return false;
     }
@@ -139,10 +134,7 @@ type HardwareProfileWarning = {
 
 export const createHardwareProfileWarningTitle = (hardwareProfile: HardwareProfileKind): string => {
   const complete = hasCPUandMemory(hardwareProfile.spec.identifiers ?? []);
-  const isDefault = isHardwareProfileOOTB(hardwareProfile);
-  return `${complete ? 'Invalid' : 'Incomplete'} ${
-    isDefault ? 'default hardware' : 'hardware'
-  } profile`;
+  return `${complete ? 'Invalid' : 'Incomplete'} hardware profile`;
 };
 
 export const createIdentifierWarningMessage = (message: string, isDefault: boolean): string =>
@@ -157,8 +149,7 @@ export const validateProfileWarning = (
 ): HardwareProfileWarning[] => {
   const warningMessages: HardwareProfileWarning[] = [];
   const identifiers = hardwareProfile.spec.identifiers ?? [];
-  const isDefault = isHardwareProfileOOTB(hardwareProfile);
-  const warnings = hardwareProfileWarningSchema.safeParse({ isDefault, value: identifiers });
+  const warnings = hardwareProfileWarningSchema.safeParse({ isDefault: false, value: identifiers });
   if (warnings.error) {
     warnings.error.issues.forEach((issue) => {
       if ('params' in issue && typeof issue.params !== 'undefined') {
@@ -170,4 +161,9 @@ export const validateProfileWarning = (
     });
   }
   return warningMessages;
+};
+
+export const isHardwareProfileValid = (hardwareProfile: HardwareProfileKind): boolean => {
+  const warnings = validateProfileWarning(hardwareProfile);
+  return warnings.length === 0;
 };
