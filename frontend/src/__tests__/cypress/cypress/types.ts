@@ -142,6 +142,8 @@ export type TestConfig = {
   APPLICATIONS_NAMESPACE: NamespaceConfig;
   PIP_INDEX_URL: string;
   PIP_TRUSTED_HOST: string;
+  OCI_SECRET_DETAILS_FILE: string;
+  OCI_MODEL_URI: string;
 };
 
 export type DataScienceProjectData = {
@@ -250,11 +252,13 @@ export type NamespaceConfig = {
 enum OOTBConnectionTypes {
   s3 = 'S3 compatible object storage - v1',
   uri = 'URI - v1',
+  oci = 'OCI compliant registry - v1',
 }
 
 export type OOTBConnectionTypesData = {
   s3: OOTBConnectionTypes.s3;
   uri: OOTBConnectionTypes.uri;
+  oci: OOTBConnectionTypes.oci;
 };
 
 export type WorkloadMetricsTestData = {
