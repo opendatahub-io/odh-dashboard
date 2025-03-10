@@ -21,6 +21,7 @@ const InstructLabPipelineEnablement: React.FC<InstructLabPipelineEnablementProps
     id="instructlab-enabled-checkbox"
     data-testid="instructlab-enabled-checkbox"
     name="instructLabEnabledCheckbox"
+    description="The InstructLab pipeline contains the steps and instructions that make up LAB-tuning runs."
   />
 );
 
