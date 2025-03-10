@@ -57,61 +57,65 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
   }
 
   return (
-    <ActionList>
-      <Button
-        id="deploy-button"
-        aria-label="Deploy version"
-        ref={tooltipRef}
-        variant={ButtonVariant.primary}
-        onClick={() => setIsDeployModalOpen(true)}
-      >
-        Deploy
-      </Button>
-      {isFineTuningEnabled && (
-        <ActionListGroup>
-          <ActionList>
-            <ActionListItem data-testid="lab-tune-button" aria-label="Lab tune version">
-              <Button variant="secondary" onClick={() => setIsLabTuneModalOpen(true)}>
-                Lab tune
-              </Button>
-            </ActionListItem>
-          </ActionList>
-        </ActionListGroup>
-      )}
-      <Dropdown
-        isOpen={isOpenActionDropdown}
-        onSelect={() => setOpenActionDropdown(false)}
-        onOpenChange={(open) => setOpenActionDropdown(open)}
-        popperProps={{ position: 'right', appendTo: 'inline' }}
-        toggle={(toggleRef) => (
-          <MenuToggle
-            variant={ButtonVariant.secondary}
-            ref={toggleRef}
-            onClick={() => setOpenActionDropdown(!isOpenActionDropdown)}
-            isExpanded={isOpenActionDropdown}
-            aria-label="Model version details action toggle"
-            data-testid="model-version-details-action-button"
-          >
-            Actions
-          </MenuToggle>
-        )}
-      >
-        <DropdownList>
-          <DropdownItem
-            isAriaDisabled={hasDeployment}
-            id="archive-version-button"
-            aria-label="Archive model version"
-            key="archive-version-button"
-            onClick={() => setIsArchiveModalOpen(true)}
-            tooltipProps={
-              hasDeployment ? { content: 'Deployed model versions cannot be archived' } : undefined
-            }
+    <ActionList className="pf-v5-u-display-flex">
+      <ActionListGroup className="pf-v5-u-flex-1">
+        <ActionListItem>
+          <Button
+            id="deploy-button"
+            aria-label="Deploy version"
             ref={tooltipRef}
+            variant={ButtonVariant.primary}
+            onClick={() => setIsDeployModalOpen(true)}
           >
-            Archive model version
-          </DropdownItem>
-        </DropdownList>
-      </Dropdown>
+            Deploy
+          </Button>
+        </ActionListItem>
+        {isFineTuningEnabled && (
+          <ActionListItem className="pf-v5-u-w-100">
+            <Button variant="secondary" onClick={() => setIsLabTuneModalOpen(true)}>
+              LAB tune
+            </Button>
+          </ActionListItem>
+        )}
+        <ActionListItem>
+          <Dropdown
+            isOpen={isOpenActionDropdown}
+            onSelect={() => setOpenActionDropdown(false)}
+            onOpenChange={(open) => setOpenActionDropdown(open)}
+            popperProps={{ position: 'right', appendTo: 'inline' }}
+            toggle={(toggleRef) => (
+              <MenuToggle
+                variant={ButtonVariant.secondary}
+                ref={toggleRef}
+                onClick={() => setOpenActionDropdown(!isOpenActionDropdown)}
+                isExpanded={isOpenActionDropdown}
+                aria-label="Model version details action toggle"
+                data-testid="model-version-details-action-button"
+              >
+                Actions
+              </MenuToggle>
+            )}
+          >
+            <DropdownList>
+              <DropdownItem
+                isAriaDisabled={hasDeployment}
+                id="archive-version-button"
+                aria-label="Archive model version"
+                key="archive-version-button"
+                onClick={() => setIsArchiveModalOpen(true)}
+                tooltipProps={
+                  hasDeployment
+                    ? { content: 'Deployed model versions cannot be archived' }
+                    : undefined
+                }
+                ref={tooltipRef}
+              >
+                Archive model version
+              </DropdownItem>
+            </DropdownList>
+          </Dropdown>
+        </ActionListItem>
+      </ActionListGroup>
       {isLabTuneModalOpen ? (
         <StartRunModal
           onCancel={() => setIsLabTuneModalOpen(false)}
