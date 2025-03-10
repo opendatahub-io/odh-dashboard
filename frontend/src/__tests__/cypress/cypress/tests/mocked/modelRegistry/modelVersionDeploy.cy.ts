@@ -470,6 +470,58 @@ describe('Deploy model version', () => {
     kserveModal.findLocationPathInput().should('have.value', 'demo-models/test-path');
   });
 
+  it('Check whether all data is still persistent, if user changes connection types', () => {
+    initIntercepts({});
+    cy.interceptK8sList(
+      SecretModel,
+      mockK8sResourceList([
+        mockSecretK8sResource({
+          name: 'test-secret-not-match',
+          displayName: 'Test Secret Not Match',
+          namespace: 'kserve-project',
+          s3Bucket: 'dGVzdC1idWNrZXQ=',
+          endPoint: 'dGVzdC1lbmRwb2ludC1ub3QtbWF0Y2g=', // endpoint not match
+          region: 'dGVzdC1yZWdpb24=',
+        }),
+      ]),
+    );
+    cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
+    const modelVersionRow = modelRegistry.getModelVersionRow(modelVersionMocked2.name);
+    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDeployModal.selectProjectByName('KServe project');
+
+    // Validate connection section
+    kserveModal.findNewConnectionOption().should('be.checked');
+    kserveModal.findLocationBucketInput().should('have.value', 'test-bucket');
+    kserveModal.findLocationEndpointInput().should('have.value', 'test-endpoint');
+    kserveModal.findLocationRegionInput().should('have.value', 'test-region');
+    kserveModal.findLocationPathInput().should('have.value', 'demo-models/test-path');
+    kserveModal.findLocationAccessKeyInput().type('test-access-key');
+    kserveModal.findLocationSecretKeyInput().type('test-secret-key');
+
+    kserveModal.selectConnectionType(
+      'URI - v1 Connection type description Category: existing-category',
+    );
+    kserveModal.findConnectionFieldInput().type('http://test-uri');
+
+    // switch the connection type to s3 to check whether all the data is still persistent
+    kserveModal.selectConnectionType(
+      'S3 compatible object storage - v1 description 2 Category: existing-category',
+    );
+    kserveModal.findLocationBucketInput().should('have.value', 'test-bucket');
+    kserveModal.findLocationEndpointInput().should('have.value', 'test-endpoint');
+    kserveModal.findLocationRegionInput().should('have.value', 'test-region');
+    kserveModal.findLocationPathInput().should('have.value', 'demo-models/test-path');
+    kserveModal.findLocationAccessKeyInput().should('have.value', 'test-access-key');
+    kserveModal.findLocationSecretKeyInput().should('have.value', 'test-secret-key');
+
+    //switch it back to uri
+    kserveModal.selectConnectionType(
+      'URI - v1 Connection type description Category: existing-category',
+    );
+    kserveModal.findConnectionFieldInput().should('have.value', 'http://test-uri');
+  });
+
   it('Prefills when there is one s3 matching connection', () => {
     initIntercepts({});
     cy.interceptK8sList(
