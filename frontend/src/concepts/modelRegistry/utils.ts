@@ -10,6 +10,7 @@ export type ObjectStorageFields = {
 export type RegisteredModelLocation = {
   s3Fields: ObjectStorageFields | null;
   uri: string | null;
+  ociUri: string | null;
 } | null;
 
 export const objectStorageFieldsToUri = (fields: ObjectStorageFields): string | null => {
@@ -38,11 +39,18 @@ export const uriToStorageFields = (uri: string): RegisteredModelLocation => {
       const endpoint = searchParams.get('endpoint');
       const region = searchParams.get('defaultRegion');
       if (endpoint && bucket && path) {
-        return { s3Fields: { endpoint, bucket, region: region || undefined, path }, uri: null };
+        return {
+          s3Fields: { endpoint, bucket, region: region || undefined, path },
+          uri: null,
+          ociUri: null,
+        };
       }
       return null;
     }
-    return { s3Fields: null, uri };
+    if (uri.startsWith('oci:')) {
+      return { s3Fields: null, uri: null, ociUri: uri };
+    }
+    return { s3Fields: null, uri, ociUri: null };
   } catch {
     return null;
   }

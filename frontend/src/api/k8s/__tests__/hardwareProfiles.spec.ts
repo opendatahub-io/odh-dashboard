@@ -239,7 +239,8 @@ describe('deleteHardwareProfile', () => {
     const result = await deleteHardwareProfile('hardwareProfileName', 'namespace');
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
       model: HardwareProfileModel,
-      queryOptions: { name: 'hardwareProfileName', ns: 'namespace' },
+      queryOptions: { name: 'hardwareProfileName', ns: 'namespace', queryParams: {} },
+      fetchOptions: { requestInit: {} },
     });
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
     expect(result).toStrictEqual(mockK8sStatus);
@@ -251,7 +252,8 @@ describe('deleteHardwareProfile', () => {
     const result = await deleteHardwareProfile('hardwareProfileName', 'namespace');
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
       model: HardwareProfileModel,
-      queryOptions: { name: 'hardwareProfileName', ns: 'namespace' },
+      queryOptions: { name: 'hardwareProfileName', ns: 'namespace', queryParams: {} },
+      fetchOptions: { requestInit: {} },
     });
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
     expect(result).toStrictEqual(mockK8sStatus);
@@ -265,7 +267,8 @@ describe('deleteHardwareProfile', () => {
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
       model: HardwareProfileModel,
-      queryOptions: { name: 'hardwareProfileName', ns: 'namespace' },
+      queryOptions: { name: 'hardwareProfileName', ns: 'namespace', queryParams: {} },
+      fetchOptions: { requestInit: {} },
     });
   });
 });
