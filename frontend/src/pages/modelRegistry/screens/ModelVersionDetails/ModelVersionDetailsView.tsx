@@ -162,7 +162,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
               <Flex
                 spaceItems={{ default: 'spaceItemsXs' }}
                 alignItems={{ default: 'alignItemsCenter' }}
-                data-testid="registered-from"
+                data-testid="registered-from-pipeline"
               >
                 <FlexItem data-testid="pipeline-run-link">
                   Run{' '}
@@ -174,7 +174,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                         pipelineCustomProperties.runId,
                       )}
                     >
-                      {pipelineCustomProperties.runId}
+                      {pipelineCustomProperties.runName}
                     </Link>
                   }{' '}
                   in
@@ -199,7 +199,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
           )}
           {modelDetailsUrl && (
             <DashboardDescriptionListGroup title="Registered from" isEmpty={!mv.id}>
-              <Link to={modelDetailsUrl}>
+              <Link to={modelDetailsUrl} data-testid="registered-from-catalog">
                 <span style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
                   {catalogModelCustomProps.modelName} ({catalogModelCustomProps.tag})
                 </span>
