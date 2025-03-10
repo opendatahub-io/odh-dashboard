@@ -29,6 +29,8 @@ import {
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
 import { TolerationEffect, TolerationOperator } from '~/types';
+import { InputDefinitionParameterType } from '~/concepts/pipelines/kfTypes';
+import { HyperparameterFields } from '~/__tests__/cypress/cypress/types';
 
 const projectName = 'test-project-name-2';
 const invalidMockPipeline = buildMockPipeline();
@@ -36,9 +38,61 @@ const initialMockPipeline = buildMockPipeline({
   display_name: 'instructlab',
   pipeline_id: 'instructlab',
 });
-const initialMockPipelineVersion = buildMockPipelineVersion({
-  pipeline_id: initialMockPipeline.pipeline_id,
-});
+const initialMockPipelineVersion = buildMockPipelineVersion(
+  {
+    pipeline_id: initialMockPipeline.pipeline_id,
+  },
+  {
+    parameters: {
+      [HyperparameterFields.SDG_SCALE_FACTOR]: {
+        defaultValue: 30,
+        description: 'SDG parameter. The total number of instructions to be generated.',
+        isOptional: false,
+        parameterType: InputDefinitionParameterType.INTEGER,
+      },
+      [HyperparameterFields.TRAINING_WORKERS]: {
+        defaultValue: '2',
+        description: 'Training parameter. Number of nodes/workers to train on.',
+        isOptional: false,
+        parameterType: InputDefinitionParameterType.INTEGER,
+      },
+      [HyperparameterFields.LEARNING_RATE_PHASE_1]: {
+        defaultValue: 0.00002,
+        description:
+          "Training parameter for in Phase 1. How fast we optimize the weights during gradient descent. Higher values may lead to unstable learning performance. It's generally recommended to have a low learning rate with a high effective batch size.",
+        isOptional: false,
+        parameterType: InputDefinitionParameterType.DOUBLE,
+      },
+      [HyperparameterFields.LEARNING_RATE_PHASE_2]: {
+        defaultValue: 0.000006,
+        description:
+          "Training parameter for in Phase 2. How fast we optimize the weights during gradient descent. Higher values may lead to unstable learning performance. It's generally recommended to have a low learning rate with a high effective batch size.",
+        isOptional: false,
+        parameterType: InputDefinitionParameterType.DOUBLE,
+      },
+      [HyperparameterFields.EVALUATION_WORKERS]: {
+        defaultValue: 'auto',
+        description:
+          "Final model evaluation parameter for MT Bench Branch. Number of workers to use for evaluation with mt_bench or mt_bench_branch. Must be a positive integer or 'auto'.",
+        isOptional: false,
+        parameterType: InputDefinitionParameterType.STRING,
+      },
+      [HyperparameterFields.EVALUATION_BATCH_SIZE]: {
+        defaultValue: 'auto',
+        description:
+          "Final model evaluation parameter for MMLU. Batch size for evaluation. Valid values are a positive integer or 'auto' to select the largest batch size that will fit in memory.",
+        isOptional: false,
+        parameterType: InputDefinitionParameterType.STRING,
+      },
+      'test param': {
+        defaultValue: 'hi!',
+        description: 'this is a random parameter',
+        isOptional: false,
+        parameterType: InputDefinitionParameterType.STRING,
+      },
+    },
+  },
+);
 
 describe('Model Customization Form', () => {
   it('Empty state', () => {
@@ -57,7 +111,7 @@ describe('Model Customization Form', () => {
     initIntercepts({});
     modelCustomizationFormGlobal.visit(projectName);
     cy.wait('@getIlabPipeline');
-    cy.wait('@getIlabPipelineVersions');
+    cy.wait('@getPipelineVersions');
     teacherModelSection.findEndpointInput().type('http://test.com');
     teacherModelSection.findModelNameInput().type('test');
     judgeModelSection.findEndpointInput().type('http://test.com');
@@ -74,6 +128,18 @@ describe('Model Customization Form', () => {
     hardwareSection.findTrainingNodePlusButton().click();
 
     modelCustomizationFormGlobal.findSubmitButton().should('be.disabled');
+    modelCustomizationFormGlobal.findSimpleRunButton().click();
+    modelCustomizationFormGlobal.findExpandableSectionButton().click();
+    modelCustomizationFormGlobal.findNumericInputPlusButton('sdg_scale_factor').click();
+    modelCustomizationFormGlobal.findNumericInputPlusButton('train_num_workers').click();
+    modelCustomizationFormGlobal
+      .findLongNumberInput('train_learning_rate_phase_1-long-number-field')
+      .clear()
+      .type('0.01');
+    modelCustomizationFormGlobal
+      .findRadioInput('final_eval_batch_size-exact-evaluation-field')
+      .click();
+    modelCustomizationFormGlobal.findNumericInputPlusButton('final_eval_batch_size').click();
   });
   it('Should not submit', () => {
     initIntercepts({});
@@ -90,7 +156,7 @@ describe('Model Customization Form', () => {
     ).as('getIlabPipeline');
     modelCustomizationFormGlobal.visit(projectName);
     cy.wait('@getIlabPipeline');
-    modelCustomizationFormGlobal.findSubmitButton().should('be.disabled');
+    modelCustomizationFormGlobal.findSubmitButton().should('not.exist');
   });
 });
 
@@ -180,7 +246,8 @@ export const initIntercepts = (
       },
     },
     buildMockPipelineVersions([initialMockPipelineVersion]),
-  );
+  ).as('getPipelineVersions');
+
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId',
     {
@@ -292,12 +359,4 @@ export const initIntercepts = (
     },
     buildMockPipeline(initialMockPipeline),
   ).as('getIlabPipeline');
-
-  cy.interceptOdh(
-    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
-    {
-      path: { namespace: projectName, serviceName: 'dspa', pipelineId: 'instructlab' },
-    },
-    buildMockPipelines([initialMockPipelineVersion]),
-  ).as('getIlabPipelineVersions');
 };

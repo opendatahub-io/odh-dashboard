@@ -9,11 +9,18 @@ import {
   ModelCustomizationFormData,
   TeacherJudgeFormData,
 } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
-import { ParameterKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { HardwareProfileKind, SecretKind } from '~/k8sTypes';
 import { NodeSelector, Toleration } from '~/types';
 import { genRandomChars } from '~/utilities/string';
-import { PipelineInputParameters } from './const';
+import { getInputDefinitionParams } from '~/concepts/pipelines/content/createRun/utils';
+import {
+  PipelineVersionKF,
+  ParametersKF,
+  RuntimeConfigParamValue,
+  ParameterKF,
+} from '~/concepts/pipelines/kfTypes';
+import { isEnumMember } from '~/utilities/utils';
+import { PipelineInputParameters, NonDisplayedHyperparameterFields } from './const';
 
 export const createTeacherJudgeSecrets = (
   projectName: string,
@@ -208,4 +215,37 @@ export const getParamsValueFromPipelineInput = (
     return undefined;
   }
   return pipeline.pipeline_spec.pipeline_spec?.root.inputDefinitions?.parameters?.[paramName];
+};
+
+export const translateIlabFormToHyperparameters = (
+  data: ModelCustomizationFormData,
+): Record<string, RuntimeConfigParamValue | undefined> => ({
+  ...data.hyperparameters,
+  [NonDisplayedHyperparameterFields.SDG_PIPELINE]: data.runType.value,
+});
+
+export const filterHyperparameters = (
+  pipelineVersion: PipelineVersionKF | null,
+): {
+  hyperparameterFormData: Record<string, RuntimeConfigParamValue | undefined>;
+  hyperparameters: ParametersKF;
+} => {
+  let hyperparameterFormData: Record<string, RuntimeConfigParamValue | undefined> = {};
+  let hyperparameters: ParametersKF = {};
+  const ilabPipelineParams = getInputDefinitionParams(pipelineVersion);
+  if (ilabPipelineParams) {
+    for (const key of Object.keys(ilabPipelineParams)) {
+      if (!isEnumMember(key, NonDisplayedHyperparameterFields)) {
+        hyperparameters = {
+          ...hyperparameters,
+          [key]: ilabPipelineParams[key],
+        };
+        hyperparameterFormData = {
+          ...hyperparameterFormData,
+          [key]: ilabPipelineParams[key].defaultValue,
+        };
+      }
+    }
+  }
+  return { hyperparameterFormData, hyperparameters };
 };

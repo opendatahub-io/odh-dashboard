@@ -1,26 +1,12 @@
 import * as React from 'react';
-import {
-  Alert,
-  FormGroup,
-  FormHelperText,
-  FormSection,
-  HelperText,
-  HelperTextItem,
-  TextInput,
-} from '@patternfly/react-core';
+import { Alert, FormSection } from '@patternfly/react-core';
 import {
   CreateRunPageSections,
   runPageSectionTitles,
 } from '~/concepts/pipelines/content/createRun/const';
-import {
-  InputDefinitionParameterType,
-  PipelineVersionKF,
-  RuntimeConfigParameters,
-} from '~/concepts/pipelines/kfTypes';
+import { PipelineVersionKF, RuntimeConfigParameters } from '~/concepts/pipelines/kfTypes';
 import { getInputDefinitionParams } from '~/concepts/pipelines/content/createRun/utils';
-import { RadioInputParam } from './RadioInputParam';
-import { JsonInputParam } from './JsonInputParam';
-import { NumberInputParam } from './NumberInputParam';
+import ParamsDefaultFields from '~/components/ParamsDefaultFields';
 
 type ParamsSectionProps = {
   runParams: RuntimeConfigParameters | undefined;
@@ -61,43 +47,16 @@ export const ParamsSection: React.FC<ParamsSectionProps> = ({
           newValue: string | number | boolean,
         ) => onChange({ ...runParams, [label]: newValue }),
       };
-      let input: React.ReactNode;
-
-      switch (parameterType) {
-        case InputDefinitionParameterType.INTEGER:
-          input = <NumberInputParam {...inputProps} />;
-          break;
-        case InputDefinitionParameterType.BOOLEAN:
-          input = <RadioInputParam {...inputProps} />;
-          break;
-        case InputDefinitionParameterType.LIST:
-        case InputDefinitionParameterType.STRUCT:
-          input = <JsonInputParam {...inputProps} />;
-          break;
-        case InputDefinitionParameterType.DOUBLE:
-          input = <NumberInputParam isFloat {...inputProps} />;
-          break;
-        case InputDefinitionParameterType.STRING:
-          input = <TextInput data-testid={inputProps.id} {...inputProps} value={String(value)} />;
-      }
 
       return (
-        <FormGroup
+        <ParamsDefaultFields
           key={label}
+          parameterType={parameterType}
+          inputProps={inputProps}
           label={label}
-          fieldId={label}
-          isRequired={!isOptional}
-          data-testid={`${label}-form-group`}
-        >
-          {input}
-          {description && (
-            <FormHelperText data-testid={`${label}-helper-text`}>
-              <HelperText>
-                <HelperTextItem>{description}</HelperTextItem>
-              </HelperText>
-            </FormHelperText>
-          )}
-        </FormGroup>
+          description={description}
+          isOptional={isOptional}
+        />
       );
     });
   };

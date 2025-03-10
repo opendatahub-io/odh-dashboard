@@ -26,9 +26,10 @@ import {
   modelRegistryUrl,
 } from '~/pages/modelRegistry/screens/routeUtils';
 import { ModelCustomizationRouterState } from '~/routes';
+import { createHyperParametersSchema } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/hyperparameterValidationUtils';
 import FineTunePage from './FineTunePage';
 import { FineTunePageSections, fineTunePageSectionTitles } from './const';
-import { getParamsValueFromPipelineInput } from './utils';
+import { filterHyperparameters, getParamsValueFromPipelineInput } from './utils';
 
 const ModelCustomizationForm: React.FC = () => {
   const { project } = usePipelinesAPI();
@@ -82,11 +83,19 @@ const ModelCustomizationForm: React.FC = () => {
         nodeSelector: {},
       },
     },
+    runType: { value: '' },
+    hyperparameters: {},
   });
 
-  // training node default value from pipeline spec
+  const { hyperparameters } = filterHyperparameters(ilabPipelineVersion);
+
+  // training node and hyperparameter default value from pipeline spec
   React.useEffect(() => {
     if (ilabPipelineVersion) {
+      const { hyperparameterFormData } = filterHyperparameters(ilabPipelineVersion);
+      setData('hyperparameters', {
+        ...hyperparameterFormData,
+      });
       const trainingNodeDefaultValue = getParamsValueFromPipelineInput(
         ilabPipelineVersion,
         'train_num_workers',
@@ -97,11 +106,17 @@ const ModelCustomizationForm: React.FC = () => {
     }
   }, [ilabPipelineVersion, setData]);
 
-  const validation = useValidation(data, modelCustomizationFormSchema);
+  const formValidation = useValidation(
+    data,
+    modelCustomizationFormSchema.extend({
+      hyperparameters: createHyperParametersSchema(hyperparameters),
+    }),
+  );
+
   const navigate = useNavigate();
 
   return (
-    <ValidationContext.Provider value={validation}>
+    <ValidationContext.Provider value={formValidation}>
       <ApplicationsPage
         title={modelCustomizationFormPageTitle}
         description={modelCustomizationFormPageDescription}
@@ -137,7 +152,7 @@ const ModelCustomizationForm: React.FC = () => {
             <BreadcrumbItem>Start an InstructLab run</BreadcrumbItem>
           </Breadcrumb>
         }
-        loaded
+        loaded={ilabPipelineLoaded}
         empty={false}
       >
         <EnsureAPIAvailability>
@@ -148,7 +163,7 @@ const ModelCustomizationForm: React.FC = () => {
               maxWidth={175}
             >
               <FineTunePage
-                canSubmit={ilabPipelineLoaded || !!ilabPipelineLoadError}
+                canSubmit={!!ilabPipelineLoadError}
                 onSuccess={() =>
                   navigate(
                     `/pipelines/${encodeURIComponent(project.metadata.name)}/${encodeURIComponent(
