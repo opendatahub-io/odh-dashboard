@@ -1,6 +1,5 @@
 import {
   Menu,
-  Content,
   MenuContent,
   MenuGroup,
   MenuItem,
@@ -13,14 +12,8 @@ import React from 'react';
 import { EyeIcon, EyeSlashIcon, KeyIcon } from '@patternfly/react-icons';
 import styles from '@patternfly/react-styles/css/components/Menu/menu';
 import { css } from '@patternfly/react-styles';
-import { DataConnection, AWSDataEntry } from '~/pages/projects/types';
-import {
-  convertAWSSecretData,
-  getDataConnectionDisplayName,
-} from '~/pages/projects/screens/detail/data-connections/utils';
-import { PIPELINE_AWS_KEY } from '~/pages/projects/dataConnections/const';
+import { DataConnection } from '~/pages/projects/types';
 import { PipelineServerConfigType } from './types';
-import { getLabelName } from './utils';
 
 type PipelineDropdownProps = {
   setConfig: (config: PipelineServerConfigType) => void;
@@ -34,11 +27,6 @@ export const PipelineDropdown = ({
 }: PipelineDropdownProps): React.JSX.Element => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState<boolean[]>([]);
-
-  const existingDataConnection = (connection: DataConnection): AWSDataEntry | null =>
-    convertAWSSecretData(connection).filter((dataItem) =>
-      PIPELINE_AWS_KEY.some((filterItem) => filterItem === dataItem.key),
-    );
 
   const onToggle = () => {
     setShowPassword([]);
@@ -55,15 +43,9 @@ export const PipelineDropdown = ({
       if (!value) {
         return;
       }
-      const optionValue = existingDataConnection(value);
-      const updatedObjectStorageValue = config.objectStorage.newValue.map((item) => {
-        const matchingOption = optionValue?.find((optItem) => optItem.key === item.key);
-
-        return {
-          ...item,
-          value: matchingOption ? matchingOption.value : item.value,
-        };
-      });
+      const updatedObjectStorageValue = config.objectStorage.newValue.map((item) => ({
+        ...item,
+      }));
 
       setConfig({
         ...config,
@@ -119,26 +101,9 @@ export const PipelineDropdown = ({
                       aria-label={dataItem.data.metadata.name}
                     />
                   }
-                  description={
-                    showPassword[index] ? (
-                      <Content className={css(styles.menuItemDescription)}>
-                        {existingDataConnection(dataItem)?.map(
-                          (field) =>
-                            field.value && (
-                              <Content component="p" key={field.key}>
-                                <b>{getLabelName(field.key)}</b> : {field.value}
-                              </Content>
-                            ),
-                        )}
-                      </Content>
-                    ) : (
-                      '•••••••••••••••••'
-                    )
-                  }
+                  description="•••••••••••••••••"
                   itemId={dataItem.data.metadata.name}
-                >
-                  {getDataConnectionDisplayName(dataItem)}
-                </MenuItem>
+                />
               ))}
             </MenuList>
           </MenuGroup>

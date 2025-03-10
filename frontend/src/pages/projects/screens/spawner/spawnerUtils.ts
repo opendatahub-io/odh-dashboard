@@ -8,6 +8,8 @@ import {
   SecretCategory,
   StartNotebookData,
 } from '~/pages/projects/types';
+import { AWS_FIELDS } from '~/pages/projects/dataConnections/const';
+import { FieldOptions } from '~/components/FieldList';
 import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import { formatMemory } from '~/utilities/valueUnits';
 import {
@@ -40,7 +42,6 @@ export const getNameVersionString = (software: ImageVersionDependencyType): stri
  * `toString` decides the text shown for the select option
  */
 export const getImageVersionSelectOptionObject = (
-  imageStream: ImageStreamKind,
   imageVersion: ImageStreamSpecTagType,
 ): ImageVersionSelectOptionObjectType => ({
   imageVersion,
@@ -270,8 +271,27 @@ export const checkVersionRecommended = (imageVersion: ImageStreamSpecTagType): b
 
 export const isValidGenericKey = (key: string): boolean => !!key;
 
+export const isAWSValid = (
+  values: EnvVariableDataEntry[],
+  additionalRequiredFields?: string[],
+): boolean =>
+  values.every(({ key, value }) =>
+    getAdditionalRequiredAWSFields(additionalRequiredFields)
+      .filter((field) => field.isRequired)
+      .map((field) => field.key)
+      .includes(key)
+      ? !!value
+      : true,
+  );
 
-
+export const getAdditionalRequiredAWSFields = (
+  additionalRequiredFields?: string[],
+): FieldOptions[] =>
+  additionalRequiredFields
+    ? AWS_FIELDS.map((field) =>
+        additionalRequiredFields.includes(field.key) ? { ...field, isRequired: true } : field,
+      )
+    : AWS_FIELDS;
 
 export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => {
   if (envVariables.length === 0) {
@@ -293,6 +313,8 @@ export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => 
       case ConfigMapCategory.UPLOAD:
       case SecretCategory.UPLOAD:
         return values.every(({ key, value }) => isValidGenericKey(key) && !!value);
+      case SecretCategory.AWS:
+        return isAWSValid(values);
       default:
         return false;
     }

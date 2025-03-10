@@ -3,17 +3,14 @@ import {
   FormGroup,
   TextInput,
   InputGroup,
-  Tooltip,
   InputGroupItem,
   Popover,
   Button,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { DataConnection } from '~/pages/projects/types';
 import { AwsKeys, PIPELINE_AWS_FIELDS } from '~/pages/projects/dataConnections/const';
 import { FieldListField } from '~/components/FieldList';
 import FormSection from '~/components/pf-overrides/FormSection';
-import { PipelineDropdown } from './PipelineDropdown';
 import { PipelineServerConfigType } from './types';
 
 export type FieldOptions = {
@@ -24,17 +21,13 @@ export type FieldOptions = {
   isPassword?: boolean;
 };
 type ObjectStorageSectionProps = {
-  loaded: boolean;
   setConfig: (config: PipelineServerConfigType) => void;
   config: PipelineServerConfigType;
-  dataConnections: DataConnection[];
 };
 
 export const ObjectStorageSection = ({
   setConfig,
   config,
-  loaded,
-  dataConnections,
 }: ObjectStorageSectionProps): React.JSX.Element => {
   const onChange = (key: FieldOptions['key'], value: string) => {
     setConfig({
@@ -67,15 +60,6 @@ export const ObjectStorageSection = ({
                   onChange={(_, value) => onChange(field.key, value)}
                 />
               </InputGroupItem>
-              {loaded && !!dataConnections.length && (
-                <Tooltip content="Populate the form with credentials from your selected data connection">
-                  <PipelineDropdown
-                    config={config}
-                    setConfig={setConfig}
-                    dataConnections={dataConnections}
-                  />
-                </Tooltip>
-              )}
             </InputGroup>
           </FormGroup>
         ) : (

@@ -16,11 +16,7 @@ import {
   restartNotebook,
   updateNotebook,
 } from '~/api';
-import {
-  EnvVariable,
-  StartNotebookData,
-  StorageData,
-} from '~/pages/projects/types';
+import { EnvVariable, StartNotebookData, StorageData } from '~/pages/projects/types';
 import { useUser } from '~/redux/selectors';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
@@ -40,7 +36,7 @@ import {
   updateConfigMapsAndSecretsForNotebook,
   updatePvcDataForNotebook,
 } from './service';
-import { checkRequiredFieldsForNotebookStart, getPvcVolumeDetails } from './spawnerUtils';
+import { getPvcVolumeDetails } from './spawnerUtils';
 import { setConnectionsOnEnvFrom } from './connections/utils';
 
 type SpawnerFooterProps = {
@@ -82,10 +78,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
         resources: startNotebookData.podSpecOptions.resources,
       })
     : true;
-  const isButtonDisabled =
-    createInProgress ||
-    !checkRequiredFieldsForNotebookStart(startNotebookData, envVariables) ||
-    !isHardwareProfileValid;
+  const isButtonDisabled = createInProgress || !isHardwareProfileValid;
   const { username } = useUser();
 
   const afterStart = (name: string, type: 'created' | 'updated') => {
@@ -214,7 +207,6 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   };
 
   const createNotebookPromise = async (dryRun: boolean) => {
-
     const { pvcRequests, restartConnectedNotebooksPromises } = getPvcRequests(dryRun);
 
     const pvcResponses = await Promise.all(pvcRequests);

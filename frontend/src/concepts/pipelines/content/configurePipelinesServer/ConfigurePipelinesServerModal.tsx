@@ -3,12 +3,14 @@ import { Alert, Form, Stack, StackItem } from '@patternfly/react-core';
 import { Modal } from '@patternfly/react-core/deprecated';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { createPipelinesCR, deleteSecret } from '~/api';
+import { EMPTY_AWS_PIPELINE_DATA } from '~/pages/projects/dataConnections/const';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 import SamplePipelineSettingsSection from '~/concepts/pipelines/content/configurePipelinesServer/SamplePipelineSettingsSection';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
+import { ObjectStorageSection } from './ObjectStorageSection';
 import {
   DATABASE_CONNECTION_FIELDS,
   EMPTY_DATABASE_CONNECTION,
@@ -23,7 +25,7 @@ type ConfigurePipelinesServerModalProps = {
 
 const FORM_DEFAULTS: PipelineServerConfigType = {
   database: { useDefault: true, value: EMPTY_DATABASE_CONNECTION },
-  objectStorage: { newValue: EMPTY_DATABASE_CONNECTION },
+  objectStorage: { newValue: EMPTY_AWS_PIPELINE_DATA },
 };
 
 const serverConfiguredEvent = 'Pipeline Server Configured';
@@ -143,6 +145,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
               submit();
             }}
           >
+            <ObjectStorageSection setConfig={setConfig} config={config} />
             <PipelinesDatabaseSection setConfig={setConfig} config={config} />
             {isFineTuningAvailable && (
               <SamplePipelineSettingsSection setConfig={setConfig} config={config} />

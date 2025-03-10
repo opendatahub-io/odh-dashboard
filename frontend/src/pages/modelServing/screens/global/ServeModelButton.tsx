@@ -97,10 +97,7 @@ const ServeModelButton: React.FC = () => {
       ) : null}
       {platformSelected === ServingRuntimePlatform.SINGLE ? (
         isKServeNIMEnabled ? (
-          <ManageNIMServingModal
-            projectContext={{ currentProject: project }}
-            onClose={onSubmit}
-          />
+          <ManageNIMServingModal projectContext={{ currentProject: project }} onClose={onSubmit} />
         ) : (
           <ManageKServeModal
             projectContext={{
