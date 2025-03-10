@@ -14,7 +14,7 @@
     "url": "https://github.com/opendatahub-io/odh-dashboard/issues"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "scripts": {
     "build": "run-s build:prod",
@@ -38,6 +38,7 @@
     "test:unit-coverage": "run-s test:lint test:type-check test:jest:coverage",
     "test:cypress-ci": "npx concurrently -P -k -s first \"npm run cypress:server:build && npm run cypress:server\" \"npx wait-on tcp:127.0.0.1:9001 && npm run cypress:run:mock -- {@}\" -- ",
     "test:cypress-ci:coverage": "npx concurrently -P -k -s first \"npm run cypress:server:build:coverage && npm run cypress:server\" \"npx wait-on tcp:127.0.0.1:9001 && npm run cypress:run:mock:coverage -- {@}\" -- ",
+    "test:cypress-ci:coverage:nobuild": "npx concurrently -P -k -s first \"npm run cypress:server\" \"npx wait-on tcp:127.0.0.1:9001 && npm run cypress:run:mock:coverage -- {@}\" -- ",
     "coverage:merge": "rimraf coverage && istanbul-merge --out coverage/coverage-final.json jest-coverage/coverage-final.json src/__tests__/cypress/coverage/coverage-final.json && nyc report --reporter html -t coverage --report-dir coverage/report && nyc report --reporter json-summary -t coverage --report-dir coverage",
     "cypress:open": "cypress open --project src/__tests__/cypress",
     "cypress:e2e": "npx cypress run --env grepTags=@Dashboard+-@Bug --browser=chrome --project src/__tests__/cypress",
@@ -77,7 +78,7 @@
     "axios": "^1.6.4",
     "classnames": "^2.2.6",
     "compare-versions": "^3.6.0",
-    "dompurify": "^2.2.6",
+    "dompurify": "^3.2.4",
     "google-protobuf": "^3.11.2",
     "grpc-web": "^1.2.1",
     "lodash-es": "^4.17.15",
@@ -237,6 +238,7 @@
     "@patternfly/quickstarts": {
       "@patternfly/react-core": "^6.0.0"
     },
-    "ws": "^8.17.1"
+    "ws": "^8.17.1",
+    "dompurify": "^3.2.4"
   }
 }

@@ -17,7 +17,7 @@ import {
   updateHardwareProfile,
 } from '~/api/k8s/hardwareProfiles';
 import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
-import { TolerationEffect, TolerationOperator } from '~/types';
+import { IdentifierResourceType, TolerationEffect, TolerationOperator } from '~/types';
 import { mock200Status, mock404Error } from '~/__mocks__';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
@@ -45,6 +45,7 @@ const data: HardwareProfileKind['spec'] = {
       minCount: '2Gi',
       maxCount: '5Gi',
       defaultCount: '2Gi',
+      resourceType: IdentifierResourceType.MEMORY,
     },
     {
       displayName: 'CPU',
@@ -52,6 +53,7 @@ const data: HardwareProfileKind['spec'] = {
       minCount: '1',
       maxCount: '2',
       defaultCount: '1',
+      resourceType: IdentifierResourceType.CPU,
     },
   ],
   description: 'test description',
@@ -237,7 +239,8 @@ describe('deleteHardwareProfile', () => {
     const result = await deleteHardwareProfile('hardwareProfileName', 'namespace');
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
       model: HardwareProfileModel,
-      queryOptions: { name: 'hardwareProfileName', ns: 'namespace' },
+      queryOptions: { name: 'hardwareProfileName', ns: 'namespace', queryParams: {} },
+      fetchOptions: { requestInit: {} },
     });
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
     expect(result).toStrictEqual(mockK8sStatus);
@@ -249,7 +252,8 @@ describe('deleteHardwareProfile', () => {
     const result = await deleteHardwareProfile('hardwareProfileName', 'namespace');
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
       model: HardwareProfileModel,
-      queryOptions: { name: 'hardwareProfileName', ns: 'namespace' },
+      queryOptions: { name: 'hardwareProfileName', ns: 'namespace', queryParams: {} },
+      fetchOptions: { requestInit: {} },
     });
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
     expect(result).toStrictEqual(mockK8sStatus);
@@ -263,7 +267,8 @@ describe('deleteHardwareProfile', () => {
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
       model: HardwareProfileModel,
-      queryOptions: { name: 'hardwareProfileName', ns: 'namespace' },
+      queryOptions: { name: 'hardwareProfileName', ns: 'namespace', queryParams: {} },
+      fetchOptions: { requestInit: {} },
     });
   });
 });

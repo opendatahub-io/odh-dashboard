@@ -1,13 +1,24 @@
 import React from 'react';
 import { ILAB_PIPELINE_NAME } from '~/pages/pipelines/global/modelCustomization/const';
-import { FetchState } from '~/utilities/useFetchState';
 import { useLatestPipelineVersion } from '~/concepts/pipelines/apiHooks/useLatestPipelineVersion';
 import { usePipelineByName } from '~/concepts/pipelines/apiHooks/usePipelineByName';
-import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { usePipelinesAPI } from '~/concepts/pipelines/context';
 
-export const useIlabPipeline = (): FetchState<PipelineVersionKF | null> => {
+export const useIlabPipeline = (): {
+  ilabPipeline: PipelineKF | null;
+  ilabPipelineVersion: PipelineVersionKF | null;
+  loaded: boolean;
+  loadError: Error | undefined;
+  refresh: () => Promise<PipelineVersionKF | null | undefined>;
+} => {
+  const { pipelinesServer, apiAvailable } = usePipelinesAPI();
   const [ilabPipeline, ilabPipelineLoaded, ilabPipelineLoadError, refreshIlabPipeline] =
-    usePipelineByName(ILAB_PIPELINE_NAME);
+    usePipelineByName(
+      apiAvailable && pipelinesServer.compatible && pipelinesServer.installed
+        ? ILAB_PIPELINE_NAME
+        : '',
+    );
   const [
     ilabPipelineVersion,
     ilabPipelineVersionLoaded,
@@ -21,5 +32,5 @@ export const useIlabPipeline = (): FetchState<PipelineVersionKF | null> => {
     return refreshIlabPipelineVersion();
   }, [refreshIlabPipeline, refreshIlabPipelineVersion]);
 
-  return [ilabPipelineVersion, loaded, loadError, refresh];
+  return { ilabPipeline, ilabPipelineVersion, loaded, loadError, refresh };
 };

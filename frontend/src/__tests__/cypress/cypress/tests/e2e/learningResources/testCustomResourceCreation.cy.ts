@@ -13,7 +13,7 @@ import {
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
-describe('[Known Product Bug: RHOAIENG-5317]Create a custom resource Quickstart by using Dashboard CRDs', () => {
+describe('Create a custom resource Quickstart by using Dashboard CRDs', () => {
   let resourcesData: ResourcesData;
   let resourceNames: ReturnType<typeof getResourceValues>;
 
@@ -42,7 +42,7 @@ describe('[Known Product Bug: RHOAIENG-5317]Create a custom resource Quickstart 
 
   it(
     'Upload custom resource and verify',
-    { tags: ['@Smoke', '@SmokeSet2', '@ODS-697', '@Dashboard', '@Bug'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-697', '@Dashboard'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');

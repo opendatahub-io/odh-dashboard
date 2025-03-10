@@ -31,12 +31,33 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
       try {
         const modelInfos = await fetchNIMModelNames();
         if (modelInfos && modelInfos.length > 0) {
-          const fetchedOptions = modelInfos.flatMap((modelInfo) =>
-            modelInfo.tags.map((tag) => ({
-              value: `${modelInfo.name}-${tag}`,
-              content: `${modelInfo.displayName} - ${tag}`,
-            })),
-          );
+          const normalizeVersion = (tag: string) => {
+            if (/^\d+(\.\d+)*$/.test(tag)) {
+              const parts = tag.split('.').map(Number);
+              while (parts.length < 3) {
+                parts.push(0);
+              }
+              return parts.join('.');
+            }
+            return tag;
+          };
+          const seen = new Set<string>();
+          const fetchedOptions = modelInfos
+            .flatMap((modelInfo) =>
+              modelInfo.tags.map((tag) => {
+                const normalizedTag = normalizeVersion(tag);
+                const value: string | number = `${modelInfo.name}-${normalizedTag}`;
+                const content = `${modelInfo.displayName} - ${normalizedTag}`;
+
+                if (!seen.has(value.toString())) {
+                  seen.add(value.toString());
+                  const option: TypeaheadSelectOption = { value, content };
+                  return option;
+                }
+                return null;
+              }),
+            )
+            .filter((option): option is TypeaheadSelectOption => option !== null);
 
           setModelList(modelInfos);
           setOptions(fetchedOptions);

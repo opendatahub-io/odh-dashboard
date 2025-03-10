@@ -3,6 +3,8 @@ import { Flex, FlexItem, Stack, StackItem, TextInput } from '@patternfly/react-c
 import { Modal } from '@patternfly/react-core/deprecated';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import useNotification from '~/utilities/useNotification';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 
 interface ArchiveRegisteredModelModalProps {
   onCancel: () => void;
@@ -10,6 +12,7 @@ interface ArchiveRegisteredModelModalProps {
   registeredModelName: string;
 }
 
+const eventName = 'Registered Model Archived';
 export const ArchiveRegisteredModelModal: React.FC<ArchiveRegisteredModelModalProps> = ({
   onCancel,
   onSubmit,
@@ -26,17 +29,34 @@ export const ArchiveRegisteredModelModal: React.FC<ArchiveRegisteredModelModalPr
     onCancel();
   }, [onCancel]);
 
+  const onCancelClose = React.useCallback(() => {
+    fireFormTrackingEvent(eventName, {
+      outcome: TrackingOutcome.cancel,
+    });
+    onClose();
+  }, [onClose]);
+
   const onConfirm = React.useCallback(async () => {
     setIsSubmitting(true);
 
     try {
       await onSubmit();
+      fireFormTrackingEvent(eventName, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+      });
+
       onClose();
       notification.success(`${registeredModelName} and all its versions archived.`);
     } catch (e) {
       if (e instanceof Error) {
         setError(e);
       }
+      fireFormTrackingEvent(eventName, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+        error: e instanceof Error ? e.message : 'unknown error',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -48,10 +68,10 @@ export const ArchiveRegisteredModelModal: React.FC<ArchiveRegisteredModelModalPr
       title="Archive model?"
       titleIconVariant="warning"
       variant="small"
-      onClose={onClose}
+      onClose={onCancelClose}
       footer={
         <DashboardModalFooter
-          onCancel={onClose}
+          onCancel={onCancelClose}
           onSubmit={onConfirm}
           submitLabel="Archive"
           isSubmitLoading={isSubmitting}

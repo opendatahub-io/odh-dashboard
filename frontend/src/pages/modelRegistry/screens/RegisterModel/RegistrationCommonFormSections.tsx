@@ -15,10 +15,11 @@ import {
 } from '@patternfly/react-core';
 import { OptimizeIcon } from '@patternfly/react-icons';
 import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
-import { DataConnection, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import { convertAWSSecretData } from '~/pages/projects/screens/detail/data-connections/utils';
+import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import FormSection from '~/components/pf-overrides/FormSection';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
+import { convertObjectStorageSecretData } from '~/concepts/connectionTypes/utils';
+import { Connection } from '~/concepts/connectionTypes/types';
 import { ModelLocationType, RegistrationCommonFormData } from './useRegisterModelData';
 import { ConnectionModal } from './ConnectionModal';
 import { MR_CHARACTER_LIMIT } from './const';
@@ -29,6 +30,7 @@ type RegistrationCommonFormSectionsProps<D extends RegistrationCommonFormData> =
   setData: UpdateObjectAtPropAndValue<D>;
   isFirstVersion: boolean;
   latestVersion?: ModelVersion;
+  isCatalogModel?: boolean;
 };
 
 const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
@@ -36,6 +38,7 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
   setData,
   isFirstVersion,
   latestVersion,
+  isCatalogModel,
 }: RegistrationCommonFormSectionsProps<D>): React.ReactNode => {
   const [isAutofillModalOpen, setAutofillModalOpen] = React.useState(false);
   const isVersionNameValid = isNameValid(formData.versionName);
@@ -52,10 +55,16 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
     AWS_DEFAULT_REGION: 'modelLocationRegion',
   };
 
-  const fillObjectStorageByConnection = (connection: DataConnection) => {
-    convertAWSSecretData(connection).forEach((dataItem) => {
+  const fillObjectStorageByConnection = (connection: Connection) => {
+    convertObjectStorageSecretData(connection).forEach((dataItem) => {
       setData(connectionDataMap[dataItem.key], dataItem.value);
     });
+  };
+
+  const fillURIByConnection = (connection: Connection) => {
+    if (connection.data?.URI) {
+      setData('modelLocationURI', window.atob(connection.data.URI));
+    }
   };
 
   const {
@@ -145,6 +154,7 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
             <Radio
               isChecked={modelLocationType === ModelLocationType.ObjectStorage}
               name="location-type-object-storage"
+              isDisabled={isCatalogModel}
               onChange={() => {
                 setData('modelLocationType', ModelLocationType.ObjectStorage);
               }}
@@ -160,7 +170,7 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
                 icon={<OptimizeIcon />}
                 onClick={() => setAutofillModalOpen(true)}
               >
-                Autofill from data connection
+                Autofill from connection
               </Button>
             </SplitItem>
           )}
@@ -227,35 +237,59 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
             </FormGroup>
           </>
         )}
-        <Radio
-          isChecked={modelLocationType === ModelLocationType.URI}
-          name="location-type-uri"
-          onChange={() => {
-            setData('modelLocationType', ModelLocationType.URI);
-          }}
-          label="URI"
-          id="location-type-uri"
-          body={
-            modelLocationType === ModelLocationType.URI && (
-              <FormGroup label="URI" isRequired fieldId="location-uri">
-                <TextInput
-                  isRequired
-                  type="text"
-                  id="location-uri"
-                  name="location-uri"
-                  value={modelLocationURI}
-                  onChange={(_e, value) => setData('modelLocationURI', value)}
-                />
-              </FormGroup>
-            )
-          }
-        />
+        <Split>
+          <SplitItem isFilled>
+            <Radio
+              isChecked={modelLocationType === ModelLocationType.URI}
+              name="location-type-uri"
+              onChange={() => {
+                setData('modelLocationType', ModelLocationType.URI);
+              }}
+              label="URI"
+              id="location-type-uri"
+              body={
+                modelLocationType === ModelLocationType.URI &&
+                (!isCatalogModel ? (
+                  <FormGroup label="URI" isRequired fieldId="location-uri">
+                    <TextInput
+                      isRequired
+                      type="text"
+                      id="location-uri"
+                      name="location-uri"
+                      value={modelLocationURI}
+                      onChange={(_e, value) => setData('modelLocationURI', value)}
+                    />
+                  </FormGroup>
+                ) : (
+                  formData.modelLocationURI
+                ))
+              }
+            />
+          </SplitItem>
+          {modelLocationType === ModelLocationType.URI && !isCatalogModel && (
+            <SplitItem>
+              <Button
+                data-testid="uri-autofill-button"
+                variant="link"
+                icon={<OptimizeIcon />}
+                onClick={() => setAutofillModalOpen(true)}
+              >
+                Autofill from connection
+              </Button>
+            </SplitItem>
+          )}
+        </Split>
       </FormSection>
       {isAutofillModalOpen ? (
         <ConnectionModal
+          type={modelLocationType}
           onClose={() => setAutofillModalOpen(false)}
           onSubmit={(connection) => {
-            fillObjectStorageByConnection(connection);
+            if (modelLocationType === ModelLocationType.ObjectStorage) {
+              fillObjectStorageByConnection(connection);
+            } else {
+              fillURIByConnection(connection);
+            }
             setAutofillModalOpen(false);
           }}
         />

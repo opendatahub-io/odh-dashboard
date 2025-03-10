@@ -14,6 +14,9 @@ import {
   ConnectionTypeValueType,
 } from '~/concepts/connectionTypes/types';
 import { enumIterator } from '~/utilities/utils';
+import { AWSDataEntry, EnvVariableDataEntry } from '~/pages/projects/types';
+import { AwsKeys } from '~/pages/projects/dataConnections/const';
+import { isSecretKind } from '~/pages/projects/screens/spawner/environmentVariables/utils';
 
 export const isConnectionTypeDataFieldType = (
   type: ConnectionTypeFieldTypeUnion | string,
@@ -23,6 +26,18 @@ export const isConnectionTypeDataFieldType = (
 export const isConnectionTypeDataField = (
   field: ConnectionTypeField,
 ): field is ConnectionTypeDataField => field.type !== ConnectionTypeFieldType.Section;
+
+export const isConnectionType = (object: unknown): object is ConnectionTypeConfigMapObj =>
+  typeof object === 'object' &&
+  !!object &&
+  'metadata' in object &&
+  !!object.metadata &&
+  typeof object.metadata === 'object' &&
+  'labels' in object.metadata &&
+  !!object.metadata.labels &&
+  typeof object.metadata.labels === 'object' &&
+  'opendatahub.io/connection-type' in object.metadata.labels &&
+  object.metadata.labels['opendatahub.io/connection-type'] === 'true';
 
 export const isConnection = (secret: SecretKind): secret is Connection =>
   !!secret.metadata.annotations &&
@@ -121,21 +136,20 @@ export const fieldNameToEnvVar = (name: string): string => {
 export const ENV_VAR_NAME_REGEX = new RegExp('^[-_.a-zA-Z0-9]+$');
 export const isValidEnvVar = (name: string): boolean => ENV_VAR_NAME_REGEX.test(name);
 
-export const isUriConnectionType = (connectionType: ConnectionTypeConfigMapObj): boolean =>
-  !!connectionType.data?.fields?.find((f) => isConnectionTypeDataField(f) && f.envVar === 'URI');
-export const isUriConnection = (connection?: Connection): boolean => !!connection?.data?.URI;
+export enum ModelServingCompatibleTypes {
+  S3ObjectStorage = 'S3 compatible object storage',
+  URI = 'URI',
+  OCI = 'OCI compliant registry',
+}
 
+export const URIConnectionTypeKeys = ['URI'];
+export const OCIConnectionTypeKeys = ['.dockerconfigjson', 'OCI_HOST'];
 export const S3ConnectionTypeKeys = [
   'AWS_ACCESS_KEY_ID',
   'AWS_SECRET_ACCESS_KEY',
   'AWS_S3_ENDPOINT',
   'AWS_S3_BUCKET',
 ];
-
-export enum ModelServingCompatibleTypes {
-  S3ObjectStorage = 'S3 compatible object storage',
-  URI = 'URI',
-}
 
 const modelServingCompatibleTypesMetadata: Record<
   ModelServingCompatibleTypes,
@@ -155,20 +169,63 @@ const modelServingCompatibleTypesMetadata: Record<
   [ModelServingCompatibleTypes.URI]: {
     name: ModelServingCompatibleTypes.URI,
     resource: 'uri-v1',
-    envVars: ['URI'],
+    envVars: URIConnectionTypeKeys,
+  },
+  [ModelServingCompatibleTypes.OCI]: {
+    name: ModelServingCompatibleTypes.OCI,
+    resource: 'oci-v1',
+    envVars: OCIConnectionTypeKeys,
   },
 };
 
-export const isModelServingTypeCompatible = (
-  envVars: string[],
-  type: ModelServingCompatibleTypes,
-): boolean =>
-  modelServingCompatibleTypesMetadata[type].envVars.every((envVar) => envVars.includes(envVar));
+export const isModelServingCompatible = (
+  input: string[] | Connection | ConnectionTypeConfigMapObj,
+  type?: ModelServingCompatibleTypes,
+): boolean => {
+  if (!type) {
+    return getModelServingCompatibility(input).length > 0;
+  }
+  if (isSecretKind(input) && isConnection(input)) {
+    if (type === ModelServingCompatibleTypes.OCI) {
+      const accessType =
+        input.stringData?.ACCESS_TYPE || window.atob(input.data?.ACCESS_TYPE ?? '');
+      if (!(accessType.includes('Pull') || accessType === '[]' || accessType === '')) {
+        return false;
+      }
+    }
 
-const getModelServingCompatibleTypes = (envVars: string[]): ModelServingCompatibleTypes[] =>
+    const { managedType } = modelServingCompatibleTypesMetadata[type];
+    if (
+      managedType &&
+      !(
+        input.metadata.annotations['opendatahub.io/connection-type'] === managedType &&
+        input.metadata.labels['opendatahub.io/managed'] === 'true'
+      )
+    ) {
+      return false;
+    }
+
+    return modelServingCompatibleTypesMetadata[type].envVars.every((envVar) =>
+      Object.keys(input.data || input.stringData || []).includes(envVar),
+    );
+  }
+  if (isConnectionType(input)) {
+    const fieldEnvs = input.data?.fields?.map((f) => isConnectionTypeDataField(f) && f.envVar);
+    return modelServingCompatibleTypesMetadata[type].envVars.every((envVar) =>
+      fieldEnvs?.includes(envVar),
+    );
+  }
+  return modelServingCompatibleTypesMetadata[type].envVars.every((envVar) =>
+    input.includes(envVar),
+  );
+};
+
+export const getModelServingCompatibility = (
+  input: string[] | Connection | ConnectionTypeConfigMapObj,
+): ModelServingCompatibleTypes[] =>
   enumIterator(ModelServingCompatibleTypes).reduce<ModelServingCompatibleTypes[]>(
     (acc, [, value]) => {
-      if (isModelServingTypeCompatible(envVars, value)) {
+      if (isModelServingCompatible(input, value)) {
         acc.push(value);
       }
       return acc;
@@ -176,37 +233,22 @@ const getModelServingCompatibleTypes = (envVars: string[]): ModelServingCompatib
     [],
   );
 
-export const isModelServingCompatibleConnection = (connection: Connection): boolean =>
-  getConnectionModelServingCompatibleTypes(connection).length > 0;
-
-export const isModelServingCompatibleConnectionType = (
-  connectionType: ConnectionTypeConfigMapObj,
-): boolean => getConnectionTypeModelServingCompatibleTypes(connectionType).length > 0;
-
-export const getConnectionModelServingCompatibleTypes = (
-  connection: Connection,
-): ModelServingCompatibleTypes[] =>
-  getModelServingCompatibleTypes(
-    Object.entries(connection.data ?? {})
-      .filter(([, value]) => !!value)
-      .map(([key]) => key),
-  ).filter((type) => {
-    const { managedType } = modelServingCompatibleTypesMetadata[type];
-    if (managedType) {
-      return (
-        connection.metadata.annotations['opendatahub.io/connection-type'] === managedType &&
-        connection.metadata.labels['opendatahub.io/managed'] === 'true'
-      );
-    }
-    return true;
-  });
-
-export const getConnectionTypeModelServingCompatibleTypes = (
-  connectionType: ConnectionTypeConfigMapObj,
-): ModelServingCompatibleTypes[] =>
-  getModelServingCompatibleTypes(
-    connectionType.data?.fields?.filter(isConnectionTypeDataField).map((f) => f.envVar) ?? [],
-  );
+export const filterModelServingConnectionTypes = (
+  connectionTypes: ConnectionTypeConfigMapObj[],
+): {
+  key: ModelServingCompatibleTypes;
+  name: string;
+  type: ConnectionTypeConfigMapObj;
+}[] =>
+  enumIterator(ModelServingCompatibleTypes)
+    .map(([, value]) => {
+      const typeMetadata = modelServingCompatibleTypesMetadata[value];
+      const connectionType = connectionTypes.find((t) => t.metadata.name === typeMetadata.resource);
+      return connectionType
+        ? { key: value, name: typeMetadata.name, type: connectionType }
+        : undefined;
+    })
+    .filter((t) => t != null);
 
 export const getDefaultValues = (
   connectionType: ConnectionTypeConfigMapObj,
@@ -219,6 +261,28 @@ export const getDefaultValues = (
       defaults[field.envVar] = field.properties.defaultValue;
     }
   }
+  return defaults;
+};
+
+export const getMRConnectionValues = (
+  connectionValues: EnvVariableDataEntry[] | string,
+): { [key: string]: ConnectionTypeValueType } => {
+  const defaults: {
+    [key: string]: ConnectionTypeValueType;
+  } = {};
+  if (typeof connectionValues !== 'string') {
+    connectionValues.map((connectionValue) => {
+      if (connectionValue.key !== 'Name') {
+        defaults[connectionValue.key] = connectionValue.value;
+      }
+      return defaults;
+    });
+    return defaults;
+  }
+  if (!connectionValues.startsWith('oci:')) {
+    defaults.URI = connectionValues;
+  }
+
   return defaults;
 };
 
@@ -263,7 +327,7 @@ export const assembleConnectionSecret = (
       .filter(([, value]) => !!value),
   );
 
-  const managedType = getModelServingCompatibleTypes(Object.keys(connectionValuesAsStrings)).map(
+  const managedType = getModelServingCompatibility(Object.keys(connectionValuesAsStrings)).map(
     (t) => modelServingCompatibleTypesMetadata[t].managedType,
   )[0];
 
@@ -358,23 +422,6 @@ export const findSectionFields = (
   return fields.slice(sectionIndex + 1, nextSectionIndex === -1 ? undefined : nextSectionIndex);
 };
 
-export const filterModelServingConnectionTypes = (
-  connectionTypes: ConnectionTypeConfigMapObj[],
-): {
-  key: ModelServingCompatibleTypes;
-  name: string;
-  type: ConnectionTypeConfigMapObj;
-}[] =>
-  enumIterator(ModelServingCompatibleTypes)
-    .map(([, value]) => {
-      const typeMetadata = modelServingCompatibleTypesMetadata[value];
-      const connectionType = connectionTypes.find((t) => t.metadata.name === typeMetadata.resource);
-      return connectionType
-        ? { key: value, name: typeMetadata.name, type: connectionType }
-        : undefined;
-    })
-    .filter((t) => t != null);
-
 export const VALID_ENV_VARNAME_REGEX = /^[A-Za-z_][A-Za-z0-9_\-.]*$/;
 export const STARTS_WITH_DIGIT_REGEX = /^\d/;
 
@@ -389,4 +436,25 @@ export const validateEnvVarName = (name: string): string | undefined => {
     return "Must consist of alphabetic characters, digits, '_', '-', or '.'";
   }
   return undefined;
+};
+
+export const convertObjectStorageSecretData = (dataConnection: Connection): AWSDataEntry => {
+  let convertedData: { key: AwsKeys; value: string }[] = [];
+  const secretData = dataConnection.data;
+  if (secretData) {
+    convertedData = Object.values(AwsKeys)
+      .filter((key) => key !== AwsKeys.NAME)
+      .map((key: AwsKeys) => ({
+        key,
+        value: secretData[key] ? window.atob(secretData[key]) : '',
+      }));
+  }
+  const convertedSecret: AWSDataEntry = [
+    {
+      key: AwsKeys.NAME,
+      value: getDisplayNameFromK8sResource(dataConnection),
+    },
+    ...convertedData,
+  ];
+  return convertedSecret;
 };

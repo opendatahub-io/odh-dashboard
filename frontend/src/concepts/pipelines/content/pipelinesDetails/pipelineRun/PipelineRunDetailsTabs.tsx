@@ -18,6 +18,7 @@ import {
   PipelineSpecVariable,
 } from '~/concepts/pipelines/kfTypes';
 import { isPipelineRecurringRun } from '~/concepts/pipelines/content/utils';
+import { Artifact } from '~/third_party/mlmd';
 import PipelineRunTabDetails from './PipelineRunTabDetails';
 import PipelineRunTabParameters from './PipelineRunTabParameters';
 
@@ -33,6 +34,7 @@ interface PipelineRunDetailsTabsProps {
   pipelineSpec: PipelineSpecVariable | undefined;
   graphContent: React.ReactNode;
   versionError?: Error;
+  artifacts?: Artifact[];
 }
 
 export const PipelineRunDetailsTabs: React.FC<PipelineRunDetailsTabsProps> = ({
@@ -40,6 +42,7 @@ export const PipelineRunDetailsTabs: React.FC<PipelineRunDetailsTabsProps> = ({
   pipelineSpec,
   graphContent,
   versionError,
+  artifacts,
 }) => {
   const [activeKey, setActiveKey] = React.useState<string | number>(DetailsTabKey.Graph);
   const isRecurringRun = run && isPipelineRecurringRun(run);
@@ -76,7 +79,11 @@ export const PipelineRunDetailsTabs: React.FC<PipelineRunDetailsTabsProps> = ({
               data-testid="pipeline-run-tab-details"
             >
               <TabContentBody hasPadding>
-                <PipelineRunTabDetails workflowName={run?.display_name} run={run} />
+                <PipelineRunTabDetails
+                  workflowName={run?.display_name}
+                  run={run}
+                  artifacts={artifacts}
+                />
               </TabContentBody>
             </Tab>
             <Tab

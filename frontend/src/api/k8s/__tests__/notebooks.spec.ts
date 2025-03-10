@@ -86,7 +86,7 @@ describe('assembleNotebook', () => {
     expect(result.kind).toBe('Notebook');
     expect(result.spec.template.spec.volumes).toStrictEqual([
       { name: 'test-volume', persistentVolumeClaim: { claimName: 'test-volume' } },
-      { name: ELYRA_VOLUME_NAME, secret: { secretName: 'ds-pipeline-config' } },
+      { name: ELYRA_VOLUME_NAME, secret: { secretName: 'ds-pipeline-config', optional: true } },
       { emptyDir: { medium: 'Memory' }, name: 'shm' },
     ]);
     expect(result.spec.template.spec.containers[0].volumeMounts).toStrictEqual([
@@ -109,7 +109,7 @@ describe('assembleNotebook', () => {
 
     expect(result.spec.template.spec.volumes).toStrictEqual([
       { name: 'shm', persistentVolumeClaim: { claimName: 'shm' } },
-      { name: 'elyra-dsp-details', secret: { secretName: 'ds-pipeline-config' } },
+      { name: 'elyra-dsp-details', secret: { secretName: 'ds-pipeline-config', optional: true } },
     ]);
     expect(result.spec.template.spec.containers[0].volumeMounts).toStrictEqual([
       { mountPath: '/opt/app-root/src/data', name: 'shm' },

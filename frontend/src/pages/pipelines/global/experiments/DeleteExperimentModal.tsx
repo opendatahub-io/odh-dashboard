@@ -2,6 +2,8 @@ import * as React from 'react';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 
 type DeleteExperimentModalProps = {
   experiment: ExperimentKF;
@@ -12,6 +14,7 @@ const DeleteExperimentModal: React.FC<DeleteExperimentModalProps> = ({ experimen
   const [isDeleting, setDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const { api, refreshAllAPI } = usePipelinesAPI();
+  const eventName = 'Experiment Deleted';
 
   return (
     <DeleteModal
@@ -26,10 +29,20 @@ const DeleteExperimentModal: React.FC<DeleteExperimentModalProps> = ({ experimen
           refreshAllAPI();
           setDeleting(false);
           onCancel();
+          fireFormTrackingEvent(eventName, {
+            outcome: TrackingOutcome.submit,
+            success: true,
+          });
         } catch (e) {
           if (e instanceof Error) {
             setError(e);
           }
+          fireFormTrackingEvent(eventName, {
+            outcome: TrackingOutcome.submit,
+            success: true,
+            error: e instanceof Error ? e.message : 'unknown error',
+          });
+
           setDeleting(false);
         }
       }}

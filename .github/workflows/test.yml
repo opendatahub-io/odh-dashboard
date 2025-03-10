@@ -1,17 +1,16 @@
 name: Test
 on: [push, pull_request]
+env:
+  NODE_VERSION: 20.x
 jobs:
   Setup:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [18.x]
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Node.js ${{ matrix.node-version }}
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4.1.0
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: ${{ env.NODE_VERSION }}
       - name: Node.js modules cache
         uses: actions/cache@v4
         id: modules-cache
@@ -21,7 +20,7 @@ jobs:
             ${{ github.workspace }}/node_modules
             ${{ github.workspace }}/backend/node_modules
             ${{ github.workspace }}/frontend/node_modules
-          key: ${{ runner.os }}-${{ matrix.node-version }}-modules-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}
       - name: Install dependencies
         if: steps.modules-cache.outputs.cache-hit != 'true'
         run: npm install
@@ -41,7 +40,7 @@ jobs:
             ${{ github.workspace }}/node_modules
             ${{ github.workspace }}/backend/node_modules
             ${{ github.workspace }}/frontend/node_modules
-          key: ${{ runner.os }}-18.x-modules-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}
       - name: Run linting and formatting checks
         run: npm run lint:frontend:backend
 
@@ -58,7 +57,7 @@ jobs:
             ${{ github.workspace }}/node_modules
             ${{ github.workspace }}/backend/node_modules
             ${{ github.workspace }}/frontend/node_modules
-          key: ${{ runner.os }}-18.x-modules-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}
       - name: Run backend unit tests with coverage
         run: |
           npm run test:backend:unit-coverage
@@ -108,10 +107,10 @@ jobs:
         shell: bash
         run: |
           set -x  # Enable debug mode to see each command
-          
+
           echo "Checking directory structure..."
           ls -la frontend/src/__tests__/cypress/cypress/tests/ || echo "Base test directory not found"
-          
+
           if [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked" ]; then
             echo "Found mocked tests directory"
             
@@ -130,8 +129,34 @@ jobs:
             echo "test-groups=[\"default\"]" >> "$GITHUB_OUTPUT"
           fi
 
+  Cypress-Setup:
+    needs: [Setup]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/Cypress
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/backend/node_modules
+            ${{ github.workspace }}/frontend/node_modules
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: Cypress build cache
+        uses: actions/cache@v4
+        id: cypress-build-cache
+        with:
+          path: |
+            ${{ github.workspace }}/frontend/public-cypress
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-build-${{ github.sha }}
+      - name: Build frontend for cypress
+        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
+        run: npm run cypress:server:build:coverage
+        working-directory: ./frontend
+
   Cypress-Mock-Tests:
-    needs: [Setup, Get-Test-Groups, Unit-Tests, Lint]
+    needs: [Cypress-Setup, Get-Test-Groups]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -147,13 +172,19 @@ jobs:
             ${{ github.workspace }}/node_modules
             ${{ github.workspace }}/backend/node_modules
             ${{ github.workspace }}/frontend/node_modules
-          key: ${{ runner.os }}-18.x-modules-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: Restore Cypress build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/frontend/public-cypress
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-build-${{ github.sha }}
       - name: Run Cypress Mock tests
         run: |
           if [ "${{ matrix.test-group }}" == "default" ]; then
-            npm run test:cypress-ci:coverage
+            npm run test:cypress-ci:coverage:nobuild
           else
-            npm run test:cypress-ci:coverage -- --spec "src/__tests__/cypress/cypress/tests/mocked/${{ matrix.test-group }}/**/*"
+            npm run test:cypress-ci:coverage:nobuild -- --spec "src/__tests__/cypress/cypress/tests/mocked/${{ matrix.test-group }}/**/*"
           fi
         working-directory: ./frontend
       - name: Upload Cypress Mock results
@@ -168,7 +199,7 @@ jobs:
           path: ./frontend/src/__tests__/cypress/coverage
 
   Combine-Results-and-Upload:
-    needs: [Unit-Tests, Cypress-Mock-Tests] 
+    needs: [Unit-Tests, Cypress-Mock-Tests]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -209,30 +240,25 @@ jobs:
         run: |
           rm -rf ./coverage/unit-coverage-final.json
           rm -rf ./coverage/backend-coverage-final.json
-          find ./coverage -name "*-coverage-final.json" -type f -delete 
+          find ./coverage -name "*-coverage-final.json" -type f -delete
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4.6.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
           name: frontend-and-backend
-          file: ./coverage/merged-coverage.json 
+          file: ./coverage/merged-coverage.json
           disable_search: true
           directory: ./coverage
           verbose: true
 
   Tests:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [18.x]
     needs:
-      - Setup
       - Lint
       - Unit-Tests
-      - Get-Test-Groups
       - Cypress-Mock-Tests
       - Combine-Results-and-Upload
     steps:
       - name: Verify all jobs succeeded
-        run: echo "All required jobs have successfully completed for Node.js ${{ matrix.node-version }}."
+        run: echo "All required jobs have successfully completed for Node.js ${{ env.NODE_VERSION }}."

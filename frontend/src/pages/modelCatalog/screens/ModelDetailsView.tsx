@@ -1,19 +1,22 @@
 import React from 'react';
 import {
-  ContentVariants,
+  Content,
   DescriptionList,
-  DescriptionListDescription,
-  DescriptionListTerm,
-  Flex,
-  FlexItem,
+  Icon,
   Label,
   PageSection,
-  Title,
+  Sidebar,
+  SidebarContent,
+  SidebarPanel,
 } from '@patternfly/react-core';
 import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
 import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
 import { CatalogModel } from '~/concepts/modelCatalog/types';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
+import { getTagFromModel } from '~/pages/modelCatalog/utils';
+import ExternalLink from '~/components/ExternalLink';
+import MarkdownView from '~/components/MarkdownView';
+import { RhUiTagIcon } from '~/images/icons';
 
 type ModelDetailsViewProps = {
   model: CatalogModel;
@@ -21,45 +24,47 @@ type ModelDetailsViewProps = {
 
 const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({ model }) => (
   <PageSection hasBodyWrapper={false} isFilled>
-    <Flex
-      direction={{ default: 'column', md: 'row' }}
-      columnGap={{ default: 'columnGap4xl' }}
-      rowGap={{ default: 'rowGapLg' }}
-    >
-      <FlexItem flex={{ default: 'flex_1' }}>
-        <DescriptionList isFillColumns>
-          <DescriptionListTerm>Description</DescriptionListTerm>
-          <DescriptionListDescription data-testid="model-long-description">
-            {model.longDescription}
-          </DescriptionListDescription>
-        </DescriptionList>
-        <Title style={{ margin: '2em 0 1em 0' }} headingLevel={ContentVariants.h2}>
-          Model card
-        </Title>
-        {/* TODO: RHOAIENG-18962 */}
-        <div>Readme content</div>
-      </FlexItem>
-      <FlexItem flex={{ default: 'flex_1' }}>
+    <Sidebar hasBorder hasGutter isPanelRight>
+      <SidebarContent>
+        <Content>
+          <h2>Description</h2>
+          <p data-testid="model-long-description">{model.longDescription}</p>
+          <h2>Model Card</h2>
+        </Content>
+        <MarkdownView
+          data-testid="model-card-markdown"
+          markdown={model.readme || 'No model card'}
+        />
+      </SidebarContent>
+      <SidebarPanel>
         <DescriptionList isFillColumns>
           <DashboardDescriptionListGroup title="Version" groupTestId="model-version">
-            {model.artifacts?.map((artifact) => artifact.tags && artifact.tags[0])}
+            <Icon isInline>
+              <RhUiTagIcon />
+            </Icon>{' '}
+            {getTagFromModel(model)}
           </DashboardDescriptionListGroup>
-          <DashboardDescriptionListGroup title="Label">
-            {model.labels &&
-              model.labels.map((label, index) => (
-                <Label
-                  color="blue"
-                  data-testid="label"
-                  key={index}
-                  marginWidth={3}
-                  style={{ marginRight: '3px' }}
-                >
-                  {label}
-                </Label>
-              ))}
+          <DashboardDescriptionListGroup title="Labels">
+            {!model.labels?.length
+              ? 'no labels'
+              : model.labels.map((label, index) => (
+                  <Label
+                    variant="outline"
+                    data-testid="label"
+                    key={index}
+                    marginWidth={3}
+                    style={{ marginRight: '3px' }}
+                  >
+                    {label}
+                  </Label>
+                ))}
           </DashboardDescriptionListGroup>
           <DashboardDescriptionListGroup title="License" groupTestId="model-license">
-            {model.license}
+            <ExternalLink
+              text="Agreement"
+              to={model.licenseLink || ''}
+              testId="model-license-link"
+            />
           </DashboardDescriptionListGroup>
           <DashboardDescriptionListGroup title="Provider" groupTestId="model-provider">
             {model.provider}
@@ -77,8 +82,8 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({ model }) => (
             <ModelTimestamp timeSinceEpoch={String(model.createTimeSinceEpoch)} />
           </DashboardDescriptionListGroup>
         </DescriptionList>
-      </FlexItem>
-    </Flex>
+      </SidebarPanel>
+    </Sidebar>
   </PageSection>
 );
 

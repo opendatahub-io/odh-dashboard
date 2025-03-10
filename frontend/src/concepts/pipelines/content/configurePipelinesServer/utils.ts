@@ -139,6 +139,12 @@ export const createDSPipelineResourceSpec = (
           },
         }
       : undefined,
+    apiServer: {
+      enableSamplePipeline: false,
+      managedPipelines: {
+        instructLab: { state: config.enableInstructLab ? 'Managed' : 'Removed' },
+      },
+    },
   };
 };
 

@@ -276,7 +276,6 @@ describe('Pipeline create runs', () => {
         runtime_config: {
           parameters: {
             string_param: 'String default value',
-            double_param: null,
             int_param: 1,
             struct_param: { default: 'value' },
             list_param: [{ default: 'value' }],

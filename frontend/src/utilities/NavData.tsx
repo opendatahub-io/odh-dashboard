@@ -1,6 +1,8 @@
+import { Icon } from '@patternfly/react-core';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import * as React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { useUser } from '~/redux/selectors';
+import { useDashboardNamespace, useUser } from '~/redux/selectors';
 import {
   artifactsRootPath,
   executionsRootPath,
@@ -8,9 +10,15 @@ import {
   pipelineRunsRootPath,
   pipelinesRootPath,
 } from '~/routes';
+import {
+  generateWarningForHardwareProfiles,
+  HardwareProfileBannerWarningTitles,
+} from '~/pages/hardwareProfiles/utils';
 import { HardwareProfileModel } from '~/api';
 import { AccessReviewResourceAttributes } from '~/k8sTypes';
 import { useAccessAllowed, verbModelAccess } from '~/concepts/userSSAR';
+import useMigratedHardwareProfiles from '~/pages/hardwareProfiles/migration/useMigratedHardwareProfiles';
+import { NavWithIcon } from './NavWithIcon';
 
 type NavDataCommon = {
   id: string;
@@ -25,6 +33,7 @@ export type NavDataGroup = NavDataCommon & {
   group: {
     id: string;
     title: string;
+    icon?: React.ReactNode;
   };
   children: NavDataHref[];
 };
@@ -88,31 +97,41 @@ const useHomeNav = (): NavDataItem[] =>
 
 const useDSProjectsNav = (): NavDataItem[] =>
   useAreaCheck(SupportedArea.DS_PROJECTS_VIEW, [
-    { id: 'dsg', label: 'Data Science Projects', href: '/projects' },
+    { id: 'dsg', label: 'Data science projects', href: '/projects' },
   ]);
+
+const useModelsNav = (): NavDataItem[] => [
+  {
+    id: 'models',
+    group: { id: 'models', title: 'Models' },
+    children: [
+      ...useAreaCheck(SupportedArea.MODEL_CATALOG, [
+        { id: 'modelCatalog', label: 'Model catalog', href: '/modelCatalog' },
+      ]),
+      ...useAreaCheck(SupportedArea.MODEL_REGISTRY, [
+        { id: 'modelRegistry', label: 'Model registry', href: '/modelRegistry' },
+      ]),
+      ...useAreaCheck(SupportedArea.MODEL_SERVING, [
+        { id: 'modelServing', label: 'Model deployments', href: '/modelServing' },
+      ]),
+      ...useAreaCheck(SupportedArea.FINE_TUNING, [
+        { id: 'modelCustomization', label: 'Model customization', href: '/modelCustomization' },
+      ]),
+    ],
+  },
+];
 
 const useDSPipelinesNav = (): NavDataItem[] => {
   const isAvailable = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
-  const isFineTuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
 
   if (!isAvailable) {
     return [];
   }
 
-  const modelCustomizationNavChild = isFineTuningAvailable
-    ? [
-        {
-          id: 'modelCustomization',
-          label: 'Model Customization',
-          href: '/modelCustomization',
-        },
-      ]
-    : [];
-
   return [
     {
       id: 'pipelines-and-runs',
-      group: { id: 'pipelines-and-runs', title: 'Data Science Pipelines' },
+      group: { id: 'pipelines-and-runs', title: 'Data science pipelines' },
       children: [
         {
           id: 'pipelines',
@@ -124,7 +143,6 @@ const useDSPipelinesNav = (): NavDataItem[] => {
           label: 'Runs',
           href: pipelineRunsRootPath,
         },
-        ...modelCustomizationNavChild,
       ],
     },
     {
@@ -153,22 +171,7 @@ const useDSPipelinesNav = (): NavDataItem[] => {
 
 const useDistributedWorkloadsNav = (): NavDataItem[] =>
   useAreaCheck(SupportedArea.DISTRIBUTED_WORKLOADS, [
-    { id: 'workloadMetrics', label: 'Distributed Workload Metrics', href: '/distributedWorkloads' },
-  ]);
-
-const useModelServingNav = (): NavDataItem[] =>
-  useAreaCheck(SupportedArea.MODEL_SERVING, [
-    { id: 'modelServing', label: 'Model Serving', href: '/modelServing' },
-  ]);
-
-const useModelCatalogSectionNav = (): NavDataItem[] =>
-  useAreaCheck(SupportedArea.MODEL_CATALOG, [
-    { id: 'modelCatalog', label: 'Model Catalog', href: '/modelCatalog' },
-  ]);
-
-const useModelRegistrySectionNav = (): NavDataItem[] =>
-  useAreaCheck(SupportedArea.MODEL_REGISTRY, [
-    { id: 'modelRegistry', label: 'Model Registry', href: '/modelRegistry' },
+    { id: 'workloadMetrics', label: 'Distributed workloads', href: '/distributedWorkloads' },
   ]);
 
 const useResourcesNav = (): NavDataHref[] => [
@@ -238,34 +241,67 @@ const useUserManagementNav = (): NavDataHref[] =>
     },
   ]);
 
-const useAcceleratorProfilesNav = (): NavDataHref[] =>
-  useIsAdminAreaCheck<NavDataHref>(SupportedArea.ACCELERATOR_PROFILES, [
-    {
-      id: 'settings-accelerator-profiles',
-      label: 'Accelerator profiles',
-      href: '/acceleratorProfiles',
-    },
-  ]);
+const useAcceleratorProfilesNav = (): NavDataHref[] => {
+  const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
 
-const useHardwareProfilesNav = (): NavDataHref[] =>
-  useAreaCheck<NavDataHref>(
-    SupportedArea.HARDWARE_PROFILES,
-    [
-      {
-        id: 'settings-hardware-profiles',
-        label: 'Hardware profiles',
-        href: '/hardwareProfiles',
-      },
-    ],
-    verbModelAccess('list', HardwareProfileModel),
+  return useIsAdminAreaCheck<NavDataHref>(
+    SupportedArea.ACCELERATOR_PROFILES,
+    isHardwareProfilesAvailable
+      ? []
+      : [
+          {
+            id: 'settings-accelerator-profiles',
+            label: 'Accelerator profiles',
+            href: '/acceleratorProfiles',
+          },
+        ],
   );
+};
+
+const useHardwareProfilesNav = (): {
+  isWarning: boolean;
+  hardwareProfileNavItems: NavDataHref[];
+} => {
+  const { dashboardNamespace } = useDashboardNamespace();
+  const { data: hardwareProfiles } = useMigratedHardwareProfiles(dashboardNamespace);
+  const warning = generateWarningForHardwareProfiles(hardwareProfiles);
+  const isWarning = !!warning && warning.title === HardwareProfileBannerWarningTitles.ALL_INVALID;
+  return {
+    isWarning,
+    hardwareProfileNavItems: useAreaCheck<NavDataHref>(
+      SupportedArea.HARDWARE_PROFILES,
+      [
+        {
+          id: 'settings-hardware-profiles',
+          label: isWarning ? (
+            <NavWithIcon
+              title="Hardware profiles"
+              icon={
+                <Icon status="warning" isInline>
+                  <ExclamationTriangleIcon />
+                </Icon>
+              }
+            />
+          ) : (
+            'Hardware profiles'
+          ),
+          href: '/hardwareProfiles',
+        },
+      ],
+      // TODO: Determine if create is the best value -- RHOAIENG-21129
+      verbModelAccess('create', HardwareProfileModel),
+    ),
+  };
+};
 
 const useSettingsNav = (): NavDataGroup[] => {
+  const { isWarning, hardwareProfileNavItems } = useHardwareProfilesNav();
+
   const settingsNavs: NavDataHref[] = [
     ...useCustomNotebooksNav(),
     ...useClusterSettingsNav(),
     ...useAcceleratorProfilesNav(),
-    ...useHardwareProfilesNav(),
+    ...hardwareProfileNavItems,
     ...useCustomRuntimesNav(),
     ...useConnectionTypesNav(),
     ...useStorageClassesNav(),
@@ -280,7 +316,15 @@ const useSettingsNav = (): NavDataGroup[] => {
   return [
     {
       id: 'settings',
-      group: { id: 'settings', title: 'Settings' },
+      group: {
+        id: 'settings',
+        title: 'Settings',
+        icon: isWarning ? (
+          <Icon status="warning" isInline>
+            <ExclamationTriangleIcon />
+          </Icon>
+        ) : undefined,
+      },
       children: settingsNavs,
     },
   ];
@@ -288,13 +332,11 @@ const useSettingsNav = (): NavDataGroup[] => {
 
 export const useBuildNavData = (): NavDataItem[] => [
   ...useHomeNav(),
-  ...useApplicationsNav(),
   ...useDSProjectsNav(),
+  ...useModelsNav(),
   ...useDSPipelinesNav(),
   ...useDistributedWorkloadsNav(),
-  ...useModelCatalogSectionNav(),
-  ...useModelRegistrySectionNav(),
-  ...useModelServingNav(),
+  ...useApplicationsNav(),
   ...useResourcesNav(),
   ...useSettingsNav(),
 ];

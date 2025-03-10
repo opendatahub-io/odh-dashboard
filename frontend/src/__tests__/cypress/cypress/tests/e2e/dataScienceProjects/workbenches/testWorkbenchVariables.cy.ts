@@ -1,5 +1,5 @@
 import type { WBVariablesTestData } from '~/__tests__/cypress/cypress/types';
-import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
+import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import { workbenchPage, createSpawnerPage } from '~/__tests__/cypress/cypress/pages/workbench';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { loadWBVariablesFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
@@ -7,7 +7,7 @@ import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChe
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { validateWorkbenchEnvironmentVariables } from '~/__tests__/cypress/cypress/utils/oc_commands/workbench';
 import {
-  retryableBefore,
+  retryableBeforeEach,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
@@ -17,7 +17,7 @@ describe('Workbenches - variable tests', () => {
   let testData: WBVariablesTestData;
 
   // Setup: Load test data and ensure clean state
-  retryableBefore(() => {
+  retryableBeforeEach(() => {
     return loadWBVariablesFixture('e2e/dataScienceProjects/testWorkbenchVariables.yaml')
       .then((fixtureData: WBVariablesTestData) => {
         testData = fixtureData;
@@ -34,7 +34,7 @@ describe('Workbenches - variable tests', () => {
         cy.log(`Project ${projectName} confirmed to be created and verified successfully`);
       });
   });
-  afterEach(() => {
+  after(() => {
     //Check if the Before Method was executed to perform the setup
     if (!wasSetupPerformed()) return;
 
@@ -46,7 +46,7 @@ describe('Workbenches - variable tests', () => {
   });
   it(
     'Verify user can set environment variables in their workbenches by uploading a yaml Secret and Config Map file.',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1883', '@ODS-1864', '@Dashboard'] },
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'] },
     () => {
       const workbenchName = projectName;
       const workbenchName2 = projectName.replace('dsp-', 'secondwb-');
@@ -59,7 +59,9 @@ describe('Workbenches - variable tests', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      projectDetails.findSectionTab('workbenches').click();
+      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
+      // Reapply projectDetails.findSectionTab('workbenches').click();
+      cy.visit(`projects/${projectName}?section=workbenches`);
 
       // Create workbench with Secret variables by uploading a yaml file
       cy.step(`Create workbench ${workbenchName} using secret variables`);
@@ -122,7 +124,7 @@ describe('Workbenches - variable tests', () => {
   );
   it(
     'Verify that the user can inject environment variables manually into a workbench using Key / Value',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1883', '@ODS-1864', '@Dashboard'] },
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'] },
     () => {
       const workbenchName = projectName;
       const workbenchName2 = projectName.replace('dsp-', 'secondwb-');
@@ -135,7 +137,9 @@ describe('Workbenches - variable tests', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      projectDetails.findSectionTab('workbenches').click();
+      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
+      // Reapply projectDetails.findSectionTab('workbenches').click();
+      cy.visit(`projects/${projectName}?section=workbenches`);
 
       // Create workbench with Secret variables via Key / Value
       cy.step(`Create workbench ${workbenchName} using secret variables`);

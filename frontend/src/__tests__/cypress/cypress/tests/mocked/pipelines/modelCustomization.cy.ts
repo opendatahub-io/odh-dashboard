@@ -30,7 +30,7 @@ describe('Model Customization', () => {
         disableFineTuning: false,
       });
       modelCustomizationGlobal.visit();
-      modelCustomizationGlobal.findNavItem().should('exist');
+      cy.findByRole('button', { name: 'Models' }).should('exist').click();
       modelCustomizationGlobal.findPage();
     });
   });

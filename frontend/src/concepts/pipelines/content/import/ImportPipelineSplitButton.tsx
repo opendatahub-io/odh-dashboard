@@ -12,6 +12,8 @@ import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineImportModal from '~/concepts/pipelines/content/import/PipelineImportModal';
 import PipelineVersionImportModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import ManageSamplePipelinesModal from '~/concepts/pipelines/content/ManageSamplePipelinesModal';
 
 type ImportPipelineSplitButtonProps = {
   onImportPipeline?: (pipeline: PipelineKF) => void;
@@ -19,6 +21,8 @@ type ImportPipelineSplitButtonProps = {
   variant?: MenuToggleProps['variant'];
   disable?: boolean;
   disableUploadVersion?: boolean;
+  hideUploadVersion?: boolean;
+  isFullWidth?: boolean;
 };
 
 const ImportPipelineSplitButton: React.FC<ImportPipelineSplitButtonProps> = ({
@@ -26,13 +30,18 @@ const ImportPipelineSplitButton: React.FC<ImportPipelineSplitButtonProps> = ({
   onImportPipelineVersion,
   disable,
   disableUploadVersion,
+  hideUploadVersion,
   variant = 'primary',
+  isFullWidth = true,
 }) => {
   const { apiAvailable, refreshAllAPI } = usePipelinesAPI();
   const [isDropdownOpen, setDropdownOpen] = React.useState(false);
   const [isPipelineModalOpen, setPipelineModalOpen] = React.useState(false);
   const [isPipelineVersionModalOpen, setPipelineVersionModalOpen] = React.useState(false);
+  const [isManageSamplePipelinesModalOpen, setManageSamplePipelinesModalOpen] =
+    React.useState(false);
   const tooltipRef = React.useRef<HTMLButtonElement>(null);
+  const isFineTuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
 
   return (
     <>
@@ -42,7 +51,7 @@ const ImportPipelineSplitButton: React.FC<ImportPipelineSplitButtonProps> = ({
         onOpenChange={(isOpen) => setDropdownOpen(isOpen)}
         toggle={(toggleRef) => (
           <MenuToggle
-            isFullWidth
+            isFullWidth={isFullWidth}
             variant={variant}
             ref={toggleRef}
             onClick={() => setDropdownOpen(!isDropdownOpen)}
@@ -66,18 +75,35 @@ const ImportPipelineSplitButton: React.FC<ImportPipelineSplitButtonProps> = ({
         popperProps={{ appendTo: 'inline' }}
       >
         <DropdownList>
-          {disableUploadVersion && (
-            <Tooltip triggerRef={tooltipRef} content="Create a pipeline to upload a new version." />
+          {!hideUploadVersion ? (
+            <>
+              {disableUploadVersion && (
+                <Tooltip
+                  triggerRef={tooltipRef}
+                  content="Create a pipeline to upload a new version."
+                />
+              )}
+              <DropdownItem
+                id="import-pipeline-version-button"
+                key="import-pipeline-version-button"
+                isAriaDisabled={!apiAvailable || disableUploadVersion}
+                onClick={() => setPipelineVersionModalOpen(true)}
+                ref={tooltipRef}
+              >
+                Upload new version
+              </DropdownItem>
+            </>
+          ) : null}
+          {isFineTuningAvailable && (
+            <DropdownItem
+              id="manage-sample-pipelines-button"
+              key="manage-sample-pipelines-button"
+              isAriaDisabled={!apiAvailable}
+              onClick={() => setManageSamplePipelinesModalOpen(true)}
+            >
+              Manage sample pipelines
+            </DropdownItem>
           )}
-          <DropdownItem
-            id="import-pipeline-version-button"
-            key="import-pipeline-version-button"
-            isAriaDisabled={!apiAvailable || disableUploadVersion}
-            onClick={() => setPipelineVersionModalOpen(true)}
-            ref={tooltipRef}
-          >
-            Upload new version
-          </DropdownItem>
         </DropdownList>
       </Dropdown>
       {isPipelineModalOpen ? (
@@ -106,6 +132,13 @@ const ImportPipelineSplitButton: React.FC<ImportPipelineSplitButtonProps> = ({
           }}
         />
       )}
+      {isManageSamplePipelinesModalOpen && isFineTuningAvailable ? (
+        <ManageSamplePipelinesModal
+          onClose={() => {
+            setManageSamplePipelinesModalOpen(false);
+          }}
+        />
+      ) : null}
     </>
   );
 };

@@ -86,7 +86,7 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) 
         'params',
         Object.entries(getInputDefinitionParams(version) || {}).reduce(
           (acc: RuntimeConfigParameters, [paramKey, paramValue]) => {
-            acc[paramKey] = paramsRef.current?.[paramKey] ?? paramValue.defaultValue ?? '';
+            acc[paramKey] = paramsRef.current?.[paramKey] ?? paramValue.defaultValue;
             return acc;
           },
           {},

@@ -41,7 +41,9 @@ const runTypeSafeDates = (runType: RunFormData['runType']): boolean =>
 export const isFilledRunFormData = (formData: RunFormData): formData is SafeRunFormData => {
   const inputDefinitionParams = getInputDefinitionParams(formData.version);
   const hasRequiredInputParams = Object.entries(formData.params || {}).every(
-    ([paramKey, paramValue]) => inputDefinitionParams?.[paramKey]?.isOptional || paramValue !== '',
+    ([paramKey, paramValue]) =>
+      inputDefinitionParams?.[paramKey]?.isOptional ||
+      (paramValue !== undefined && paramValue !== ''),
   );
 
   return (

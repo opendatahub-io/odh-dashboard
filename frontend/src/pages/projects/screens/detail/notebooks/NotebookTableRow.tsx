@@ -23,12 +23,14 @@ import { useAppContext } from '~/app/AppContext';
 import NotebookStateAction from '~/pages/projects/notebook/NotebookStateAction';
 import StopNotebookConfirmModal from '~/pages/projects/notebook/StopNotebookConfirmModal';
 import { useNotebookKindPodSpecOptionsState } from '~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { NotebookImageAvailability } from './const';
 import { NotebookImageDisplayName } from './NotebookImageDisplayName';
 import NotebookStorageBars from './NotebookStorageBars';
 import NotebookSizeDetails from './NotebookSizeDetails';
 import useNotebookImage from './useNotebookImage';
 import useNotebookDeploymentSize from './useNotebookDeploymentSize';
+import { extractAcceleratorResources } from './utils';
 
 type NotebookTableRowProps = {
   obj: NotebookState;
@@ -49,6 +51,10 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const navigate = useNavigate();
   const [isExpanded, setExpanded] = React.useState(false);
   const { size: notebookSize } = useNotebookDeploymentSize(obj.notebook);
+  const acceleratorResources = extractAcceleratorResources(
+    obj.notebook.spec.template.spec.containers[0].resources,
+  );
+
   const lastDeployedSize: NotebookSize = {
     name: 'Custom',
     resources: obj.notebook.spec.template.spec.containers[0].resources ?? {
@@ -63,6 +69,10 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
   const { name: notebookName, namespace: notebookNamespace } = obj.notebook.metadata;
+  const isHardwareProfileAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
+  const {
+    hardwareProfile: { initialHardwareProfile },
+  } = useNotebookKindPodSpecOptionsState(obj.notebook);
 
   const onStart = React.useCallback(() => {
     setInProgress(true);
@@ -168,7 +178,11 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
             spaceItems={{ default: 'spaceItemsXs' }}
             alignItems={{ default: 'alignItemsCenter' }}
           >
-            <FlexItem>{notebookSize?.name ?? <i>{lastDeployedSize.name}</i>}</FlexItem>
+            <FlexItem>
+              {isHardwareProfileAvailable
+                ? initialHardwareProfile?.spec.displayName ?? <i>Custom</i>
+                : notebookSize?.name ?? <i>{lastDeployedSize.name}</i>}
+            </FlexItem>
           </Flex>
         </Td>
         <Td dataLabel="Status">
@@ -209,7 +223,10 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
         </Td>
         <Td dataLabel="Limits">
           <ExpandableRowContent>
-            <NotebookSizeDetails notebookSize={notebookSize || lastDeployedSize} />
+            <NotebookSizeDetails
+              notebookSize={notebookSize || lastDeployedSize}
+              acceleratorResources={acceleratorResources}
+            />
           </ExpandableRowContent>
         </Td>
         <Td />

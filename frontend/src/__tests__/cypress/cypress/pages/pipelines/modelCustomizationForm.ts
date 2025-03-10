@@ -1,6 +1,21 @@
 class ModelCustomizationFormGlobal {
   visit(projectName: string, empty = false) {
-    cy.visitWithLogin(`/modelCustomization/instructlab/${projectName}`);
+    const state = {
+      modelRegistryName: 'test-registry',
+      modelRegistryDisplayName: 'Test Registry',
+      registeredModelId: 'model-123',
+      registeredModelName: 'test-model',
+      modelVersionId: 'version-123',
+      inputModelLocationUri: 'test-uri',
+      outputModelRegistryApiUrl: 'test-api-url',
+    };
+
+    cy.visit('/', {
+      onBeforeLoad(win) {
+        win.history.pushState(state, '', `/modelCustomization/fine-tune/${projectName}`);
+      },
+    });
+
     if (empty) {
       this.emptyWait();
     } else {
@@ -9,7 +24,7 @@ class ModelCustomizationFormGlobal {
   }
 
   invalidVisit() {
-    cy.visitWithLogin('/modelCustomization/instructlab');
+    cy.visitWithLogin('/modelCustomization/fine-tune');
     this.emptyWait();
   }
 
@@ -40,4 +55,69 @@ class ModelCustomizationFormGlobal {
   }
 }
 
+class TeacherModelSection {
+  findEndpointInput() {
+    return cy.findByTestId('teacher-endpoint-input');
+  }
+
+  findModelNameInput() {
+    return cy.findByTestId('teacher-model-name-input');
+  }
+}
+
+class JudgeModelSection {
+  findEndpointInput() {
+    return cy.findByTestId('judge-endpoint-input');
+  }
+
+  findModelNameInput() {
+    return cy.findByTestId('judge-model-name-input');
+  }
+}
+
+class TaxonomySection {
+  findTaxonomyUrl() {
+    return cy.findByTestId('taxonomy-github-url');
+  }
+
+  findSshKeyRadio() {
+    return cy.findByTestId('ssh-key-radio');
+  }
+
+  findUsernameAndTokenRadio() {
+    return cy.findByTestId('username-and-token-radio');
+  }
+
+  findTaxonomySShKey() {
+    return cy.findByTestId('taxonomy-ssh-key');
+  }
+
+  findTaxonomyUsername() {
+    return cy.findByTestId('taxonomy-username');
+  }
+
+  findTaxonomyToken() {
+    return cy.findAllByTestId('taxonomy-token');
+  }
+}
+
+class HardwareSection {
+  private findHardwareProfileSelect() {
+    return cy.findByTestId('hardware-profile-select');
+  }
+
+  selectProfile(name: string): void {
+    this.findHardwareProfileSelect().click();
+    cy.findByRole('option', { name }).click();
+  }
+
+  findTrainingNodePlusButton() {
+    return cy.findByTestId('training-node').findByRole('button', { name: 'Plus', hidden: true });
+  }
+}
+
 export const modelCustomizationFormGlobal = new ModelCustomizationFormGlobal();
+export const teacherModelSection = new TeacherModelSection();
+export const judgeModelSection = new JudgeModelSection();
+export const taxonomySection = new TaxonomySection();
+export const hardwareSection = new HardwareSection();

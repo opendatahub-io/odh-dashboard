@@ -30,7 +30,6 @@ import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/c
 import { getServingRuntimeTokens, setUpTokenAuth } from '~/pages/modelServing/utils';
 import {
   addSupportServingPlatformProject,
-  assembleSecret,
   createInferenceService,
   createPvc,
   createSecret,
@@ -46,6 +45,10 @@ import { getNIMData, getNIMResource } from '~/pages/modelServing/screens/project
 import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
 import { Connection } from '~/concepts/connectionTypes/types';
 import { ModelServingPodSpecOptions } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import {
+  isModelServingCompatible,
+  ModelServingCompatibleTypes,
+} from '~/concepts/connectionTypes/utils';
 
 export const getServingRuntimeSizes = (config: DashboardConfigKind): ModelServingSize[] => {
   let sizes = config.spec.modelServerSizes || [];
@@ -66,9 +69,7 @@ export const isInferenceServiceKServeRaw = (inferenceService: InferenceServiceKi
   DeploymentMode.RawDeployment;
 
 export const isInferenceServiceTokenEnabled = (inferenceService: InferenceServiceKind): boolean =>
-  isInferenceServiceKServeRaw(inferenceService)
-    ? inferenceService.metadata.labels?.['security.opendatahub.io/enable-auth'] === 'true'
-    : inferenceService.metadata.annotations?.['security.opendatahub.io/enable-auth'] === 'true';
+  inferenceService.metadata.annotations?.['security.opendatahub.io/enable-auth'] === 'true';
 
 export const isInferenceServiceRouteEnabled = (inferenceService: InferenceServiceKind): boolean =>
   isInferenceServiceKServeRaw(inferenceService)
@@ -335,22 +336,6 @@ export const getProjectModelServingPlatform = (
   };
 };
 
-export const createAWSSecret = (
-  createData: CreatingInferenceServiceObject,
-  dryRun: boolean,
-): Promise<SecretKind> =>
-  createSecret(
-    assembleSecret(
-      createData.project,
-      createData.storage.awsData.reduce<Record<string, string>>(
-        (acc, { key, value }) => ({ ...acc, [key]: value }),
-        {},
-      ),
-      'aws',
-    ),
-    { dryRun },
-  );
-
 const createInferenceServiceAndDataConnection = async (
   inferenceServiceData: CreatingInferenceServiceObject,
   editInfo?: InferenceServiceKind,
@@ -363,19 +348,19 @@ const createInferenceServiceAndDataConnection = async (
   let secret;
   let storageUri;
   let imagePullSecrets;
-  if (inferenceServiceData.storage.type === InferenceServiceStorageType.NEW_STORAGE) {
-    if (connection) {
-      secret = await createSecret(connection, { dryRun });
-      if (connection.stringData?.URI) {
-        storageUri = connection.stringData.URI;
-      }
-    } else {
-      secret = await createAWSSecret(inferenceServiceData, dryRun);
+  if (inferenceServiceData.storage.type === InferenceServiceStorageType.NEW_STORAGE && connection) {
+    secret = await createSecret(connection, { dryRun });
+    if (connection.stringData?.URI) {
+      storageUri = connection.stringData.URI;
+    } else if (inferenceServiceData.storage.uri) {
+      storageUri = inferenceServiceData.storage.uri;
     }
   }
   if (inferenceServiceData.storage.type === InferenceServiceStorageType.EXISTING_STORAGE) {
     if (connection?.data?.URI) {
       storageUri = window.atob(connection.data.URI);
+    } else if (inferenceServiceData.storage.uri) {
+      storageUri = inferenceServiceData.storage.uri;
     }
   }
   if (inferenceServiceData.storage.type === InferenceServiceStorageType.EXISTING_URI) {
@@ -720,8 +705,27 @@ export const getCreateInferenceServiceLabels = (
   return undefined;
 };
 
-export const isConnectionPathValid = (path: string): boolean =>
-  !(containsOnlySlashes(path) || !isS3PathValid(path) || path === '');
+export const isModelPathValid = (connection: Connection, path: string, uri?: string): boolean => {
+  if (isModelServingCompatible(connection, ModelServingCompatibleTypes.URI)) {
+    return true;
+  }
+  if (containsOnlySlashes(path)) {
+    return false;
+  }
+  if (
+    isModelServingCompatible(connection, ModelServingCompatibleTypes.S3ObjectStorage) &&
+    !isS3PathValid(path)
+  ) {
+    return false;
+  }
+  if (
+    isModelServingCompatible(connection, ModelServingCompatibleTypes.OCI) &&
+    (!uri || uri.length <= 'oci://'.length)
+  ) {
+    return false;
+  }
+  return true;
+};
 
 export const fetchInferenceServiceCount = async (namespace: string): Promise<number> => {
   try {
