@@ -112,7 +112,7 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
           </MenuToggle>
         )}
       >
-        <SelectList>
+        <SelectList isAriaMultiselectable={isMulti}>
           {field.properties.items?.map(
             (item, index) =>
               (item.value || item.label) && (

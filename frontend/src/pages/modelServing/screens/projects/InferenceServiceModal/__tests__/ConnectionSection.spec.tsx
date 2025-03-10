@@ -1,6 +1,6 @@
 import React, { act } from 'react';
 import '@testing-library/jest-dom';
-import { render } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import { mockConnection } from '~/__mocks__/mockConnection';
 import {
   mockConnectionTypeConfigMapObj,
@@ -270,31 +270,37 @@ describe('ConnectionsFormSection', () => {
 
     await act(async () => result.getByRole('button', { name: 'Typeahead menu toggle' }).click());
     await act(async () => result.getByRole('option', { name: /oci/ }).click());
+    await act(async () =>
+      fireEvent.change(result.getByRole('textbox', { name: 'Connection name' }), {
+        target: { value: 'new name' },
+      }),
+    );
     await act(async () => result.getByRole('button', { name: 'Access type' }).click());
     await act(async () =>
-      result.getByRole('menuitem', { name: 'Push secret Value: Push' }).click(),
+      result.getByRole('checkbox', { name: 'Push secret Value: Push' }).click(),
     );
 
-    expect(mockSetConnection).toBeCalledWith({
-      apiVersion: 'v1',
-      kind: 'Secret',
-      metadata: {
-        name: '',
-        namespace: 'caikit-example',
-        labels: {
-          'opendatahub.io/dashboard': 'true',
+    await waitFor(() =>
+      expect(mockSetConnection).toHaveBeenLastCalledWith({
+        apiVersion: 'v1',
+        kind: 'Secret',
+        metadata: {
+          name: 'new-name',
+          namespace: 'caikit-example',
+          labels: {
+            'opendatahub.io/dashboard': 'true',
+          },
+          annotations: {
+            'openshift.io/display-name': 'new name',
+            'openshift.io/description': '',
+            'opendatahub.io/connection-type-ref': 'oci-v1',
+          },
         },
-        annotations: {
-          'openshift.io/display-name': '',
-          'openshift.io/description': '',
-          'opendatahub.io/connection-type-ref': 'oci-v1',
+        stringData: {
+          ACCESS_TYPE: '["Push"]',
         },
-      },
-      stringData: {
-        ACCESS_TYPE: '[Push]',
-      },
-      // type: 'kubernetes.io/dockerconfigjson',
-    });
+      }),
+    );
     expect(result.getByRole('button', { name: 'Access type' })).toHaveTextContent(/1 selected/);
     expect(result.getByText('Model connection must have pull access to deploy')).toBeTruthy();
   });
