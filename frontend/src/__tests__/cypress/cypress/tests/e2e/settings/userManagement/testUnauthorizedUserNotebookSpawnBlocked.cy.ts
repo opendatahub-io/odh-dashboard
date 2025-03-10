@@ -40,7 +40,7 @@ after(() => {
 describe('Verify Unauthorized User Is Not Able To Spawn Jupyter Notebook', () => {
   it(
     'Remove Admin privlideges and apply access to the Dashboard only to Admin',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1680', '@Dashboard'] },
+    { tags: ['@Destructive', '@ODS-1680', '@Dashboard'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -70,7 +70,7 @@ describe('Verify Unauthorized User Is Not Able To Spawn Jupyter Notebook', () =>
   );
   it(
     'Login as the Admin and verify that the user does not have acceess to any tabs/applications',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1680', '@Dashboard'] },
+    { tags: ['@Destructive', '@ODS-1680', '@Dashboard'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application as a Non-admin');
