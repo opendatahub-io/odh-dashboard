@@ -33,6 +33,7 @@ import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
 import { isPipelineRunRegistered } from '~/concepts/pipelines/content/tables/pipelineRun/utils';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { usePipelineRunArtifacts } from './artifacts';
 import { PipelineRunDetailsTabs } from './PipelineRunDetailsTabs';
 
@@ -65,7 +66,8 @@ const PipelineRunDetails: React.FC<
     artifacts,
   );
   const isInvalidPipelineVersion = isArgoWorkflow(version?.pipeline_spec);
-  const isRegistered = isPipelineRunRegistered(artifacts);
+  const { status: modelRegistryAvailable } = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY);
+  const isRegistered = modelRegistryAvailable ? isPipelineRunRegistered(artifacts) : false;
 
   const selectedNode = React.useMemo(() => {
     if (isInvalidPipelineVersion) {

@@ -7,10 +7,18 @@ import {
 import useFetchState, { FetchState } from '~/utilities/useFetchState';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 
-export const useFetchRunArtifact = (runId: string): FetchState<Artifact[]> => {
+export const useFetchRunArtifact = (
+  runId: string,
+  modelRegistryAvailable: boolean,
+): FetchState<Artifact[]> => {
   const { metadataStoreServiceClient } = usePipelinesAPI();
 
   const fetchArtifacts = React.useCallback(async () => {
+    // Prevent API call when model registry is not available
+    if (!modelRegistryAvailable) {
+      return [];
+    }
+
     const request = new GetArtifactsRequest();
     const options = new ListOperationOptions();
 
@@ -19,7 +27,7 @@ export const useFetchRunArtifact = (runId: string): FetchState<Artifact[]> => {
 
     const response = await metadataStoreServiceClient.getArtifacts(request);
     return response.getArtifactsList();
-  }, [metadataStoreServiceClient, runId]);
+  }, [metadataStoreServiceClient, runId, modelRegistryAvailable]);
 
   return useFetchState(fetchArtifacts, []);
 };
