@@ -25,7 +25,7 @@ import {
 } from '~/__tests__/cypress/cypress/pages/pipelines/compareRuns';
 import { mockCancelledGoogleRpcStatus } from '~/__mocks__/mockGoogleRpcStatusKF';
 import { mockArtifactStorage } from '~/__mocks__/mockArtifactStorage';
-import { initMlmdIntercepts } from './mlmdUtils';
+import { initMlmdIntercepts } from '~/__tests__/cypress/cypress/tests/mocked/pipelines/mlmdUtils';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipeline({ display_name: 'Test pipeline' });
