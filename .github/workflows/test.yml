@@ -45,7 +45,7 @@ jobs:
         run: npm run lint:frontend:backend
 
   Unit-Tests:
-    needs: Setup
+    needs: [Setup, Lint]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -156,7 +156,7 @@ jobs:
         working-directory: ./frontend
 
   Cypress-Mock-Tests:
-    needs: [Cypress-Setup, Get-Test-Groups]
+    needs: [Lint, Cypress-Setup, Get-Test-Groups]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
