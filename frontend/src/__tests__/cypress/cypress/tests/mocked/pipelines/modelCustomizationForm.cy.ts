@@ -28,6 +28,7 @@ import {
   StorageClassModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
+import { mockIlabPipelineVersion } from '~/__mocks__/mockIlabPipelineVersion';
 import { TolerationEffect, TolerationOperator } from '~/types';
 
 const projectName = 'test-project-name-2';
@@ -36,9 +37,7 @@ const initialMockPipeline = buildMockPipeline({
   display_name: 'instructlab',
   pipeline_id: 'instructlab',
 });
-const initialMockPipelineVersion = buildMockPipelineVersion({
-  pipeline_id: initialMockPipeline.pipeline_id,
-});
+const initialMockPipelineVersion = mockIlabPipelineVersion;
 
 describe('Model Customization Form', () => {
   it('Empty state', () => {
@@ -75,6 +74,15 @@ describe('Model Customization Form', () => {
 
     modelCustomizationFormGlobal.findSubmitButton().should('be.disabled');
   });
+
+  it('Alert message when ilab pipeline required parameters are absent', () => {
+    initIntercepts({ invalidIlabPipeline: true });
+    modelCustomizationFormGlobal.visit(projectName);
+    cy.wait('@getIlabPipeline');
+    cy.wait('@getIlabPipelineVersions');
+
+    modelCustomizationFormGlobal.findErrorMessage().should('exist');
+  });
   it('Should not submit', () => {
     initIntercepts({});
     cy.interceptOdh(
@@ -98,10 +106,16 @@ type HandlersProps = {
   disableFineTuning?: boolean;
   disableHardwareProfiles?: boolean;
   isEmptyProject?: boolean;
+  invalidIlabPipeline?: boolean;
 };
 
 export const initIntercepts = (
-  { disableFineTuning = false, disableHardwareProfiles = false, isEmptyProject }: HandlersProps = {
+  {
+    disableFineTuning = false,
+    disableHardwareProfiles = false,
+    isEmptyProject,
+    invalidIlabPipeline = false,
+  }: HandlersProps = {
     isEmptyProject: false,
   },
 ): void => {
@@ -298,6 +312,10 @@ export const initIntercepts = (
     {
       path: { namespace: projectName, serviceName: 'dspa', pipelineId: 'instructlab' },
     },
-    buildMockPipelines([initialMockPipelineVersion]),
+    buildMockPipelineVersions(
+      !invalidIlabPipeline
+        ? [initialMockPipelineVersion]
+        : [buildMockPipelineVersion({ pipeline_id: 'instructlab' })],
+    ),
   ).as('getIlabPipelineVersions');
 };

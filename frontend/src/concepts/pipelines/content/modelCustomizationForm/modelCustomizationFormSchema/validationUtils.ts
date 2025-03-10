@@ -1,7 +1,9 @@
+/* eslint-disable camelcase */
 import { z } from 'zod';
 import { hardwareProfileValidationSchema } from '~/concepts/hardwareProfiles/validationUtils';
 import { isCpuLimitLarger, isMemoryLimitLarger } from '~/utilities/valueUnits';
 import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
+import { InputDefinitionParameterType } from '~/concepts/pipelines/kfTypes';
 import {
   FineTuneTaxonomyType,
   ModelCustomizationEndpointType,
@@ -165,6 +167,76 @@ const hardwareSchema = z.object({
 });
 
 export type FineTuneTaxonomyFormData = z.infer<typeof fineTuneTaxonomySchema>;
+const parameterSchema = z.object({
+  defaultValue: z
+    .union([
+      z.string(),
+      z.number(),
+      z.boolean(),
+      z.object({}),
+      z.array(z.object({})),
+      z.undefined(),
+    ])
+    .optional(),
+  description: z.string().optional(),
+  isOptional: z.boolean().optional(),
+  parameterType: z.enum([
+    InputDefinitionParameterType.DOUBLE,
+    InputDefinitionParameterType.INTEGER,
+    InputDefinitionParameterType.BOOLEAN,
+    InputDefinitionParameterType.STRING,
+    InputDefinitionParameterType.LIST,
+    InputDefinitionParameterType.STRUCT,
+  ]),
+});
+
+export type PipelineParametersType = z.infer<typeof pipelineParameterSchema>;
+
+const expectedParams = {
+  sdg_repo_url: 'STRING',
+  sdg_repo_secret: 'STRING',
+  sdg_teacher_secret: 'STRING',
+  sdg_base_model: 'STRING',
+  sdg_pipeline: 'STRING',
+  sdg_scale_factor: 'NUMBER_INTEGER',
+  train_gpu_identifier: 'STRING',
+  train_gpu_per_worker: 'NUMBER_INTEGER',
+  train_cpu_per_worker: 'STRING',
+  train_memory_per_worker: 'STRING',
+  train_save_samples: 'NUMBER_INTEGER',
+  eval_gpu_identifier: 'STRING',
+  eval_judge_secret: 'STRING',
+  k8s_storage_class_name: 'STRING',
+} as const;
+
+export const pipelineParameterSchema = z
+  .record(z.string(), parameterSchema)
+  .superRefine((params, ctx) => {
+    if (Object.keys(params).length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Parameters required',
+      });
+    }
+
+    for (const [key, expectedType] of Object.entries(expectedParams)) {
+      if (!(key in params)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Missing required parameter ${key}`,
+        });
+
+        continue;
+      }
+
+      if (params[key].parameterType !== expectedType) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Parameter ${key} should be of type ${expectedType}`,
+        });
+      }
+    }
+  });
 
 export const modelCustomizationFormSchema = z.object({
   projectName: z.object({ value: z.string().min(1, { message: 'Project is required' }) }),
@@ -173,6 +245,7 @@ export const modelCustomizationFormSchema = z.object({
   outputModel: outputModelSchema,
   teacher: teacherJudgeModel,
   judge: teacherJudgeModel,
+  inputPipelineParameters: pipelineParameterSchema,
   trainingNode: z.number().refine((val) => val > 0, { message: 'Number must be greater than 0' }),
   storageClass: z.string().trim().min(1, { message: 'storage class is required' }),
   hardware: hardwareSchema,

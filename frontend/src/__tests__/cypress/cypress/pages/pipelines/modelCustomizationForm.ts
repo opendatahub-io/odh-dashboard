@@ -23,6 +23,10 @@ class ModelCustomizationFormGlobal {
     }
   }
 
+  findErrorMessage() {
+    return cy.findByTestId('pipeline-error-message');
+  }
+
   invalidVisit() {
     cy.visitWithLogin('/modelCustomization/fine-tune');
     this.emptyWait();
