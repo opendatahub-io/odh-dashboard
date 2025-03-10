@@ -7,7 +7,7 @@ const ResourceNameDefinitionTooltip: React.FC = () => (
     content={
       <Stack hasGutter>
         <StackItem>
-          The resource name is used to identify your resource in OpenShift, and is generated based
+          The resource name is used to identify your resource in Kubernetes, and is generated based
           on the name you enter.
         </StackItem>
         <StackItem>The resource name cannot be edited after creation.</StackItem>

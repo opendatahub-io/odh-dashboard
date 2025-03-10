@@ -50,6 +50,9 @@ const useRegisteredModelDeployInfo = (
     if (storageFields?.s3Fields) {
       modelLocationType = 's3';
     }
+    if (storageFields?.ociUri) {
+      modelLocationType = 'oci-v1';
+    }
     return {
       registeredModelDeployInfo: {
         modelName,

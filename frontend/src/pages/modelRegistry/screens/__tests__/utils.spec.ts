@@ -18,8 +18,12 @@ import {
   filterRegisteredModels,
   sortModelVersionsByCreateTime,
   isValidHttpUrl,
+  filterCustomProperties,
+  isPipelineRunExist,
+  isRedHatRegistryUri,
 } from '~/pages/modelRegistry/screens/utils';
 import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
+import { pipelineRunSpecificKeys } from '~/pages/modelRegistry/screens/ModelVersionDetails/const';
 
 describe('getLabels', () => {
   it('should return an empty array when customProperties is empty', () => {
@@ -402,5 +406,83 @@ describe('isValidHttpUrl', () => {
 
   it('should return false for a URL with an invalid format', () => {
     expect(isValidHttpUrl('http://example..com')).toBe(false);
+  });
+});
+
+describe('filterCustomProperties', () => {
+  it('filter pipeline specific keys from custom properties', () => {
+    const customProperties: ModelRegistryCustomProperties = {
+      'Label x': {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: '',
+      },
+      _registeredFromPipelineProject: {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: 'test-project',
+      },
+      _registeredFromPipelineRunId: {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: 'pipelinerun1',
+      },
+      _registeredFromPipelineRunName: {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: 'pipeline-run-test',
+      },
+    };
+    const result = filterCustomProperties(customProperties, pipelineRunSpecificKeys);
+    expect(result).toStrictEqual({
+      'Label x': {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: '',
+      },
+    });
+  });
+});
+
+describe('isPipelineRunExist', () => {
+  it('return True when pipeline run specific key exist in custom properties', () => {
+    const customProperties: ModelRegistryCustomProperties = {
+      'Label x': {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: '',
+      },
+      _registeredFromPipelineProject: {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: 'test-project',
+      },
+      _registeredFromPipelineRunId: {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: 'pipelinerun1',
+      },
+      _registeredFromPipelineRunName: {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: 'pipeline-run-test',
+      },
+    };
+    const result = isPipelineRunExist(customProperties, pipelineRunSpecificKeys);
+    expect(result).toEqual(true);
+  });
+
+  it('return false, when pipeline run specific key doesnot exist in custom properties', () => {
+    const result = isPipelineRunExist(
+      {
+        'Label x': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+      },
+      pipelineRunSpecificKeys,
+    );
+    expect(result).toEqual(false);
+  });
+});
+
+describe('isRedHatRegistryUri', () => {
+  it('should return true for RedHat registry URI', () => {
+    expect(isRedHatRegistryUri('oci://registry.redhat.io/test/test')).toBe(true);
+  });
+
+  it('should return false for non-RedHat registry URI', () => {
+    expect(isValidHttpUrl('http://example.com')).toBe(true);
   });
 });

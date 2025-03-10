@@ -6,8 +6,13 @@ import { PipelineRecurringRunKF, PipelineRunKF } from '~/concepts/pipelines/kfTy
 type PipelineRunTypeLabelProps = {
   run: PipelineRunKF | PipelineRecurringRunKF;
   isCompact?: boolean;
+  isModelRegistered?: boolean;
 };
-const PipelineRunTypeLabel: React.FC<PipelineRunTypeLabelProps> = ({ run, isCompact }) => (
+const PipelineRunTypeLabel: React.FC<PipelineRunTypeLabelProps> = ({
+  run,
+  isCompact,
+  isModelRegistered,
+}) => (
   <>
     {run.recurring_run_id ? (
       <>
@@ -24,6 +29,14 @@ const PipelineRunTypeLabel: React.FC<PipelineRunTypeLabelProps> = ({ run, isComp
             {PipelineRunLabels.ONEOFF}
           </Label>
         </Tooltip>
+      </>
+    )}
+    {isModelRegistered && (
+      <>
+        {' '}
+        <Label color="green" isCompact={isCompact}>
+          Model registered
+        </Label>
       </>
     )}
   </>

@@ -129,8 +129,34 @@ jobs:
             echo "test-groups=[\"default\"]" >> "$GITHUB_OUTPUT"
           fi
 
+  Cypress-Setup:
+    needs: [Setup]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/Cypress
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/backend/node_modules
+            ${{ github.workspace }}/frontend/node_modules
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: Cypress build cache
+        uses: actions/cache@v4
+        id: cypress-build-cache
+        with:
+          path: |
+            ${{ github.workspace }}/frontend/public-cypress
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-build-${{ github.sha }}
+      - name: Build frontend for cypress
+        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
+        run: npm run cypress:server:build:coverage
+        working-directory: ./frontend
+
   Cypress-Mock-Tests:
-    needs: [Setup, Get-Test-Groups, Unit-Tests, Lint]
+    needs: [Cypress-Setup, Get-Test-Groups]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -147,12 +173,18 @@ jobs:
             ${{ github.workspace }}/backend/node_modules
             ${{ github.workspace }}/frontend/node_modules
           key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: Restore Cypress build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/frontend/public-cypress
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-build-${{ github.sha }}
       - name: Run Cypress Mock tests
         run: |
           if [ "${{ matrix.test-group }}" == "default" ]; then
-            npm run test:cypress-ci:coverage
+            npm run test:cypress-ci:coverage:nobuild
           else
-            npm run test:cypress-ci:coverage -- --spec "src/__tests__/cypress/cypress/tests/mocked/${{ matrix.test-group }}/**/*"
+            npm run test:cypress-ci:coverage:nobuild -- --spec "src/__tests__/cypress/cypress/tests/mocked/${{ matrix.test-group }}/**/*"
           fi
         working-directory: ./frontend
       - name: Upload Cypress Mock results
@@ -223,10 +255,8 @@ jobs:
   Tests:
     runs-on: ubuntu-latest
     needs:
-      - Setup
       - Lint
       - Unit-Tests
-      - Get-Test-Groups
       - Cypress-Mock-Tests
       - Combine-Results-and-Upload
     steps:

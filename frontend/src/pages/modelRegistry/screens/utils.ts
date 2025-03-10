@@ -176,3 +176,23 @@ export const isValidHttpUrl = (value: string): boolean => {
     return false;
   }
 };
+
+export const filterCustomProperties = (
+  customProperties: ModelRegistryCustomProperties,
+  keys: string[],
+): ModelRegistryCustomProperties => {
+  const filteredCustomProperties: ModelRegistryCustomProperties = {};
+  Object.keys(customProperties).forEach((key) => {
+    if (!keys.includes(key)) {
+      filteredCustomProperties[key] = customProperties[key];
+    }
+  });
+  return filteredCustomProperties;
+};
+
+export const isPipelineRunExist = (
+  customProperties: ModelRegistryCustomProperties,
+  keys: string[],
+): boolean => keys.every((key) => key in customProperties);
+export const isRedHatRegistryUri = (uri: string): boolean =>
+  uri.startsWith('oci://registry.redhat.io/');

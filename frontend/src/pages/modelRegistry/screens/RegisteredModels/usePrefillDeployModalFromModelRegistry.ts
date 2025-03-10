@@ -11,6 +11,7 @@ import {
 import { AwsKeys, EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
+import { isRedHatRegistryUri } from '~/pages/modelRegistry/screens/utils';
 import useLabeledConnections from './useLabeledConnections';
 
 const usePrefillDeployModalFromModelRegistry = (
@@ -20,13 +21,12 @@ const usePrefillDeployModalFromModelRegistry = (
   registeredModelDeployInfo?: RegisteredModelDeployInfo,
 ): [LabeledConnection[], boolean, Error | undefined] => {
   const [fetchedConnections, connectionsLoaded, connectionsLoadError] = useConnections(
-    projectContext ? undefined : createData.project,
+    projectContext ? projectContext.currentProject.metadata.name : createData.project,
     true,
   );
-  const allConnections = projectContext?.connections || fetchedConnections;
   const { connections, storageFields } = useLabeledConnections(
     registeredModelDeployInfo?.modelArtifactUri,
-    allConnections,
+    fetchedConnections,
   );
 
   React.useEffect(() => {
@@ -119,9 +119,50 @@ const usePrefillDeployModalFromModelRegistry = (
             type: InferenceServiceStorageType.EXISTING_STORAGE,
           });
         }
+      } else if (storageFields.ociUri) {
+        if (isRedHatRegistryUri(storageFields.ociUri)) {
+          setCreateData('storage', {
+            uri: storageFields.ociUri,
+            awsData: EMPTY_AWS_SECRET_DATA,
+            dataConnection: '',
+            // FIXME: Remove connectionType: Look at https://issues.redhat.com/browse/RHOAIENG-19991 for more details
+            connectionType: '',
+            path: '',
+            type: InferenceServiceStorageType.EXISTING_URI,
+          });
+        } else if (recommendedConnections.length === 0) {
+          setCreateData('storage', {
+            awsData: EMPTY_AWS_SECRET_DATA,
+            uri: storageFields.ociUri,
+            dataConnection: '',
+            // FIXME: Remove connectionType: Look at https://issues.redhat.com/browse/RHOAIENG-19991 for more details
+            connectionType: registeredModelDeployInfo.modelLocationType,
+            path: '',
+            type: InferenceServiceStorageType.NEW_STORAGE,
+            alert,
+          });
+        } else if (recommendedConnections.length === 1) {
+          setCreateData('storage', {
+            uri: storageFields.ociUri,
+            awsData: EMPTY_AWS_SECRET_DATA,
+            dataConnection: recommendedConnections[0].connection.metadata.name,
+            path: '',
+            type: InferenceServiceStorageType.EXISTING_STORAGE,
+          });
+        } else {
+          setCreateData('storage', {
+            uri: storageFields.ociUri,
+            awsData: EMPTY_AWS_SECRET_DATA,
+            dataConnection: '',
+            // FIXME: Remove connectionType: Look at https://issues.redhat.com/browse/RHOAIENG-19991 for more details
+            connectionType: registeredModelDeployInfo.modelLocationType,
+            path: '',
+            type: InferenceServiceStorageType.EXISTING_STORAGE,
+          });
+        }
       }
     }
-  }, [connections, storageFields, registeredModelDeployInfo, setCreateData]);
+  }, [connections, storageFields, registeredModelDeployInfo, setCreateData, connectionsLoaded]);
 
   return [connections, connectionsLoaded, connectionsLoadError];
 };

@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import { hardwareProfileValidationSchema } from '~/concepts/hardwareProfiles/validationUtils';
+import { isCpuLimitLarger, isMemoryLimitLarger } from '~/utilities/valueUnits';
+import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import {
   FineTuneTaxonomyType,
   ModelCustomizationEndpointType,
@@ -110,13 +113,6 @@ export const numericFieldSchema = z
     }
   });
 
-export const trainingHardwareFormSchema = z.object({
-  hardwareProfile: z.object({
-    value: z.string().min(1, 'Hardware profile is required'),
-  }),
-  accelerators: numericFieldSchema,
-});
-
 export const runTypeSchema = z.enum([
   ModelCustomizationRunType.FULL_RUN,
   ModelCustomizationRunType.SIMPLE_RUN,
@@ -151,6 +147,23 @@ export const fineTuneTaxonomySchema = z.object({
   ]),
 });
 
+const hardwareSchema = z.object({
+  podSpecOptions: z.object({
+    cpuCount: z
+      .union([z.string(), z.number()])
+      .refine((val) => isCpuLimitLarger(0, val), { message: 'CPU count must be greater than 0' }),
+    memoryCount: z.string().refine((val) => isMemoryLimitLarger('0', val), {
+      message: 'Memory count must be greater than 0',
+    }),
+    gpuCount: z.number().refine((val) => val > 0, { message: 'GPU count must be greater than 0' }),
+    gpuIdentifier: z.string().trim().min(1, 'GPU identifier cannot be empty'),
+    tolerations: z.array(z.any()).optional(),
+    nodeSelector: z.record(z.any()).optional(),
+  }),
+  hardwareProfileConfig: hardwareProfileValidationSchema.optional(),
+  acceleratorProfileConfig: z.custom<AcceleratorProfileFormData>().optional(),
+});
+
 export type FineTuneTaxonomyFormData = z.infer<typeof fineTuneTaxonomySchema>;
 
 export const modelCustomizationFormSchema = z.object({
@@ -160,10 +173,13 @@ export const modelCustomizationFormSchema = z.object({
   outputModel: outputModelSchema,
   teacher: teacherJudgeModel,
   judge: teacherJudgeModel,
+  trainingNode: z.number().refine((val) => val > 0, { message: 'Number must be greater than 0' }),
+  storageClass: z.string().trim().min(1, { message: 'storage class is required' }),
+  hardware: hardwareSchema,
 });
 
 export type ModelCustomizationFormData = z.infer<typeof modelCustomizationFormSchema>;
-
 export type BaseModelFormData = z.infer<typeof baseModelSchema>;
 export type OutputModelFormData = z.infer<typeof outputModelSchema>;
 export type TeacherJudgeFormData = z.infer<typeof teacherJudgeModel>;
+export type HardwareFormData = z.infer<typeof hardwareSchema>;

@@ -3,7 +3,7 @@ import { Alert, FormGroup, Stack, StackItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import { ProjectKind } from '~/k8sTypes';
+import { KnownLabels, ProjectKind } from '~/k8sTypes';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import SimpleSelect from '~/components/SimpleSelect';
 
@@ -14,6 +14,7 @@ type ProjectSelectorProps = {
   modelRegistryName?: string;
   registeredModelId?: string;
   modelVersionId?: string;
+  isOciModel?: boolean;
 };
 
 const ProjectSelector: React.FC<ProjectSelectorProps> = ({
@@ -23,8 +24,14 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   modelRegistryName,
   registeredModelId,
   modelVersionId,
+  isOciModel,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
+  const kserveProjects = projects.filter(
+    (project) =>
+      !project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT] ||
+      project.metadata.labels[KnownLabels.MODEL_SERVING_PROJECT] === 'false',
+  );
 
   const projectLinkUrlParams = new URLSearchParams();
   projectLinkUrlParams.set('section', ProjectSectionID.MODEL_SERVER);
@@ -50,7 +57,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
               }
             }}
             value={selectedProject?.metadata.name}
-            options={projects.map((project) => ({
+            options={(isOciModel ? kserveProjects : projects).map((project) => ({
               key: project.metadata.name,
               value: project.metadata.name,
               label: getDisplayNameFromK8sResource(project),

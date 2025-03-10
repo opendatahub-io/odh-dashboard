@@ -15,6 +15,8 @@ import { modelRegistryUrl, registeredModelUrl } from '~/pages/modelRegistry/scre
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { useAppSelector } from '~/redux/hooks';
 import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegisteredModels';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 import { useRegisterModelData } from './useRegisterModelData';
 import {
   isModelNameExisting,
@@ -28,6 +30,7 @@ import RegistrationFormFooter from './RegistrationFormFooter';
 import { SubmitLabel } from './const';
 import RegisterModelDetailsFormSection from './RegisterModelDetailsFormSection';
 
+const eventName = 'Model Registered';
 const RegisterModel: React.FC = () => {
   const { modelRegistry: mrName } = useParams();
   const navigate = useNavigate();
@@ -60,8 +63,18 @@ const RegisterModel: React.FC = () => {
       errors,
     } = await registerModel(apiState, formData, author);
     if (registeredModel && modelVersion && modelArtifact) {
+      fireFormTrackingEvent(eventName, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+        locationType: formData.modelLocationType,
+      });
       navigate(registeredModelUrl(registeredModel.id, mrName));
     } else if (Object.keys(errors).length > 0) {
+      fireFormTrackingEvent(eventName, {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        locationType: formData.modelLocationType,
+      });
       setIsSubmitting(false);
       setSubmittedRegisteredModelName(formData.modelName);
       setSubmittedVersionName(formData.versionName);
@@ -70,7 +83,10 @@ const RegisterModel: React.FC = () => {
       setSubmitError(errors[resourceName]);
     }
   };
-  const onCancel = () => navigate(modelRegistryUrl(mrName));
+  const onCancel = () => {
+    fireFormTrackingEvent(eventName, { outcome: TrackingOutcome.cancel });
+    navigate(modelRegistryUrl(mrName));
+  };
 
   return (
     <ApplicationsPage

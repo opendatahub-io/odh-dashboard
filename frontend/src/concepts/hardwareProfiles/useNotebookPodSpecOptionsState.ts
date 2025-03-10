@@ -1,39 +1,32 @@
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 import { useNotebookSizeState } from '~/pages/projects/screens/spawner/useNotebookSizeState';
-import { AcceleratorProfileKind, HardwareProfileKind, NotebookKind } from '~/k8sTypes';
+import { NotebookKind } from '~/k8sTypes';
 import useNotebookAcceleratorProfileFormState from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileFormState';
-import { ContainerResources, NodeSelector, Notebook, NotebookSize, Toleration } from '~/types';
+import { Notebook, NotebookSize } from '~/types';
 import { assemblePodSpecOptions } from '~/utilities/podSpec';
 import { useAppContext } from '~/app/AppContext';
 import { usePreferredNotebookSize } from '~/pages/notebookController/screens/server/usePreferredNotebookSize';
 import useNotebookHardwareProfileConfig from './useNotebookHardwareProfileConfig';
+import { PodSpecOptions, PodSpecOptionsState } from './types';
 
-export type PodSpecOptions = {
-  resources: ContainerResources;
-  tolerations: Toleration[];
-  nodeSelector: NodeSelector;
+export type NotebookPodSpecOptions = PodSpecOptions & {
   lastSizeSelection?: string;
-  selectedAcceleratorProfile?: AcceleratorProfileKind;
-  selectedHardwareProfile?: HardwareProfileKind;
 };
 
-export type PodSpecOptionsState = {
+export type NotebookPodSpecOptionsState = PodSpecOptionsState<NotebookPodSpecOptions> & {
   notebooksSize: ReturnType<typeof useNotebookSizeState>;
-  acceleratorProfile: ReturnType<typeof useNotebookAcceleratorProfileFormState>;
-  hardwareProfile: ReturnType<typeof useNotebookHardwareProfileConfig>;
-  podSpecOptions: PodSpecOptions;
 };
 
 export const useNotebookKindPodSpecOptionsState = (
   existingNotebook?: NotebookKind,
-): PodSpecOptionsState => {
+): NotebookPodSpecOptionsState => {
   const notebookKindSizeState = useNotebookSizeState(existingNotebook);
   return useNotebookPodSpecOptionsStateBase(notebookKindSizeState, existingNotebook);
 };
 
 export const useNotebookPodSpecOptionsState = (
   existingNotebook?: Notebook,
-): PodSpecOptionsState => {
+): NotebookPodSpecOptionsState => {
   const preferredNotebookSize = usePreferredNotebookSize();
   return useNotebookPodSpecOptionsStateBase(preferredNotebookSize, existingNotebook);
 };
@@ -45,7 +38,7 @@ const useNotebookPodSpecOptionsStateBase = (
     sizes: NotebookSize[];
   },
   existingNotebook?: Notebook | NotebookKind,
-): PodSpecOptionsState => {
+): NotebookPodSpecOptionsState => {
   // feature flags
   const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
 
@@ -60,25 +53,22 @@ const useNotebookPodSpecOptionsStateBase = (
     },
   } = useAppContext();
 
-  let podSpecOptions: PodSpecOptions = {
+  let podSpecOptions: NotebookPodSpecOptions = {
     resources: {},
-    tolerations: [],
-    nodeSelector: {},
   };
 
   // fetch existing pod spec options from existing notebook
   const tolerationSettings = notebookController?.notebookTolerationSettings;
-  const existingTolerations = existingNotebook?.spec.template.spec.tolerations || [];
-  const existingResources = existingNotebook?.spec.template.spec.containers[0].resources || {};
-  const existingNodeSelector = existingNotebook?.spec.template.spec.nodeSelector || {};
+  const existingTolerations = existingNotebook?.spec.template.spec.tolerations;
+  const existingResources = existingNotebook?.spec.template.spec.containers[0].resources;
+  const existingNodeSelector = existingNotebook?.spec.template.spec.nodeSelector;
 
   // create new pod spec options from form data
-  const annotationData = {
-    lastSizeSelection: notebookSizeState.selectedSize.name,
-    selectedAcceleratorProfile: acceleratorProfileFormState.formData.profile,
-    selectedHardwareProfile: hardwareProfileConfig.formData.selectedProfile,
-  };
+
   if (isHardwareProfilesAvailable) {
+    const annotationData = {
+      selectedHardwareProfile: hardwareProfileConfig.formData.selectedProfile,
+    };
     if (hardwareProfileConfig.formData.useExistingSettings) {
       // if using existing settings, use existing pod spec options
       podSpecOptions = {
@@ -91,8 +81,8 @@ const useNotebookPodSpecOptionsStateBase = (
       // if hardware profile is selected, use the hardware profile settings
       podSpecOptions = {
         resources: hardwareProfileConfig.formData.resources,
-        tolerations: hardwareProfileConfig.formData.selectedProfile?.spec.tolerations || [],
-        nodeSelector: hardwareProfileConfig.formData.selectedProfile?.spec.nodeSelector || {},
+        tolerations: hardwareProfileConfig.formData.selectedProfile?.spec.tolerations,
+        nodeSelector: hardwareProfileConfig.formData.selectedProfile?.spec.nodeSelector,
         ...annotationData,
       };
     }
@@ -112,7 +102,8 @@ const useNotebookPodSpecOptionsStateBase = (
       resources,
       tolerations,
       nodeSelector: {},
-      ...annotationData,
+      lastSizeSelection: notebookSizeState.selectedSize.name,
+      selectedAcceleratorProfile: acceleratorProfileFormState.formData.profile,
     };
   }
 

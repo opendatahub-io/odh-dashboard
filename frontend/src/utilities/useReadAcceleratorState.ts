@@ -93,6 +93,7 @@ const useReadAcceleratorState = (
             kind: 'AcceleratorProfile',
             metadata: {
               name: 'migrated-gpu',
+              namespace: dashboardNamespace,
             },
             spec: {
               identifier: 'nvidia.com/gpu',
@@ -131,12 +132,13 @@ const useReadAcceleratorState = (
       unknownProfileDetected: false,
     });
   }, [
-    acceleratorProfiles,
     loaded,
     loadError,
     resources,
-    tolerations,
+    acceleratorProfiles,
     existingAcceleratorProfileName,
+    tolerations,
+    dashboardNamespace,
   ]);
 
   return useFetchState<AcceleratorProfileState>(
