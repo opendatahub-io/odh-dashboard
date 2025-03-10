@@ -45,6 +45,10 @@ class ConnectionModal extends Modal {
     return cy.findByText('S3 compatible object storage - v1');
   }
 
+  findOCIConnectionType() {
+    return cy.findByText('OCI compliant registry - v1');
+  }
+
   findSubmitButton() {
     return this.findFooter().findByTestId('data-connection-submit-button');
   }
@@ -83,6 +87,26 @@ class ConnectionModal extends Modal {
 
   findBucketInput() {
     return this.find().findByTestId('field AWS_S3_BUCKET');
+  }
+
+  findOCIAccessType() {
+    return this.find().findByTestId('field ACCESS_TYPE');
+  }
+
+  findOCIPullSecretOption() {
+    return cy.findByText('Pull secret');
+  }
+
+  findOCISecretDetails() {
+    return this.find().findByTestId('field .dockerconfigjson');
+  }
+
+  uploadSecretDetails(filePath: string) {
+    this.findOCISecretDetails().get('input[type=file]').selectFile(filePath, { force: true });
+  }
+
+  findOCIRegistryHost() {
+    return this.find().findByTestId('field OCI_HOST');
   }
 }
 
