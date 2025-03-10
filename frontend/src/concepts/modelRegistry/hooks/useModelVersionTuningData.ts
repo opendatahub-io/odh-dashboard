@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import type { ModelVersion } from '~/concepts/modelRegistry/types';
+import type { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { getServerAddress } from '~/pages/modelRegistry/screens/utils';
@@ -8,17 +8,9 @@ import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/M
 export const useModelVersionTuningData = (
   modelVersionId: string | null,
   modelVersion: ModelVersion | null,
+  registeredModel: RegisteredModel | null,
 ): {
-  tuningData: {
-    modelRegistryName: string;
-    modelRegistryDisplayName: string;
-    registeredModelId: string;
-    registeredModelName: string;
-    modelVersionId: string;
-    modelVersionName: string;
-    inputModelLocationUri: string;
-    outputModelRegistryApiUrl: string;
-  } | null;
+  tuningData: Record<string, string> | null;
   loaded: boolean;
   loadError: Error | null;
 } => {
@@ -39,15 +31,15 @@ export const useModelVersionTuningData = (
 
   return {
     tuningData:
-      modelVersionId && modelVersion && inputModelLocationUri
+      modelVersion && registeredModel
         ? {
             modelRegistryName: registryService?.metadata.name || '',
             modelRegistryDisplayName,
             registeredModelId: modelVersion.registeredModelId,
-            registeredModelName: modelVersion.name,
+            registeredModelName: registeredModel.name,
             modelVersionId: modelVersion.id,
             modelVersionName: modelVersion.name,
-            inputModelLocationUri,
+            inputModelLocationUri: inputModelLocationUri || '',
             outputModelRegistryApiUrl,
           }
         : null,

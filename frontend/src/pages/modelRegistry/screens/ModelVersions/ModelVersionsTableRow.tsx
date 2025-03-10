@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import { Content, ContentVariants, Truncate, FlexItem } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
-import { ModelVersion, ModelState } from '~/concepts/modelRegistry/types';
+import { ModelVersion, ModelState, RegisteredModel } from '~/concepts/modelRegistry/types';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import ModelLabels from '~/pages/modelRegistry/screens/components/ModelLabels';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
@@ -23,6 +23,7 @@ import { getModelCustomizationPath } from '~/routes/pipelines/modelCustomization
 
 type ModelVersionsTableRowProps = {
   modelVersion: ModelVersion;
+  registeredModel: RegisteredModel;
   isArchiveRow?: boolean;
   isArchiveModel?: boolean;
   hasDeployment?: boolean;
@@ -31,6 +32,7 @@ type ModelVersionsTableRowProps = {
 
 const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
   modelVersion: mv,
+  registeredModel,
   isArchiveRow,
   isArchiveModel,
   hasDeployment = false,
@@ -49,6 +51,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
   const { tuningData, loaded, loadError } = useModelVersionTuningData(
     tuningModelVersionId,
     tuningModelVersionId === mv.id ? mv : null,
+    registeredModel,
   );
 
   if (!preferredModelRegistry) {

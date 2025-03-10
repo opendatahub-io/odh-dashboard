@@ -13,7 +13,7 @@ import {
 import { useNavigate } from 'react-router';
 import { ArchiveModelVersionModal } from '~/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
-import { ModelVersion, ModelState } from '~/concepts/modelRegistry/types';
+import { ModelVersion, ModelState, RegisteredModel } from '~/concepts/modelRegistry/types';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import {
   modelVersionDeploymentsUrl,
@@ -27,12 +27,14 @@ import { getModelCustomizationPath } from '~/routes/pipelines/modelCustomization
 
 interface ModelVersionsDetailsHeaderActionsProps {
   mv: ModelVersion;
+  registeredModel: RegisteredModel | null;
   hasDeployment?: boolean;
   refresh: () => void;
 }
 
 const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActionsProps> = ({
   mv,
+  registeredModel,
   hasDeployment = false,
   refresh,
 }) => {
@@ -50,6 +52,7 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
   const { tuningData, loaded, loadError } = useModelVersionTuningData(
     isLabTuneModalOpen ? mv.id : null,
     mv,
+    registeredModel,
   );
 
   if (!preferredModelRegistry) {
