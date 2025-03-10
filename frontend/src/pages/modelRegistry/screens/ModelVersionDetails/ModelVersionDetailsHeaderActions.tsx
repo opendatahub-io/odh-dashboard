@@ -71,7 +71,11 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
           </Button>
         </ActionListItem>
         {isFineTuningEnabled && (
-          <ActionListItem className="pf-v5-u-w-100">
+          <ActionListItem
+            className="pf-v5-u-w-100"
+            data-testid="lab-tune-button"
+            aria-label="Lab tune version"
+          >
             <Button variant="secondary" onClick={() => setIsLabTuneModalOpen(true)}>
               LAB tune
             </Button>

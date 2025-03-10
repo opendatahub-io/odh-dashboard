@@ -316,6 +316,6 @@ describe('Model Versions', () => {
     registeredModelRow.findName().contains('Fraud detection model').click();
 
     const modelVersionRow = modelRegistry.getModelVersionRow('model version');
-    modelVersionRow.findKebabAction('Lab tune').click();
+    modelVersionRow.findKebabAction('LAB tune').click();
   });
 });
