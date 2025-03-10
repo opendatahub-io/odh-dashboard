@@ -1,6 +1,7 @@
 export enum FineTunePageSections {
   PROJECT_DETAILS = 'fine-tune-section-project-details',
   TAXONOMY_DETAILS = 'fine-tune-section-taxonomy-details',
+  PIPELINE_DETAILS = 'fine-tine-section-pipeline-details',
   BASE_MODEL = 'fine-tune-section-base-model',
   TEACHER_MODEL = 'fine-tune-section-teacher-model',
   JUDGE_MODEL = 'fine-tune-section-judge-model',
@@ -21,6 +22,7 @@ export enum PipelineInputParameters {
 
 export const fineTunePageSectionTitles: Record<FineTunePageSections, string> = {
   [FineTunePageSections.PROJECT_DETAILS]: 'Project details',
+  [FineTunePageSections.PIPELINE_DETAILS]: 'Pipeline details',
   [FineTunePageSections.TAXONOMY_DETAILS]: 'Taxonomy details',
   [FineTunePageSections.BASE_MODEL]: 'Base model',
   [FineTunePageSections.TEACHER_MODEL]: 'Teacher model',
