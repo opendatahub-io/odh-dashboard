@@ -32,6 +32,7 @@ import {
   createTaxonomySecret,
   translateIlabFormToTaxonomyInput,
   translateIlabFormToBaseModelInput,
+  translateIlabFormToHardwareInput,
 } from '~/pages/pipelines/global/modelCustomization/utils';
 import { genRandomChars } from '~/utilities/string';
 import { RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
@@ -68,7 +69,6 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
 
   const { validationResult } = React.useContext(ValidationContext);
   const isValid = validationResult.success;
-
   // TODO: translate data to `RunFormData`
   const [runFormData] = useRunFormData(null, {
     nameDesc: {
@@ -108,6 +108,7 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
           ),
           ...translateIlabFormToTaxonomyInput(data, taxonomySecret.metadata.name),
           ...translateIlabFormToBaseModelInput(data),
+          ...translateIlabFormToHardwareInput(data),
         },
       },
       api,

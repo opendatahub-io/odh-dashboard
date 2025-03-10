@@ -52,7 +52,7 @@ describe('encodeParams', () => {
     });
     expect(result).toEqual({
       sourceName: 'sample%20test',
-      tag: '1.33-44',
+      tag: '1%252E33-44',
       repositoryName: 'test%4012',
       modelName: 'test',
     });

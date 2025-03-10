@@ -21,7 +21,6 @@ import { useContextResourceData } from '~/utilities/useContextResourceData';
 import { useDashboardNamespace } from '~/redux/selectors';
 import { DataConnection } from '~/pages/projects/types';
 import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
-import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { conditionalArea, SupportedArea } from '~/concepts/areas';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
@@ -81,7 +80,6 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
   const navigate = useNavigate();
   const { projects, preferredProject } = React.useContext(ProjectsContext);
   const project = projects.find(byName(namespace)) ?? null;
-  useSyncPreferredProject(project);
   const servingRuntimeTemplates = useTemplates(dashboardNamespace);
 
   const servingRuntimeTemplateOrder = useContextResourceData<string>(

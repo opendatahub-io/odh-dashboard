@@ -4,6 +4,7 @@ import {
   modelCustomizationFormGlobal,
   teacherModelSection,
   taxonomySection,
+  hardwareSection,
 } from '~/__tests__/cypress/cypress/pages/pipelines/modelCustomizationForm';
 import {
   buildMockPipeline,
@@ -16,13 +17,18 @@ import {
   mockProjectK8sResource,
   mockRouteK8sResource,
   mockSecretK8sResource,
+  mockStorageClassList,
 } from '~/__mocks__';
 import {
   DataSciencePipelineApplicationModel,
+  HardwareProfileModel,
   ProjectModel,
   RouteModel,
   SecretModel,
+  StorageClassModel,
 } from '~/__tests__/cypress/cypress/utils/models';
+import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
+import { TolerationEffect, TolerationOperator } from '~/types';
 
 const projectName = 'test-project-name-2';
 const invalidMockPipeline = buildMockPipeline();
@@ -50,9 +56,8 @@ describe('Model Customization Form', () => {
   it('Should submit', () => {
     initIntercepts({});
     modelCustomizationFormGlobal.visit(projectName);
-    cy.wait('@getAllPipelines');
-    cy.wait('@getAllPipelineVersions');
-
+    cy.wait('@getIlabPipeline');
+    cy.wait('@getIlabPipelineVersions');
     teacherModelSection.findEndpointInput().type('http://test.com');
     teacherModelSection.findModelNameInput().type('test');
     judgeModelSection.findEndpointInput().type('http://test.com');
@@ -63,17 +68,15 @@ describe('Model Customization Form', () => {
     taxonomySection.findUsernameAndTokenRadio().check();
     taxonomySection.findTaxonomyUsername().fill('test');
     taxonomySection.findTaxonomyToken().fill('test');
+    hardwareSection.selectProfile(
+      'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi; Nvidia.com/gpu: Request = 2; Limit = 2',
+    );
+    hardwareSection.findTrainingNodePlusButton().click();
+
     modelCustomizationFormGlobal.findSubmitButton().should('be.disabled');
   });
   it('Should not submit', () => {
     initIntercepts({});
-    cy.interceptOdh(
-      'GET /apis/v2beta1/pipelines/names/:pipelineName',
-      {
-        path: { pipelineName: 'instructlab' },
-      },
-      buildMockPipeline(invalidMockPipeline),
-    ).as('getAllPipelines');
     cy.interceptOdh(
       'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/names/:pipelineName',
       {
@@ -86,23 +89,27 @@ describe('Model Customization Form', () => {
       buildMockPipeline(invalidMockPipeline),
     ).as('getIlabPipeline');
     modelCustomizationFormGlobal.visit(projectName);
-    cy.wait('@getAllPipelines');
+    cy.wait('@getIlabPipeline');
     modelCustomizationFormGlobal.findSubmitButton().should('be.disabled');
   });
 });
 
 type HandlersProps = {
   disableFineTuning?: boolean;
+  disableHardwareProfiles?: boolean;
   isEmptyProject?: boolean;
 };
 
 export const initIntercepts = (
-  { disableFineTuning = false, isEmptyProject }: HandlersProps = { isEmptyProject: false },
+  { disableFineTuning = false, disableHardwareProfiles = false, isEmptyProject }: HandlersProps = {
+    isEmptyProject: false,
+  },
 ): void => {
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
       disableFineTuning,
+      disableHardwareProfiles,
     }),
   );
   cy.interceptK8sList(
@@ -185,6 +192,82 @@ export const initIntercepts = (
     },
     initialMockPipeline,
   );
+  cy.interceptK8sList(StorageClassModel, mockStorageClassList());
+  cy.interceptK8sList(
+    { model: HardwareProfileModel, ns: 'opendatahub' },
+    mockK8sResourceList([
+      mockHardwareProfile({
+        name: 'small-profile',
+        displayName: 'Small Profile',
+        identifiers: [
+          {
+            displayName: 'CPU',
+            identifier: 'cpu',
+            minCount: '1',
+            maxCount: '2',
+            defaultCount: '1',
+          },
+          {
+            displayName: 'Memory',
+            identifier: 'memory',
+            minCount: '2Gi',
+            maxCount: '4Gi',
+            defaultCount: '2Gi',
+          },
+          {
+            displayName: 'Nvidia.com/gpu',
+            identifier: 'nvidia.com/gpu',
+            minCount: '2',
+            maxCount: '4',
+            defaultCount: '2',
+          },
+        ],
+        tolerations: [
+          {
+            effect: TolerationEffect.NO_SCHEDULE,
+            key: 'NotebooksOnlyChange',
+            operator: TolerationOperator.EXISTS,
+          },
+        ],
+        nodeSelector: {},
+      }),
+      mockHardwareProfile({
+        name: 'medium-profile',
+        displayName: 'Medium Profile',
+        identifiers: [
+          {
+            displayName: 'CPU',
+            identifier: 'cpu',
+            minCount: '1',
+            maxCount: '2',
+            defaultCount: '1',
+          },
+          {
+            displayName: 'Memory',
+            identifier: 'memory',
+            minCount: '2Gi',
+            maxCount: '4Gi',
+            defaultCount: '2Gi',
+          },
+          {
+            displayName: 'Nvidia.com/gpu',
+            identifier: 'nvidia.cpm/gpu',
+            minCount: '2',
+            maxCount: '4',
+            defaultCount: '2',
+          },
+        ],
+        tolerations: [
+          {
+            effect: TolerationEffect.NO_SCHEDULE,
+            key: 'NotebooksOnlyChange',
+            operator: TolerationOperator.EXISTS,
+          },
+        ],
+        nodeSelector: {},
+      }),
+    ]),
+  );
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId',
     {
@@ -197,14 +280,6 @@ export const initIntercepts = (
     },
     initialMockPipelineVersion,
   );
-
-  cy.interceptOdh(
-    'GET /apis/v2beta1/pipelines/names/:pipelineName',
-    {
-      path: { pipelineName: 'instructlab' },
-    },
-    buildMockPipeline(initialMockPipeline),
-  ).as('getAllPipelines');
 
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/names/:pipelineName',
@@ -224,5 +299,5 @@ export const initIntercepts = (
       path: { namespace: projectName, serviceName: 'dspa', pipelineId: 'instructlab' },
     },
     buildMockPipelines([initialMockPipelineVersion]),
-  ).as('getAllPipelineVersions');
+  ).as('getIlabPipelineVersions');
 };

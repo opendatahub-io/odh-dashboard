@@ -24,6 +24,9 @@ import {
 } from '~/pages/pipelines/global/experiments/ExperimentContext';
 import { getDashboardMainContainer } from '~/utilities/utils';
 import usePipelineRunExperimentInfo from '~/concepts/pipelines/content/tables/usePipelineRunExperimentInfo';
+import RestoreRunWithArchivedExperimentModal from '~/pages/pipelines/global/runs/RestoreRunWithArchivedExperimentModal';
+import { useFetchRunArtifact } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useFetchRunArtifact';
+import { isPipelineRunRegistered } from './utils';
 
 type PipelineRunTableRowProps = {
   checkboxProps: Omit<React.ComponentProps<typeof CheckboxTd>, 'id'>;
@@ -56,6 +59,11 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const { isExperimentArchived, isExperimentDeleted } =
     useContextExperimentArchivedOrDeleted(experiment);
+  const [mlmdData] = useFetchRunArtifact(run.run_id);
+  const isRegistered = isPipelineRunRegistered(mlmdData);
+
+  const { isExperimentArchived: isContextExperimentArchived } =
+    useContextExperimentArchivedOrDeleted();
 
   const actions: IAction[] = React.useMemo(() => {
     const duplicateAction: IAction = {
@@ -70,10 +78,10 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
         {
           title: 'Restore',
           onClick: () => setIsRestoreModalOpen(true),
-          isAriaDisabled: isExperimentArchived || isExperimentDeleted,
-          ...((isExperimentArchived || isExperimentDeleted) && {
+          isAriaDisabled: isContextExperimentArchived || isExperimentDeleted,
+          ...((isContextExperimentArchived || isExperimentDeleted) && {
             tooltipProps: {
-              content: isExperimentArchived
+              content: isContextExperimentArchived
                 ? 'Archived runs cannot be restored until its associated experiment is restored.'
                 : 'Archived runs cannot be restored because its associated experiment is deleted.',
             },
@@ -119,14 +127,14 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       },
     ];
   }, [
-    contextExperiment?.experiment_id,
     runType,
     run.state,
     run.run_id,
     version,
     navigate,
     namespace,
-    isExperimentArchived,
+    contextExperiment?.experiment_id,
+    isContextExperimentArchived,
     isExperimentDeleted,
     onDelete,
     api,
@@ -146,15 +154,16 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
           stickyLeftOffset: '45px',
         })}
       >
-        <PipelineRunTableRowTitle run={run} />
+        <PipelineRunTableRowTitle run={run} isModelRegistered={isRegistered} />
       </Td>
       <Td modifier="truncate" dataLabel="Pipeline">
         <PipelineVersionLink version={version} error={versionError} loaded={isVersionLoaded} />
       </Td>
       {!contextExperiment && (
-        <Td modifier="truncate" dataLabel="Experiment">
+        <Td dataLabel="Experiment">
           <PipelineRunTableRowExperiment
             experiment={experiment}
+            isExperimentArchived={isExperimentArchived}
             error={experimentError}
             loaded={isExperimentLoaded}
           />
@@ -178,7 +187,20 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
             popperProps={{ appendTo: getDashboardMainContainer, position: 'right' }}
           />
           {isRestoreModalOpen ? (
-            <RestoreRunModal runs={[run]} onCancel={() => setIsRestoreModalOpen(false)} />
+            !isExperimentArchived ? (
+              <RestoreRunModal runs={[run]} onCancel={() => setIsRestoreModalOpen(false)} />
+            ) : (
+              <RestoreRunWithArchivedExperimentModal
+                selectedRuns={[run]}
+                onClose={(restored: boolean) => {
+                  if (restored) {
+                    refreshAllAPI();
+                  }
+                  setIsRestoreModalOpen(false);
+                }}
+                archivedExperiments={experiment ? [experiment] : []}
+              />
+            )
           ) : null}
           {isArchiveModalOpen ? (
             <ArchiveRunModal runs={[run]} onCancel={() => setIsArchiveModalOpen(false)} />

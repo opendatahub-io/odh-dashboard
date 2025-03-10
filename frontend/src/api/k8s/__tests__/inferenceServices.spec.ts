@@ -388,7 +388,6 @@ describe('assembleInferenceService', () => {
     expect(annotations?.['sidecar.istio.io/inject']).toBe(undefined);
     expect(annotations?.['sidecar.istio.io/rewriteAppHTTPProbers']).toBe(undefined);
     expect(annotations?.['security.opendatahub.io/enable-auth']).toBe(undefined);
-    expect(labels?.['security.opendatahub.io/enable-auth']).toBe(undefined);
     expect(labels?.['networking.kserve.io/visibility']).toBe(undefined);
     expect(labels?.['networking.knative.dev/visibility']).toBe(undefined);
   });
@@ -401,7 +400,7 @@ describe('assembleInferenceService', () => {
       DeploymentMode.RawDeployment,
     );
     expect(ext.metadata.annotations?.['security.opendatahub.io/enable-auth']).toBe(undefined);
-    expect(ext.metadata.labels?.['security.opendatahub.io/enable-auth']).toBe(undefined);
+    expect(ext.metadata.annotations?.['security.opendatahub.io/enable-auth']).toBe(undefined);
     expect(ext.metadata.labels?.['networking.kserve.io/visibility']).toBe('exposed');
     expect(ext.metadata.labels?.['networking.knative.dev/visibility']).toBe(undefined);
 
@@ -411,8 +410,7 @@ describe('assembleInferenceService', () => {
     expect(auth.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBe(
       DeploymentMode.RawDeployment,
     );
-    expect(auth.metadata.annotations?.['security.opendatahub.io/enable-auth']).toBe(undefined);
-    expect(auth.metadata.labels?.['security.opendatahub.io/enable-auth']).toBe('true');
+    expect(auth.metadata.annotations?.['security.opendatahub.io/enable-auth']).toBe('true');
     expect(auth.metadata.labels?.['networking.kserve.io/visibility']).toBe(undefined);
     expect(auth.metadata.labels?.['networking.knative.dev/visibility']).toBe(undefined);
 
@@ -426,8 +424,7 @@ describe('assembleInferenceService', () => {
     expect(both.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBe(
       DeploymentMode.RawDeployment,
     );
-    expect(both.metadata.annotations?.['security.opendatahub.io/enable-auth']).toBe(undefined);
-    expect(both.metadata.labels?.['security.opendatahub.io/enable-auth']).toBe('true');
+    expect(both.metadata.annotations?.['security.opendatahub.io/enable-auth']).toBe('true');
     expect(both.metadata.labels?.['networking.kserve.io/visibility']).toBe('exposed');
     expect(both.metadata.labels?.['networking.knative.dev/visibility']).toBe(undefined);
   });

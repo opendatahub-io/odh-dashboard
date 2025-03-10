@@ -12,7 +12,7 @@ import { connectionsPage } from '~/__tests__/cypress/cypress/pages/connections';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
 
-const initIntercepts = (isEmpty = false) => {
+const initIntercepts = ({ isEmpty = false }) => {
   cy.interceptK8sList(
     ProjectModel,
     mockK8sResourceList([mockProjectK8sResource({ k8sName: 'test-project' })]),
@@ -46,13 +46,13 @@ const initIntercepts = (isEmpty = false) => {
 
 describe('Connections', () => {
   it('Empty state when no data connections are available', () => {
-    initIntercepts(true);
+    initIntercepts({ isEmpty: true });
     projectDetails.visitSection('test-project', 'connections');
     projectDetails.shouldBeEmptyState('Connections', 'connections', true);
   });
 
   it('List connections', () => {
-    initIntercepts();
+    initIntercepts({});
     projectDetails.visitSection('test-project', 'connections');
     projectDetails.shouldBeEmptyState('Connections', 'connections', false);
     const row1 = connectionsPage.getConnectionRow('test1');
@@ -66,7 +66,7 @@ describe('Connections', () => {
   });
 
   it('Delete a connection', () => {
-    initIntercepts();
+    initIntercepts({});
     cy.interceptK8s(
       'DELETE',
       {
@@ -88,7 +88,7 @@ describe('Connections', () => {
   });
 
   it('Add a connection', () => {
-    initIntercepts();
+    initIntercepts({});
     cy.interceptOdh('GET /api/connection-types', [
       mockConnectionTypeConfigMap({
         name: 'test',
@@ -137,7 +137,7 @@ describe('Connections', () => {
   });
 
   it('Edit a connection', () => {
-    initIntercepts();
+    initIntercepts({});
     cy.interceptOdh('GET /api/connection-types', [
       mockConnectionTypeConfigMap({
         name: 'postgres',
@@ -195,7 +195,7 @@ describe('Connections', () => {
   });
 
   it('Create an OCI connection', () => {
-    initIntercepts();
+    initIntercepts({});
     cy.interceptOdh('GET /api/connection-types', [
       mockConnectionTypeConfigMap({
         name: 'oci-v1',

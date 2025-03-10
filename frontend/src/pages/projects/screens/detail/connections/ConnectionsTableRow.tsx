@@ -6,8 +6,8 @@ import { Connection, ConnectionTypeConfigMapObj } from '~/concepts/connectionTyp
 import { TableRowTitleDescription } from '~/components/table';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import {
-  getConnectionModelServingCompatibleTypes,
   getConnectionTypeDisplayName,
+  getModelServingCompatibility,
 } from '~/concepts/connectionTypes/utils';
 import CompatibilityLabel from '~/concepts/connectionTypes/CompatibilityLabel';
 import ConnectedResources from '~/pages/projects/screens/detail/connections/ConnectedResources';
@@ -34,7 +34,7 @@ const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
     [obj, connectionTypes],
   );
 
-  const compatibleTypes = getConnectionModelServingCompatibleTypes(obj);
+  const compatibleTypes = getModelServingCompatibility(obj);
 
   return (
     <Tr>

@@ -29,6 +29,7 @@ export const ArchiveRunModal: React.FC<ArchiveRunModalProps> = ({ runs, onCancel
       onSubmit={onSubmit}
       onCancel={onCancel}
       testId="archive-run-modal"
+      whatToArchive="runs"
     >
       {isSingleArchiving ? (
         <StackItem>

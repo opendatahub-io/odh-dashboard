@@ -4,15 +4,17 @@ import MemoryField from '~/components/MemoryField';
 import CPUField from '~/components/CPUField';
 import NumberInputWrapper from '~/components/NumberInputWrapper';
 import { IdentifierResourceType } from '~/types';
+import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
 
 type CountFormFieldProps = {
-  label: string;
+  label?: string;
   fieldId: string;
   size: number | string;
   setSize: (value: number | string) => void;
   type?: IdentifierResourceType;
   errorMessage?: string;
   isValid?: boolean;
+  tooltip?: string;
 };
 
 const CountFormField: React.FC<CountFormFieldProps> = ({
@@ -23,6 +25,7 @@ const CountFormField: React.FC<CountFormFieldProps> = ({
   type,
   errorMessage,
   isValid = true,
+  tooltip,
 }) => {
   const renderInputField = () => {
     switch (type) {
@@ -46,7 +49,12 @@ const CountFormField: React.FC<CountFormFieldProps> = ({
   };
 
   return (
-    <FormGroup label={label} fieldId={fieldId} data-testid={`node-resource-size-${fieldId}`}>
+    <FormGroup
+      label={label}
+      fieldId={fieldId}
+      data-testid={`node-resource-size-${fieldId}`}
+      labelHelp={tooltip ? <DashboardHelpTooltip content={tooltip} /> : undefined}
+    >
       {renderInputField()}
       {!isValid && errorMessage && (
         <FormHelperText>

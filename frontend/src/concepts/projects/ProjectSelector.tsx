@@ -112,11 +112,15 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
             height: 'var(--pf-t--global--icon--size--font--2xl)',
           }}
         />
-        <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+        <Flex
+          spaceItems={{ default: 'spaceItemsSm' }}
+          alignItems={{ default: 'alignItemsCenter' }}
+          flex={{ default: 'flex_2' }}
+        >
           <FlexItem>
             <Bullseye>{selectorLabel}</Bullseye>
           </FlexItem>
-          <FlexItem>{selector}</FlexItem>
+          <FlexItem flex={{ default: 'flex_1' }}>{selector}</FlexItem>
         </Flex>
       </Flex>
     );

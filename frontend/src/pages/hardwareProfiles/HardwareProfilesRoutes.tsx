@@ -19,6 +19,7 @@ const HardwareProfilesRoutes: React.FC = () => (
   </Routes>
 );
 
-export default accessAllowedRouteHoC(verbModelAccess('list', HardwareProfileModel))(
+// TODO: Determine if create is the best value -- RHOAIENG-21129
+export default accessAllowedRouteHoC(verbModelAccess('create', HardwareProfileModel))(
   HardwareProfilesRoutes,
 );

@@ -1,5 +1,4 @@
 import React from 'react';
-import { useLocation } from 'react-router-dom';
 import { checkAccess } from '~/api';
 import { AccessReviewResourceAttributes } from '~/k8sTypes';
 import useNamespaces from '~/pages/notebookController/useNamespaces';
@@ -23,24 +22,9 @@ export const AccessReviewContext = React.createContext<AccessReviewContextType>(
   genKey: () => '',
 });
 
-/** Top level route changes, we set the cache to empty */
-const useClearCacheOnPathChange = (setAccessReviewCache: (data: AccessReviewCacheType) => void) => {
-  const { pathname } = useLocation();
-  const ref = React.useRef<string>(pathname.split('/')[0]);
-
-  React.useEffect(() => {
-    const root = pathname.split('/')[0];
-    if (ref.current !== root) {
-      // eslint-disable-next-line no-console
-      console.log('New page, clearing access route checks');
-      setAccessReviewCache({});
-    }
-  }, [pathname, setAccessReviewCache]);
-};
-
 export const AccessReviewProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [accessReviewCache, setAccessReviewCache] = React.useState<AccessReviewCacheType>({});
-  useClearCacheOnPathChange(setAccessReviewCache);
+  const keysRef = React.useRef(new Set());
   // If namespace is not provided in the data, assume it means the dashboard deployment namespace
   const { dashboardNamespace } = useNamespaces();
 
@@ -68,12 +52,13 @@ export const AccessReviewProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const key = genKey(attrs);
       const { group = '', resource = '', subresource = '', verb, name = '', namespace } = attrs;
 
-      if (key in accessReviewCache) {
+      if (keysRef.current.has(key)) {
         // Key is in cache, no need to fetch
         return;
       }
 
       // Temporarily set loading state
+      keysRef.current.add(key);
       setAccessReviewCache((oldValue) => ({
         ...oldValue,
         [key]: {
@@ -95,7 +80,7 @@ export const AccessReviewProvider: React.FC<{ children: React.ReactNode }> = ({ 
         },
       );
     },
-    [accessReviewCache, dashboardNamespace, genKey],
+    [dashboardNamespace, genKey],
   );
 
   const contextObject = React.useMemo(

@@ -10,12 +10,18 @@ import {
   Spinner,
   Alert,
 } from '@patternfly/react-core';
+import { Link } from 'react-router';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
 import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
 import EditableTextDescriptionListGroup from '~/components/EditableTextDescriptionListGroup';
 import { EditableLabelsDescriptionListGroup } from '~/components/EditableLabelsDescriptionListGroup';
 import ModelPropertiesDescriptionListGroup from '~/pages/modelRegistry/screens/ModelPropertiesDescriptionListGroup';
-import { getLabels, mergeUpdatedLabels } from '~/pages/modelRegistry/screens/utils';
+import {
+  getLabels,
+  getProperties,
+  isPipelineRunExist,
+  mergeUpdatedLabels,
+} from '~/pages/modelRegistry/screens/utils';
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
@@ -26,6 +32,9 @@ import {
   bumpRegisteredModelTimestamp,
 } from '~/concepts/modelRegistry/utils/updateTimestamps';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
+import { globalPipelineRunDetailsRoute } from '~/routes';
+import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
+import { pipelineRunSpecificKeys } from './const';
 
 type ModelVersionDetailsViewProps = {
   modelVersion: ModelVersion;
@@ -44,6 +53,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
   const modelArtifact = modelArtifacts.items.length ? modelArtifacts.items[0] : null;
   const { apiState } = React.useContext(ModelRegistryContext);
   const storageFields = uriToStorageFields(modelArtifact?.uri || '');
+  const filteredProperties = getProperties(mv.customProperties);
   const [registeredModel, registeredModelLoaded, registeredModelLoadError, refreshRegisteredModel] =
     useRegisteredModelById(mv.registeredModelId);
 
@@ -142,7 +152,48 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
           >
             <InlineTruncatedClipboardCopy testId="model-version-id" textToCopy={mv.id} />
           </DashboardDescriptionListGroup>
+          {isPipelineRunExist(mv.customProperties, pipelineRunSpecificKeys) && (
+            <DashboardDescriptionListGroup title="Registered from">
+              <Flex
+                spaceItems={{ default: 'spaceItemsXs' }}
+                alignItems={{ default: 'alignItemsCenter' }}
+                data-testid="registered-from"
+              >
+                <FlexItem data-testid="pipeline-run-link">
+                  Run{' '}
+                  {
+                    <Link
+                      style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
+                      to={globalPipelineRunDetailsRoute(
+                        filteredProperties[pipelineRunSpecificKeys[0]].string_value,
+                        filteredProperties[pipelineRunSpecificKeys[1]].string_value,
+                      )}
+                    >
+                      {filteredProperties[pipelineRunSpecificKeys[2]].string_value}
+                    </Link>
+                  }{' '}
+                  in
+                </FlexItem>
+                <FlexItem style={{ display: 'flex' }}>
+                  <img
+                    style={{ height: 24 }}
+                    src={typedObjectImage(ProjectObjectType.project)}
+                    alt=""
+                  />
+                </FlexItem>
+                <FlexItem
+                  style={{
+                    display: 'flex',
+                    fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+                  }}
+                >
+                  {filteredProperties[pipelineRunSpecificKeys[0]].string_value}
+                </FlexItem>
+              </Flex>
+            </DashboardDescriptionListGroup>
+          )}
         </DescriptionList>
+
         <Title style={{ margin: '1em 0' }} headingLevel={ContentVariants.h3}>
           Model location
         </Title>
@@ -197,20 +248,21 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                   </DashboardDescriptionListGroup>
                 </>
               )}
-              {storageFields?.uri && (
-                <>
-                  <DashboardDescriptionListGroup
-                    title="URI"
-                    isEmpty={!modelArtifact?.uri}
-                    contentWhenEmpty="No URI"
-                  >
-                    <InlineTruncatedClipboardCopy
-                      testId="storage-uri"
-                      textToCopy={modelArtifact?.uri || ''}
-                    />
-                  </DashboardDescriptionListGroup>
-                </>
-              )}
+              {storageFields?.uri ||
+                (storageFields?.ociUri && (
+                  <>
+                    <DashboardDescriptionListGroup
+                      title="URI"
+                      isEmpty={!modelArtifact?.uri}
+                      contentWhenEmpty="No URI"
+                    >
+                      <InlineTruncatedClipboardCopy
+                        testId="storage-uri"
+                        textToCopy={modelArtifact?.uri || ''}
+                      />
+                    </DashboardDescriptionListGroup>
+                  </>
+                ))}
             </DescriptionList>
             <Divider style={{ marginTop: '1em' }} />
             <Title style={{ margin: '1em 0' }} headingLevel={ContentVariants.h3}>

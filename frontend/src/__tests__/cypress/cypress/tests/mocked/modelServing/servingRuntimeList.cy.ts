@@ -641,11 +641,11 @@ describe('Serving Runtime List', () => {
 
       // sort by modelName
       modelServingSection
-        .findInferenceServiceTableHeaderButton('Model name')
+        .findInferenceServiceTableHeaderButton('Model deployment name')
         .should(be.sortAscending);
-      modelServingSection.findInferenceServiceTableHeaderButton('Model name').click();
+      modelServingSection.findInferenceServiceTableHeaderButton('Model deployment name').click();
       modelServingSection
-        .findInferenceServiceTableHeaderButton('Model name')
+        .findInferenceServiceTableHeaderButton('Model deployment name')
         .should(be.sortDescending);
     });
 
@@ -1182,9 +1182,13 @@ describe('Serving Runtime List', () => {
       // Check for resource marked for deletion
       modelServingSection.getKServeRow('Another Inference Service').shouldBeMarkedForDeletion();
 
-      modelServingSection.findKServeTableHeaderButton('Model name').should(be.sortAscending);
-      modelServingSection.findKServeTableHeaderButton('Model name').click();
-      modelServingSection.findKServeTableHeaderButton('Model name').should(be.sortDescending);
+      modelServingSection
+        .findKServeTableHeaderButton('Model deployment name')
+        .should(be.sortAscending);
+      modelServingSection.findKServeTableHeaderButton('Model deployment name').click();
+      modelServingSection
+        .findKServeTableHeaderButton('Model deployment name')
+        .should(be.sortDescending);
     });
 
     it('Check number of replicas of model', () => {
@@ -1454,10 +1458,10 @@ describe('Serving Runtime List', () => {
             annotations: {
               'openshift.io/display-name': 'Test Name',
               'serving.kserve.io/deploymentMode': DeploymentMode.RawDeployment,
+              'security.opendatahub.io/enable-auth': 'true',
             },
             labels: {
               'opendatahub.io/dashboard': 'true',
-              'security.opendatahub.io/enable-auth': 'true',
               'networking.kserve.io/visibility': 'exposed',
             },
           },
@@ -1599,10 +1603,10 @@ describe('Serving Runtime List', () => {
             annotations: {
               'openshift.io/display-name': 'Test Name',
               'serving.kserve.io/deploymentMode': DeploymentMode.RawDeployment,
+              'security.opendatahub.io/enable-auth': 'true',
             },
             labels: {
               'opendatahub.io/dashboard': 'true',
-              'security.opendatahub.io/enable-auth': 'true',
               'networking.kserve.io/visibility': 'exposed',
             },
           },

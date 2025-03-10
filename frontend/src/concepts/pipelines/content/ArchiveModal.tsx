@@ -3,6 +3,8 @@ import { Flex, FlexItem, Stack, StackItem, TextInput } from '@patternfly/react-c
 import { Modal } from '@patternfly/react-core/deprecated';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 
 interface ArchiveModalProps {
   confirmMessage: string;
@@ -12,6 +14,7 @@ interface ArchiveModalProps {
   onSubmit: () => Promise<void[]>;
   children: React.ReactNode;
   testId: string;
+  whatToArchive: 'runs' | 'experiments';
 }
 
 export const ArchiveModal: React.FC<ArchiveModalProps> = ({
@@ -22,6 +25,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
   alertTitle,
   children,
   testId,
+  whatToArchive,
 }) => {
   const { refreshAllAPI } = usePipelinesAPI();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -29,16 +33,27 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
   const [confirmInputValue, setConfirmInputValue] = React.useState('');
   const isDisabled = confirmInputValue.trim() !== confirmMessage || isSubmitting;
 
+  const eventName =
+    whatToArchive === 'runs' ? 'Pipeline Runs Archived' : 'Pipeline Experiment Archived';
+
   const onClose = React.useCallback(() => {
     setConfirmInputValue('');
     onCancel();
   }, [onCancel]);
+
+  const onCancelClose = React.useCallback(() => {
+    fireFormTrackingEvent(eventName, {
+      outcome: TrackingOutcome.cancel,
+    });
+    onClose();
+  }, [onClose, eventName]);
 
   const onConfirm = React.useCallback(async () => {
     setIsSubmitting(true);
 
     try {
       await onSubmit();
+      fireFormTrackingEvent(eventName, { outcome: TrackingOutcome.submit, success: true });
       refreshAllAPI();
       setIsSubmitting(false);
       onClose();
@@ -46,9 +61,15 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
       if (e instanceof Error) {
         setError(e);
       }
+      fireFormTrackingEvent(eventName, {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: e instanceof Error ? e.message : 'unknown error',
+      });
+
       setIsSubmitting(false);
     }
-  }, [onSubmit, onClose, refreshAllAPI]);
+  }, [onSubmit, onClose, refreshAllAPI, eventName]);
 
   return (
     <Modal
@@ -56,10 +77,10 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
       title={title}
       titleIconVariant="warning"
       variant="small"
-      onClose={onClose}
+      onClose={onCancelClose}
       footer={
         <DashboardModalFooter
-          onCancel={onClose}
+          onCancel={onCancelClose}
           onSubmit={onConfirm}
           submitLabel="Archive"
           isSubmitLoading={isSubmitting}

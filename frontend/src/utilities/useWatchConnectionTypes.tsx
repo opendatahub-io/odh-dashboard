@@ -1,6 +1,6 @@
 import React from 'react';
 import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
-import { isModelServingCompatibleConnectionType } from '~/concepts/connectionTypes/utils';
+import { isModelServingCompatible } from '~/concepts/connectionTypes/utils';
 import { fetchConnectionTypes } from '~/services/connectionTypesService';
 import useFetchState, { FetchState, FetchStateCallbackPromise } from '~/utilities/useFetchState';
 
@@ -12,7 +12,7 @@ export const useWatchConnectionTypes = (
   >(async () => {
     let connectionTypes = await fetchConnectionTypes();
     if (modelServingCompatible) {
-      connectionTypes = connectionTypes.filter(isModelServingCompatibleConnectionType);
+      connectionTypes = connectionTypes.filter((ct) => isModelServingCompatible(ct));
     }
 
     return connectionTypes;

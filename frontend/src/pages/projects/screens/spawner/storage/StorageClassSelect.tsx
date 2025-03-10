@@ -3,7 +3,6 @@ import {
   SplitItem,
   Label,
   FormGroup,
-  Alert,
   FormHelperText,
   HelperText,
   HelperTextItem,
@@ -19,13 +18,17 @@ import useDefaultStorageClass from './useDefaultStorageClass';
 type StorageClassSelectProps = {
   storageClassName?: string;
   setStorageClassName: (name: string) => void;
+  isRequired?: boolean;
+  additionalHelperText?: React.ReactNode;
   disableStorageClassSelect?: boolean;
   menuAppendTo?: HTMLElement | 'inline';
 };
 
 const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
   storageClassName,
+  additionalHelperText,
   setStorageClassName,
+  isRequired = false,
   disableStorageClassSelect,
   menuAppendTo,
 }) => {
@@ -93,7 +96,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
   }
 
   return hasStorageClassConfigs ? (
-    <FormGroup label="Storage class" fieldId="storage-class">
+    <FormGroup label="Storage class" fieldId="storage-class" isRequired={isRequired}>
       <SimpleSelect
         dataTestId="storage-classes-selector"
         id="storage-classes-selector"
@@ -120,12 +123,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
             </HelperTextItem>
           </HelperText>
         ) : (
-          <Alert
-            variant="info"
-            title="The storage class cannot be changed after creation."
-            isInline
-            isPlain
-          />
+          additionalHelperText
         )}
       </FormHelperText>
     </FormGroup>
