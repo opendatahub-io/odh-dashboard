@@ -40,6 +40,7 @@ after(() => {
 describe('Verify Unauthorized User Is Not Able To Spawn Jupyter Notebook', () => {
   it(
     'Remove Admin privlideges and apply access to the Dashboard only to Admin',
+    // Note - this test should not executed alongside Smoke/Sanity as it has the potential to cause breakages within those tests
     { tags: ['@Destructive', '@ODS-1680', '@Dashboard'] },
     () => {
       // Authentication and navigation
@@ -70,6 +71,7 @@ describe('Verify Unauthorized User Is Not Able To Spawn Jupyter Notebook', () =>
   );
   it(
     'Login as the Admin and verify that the user does not have acceess to any tabs/applications',
+    // Note - this test should not executed alongside Smoke/Sanity as it has the potential to cause breakages within those tests
     { tags: ['@Destructive', '@ODS-1680', '@Dashboard'] },
     () => {
       // Authentication and navigation
