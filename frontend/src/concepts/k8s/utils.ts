@@ -1,4 +1,4 @@
-import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { K8sModelCommon, K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { K8sCondition, K8sDSGResource } from '~/k8sTypes';
 import { genRandomChars } from '~/utilities/string';
 
@@ -133,3 +133,6 @@ export const isConditionInStatus = (
   type: string,
   status: string,
 ): boolean => getConditionForType(resource, type)?.status === status;
+
+export const kindApiVersion = (model: K8sModelCommon): string =>
+  [model.apiGroup, model.apiVersion].filter((v) => !!v).join('/');

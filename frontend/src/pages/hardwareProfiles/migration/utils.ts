@@ -8,7 +8,7 @@ import {
 import { IdentifierResourceType, Toleration, Identifier, NotebookSize } from '~/types';
 import { isCpuLarger, isMemoryLarger } from '~/utilities/valueUnits';
 import { HardwareProfileModel } from '~/api';
-import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
+import { kindApiVersion, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { ContainerSizeLimits } from './types';
 
 export const getMinMaxResourceSize = (containerSizes: NotebookSize[]): ContainerSizeLimits => {
@@ -124,7 +124,7 @@ const transformAcceleratorProfileToHardwareProfile = (
   visibleIn: HardwareProfileFeatureVisibility[] = [],
 ): HardwareProfileKind => {
   const baseProfile = {
-    apiVersion: `${HardwareProfileModel.apiGroup}/${HardwareProfileModel.apiVersion}`,
+    apiVersion: kindApiVersion(HardwareProfileModel),
     kind: HardwareProfileModel.kind,
     metadata: {
       name: acceleratorProfile.metadata.name,
@@ -199,7 +199,7 @@ export const transformContainerSizeToHardwareProfile = (
 ): HardwareProfileKind => {
   const sizes = getMinMaxResourceSize([containerSize]);
   const baseProfile = {
-    apiVersion: `${HardwareProfileModel.apiGroup}/${HardwareProfileModel.apiVersion}`,
+    apiVersion: kindApiVersion(HardwareProfileModel),
     kind: HardwareProfileModel.kind,
     metadata: {
       name: translateDisplayNameForK8s(name),

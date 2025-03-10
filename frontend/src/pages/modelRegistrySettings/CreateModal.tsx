@@ -19,7 +19,7 @@ import {
   createModelRegistryBackend,
   updateModelRegistryBackend,
 } from '~/services/modelRegistrySettingsService';
-import { isValidK8sName, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
+import { isValidK8sName, kindApiVersion, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import FormSection from '~/components/pf-overrides/FormSection';
 import { AreaContext } from '~/concepts/areas/AreaContext';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
@@ -200,7 +200,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
       }
     } else {
       const data: ModelRegistryKind = {
-        apiVersion: `${ModelRegistryModel.apiGroup}/${ModelRegistryModel.apiVersion}`,
+        apiVersion: kindApiVersion(ModelRegistryModel),
         kind: 'ModelRegistry',
         metadata: {
           name: nameDesc.k8sName.value || translateDisplayNameForK8s(nameDesc.name),
