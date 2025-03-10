@@ -24,8 +24,6 @@ import {
   registerModel,
 } from '~/pages/modelRegistry/screens/RegisterModel/utils';
 import { SubmitLabel } from '~/pages/modelRegistry/screens/RegisterModel/const';
-import { CatalogModelDetailsParams } from '~/pages/modelCatalog/const';
-import { getCatalogModelDetailsUrl } from '~/pages/modelCatalog/routeUtils';
 import RegisterModelDetailsFormSection from '~/pages/modelRegistry/screens/RegisterModel/RegisterModelDetailsFormSection';
 import RegistrationFormFooter from '~/pages/modelRegistry/screens/RegisterModel/RegistrationFormFooter';
 import { registeredModelUrl } from '~/pages/modelRegistry/screens/routeUtils';
@@ -35,6 +33,7 @@ import { CatalogModel } from '~/concepts/modelCatalog/types';
 import ModelRegistrySelector from '~/pages/modelRegistry/screens/ModelRegistrySelector';
 import useModelRegistryAPIState from '~/concepts/modelRegistry/context/useModelRegistryAPIState';
 import {
+  createCustomPropertiesFromModel,
   decodeParams,
   findModelFromModelCatalogSources,
   getTagFromModel,
@@ -43,6 +42,8 @@ import {
   ModelRegistryCustomProperties,
   ModelRegistryMetadataType,
 } from '~/concepts/modelRegistry/types';
+import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
+import { getCatalogModelDetailsUrl } from '~/pages/modelCatalog/routeUtils';
 
 const RegisterCatalogModel: React.FC = () => {
   const navigate = useNavigate();
@@ -88,19 +89,13 @@ const RegisterCatalogModel: React.FC = () => {
 
   React.useEffect(() => {
     if (model) {
-      const labels: ModelRegistryCustomProperties = {};
+      const labels = createCustomPropertiesFromModel(model);
       setData('modelName', `${model.name}-${getTagFromModel(model) || ''}`);
       setData('modelDescription', model.longDescription?.replace(/\s*\n\s*/g, ' ') ?? '');
       setData('versionName', 'Version 1');
       setData('modelLocationType', ModelLocationType.URI);
       setData('modelLocationURI', model.artifacts?.map((artifact) => artifact.uri)[0] || '');
-      model.labels?.forEach((label) => {
-        labels[label] = {
-          // eslint-disable-next-line camelcase
-          string_value: '',
-          metadataType: ModelRegistryMetadataType.STRING,
-        };
-      });
+
       const registeredFromReferenceCustomProperties: ModelRegistryCustomProperties = Object.entries(
         decodedParams,
       )
@@ -115,7 +110,6 @@ const RegisterCatalogModel: React.FC = () => {
           }
           return acc;
         }, {});
-
       setData('modelCustomProperties', labels);
       setData('versionCustomProperties', {
         ...labels,

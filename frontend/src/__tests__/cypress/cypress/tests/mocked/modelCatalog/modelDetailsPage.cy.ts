@@ -9,6 +9,8 @@ import { modelDetailsPage } from '~/__tests__/cypress/cypress/pages/modelCatalog
 import { ConfigMapModel, ServiceModel } from '~/__tests__/cypress/cypress/utils/models';
 import type { ServiceKind } from '~/k8sTypes';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
+import { mockCatalogModel } from '~/__mocks__/mockCatalogModel';
+import { mockModelCatalogSource } from '~/__mocks__/mockModelCatalogSource';
 
 type HandlersProps = {
   modelRegistries?: ServiceKind[];
@@ -129,6 +131,32 @@ it('Should not show tune action item with popover when fineTuning is disabled', 
   initIntercepts({ disableFineTuning: true });
   modelDetailsPage.visit();
   modelDetailsPage.findTuneModelButton().should('not.exist');
+});
+
+it('Should correctly show labels, including reserved ILab labels, correctly and in the correct order', () => {
+  initIntercepts({ disableFineTuning: true });
+  const model2 = mockCatalogModel({
+    labels: ['lab-base', 'lab-teacher', 'lab-judge', 'label1'],
+    tasks: ['task1', 'task2'],
+  });
+
+  cy.interceptK8s(
+    {
+      model: ConfigMapModel,
+      ns: 'opendatahub',
+      name: 'model-catalog-sources',
+    },
+    mockModelCatalogConfigMap([mockModelCatalogSource({ models: [model2] })]),
+  );
+  modelDetailsPage.visit();
+  modelDetailsPage.expandLabelGroup();
+
+  modelDetailsPage.findLabelByIndex(0).contains('LAB starter').should('exist');
+  modelDetailsPage.findLabelByIndex(1).contains('LAB teacher').should('exist');
+  modelDetailsPage.findLabelByIndex(2).contains('LAB judge').should('exist');
+  modelDetailsPage.findLabelByIndex(3).contains('task1').should('exist');
+  modelDetailsPage.findLabelByIndex(4).contains('task2').should('exist');
+  modelDetailsPage.findLabelByIndex(5).contains('label1').should('exist');
 });
 
 describe('Model Details loading states', () => {

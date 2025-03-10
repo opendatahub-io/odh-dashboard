@@ -1,5 +1,6 @@
 import { CatalogModel } from '~/concepts/modelCatalog/types';
-import { CatalogModelDetailsParams } from './const';
+
+import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
 import { encodeParams, getTagFromModel } from './utils';
 
 export const modelCatalogUrl = `/modelCatalog`;

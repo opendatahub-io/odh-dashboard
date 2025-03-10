@@ -3,7 +3,6 @@ import {
   Content,
   DescriptionList,
   Icon,
-  Label,
   PageSection,
   Sidebar,
   SidebarContent,
@@ -17,6 +16,7 @@ import { getTagFromModel } from '~/pages/modelCatalog/utils';
 import ExternalLink from '~/components/ExternalLink';
 import MarkdownView from '~/components/MarkdownView';
 import { RhUiTagIcon } from '~/images/icons';
+import { ModelCatalogLabels } from '~/pages/modelCatalog/components/ModelCatalogLabels';
 
 type ModelDetailsViewProps = {
   model: CatalogModel;
@@ -45,19 +45,15 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({ model }) => (
             {getTagFromModel(model)}
           </DashboardDescriptionListGroup>
           <DashboardDescriptionListGroup title="Labels">
-            {!model.labels?.length
-              ? 'no labels'
-              : model.labels.map((label, index) => (
-                  <Label
-                    variant="outline"
-                    data-testid="label"
-                    key={index}
-                    marginWidth={3}
-                    style={{ marginRight: '3px' }}
-                  >
-                    {label}
-                  </Label>
-                ))}
+            {!model.labels?.length && !model.tasks?.length ? (
+              'no labels'
+            ) : (
+              <ModelCatalogLabels
+                labels={model.labels ?? []}
+                tasks={model.tasks ?? []}
+                showNonILabLabels
+              />
+            )}
           </DashboardDescriptionListGroup>
           <DashboardDescriptionListGroup title="License" groupTestId="model-license">
             <ExternalLink
