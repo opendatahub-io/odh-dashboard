@@ -9,7 +9,7 @@ import {
 } from '~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
 import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
-describe('[Automation Bug: RHOAIENG-20207] Verify a Jupyter Notebook can be launched directly from the Data Science Project List View', () => {
+describe('Verify a Jupyter Notebook can be launched directly from the Data Science Project List View', () => {
   let testData: NotebookImageData;
 
   retryableBefore(() => {
@@ -24,7 +24,7 @@ describe('[Automation Bug: RHOAIENG-20207] Verify a Jupyter Notebook can be laun
 
   it(
     'Verify User Can Access Jupyter Launcher From DS Project Page',
-    { tags: ['@Smoke', '@SmokeSet1', '@ODS-1877', '@Dashboard', '@Bug'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@ODS-1877', '@Dashboard'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
