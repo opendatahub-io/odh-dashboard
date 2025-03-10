@@ -153,6 +153,10 @@ class InferenceServiceModal extends Modal {
     return this.find().findByTestId('alt-form-checkbox-auth');
   }
 
+  findExistingUriOption() {
+    return this.find().findByTestId('existing-uri-radio');
+  }
+
   findNewConnectionOption() {
     return this.find().findByTestId('new-connection-radio');
   }
@@ -177,6 +181,10 @@ class InferenceServiceModal extends Modal {
     return this.findExistingConnectionSelect().findByRole('combobox', {
       name: 'Type to filter',
     });
+  }
+
+  findModelURITextBox() {
+    return this.find().findByTestId('model-uri');
   }
 
   selectExistingConnectionSelectOptionByResourceName() {

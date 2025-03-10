@@ -73,6 +73,7 @@ type ManageKServeModalProps = {
   registeredModelDeployInfo?: RegisteredModelDeployInfo;
   shouldFormHidden?: boolean;
   projectSection?: React.ReactNode;
+  existingUriOption?: string;
 } & EitherOrNone<
   {
     projectContext?: {
@@ -97,6 +98,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   projectSection,
   registeredModelDeployInfo,
   shouldFormHidden: hideForm,
+  existingUriOption,
 }) => {
   const { isRawAvailable, isServerlessAvailable } = useKServeDeploymentMode();
 
@@ -414,6 +416,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
           <FormSection title="Source model location" id="model-location">
             <ConnectionSection
               existingUriOption={
+                existingUriOption ||
                 editInfo?.inferenceServiceEditInfo?.spec.predictor.model?.storageUri
               }
               data={createDataInferenceService}
