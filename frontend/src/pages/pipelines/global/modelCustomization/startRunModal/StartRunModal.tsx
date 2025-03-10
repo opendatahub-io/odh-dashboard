@@ -2,12 +2,14 @@ import * as React from 'react';
 import { Modal } from '@patternfly/react-core/deprecated';
 import {
   Button,
-  Flex,
-  FlexItem,
   Form,
   FormGroup,
+  FormHelperText,
   HelperText,
   HelperTextItem,
+  ModalBody,
+  ModalHeader,
+  ModalVariant,
   Stack,
   StackItem,
   Alert
@@ -36,7 +38,6 @@ const StartRunModal: React.FC<StartRunModalProps> = ({
 
   return (
     <Modal
-      title="Start a LAB-tuning run"
       isOpen
       onClose={onCancel}
       footer={
@@ -51,103 +52,98 @@ const StartRunModal: React.FC<StartRunModalProps> = ({
           isSubmitDisabled={!canContinue || !loaded}
         />
       }
-      variant="medium"
+      variant={ModalVariant.medium}
       data-testid="start-run-modal"
+      hasNoBodyWrapper
     >
-      <Form>
-        <Stack hasGutter>
-          {loadError && (
+      <ModalHeader
+        title="Start a LAB-tuning run"
+        description={
+          <Stack hasGutter>
             <StackItem>
-              <Alert variant="danger" title="Error loading model data">
-                {loadError.message}
-              </Alert>
+              Tune a model using the{' '}
+              <Button
+                data-testid="lab-method"
+                variant="link"
+                isInline
+                component="a"
+                style={{ textDecoration: 'none' }}
+                onClick={() => {
+                  // TODO: Link to documentation
+                }}
+              >
+                LAB method
+              </Button>{' '}
+              with the InstructLab pipeline. To create a LAB-tuning run, you must have a taxonomy
+              stored in a git repository, and a configured teacher and judge model.
             </StackItem>
-          )}
-          <StackItem>
-            Tune a model using the{' '}
-            <Button
-              data-testid="lab-method"
-              variant="link"
-              isInline
-              component="a"
-              style={{ textDecoration: 'none' }}
-              onClick={() => {
-                // TODO: Link to documentation
-              }}
-            >
-              LAB method
-            </Button>{' '}
-            with the InstructLab pipeline. To create a LAB-tuning run, you must have a taxonomy
-            stored in a git repository, and a configured teacher and judge model.
-          </StackItem>
-          <StackItem>
-            <Button
-              data-testid="learn-more-prerequisites"
-              variant="link"
-              isInline
-              component="a"
-              style={{ textDecoration: 'none' }}
-              onClick={() => {
-                // TODO: Link to documentation
-              }}
-            >
-              Learn more about LAB-tuning prerequisites
-            </Button>
-            .
-          </StackItem>
-          <StackItem>
-            <FormGroup
-              label="Data science project"
-              fieldId="start-run-modal-project-name"
-              isRequired
-              labelHelp={
-                <HelperText>
-                  <HelperTextItem>
-                    Select a project for the InstructLab pipeline to run in.
-                  </HelperTextItem>
-                </HelperText>
-              }
-            >
-              <Stack hasGutter>
+            <StackItem>
+              <Button
+                data-testid="learn-more-prerequisites"
+                variant="link"
+                isInline
+                component="a"
+                style={{ textDecoration: 'none' }}
+                onClick={() => {
+                  // TODO: Link to documentation
+                }}
+              >
+                Learn more about LAB-tuning prerequisites
+              </Button>
+              .
+            </StackItem>
+          </Stack>
+        }
+      />
+      <ModalBody>
+        <Form className="pf-v6-u-w-75">
+          <FormGroup
+            label="Data science project"
+            fieldId="start-run-modal-project-name"
+            isRequired
+            labelHelp={
+              <HelperText>
+                <HelperTextItem>
+                  Select a project for the InstructLab pipeline to run in.
+                </HelperTextItem>
+              </HelperText>
+            }
+          >
+            <Stack hasGutter>
+              <StackItem>
+                <ProjectSelector
+                  isFullWidth
+                  onSelection={(projectName) => {
+                    setSelectedProject(projectName);
+                  }}
+                  namespace={selectedProject ?? ''}
+                  placeholder="Select a Data science project"
+                  isLoading={isLoadingProject}
+                />
+                <FormHelperText>
+                  <HelperText>
+                    <HelperTextItem>
+                      The InstructLab pipeline will run in the selected project
+                    </HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+              </StackItem>
+              {selectedProject && (
                 <StackItem>
-                  <Flex gap={{ default: 'gapSm' }} direction={{ default: 'column' }}>
-                    <FlexItem>
-                      <ProjectSelector
-                        isFullWidth
-                        onSelection={(projectName) => {
-                          setSelectedProject(projectName);
-                        }}
-                        namespace={selectedProject ?? ''}
-                        placeholder="Select a Data science project"
-                        isLoading={isLoadingProject}
-                      />
-                    </FlexItem>
-                    <FlexItem>
-                      <HelperText>
-                        <HelperTextItem>
-                          The InstructLab pipeline will run in the selected project
-                        </HelperTextItem>
-                      </HelperText>
-                    </FlexItem>
-                  </Flex>
+                  <PipelineContextProvider namespace={selectedProject}>
+                    <MissingConditionAlert
+                      key={selectedProject}
+                      selectedProject={selectedProject}
+                      setIsLoadingProject={setIsLoadingProject}
+                      setCanContinue={setCanContinue}
+                    />
+                  </PipelineContextProvider>
                 </StackItem>
-                {selectedProject && (
-                  <StackItem>
-                    <PipelineContextProvider namespace={selectedProject}>
-                      <MissingConditionAlert
-                        key={selectedProject}
-                        selectedProject={selectedProject}
-                        setIsLoadingProject={setIsLoadingProject}
-                        setCanContinue={setCanContinue}
-                      />
-                    </PipelineContextProvider>
-                  </StackItem>
-                )}
-              </Stack>
-            </FormGroup>
-          </StackItem>
-        </Stack>
-      </Form>
+              )}
+            </Stack>
+          </FormGroup>
+        </Form>
+      </ModalBody>
     </Modal>
   );
 };
