@@ -20,7 +20,11 @@ import {
 } from '~/__tests__/cypress/cypress/pages/pipelines';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import { getCorePipelineSpec } from '~/concepts/pipelines/getCorePipelineSpec';
-import { configIntercept, dspaIntercepts, projectsIntercept } from './intercepts';
+import {
+  configIntercept,
+  dspaIntercepts,
+  projectsIntercept,
+} from '~/__tests__/cypress/cypress/tests/mocked/pipelines/intercepts';
 
 const projectName = 'test-project-name';
 const mockPipeline = buildMockPipeline();
