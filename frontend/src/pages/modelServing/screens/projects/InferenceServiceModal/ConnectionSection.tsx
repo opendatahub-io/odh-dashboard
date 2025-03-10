@@ -53,6 +53,7 @@ import {
 } from '~/pages/modelServing/screens/types';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { isModelPathValid } from '~/pages/modelServing/screens/projects/utils';
+import usePersistentData from '~/pages/projects/screens/detail/connections/usePersistentData';
 import ConnectionS3FolderPathField from './ConnectionS3FolderPathField';
 import ConnectionOciPathField from './ConnectionOciPathField';
 
@@ -314,6 +315,14 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
     setNewConnection,
   ]);
 
+  const { changeSelectionType } = usePersistentData({
+    setConnectionValues,
+    setValidations,
+    setSelectedConnectionType,
+    connectionValues,
+    selectedConnectionType,
+  });
+
   return (
     <FormSection>
       <ConnectionTypeForm
@@ -326,6 +335,8 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
               S3ConnectionTypeKeys,
             ),
           );
+          const obj = connectionTypes.find((c) => c.metadata.name === type);
+          changeSelectionType(obj);
         }}
         connectionNameDesc={nameDescData}
         setConnectionNameDesc={setNameDescData}

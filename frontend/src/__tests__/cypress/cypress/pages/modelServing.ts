@@ -187,6 +187,13 @@ class InferenceServiceModal extends Modal {
     return this.find().findByTestId('model-uri');
   }
 
+  selectConnectionType(name: string) {
+    this.findExistingConnectionSelect()
+      .findByRole('button', { name: 'Typeahead menu toggle' })
+      .findSelectOption(name)
+      .click();
+  }
+
   selectExistingConnectionSelectOptionByResourceName() {
     this.find().findByText('Test Secret').click();
   }
