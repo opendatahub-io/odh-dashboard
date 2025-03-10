@@ -7,7 +7,7 @@ import {
 import { K8sAPIOptions, TrustyAIKind } from '~/k8sTypes';
 import { TRUSTYAI_DEFINITION_NAME } from '~/concepts/trustyai/const';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { TrustyAIApplicationsModel } from '~/api/models/trustyai';
+import { TrustyAIApplicationsModel } from '~/api/models/odh';
 
 export const getTrustyAICR = async (
   namespace: string,

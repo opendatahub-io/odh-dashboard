@@ -1,7 +1,7 @@
 import { k8sGetResource, k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { K8sAPIOptions, KnownLabels, ModelRegistryKind, ServiceKind } from '~/k8sTypes';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { ModelRegistryModel } from '~/api/models/modelRegistry';
+import { ModelRegistryModel } from '~/api/models/odh';
 import { ServiceModel } from '~/api/models';
 
 export const getModelRegistryCR = async (
