@@ -77,6 +77,7 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
           }
         }}
         id="workbench-image-version-selection"
+        dataTestId="workbench-image-version-selection"
         isFullWidth
         value={
           selectedImageVersion
