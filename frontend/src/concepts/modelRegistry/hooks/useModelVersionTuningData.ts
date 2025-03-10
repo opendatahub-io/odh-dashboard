@@ -10,7 +10,16 @@ export const useModelVersionTuningData = (
   modelVersion: ModelVersion | null,
   registeredModel: RegisteredModel | null,
 ): {
-  tuningData: Record<string, string> | null;
+  tuningData: {
+    modelRegistryName: string;
+    modelRegistryDisplayName: string;
+    registeredModelId: string;
+    registeredModelName: string;
+    modelVersionId: string;
+    modelVersionName: string;
+    inputModelLocationUri: string;
+    outputModelRegistryApiUrl: string;
+  } | null;
   loaded: boolean;
   loadError: Error | null;
 } => {
@@ -31,15 +40,15 @@ export const useModelVersionTuningData = (
 
   return {
     tuningData:
-      modelVersion && registeredModel
+      modelVersionId && modelVersion && inputModelLocationUri && registryService && registeredModel
         ? {
-            modelRegistryName: registryService?.metadata.name || '',
+            modelRegistryName: registryService.metadata.name,
             modelRegistryDisplayName,
             registeredModelId: modelVersion.registeredModelId,
             registeredModelName: registeredModel.name,
             modelVersionId: modelVersion.id,
             modelVersionName: modelVersion.name,
-            inputModelLocationUri: inputModelLocationUri || '',
+            inputModelLocationUri,
             outputModelRegistryApiUrl,
           }
         : null,
