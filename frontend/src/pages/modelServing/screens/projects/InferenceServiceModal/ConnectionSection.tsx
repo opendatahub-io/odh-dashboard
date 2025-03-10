@@ -31,6 +31,7 @@ import { useK8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptio
 import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import {
   assembleConnectionSecret,
+  filterEnabledConnectionTypes,
   getConnectionTypeDisplayName,
   getConnectionTypeRef,
   getDefaultValues,
@@ -213,8 +214,7 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
   setIsConnectionValid,
 }) => {
   const enabledConnectionTypes = React.useMemo(
-    () =>
-      connectionTypes.filter((t) => t.metadata.annotations?.['opendatahub.io/disabled'] !== 'true'),
+    () => filterEnabledConnectionTypes(connectionTypes),
     [connectionTypes],
   );
   const [selectedConnectionType, setSelectedConnectionType] = React.useState<
@@ -269,8 +269,8 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
     }
   }, [data.storage.connectionType, connectionTypes, data.storage.uri, data.storage.awsData]);
 
-  const [validations, setValidations] = React.useState<{
-    [key: string]: boolean;
+  const [connectionErrors, setConnectionErrors] = React.useState<{
+    [key: string]: boolean | string;
   }>({});
   const isFormValid = React.useMemo(
     () =>
@@ -283,8 +283,8 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
           !connectionValues[field.envVar] &&
           field.type !== ConnectionTypeFieldType.Boolean,
       ) &&
-      !Object.values(validations).includes(false),
-    [selectedConnectionType, nameDescData, connectionValues, validations],
+      !Object.values(connectionErrors).find((e) => !!e),
+    [selectedConnectionType, nameDescData, connectionValues, connectionErrors],
   );
 
   React.useEffect(() => {
@@ -306,6 +306,7 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
   }, [
     connectionValues,
     data.project,
+    connectionErrors,
     data.storage.path,
     modelUri,
     isFormValid,
@@ -317,7 +318,7 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
 
   const { changeSelectionType } = usePersistentData({
     setConnectionValues,
-    setValidations,
+    setConnectionErrors,
     setSelectedConnectionType,
     connectionValues,
     selectedConnectionType,
@@ -344,9 +345,16 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
         onChange={(field, value) =>
           setConnectionValues((prev) => ({ ...prev, [field.envVar]: value }))
         }
-        onValidate={(field, isValid) =>
-          setValidations((prev) => ({ ...prev, [field.envVar]: isValid }))
-        }
+        onValidate={(field, error, value) => {
+          let newError = error;
+          if (field.envVar === 'ACCESS_TYPE' && Array.isArray(value)) {
+            if (value.includes('Push') && !value.includes('Pull')) {
+              newError = 'Model connection must have pull access to deploy';
+            }
+          }
+          setConnectionErrors((prev) => ({ ...prev, [field.envVar]: newError }));
+        }}
+        connectionErrors={connectionErrors}
       />
       {selectedConnectionType &&
         isModelServingCompatible(

@@ -7,7 +7,7 @@ import { getDefaultValues } from '~/concepts/connectionTypes/utils';
 
 type UsePersistentDataProps = {
   setConnectionValues: (name: { [key: string]: ConnectionTypeValueType }) => void;
-  setValidations: (validation: { [key: string]: boolean }) => void;
+  setConnectionErrors: (validation: { [key: string]: boolean | string }) => void;
   setSelectedConnectionType: (name: ConnectionTypeConfigMapObj | undefined) => void;
   connectionValues: { [key: string]: ConnectionTypeValueType };
   selectedConnectionType: ConnectionTypeConfigMapObj | undefined;
@@ -15,7 +15,7 @@ type UsePersistentDataProps = {
 
 const usePersistentData = ({
   setConnectionValues,
-  setValidations,
+  setConnectionErrors,
   setSelectedConnectionType,
   connectionValues,
   selectedConnectionType,
@@ -36,7 +36,7 @@ const usePersistentData = ({
         previousValues.current[selectedConnectionType.metadata.name] = connectionValues;
         // clear previous values
         setConnectionValues({});
-        setValidations({});
+        setConnectionErrors({});
       }
       // load saved values?
       if (type?.metadata.name && type.metadata.name in previousValues.current) {
@@ -51,7 +51,7 @@ const usePersistentData = ({
       selectedConnectionType,
       connectionValues,
       setConnectionValues,
-      setValidations,
+      setConnectionErrors,
       setSelectedConnectionType,
     ],
   );

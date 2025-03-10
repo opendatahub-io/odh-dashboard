@@ -572,7 +572,7 @@ export const mockModelServingFields: ConnectionTypeField[] = [
 
 export const mockOciConnectionType = (): ConnectionTypeConfigMapObj =>
   mockConnectionTypeConfigMapObj({
-    name: 'oci',
+    name: 'oci-v1',
     fields: [
       {
         type: 'dropdown',

@@ -244,4 +244,58 @@ describe('ConnectionsFormSection', () => {
     expect(result.getByRole('textbox', { name: 'Registry host' })).toHaveValue('');
     expect(result.getByRole('textbox', { name: 'Model URI' })).toHaveValue('');
   });
+
+  it('should show error if OCI is push only', async () => {
+    const mockSetData = jest.fn();
+    const mockSetConnection = jest.fn();
+    const result = render(
+      <ConnectionSection
+        data={mockInferenceServiceModalData({
+          storage: {
+            type: InferenceServiceStorageType.NEW_STORAGE,
+            path: '',
+            dataConnection: '',
+            awsData: [],
+          },
+        })}
+        setData={mockSetData}
+        connection={undefined}
+        setConnection={mockSetConnection}
+        setIsConnectionValid={() => undefined}
+      />,
+    );
+
+    expect(result.getByRole('radio', { name: 'Create connection' })).toBeChecked();
+    expect(result.getByRole('combobox', { name: 'Type to filter' })).toHaveValue('');
+
+    await act(async () => result.getByRole('button', { name: 'Typeahead menu toggle' }).click());
+    await act(async () => result.getByRole('option', { name: /oci/ }).click());
+    await act(async () => result.getByRole('button', { name: 'Access type' }).click());
+    await act(async () =>
+      result.getByRole('menuitem', { name: 'Push secret Value: Push' }).click(),
+    );
+
+    expect(mockSetConnection).toBeCalledWith({
+      apiVersion: 'v1',
+      kind: 'Secret',
+      metadata: {
+        name: '',
+        namespace: 'caikit-example',
+        labels: {
+          'opendatahub.io/dashboard': 'true',
+        },
+        annotations: {
+          'openshift.io/display-name': '',
+          'openshift.io/description': '',
+          'opendatahub.io/connection-type-ref': 'oci-v1',
+        },
+      },
+      stringData: {
+        ACCESS_TYPE: '[Push]',
+      },
+      // type: 'kubernetes.io/dockerconfigjson',
+    });
+    expect(result.getByRole('button', { name: 'Access type' })).toHaveTextContent(/1 selected/);
+    expect(result.getByText('Model connection must have pull access to deploy')).toBeTruthy();
+  });
 });
