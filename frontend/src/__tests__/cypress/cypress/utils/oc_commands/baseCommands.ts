@@ -92,7 +92,7 @@ export const waitForPodReady = (
           cy.log(`Error parsing line: "${line}"`);
           return null;
         })
-        .filter((pod): pod is { namespace: string, name: string } => pod !== null);
+        .filter((pod): pod is { namespace: string; name: string } => pod !== null);
 
       cy.log(`Found ${pods.length} matching pods`);
 
@@ -103,31 +103,24 @@ export const waitForPodReady = (
 
       // loop through matching pods and wait for ready state
       pods.forEach((pod) => {
-        const { namespace, name } = pod;
+        const { namespace: podNamespace, name: podName } = pod;
 
         // wait for each pod to be ready
-        const waitForPodCommand = `oc wait --for=condition=Ready pod/${name} -n ${namespace} --timeout=${timeout}`;
+        const waitForPodCommand = `oc wait --for=condition=Ready pod/${podName} -n ${podNamespace} --timeout=${timeout}`;
         cy.log(`Executing command to wait for pod readiness: ${waitForPodCommand}`);
 
-        cy
-          .exec(waitForPodCommand, { failOnNonZeroExit: false, timeout: 300000 })
-          .then((waitResult: CommandLineResult) => {
+        cy.exec(waitForPodCommand, { failOnNonZeroExit: false, timeout: 300000 }).then(
+          (waitResult: CommandLineResult) => {
             if (waitResult.code !== 0) {
               cy.log(`Pod readiness check failed: ${waitResult.stderr}`);
             } else {
               cy.log(`Pod is ready: ${waitResult.stdout}`);
             }
-          });
+          },
+        );
       });
     });
 };
-
-
-
-
-
-
-
 
 /**
  * Deletes notebooks matching a given name pattern across all namespaces.
