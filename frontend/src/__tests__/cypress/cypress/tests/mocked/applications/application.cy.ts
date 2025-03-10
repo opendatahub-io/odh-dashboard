@@ -76,12 +76,12 @@ describe('Application', () => {
       dataScienceStackComponentMap[DataScienceStackComponent.MODEL_REGISTRY],
     );
     row1.find().findByText('Kubeflow Model Registry').should('exist');
-    row1.find().findByText('1.14.0').should('exist');
+    row1.find().findByText('v0.2.13').should('exist');
     const row2 = aboutDialog.getComponentReleasesRow(
       dataScienceStackComponentMap[DataScienceStackComponent.K_SERVE],
     );
-    row2.find().findByText('KServe Operator').should('exist');
-    row2.find().findByText('v0.2.13').should('exist');
+    row2.find().findByText('KServe').should('exist');
+    row2.find().findByText('v0.14.0').should('exist');
   });
 
   it('should show the about modal correctly when release name is not available', () => {
