@@ -55,6 +55,10 @@ describe('Verify a Jupyter Notebook can be launched directly from the Data Scien
       cy.step('Launch a notebook server');
       notebookServer.findStartServerButton().click();
 
+      // Verify that the server is running
+      cy.step('Verify the Jupyter Notebook pod is ready');
+      waitForPodReady('jupyter-nb', '300s');
+
       // Expand  the log
       cy.step('Expand the Event log');
       notebookServer.findEventlog().should('be.visible').click();
@@ -62,10 +66,6 @@ describe('Verify a Jupyter Notebook can be launched directly from the Data Scien
       // Wait for the success alert
       cy.step('Waits for the Success alert');
       notebookServer.findSuccessAlert().should('exist');
-
-      // Verify that the server is running
-      cy.step('Verify the Jupyter Notebook pod is ready');
-      waitForPodReady('jupyter-nb', '300s');
 
       // Open the server in a new tab
       cy.step('Opens the server in a new tab');
