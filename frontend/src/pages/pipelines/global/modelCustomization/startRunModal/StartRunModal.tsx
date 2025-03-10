@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Modal } from '@patternfly/react-core/deprecated';
-import { Button, Form, FormGroup, Stack, StackItem } from '@patternfly/react-core';
+import { Button, Form, FormGroup, Stack, StackItem, Alert } from '@patternfly/react-core';
 import ProjectSelector from '~/concepts/projects/ProjectSelector';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { PipelineContextProvider } from '~/concepts/pipelines/context';
@@ -9,9 +9,16 @@ import MissingConditionAlert from '~/pages/pipelines/global/modelCustomization/s
 export type StartRunModalProps = {
   onSubmit: (selectedProject: string) => void;
   onCancel: () => void;
+  loaded?: boolean;
+  loadError?: Error | null;
 };
 
-const StartRunModal: React.FC<StartRunModalProps> = ({ onSubmit, onCancel }) => {
+const StartRunModal: React.FC<StartRunModalProps> = ({
+  onSubmit,
+  onCancel,
+  loaded = true,
+  loadError = null,
+}) => {
   const [selectedProject, setSelectedProject] = React.useState<string | null>(null);
   const [isLoadingProject, setIsLoadingProject] = React.useState<boolean>(false);
   const [canContinue, setCanContinue] = React.useState<boolean>(false);
@@ -30,7 +37,7 @@ const StartRunModal: React.FC<StartRunModalProps> = ({ onSubmit, onCancel }) => 
           }}
           onCancel={onCancel}
           submitLabel="Continue to run details"
-          isSubmitDisabled={!canContinue}
+          isSubmitDisabled={!canContinue || !loaded}
         />
       }
       variant="medium"
@@ -38,6 +45,13 @@ const StartRunModal: React.FC<StartRunModalProps> = ({ onSubmit, onCancel }) => 
     >
       <Form>
         <Stack hasGutter>
+          {loadError && (
+            <StackItem>
+              <Alert variant="danger" title="Error loading model data">
+                {loadError.message}
+              </Alert>
+            </StackItem>
+          )}
           <StackItem>
             Fine-tune your models to improve their performance, accuracy, and task specialization,
             using the{' '}
