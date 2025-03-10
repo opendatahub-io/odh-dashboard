@@ -193,11 +193,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
             <StartRunModal
               onCancel={() => setTuningModelVersionId(null)}
               onSubmit={(selectedProject) => {
-                navigate(
-                  `${getModelCustomizationPath(selectedProject)}?${new URLSearchParams(
-                    tuningData,
-                  ).toString()}`,
-                );
+                navigate(getModelCustomizationPath(selectedProject), { state: tuningData });
               }}
               loaded={loaded}
               loadError={loadError}

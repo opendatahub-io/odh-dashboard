@@ -124,11 +124,7 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
         <StartRunModal
           onCancel={() => setIsLabTuneModalOpen(false)}
           onSubmit={(selectedProject) => {
-            navigate(
-              `${getModelCustomizationPath(selectedProject)}?${new URLSearchParams(
-                tuningData!,
-              ).toString()}`,
-            );
+            navigate(getModelCustomizationPath(selectedProject), { state: tuningData });
           }}
           loaded={loaded}
           loadError={loadError}

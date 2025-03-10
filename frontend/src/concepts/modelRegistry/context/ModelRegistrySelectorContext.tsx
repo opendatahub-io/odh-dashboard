@@ -61,7 +61,7 @@ const EnabledModelRegistrySelectorContextProvider: React.FC<React.PropsWithChild
       modelRegistryServicesLoaded: isLoaded,
       modelRegistryServicesLoadError: error,
       modelRegistryServices,
-      preferredModelRegistry,
+      preferredModelRegistry: preferredModelRegistry ?? modelRegistryServices[0],
       updatePreferredModelRegistry,
       refreshRulesReview,
     }),
