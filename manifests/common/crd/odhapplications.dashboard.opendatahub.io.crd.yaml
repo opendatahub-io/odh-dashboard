@@ -69,6 +69,8 @@ spec:
                       type: string
                     title:
                       type: string
+                    inProgressText:
+                      type: string
                     validationConfigMap:
                       type: string
                     validationJob:
