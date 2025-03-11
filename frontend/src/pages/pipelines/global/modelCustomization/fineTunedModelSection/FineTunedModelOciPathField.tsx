@@ -37,7 +37,8 @@ const FineTunedModelOciPathField: React.FC<FineTunedModelOciPathFieldProps> = ({
   };
 
   return (
-    <FormSection title="Deployment details">
+    <FormSection title="OCI storage location">
+      Provide the location of the model. This is not part of your connection instance.
       {ociHost && (
         <FormGroup label="Registry host" className="pf-v6-u-mb-lg">
           {ociHost}
@@ -63,11 +64,11 @@ const FineTunedModelOciPathField: React.FC<FineTunedModelOciPathFieldProps> = ({
         <FormHelperText>
           <HelperText>
             <HelperTextItem>
-              Example model path structure is Base URL / Registry organization / Model Name:Model
-              Version
+              Example of recommended path structure is
+              registryHost/registryOrganization/modelName:modelVersion
             </HelperTextItem>
             <HelperTextItem>
-              Example: registry.connect.redhat.com/redhat-test/test-mymodel:v3.2
+              Example, registry.redhat.io/rhelai1/modelcar-granite-7b-starter:1.4.0
             </HelperTextItem>
           </HelperText>
         </FormHelperText>

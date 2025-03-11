@@ -56,12 +56,20 @@ const FineTunedModelSection: React.FC<FineTunedModelSectionProps> = ({
         id={`${FIELD_ID_PREFIX}-add-model-to-registry-checkbox`}
         isChecked={data.addToRegistryEnabled}
         onChange={(_, checked) => setData({ ...data, addToRegistryEnabled: checked })}
-        label={`Add model to ${state?.modelRegistryName ?? 'registry'}`}
+        label={
+          <>
+            Add model to <strong>{state?.modelRegistryName ?? 'registry'}</strong>
+          </>
+        }
         body={
           data.addToRegistryEnabled && (
             <Stack hasGutter>
               <StackItem>
-                <Alert title="Model registry feature is in tech preview" isInline variant="info" />
+                <Alert
+                  title="OpenShift AI’s model registry is a technology preview."
+                  isInline
+                  variant="info"
+                />
               </StackItem>
               <StackItem>
                 <FormGroup label="Model name" fieldId={`${FIELD_ID_PREFIX}-name`}>
@@ -75,7 +83,9 @@ const FineTunedModelSection: React.FC<FineTunedModelSectionProps> = ({
                   />
                   <FormHelperText>
                     <HelperText>
-                      <HelperTextItem>Current version is {state?.modelVersionName}</HelperTextItem>
+                      <HelperTextItem>
+                        Current version is <strong>{state?.modelVersionName}</strong>
+                      </HelperTextItem>
                     </HelperText>
                   </FormHelperText>
                 </FormGroup>
