@@ -12,7 +12,11 @@ import {
   manageRunsPage,
   manageRunsTable,
 } from '~/__tests__/cypress/cypress/pages/pipelines/manageRuns';
-import { configIntercept, dspaIntercepts, projectsIntercept } from './intercepts';
+import {
+  configIntercept,
+  dspaIntercepts,
+  projectsIntercept,
+} from '~/__tests__/cypress/cypress/tests/mocked/pipelines/intercepts';
 
 const projectName = 'test-project-name';
 const pipelineVersionId = 'test-version-id';
