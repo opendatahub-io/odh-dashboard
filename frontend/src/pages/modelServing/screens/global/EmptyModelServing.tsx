@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button } from '@patternfly/react-core';
+import { Button, Truncate } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
@@ -37,7 +37,11 @@ const EmptyModelServing: React.FC = () => {
               )
             }
           >
-            {project ? `Go to ${getDisplayNameFromK8sResource(project)}` : 'Select a project'}
+            {project ? (
+              <Truncate content={`Go to ${getDisplayNameFromK8sResource(project)}`} />
+            ) : (
+              'Select a project'
+            )}
           </Button>
         }
       />
