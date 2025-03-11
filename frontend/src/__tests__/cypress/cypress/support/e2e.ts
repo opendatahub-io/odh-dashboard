@@ -143,6 +143,14 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
   const skipTags = Cypress.env('skipTags') ? Cypress.env('skipTags').split(' ') : [];
   const grepTags = Cypress.env('grepTags') ? Cypress.env('grepTags').split(' ') : [];
 
+  const grep = Cypress.env('grep');
+
+  const shouldRunByGrep = !grep || this.currentTest.title.includes(grep);
+
+  if (!shouldRunByGrep) {
+    this.skip();
+  }
+
   // Chain Cypress commands
   cy.task('log', `Test title: ${testTitle}`)
     .then(() => cy.task('log', `Test tags: ${JSON.stringify(mappedTestTags)}`))
