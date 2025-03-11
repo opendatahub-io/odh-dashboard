@@ -2,11 +2,9 @@ import { z } from 'zod';
 import { hardwareProfileValidationSchema } from '~/concepts/hardwareProfiles/validationUtils';
 import { isCpuLimitLarger, isMemoryLimitLarger } from '~/utilities/valueUnits';
 import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
-import {
-  FineTuneTaxonomyType,
-  ModelCustomizationEndpointType,
-  ModelCustomizationRunType,
-} from './types';
+import { isEnumMember } from '~/utilities/utils';
+import { RunTypeFormat } from '~/pages/pipelines/global/modelCustomization/const';
+import { FineTuneTaxonomyType, ModelCustomizationEndpointType } from './types';
 
 export const uriFieldSchemaBase = (
   isOptional: boolean,
@@ -53,70 +51,15 @@ export const teacherJudgeModel = z.discriminatedUnion('endpointType', [
   teacherJudgePublicSchema,
 ]);
 
-export const numericFieldSchema = z
-  .object({
-    value: z.number().optional(),
-    unit: z.string().optional(),
-    min: z.number().optional(),
-    max: z.number().optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.min != null && data.max != null && data.min >= data.max) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.too_big,
-        message: 'The lower threshold must be less than the upper threshold',
-        path: ['min'],
-        maximum: data.max,
-        inclusive: false,
-        type: 'number',
-      });
-      ctx.addIssue({
-        code: z.ZodIssueCode.too_small,
-        message: 'The upper threshold must be greater than the lower threshold',
-        path: ['max'],
-        minimum: data.min,
-        inclusive: false,
-        type: 'number',
-      });
+export const runTypeSchema = z.string().refine(
+  (value) => {
+    if (!isEnumMember(value, RunTypeFormat)) {
+      return false;
     }
-    if (
-      data.value != null &&
-      data.min != null &&
-      !Number.isNaN(data.value) &&
-      !Number.isNaN(data.min) &&
-      data.value < data.min
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.too_small,
-        message: 'The default value must be greater than the lower threshold',
-        path: ['value'],
-        minimum: data.min,
-        inclusive: false,
-        type: 'number',
-      });
-    }
-    if (
-      data.value != null &&
-      data.max != null &&
-      !Number.isNaN(data.value) &&
-      !Number.isNaN(data.max) &&
-      data.value > data.max
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.too_big,
-        message: 'The default value must be less than the upper threshold',
-        path: ['value'],
-        maximum: data.max,
-        inclusive: false,
-        type: 'number',
-      });
-    }
-  });
-
-export const runTypeSchema = z.enum([
-  ModelCustomizationRunType.FULL_RUN,
-  ModelCustomizationRunType.SIMPLE_RUN,
-]);
+    return true;
+  },
+  { message: 'Invalid Run Type' },
+);
 
 export const fineTunedModelDetailsSchema = z.object({
   registry: z.string(),
@@ -169,6 +112,8 @@ export type FineTuneTaxonomyFormData = z.infer<typeof fineTuneTaxonomySchema>;
 export const modelCustomizationFormSchema = z.object({
   projectName: z.object({ value: z.string().min(1, { message: 'Project is required' }) }),
   taxonomy: fineTuneTaxonomySchema,
+  runType: z.object({ value: runTypeSchema }),
+  hyperparameters: z.record(z.string(), z.any()),
   baseModel: baseModelSchema,
   outputModel: outputModelSchema,
   teacher: teacherJudgeModel,

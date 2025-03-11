@@ -64,18 +64,61 @@ export const waitForPodReady = (
   podNameContains: string,
   timeout = '10s',
   namespace?: string,
+  waitTimeBeforeParsing = 10000,
 ): Cypress.Chainable<CommandLineResult> => {
   const namespaceFlag = namespace ? `-n ${namespace}` : '-A';
-  const ocCommand = `oc get pods ${namespaceFlag} --no-headers | awk '$2 ~ /^${podNameContains}/ {print $1, $2}' | xargs -tn2 oc wait --for=condition=Ready pod --timeout=${timeout} -n`;
-  cy.log(`Executing: ${ocCommand}`);
 
+  // find pods
+  const findPodsCommand = `oc get pods ${namespaceFlag} -o custom-columns="NAMESPACE:.metadata.namespace,NAME:.metadata.name" --no-headers | grep ${podNameContains}`;
+  cy.log(`Finding pods with command: ${findPodsCommand}`);
+
+  // wait before parsing the result
+  cy.wait(waitTimeBeforeParsing);
   return cy
-    .exec(ocCommand, { failOnNonZeroExit: false, timeout: 300000 })
+    .exec(findPodsCommand, { failOnNonZeroExit: false })
     .then((result: CommandLineResult) => {
-      if (result.code !== 0) {
-        throw new Error(`Pod readiness check failed: ${result.stderr}`);
+      const pods = result.stdout
+        .trim()
+        .split('\n')
+        .map((line) => {
+          // parse the result
+          const parsedResult = line.trim().split(/\s+/);
+          if (parsedResult.length === 2) {
+            const [podNamespace, podName] = parsedResult;
+            cy.log(`Parsed: namespace = ${podNamespace}, podName = ${podName}`);
+            return { namespace: podNamespace, name: podName };
+          }
+
+          cy.log(`Error parsing line: "${line}"`);
+          return null;
+        })
+        .filter((pod): pod is { namespace: string; name: string } => pod !== null);
+
+      cy.log(`Found ${pods.length} matching pods`);
+
+      if (pods.length === 0) {
+        cy.log('No matching pods found');
+        return;
       }
-      cy.log(`Pod is ready: ${result.stdout}`);
+
+      // loop through matching pods and wait for ready state
+      pods.forEach((pod) => {
+        const { namespace: podNamespace, name: podName } = pod;
+
+        // wait for each pod to be ready
+        const waitForPodCommand = `oc wait --for=condition=Ready pod/${podName} -n ${podNamespace} --timeout=${timeout}`;
+        cy.log(`Executing command to wait for pod readiness: ${waitForPodCommand}`);
+
+        cy.exec(waitForPodCommand, { failOnNonZeroExit: false, timeout: 300000 }).then(
+          (waitResult: CommandLineResult) => {
+            if (waitResult.code !== 0) {
+              cy.log(`Pod readiness check failed: ${waitResult.stderr}`);
+            } else {
+              cy.log(`Pod is ready: ${waitResult.stdout}`);
+            }
+          },
+        );
+      });
     });
 };
 
@@ -99,6 +142,29 @@ export const deleteNotebook = (
       cy.log('No notebooks found');
     } else {
       cy.log(`Notebook deletion: ${result.stdout}`);
+    }
+  });
+};
+
+/**
+ * Deletes odh-nim-account in the TEST_NAMESPACE.
+ * @param namespace The namespace where account exist.
+ * @returns A Cypress chainable that performs the account deletion process.
+ */
+export const deleteNIMAccount = (
+  namespace: string = Cypress.env('TEST_NAMESPACE'),
+): Cypress.Chainable<CommandLineResult> => {
+  const ocCommand = `oc delete account odh-nim-account -n ${namespace}`;
+  cy.log(`Executing: ${ocCommand}`);
+
+  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
+    if (result.code !== 0) {
+      throw new Error(`Command failed with code ${result.stderr}`);
+    }
+    if (result.stdout.trim() === '') {
+      cy.log('No accounts found');
+    } else {
+      cy.log(`Account deletion: ${result.stdout}`);
     }
   });
 };

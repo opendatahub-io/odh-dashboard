@@ -57,6 +57,7 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
 
     const button = (
       <Button
+        data-testid="enable-app"
         variant={ButtonVariant.secondary}
         onClick={onEnable}
         isDisabled={!enablement || !canInstall || !isAdmin}

@@ -152,7 +152,11 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.FINE_TUNING]: {
     featureFlags: ['disableFineTuning'],
-    reliantAreas: [SupportedArea.DS_PIPELINES],
+    reliantAreas: [
+      SupportedArea.DS_PIPELINES,
+      SupportedArea.MODEL_CATALOG,
+      SupportedArea.MODEL_REGISTRY,
+    ],
   },
 };
 
