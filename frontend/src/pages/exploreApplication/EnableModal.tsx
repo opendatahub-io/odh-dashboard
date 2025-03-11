@@ -53,12 +53,12 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
     // Clear only the values, keeping the keys intact
     const resetValues: { [key: string]: string } = {};
     Object.keys(enableValues).forEach((key) => {
-      resetValues[key] = "";
+      resetValues[key] = '';
     });
     setEnableValues(resetValues);
     setPostError('');
     onClose();
-  }, [onClose]);
+  }, [onClose, enableValues]);
 
   React.useEffect(() => {
     if (validationInProgress && validationStatus === EnableApplicationStatus.SUCCESS) {
