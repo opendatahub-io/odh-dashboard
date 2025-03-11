@@ -20,6 +20,13 @@ import {
   ParameterKF,
 } from '~/concepts/pipelines/kfTypes';
 import { isEnumMember } from '~/utilities/utils';
+import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
+import { getResourceNameFromK8sResource } from '~/concepts/k8s/utils';
+import { assembleConnectionSecret } from '~/concepts/connectionTypes/utils';
+import {
+  ConnectionTypeConfigMapObj,
+  ConnectionTypeValueType,
+} from '~/concepts/connectionTypes/types';
 import { PipelineInputParameters, NonDisplayedHyperparameterFields } from './const';
 
 export const createTeacherJudgeSecrets = (
@@ -140,6 +147,26 @@ export const createTaxonomySecret = async (
     : createAuthSecret(projectName, name, data.secret.username, data.secret.token, dryRun);
 };
 
+export const createConnectionSecret = async (
+  namespace: string,
+  nameDescData: K8sNameDescriptionFieldData,
+  connectionValues: { [key: string]: ConnectionTypeValueType },
+  ociConnectionType: ConnectionTypeConfigMapObj | undefined,
+  dryRun: boolean,
+): Promise<SecretKind> => {
+  if (!ociConnectionType) {
+    return Promise.reject(new Error(`OCI connection type is not available`));
+  }
+  const secret = assembleConnectionSecret(
+    namespace,
+    getResourceNameFromK8sResource(ociConnectionType),
+    nameDescData,
+    connectionValues,
+  );
+
+  return createSecret(secret, { dryRun });
+};
+
 export const translateIlabFormToTaxonomyInput = (
   data: ModelCustomizationFormData,
   secretName: string,
@@ -153,15 +180,29 @@ export const translateIlabFormToTaxonomyInput = (
 
 export const translateIlabFormToBaseModelInput = (
   data: ModelCustomizationFormData,
+  secretName?: string,
 ): {
-  output_model_registry_api_url: string;
-  output_model_name: string;
+  output_model_registry_name: string | undefined;
+  output_model_registry_api_url: string | undefined;
+  output_model_name: string | undefined;
+  output_model_version: string | undefined;
+  output_oci_registry_secret: string | undefined;
+  output_oci_registry_uri: string | undefined;
   sdg_base_model: string;
 } => ({
+  /* eslint-disable camelcase */
+  output_model_registry_name: data.outputModel.outputModelRegistryName,
   output_model_registry_api_url: data.outputModel.outputModelRegistryApiUrl,
-  output_model_name: data.outputModel.outputModelName,
+  output_model_name: data.outputModel.addToRegistryEnabled
+    ? data.outputModel.outputModelName
+    : undefined,
+  output_model_version: data.outputModel.addToRegistryEnabled
+    ? data.outputModel.outputModelVersion
+    : undefined,
+  output_oci_registry_secret: secretName,
+  output_oci_registry_uri: data.outputModel.connectionData.uri,
   sdg_base_model: data.baseModel.sdgBaseModel,
-  // TODO more output model fields
+  /* eslint-enable camelcase */
 });
 
 type HardwareInputType = {
