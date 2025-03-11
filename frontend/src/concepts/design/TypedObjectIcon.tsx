@@ -31,6 +31,7 @@ import {
   PermissionsIcon,
   ExperimentIcon,
   ResourcesIcon,
+  ModelCatalogIcon,
 } from '~/images/icons';
 
 type TypedObjectIconProps = SVGIconProps & {
@@ -90,6 +91,9 @@ const TypedObjectIcon: React.FC<TypedObjectIconProps> = ({
       break;
     case ProjectObjectType.multiModel:
       Icon = MultiModelIcon;
+      break;
+    case ProjectObjectType.modelCatalog:
+      Icon = ModelCatalogIcon;
       break;
     case ProjectObjectType.modelServer:
       Icon = ModelServerIcon;

@@ -19,7 +19,7 @@ import {
   createModelRegistryBackend,
   updateModelRegistryBackend,
 } from '~/services/modelRegistrySettingsService';
-import { isValidK8sName, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
+import { isValidK8sName, kindApiVersion, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import FormSection from '~/components/pf-overrides/FormSection';
 import { AreaContext } from '~/concepts/areas/AreaContext';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
@@ -28,13 +28,15 @@ import K8sNameDescriptionField, {
 } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import useModelRegistryCertificateNames from '~/concepts/modelRegistrySettings/useModelRegistryCertificateNames';
 import {
+  constructRequestBody,
   findConfigMap,
   findSecureDBType,
-  constructRequestBody,
   isClusterWideCABundleEnabled,
   isOpenshiftCAbundleEnabled,
 } from '~/pages/modelRegistrySettings/utils';
 import { RecursivePartial } from '~/typeHelpers';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 import { CreateMRSecureDBSection, SecureDBInfo } from './CreateMRSecureDBSection';
 import ModelRegistryDatabasePassword from './ModelRegistryDatabasePassword';
 import { ResourceType, SecureDBRType } from './const';
@@ -45,6 +47,8 @@ type CreateModalProps = {
   modelRegistry?: ModelRegistryKind;
 };
 
+const createEventName = 'Model Registry Created';
+const updateEventName = 'Model Registry Updated';
 const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegistry: mr }) => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<Error>();
@@ -121,6 +125,13 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
     }
   }, [mr]);
 
+  const onCancelClose = () => {
+    fireFormTrackingEvent(mr ? updateEventName : createEventName, {
+      outcome: TrackingOutcome.cancel,
+    });
+    onBeforeClose();
+  };
+
   const onBeforeClose = () => {
     setIsSubmitting(false);
     setError(undefined);
@@ -171,16 +182,25 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
           newDatabaseCACertificate,
         });
         await refresh();
+        fireFormTrackingEvent(updateEventName, {
+          outcome: TrackingOutcome.submit,
+          success: true,
+        });
         onBeforeClose();
       } catch (e) {
         if (e instanceof Error) {
           setError(e);
+          fireFormTrackingEvent(updateEventName, {
+            outcome: TrackingOutcome.submit,
+            success: false,
+            error: e.message,
+          });
         }
         setIsSubmitting(false);
       }
     } else {
       const data: ModelRegistryKind = {
-        apiVersion: `${ModelRegistryModel.apiGroup}/${ModelRegistryModel.apiVersion}`,
+        apiVersion: kindApiVersion(ModelRegistryModel),
         kind: 'ModelRegistry',
         metadata: {
           name: nameDesc.k8sName.value || translateDisplayNameForK8s(nameDesc.name),
@@ -224,11 +244,20 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
           databasePassword: password,
           newDatabaseCACertificate,
         });
+        fireFormTrackingEvent(createEventName, {
+          outcome: TrackingOutcome.submit,
+          success: true,
+        });
         await refresh();
         onBeforeClose();
       } catch (e) {
         if (e instanceof Error) {
           setError(e);
+          fireFormTrackingEvent(createEventName, {
+            outcome: TrackingOutcome.submit,
+            success: false,
+            error: e.message,
+          });
         }
         setIsSubmitting(false);
       }
@@ -251,19 +280,19 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
     <Modal
       isOpen
       title={`${mr ? 'Edit' : 'Create'} model registry`}
-      onClose={onBeforeClose}
+      onClose={onCancelClose}
       actions={[
         <Button key="create-button" variant="primary" isDisabled={!canSubmit()} onClick={onSubmit}>
           Create
         </Button>,
-        <Button key="cancel-button" variant="secondary" onClick={onBeforeClose}>
+        <Button key="cancel-button" variant="secondary" onClick={onCancelClose}>
           Cancel
         </Button>,
       ]}
       variant="medium"
       footer={
         <DashboardModalFooter
-          onCancel={onBeforeClose}
+          onCancel={onCancelClose}
           onSubmit={onSubmit}
           submitLabel={mr ? 'Update' : 'Create'}
           isSubmitLoading={isSubmitting}

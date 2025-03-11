@@ -16,10 +16,16 @@ export interface AppNotification {
   id?: number;
   status: AlertVariant;
   title: string;
+  actions?: AppNotificationAction[];
   message?: React.ReactNode;
   hidden?: boolean;
   read?: boolean;
   timestamp: Date;
+}
+
+export interface AppNotificationAction {
+  title: string;
+  onClick: () => void;
 }
 
 export interface GetUserAction {

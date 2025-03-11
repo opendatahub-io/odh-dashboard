@@ -10,7 +10,7 @@ export const DEV_MODE = process.env.APP_ENV === 'development';
 /** Allows a username to be impersonated in place of the logged in user for testing purposes -- impacts only some API */
 export const DEV_IMPERSONATE_USER = DEV_MODE ? process.env.DEV_IMPERSONATE_USER : undefined;
 export const DEV_IMPERSONATE_PASSWORD = DEV_MODE ? process.env.DEV_IMPERSONATE_PASSWORD : undefined;
-export const DEV_OATH_PREFIX = process.env.DEV_OAUTH_PREFIX || 'oauth-openshift.apps';
+export const DEV_OAUTH_PREFIX = process.env.DEV_OAUTH_PREFIX || 'oauth-openshift.apps';
 export const APP_ENV = process.env.APP_ENV;
 
 export const USER_ACCESS_TOKEN = 'x-forwarded-access-token';
@@ -60,7 +60,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableKServe: false,
       disableKServeAuth: false,
       disableKServeMetrics: false,
-      disableKServeRaw: true,
+      disableKServeRaw: false,
       disableKServeOCIModels: true,
       disableModelMesh: false,
       disableAcceleratorProfiles: false,

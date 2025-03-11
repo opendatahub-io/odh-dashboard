@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Breadcrumb, BreadcrumbItem, Flex, FlexItem } from '@patternfly/react-core';
+import { Breadcrumb, BreadcrumbItem, Flex, FlexItem, Truncate } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
@@ -56,9 +56,9 @@ const ProjectDetails: React.FC = () => {
       title={
         <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
           <HeaderIcon type={ProjectObjectType.projectContext} sectionType={SectionType.general} />
-          <FlexItem>
+          <FlexItem flex={{ default: 'flex_1' }}>
             <ResourceNameTooltip resource={currentProject} wrap={false}>
-              {displayName}
+              <Truncate content={displayName} />
             </ResourceNameTooltip>
           </FlexItem>
         </Flex>

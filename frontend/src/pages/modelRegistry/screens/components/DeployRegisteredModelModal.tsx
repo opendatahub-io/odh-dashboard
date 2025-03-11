@@ -19,6 +19,9 @@ import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/M
 import { getKServeTemplates } from '~/pages/modelServing/customServingRuntimes/utils';
 import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
 import { bumpBothTimestamps } from '~/concepts/modelRegistry/utils/updateTimestamps';
+import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
+import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
+import { isRedHatRegistryUri } from '~/pages/modelRegistry/screens/utils';
 
 interface DeployRegisteredModelModalProps {
   modelVersion: ModelVersion;
@@ -45,10 +48,10 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
     selectedProject,
     servingPlatformStatuses,
   );
-  const { loaded: projectDeployStatusLoaded, error: projectError } =
-    useProjectErrorForRegisteredModel(selectedProject?.metadata.name, platform);
   const [dataConnections] = useDataConnections(selectedProject?.metadata.name);
-  const error = platformError || projectError;
+  const [connections] = useConnections(selectedProject?.metadata.name, true);
+  const [registeredModel, registeredModelLoaded, registeredModelLoadError, refreshRegisteredModel] =
+    useRegisteredModelById(modelVersion.registeredModelId);
 
   const {
     registeredModelDeployInfo,
@@ -56,22 +59,29 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
     error: deployInfoError,
   } = useRegisteredModelDeployInfo(modelVersion, preferredModelRegistry?.metadata.name);
 
+  const isOciModel = registeredModelDeployInfo.modelArtifactUri?.includes('oci://');
+  const platformToUse = platform || (isOciModel ? ServingRuntimePlatform.SINGLE : undefined);
+  const { loaded: projectDeployStatusLoaded, error: projectError } =
+    useProjectErrorForRegisteredModel(selectedProject?.metadata.name, platformToUse);
+
+  const error = platformError || projectError;
+
+  const loaded = deployInfoLoaded && registeredModelLoaded;
+  const loadError = deployInfoError || registeredModelLoadError;
+
   const handleSubmit = React.useCallback(async () => {
-    if (!modelVersion.registeredModelId) {
+    if (!modelVersion.registeredModelId || !registeredModel) {
       return;
     }
 
     try {
-      await bumpBothTimestamps(
-        modelRegistryApi.api,
-        modelVersion.id,
-        modelVersion.registeredModelId,
-      );
+      await bumpBothTimestamps(modelRegistryApi.api, registeredModel, modelVersion);
+      refreshRegisteredModel();
       onSubmit?.();
     } catch (submitError) {
       throw new Error('Failed to update timestamps after deployment');
     }
-  }, [modelRegistryApi.api, modelVersion.id, modelVersion.registeredModelId, onSubmit]);
+  }, [modelRegistryApi.api, modelVersion, onSubmit, registeredModel, refreshRegisteredModel]);
 
   const onClose = React.useCallback(
     (submit: boolean) => {
@@ -92,22 +102,33 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
       modelRegistryName={preferredModelRegistry?.metadata.name}
       registeredModelId={modelVersion.registeredModelId}
       modelVersionId={modelVersion.id}
+      isOciModel={isOciModel}
     />
   );
 
   if (
-    (platform === ServingRuntimePlatform.MULTI && !projectDeployStatusLoaded) ||
+    (platformToUse === ServingRuntimePlatform.MULTI && !projectDeployStatusLoaded) ||
     !selectedProject ||
-    !platform
+    !platformToUse
   ) {
     const modalForm = (
       <Form>
-        {deployInfoError ? (
-          <Alert variant="danger" isInline title={deployInfoError.name}>
-            {deployInfoError.message}
+        {loadError ? (
+          <Alert variant="danger" isInline title={loadError.name}>
+            {loadError.message}
           </Alert>
-        ) : !deployInfoLoaded ? (
+        ) : !loaded ? (
           <Spinner />
+        ) : isOciModel ? (
+          <FormSection title="Model deployment">
+            <Alert
+              data-testid="oci-deploy-kserve-alert"
+              variant="info"
+              isInline
+              title="This model uses an OCI storage location which supports deploying to only the single-model serving platform. Projects using the multi-model serving platform are excluded from the project selector."
+            />
+            {projectSection}
+          </FormSection>
         ) : (
           <FormSection title="Model deployment">{projectSection}</FormSection>
         )}
@@ -122,7 +143,10 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
         isOpen
         onClose={() => onClose(false)}
         actions={[
-          <Button key="deploy" variant="primary" onClick={handleSubmit}>
+          // The Deploy button is disabled as this particular return of the Modal
+          // only happens when there's not a valid selected project, otherwise we'll
+          // render the ManageKServeModal or ManageInferenceServiceModal
+          <Button key="deploy" variant="primary" onClick={handleSubmit} isDisabled>
             Deploy
           </Button>,
           <Button key="cancel" variant="link" onClick={() => onClose(false)}>
@@ -136,15 +160,21 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
     );
   }
 
-  if (platform === ServingRuntimePlatform.SINGLE) {
+  if (platformToUse === ServingRuntimePlatform.SINGLE) {
     return (
       <ManageKServeModal
         onClose={onClose}
         servingRuntimeTemplates={getKServeTemplates(templates, templateOrder, templateDisablement)}
         shouldFormHidden={!!error}
         registeredModelDeployInfo={registeredModelDeployInfo}
-        projectContext={{ currentProject: selectedProject, dataConnections }}
+        projectContext={{ currentProject: selectedProject, connections }}
         projectSection={projectSection}
+        existingUriOption={
+          registeredModelDeployInfo.modelArtifactUri &&
+          isRedHatRegistryUri(registeredModelDeployInfo.modelArtifactUri)
+            ? registeredModelDeployInfo.modelArtifactUri
+            : undefined
+        }
       />
     );
   }
@@ -154,7 +184,7 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
       onClose={onClose}
       shouldFormHidden={!!error}
       registeredModelDeployInfo={registeredModelDeployInfo}
-      projectContext={{ currentProject: selectedProject, dataConnections }}
+      projectContext={{ currentProject: selectedProject, dataConnections, connections }}
       projectSection={projectSection}
     />
   );

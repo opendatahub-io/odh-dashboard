@@ -1,7 +1,7 @@
 import { K8sResourceCommon, MatchExpression } from '@openshift/dynamic-plugin-sdk-utils';
 import { EitherNotBoth } from '@openshift/dynamic-plugin-sdk';
 import { AwsKeys } from '~/pages/projects/dataConnections/const';
-import { StackComponent } from '~/concepts/areas/types';
+import { DataScienceStackComponent, StackComponent } from '~/concepts/areas/types';
 import {
   ContainerResourceAttributes,
   ContainerResources,
@@ -469,7 +469,6 @@ export type InferenceServiceAnnotations = Partial<{
 
 export type InferenceServiceLabels = Partial<{
   'networking.knative.dev/visibility': string;
-  'security.opendatahub.io/enable-auth': 'true';
   'networking.kserve.io/visibility': 'exposed';
 }>;
 
@@ -663,6 +662,12 @@ export type DSPipelineExternalStorageKind = {
   };
 };
 
+export type DSPipelineManagedPipelinesKind = {
+  instructLab?: {
+    state: 'Removed' | 'Managed';
+  };
+};
+
 export type DSPipelineKind = K8sResourceCommon & {
   metadata: {
     name: string;
@@ -678,6 +683,7 @@ export type DSPipelineKind = K8sResourceCommon & {
         name: string;
       }>;
       enableSamplePipeline: boolean;
+      managedPipelines?: DSPipelineManagedPipelinesKind;
     }>;
     database?: Partial<{
       externalDB: Partial<{
@@ -1201,7 +1207,6 @@ export type DashboardCommonConfig = {
   disableKServeAuth: boolean;
   disableKServeMetrics: boolean;
   disableKServeRaw: boolean;
-  disableKServeOCIModels: boolean;
   disableModelMesh: boolean;
   disableAcceleratorProfiles: boolean;
   disableHardwareProfiles: boolean;
@@ -1240,6 +1245,7 @@ export type DashboardConfigKind = K8sResourceCommon & {
 export type AcceleratorProfileKind = K8sResourceCommon & {
   metadata: {
     name: string;
+    namespace: string;
     annotations?: Partial<{
       'opendatahub.io/modified-date': string;
     }>;
@@ -1253,10 +1259,20 @@ export type AcceleratorProfileKind = K8sResourceCommon & {
   };
 };
 
+export enum HardwareProfileFeatureVisibility {
+  WORKBENCH = 'workbench',
+  MODEL_SERVING = 'model-serving',
+  PIPELINES = 'pipelines',
+}
+
 export type HardwareProfileKind = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;
+    annotations?: Partial<{
+      // JSON stringified HardwareProfileFeatureVisibility[]
+      'opendatahub.io/dashboard-feature-visibility': string;
+    }>;
   };
   spec: {
     displayName: string;
@@ -1279,18 +1295,27 @@ export type K8sResourceListResult<TResource extends Partial<K8sResourceCommon>> 
   };
 };
 
+/** Represents a component in the DataScienceCluster. */
+export type DataScienceClusterComponent = {
+  /**
+   * The management state of the component (e.g., Managed, Removed).
+   * Indicates whether the component is being actively managed or not.
+   */
+  managementState?: 'Managed' | 'Removed';
+};
+
+/** Defines a DataScienceCluster with various components. */
 export type DataScienceClusterKind = K8sResourceCommon & {
   metadata: {
     name: string;
   };
   spec: {
     components?: {
-      codeflare?: {
-        managementState: string;
-      };
-      kserve?: {
-        defaultDeploymentMode: string;
-        managementState: string;
+      [key in DataScienceStackComponent]?: DataScienceClusterComponent;
+    } & {
+      /** KServe and ModelRegistry components, including further specific configuration. */
+      [DataScienceStackComponent.K_SERVE]?: DataScienceClusterComponent & {
+        defaultDeploymentMode?: string;
         nim: {
           managementState: string;
         };
@@ -1304,48 +1329,53 @@ export type DataScienceClusterKind = K8sResourceCommon & {
           name: string;
         };
       };
-      modelregistry?: {
-        managementState: string;
+      [DataScienceStackComponent.MODEL_REGISTRY]?: DataScienceClusterComponent & {
         registriesNamespace: string;
-      };
-      trustyai?: {
-        managementState: string;
-      };
-      ray?: {
-        managementState: string;
-      };
-      kueue?: {
-        managementState: string;
-      };
-      workbenches?: {
-        managementState: string;
-      };
-      dashboard?: {
-        managementState: string;
-      };
-      modelmeshserving?: {
-        managementState: string;
-      };
-      datasciencepipelines?: {
-        managementState: string;
-        managedPipelines: { instructLab: { state: string } };
-      };
-      trainingoperator?: {
-        managementState: string;
       };
     };
   };
   status?: DataScienceClusterKindStatus;
 };
 
+/** Represents the status of a component in the DataScienceCluster. */
+export type DataScienceClusterComponentStatus = {
+  /**
+   * The management state of the component (e.g., Managed, Removed).
+   * Indicates whether the component is being actively managed or not.
+   */
+  managementState?: 'Managed' | 'Removed';
+
+  /**
+   * List of releases for the component.
+   * Each release includes the name, the URL of the repository, and the version number.
+   */
+  releases?: Array<{
+    name: string; // Name of the release (e.g., "Kubeflow Pipelines")
+    repoUrl?: string; // URL of the repository hosting the release (e.g., GitHub URL)
+    version?: string; // Version of the release (e.g., "2.2.0")
+  }>;
+};
+
 /** We don't need or should ever get the full kind, this is the status section */
 export type DataScienceClusterKindStatus = {
+  /**
+   * Status information for individual components within the cluster.
+   *
+   * This field maps each component of the Data Science Cluster to its corresponding status.
+   * The majority of components use `DataScienceClusterComponentStatus`, which includes
+   * management state and release details. However, some components require additional
+   * specialized fields, such as `kserve` and `modelregistry`.
+   */
   components?: {
-    kserve?: {
+    [key in DataScienceStackComponent]?: DataScienceClusterComponentStatus;
+  } & {
+    /** Status of KServe, including deployment mode and serverless configuration. */
+    [DataScienceStackComponent.K_SERVE]?: DataScienceClusterComponentStatus & {
       defaultDeploymentMode?: string;
       serverlessMode?: string;
     };
-    modelregistry?: {
+    /** Status of Model Registry, including its namespace configuration. */
+    [DataScienceStackComponent.MODEL_REGISTRY]?: DataScienceClusterComponentStatus & {
       registriesNamespace?: string;
     };
   };
@@ -1364,6 +1394,7 @@ export type DataScienceClusterInitializationKindStatus = {
     name?: string;
     version?: string;
   };
+  components?: Record<string, never>;
   phase?: string;
 };
 

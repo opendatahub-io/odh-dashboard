@@ -1,3 +1,9 @@
+import {
+  DEFAULT_CPU_IDENTIFIER,
+  DEFAULT_MEMORY_IDENTIFIER,
+} from '~/pages/hardwareProfiles/nodeResource/const';
+import { Identifier, IdentifierResourceType } from '~/types';
+
 /**
  * Format: '{value: number}{unit: string}'
  * eg. 1Unit; 100Mi; 10Gi; 5m
@@ -40,18 +46,43 @@ export const MEMORY_UNITS_FOR_PARSING: UnitOption[] = [
   { name: 'KiB', unit: 'Ki', weight: 1024 },
   { name: 'B', unit: '', weight: 1 },
 ];
+export const OTHER: UnitOption[] = [{ name: 'Other', unit: '', weight: 1 }];
+
+export const determineUnit = (nodeResource: Identifier): UnitOption[] => {
+  if (
+    nodeResource.resourceType === IdentifierResourceType.CPU ||
+    nodeResource.identifier === DEFAULT_CPU_IDENTIFIER
+  ) {
+    return CPU_UNITS;
+  }
+  if (
+    nodeResource.resourceType === IdentifierResourceType.MEMORY ||
+    nodeResource.identifier === DEFAULT_MEMORY_IDENTIFIER
+  ) {
+    return MEMORY_UNITS_FOR_SELECTION;
+  }
+  return OTHER;
+};
 
 export const splitValueUnit = (
   value: ValueUnitString,
   options: UnitOption[],
+  strict = false,
 ): [value: number, unit: UnitOption] => {
   const match = value.match(/^(\d*\.?\d*)(.*)$/);
   if (!(match && match[1])) {
+    if (strict) {
+      // Unable to match a legit value. Throws an error.
+      throw Error('The resource count is in an invalid format.');
+    }
     // Unable to match a legit value -- default back to base
     return [1, options[0]];
   }
   const newValue = Number(match[1]);
   const foundUnit = options.find((o) => o.unit === match[2]);
+  if (strict && typeof foundUnit === 'undefined') {
+    throw Error('The resource count has the wrong unit.');
+  }
   const newUnit = foundUnit || options[0]; // escape hatch -- unsure what the unit can be
   return [newValue, newUnit];
 };
@@ -129,6 +160,17 @@ export const isLarger = (
   return isEqualOkay ? delta >= 0 : delta > 0;
 };
 
+export const isCpuLarger = (
+  value1: ValueUnitCPU,
+  value2: ValueUnitCPU,
+  isEqualOkay = false,
+): boolean => {
+  const cpu1String = typeof value1 === 'number' ? `${value1}` : value1;
+  const cpu2String = typeof value2 === 'number' ? `${value2}` : value2;
+
+  return isLarger(cpu1String, cpu2String, CPU_UNITS, isEqualOkay);
+};
+
 export const isCpuLimitLarger = (
   requestCpu?: ValueUnitCPU,
   limitCpu?: ValueUnitCPU,
@@ -143,6 +185,12 @@ export const isCpuLimitLarger = (
 
   return isLarger(limitCpuString, requestCpuString, CPU_UNITS, isEqualOkay);
 };
+
+export const isMemoryLarger = (
+  value1: ValueUnitString,
+  value2: ValueUnitString,
+  isEqualOkay = false,
+): boolean => isLarger(value1, value2, MEMORY_UNITS_FOR_PARSING, isEqualOkay);
 
 export const isMemoryLimitLarger = (
   requestMemory?: ValueUnitString,

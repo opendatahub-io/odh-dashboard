@@ -14,6 +14,10 @@ OCP_ADMIN_USER:
 S3:
   AWS_ACCESS_KEY_ID: access_key
   AWS_SECRET_ACCESS_KEY: secret_key
+  BUCKET_1:
+    NAME: bucket-1-name
+    REGION: bucket-1-region
+    ENDPOINT: https://bucket1-endpoint.com/
   BUCKET_2:
     NAME: pipeline-bucket-name
     REGION: pipeline-bucket-region
@@ -24,3 +28,4 @@ S3:
     ENDPOINT: https://model-bucket-endpoint.com/
 PIP_INDEX_URL: https://pypi.org/simple
 PIP_TRUSTED_HOST: pypi.org
+NGC_API_KEY: bm90IGEgdmFsaWQgYXBpIGtleQo=

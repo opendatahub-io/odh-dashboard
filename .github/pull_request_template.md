@@ -12,7 +12,7 @@
 <!--- see how your change affects other areas of the code, etc. -->
 
 ## Test Impact
-<!--- What tests have you done to covert implemented functionality -->
+<!--- What tests have you done to cover the implemented functionality -->
 <!--- If tests are not applicable, explain why here -->
 
 ## Request review criteria:

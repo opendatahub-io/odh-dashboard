@@ -11,15 +11,19 @@ import {
 import SimpleSelect from '~/components/SimpleSelect';
 import { AccessAllowed, verbModelAccess } from '~/concepts/userSSAR';
 import { HardwareProfileModel } from '~/api';
+import { HardwareProfileFeatureVisibility } from '~/k8sTypes';
+import { HardwareProfileFeatureVisibilityTitles } from './manage/const';
 
 type HardwareProfilesToolbarProps = {
   filterData: HardwareProfileFilterDataType;
   onFilterUpdate: (key: string, value?: string | { label: string; value: string }) => void;
+  showCreateButton?: boolean;
 };
 
 const HardwareProfilesToolbar: React.FC<HardwareProfilesToolbarProps> = ({
   filterData,
   onFilterUpdate,
+  showCreateButton = true,
 }) => {
   const navigate = useNavigate();
 
@@ -50,23 +54,39 @@ const HardwareProfilesToolbar: React.FC<HardwareProfilesToolbarProps> = ({
             popperProps={{ maxWidth: undefined }}
           />
         ),
+        [HardwareProfileFilterOptions.visibility]: ({ value, onChange, ...props }) => (
+          <SimpleSelect
+            {...props}
+            dataTestId="hardware-profile-filter-use-cases-select"
+            value={value}
+            aria-label="Hardware profile use cases"
+            options={Object.values(HardwareProfileFeatureVisibility).map((v) => ({
+              key: v,
+              label: HardwareProfileFeatureVisibilityTitles[v],
+            }))}
+            onChange={(v) => onChange(v)}
+            popperProps={{ maxWidth: undefined }}
+          />
+        ),
       }}
       filterData={filterData}
       onFilterUpdate={onFilterUpdate}
     >
       <AccessAllowed resourceAttributes={verbModelAccess('create', HardwareProfileModel)}>
-        {() => (
-          <ToolbarGroup>
-            <ToolbarItem>
-              <Button
-                data-testid="create-hardware-profile"
-                onClick={() => navigate('/hardwareProfiles/create')}
-              >
-                Create hardware profile
-              </Button>
-            </ToolbarItem>
-          </ToolbarGroup>
-        )}
+        {() =>
+          showCreateButton && (
+            <ToolbarGroup>
+              <ToolbarItem>
+                <Button
+                  data-testid="create-hardware-profile"
+                  onClick={() => navigate('/hardwareProfiles/create')}
+                >
+                  Create hardware profile
+                </Button>
+              </ToolbarItem>
+            </ToolbarGroup>
+          )
+        }
       </AccessAllowed>
     </FilterToolbar>
   );

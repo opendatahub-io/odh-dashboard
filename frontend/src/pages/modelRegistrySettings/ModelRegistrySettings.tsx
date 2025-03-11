@@ -37,7 +37,7 @@ const ModelRegistrySettings: React.FC = () => {
       <ApplicationsPage
         title={
           <TitleWithIcon
-            title="Model Registry Settings"
+            title="Model registry settings"
             objectType={ProjectObjectType.modelRegistrySettings}
           />
         }

@@ -1,3 +1,4 @@
+import { Truncate } from '@patternfly/react-core';
 import * as React from 'react';
 import { Link, LinkProps } from 'react-router-dom';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
@@ -12,7 +13,7 @@ const ProjectLink: React.FC<Omit<LinkProps, 'to'> & ProjectLinkProps> = ({ proje
 
   return (
     <Link to={`/projects/${project.metadata.name}`} {...props}>
-      {projectName}
+      <Truncate content={projectName} />
     </Link>
   );
 };

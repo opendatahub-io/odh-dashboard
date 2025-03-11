@@ -20,6 +20,14 @@ class ModelVersionDetails {
     return cy.findByTestId('model-version-id');
   }
 
+  findRegisteredFrom() {
+    return cy.findByTestId('registered-from');
+  }
+
+  findPipelineRunLink() {
+    return cy.findByTestId('pipeline-run-link');
+  }
+
   findDescription() {
     return cy.findByTestId('model-version-description');
   }
@@ -149,6 +157,14 @@ class ModelVersionDetails {
 
   findSaveLabelsButton() {
     return cy.findByTestId('editable-labels-group-save');
+  }
+
+  findLabTuneButton() {
+    return cy.findByTestId('lab-tune-button');
+  }
+
+  findStartRunModal() {
+    return cy.findByTestId('start-run-modal');
   }
 }
 

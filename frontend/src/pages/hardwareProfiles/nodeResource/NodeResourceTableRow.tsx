@@ -1,8 +1,18 @@
 import React from 'react';
 import { Td, Tr } from '@patternfly/react-table';
-import { ActionList, ActionListItem, Button, Truncate } from '@patternfly/react-core';
-import { MinusCircleIcon, PencilAltIcon } from '@patternfly/react-icons';
+import {
+  ActionList,
+  ActionListItem,
+  Button,
+  Flex,
+  FlexItem,
+  Icon,
+  Truncate,
+} from '@patternfly/react-core';
+import { ExclamationTriangleIcon, MinusCircleIcon, PencilAltIcon } from '@patternfly/react-icons';
 import { Identifier } from '~/types';
+import { isHardwareProfileIdentifierValid } from '~/pages/hardwareProfiles/utils';
+import { formatResourceValue } from '~/concepts/hardwareProfiles/utils';
 
 type NodeResourceTableRowProps = {
   identifier: Identifier;
@@ -19,15 +29,32 @@ const NodeResourceTableRow: React.FC<NodeResourceTableRowProps> = ({
 }) => (
   <Tr>
     <Td dataLabel="Resource label">
-      <Truncate content={identifier.displayName} />
+      <Flex>
+        <FlexItem spacer={{ default: 'spacerSm' }}>
+          <Truncate content={identifier.displayName} />
+        </FlexItem>
+        {!isHardwareProfileIdentifierValid(identifier) && (
+          <Icon status="warning">
+            <ExclamationTriangleIcon />
+          </Icon>
+        )}
+      </Flex>
     </Td>
     <Td dataLabel="Resource identifier">
       <Truncate content={identifier.identifier} />
     </Td>
     <Td dataLabel="Resource type">{identifier.resourceType ?? 'Other'}</Td>
-    <Td dataLabel="Default">{identifier.defaultCount}</Td>
-    <Td dataLabel="Minimum allowed">{identifier.minCount}</Td>
-    <Td dataLabel="Maximum allowed">{identifier.maxCount}</Td>
+    <Td dataLabel="Default">
+      {formatResourceValue(identifier.defaultCount, identifier.resourceType)}
+    </Td>
+    <Td dataLabel="Minimum allowed">
+      {formatResourceValue(identifier.minCount, identifier.resourceType)}
+    </Td>
+    <Td dataLabel="Maximum allowed">
+      {identifier.maxCount
+        ? formatResourceValue(identifier.maxCount, identifier.resourceType)
+        : 'unrestricted'}
+    </Td>
     {showActions && (
       <Td isActionCell modifier="nowrap" style={{ textAlign: 'right' }}>
         <ActionList isIconList>

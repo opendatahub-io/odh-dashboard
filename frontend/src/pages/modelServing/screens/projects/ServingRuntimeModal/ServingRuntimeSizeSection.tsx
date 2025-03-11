@@ -1,7 +1,11 @@
 import * as React from 'react';
 import { FormGroup, Stack, StackItem, Popover, Icon } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { HardwareProfileKind, ServingRuntimeKind } from '~/k8sTypes';
+import {
+  HardwareProfileKind,
+  HardwareProfileFeatureVisibility,
+  ServingRuntimeKind,
+} from '~/k8sTypes';
 import { isGpuDisabled } from '~/pages/modelServing/screens/projects/utils';
 import AcceleratorProfileSelectField from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import { getCompatibleIdentifiers } from '~/pages/projects/screens/spawner/spawnerUtils';
@@ -71,13 +75,10 @@ const ServingRuntimeSizeSection = ({
     <>
       {isHardwareProfileEnabled ? (
         <HardwareProfileFormSection
-          data={podSpecOptionState.hardwareProfile.formData}
-          initialHardwareProfile={podSpecOptionState.hardwareProfile.initialHardwareProfile}
-          allowExistingSettings={
-            isEditing && !podSpecOptionState.hardwareProfile.initialHardwareProfile
-          }
-          setData={podSpecOptionState.hardwareProfile.setFormData}
+          podSpecOptionsState={podSpecOptionState}
+          isEditing={isEditing}
           isHardwareProfileSupported={isHardwareProfileSupported}
+          visibleIn={[HardwareProfileFeatureVisibility.MODEL_SERVING]}
         />
       ) : (
         <FormGroup

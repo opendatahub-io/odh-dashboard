@@ -3,16 +3,24 @@ import {
   k8sDeleteResource,
   k8sGetResource,
   k8sListResource,
+  k8sPatchResource,
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { DataSciencePipelineApplicationModel } from '~/api/models';
-import { DSPipelineKind, K8sAPIOptions, RouteKind, SecretKind } from '~/k8sTypes';
+import {
+  DSPipelineKind,
+  DSPipelineManagedPipelinesKind,
+  K8sAPIOptions,
+  RouteKind,
+  SecretKind,
+} from '~/k8sTypes';
 import { getRoute } from '~/api/k8s/routes';
 import { getSecret } from '~/api/k8s/secrets';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { DEFAULT_PIPELINE_DEFINITION_NAME } from '~/concepts/pipelines/const';
 import { ELYRA_SECRET_NAME } from '~/concepts/pipelines/elyra/const';
 import { DEV_MODE } from '~/utilities/const';
+import { kindApiVersion } from '~/concepts/k8s/utils';
 
 export const getElyraSecret = async (namespace: string, opts: K8sAPIOptions): Promise<SecretKind> =>
   getSecret(namespace, ELYRA_SECRET_NAME, opts);
@@ -36,16 +44,13 @@ export const createPipelinesCR = async (
   opts?: K8sAPIOptions,
 ): Promise<DSPipelineKind> => {
   const resource: DSPipelineKind = {
-    apiVersion: `${DataSciencePipelineApplicationModel.apiGroup}/${DataSciencePipelineApplicationModel.apiVersion}`,
+    apiVersion: kindApiVersion(DataSciencePipelineApplicationModel),
     kind: DataSciencePipelineApplicationModel.kind,
     metadata: {
       name: DEFAULT_PIPELINE_DEFINITION_NAME,
       namespace,
     },
     spec: {
-      apiServer: {
-        enableSamplePipeline: false,
-      },
       ...(DEV_MODE ? DEV_MODE_SETTINGS : {}),
       ...spec,
     },
@@ -105,3 +110,20 @@ export const deletePipelineCR = async (
       opts,
     ),
   );
+
+export const toggleInstructLabState = (
+  namespace: string,
+  name: string,
+  managedPipelines: DSPipelineManagedPipelinesKind,
+): Promise<DSPipelineKind> =>
+  k8sPatchResource<DSPipelineKind>({
+    model: DataSciencePipelineApplicationModel,
+    queryOptions: { name, ns: namespace },
+    patches: [
+      {
+        op: 'replace',
+        path: '/spec/apiServer/managedPipelines',
+        value: managedPipelines,
+      },
+    ],
+  });

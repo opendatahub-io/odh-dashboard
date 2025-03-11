@@ -32,7 +32,7 @@ import {
 import ServingRuntimeSizeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeSizeSection';
 import ServingRuntimeTemplateSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeTemplateSection';
 import ProjectSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSection';
-import { DataConnection, NamespaceApplicationCase } from '~/pages/projects/types';
+import { NamespaceApplicationCase } from '~/pages/projects/types';
 import InferenceServiceFrameworkSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/InferenceServiceFrameworkSection';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import AuthServingRuntimeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
@@ -53,6 +53,7 @@ import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescription
 import { useProfileIdentifiers } from '~/concepts/hardwareProfiles/utils';
 import { useModelServingPodSpecOptionsState } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import { validateEnvVarName } from '~/concepts/connectionTypes/utils';
+import usePrefillDeployModalFromModelRegistry from '~/pages/modelRegistry/screens/RegisteredModels/usePrefillDeployModalFromModelRegistry';
 import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 import EnvironmentVariablesSection from './EnvironmentVariablesSection';
@@ -72,11 +73,12 @@ type ManageKServeModalProps = {
   registeredModelDeployInfo?: RegisteredModelDeployInfo;
   shouldFormHidden?: boolean;
   projectSection?: React.ReactNode;
+  existingUriOption?: string;
 } & EitherOrNone<
   {
     projectContext?: {
       currentProject: ProjectKind;
-      dataConnections: DataConnection[];
+      connections: Connection[];
     };
   },
   {
@@ -96,6 +98,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   projectSection,
   registeredModelDeployInfo,
   shouldFormHidden: hideForm,
+  existingUriOption,
 }) => {
   const { isRawAvailable, isServerlessAvailable } = useKServeDeploymentMode();
 
@@ -135,6 +138,14 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     podSpecOptionsState.acceleratorProfile.formData.profile,
     podSpecOptionsState.hardwareProfile.formData.selectedProfile,
   );
+
+  const [connections, connectionsLoaded, connectionsLoadError] =
+    usePrefillDeployModalFromModelRegistry(
+      projectContext,
+      createDataInferenceService,
+      setCreateDataInferenceService,
+      registeredModelDeployInfo,
+    );
 
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
@@ -178,6 +189,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
 
   const baseInputValueValid =
     createDataInferenceService.maxReplicas >= 0 &&
+    podSpecOptionsState.podSpecOptions.resources &&
     resourcesArePositive(podSpecOptionsState.podSpecOptions.resources) &&
     requestsUnderLimits(podSpecOptionsState.podSpecOptions.resources);
 
@@ -403,11 +415,18 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
         {!hideForm && (
           <FormSection title="Source model location" id="model-location">
             <ConnectionSection
+              existingUriOption={
+                existingUriOption ||
+                editInfo?.inferenceServiceEditInfo?.spec.predictor.model?.storageUri
+              }
               data={createDataInferenceService}
               setData={setCreateDataInferenceService}
+              loaded={!!projectContext?.connections || connectionsLoaded}
+              loadError={connectionsLoadError}
               connection={connection}
               setConnection={setConnection}
               setIsConnectionValid={setIsConnectionValid}
+              connections={connections}
             />
           </FormSection>
         )}

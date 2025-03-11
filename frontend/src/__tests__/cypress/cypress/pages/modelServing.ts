@@ -13,12 +13,12 @@ class ModelServingGlobal {
   }
 
   navigate() {
-    appChrome.findNavItem('Model Serving').click();
+    appChrome.findNavItem('Model deployments').click();
     this.wait();
   }
 
   private wait() {
-    cy.findByTestId('app-page-title').should('have.text', 'Deployed models');
+    cy.findByTestId('app-page-title').should('have.text', 'Model deployments');
     cy.testA11y();
   }
 
@@ -153,6 +153,10 @@ class InferenceServiceModal extends Modal {
     return this.find().findByTestId('alt-form-checkbox-auth');
   }
 
+  findExistingUriOption() {
+    return this.find().findByTestId('existing-uri-radio');
+  }
+
   findNewConnectionOption() {
     return this.find().findByTestId('new-connection-radio');
   }
@@ -177,6 +181,17 @@ class InferenceServiceModal extends Modal {
     return this.findExistingConnectionSelect().findByRole('combobox', {
       name: 'Type to filter',
     });
+  }
+
+  findModelURITextBox() {
+    return this.find().findByTestId('model-uri');
+  }
+
+  selectConnectionType(name: string) {
+    this.findExistingConnectionSelect()
+      .findByRole('button', { name: 'Typeahead menu toggle' })
+      .findSelectOption(name)
+      .click();
   }
 
   selectExistingConnectionSelectOptionByResourceName() {

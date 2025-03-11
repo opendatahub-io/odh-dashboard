@@ -18,6 +18,7 @@ import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
+import usePrefillDeployModalFromModelRegistry from '~/pages/modelRegistry/screens/RegisteredModels/usePrefillDeployModalFromModelRegistry';
 import ProjectSection from './ProjectSection';
 import InferenceServiceFrameworkSection from './InferenceServiceFrameworkSection';
 import InferenceServiceServingRuntimeSection from './InferenceServiceServingRuntimeSection';
@@ -35,6 +36,7 @@ type ManageInferenceServiceModalProps = {
       currentProject: ProjectKind;
       currentServingRuntime?: ServingRuntimeKind;
       dataConnections: DataConnection[];
+      connections: Connection[];
     };
   }
 >;
@@ -55,6 +57,14 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
 
   const currentProjectName = projectContext?.currentProject.metadata.name || '';
   const currentServingRuntimeName = projectContext?.currentServingRuntime?.metadata.name || '';
+
+  const [connections, connectionsLoaded, connectionsLoadError] =
+    usePrefillDeployModalFromModelRegistry(
+      projectContext,
+      createData,
+      setCreateData,
+      registeredModelDeployInfo,
+    );
 
   const [connection, setConnection] = React.useState<Connection>();
   const [isConnectionValid, setIsConnectionValid] = React.useState(false);
@@ -180,11 +190,15 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
             />
             <FormSection title="Source model location" id="model-location">
               <ConnectionSection
+                existingUriOption={editInfo?.spec.predictor.model?.storageUri}
                 data={createData}
                 setData={setCreateData}
+                loaded={!!projectContext?.connections || connectionsLoaded}
+                loadError={connectionsLoadError}
                 connection={connection}
                 setConnection={setConnection}
                 setIsConnectionValid={setIsConnectionValid}
+                connections={connections}
               />
             </FormSection>
           </>

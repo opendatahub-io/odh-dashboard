@@ -1,5 +1,11 @@
 import { DashboardCommonConfig } from '~/k8sTypes';
-import { StackCapability, StackComponent, SupportedArea, SupportedAreasState } from './types';
+import {
+  StackCapability,
+  StackComponent,
+  SupportedArea,
+  SupportedAreasState,
+  DataScienceStackComponent,
+} from './types';
 
 export const allFeatureFlags: string[] = Object.keys({
   enablement: false,
@@ -22,8 +28,7 @@ export const allFeatureFlags: string[] = Object.keys({
   disableKServe: false,
   disableKServeAuth: false,
   disableKServeMetrics: false,
-  disableKServeRaw: true,
-  disableKServeOCIModels: true,
+  disableKServeRaw: false,
   disableModelMesh: false,
   disableAcceleratorProfiles: false,
   disableHardwareProfiles: false,
@@ -89,10 +94,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disableKServeRaw'],
     reliantAreas: [SupportedArea.K_SERVE, SupportedArea.MODEL_SERVING],
   },
-  [SupportedArea.K_SERVE_OCI]: {
-    featureFlags: ['disableKServeOCIModels'],
-    reliantAreas: [SupportedArea.K_SERVE, SupportedArea.MODEL_SERVING],
-  },
   [SupportedArea.MODEL_MESH]: {
     featureFlags: ['disableModelMesh'],
     requiredComponents: [StackComponent.MODEL_MESH],
@@ -151,6 +152,26 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.FINE_TUNING]: {
     featureFlags: ['disableFineTuning'],
-    reliantAreas: [SupportedArea.DS_PIPELINES],
+    reliantAreas: [
+      SupportedArea.DS_PIPELINES,
+      SupportedArea.MODEL_CATALOG,
+      SupportedArea.MODEL_REGISTRY,
+    ],
   },
+};
+
+/** Maps each DataScienceStackComponent to its human-readable name **/
+export const DataScienceStackComponentMap: Record<string, string> = {
+  [DataScienceStackComponent.CODE_FLARE]: 'CodeFlare',
+  [DataScienceStackComponent.DASHBOARD]: 'Dashboard',
+  [DataScienceStackComponent.DS_PIPELINES]: 'Data science pipelines',
+  [DataScienceStackComponent.KUEUE]: 'Kueue',
+  [DataScienceStackComponent.MODEL_REGISTRY]: 'Model registry',
+  [DataScienceStackComponent.FEAST_OPERATOR]: 'Feast operator',
+  [DataScienceStackComponent.K_SERVE]: 'Model server and metrics',
+  [DataScienceStackComponent.MODEL_MESH_SERVING]: 'Model server and metrics',
+  [DataScienceStackComponent.RAY]: 'Ray',
+  [DataScienceStackComponent.TRAINING_OPERATOR]: 'Training operator',
+  [DataScienceStackComponent.TRUSTY_AI]: 'TrustyAI',
+  [DataScienceStackComponent.WORKBENCHES]: 'Workbenches',
 };

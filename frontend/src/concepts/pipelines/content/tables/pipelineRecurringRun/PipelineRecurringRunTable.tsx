@@ -11,6 +11,8 @@ import { usePipelineFilterSearchParams } from '~/concepts/pipelines/content/tabl
 import SimpleMenuActions from '~/components/SimpleMenuActions';
 import { pipelineRecurringRunColumns } from '~/concepts/pipelines/content/tables/columns';
 import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 import PipelineRecurringRunTableRow from './PipelineRecurringRunTableRow';
 import PipelineRecurringRunTableToolbar from './PipelineRecurringRunTableToolbar';
 
@@ -131,6 +133,11 @@ const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
         toDeleteResources={deleteResources}
         type={PipelineRunType.SCHEDULED}
         onClose={(deleted) => {
+          fireFormTrackingEvent('Pipeline Schedule Deleted', {
+            outcome: TrackingOutcome.submit,
+            success: true,
+          });
+
           if (deleted) {
             refreshAllAPI();
           }

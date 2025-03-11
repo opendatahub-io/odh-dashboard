@@ -2,12 +2,12 @@ import * as React from 'react';
 import {
   Breadcrumb,
   BreadcrumbItem,
-  EmptyState,
-  EmptyStateVariant,
-  EmptyStateBody,
-  Title,
   Bullseye,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
   Spinner,
+  Title,
 } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
@@ -24,6 +24,8 @@ import { PipelineRunDetailsTabs } from '~/concepts/pipelines/content/pipelinesDe
 import usePipelineRecurringRunById from '~/concepts/pipelines/apiHooks/usePipelineRecurringRunById';
 import PipelineNotSupported from '~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineNotSupported';
 import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 import PipelineRecurringRunDetailsActions from './PipelineRecurringRunDetailsActions';
 
 const PipelineRecurringRunDetails: PipelineCoreDetailsPageComponent = ({
@@ -133,6 +135,10 @@ const PipelineRecurringRunDetails: PipelineCoreDetailsPageComponent = ({
         type={PipelineRunType.SCHEDULED}
         toDeleteResources={deleting && recurringRun ? [recurringRun] : []}
         onClose={(deleteComplete) => {
+          fireFormTrackingEvent('Pipeline Schedule Deleted', {
+            outcome: TrackingOutcome.submit,
+            success: true,
+          });
           if (deleteComplete) {
             navigate(contextPath);
           } else {

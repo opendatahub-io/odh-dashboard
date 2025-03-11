@@ -1,38 +1,37 @@
 import * as React from 'react';
 import { FormGroup, Stack, StackItem, ExpandableSection } from '@patternfly/react-core';
-import { HardwareProfileKind } from '~/k8sTypes';
+import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '~/k8sTypes';
 import { useValidation, ValidationContext } from '~/utilities/useValidation';
 import { ContainerResources } from '~/types';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import { createHardwareProfileValidationSchema } from './validationUtils';
+import { useHardwareProfilesByFeatureVisibility } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
+import { hardwareProfileValidationSchema } from './validationUtils';
 import HardwareProfileSelect from './HardwareProfileSelect';
 import HardwareProfileCustomize from './HardwareProfileCustomize';
-import { HardwareProfileConfig } from './useHardwareProfileConfig';
+import { PodSpecOptionsState, PodSpecOptions } from './types';
+import { getContainerResourcesFromHardwareProfile } from './utils';
 
-type HardwareProfileFormSectionProps = {
-  data: HardwareProfileConfig;
-  initialHardwareProfile?: HardwareProfileKind;
-  allowExistingSettings?: boolean;
-  setData: UpdateObjectAtPropAndValue<HardwareProfileConfig>;
+type HardwareProfileFormSectionProps<T extends PodSpecOptions> = {
+  isEditing: boolean;
+  visibleIn?: HardwareProfileFeatureVisibility[];
+  podSpecOptionsState: PodSpecOptionsState<T>;
   isHardwareProfileSupported?: (profile: HardwareProfileKind) => boolean;
 };
 
-const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps> = ({
-  data,
-  initialHardwareProfile,
-  allowExistingSettings = false,
-  setData,
+const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSpecOptions>> = ({
+  podSpecOptionsState,
+  isEditing,
+  visibleIn = [],
   isHardwareProfileSupported = () => false,
 }) => {
-  const validationSchema = React.useMemo(
-    () => createHardwareProfileValidationSchema(data.selectedProfile),
-    [data.selectedProfile],
-  );
+  const {
+    hardwareProfile: { formData, initialHardwareProfile, setFormData },
+  } = podSpecOptionsState;
 
-  const validation = useValidation(data, validationSchema);
+  const validation = useValidation(formData, hardwareProfileValidationSchema);
   const hasValidationErrors = Object.keys(validation.getAllValidationIssues()).length > 0;
+  const [hardwareProfiles, loaded, error] = useHardwareProfilesByFeatureVisibility(visibleIn);
 
-  const [isExpanded, setIsExpanded] = React.useState(hasValidationErrors);
+  const [isExpanded, setIsExpanded] = React.useState(false);
 
   React.useEffect(() => {
     if (initialHardwareProfile && hasValidationErrors) {
@@ -43,56 +42,40 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps> = ({
   const onProfileSelect = (profile?: HardwareProfileKind) => {
     // if no profile provided, use existing settings
     if (!profile) {
-      setData('selectedProfile', undefined);
-      setData('useExistingSettings', true);
+      setFormData('selectedProfile', undefined);
+      setFormData('useExistingSettings', true);
       return;
     }
 
     // Reset customization when changing profiles
-    const emptyRecord: Record<string, string | number> = {};
+    const newResources = getContainerResourcesFromHardwareProfile(profile);
 
-    const newRequests =
-      profile.spec.identifiers?.reduce(
-        (acc: Record<string, string | number>, identifier) => {
-          acc[identifier.identifier] = identifier.defaultCount;
-          return acc;
-        },
-        { ...emptyRecord },
-      ) ?? emptyRecord;
-
-    const newLimits =
-      profile.spec.identifiers?.reduce(
-        (acc: Record<string, string | number>, identifier) => {
-          acc[identifier.identifier] = identifier.defaultCount;
-          return acc;
-        },
-        { ...emptyRecord },
-      ) ?? emptyRecord;
-
-    setData('selectedProfile', profile);
-    setData('useExistingSettings', false);
-    setData('resources', {
-      requests: newRequests,
-      limits: newLimits,
-    });
+    setFormData('selectedProfile', profile);
+    setFormData('useExistingSettings', false);
+    setFormData('resources', newResources);
   };
 
   return (
     <ValidationContext.Provider value={validation}>
       <Stack hasGutter data-testid="hardware-profile-section">
         <StackItem>
-          <FormGroup label="Hardware profile">
+          <FormGroup label="Hardware profile" isRequired>
             <HardwareProfileSelect
+              hardwareProfileConfig={formData}
+              previewDescription
+              hardwareProfiles={hardwareProfiles}
+              hardwareProfilesLoaded={loaded}
+              hardwareProfilesError={error}
               isHardwareProfileSupported={isHardwareProfileSupported}
-              hardwareProfileConfig={data}
               initialHardwareProfile={initialHardwareProfile}
               onChange={onProfileSelect}
-              allowExistingSettings={allowExistingSettings}
+              allowExistingSettings={isEditing && !initialHardwareProfile}
             />
           </FormGroup>
         </StackItem>
-        {data.selectedProfile?.spec.identifiers &&
-          data.selectedProfile.spec.identifiers.length > 0 && (
+        {formData.selectedProfile?.spec.identifiers &&
+          formData.selectedProfile.spec.identifiers.length > 0 &&
+          formData.resources && (
             <StackItem>
               <ExpandableSection
                 isIndented
@@ -102,9 +85,9 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps> = ({
                 data-testid="hardware-profile-customize"
               >
                 <HardwareProfileCustomize
-                  identifiers={data.selectedProfile.spec.identifiers}
-                  data={data.resources}
-                  setData={(newData: ContainerResources) => setData('resources', newData)}
+                  identifiers={formData.selectedProfile.spec.identifiers}
+                  data={formData.resources}
+                  setData={(newData: ContainerResources) => setFormData('resources', newData)}
                 />
               </ExpandableSection>
             </StackItem>

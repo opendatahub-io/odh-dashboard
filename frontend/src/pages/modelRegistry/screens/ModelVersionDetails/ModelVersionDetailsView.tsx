@@ -10,21 +10,31 @@ import {
   Spinner,
   Alert,
 } from '@patternfly/react-core';
+import { Link } from 'react-router';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
 import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
 import EditableTextDescriptionListGroup from '~/components/EditableTextDescriptionListGroup';
 import { EditableLabelsDescriptionListGroup } from '~/components/EditableLabelsDescriptionListGroup';
 import ModelPropertiesDescriptionListGroup from '~/pages/modelRegistry/screens/ModelPropertiesDescriptionListGroup';
-import { getLabels, mergeUpdatedLabels } from '~/pages/modelRegistry/screens/utils';
+import {
+  getLabels,
+  getProperties,
+  isPipelineRunExist,
+  mergeUpdatedLabels,
+} from '~/pages/modelRegistry/screens/utils';
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
-import { uriToObjectStorageFields } from '~/concepts/modelRegistry/utils';
+import { uriToStorageFields } from '~/concepts/modelRegistry/utils';
 import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
 import {
   bumpBothTimestamps,
   bumpRegisteredModelTimestamp,
 } from '~/concepts/modelRegistry/utils/updateTimestamps';
+import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
+import { globalPipelineRunDetailsRoute } from '~/routes';
+import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
+import { pipelineRunSpecificKeys } from './const';
 
 type ModelVersionDetailsViewProps = {
   modelVersion: ModelVersion;
@@ -42,9 +52,19 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
 
   const modelArtifact = modelArtifacts.items.length ? modelArtifacts.items[0] : null;
   const { apiState } = React.useContext(ModelRegistryContext);
-  const storageFields = uriToObjectStorageFields(modelArtifact?.uri || '');
+  const storageFields = uriToStorageFields(modelArtifact?.uri || '');
+  const filteredProperties = getProperties(mv.customProperties);
+  const [registeredModel, registeredModelLoaded, registeredModelLoadError, refreshRegisteredModel] =
+    useRegisteredModelById(mv.registeredModelId);
 
-  if (!modelArtifactsLoaded) {
+  const loaded = modelArtifactsLoaded && registeredModelLoaded;
+  const loadError = modelArtifactsLoadError || registeredModelLoadError;
+  const refreshBoth = () => {
+    refreshModelArtifacts();
+    refreshRegisteredModel();
+  };
+
+  if (!loaded) {
     return (
       <Bullseye>
         <Spinner size="xl" />
@@ -54,19 +74,21 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
   const handleVersionUpdate = async (updatePromise: Promise<unknown>): Promise<void> => {
     await updatePromise;
 
-    if (!mv.registeredModelId) {
+    if (!mv.registeredModelId || !registeredModel) {
       return;
     }
 
-    await bumpRegisteredModelTimestamp(apiState.api, mv.registeredModelId);
+    await bumpRegisteredModelTimestamp(apiState.api, registeredModel);
     refresh();
   };
 
   const handleArtifactUpdate = async (updatePromise: Promise<unknown>): Promise<void> => {
     try {
       await updatePromise;
-      await bumpBothTimestamps(apiState.api, mv.id, mv.registeredModelId);
-      refreshModelArtifacts();
+      if (registeredModel) {
+        await bumpBothTimestamps(apiState.api, registeredModel, mv);
+        refreshBoth();
+      }
     } catch (error) {
       throw new Error(
         `Failed to update artifact: ${error instanceof Error ? error.message : String(error)}`,
@@ -130,75 +152,117 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
           >
             <InlineTruncatedClipboardCopy testId="model-version-id" textToCopy={mv.id} />
           </DashboardDescriptionListGroup>
+          {isPipelineRunExist(mv.customProperties, pipelineRunSpecificKeys) && (
+            <DashboardDescriptionListGroup title="Registered from">
+              <Flex
+                spaceItems={{ default: 'spaceItemsXs' }}
+                alignItems={{ default: 'alignItemsCenter' }}
+                data-testid="registered-from"
+              >
+                <FlexItem data-testid="pipeline-run-link">
+                  Run{' '}
+                  {
+                    <Link
+                      style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
+                      to={globalPipelineRunDetailsRoute(
+                        filteredProperties[pipelineRunSpecificKeys[0]].string_value,
+                        filteredProperties[pipelineRunSpecificKeys[1]].string_value,
+                      )}
+                    >
+                      {filteredProperties[pipelineRunSpecificKeys[2]].string_value}
+                    </Link>
+                  }{' '}
+                  in
+                </FlexItem>
+                <FlexItem style={{ display: 'flex' }}>
+                  <img
+                    style={{ height: 24 }}
+                    src={typedObjectImage(ProjectObjectType.project)}
+                    alt=""
+                  />
+                </FlexItem>
+                <FlexItem
+                  style={{
+                    display: 'flex',
+                    fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+                  }}
+                >
+                  {filteredProperties[pipelineRunSpecificKeys[0]].string_value}
+                </FlexItem>
+              </Flex>
+            </DashboardDescriptionListGroup>
+          )}
         </DescriptionList>
+
         <Title style={{ margin: '1em 0' }} headingLevel={ContentVariants.h3}>
           Model location
         </Title>
-        {modelArtifactsLoadError ? (
-          <Alert variant="danger" isInline title={modelArtifactsLoadError.name}>
-            {modelArtifactsLoadError.message}
+        {loadError ? (
+          <Alert variant="danger" isInline title={loadError.name}>
+            {loadError.message}
           </Alert>
         ) : (
           <>
             <DescriptionList>
-              {storageFields && (
+              {storageFields?.s3Fields && (
                 <>
                   <DashboardDescriptionListGroup
                     title="Endpoint"
-                    isEmpty={modelArtifacts.size === 0 || !storageFields.endpoint}
+                    isEmpty={!storageFields.s3Fields.endpoint}
                     contentWhenEmpty="No endpoint"
                   >
                     <InlineTruncatedClipboardCopy
                       testId="storage-endpoint"
-                      textToCopy={storageFields.endpoint}
+                      textToCopy={storageFields.s3Fields.endpoint}
                     />
                   </DashboardDescriptionListGroup>
                   <DashboardDescriptionListGroup
                     title="Region"
-                    isEmpty={modelArtifacts.size === 0 || !storageFields.region}
+                    isEmpty={!storageFields.s3Fields.region}
                     contentWhenEmpty="No region"
                   >
                     <InlineTruncatedClipboardCopy
                       testId="storage-region"
-                      textToCopy={storageFields.region || ''}
+                      textToCopy={storageFields.s3Fields.region || ''}
                     />
                   </DashboardDescriptionListGroup>
                   <DashboardDescriptionListGroup
                     title="Bucket"
-                    isEmpty={modelArtifacts.size === 0 || !storageFields.bucket}
+                    isEmpty={!storageFields.s3Fields.bucket}
                     contentWhenEmpty="No bucket"
                   >
                     <InlineTruncatedClipboardCopy
                       testId="storage-bucket"
-                      textToCopy={storageFields.bucket}
+                      textToCopy={storageFields.s3Fields.bucket}
                     />
                   </DashboardDescriptionListGroup>
                   <DashboardDescriptionListGroup
                     title="Path"
-                    isEmpty={modelArtifacts.size === 0 || !storageFields.path}
+                    isEmpty={!storageFields.s3Fields.path}
                     contentWhenEmpty="No path"
                   >
                     <InlineTruncatedClipboardCopy
                       testId="storage-path"
-                      textToCopy={storageFields.path}
+                      textToCopy={storageFields.s3Fields.path}
                     />
                   </DashboardDescriptionListGroup>
                 </>
               )}
-              {!storageFields && (
-                <>
-                  <DashboardDescriptionListGroup
-                    title="URI"
-                    isEmpty={modelArtifacts.size === 0 || !modelArtifact?.uri}
-                    contentWhenEmpty="No URI"
-                  >
-                    <InlineTruncatedClipboardCopy
-                      testId="storage-uri"
-                      textToCopy={modelArtifact?.uri || ''}
-                    />
-                  </DashboardDescriptionListGroup>
-                </>
-              )}
+              {storageFields?.uri ||
+                (storageFields?.ociUri && (
+                  <>
+                    <DashboardDescriptionListGroup
+                      title="URI"
+                      isEmpty={!modelArtifact?.uri}
+                      contentWhenEmpty="No URI"
+                    >
+                      <InlineTruncatedClipboardCopy
+                        testId="storage-uri"
+                        textToCopy={modelArtifact?.uri || ''}
+                      />
+                    </DashboardDescriptionListGroup>
+                  </>
+                ))}
             </DescriptionList>
             <Divider style={{ marginTop: '1em' }} />
             <Title style={{ margin: '1em 0' }} headingLevel={ContentVariants.h3}>

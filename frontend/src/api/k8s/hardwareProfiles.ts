@@ -11,7 +11,7 @@ import {
 import { HardwareProfileKind, K8sAPIOptions } from '~/k8sTypes';
 import { HardwareProfileModel } from '~/api/models';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
+import { kindApiVersion, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 
 export const listHardwareProfiles = async (namespace: string): Promise<HardwareProfileKind[]> =>
   k8sListResource<HardwareProfileKind>({
@@ -31,14 +31,16 @@ export const assembleHardwareProfile = (
   hardwareProfileName: string,
   data: HardwareProfileKind['spec'],
   namespace: string,
+  visibility: string[] = [],
 ): HardwareProfileKind => ({
-  apiVersion: `${HardwareProfileModel.apiGroup}/${HardwareProfileModel.apiVersion}`,
+  apiVersion: kindApiVersion(HardwareProfileModel),
   kind: HardwareProfileModel.kind,
   metadata: {
     name: hardwareProfileName || translateDisplayNameForK8s(data.displayName),
     namespace,
     annotations: {
       'opendatahub.io/modified-date': new Date().toISOString(),
+      'opendatahub.io/dashboard-feature-visibility': JSON.stringify(visibility),
     },
   },
   spec: data,
@@ -48,9 +50,10 @@ export const createHardwareProfile = (
   hardwareProfileName: string,
   data: HardwareProfileKind['spec'],
   namespace: string,
+  visibility?: string[],
   opts?: K8sAPIOptions,
 ): Promise<HardwareProfileKind> => {
-  const resource = assembleHardwareProfile(hardwareProfileName, data, namespace);
+  const resource = assembleHardwareProfile(hardwareProfileName, data, namespace, visibility);
   return k8sCreateResource<HardwareProfileKind>(
     applyK8sAPIOptions(
       {
@@ -62,13 +65,33 @@ export const createHardwareProfile = (
   );
 };
 
+export const createHardwareProfileFromResource = (
+  resource: HardwareProfileKind,
+  opts?: K8sAPIOptions,
+): Promise<HardwareProfileKind> =>
+  k8sCreateResource<HardwareProfileKind>(
+    applyK8sAPIOptions(
+      {
+        model: HardwareProfileModel,
+        resource,
+      },
+      opts,
+    ),
+  );
+
 export const updateHardwareProfile = (
   data: HardwareProfileKind['spec'],
   existingHardwareProfile: HardwareProfileKind,
   namespace: string,
+  visibility?: string[],
   opts?: K8sAPIOptions,
 ): Promise<HardwareProfileKind> => {
-  const resource = assembleHardwareProfile(existingHardwareProfile.metadata.name, data, namespace);
+  const resource = assembleHardwareProfile(
+    existingHardwareProfile.metadata.name,
+    data,
+    namespace,
+    visibility,
+  );
 
   const oldHardwareProfile = structuredClone(existingHardwareProfile);
   // clean up the resources from the old hardware profile
@@ -109,8 +132,14 @@ export const toggleHardwareProfileEnablement = (
 export const deleteHardwareProfile = (
   hardwareProfileName: string,
   namespace: string,
+  opts?: K8sAPIOptions,
 ): Promise<K8sStatus> =>
-  k8sDeleteResource<HardwareProfileKind, K8sStatus>({
-    model: HardwareProfileModel,
-    queryOptions: { name: hardwareProfileName, ns: namespace },
-  });
+  k8sDeleteResource<HardwareProfileKind, K8sStatus>(
+    applyK8sAPIOptions(
+      {
+        model: HardwareProfileModel,
+        queryOptions: { name: hardwareProfileName, ns: namespace },
+      },
+      opts,
+    ),
+  );

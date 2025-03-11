@@ -314,6 +314,14 @@ class CreateSpawnerPage {
     return cy.findByTestId('workbench-name');
   }
 
+  getEditResourceLink() {
+    return cy.findByTestId('workbench-editResourceLink');
+  }
+
+  getResourceInput() {
+    return cy.findByTestId('workbench-resourceName');
+  }
+
   getDescriptionInput() {
     return cy.findByTestId('workbench-description');
   }
@@ -366,6 +374,11 @@ class CreateSpawnerPage {
       .findByTestId('workbench-image-stream-selection')
       .findDropdownItemByTestId(name)
       .scrollIntoView();
+  }
+
+  findNotebookVersion(version: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    cy.findByTestId('workbench-image-version-selection').click();
+    return cy.get(`[data-testid$="-${version}"]`).click();
   }
 
   selectContainerSize(name: string) {
