@@ -27,6 +27,7 @@ import {
 } from '~/pages/modelRegistry/screens/routeUtils';
 import { ModelCustomizationRouterState } from '~/routes';
 import { createHyperParametersSchema } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/hyperparameterValidationUtils';
+import { getInputDefinitionParams } from '~/concepts/pipelines/content/createRun/utils';
 import FineTunePage from './FineTunePage';
 import { FineTunePageSections, fineTunePageSectionTitles } from './const';
 import { filterHyperparameters, getParamsValueFromPipelineInput } from './utils';
@@ -51,6 +52,7 @@ const ModelCustomizationForm: React.FC = () => {
     baseModel: {
       sdgBaseModel: state?.inputModelLocationUri ?? '',
     },
+    inputPipelineParameters: {},
     taxonomy: {
       url: '',
 
@@ -96,6 +98,10 @@ const ModelCustomizationForm: React.FC = () => {
       setData('hyperparameters', {
         ...hyperparameterFormData,
       });
+      const parameters = getInputDefinitionParams(ilabPipelineVersion);
+      if (parameters) {
+        setData('inputPipelineParameters', parameters);
+      }
       const trainingNodeDefaultValue = getParamsValueFromPipelineInput(
         ilabPipelineVersion,
         'train_num_workers',
@@ -114,6 +120,20 @@ const ModelCustomizationForm: React.FC = () => {
   );
 
   const navigate = useNavigate();
+  const pipelineParameterErrors =
+    Object.keys(formValidation.getAllValidationIssues(['inputPipelineParameters'])).length > 0;
+
+  const filteredFineTunePageSections = React.useMemo(
+    () =>
+      pipelineParameterErrors
+        ? Object.values(FineTunePageSections).filter(
+            (section) =>
+              section === FineTunePageSections.PROJECT_DETAILS ||
+              section === FineTunePageSections.PIPELINE_DETAILS,
+          )
+        : FineTunePageSections,
+    [pipelineParameterErrors],
+  );
 
   return (
     <ValidationContext.Provider value={formValidation}>
@@ -158,7 +178,7 @@ const ModelCustomizationForm: React.FC = () => {
         <EnsureAPIAvailability>
           <PageSection hasBodyWrapper={false} isFilled>
             <GenericSidebar
-              sections={Object.values(FineTunePageSections)}
+              sections={Object.values(filteredFineTunePageSections)}
               titles={fineTunePageSectionTitles}
               maxWidth={175}
             >
