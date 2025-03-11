@@ -15,11 +15,13 @@ import JudgeModelSection from '~/pages/pipelines/global/modelCustomization/teach
 import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { ModelCustomizationRouterState } from '~/routes';
 import RunTypeSection from '~/pages/pipelines/global/modelCustomization/RunTypeSection';
+import { ValidationContext } from '~/utilities/useValidation';
 import { FineTuneTaxonomySection } from './FineTuneTaxonomySection';
 import TrainingHardwareSection from './trainingHardwareSection/TrainingHardwareSection';
 import { FineTunePageSections, fineTunePageSectionTitles } from './const';
 import HyperparameterPageSection from './HyperparameterSection/HyperparameterPageSection';
 import { filterHyperparameters } from './utils';
+import { PipelineDetailsSection } from './baseModelSection/PipelineDetailsSection';
 
 type FineTunePageProps = {
   canSubmit: boolean;
@@ -43,7 +45,9 @@ const FineTunePage: React.FC<FineTunePageProps> = ({
   const { project } = usePipelinesAPI();
   const { state }: { state?: ModelCustomizationRouterState } = useLocation();
   const { hyperparameters } = filterHyperparameters(ilabPipelineVersion);
-
+  const { getAllValidationIssues } = React.useContext(ValidationContext);
+  const hasValidationErrors =
+    Object.keys(getAllValidationIssues(['inputPipelineParameters'])).length > 0;
   return (
     <Form data-testid="fineTunePageForm" maxWidth="500px">
       <FormSection
@@ -59,35 +63,58 @@ const FineTunePage: React.FC<FineTunePageProps> = ({
           <div>{getDisplayNameFromK8sResource(project)}</div>
         </FormGroup>
       </FormSection>
-      <BaseModelSection
-        data={data.baseModel}
-        setData={(baseModelData) => setData('baseModel', baseModelData)}
-        registryName={state?.modelRegistryDisplayName}
-        inputModelName={state?.registeredModelName}
-        inputModelVersionName={state?.modelVersionName}
-      />
-      <FineTuneTaxonomySection
-        data={data.taxonomy}
-        setData={(dataTaxonomy: FineTuneTaxonomyFormData) => {
-          setData('taxonomy', dataTaxonomy);
-        }}
-      />
-      <TeacherModelSection
-        data={data.teacher}
-        setData={(teacherData) => setData('teacher', teacherData)}
-      />
-      <JudgeModelSection data={data.judge} setData={(judgeData) => setData('judge', judgeData)} />
-      <TrainingHardwareSection
+      <PipelineDetailsSection
+        ilabPipeline={ilabPipeline}
         ilabPipelineLoaded={ilabPipelineLoaded}
         ilabPipelineVersion={ilabPipelineVersion}
-        trainingNode={data.trainingNode}
-        setTrainingNode={(trainingNodeValue: number) => setData('trainingNode', trainingNodeValue)}
-        storageClass={data.storageClass}
-        setStorageClass={(storageClassName: string) => setData('storageClass', storageClassName)}
-        setHardwareFormData={(hardwareFormData) => setData('hardware', hardwareFormData)}
+        hasValidationErrors={hasValidationErrors}
       />
-      <RunTypeSection data={data} setData={setData} />
-      <HyperparameterPageSection data={data} hyperparameters={hyperparameters} setData={setData} />
+
+      {!hasValidationErrors && (
+        <>
+          <BaseModelSection
+            data={data.baseModel}
+            setData={(baseModelData) => setData('baseModel', baseModelData)}
+            registryName={state?.modelRegistryDisplayName}
+            inputModelName={state?.registeredModelName}
+            inputModelVersionName={state?.modelVersionName}
+          />
+          <FineTuneTaxonomySection
+            data={data.taxonomy}
+            setData={(dataTaxonomy: FineTuneTaxonomyFormData) => {
+              setData('taxonomy', dataTaxonomy);
+            }}
+          />
+          <TeacherModelSection
+            data={data.teacher}
+            setData={(teacherData) => setData('teacher', teacherData)}
+          />
+          <JudgeModelSection
+            data={data.judge}
+            setData={(judgeData) => setData('judge', judgeData)}
+          />
+          <TrainingHardwareSection
+            ilabPipelineLoaded={ilabPipelineLoaded}
+            ilabPipelineVersion={ilabPipelineVersion}
+            trainingNode={data.trainingNode}
+            setTrainingNode={(trainingNodeValue: number) =>
+              setData('trainingNode', trainingNodeValue)
+            }
+            storageClass={data.storageClass}
+            setStorageClass={(storageClassName: string) =>
+              setData('storageClass', storageClassName)
+            }
+            setHardwareFormData={(hardwareFormData) => setData('hardware', hardwareFormData)}
+          />
+          <RunTypeSection data={data} setData={setData} />
+          <HyperparameterPageSection
+            data={data}
+            hyperparameters={hyperparameters}
+            setData={setData}
+          />
+        </>
+      )}
+
       <FormSection>
         <FineTunePageFooter
           canSubmit={canSubmit}

@@ -11,7 +11,7 @@ import {
 import { HardwareProfileKind, K8sAPIOptions } from '~/k8sTypes';
 import { HardwareProfileModel } from '~/api/models';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
+import { kindApiVersion, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 
 export const listHardwareProfiles = async (namespace: string): Promise<HardwareProfileKind[]> =>
   k8sListResource<HardwareProfileKind>({
@@ -33,7 +33,7 @@ export const assembleHardwareProfile = (
   namespace: string,
   visibility: string[] = [],
 ): HardwareProfileKind => ({
-  apiVersion: `${HardwareProfileModel.apiGroup}/${HardwareProfileModel.apiVersion}`,
+  apiVersion: kindApiVersion(HardwareProfileModel),
   kind: HardwareProfileModel.kind,
   metadata: {
     name: hardwareProfileName || translateDisplayNameForK8s(data.displayName),

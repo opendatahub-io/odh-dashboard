@@ -4,6 +4,7 @@ import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
   isValidK8sName,
+  kindApiVersion,
   translateDisplayNameForK8s,
   translateDisplayNameForK8sAndReport,
 } from '~/concepts/k8s/utils';
@@ -197,5 +198,23 @@ describe('isValidK8sName for Notebook resource names', () => {
         K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR,
       ),
     ).toBe(true);
+  });
+});
+
+describe('kindApiVersion', () => {
+  it('does not break if given an empty model', () => {
+    expect(kindApiVersion({ kind: '', plural: '', apiVersion: '' })).toBe('');
+  });
+
+  it('supports api group-less models', () => {
+    expect(kindApiVersion({ kind: 'foo', apiVersion: 'v1alpha1', plural: 'foos' })).toBe(
+      'v1alpha1',
+    );
+  });
+
+  it('supports api group and api version', () => {
+    expect(
+      kindApiVersion({ kind: 'bar', apiVersion: 'v1', apiGroup: 'foo.bar.baz.io', plural: 'bars' }),
+    ).toBe('foo.bar.baz.io/v1');
   });
 });
