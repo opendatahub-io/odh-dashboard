@@ -177,11 +177,6 @@ const HardwareProfileCustomize: React.FC<HardwareProfileCustomizeProps> = ({
                   your administrator.
                 </p>
               </StackItem>
-              <StackItem>
-                <p>
-                  Learn more about requests and limits by visiting the Kubernetes documentation.
-                </p>
-              </StackItem>
             </Stack>
           }
         >
