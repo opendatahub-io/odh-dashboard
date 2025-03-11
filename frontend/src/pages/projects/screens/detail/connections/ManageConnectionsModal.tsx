@@ -82,7 +82,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
   });
 
   const [connectionErrors, setConnectionErrors] = React.useState<{
-    [key: string]: boolean;
+    [key: string]: boolean | string;
   }>({});
   const isFormValid = React.useMemo(
     () =>

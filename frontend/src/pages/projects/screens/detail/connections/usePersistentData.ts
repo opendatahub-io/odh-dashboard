@@ -7,7 +7,7 @@ import { getDefaultValues } from '~/concepts/connectionTypes/utils';
 
 type UsePersistentDataProps = {
   setConnectionValues: (name: { [key: string]: ConnectionTypeValueType }) => void;
-  setConnectionErrors: (validation: { [key: string]: boolean | string }) => void;
+  setConnectionErrors: (error: { [key: string]: boolean | string }) => void;
   setSelectedConnectionType: (name: ConnectionTypeConfigMapObj | undefined) => void;
   connectionValues: { [key: string]: ConnectionTypeValueType };
   selectedConnectionType: ConnectionTypeConfigMapObj | undefined;
