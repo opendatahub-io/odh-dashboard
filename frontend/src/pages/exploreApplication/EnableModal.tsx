@@ -50,7 +50,12 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
   };
 
   const handleClose = React.useCallback(() => {
-    setEnableValues({});
+    // Clear only the values, keeping the keys intact
+    const resetValues: { [key: string]: string } = {};
+    Object.keys(enableValues).forEach((key) => {
+      resetValues[key] = "";
+    });
+    setEnableValues(resetValues);
     setPostError('');
     onClose();
   }, [onClose]);
