@@ -116,11 +116,6 @@ const RegisterCatalogModel: React.FC = () => {
           return acc;
         }, {});
 
-      setData('modelName', model.name);
-      setData('modelDescription', model.longDescription?.replace(/\s*\n\s*/g, ' ') ?? '');
-      setData('versionName', 'Version 1');
-      setData('modelLocationType', ModelLocationType.URI);
-      setData('modelLocationURI', model.artifacts?.map((artifact) => artifact.uri)[0] || '');
       setData('modelCustomProperties', labels);
       setData('versionCustomProperties', {
         ...labels,
