@@ -17,7 +17,8 @@ after(() => {
   cy.step('Login as an Admnin and restore settings');
   cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
-  cy.step('Navigate to User Management');
+  // Visit User Management
+  cy.step('Visit User Management');
   userManagement.visit();
 
   cy.step('Clear the current Data Science User Groups');
@@ -39,7 +40,7 @@ after(() => {
 
 describe('Verify Unauthorized User Is Not Able To Spawn Jupyter Notebook', () => {
   it(
-    'Remove Admin privlideges and apply access to the Dashboard only to Admin',
+    'Remove Admin privileges and apply access to the Dashboard only to Admin',
     // Note - this test should not executed alongside Smoke/Sanity as it has the potential to cause breakages within those tests
     { tags: ['@Destructive', '@ODS-1680', '@Dashboard'] },
     () => {
@@ -49,7 +50,7 @@ describe('Verify Unauthorized User Is Not Able To Spawn Jupyter Notebook', () =>
 
       // Navigate to User Management
       cy.step('Navigate to User Management');
-      userManagement.visit();
+      userManagement.navigate();
 
       // Remove system:authenticated from the Data Science User Groups and apply rhods-admins only permissions
       cy.step('Clear the current Data Science User Groups');
