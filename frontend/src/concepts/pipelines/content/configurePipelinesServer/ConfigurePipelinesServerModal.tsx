@@ -26,6 +26,7 @@ type ConfigurePipelinesServerModalProps = {
 const FORM_DEFAULTS: PipelineServerConfigType = {
   database: { useDefault: true, value: EMPTY_DATABASE_CONNECTION },
   objectStorage: { newValue: EMPTY_AWS_PIPELINE_DATA },
+  enableInstructLab: false,
 };
 
 const serverConfiguredEvent = 'Pipeline Server Configured';

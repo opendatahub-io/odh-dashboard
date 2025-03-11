@@ -113,10 +113,7 @@ const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform, isNIM
         />
       ) : null}
       {modalShown && isNIM ? (
-        <ManageNIMServingModal
-          projectContext={{ currentProject }}
-          onClose={onSubmit}
-        />
+        <ManageNIMServingModal projectContext={{ currentProject }} onClose={onSubmit} />
       ) : null}
     </CardFooter>
   );

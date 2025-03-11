@@ -47,8 +47,6 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
     selectedProject,
     servingPlatformStatuses,
   );
-  const { loaded: projectDeployStatusLoaded, error: projectError } =
-    useProjectErrorForRegisteredModel(selectedProject?.metadata.name, platform);
   const [connections] = useConnections(selectedProject?.metadata.name, true);
   const [registeredModel, registeredModelLoaded, registeredModelLoadError, refreshRegisteredModel] =
     useRegisteredModelById(modelVersion.registeredModelId);
