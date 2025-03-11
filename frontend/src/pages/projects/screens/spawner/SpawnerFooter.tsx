@@ -36,7 +36,7 @@ import {
   updateConfigMapsAndSecretsForNotebook,
   updatePvcDataForNotebook,
 } from './service';
-import { getPvcVolumeDetails } from './spawnerUtils';
+import { checkRequiredFieldsForNotebookStart, getPvcVolumeDetails } from './spawnerUtils';
 import { setConnectionsOnEnvFrom } from './connections/utils';
 
 type SpawnerFooterProps = {
@@ -78,7 +78,10 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
         resources: startNotebookData.podSpecOptions.resources,
       })
     : true;
-  const isButtonDisabled = createInProgress || !isHardwareProfileValid;
+  const isButtonDisabled =
+    createInProgress ||
+    !checkRequiredFieldsForNotebookStart(startNotebookData, envVariables) ||
+    !isHardwareProfileValid;
   const { username } = useUser();
 
   const afterStart = (name: string, type: 'created' | 'updated') => {
