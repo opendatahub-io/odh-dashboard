@@ -59,8 +59,8 @@ const StartRunModal: React.FC<StartRunModalProps> = ({
       <ModalHeader
         title="Start a LAB-tuning run"
         description={
-          <Stack hasGutter>
-            <StackItem>
+          <>
+            <p>
               Tune a model using the{' '}
               <Button
                 data-testid="lab-method"
@@ -76,27 +76,26 @@ const StartRunModal: React.FC<StartRunModalProps> = ({
               </Button>{' '}
               with the InstructLab pipeline. To create a LAB-tuning run, you must have a taxonomy
               stored in a git repository, and a configured teacher and judge model.
-            </StackItem>
-            <StackItem>
-              <Button
-                data-testid="learn-more-prerequisites"
-                variant="link"
-                isInline
-                component="a"
-                style={{ textDecoration: 'none' }}
-                onClick={() => {
-                  // TODO: Link to documentation
-                }}
-              >
-                Learn more about LAB-tuning prerequisites
-              </Button>
-              .
-            </StackItem>
-          </Stack>
+            </p>
+            <br />
+            <Button
+              data-testid="learn-more-prerequisites"
+              variant="link"
+              isInline
+              component="a"
+              style={{ textDecoration: 'none' }}
+              onClick={() => {
+                // TODO: Link to documentation
+              }}
+            >
+              Learn more about LAB-tuning prerequisites
+            </Button>
+            .
+          </>
         }
       />
       <ModalBody>
-        <Form className="pf-v6-u-w-75">
+        <Form>
           <FormGroup
             label="Data science project"
             fieldId="start-run-modal-project-name"
