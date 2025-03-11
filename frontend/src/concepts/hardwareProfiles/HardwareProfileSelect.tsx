@@ -195,6 +195,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
             }
             isFullWidth
             isSkeleton={!hardwareProfilesLoaded && !hardwareProfilesError}
+            isScrollable
           />
         </FlexItem>
         <FlexItem>

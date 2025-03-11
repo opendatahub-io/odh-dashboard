@@ -33,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Restore cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: |
             ~/.cache/Cypress
@@ -50,7 +50,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Restore cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: |
             ~/.cache/Cypress
@@ -116,7 +116,7 @@ jobs:
             
             # Get directories and create JSON array - force compact output with -c
             DIRS=$(cd frontend/src/__tests__/cypress/cypress/tests/mocked && \
-                  find . -maxdepth 1 -mindepth 1 -type d -printf "%f\n" | \
+                  find . -name "*.cy.*" -printf "%h\n" | sed 's|^\./||' | sort -u | \
                   jq -R . | jq -c -s .)
             
             # Output in the correct format for GitHub Actions
@@ -135,7 +135,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Restore cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: |
             ~/.cache/Cypress
@@ -165,7 +165,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Restore cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: |
             ~/.cache/Cypress
@@ -174,7 +174,7 @@ jobs:
             ${{ github.workspace }}/frontend/node_modules
           key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}
       - name: Restore Cypress build cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: |
             ${{ github.workspace }}/frontend/public-cypress
@@ -184,25 +184,28 @@ jobs:
           if [ "${{ matrix.test-group }}" == "default" ]; then
             npm run test:cypress-ci:coverage:nobuild
           else
-            npm run test:cypress-ci:coverage:nobuild -- --spec "src/__tests__/cypress/cypress/tests/mocked/${{ matrix.test-group }}/**/*"
+            npm run test:cypress-ci:coverage:nobuild -- --spec "src/__tests__/cypress/cypress/tests/mocked/${{ matrix.test-group }}/*"
           fi
         working-directory: ./frontend
+      - name: Test group name
+        if: ${{ always() }}
+        run: echo "TEST_GROUP_NAME=$(echo ${{ matrix.test-group }} | tr '/' '_')" >> $GITHUB_ENV
       - name: Upload Cypress Mock results
         uses: actions/upload-artifact@v4
+        if: ${{ always() }}
         with:
-          name: cypress-results-${{ matrix.test-group }}
+          name: cypress-results-${{ env.TEST_GROUP_NAME }}
           path: ./frontend/src/__tests__/cypress/results/mocked
       - name: Upload Cypress coverage
         uses: actions/upload-artifact@v4
         with:
-          name: cypress-coverage-${{ matrix.test-group }}
+          name: cypress-coverage-${{ env.TEST_GROUP_NAME }}
           path: ./frontend/src/__tests__/cypress/coverage
 
   Combine-Results-and-Upload:
     needs: [Unit-Tests, Cypress-Mock-Tests]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:

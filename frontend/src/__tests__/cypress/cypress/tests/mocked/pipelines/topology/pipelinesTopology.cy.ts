@@ -30,7 +30,7 @@ import {
 } from '~/__tests__/cypress/cypress/utils/models';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { RecurringRunStatus } from '~/concepts/pipelines/kfTypes';
-import { initMlmdIntercepts } from './mlmdUtils';
+import { initMlmdIntercepts } from '~/__tests__/cypress/cypress/tests/mocked/pipelines/mlmdUtils';
 
 const projectId = 'test-project';
 const mockPipeline = buildMockPipeline({
