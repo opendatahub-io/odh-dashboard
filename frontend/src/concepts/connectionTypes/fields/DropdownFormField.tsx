@@ -40,7 +40,7 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
   const menuToggleText = () => {
     let text = field.properties.items?.some((i) => i.label || i.value)
       ? field.name
-        ? `Select ${field.name} `
+        ? `Select ${field.name.toLocaleLowerCase()} `
         : 'Select'
       : 'No values defined';
     if (!isMulti) {

@@ -302,6 +302,6 @@ describe('ConnectionsFormSection', () => {
       }),
     );
     expect(result.getByRole('button', { name: 'Access type' })).toHaveTextContent(/1 selected/);
-    expect(result.getByText('Model connection must have pull access to deploy')).toBeTruthy();
+    expect(result.getByText('Access type must include pull')).toBeTruthy();
   });
 });

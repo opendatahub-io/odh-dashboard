@@ -349,7 +349,7 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
           let newError = error;
           if (field.envVar === 'ACCESS_TYPE' && Array.isArray(value)) {
             if (value.includes('Push') && !value.includes('Pull')) {
-              newError = 'Model connection must have pull access to deploy';
+              newError = 'Access type must include pull';
             }
           }
           setConnectionErrors((prev) => ({ ...prev, [field.envVar]: newError }));
