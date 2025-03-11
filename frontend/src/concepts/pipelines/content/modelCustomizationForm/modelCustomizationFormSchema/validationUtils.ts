@@ -1,9 +1,15 @@
+/* eslint-disable camelcase */
 import { z } from 'zod';
 import { hardwareProfileValidationSchema } from '~/concepts/hardwareProfiles/validationUtils';
 import { isCpuLimitLarger, isMemoryLimitLarger } from '~/utilities/valueUnits';
 import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
+import { InputDefinitionParameterType } from '~/concepts/pipelines/kfTypes';
 import { isEnumMember } from '~/utilities/utils';
-import { RunTypeFormat } from '~/pages/pipelines/global/modelCustomization/const';
+import {
+  NonDisplayedHyperparameterFields,
+  PipelineInputParameters,
+  RunTypeFormat,
+} from '~/pages/pipelines/global/modelCustomization/const';
 import { FineTuneTaxonomyType, ModelCustomizationEndpointType } from './types';
 
 export const uriFieldSchemaBase = (
@@ -108,6 +114,67 @@ const hardwareSchema = z.object({
 });
 
 export type FineTuneTaxonomyFormData = z.infer<typeof fineTuneTaxonomySchema>;
+const parameterSchema = z.object({
+  defaultValue: z
+    .union([
+      z.string(),
+      z.number(),
+      z.boolean(),
+      z.object({}),
+      z.array(z.object({})),
+      z.undefined(),
+    ])
+    .optional(),
+  description: z.string().optional(),
+  isOptional: z.boolean().optional(),
+  parameterType: z.enum([
+    InputDefinitionParameterType.DOUBLE,
+    InputDefinitionParameterType.INTEGER,
+    InputDefinitionParameterType.BOOLEAN,
+    InputDefinitionParameterType.STRING,
+    InputDefinitionParameterType.LIST,
+    InputDefinitionParameterType.STRUCT,
+  ]),
+});
+
+export type PipelineParametersType = z.infer<typeof pipelineParameterSchema>;
+
+const expectedParams = {
+  [NonDisplayedHyperparameterFields.SDG_SECRET_URL]: InputDefinitionParameterType.STRING,
+  [NonDisplayedHyperparameterFields.SDG_REPO_SECRET]: InputDefinitionParameterType.STRING,
+  [NonDisplayedHyperparameterFields.SDG_TEACHER_SECRET]: InputDefinitionParameterType.STRING,
+  [NonDisplayedHyperparameterFields.SDG_BASE_MODEL]: InputDefinitionParameterType.STRING,
+  [NonDisplayedHyperparameterFields.SDG_PIPELINE]: InputDefinitionParameterType.STRING,
+  [NonDisplayedHyperparameterFields.TRAIN_GPU_IDENTIFIER]: InputDefinitionParameterType.STRING,
+  [NonDisplayedHyperparameterFields.TRAIN_GPU_PER_WORKER]: InputDefinitionParameterType.INTEGER,
+  [NonDisplayedHyperparameterFields.TRAIN_CPU_PER_WORKER]: InputDefinitionParameterType.STRING,
+  [NonDisplayedHyperparameterFields.TRAIN_MEMORY_PER_WORKER]: InputDefinitionParameterType.STRING,
+  [NonDisplayedHyperparameterFields.EVAL_GPU_IDENTIFIER]: InputDefinitionParameterType.STRING,
+  [NonDisplayedHyperparameterFields.EVAL_JUDGE_SECRET]: InputDefinitionParameterType.STRING,
+  [PipelineInputParameters.K8S_STORAGE_CLASS_NAME]: InputDefinitionParameterType.STRING,
+} as const;
+
+export const pipelineParameterSchema = z
+  .record(z.string(), parameterSchema)
+  .superRefine((params, ctx) => {
+    for (const [key, expectedType] of Object.entries(expectedParams)) {
+      if (!(key in params)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Missing required parameter ${key}`,
+        });
+
+        continue;
+      }
+
+      if (params[key].parameterType !== expectedType) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Parameter ${key} should be of type ${expectedType}`,
+        });
+      }
+    }
+  });
 
 export const modelCustomizationFormSchema = z.object({
   projectName: z.object({ value: z.string().min(1, { message: 'Project is required' }) }),
@@ -118,6 +185,7 @@ export const modelCustomizationFormSchema = z.object({
   outputModel: outputModelSchema,
   teacher: teacherJudgeModel,
   judge: teacherJudgeModel,
+  inputPipelineParameters: pipelineParameterSchema,
   trainingNode: z.number().refine((val) => val > 0, { message: 'Number must be greater than 0' }),
   storageClass: z.string().trim().min(1, { message: 'storage class is required' }),
   hardware: hardwareSchema,
