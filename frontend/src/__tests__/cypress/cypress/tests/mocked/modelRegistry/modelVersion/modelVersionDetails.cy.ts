@@ -118,6 +118,7 @@ const initIntercepts = () => {
     'GET /api/config',
     mockDashboardConfig({
       disableModelRegistry: false,
+      disableFineTuning: false,
     }),
   );
 
@@ -537,6 +538,16 @@ describe('Model version details', () => {
   describe('Model Version Details', () => {
     beforeEach(() => {
       initIntercepts();
+      // Mock fine-tuning as enabled
+      cy.interceptOdh(
+        'GET /api/dsc/status',
+        mockDscStatus({
+          installedComponents: {
+            'model-registry-operator': true,
+            'data-science-pipelines-operator': true,
+          },
+        }),
+      );
       modelVersionDetails.visit();
     });
 
@@ -614,6 +625,22 @@ describe('Model version details', () => {
           modelFormatVersion: '2.0.0',
         });
       });
+    });
+
+    it('should handle lab tune workflow', () => {
+      // Mock project with pipeline access
+      cy.interceptK8sList(
+        ProjectModel,
+        mockK8sResourceList([
+          mockProjectK8sResource({
+            k8sName: 'data-science-project',
+            displayName: 'Data Science Project',
+            isDSProject: true,
+          }),
+        ]),
+      );
+      modelVersionDetails.findLabTuneButton().click();
+      modelVersionDetails.findStartRunModal().should('exist');
     });
   });
 });

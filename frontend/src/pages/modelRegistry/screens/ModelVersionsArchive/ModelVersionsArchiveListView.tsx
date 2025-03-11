@@ -9,7 +9,7 @@ import {
 } from '@patternfly/react-core';
 import { FilterIcon, SearchIcon } from '@patternfly/react-icons';
 import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
-import { ModelVersion } from '~/concepts/modelRegistry/types';
+import { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
 import SimpleSelect from '~/components/SimpleSelect';
 import { filterModelVersions } from '~/pages/modelRegistry/screens/utils';
 import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
@@ -18,11 +18,13 @@ import ModelVersionsArchiveTable from './ModelVersionsArchiveTable';
 
 type ModelVersionsArchiveListViewProps = {
   modelVersions: ModelVersion[];
+  registeredModel: RegisteredModel;
   refresh: () => void;
 };
 
 const ModelVersionsArchiveListView: React.FC<ModelVersionsArchiveListViewProps> = ({
   modelVersions: unfilteredmodelVersions,
+  registeredModel,
   refresh,
 }) => {
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.KEYWORD);
@@ -46,6 +48,7 @@ const ModelVersionsArchiveListView: React.FC<ModelVersionsArchiveListViewProps> 
   return (
     <ModelVersionsArchiveTable
       refresh={refresh}
+      registeredModel={registeredModel}
       clearFilters={() => setSearch('')}
       modelVersions={filteredModelVersions}
       toolbarContent={
