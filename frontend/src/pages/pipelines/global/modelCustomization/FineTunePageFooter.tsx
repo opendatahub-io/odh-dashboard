@@ -34,10 +34,14 @@ import {
   translateIlabFormToTaxonomyInput,
   translateIlabFormToBaseModelInput,
   translateIlabFormToHardwareInput,
+  createConnectionSecret,
 } from '~/pages/pipelines/global/modelCustomization/utils';
 import { genRandomChars } from '~/utilities/string';
 import { RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
 import { ValidationContext } from '~/utilities/useValidation';
+import { FineTunedModelNewConnectionContext } from '~/pages/pipelines/global/modelCustomization/fineTunedModelSection/FineTunedModelNewConnectionContext';
+import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
+import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
 
 type FineTunePageFooterProps = {
   canSubmit: boolean;
@@ -45,6 +49,7 @@ type FineTunePageFooterProps = {
   data: ModelCustomizationFormData;
   ilabPipeline: PipelineKF | null;
   ilabPipelineVersion: PipelineVersionKF | null;
+  ociConnectionType?: ConnectionTypeConfigMapObj;
 };
 
 type FineTunePageFooterSubmitPresetValues = {
@@ -59,6 +64,7 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
   data,
   ilabPipeline,
   ilabPipelineVersion,
+  ociConnectionType,
 }) => {
   const [error, setError] = React.useState<Error>();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -67,10 +73,18 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
   const notification = useNotification();
   const navigate = useNavigate();
   const contextPath = globalPipelineRunsRoute(namespace);
+  const {
+    isValid: isNewConnectionFieldValid,
+    nameDescData,
+    connectionValues,
+  } = React.useContext(FineTunedModelNewConnectionContext);
 
   const { validationResult } = React.useContext(ValidationContext);
-  const isValid = validationResult.success;
-  // TODO: translate data to `RunFormData`
+  const isValid =
+    data.outputModel.connectionData.type === InferenceServiceStorageType.NEW_STORAGE
+      ? validationResult.success && isNewConnectionFieldValid
+      : validationResult.success;
+
   const [runFormData] = useRunFormData(null, {
     nameDesc: {
       name: `lab-${genRandomChars()}`,
@@ -98,6 +112,21 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
       dryRun,
       taxonomySecretName,
     );
+
+    let connectionSecretName;
+    if (data.outputModel.connectionData.type === InferenceServiceStorageType.NEW_STORAGE) {
+      const newConnectionSecret = await createConnectionSecret(
+        namespace,
+        nameDescData,
+        connectionValues,
+        ociConnectionType,
+        dryRun,
+      );
+      connectionSecretName = newConnectionSecret.metadata.name;
+    } else {
+      connectionSecretName = data.outputModel.connectionData.connection;
+    }
+
     const run = await handleSubmit(
       {
         ...runFormData,
@@ -108,9 +137,9 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
             judgeSecret.metadata.name,
           ),
           ...translateIlabFormToTaxonomyInput(data, taxonomySecret.metadata.name),
-          ...translateIlabFormToBaseModelInput(data),
           ...translateIlabFormToHardwareInput(data),
           ...translateIlabFormToHyperparameters(data),
+          ...translateIlabFormToBaseModelInput(data, connectionSecretName),
         },
       },
       api,
