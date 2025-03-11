@@ -76,7 +76,7 @@ export const FineTunedModelNewConnectionContextProvider: React.FC<
           !connectionValues[field.envVar] &&
           field.type !== ConnectionTypeFieldType.Boolean,
       ) &&
-      !!Object.values(connectionErrors).find((e) => !!e),
+      !Object.values(connectionErrors).find((e) => !!e),
     [nameDescData, connectionType?.data?.fields, connectionErrors, connectionValues],
   );
 
