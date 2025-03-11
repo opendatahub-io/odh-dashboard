@@ -4,14 +4,14 @@ import useModelRegistryEnabled from '~/concepts/modelRegistry/useModelRegistryEn
 import { useModelRegistryServices } from '~/concepts/modelRegistry/apiHooks/useModelRegistryServices';
 import { AreaContext } from '~/concepts/areas/AreaContext';
 
-export type ModelRegistrySelectorContextType = {
+export interface ModelRegistrySelectorContextType {
   modelRegistryServicesLoaded: boolean;
   modelRegistryServicesLoadError?: Error;
   modelRegistryServices: ServiceKind[];
-  preferredModelRegistry: ServiceKind | undefined;
+  preferredModelRegistry: ServiceKind | null;
   updatePreferredModelRegistry: (modelRegistry: ServiceKind | undefined) => void;
   refreshRulesReview: () => void;
-};
+}
 
 type ModelRegistrySelectorContextProviderProps = {
   children: React.ReactNode;
@@ -21,7 +21,7 @@ export const ModelRegistrySelectorContext = React.createContext<ModelRegistrySel
   modelRegistryServicesLoaded: false,
   modelRegistryServicesLoadError: undefined,
   modelRegistryServices: [],
-  preferredModelRegistry: undefined,
+  preferredModelRegistry: null,
   updatePreferredModelRegistry: () => undefined,
   refreshRulesReview: () => undefined,
 });
@@ -39,9 +39,9 @@ export const ModelRegistrySelectorContextProvider: React.FC<
   return children;
 };
 
-const EnabledModelRegistrySelectorContextProvider: React.FC<
-  ModelRegistrySelectorContextProviderProps
-> = ({ children }) => {
+const EnabledModelRegistrySelectorContextProvider: React.FC<React.PropsWithChildren> = ({
+  children,
+}) => {
   const { dscStatus } = React.useContext(AreaContext);
   const {
     modelRegistryServices = [],
@@ -49,9 +49,12 @@ const EnabledModelRegistrySelectorContextProvider: React.FC<
     error,
     refreshRulesReview,
   } = useModelRegistryServices(dscStatus?.components?.modelregistry?.registriesNamespace || '');
-  const [preferredModelRegistry, setPreferredModelRegistry] = React.useState<
-    ServiceKind | undefined
-  >(undefined);
+  const [preferredModelRegistry, setPreferredModelRegistry] = React.useState<ServiceKind | null>(
+    null,
+  );
+
+  const updatePreferredModelRegistry = (modelRegistry: ServiceKind | undefined) =>
+    setPreferredModelRegistry(modelRegistry ?? null);
 
   const contextValue = React.useMemo(
     () => ({
@@ -59,7 +62,7 @@ const EnabledModelRegistrySelectorContextProvider: React.FC<
       modelRegistryServicesLoadError: error,
       modelRegistryServices,
       preferredModelRegistry: preferredModelRegistry ?? modelRegistryServices[0],
-      updatePreferredModelRegistry: setPreferredModelRegistry,
+      updatePreferredModelRegistry,
       refreshRulesReview,
     }),
     [isLoaded, error, modelRegistryServices, preferredModelRegistry, refreshRulesReview],

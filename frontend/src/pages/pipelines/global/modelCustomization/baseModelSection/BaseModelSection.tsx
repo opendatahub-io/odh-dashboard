@@ -44,19 +44,19 @@ const BaseModelSection: React.FC<BaseModelSectionProps> = ({
         </Alert>
       </FlexItem>
     </Flex>
-    <FormGroup label="Model registry" fieldId={`${FIELD_ID_PREFIX}-registryName`} required>
+    <FormGroup label="Model registry" fieldId={`${FIELD_ID_PREFIX}-registryName`}>
       {registryName ?? '-'}
     </FormGroup>
-    <FormGroup label="Model name" fieldId={`${FIELD_ID_PREFIX}-name`} required>
+    <FormGroup label="Model name" fieldId={`${FIELD_ID_PREFIX}-name`}>
       {inputModelName ?? '-'}
     </FormGroup>
-    <FormGroup label="Model version" fieldId={`${FIELD_ID_PREFIX}-version`} required>
+    <FormGroup label="Model version" fieldId={`${FIELD_ID_PREFIX}-version`}>
       {inputModelVersionName ?? '-'}
     </FormGroup>
     <FormGroup
       label="Model input storage location URI"
       fieldId={`${FIELD_ID_PREFIX}-inputStorageLocationUri`}
-      required
+      isRequired
     >
       <InlineEditText
         onSave={(text) => {
