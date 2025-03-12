@@ -60,6 +60,13 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
     onClose();
   }, [onClose, enableValues]);
 
+  // Managing validation state after the modal closes
+  React.useEffect(() => {
+    if (!shown) {
+      setValidationInProgress(false);
+    }
+  }, [shown]);
+
   React.useEffect(() => {
     if (validationInProgress && validationStatus === EnableApplicationStatus.SUCCESS) {
       setValidationInProgress(false);
