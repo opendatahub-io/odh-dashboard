@@ -61,6 +61,7 @@ const FileFormField: React.FC<FieldProps<FileField>> = ({
         id={id}
         name={id}
         data-testid={dataTestId}
+        style={{ padding: 0 }}
         type="text"
         isLoading={isLoading}
         value={
