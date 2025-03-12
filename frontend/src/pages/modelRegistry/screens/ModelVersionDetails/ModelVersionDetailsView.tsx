@@ -19,7 +19,7 @@ import ModelPropertiesDescriptionListGroup from '~/pages/modelRegistry/screens/M
 import {
   getLabels,
   mergeUpdatedLabels,
-  getCatalogModelCustomProps,
+  getCatalogModelDetailsProps,
   getPipelineModelCustomProps,
 } from '~/pages/modelRegistry/screens/utils';
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
@@ -34,8 +34,8 @@ import {
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { globalPipelineRunDetailsRoute } from '~/routes';
 import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
-import { CatalogModelCustomProps } from '~/pages/modelCatalog/const';
-import { getModelDetailsUrl } from '~/pages/modelCatalog/routeUtils';
+import { CatalogModelDetailsParams } from '~/pages/modelCatalog/const';
+import { getCatalogModelDetailsUrl } from '~/pages/modelCatalog/routeUtils';
 
 type ModelVersionDetailsViewProps = {
   modelVersion: ModelVersion;
@@ -96,10 +96,10 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
     }
   };
 
-  const catalogModelCustomProps: CatalogModelCustomProps = getCatalogModelCustomProps(
+  const catalogModelCustomProps: CatalogModelDetailsParams = getCatalogModelDetailsProps(
     mv.customProperties,
   );
-  const modelDetailsUrl = getModelDetailsUrl(catalogModelCustomProps);
+  const catalogModelDetailsUrl = getCatalogModelDetailsUrl(catalogModelCustomProps);
 
   return (
     <Flex
@@ -197,9 +197,9 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
               </Flex>
             </DashboardDescriptionListGroup>
           )}
-          {modelDetailsUrl && (
+          {catalogModelDetailsUrl && (
             <DashboardDescriptionListGroup title="Registered from" isEmpty={!mv.id}>
-              <Link to={modelDetailsUrl} data-testid="registered-from-catalog">
+              <Link to={catalogModelDetailsUrl} data-testid="registered-from-catalog">
                 <span style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
                   {catalogModelCustomProps.modelName} ({catalogModelCustomProps.tag})
                 </span>

@@ -8,7 +8,7 @@ import {
   RegisteredModel,
 } from '~/concepts/modelRegistry/types';
 import { ServiceKind } from '~/k8sTypes';
-import { CatalogModelCustomProps } from '~/pages/modelCatalog/const';
+import { CatalogModelDetailsParams } from '~/pages/modelCatalog/const';
 import { KeyValuePair } from '~/types';
 import { PipelineModelCustomProps } from './ModelVersionDetails/const';
 
@@ -41,7 +41,7 @@ export const mergeUpdatedLabels = (
   return customPropertiesCopy;
 };
 
-// Retrives the customProperties that are not special (_RegisteredFrom) or labels (they have a defined string_value).
+// Retrieves the customProperties that are not special (_RegisteredFrom) or labels (they have a defined string_value).
 export const getProperties = <T extends ModelRegistryCustomProperties>(
   customProperties: T,
 ): ModelRegistryStringCustomProperties => {
@@ -99,9 +99,9 @@ export const getCustomPropString = <
   return '';
 };
 
-export const getCatalogModelCustomProps = (
+export const getCatalogModelDetailsProps = (
   customProps: ModelRegistryCustomProperties,
-): CatalogModelCustomProps => ({
+): CatalogModelDetailsParams => ({
   sourceName: getCustomPropString(customProps, '_registeredFromCatalogSourceName'),
   repositoryName: getCustomPropString(customProps, '_registeredFromCatalogRepositoryName'),
   modelName: getCustomPropString(customProps, '_registeredFromCatalogModelName'),

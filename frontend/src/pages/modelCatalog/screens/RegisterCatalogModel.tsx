@@ -24,8 +24,8 @@ import {
   registerModel,
 } from '~/pages/modelRegistry/screens/RegisterModel/utils';
 import { SubmitLabel } from '~/pages/modelRegistry/screens/RegisterModel/const';
-import { CatalogModelCustomProps } from '~/pages/modelCatalog/const';
-import { getModelDetailsUrl } from '~/pages/modelCatalog/routeUtils';
+import { CatalogModelDetailsParams } from '~/pages/modelCatalog/const';
+import { getCatalogModelDetailsUrl } from '~/pages/modelCatalog/routeUtils';
 import RegisterModelDetailsFormSection from '~/pages/modelRegistry/screens/RegisterModel/RegisterModelDetailsFormSection';
 import RegistrationFormFooter from '~/pages/modelRegistry/screens/RegisterModel/RegistrationFormFooter';
 import { registeredModelUrl } from '~/pages/modelRegistry/screens/routeUtils';
@@ -46,7 +46,7 @@ import {
 
 const RegisterCatalogModel: React.FC = () => {
   const navigate = useNavigate();
-  const params = useParams<CatalogModelCustomProps>();
+  const params = useParams<CatalogModelDetailsParams>();
   const decodedParams = React.useMemo(() => decodeParams(params), [params]);
 
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
@@ -173,7 +173,7 @@ const RegisterCatalogModel: React.FC = () => {
       setSubmitError(errors[resourceName]);
     }
   };
-  const onCancel = () => navigate(getModelDetailsUrl(params));
+  const onCancel = () => navigate(getCatalogModelDetailsUrl(params));
 
   return (
     <ApplicationsPage
@@ -184,7 +184,7 @@ const RegisterCatalogModel: React.FC = () => {
           <BreadcrumbItem render={() => <Link to="/modelCatalog">Model catalog</Link>} />
           <BreadcrumbItem
             render={() => (
-              <Link to={getModelDetailsUrl(params)}>{params.modelName || 'Loading...'}</Link>
+              <Link to={getCatalogModelDetailsUrl(params)}>{params.modelName || 'Loading...'}</Link>
             )}
           />
           <BreadcrumbItem data-testid="breadcrumb-version-name" isActive>

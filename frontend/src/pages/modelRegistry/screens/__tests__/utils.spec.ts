@@ -19,7 +19,7 @@ import {
   sortModelVersionsByCreateTime,
   isValidHttpUrl,
   isRedHatRegistryUri,
-  getCatalogModelCustomProps,
+  getCatalogModelDetailsProps,
   getPipelineModelCustomProps,
   getCustomPropString,
 } from '~/pages/modelRegistry/screens/utils';
@@ -191,8 +191,8 @@ describe('getCustomPropString', () => {
   });
 });
 
-describe('getCatalogModelCustomProps', () => {
-  it('should return a CatalogModelCustomProps object with the string values of the catalog model custom props', () => {
+describe('getCatalogModelDetailsParams', () => {
+  it('should return a CatalogModelDetailsParams object with the string values of the catalog model custom props', () => {
     const customProperties: ModelRegistryCustomProperties = {
       property1: { metadataType: ModelRegistryMetadataType.STRING, string_value: 'non-empty' },
       _lastModified: { metadataType: ModelRegistryMetadataType.STRING, string_value: 'non-empty' },
@@ -225,7 +225,7 @@ describe('getCatalogModelCustomProps', () => {
         string_value: 'runName',
       },
     };
-    const result = getCatalogModelCustomProps(customProperties);
+    const result = getCatalogModelDetailsProps(customProperties);
     expect(result).toEqual({
       sourceName: 'sourceName',
       repositoryName: 'repoName',

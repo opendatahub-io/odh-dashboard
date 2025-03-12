@@ -1,5 +1,5 @@
 import { CatalogArtifacts, CatalogModel, ModelCatalogSource } from '~/concepts/modelCatalog/types';
-import { CatalogModelCustomProps } from './const';
+import { CatalogModelDetailsParams } from './const';
 
 export const findModelFromModelCatalogSources = (
   modelCatalogSources: ModelCatalogSource[],
@@ -24,7 +24,7 @@ export const findModelFromModelCatalogSources = (
   return modelMatched || null;
 };
 
-export const encodeParams = (params: CatalogModelCustomProps): CatalogModelCustomProps =>
+export const encodeParams = (params: CatalogModelDetailsParams): CatalogModelDetailsParams =>
   Object.fromEntries(
     Object.entries(params).map(([key, value]) => [
       key,
@@ -32,7 +32,9 @@ export const encodeParams = (params: CatalogModelCustomProps): CatalogModelCusto
     ]),
   );
 
-export const decodeParams = (params: Readonly<CatalogModelCustomProps>): CatalogModelCustomProps =>
+export const decodeParams = (
+  params: Readonly<CatalogModelDetailsParams>,
+): CatalogModelDetailsParams =>
   Object.fromEntries(
     Object.entries(params).map(([key, value]) => [key, decodeURIComponent(value)]),
   );
