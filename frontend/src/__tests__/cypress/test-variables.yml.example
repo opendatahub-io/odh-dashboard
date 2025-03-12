@@ -7,6 +7,10 @@ TEST_USER_3:
   AUTH_TYPE: contributor-auth
   USERNAME: contributor-username
   PASSWORD: contributor-passwd
+TEST_USER_4:
+  AUTH_TYPE: ldap-provider-qe
+  USERNAME: ldap-user9
+  PASSWORD: foo-passwd
 OCP_ADMIN_USER:
   AUTH_TYPE: adm-auth
   USERNAME: adminuser
