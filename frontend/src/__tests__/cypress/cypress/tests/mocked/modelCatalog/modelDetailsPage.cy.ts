@@ -102,7 +102,9 @@ describe('Model details page', () => {
     modelDetailsPage.findRegisterCatalogModelPopover().should('be.visible');
     modelDetailsPage
       .findRegisterCatalogModelPopover()
-      .findByText('To request access to the model registry, contact your administrator.');
+      .findByText(
+        'To request a new model registry, or to request permission to access an existing model registry, contact your administrator.',
+      );
   });
 
   it('Should redirect to register catalog model page, when register model button is enabled', () => {
