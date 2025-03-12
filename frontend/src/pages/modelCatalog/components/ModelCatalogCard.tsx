@@ -21,6 +21,7 @@ import { getCatalogModelDetailsUrlFromModel } from '~/pages/modelCatalog/routeUt
 import { getTagFromModel } from '~/pages/modelCatalog/utils';
 import { RhUiTagIcon } from '~/images/icons';
 import { ModelCatalogLabels } from '~/pages/modelCatalog/components/ModelCatalogLabels';
+import BrandImage from '~/components/BrandImage';
 
 export const ModelCatalogCard: React.FC<{ model: CatalogModel; source: string }> = ({
   model,
