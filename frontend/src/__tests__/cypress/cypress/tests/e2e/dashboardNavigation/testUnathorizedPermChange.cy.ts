@@ -40,7 +40,7 @@ describe('Dashboard Navigation - Unauthorized Permission Change', () => {
         .should('be.visible')
         .clear()
         .should('have.value', '')
-        .type('rhods-admins{enter}', { delay: 100 });
+        .type('rhods-admins{enter}');
 
       // Verify the selection was made
       administratorGroupSection.findMultiGroupInput().should('have.value', 'rhods-admins');
