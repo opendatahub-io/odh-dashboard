@@ -34,7 +34,7 @@ export const useEnableApplication = (
   const [lastFailedValues, setLastFailedValues] = React.useState<{ [key: string]: string }>({});
   const [pollCount, setPollCount] = React.useState(0);
   const [notificationSent, setNotificationSent] = React.useState(false);
-  const MAX_POLL_ATTEMPTS = 30; // Set a maximum polling limit
+  const MAX_POLL_ATTEMPTS = 100; // Set a maximum polling limit
   const dispatch = useAppDispatch();
 
   const dispatchResults = React.useCallback(
