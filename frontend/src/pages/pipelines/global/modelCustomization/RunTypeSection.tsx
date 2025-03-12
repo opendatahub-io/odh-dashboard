@@ -41,8 +41,8 @@ const RunTypeSection: React.FC<RunTypeSectionProps> = ({ data, setData }) => (
             name="run-type-radio-full"
             description={RunTypeFormatDescriptions.Full}
             value={RunTypeFormat.FULL}
-            isChecked={data.runType.value === RunTypeFormat.FULL}
-            onChange={() => setData(ProjectFields.RUN_TYPE, { value: RunTypeFormat.FULL })}
+            isChecked={data.runType === RunTypeFormat.FULL}
+            onChange={() => setData(ProjectFields.RUN_TYPE, RunTypeFormat.FULL)}
             data-testid="full-run-radio"
           />
         </StackItem>
@@ -53,8 +53,8 @@ const RunTypeSection: React.FC<RunTypeSectionProps> = ({ data, setData }) => (
             name="run-type-radio-simple"
             value={RunTypeFormat.SIMPLE}
             description={RunTypeFormatDescriptions.Simple}
-            isChecked={data.runType.value === RunTypeFormat.SIMPLE}
-            onChange={() => setData(ProjectFields.RUN_TYPE, { value: RunTypeFormat.SIMPLE })}
+            isChecked={data.runType === RunTypeFormat.SIMPLE}
+            onChange={() => setData(ProjectFields.RUN_TYPE, RunTypeFormat.SIMPLE)}
             data-testid="simple-run-radio"
           />
         </StackItem>

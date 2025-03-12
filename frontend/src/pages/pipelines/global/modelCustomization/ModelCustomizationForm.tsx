@@ -16,8 +16,8 @@ import useGenericObjectState from '~/utilities/useGenericObjectState';
 import {
   ModelCustomizationFormData,
   modelCustomizationFormSchema,
+  pipelineParameterSchema,
 } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { useIlabPipeline } from '~/concepts/pipelines/content/modelCustomizationForm/useIlabPipeline';
 import {
   ModelCustomizationEndpointType,
@@ -28,20 +28,32 @@ import {
   modelVersionUrl,
   modelRegistryUrl,
 } from '~/pages/modelRegistry/screens/routeUtils';
-import { modelCustomizationRootPath, ModelCustomizationRouterState } from '~/routes';
+import {
+  modelCustomizationRootPath,
+  globalPipelineRecurringRunDetailsRoute,
+  globalPipelineRunDetailsRoute,
+  ModelCustomizationRouterState,
+} from '~/routes';
 import { createHyperParametersSchema } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/hyperparameterValidationUtils';
-import { getInputDefinitionParams } from '~/concepts/pipelines/content/createRun/utils';
 import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
+import { getInputDefinitionParams } from '~/concepts/pipelines/content/createRun/utils';
+import { RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
 import ModelCustomizationDrawerContent, {
   ModelCustomizationDrawerContentArgs,
   ModelCustomizationDrawerContentRef,
 } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
+import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import FineTunePage from './FineTunePage';
-import { FineTunePageSections, fineTunePageSectionTitles, SCROLLABLE_SELECTOR_ID } from './const';
+import {
+  FineTunePageSections,
+  fineTunePageSectionTitles,
+  SCROLLABLE_SELECTOR_ID,
+  KnownFineTuningPipelineParameters,
+  RunTypeFormat,
+} from './const';
 import { filterHyperparameters, getParamsValueFromPipelineInput } from './utils';
 
 const ModelCustomizationForm: React.FC = () => {
-  const { project } = usePipelinesAPI();
   const {
     ilabPipeline,
     ilabPipelineVersion,
@@ -50,9 +62,9 @@ const ModelCustomizationForm: React.FC = () => {
   } = useIlabPipeline();
 
   const { state }: { state?: ModelCustomizationRouterState } = useLocation();
+  const { namespace } = usePipelinesAPI();
 
   const [data, setData] = useGenericObjectState<ModelCustomizationFormData>({
-    projectName: { value: project.metadata.name },
     outputModel: {
       addToRegistryEnabled: false,
       outputModelRegistryName: state?.modelRegistryName,
@@ -65,7 +77,6 @@ const ModelCustomizationForm: React.FC = () => {
     baseModel: {
       sdgBaseModel: state?.inputModelLocationUri ?? '',
     },
-    inputPipelineParameters: {},
     taxonomy: {
       url: '',
 
@@ -98,26 +109,25 @@ const ModelCustomizationForm: React.FC = () => {
         nodeSelector: {},
       },
     },
-    runType: { value: '' },
+    runType: RunTypeFormat.FULL,
     hyperparameters: {},
   });
 
   const { hyperparameters } = filterHyperparameters(ilabPipelineVersion);
 
-  // training node and hyperparameter default value from pipeline spec
+  // set default values for pipeline inputs
   React.useEffect(() => {
     if (ilabPipelineVersion) {
+      // set default hyperparameters
       const { hyperparameterFormData } = filterHyperparameters(ilabPipelineVersion);
       setData('hyperparameters', {
         ...hyperparameterFormData,
       });
-      const parameters = getInputDefinitionParams(ilabPipelineVersion);
-      if (parameters) {
-        setData('inputPipelineParameters', parameters);
-      }
+
+      // set default training node
       const trainingNodeDefaultValue = getParamsValueFromPipelineInput(
         ilabPipelineVersion,
-        'train_num_workers',
+        KnownFineTuningPipelineParameters.TRAIN_NUM_WORKERS,
       )?.defaultValue;
       if (trainingNodeDefaultValue) {
         setData('trainingNode', Number(trainingNodeDefaultValue));
@@ -133,19 +143,23 @@ const ModelCustomizationForm: React.FC = () => {
   );
 
   const navigate = useNavigate();
-  const pipelineParameterErrors =
-    Object.keys(formValidation.getAllValidationIssues(['inputPipelineParameters'])).length > 0;
+
+  const hasInvalidParameters = React.useMemo(() => {
+    const parameters = getInputDefinitionParams(ilabPipelineVersion);
+    const result = pipelineParameterSchema.safeParse(parameters ?? {});
+    return !result.success;
+  }, [ilabPipelineVersion]);
 
   const filteredFineTunePageSections = React.useMemo(
     () =>
-      pipelineParameterErrors
+      hasInvalidParameters
         ? Object.values(FineTunePageSections).filter(
             (section) =>
               section === FineTunePageSections.PROJECT_DETAILS ||
               section === FineTunePageSections.PIPELINE_DETAILS,
           )
         : FineTunePageSections,
-    [pipelineParameterErrors],
+    [hasInvalidParameters],
   );
 
   const drawerContentRef = React.useRef<ModelCustomizationDrawerContentRef>(null);
@@ -185,41 +199,35 @@ const ModelCustomizationForm: React.FC = () => {
               }
               breadcrumb={
                 <Breadcrumb>
-                  <BreadcrumbItem
-                    to={
-                      state?.modelRegistryName
-                        ? modelRegistryUrl(state.modelRegistryName)
-                        : undefined
-                    }
-                  >
-                    {state?.modelRegistryDisplayName}
-                  </BreadcrumbItem>
-                  <BreadcrumbItem
-                    to={
-                      state?.registeredModelId && state.modelRegistryName
-                        ? registeredModelUrl(state.registeredModelId, state.modelRegistryName)
-                        : undefined
-                    }
-                  >
-                    {state?.registeredModelName}
-                  </BreadcrumbItem>
-                  <BreadcrumbItem
-                    to={
-                      state?.modelVersionId && state.registeredModelId && state.modelRegistryName
-                        ? modelVersionUrl(
-                            state.modelVersionId,
-                            state.registeredModelId,
-                            state.modelRegistryName,
-                          )
-                        : undefined
-                    }
-                  >
-                    {state?.modelVersionName}
-                  </BreadcrumbItem>
+                  {state?.modelRegistryName && (
+                    <BreadcrumbItem to={modelRegistryUrl(state.modelRegistryName)}>
+                      {state.modelRegistryDisplayName}
+                    </BreadcrumbItem>
+                  )}
+                  {state?.registeredModelId && state.modelRegistryName && (
+                    <BreadcrumbItem
+                      to={registeredModelUrl(state.registeredModelId, state.modelRegistryName)}
+                    >
+                      {state.registeredModelName}
+                    </BreadcrumbItem>
+                  )}
+                  {state?.modelVersionId && state.registeredModelId && state.modelRegistryName && (
+                    <BreadcrumbItem
+                      to={modelVersionUrl(
+                        state.modelVersionId,
+                        state.registeredModelId,
+                        state.modelRegistryName,
+                      )}
+                    >
+                      {state.modelVersionName}
+                    </BreadcrumbItem>
+                  )}
                   <BreadcrumbItem>Start an InstructLab run</BreadcrumbItem>
                 </Breadcrumb>
               }
               loaded={ilabPipelineLoaded}
+              errorMessage={ilabPipelineLoadError?.message}
+              loadError={ilabPipelineLoadError}
               empty={false}
             >
               <EnsureAPIAvailability>
@@ -236,18 +244,26 @@ const ModelCustomizationForm: React.FC = () => {
                     }
                   >
                     <FineTunePage
-                      canSubmit={!!ilabPipelineLoadError}
-                      onSuccess={() =>
-                        navigate(
-                          `/pipelines/${encodeURIComponent(
-                            project.metadata.name,
-                          )}/${encodeURIComponent(
-                            ilabPipelineVersion?.pipeline_id ?? '',
-                          )}/${encodeURIComponent(
-                            ilabPipelineVersion?.pipeline_version_id ?? '',
-                          )}/view`,
-                        )
-                      }
+                      canSubmit={!ilabPipelineLoadError}
+                      onSuccess={(id, runType) => {
+                        if (
+                          state?.registeredModelId &&
+                          state.modelVersionId &&
+                          state.modelRegistryName
+                        ) {
+                          navigate(
+                            modelVersionUrl(
+                              state.modelVersionId,
+                              state.registeredModelId,
+                              state.modelRegistryName,
+                            ),
+                          );
+                        } else if (runType === RunTypeOption.ONE_TRIGGER) {
+                          navigate(globalPipelineRunDetailsRoute(namespace, id));
+                        } else {
+                          navigate(globalPipelineRecurringRunDetailsRoute(namespace, id));
+                        }
+                      }}
                       data={data}
                       setData={setData}
                       ilabPipeline={ilabPipeline}

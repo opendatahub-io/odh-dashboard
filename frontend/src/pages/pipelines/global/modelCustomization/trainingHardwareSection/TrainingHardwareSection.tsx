@@ -5,6 +5,7 @@ import {
   FormSection,
   Stack,
   StackItem,
+  ValidatedOptions,
 } from '@patternfly/react-core';
 import React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
@@ -18,6 +19,8 @@ import StorageClassSelect from '~/pages/projects/screens/spawner/storage/Storage
 import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
 import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { ModelCustomizationFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
+import { ValidationContext } from '~/utilities/useValidation';
+import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
 import TrainingHardwareProfileFormSection from './TrainingHardwareProfileFormSection';
 import { TrainingAcceleratorFormSection } from './TrainingAcceleratorFormSection';
 
@@ -43,6 +46,9 @@ const TrainingHardwareSection: React.FC<TrainingHardwareSectionProps> = ({
   const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const preferredStorageClass = usePreferredStorageClass();
+  const { getAllValidationIssues } = React.useContext(ValidationContext);
+  const trainingNodeValidationIssues = getAllValidationIssues(['trainingNode']);
+  const storageClassValidationIssues = getAllValidationIssues(['storageClass']);
 
   // when storageClass is unavailable
   React.useEffect(() => {
@@ -89,7 +95,11 @@ const TrainingHardwareSection: React.FC<TrainingHardwareSectionProps> = ({
                     setTrainingNode(value);
                   }
                 }}
+                validated={
+                  trainingNodeValidationIssues.length > 0 ? ValidatedOptions.error : undefined
+                }
               />
+              <ZodErrorHelperText zodIssue={trainingNodeValidationIssues} />
             </StackItem>
           )}
         </Stack>
@@ -100,7 +110,11 @@ const TrainingHardwareSection: React.FC<TrainingHardwareSectionProps> = ({
           isRequired
           storageClassName={storageClass}
           setStorageClassName={(name) => setStorageClass(name)}
+          validated={storageClassValidationIssues.length > 0 ? ValidatedOptions.error : undefined}
         />
+      )}
+      {storageClassValidationIssues.length > 0 && (
+        <ZodErrorHelperText zodIssue={storageClassValidationIssues} />
       )}
     </FormSection>
   );

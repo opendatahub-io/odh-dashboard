@@ -13,7 +13,7 @@ import { ModelCustomizationFormData } from '~/concepts/pipelines/content/modelCu
 import useRunFormData from '~/concepts/pipelines/content/createRun/useRunFormData';
 import { handleSubmit } from '~/concepts/pipelines/content/createRun/submitUtils';
 import { isRunSchedule } from '~/concepts/pipelines/utils';
-import { globalPipelineRunsRoute } from '~/routes';
+import { globalPipelineRunDetailsRoute, globalPipelineRunsRoute } from '~/routes';
 import useNotification from '~/utilities/useNotification';
 import {
   NotificationWatcherContext,
@@ -28,13 +28,9 @@ import {
 } from '~/concepts/pipelines/kfTypes';
 import {
   createTeacherJudgeSecrets,
-  translateIlabFormToHyperparameters,
-  translateIlabFormToTeacherJudge,
   createTaxonomySecret,
-  translateIlabFormToTaxonomyInput,
-  translateIlabFormToBaseModelInput,
-  translateIlabFormToHardwareInput,
   createConnectionSecret,
+  translateIlabForm,
 } from '~/pages/pipelines/global/modelCustomization/utils';
 import { genRandomChars } from '~/utilities/string';
 import { RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
@@ -42,10 +38,16 @@ import { ValidationContext } from '~/utilities/useValidation';
 import { FineTunedModelNewConnectionContext } from '~/pages/pipelines/global/modelCustomization/fineTunedModelSection/FineTunedModelNewConnectionContext';
 import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
 import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
+import { deleteSecret } from '~/api';
+import { isFilledRunFormData } from '~/concepts/pipelines/content/createRun/utils';
+import { modelVersionUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import { GetArtifactsRequest } from '~/third_party/mlmd';
+import { ListOperationOptions } from '~/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
+import { getArtifactModelData } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
 
 type FineTunePageFooterProps = {
   canSubmit: boolean;
-  onSuccess: () => void;
+  onSuccess: (runId: string, runType: RunTypeOption) => void;
   data: ModelCustomizationFormData;
   ilabPipeline: PipelineKF | null;
   ilabPipelineVersion: PipelineVersionKF | null;
@@ -56,6 +58,7 @@ type FineTunePageFooterSubmitPresetValues = {
   teacherSecretName?: string;
   judgeSecretName?: string;
   taxonomySecretName?: string;
+  connectionSecretName?: string;
 };
 
 const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
@@ -66,6 +69,7 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
   ilabPipelineVersion,
   ociConnectionType,
 }) => {
+  const { metadataStoreServiceClient } = usePipelinesAPI();
   const [error, setError] = React.useState<Error>();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const { api, namespace } = usePipelinesAPI();
@@ -127,25 +131,7 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
       connectionSecretName = data.outputModel.connectionData.connection;
     }
 
-    const run = await handleSubmit(
-      {
-        ...runFormData,
-        params: {
-          ...runFormData.params,
-          ...translateIlabFormToTeacherJudge(
-            teacherSecret.metadata.name,
-            judgeSecret.metadata.name,
-          ),
-          ...translateIlabFormToTaxonomyInput(data, taxonomySecret.metadata.name),
-          ...translateIlabFormToHardwareInput(data),
-          ...translateIlabFormToHyperparameters(data),
-          ...translateIlabFormToBaseModelInput(data, connectionSecretName),
-        },
-      },
-      api,
-      dryRun,
-    );
-    return { run, teacherSecret, judgeSecret, taxonomySecret };
+    return { connectionSecretName, teacherSecret, judgeSecret, taxonomySecret };
   };
 
   const afterSubmit = (resource: PipelineRunKF | PipelineRecurringRunKF) => {
@@ -162,17 +148,57 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
       callback: (signal: AbortSignal) =>
         api
           .getPipelineRun({ signal }, runId)
-          .then((response): NotificationWatcherResponse => {
+          .then(async (response): Promise<NotificationWatcherResponse> => {
             if (response.state === RuntimeStateKF.SUCCEEDED) {
+              // fetch the model artifact
+              const request = new GetArtifactsRequest();
+              const options = new ListOperationOptions();
+
+              options.setFilterQuery(`contexts_a.name = '${runId}'`);
+              request.setOptions(options);
+
+              const artifactsResponse = await metadataStoreServiceClient.getArtifacts(request);
+              const artifacts = artifactsResponse.getArtifactsList();
+              const model = artifacts
+                .map((artifact) => getArtifactModelData(artifact))
+                .find((m) => m.registeredModelName);
+
+              if (
+                model &&
+                model.modelVersionId &&
+                model.registeredModelId &&
+                model.modelRegistryName
+              ) {
+                return {
+                  status: 'success',
+                  title: `${resource.display_name} successfully completed`,
+                  message: `Your new model, ${resource.display_name}, is within the model registry`,
+                  actions: [
+                    {
+                      title: 'View in model registry',
+                      onClick: () => {
+                        navigate(
+                          modelVersionUrl(
+                            model.modelVersionId ?? '',
+                            model.registeredModelId,
+                            model.modelRegistryName,
+                          ),
+                        );
+                      },
+                    },
+                  ],
+                };
+              }
+
               return {
                 status: 'success',
                 title: `${resource.display_name} successfully completed`,
-                message: `Your new model, ${resource.display_name}, is within the model registry`,
+                message: `Your run ${resource.display_name} has successfully completed`,
                 actions: [
                   {
-                    title: 'View in model registry',
+                    title: 'View run details',
                     onClick: () => {
-                      // TODO: navigate to model registry
+                      navigate(globalPipelineRunDetailsRoute(namespace, runId));
                     },
                   },
                 ],
@@ -236,17 +262,56 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
                 setIsSubmitting(true);
                 // dry-run network calls first
                 onSubmit(true)
-                  .then(({ teacherSecret, judgeSecret, taxonomySecret }) =>
+                  .then(({ teacherSecret, judgeSecret, taxonomySecret, connectionSecretName }) =>
                     // get the dry-run values and do the real network calls
                     onSubmit(false, {
                       teacherSecretName: teacherSecret.metadata.name,
                       judgeSecretName: judgeSecret.metadata.name,
                       taxonomySecretName: taxonomySecret.metadata.name,
                     })
-                      .then(({ run }) => {
-                        afterSubmit(run);
-                        setIsSubmitting(false);
-                        onSuccess();
+                      .then(async () => {
+                        const runFormDataWithParams = {
+                          ...runFormData,
+                          params: {
+                            ...runFormData.params,
+                            ...translateIlabForm(
+                              data,
+                              teacherSecret.metadata.name,
+                              judgeSecret.metadata.name,
+                              taxonomySecret.metadata.name,
+                              connectionSecretName,
+                            ),
+                          },
+                        };
+                        if (!isFilledRunFormData(runFormDataWithParams)) {
+                          throw new Error('Form data was incomplete.');
+                        }
+                        await handleSubmit(runFormDataWithParams, api)
+                          .then((run) => {
+                            afterSubmit(run);
+                            setIsSubmitting(false);
+                            if (isRunSchedule(run)) {
+                              onSuccess(run.recurring_run_id, RunTypeOption.SCHEDULED);
+                            } else {
+                              onSuccess(run.run_id, RunTypeOption.ONE_TRIGGER);
+                            }
+                          })
+                          .catch(async (e) => {
+                            handleError(e);
+
+                            // delete created secrets
+                            await deleteSecret(namespace, teacherSecret.metadata.name);
+                            await deleteSecret(namespace, judgeSecret.metadata.name);
+                            await deleteSecret(namespace, taxonomySecret.metadata.name);
+
+                            if (
+                              data.outputModel.connectionData.type ===
+                                InferenceServiceStorageType.NEW_STORAGE &&
+                              connectionSecretName
+                            ) {
+                              await deleteSecret(namespace, connectionSecretName);
+                            }
+                          });
                       })
                       .catch(handleError),
                   )
@@ -261,7 +326,7 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
             <Button
               variant="link"
               onClick={() => {
-                navigate('/modelCustomization');
+                navigate(-1);
               }}
             >
               Cancel

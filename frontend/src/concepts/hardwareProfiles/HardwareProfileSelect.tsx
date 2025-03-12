@@ -13,7 +13,6 @@ import {
 import * as React from 'react';
 import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { HardwareProfileKind } from '~/k8sTypes';
-import { ValidationContext } from '~/utilities/useValidation';
 import { IdentifierResourceType } from '~/types';
 import { splitValueUnit, CPU_UNITS, MEMORY_UNITS_FOR_PARSING } from '~/utilities/valueUnits';
 import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
@@ -45,9 +44,6 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   isHardwareProfileSupported,
   onChange,
 }) => {
-  const { getAllValidationIssues } = React.useContext(ValidationContext);
-  const validationIssues = getAllValidationIssues(['']);
-
   const options = React.useMemo(() => {
     const enabledProfiles = hardwareProfiles
       .filter((hp) => hp.spec.enabled)
@@ -209,17 +205,11 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
           )}
         </FlexItem>
       </Flex>
-      {hardwareProfilesError ? (
+      {hardwareProfilesError && (
         <HelperText isLiveRegion>
           <HelperTextItem variant="error">Error loading hardware profiles</HelperTextItem>
         </HelperText>
-      ) : hardwareProfilesLoaded && validationIssues.length > 0 ? (
-        validationIssues.map((issue) => (
-          <HelperText isLiveRegion key={issue.message}>
-            <HelperTextItem variant="error">{issue.message}</HelperTextItem>
-          </HelperText>
-        ))
-      ) : null}
+      )}
     </>
   );
 };
