@@ -375,14 +375,13 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
             podSpecOptionState={podSpecOptionsState}
             infoContent="Select CPU and memory resources large enough to support the NIM being deployed."
           />
-          {isAuthAvailable && (
-            <AuthServingRuntimeSection
-              data={createDataInferenceService}
-              setData={setCreateDataInferenceService}
-              allowCreate={allowCreate}
-              publicRoute
-            />
-          )}
+          <AuthServingRuntimeSection
+            data={createDataInferenceService}
+            setData={setCreateDataInferenceService}
+            allowCreate={allowCreate}
+            publicRoute
+            showModelRoute={isAuthAvailable}
+          />
         </Stack>
       </Form>
     </Modal>
