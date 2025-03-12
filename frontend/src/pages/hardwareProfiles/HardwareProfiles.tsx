@@ -129,14 +129,15 @@ const HardwareProfiles: React.FC = () => {
             </Alert>
           </StackItem>
         )}
-        {migratedHardwareProfiles.length > 0 ? (
+        <StackItem>
+          {hardwareProfiles.length > 0 ? (
+            <HardwareProfilesTable hardwareProfiles={hardwareProfiles} />
+          ) : (
+            noHardwareProfilePageSection
+          )}
+        </StackItem>
+        {migratedHardwareProfiles.length > 0 && (
           <>
-            <StackItem>
-              <HardwareProfilesTable
-                hardwareProfiles={hardwareProfiles}
-                getMigrationAction={getMigrationAction}
-              />
-            </StackItem>
             <StackItem>
               <Title headingLevel="h2">
                 {hardwareProfiles.length > 0 ? 'Legacy profiles' : 'Migrate your legacy profiles'}
@@ -161,10 +162,6 @@ const HardwareProfiles: React.FC = () => {
               </ExpandableSection>
             </StackItem>
           </>
-        ) : (
-          <StackItem>
-            <HardwareProfilesTable hardwareProfiles={hardwareProfiles} />
-          </StackItem>
         )}
       </Stack>
     </ApplicationsPage>
