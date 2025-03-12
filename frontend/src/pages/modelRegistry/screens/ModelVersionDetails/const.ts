@@ -13,3 +13,9 @@ export const pipelineRunSpecificKeys: string[] = [
   '_registeredFromPipelineRunId',
   '_registeredFromPipelineRunName',
 ];
+
+export type PipelineModelCustomProps = {
+  project: string;
+  runId: string;
+  runName: string;
+};
