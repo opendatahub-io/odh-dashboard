@@ -113,14 +113,14 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
         <Alert
           variant="warning"
           isInline
-          title={`All the versions have been archived along with the model on ${
+          title={`The ${rm.name} model and all of its versions were archived on ${
             date
               ? `${date.toLocaleString('en-US', {
                   month: 'long',
                   timeZone: 'UTC',
                 })} ${date.getUTCDate()}, ${date.getUTCFullYear()}`
               : '--'
-          }. They are now read-only and can only be restored together with the model.`}
+          }.  Versions can be restored by restoring the model.`}
         />
       )}
       <ModelVersionsTable

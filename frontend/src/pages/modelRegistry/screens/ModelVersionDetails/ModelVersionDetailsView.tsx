@@ -298,7 +298,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                     ),
                   )
                 }
-                title="Model Format"
+                title="Model format"
                 contentWhenEmpty="No model format specified"
               />
               <EditableTextDescriptionListGroup
@@ -315,7 +315,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                     ),
                   )
                 }
-                title="Version"
+                title="Model format version"
                 contentWhenEmpty="No model format version specified"
               />
             </DescriptionList>
