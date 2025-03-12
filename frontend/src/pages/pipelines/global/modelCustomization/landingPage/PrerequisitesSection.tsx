@@ -1,16 +1,11 @@
 import * as React from 'react';
-import { Accordion, Button, Stack, StackItem } from '@patternfly/react-core';
+import { Accordion } from '@patternfly/react-core';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { ModelCustomizationAccordionItem } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationAccordionItem';
 import { BaseSection } from '~/pages/pipelines/global/modelCustomization/landingPage/BaseSection';
 import { useToggleAccordtion } from '~/pages/pipelines/global/modelCustomization/landingPage/useToggleAccordion';
-import { ModelCustomizationDrawerContentArgs } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
 
-type PrerequisitesSectionProps = {
-  handleOpenDrawer: (contentArgs: ModelCustomizationDrawerContentArgs) => void;
-};
-
-export const PrerequisitesSection: React.FC<PrerequisitesSectionProps> = ({ handleOpenDrawer }) => {
+export const PrerequisitesSection: React.FC = () => {
   const { accordionItemsExpanded, handleToggleAccordion } = useToggleAccordtion();
 
   return (
@@ -22,31 +17,10 @@ export const PrerequisitesSection: React.FC<PrerequisitesSectionProps> = ({ hand
           itemsExpanded={accordionItemsExpanded}
           handleToggle={handleToggleAccordion}
         >
-          <Stack>
-            <StackItem>
-              Provide a git repository link to a taxonomy repository, which must be formatted in a
-              cascading file structure. A LAB-tuning taxonomy contains two types of data: skills,
-              which enable the model to complete performative actions; and knowledge, which enables
-              the model to answer questions that involve facts, data, or references.
-            </StackItem>
-            <StackItem>
-              <Button
-                data-testid="learn-more-taxonomy"
-                variant="link"
-                isInline
-                component="a"
-                onClick={() => {
-                  handleOpenDrawer({
-                    title: 'Learn how to construct and build a taxonomy repository',
-                    description: 'Panel description',
-                    body: 'Content',
-                  });
-                }}
-              >
-                Learn how to construct and build a taxonomy repository
-              </Button>
-            </StackItem>
-          </Stack>
+          Provide a git repository link to a taxonomy repository, which must be formatted in a
+          cascading file structure. A LAB-tuning taxonomy contains two types of data: skills, which
+          enable the model to complete performative actions; and knowledge, which enables the model
+          to answer questions that involve facts, data, or references.
         </ModelCustomizationAccordionItem>
         <ModelCustomizationAccordionItem
           id="deployed-teacher-and-judge-models"
@@ -54,29 +28,8 @@ export const PrerequisitesSection: React.FC<PrerequisitesSectionProps> = ({ hand
           itemsExpanded={accordionItemsExpanded}
           handleToggle={handleToggleAccordion}
         >
-          <Stack>
-            <StackItem>
-              The teacher model is responsible for the creation of synthetic data. The judge model
-              is responsible for evaluating the LAB-tuning run.
-            </StackItem>
-            <StackItem>
-              <Button
-                data-testid="learn-more-teacher-judge-models"
-                variant="link"
-                isInline
-                component="a"
-                onClick={() => {
-                  handleOpenDrawer({
-                    title: 'Learn how to find and deploy teacher and judge models',
-                    description: 'Panel description',
-                    body: 'Content',
-                  });
-                }}
-              >
-                Learn how to find and deploy teacher and judge models
-              </Button>
-            </StackItem>
-          </Stack>
+          The teacher model is responsible for the creation of synthetic data. The judge model is
+          responsible for evaluating the LAB-tuning run.
         </ModelCustomizationAccordionItem>
         <ModelCustomizationAccordionItem
           id="open-container-initiative-storage-location"

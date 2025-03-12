@@ -14,7 +14,6 @@ import { ProjectObjectType } from '~/concepts/design/utils';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { LabMethodDescriptionSection } from '~/pages/pipelines/global/modelCustomization/landingPage/LabMethodDescriptionSection';
 import ModelCustomizationDrawerContent, {
-  ModelCustomizationDrawerContentArgs,
   ModelCustomizationDrawerContentRef,
 } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
 import { NextStepsSection } from '~/pages/pipelines/global/modelCustomization/landingPage/NextStepsSection';
@@ -33,10 +32,11 @@ const ModelCustomization: React.FC = () => {
     setIsDrawerExpanded(false);
   };
 
-  const handleOpenDrawer = (contentArgs: ModelCustomizationDrawerContentArgs) => {
-    drawerContentRef.current?.update(contentArgs);
-    setIsDrawerExpanded(true);
-  };
+  // TODO: The drawer will not be opened since we do not have the contents yet
+  // const handleOpenDrawer = (contentArgs: ModelCustomizationDrawerContentArgs) => {
+  //   drawerContentRef.current?.update(contentArgs);
+  //   setIsDrawerExpanded(true);
+  // };
 
   return (
     <Drawer isExpanded={isDrawerExpanded} data-testid="drawer-model-customization" isInline>
@@ -75,7 +75,7 @@ const ModelCustomization: React.FC = () => {
                     <LabMethodDescriptionSection />
                   </StackItem>
                   <StackItem>
-                    <PrerequisitesSection handleOpenDrawer={handleOpenDrawer} />
+                    <PrerequisitesSection />
                   </StackItem>
                   <StackItem>
                     <ProjectSetupSection />

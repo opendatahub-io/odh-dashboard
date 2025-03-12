@@ -35,7 +35,7 @@ describe('Model Customization Landing Page', () => {
     });
   });
 
-  describe('Drawer', () => {
+  describe.skip('TODO: Drawer tests disabled while we do not have the contents yet', () => {
     beforeEach(() => {
       initIntercepts({
         disableFineTuning: false,
