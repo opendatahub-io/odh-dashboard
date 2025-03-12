@@ -12,7 +12,7 @@ import {
   ModalVariant,
   Stack,
   StackItem,
-  Alert
+  Alert,
 } from '@patternfly/react-core';
 import ProjectSelector from '~/concepts/projects/ProjectSelector';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
@@ -95,6 +95,11 @@ const StartRunModal: React.FC<StartRunModalProps> = ({
         }
       />
       <ModalBody>
+        {loadError && (
+          <Alert variant="danger" title="Error loading model data" className="pf-v6-u-mb-md">
+            {loadError.message}
+          </Alert>
+        )}
         <Form>
           <FormGroup
             label="Data science project"
