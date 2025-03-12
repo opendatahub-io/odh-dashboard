@@ -15,6 +15,7 @@ import {
   Button,
   Popover,
   ActionListGroup,
+  Skeleton,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
@@ -29,7 +30,6 @@ import {
   findModelFromModelCatalogSources,
   getTagFromModel,
 } from '~/pages/modelCatalog/utils';
-import BrandImage from '~/components/BrandImage';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { getRegisterCatalogModelUrl } from '~/pages/modelCatalog/routeUtils';
 import PopoverListContent from '~/components/PopoverListContent';
@@ -142,32 +142,37 @@ const ModelDetailsPage: React.FC = conditionalArea(
         </Breadcrumb>
       }
       title={
-        <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-          <FlexItem>
-            <BrandImage src={model?.logo ?? ''} alt="" />
-          </FlexItem>
-          <FlexItem>
-            <Stack>
+        <Flex spaceItems={{ default: 'spaceItemsMd' }} alignItems={{ default: 'alignItemsCenter' }}>
+          {model?.logo ? (
+            <img src={model.logo} alt="model logo" style={{ height: '40px', width: '40px' }} />
+          ) : (
+            <Skeleton
+              shape="square"
+              width="40px"
+              height="40px"
+              screenreaderText="Brand image loading"
+            />
+          )}
+          <Stack>
+            <StackItem>
+              <Flex
+                spaceItems={{ default: 'spaceItemsSm' }}
+                alignItems={{ default: 'alignItemsCenter' }}
+              >
+                <FlexItem>{decodedParams.modelName}</FlexItem>
+                {model && (
+                  <Label variant="outline" icon={<RhUiTagIcon />}>
+                    {getTagFromModel(model)}
+                  </Label>
+                )}
+              </Flex>
+            </StackItem>
+            {model && (
               <StackItem>
-                <Flex
-                  spaceItems={{ default: 'spaceItemsSm' }}
-                  alignItems={{ default: 'alignItemsCenter' }}
-                >
-                  <FlexItem>{decodedParams.modelName}</FlexItem>
-                  {model && (
-                    <Label variant="outline" icon={<RhUiTagIcon />}>
-                      {getTagFromModel(model)}
-                    </Label>
-                  )}
-                </Flex>
+                <Content component={ContentVariants.small}>Provided by {model.provider}</Content>
               </StackItem>
-              {model && (
-                <StackItem>
-                  <Content component={ContentVariants.small}>Provided by {model.provider}</Content>
-                </StackItem>
-              )}
-            </Stack>
-          </FlexItem>
+            )}
+          </Stack>
         </Flex>
       }
       empty={model === null}
