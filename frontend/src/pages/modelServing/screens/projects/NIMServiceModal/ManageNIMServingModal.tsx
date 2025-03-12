@@ -377,7 +377,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
             servingRuntimeSelected={servingRuntimeSelected}
             podSpecOptionState={podSpecOptionsState}
             infoContent="Select CPU and memory resources large enough to support the NIM being deployed."
-            nimDefaults={NIM_CUSTOM_DEFAULTS}
+            customDefaults={NIM_CUSTOM_DEFAULTS}
           />
           {isAuthAvailable && (
             <AuthServingRuntimeSection

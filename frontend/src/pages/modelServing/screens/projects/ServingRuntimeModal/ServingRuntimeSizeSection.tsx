@@ -18,7 +18,7 @@ type ServingRuntimeSizeSectionProps = {
   servingRuntimeSelected?: ServingRuntimeKind;
   infoContent?: string;
   isEditing?: boolean;
-  nimDefaults?: ModelServingSize;
+  customDefaults?: ModelServingSize;
 };
 
 const ServingRuntimeSizeSection = ({
@@ -26,14 +26,14 @@ const ServingRuntimeSizeSection = ({
   servingRuntimeSelected,
   infoContent,
   isEditing = false,
-  nimDefaults,
+  customDefaults,
 }: ServingRuntimeSizeSectionProps): React.ReactNode => {
   const isHardwareProfileEnabled = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
 
   const gpuDisabled = servingRuntimeSelected ? isGpuDisabled(servingRuntimeSelected) : false;
 
-  const customResources = nimDefaults
-    ? nimDefaults.resources
+  const customResources = customDefaults
+    ? customDefaults.resources
     : podSpecOptionState.modelSize.sizes[0].resources;
 
   const sizeCustom = [
