@@ -7,7 +7,8 @@ import {
 import { K8sAPIOptions, TrustyAIKind } from '~/k8sTypes';
 import { TRUSTYAI_DEFINITION_NAME } from '~/concepts/trustyai/const';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { TrustyAIApplicationsModel } from '~/api/models/trustyai';
+import { TrustyAIApplicationsModel } from '~/api/models/odh';
+import { kindApiVersion } from '~/concepts/k8s/utils';
 
 export const getTrustyAICR = async (
   namespace: string,
@@ -32,7 +33,7 @@ export const createTrustyAICR = async (
   opts?: K8sAPIOptions,
 ): Promise<TrustyAIKind> => {
   const resource: TrustyAIKind = {
-    apiVersion: `${TrustyAIApplicationsModel.apiGroup}/${TrustyAIApplicationsModel.apiVersion}`,
+    apiVersion: kindApiVersion(TrustyAIApplicationsModel),
     kind: TrustyAIApplicationsModel.kind,
     metadata: {
       name: TRUSTYAI_DEFINITION_NAME,

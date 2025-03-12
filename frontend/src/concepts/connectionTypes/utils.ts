@@ -181,6 +181,7 @@ const modelServingCompatibleTypesMetadata: Record<
 export const isModelServingCompatible = (
   input: string[] | Connection | ConnectionTypeConfigMapObj,
   type?: ModelServingCompatibleTypes,
+  connectionAccessType = 'Pull',
 ): boolean => {
   if (!type) {
     return getModelServingCompatibility(input).length > 0;
@@ -189,7 +190,9 @@ export const isModelServingCompatible = (
     if (type === ModelServingCompatibleTypes.OCI) {
       const accessType =
         input.stringData?.ACCESS_TYPE || window.atob(input.data?.ACCESS_TYPE ?? '');
-      if (!(accessType.includes('Pull') || accessType === '[]' || accessType === '')) {
+      if (
+        !(accessType.includes(connectionAccessType) || accessType === '[]' || accessType === '')
+      ) {
         return false;
       }
     }

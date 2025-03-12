@@ -291,3 +291,28 @@ export enum HyperparameterFields {
   EVALUATION_WORKERS = 'final_eval_max_workers',
   EVALUATION_BATCH_SIZE = 'final_eval_batch_size',
 }
+
+export enum NonDisplayedHyperparameterFields {
+  OUTPUT_OCI_MODEL_URI = 'output_oci_model_uri',
+  OUTPUT_OCI_REGISTRY_SECRET = 'output_oci_registry_secret',
+  OUTPUT_MODEL_NAME = 'output_model_name',
+  OUTPUT_MODEL_VERSION = 'output-model_version',
+  OUTPUT_MODEL_REGISTRY_API_URL = 'output_model_registry_api_url',
+  OUTPUT_MODEL_REGISTRY_NAME = 'output_model_registry_name',
+  OUTPUT_MODELCAR_BASE_IMAGE = 'output_modelcar_base_image',
+  SDG_SECRET_URL = 'sdg_repo_url',
+  SDG_REPO_SECRET = 'sdg_repo_secret',
+  SDG_REPO_BRANCH = 'sdg_repo_branch',
+  SDG_TEACHER_SECRET = 'sdg_teacher_secret',
+  SDG_BASE_MODEL = 'sdg_base_model',
+  TRAIN_TOLERATIONS = 'train_tolerations',
+  TRAIN_NODE_SELECTORS = 'train_node_selectors',
+  TRAIN_GPU_IDENTIFIER = 'train_gpu_identifier',
+  TRAIN_GPU_PER_WORKER = 'train_gpu_per_worker',
+  TRAIN_CPU_PER_WORKER = 'train_cpu_per_worker',
+  TRAIN_MEMORY_PER_WORKER = 'train_memory_per_worker',
+  EVAL_JUDGE_SECRET = 'eval_judge_secret',
+  SDG_PIPELINE = 'sdg_pipeline',
+  EVAL_GPU_IDENTIFIER = 'eval_gpu_identifier',
+  K8S_STORAGE_CLASS_NAME = 'k8s_storage_class_name',
+}

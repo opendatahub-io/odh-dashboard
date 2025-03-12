@@ -169,6 +169,7 @@ export type OdhApplication = {
       validationSecret: string;
       validationJob: string;
       validationConfigMap?: string;
+      inProgressText?: string;
     };
     featureFlag?: string;
     internalRoute?: string;

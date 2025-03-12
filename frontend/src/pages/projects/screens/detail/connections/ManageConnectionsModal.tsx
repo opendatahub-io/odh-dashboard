@@ -21,6 +21,7 @@ import {
   isConnectionTypeDataField,
   parseConnectionSecretValues,
 } from '~/concepts/connectionTypes/utils';
+import usePersistentData from './usePersistentData';
 
 type Props = {
   connection?: Connection;
@@ -98,33 +99,13 @@ export const ManageConnectionModal: React.FC<Props> = ({
     [connectionTypeName, selectedConnectionType, nameDescData, connectionValues, validations],
   );
 
-  // if user changes connection types, don't discard previous entries in case of accident
-  const previousValues = React.useRef<{
-    [connectionTypeName: string]: {
-      [key: string]: ConnectionTypeValueType;
-    };
-  }>({});
-  const changeSelectionType = React.useCallback(
-    (type?: ConnectionTypeConfigMapObj) => {
-      // save previous connection values
-      if (selectedConnectionType) {
-        previousValues.current[selectedConnectionType.metadata.name] = connectionValues;
-        // clear previous values
-        setConnectionValues({});
-        setValidations({});
-      }
-      // load saved values?
-      if (type?.metadata.name && type.metadata.name in previousValues.current) {
-        setConnectionValues(previousValues.current[type.metadata.name]);
-      } else if (type) {
-        // first time load, so add default values
-        setConnectionValues(getDefaultValues(type));
-      }
-
-      setSelectedConnectionType(type);
-    },
-    [selectedConnectionType, connectionValues],
-  );
+  const { changeSelectionType } = usePersistentData({
+    setConnectionValues,
+    setValidations,
+    setSelectedConnectionType,
+    connectionValues,
+    selectedConnectionType,
+  });
 
   return (
     <Modal

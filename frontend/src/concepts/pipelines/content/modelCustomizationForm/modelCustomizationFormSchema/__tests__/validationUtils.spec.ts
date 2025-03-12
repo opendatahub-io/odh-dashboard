@@ -1,12 +1,16 @@
+import { buildMockPipelineVersion } from '~/__mocks__';
+
 import { ModelCustomizationEndpointType } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
 import {
   runTypeSchema,
+  pipelineParameterSchema,
   TeacherJudgeFormData,
   teacherJudgeModel,
 } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import { InputDefinitionParameterType } from '~/concepts/pipelines/kfTypes';
 import { RunTypeFormat } from '~/pages/pipelines/global/modelCustomization/const';
 import { createHyperParametersSchema } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/hyperparameterValidationUtils';
+import { mockIlabPipelineVersionParameters } from '~/__mocks__/mockIlabPipelineVersionParameters';
 
 describe('TeacherJudgeSchema', () => {
   it('should validate when it is public without token', () => {
@@ -210,5 +214,20 @@ describe('hyperparameterFieldSchema', () => {
     const runType = RunTypeFormat.SIMPLE;
     const result = runTypeSchema.safeParse(runType);
     expect(result.success).toBe(true);
+  });
+});
+
+describe('Pipeline details', () => {
+  it('should validate when required parameters are present', () => {
+    const params = mockIlabPipelineVersionParameters;
+    const result = pipelineParameterSchema.safeParse(params);
+    expect(result.success).toBe(true);
+  });
+
+  it('should validate when required parameters are absent', () => {
+    const params =
+      buildMockPipelineVersion().pipeline_spec.pipeline_spec?.root.inputDefinitions?.parameters;
+    const result = pipelineParameterSchema.safeParse(params);
+    expect(result.success).toBe(false);
   });
 });
