@@ -4,11 +4,11 @@ import { Accordion, Button } from '@patternfly/react-core';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { ModelCustomizationAccordionItem } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationAccordionItem';
 import { BaseSection } from '~/pages/pipelines/global/modelCustomization/landingPage/BaseSection';
-import { useToggleAccordtion } from '~/pages/pipelines/global/modelCustomization/landingPage/useToggleAccordion';
+import { useToggleAccordion } from '~/pages/pipelines/global/modelCustomization/landingPage/useToggleAccordion';
 
 export const ProjectSetupSection: React.FC = () => {
   const navigate = useNavigate();
-  const { accordionItemsExpanded, handleToggleAccordion } = useToggleAccordtion();
+  const { accordionItemsExpanded, handleToggleAccordion } = useToggleAccordion();
 
   return (
     <BaseSection title="Setting up your project pipeline:">

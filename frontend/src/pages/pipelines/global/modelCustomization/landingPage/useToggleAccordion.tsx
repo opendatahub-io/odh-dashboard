@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-export const useToggleAccordtion = (): {
+export const useToggleAccordion = (): {
   accordionItemsExpanded: string[];
   handleToggleAccordion: (itemId: string) => void;
 } => {
