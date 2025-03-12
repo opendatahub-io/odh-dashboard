@@ -45,6 +45,7 @@ export enum SupportedArea {
   /* DS Projects specific areas */
   DS_PROJECTS_PERMISSIONS = 'ds-projects-permission',
   DS_PROJECTS_VIEW = 'ds-projects',
+  DS_PROJECT_SCOPED = 'ds-project-scoped',
 
   /* Model Serving areas */
   MODEL_SERVING = 'model-serving-shell',
