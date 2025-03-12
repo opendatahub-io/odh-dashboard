@@ -103,6 +103,30 @@ npx cypress run --env grepTags="@<Test-Case-Tag>",skipTags="@<Flaky-Bug>" --brow
   npx cypress run --env grepTags="@Smoke",skipTags="@Bug @Modelserving" --browser chrome
   ```
 
+* Run Individual tests, in this example by test case ID `ODS-1234`:
+
+  ```bash
+  npx cypress run --env grepTags="@ODS-1234" --browser chrome
+  ```
+
+### Run Tests by Test Spec
+
+Run tests by Test Spec from the command line:
+
+**Examples:**
+
+* Run Individual Test Spec:
+
+  ```bash
+  npx cypress run --spec "cypress/tests/e2e/<test-Name>.cy.ts" --browser chrome
+  ```
+
+* Run Multiple Test Specs:
+
+  ```bash
+  npx cypress run --spec "cypress/tests/e2e/<test-Name1>.ts,cypress/tests/e2e/<test-Name2>.cy.ts" --browser chrome
+  ```
+
 ## Writing Tests
 
 e2e tests should focus on user journeys through the application, validating that features work as intended from the user's perspective.
@@ -156,6 +180,7 @@ Tests are parameterized using tags and applied to the 'it' block:
 * `ODS-1234`: Test Case ID (if applicable)
 * `Dashboard/NIM etc.`: High-Level Team
 * `Workbenches/Pipelines etc.`: Functional Area
+* `Destructive`: Tests that have the potential to break other tests (changing configuration etc.) 
 
 **Usage in tests:**
 ```javascript
@@ -202,9 +227,10 @@ Initially, please refer to the general ODH-Dashboard contribution guidelines, wh
   * Execute the test headlessly, which imitates the execution in Jenkins
   * Future - test via Jenkins (TODO - Update this)
 
-* **Submitting Changes:** Once your changes are ready, commit them and push to your branch:
+* **Submitting Changes:** Once your changes are ready, run the linter, commit them and push to your branch:
 
   ```bash
+  npm run test:lint/npm run test:fix
   git add .
   git commit -m "Add my new test"
   git push origin feature/my-new-feature
