@@ -39,4 +39,5 @@ export type CatalogModel = {
 export type ModelCatalogSource = {
   source: string;
   models: CatalogModel[];
+  displayName?: string;
 };

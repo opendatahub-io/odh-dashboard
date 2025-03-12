@@ -9,8 +9,8 @@ import { MODEL_CATALOG_SOURCE_CONFIGMAP } from './const';
 
 type State = ModelCatalogSource[];
 
-// Temporary implementation for MVP - will be replaced with API for remote model catalog sources
-// See: https://issues.redhat.com/browse/RHOAISTRAT-455
+const REDHAT_CONFIGMAP = MODEL_CATALOG_SOURCE_CONFIGMAP;
+const THIRD_PARTY_CONFIGMAP = 'model-catalog-source-thirdparty';
 
 const isK8sNotFoundError = (e: unknown): boolean =>
   typeof e === 'object' &&
@@ -18,6 +18,24 @@ const isK8sNotFoundError = (e: unknown): boolean =>
   'statusObject' in e &&
   isK8sStatus(e.statusObject) &&
   e.statusObject.code === 404;
+
+const fetchConfigMap = async (
+  namespace: string,
+  name: string,
+): Promise<ModelCatalogSource | null> => {
+  try {
+    const configMap = await getConfigMap(namespace, name);
+    if (!configMap.data?.modelCatalogSource) {
+      return null;
+    }
+    return JSON.parse(configMap.data.modelCatalogSource);
+  } catch (e: unknown) {
+    if (isK8sNotFoundError(e)) {
+      return null;
+    }
+    throw e;
+  }
+};
 
 export const useModelCatalogSources = (): FetchState<State> => {
   const { dashboardNamespace } = useNamespaces();
@@ -28,20 +46,14 @@ export const useModelCatalogSources = (): FetchState<State> => {
       throw new NotReadyError('Model catalog feature is not enabled');
     }
 
-    try {
-      const configMap = await getConfigMap(dashboardNamespace, MODEL_CATALOG_SOURCE_CONFIGMAP);
-      if (!configMap.data || !configMap.data.modelCatalogSource) {
-        return [];
-      }
+    const [redhatSource, thirdPartySource] = await Promise.all([
+      fetchConfigMap(dashboardNamespace, REDHAT_CONFIGMAP),
+      fetchConfigMap(dashboardNamespace, THIRD_PARTY_CONFIGMAP),
+    ]);
 
-      const parsed: ModelCatalogSource | undefined = JSON.parse(configMap.data.modelCatalogSource);
-      return parsed ? [parsed] : [];
-    } catch (e: unknown) {
-      if (isK8sNotFoundError(e)) {
-        return [];
-      }
-      throw e;
-    }
+    return [redhatSource, thirdPartySource].filter(
+      (source): source is ModelCatalogSource => source !== null,
+    );
   }, [dashboardNamespace, isModelCatalogAvailable]);
 
   return useFetchState<State>(callback, []);
