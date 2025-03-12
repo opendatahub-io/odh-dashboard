@@ -2,6 +2,7 @@ import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Context
 import { K8sNameDescriptionField } from '~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 import { TableRow } from './components/table';
+import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 
 class HardwareProfileTableToolbar extends Contextual<HTMLElement> {
   findToggleButton(id: string) {
@@ -76,6 +77,15 @@ class HardwareProfile {
   visit() {
     cy.visitWithLogin('/hardwareProfiles');
     this.wait();
+  }
+
+  navigate() {
+    this.findNavItem().click();
+    this.wait();
+  }
+
+  findNavItem() {
+    return appChrome.findNavItem('Hardware profiles', 'Settings');
   }
 
   private wait() {
