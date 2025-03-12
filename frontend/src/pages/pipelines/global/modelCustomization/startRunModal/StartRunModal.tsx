@@ -37,7 +37,7 @@ const StartRunModal: React.FC<StartRunModalProps> = ({
           }}
           onCancel={onCancel}
           submitLabel="Continue to run details"
-          isSubmitDisabled={!canContinue || !loaded}
+          isSubmitDisabled={!canContinue || !loaded || !!loadError}
         />
       }
       variant="medium"
