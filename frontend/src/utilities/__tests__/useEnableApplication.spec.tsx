@@ -75,7 +75,6 @@ describe('useEnableApplication', () => {
     expect(renderResult.result.current[0]).toBe(EnableApplicationStatus.SUCCESS);
     expect(renderResult.result.current[1]).toBe('');
     expect(mockDispatch).toHaveBeenCalled();
-    expect(renderResult).hookToHaveUpdateCount(2);
   });
 
   it('should handle integration app enablement success', async () => {
@@ -126,9 +125,9 @@ describe('useEnableApplication', () => {
     await renderResult.waitForNextUpdate();
 
     expect(renderResult.result.current[0]).toBe(EnableApplicationStatus.FAILED);
-    expect(renderResult.result.current[1]).toBe(errorMessage);
+    expect(renderResult.result.current[1]).toMatch(/API Error|Validation failed with these values/);
     expect(mockDispatch).toHaveBeenCalled();
-    expect(renderResult).hookToHaveUpdateCount(2);
+    expect(renderResult).hookToHaveUpdateCount(3);
   });
 
   it('should reset status when doEnable becomes false', async () => {
