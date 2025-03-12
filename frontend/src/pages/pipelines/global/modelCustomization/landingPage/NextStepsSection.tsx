@@ -1,13 +1,13 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router';
-import { Accordion, Button, Content, ContentVariants, Label } from '@patternfly/react-core';
+import { Link } from 'react-router-dom';
+import { Accordion, Label } from '@patternfly/react-core';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { ModelCustomizationAccordionItem } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationAccordionItem';
 import { BaseSection } from '~/pages/pipelines/global/modelCustomization/landingPage/BaseSection';
 import { useToggleAccordion } from '~/pages/pipelines/global/modelCustomization/landingPage/useToggleAccordion';
+import { pipelineRunsRootPath } from '~/routes';
 
 export const NextStepsSection: React.FC = () => {
-  const navigate = useNavigate();
   const { accordionItemsExpanded, handleToggleAccordion } = useToggleAccordion();
 
   return (
@@ -19,13 +19,15 @@ export const NextStepsSection: React.FC = () => {
           itemsExpanded={accordionItemsExpanded}
           handleToggle={handleToggleAccordion}
         >
-          <Content component={ContentVariants.p}>
-            Select a base model from the model catalog and register it to an OpenShift AI model
-            registry.
-            <br />
-            Note: You can choose any base model, but OpenShift AI currently supports LAB-tuning for
-            only Granite models with the <Label color="yellow">LAB starter</Label> label
-          </Content>
+          Select a base model from the model catalog and register it to an {ODH_PRODUCT_NAME} model
+          registry.
+          <br />
+          Note: You can choose any base model, but {ODH_PRODUCT_NAME} currently supports LAB-tuning
+          for only Granite models with the{' '}
+          <Label isCompact color="yellow">
+            LAB starter
+          </Label>{' '}
+          label
         </ModelCustomizationAccordionItem>
         <ModelCustomizationAccordionItem
           id="create-lab-tuning-run"
@@ -45,17 +47,9 @@ export const NextStepsSection: React.FC = () => {
         >
           The LAB-tuning run can take some time to finish. To monitor the status of your run, go to
           the{' '}
-          <Button
-            data-testid="go-to-pipeline-runs"
-            variant="link"
-            isInline
-            component="a"
-            onClick={() => {
-              navigate('/pipelineRuns');
-            }}
-          >
+          <Link data-testid="go-to-pipeline-runs" to={pipelineRunsRootPath}>
             Runs page
-          </Button>
+          </Link>
           .
         </ModelCustomizationAccordionItem>
         <ModelCustomizationAccordionItem
@@ -64,22 +58,13 @@ export const NextStepsSection: React.FC = () => {
           itemsExpanded={accordionItemsExpanded}
           handleToggle={handleToggleAccordion}
         >
-          {`When the pipeline run is finished, your LAB-tuned model will be available in
-            your specified output location. If you registered it in an ${ODH_PRODUCT_NAME}
-            model registry, the tuned model will be output as a new version of the base
-            model.`}{' '}
-          View it nested under the base model on the{' '}
-          <Button
-            data-testid="go-to-model-registry"
-            variant="link"
-            isInline
-            component="a"
-            onClick={() => {
-              navigate('/modelRegistry');
-            }}
-          >
+          When the pipeline run is finished, your LAB-tuned model will be available in your
+          specified output location. If you registered it in an {ODH_PRODUCT_NAME} model registry,
+          the tuned model will be output as a new version of the base model. View it nested under
+          the base model on the{' '}
+          <Link data-testid="go-to-model-registry" to="/modelRegistry">
             Model registry page
-          </Button>
+          </Link>
           .
         </ModelCustomizationAccordionItem>
       </Accordion>

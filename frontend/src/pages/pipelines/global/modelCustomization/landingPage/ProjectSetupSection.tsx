@@ -1,13 +1,13 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router';
-import { Accordion, Button } from '@patternfly/react-core';
+import { Link } from 'react-router-dom';
+import { Accordion } from '@patternfly/react-core';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { ModelCustomizationAccordionItem } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationAccordionItem';
 import { BaseSection } from '~/pages/pipelines/global/modelCustomization/landingPage/BaseSection';
 import { useToggleAccordion } from '~/pages/pipelines/global/modelCustomization/landingPage/useToggleAccordion';
+import { pipelinesRootPath } from '~/routes';
 
 export const ProjectSetupSection: React.FC = () => {
-  const navigate = useNavigate();
   const { accordionItemsExpanded, handleToggleAccordion } = useToggleAccordion();
 
   return (
@@ -31,17 +31,9 @@ export const ProjectSetupSection: React.FC = () => {
           The InstructLab pipeline is the set steps and instructions that make up LAB-tuning runs.
           To install the InstructLab pipeline on your selected project, click{' '}
           <b>Manage preconfigured pipelines</b> on the{' '}
-          <Button
-            data-testid="go-to-pipelines"
-            variant="link"
-            isInline
-            component="a"
-            onClick={() => {
-              navigate('/pipelines');
-            }}
-          >
+          <Link data-testid="go-to-pipelines" to={pipelinesRootPath}>
             Pipelines page
-          </Button>
+          </Link>
           .
         </ModelCustomizationAccordionItem>
         <ModelCustomizationAccordionItem
@@ -50,9 +42,8 @@ export const ProjectSetupSection: React.FC = () => {
           itemsExpanded={accordionItemsExpanded}
           handleToggle={handleToggleAccordion}
         >
-          {`Hardware profiles are necessary for picking the hardware resources you want
-            to allocate for the LAB-tuning run. For help, contact your ${ODH_PRODUCT_NAME}
-            administrator.`}
+          Hardware profiles are necessary for picking the hardware resources you want to allocate
+          for the LAB-tuning run. For help, contact your {ODH_PRODUCT_NAME} administrator.
         </ModelCustomizationAccordionItem>
       </Accordion>
     </BaseSection>

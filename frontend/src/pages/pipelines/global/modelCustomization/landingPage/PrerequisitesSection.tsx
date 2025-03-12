@@ -37,9 +37,9 @@ export const PrerequisitesSection: React.FC = () => {
           itemsExpanded={accordionItemsExpanded}
           handleToggle={handleToggleAccordion}
         >
-          {`An OCI storage location is required to store the LAB-tuned model.
-            Ensure that the storage location has enough room to store the model output. 
-            This storage location can be reused via a connection within ${ODH_PRODUCT_NAME}.`}
+          An OCI storage location is required to store the LAB-tuned model. Ensure that the storage
+          location has enough room to store the model output. This storage location can be reused
+          via a connection within {ODH_PRODUCT_NAME}.
         </ModelCustomizationAccordionItem>
       </Accordion>
     </BaseSection>
