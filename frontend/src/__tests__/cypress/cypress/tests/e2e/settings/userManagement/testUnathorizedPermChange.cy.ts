@@ -7,7 +7,40 @@ import { userManagement } from '~/__tests__/cypress/cypress/pages/userManagement
 import { retryableBeforeEach } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 import { notFoundPage } from '~/__tests__/cypress/cypress/pages/notFound';
 
-describe('Dashboard Navigation - Unauthorized Permission Change', () => {
+after(() => {
+  // Clear cookies and local storage
+  cy.clearCookies();
+  cy.clearLocalStorage();
+
+  // Reload the page forcefully
+  cy.reload(true);
+
+  // Authentication and navigation
+  cy.step('Login as an Admin and restore settings');
+  cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+
+  // Visit User Management
+  cy.step('Visit User Management');
+  userManagement.visit();
+
+  cy.step('Clear the current Data Science User Groups');
+  userManagement.getUserGroupSection().clearMultiChipItem();
+  const userGroupSection = userManagement.getUserGroupSection();
+
+  cy.step('Select system:authenticated and save it');
+  // Click the text field to open the dropdown
+  userGroupSection.findMultiGroupSelectButton().click();
+  // Click the 'system:authenticated' option from the dropdown
+  userGroupSection.findMultiGroupOptions('system:authenticated').click();
+  // Click outside the dropdown to close it
+  cy.findByTestId('app-page-title').click();
+  // Submit the form
+  userManagement.findSubmitButton().click();
+  // Validate that changes were saved successfully
+  userManagement.shouldHaveSuccessAlertMessage();
+});
+
+describe('Settings - User Management - Unauthorized Permission Change', () => {
   retryableBeforeEach(() => {
     // Clear any existing sessions before each test
     cy.clearCookies();
@@ -89,4 +122,37 @@ describe('Dashboard Navigation - Unauthorized Permission Change', () => {
       userManagement.findNavItem().should('not.exist');
     },
   );
+});
+
+after(() => {
+  // Clear cookies and local storage
+  cy.clearCookies();
+  cy.clearLocalStorage();
+
+  // Reload the page forcefully
+  cy.reload(true);
+
+  // Authentication and navigation
+  cy.step('Login as an Admin and restore settings');
+  cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+
+  // Visit User Management
+  cy.step('Visit User Management');
+  userManagement.visit();
+
+  cy.step('Clear the current Data Science User Groups');
+  userManagement.getUserGroupSection().clearMultiChipItem();
+  const userGroupSection = userManagement.getUserGroupSection();
+
+  cy.step('Select system:authenticated and save it');
+  // Click the text field to open the dropdown
+  userGroupSection.findMultiGroupSelectButton().click();
+  // Click the 'system:authenticated' option from the dropdown
+  userGroupSection.findMultiGroupOptions('system:authenticated').click();
+  // Click outside the dropdown to close it
+  cy.findByTestId('app-page-title').click();
+  // Submit the form
+  userManagement.findSubmitButton().click();
+  // Validate that changes were saved successfully
+  userManagement.shouldHaveSuccessAlertMessage();
 });
