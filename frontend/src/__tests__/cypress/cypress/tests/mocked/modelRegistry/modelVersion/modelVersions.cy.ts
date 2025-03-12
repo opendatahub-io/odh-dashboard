@@ -349,7 +349,7 @@ describe('Model Versions', () => {
     registeredModelRow.findName().contains('Fraud detection model').click();
 
     const modelVersionRow = modelRegistry.getModelVersionRow('model version');
-    modelVersionRow.findKebabAction('LAB tune').click();
+    modelVersionRow.findKebabAction('LAB-tune').click();
 
     cy.findByText('Error loading model data').should('exist');
   });
