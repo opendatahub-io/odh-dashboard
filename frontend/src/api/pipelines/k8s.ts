@@ -20,6 +20,7 @@ import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { DEFAULT_PIPELINE_DEFINITION_NAME } from '~/concepts/pipelines/const';
 import { ELYRA_SECRET_NAME } from '~/concepts/pipelines/elyra/const';
 import { DEV_MODE } from '~/utilities/const';
+import { kindApiVersion } from '~/concepts/k8s/utils';
 
 export const getElyraSecret = async (namespace: string, opts: K8sAPIOptions): Promise<SecretKind> =>
   getSecret(namespace, ELYRA_SECRET_NAME, opts);
@@ -43,7 +44,7 @@ export const createPipelinesCR = async (
   opts?: K8sAPIOptions,
 ): Promise<DSPipelineKind> => {
   const resource: DSPipelineKind = {
-    apiVersion: `${DataSciencePipelineApplicationModel.apiGroup}/${DataSciencePipelineApplicationModel.apiVersion}`,
+    apiVersion: kindApiVersion(DataSciencePipelineApplicationModel),
     kind: DataSciencePipelineApplicationModel.kind,
     metadata: {
       name: DEFAULT_PIPELINE_DEFINITION_NAME,
