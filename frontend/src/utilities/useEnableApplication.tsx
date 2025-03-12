@@ -32,9 +32,7 @@ export const useEnableApplication = (
   const [lastVariablesValidationTimestamp, setLastVariablesValidationTimestamp] =
     React.useState<string>('');
   const [lastFailedValues, setLastFailedValues] = React.useState<{ [key: string]: string }>({});
-  const [pollCount, setPollCount] = React.useState(0);
   const [notificationSent, setNotificationSent] = React.useState(false);
-  const MAX_POLL_ATTEMPTS = 100; // Set a maximum polling limit
   const dispatch = useAppDispatch();
 
   const dispatchResults = React.useCallback(
@@ -66,7 +64,6 @@ export const useEnableApplication = (
   React.useEffect(() => {
     if (!doEnable) {
       setEnableStatus({ status: EnableApplicationStatus.IDLE, error: '' });
-      setPollCount(0);
       setNotificationSent(false);
     }
   }, [doEnable]);
@@ -82,9 +79,9 @@ export const useEnableApplication = (
     if (doEnable && isResubmittingFailedValues) {
       setEnableStatus({
         status: EnableApplicationStatus.FAILED,
-        error: 'Validation failed with this key. Please try a different key.',
+        error: 'Validation failed with these values. Please try different values.',
       });
-      dispatchResults('Validation failed with this key. Please try a different key.');
+      dispatchResults('Validation failed with these values. Please try different values.');
     }
   }, [doEnable, isResubmittingFailedValues, dispatchResults]);
 
@@ -94,11 +91,6 @@ export const useEnableApplication = (
 
     if (enableStatus.status === EnableApplicationStatus.INPROGRESS) {
       const shouldContinueWatching = (response: IntegrationAppStatus): boolean => {
-        // Stop watching if we've polled too many times
-        if (pollCount >= MAX_POLL_ATTEMPTS) {
-          return false;
-        }
-
         // Stop if the timestamp has changed
         if (!_.isEqual(response.variablesValidationTimestamp, lastVariablesValidationTimestamp)) {
           return false;
@@ -112,19 +104,7 @@ export const useEnableApplication = (
           getIntegrationAppEnablementStatus(internalRoute)
             .then((response) => {
               if (!cancelled) {
-                setPollCount((prevCount) => prevCount + 1);
-
                 if (shouldContinueWatching(response)) {
-                  // If we've reached the maximum poll attempts, fail with timeout
-                  if (pollCount >= MAX_POLL_ATTEMPTS - 1) {
-                    setEnableStatus({
-                      status: EnableApplicationStatus.FAILED,
-                      error: 'Validation timed out. Please try again later.',
-                    });
-                    dispatchResults('Validation timed out. Please try again later.');
-                    return;
-                  }
-
                   watchHandle = setTimeout(watchStatus, 10 * 1000);
                   return;
                 }
@@ -161,19 +141,7 @@ export const useEnableApplication = (
           getValidationStatus(appId)
             .then((response) => {
               if (!cancelled) {
-                setPollCount((prevCount) => prevCount + 1);
-
                 if (!response.complete) {
-                  // If we've reached the maximum poll attempts, fail with timeout
-                  if (pollCount >= MAX_POLL_ATTEMPTS - 1) {
-                    setEnableStatus({
-                      status: EnableApplicationStatus.FAILED,
-                      error: 'Validation timed out. Please try again later.',
-                    });
-                    dispatchResults('Validation timed out. Please try again later.');
-                    return;
-                  }
-
                   watchHandle = setTimeout(watchStatus, 10 * 1000);
                   return;
                 }
@@ -217,13 +185,11 @@ export const useEnableApplication = (
     enableValues,
     internalRoute,
     lastVariablesValidationTimestamp,
-    pollCount,
   ]);
 
   React.useEffect(() => {
     let closed = false;
     if (doEnable && !isResubmittingFailedValues) {
-      setPollCount(0);
       setNotificationSent(false);
 
       if (isInternalRouteIntegrationsApp(internalRoute)) {
