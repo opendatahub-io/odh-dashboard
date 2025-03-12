@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
 import { Table } from '~/components/table';
-import { ModelVersion } from '~/concepts/modelRegistry/types';
+import { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
@@ -14,6 +14,7 @@ type ModelVersionsTableProps = {
   modelVersions: ModelVersion[];
   isArchiveModel?: boolean;
   refresh: () => void;
+  registeredModel: RegisteredModel;
 } & Partial<Pick<React.ComponentProps<typeof Table>, 'toolbarContent'>>;
 
 const ModelVersionsTable: React.FC<ModelVersionsTableProps> = ({
@@ -22,6 +23,7 @@ const ModelVersionsTable: React.FC<ModelVersionsTableProps> = ({
   toolbarContent,
   isArchiveModel,
   refresh,
+  registeredModel,
 }) => {
   const { mrName, registeredModelId } = useParams();
   const inferenceServices = useMakeFetchObject(
@@ -47,6 +49,7 @@ const ModelVersionsTable: React.FC<ModelVersionsTableProps> = ({
           hasDeployment={hasDeploys(mv.id)}
           key={mv.name}
           modelVersion={mv}
+          registeredModel={registeredModel}
           isArchiveModel={isArchiveModel}
           refresh={refresh}
         />

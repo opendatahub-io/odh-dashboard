@@ -24,6 +24,7 @@ import {
 } from '~/pages/pipelines/global/experiments/artifacts/utils';
 import { ArtifactDetailsTabKey } from '~/pages/pipelines/global/experiments/artifacts/constants';
 import { useGetArtifactById } from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactById';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { ArtifactOverviewDetails } from './ArtifactOverviewDetails';
 import ArtifactDetailsTitle from './ArtifactDetailsTitle';
 
@@ -31,7 +32,10 @@ export const ArtifactDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPa
   const { artifactId } = useParams();
   const [artifact, isArtifactLoaded, artifactError] = useGetArtifactById(Number(artifactId));
   const artifactName = getArtifactName(artifact);
-  const isArtifactModelRegistered = getIsArtifactModelRegistered(artifact);
+  const { status: modelRegistryAvailable } = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY);
+  const isArtifactModelRegistered = modelRegistryAvailable
+    ? getIsArtifactModelRegistered(artifact)
+    : false;
 
   if (artifactError) {
     return (

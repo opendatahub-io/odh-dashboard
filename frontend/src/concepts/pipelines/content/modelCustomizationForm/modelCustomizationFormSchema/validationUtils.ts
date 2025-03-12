@@ -10,6 +10,7 @@ import {
   PipelineInputParameters,
   RunTypeFormat,
 } from '~/pages/pipelines/global/modelCustomization/const';
+import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
 import { FineTuneTaxonomyType, ModelCustomizationEndpointType } from './types';
 
 export const uriFieldSchemaBase = (
@@ -33,10 +34,25 @@ export const baseModelSchema = z.object({
   sdgBaseModel: uriFieldSchemaBase(true),
 });
 
+export const connectionFormDataScheme = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal(InferenceServiceStorageType.EXISTING_STORAGE),
+    uri: uriFieldSchemaBase(true).optional(),
+    connection: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal(InferenceServiceStorageType.NEW_STORAGE),
+    uri: uriFieldSchemaBase(true).optional(),
+  }),
+]);
+
 export const outputModelSchema = z.object({
-  outputModelName: z.string().trim().min(1, 'Model name is required'),
-  outputModelRegistryApiUrl: z.string().trim().min(1, 'Model registry API URL is required'),
-  // TODO more output model fields
+  addToRegistryEnabled: z.boolean(),
+  outputModelRegistryName: z.string().optional(),
+  outputModelName: z.string().optional(),
+  outputModelVersion: z.string().optional(),
+  outputModelRegistryApiUrl: z.string().optional(),
+  connectionData: connectionFormDataScheme,
 });
 
 const teacherJudgeBaseSchema = z.object({
@@ -196,3 +212,4 @@ export type BaseModelFormData = z.infer<typeof baseModelSchema>;
 export type OutputModelFormData = z.infer<typeof outputModelSchema>;
 export type TeacherJudgeFormData = z.infer<typeof teacherJudgeModel>;
 export type HardwareFormData = z.infer<typeof hardwareSchema>;
+export type ConnectionFormData = z.infer<typeof connectionFormDataScheme>;

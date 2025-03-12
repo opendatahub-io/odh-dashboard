@@ -8,6 +8,7 @@ export enum FineTunePageSections {
   TRAINING_HARDWARE = 'fine-tune-section-training-hardware',
   RUN_TYPE = 'fine-tune-section-run-type',
   HYPERPARAMETERS = 'fun-tune-hyperparameters',
+  FINE_TUNED_MODEL_DETAILS = 'fine-tune-section-fine-tuned-model-details',
 }
 
 export enum PipelineInputParameters {
@@ -32,6 +33,7 @@ export const fineTunePageSectionTitles: Record<FineTunePageSections, string> = {
   [FineTunePageSections.TRAINING_HARDWARE]: 'Training hardware',
   [FineTunePageSections.RUN_TYPE]: 'Run type',
   [FineTunePageSections.HYPERPARAMETERS]: 'Hyperparameters',
+  [FineTunePageSections.FINE_TUNED_MODEL_DETAILS]: 'Fine-tuned model details',
 };
 
 export const ILAB_PIPELINE_NAME = 'instructlab';
