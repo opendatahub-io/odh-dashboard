@@ -1,6 +1,5 @@
 import path from 'path';
 import fs from 'fs';
-import * as yaml from 'js-yaml';
 
 // @ts-expect-error: Types are not available for this third-party library
 import registerCypressGrep from '@cypress/grep/src/plugin';
@@ -19,26 +18,6 @@ import { env, cypressEnv, BASE_URL } from '~/__tests__/cypress/cypress/utils/tes
 import { extractHttpsUrls } from '~/__tests__/cypress/cypress/utils/urlExtractor';
 
 const resultsDir = `${env.CY_RESULTS_DIR || 'results'}/${env.CY_MOCK ? 'mocked' : 'e2e'}`;
-
-// Add interface for the test variables configuration
-interface TestVariables {
-  ODH_DASHBOARD_URL: string;
-  TEST_USER: {
-    AUTH_TYPE: string;
-    USERNAME: string;
-    PASSWORD: string;
-  };
-  TEST_USER_4: {
-    AUTH_TYPE: string;
-    USERNAME: string;
-    PASSWORD: string;
-  };
-}
-
-// Update the yaml load with the proper type
-const testVariables = yaml.load(
-  fs.readFileSync(path.join(__dirname, 'test-variables.yml'), 'utf8'),
-) as TestVariables;
 
 export default defineConfig({
   experimentalMemoryManagement: true,
@@ -77,7 +56,6 @@ export default defineConfig({
     ODH_PRODUCT_NAME: env.ODH_PRODUCT_NAME,
     resolution: 'high',
     grepFilterSpecs: true,
-    TEST_USER_4: testVariables.TEST_USER_4,
   },
   defaultCommandTimeout: 10000,
   e2e: {
