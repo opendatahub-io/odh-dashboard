@@ -2,6 +2,9 @@ import * as React from 'react';
 
 import {
   Badge,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
   MenuToggle,
   /**
    * This is a special use case to use the Select component to dynamically generate either single/multi dropdown component
@@ -13,6 +16,7 @@ import {
   SelectList,
   SelectOption,
 } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { DropdownField } from '~/concepts/connectionTypes/types';
 import { FieldProps } from '~/concepts/connectionTypes/fields/types';
 import DefaultValueTextRenderer from '~/concepts/connectionTypes/fields/DefaultValueTextRenderer';
@@ -22,6 +26,8 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
   field,
   mode,
   onChange,
+  onValidate,
+  error,
   value,
   'data-testid': dataTestId,
 }) => {
@@ -34,7 +40,7 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
   const menuToggleText = () => {
     let text = field.properties.items?.some((i) => i.label || i.value)
       ? field.name
-        ? `Select ${field.name} `
+        ? `Select ${field.name.toLocaleLowerCase()} `
         : 'Select'
       : 'No values defined';
     if (!isMulti) {
@@ -64,13 +70,16 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
           isPreview || !onChange
             ? undefined
             : (_e, v) => {
+                let newValue;
                 if (selected?.includes(String(v))) {
-                  onChange(selected.filter((s) => s !== v));
+                  newValue = selected.filter((s) => s !== v);
                 } else if (isMulti) {
-                  onChange([...(selected || []), String(v)]);
+                  newValue = [...(selected || []), String(v)];
                 } else {
-                  onChange([String(v)]);
+                  newValue = [String(v)];
                 }
+                onChange(newValue);
+                onValidate?.(false, newValue);
 
                 if (!isMulti) {
                   setIsOpen(false);
@@ -89,6 +98,7 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
             }}
             isExpanded={isOpen}
             isDisabled={!hasValidOption}
+            status={error ? 'danger' : undefined}
           >
             <>
               {menuToggleText()}
@@ -102,7 +112,7 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
           </MenuToggle>
         )}
       >
-        <SelectList>
+        <SelectList isAriaMultiselectable={isMulti}>
           {field.properties.items?.map(
             (item, index) =>
               (item.value || item.label) && (
@@ -120,6 +130,15 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
           )}
         </SelectList>
       </Select>
+      {error && typeof error === 'string' && (
+        <FormHelperText>
+          <HelperText>
+            <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
+              {error}
+            </HelperTextItem>
+          </HelperText>
+        </FormHelperText>
+      )}
     </DefaultValueTextRenderer>
   );
 };
