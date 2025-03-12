@@ -12,7 +12,7 @@ export const ProjectSetupSection: React.FC = () => {
 
   return (
     <BaseSection title="Setting up your project pipeline:">
-      <Accordion togglePosition="start" data-testid="accordion-project-pipeline-setup">
+      <Accordion togglePosition="start" data-testid="accordion-project-setup">
         <ModelCustomizationAccordionItem
           id="prepared-project"
           title="Prepared project"

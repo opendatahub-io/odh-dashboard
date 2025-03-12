@@ -1,11 +1,35 @@
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 
+type AccordionSection = 'prerequisites' | 'project-setup' | 'next-steps';
+
 type PrerequisitesAccordionItem =
   | 'taxonomy-repository'
   | 'deployed-teacher-and-judge-models'
   | 'open-container-initiative-storage-location';
 
 type PrerequisitesAccordionButtonName = 'learn-more-taxonomy' | 'learn-more-teacher-judge-models';
+
+type ProjectSetupAccordionItem = 'prepared-project' | 'instructlab-pipeline' | 'hardware-profiles';
+
+type ProjectSetupAccordionButtonName = 'go-to-pipelines';
+
+type NextStepsAccordionItem =
+  | 'register-base-model'
+  | 'create-lab-tuning-run'
+  | 'monitor-run'
+  | 'view-model';
+
+type NextStepsAccordionButtonName = 'go-to-pipeline-runs' | 'go-to-model-registry';
+
+type AccordionItem =
+  | PrerequisitesAccordionItem
+  | ProjectSetupAccordionItem
+  | NextStepsAccordionItem;
+
+type AccordionButtonName =
+  | PrerequisitesAccordionButtonName
+  | ProjectSetupAccordionButtonName
+  | NextStepsAccordionButtonName;
 
 class ModelCustomizationLandingPage {
   visit(wait = true) {
@@ -31,19 +55,22 @@ class ModelCustomizationLandingPage {
     return cy.findByTestId('drawer-model-customization');
   }
 
-  findPrerequisitesAccordion() {
-    return this.findRoot().findByTestId('accordion-prerequisites');
+  findAccordionSection(section: AccordionSection) {
+    return this.findRoot().findByTestId(`accordion-${section}`);
   }
 
-  findPrerequisitesAccordionItem(item: PrerequisitesAccordionItem) {
-    return this.findPrerequisitesAccordion().findByTestId(`accordion-item ${item}`);
+  findAccordionItem(args: { section: AccordionSection; item: AccordionItem }) {
+    return this.findAccordionSection(args.section).findByTestId(`accordion-item ${args.item}`);
   }
 
-  findPrerequisitesAccordionArchorButton(args: {
-    item: PrerequisitesAccordionItem;
-    name: PrerequisitesAccordionButtonName;
+  findAccordionArchorButton(args: {
+    section: AccordionSection;
+    item: AccordionItem;
+    name: AccordionButtonName;
   }) {
-    return this.findPrerequisitesAccordionItem(args.item).get(`a[data-testid="${args.name}"]`);
+    return this.findAccordionItem({ section: args.section, item: args.item }).get(
+      `a[data-testid="${args.name}"]`,
+    );
   }
 
   findDrawerContent() {

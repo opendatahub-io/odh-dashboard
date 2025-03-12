@@ -35,6 +35,70 @@ describe('Model Customization Landing Page', () => {
     });
   });
 
+  describe('Project Setup Section', () => {
+    beforeEach(() => {
+      initIntercepts({
+        disableFineTuning: false,
+      });
+
+      modelCustomizationLandingPage.visit();
+      modelCustomizationLandingPage.findPage();
+    });
+
+    it('should go to Pipelines when the button is clicked', () => {
+      modelCustomizationLandingPage
+        .findAccordionItem({ section: 'project-setup', item: 'instructlab-pipeline' })
+        .click();
+      modelCustomizationLandingPage
+        .findAccordionArchorButton({
+          section: 'project-setup',
+          item: 'instructlab-pipeline',
+          name: 'go-to-pipelines',
+        })
+        .click();
+      cy.url().should('include', '/pipelines');
+    });
+  });
+
+  describe('Next Steps Section', () => {
+    beforeEach(() => {
+      initIntercepts({
+        disableFineTuning: false,
+      });
+
+      modelCustomizationLandingPage.visit();
+      modelCustomizationLandingPage.findPage();
+    });
+
+    it('should go to Pipeline Runs when the button is clicked', () => {
+      modelCustomizationLandingPage
+        .findAccordionItem({ section: 'next-steps', item: 'monitor-run' })
+        .click();
+      modelCustomizationLandingPage
+        .findAccordionArchorButton({
+          section: 'next-steps',
+          item: 'monitor-run',
+          name: 'go-to-pipeline-runs',
+        })
+        .click();
+      cy.url().should('include', '/pipelineRuns');
+    });
+
+    it('should go to Model Registry when the button is clicked', () => {
+      modelCustomizationLandingPage
+        .findAccordionItem({ section: 'next-steps', item: 'view-model' })
+        .click();
+      modelCustomizationLandingPage
+        .findAccordionArchorButton({
+          section: 'next-steps',
+          item: 'view-model',
+          name: 'go-to-model-registry',
+        })
+        .click();
+      cy.url().should('include', '/modelRegistry');
+    });
+  });
+
   describe.skip('TODO: Drawer tests disabled while we do not have the contents yet', () => {
     beforeEach(() => {
       initIntercepts({
@@ -50,9 +114,12 @@ describe('Model Customization Landing Page', () => {
     });
 
     it('should open the drawer when Learn more is clicked under Taxonomy accordion item', () => {
-      modelCustomizationLandingPage.findPrerequisitesAccordionItem('taxonomy-repository').click();
       modelCustomizationLandingPage
-        .findPrerequisitesAccordionArchorButton({
+        .findAccordionItem({ section: 'prerequisites', item: 'taxonomy-repository' })
+        .click();
+      modelCustomizationLandingPage
+        .findAccordionArchorButton({
+          section: 'prerequisites',
           item: 'taxonomy-repository',
           name: 'learn-more-taxonomy',
         })
@@ -64,10 +131,11 @@ describe('Model Customization Landing Page', () => {
 
     it('should open the drawer when Learn More is clicked under Teacher and Judge accordion item', () => {
       modelCustomizationLandingPage
-        .findPrerequisitesAccordionItem('deployed-teacher-and-judge-models')
+        .findAccordionItem({ section: 'prerequisites', item: 'deployed-teacher-and-judge-models' })
         .click();
       modelCustomizationLandingPage
-        .findPrerequisitesAccordionArchorButton({
+        .findAccordionArchorButton({
+          section: 'prerequisites',
           item: 'deployed-teacher-and-judge-models',
           name: 'learn-more-teacher-judge-models',
         })
@@ -78,9 +146,12 @@ describe('Model Customization Landing Page', () => {
     });
 
     it('should update the drawer content when another item is clicked', () => {
-      modelCustomizationLandingPage.findPrerequisitesAccordionItem('taxonomy-repository').click();
       modelCustomizationLandingPage
-        .findPrerequisitesAccordionArchorButton({
+        .findAccordionItem({ section: 'prerequisites', item: 'taxonomy-repository' })
+        .click();
+      modelCustomizationLandingPage
+        .findAccordionArchorButton({
+          section: 'prerequisites',
           item: 'taxonomy-repository',
           name: 'learn-more-taxonomy',
         })
@@ -90,10 +161,11 @@ describe('Model Customization Landing Page', () => {
         .should('have.text', 'Learn how to construct and build a taxonomy repository');
 
       modelCustomizationLandingPage
-        .findPrerequisitesAccordionItem('deployed-teacher-and-judge-models')
+        .findAccordionItem({ section: 'prerequisites', item: 'deployed-teacher-and-judge-models' })
         .click();
       modelCustomizationLandingPage
-        .findPrerequisitesAccordionArchorButton({
+        .findAccordionArchorButton({
+          section: 'prerequisites',
           item: 'deployed-teacher-and-judge-models',
           name: 'learn-more-teacher-judge-models',
         })
