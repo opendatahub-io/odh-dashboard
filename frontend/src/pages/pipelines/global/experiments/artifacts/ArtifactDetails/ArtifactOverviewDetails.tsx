@@ -27,6 +27,7 @@ import usePipelineRunById from '~/concepts/pipelines/apiHooks/usePipelineRunById
 import { getOriginalExecutionId } from '~/pages/pipelines/global/experiments/executions/utils';
 import PipelineRunRegisteredModelDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunRegisteredModelDetails';
 import { getArtifactModelData } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { ArtifactPropertyDescriptionList } from './ArtifactPropertyDescriptionList';
 
 interface ArtifactOverviewDetailsProps {
@@ -42,7 +43,14 @@ export const ArtifactOverviewDetails: React.FC<ArtifactOverviewDetailsProps> = (
   const actualExecutionId = originalExecutionId ? Number(originalExecutionId) : execution?.getId();
   const [context] = useGetPipelineRunContextByExecution(actualExecutionId);
   const [run, runLoaded, runError] = usePipelineRunById(context?.getName());
-  const artifactModelData = React.useMemo(() => getArtifactModelData(artifact), [artifact]);
+  const { status: modelRegistryAvailable } = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY);
+
+  const artifactModelData = React.useMemo(() => {
+    if (!modelRegistryAvailable || !artifact) {
+      return {};
+    }
+    return getArtifactModelData(artifact);
+  }, [artifact, modelRegistryAvailable]);
 
   return (
     <Flex

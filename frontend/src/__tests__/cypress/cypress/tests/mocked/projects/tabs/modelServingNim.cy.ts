@@ -376,7 +376,11 @@ describe('NIM Model Serving', () => {
       nimDeployModal.shouldBeOpen();
 
       // should display and interact with the "Model route" checkbox
-      nimDeployModal.findModelRouteCheckbox().should('be.visible').should('not.be.checked');
+      nimDeployModal
+        .findModelRouteCheckbox()
+        .scrollIntoView()
+        .should('be.visible')
+        .should('not.be.checked');
       nimDeployModal.findModelRouteCheckbox().check();
       nimDeployModal.findModelRouteCheckbox().should('be.checked');
       nimDeployModal.findModelRouteCheckbox().uncheck();

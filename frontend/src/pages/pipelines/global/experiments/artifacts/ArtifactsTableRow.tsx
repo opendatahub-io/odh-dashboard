@@ -7,6 +7,7 @@ import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/Pipelines
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { artifactsDetailsRoute } from '~/routes';
 import { Artifact } from '~/third_party/mlmd';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { getArtifactName, getIsArtifactModelRegistered } from './utils';
 
 type ArtifactsTableRowProps = {
@@ -15,7 +16,10 @@ type ArtifactsTableRowProps = {
 
 const ArtifactsTableRow: React.FC<ArtifactsTableRowProps> = ({ artifact }) => {
   const { namespace } = usePipelinesAPI();
-  const isArtifactModelRegistered = getIsArtifactModelRegistered(artifact);
+  const { status: modelRegistryAvailable } = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY);
+  const isArtifactModelRegistered = modelRegistryAvailable
+    ? getIsArtifactModelRegistered(artifact)
+    : false;
 
   return (
     <Tr key={artifact.getId()}>
