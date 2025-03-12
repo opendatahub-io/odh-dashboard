@@ -1,12 +1,14 @@
 export enum FineTunePageSections {
   PROJECT_DETAILS = 'fine-tune-section-project-details',
   TAXONOMY_DETAILS = 'fine-tune-section-taxonomy-details',
+  PIPELINE_DETAILS = 'fine-tine-section-pipeline-details',
   BASE_MODEL = 'fine-tune-section-base-model',
   TEACHER_MODEL = 'fine-tune-section-teacher-model',
   JUDGE_MODEL = 'fine-tune-section-judge-model',
   TRAINING_HARDWARE = 'fine-tune-section-training-hardware',
   RUN_TYPE = 'fine-tune-section-run-type',
   HYPERPARAMETERS = 'fun-tune-hyperparameters',
+  FINE_TUNED_MODEL_DETAILS = 'fine-tune-section-fine-tuned-model-details',
 }
 
 export enum PipelineInputParameters {
@@ -19,12 +21,11 @@ export enum PipelineInputParameters {
   TRAIN_NUM_WORKERS = 'train_num_workers',
   EVAL_GPU_IDENTIFIER = 'eval_gpu_identifier',
   K8S_STORAGE_CLASS_NAME = 'k8s_storage_class_name',
-  RUN_TYPE = 'fine-tune-section-run-type',
-  HYPERPARAMETERS = 'fun-tune-hyperparameters',
 }
 
 export const fineTunePageSectionTitles: Record<FineTunePageSections, string> = {
   [FineTunePageSections.PROJECT_DETAILS]: 'Project details',
+  [FineTunePageSections.PIPELINE_DETAILS]: 'Pipeline details',
   [FineTunePageSections.TAXONOMY_DETAILS]: 'Taxonomy details',
   [FineTunePageSections.BASE_MODEL]: 'Base model',
   [FineTunePageSections.TEACHER_MODEL]: 'Teacher model',
@@ -32,6 +33,7 @@ export const fineTunePageSectionTitles: Record<FineTunePageSections, string> = {
   [FineTunePageSections.TRAINING_HARDWARE]: 'Training hardware',
   [FineTunePageSections.RUN_TYPE]: 'Run type',
   [FineTunePageSections.HYPERPARAMETERS]: 'Hyperparameters',
+  [FineTunePageSections.FINE_TUNED_MODEL_DETAILS]: 'Fine-tuned model details',
 };
 
 export const ILAB_PIPELINE_NAME = 'instructlab';
@@ -99,5 +101,8 @@ export enum NonDisplayedHyperparameterFields {
   TRAIN_GPU_PER_WORKER = 'train_gpu_per_worker',
   TRAIN_CPU_PER_WORKER = 'train_cpu_per_worker',
   TRAIN_MEMORY_PER_WORKER = 'train_memory_per_worker',
+  EVAL_JUDGE_SECRET = 'eval_judge_secret',
   SDG_PIPELINE = 'sdg_pipeline',
+  EVAL_GPU_IDENTIFIER = 'eval_gpu_identifier',
+  K8S_STORAGE_CLASS_NAME = 'k8s_storage_class_name',
 }
