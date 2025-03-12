@@ -1,18 +1,13 @@
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 
 type PrerequisitesAccordionItem =
-  | 'taxonomy'
-  | 'teacher-and-judge'
-  | 'pipeline-server'
-  | 'oci-storage';
+  | 'taxonomy-repository'
+  | 'deployed-teacher-and-judge-models'
+  | 'open-container-initiative-storage-location';
 
-type PrerequisitesAccordionButtonName =
-  | 'learn-more-taxonomy'
-  | 'learn-more-teacher-and-judge'
-  | 'go-to-projects'
-  | 'go-to-model-catalog';
+type PrerequisitesAccordionButtonName = 'learn-more-taxonomy' | 'learn-more-teacher-judge-models';
 
-class ModelCustomizationGlobal {
+class ModelCustomizationLandingPage {
   visit(wait = true) {
     cy.visitWithLogin(`/modelCustomization`);
     if (wait) {
@@ -21,11 +16,11 @@ class ModelCustomizationGlobal {
   }
 
   findPage() {
-    return cy.findByTestId('app-page-title').should('have.text', 'Model Customization');
+    return cy.findByTestId('app-page-title').should('have.text', 'Model customization');
   }
 
   findNavItem() {
-    return appChrome.findNavItem('Model Customization', 'Data Science Pipelines');
+    return appChrome.findNavItem('Model customization', 'Models');
   }
 
   findNotFoundPage() {
@@ -44,23 +39,11 @@ class ModelCustomizationGlobal {
     return this.findPrerequisitesAccordion().findByTestId(`accordion-item ${item}`);
   }
 
-  findPrerequisitesAccordionButton(args: {
+  findPrerequisitesAccordionArchorButton(args: {
     item: PrerequisitesAccordionItem;
     name: PrerequisitesAccordionButtonName;
   }) {
-    return this.findPrerequisitesAccordionItem(args.item).get(`button[data-testid="${args.name}"]`);
-  }
-
-  findCheckAccessButton() {
-    return this.findPrerequisitesAccordionItem('oci-storage').get(`a[data-testid="check-access"]`);
-  }
-
-  findFineTuneFromModelCatalogButton() {
-    return this.findRoot().get(`button[data-testid="fine-tune-from-model-catalog"]`);
-  }
-
-  findGoToPipelinesButton() {
-    return this.findRoot().get(`button[data-testid="go-to-pipelines"]`);
+    return this.findPrerequisitesAccordionItem(args.item).get(`a[data-testid="${args.name}"]`);
   }
 
   findDrawerContent() {
@@ -86,4 +69,4 @@ class ModelCustomizationGlobal {
   }
 }
 
-export const modelCustomizationGlobal = new ModelCustomizationGlobal();
+export const modelCustomizationLandingPage = new ModelCustomizationLandingPage();
