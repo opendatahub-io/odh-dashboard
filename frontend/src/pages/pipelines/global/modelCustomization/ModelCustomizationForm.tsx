@@ -28,6 +28,7 @@ import {
 import { ModelCustomizationRouterState } from '~/routes';
 import { createHyperParametersSchema } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/hyperparameterValidationUtils';
 import { getInputDefinitionParams } from '~/concepts/pipelines/content/createRun/utils';
+import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
 import FineTunePage from './FineTunePage';
 import { FineTunePageSections, fineTunePageSectionTitles } from './const';
 import { filterHyperparameters, getParamsValueFromPipelineInput } from './utils';
@@ -46,8 +47,13 @@ const ModelCustomizationForm: React.FC = () => {
   const [data, setData] = useGenericObjectState<ModelCustomizationFormData>({
     projectName: { value: project.metadata.name },
     outputModel: {
-      outputModelName: state?.registeredModelName ?? '',
-      outputModelRegistryApiUrl: state?.outputModelRegistryApiUrl ?? '',
+      addToRegistryEnabled: false,
+      outputModelRegistryName: state?.modelRegistryName,
+      outputModelName: state?.registeredModelName,
+      outputModelRegistryApiUrl: state?.outputModelRegistryApiUrl,
+      connectionData: {
+        type: InferenceServiceStorageType.EXISTING_STORAGE,
+      },
     },
     baseModel: {
       sdgBaseModel: state?.inputModelLocationUri ?? '',
@@ -180,7 +186,7 @@ const ModelCustomizationForm: React.FC = () => {
             <GenericSidebar
               sections={Object.values(filteredFineTunePageSections)}
               titles={fineTunePageSectionTitles}
-              maxWidth={175}
+              maxWidth={200}
             >
               <FineTunePage
                 canSubmit={!!ilabPipelineLoadError}

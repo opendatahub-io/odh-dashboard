@@ -26,6 +26,7 @@ import { getDashboardMainContainer } from '~/utilities/utils';
 import usePipelineRunExperimentInfo from '~/concepts/pipelines/content/tables/usePipelineRunExperimentInfo';
 import RestoreRunWithArchivedExperimentModal from '~/pages/pipelines/global/runs/RestoreRunWithArchivedExperimentModal';
 import { useFetchRunArtifact } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useFetchRunArtifact';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { isPipelineRunRegistered } from './utils';
 
 type PipelineRunTableRowProps = {
@@ -59,7 +60,9 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const { isExperimentArchived, isExperimentDeleted } =
     useContextExperimentArchivedOrDeleted(experiment);
-  const [mlmdData] = useFetchRunArtifact(run.run_id);
+
+  const { status: modelRegistryAvailable } = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY);
+  const [mlmdData] = useFetchRunArtifact(modelRegistryAvailable ? run.run_id : undefined); // Prevent API call when model registry is not available
   const isRegistered = isPipelineRunRegistered(mlmdData);
 
   const { isExperimentArchived: isContextExperimentArchived } =
