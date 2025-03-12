@@ -84,7 +84,7 @@ export const useEnableApplication = (
         status: EnableApplicationStatus.FAILED,
         error: 'Validation failed with this key. Please try a different key.',
       });
-      dispatchResults('Validation failed with key. Please try a different key.');
+      dispatchResults('Validation failed with this key. Please try a different key.');
     }
   }, [doEnable, isResubmittingFailedValues, dispatchResults]);
 
