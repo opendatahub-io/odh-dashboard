@@ -126,9 +126,7 @@ describe('useEnableApplication', () => {
     await renderResult.waitForNextUpdate();
 
     expect(renderResult.result.current[0]).toBe(EnableApplicationStatus.FAILED);
-    expect(renderResult.result.current[1]).toBe(
-      'Validation failed with these values. Please try different values.',
-    );
+    expect(renderResult.result.current[1]).toBe(errorMessage);
     expect(mockDispatch).toHaveBeenCalled();
     expect(renderResult).hookToHaveUpdateCount(2);
   });
