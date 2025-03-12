@@ -32,6 +32,7 @@ import {
   ExperimentIcon,
   ResourcesIcon,
   ModelCatalogIcon,
+  LabTuningIcon,
 } from '~/images/icons';
 
 type TypedObjectIconProps = SVGIconProps & {
@@ -79,6 +80,9 @@ const TypedObjectIcon: React.FC<TypedObjectIconProps> = ({
       break;
     case ProjectObjectType.modelCustomization:
       Icon = CreateAndTrainIcon;
+      break;
+    case ProjectObjectType.labTuning:
+      Icon = LabTuningIcon;
       break;
     case ProjectObjectType.clusterStorage:
       Icon = StorageIcon;
