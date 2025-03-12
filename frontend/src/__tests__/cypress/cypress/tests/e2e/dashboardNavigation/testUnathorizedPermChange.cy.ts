@@ -4,20 +4,15 @@ import {
   TEST_USER_4,
 } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { userManagement } from '~/__tests__/cypress/cypress/pages/userManagement';
-import { retryableBefore } from '../../../utils/retryableHooks';
+import { retryableBeforeEach } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 import { notFoundPage } from '~/__tests__/cypress/cypress/pages/notFound';
 
 describe('Dashboard Navigation - Unauthorized Permission Change', () => {
-  let adminSession: string;
-
-  beforeEach(() => {
+  retryableBeforeEach(() => {
     // Clear any existing sessions before each test
     cy.clearCookies();
     cy.clearLocalStorage();
-    adminSession = ''; // Reset admin session
-  });
 
-  retryableBefore(() => {
     // Use real groups config instead of mock
     getGroupsConfig().then((result) => {
       cy.wrap(result).as('groupsConfig');
@@ -30,7 +25,7 @@ describe('Dashboard Navigation - Unauthorized Permission Change', () => {
     () => {
       // Start as admin user
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-      userManagement.visit();
+      userManagement.navigate();
 
       // Set up initial permissions
       const administratorGroupSection = userManagement.getAdministratorGroupSection();
@@ -38,9 +33,6 @@ describe('Dashboard Navigation - Unauthorized Permission Change', () => {
 
       // Wait for the administrator group section to be fully loaded
       administratorGroupSection.find().should('be.visible');
-
-      // Debug: Log the current state
-      cy.log('Starting group selection process');
 
       // Clear existing selections and type new group
       administratorGroupSection
@@ -53,38 +45,14 @@ describe('Dashboard Navigation - Unauthorized Permission Change', () => {
       // Verify the selection was made
       administratorGroupSection.findMultiGroupInput().should('have.value', 'rhods-admins');
 
-      // Add a wait to ensure the UI processes the selection
-      cy.wait(1000);
+      // Clear existing selections
+      userGroupSection.clearMultiChipItem();
 
-      // Debug: Log starting user group selection
-      cy.log('Starting user group selection');
-
-      // Get the user group input and ensure we only have one
-      userGroupSection
-        .findMultiGroupInput()
-        .should('be.visible')
-        .should('have.length', 1)
-        .as('userGroupInput')
-        .clear()
-        .should('have.value', '')
-        .type('rhods-users', { delay: 100 });
-
-      // Wait for dropdown and select option
-      cy.get('[role="listbox"]')
-        .should('be.visible')
-        .and('contain.text', 'rhods-users')
-        .within(() => {
-          cy.get('[role="option"]')
-            .contains('rhods-users')
-            .should('be.visible')
-            .click({ force: true });
-        });
-
-      // Press Escape to ensure dropdown is closed
-      cy.get('@userGroupInput').type('{esc}');
-
-      // Click somewhere neutral to ensure dropdown is closed
-      cy.get('body').click(0, 0);
+      // Select the group using the dropdown
+      userGroupSection.findMultiGroupSelectButton().click();
+      userGroupSection.findMultiGroupOptions('rhods-users').click();
+      // Click outside the dropdown to close it
+      cy.findByTestId('app-page-title').click();
 
       // Wait for any animations and ensure dropdown is gone
       cy.get('[role="listbox"]').should('not.exist');
@@ -93,22 +61,12 @@ describe('Dashboard Navigation - Unauthorized Permission Change', () => {
       userManagement
         .findSubmitButton()
         .should('be.enabled', { timeout: 30000 })
-        .should('be.visible')
-        .then(($btn) => {
-          cy.log(`Button is now enabled, proceeding with submission`);
-        });
-
+        .should('be.visible');
       // Click the submit button
       userManagement.findSubmitButton().click();
 
       // Verify the success message appears
       userManagement.shouldHaveSuccessAlertMessage();
-
-      // Store admin session cookie
-      cy.getCookie('_oauth_proxy').then((cookie) => {
-        if (!cookie) throw new Error('Admin session cookie not found');
-        adminSession = cookie.value;
-      });
     },
   );
 
@@ -116,23 +74,8 @@ describe('Dashboard Navigation - Unauthorized Permission Change', () => {
     'Verify unauthorized user cannot access settings',
     { tags: ['@Destructive', '@ODS-1660', '@Dashboard'] },
     () => {
-      // Clear all session state
-      cy.clearCookies();
-      cy.clearLocalStorage();
-      cy.window().then((win) => {
-        win.sessionStorage.clear();
-      });
-
-      // Force reload
-      cy.reload(true);
-
-      // Explicitly pass TEST_USER_4 credentials
       cy.step('Login as unauthorized user');
-      cy.visitWithLogin('/', {
-        AUTH_TYPE: 'ldap-provider-qe',
-        USERNAME: 'ldap-user9',
-        PASSWORD: 'rhodsPW#1',
-      });
+      cy.visitWithLogin('/', TEST_USER_4);
 
       cy.step('Attempt to access User Management');
       // Try to access the settings page directly
@@ -140,9 +83,9 @@ describe('Dashboard Navigation - Unauthorized Permission Change', () => {
 
       // Verify we get the not found page
       cy.step('Verify unauthorized access shows not found page');
-      notFoundPage.getNotFoundPage().should('exist');
-      notFoundPage.getDescription().should('contain', 'Another page might have what you need');
-      notFoundPage.getHomeButton().should('exist');
+      notFoundPage.findNotFoundPage().should('exist');
+      notFoundPage.findDescription().should('contain', 'Another page might have what you need');
+      notFoundPage.findHomeButton().should('exist');
       userManagement.findNavItem().should('not.exist');
     },
   );

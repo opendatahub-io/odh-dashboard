@@ -1,5 +1,13 @@
 export const notFoundPage = {
-  getNotFoundPage: () => cy.get('[data-testid="not-found-page"]'),
-  getDescription: () => cy.get('[data-testid="not-found-page-description"]'),
-  getHomeButton: () => cy.get('[data-testid="home-page-button"]'),
+  findNotFoundPage(): Cypress.Chainable {
+    return cy.findByTestId('not-found-page');
+  },
+
+  findDescription(): Cypress.Chainable {
+    return cy.findByTestId('not-found-page-description');
+  },
+
+  findHomeButton(): Cypress.Chainable {
+    return cy.findByTestId('home-page-button');
+  },
 };
