@@ -92,7 +92,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
             alt="missing version"
           />
         )}
-        description={`${rm.name} has no registered versions. Register a version to this model.`}
+        description={`${rm.name} has no active registered versions. Register a version to this model.`}
         primaryActionText="Register new version"
         primaryActionOnClick={() => {
           navigate(registerVersionForModelUrl(rm.id, preferredModelRegistry?.metadata.name));

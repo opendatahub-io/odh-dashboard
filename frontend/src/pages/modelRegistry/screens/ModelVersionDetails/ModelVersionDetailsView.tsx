@@ -316,7 +316,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                   )
                 }
                 title="Version"
-                contentWhenEmpty="No source model format version"
+                contentWhenEmpty="No model format version specified"
               />
             </DescriptionList>
           </>
@@ -330,7 +330,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             {mv.author}
           </DashboardDescriptionListGroup>
           <DashboardDescriptionListGroup
-            title="Last modified at"
+            title="Last modified"
             isEmpty={!mv.lastUpdateTimeSinceEpoch}
             contentWhenEmpty="Unknown"
           >
