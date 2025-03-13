@@ -302,7 +302,7 @@ describe('Model Versions', () => {
     registeredModelRow.findName().contains('Fraud detection model').click();
 
     const modelVersionRow = modelRegistry.getModelVersionRow('model version');
-    modelVersionRow.findKebabAction('LAB tune').click();
+    modelVersionRow.findKebabAction('LAB-tune').click();
   });
 
   it('should show error in lab tune modal if loading artifacts failed', () => {
