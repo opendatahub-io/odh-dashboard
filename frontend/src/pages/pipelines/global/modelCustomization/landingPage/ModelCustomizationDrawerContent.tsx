@@ -10,8 +10,8 @@ import {
 } from '@patternfly/react-core';
 
 export interface ModelCustomizationDrawerContentArgs {
-  title: string;
-  description: string;
+  title?: string;
+  description?: string;
   body: React.ReactNode;
 }
 
@@ -27,8 +27,8 @@ const ModelCustomizationDrawerContent = React.forwardRef<
   ModelCustomizationDrawerContentRef,
   ModelCustomizationDrawerContentProps
 >(({ handleCloseDrawer }, forwardedRef) => {
-  const [title, setTitle] = React.useState('');
-  const [description, setDescription] = React.useState('');
+  const [title, setTitle] = React.useState<string>();
+  const [description, setDescription] = React.useState<string>();
   const [body, setBody] = React.useState<React.ReactNode | null>(null);
 
   React.useImperativeHandle(
@@ -45,14 +45,16 @@ const ModelCustomizationDrawerContent = React.forwardRef<
   return (
     <DrawerPanelContent minSize="40%" maxSize="80%" isResizable data-testid="drawer-content">
       <DrawerHead>
-        <Title data-testid="title" headingLevel="h3">
-          {title}
-        </Title>
+        {title && (
+          <Title data-testid="title" headingLevel="h3">
+            {title}
+          </Title>
+        )}
         <DrawerActions>
           <DrawerCloseButton data-testid="close" onClick={handleCloseDrawer} />
         </DrawerActions>
       </DrawerHead>
-      <DrawerPanelDescription>{description}</DrawerPanelDescription>
+      {description && <DrawerPanelDescription>{description}</DrawerPanelDescription>}
       <DrawerPanelBody>{body}</DrawerPanelBody>
     </DrawerPanelContent>
   );

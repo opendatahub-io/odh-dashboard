@@ -1,4 +1,4 @@
-import { FormSection, ExpandableSection } from '@patternfly/react-core';
+import { FormSection, ExpandableSection, Content, ContentVariants } from '@patternfly/react-core';
 import * as React from 'react';
 import { ProjectFields } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
 import {
@@ -28,7 +28,7 @@ const HyperparameterPageSection: React.FC<HyperparameterPageSectionProps> = ({
       id={FineTunePageSections.HYPERPARAMETERS}
       title={fineTunePageSectionTitles[FineTunePageSections.HYPERPARAMETERS]}
     >
-      Configure advanced settings for this run.
+      <Content component={ContentVariants.small}>Configure advanced settings for this run.</Content>
       <ExpandableSection
         toggleText="Customize resource requests and limits"
         isExpanded={isExpanded}

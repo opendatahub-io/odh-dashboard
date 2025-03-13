@@ -57,7 +57,7 @@ const InlineEditText: React.FC<InlineEditTextProps> = ({
   };
 
   return (
-    <Stack>
+    <Stack hasGutter>
       <StackItem>
         <Flex alignItems={{ default: 'alignItemsCenter' }}>
           {isEditing ? (

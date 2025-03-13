@@ -15,7 +15,7 @@ type TeacherJudgeInputProps = {
 
 export const TeacherEndpointInput: React.FC<TeacherJudgeInputProps> = ({ value, setValue }) => (
   <TeacherJudgeInputBase
-    label="Teacher endpoint"
+    label="Endpoint"
     fieldId="teacher-endpoint-input"
     value={value}
     setValue={setValue}
@@ -43,7 +43,7 @@ export const TeacherTokenInput: React.FC<TeacherJudgeInputProps> = ({ value, set
 
 export const JudgeEndpointInput: React.FC<TeacherJudgeInputProps> = ({ value, setValue }) => (
   <TeacherJudgeInputBase
-    label="Judge endpoint"
+    label="Endpoint"
     fieldId="judge-endpoint-input"
     value={value}
     setValue={setValue}

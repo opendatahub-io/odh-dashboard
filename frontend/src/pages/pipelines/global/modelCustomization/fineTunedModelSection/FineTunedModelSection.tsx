@@ -2,6 +2,8 @@ import React from 'react';
 import {
   Alert,
   Checkbox,
+  Content,
+  ContentVariants,
   FormGroup,
   FormHelperText,
   FormSection,
@@ -20,6 +22,7 @@ import {
 import { ModelCustomizationRouterState } from '~/routes';
 import FineTunedModelConnectionSection from '~/pages/pipelines/global/modelCustomization/fineTunedModelSection/FineTunedModelConnectionSection';
 import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
+import { ODH_PRODUCT_NAME } from '~/utilities/const';
 
 const FIELD_ID_PREFIX = 'model-customization-fineTunedModel';
 
@@ -41,7 +44,9 @@ const FineTunedModelSection: React.FC<FineTunedModelSectionProps> = ({
       id={FineTunePageSections.FINE_TUNED_MODEL_DETAILS}
       title={fineTunePageSectionTitles[FineTunePageSections.FINE_TUNED_MODEL_DETAILS]}
     >
-      Configure details for the fine-tuned version of the base model.
+      <Content component={ContentVariants.small}>
+        Configure details for the fine-tuned version of the base model.
+      </Content>
       <FormGroup
         label="Model output storage location"
         fieldId={`${FIELD_ID_PREFIX}-storage-location`}
@@ -66,7 +71,7 @@ const FineTunedModelSection: React.FC<FineTunedModelSectionProps> = ({
             <Stack hasGutter>
               <StackItem>
                 <Alert
-                  title="OpenShift AI’s model registry is a technology preview."
+                  title={`${ODH_PRODUCT_NAME}'s model registry is a technology preview.`}
                   isInline
                   variant="info"
                 />

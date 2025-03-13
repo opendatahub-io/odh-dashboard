@@ -28,8 +28,8 @@ export const fineTunePageSectionTitles: Record<FineTunePageSections, string> = {
   [FineTunePageSections.PIPELINE_DETAILS]: 'Pipeline details',
   [FineTunePageSections.TAXONOMY_DETAILS]: 'Taxonomy details',
   [FineTunePageSections.BASE_MODEL]: 'Base model',
-  [FineTunePageSections.TEACHER_MODEL]: 'Teacher model',
-  [FineTunePageSections.JUDGE_MODEL]: 'Judge model',
+  [FineTunePageSections.TEACHER_MODEL]: 'LAB teacher model',
+  [FineTunePageSections.JUDGE_MODEL]: 'LAB judge model',
   [FineTunePageSections.TRAINING_HARDWARE]: 'Training hardware',
   [FineTunePageSections.RUN_TYPE]: 'Run type',
   [FineTunePageSections.HYPERPARAMETERS]: 'Hyperparameters',
@@ -77,9 +77,9 @@ export enum HyperparameterDisplayFields {
 
 export const RunTypeFormatDescriptions: Record<RunTypeFormat, string> = {
   [RunTypeFormat.FULL]:
-    'This run type has a larger synthetic data generation step, requires more time and resources, and is best for producing high-quality results.',
+    'This run type has a larger synthetic data generation step, requires more time and resources, and is ideal for creating production-ready models.',
   [RunTypeFormat.SIMPLE]:
-    'This run type has a smaller synthetic data generation step, requires less time and resources, and is best for quickly testing and iterating.',
+    'This run type has a shorter synthetic data generation step, requires less time and resources, and is best for quickly testing and iterating.',
 };
 
 export enum NonDisplayedHyperparameterFields {
@@ -106,3 +106,54 @@ export enum NonDisplayedHyperparameterFields {
   EVAL_GPU_IDENTIFIER = 'eval_gpu_identifier',
   K8S_STORAGE_CLASS_NAME = 'k8s_storage_class_name',
 }
+
+export const taxonomyMarkdown = `# Creating a taxonomy for LAB-tuning
+
+To use LAB-tuning on Red Hat OpenShift AI, you must have a taxonomy stored in a Git repository. A taxonomy is a structured set of training data that defines the _knowledge_ and _skills_ your model should learn.
+
+**Knowledge**
+
+A data set that consists of information and facts. When creating knowledge data for a model, you are providing it with additional data and information so the model can answer questions more accurately.
+
+**Skills**
+
+A data set where you can teach the model how to do a task. Skills are split into categories:
+
+* Compositional skill: Compositional skills allow AI models to perform specific tasks or functions. There are two types of composition skills: 
+  * Freeform compositional skills: These are performative skills that do not require additional context or information to function. 
+  * Grounded compositional skills: These are performative skills that require additional context. For example, you can teach the model to read a table, where the additional context is an example of the table layout. 
+* Foundation skills: Foundational skills involve math, reasoning, and coding. These skills come from the model and are not added to your taxonomy tree.
+
+## Taxonomy tree structure
+
+A taxonomy tree for LAB-tuning organizes training data using a cascading directory structure. Each branch ends in a leaf node, and each leaf node is a directory with a \`qna.yaml\` file focused on a specific knowledge area or skill. Your taxonomy tree for OpenShift AI must include a \`root\` directory, a \`knowledge\` directory, and a \`compositional_skills\` directory. 
+
+For more information about the taxonomy tree and \`qna.yaml\` file structure, see the [Red Hat Enterprise Linux AI documentation](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux_ai/).
+
+## Setting up your taxonomy for LAB-tuning
+
+Setting up your taxonomy for LAB-tuning involves the following steps:
+
+1. Create your taxonomy by using RHEL AI, as described in the [Red Hat Enterprise Linux AI documentation](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux_ai/), or manually, following the guidance in the [Red Hat OpenShift AI documentation](https://docs.redhat.com/en/documentation/red_hat_openshift_ai/).
+2. Upload your taxonomy to a Git repository. For an example, see [https://github.com/RedHatOfficial/rhelai-sample-taxonomy](https://github.com/RedHatOfficial/rhelai-sample-taxonomy).
+3. Provide the Git repository URL containing your taxonomy, along with any required authentication details, when creating your LAB-tuning run in OpenShift AI.
+
+For more detailed information about setting up your taxonomy, see the [Red Hat OpenShift AI documentation](https://docs.redhat.com/en/documentation/red_hat_openshift_ai/).`;
+
+export const teacherJudgeMarkdown = `# Deploying LAB teacher and LAB judge models
+
+To use LAB-tuning on Red Hat OpenShift AI, you must have deployed a LAB teacher model and a LAB judge model.
+
+* **LAB teacher model:** Generates synthetic data for training.   
+* **LAB judge model:** Evaluates model performance.
+
+Setting up your LAB teacher model and LAB judge model requires performing the following steps for each model:
+
+1. Find a LAB teacher or LAB judge model in the OpenShift AI model catalog.  
+2. Upload the model to your object storage.  
+3. Configure the object storage as a data connection within your data science project.  
+4. If authorization is enabled on the model, configure service accounts to manage access.  
+5. Deploy the model in OpenShift AI.  
+6. When creating your LAB-tuning run in OpenShift AI, provide the model name, endpoint, and token, if applicable.
+
+For more detailed information about setting up your LAB teacher and LAB judge models, see the [Red Hat OpenShift AI documentation](https://docs.redhat.com/en/documentation/red_hat_openshift_ai/).`;

@@ -1,12 +1,5 @@
 import * as React from 'react';
-import {
-  FormGroup,
-  Stack,
-  StackItem,
-  ExpandableSection,
-  Popover,
-  Button,
-} from '@patternfly/react-core';
+import { FormGroup, Stack, StackItem, ExpandableSection, Popover } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '~/k8sTypes';
 import { ValidationContext } from '~/utilities/useValidation';
@@ -17,6 +10,7 @@ import HardwareProfileCustomize from '~/concepts/hardwareProfiles/HardwareProfil
 import HardwareProfileSelect from '~/concepts/hardwareProfiles/HardwareProfileSelect';
 import { filterHardwareProfilesForTraining } from '~/pages/pipelines/global/modelCustomization/utils';
 import { useHardwareProfilesByFeatureVisibility } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
+import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 
 type TrainingHardwareProfileFormSectionProps = {
   data: HardwareProfileConfig;
@@ -65,7 +59,30 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
   return (
     <Stack hasGutter data-testid="hardware-profile-section">
       <StackItem>
-        <FormGroup label="Training hardware profile" isRequired>
+        <FormGroup
+          label="Training hardware profile"
+          isRequired
+          labelHelp={
+            <Popover
+              bodyContent={
+                <>
+                  <p>
+                    Hardware profiles enable administrators to create profiles for additional types
+                    of identifiers, limit workload resource allocations, and target workloads to
+                    specific nodes by including tolerations and nodeSelectors in profiles.
+                  </p>
+                  <br />
+                  <p>This list includes only hardware profiles that have GPU defined.</p>
+                </>
+              }
+            >
+              <DashboardPopupIconButton
+                icon={<OutlinedQuestionCircleIcon />}
+                aria-label="More info"
+              />
+            </Popover>
+          }
+        >
           <HardwareProfileSelect
             allowExistingSettings={false}
             isHardwareProfileSupported={() => false}
@@ -76,20 +93,6 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
             onChange={onProfileSelect}
           />
         </FormGroup>
-      </StackItem>
-      <StackItem>
-        <Popover
-          hasAutoWidth
-          bodyContent="This list includes only the hardware profiles that have GPU defined."
-        >
-          <Button
-            variant="link"
-            icon={<OutlinedQuestionCircleIcon />}
-            data-testid="hardware-profile-details-popover"
-          >
-            Not seeing what you&apos;re looking for?
-          </Button>
-        </Popover>
       </StackItem>
       {data.selectedProfile?.spec.identifiers &&
         data.selectedProfile.spec.identifiers.length > 0 &&

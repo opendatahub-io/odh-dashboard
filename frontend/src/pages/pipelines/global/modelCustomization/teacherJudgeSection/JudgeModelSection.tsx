@@ -1,8 +1,16 @@
 import React from 'react';
-import { Button, FormGroup, FormSection, Radio } from '@patternfly/react-core';
+import {
+  Button,
+  Content,
+  ContentVariants,
+  FormGroup,
+  FormSection,
+  Radio,
+} from '@patternfly/react-core';
 import {
   FineTunePageSections,
   fineTunePageSectionTitles,
+  teacherJudgeMarkdown,
 } from '~/pages/pipelines/global/modelCustomization/const';
 import { ModelCustomizationEndpointType } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
 import {
@@ -11,30 +19,44 @@ import {
   JudgeTokenInput,
 } from '~/pages/pipelines/global/modelCustomization/teacherJudgeSection/TeacherJudgeInputComponents';
 import { TeacherJudgeFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
+import { ModelCustomizationDrawerContentArgs } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
+import MarkdownView from '~/components/MarkdownView';
 
 type JudgeModelSectionProps = {
   data: TeacherJudgeFormData;
   setData: (data: TeacherJudgeFormData) => void;
+  handleOpenDrawer: (contentArgs: ModelCustomizationDrawerContentArgs) => void;
 };
 
-const JudgeModelSection: React.FC<JudgeModelSectionProps> = ({ data, setData }) => (
+const JudgeModelSection: React.FC<JudgeModelSectionProps> = ({
+  data,
+  setData,
+  handleOpenDrawer,
+}) => (
   <FormSection
     id={FineTunePageSections.JUDGE_MODEL}
     title={fineTunePageSectionTitles[FineTunePageSections.JUDGE_MODEL]}
   >
-    {/* TODO: add link to judge model */}
-    <div>
-      Select or create a connection to specify the judge model to deploy for use in model
-      evaluation.{' '}
-      <Button isInline variant="link">
+    <Content component={ContentVariants.small}>
+      Enter the URL endpoint of the judge model to deploy for use in synthetic data generation
+      (SDG).{' '}
+      <Button
+        isInline
+        variant="link"
+        onClick={() =>
+          handleOpenDrawer({
+            body: <MarkdownView markdown={teacherJudgeMarkdown} />,
+          })
+        }
+      >
         Learn more about how to deploy a judge model
       </Button>
-    </div>
+    </Content>
     <FormGroup label="Judge" fieldId="model-customization-judge" isRequired>
       <Radio
-        name="judge-section-public-endpoint-radio"
-        id="judge-section-public-endpoint-radio"
-        label="Public endpoint"
+        name="judge-section-unauthenticated-endpoint-radio"
+        id="judge-section-unauthenticated-endpoint-radio"
+        label="Unauthenticated endpoint"
         className="pf-v6-u-mb-md"
         isChecked={data.endpointType === ModelCustomizationEndpointType.PUBLIC}
         onChange={() => {
@@ -59,9 +81,9 @@ const JudgeModelSection: React.FC<JudgeModelSectionProps> = ({ data, setData }) 
         }
       />
       <Radio
-        name="judge-section-private-endpoint-radio"
-        id="judge-section-private-endpoint-radio"
-        label="Private endpoint"
+        name="judge-section-authenticated-endpoint-radio"
+        id="judge-section-authenticated-endpoint-radio"
+        label="Authenticated endpoint"
         isChecked={data.endpointType === ModelCustomizationEndpointType.PRIVATE}
         onChange={() => {
           setData({
