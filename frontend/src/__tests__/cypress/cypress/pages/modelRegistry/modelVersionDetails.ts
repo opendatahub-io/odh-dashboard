@@ -20,8 +20,12 @@ class ModelVersionDetails {
     return cy.findByTestId('model-version-id');
   }
 
-  findRegisteredFrom() {
-    return cy.findByTestId('registered-from');
+  findRegisteredFromCatalog() {
+    return cy.findByTestId('registered-from-catalog');
+  }
+
+  findRegisteredFromPipeline() {
+    return cy.findByTestId('registered-from-pipeline');
   }
 
   findPipelineRunLink() {

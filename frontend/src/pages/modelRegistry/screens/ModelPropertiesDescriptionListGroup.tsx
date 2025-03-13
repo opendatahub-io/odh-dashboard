@@ -7,8 +7,7 @@ import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
 import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
 import { ModelRegistryCustomProperties } from '~/concepts/modelRegistry/types';
 import ModelPropertiesTableRow from './ModelPropertiesTableRow';
-import { filterCustomProperties, getProperties, mergeUpdatedProperty } from './utils';
-import { pipelineRunSpecificKeys } from './ModelVersionDetails/const';
+import { getProperties, mergeUpdatedProperty } from './utils';
 
 type ModelPropertiesDescriptionListGroupProps = {
   customProperties: ModelRegistryCustomProperties;
@@ -31,13 +30,9 @@ const ModelPropertiesDescriptionListGroup: React.FC<ModelPropertiesDescriptionLi
   const isEditingSomeRow = isAdding || editingPropertyKeys.length > 0;
 
   const [isSavingEdits, setIsSavingEdits] = React.useState(false);
-  const filteredCustomProperties = filterCustomProperties(
-    customProperties,
-    pipelineRunSpecificKeys,
-  );
 
   // We only show string properties with a defined value (no labels or other property types)
-  const filteredProperties = getProperties(filteredCustomProperties);
+  const filteredProperties = getProperties(customProperties);
 
   const [isShowingMoreProperties, setIsShowingMoreProperties] = React.useState(false);
   const keys = Object.keys(filteredProperties);
