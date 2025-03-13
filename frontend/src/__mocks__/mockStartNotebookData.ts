@@ -1,7 +1,6 @@
 import { ImageStreamKind } from '~/k8sTypes';
 import {
   ConfigMapCategory,
-  DataConnectionData,
   EnvironmentVariableType,
   EnvVariable,
   SecretCategory,
@@ -10,6 +9,7 @@ import {
   StorageType,
 } from '~/pages/projects/types';
 import { mockK8sNameDescriptionFieldData } from '~/__mocks__/mockK8sNameDescriptionFieldData';
+import { Connection } from '~/concepts/connectionTypes/types';
 
 type MockResourceConfigType = {
   volumeName?: string;
@@ -86,42 +86,29 @@ export const mockStorageData: StorageData[] = [
   },
 ];
 
-export const mockDataConnectionData: DataConnectionData = {
-  type: 'creating',
-  enabled: true,
-  creating: {
-    type: EnvironmentVariableType.SECRET,
-    values: {
-      category: SecretCategory.AWS,
-      data: [
-        {
-          key: 'Name',
-          value: 'test-name',
-        },
-        {
-          key: 'AWS_ACCESS_KEY_ID',
-          value: 'test-access-key',
-        },
-        {
-          key: 'AWS_SECRET_ACCESS_KEY',
-          value: 'test-secret-key',
-        },
-        {
-          key: 'AWS_S3_BUCKET',
-          value: '',
-        },
-        {
-          key: 'AWS_S3_ENDPOINT',
-          value: 'test-endpoint',
-        },
-        {
-          key: 'AWS_DEFAULT_REGION',
-          value: '',
-        },
-      ],
+export const mockConnectionData: Connection[] = [
+  {
+    kind: 'Secret',
+    apiVersion: 'v1',
+    metadata: {
+      name: 'test-connection',
+      namespace: 'test-namespace',
+      labels: {
+        'opendatahub.io/dashboard': 'true',
+        'opendatahub.io/managed': 'true',
+      },
+      annotations: {
+        'opendatahub.io/connection-type': 's3',
+        'openshift.io/display-name': 'test-display-name',
+        'openshift.io/description': 'test-description',
+      },
+    },
+    data: {
+      AWS_ACCESS_KEY_ID: 'test-access-key',
+      AWS_SECRET_ACCESS_KEY: 'test-secret-key',
     },
   },
-};
+];
 
 export const mockEnvVariables: EnvVariable[] = [
   {

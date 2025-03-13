@@ -42,6 +42,7 @@ export const getNameVersionString = (software: ImageVersionDependencyType): stri
  * `toString` decides the text shown for the select option
  */
 export const getImageVersionSelectOptionObject = (
+  imageStream: ImageStreamKind,
   imageVersion: ImageStreamSpecTagType,
 ): ImageVersionSelectOptionObjectType => ({
   imageVersion,

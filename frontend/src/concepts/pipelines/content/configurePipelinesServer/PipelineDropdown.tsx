@@ -1,5 +1,6 @@
 import {
   Menu,
+  Content,
   MenuContent,
   MenuGroup,
   MenuItem,
@@ -12,21 +13,33 @@ import React from 'react';
 import { EyeIcon, EyeSlashIcon, KeyIcon } from '@patternfly/react-icons';
 import styles from '@patternfly/react-styles/css/components/Menu/menu';
 import { css } from '@patternfly/react-styles';
-import { DataConnection } from '~/pages/projects/types';
+import { AWSDataEntry } from '~/pages/projects/types';
+import { PIPELINE_AWS_KEY } from '~/pages/projects/dataConnections/const';
+import { Connection } from '~/concepts/connectionTypes/types';
+import {
+  convertObjectStorageSecretData,
+  getConnectionTypeDisplayName,
+} from '~/concepts/connectionTypes/utils';
 import { PipelineServerConfigType } from './types';
+import { getLabelName } from './utils';
 
 type PipelineDropdownProps = {
   setConfig: (config: PipelineServerConfigType) => void;
   config: PipelineServerConfigType;
-  dataConnections: DataConnection[];
+  connections: Connection[];
 };
 export const PipelineDropdown = ({
   config,
   setConfig,
-  dataConnections,
+  connections,
 }: PipelineDropdownProps): React.JSX.Element => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState<boolean[]>([]);
+
+  const existingConnection = (connection: Connection): AWSDataEntry | null =>
+    convertObjectStorageSecretData(connection).filter((dataItem) =>
+      PIPELINE_AWS_KEY.some((filterItem) => filterItem === dataItem.key),
+    );
 
   const onToggle = () => {
     setShowPassword([]);
@@ -39,13 +52,19 @@ export const PipelineDropdown = ({
   ) => {
     setIsOpen(false);
     if (typeof option === 'string') {
-      const value = dataConnections.find((d) => d.data.metadata.name === option);
+      const value = connections.find((d) => d.metadata.name === option);
       if (!value) {
         return;
       }
-      const updatedObjectStorageValue = config.objectStorage.newValue.map((item) => ({
-        ...item,
-      }));
+      const optionValue = existingConnection(value);
+      const updatedObjectStorageValue = config.objectStorage.newValue.map((item) => {
+        const matchingOption = optionValue?.find((optItem) => optItem.key === item.key);
+
+        return {
+          ...item,
+          value: matchingOption ? matchingOption.value : item.value,
+        };
+      });
 
       setConfig({
         ...config,
@@ -61,7 +80,7 @@ export const PipelineDropdown = ({
       popperProps={{ position: 'right' }}
       toggle={(toggleRef) => (
         <MenuToggle
-          data-testid="select-data-connection"
+          data-testid="select-connection"
           ref={toggleRef}
           onClick={onToggle}
           isExpanded={isOpen}
@@ -76,14 +95,14 @@ export const PipelineDropdown = ({
           <MenuGroup
             label={
               <h1 className={css(styles.menuGroupTitle)}>
-                <KeyIcon /> Populate the form with credentials from your selected data connection
+                <KeyIcon /> Populate the form with credentials from your selected connection type
               </h1>
             }
           >
             <MenuList>
-              {dataConnections.map((dataItem, index) => (
+              {connections.map((dataItem, index) => (
                 <MenuItem
-                  key={dataItem.data.metadata.name}
+                  key={dataItem.metadata.name}
                   actions={
                     <MenuItemAction
                       icon={showPassword[index] ? <EyeSlashIcon /> : <EyeIcon />}
@@ -98,12 +117,29 @@ export const PipelineDropdown = ({
                           ...s.slice(index + 1),
                         ]);
                       }}
-                      aria-label={dataItem.data.metadata.name}
+                      aria-label={dataItem.metadata.name}
                     />
                   }
-                  description="•••••••••••••••••"
-                  itemId={dataItem.data.metadata.name}
-                />
+                  description={
+                    showPassword[index] ? (
+                      <Content className={css(styles.menuItemDescription)}>
+                        {existingConnection(dataItem)?.map(
+                          (field) =>
+                            field.value && (
+                              <Content component="p" key={field.key}>
+                                <b>{getLabelName(field.key)}</b> : {field.value}
+                              </Content>
+                            ),
+                        )}
+                      </Content>
+                    ) : (
+                      '•••••••••••••••••'
+                    )
+                  }
+                  itemId={dataItem.metadata.name}
+                >
+                  {getConnectionTypeDisplayName(dataItem)}
+                </MenuItem>
               ))}
             </MenuList>
           </MenuGroup>

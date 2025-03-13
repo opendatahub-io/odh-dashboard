@@ -5,6 +5,7 @@ import { k8sCreateResource, k8sGetResource } from '@openshift/dynamic-plugin-sdk
 import { useUser } from '~/redux/selectors';
 import SpawnerFooter from '~/pages/projects/screens/spawner/SpawnerFooter';
 import {
+  mockConnectionData,
   mockEnvVariables,
   mockStartNotebookData,
   mockStorageData,
@@ -96,6 +97,7 @@ describe('EmptyProjects', () => {
         storageData={mockStorageData}
         canEnablePipelines
         envVariables={mockEnvVariables}
+        connections={mockConnectionData}
       />,
     );
     expect(result.getByTestId('submit-button')).toBeEnabled();

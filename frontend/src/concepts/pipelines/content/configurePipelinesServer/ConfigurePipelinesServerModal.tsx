@@ -5,10 +5,7 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { createPipelinesCR, deleteSecret } from '~/api';
 import { EMPTY_AWS_PIPELINE_DATA } from '~/pages/projects/dataConnections/const';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
-import SamplePipelineSettingsSection from '~/concepts/pipelines/content/configurePipelinesServer/SamplePipelineSettingsSection';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
 import {
@@ -29,15 +26,14 @@ const FORM_DEFAULTS: PipelineServerConfigType = {
   enableInstructLab: false,
 };
 
-const serverConfiguredEvent = 'Pipeline Server Configured';
 export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerModalProps> = ({
   onClose,
 }) => {
   const { project, namespace } = usePipelinesAPI();
+  const [connections, loaded] = useConnections(namespace);
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState<Error>();
   const [config, setConfig] = React.useState<PipelineServerConfigType>(FORM_DEFAULTS);
-  const isFineTuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
 
   const databaseIsValid = config.database.useDefault
     ? true
@@ -57,11 +53,6 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
     setFetching(false);
     setError(undefined);
     setConfig(FORM_DEFAULTS);
-  };
-
-  const onCancel = () => {
-    onBeforeClose();
-    fireFormTrackingEvent(serverConfiguredEvent, { outcome: TrackingOutcome.cancel });
   };
 
   const submit = () => {
@@ -84,19 +75,11 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
         createPipelinesCR(namespace, spec)
           .then(() => {
             onBeforeClose();
-            fireFormTrackingEvent(serverConfiguredEvent, {
-              outcome: TrackingOutcome.submit,
-              success: true,
-            });
           })
           .catch((e) => {
             setFetching(false);
             setError(e);
-            fireFormTrackingEvent(serverConfiguredEvent, {
-              outcome: TrackingOutcome.submit,
-              success: false,
-              error: e,
-            });
+
             // Cleanup created password secret
             deleteSecret(project.metadata.name, ExternalDatabaseSecret.NAME);
           });
@@ -104,11 +87,6 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
       .catch((e) => {
         setFetching(false);
         setError(e);
-        fireFormTrackingEvent(serverConfiguredEvent, {
-          outcome: TrackingOutcome.submit,
-          success: false,
-          error: e,
-        });
       });
   };
 
@@ -118,14 +96,14 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
       variant="medium"
       description="Configuring a pipeline server enables you to create and manage pipelines."
       isOpen
-      onClose={onCancel}
+      onClose={onBeforeClose}
       footer={
         <DashboardModalFooter
           submitLabel="Configure pipeline server"
           onSubmit={submit}
           isSubmitLoading={fetching}
           isSubmitDisabled={!canSubmit || fetching}
-          onCancel={onCancel}
+          onCancel={onBeforeClose}
           alertTitle="Error configuring pipeline server"
           error={error}
         />
@@ -146,11 +124,13 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
               submit();
             }}
           >
-            <ObjectStorageSection setConfig={setConfig} config={config} />
+            <ObjectStorageSection
+              setConfig={setConfig}
+              config={config}
+              loaded={loaded}
+              connections={connections}
+            />
             <PipelinesDatabaseSection setConfig={setConfig} config={config} />
-            {isFineTuningAvailable && (
-              <SamplePipelineSettingsSection setConfig={setConfig} config={config} />
-            )}
           </Form>
         </StackItem>
       </Stack>

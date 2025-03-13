@@ -43,7 +43,7 @@ type SpawnerFooterProps = {
   startNotebookData: StartNotebookData;
   storageData: StorageData[];
   envVariables: EnvVariable[];
-  connections?: Connection[];
+  connections: Connection[];
   canEnablePipelines: boolean;
 };
 

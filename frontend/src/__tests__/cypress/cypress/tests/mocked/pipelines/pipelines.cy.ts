@@ -54,7 +54,101 @@ describe('Pipelines', () => {
     pipelinesGlobal.findConfigurePipelineServerButton().should('be.enabled');
   });
 
-  it('Configure pipeline server when data connection does not exist', () => {
+  it('Configure pipeline server when viable connection exists', () => {
+    initIntercepts({ isEmpty: true });
+
+    cy.interceptK8s(
+      'POST',
+      {
+        model: SecretModel,
+        ns: projectName,
+      },
+      mockSecretK8sResource({ namespace: projectName }),
+    ).as('createSecret');
+
+    cy.interceptK8s(
+      'POST',
+      DataSciencePipelineApplicationModel,
+      mockDataSciencePipelineApplicationK8sResource({
+        namespace: projectName,
+      }),
+    ).as('createDSPA');
+
+    pipelinesGlobal.visit(projectName);
+    cy.interceptK8sList(
+      SecretModel,
+      mockK8sResourceList([mockSecretK8sResource({ namespace: projectName })]),
+    ).as('refreshSecrets');
+
+    cy.interceptK8sList(
+      {
+        model: SecretModel,
+        ns: projectName,
+      },
+      mockK8sResourceList([
+        mockSecretK8sResource({ s3Bucket: 'c2RzZA==', namespace: projectName }),
+      ]),
+    );
+    pipelinesGlobal.findConfigurePipelineServerButton().should('be.enabled');
+    pipelinesGlobal.findConfigurePipelineServerButton().click();
+    configurePipelineServerModal.selectViableConnection('s3 •••••••••••••••••');
+    configurePipelineServerModal.findAwsKeyInput().should('have.value', 'sdsd');
+    configurePipelineServerModal.findShowPasswordButton().click();
+    configurePipelineServerModal.findAwsSecretKeyInput().should('have.value', 'sdsd');
+    configurePipelineServerModal
+      .findEndpointInput()
+      .should('have.value', 'https://s3.amazonaws.com/');
+    configurePipelineServerModal.findRegionInput().should('have.value', 'us-east-1');
+    configurePipelineServerModal.findBucketInput().should('have.value', 'sdsd');
+    configurePipelineServerModal.findSubmitButton().should('be.enabled');
+    configurePipelineServerModal.findSubmitButton().click();
+
+    cy.wait('@createSecret').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'dashboard-dspa-secret',
+          namespace: 'test-project-name',
+          annotations: {},
+          labels: { 'opendatahub.io/dashboard': 'true' },
+        },
+        stringData: { AWS_ACCESS_KEY_ID: 'sdsd', AWS_SECRET_ACCESS_KEY: 'sdsd' },
+      });
+    });
+
+    cy.wait('@createSecret').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    cy.get('@createSecret.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
+
+    cy.wait('@createDSPA').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        metadata: { name: 'dspa', namespace: projectName },
+        spec: {
+          apiServer: { enableSamplePipeline: false },
+          dspVersion: 'v2',
+          objectStorage: {
+            externalStorage: {
+              host: 's3.amazonaws.com',
+              scheme: 'https',
+              bucket: 'sdsd',
+              region: 'us-east-1',
+              s3CredentialsSecret: {
+                accessKey: 'AWS_ACCESS_KEY_ID',
+                secretKey: 'AWS_SECRET_ACCESS_KEY',
+                secretName: 'test-secret',
+              },
+            },
+          },
+        },
+      });
+    });
+  });
+
+  it('Configure pipeline server when viable connection does not exist', () => {
     initIntercepts({ isEmpty: true });
     pipelinesGlobal.visit(projectName);
 
