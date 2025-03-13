@@ -61,7 +61,7 @@ const initIntercepts = ({
     {
       model: ConfigMapModel,
       ns: 'opendatahub',
-      name: 'model-catalog-source-redhat',
+      name: 'model-catalog-sources',
     },
     mockModelCatalogConfigMap(),
   );

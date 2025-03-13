@@ -48,7 +48,7 @@ const initIntercepts = ({
     {
       model: ConfigMapModel,
       ns: 'opendatahub',
-      name: 'model-catalog-source-redhat',
+      name: 'model-catalog-sources',
     },
     mockModelCatalogConfigMap(),
   );
@@ -138,7 +138,7 @@ describe('Model Details loading states', () => {
       {
         model: ConfigMapModel,
         ns: 'opendatahub',
-        name: 'model-catalog-source-redhat',
+        name: 'model-catalog-sources',
       },
       {
         statusCode: 404,
@@ -146,7 +146,7 @@ describe('Model Details loading states', () => {
           kind: 'Status',
           apiVersion: 'v1',
           status: 'Failure',
-          message: 'configmaps "model-catalog-source-redhat" not found',
+          message: 'configmaps "model-catalog-sources" not found',
           reason: 'NotFound',
           code: 404,
         },
@@ -161,16 +161,16 @@ describe('Model Details loading states', () => {
       {
         model: ConfigMapModel,
         ns: 'opendatahub',
-        name: 'model-catalog-source-redhat',
+        name: 'model-catalog-sources',
       },
       {
         apiVersion: 'v1',
         kind: 'ConfigMap',
         metadata: {
-          name: 'model-catalog-source-redhat',
+          name: 'model-catalog-sources',
           namespace: 'opendatahub',
         },
-        data: { modelCatalogSource: '[]' },
+        data: { modelCatalogSources: '' },
       },
     );
 
@@ -183,7 +183,7 @@ describe('Model Details loading states', () => {
       {
         model: ConfigMapModel,
         ns: 'opendatahub',
-        name: 'model-catalog-source-redhat',
+        name: 'model-catalog-sources',
       },
       {
         statusCode: 500,
@@ -207,16 +207,16 @@ describe('Model Details loading states', () => {
       {
         model: ConfigMapModel,
         ns: 'opendatahub',
-        name: 'model-catalog-source-redhat',
+        name: 'model-catalog-sources',
       },
       {
         apiVersion: 'v1',
         kind: 'ConfigMap',
         metadata: {
-          name: 'model-catalog-source-redhat',
+          name: 'model-catalog-sources',
           namespace: 'opendatahub',
         },
-        data: { modelCatalogSource: 'invalid JSON here' },
+        data: { modelCatalogSources: 'invalid JSON here' },
       },
     );
 
@@ -229,7 +229,7 @@ describe('Model Details loading states', () => {
       {
         model: ConfigMapModel,
         ns: 'opendatahub',
-        name: 'model-catalog-source-redhat',
+        name: 'model-catalog-sources',
       },
       mockModelCatalogConfigMap(),
     );

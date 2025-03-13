@@ -4,8 +4,8 @@ import useNamespaces from '~/pages/notebookController/useNamespaces';
 import { useIsAreaAvailable } from '~/concepts/areas';
 import { SupportedArea } from '~/concepts/areas/types';
 import useFetchState, { NotReadyError, FetchState } from '~/utilities/useFetchState';
-import { ModelCatalogSource } from './types';
-import { MODEL_CATALOG_SOURCE_CONFIGMAP } from './const';
+import { ModelCatalogSource, ModelCatalogSourcesObject } from './types';
+import { MODEL_CATALOG_SOURCES_CONFIGMAP } from './const';
 
 type State = ModelCatalogSource[];
 
@@ -29,13 +29,15 @@ export const useModelCatalogSources = (): FetchState<State> => {
     }
 
     try {
-      const configMap = await getConfigMap(dashboardNamespace, MODEL_CATALOG_SOURCE_CONFIGMAP);
-      if (!configMap.data || !configMap.data.modelCatalogSource) {
+      const configMap = await getConfigMap(dashboardNamespace, MODEL_CATALOG_SOURCES_CONFIGMAP);
+      if (!configMap.data || !configMap.data.modelCatalogSources) {
         return [];
       }
 
-      const parsed: ModelCatalogSource | undefined = JSON.parse(configMap.data.modelCatalogSource);
-      return parsed ? [parsed] : [];
+      const parsed: ModelCatalogSourcesObject | undefined = JSON.parse(
+        configMap.data.modelCatalogSources,
+      );
+      return parsed ? parsed.sources : [];
     } catch (e: unknown) {
       if (isK8sNotFoundError(e)) {
         return [];
