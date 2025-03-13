@@ -1,7 +1,7 @@
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: model-catalog-source-redhat-role
+  name: model-catalog-sources-role
 rules:
   - apiGroups:
       - ''
@@ -12,16 +12,16 @@ rules:
     resources:
       - configmaps
     resourceNames:
-      - model-catalog-source-redhat
+      - model-catalog-sources
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: model-catalog-source-redhat
+  name: model-catalog-sources
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: model-catalog-source-redhat-role
+  name: model-catalog-sources-role
 subjects:
   - apiGroup: rbac.authorization.k8s.io
     kind: Group
