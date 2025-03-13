@@ -56,7 +56,6 @@ const StartRunModal: React.FC<StartRunModalProps> = ({
         />
       }
       variant={ModalVariant.medium}
-      data-testid="start-run-modal"
       hasNoBodyWrapper
     >
       <ModalHeader
@@ -72,7 +71,7 @@ const StartRunModal: React.FC<StartRunModalProps> = ({
           </>
         }
       />
-      <ModalBody>
+      <ModalBody data-testid="start-run-modal">
         {loadError && (
           <Alert variant="danger" title="Error loading model data" className="pf-v6-u-mb-md">
             {loadError.message}
