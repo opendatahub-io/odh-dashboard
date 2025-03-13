@@ -13,6 +13,8 @@ import {
   Stack,
   StackItem,
   Alert,
+  Content,
+  ContentVariants,
 } from '@patternfly/react-core';
 import ProjectSelector from '~/concepts/projects/ProjectSelector';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
@@ -60,7 +62,7 @@ const StartRunModal: React.FC<StartRunModalProps> = ({
         title="Start a LAB-tuning run"
         description={
           <>
-            <p>
+            <Content component={ContentVariants.p}>
               Tune a model using the{' '}
               <Button
                 data-testid="lab-method"
@@ -76,7 +78,7 @@ const StartRunModal: React.FC<StartRunModalProps> = ({
               </Button>{' '}
               with the InstructLab pipeline. To create a LAB-tuning run, you must have a taxonomy
               stored in a git repository, and a configured teacher and judge model.
-            </p>
+            </Content>
             <br />
             <Button
               data-testid="learn-more-prerequisites"
