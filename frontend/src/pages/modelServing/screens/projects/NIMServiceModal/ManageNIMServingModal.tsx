@@ -380,14 +380,13 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
             infoContent="Select CPU and memory resources large enough to support the NIM being deployed."
             customDefaults={NIM_CUSTOM_DEFAULTS}
           />
-          {isAuthAvailable && (
-            <AuthServingRuntimeSection
-              data={createDataInferenceService}
-              setData={setCreateDataInferenceService}
-              allowCreate={allowCreate}
-              publicRoute
-            />
-          )}
+          <AuthServingRuntimeSection
+            data={createDataInferenceService}
+            setData={setCreateDataInferenceService}
+            allowCreate={allowCreate}
+            publicRoute
+            showModelRoute={isAuthAvailable}
+          />
         </Stack>
       </Form>
     </Modal>
