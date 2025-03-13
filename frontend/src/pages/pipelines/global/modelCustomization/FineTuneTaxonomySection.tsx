@@ -61,6 +61,7 @@ export const FineTuneTaxonomySection = ({
         isChecked={data.secret.type === FineTuneTaxonomyType.SSH_KEY}
         id="ssh-key-radio"
         label="SSH key"
+        className="pf-v6-u-mb-md"
         onChange={() =>
           setData({
             ...data,
