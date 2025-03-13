@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Modal } from '@patternfly/react-core/deprecated';
 import {
-  Button,
   Form,
   FormGroup,
   FormHelperText,
@@ -16,10 +15,12 @@ import {
   Content,
   ContentVariants,
 } from '@patternfly/react-core';
+import { Link } from 'react-router-dom';
 import ProjectSelector from '~/concepts/projects/ProjectSelector';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { PipelineContextProvider } from '~/concepts/pipelines/context';
 import MissingConditionAlert from '~/pages/pipelines/global/modelCustomization/startRunModal/MissingConditionAlert';
+import { modelCustomizationRootPath } from '~/routes';
 
 export type StartRunModalProps = {
   onSubmit: (selectedProject: string) => void;
@@ -63,36 +64,11 @@ const StartRunModal: React.FC<StartRunModalProps> = ({
         description={
           <>
             <Content component={ContentVariants.p}>
-              Tune a model using the{' '}
-              <Button
-                data-testid="lab-method"
-                variant="link"
-                isInline
-                component="a"
-                style={{ textDecoration: 'none' }}
-                onClick={() => {
-                  // TODO: Link to documentation
-                }}
-              >
-                LAB method
-              </Button>{' '}
-              with the InstructLab pipeline. To create a LAB-tuning run, you must have a taxonomy
-              stored in a git repository, and a configured teacher and judge model.
+              Tune a model using the LAB method with the InstructLab pipeline. To create a
+              LAB-tuning run, you must have a taxonomy stored in a git repository, and a configured
+              teacher and judge model.
             </Content>
-            <br />
-            <Button
-              data-testid="learn-more-prerequisites"
-              variant="link"
-              isInline
-              component="a"
-              style={{ textDecoration: 'none' }}
-              onClick={() => {
-                // TODO: Link to documentation
-              }}
-            >
-              Learn more about LAB-tuning prerequisites
-            </Button>
-            .
+            <Link to={modelCustomizationRootPath}>Learn more about LAB-tuning prerequisites</Link>.
           </>
         }
       />
