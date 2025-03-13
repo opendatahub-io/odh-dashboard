@@ -210,6 +210,10 @@ class TolerationRow extends TableRow {
 class ManageHardwareProfile {
   k8sNameDescription = new K8sNameDescriptionField('hardware-profile-name-desc');
 
+  findDescriptionTextBox() {
+    return cy.findByTestId('hardware-profile-name-desc-description');
+  }
+
   findAddTolerationButton() {
     return cy.findByTestId('add-toleration-button');
   }

@@ -1,0 +1,3 @@
+# testHardwareProfiles.cy.ts Test Data #
+hardwareProfileName: "Test Hardware Profile"
+hardwareProfileDescription: "Cypress Test Hardware Profile description."
