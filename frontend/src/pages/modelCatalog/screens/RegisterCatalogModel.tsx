@@ -6,6 +6,7 @@ import {
   Form,
   Stack,
   StackItem,
+  capitalize,
 } from '@patternfly/react-core';
 import React from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -23,8 +24,8 @@ import {
   registerModel,
 } from '~/pages/modelRegistry/screens/RegisterModel/utils';
 import { SubmitLabel } from '~/pages/modelRegistry/screens/RegisterModel/const';
-import { ModelDetailsRouteParams } from '~/pages/modelCatalog/const';
-import { modelDetailsUrl } from '~/pages/modelCatalog/routeUtils';
+import { CatalogModelDetailsParams } from '~/pages/modelCatalog/const';
+import { getCatalogModelDetailsUrl } from '~/pages/modelCatalog/routeUtils';
 import RegisterModelDetailsFormSection from '~/pages/modelRegistry/screens/RegisterModel/RegisterModelDetailsFormSection';
 import RegistrationFormFooter from '~/pages/modelRegistry/screens/RegisterModel/RegistrationFormFooter';
 import { registeredModelUrl } from '~/pages/modelRegistry/screens/routeUtils';
@@ -45,8 +46,8 @@ import {
 
 const RegisterCatalogModel: React.FC = () => {
   const navigate = useNavigate();
-  const params = useParams<ModelDetailsRouteParams>();
-  const decodedParams = decodeParams(params);
+  const params = useParams<CatalogModelDetailsParams>();
+  const decodedParams = React.useMemo(() => decodeParams(params), [params]);
 
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const { modelCatalogSources } = React.useContext(ModelCatalogContext);
@@ -100,9 +101,25 @@ const RegisterCatalogModel: React.FC = () => {
           metadataType: ModelRegistryMetadataType.STRING,
         };
       });
+      const registeredFromReferenceCustomProperties: ModelRegistryCustomProperties = Object.entries(
+        decodedParams,
+      )
+        .filter(([key]) => /^\w+$/.test(key))
+        .reduce((acc: ModelRegistryCustomProperties, [key, value]) => {
+          if (typeof value === 'string') {
+            acc[`_registeredFromCatalog${capitalize(key)}`] = {
+              // eslint-disable-next-line camelcase
+              string_value: value,
+              metadataType: ModelRegistryMetadataType.STRING,
+            };
+          }
+          return acc;
+        }, {});
+
       setData('modelCustomProperties', labels);
       setData('versionCustomProperties', {
         ...labels,
+        ...registeredFromReferenceCustomProperties,
         License: {
           // eslint-disable-next-line camelcase
           string_value: model.licenseLink || '',
@@ -131,7 +148,7 @@ const RegisterCatalogModel: React.FC = () => {
         },
       });
     }
-  }, [model, setData]);
+  }, [model, setData, decodedParams]);
 
   const hostPath = `/api/service/modelregistry/${preferredModelRegistry?.metadata.name || ''}`;
   const [apiState] = useModelRegistryAPIState(hostPath);
@@ -156,7 +173,7 @@ const RegisterCatalogModel: React.FC = () => {
       setSubmitError(errors[resourceName]);
     }
   };
-  const onCancel = () => navigate(modelDetailsUrl(params));
+  const onCancel = () => navigate(getCatalogModelDetailsUrl(params));
 
   return (
     <ApplicationsPage
@@ -167,7 +184,7 @@ const RegisterCatalogModel: React.FC = () => {
           <BreadcrumbItem render={() => <Link to="/modelCatalog">Model catalog</Link>} />
           <BreadcrumbItem
             render={() => (
-              <Link to={modelDetailsUrl(params)}>{params.modelName || 'Loading...'}</Link>
+              <Link to={getCatalogModelDetailsUrl(params)}>{params.modelName || 'Loading...'}</Link>
             )}
           />
           <BreadcrumbItem data-testid="breadcrumb-version-name" isActive>

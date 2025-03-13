@@ -10,4 +10,4 @@ export * from './duplicateRunPage';
 export * from './pipelineFilterBar';
 export * from './restoreModal';
 export * from './archiveModal';
-export * from './modelCustomizationGlobal';
+export * from './modelCustomizationLandingPage';

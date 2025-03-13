@@ -112,6 +112,9 @@ type Props = Pick<
   connectionValues?: {
     [key: string]: ConnectionTypeValueType;
   };
+  connectionErrors?: {
+    [key: string]: boolean | string;
+  };
 };
 
 const ConnectionTypeForm: React.FC<Props> = ({
@@ -124,6 +127,7 @@ const ConnectionTypeForm: React.FC<Props> = ({
   connectionValues,
   onChange,
   onValidate,
+  connectionErrors,
 }) => {
   const [connectionTypeName, connectionType] =
     typeof connectionTypeUnion === 'string'
@@ -207,6 +211,7 @@ const ConnectionTypeForm: React.FC<Props> = ({
             connectionValues={connectionValues}
             onChange={onChange}
             onValidate={onValidate}
+            connectionErrors={connectionErrors}
           />
         </FormSection>
       )}

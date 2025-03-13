@@ -15,24 +15,24 @@ const DataFieldPropertiesForm = <T extends ConnectionTypeDataField>({
   onChange,
   onValidate,
 }: Props<T>): React.ReactNode => {
-  const [isDefaultValueValid, setDefaultValueValid] = React.useState(true);
-  const [isAdvancedValid, setAdvancedValid] = React.useState(true);
+  const [defaultValueError, setDefaultValueError] = React.useState(false);
+  const [advancedError, setAdvancedError] = React.useState(false);
   const isReadOnlyDisabled =
     field.properties.defaultValue === '' || field.properties.defaultValue == null;
 
-  const isValid = isDefaultValueValid && isAdvancedValid;
+  const hasError = defaultValueError && advancedError;
   React.useEffect(() => {
-    onValidate(isValid);
+    onValidate(!hasError);
     // do not run when callback changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isValid]);
+  }, [hasError]);
 
   return (
     <>
       <DataFieldAdvancedPropertiesForm
         field={field}
         onChange={onChange}
-        onValidate={setAdvancedValid}
+        onValidate={(isValid) => setAdvancedError(!isValid)}
         properties={field.properties}
       />
       <FormGroup fieldId="defaultValue" label="Default value">
@@ -41,7 +41,7 @@ const DataFieldPropertiesForm = <T extends ConnectionTypeDataField>({
           field={field}
           mode="default"
           onChange={(defaultValue) => onChange({ ...field.properties, defaultValue })}
-          onValidate={setDefaultValueValid}
+          onValidate={(error) => setDefaultValueError(!error)}
           value={field.properties.defaultValue}
           data-testid="field-default-value"
         />

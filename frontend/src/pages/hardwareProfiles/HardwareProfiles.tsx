@@ -17,7 +17,6 @@ import {
 import { BanIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import HardwareProfilesTable from '~/pages/hardwareProfiles/HardwareProfilesTable';
 import { useAccessAllowed, verbModelAccess } from '~/concepts/userSSAR';
 import { HardwareProfileModel } from '~/api';
@@ -28,7 +27,8 @@ import { ProjectObjectType } from '~/concepts/design/utils';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import useMigratedHardwareProfiles from './migration/useMigratedHardwareProfiles';
 
-const description = `Manage hardware profile settings for users in your organization.`;
+const description =
+  'Hardware profiles enable administrators to create profiles for additional types of identifiers, limit workload resource allocations, and target workloads to specific nodes by including tolerations and nodeSelectors in profiles.';
 
 const HardwareProfiles: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
@@ -66,12 +66,11 @@ const HardwareProfiles: React.FC = () => {
           icon={PlusCircleIcon}
         >
           <Title data-testid="no-available-hardware-profiles" headingLevel="h5" size="lg">
-            No available hardware profiles yet
+            No hardware profiles
           </Title>
           <EmptyStateBody>
-            You don&apos;t have any hardware profiles yet. To get started, please ask your cluster
-            administrator about the hardware availability in your cluster and create corresponding
-            profiles in {ODH_PRODUCT_NAME}.
+            To get started, contact your cluster administrator to learn about hardware availability
+            in your cluster, then create corresponding hardware profiles.
           </EmptyStateBody>
           <EmptyStateFooter>
             <EmptyStateActions>
@@ -88,12 +87,11 @@ const HardwareProfiles: React.FC = () => {
       ) : (
         <EmptyState variant={EmptyStateVariant.full} data-id="empty-empty-state" icon={BanIcon}>
           <Title data-testid="no-available-hardware-profiles" headingLevel="h5" size="lg">
-            No available hardware profiles
+            No hardware profiles
           </Title>
           <EmptyStateBody>
-            You don&apos;t have any hardware profiles yet. To get started, please ask your cluster
-            administrator about the hardware availability in your cluster and to set up
-            corresponding profiles in {ODH_PRODUCT_NAME}.
+            To get started, contact your cluster administrator to learn about hardware availability
+            in your cluster and to set up corresponding hardware profiles.
           </EmptyStateBody>
         </EmptyState>
       )}
@@ -129,18 +127,17 @@ const HardwareProfiles: React.FC = () => {
             </Alert>
           </StackItem>
         )}
-        {migratedHardwareProfiles.length > 0 ? (
+        <StackItem>
+          {hardwareProfiles.length > 0 ? (
+            <HardwareProfilesTable hardwareProfiles={hardwareProfiles} />
+          ) : (
+            noHardwareProfilePageSection
+          )}
+        </StackItem>
+        {migratedHardwareProfiles.length > 0 && (
           <>
             <StackItem>
-              <HardwareProfilesTable
-                hardwareProfiles={hardwareProfiles}
-                getMigrationAction={getMigrationAction}
-              />
-            </StackItem>
-            <StackItem>
-              <Title headingLevel="h2">
-                {hardwareProfiles.length > 0 ? 'Legacy profiles' : 'Migrate your legacy profiles'}
-              </Title>
+              <Title headingLevel="h2">Migrate your legacy profiles</Title>
             </StackItem>
             <StackItem>
               Your accelerator profiles and existing custom workbench and model deployment container
@@ -161,10 +158,6 @@ const HardwareProfiles: React.FC = () => {
               </ExpandableSection>
             </StackItem>
           </>
-        ) : (
-          <StackItem>
-            <HardwareProfilesTable hardwareProfiles={hardwareProfiles} />
-          </StackItem>
         )}
       </Stack>
     </ApplicationsPage>

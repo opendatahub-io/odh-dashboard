@@ -1,4 +1,4 @@
-export type ModelDetailsRouteParams = {
+export type CatalogModelDetailsParams = {
   sourceName?: string;
   repositoryName?: string;
   modelName?: string;
