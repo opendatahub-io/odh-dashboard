@@ -17,7 +17,7 @@ import {
 import { Link } from 'react-router-dom';
 import BrandImage from '~/components/BrandImage';
 import { CatalogModel } from '~/concepts/modelCatalog/types';
-import { modelDetailsUrlFromModel } from '~/pages/modelCatalog/routeUtils';
+import { getCatalogModelDetailsUrlFromModel } from '~/pages/modelCatalog/routeUtils';
 import { getTagFromModel } from '~/pages/modelCatalog/utils';
 import { RhUiTagIcon } from '~/images/icons';
 
@@ -43,7 +43,7 @@ export const ModelCatalogCard: React.FC<{ model: CatalogModel; source: string }>
         <StackItem>
           <Link
             data-testid="model-catalog-detail-link"
-            to={modelDetailsUrlFromModel(model, source) || '#'}
+            to={getCatalogModelDetailsUrlFromModel(model, source) || '#'}
             style={{
               fontSize: 'var(--pf-t--global--font--size--body--default)',
               fontWeight: 'var(--pf-t--global--font--weight--body--bold)',

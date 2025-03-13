@@ -18,12 +18,12 @@ import {
   filterRegisteredModels,
   sortModelVersionsByCreateTime,
   isValidHttpUrl,
-  filterCustomProperties,
-  isPipelineRunExist,
   isRedHatRegistryUri,
+  getCatalogModelDetailsProps,
+  getPipelineModelCustomProps,
+  getCustomPropString,
 } from '~/pages/modelRegistry/screens/utils';
 import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
-import { pipelineRunSpecificKeys } from '~/pages/modelRegistry/screens/ModelVersionDetails/const';
 
 describe('getLabels', () => {
   it('should return an empty array when customProperties is empty', () => {
@@ -160,6 +160,121 @@ describe('getProperties', () => {
     };
     const result = getProperties(customProperties);
     expect(result).toEqual({});
+  });
+
+  it('should return with _lastModified and _registeredFrom props filtered out', () => {
+    const customProperties: ModelRegistryCustomProperties = {
+      property1: { metadataType: ModelRegistryMetadataType.STRING, string_value: 'non-empty' },
+      _lastModified: { metadataType: ModelRegistryMetadataType.STRING, string_value: 'non-empty' },
+      _registeredFromSomething: {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: 'non-empty',
+      },
+    };
+    const result = getProperties(customProperties);
+    expect(result).toEqual({
+      property1: { metadataType: ModelRegistryMetadataType.STRING, string_value: 'non-empty' },
+    });
+  });
+});
+
+describe('getCustomPropString', () => {
+  it('should return the string value of a custom property', () => {
+    const customProperties: ModelRegistryCustomProperties = {
+      property1: { metadataType: ModelRegistryMetadataType.STRING, string_value: 'prop1' },
+      property2: { metadataType: ModelRegistryMetadataType.STRING, string_value: 'prop2' },
+    };
+    const prop1Result = getCustomPropString(customProperties, 'property1');
+    const prop2Result = getCustomPropString(customProperties, 'property2');
+    expect(prop1Result).toEqual('prop1');
+    expect(prop2Result).toEqual('prop2');
+  });
+});
+
+describe('getCatalogModelDetailsParams', () => {
+  it('should return a CatalogModelDetailsParams object with the string values of the catalog model custom props', () => {
+    const customProperties: ModelRegistryCustomProperties = {
+      property1: { metadataType: ModelRegistryMetadataType.STRING, string_value: 'non-empty' },
+      _lastModified: { metadataType: ModelRegistryMetadataType.STRING, string_value: 'non-empty' },
+      _registeredFromCatalogSourceName: {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: 'sourceName',
+      },
+      _registeredFromCatalogRepositoryName: {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: 'repoName',
+      },
+      _registeredFromCatalogModelName: {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: 'modelName',
+      },
+      _registeredFromCatalogTag: {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: 'tag',
+      },
+      _registeredFromCatalogProject: {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: 'project',
+      },
+      _registeredFromPipelineRunId: {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: 'runId',
+      },
+      _registeredFromPipelineRunName: {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: 'runName',
+      },
+    };
+    const result = getCatalogModelDetailsProps(customProperties);
+    expect(result).toEqual({
+      sourceName: 'sourceName',
+      repositoryName: 'repoName',
+      modelName: 'modelName',
+      tag: 'tag',
+    });
+  });
+});
+
+describe('getPipelineModelCustomProps', () => {
+  it('should return a PipelineModelCustomProps object with the string values of the pipeline model custom props', () => {
+    const customProperties: ModelRegistryCustomProperties = {
+      property1: { metadataType: ModelRegistryMetadataType.STRING, string_value: 'non-empty' },
+      _lastModified: { metadataType: ModelRegistryMetadataType.STRING, string_value: 'non-empty' },
+      _registeredFromCatalogSourceName: {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: 'sourceName',
+      },
+      _registeredFromCatalogRepositoryName: {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: 'repoName',
+      },
+      _registeredFromCatalogModelName: {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: 'modelName',
+      },
+      _registeredFromCatalogTag: {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: 'tag',
+      },
+      _registeredFromPipelineProject: {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: 'project',
+      },
+      _registeredFromPipelineRunId: {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: 'runId',
+      },
+      _registeredFromPipelineRunName: {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: 'runName',
+      },
+    };
+    const result = getPipelineModelCustomProps(customProperties);
+    expect(result).toEqual({
+      project: 'project',
+      runId: 'runId',
+      runName: 'runName',
+    });
   });
 });
 
@@ -406,74 +521,6 @@ describe('isValidHttpUrl', () => {
 
   it('should return false for a URL with an invalid format', () => {
     expect(isValidHttpUrl('http://example..com')).toBe(false);
-  });
-});
-
-describe('filterCustomProperties', () => {
-  it('filter pipeline specific keys from custom properties', () => {
-    const customProperties: ModelRegistryCustomProperties = {
-      'Label x': {
-        metadataType: ModelRegistryMetadataType.STRING,
-        string_value: '',
-      },
-      _registeredFromPipelineProject: {
-        metadataType: ModelRegistryMetadataType.STRING,
-        string_value: 'test-project',
-      },
-      _registeredFromPipelineRunId: {
-        metadataType: ModelRegistryMetadataType.STRING,
-        string_value: 'pipelinerun1',
-      },
-      _registeredFromPipelineRunName: {
-        metadataType: ModelRegistryMetadataType.STRING,
-        string_value: 'pipeline-run-test',
-      },
-    };
-    const result = filterCustomProperties(customProperties, pipelineRunSpecificKeys);
-    expect(result).toStrictEqual({
-      'Label x': {
-        metadataType: ModelRegistryMetadataType.STRING,
-        string_value: '',
-      },
-    });
-  });
-});
-
-describe('isPipelineRunExist', () => {
-  it('return True when pipeline run specific key exist in custom properties', () => {
-    const customProperties: ModelRegistryCustomProperties = {
-      'Label x': {
-        metadataType: ModelRegistryMetadataType.STRING,
-        string_value: '',
-      },
-      _registeredFromPipelineProject: {
-        metadataType: ModelRegistryMetadataType.STRING,
-        string_value: 'test-project',
-      },
-      _registeredFromPipelineRunId: {
-        metadataType: ModelRegistryMetadataType.STRING,
-        string_value: 'pipelinerun1',
-      },
-      _registeredFromPipelineRunName: {
-        metadataType: ModelRegistryMetadataType.STRING,
-        string_value: 'pipeline-run-test',
-      },
-    };
-    const result = isPipelineRunExist(customProperties, pipelineRunSpecificKeys);
-    expect(result).toEqual(true);
-  });
-
-  it('return false, when pipeline run specific key doesnot exist in custom properties', () => {
-    const result = isPipelineRunExist(
-      {
-        'Label x': {
-          metadataType: ModelRegistryMetadataType.STRING,
-          string_value: '',
-        },
-      },
-      pipelineRunSpecificKeys,
-    );
-    expect(result).toEqual(false);
   });
 });
 

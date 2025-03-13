@@ -29,10 +29,10 @@ import {
   findModelFromModelCatalogSources,
   getTagFromModel,
 } from '~/pages/modelCatalog/utils';
-import { ModelDetailsRouteParams } from '~/pages/modelCatalog/const';
+import { CatalogModelDetailsParams } from '~/pages/modelCatalog/const';
 import BrandImage from '~/components/BrandImage';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import { registerCatalogModel } from '~/pages/modelCatalog/routeUtils';
+import { getRegisterCatalogModelUrl } from '~/pages/modelCatalog/routeUtils';
 import PopoverListContent from '~/components/PopoverListContent';
 import { FindAdministratorOptions } from '~/pages/projects/screens/projects/const';
 import { RhUiTagIcon } from '~/images/icons';
@@ -44,7 +44,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
   SupportedArea.MODEL_CATALOG,
   true,
 )(() => {
-  const params = useParams<ModelDetailsRouteParams>();
+  const params = useParams<CatalogModelDetailsParams>();
   const navigate = useNavigate();
   const { modelCatalogSources } = React.useContext(ModelCatalogContext);
   const decodedParams = decodeParams(params);
@@ -92,7 +92,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
       <Button
         variant={isSecondary ? 'secondary' : 'primary'}
         data-testid="register-model-button"
-        onClick={() => navigate(registerCatalogModel(params))}
+        onClick={() => navigate(getRegisterCatalogModelUrl(params))}
       >
         Register model
       </Button>

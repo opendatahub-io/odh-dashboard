@@ -110,6 +110,22 @@ const mockModelVersions = mockModelVersion({
       metadataType: ModelRegistryMetadataType.STRING,
       string_value: 'pipeline-run-test',
     },
+    _registeredFromCatalogSourceName: {
+      metadataType: ModelRegistryMetadataType.STRING,
+      string_value: 'test-catalog-source',
+    },
+    _registeredFromCatalogRepositoryName: {
+      metadataType: ModelRegistryMetadataType.STRING,
+      string_value: 'test-catalog-repo',
+    },
+    _registeredFromCatalogModelName: {
+      metadataType: ModelRegistryMetadataType.STRING,
+      string_value: 'test-catalog-model',
+    },
+    _registeredFromCatalogTag: {
+      metadataType: ModelRegistryMetadataType.STRING,
+      string_value: 'test-catalog-tag',
+    },
   },
 });
 
@@ -251,12 +267,21 @@ describe('Model version details', () => {
 
     it('Model version details tab', () => {
       modelVersionDetails.findVersionId().contains('1');
-      modelVersionDetails.findRegisteredFrom().should('exist');
+      modelVersionDetails.findRegisteredFromPipeline().should('exist');
+      modelVersionDetails.findRegisteredFromCatalog().should('exist');
+      modelVersionDetails
+        .findRegisteredFromCatalog()
+        .should('have.text', 'test-catalog-model (test-catalog-tag)');
+      modelVersionDetails.findRegisteredFromCatalog().click();
+      verifyRelativeURL(
+        '/modelCatalog/test-catalog-source/test-catalog-repo/test-catalog-model/test-catalog-tag',
+      );
+      cy.go('back');
       modelVersionDetails.findExpandControlButton().should('have.text', 'Show 2 more properties');
       modelVersionDetails.findExpandControlButton().click();
       modelVersionDetails.findPropertiesTableRows().should('have.length', 7);
       modelVersionDetails
-        .findRegisteredFrom()
+        .findRegisteredFromPipeline()
         .should('have.text', 'Run pipeline-run-test intest-project');
       modelVersionDetails.findDescription().should('have.text', 'Description of model version');
       modelVersionDetails.findStorageEndpoint().contains('test-endpoint');
@@ -325,6 +350,22 @@ describe('Model version details', () => {
               metadataType: 'MetadataStringValue',
               string_value: 'pipeline-run-test',
             },
+            _registeredFromCatalogSourceName: {
+              metadataType: ModelRegistryMetadataType.STRING,
+              string_value: 'test-catalog-source',
+            },
+            _registeredFromCatalogRepositoryName: {
+              metadataType: ModelRegistryMetadataType.STRING,
+              string_value: 'test-catalog-repo',
+            },
+            _registeredFromCatalogModelName: {
+              metadataType: ModelRegistryMetadataType.STRING,
+              string_value: 'test-catalog-model',
+            },
+            _registeredFromCatalogTag: {
+              metadataType: ModelRegistryMetadataType.STRING,
+              string_value: 'test-catalog-tag',
+            },
             edit_key: { string_value: 'edit_value', metadataType: 'MetadataStringValue' },
           },
         });
@@ -367,6 +408,22 @@ describe('Model version details', () => {
             _registeredFromPipelineRunName: {
               metadataType: 'MetadataStringValue',
               string_value: 'pipeline-run-test',
+            },
+            _registeredFromCatalogSourceName: {
+              metadataType: ModelRegistryMetadataType.STRING,
+              string_value: 'test-catalog-source',
+            },
+            _registeredFromCatalogRepositoryName: {
+              metadataType: ModelRegistryMetadataType.STRING,
+              string_value: 'test-catalog-repo',
+            },
+            _registeredFromCatalogModelName: {
+              metadataType: ModelRegistryMetadataType.STRING,
+              string_value: 'test-catalog-model',
+            },
+            _registeredFromCatalogTag: {
+              metadataType: ModelRegistryMetadataType.STRING,
+              string_value: 'test-catalog-tag',
             },
           },
         });

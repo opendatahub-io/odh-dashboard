@@ -39,7 +39,7 @@ const NumericFormField: React.FC<FieldProps<NumericField>> = ({
 
   const validationError = React.useMemo(() => {
     if (currentValue === undefined) {
-      return null;
+      return false;
     }
 
     if (
@@ -51,12 +51,14 @@ const NumericFormField: React.FC<FieldProps<NumericField>> = ({
         field.properties.max,
       )}`;
     }
-    return null;
+    return false;
   }, [currentValue, field.properties.min, field.properties.max, field.name]);
 
   // do not run when callback changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  React.useEffect(() => onValidate && onValidate(!validationError), [validationError]);
+  React.useEffect(() => {
+    onValidate?.(validationError, currentValue);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [validationError, currentValue]);
 
   return (
     <DefaultValueTextRenderer id={id} field={field} mode={mode}>
