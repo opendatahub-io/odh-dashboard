@@ -55,15 +55,9 @@ const ManageSamplePipelinesModal: React.FC<ManageSamplePipelinesModalProps> = ({
       .then((dspa) => {
         const isEnabled = dspa.spec.apiServer?.managedPipelines?.instructLab?.state === 'Managed';
         if (isEnabled) {
-          notification.info(
-            'InstructLab pipeline enabled',
-            'The server will restart for this process.',
-          );
+          notification.info('Restarting pipeline server');
         } else {
-          notification.success(
-            'Automatic updates for InstructLab pipeline disabled',
-            'Your InstructLab pipeline will no longer receive automatic updates.',
-          );
+          notification.success('Automatic updates for InstructLab pipeline disabled');
         }
         unregisterNotification(ilabPipelineNotificationWatcher);
         if (isEnabled && !notificationWatcherRef.current) {
@@ -82,14 +76,14 @@ const ManageSamplePipelinesModal: React.FC<ManageSamplePipelinesModalProps> = ({
                   const serverReady = !!dspaResponse.status?.conditions?.find(
                     (c) => c.type === 'APIServerReady' && c.status === 'True',
                   );
+                  const title = `InstructLab pipeline installed on ${namespace} project`;
                   if (iLabPipelineReady && serverReady) {
                     notificationWatcherRef.current = false;
                     // Refresh the pipelines list to make the ilab pipeline shown
                     refreshAllAPI();
                     return {
                       status: 'success',
-                      title: 'InstructLab pipeline available',
-                      message: 'Your instructlab pipeline is now available.',
+                      title,
                     };
                   }
                   if (iLabPipelineResponse.error) {
@@ -120,8 +114,16 @@ const ManageSamplePipelinesModal: React.FC<ManageSamplePipelinesModalProps> = ({
 
   return (
     <Modal
-      title="Manage sample pipelines"
-      description="Select a sample pipeline to enable it. Deselect a pipeline to disable. Enabled pipelines will be accessible and automatically updated within your pipeline server. This process might take a few minutes."
+      title="Manage preconfigured pipelines"
+      description={
+        <>
+          Select a preconfigured pipeline to install it on your project and enable automatic
+          updates. After installation, you can deselect the pipeline to disable automatic updates.
+          <br />
+          <br />
+          Note: You can manually delete preconfigured pipelines after installation.
+        </>
+      }
       isOpen
       variant="small"
       onClose={() => onClose()}
@@ -147,7 +149,7 @@ const ManageSamplePipelinesModal: React.FC<ManageSamplePipelinesModalProps> = ({
             <Alert
               isInline
               variant="warning"
-              title="The pipeline server will restart, this could take a few minutes. When it restarts, the new pipeline will be available."
+              title="Installing the InstructLab pipeline will cause the pipeline server to restart."
             />
           </StackItem>
         ) : null}
@@ -156,7 +158,7 @@ const ManageSamplePipelinesModal: React.FC<ManageSamplePipelinesModalProps> = ({
             <Alert
               isInline
               variant="warning"
-              title="If you wish to no longer have the InstructLab pipeline, you must manually delete it."
+              title="If you want to remove the InstructLab pipeline, you must manually delete it."
             />
           </StackItem>
         ) : null}

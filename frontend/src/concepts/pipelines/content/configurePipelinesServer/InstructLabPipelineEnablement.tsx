@@ -10,7 +10,6 @@ const InstructLabPipelineEnablement: React.FC<InstructLabPipelineEnablementProps
   isEnabled,
   setEnabled,
 }) => (
-  // TODO: add description for the instruct lab pipeline
   <Checkbox
     label="InstructLab pipeline"
     isChecked={isEnabled}
@@ -21,6 +20,7 @@ const InstructLabPipelineEnablement: React.FC<InstructLabPipelineEnablementProps
     id="instructlab-enabled-checkbox"
     data-testid="instructlab-enabled-checkbox"
     name="instructLabEnabledCheckbox"
+    description="The InstructLab pipeline contains the steps and instructions that make up LAB-tuning runs."
   />
 );
 
