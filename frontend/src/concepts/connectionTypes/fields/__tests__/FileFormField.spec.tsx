@@ -91,4 +91,21 @@ describe('FileFormField', () => {
     });
     expect(onChange).toHaveBeenCalled();
   });
+
+  it('should render info helper text', async () => {
+    const onChange = jest.fn();
+    const field: FileField = {
+      type: 'file',
+      name: 'test-name',
+      envVar: 'test_envVar',
+      properties: {
+        defaultValue: 'default-value',
+        defaultReadOnly: true,
+        helperText: 'Hello this is helper text',
+      },
+    };
+
+    render(<FileFormField id="test" field={field} value="supplied-value" onChange={onChange} />);
+    expect(screen.getByText('Hello this is helper text')).toBeVisible();
+  });
 });
