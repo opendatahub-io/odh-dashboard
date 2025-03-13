@@ -177,7 +177,7 @@ const RegisterCatalogModel: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title={`Register model ${params.modelName || ''}`}
+      title={`Register ${params.modelName || ''} model`}
       description="Create a new model and register the first version of your new model."
       breadcrumb={
         <Breadcrumb>

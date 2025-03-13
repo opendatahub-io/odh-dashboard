@@ -305,7 +305,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
       <Form>
         <K8sNameDescriptionField dataTestId="mr" data={nameDesc} onDataChange={setNameDesc} />
         <FormSection
-          title={mr ? 'Database' : 'Connect to external MySQL database'}
+          title="Connect to external MySQL database"
           description="This external database is where model data is stored."
         >
           <FormGroup label="Host" isRequired fieldId="mr-host">

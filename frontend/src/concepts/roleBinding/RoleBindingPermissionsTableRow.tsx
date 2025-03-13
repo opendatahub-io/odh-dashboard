@@ -182,7 +182,7 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
               </SplitItem>
             </Split>
           ) : isDefaultGroup ? (
-            <Tooltip content="The default group always has access to model registry.">
+            <Tooltip content="The default group cannot be edited or deleted. The group’s members can be managed via the API.">
               <Button
                 icon={<EllipsisVIcon />}
                 variant="plain"
