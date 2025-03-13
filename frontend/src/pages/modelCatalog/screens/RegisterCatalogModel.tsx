@@ -87,8 +87,12 @@ const RegisterCatalogModel: React.FC = () => {
     [modelCatalogSources, decodedParams],
   );
 
+  // TODO hasPrefilledRef is a workaround - we should instead refactor so this useEffect isn't necessary.
+  // See [issue]
+  const hasPrefilledRef = React.useRef(false);
   React.useEffect(() => {
-    if (model) {
+    if (model && !hasPrefilledRef.current) {
+      hasPrefilledRef.current = true;
       const labels = createCustomPropertiesFromModel(model);
       setData('modelName', `${model.name}-${getTagFromModel(model) || ''}`);
       setData('modelDescription', model.longDescription?.replace(/\s*\n\s*/g, ' ') ?? '');
