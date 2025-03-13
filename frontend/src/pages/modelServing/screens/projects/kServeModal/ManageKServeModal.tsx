@@ -139,13 +139,18 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     podSpecOptionsState.hardwareProfile.formData.selectedProfile,
   );
 
-  const [connections, connectionsLoaded, connectionsLoadError] =
-    usePrefillDeployModalFromModelRegistry(
-      projectContext,
-      createDataInferenceService,
-      setCreateDataInferenceService,
-      registeredModelDeployInfo,
-    );
+  const [
+    initialNewConnectionType,
+    initialNewConnectionValues,
+    connections,
+    connectionsLoaded,
+    connectionsLoadError,
+  ] = usePrefillDeployModalFromModelRegistry(
+    projectContext,
+    createDataInferenceService,
+    setCreateDataInferenceService,
+    registeredModelDeployInfo,
+  );
 
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
@@ -421,6 +426,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
               }
               data={createDataInferenceService}
               setData={setCreateDataInferenceService}
+              initialNewConnectionType={initialNewConnectionType}
+              initialNewConnectionValues={initialNewConnectionValues}
               loaded={!!projectContext?.connections || connectionsLoaded}
               loadError={connectionsLoadError}
               connection={connection}

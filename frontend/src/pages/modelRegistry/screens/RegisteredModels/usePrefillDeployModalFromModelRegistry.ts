@@ -1,6 +1,10 @@
 import { AlertVariant } from '@patternfly/react-core';
 import React from 'react';
-import { Connection } from '~/concepts/connectionTypes/types';
+import {
+  Connection,
+  ConnectionTypeConfigMapObj,
+  ConnectionTypeValueType,
+} from '~/concepts/connectionTypes/types';
 import { ProjectKind } from '~/k8sTypes';
 import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 import {
@@ -12,6 +16,15 @@ import { AwsKeys, EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
 import { isRedHatRegistryUri } from '~/pages/modelRegistry/screens/utils';
+import {
+  getMRConnectionValues,
+  OCIConnectionTypeKeys,
+  S3ConnectionTypeKeys,
+  URIConnectionTypeKeys,
+  withRequiredFields,
+} from '~/concepts/connectionTypes/utils';
+import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
+import { getResourceNameFromK8sResource } from '~/concepts/k8s/utils';
 import useLabeledConnections from './useLabeledConnections';
 
 const usePrefillDeployModalFromModelRegistry = (
@@ -19,7 +32,13 @@ const usePrefillDeployModalFromModelRegistry = (
   createData: CreatingInferenceServiceObject,
   setCreateData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>,
   registeredModelDeployInfo?: RegisteredModelDeployInfo,
-): [LabeledConnection[], boolean, Error | undefined] => {
+): [
+  ConnectionTypeConfigMapObj | undefined,
+  { [key: string]: ConnectionTypeValueType },
+  LabeledConnection[],
+  boolean,
+  Error | undefined,
+] => {
   const [fetchedConnections, connectionsLoaded, connectionsLoadError] = useConnections(
     projectContext ? projectContext.currentProject.metadata.name : createData.project,
     true,
@@ -28,6 +47,14 @@ const usePrefillDeployModalFromModelRegistry = (
     registeredModelDeployInfo?.modelArtifactUri,
     fetchedConnections,
   );
+  const [connectionTypes, connectionTypesLoaded, connectionTypeError] =
+    useWatchConnectionTypes(true);
+  const [initialNewConnectionType, setInitialNewConnectionType] = React.useState<
+    ConnectionTypeConfigMapObj | undefined
+  >(undefined);
+  const [initialNewConnectionValues, setinitialNewConnectionValues] = React.useState<{
+    [key: string]: ConnectionTypeValueType;
+  }>({});
 
   React.useEffect(() => {
     const alert = {
@@ -36,7 +63,7 @@ const usePrefillDeployModalFromModelRegistry = (
       message:
         'Model location info is available in the registry but there are no matching connections in the project. So we automatically switched the option to create a new connection and prefilled the information.',
     };
-    if (registeredModelDeployInfo?.modelArtifactUri) {
+    if (registeredModelDeployInfo?.modelArtifactUri && connectionTypesLoaded && connectionsLoaded) {
       setCreateData('name', registeredModelDeployInfo.modelName);
       const recommendedConnections = connections.filter(
         (dataConnection) => dataConnection.isRecommended,
@@ -73,6 +100,16 @@ const usePrefillDeployModalFromModelRegistry = (
             type: InferenceServiceStorageType.NEW_STORAGE,
             alert,
           });
+          setInitialNewConnectionType(
+            withRequiredFields(
+              connectionTypes.find(
+                (t) =>
+                  getResourceNameFromK8sResource(t) === registeredModelDeployInfo.modelLocationType,
+              ),
+              S3ConnectionTypeKeys,
+            ),
+          );
+          setinitialNewConnectionValues(getMRConnectionValues(prefilledAWSData));
         } else if (recommendedConnections.length === 1) {
           setCreateData('storage', {
             awsData: prefilledAWSData,
@@ -100,6 +137,16 @@ const usePrefillDeployModalFromModelRegistry = (
             type: InferenceServiceStorageType.NEW_STORAGE,
             alert,
           });
+          setInitialNewConnectionType(
+            withRequiredFields(
+              connectionTypes.find(
+                (t) =>
+                  getResourceNameFromK8sResource(t) === registeredModelDeployInfo.modelLocationType,
+              ),
+              URIConnectionTypeKeys,
+            ),
+          );
+          setinitialNewConnectionValues(getMRConnectionValues(storageFields.uri));
         } else if (recommendedConnections.length === 1) {
           setCreateData('storage', {
             uri: storageFields.uri,
@@ -141,6 +188,15 @@ const usePrefillDeployModalFromModelRegistry = (
             type: InferenceServiceStorageType.NEW_STORAGE,
             alert,
           });
+          setInitialNewConnectionType(
+            withRequiredFields(
+              connectionTypes.find(
+                (t) =>
+                  getResourceNameFromK8sResource(t) === registeredModelDeployInfo.modelLocationType,
+              ),
+              OCIConnectionTypeKeys,
+            ),
+          );
         } else if (recommendedConnections.length === 1) {
           setCreateData('storage', {
             uri: storageFields.ociUri,
@@ -162,9 +218,23 @@ const usePrefillDeployModalFromModelRegistry = (
         }
       }
     }
-  }, [connections, storageFields, registeredModelDeployInfo, setCreateData, connectionsLoaded]);
+  }, [
+    connections,
+    storageFields,
+    registeredModelDeployInfo,
+    setCreateData,
+    connectionsLoaded,
+    connectionTypesLoaded,
+    connectionTypes,
+  ]);
 
-  return [connections, connectionsLoaded, connectionsLoadError];
+  return [
+    initialNewConnectionType,
+    initialNewConnectionValues,
+    connections,
+    connectionsLoaded && connectionTypesLoaded,
+    connectionsLoadError || connectionTypeError,
+  ];
 };
 
 export default usePrefillDeployModalFromModelRegistry;
