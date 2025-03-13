@@ -38,6 +38,7 @@ import { FindAdministratorOptions } from '~/pages/projects/screens/projects/cons
 import { RhUiTagIcon } from '~/images/icons';
 import { modelCustomizationRootPath } from '~/routes';
 import RhUiControlsIcon from '~/images/icons/RhUiControlsIcon';
+import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import ModelDetailsView from './ModelDetailsView';
 
 const ModelDetailsPage: React.FC = conditionalArea(
@@ -107,8 +108,8 @@ const ModelDetailsPage: React.FC = conditionalArea(
       headerIcon={<RhUiControlsIcon />}
       bodyContent={
         <div>
-          To LAB-tune this model, you must first register it as a version to an OpenShift AI model
-          registry, then from that version’s details page, click <b>LAB-tune</b>.
+          To LAB-tune this model, you must first register it as a version to an {ODH_PRODUCT_NAME}{' '}
+          model registry, then from that version’s details page, click <strong> LAB-tune</strong>
         </div>
       }
       footerContent={
