@@ -5,7 +5,6 @@ import { k8sCreateResource, k8sGetResource } from '@openshift/dynamic-plugin-sdk
 import { useUser } from '~/redux/selectors';
 import SpawnerFooter from '~/pages/projects/screens/spawner/SpawnerFooter';
 import {
-  mockConnectionData,
   mockEnvVariables,
   mockStartNotebookData,
   mockStorageData,
@@ -21,6 +20,7 @@ import {
 } from '~/k8sTypes';
 import { ConfigMapModel, NotebookModel, PVCModel, RoleBindingModel, SecretModel } from '~/api';
 import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
+import { mockConnection } from '~/__mocks__/mockConnection';
 
 jest.mock('~/app/AppContext', () => ({
   __esModule: true,
@@ -97,7 +97,7 @@ describe('EmptyProjects', () => {
         storageData={mockStorageData}
         canEnablePipelines
         envVariables={mockEnvVariables}
-        connections={mockConnectionData}
+        connections={[mockConnection({})]}
       />,
     );
     expect(result.getByTestId('submit-button')).toBeEnabled();

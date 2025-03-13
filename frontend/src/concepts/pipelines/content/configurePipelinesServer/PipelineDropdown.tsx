@@ -16,10 +16,8 @@ import { css } from '@patternfly/react-styles';
 import { AWSDataEntry } from '~/pages/projects/types';
 import { PIPELINE_AWS_KEY } from '~/pages/projects/dataConnections/const';
 import { Connection } from '~/concepts/connectionTypes/types';
-import {
-  convertObjectStorageSecretData,
-  getConnectionTypeDisplayName,
-} from '~/concepts/connectionTypes/utils';
+import { convertObjectStorageSecretData } from '~/concepts/connectionTypes/utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { PipelineServerConfigType } from './types';
 import { getLabelName } from './utils';
 
@@ -95,7 +93,7 @@ export const PipelineDropdown = ({
           <MenuGroup
             label={
               <h1 className={css(styles.menuGroupTitle)}>
-                <KeyIcon /> Populate the form with credentials from your selected connection type
+                <KeyIcon /> Populate the form with credentials from your selected connection
               </h1>
             }
           >
@@ -138,7 +136,7 @@ export const PipelineDropdown = ({
                   }
                   itemId={dataItem.metadata.name}
                 >
-                  {getConnectionTypeDisplayName(dataItem)}
+                  {getDisplayNameFromK8sResource(dataItem)}
                 </MenuItem>
               ))}
             </MenuList>

@@ -9,7 +9,6 @@ import {
   StorageType,
 } from '~/pages/projects/types';
 import { mockK8sNameDescriptionFieldData } from '~/__mocks__/mockK8sNameDescriptionFieldData';
-import { Connection } from '~/concepts/connectionTypes/types';
 
 type MockResourceConfigType = {
   volumeName?: string;
@@ -83,30 +82,6 @@ export const mockStorageData: StorageData[] = [
     description: '',
     size: '20Gi',
     storageClassName: 'gp2-csi',
-  },
-];
-
-export const mockConnectionData: Connection[] = [
-  {
-    kind: 'Secret',
-    apiVersion: 'v1',
-    metadata: {
-      name: 'test-connection',
-      namespace: 'test-namespace',
-      labels: {
-        'opendatahub.io/dashboard': 'true',
-        'opendatahub.io/managed': 'true',
-      },
-      annotations: {
-        'opendatahub.io/connection-type': 's3',
-        'openshift.io/display-name': 'test-display-name',
-        'openshift.io/description': 'test-description',
-      },
-    },
-    data: {
-      AWS_ACCESS_KEY_ID: 'test-access-key',
-      AWS_SECRET_ACCESS_KEY: 'test-secret-key',
-    },
   },
 ];
 

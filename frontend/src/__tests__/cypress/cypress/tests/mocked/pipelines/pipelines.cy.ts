@@ -91,7 +91,7 @@ describe('Pipelines', () => {
     );
     pipelinesGlobal.findConfigurePipelineServerButton().should('be.enabled');
     pipelinesGlobal.findConfigurePipelineServerButton().click();
-    configurePipelineServerModal.selectViableConnection('s3 •••••••••••••••••');
+    configurePipelineServerModal.selectViableConnection('Test Secret •••••••••••••••••');
     configurePipelineServerModal.findAwsKeyInput().should('have.value', 'sdsd');
     configurePipelineServerModal.findShowPasswordButton().click();
     configurePipelineServerModal.findAwsSecretKeyInput().should('have.value', 'sdsd');
