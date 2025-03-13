@@ -10,7 +10,8 @@ class ModelVersionDeployModal extends Modal {
   }
 
   selectProjectByName(name: string) {
-    this.findProjectSelector().findSelectOption(name).click();
+    this.findProjectSelector().click();
+    cy.findByRole('option', { name, hidden: true }).click();
   }
 }
 
