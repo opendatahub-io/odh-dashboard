@@ -10,7 +10,6 @@ import {
   TeacherJudgeFormData,
 } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import { HardwareProfileKind, SecretKind } from '~/k8sTypes';
-import { NodeSelector, Toleration } from '~/types';
 import { genRandomChars } from '~/utilities/string';
 import { getInputDefinitionParams } from '~/concepts/pipelines/content/createRun/utils';
 import {
@@ -18,8 +17,8 @@ import {
   ParametersKF,
   RuntimeConfigParamValue,
   ParameterKF,
+  RuntimeConfigParameters,
 } from '~/concepts/pipelines/kfTypes';
-import { isEnumMember } from '~/utilities/utils';
 import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
 import { getResourceNameFromK8sResource } from '~/concepts/k8s/utils';
 import { assembleConnectionSecret } from '~/concepts/connectionTypes/utils';
@@ -27,7 +26,11 @@ import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeValueType,
 } from '~/concepts/connectionTypes/types';
-import { PipelineInputParameters, NonDisplayedHyperparameterFields } from './const';
+import {
+  EXCLUDED_HYPERPARAMETERS,
+  EXPECTED_FINE_TUNING_PIPELINE_PARAMETERS,
+  KnownFineTuningPipelineParameters,
+} from './const';
 
 export const createTeacherJudgeSecrets = (
   projectName: string,
@@ -167,70 +170,6 @@ export const createConnectionSecret = async (
   return createSecret(secret, { dryRun });
 };
 
-export const translateIlabFormToTaxonomyInput = (
-  data: ModelCustomizationFormData,
-  secretName: string,
-): {
-  sdg_repo_url: string;
-  sdg_repo_secret: string;
-} => ({
-  sdg_repo_url: data.taxonomy.url,
-  sdg_repo_secret: secretName,
-});
-
-export const translateIlabFormToBaseModelInput = (
-  data: ModelCustomizationFormData,
-  secretName?: string,
-): {
-  output_model_registry_name: string | undefined;
-  output_model_registry_api_url: string | undefined;
-  output_model_name: string | undefined;
-  output_model_version: string | undefined;
-  output_oci_registry_secret: string | undefined;
-  output_oci_registry_uri: string | undefined;
-  sdg_base_model: string;
-} => ({
-  /* eslint-disable camelcase */
-  output_model_registry_name: data.outputModel.outputModelRegistryName,
-  output_model_registry_api_url: data.outputModel.outputModelRegistryApiUrl,
-  output_model_name: data.outputModel.addToRegistryEnabled
-    ? data.outputModel.outputModelName
-    : undefined,
-  output_model_version: data.outputModel.addToRegistryEnabled
-    ? data.outputModel.outputModelVersion
-    : undefined,
-  output_oci_registry_secret: secretName,
-  output_oci_registry_uri: data.outputModel.connectionData.uri,
-  sdg_base_model: data.baseModel.sdgBaseModel,
-  /* eslint-enable camelcase */
-});
-
-type HardwareInputType = {
-  train_num_workers: number;
-  k8s_storage_class_name: string;
-  train_node_selectors?: NodeSelector;
-  train_tolerations?: Toleration[];
-  train_cpu_per_worker: string | number;
-  train_memory_per_worker: string;
-  train_gpu_identifier: string;
-  eval_gpu_identifier: string;
-  train_gpu_per_worker: string | number;
-};
-
-export const translateIlabFormToHardwareInput = (
-  data: ModelCustomizationFormData,
-): HardwareInputType => ({
-  [PipelineInputParameters.TRAIN_GPU_IDENTIFIER]: data.hardware.podSpecOptions.gpuIdentifier,
-  [PipelineInputParameters.EVAL_GPU_IDENTIFIER]: data.hardware.podSpecOptions.gpuIdentifier,
-  [PipelineInputParameters.TRAIN_GPU_PER_WORKER]: data.hardware.podSpecOptions.gpuCount,
-  [PipelineInputParameters.TRAIN_CPU_PER_WORKER]: data.hardware.podSpecOptions.cpuCount,
-  [PipelineInputParameters.TRAIN_MEMORY_PER_WORKER]: data.hardware.podSpecOptions.memoryCount,
-  [PipelineInputParameters.TRAIN_TOLERATIONS]: data.hardware.podSpecOptions.tolerations,
-  [PipelineInputParameters.TRAIN_NODE_SELECTORS]: data.hardware.podSpecOptions.nodeSelector,
-  [PipelineInputParameters.TRAIN_NUM_WORKERS]: data.trainingNode,
-  [PipelineInputParameters.K8S_STORAGE_CLASS_NAME]: data.storageClass,
-});
-
 export const filterHardwareProfilesForTraining = (
   profiles: HardwareProfileKind[],
 ): HardwareProfileKind[] =>
@@ -258,13 +197,6 @@ export const getParamsValueFromPipelineInput = (
   return pipeline.pipeline_spec.pipeline_spec?.root.inputDefinitions?.parameters?.[paramName];
 };
 
-export const translateIlabFormToHyperparameters = (
-  data: ModelCustomizationFormData,
-): Record<string, RuntimeConfigParamValue | undefined> => ({
-  ...data.hyperparameters,
-  [NonDisplayedHyperparameterFields.SDG_PIPELINE]: data.runType.value,
-});
-
 export const filterHyperparameters = (
   pipelineVersion: PipelineVersionKF | null,
 ): {
@@ -276,7 +208,10 @@ export const filterHyperparameters = (
   const ilabPipelineParams = getInputDefinitionParams(pipelineVersion);
   if (ilabPipelineParams) {
     for (const key of Object.keys(ilabPipelineParams)) {
-      if (!isEnumMember(key, NonDisplayedHyperparameterFields)) {
+      if (
+        !EXPECTED_FINE_TUNING_PIPELINE_PARAMETERS.includes(key) &&
+        !EXCLUDED_HYPERPARAMETERS.includes(key)
+      ) {
         hyperparameters = {
           ...hyperparameters,
           [key]: ilabPipelineParams[key],
@@ -290,3 +225,50 @@ export const filterHyperparameters = (
   }
   return { hyperparameterFormData, hyperparameters };
 };
+
+export const translateIlabForm = (
+  data: ModelCustomizationFormData,
+  teacherSecretName: string,
+  judgeSecretName: string,
+  taxonomySecretName: string,
+  registrySecretName?: string,
+): RuntimeConfigParameters => ({
+  /* eslint-disable camelcase */
+  [KnownFineTuningPipelineParameters.SDG_TEACHER_SECRET]: teacherSecretName,
+  [KnownFineTuningPipelineParameters.EVAL_JUDGE_SECRET]: judgeSecretName,
+
+  [KnownFineTuningPipelineParameters.SDG_REPO_URL]: data.taxonomy.url,
+  [KnownFineTuningPipelineParameters.SDG_REPO_SECRET]: taxonomySecretName,
+
+  [KnownFineTuningPipelineParameters.OUTPUT_MODEL_REGISTRY_NAME]:
+    data.outputModel.outputModelRegistryName,
+  [KnownFineTuningPipelineParameters.OUTPUT_MODEL_REGISTRY_API_URL]:
+    data.outputModel.outputModelRegistryApiUrl,
+  [KnownFineTuningPipelineParameters.OUTPUT_MODEL_NAME]: data.outputModel.addToRegistryEnabled
+    ? data.outputModel.outputModelName
+    : undefined,
+  [KnownFineTuningPipelineParameters.OUTPUT_MODEL_VERSION]: data.outputModel.addToRegistryEnabled
+    ? data.outputModel.outputModelVersion
+    : undefined,
+  [KnownFineTuningPipelineParameters.OUTPUT_OCI_REGISTRY_SECRET]: registrySecretName,
+  [KnownFineTuningPipelineParameters.OUTPUT_OCI_MODEL_URI]: data.outputModel.connectionData.uri,
+  [KnownFineTuningPipelineParameters.SDG_BASE_MODEL]: data.baseModel.sdgBaseModel,
+
+  [KnownFineTuningPipelineParameters.TRAIN_GPU_IDENTIFIER]:
+    data.hardware.podSpecOptions.gpuIdentifier,
+  [KnownFineTuningPipelineParameters.EVAL_GPU_IDENTIFIER]:
+    data.hardware.podSpecOptions.gpuIdentifier,
+  [KnownFineTuningPipelineParameters.TRAIN_GPU_PER_WORKER]: data.hardware.podSpecOptions.gpuCount,
+  [KnownFineTuningPipelineParameters.TRAIN_CPU_PER_WORKER]:
+    data.hardware.podSpecOptions.cpuCount.toString(),
+  [KnownFineTuningPipelineParameters.TRAIN_MEMORY_PER_WORKER]:
+    data.hardware.podSpecOptions.memoryCount,
+  [KnownFineTuningPipelineParameters.TRAIN_TOLERATIONS]: data.hardware.podSpecOptions.tolerations,
+  [KnownFineTuningPipelineParameters.TRAIN_NODE_SELECTORS]:
+    data.hardware.podSpecOptions.nodeSelector,
+  [KnownFineTuningPipelineParameters.TRAIN_NUM_WORKERS]: data.trainingNode,
+  [KnownFineTuningPipelineParameters.K8S_STORAGE_CLASS_NAME]: data.storageClass,
+  [KnownFineTuningPipelineParameters.SDG_PIPELINE]: data.runType,
+  ...data.hyperparameters,
+  /* eslint-enable camelcase */
+});

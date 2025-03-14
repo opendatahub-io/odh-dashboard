@@ -4,6 +4,7 @@ import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '~/k8sType
 import { useValidation, ValidationContext } from '~/utilities/useValidation';
 import { ContainerResources } from '~/types';
 import { useHardwareProfilesByFeatureVisibility } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
+import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
 import { hardwareProfileValidationSchema } from './validationUtils';
 import HardwareProfileSelect from './HardwareProfileSelect';
 import HardwareProfileCustomize from './HardwareProfileCustomize';
@@ -71,6 +72,7 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
               onChange={onProfileSelect}
               allowExistingSettings={isEditing && !initialHardwareProfile}
             />
+            <ZodErrorHelperText zodIssue={validation.getAllValidationIssues()} showAllErrors />
           </FormGroup>
         </StackItem>
         {formData.selectedProfile?.spec.identifiers &&

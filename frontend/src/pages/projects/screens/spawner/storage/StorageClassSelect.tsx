@@ -7,6 +7,8 @@ import {
   HelperText,
   HelperTextItem,
   Skeleton,
+  ValidatedOptions,
+  MenuToggleProps,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import React from 'react';
@@ -22,6 +24,7 @@ type StorageClassSelectProps = {
   additionalHelperText?: React.ReactNode;
   disableStorageClassSelect?: boolean;
   menuAppendTo?: HTMLElement | 'inline';
+  validated?: ValidatedOptions;
 };
 
 const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
@@ -31,6 +34,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
   isRequired = false,
   disableStorageClassSelect,
   menuAppendTo,
+  validated,
 }) => {
   const [storageClasses, storageClassesLoaded] = useStorageClasses();
   const hasStorageClassConfigs = storageClasses.some((sc) => !!getStorageClassConfig(sc));
@@ -95,6 +99,13 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
     return null;
   }
 
+  const validatedToToggleStatus: Record<ValidatedOptions, MenuToggleProps['status']> = {
+    [ValidatedOptions.success]: undefined,
+    [ValidatedOptions.error]: 'danger',
+    [ValidatedOptions.warning]: 'warning',
+    [ValidatedOptions.default]: undefined,
+  };
+
   return hasStorageClassConfigs ? (
     <FormGroup label="Storage class" fieldId="storage-class" isRequired={isRequired}>
       <SimpleSelect
@@ -109,6 +120,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
         isDisabled={disableStorageClassSelect || !storageClassesLoaded}
         placeholder="Select storage class"
         popperProps={{ appendTo: menuAppendTo }}
+        toggleProps={{ status: validated ? validatedToToggleStatus[validated] : undefined }}
         previewDescription={false}
       />
       <FormHelperText>

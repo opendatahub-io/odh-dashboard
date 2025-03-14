@@ -19,6 +19,7 @@ import HardwareProfileSelect from '~/concepts/hardwareProfiles/HardwareProfileSe
 import { filterHardwareProfilesForTraining } from '~/pages/pipelines/global/modelCustomization/utils';
 import { useHardwareProfilesByFeatureVisibility } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
 
 type TrainingHardwareProfileFormSectionProps = {
   data: HardwareProfileConfig;
@@ -30,8 +31,8 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
   setData,
 }) => {
   const { getAllValidationIssues } = React.useContext(ValidationContext);
-  const hasValidationErrors =
-    Object.keys(getAllValidationIssues(['hardware', 'hardwareProfileConfig'])).length > 0;
+  const validationIssues = getAllValidationIssues(['hardware', 'hardwareProfileConfig']);
+  const hasValidationErrors = validationIssues.length > 0;
 
   const [isExpanded, setIsExpanded] = React.useState(hasValidationErrors);
   const [hardwareProfiles, loaded, error] = useHardwareProfilesByFeatureVisibility([
@@ -102,6 +103,7 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
             hardwareProfileConfig={data}
             onChange={onProfileSelect}
           />
+          <ZodErrorHelperText zodIssue={validationIssues} />
         </FormGroup>
       </StackItem>
       {data.selectedProfile?.spec.identifiers &&
