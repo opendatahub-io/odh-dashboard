@@ -8,8 +8,8 @@ import {
   RegisteredModel,
 } from '~/concepts/modelRegistry/types';
 import { ServiceKind } from '~/k8sTypes';
-import { CatalogModelDetailsParams } from '~/pages/modelCatalog/const';
 import { KeyValuePair } from '~/types';
+import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
 import { PipelineModelCustomProps } from './ModelVersionDetails/const';
 
 // Retrieves the labels from customProperties that have non-empty string_value.

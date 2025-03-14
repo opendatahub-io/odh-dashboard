@@ -29,7 +29,6 @@ import {
   findModelFromModelCatalogSources,
   getTagFromModel,
 } from '~/pages/modelCatalog/utils';
-import { CatalogModelDetailsParams } from '~/pages/modelCatalog/const';
 import BrandImage from '~/components/BrandImage';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { getRegisterCatalogModelUrl } from '~/pages/modelCatalog/routeUtils';
@@ -38,6 +37,7 @@ import { FindAdministratorOptions } from '~/pages/projects/screens/projects/cons
 import { RhUiTagIcon } from '~/images/icons';
 import { modelCustomizationRootPath } from '~/routes';
 import RhUiControlsIcon from '~/images/icons/RhUiControlsIcon';
+import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import ModelDetailsView from './ModelDetailsView';
 

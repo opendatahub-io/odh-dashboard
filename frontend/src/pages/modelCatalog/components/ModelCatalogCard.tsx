@@ -20,12 +20,13 @@ import { CatalogModel } from '~/concepts/modelCatalog/types';
 import { getCatalogModelDetailsUrlFromModel } from '~/pages/modelCatalog/routeUtils';
 import { getTagFromModel } from '~/pages/modelCatalog/utils';
 import { RhUiTagIcon } from '~/images/icons';
+import { ModelCatalogLabels } from '~/pages/modelCatalog/components/ModelCatalogLabels';
 
 export const ModelCatalogCard: React.FC<{ model: CatalogModel; source: string }> = ({
   model,
   source,
 }) => (
-  <Card isFullHeight>
+  <Card isFullHeight data-testid="model-catalog-card">
     <CardHeader>
       <CardTitle>
         <Flex alignItems={{ default: 'alignItemsCenter' }}>
@@ -66,11 +67,7 @@ export const ModelCatalogCard: React.FC<{ model: CatalogModel; source: string }>
       </Stack>
     </CardBody>
     <CardFooter>
-      {(model.tasks ?? []).map((task, index) => (
-        <Label variant="outline" key={index}>
-          {task}
-        </Label>
-      ))}
+      <ModelCatalogLabels labels={model.labels} tasks={model.tasks} />
     </CardFooter>
   </Card>
 );
