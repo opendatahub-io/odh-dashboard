@@ -47,7 +47,7 @@ const HyperparameterFieldsDisplay: React.FC<HyperparameterFieldsDisplayProps> = 
             const { label, renderField, span } = HYPERPARAMETER_MAP[key];
             if (renderField) {
               return (
-                <GridItem span={2} lg={span ?? 6} key={key}>
+                <GridItem span={12} lg={span ?? 6} key={key}>
                   {renderField(
                     label,
                     key,
