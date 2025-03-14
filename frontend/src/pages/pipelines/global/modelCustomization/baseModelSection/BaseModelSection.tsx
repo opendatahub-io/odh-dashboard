@@ -1,5 +1,13 @@
 import React from 'react';
-import { Alert, Flex, FlexItem, FormGroup, FormSection } from '@patternfly/react-core';
+import {
+  Alert,
+  Content,
+  ContentVariants,
+  Flex,
+  FlexItem,
+  FormGroup,
+  FormSection,
+} from '@patternfly/react-core';
 import { BaseModelFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import {
   FineTunePageSections,
@@ -30,7 +38,9 @@ const BaseModelSection: React.FC<BaseModelSectionProps> = ({
     id={FineTunePageSections.BASE_MODEL}
     title={fineTunePageSectionTitles[FineTunePageSections.BASE_MODEL]}
   >
-    The pre-trained model that the fine-tuning run will further refine.
+    <Content component={ContentVariants.small}>
+      The pre-trained model that the fine-tuning run will further refine.
+    </Content>
     <Flex>
       <FlexItem>
         <Alert
@@ -44,7 +54,7 @@ const BaseModelSection: React.FC<BaseModelSectionProps> = ({
         </Alert>
       </FlexItem>
     </Flex>
-    <FormGroup label="Model registry" fieldId={`${FIELD_ID_PREFIX}-registryName`}>
+    <FormGroup label="Model registry name" fieldId={`${FIELD_ID_PREFIX}-registryName`}>
       {registryName ?? '-'}
     </FormGroup>
     <FormGroup label="Model name" fieldId={`${FIELD_ID_PREFIX}-name`}>
@@ -64,7 +74,7 @@ const BaseModelSection: React.FC<BaseModelSectionProps> = ({
         }}
         checkSupported={(text) => text.startsWith(`${RED_HAT_REGISTRY_PREFIX}/`)}
         text={data.sdgBaseModel}
-        unsupportedMessage={`At this time, the model must be sourced from the catalog in Red Hat Registry (${RED_HAT_REGISTRY_PREFIX}). However, if your platform is configured with the required pull secrets, the model can be sourced from an OCI registry or public setup.`}
+        unsupportedMessage={`This feature is a technology preview. At this time, this form supports only models sourced from the catalog in Red Hat Registry (${RED_HAT_REGISTRY_PREFIX}). To learn how to LAB-tune an unsupported model, refer to the documentation.`}
       />
     </FormGroup>
   </FormSection>

@@ -1,4 +1,12 @@
-import { FormSection, FormGroup, Stack, StackItem, Radio } from '@patternfly/react-core';
+import {
+  FormSection,
+  FormGroup,
+  Stack,
+  StackItem,
+  Radio,
+  Content,
+  ContentVariants,
+} from '@patternfly/react-core';
 import * as React from 'react';
 import { ProjectFields } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
 import { ModelCustomizationFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
@@ -20,8 +28,10 @@ const RunTypeSection: React.FC<RunTypeSectionProps> = ({ data, setData }) => (
     id={FineTunePageSections.RUN_TYPE}
     title={fineTunePageSectionTitles[FineTunePageSections.RUN_TYPE]}
   >
-    Select the type of run you want to start based on your use case. Simple runs are best for
-    iterating, and full runs are best for creating production-ready models.
+    <Content component={ContentVariants.small}>
+      Select the type of run you want to start based on your use case. Simple runs are best for
+      iterating, and full runs are best for creating production-ready models.
+    </Content>
     <FormGroup label="Run type" fieldId="model-customization-runType">
       <Stack hasGutter>
         <StackItem>

@@ -50,7 +50,7 @@ describe('Model Customization Landing Page', () => {
         .findAccordionItem({ section: 'project-setup', item: 'instructlab-pipeline' })
         .click();
       modelCustomizationLandingPage
-        .findAccordionArchorButton({
+        .findAccordionAnchor({
           section: 'project-setup',
           item: 'instructlab-pipeline',
           name: 'go-to-pipelines',
@@ -75,7 +75,7 @@ describe('Model Customization Landing Page', () => {
         .findAccordionItem({ section: 'next-steps', item: 'monitor-run' })
         .click();
       modelCustomizationLandingPage
-        .findAccordionArchorButton({
+        .findAccordionAnchor({
           section: 'next-steps',
           item: 'monitor-run',
           name: 'go-to-pipeline-runs',
@@ -89,7 +89,7 @@ describe('Model Customization Landing Page', () => {
         .findAccordionItem({ section: 'next-steps', item: 'view-model' })
         .click();
       modelCustomizationLandingPage
-        .findAccordionArchorButton({
+        .findAccordionAnchor({
           section: 'next-steps',
           item: 'view-model',
           name: 'go-to-model-registry',
@@ -99,7 +99,7 @@ describe('Model Customization Landing Page', () => {
     });
   });
 
-  describe.skip('TODO: Drawer tests disabled while we do not have the contents yet', () => {
+  describe('Side drawer', () => {
     beforeEach(() => {
       initIntercepts({
         disableFineTuning: false,
@@ -118,7 +118,7 @@ describe('Model Customization Landing Page', () => {
         .findAccordionItem({ section: 'prerequisites', item: 'taxonomy-repository' })
         .click();
       modelCustomizationLandingPage
-        .findAccordionArchorButton({
+        .findAccordionButton({
           section: 'prerequisites',
           item: 'taxonomy-repository',
           name: 'learn-more-taxonomy',
@@ -126,7 +126,7 @@ describe('Model Customization Landing Page', () => {
         .click();
       modelCustomizationLandingPage
         .findDrawerContentTitle()
-        .should('have.text', 'Learn how to construct and build a taxonomy repository');
+        .should('have.text', 'Creating a taxonomy for LAB-tuning');
     });
 
     it('should open the drawer when Learn More is clicked under Teacher and Judge accordion item', () => {
@@ -134,7 +134,7 @@ describe('Model Customization Landing Page', () => {
         .findAccordionItem({ section: 'prerequisites', item: 'deployed-teacher-and-judge-models' })
         .click();
       modelCustomizationLandingPage
-        .findAccordionArchorButton({
+        .findAccordionButton({
           section: 'prerequisites',
           item: 'deployed-teacher-and-judge-models',
           name: 'learn-more-teacher-judge-models',
@@ -142,7 +142,7 @@ describe('Model Customization Landing Page', () => {
         .click();
       modelCustomizationLandingPage
         .findDrawerContentTitle()
-        .should('have.text', 'Learn how to find and deploy teacher and judge models');
+        .should('have.text', 'Deploying LAB teacher and LAB judge models');
     });
 
     it('should update the drawer content when another item is clicked', () => {
@@ -150,7 +150,7 @@ describe('Model Customization Landing Page', () => {
         .findAccordionItem({ section: 'prerequisites', item: 'taxonomy-repository' })
         .click();
       modelCustomizationLandingPage
-        .findAccordionArchorButton({
+        .findAccordionButton({
           section: 'prerequisites',
           item: 'taxonomy-repository',
           name: 'learn-more-taxonomy',
@@ -158,13 +158,13 @@ describe('Model Customization Landing Page', () => {
         .click();
       modelCustomizationLandingPage
         .findDrawerContentTitle()
-        .should('have.text', 'Learn how to construct and build a taxonomy repository');
+        .should('have.text', 'Creating a taxonomy for LAB-tuning');
 
       modelCustomizationLandingPage
         .findAccordionItem({ section: 'prerequisites', item: 'deployed-teacher-and-judge-models' })
         .click();
       modelCustomizationLandingPage
-        .findAccordionArchorButton({
+        .findAccordionButton({
           section: 'prerequisites',
           item: 'deployed-teacher-and-judge-models',
           name: 'learn-more-teacher-judge-models',
@@ -172,7 +172,7 @@ describe('Model Customization Landing Page', () => {
         .click();
       modelCustomizationLandingPage
         .findDrawerContentTitle()
-        .should('have.text', 'Learn how to find and deploy teacher and judge models');
+        .should('have.text', 'Deploying LAB teacher and LAB judge models');
     });
   });
 });

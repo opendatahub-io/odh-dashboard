@@ -4,6 +4,8 @@ import {
   ActionListItem,
   Alert,
   Button,
+  Content,
+  ContentVariants,
   FormGroup,
   FormSection,
   Skeleton,
@@ -36,11 +38,14 @@ export const PipelineDetailsSection: React.FC<PipelineDetailsSectionProps> = ({
   const navigate = useNavigate();
 
   return (
-    //TODO: Pipeline description https://issues.redhat.com/browse/RHOAIENG-19187
     <FormSection
       id={FineTunePageSections.PIPELINE_DETAILS}
       title={fineTunePageSectionTitles[FineTunePageSections.PIPELINE_DETAILS]}
     >
+      <Content component={ContentVariants.small}>
+        InstructLab&apos;s pipeline automates the LAB tuning process, facilitating efficient
+        fine-tuning of large language models and enabling scalable utilization of compute resources.
+      </Content>
       {ilabPipelineLoaded ? (
         <>
           <FormGroup label="Pipeline name" fieldId="pipeline-name" isRequired>

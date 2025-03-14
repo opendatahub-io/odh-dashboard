@@ -33,7 +33,7 @@ class ModelCustomizationFormGlobal {
   }
 
   private wait() {
-    cy.findByTestId('app-page-title').contains('Instruct fine-tune run');
+    cy.findByTestId('app-page-title').contains('Start a LAB-tuning run');
     cy.testA11y();
   }
 

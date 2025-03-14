@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Form, FormGroup, FormSection } from '@patternfly/react-core';
+import { Content, ContentVariants, Form, FormGroup, FormSection } from '@patternfly/react-core';
 import { useLocation } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
@@ -19,6 +19,7 @@ import { ValidationContext } from '~/utilities/useValidation';
 import FineTunedModelSection from '~/pages/pipelines/global/modelCustomization/fineTunedModelSection/FineTunedModelSection';
 import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
 import { FineTunedModelNewConnectionContextProvider } from '~/pages/pipelines/global/modelCustomization/fineTunedModelSection/FineTunedModelNewConnectionContext';
+import { ModelCustomizationDrawerContentArgs } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
 import { FineTuneTaxonomySection } from './FineTuneTaxonomySection';
 import TrainingHardwareSection from './trainingHardwareSection/TrainingHardwareSection';
 import { FineTunePageSections, fineTunePageSectionTitles } from './const';
@@ -34,6 +35,7 @@ type FineTunePageProps = {
   setData: UpdateObjectAtPropAndValue<ModelCustomizationFormData>;
   ilabPipeline: PipelineKF | null;
   ilabPipelineVersion: PipelineVersionKF | null;
+  handleOpenDrawer: (contentArgs: ModelCustomizationDrawerContentArgs) => void;
 };
 
 const FineTunePage: React.FC<FineTunePageProps> = ({
@@ -44,6 +46,7 @@ const FineTunePage: React.FC<FineTunePageProps> = ({
   setData,
   ilabPipeline,
   ilabPipelineVersion,
+  handleOpenDrawer,
 }) => {
   const { project } = usePipelinesAPI();
   const { state }: { state?: ModelCustomizationRouterState } = useLocation();
@@ -59,14 +62,16 @@ const FineTunePage: React.FC<FineTunePageProps> = ({
 
   return (
     <FineTunedModelNewConnectionContextProvider connectionType={ociConnectionType}>
-      <Form data-testid="fineTunePageForm" maxWidth="500px">
+      <Form data-testid="fineTunePageForm" maxWidth="800px">
         <FormSection
           id={FineTunePageSections.PROJECT_DETAILS}
           title={fineTunePageSectionTitles[FineTunePageSections.PROJECT_DETAILS]}
         >
-          This project is used for running your pipeline
+          <Content component={ContentVariants.small}>
+            The project where your pipeline will run.
+          </Content>
           <FormGroup
-            label="Data Science Project"
+            label="Data science project"
             fieldId="model-customization-projectName"
             isRequired
           >
@@ -94,15 +99,19 @@ const FineTunePage: React.FC<FineTunePageProps> = ({
               setData={(dataTaxonomy: FineTuneTaxonomyFormData) => {
                 setData('taxonomy', dataTaxonomy);
               }}
+              handleOpenDrawer={handleOpenDrawer}
             />
             <TeacherModelSection
               data={data.teacher}
               setData={(teacherData) => setData('teacher', teacherData)}
+              handleOpenDrawer={handleOpenDrawer}
             />
             <JudgeModelSection
               data={data.judge}
               setData={(judgeData) => setData('judge', judgeData)}
+              handleOpenDrawer={handleOpenDrawer}
             />
+            <RunTypeSection data={data} setData={setData} />
             <TrainingHardwareSection
               ilabPipelineLoaded={ilabPipelineLoaded}
               ilabPipelineVersion={ilabPipelineVersion}
@@ -116,7 +125,6 @@ const FineTunePage: React.FC<FineTunePageProps> = ({
               }
               setHardwareFormData={(hardwareFormData) => setData('hardware', hardwareFormData)}
             />
-            <RunTypeSection data={data} setData={setData} />
             <HyperparameterPageSection
               data={data}
               hyperparameters={hyperparameters}

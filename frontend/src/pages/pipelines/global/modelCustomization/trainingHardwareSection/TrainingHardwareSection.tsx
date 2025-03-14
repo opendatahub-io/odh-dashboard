@@ -1,4 +1,11 @@
-import { FormGroup, FormSection, Stack, StackItem } from '@patternfly/react-core';
+import {
+  Content,
+  ContentVariants,
+  FormGroup,
+  FormSection,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import {
@@ -45,10 +52,6 @@ const TrainingHardwareSection: React.FC<TrainingHardwareSectionProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isStorageClassesAvailable, preferredStorageClass]);
 
-  const trainingHardwareDescription = `Select ${
-    isHardwareProfilesAvailable ? 'hardware' : 'accelerator'
-  } profiles to match the hardware requirements of your workloads to available node resources. The hardware resources will be used for SDG, training and evaluation run phases.`;
-
   const podSpecOptionsState = useIlabPodSpecOptionsState(ilabPipelineVersion, setHardwareFormData);
 
   return (
@@ -56,7 +59,11 @@ const TrainingHardwareSection: React.FC<TrainingHardwareSectionProps> = ({
       id={FineTunePageSections.TRAINING_HARDWARE}
       title={fineTunePageSectionTitles[FineTunePageSections.TRAINING_HARDWARE]}
     >
-      {trainingHardwareDescription}
+      <Content component={ContentVariants.small}>
+        Select {isHardwareProfilesAvailable ? 'a hardware' : 'an accelerator'} profile to match the
+        hardware requirements of your workload to available node resources. The hardware resources
+        will be used for the SDG, training, and evaluation run phases.
+      </Content>
       {isHardwareProfilesAvailable ? (
         <TrainingHardwareProfileFormSection
           data={podSpecOptionsState.hardwareProfile.formData}
@@ -68,9 +75,9 @@ const TrainingHardwareSection: React.FC<TrainingHardwareSectionProps> = ({
       <FormGroup label="Training nodes" isRequired>
         <Stack hasGutter>
           <StackItem>
-            These are total number of nodes. 1 node will be used for the evaluation run phase.
+            Specify the total number of nodes that will be used in the run. 1 node will be used for
+            the evaluation run phase.
           </StackItem>
-
           {ilabPipelineLoaded && (
             <StackItem>
               <NumberInputWrapper
