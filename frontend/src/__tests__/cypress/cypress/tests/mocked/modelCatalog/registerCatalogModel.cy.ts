@@ -186,7 +186,26 @@ describe('Register catalog model page', () => {
     registerModelPage.findSubmitButton().should('be.enabled');
   });
 
-  it('Register catalog model page ', () => {
+  it.only('should retain edited form values after prefilling', () => {
+    // cy.clock(); // Set up a fake clock for the page's polling intervals to use
+    initIntercepts({});
+    registerCatalogModelPage.visit(true); // Have to skip a11y check because cy.clock() interferes with it
+    registerModelPage
+      .findFormField(FormFieldSelector.MODEL_NAME)
+      .should('have.value', 'granite-8b-code-instruct-1.3.0');
+    registerModelPage.findFormField(FormFieldSelector.MODEL_NAME).clear();
+    registerModelPage.findFormField(FormFieldSelector.MODEL_NAME).type('my-custom-name');
+    registerModelPage
+      .findFormField(FormFieldSelector.MODEL_NAME)
+      .should('have.value', 'my-custom-name');
+    // Advance the clock 31 seconds to trigger the app's 30 second polling interval which re-renders the form
+    // cy.tick(31000);
+    registerModelPage
+      .findFormField(FormFieldSelector.MODEL_NAME)
+      .should('have.value', 'my-custom-name');
+  });
+
+  it('should create expected resources on registration', () => {
     initIntercepts({});
     registerCatalogModelPage.visit();
     registerModelPage.findSubmitButton().should('be.disabled');
