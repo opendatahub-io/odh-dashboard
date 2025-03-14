@@ -404,6 +404,23 @@ class ModelServingRow extends TableRow {
   findInternalServicePopover() {
     return cy.findByTestId('internal-service-popover');
   }
+
+  findStatusTooltip(options: Object = {}) {
+    return cy.findByTestId('status-tooltip', options)
+      .click()
+      .then(() => {
+        cy.findByTestId('model-status-tooltip');
+      });
+  }
+
+  findStatusTooltipValue(msg: string) {
+    this.findStatusTooltip()
+      .invoke('text')
+      .should('contain', msg)
+      .then(() => {
+        this.findStatusTooltip().find('button').click();
+      });
+  }
 }
 
 class ModelMeshRow extends ModelServingRow {
@@ -432,6 +449,7 @@ class KServeRow extends ModelMeshRow {
   findDescriptionListItem(itemName: string) {
     return this.find().next('tr').find(`dt:contains("${itemName}")`);
   }
+
 }
 
 class InferenceServiceRow extends TableRow {
@@ -536,6 +554,10 @@ class ModelServingSection {
         .contains(name)
         .parents('tr'),
     );
+  }
+
+  findModelStatusTooltipValue(name: string, options: Object = {}) {
+    cy.findByTestId('model-status-tooltip').contains(name, options)
   }
 
   findInferenceServiceTable() {
