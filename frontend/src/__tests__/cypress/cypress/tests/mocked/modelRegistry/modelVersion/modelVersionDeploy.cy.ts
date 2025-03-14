@@ -349,9 +349,9 @@ describe('Deploy model version', () => {
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version');
     modelVersionRow.findKebabAction('Deploy').click();
     modelVersionDeployModal.selectProjectByName('Test project');
-    cy.findByText('Cannot deploy the model until you select a model serving platform').should(
-      'exist',
-    );
+    cy.findByText(
+      'To deploy a model, you must first select a model serving platform for this project.',
+    ).should('exist');
   });
 
   it('Deploy model version on a model mesh project that has no model servers', () => {
@@ -361,7 +361,7 @@ describe('Deploy model version', () => {
     modelVersionRow.findKebabAction('Deploy').click();
     cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([]));
     modelVersionDeployModal.selectProjectByName('Model mesh project');
-    cy.findByText('Cannot deploy the model until you configure a model server').should('exist');
+    cy.findByText('To deploy a model, you must first configure a model server.').should('exist');
   });
 
   it('OCI info alert is visible in case of OCI models', () => {

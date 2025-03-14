@@ -92,7 +92,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
             alt="missing version"
           />
         )}
-        description={`${rm.name} has no registered versions. Register a version to this model.`}
+        description={`${rm.name} has no active registered versions. Register a version to this model.`}
         primaryActionText="Register new version"
         primaryActionOnClick={() => {
           navigate(registerVersionForModelUrl(rm.id, preferredModelRegistry?.metadata.name));
@@ -113,14 +113,14 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
         <Alert
           variant="warning"
           isInline
-          title={`All the versions have been archived along with the model on ${
+          title={`The ${rm.name} model and all of its versions were archived on ${
             date
               ? `${date.toLocaleString('en-US', {
                   month: 'long',
                   timeZone: 'UTC',
                 })} ${date.getUTCDate()}, ${date.getUTCFullYear()}`
               : '--'
-          }. They are now read-only and can only be restored together with the model.`}
+          }.  Versions can be restored by restoring the model.`}
         />
       )}
       <ModelVersionsTable

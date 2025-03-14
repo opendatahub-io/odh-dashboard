@@ -168,7 +168,7 @@ class ModelVersionDetails {
   }
 
   findStartRunModal() {
-    return cy.findByTestId('start-run-modal');
+    return cy.findByRole('dialog', { hidden: true }).contains('Start a LAB-tuning run');
   }
 }
 
