@@ -8,7 +8,7 @@ import ProjectsSection from './projects/ProjectsSection';
 import { useAIFlows } from './aiFlows/useAIFlows';
 import { useResourcesSection } from './resources/useResourcesSection';
 import { useEnableTeamSection } from './useEnableTeamSection';
-import HomeHint from './HomeHint';
+import LandingPageHomeHint from './LandingPageHomeHint';
 
 const Home: React.FC = () => {
   const { status: projectsAvailable } = useIsAreaAvailable(SupportedArea.DS_PROJECTS_VIEW);
@@ -18,7 +18,7 @@ const Home: React.FC = () => {
 
   return (
     <div data-testid="home-page">
-      <HomeHint />
+      <LandingPageHomeHint />
       {!projectsAvailable && !aiFlows && !resourcesSection && !enableTeamSection ? (
         <PageSection
           hasBodyWrapper={false}
