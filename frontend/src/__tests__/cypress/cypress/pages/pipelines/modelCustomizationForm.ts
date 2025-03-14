@@ -63,9 +63,7 @@ class ModelCustomizationFormGlobal {
   }
 
   findExpandableSectionButton() {
-    return cy.findByTestId('hyperparameters-expandable').findByRole('button', {
-      name: 'Customize resource requests and limits',
-    });
+    return cy.findByTestId('hyperparameters-expandable').findByRole('button');
   }
 
   findNumericInputPlusButton(name: string) {

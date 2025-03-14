@@ -30,7 +30,8 @@ const HyperparameterPageSection: React.FC<HyperparameterPageSectionProps> = ({
     >
       <Content component={ContentVariants.small}>Configure advanced settings for this run.</Content>
       <ExpandableSection
-        toggleText="Customize resource requests and limits"
+        toggleTextCollapsed="Show more"
+        toggleTextExpanded="Show less"
         isExpanded={isExpanded}
         onToggle={(_, expanded) => setExpanded(expanded)}
         isIndented
