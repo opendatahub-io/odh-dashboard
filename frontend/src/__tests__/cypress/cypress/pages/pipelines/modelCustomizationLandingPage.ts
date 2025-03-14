@@ -69,7 +69,7 @@ class ModelCustomizationLandingPage {
     name: AccordionButtonName;
   }) {
     return this.findAccordionItem({ section: args.section, item: args.item }).get(
-      `a[data-testid="${args.name}"]`,
+      `button[data-testid="${args.name}"]`,
     );
   }
 

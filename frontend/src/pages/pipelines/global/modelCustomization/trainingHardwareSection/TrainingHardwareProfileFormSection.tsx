@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { FormGroup, Stack, StackItem, ExpandableSection, Popover } from '@patternfly/react-core';
+import {
+  FormGroup,
+  Stack,
+  StackItem,
+  ExpandableSection,
+  Popover,
+  Content,
+  ContentVariants,
+} from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '~/k8sTypes';
 import { ValidationContext } from '~/utilities/useValidation';
@@ -66,13 +74,15 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
             <Popover
               bodyContent={
                 <>
-                  <p>
+                  <Content component={ContentVariants.p}>
                     Hardware profiles enable administrators to create profiles for additional types
                     of identifiers, limit workload resource allocations, and target workloads to
                     specific nodes by including tolerations and nodeSelectors in profiles.
-                  </p>
+                  </Content>
                   <br />
-                  <p>This list includes only hardware profiles that have GPU defined.</p>
+                  <Content component={ContentVariants.p}>
+                    This list includes only hardware profiles that have GPU defined.
+                  </Content>
                 </>
               }
             >

@@ -99,7 +99,7 @@ describe('Model Customization Landing Page', () => {
     });
   });
 
-  describe.skip('TODO: Drawer tests disabled while we do not have the contents yet', () => {
+  describe('Side drawer', () => {
     beforeEach(() => {
       initIntercepts({
         disableFineTuning: false,
@@ -126,7 +126,7 @@ describe('Model Customization Landing Page', () => {
         .click();
       modelCustomizationLandingPage
         .findDrawerContentTitle()
-        .should('have.text', 'Learn how to construct and build a taxonomy repository');
+        .should('have.text', 'Creating a taxonomy for LAB-tuning');
     });
 
     it('should open the drawer when Learn More is clicked under Teacher and Judge accordion item', () => {
@@ -142,7 +142,7 @@ describe('Model Customization Landing Page', () => {
         .click();
       modelCustomizationLandingPage
         .findDrawerContentTitle()
-        .should('have.text', 'Learn how to find and deploy teacher and judge models');
+        .should('have.text', 'Deploying LAB teacher and LAB judge models');
     });
 
     it('should update the drawer content when another item is clicked', () => {
@@ -158,7 +158,7 @@ describe('Model Customization Landing Page', () => {
         .click();
       modelCustomizationLandingPage
         .findDrawerContentTitle()
-        .should('have.text', 'Learn how to construct and build a taxonomy repository');
+        .should('have.text', 'Creating a taxonomy for LAB-tuning');
 
       modelCustomizationLandingPage
         .findAccordionItem({ section: 'prerequisites', item: 'deployed-teacher-and-judge-models' })
@@ -172,7 +172,7 @@ describe('Model Customization Landing Page', () => {
         .click();
       modelCustomizationLandingPage
         .findDrawerContentTitle()
-        .should('have.text', 'Learn how to find and deploy teacher and judge models');
+        .should('have.text', 'Deploying LAB teacher and LAB judge models');
     });
   });
 });

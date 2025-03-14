@@ -37,7 +37,7 @@ import ModelCustomizationDrawerContent, {
   ModelCustomizationDrawerContentRef,
 } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
 import FineTunePage from './FineTunePage';
-import { FineTunePageSections, fineTunePageSectionTitles } from './const';
+import { FineTunePageSections, fineTunePageSectionTitles, SCROLLABLE_SELECTOR_ID } from './const';
 import { filterHyperparameters, getParamsValueFromPipelineInput } from './utils';
 
 const ModelCustomizationForm: React.FC = () => {
@@ -170,6 +170,7 @@ const ModelCustomizationForm: React.FC = () => {
               handleCloseDrawer={handleCloseDrawer}
             />
           }
+          id={SCROLLABLE_SELECTOR_ID}
         >
           <DrawerContentBody>
             <ApplicationsPage
@@ -227,6 +228,12 @@ const ModelCustomizationForm: React.FC = () => {
                     sections={Object.values(filteredFineTunePageSections)}
                     titles={fineTunePageSectionTitles}
                     maxWidth={200}
+                    scrollableSelector={`#${SCROLLABLE_SELECTOR_ID}`}
+                    onJumpLinksItemClick={(section) =>
+                      // Passing the location state when clicking on jump links
+                      // So that we can keep it when URL changes
+                      navigate(`#${section}`, { state, replace: true })
+                    }
                   >
                     <FineTunePage
                       canSubmit={!!ilabPipelineLoadError}

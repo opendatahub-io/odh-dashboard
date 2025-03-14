@@ -1,13 +1,13 @@
 export enum FineTunePageSections {
   PROJECT_DETAILS = 'fine-tune-section-project-details',
-  TAXONOMY_DETAILS = 'fine-tune-section-taxonomy-details',
   PIPELINE_DETAILS = 'fine-tine-section-pipeline-details',
   BASE_MODEL = 'fine-tune-section-base-model',
+  TAXONOMY_DETAILS = 'fine-tune-section-taxonomy-details',
   TEACHER_MODEL = 'fine-tune-section-teacher-model',
   JUDGE_MODEL = 'fine-tune-section-judge-model',
-  TRAINING_HARDWARE = 'fine-tune-section-training-hardware',
   RUN_TYPE = 'fine-tune-section-run-type',
-  HYPERPARAMETERS = 'fun-tune-hyperparameters',
+  TRAINING_HARDWARE = 'fine-tune-section-training-hardware',
+  HYPERPARAMETERS = 'fine-tune-section-hyperparameters',
   FINE_TUNED_MODEL_DETAILS = 'fine-tune-section-fine-tuned-model-details',
 }
 
@@ -30,11 +30,13 @@ export const fineTunePageSectionTitles: Record<FineTunePageSections, string> = {
   [FineTunePageSections.BASE_MODEL]: 'Base model',
   [FineTunePageSections.TEACHER_MODEL]: 'LAB teacher model',
   [FineTunePageSections.JUDGE_MODEL]: 'LAB judge model',
-  [FineTunePageSections.TRAINING_HARDWARE]: 'Training hardware',
   [FineTunePageSections.RUN_TYPE]: 'Run type',
+  [FineTunePageSections.TRAINING_HARDWARE]: 'Training hardware',
   [FineTunePageSections.HYPERPARAMETERS]: 'Hyperparameters',
   [FineTunePageSections.FINE_TUNED_MODEL_DETAILS]: 'Fine-tuned model details',
 };
+
+export const SCROLLABLE_SELECTOR_ID = 'fine-tune-page-scrollable-selector';
 
 export const ILAB_PIPELINE_NAME = 'instructlab';
 
@@ -107,9 +109,9 @@ export enum NonDisplayedHyperparameterFields {
   K8S_STORAGE_CLASS_NAME = 'k8s_storage_class_name',
 }
 
-export const taxonomyMarkdown = `# Creating a taxonomy for LAB-tuning
+export const taxonomyMarkdownTitle = 'Creating a taxonomy for LAB-tuning';
 
-To use LAB-tuning on Red Hat OpenShift AI, you must have a taxonomy stored in a Git repository. A taxonomy is a structured set of training data that defines the _knowledge_ and _skills_ your model should learn.
+export const taxonomyMarkdownContent = `To use LAB-tuning on Red Hat OpenShift AI, you must have a taxonomy stored in a Git repository. A taxonomy is a structured set of training data that defines the _knowledge_ and _skills_ your model should learn.
 
 **Knowledge**
 
@@ -140,9 +142,9 @@ Setting up your taxonomy for LAB-tuning involves the following steps:
 
 For more detailed information about setting up your taxonomy, see the [Red Hat OpenShift AI documentation](https://docs.redhat.com/en/documentation/red_hat_openshift_ai/).`;
 
-export const teacherJudgeMarkdown = `# Deploying LAB teacher and LAB judge models
+export const teacherJudgeMarkdownTitle = 'Deploying LAB teacher and LAB judge models';
 
-To use LAB-tuning on Red Hat OpenShift AI, you must have deployed a LAB teacher model and a LAB judge model.
+export const teacherJudgeMarkdownContent = `To use LAB-tuning on Red Hat OpenShift AI, you must have deployed a LAB teacher model and a LAB judge model.
 
 * **LAB teacher model:** Generates synthetic data for training.   
 * **LAB judge model:** Evaluates model performance.

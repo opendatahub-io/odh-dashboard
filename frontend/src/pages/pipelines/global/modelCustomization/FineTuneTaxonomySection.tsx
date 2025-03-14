@@ -13,7 +13,12 @@ import { FineTuneTaxonomyFormData } from '~/concepts/pipelines/content/modelCust
 import PasswordInput from '~/components/PasswordInput';
 import { ModelCustomizationDrawerContentArgs } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
 import MarkdownView from '~/components/MarkdownView';
-import { FineTunePageSections, fineTunePageSectionTitles, taxonomyMarkdown } from './const';
+import {
+  FineTunePageSections,
+  fineTunePageSectionTitles,
+  taxonomyMarkdownContent,
+  taxonomyMarkdownTitle,
+} from './const';
 
 type FineTuneTaxonomySectionProps = {
   data: FineTuneTaxonomyFormData;
@@ -39,7 +44,8 @@ export const FineTuneTaxonomySection = ({
         variant="link"
         onClick={() =>
           handleOpenDrawer({
-            body: <MarkdownView markdown={taxonomyMarkdown} />,
+            title: taxonomyMarkdownTitle,
+            content: <MarkdownView markdown={taxonomyMarkdownContent} />,
           })
         }
       >

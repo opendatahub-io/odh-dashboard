@@ -10,7 +10,8 @@ import {
 import {
   FineTunePageSections,
   fineTunePageSectionTitles,
-  teacherJudgeMarkdown,
+  teacherJudgeMarkdownContent,
+  teacherJudgeMarkdownTitle,
 } from '~/pages/pipelines/global/modelCustomization/const';
 import { ModelCustomizationEndpointType } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
 import {
@@ -45,7 +46,8 @@ const JudgeModelSection: React.FC<JudgeModelSectionProps> = ({
         variant="link"
         onClick={() =>
           handleOpenDrawer({
-            body: <MarkdownView markdown={teacherJudgeMarkdown} />,
+            title: teacherJudgeMarkdownTitle,
+            content: <MarkdownView markdown={teacherJudgeMarkdownContent} />,
           })
         }
       >

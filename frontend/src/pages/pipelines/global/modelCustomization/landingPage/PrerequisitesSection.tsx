@@ -7,8 +7,10 @@ import { useToggleAccordion } from '~/pages/pipelines/global/modelCustomization/
 import { ModelCustomizationDrawerContentArgs } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
 import MarkdownView from '~/components/MarkdownView';
 import {
-  taxonomyMarkdown,
-  teacherJudgeMarkdown,
+  taxonomyMarkdownContent,
+  taxonomyMarkdownTitle,
+  teacherJudgeMarkdownContent,
+  teacherJudgeMarkdownTitle,
 } from '~/pages/pipelines/global/modelCustomization/const';
 
 type PrerequisitesSectionProps = {
@@ -33,11 +35,13 @@ export const PrerequisitesSection: React.FC<PrerequisitesSectionProps> = ({ hand
           to answer questions that involve facts, data, or references.
           <br />
           <Button
+            data-testid="learn-more-taxonomy"
             isInline
             variant="link"
             onClick={() =>
               handleOpenDrawer({
-                body: <MarkdownView markdown={taxonomyMarkdown} />,
+                title: taxonomyMarkdownTitle,
+                content: <MarkdownView markdown={taxonomyMarkdownContent} />,
               })
             }
           >
@@ -54,11 +58,13 @@ export const PrerequisitesSection: React.FC<PrerequisitesSectionProps> = ({ hand
           responsible for evaluating the LAB-tuning run.
           <br />
           <Button
+            data-testid="learn-more-teacher-judge-models"
             isInline
             variant="link"
             onClick={() =>
               handleOpenDrawer({
-                body: <MarkdownView markdown={teacherJudgeMarkdown} />,
+                title: teacherJudgeMarkdownTitle,
+                content: <MarkdownView markdown={teacherJudgeMarkdownContent} />,
               })
             }
           >

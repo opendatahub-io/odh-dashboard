@@ -62,7 +62,7 @@ const FineTunePage: React.FC<FineTunePageProps> = ({
 
   return (
     <FineTunedModelNewConnectionContextProvider connectionType={ociConnectionType}>
-      <Form data-testid="fineTunePageForm" maxWidth="500px">
+      <Form data-testid="fineTunePageForm" maxWidth="800px">
         <FormSection
           id={FineTunePageSections.PROJECT_DETAILS}
           title={fineTunePageSectionTitles[FineTunePageSections.PROJECT_DETAILS]}
