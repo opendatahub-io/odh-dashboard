@@ -31,10 +31,16 @@ export const useEnableApplication = (
   }>({ status: EnableApplicationStatus.IDLE, error: '' });
   const [lastVariablesValidationTimestamp, setLastVariablesValidationTimestamp] =
     React.useState<string>('');
+  const [lastFailedValues, setLastFailedValues] = React.useState<{ [key: string]: string }>({});
+  const [notificationSent, setNotificationSent] = React.useState(false);
   const dispatch = useAppDispatch();
 
   const dispatchResults = React.useCallback(
     (error?: string) => {
+      if (notificationSent) {
+        return;
+      } // Skip if notification already sent for this validation attempt
+
       dispatch(
         addNotification({
           status: error ? AlertVariant.danger : AlertVariant.success,
@@ -49,15 +55,35 @@ export const useEnableApplication = (
       if (!error) {
         dispatch(forceComponentsUpdate());
       }
+
+      setNotificationSent(true);
     },
-    [appName, dispatch],
+    [appName, dispatch, notificationSent],
   );
 
   React.useEffect(() => {
     if (!doEnable) {
       setEnableStatus({ status: EnableApplicationStatus.IDLE, error: '' });
+      setNotificationSent(false);
     }
   }, [doEnable]);
+
+  // Check if current values match previously failed values
+  const isResubmittingFailedValues = React.useMemo(
+    () => !_.isEmpty(lastFailedValues) && _.isEqual(enableValues, lastFailedValues),
+    [enableValues, lastFailedValues],
+  );
+
+  React.useEffect(() => {
+    // If trying to submit the same failed values, immediately show the previous error
+    if (doEnable && isResubmittingFailedValues) {
+      setEnableStatus({
+        status: EnableApplicationStatus.FAILED,
+        error: 'Validation failed with these values. Please try different values.',
+      });
+      dispatchResults('Validation failed with these values. Please try different values.');
+    }
+  }, [doEnable, isResubmittingFailedValues, dispatchResults]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -65,9 +91,11 @@ export const useEnableApplication = (
 
     if (enableStatus.status === EnableApplicationStatus.INPROGRESS) {
       const shouldContinueWatching = (response: IntegrationAppStatus): boolean => {
+        // Stop if the timestamp has changed
         if (!_.isEqual(response.variablesValidationTimestamp, lastVariablesValidationTimestamp)) {
           return false;
         }
+
         return true;
       };
 
@@ -75,51 +103,70 @@ export const useEnableApplication = (
         if (isInternalRouteIntegrationsApp(internalRoute)) {
           getIntegrationAppEnablementStatus(internalRoute)
             .then((response) => {
-              if (shouldContinueWatching(response)) {
-                watchHandle = setTimeout(watchStatus, 10 * 1000);
-                return;
-              }
-              setLastVariablesValidationTimestamp(response.variablesValidationTimestamp || '');
-              setEnableStatus({
-                status:
-                  response.variablesValidationStatus === VariablesValidationStatus.SUCCESS
+              if (!cancelled) {
+                if (shouldContinueWatching(response)) {
+                  watchHandle = setTimeout(watchStatus, 10 * 1000);
+                  return;
+                }
+
+                setLastVariablesValidationTimestamp(response.variablesValidationTimestamp || '');
+                const isSuccess =
+                  response.variablesValidationStatus === VariablesValidationStatus.SUCCESS;
+
+                setEnableStatus({
+                  status: isSuccess
                     ? EnableApplicationStatus.SUCCESS
                     : EnableApplicationStatus.FAILED,
-                error:
-                  response.variablesValidationStatus === VariablesValidationStatus.SUCCESS
-                    ? ''
-                    : response.error,
-              });
-              dispatchResults(
-                response.variablesValidationStatus === VariablesValidationStatus.SUCCESS
-                  ? undefined
-                  : response.error,
-              );
+                  error: isSuccess ? '' : response.error,
+                });
+
+                // If validation failed, store the values that failed
+                if (!isSuccess) {
+                  setLastFailedValues({ ...enableValues });
+                } else {
+                  setLastFailedValues({});
+                }
+
+                dispatchResults(isSuccess ? undefined : response.error);
+              }
             })
             .catch((e) => {
               if (!cancelled) {
                 setEnableStatus({ status: EnableApplicationStatus.FAILED, error: e.message });
+                setLastFailedValues({ ...enableValues });
               }
               dispatchResults(e.message);
             });
         } else {
           getValidationStatus(appId)
             .then((response) => {
-              if (!response.complete) {
-                watchHandle = setTimeout(watchStatus, 10 * 1000);
-                return;
+              if (!cancelled) {
+                if (!response.complete) {
+                  watchHandle = setTimeout(watchStatus, 10 * 1000);
+                  return;
+                }
+
+                setEnableStatus({
+                  status: response.valid
+                    ? EnableApplicationStatus.SUCCESS
+                    : EnableApplicationStatus.FAILED,
+                  error: response.valid ? '' : response.error,
+                });
+
+                // If validation failed, store the values that failed
+                if (!response.valid) {
+                  setLastFailedValues({ ...enableValues });
+                } else {
+                  setLastFailedValues({});
+                }
+
+                dispatchResults(response.valid ? undefined : response.error);
               }
-              setEnableStatus({
-                status: response.valid
-                  ? EnableApplicationStatus.SUCCESS
-                  : EnableApplicationStatus.FAILED,
-                error: response.valid ? '' : response.error,
-              });
-              dispatchResults(response.valid ? undefined : response.error);
             })
             .catch((e) => {
               if (!cancelled) {
                 setEnableStatus({ status: EnableApplicationStatus.FAILED, error: e.message });
+                setLastFailedValues({ ...enableValues });
               }
               dispatchResults(e.message);
             });
@@ -135,13 +182,16 @@ export const useEnableApplication = (
     appId,
     dispatchResults,
     enableStatus.status,
+    enableValues,
     internalRoute,
     lastVariablesValidationTimestamp,
   ]);
 
   React.useEffect(() => {
     let closed = false;
-    if (doEnable) {
+    if (doEnable && !isResubmittingFailedValues) {
+      setNotificationSent(false);
+
       if (isInternalRouteIntegrationsApp(internalRoute)) {
         enableIntegrationApp(internalRoute, enableValues)
           .then((response) => {
@@ -156,21 +206,24 @@ export const useEnableApplication = (
                   response.variablesValidationTimestamp !== lastVariablesValidationTimestamp &&
                   response.variablesValidationStatus !== VariablesValidationStatus.UNKNOWN
                 ) {
+                  const isSuccess =
+                    response.variablesValidationStatus === VariablesValidationStatus.SUCCESS;
+
                   setEnableStatus({
-                    status:
-                      response.variablesValidationStatus === VariablesValidationStatus.SUCCESS
-                        ? EnableApplicationStatus.SUCCESS
-                        : EnableApplicationStatus.FAILED,
-                    error:
-                      response.variablesValidationStatus === VariablesValidationStatus.SUCCESS
-                        ? ''
-                        : response.error,
+                    status: isSuccess
+                      ? EnableApplicationStatus.SUCCESS
+                      : EnableApplicationStatus.FAILED,
+                    error: isSuccess ? '' : response.error,
                   });
-                  dispatchResults(
-                    response.variablesValidationStatus === VariablesValidationStatus.SUCCESS
-                      ? undefined
-                      : response.error,
-                  );
+
+                  // If validation failed, store the values that failed
+                  if (!isSuccess) {
+                    setLastFailedValues({ ...enableValues });
+                  } else {
+                    setLastFailedValues({});
+                  }
+
+                  dispatchResults(isSuccess ? undefined : response.error);
                 }
               }
             }
@@ -178,6 +231,7 @@ export const useEnableApplication = (
           .catch((e) => {
             if (!closed) {
               setEnableStatus({ status: EnableApplicationStatus.FAILED, error: e.message });
+              setLastFailedValues({ ...enableValues });
             }
             dispatchResults(e.message);
           });
@@ -190,18 +244,28 @@ export const useEnableApplication = (
                 return;
               }
 
+              const isSuccess = response.valid;
+
               setEnableStatus({
-                status: response.valid
+                status: isSuccess
                   ? EnableApplicationStatus.SUCCESS
                   : EnableApplicationStatus.FAILED,
-                error: response.valid ? '' : response.error,
+                error: isSuccess ? '' : response.error,
               });
+
+              // If validation failed, store the values that failed
+              if (!isSuccess) {
+                setLastFailedValues({ ...enableValues });
+              } else {
+                setLastFailedValues({});
+              }
             }
             dispatchResults(response.valid ? undefined : response.error);
           })
           .catch((e) => {
             if (!closed) {
               setEnableStatus({ status: EnableApplicationStatus.FAILED, error: e.message });
+              setLastFailedValues({ ...enableValues });
             }
             dispatchResults(e.message);
           });
@@ -220,6 +284,8 @@ export const useEnableApplication = (
     enableValues,
     internalRoute,
     lastVariablesValidationTimestamp,
+    isResubmittingFailedValues,
   ]);
+
   return [enableStatus.status, enableStatus.error];
 };
