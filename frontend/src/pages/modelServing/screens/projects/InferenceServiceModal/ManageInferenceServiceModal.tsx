@@ -58,13 +58,18 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
   const currentProjectName = projectContext?.currentProject.metadata.name || '';
   const currentServingRuntimeName = projectContext?.currentServingRuntime?.metadata.name || '';
 
-  const [connections, connectionsLoaded, connectionsLoadError] =
-    usePrefillDeployModalFromModelRegistry(
-      projectContext,
-      createData,
-      setCreateData,
-      registeredModelDeployInfo,
-    );
+  const [
+    initialNewConnectionType,
+    initialNewConnectionValues,
+    connections,
+    connectionsLoaded,
+    connectionsLoadError,
+  ] = usePrefillDeployModalFromModelRegistry(
+    projectContext,
+    createData,
+    setCreateData,
+    registeredModelDeployInfo,
+  );
 
   const [connection, setConnection] = React.useState<Connection>();
   const [isConnectionValid, setIsConnectionValid] = React.useState(false);
@@ -193,6 +198,8 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
                 existingUriOption={editInfo?.spec.predictor.model?.storageUri}
                 data={createData}
                 setData={setCreateData}
+                initialNewConnectionType={initialNewConnectionType}
+                initialNewConnectionValues={initialNewConnectionValues}
                 loaded={!!projectContext?.connections || connectionsLoaded}
                 loadError={connectionsLoadError}
                 connection={connection}
