@@ -16,7 +16,6 @@ import {
   CreatingInferenceServiceObject,
   CreatingServingRuntimeObject,
   InferenceServiceStorageType,
-  LabeledDataConnection,
   ModelServingSize,
   ServingPlatformStatuses,
   ServingRuntimeEditInfo,
@@ -38,7 +37,6 @@ import {
   updateInferenceService,
   updateServingRuntime,
 } from '~/api';
-import { isDataConnectionAWS } from '~/pages/projects/screens/detail/data-connections/utils';
 import { containsOnlySlashes, isS3PathValid, removeLeadingSlash } from '~/utilities/string';
 import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 import { getNIMData, getNIMResource } from '~/pages/modelServing/screens/projects/nimUtils';
@@ -589,15 +587,6 @@ export const getUrlFromKserveInferenceService = (
 
 export const isUrlInternalService = (url: string | undefined): boolean =>
   url !== undefined && url.endsWith('.svc.cluster.local');
-
-export const filterOutConnectionsWithoutBucket = (
-  connections: LabeledDataConnection[],
-): LabeledDataConnection[] =>
-  connections.filter(
-    (obj) =>
-      isDataConnectionAWS(obj.dataConnection) &&
-      obj.dataConnection.data.data.AWS_S3_BUCKET.trim() !== '',
-  );
 
 export interface ModelInfo {
   name: string;

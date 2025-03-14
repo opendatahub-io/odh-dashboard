@@ -26,7 +26,7 @@ import ServingRuntimeSizeSection from '~/pages/modelServing/screens/projects/Ser
 import NIMModelListSection from '~/pages/modelServing/screens/projects/NIMServiceModal/NIMModelListSection';
 import NIMModelDeploymentNameSection from '~/pages/modelServing/screens/projects/NIMServiceModal/NIMModelDeploymentNameSection';
 import ProjectSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSection';
-import { DataConnection, NamespaceApplicationCase } from '~/pages/projects/types';
+import { NamespaceApplicationCase } from '~/pages/projects/types';
 import {
   getDisplayNameFromK8sResource,
   translateDisplayNameForK8s,
@@ -65,7 +65,6 @@ type ManageNIMServingModalProps = {
   {
     projectContext?: {
       currentProject: ProjectKind;
-      dataConnections: DataConnection[];
     };
   },
   {

@@ -8,7 +8,6 @@ import {
   useCreateInferenceServiceObject,
 } from '~/pages/modelServing/screens/projects/utils';
 import { InferenceServiceKind, ProjectKind, ServingRuntimeKind } from '~/k8sTypes';
-import { DataConnection } from '~/pages/projects/types';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
@@ -35,7 +34,6 @@ type ManageInferenceServiceModalProps = {
     projectContext?: {
       currentProject: ProjectKind;
       currentServingRuntime?: ServingRuntimeKind;
-      dataConnections: DataConnection[];
       connections: Connection[];
     };
   }

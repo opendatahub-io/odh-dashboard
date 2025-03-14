@@ -15,8 +15,6 @@ import {
 import { Volume, VolumeMount } from '~/types';
 import {
   ConfigMapCategory,
-  DataConnection,
-  DataConnectionData,
   EnvironmentFromVariable,
   EnvVariable,
   SecretCategory,
@@ -165,8 +163,6 @@ export const updateConfigMapsAndSecretsForNotebook = async (
   projectName: string,
   notebook: NotebookKind,
   envVariables: EnvVariable[],
-  dataConnection?: DataConnectionData,
-  existingDataConnection?: DataConnection,
   connections?: Connection[],
   dryRun = false,
 ): Promise<EnvironmentFromVariable[]> => {
@@ -174,27 +170,8 @@ export const updateConfigMapsAndSecretsForNotebook = async (
   const { deletedConfigMaps, deletedSecrets } = getDeletedConfigMapOrSecretVariables(
     notebook,
     existingEnvVars,
-    [
-      existingDataConnection?.data.metadata.name || '',
-      ...(connections || []).map((connection) => connection.metadata.name),
-    ],
+    [...(connections || []).map((connection) => connection.metadata.name)],
   );
-  const newDataConnection =
-    dataConnection?.enabled && dataConnection.type === 'creating' && dataConnection.creating
-      ? dataConnection.creating
-      : undefined;
-  const replaceDataConnection =
-    dataConnection?.enabled &&
-    dataConnection.type === 'existing' &&
-    dataConnection.existing?.secretRef.name !== existingDataConnection?.data.metadata.name
-      ? dataConnection.existing
-      : undefined;
-
-  const removeDataConnections =
-    existingDataConnection &&
-    (replaceDataConnection || newDataConnection || !dataConnection?.enabled)
-      ? [existingDataConnection.data.metadata.name]
-      : [];
 
   const [oldResources, newResources] = _.partition(envVariables, (envVar) => envVar.existingName);
   const currentNames = oldResources
@@ -232,7 +209,7 @@ export const updateConfigMapsAndSecretsForNotebook = async (
     .filter((v): v is Promise<K8sStatus> => !!v);
   const creatingPromises = getPromisesForConfigMapsAndSecrets(
     projectName,
-    [...newResources, ...typeChangeResources, ...(newDataConnection ? [newDataConnection] : [])],
+    [...newResources, ...typeChangeResources],
     'create',
     dryRun,
   );
@@ -251,14 +228,11 @@ export const updateConfigMapsAndSecretsForNotebook = async (
   ]);
 
   const deletingNames = deleteResources.map((resource) => resource.existingName || '');
-  deletingNames.push(...removeDataConnections, ...deletedSecrets, ...deletedConfigMaps);
+  deletingNames.push(...deletedSecrets, ...deletedConfigMaps);
 
   const envFromList = notebook.spec.template.spec.containers[0].envFrom || [];
 
-  return getEnvFromList(created, [
-    ...envFromList,
-    ...(replaceDataConnection ? [replaceDataConnection] : []),
-  ]).filter(
+  return getEnvFromList(created, [...envFromList]).filter(
     (envFrom) =>
       !(envFrom.secretRef?.name && deletingNames.includes(envFrom.secretRef.name)) &&
       !(envFrom.configMapRef?.name && deletingNames.includes(envFrom.configMapRef.name)),
