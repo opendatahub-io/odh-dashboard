@@ -13,7 +13,6 @@ import {
   Split,
   SplitItem,
   CardFooter,
-  LabelGroup,
   Skeleton,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
@@ -75,17 +74,7 @@ export const ModelCatalogCard: React.FC<{ model: CatalogModel; source: string }>
       </Stack>
     </CardBody>
     <CardFooter>
-<<<<<<< HEAD
       <ModelCatalogLabels labels={model.labels} tasks={model.tasks} />
-=======
-      <LabelGroup>
-        {(model.tasks ?? []).map((task, index) => (
-          <Label variant="outline" key={index}>
-            {task}
-          </Label>
-        ))}
-      </LabelGroup>
->>>>>>> 55d526d7 (feat(20552): model catalog styling/layout changes)
     </CardFooter>
   </Card>
 );
