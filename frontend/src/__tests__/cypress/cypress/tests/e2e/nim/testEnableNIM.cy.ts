@@ -3,9 +3,11 @@ import { explorePage } from '~/__tests__/cypress/cypress/pages/explore';
 import { enabledPage } from '~/__tests__/cypress/cypress/pages/enabled';
 import { nimCard } from '~/__tests__/cypress/cypress/pages/components/NIMCard';
 import { deleteNIMAccount } from '~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
+import { wasSetupPerformed } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 describe('[Automation Bug: RHOAIENG-21549] Verify NIM enable flow', () => {
   after(() => {
+    if (!wasSetupPerformed()) return;
     cy.step('Delete odh-nim-account');
     deleteNIMAccount();
   });
