@@ -13,6 +13,7 @@ export type MockDashboardConfigType = {
   disableUserManagement?: boolean;
   disableHome?: boolean;
   disableProjects?: boolean;
+  disableProjectScoped?: boolean;
   disablePipelines?: boolean;
   disableModelServing?: boolean;
   disableCustomServingRuntimes?: boolean;
@@ -51,6 +52,7 @@ export const mockDashboardConfig = ({
   disableUserManagement = false,
   disableHome = false,
   disableProjects = false,
+  disableProjectScoped = true,
   disableModelServing = false,
   disableCustomServingRuntimes = false,
   disablePipelines = false,
@@ -206,6 +208,7 @@ export const mockDashboardConfig = ({
       disableModelServing,
       disableCustomServingRuntimes,
       disablePipelines,
+      disableProjectScoped,
       disableProjectSharing: false,
       disableTrustyBiasMetrics,
       disablePerformanceMetrics,
