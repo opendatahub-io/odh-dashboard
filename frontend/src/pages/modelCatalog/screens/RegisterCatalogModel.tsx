@@ -88,7 +88,7 @@ const RegisterCatalogModel: React.FC = () => {
   );
 
   // TODO hasPrefilledRef is a workaround - we should instead refactor so this useEffect isn't necessary.
-  // See [issue]
+  // See tech debt issue https://issues.redhat.com/browse/RHOAIENG-21678
   const hasPrefilledRef = React.useRef(false);
   React.useEffect(() => {
     if (model && !hasPrefilledRef.current) {
