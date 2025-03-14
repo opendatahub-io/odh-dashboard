@@ -64,6 +64,20 @@ class NIMDeployModal extends Modal {
   findServiceAccountNameInput() {
     return this.find().findByTestId('service-account-form-name');
   }
+
+  findModelServerSizeSelect() {
+    return this.find().findByTestId('model-server-size-selection');
+  }
+
+  findAcceleratorProfileSelectToggle() {
+    return cy.findByTestId('accelerator-profile-select');
+  }
+
+  findNIMModelListSelectionToggle() {
+    return cy
+      .findByTestId('typeahead-menu-toggle')
+      .findByRole('button', { name: 'Typeahead menu toggle' });
+  }
 }
 
 export const nimDeployModal = new NIMDeployModal();

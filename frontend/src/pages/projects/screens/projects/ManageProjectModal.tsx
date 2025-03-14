@@ -80,6 +80,7 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
       onClose={() => onBeforeClose()}
       actions={[
         <Button
+          data-testid="create-project-submit"
           key="confirm"
           variant="primary"
           isDisabled={!canSubmit}
@@ -89,6 +90,7 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
           {editProjectData ? 'Update' : 'Create'}
         </Button>,
         <Button
+          data-testid="create-project-cancel"
           key="cancel"
           variant="link"
           onClick={() => {
