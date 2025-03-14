@@ -11,6 +11,7 @@ import {
   PageSection,
   Stack,
   StackItem,
+  Truncate,
 } from '@patternfly/react-core';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ImageStreamAndVersion } from '~/types';
@@ -214,8 +215,11 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
         <Breadcrumb>
           <BreadcrumbItem render={() => <Link to="/projects">Data Science Projects</Link>} />
           <BreadcrumbItem
+            style={{ maxWidth: 300 }}
             render={() => (
-              <Link to={`/projects/${currentProject.metadata.name}`}>{displayName}</Link>
+              <Link to={`/projects/${currentProject.metadata.name}`}>
+                <Truncate content={displayName} style={{ textDecoration: 'underline' }} />
+              </Link>
             )}
           />
           {existingNotebook && <BreadcrumbItem>{editNotebookDisplayName}</BreadcrumbItem>}

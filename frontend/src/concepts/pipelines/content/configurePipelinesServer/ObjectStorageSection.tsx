@@ -5,9 +5,10 @@ import {
   InputGroup,
   Tooltip,
   InputGroupItem,
-  Alert,
   Popover,
+  Button,
 } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { DataConnection } from '~/pages/projects/types';
 import { AwsKeys, PIPELINE_AWS_FIELDS } from '~/pages/projects/dataConnections/const';
 import { FieldListField } from '~/components/FieldList';
@@ -89,28 +90,26 @@ export const ObjectStorageSection = ({
             />
 
             {field.key === AwsKeys.AWS_S3_BUCKET && (
-              <Popover
-                aria-label="bucket tooltip"
-                headerContent="Where is my data stored within the bucket?"
-                position="right"
-                hasAutoWidth
-                bodyContent={
-                  <div className="pf-v6-u-mt-md">
-                    Uploaded pipelines will be stored in the <b>/pipelines</b> directory.
-                    <br />
-                    When running a pipeline, artifacts will be stored in dedicated folders at the{' '}
-                    <b>/root</b> directory.
-                  </div>
-                }
-              >
-                <Alert
-                  variant="info"
-                  isInline
-                  isPlain
-                  title="Where is my data stored within the bucket?"
-                  style={{ width: 'fit-content' }}
-                />
-              </Popover>
+              <div>
+                <Popover
+                  aria-label="bucket tooltip"
+                  headerContent="Where is my data stored within the bucket?"
+                  position="right"
+                  hasAutoWidth
+                  bodyContent={
+                    <div className="pf-v6-u-mt-md">
+                      Uploaded pipelines will be stored in the <b>/pipelines</b> directory.
+                      <br />
+                      When running a pipeline, artifacts will be stored in dedicated folders at the{' '}
+                      <b>/root</b> directory.
+                    </div>
+                  }
+                >
+                  <Button icon={<OutlinedQuestionCircleIcon />} variant="link">
+                    Where is my data stored within the bucket?
+                  </Button>
+                </Popover>
+              </div>
             )}
           </React.Fragment>
         ),

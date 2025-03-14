@@ -73,7 +73,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
         ...(isFineTuningEnabled
           ? [
               {
-                title: 'LAB tune',
+                title: 'LAB-tune',
                 onClick: () => setTuningModelVersionId(mv.id),
               },
             ]

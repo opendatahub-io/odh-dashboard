@@ -80,7 +80,7 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
             aria-label="Lab tune version"
           >
             <Button variant="secondary" onClick={() => setIsLabTuneModalOpen(true)}>
-              LAB tune
+              LAB-tune
             </Button>
           </ActionListItem>
         )}

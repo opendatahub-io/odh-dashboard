@@ -32,9 +32,9 @@ const usePrefillDeployModalFromModelRegistry = (
   React.useEffect(() => {
     const alert = {
       type: AlertVariant.info,
-      title: "We've auto-switched to create a new connection and pre-filled the details for you.",
+      title: 'We’ve populated the details of a new connection for you.',
       message:
-        'Model location info is available in the registry but there are no matching connections in the project. So we automatically switched the option to create a new connection and prefilled the information.',
+        'The selected project does not have a connection that matches the model location. You can create a matching connection by using the data in the autopopulated fields, or edit the fields to create a different connection. Alternatively, click Existing connection to select an existing non-matching connection.',
     };
     if (registeredModelDeployInfo?.modelArtifactUri) {
       setCreateData('name', registeredModelDeployInfo.modelName);

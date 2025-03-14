@@ -67,7 +67,9 @@ const ProjectDetails: React.FC = () => {
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem render={() => <Link to="/projects">Data Science Projects</Link>} />
-          <BreadcrumbItem isActive>{displayName}</BreadcrumbItem>
+          <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
+            <Truncate content={displayName} />
+          </BreadcrumbItem>
         </Breadcrumb>
       }
       loaded={rbacLoaded}

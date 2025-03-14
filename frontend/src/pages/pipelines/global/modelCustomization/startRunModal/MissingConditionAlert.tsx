@@ -19,25 +19,24 @@ const ALERT_CONFIG: Record<ContinueCondition, PickedAlertProps> = {
     variant: 'danger',
     title: 'InstructLab pipeline not installed',
     children:
-      'This project is missing an InstructLab pipeline. You can import the InstructLab pipeline into your project.',
+      'To start a LAB-tuning run, the InstructLab pipeline must exist in the selected project. Install the InstructLab pipeline on your project, or select a different project.',
   },
   pipelineServerConfigured: {
     variant: 'danger',
     title: 'Pipeline server not configured',
     children:
-      'To utilize InstructLab fine-tuning you need a pipeline server configured with an InstructLab pipeline.',
+      'To start a LAB-tuning run, the selected project must have a configured pipeline server and an InstructLab pipeline installed. Configure the server and install the pipeline, or select a different project.',
   },
   pipelineServerAccessible: {
     variant: 'danger',
     title: 'Pipeline server not accessible',
     children:
-      'The pipeline server is not accessible. To utilize InstructLab fine-tuning you need a pipeline server configured and online with an InstructLab pipeline.',
+      'To start a LAB-tuning run, the selected project must have a configured pipeline server that is online, and an InstructLab pipeline installed. Ensure the server is online and install the pipeline, or select a different project.',
   },
   pipelineServerOnline: {
     variant: 'danger',
     title: 'Pipeline server is offline',
-    children:
-      'The pipeline server is offline. To utilize InstructLab fine-tuning you need to start the server.',
+    children: 'To start a LAB-tuning run, you must first start this project’s pipeline server.',
   },
 };
 
@@ -82,7 +81,7 @@ const MissingConditionAlert: React.FC<MissingConditionAlertProps> = ({
               component="a"
               onClick={() => navigate(`/pipelines/${selectedProject}`)}
             >
-              Go to pipelines
+              Go to <b>Pipelines</b>
             </Button>
           </StackItem>
         </Stack>
