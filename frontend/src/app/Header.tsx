@@ -8,6 +8,8 @@ import {
   MastheadToggle,
   MastheadBrand,
   PageToggleButton,
+  Split,
+  SplitItem,
 } from '@patternfly/react-core';
 import { BarsIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
@@ -43,13 +45,18 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsClick }) => {
         )}
         <MastheadBrand>
           <MastheadLogo component={MastheadBranchComponent}>
-            <Brand
-              className="odh-dashboard__brand"
-              src={`${window.location.origin}/images/${
-                theme !== 'dark' ? ODH_LOGO : ODH_LOGO_DARK
-              }`}
-              alt={`${ODH_PRODUCT_NAME}`}
-            />
+            <Split>
+              <SplitItem>
+                <Brand
+                  className="odh-dashboard__brand"
+                  src={`${window.location.origin}/images/${
+                    theme !== 'dark' ? ODH_LOGO : ODH_LOGO_DARK
+                  }`}
+                  alt={`${ODH_PRODUCT_NAME}`}
+                />
+              </SplitItem>
+              <SplitItem>(v1)</SplitItem>
+            </Split>
           </MastheadLogo>
         </MastheadBrand>
       </MastheadMain>
