@@ -63,7 +63,17 @@ class ModelCustomizationLandingPage {
     return this.findAccordionSection(args.section).findByTestId(`accordion-item ${args.item}`);
   }
 
-  findAccordionArchorButton(args: {
+  findAccordionAnchor(args: {
+    section: AccordionSection;
+    item: AccordionItem;
+    name: AccordionButtonName;
+  }) {
+    return this.findAccordionItem({ section: args.section, item: args.item }).get(
+      `a[data-testid="${args.name}"]`,
+    );
+  }
+
+  findAccordionButton(args: {
     section: AccordionSection;
     item: AccordionItem;
     name: AccordionButtonName;

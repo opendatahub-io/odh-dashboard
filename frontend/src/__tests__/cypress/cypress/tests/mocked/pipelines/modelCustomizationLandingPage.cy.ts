@@ -50,7 +50,7 @@ describe('Model Customization Landing Page', () => {
         .findAccordionItem({ section: 'project-setup', item: 'instructlab-pipeline' })
         .click();
       modelCustomizationLandingPage
-        .findAccordionArchorButton({
+        .findAccordionAnchor({
           section: 'project-setup',
           item: 'instructlab-pipeline',
           name: 'go-to-pipelines',
@@ -75,7 +75,7 @@ describe('Model Customization Landing Page', () => {
         .findAccordionItem({ section: 'next-steps', item: 'monitor-run' })
         .click();
       modelCustomizationLandingPage
-        .findAccordionArchorButton({
+        .findAccordionAnchor({
           section: 'next-steps',
           item: 'monitor-run',
           name: 'go-to-pipeline-runs',
@@ -89,7 +89,7 @@ describe('Model Customization Landing Page', () => {
         .findAccordionItem({ section: 'next-steps', item: 'view-model' })
         .click();
       modelCustomizationLandingPage
-        .findAccordionArchorButton({
+        .findAccordionAnchor({
           section: 'next-steps',
           item: 'view-model',
           name: 'go-to-model-registry',
@@ -118,7 +118,7 @@ describe('Model Customization Landing Page', () => {
         .findAccordionItem({ section: 'prerequisites', item: 'taxonomy-repository' })
         .click();
       modelCustomizationLandingPage
-        .findAccordionArchorButton({
+        .findAccordionButton({
           section: 'prerequisites',
           item: 'taxonomy-repository',
           name: 'learn-more-taxonomy',
@@ -134,7 +134,7 @@ describe('Model Customization Landing Page', () => {
         .findAccordionItem({ section: 'prerequisites', item: 'deployed-teacher-and-judge-models' })
         .click();
       modelCustomizationLandingPage
-        .findAccordionArchorButton({
+        .findAccordionButton({
           section: 'prerequisites',
           item: 'deployed-teacher-and-judge-models',
           name: 'learn-more-teacher-judge-models',
@@ -150,7 +150,7 @@ describe('Model Customization Landing Page', () => {
         .findAccordionItem({ section: 'prerequisites', item: 'taxonomy-repository' })
         .click();
       modelCustomizationLandingPage
-        .findAccordionArchorButton({
+        .findAccordionButton({
           section: 'prerequisites',
           item: 'taxonomy-repository',
           name: 'learn-more-taxonomy',
@@ -164,7 +164,7 @@ describe('Model Customization Landing Page', () => {
         .findAccordionItem({ section: 'prerequisites', item: 'deployed-teacher-and-judge-models' })
         .click();
       modelCustomizationLandingPage
-        .findAccordionArchorButton({
+        .findAccordionButton({
           section: 'prerequisites',
           item: 'deployed-teacher-and-judge-models',
           name: 'learn-more-teacher-judge-models',
