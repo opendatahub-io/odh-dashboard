@@ -103,7 +103,7 @@ export const mockIlabPipelineVersionParameters = {
     parameterType: InputDefinitionParameterType.INTEGER,
   },
   [KnownFineTuningPipelineParameters.TRAIN_NUM_WORKERS]: {
-    defaultValue: '2',
+    defaultValue: 2,
     description: 'Training parameter. Number of nodes/workers to train on.',
     isOptional: false,
     parameterType: InputDefinitionParameterType.INTEGER,
