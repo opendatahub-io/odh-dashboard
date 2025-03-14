@@ -248,6 +248,12 @@ export type ResourcesData = {
   };
 };
 
+export type HardwareProfilesData = {
+  hardwareProfileName: string;
+  hardwareProfileDescription: string;
+  hardwareProfileEditedDescription: string;
+};
+
 export type NamespaceConfig = {
   APPLICATIONS_NAMESPACE: string;
 };

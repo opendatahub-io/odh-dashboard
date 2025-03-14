@@ -1,0 +1,4 @@
+# testHardwareProfiles.cy.ts Test Data #
+hardwareProfileName: "cypress-test-hardware-profile"
+hardwareProfileDescription: "Cypress Test Hardware Profile description."
+hardwareProfileEditedDescription: "This is an updated Hardware Profile text description."

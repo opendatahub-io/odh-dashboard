@@ -1,6 +1,7 @@
 import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
 import { K8sNameDescriptionField } from '~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
+import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { TableRow } from './components/table';
 
 class HardwareProfileTableToolbar extends Contextual<HTMLElement> {
@@ -78,6 +79,15 @@ class HardwareProfile {
     this.wait();
   }
 
+  navigate() {
+    this.findNavItem().click();
+    this.wait();
+  }
+
+  findNavItem() {
+    return appChrome.findNavItem('Hardware profiles', 'Settings');
+  }
+
   private wait() {
     this.findAppPage();
     cy.testA11y();
@@ -129,6 +139,10 @@ class HardwareProfile {
 
   findRestoreDefaultHardwareProfileButton() {
     return cy.findByTestId('restore-default-hardware-profile');
+  }
+
+  findHardwareProfilesEmptyState() {
+    return cy.findByTestId('dashboard-empty-table-state');
   }
 }
 
@@ -199,6 +213,10 @@ class TolerationRow extends TableRow {
 
 class ManageHardwareProfile {
   k8sNameDescription = new K8sNameDescriptionField('hardware-profile-name-desc');
+
+  findDescriptionTextBox() {
+    return cy.findByTestId('hardware-profile-name-desc-description');
+  }
 
   findAddTolerationButton() {
     return cy.findByTestId('add-toleration-button');
