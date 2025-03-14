@@ -1,8 +1,8 @@
 import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
 import { K8sNameDescriptionField } from '~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
-import { TableRow } from './components/table';
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
+import { TableRow } from './components/table';
 
 class HardwareProfileTableToolbar extends Contextual<HTMLElement> {
   findToggleButton(id: string) {
@@ -139,6 +139,10 @@ class HardwareProfile {
 
   findRestoreDefaultHardwareProfileButton() {
     return cy.findByTestId('restore-default-hardware-profile');
+  }
+
+  findHardwareProfilesEmptyState() {
+    return cy.findByTestId('dashboard-empty-table-state');
   }
 }
 
