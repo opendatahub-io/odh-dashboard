@@ -34,8 +34,8 @@ import {
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { globalPipelineRunDetailsRoute } from '~/routes';
 import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
-import { CatalogModelDetailsParams } from '~/pages/modelCatalog/const';
 import { getCatalogModelDetailsUrl } from '~/pages/modelCatalog/routeUtils';
+import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
 
 type ModelVersionDetailsViewProps = {
   modelVersion: ModelVersion;

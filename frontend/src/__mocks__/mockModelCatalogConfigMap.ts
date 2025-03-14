@@ -3,9 +3,11 @@ import { ModelCatalogSourcesObject } from '~/concepts/modelCatalog/types';
 import { mockConfigMap } from './mockConfigMap';
 import { mockModelCatalogSource } from './mockModelCatalogSource';
 
-export const mockModelCatalogConfigMap = (): ConfigMapKind => {
+export const mockModelCatalogConfigMap = (
+  sources = [mockModelCatalogSource({})],
+): ConfigMapKind => {
   const sourcesObj: ModelCatalogSourcesObject = {
-    sources: [mockModelCatalogSource({})],
+    sources,
   };
   return mockConfigMap({
     name: 'model-catalog-sources',
