@@ -17,10 +17,10 @@ const GenericHorizontalBar: React.FC<GenericHorizontalBarProps> = ({ activeKey, 
   const [queryParams, setQueryParams] = useSearchParams();
 
   React.useEffect(() => {
-    if (!sections.find((s) => s.id === activeKey) && sections[0].id) {
-      queryParams.set('section', sections[0].id);
-      setQueryParams(queryParams, { replace: true });
-    }
+    // if (!sections.find((s) => s.id === activeKey) && sections[0].id) {
+    //   queryParams.set('section', sections[0].id);
+    //   setQueryParams(queryParams, { replace: true });
+    // }
   }, [sections, activeKey, queryParams, setQueryParams]);
 
   const activeSection = sections.find((section) => section.id === activeKey) || sections[0];
