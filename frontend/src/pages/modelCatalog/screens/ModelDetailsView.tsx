@@ -69,13 +69,13 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({ model }) => (
           <DashboardDescriptionListGroup title="Provider" groupTestId="model-provider">
             {model.provider}
           </DashboardDescriptionListGroup>
-          <DashboardDescriptionListGroup title="Source image location">
+          <DashboardDescriptionListGroup title="Model location">
             <InlineTruncatedClipboardCopy
               testId="source-image-location"
               textToCopy={model.artifacts?.map((artifact) => artifact.uri)[0] || ''}
             />
           </DashboardDescriptionListGroup>
-          <DashboardDescriptionListGroup title="Last modified at">
+          <DashboardDescriptionListGroup title="Last modified">
             <ModelTimestamp timeSinceEpoch={String(model.lastUpdateTimeSinceEpoch)} />
           </DashboardDescriptionListGroup>
           <DashboardDescriptionListGroup title="Published">

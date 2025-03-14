@@ -38,6 +38,7 @@ import { FindAdministratorOptions } from '~/pages/projects/screens/projects/cons
 import { RhUiTagIcon } from '~/images/icons';
 import { modelCustomizationRootPath } from '~/routes';
 import RhUiControlsIcon from '~/images/icons/RhUiControlsIcon';
+import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import ModelDetailsView from './ModelDetailsView';
 
 const ModelDetailsPage: React.FC = conditionalArea(
@@ -68,13 +69,13 @@ const ModelDetailsPage: React.FC = conditionalArea(
   const registerModelButton = (isSecondary = false) =>
     modelRegistryServices.length === 0 ? (
       <Popover
-        headerContent="Register to model registry?"
+        headerContent="Request access to a model registry"
         triggerAction="hover"
         data-testid="register-catalog-model-popover"
         bodyContent={
           <PopoverListContent
             data-testid="Register-model-button-popover"
-            leadText="To request access to the model registry, contact your administrator."
+            leadText="To request a new model registry, or to request permission to access an existing model registry, contact your administrator."
             listHeading="Your administrator might be:"
             listItems={FindAdministratorOptions}
           />
@@ -103,12 +104,12 @@ const ModelDetailsPage: React.FC = conditionalArea(
       data-testid="tune-model-popover"
       minWidth="min-content"
       aria-label="Popover for fine tuning the model"
-      headerContent="How to tune this model?"
+      headerContent="LAB-tune this model?"
       headerIcon={<RhUiControlsIcon />}
       bodyContent={
         <div>
-          To fine-tune this model, you must first register it to an OpenShift AI model registry,
-          then click Lab tune.
+          To LAB-tune this model, you must first register it as a version to an {ODH_PRODUCT_NAME}{' '}
+          model registry, then from that version’s details page, click <strong> LAB-tune</strong>
         </div>
       }
       footerContent={
@@ -125,7 +126,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
       }
     >
       <Button icon={<OutlinedQuestionCircleIcon />} variant="link" data-testid="tune-model-button">
-        Tune this model?
+        LAB-tune this model?
       </Button>
     </Popover>
   );

@@ -77,6 +77,7 @@ export type FileField = DataField<
   string,
   {
     extensions?: string[];
+    helperText?: string; // No UI to add this field, must do in yaml
   }
 >;
 export type BooleanField = DataField<

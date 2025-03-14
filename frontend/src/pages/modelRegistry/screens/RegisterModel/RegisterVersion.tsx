@@ -87,7 +87,7 @@ const RegisterVersion: React.FC = () => {
   return (
     <ApplicationsPage
       title="Register new version"
-      description="Register a latest version to the model you selected below."
+      description="Register a new version of the selected model."
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem

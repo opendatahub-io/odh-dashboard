@@ -34,8 +34,8 @@ export const HardwareProfileVisibilitySection: React.FC<HardwareProfileUseCaseSe
           content={
             <>
               Visible features indicate where the hardware profile can be used: in{' '}
-              <b>workbenches</b>, during <b>model deployment</b>, and in LAB-tuning
-              <b>pipelines</b>.
+              <b>workbenches</b>, during <b>model deployment</b>, and in LAB-tuning <b>pipelines</b>
+              .
             </>
           }
         />

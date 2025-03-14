@@ -101,7 +101,7 @@ const ImportPipelineSplitButton: React.FC<ImportPipelineSplitButtonProps> = ({
               isAriaDisabled={!apiAvailable}
               onClick={() => setManageSamplePipelinesModalOpen(true)}
             >
-              Manage sample pipelines
+              Manage preconfigured pipelines
             </DropdownItem>
           )}
         </DropdownList>
