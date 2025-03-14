@@ -6,7 +6,7 @@ import { mockConnectionTypeConfigMapObj } from '~/__mocks__/mockConnectionType';
 import { mockProjectK8sResource } from '~/__mocks__';
 import { mockConnection } from '~/__mocks__/mockConnection';
 
-describe('Add connection modal', () => {
+describe('Create connection modal', () => {
   const onCloseMock = jest.fn();
   const onSubmitMock = jest.fn().mockResolvedValue(() => undefined);
 
@@ -32,7 +32,7 @@ describe('Add connection modal', () => {
       />,
     );
 
-    expect(screen.getByRole('dialog', { name: 'Add connection' })).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: 'Create connection' })).toBeTruthy();
     expect(screen.getByRole('combobox')).toHaveValue('the only type');
     expect(screen.getByRole('textbox', { name: 'Connection name' })).toBeVisible();
     expect(screen.getByRole('textbox', { name: 'Connection description' })).toBeVisible();

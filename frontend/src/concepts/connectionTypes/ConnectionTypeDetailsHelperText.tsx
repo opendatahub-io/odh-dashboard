@@ -10,30 +10,25 @@ import {
   LabelGroup,
   Popover,
 } from '@patternfly/react-core';
+import { InfoCircleIcon } from '@patternfly/react-icons';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import TruncatedText from '~/components/TruncatedText';
 import { ConnectionTypeConfigMapObj } from './types';
 import UnspecifiedValue from './fields/UnspecifiedValue';
 import CategoryLabel from './CategoryLabel';
 
 type Props = {
-  connectionType: ConnectionTypeConfigMapObj;
+  connectionType?: ConnectionTypeConfigMapObj;
   isPreview: boolean;
 };
 
 export const ConnectionTypeDetailsHelperText: React.FC<Props> = ({ connectionType, isPreview }) => {
   const displayName = isPreview
-    ? connectionType.metadata.annotations?.['openshift.io/display-name']
-    : getDisplayNameFromK8sResource(connectionType);
-  const description = getDescriptionFromK8sResource(connectionType);
+    ? connectionType && connectionType.metadata.annotations?.['openshift.io/display-name']
+    : connectionType && getDisplayNameFromK8sResource(connectionType);
+  const description = connectionType && getDescriptionFromK8sResource(connectionType);
 
   return (
     <HelperText>
-      {description && (
-        <HelperTextItem>
-          <TruncatedText maxLines={2} content={description} />
-        </HelperTextItem>
-      )}
       <HelperTextItem>
         <Popover
           headerContent="Connection type details"
@@ -56,7 +51,7 @@ export const ConnectionTypeDetailsHelperText: React.FC<Props> = ({ connectionTyp
               <DescriptionListGroup>
                 <DescriptionListTerm>Category</DescriptionListTerm>
                 <DescriptionListDescription>
-                  {connectionType.data?.category?.length ? (
+                  {connectionType && connectionType.data?.category?.length ? (
                     <LabelGroup>
                       {connectionType.data.category.map((category) => (
                         <CategoryLabel key={category} category={category} />
@@ -72,8 +67,8 @@ export const ConnectionTypeDetailsHelperText: React.FC<Props> = ({ connectionTyp
             </DescriptionList>
           }
         >
-          <Button variant="link" isInline>
-            View connection type details
+          <Button variant="link" icon={<InfoCircleIcon />} isDisabled={!connectionType}>
+            View details
           </Button>
         </Popover>
       </HelperTextItem>
