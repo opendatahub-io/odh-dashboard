@@ -27,7 +27,7 @@ let modelName: string;
 let modelFilePath: string;
 const awsBucket = 'BUCKET_3' as const;
 
-describe('Verify Model Creation and Validation using the UI', () => {
+describe('[Product Bug: RHOAIENG-21662] Verify Model Creation and Validation using the UI', () => {
   retryableBefore(() => {
     Cypress.on('uncaught:exception', (err) => {
       if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
@@ -68,7 +68,7 @@ describe('Verify Model Creation and Validation using the UI', () => {
 
   it(
     'Verify that a Non Admin can Serve and Query a Model using the UI',
-    { tags: ['@Smoke', '@SmokeSet3', '@ODS-2552', '@Dashboard', '@Modelserving'] },
+    { tags: ['@Smoke', '@SmokeSet3', '@ODS-2552', '@Dashboard', '@Modelserving', '@Bug'] },
     () => {
       cy.log('Model Name:', modelName);
       // Authentication and navigation

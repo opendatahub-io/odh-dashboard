@@ -53,6 +53,33 @@ class ModelCatalog {
     return cy.findByTestId('model-catalog-cards');
   }
 
+  findModelCatalogCard(modelName: string) {
+    return cy
+      .findAllByTestId('model-catalog-card')
+      .contains('[data-testid~=model-catalog-card]', modelName);
+  }
+
+  expandCardLabelGroup(modelName: string) {
+    this.findModelCatalogCard(modelName)
+      .findAllByTestId('model-catalog-label-group')
+      .find('button')
+      .click();
+  }
+
+  findCardLabelByIndex(modelName: string, index: number) {
+    return this.findModelCatalogCard(modelName).findAllByTestId('model-catalog-label').eq(index);
+  }
+
+  findCardLabelByText(modelName: string, text: string) {
+    return this.findModelCatalogCard(modelName)
+      .findAllByTestId('model-catalog-label')
+      .contains(text);
+  }
+
+  findModelCatalogCardsLabelGroup() {
+    return cy.findByTestId('model-catalog-label-group');
+  }
+
   findModelCatalogDetailsEmptyState() {
     return cy.findByTestId('empty-model-catalog-details-state');
   }

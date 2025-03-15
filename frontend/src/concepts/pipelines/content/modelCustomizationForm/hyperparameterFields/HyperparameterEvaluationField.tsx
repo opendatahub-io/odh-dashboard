@@ -8,19 +8,18 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import * as React from 'react';
-import { HyperparameterDisplayFields } from '~/pages/pipelines/global/modelCustomization/const';
+import { ZodIssue } from 'zod';
+import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
 import { NumberInputParam } from '~/concepts/pipelines/content/createRun/contentSections/ParamsSection/NumberInputParam';
 
 type HyperparameterEvaluationFieldProps = {
-  onChange: (
-    hyperparameter: HyperparameterDisplayFields,
-    hyperparameterValue: string | number,
-  ) => void;
+  onChange: (hyperparameter: string, hyperparameterValue: string | number) => void;
   label: string;
-  field: HyperparameterDisplayFields;
+  field: string;
   value?: string | number;
   description?: string;
   isRequired?: boolean;
+  validationIssues?: ZodIssue[];
 };
 
 const HyperparameterEvaluationField: React.FC<HyperparameterEvaluationFieldProps> = ({
@@ -30,11 +29,9 @@ const HyperparameterEvaluationField: React.FC<HyperparameterEvaluationFieldProps
   value,
   description,
   isRequired = true,
+  validationIssues,
 }) => {
-  const onExactNumberInput = (
-    hyperparameter: HyperparameterDisplayFields,
-    hyperparameterValue: number | string,
-  ) => {
+  const onExactNumberInput = (hyperparameter: string, hyperparameterValue: number | string) => {
     onChange(hyperparameter, hyperparameterValue.toString());
     setDirtyNumberValue(
       typeof hyperparameterValue === 'number' ? hyperparameterValue : Number(hyperparameterValue),
@@ -43,6 +40,7 @@ const HyperparameterEvaluationField: React.FC<HyperparameterEvaluationFieldProps
   const [dirtyNumberValue, setDirtyNumberValue] = React.useState(
     !Number.isNaN(Number(value)) ? Number(value) : 1,
   );
+  const zodIssues = value !== undefined ? validationIssues : [];
 
   const inputProps = {
     value: !Number.isNaN(Number(value)) ? Number(value) : dirtyNumberValue,
@@ -82,7 +80,7 @@ const HyperparameterEvaluationField: React.FC<HyperparameterEvaluationFieldProps
             onChange={() => {
               onChange(field, dirtyNumberValue.toString());
             }}
-            body={<NumberInputParam {...inputProps} />}
+            body={<NumberInputParam {...inputProps} isDisabled={value === 'auto'} />}
             data-testid={`${field}-exact-evaluation-field`}
           />
           {description && (
@@ -94,6 +92,7 @@ const HyperparameterEvaluationField: React.FC<HyperparameterEvaluationFieldProps
           )}
         </StackItem>
       </Stack>
+      <ZodErrorHelperText zodIssue={zodIssues} />
     </FormGroup>
   );
 };

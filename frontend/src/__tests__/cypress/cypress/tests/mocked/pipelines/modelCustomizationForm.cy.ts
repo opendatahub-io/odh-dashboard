@@ -6,6 +6,7 @@ import {
   teacherModelSection,
   taxonomySection,
   hardwareSection,
+  baseModelSection,
 } from '~/__tests__/cypress/cypress/pages/pipelines/modelCustomizationForm';
 import {
   buildMockPipeline,
@@ -70,6 +71,7 @@ describe('Model Customization Form', () => {
     modelCustomizationFormGlobal.visit(projectName);
     cy.wait('@getIlabPipeline');
     cy.wait('@getPipelineVersions');
+    baseModelSection.editInlineText('http://test.com');
     teacherModelSection.findEndpointInput().type('http://test.com');
     teacherModelSection.findModelNameInput().type('test');
     judgeModelSection.findEndpointInput().type('http://test.com');
@@ -85,19 +87,8 @@ describe('Model Customization Form', () => {
     );
     hardwareSection.findTrainingNodePlusButton().click();
 
-    modelCustomizationFormGlobal.findSubmitButton().should('be.disabled');
+    modelCustomizationFormGlobal.findSubmitButton().should('not.be.disabled');
     modelCustomizationFormGlobal.findSimpleRunButton().click();
-    modelCustomizationFormGlobal.findExpandableSectionButton().click();
-    modelCustomizationFormGlobal.findNumericInputPlusButton('sdg_scale_factor').click();
-    modelCustomizationFormGlobal.findNumericInputPlusButton('train_num_workers').click();
-    modelCustomizationFormGlobal
-      .findLongNumberInput('train_learning_rate_phase_1-long-number-field')
-      .clear()
-      .type('0.01');
-    modelCustomizationFormGlobal
-      .findRadioInput('final_eval_batch_size-exact-evaluation-field')
-      .click();
-    modelCustomizationFormGlobal.findNumericInputPlusButton('final_eval_batch_size').click();
   });
 
   it('Alert message when ilab pipeline required parameters are absent', () => {

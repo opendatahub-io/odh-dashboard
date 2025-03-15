@@ -9,33 +9,28 @@ import {
   HelperTextItem,
   Popover,
 } from '@patternfly/react-core';
+import { InfoCircleIcon } from '@patternfly/react-icons';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import TruncatedText from '~/components/TruncatedText';
 import { Connection, ConnectionTypeConfigMapObj } from './types';
 import { getConnectionTypeDisplayName, parseConnectionSecretValues } from './utils';
 
 type Props = {
-  connection: Connection;
+  connection?: Connection;
   connectionType?: ConnectionTypeConfigMapObj;
 };
 
 export const ConnectionDetailsHelperText: React.FC<Props> = ({ connection, connectionType }) => {
-  const displayName = getDisplayNameFromK8sResource(connection);
-  const description = getDescriptionFromK8sResource(connection);
-  const connectionTypeName = getConnectionTypeDisplayName(connection, connectionType);
+  const displayName = connection && getDisplayNameFromK8sResource(connection);
+  const description = connection && getDescriptionFromK8sResource(connection);
+  const connectionTypeName = connection && getConnectionTypeDisplayName(connection, connectionType);
 
   const connectionValues = React.useMemo(
-    () => parseConnectionSecretValues(connection, connectionType),
+    () => connection && parseConnectionSecretValues(connection, connectionType),
     [connection, connectionType],
   );
 
   return (
     <HelperText>
-      {description && (
-        <HelperTextItem>
-          <TruncatedText maxLines={2} content={description} />
-        </HelperTextItem>
-      )}
       <HelperTextItem>
         <Popover
           headerContent="Connection details"
@@ -51,7 +46,7 @@ export const ConnectionDetailsHelperText: React.FC<Props> = ({ connection, conne
                   <DescriptionListDescription>{description}</DescriptionListDescription>
                 </DescriptionListGroup>
               )}
-              {connectionValues.URI && (
+              {connectionValues && connectionValues.URI && (
                 <DescriptionListGroup>
                   <DescriptionListTerm>URI</DescriptionListTerm>
                   <DescriptionListDescription>{connectionValues.URI}</DescriptionListDescription>
@@ -64,8 +59,8 @@ export const ConnectionDetailsHelperText: React.FC<Props> = ({ connection, conne
             </DescriptionList>
           }
         >
-          <Button variant="link" isInline>
-            View connection details
+          <Button variant="link" icon={<InfoCircleIcon />} isDisabled={!connection}>
+            View details
           </Button>
         </Popover>
       </HelperTextItem>

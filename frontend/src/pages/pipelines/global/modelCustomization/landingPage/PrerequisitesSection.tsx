@@ -1,11 +1,23 @@
 import * as React from 'react';
-import { Accordion } from '@patternfly/react-core';
+import { Accordion, Button } from '@patternfly/react-core';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { ModelCustomizationAccordionItem } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationAccordionItem';
 import { BaseSection } from '~/pages/pipelines/global/modelCustomization/landingPage/BaseSection';
 import { useToggleAccordion } from '~/pages/pipelines/global/modelCustomization/landingPage/useToggleAccordion';
+import { ModelCustomizationDrawerContentArgs } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
+import MarkdownView from '~/components/MarkdownView';
+import {
+  taxonomyMarkdownContent,
+  taxonomyMarkdownTitle,
+  teacherJudgeMarkdownContent,
+  teacherJudgeMarkdownTitle,
+} from '~/pages/pipelines/global/modelCustomization/const';
 
-export const PrerequisitesSection: React.FC = () => {
+type PrerequisitesSectionProps = {
+  handleOpenDrawer: (contentArgs: ModelCustomizationDrawerContentArgs) => void;
+};
+
+export const PrerequisitesSection: React.FC<PrerequisitesSectionProps> = ({ handleOpenDrawer }) => {
   const { accordionItemsExpanded, handleToggleAccordion } = useToggleAccordion();
 
   return (
@@ -21,6 +33,20 @@ export const PrerequisitesSection: React.FC = () => {
           cascading file structure. A LAB-tuning taxonomy contains two types of data: skills, which
           enable the model to complete performative actions; and knowledge, which enables the model
           to answer questions that involve facts, data, or references.
+          <br />
+          <Button
+            data-testid="learn-more-taxonomy"
+            isInline
+            variant="link"
+            onClick={() =>
+              handleOpenDrawer({
+                title: taxonomyMarkdownTitle,
+                content: <MarkdownView markdown={taxonomyMarkdownContent} />,
+              })
+            }
+          >
+            Learn how to construct and build a taxonomy repository
+          </Button>
         </ModelCustomizationAccordionItem>
         <ModelCustomizationAccordionItem
           id="deployed-teacher-and-judge-models"
@@ -30,6 +56,20 @@ export const PrerequisitesSection: React.FC = () => {
         >
           The teacher model is responsible for the creation of synthetic data. The judge model is
           responsible for evaluating the LAB-tuning run.
+          <br />
+          <Button
+            data-testid="learn-more-teacher-judge-models"
+            isInline
+            variant="link"
+            onClick={() =>
+              handleOpenDrawer({
+                title: teacherJudgeMarkdownTitle,
+                content: <MarkdownView markdown={teacherJudgeMarkdownContent} />,
+              })
+            }
+          >
+            Learn how to find and deploy teacher and judge models
+          </Button>
         </ModelCustomizationAccordionItem>
         <ModelCustomizationAccordionItem
           id="open-container-initiative-storage-location"

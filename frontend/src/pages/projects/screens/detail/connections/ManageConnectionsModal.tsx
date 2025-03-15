@@ -109,7 +109,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
 
   return (
     <Modal
-      title={isEdit ? 'Edit connection' : 'Add connection'}
+      title={isEdit ? 'Edit connection' : 'Create connection'}
       isOpen
       onClose={() => {
         onClose();

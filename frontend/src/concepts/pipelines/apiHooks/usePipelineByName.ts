@@ -14,8 +14,7 @@ export const usePipelineByName = (pipelineName: string): FetchState<PipelineKF |
       if (!pipelineName) {
         return Promise.reject(new NotReadyError('No pipeline name'));
       }
-      const pipeline = await api.getPipelineByName(opts, pipelineName);
-      return pipeline;
+      return api.getPipelineByName(opts, pipelineName);
     },
     [api, pipelineName],
   );

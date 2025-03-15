@@ -3,46 +3,23 @@ import { z } from 'zod';
 import { hardwareProfileValidationSchema } from '~/concepts/hardwareProfiles/validationUtils';
 import { isCpuLimitLarger, isMemoryLimitLarger } from '~/utilities/valueUnits';
 import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
-import { InputDefinitionParameterType } from '~/concepts/pipelines/kfTypes';
-import { isEnumMember } from '~/utilities/utils';
-import {
-  NonDisplayedHyperparameterFields,
-  PipelineInputParameters,
-  RunTypeFormat,
-} from '~/pages/pipelines/global/modelCustomization/const';
+import { EXPECTED_FINE_TUNING_PIPELINE_PARAMETERS } from '~/pages/pipelines/global/modelCustomization/const';
 import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
 import { FineTuneTaxonomyType, ModelCustomizationEndpointType } from './types';
 
-export const uriFieldSchemaBase = (
-  isOptional: boolean,
-): z.ZodEffects<z.ZodString, string, string> =>
-  z.string().refine(
-    (value) => {
-      if (!value) {
-        return !!isOptional;
-      }
-      try {
-        return !!new URL(value);
-      } catch (e) {
-        return false;
-      }
-    },
-    { message: 'Invalid URI' },
-  );
-
 export const baseModelSchema = z.object({
-  sdgBaseModel: uriFieldSchemaBase(true),
+  sdgBaseModel: z.string().trim().min(1, 'Base model is required'),
 });
 
 export const connectionFormDataScheme = z.discriminatedUnion('type', [
   z.object({
     type: z.literal(InferenceServiceStorageType.EXISTING_STORAGE),
-    uri: uriFieldSchemaBase(true).optional(),
+    uri: z.string().optional(),
     connection: z.string().optional(),
   }),
   z.object({
     type: z.literal(InferenceServiceStorageType.NEW_STORAGE),
-    uri: uriFieldSchemaBase(true).optional(),
+    uri: z.string().optional(),
   }),
 ]);
 
@@ -56,12 +33,12 @@ export const outputModelSchema = z.object({
 });
 
 const teacherJudgeBaseSchema = z.object({
-  endpoint: uriFieldSchemaBase(false),
+  endpoint: z.string().trim().min(1, 'Endpoint is required'),
   modelName: z.string().trim().min(1, 'Model name is required'),
 });
 const teacherJudgePublicSchema = teacherJudgeBaseSchema.extend({
   endpointType: z.literal(ModelCustomizationEndpointType.PUBLIC),
-  apiToken: z.string(),
+  apiToken: z.string().optional(),
 });
 const teacherJudgePrivateSchema = teacherJudgeBaseSchema.extend({
   endpointType: z.literal(ModelCustomizationEndpointType.PRIVATE),
@@ -73,29 +50,8 @@ export const teacherJudgeModel = z.discriminatedUnion('endpointType', [
   teacherJudgePublicSchema,
 ]);
 
-export const runTypeSchema = z.string().refine(
-  (value) => {
-    if (!isEnumMember(value, RunTypeFormat)) {
-      return false;
-    }
-    return true;
-  },
-  { message: 'Invalid Run Type' },
-);
-
-export const fineTunedModelDetailsSchema = z.object({
-  registry: z.string(),
-  versionName: z.string().min(1, 'Version name is required'),
-  modelStorageLocation: z.string(),
-});
-
 export const fineTuneTaxonomySchema = z.object({
-  url: z
-    .string()
-    .url()
-    .refine((url) => url.endsWith('.git'), {
-      message: 'Invalid Git URL',
-    }),
+  url: z.string().trim().min(1, 'URL is required'),
   secret: z.discriminatedUnion('type', [
     z.object({
       type: z.literal(FineTuneTaxonomyType.SSH_KEY),
@@ -130,78 +86,26 @@ const hardwareSchema = z.object({
 });
 
 export type FineTuneTaxonomyFormData = z.infer<typeof fineTuneTaxonomySchema>;
-const parameterSchema = z.object({
-  defaultValue: z
-    .union([
-      z.string(),
-      z.number(),
-      z.boolean(),
-      z.object({}),
-      z.array(z.object({})),
-      z.undefined(),
-    ])
-    .optional(),
-  description: z.string().optional(),
-  isOptional: z.boolean().optional(),
-  parameterType: z.enum([
-    InputDefinitionParameterType.DOUBLE,
-    InputDefinitionParameterType.INTEGER,
-    InputDefinitionParameterType.BOOLEAN,
-    InputDefinitionParameterType.STRING,
-    InputDefinitionParameterType.LIST,
-    InputDefinitionParameterType.STRUCT,
-  ]),
+
+export const pipelineParameterSchema = z.record(z.string(), z.any()).superRefine((params, ctx) => {
+  for (const key of EXPECTED_FINE_TUNING_PIPELINE_PARAMETERS) {
+    if (!(key in params)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Missing expected parameter ${key}`,
+      });
+    }
+  }
 });
 
-export type PipelineParametersType = z.infer<typeof pipelineParameterSchema>;
-
-const expectedParams = {
-  [NonDisplayedHyperparameterFields.SDG_SECRET_URL]: InputDefinitionParameterType.STRING,
-  [NonDisplayedHyperparameterFields.SDG_REPO_SECRET]: InputDefinitionParameterType.STRING,
-  [NonDisplayedHyperparameterFields.SDG_TEACHER_SECRET]: InputDefinitionParameterType.STRING,
-  [NonDisplayedHyperparameterFields.SDG_BASE_MODEL]: InputDefinitionParameterType.STRING,
-  [NonDisplayedHyperparameterFields.SDG_PIPELINE]: InputDefinitionParameterType.STRING,
-  [NonDisplayedHyperparameterFields.TRAIN_GPU_IDENTIFIER]: InputDefinitionParameterType.STRING,
-  [NonDisplayedHyperparameterFields.TRAIN_GPU_PER_WORKER]: InputDefinitionParameterType.INTEGER,
-  [NonDisplayedHyperparameterFields.TRAIN_CPU_PER_WORKER]: InputDefinitionParameterType.STRING,
-  [NonDisplayedHyperparameterFields.TRAIN_MEMORY_PER_WORKER]: InputDefinitionParameterType.STRING,
-  [NonDisplayedHyperparameterFields.EVAL_GPU_IDENTIFIER]: InputDefinitionParameterType.STRING,
-  [NonDisplayedHyperparameterFields.EVAL_JUDGE_SECRET]: InputDefinitionParameterType.STRING,
-  [PipelineInputParameters.K8S_STORAGE_CLASS_NAME]: InputDefinitionParameterType.STRING,
-} as const;
-
-export const pipelineParameterSchema = z
-  .record(z.string(), parameterSchema)
-  .superRefine((params, ctx) => {
-    for (const [key, expectedType] of Object.entries(expectedParams)) {
-      if (!(key in params)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Missing required parameter ${key}`,
-        });
-
-        continue;
-      }
-
-      if (params[key].parameterType !== expectedType) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Parameter ${key} should be of type ${expectedType}`,
-        });
-      }
-    }
-  });
-
 export const modelCustomizationFormSchema = z.object({
-  projectName: z.object({ value: z.string().min(1, { message: 'Project is required' }) }),
   taxonomy: fineTuneTaxonomySchema,
-  runType: z.object({ value: runTypeSchema }),
+  runType: z.string(),
   hyperparameters: z.record(z.string(), z.any()),
   baseModel: baseModelSchema,
   outputModel: outputModelSchema,
   teacher: teacherJudgeModel,
   judge: teacherJudgeModel,
-  inputPipelineParameters: pipelineParameterSchema,
   trainingNode: z.number().refine((val) => val > 0, { message: 'Number must be greater than 0' }),
   storageClass: z.string().trim().min(1, { message: 'storage class is required' }),
   hardware: hardwareSchema,

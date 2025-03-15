@@ -5,14 +5,12 @@ import {
   DrawerHead,
   DrawerPanelBody,
   DrawerPanelContent,
-  DrawerPanelDescription,
   Title,
 } from '@patternfly/react-core';
 
 export interface ModelCustomizationDrawerContentArgs {
   title: string;
-  description: string;
-  body: React.ReactNode;
+  content: React.ReactNode;
 }
 
 export interface ModelCustomizationDrawerContentRef {
@@ -27,17 +25,15 @@ const ModelCustomizationDrawerContent = React.forwardRef<
   ModelCustomizationDrawerContentRef,
   ModelCustomizationDrawerContentProps
 >(({ handleCloseDrawer }, forwardedRef) => {
-  const [title, setTitle] = React.useState('');
-  const [description, setDescription] = React.useState('');
-  const [body, setBody] = React.useState<React.ReactNode | null>(null);
+  const [title, setTitle] = React.useState<string>();
+  const [content, setContent] = React.useState<React.ReactNode | null>(null);
 
   React.useImperativeHandle(
     forwardedRef,
     (): ModelCustomizationDrawerContentRef => ({
       update: (args) => {
         setTitle(args.title);
-        setDescription(args.description);
-        setBody(args.body);
+        setContent(args.content);
       },
     }),
   );
@@ -52,8 +48,7 @@ const ModelCustomizationDrawerContent = React.forwardRef<
           <DrawerCloseButton data-testid="close" onClick={handleCloseDrawer} />
         </DrawerActions>
       </DrawerHead>
-      <DrawerPanelDescription>{description}</DrawerPanelDescription>
-      <DrawerPanelBody>{body}</DrawerPanelBody>
+      <DrawerPanelBody>{content}</DrawerPanelBody>
     </DrawerPanelContent>
   );
 });
