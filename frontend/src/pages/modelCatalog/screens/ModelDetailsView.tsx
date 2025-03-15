@@ -3,12 +3,12 @@ import {
   Content,
   DescriptionList,
   Icon,
-  Label,
   PageSection,
   Sidebar,
   SidebarContent,
   SidebarPanel,
 } from '@patternfly/react-core';
+import text from '@patternfly/react-styles/css/utilities/Text/text';
 import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
 import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
 import { CatalogModel } from '~/concepts/modelCatalog/types';
@@ -17,6 +17,7 @@ import { getTagFromModel } from '~/pages/modelCatalog/utils';
 import ExternalLink from '~/components/ExternalLink';
 import MarkdownView from '~/components/MarkdownView';
 import { RhUiTagIcon } from '~/images/icons';
+import { ModelCatalogLabels } from '~/pages/modelCatalog/components/ModelCatalogLabels';
 
 type ModelDetailsViewProps = {
   model: CatalogModel;
@@ -29,12 +30,10 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({ model }) => (
         <Content>
           <h2>Description</h2>
           <p data-testid="model-long-description">{model.longDescription}</p>
-          <h2>Model Card</h2>
+          <h2>Model card</h2>
+          {!model.readme && <p className={text.textColorDisabled}>No model card</p>}
         </Content>
-        <MarkdownView
-          data-testid="model-card-markdown"
-          markdown={model.readme || 'No model card'}
-        />
+        {model.readme && <MarkdownView data-testid="model-card-markdown" markdown={model.readme} />}
       </SidebarContent>
       <SidebarPanel>
         <DescriptionList isFillColumns>
@@ -44,20 +43,16 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({ model }) => (
             </Icon>{' '}
             {getTagFromModel(model)}
           </DashboardDescriptionListGroup>
-          <DashboardDescriptionListGroup title="Labels">
-            {!model.labels?.length
-              ? 'no labels'
-              : model.labels.map((label, index) => (
-                  <Label
-                    variant="outline"
-                    data-testid="label"
-                    key={index}
-                    marginWidth={3}
-                    style={{ marginRight: '3px' }}
-                  >
-                    {label}
-                  </Label>
-                ))}
+          <DashboardDescriptionListGroup
+            title="Labels"
+            contentWhenEmpty="No labels"
+            isEmpty={!model.labels?.length && !model.tasks?.length}
+          >
+            <ModelCatalogLabels
+              labels={model.labels ?? []}
+              tasks={model.tasks ?? []}
+              showNonILabLabels
+            />
           </DashboardDescriptionListGroup>
           <DashboardDescriptionListGroup title="License" groupTestId="model-license">
             <ExternalLink

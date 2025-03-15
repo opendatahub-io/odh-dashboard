@@ -2,13 +2,11 @@ import { buildMockPipelineVersion } from '~/__mocks__';
 
 import { ModelCustomizationEndpointType } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
 import {
-  runTypeSchema,
   pipelineParameterSchema,
   TeacherJudgeFormData,
   teacherJudgeModel,
 } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import { InputDefinitionParameterType } from '~/concepts/pipelines/kfTypes';
-import { RunTypeFormat } from '~/pages/pipelines/global/modelCustomization/const';
 import { createHyperParametersSchema } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/hyperparameterValidationUtils';
 import { mockIlabPipelineVersionParameters } from '~/__mocks__/mockIlabPipelineVersionParameters';
 
@@ -43,16 +41,6 @@ describe('TeacherJudgeSchema', () => {
     };
     const result = teacherJudgeModel.safeParse(field);
     expect(result.success).toBe(true);
-  });
-  it('should error when the endpoint is not a uri', () => {
-    const field: TeacherJudgeFormData = {
-      endpointType: ModelCustomizationEndpointType.PRIVATE,
-      apiToken: 'test',
-      modelName: 'test',
-      endpoint: 'not a uri',
-    };
-    const result = teacherJudgeModel.safeParse(field);
-    expect(result.success).toBe(false);
   });
 });
 
@@ -202,18 +190,6 @@ describe('hyperparameterFieldSchema', () => {
     });
     const result = schema.safeParse({ param: undefined });
     expect(result.success).toBe(false);
-  });
-
-  it('should validate if run type is full', () => {
-    const runType = RunTypeFormat.FULL;
-    const result = runTypeSchema.safeParse(runType);
-    expect(result.success).toBe(true);
-  });
-
-  it('should validate if run type if simple', () => {
-    const runType = RunTypeFormat.SIMPLE;
-    const result = runTypeSchema.safeParse(runType);
-    expect(result.success).toBe(true);
   });
 });
 

@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   Alert,
-  Button,
   Flex,
   FlexItem,
   FormGroup,
@@ -55,8 +54,10 @@ import {
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { isModelPathValid } from '~/pages/modelServing/screens/projects/utils';
 import usePersistentData from '~/pages/projects/screens/detail/connections/usePersistentData';
+import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import ConnectionS3FolderPathField from './ConnectionS3FolderPathField';
 import ConnectionOciPathField from './ConnectionOciPathField';
+import { ConnectionOciAlert } from './ConnectionOciAlert';
 
 type ExistingConnectionFieldProps = {
   connectionTypes: ConnectionTypeConfigMapObj[];
@@ -141,41 +142,49 @@ const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = ({
 
   return (
     <>
-      {projectConnections.length !== 0 && (
-        <Popover
-          aria-label="Hoverable popover"
-          bodyContent="This list includes only connections that are compatible with model serving."
-        >
-          <Button
-            style={{ paddingLeft: 0 }}
-            icon={<OutlinedQuestionCircleIcon />}
-            variant="link"
-            disabled
+      <FormGroup
+        label="Connection"
+        isRequired
+        className="pf-v6-u-mb-lg"
+        labelHelp={
+          <Popover
+            aria-label="Hoverable popover"
+            bodyContent="This list includes only connections that are compatible with model serving."
           >
-            Not seeing what you&apos;re looking for?
-          </Button>
-        </Popover>
-      )}
-      <FormGroup label="Connection" isRequired className="pf-v6-u-mb-lg">
-        <TypeaheadSelect
-          selectOptions={options}
-          onSelect={(_, value) => {
-            const newConnection = projectConnections.find(
-              (c) => getResourceNameFromK8sResource(c.connection) === value,
-            );
-            if (newConnection) {
-              onSelect(newConnection.connection);
-            }
-          }}
-          popperProps={{ appendTo: 'inline' }}
-          previewDescription={false}
-        />
-        {selectedConnection && (
-          <ConnectionDetailsHelperText
-            connection={selectedConnection}
-            connectionType={selectedConnectionType}
-          />
-        )}
+            <DashboardPopupIconButton
+              icon={<OutlinedQuestionCircleIcon />}
+              aria-label="More info"
+            />
+          </Popover>
+        }
+      >
+        <Flex direction={{ default: 'row' }} spaceItems={{ default: 'spaceItemsSm' }}>
+          <FlexItem grow={{ default: 'grow' }}>
+            <TypeaheadSelect
+              selectOptions={options}
+              onSelect={(_, value) => {
+                const newConnection = projectConnections.find(
+                  (c) => getResourceNameFromK8sResource(c.connection) === value,
+                );
+                if (newConnection) {
+                  onSelect(newConnection.connection);
+                }
+              }}
+              popperProps={{ appendTo: 'inline' }}
+              previewDescription={false}
+            />
+          </FlexItem>
+          <FlexItem>
+            <ConnectionDetailsHelperText
+              connection={selectedConnection}
+              connectionType={selectedConnectionType}
+            />
+          </FlexItem>
+        </Flex>
+        {selectedConnectionType &&
+          isModelServingCompatible(selectedConnectionType, ModelServingCompatibleTypes.OCI) && (
+            <ConnectionOciAlert />
+          )}
       </FormGroup>
       {selectedConnection &&
         isModelServingCompatible(
@@ -355,6 +364,12 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
           setConnectionErrors((prev) => ({ ...prev, [field.envVar]: newError }));
         }}
         connectionErrors={connectionErrors}
+        Alert={
+          selectedConnectionType &&
+          isModelServingCompatible(selectedConnectionType, ModelServingCompatibleTypes.OCI) ? (
+            <ConnectionOciAlert />
+          ) : undefined
+        }
       />
       {selectedConnectionType &&
         isModelServingCompatible(
@@ -367,8 +382,15 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
           />
         )}
       {selectedConnectionType &&
-        isModelServingCompatible(selectedConnectionType, ModelServingCompatibleTypes.OCI) && (
-          <ConnectionOciPathField modelUri={modelUri} setModelUri={setModelUri} />
+        isModelServingCompatible(selectedConnectionType, ModelServingCompatibleTypes.OCI) &&
+        (typeof connectionValues.OCI_HOST === 'string' ||
+          typeof connectionValues.OCI_HOST === 'undefined') && (
+          <ConnectionOciPathField
+            ociHost={connectionValues.OCI_HOST}
+            modelUri={modelUri}
+            setModelUri={setModelUri}
+            isNewConnection
+          />
         )}
     </FormSection>
   );

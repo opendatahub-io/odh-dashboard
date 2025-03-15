@@ -33,7 +33,7 @@ class ModelCustomizationFormGlobal {
   }
 
   private wait() {
-    cy.findByTestId('app-page-title').contains('Instruct fine-tune run');
+    cy.findByTestId('app-page-title').contains('Start a LAB-tuning run');
     cy.testA11y();
   }
 
@@ -63,9 +63,7 @@ class ModelCustomizationFormGlobal {
   }
 
   findExpandableSectionButton() {
-    return cy.findByTestId('hyperparameters-expandable').findByRole('button', {
-      name: 'Customize resource requests and limits',
-    });
+    return cy.findByTestId('hyperparameters-expandable').findByRole('button');
   }
 
   findNumericInputPlusButton(name: string) {
@@ -144,8 +142,33 @@ class HardwareSection {
   }
 }
 
+class BaseModelSection {
+  findEditInlineTextInput() {
+    return cy.findByTestId('edit-inline-text-input');
+  }
+
+  findEditInlineTextButton() {
+    return cy.findByTestId('edit-inline-text-button');
+  }
+
+  findEditInlineTextSaveButton() {
+    return cy.findByTestId('edit-inline-text-save-button');
+  }
+
+  findEditInlineTextCancelButton() {
+    return cy.findByTestId('edit-inline-text-cancel-button');
+  }
+
+  editInlineText(text: string) {
+    this.findEditInlineTextButton().click();
+    this.findEditInlineTextInput().type(text);
+    this.findEditInlineTextSaveButton().click();
+  }
+}
+
 export const modelCustomizationFormGlobal = new ModelCustomizationFormGlobal();
 export const teacherModelSection = new TeacherModelSection();
+export const baseModelSection = new BaseModelSection();
 export const judgeModelSection = new JudgeModelSection();
 export const taxonomySection = new TaxonomySection();
 export const hardwareSection = new HardwareSection();

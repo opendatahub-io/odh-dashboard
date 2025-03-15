@@ -4,6 +4,8 @@ import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockModelCatalogConfigMap } from '~/__mocks__/mockModelCatalogConfigMap';
 import { modelCatalog } from '~/__tests__/cypress/cypress/pages/modelCatalog/modelCatalog';
 import { ConfigMapModel } from '~/__tests__/cypress/cypress/utils/models';
+import { mockCatalogModel } from '~/__mocks__/mockCatalogModel';
+import { mockModelCatalogSource } from '~/__mocks__/mockModelCatalogSource';
 
 type HandlersProps = {
   disableModelCatalogFeature?: boolean;
@@ -194,5 +196,38 @@ describe('Model Catalog loading states', () => {
 
     modelCatalog.visit();
     modelCatalog.findModelCatalogCards().should('exist');
+  });
+});
+
+describe('Model catalog cards', () => {
+  beforeEach(() => {
+    initIntercepts({ disableModelCatalogFeature: false });
+  });
+
+  it('should show labels, including reserved ILAB labels correctly', () => {
+    const model2 = mockCatalogModel({
+      name: 'test-model-1',
+      labels: ['lab-base', 'lab-teacher', 'lab-judge', 'label1'],
+      tasks: ['task1', 'task2'],
+    });
+
+    cy.interceptK8s(
+      {
+        model: ConfigMapModel,
+        ns: 'opendatahub',
+        name: 'model-catalog-sources',
+      },
+      mockModelCatalogConfigMap([mockModelCatalogSource({ models: [model2] })]),
+    );
+
+    modelCatalog.visit();
+    modelCatalog.expandCardLabelGroup('test-model-1');
+
+    modelCatalog.findCardLabelByIndex('test-model-1', 0).contains('LAB starter').should('exist');
+    modelCatalog.findCardLabelByIndex('test-model-1', 1).contains('LAB teacher').should('exist');
+    modelCatalog.findCardLabelByIndex('test-model-1', 2).contains('LAB judge').should('exist');
+    modelCatalog.findCardLabelByIndex('test-model-1', 3).contains('task1').should('exist');
+    modelCatalog.findCardLabelByIndex('test-model-1', 4).contains('task2').should('exist');
+    modelCatalog.findCardLabelByText('test-model-1', 'label1').should('not.exist');
   });
 });

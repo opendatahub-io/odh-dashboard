@@ -1,12 +1,16 @@
 import React from 'react';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 import { ContainerResources, NodeSelector, Toleration } from '~/types';
-import { AcceleratorProfileKind, HardwareProfileKind } from '~/k8sTypes';
+import {
+  AcceleratorProfileKind,
+  HardwareProfileFeatureVisibility,
+  HardwareProfileKind,
+} from '~/k8sTypes';
 import useAcceleratorProfileFormState from '~/utilities/useAcceleratorProfileFormState';
 import { useHardwareProfileConfig } from '~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { ModelCustomizationFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
-import { CONTAINER_RESOURCE_DEFAULT, PipelineInputParameters } from './const';
+import { CONTAINER_RESOURCE_DEFAULT, KnownFineTuningPipelineParameters } from './const';
 import { getParamsValueFromPipelineInput } from './utils';
 
 export type IlabPodSpecOptions = {
@@ -39,11 +43,11 @@ export const useIlabPodSpecOptionsState = (
     if (ilabPipelineVersion) {
       const memoryValue = getParamsValueFromPipelineInput(
         ilabPipelineVersion,
-        PipelineInputParameters.TRAIN_MEMORY_PER_WORKER,
+        KnownFineTuningPipelineParameters.TRAIN_MEMORY_PER_WORKER,
       );
       const cpuValue = getParamsValueFromPipelineInput(
         ilabPipelineVersion,
-        PipelineInputParameters.TRAIN_CPU_PER_WORKER,
+        KnownFineTuningPipelineParameters.TRAIN_CPU_PER_WORKER,
       );
 
       setSize((prevSize) => ({
@@ -59,7 +63,9 @@ export const useIlabPodSpecOptionsState = (
   }, [ilabPipelineVersion]);
 
   const acceleratorProfile = useAcceleratorProfileFormState();
-  const hardwareProfile = useHardwareProfileConfig();
+  const hardwareProfile = useHardwareProfileConfig(undefined, undefined, undefined, undefined, [
+    HardwareProfileFeatureVisibility.PIPELINES,
+  ]);
 
   const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
 

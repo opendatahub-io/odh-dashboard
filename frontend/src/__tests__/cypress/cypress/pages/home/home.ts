@@ -17,12 +17,20 @@ class HomePage {
     cy.testA11y();
   }
 
+  findJupyterIcon() {
+    return cy.findByTestId('jupyter-hint-icon');
+  }
+
   findHint() {
     return cy.findByTestId('home-page-hint');
   }
 
   findHintText() {
     return cy.findByTestId('hint-body-text');
+  }
+
+  findHintLink() {
+    return cy.findByTestId('home-page-hint-navigate');
   }
 
   findHintCloseButton() {

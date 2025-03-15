@@ -23,6 +23,7 @@ import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { RecurringRunTrigger } from '~/concepts/pipelines/content/tables/renderUtils';
 import { Artifact } from '~/third_party/mlmd';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { getIsArtifactModelRegistered } from '~/pages/pipelines/global/experiments/artifacts/utils';
 import PipelineRunRegisteredModelDetails from './PipelineRunRegisteredModelDetails';
 import { getArtifactModelData } from './artifacts/utils';
 
@@ -59,7 +60,9 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
   }
 
   const artifactModelData = modelRegistryAvailable
-    ? artifacts?.map((artifact) => getArtifactModelData(artifact))
+    ? artifacts
+        ?.filter((artifact) => getIsArtifactModelRegistered(artifact))
+        .map((artifact) => getArtifactModelData(artifact))
     : undefined;
 
   const runId = isPipelineRun(run) ? run.run_id : run.recurring_run_id;

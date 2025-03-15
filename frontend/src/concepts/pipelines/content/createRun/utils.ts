@@ -50,7 +50,6 @@ export const isFilledRunFormData = (formData: RunFormData): formData is SafeRunF
     !!formData.nameDesc.name &&
     !!formData.pipeline &&
     !!formData.version &&
-    !!formData.experiment &&
     hasRequiredInputParams &&
     runTypeSafeData(formData.runType) &&
     runTypeSafeDates(formData.runType)

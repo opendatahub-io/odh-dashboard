@@ -56,6 +56,14 @@ class ModelDetailsPage {
   findRegisterCatalogModelPopover() {
     return cy.findByTestId('register-catalog-model-popover');
   }
+
+  expandLabelGroup() {
+    cy.findByTestId('model-catalog-label-group').find('button').click();
+  }
+
+  findLabelByIndex(index: number) {
+    return cy.findAllByTestId('model-catalog-label').eq(index);
+  }
 }
 
 export const modelDetailsPage = new ModelDetailsPage();

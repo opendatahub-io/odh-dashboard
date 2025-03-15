@@ -1,5 +1,7 @@
 import { CatalogArtifacts, CatalogModel, ModelCatalogSource } from '~/concepts/modelCatalog/types';
-import { CatalogModelDetailsParams } from './const';
+import { EMPTY_CUSTOM_PROPERTY_STRING, RESERVED_ILAB_LABELS } from '~/pages/modelCatalog/const';
+import { ModelRegistryCustomProperties } from '~/concepts/modelRegistry/types';
+import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
 
 export const findModelFromModelCatalogSources = (
   modelCatalogSources: ModelCatalogSource[],
@@ -41,3 +43,28 @@ export const decodeParams = (
 
 export const getTagFromModel = (model: CatalogModel): string | undefined =>
   model.artifacts?.[0]?.tags?.[0];
+
+export const getILabLabels = (labels?: string[]): string[] =>
+  labels?.filter((l) => RESERVED_ILAB_LABELS.includes(l)) ?? [];
+
+export const removeILabLabels = (labels?: string[]): string[] =>
+  labels?.filter((l) => !RESERVED_ILAB_LABELS.includes(l)) ?? [];
+
+export const createCustomPropertiesFromModel = (
+  model: CatalogModel,
+): ModelRegistryCustomProperties => {
+  const labels = removeILabLabels(model.labels).reduce<ModelRegistryCustomProperties>(
+    (acc, cur) => {
+      acc[cur] = EMPTY_CUSTOM_PROPERTY_STRING;
+      return acc;
+    },
+    {},
+  );
+
+  const tasks = model.tasks?.reduce<ModelRegistryCustomProperties>((acc, cur) => {
+    acc[cur] = EMPTY_CUSTOM_PROPERTY_STRING;
+    return acc;
+  }, {});
+
+  return { ...labels, ...tasks };
+};

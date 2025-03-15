@@ -10,6 +10,7 @@ import { RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
 import { PipelineTask } from '~/concepts/pipelines/topology';
 import TaskDetailsSection from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsSection';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { getIsArtifactModelRegistered } from '~/pages/pipelines/global/experiments/artifacts/utils';
 import { getArtifactModelData } from './artifacts/utils';
 import PipelineRunRegisteredModelDetails from './PipelineRunRegisteredModelDetails';
 
@@ -34,10 +35,12 @@ const SelectedNodeDetailsTab: React.FC<SelectedNodeDetailsTabProps> = ({ task })
       return [];
     }
 
-    return artifacts.map((artifactInputOutput) => {
-      const artifact = artifactInputOutput.value;
-      return getArtifactModelData(artifact);
-    });
+    return artifacts
+      .filter((artifactInputOutput) => getIsArtifactModelRegistered(artifactInputOutput.value))
+      .map((artifactInputOutput) => {
+        const artifact = artifactInputOutput.value;
+        return getArtifactModelData(artifact);
+      });
   }, [artifacts, modelRegistryAvailable]);
 
   const isModelRegistered = artifactModelData.length > 0;
