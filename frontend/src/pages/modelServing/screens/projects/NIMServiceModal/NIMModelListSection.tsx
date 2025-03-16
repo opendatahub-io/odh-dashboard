@@ -85,26 +85,25 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
     getModelNames();
   }, [isEditing, inferenceServiceData.format.name]);
 
+
   const getSupportedModelFormatsInfo = (key: string) => {
-    const lastHyphenIndex = key.lastIndexOf('-');
-    if (lastHyphenIndex === -1) {
+    const modelInfo = modelList.find((model) => key.startsWith(model.name + '-'));
+    if (!modelInfo) {
       return null;
     }
-    const name = key.slice(0, lastHyphenIndex);
-    const version = key.slice(lastHyphenIndex + 1);
-    const modelInfo = modelList.find((model) => model.name === name);
-    return modelInfo ? { name: modelInfo.name, version } : null;
+    const name = modelInfo.name;
+    const version = key.slice(modelInfo.name.length + 1);
+    return modelInfo ? { name: name, version } : null;
   };
 
   const getNIMImageName = (key: string) => {
-    const lastHyphenIndex = key.lastIndexOf('-');
-    if (lastHyphenIndex === -1) {
+    const modelInfo = modelList.find((model) => key.startsWith(model.name + '-'));
+    if (!modelInfo) {
       return '';
     }
-    const name = key.slice(0, lastHyphenIndex);
-    const version = key.slice(lastHyphenIndex + 1);
-    const imageInfo = modelList.find((model) => model.name === name);
-    return imageInfo ? `nvcr.io/${imageInfo.namespace}/${name}:${version}` : '';
+    const name = modelInfo.name;
+    const version = key.slice(modelInfo.name.length + 1);
+    return `nvcr.io/${modelInfo.namespace}/${name}:${version}`;
   };
 
   const onSelect = (
