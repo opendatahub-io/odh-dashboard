@@ -2,14 +2,27 @@ import DOMPurify from 'dompurify';
 import { Converter } from 'showdown';
 
 export const markdownConverter = {
-  makeHtml: (markdown: string): string => {
-    const unsafeHtml = new Converter({
+  makeHtml: (markdown: string, maxHeading = 1): string => {
+    const converter = new Converter({
       tables: true,
       openLinksInNewWindow: true,
       strikethrough: true,
       emoji: true,
       literalMidWordUnderscores: true,
-    }).makeHtml(markdown);
+    });
+    let unsafeHtml = converter.makeHtml(markdown);
+
+    if (maxHeading > 1) {
+      // shift headings down (prevent them from competeing with page headings)
+      const shift = maxHeading - 1;
+      unsafeHtml = unsafeHtml.replace(
+        /<(\/?)h(\d)(.*?)>/gi,
+        (match, closingSlash, level, attributes) => {
+          const newLevel = Math.min(parseInt(level) + shift, 4); // cap at h4
+          return `<${closingSlash}h${newLevel}${attributes}>`;
+        },
+      );
+    }
 
     // add hook to transform anchor tags
     DOMPurify.addHook('beforeSanitizeElements', (node) => {

@@ -33,7 +33,9 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({ model }) => (
           <h2>Model card</h2>
           {!model.readme && <p className={text.textColorDisabled}>No model card</p>}
         </Content>
-        {model.readme && <MarkdownView data-testid="model-card-markdown" markdown={model.readme} />}
+        {model.readme && (
+          <MarkdownView data-testid="model-card-markdown" markdown={model.readme} maxHeading={3} />
+        )}
       </SidebarContent>
       <SidebarPanel>
         <DescriptionList isFillColumns>
