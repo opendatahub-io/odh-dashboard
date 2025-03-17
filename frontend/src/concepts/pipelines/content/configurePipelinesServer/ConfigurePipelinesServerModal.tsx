@@ -35,7 +35,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   onClose,
 }) => {
   const { project, namespace } = usePipelinesAPI();
-  const [connections, loaded] = useConnections(namespace);
+  const [connections, loaded] = useConnections(namespace, undefined, true);
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState<Error>();
   const [config, setConfig] = React.useState<PipelineServerConfigType>(FORM_DEFAULTS);
