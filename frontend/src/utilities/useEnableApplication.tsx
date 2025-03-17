@@ -31,6 +31,8 @@ export const useEnableApplication = (
   }>({ status: EnableApplicationStatus.IDLE, error: '' });
   const [lastVariablesValidationTimestamp, setLastVariablesValidationTimestamp] =
     React.useState<string>('');
+  // Add a counter for tracking the number of responses with the same timestamp
+  const sameTimestampCountRef = React.useRef<number>(0);
   const dispatch = useAppDispatch();
 
   const dispatchResults = React.useCallback(
@@ -56,6 +58,8 @@ export const useEnableApplication = (
   React.useEffect(() => {
     if (!doEnable) {
       setEnableStatus({ status: EnableApplicationStatus.IDLE, error: '' });
+      // Reset the counter when disabling
+      sameTimestampCountRef.current = 0;
     }
   }, [doEnable]);
 
@@ -65,9 +69,25 @@ export const useEnableApplication = (
 
     if (enableStatus.status === EnableApplicationStatus.INPROGRESS) {
       const shouldContinueWatching = (response: IntegrationAppStatus): boolean => {
+        // Check if timestamp has changed (original condition)
         if (!_.isEqual(response.variablesValidationTimestamp, lastVariablesValidationTimestamp)) {
+          // Reset counter when timestamp changes
+          sameTimestampCountRef.current = 0;
           return false;
         }
+
+        // Increment counter when timestamp remains the same
+        sameTimestampCountRef.current += 1;
+
+        // Break out of loop after 3 responses with the same timestamp and a FAILED status
+        // This specifically targets the infinite loop case
+        if (
+          sameTimestampCountRef.current >= 3 &&
+          response.variablesValidationStatus === VariablesValidationStatus.FAILED
+        ) {
+          return false;
+        }
+
         return true;
       };
 
@@ -79,6 +99,7 @@ export const useEnableApplication = (
                 watchHandle = setTimeout(watchStatus, 10 * 1000);
                 return;
               }
+
               setLastVariablesValidationTimestamp(response.variablesValidationTimestamp || '');
               setEnableStatus({
                 status:
@@ -142,6 +163,9 @@ export const useEnableApplication = (
   React.useEffect(() => {
     let closed = false;
     if (doEnable) {
+      // Reset counter when starting a new validation
+      sameTimestampCountRef.current = 0;
+
       if (isInternalRouteIntegrationsApp(internalRoute)) {
         enableIntegrationApp(internalRoute, enableValues)
           .then((response) => {
