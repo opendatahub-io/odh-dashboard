@@ -4,13 +4,20 @@ import {
   ActionListItem,
   Alert,
   Button,
+  ExpandableSection,
+  Content,
+  ContentVariants,
   FormGroup,
+  FormHelperText,
+  HelperText,
   FormSection,
   Skeleton,
   Stack,
   StackItem,
+  HelperTextItem,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
+import { ZodIssue } from 'zod';
 import {
   FineTunePageSections,
   fineTunePageSectionTitles,
@@ -23,24 +30,28 @@ type PipelineDetailsSectionProps = {
   ilabPipeline: PipelineKF | null;
   ilabPipelineVersion: PipelineVersionKF | null;
   ilabPipelineLoaded: boolean;
-  hasValidationErrors: boolean;
+  zodValidationIssues: ZodIssue[];
 };
 
 export const PipelineDetailsSection: React.FC<PipelineDetailsSectionProps> = ({
   ilabPipeline,
   ilabPipelineVersion,
   ilabPipelineLoaded,
-  hasValidationErrors,
+  zodValidationIssues,
 }) => {
   const { namespace } = usePipelinesAPI();
   const navigate = useNavigate();
+  const hasValidationErrors = zodValidationIssues.length > 0;
 
   return (
-    //TODO: Pipeline description https://issues.redhat.com/browse/RHOAIENG-19187
     <FormSection
       id={FineTunePageSections.PIPELINE_DETAILS}
       title={fineTunePageSectionTitles[FineTunePageSections.PIPELINE_DETAILS]}
     >
+      <Content component={ContentVariants.small}>
+        InstructLab&apos;s pipeline automates the LAB tuning process, facilitating efficient
+        fine-tuning of large language models and enabling scalable utilization of compute resources.
+      </Content>
       {ilabPipelineLoaded ? (
         <>
           <FormGroup label="Pipeline name" fieldId="pipeline-name" isRequired>
@@ -63,6 +74,17 @@ export const PipelineDetailsSection: React.FC<PipelineDetailsSectionProps> = ({
                         is not compatible with the <b>Start an InstructLab run</b> form. To create a
                         run for this version, use the <b>Create run</b> form. Alternatively, manage
                         this pipeline&apos;s versions in the <b>Pipelines</b> page for this project.
+                        <ExpandableSection toggleText="View compatibility errors">
+                          <FormHelperText>
+                            <HelperText>
+                              {zodValidationIssues.map((issue) => (
+                                <HelperTextItem variant="error" key={issue.path.join('.')}>
+                                  {issue.message}
+                                </HelperTextItem>
+                              ))}
+                            </HelperText>
+                          </FormHelperText>
+                        </ExpandableSection>
                       </StackItem>
                       <StackItem>
                         <ActionList>
@@ -72,7 +94,12 @@ export const PipelineDetailsSection: React.FC<PipelineDetailsSectionProps> = ({
                               isInline
                               onClick={() => {
                                 navigate(createRunRoute(namespace), {
-                                  state: { contextData: { ilabPipeline, ilabPipelineVersion } },
+                                  state: {
+                                    contextData: {
+                                      pipeline: ilabPipeline,
+                                      version: ilabPipelineVersion,
+                                    },
+                                  },
                                 });
                               }}
                             >

@@ -13,9 +13,9 @@ import {
   Split,
   SplitItem,
   CardFooter,
+  Skeleton,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import BrandImage from '~/components/BrandImage';
 import { CatalogModel } from '~/concepts/modelCatalog/types';
 import { getCatalogModelDetailsUrlFromModel } from '~/pages/modelCatalog/routeUtils';
 import { getTagFromModel } from '~/pages/modelCatalog/utils';
@@ -30,9 +30,16 @@ export const ModelCatalogCard: React.FC<{ model: CatalogModel; source: string }>
     <CardHeader>
       <CardTitle>
         <Flex alignItems={{ default: 'alignItemsCenter' }}>
-          <FlexItem>
-            <BrandImage src={model.logo ?? ''} alt="" />
-          </FlexItem>
+          {model.logo ? (
+            <img src={model.logo} alt="model logo" style={{ height: '36px', width: '36px' }} />
+          ) : (
+            <Skeleton
+              shape="square"
+              width="36px"
+              height="36px"
+              screenreaderText="Brand image loading"
+            />
+          )}
           <FlexItem align={{ default: 'alignRight' }}>
             <Label>{source}</Label>
           </FlexItem>
@@ -57,7 +64,7 @@ export const ModelCatalogCard: React.FC<{ model: CatalogModel; source: string }>
               <Icon isInline>
                 <RhUiTagIcon />
               </Icon>
-              <span style={{ marginLeft: 'var(--pf-t--global--spacer--xs)' }}>
+              <span style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}>
                 {getTagFromModel(model)}
               </span>
             </SplitItem>

@@ -10,6 +10,8 @@ import {
   InputGroupItem,
   FormSection,
 } from '@patternfly/react-core';
+import { ValidationContext } from '~/utilities/useValidation';
+import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
 
 type FineTunedModelOciPathFieldProps = {
   ociHost?: string;
@@ -36,6 +38,11 @@ const FineTunedModelOciPathField: React.FC<FineTunedModelOciPathFieldProps> = ({
     return text;
   };
 
+  const { getAllValidationIssues } = React.useContext(ValidationContext);
+  const uriValidationIssues = modelUri
+    ? getAllValidationIssues(['outputModel', 'connectionData', 'uri'])
+    : [];
+
   return (
     <FormSection title="OCI storage location">
       Provide the location of the model. This is not part of your connection instance.
@@ -49,6 +56,7 @@ const FineTunedModelOciPathField: React.FC<FineTunedModelOciPathFieldProps> = ({
           <InputGroupText>oci://</InputGroupText>
           <InputGroupItem isFill>
             <TextInput
+              validated={uriValidationIssues.length > 0 ? 'error' : 'default'}
               id="model-uri"
               aria-label="Model URI"
               data-testid="model-uri"
@@ -72,6 +80,7 @@ const FineTunedModelOciPathField: React.FC<FineTunedModelOciPathFieldProps> = ({
             </HelperTextItem>
           </HelperText>
         </FormHelperText>
+        <ZodErrorHelperText zodIssue={uriValidationIssues} />
       </FormGroup>
     </FormSection>
   );

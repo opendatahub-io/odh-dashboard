@@ -7,16 +7,25 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { ZodIssue } from 'zod';
 import { ContainerResources } from '~/types';
 import MemoryField from '~/components/MemoryField';
 import CPUField from '~/components/CPUField';
+import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
 
 type ContainerCustomSizeProps = {
   resources: ContainerResources;
   setSize: React.Dispatch<React.SetStateAction<ContainerResources>>;
+  cpuValidationIssue?: ZodIssue[];
+  memoryValidationIssue?: ZodIssue[];
 };
 
-export const ContainerCustomSize: React.FC<ContainerCustomSizeProps> = ({ resources, setSize }) => {
+export const ContainerCustomSize: React.FC<ContainerCustomSizeProps> = ({
+  resources,
+  setSize,
+  cpuValidationIssue = [],
+  memoryValidationIssue = [],
+}) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
 
   const renderField = (identifier: string, renderType: 'requests' | 'limits') => {
@@ -34,21 +43,29 @@ export const ContainerCustomSize: React.FC<ContainerCustomSizeProps> = ({ resour
       switch (identifier) {
         case 'cpu':
           return (
-            <CPUField
-              value={value}
-              onChange={onChange}
-              dataTestId={`${identifier}-${renderType}`}
-              min={0}
-            />
+            <>
+              <CPUField
+                value={value}
+                onChange={onChange}
+                dataTestId={`${identifier}-${renderType}`}
+                min={0}
+                validated={cpuValidationIssue.length > 0 ? 'error' : 'default'}
+              />
+              <ZodErrorHelperText zodIssue={cpuValidationIssue} />
+            </>
           );
         case 'memory':
           return (
-            <MemoryField
-              value={value}
-              onChange={onChange}
-              dataTestId={`${identifier}-${renderType}`}
-              min={0}
-            />
+            <>
+              <MemoryField
+                value={value}
+                onChange={onChange}
+                dataTestId={`${identifier}-${renderType}`}
+                min={0}
+                validated={memoryValidationIssue.length > 0 ? 'error' : 'default'}
+              />
+              <ZodErrorHelperText zodIssue={memoryValidationIssue} />
+            </>
           );
         default:
           return null;

@@ -118,7 +118,6 @@ const createRecurringRun = async (
 export const handleSubmit = (
   formData: RunFormData,
   api: PipelineAPIs,
-  dryRun?: boolean,
 ): Promise<PipelineRunKF | PipelineRecurringRunKF> => {
   if (!isFilledRunFormData(formData)) {
     throw new Error('Form data was incomplete.');
@@ -126,9 +125,9 @@ export const handleSubmit = (
 
   switch (formData.runType.type) {
     case RunTypeOption.ONE_TRIGGER:
-      return createRun(formData, api.createPipelineRun, dryRun);
+      return createRun(formData, api.createPipelineRun);
     case RunTypeOption.SCHEDULED:
-      return createRecurringRun(formData, api.createPipelineRecurringRun, dryRun);
+      return createRecurringRun(formData, api.createPipelineRecurringRun);
     default:
       // eslint-disable-next-line no-console
       console.error('Unknown run type', formData.runType);

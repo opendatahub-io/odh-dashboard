@@ -11,60 +11,91 @@ type TeacherJudgeInputBaseProps = TeacherJudgeInputProps & {
 type TeacherJudgeInputProps = {
   value: string;
   setValue: (value: string) => void;
+  validated?: 'success' | 'error' | 'default';
 };
 
-export const TeacherEndpointInput: React.FC<TeacherJudgeInputProps> = ({ value, setValue }) => (
+export const TeacherEndpointInput: React.FC<TeacherJudgeInputProps> = ({
+  value,
+  setValue,
+  validated,
+}) => (
   <TeacherJudgeInputBase
-    label="Teacher endpoint"
+    label="Endpoint"
     fieldId="teacher-endpoint-input"
     value={value}
     setValue={setValue}
+    validated={validated}
   />
 );
 
-export const TeacherModelNameInput: React.FC<TeacherJudgeInputProps> = ({ value, setValue }) => (
+export const TeacherModelNameInput: React.FC<TeacherJudgeInputProps> = ({
+  value,
+  setValue,
+  validated,
+}) => (
   <TeacherJudgeInputBase
     label="Model name"
     fieldId="teacher-model-name-input"
     value={value}
     setValue={setValue}
+    validated={validated}
   />
 );
 
-export const TeacherTokenInput: React.FC<TeacherJudgeInputProps> = ({ value, setValue }) => (
+export const TeacherTokenInput: React.FC<TeacherJudgeInputProps> = ({
+  value,
+  setValue,
+  validated,
+}) => (
   <TeacherJudgeInputBase
     label="Token"
     fieldId="teacher-token-input"
     value={value}
     setValue={setValue}
+    validated={validated}
     isPasswordType
   />
 );
 
-export const JudgeEndpointInput: React.FC<TeacherJudgeInputProps> = ({ value, setValue }) => (
+export const JudgeEndpointInput: React.FC<TeacherJudgeInputProps> = ({
+  value,
+  setValue,
+  validated,
+}) => (
   <TeacherJudgeInputBase
-    label="Judge endpoint"
+    label="Endpoint"
     fieldId="judge-endpoint-input"
     value={value}
     setValue={setValue}
+    validated={validated}
   />
 );
 
-export const JudgeModelNameInput: React.FC<TeacherJudgeInputProps> = ({ value, setValue }) => (
+export const JudgeModelNameInput: React.FC<TeacherJudgeInputProps> = ({
+  value,
+  setValue,
+  validated,
+}) => (
   <TeacherJudgeInputBase
     label="Model name"
     fieldId="judge-model-name-input"
     value={value}
     setValue={setValue}
+    validated={validated}
   />
 );
 
-export const JudgeTokenInput: React.FC<TeacherJudgeInputProps> = ({ value, setValue }) => (
+export const JudgeTokenInput: React.FC<TeacherJudgeInputProps> = ({
+  value,
+  setValue,
+  validated,
+}) => (
   <TeacherJudgeInputBase
     label="Token"
     fieldId="judge-token-input"
     value={value}
     setValue={setValue}
+    validated={validated}
     isPasswordType
   />
 );
@@ -75,6 +106,7 @@ const TeacherJudgeInputBase: React.FC<TeacherJudgeInputBaseProps> = ({
   value,
   setValue,
   isPasswordType,
+  validated,
 }) => (
   <>
     <FormGroup isRequired label={label} fieldId={fieldId}>
@@ -87,6 +119,7 @@ const TeacherJudgeInputBase: React.FC<TeacherJudgeInputBaseProps> = ({
           value={value}
           data-testid={fieldId}
           onChange={(_, newValue) => setValue(newValue)}
+          validated={validated}
         />
       ) : (
         <TextInput
@@ -97,6 +130,7 @@ const TeacherJudgeInputBase: React.FC<TeacherJudgeInputBaseProps> = ({
           name={fieldId}
           data-testid={fieldId}
           onChange={(_, newValue) => setValue(newValue)}
+          validated={validated}
         />
       )}
     </FormGroup>

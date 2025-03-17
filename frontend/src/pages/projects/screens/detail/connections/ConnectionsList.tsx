@@ -64,7 +64,7 @@ const ConnectionsList: React.FC = () => {
               isAriaDisabled={enabledConnectionTypes.length === 0}
               ref={tooltipRef}
             >
-              Add connection
+              Create connection
             </Button>
             {enabledConnectionTypes.length === 0 && (
               <Tooltip
