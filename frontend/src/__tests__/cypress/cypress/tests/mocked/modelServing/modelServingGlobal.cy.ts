@@ -29,7 +29,11 @@ import { ServingRuntimePlatform } from '~/types';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { asClusterAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
-import { mockConnectionTypeConfigMap } from '~/__mocks__/mockConnectionType';
+import {
+  mockConnectionTypeConfigMap,
+  mockModelServingFields,
+  mockOciConnectionTypeConfigMap,
+} from '~/__mocks__/mockConnectionType';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -155,6 +159,14 @@ const initIntercepts = ({
           properties: {},
         },
       ],
+    }),
+    mockOciConnectionTypeConfigMap(),
+    mockConnectionTypeConfigMap({
+      name: 's3',
+      displayName: 'S3 compatible object storage - v1',
+      description: 'description 2',
+      category: ['existing-category'],
+      fields: mockModelServingFields,
     }),
   ]);
 };
@@ -319,11 +331,12 @@ describe('Model Serving Global', () => {
 
     // test that user cant upload on an empty field
     inferenceServiceModalEdit.findNewConnectionOption().click();
+    inferenceServiceModalEdit.findConnectionType(/URI/).click();
     inferenceServiceModalEdit.findSubmitButton().should('be.disabled');
     inferenceServiceModalEdit.findConnectionNameInput().type('Test Name');
-    inferenceServiceModalEdit.findConnectionFieldInput().type('/');
+    inferenceServiceModalEdit.findConnectionFieldInput('URI').type('/');
     inferenceServiceModalEdit.findSubmitButton().click().should('be.disabled');
-    inferenceServiceModalEdit.findConnectionFieldInput().clear().type('https://test');
+    inferenceServiceModalEdit.findConnectionFieldInput('URI').clear().type('https://test');
     inferenceServiceModalEdit.findSubmitButton().should('be.enabled');
     inferenceServiceModalEdit.findExistingConnectionOption().click();
     inferenceServiceModalEdit.findSubmitButton().click();
@@ -376,8 +389,11 @@ describe('Model Serving Global', () => {
     inferenceServiceModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
     inferenceServiceModal.findSubmitButton().should('be.disabled');
     inferenceServiceModal.findNewConnectionOption().click();
+    inferenceServiceModal.findConnectionType(/OCI/).should('not.exist');
+    inferenceServiceModal.findConnectionType(/S3/).should('exist');
+    inferenceServiceModal.findConnectionType(/URI/).should('exist').click();
     inferenceServiceModal.findConnectionNameInput().type('Test Name');
-    inferenceServiceModal.findConnectionFieldInput().type('https://test');
+    inferenceServiceModal.findConnectionFieldInput('URI').type('https://test');
     inferenceServiceModal.findSubmitButton().should('be.enabled');
     inferenceServiceModal.findExistingConnectionOption().click();
     inferenceServiceModal.findExistingConnectionSelect().should('have.attr', 'disabled');
