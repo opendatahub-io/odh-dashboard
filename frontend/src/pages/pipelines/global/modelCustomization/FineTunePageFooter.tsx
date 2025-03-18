@@ -7,13 +7,18 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { ModelCustomizationFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import useRunFormData from '~/concepts/pipelines/content/createRun/useRunFormData';
 import { handleSubmit } from '~/concepts/pipelines/content/createRun/submitUtils';
 import { isRunSchedule } from '~/concepts/pipelines/utils';
-import { globalPipelineRunDetailsRoute, globalPipelineRunsRoute } from '~/routes';
+import {
+  getModelCustomizationPath,
+  globalPipelineRunDetailsRoute,
+  globalPipelineRunsRoute,
+  ModelCustomizationRouterState,
+} from '~/routes';
 import useNotification from '~/utilities/useNotification';
 import {
   NotificationWatcherContext,
@@ -69,13 +74,13 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
   ilabPipelineVersion,
   ociConnectionType,
 }) => {
-  const { metadataStoreServiceClient } = usePipelinesAPI();
   const [error, setError] = React.useState<Error>();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const { api, namespace } = usePipelinesAPI();
+  const { api, namespace, metadataStoreServiceClient, project } = usePipelinesAPI();
   const { registerNotification } = React.useContext(NotificationWatcherContext);
   const notification = useNotification();
   const navigate = useNavigate();
+  const { state }: { state?: ModelCustomizationRouterState } = useLocation();
   const contextPath = globalPipelineRunsRoute(namespace);
   const {
     isValid: isNewConnectionFieldValid,
@@ -326,7 +331,22 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
             <Button
               variant="link"
               onClick={() => {
-                navigate(-1);
+                if (
+                  state &&
+                  state.modelVersionId &&
+                  state.registeredModelId &&
+                  state.modelRegistryName
+                ) {
+                  navigate(
+                    modelVersionUrl(
+                      state.modelVersionId,
+                      state.registeredModelId,
+                      state.modelRegistryName,
+                    ),
+                  );
+                } else {
+                  navigate(getModelCustomizationPath(project.metadata.name));
+                }
               }}
             >
               Cancel
