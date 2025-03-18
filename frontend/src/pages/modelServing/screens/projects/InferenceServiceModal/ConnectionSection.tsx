@@ -406,6 +406,7 @@ type Props = {
   loaded?: boolean;
   loadError?: Error | undefined;
   connections?: LabeledConnection[];
+  connectionTypeFilter?: (ct: ConnectionTypeConfigMapObj) => boolean;
 };
 
 export const ConnectionSection: React.FC<Props> = ({
@@ -418,8 +419,14 @@ export const ConnectionSection: React.FC<Props> = ({
   loaded,
   loadError,
   connections,
+  connectionTypeFilter = () => true,
 }) => {
-  const [connectionTypes] = useWatchConnectionTypes(true);
+  const [modelServingConnectionTypes] = useWatchConnectionTypes(true);
+  const connectionTypes = React.useMemo(
+    () => modelServingConnectionTypes.filter(connectionTypeFilter),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [modelServingConnectionTypes],
+  );
 
   const hasImagePullSecret = React.useMemo(() => !!data.imagePullSecrets, [data.imagePullSecrets]);
 
