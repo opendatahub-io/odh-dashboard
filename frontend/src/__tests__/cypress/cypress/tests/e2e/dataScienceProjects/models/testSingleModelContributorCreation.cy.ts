@@ -19,6 +19,7 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { attemptToClickTooltip } from '~/__tests__/cypress/cypress/utils/models';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -27,7 +28,7 @@ let modelName: string;
 let modelFilePath: string;
 const awsBucket = 'BUCKET_3' as const;
 
-describe('[Product Bug: RHOAIENG-21662] Verify Model Creation and Validation using the UI', () => {
+describe('Verify Model Creation and Validation using the UI', () => {
   retryableBefore(() => {
     Cypress.on('uncaught:exception', (err) => {
       if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
@@ -68,7 +69,7 @@ describe('[Product Bug: RHOAIENG-21662] Verify Model Creation and Validation usi
 
   it(
     'Verify that a Non Admin can Serve and Query a Model using the UI',
-    { tags: ['@Smoke', '@SmokeSet3', '@ODS-2552', '@Dashboard', '@Modelserving', '@Bug'] },
+    { tags: ['@Smoke', '@SmokeSet3', '@ODS-2552', '@Dashboard', '@Modelserving'] },
     () => {
       cy.log('Model Name:', modelName);
       // Authentication and navigation
@@ -106,8 +107,7 @@ describe('[Product Bug: RHOAIENG-21662] Verify Model Creation and Validation usi
       modelServingSection.findModelServerName(testData.singleModelName);
       // Note reload is required as status tooltip was not found due to a stale element
       cy.reload();
-      modelServingSection.findStatusTooltip().click({ force: true });
-      cy.contains('Loaded', { timeout: 120000 }).should('be.visible');
+      attemptToClickTooltip();
     },
   );
 });
