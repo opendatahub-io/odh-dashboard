@@ -36,8 +36,16 @@ export const formatToleration = (toleration: Toleration): string => {
 export const formatNodeSelector = (selector: NodeSelector): string[] =>
   Object.entries(selector).map(([key, value]) => `Key = ${key}; Value = ${value}`);
 
-export const formatResource = (identifier: string, request: string, limit: string): string =>
-  `${identifier}: Request = ${request}; Limit = ${limit}`;
+export const formatResource = (
+  identifier: string,
+  request: string,
+  limit: string,
+  resourceType?: IdentifierResourceType,
+): string =>
+  `${identifier}: Request = ${formatResourceValue(
+    request,
+    resourceType,
+  )}; Limit = ${formatResourceValue(limit, resourceType)}`;
 
 export const useProfileIdentifiers = (
   acceleratorProfile?: AcceleratorProfileKind,

@@ -128,6 +128,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                         identifier.displayName,
                         identifier.defaultCount.toString(),
                         identifier.defaultCount.toString(),
+                        identifier.resourceType,
                       ),
                     )
                     .join('; ')}

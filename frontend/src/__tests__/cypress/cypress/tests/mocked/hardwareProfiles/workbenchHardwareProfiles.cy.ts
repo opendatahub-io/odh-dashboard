@@ -167,10 +167,10 @@ describe('Workbench Hardware Profiles', () => {
 
     // Verify available profiles
     hardwareProfileSection.selectProfile(
-      'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
+      'Small Profile CPU: Request = 1 Cores; Limit = 1 Cores; Memory: Request = 2 GiB; Limit = 2 GiB',
     );
     hardwareProfileSection.selectProfile(
-      'Large Profile CPU: Request = 4; Limit = 4; Memory: Request = 8Gi; Limit = 8Gi',
+      'Large Profile CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB',
     );
   });
 
@@ -184,7 +184,7 @@ describe('Workbench Hardware Profiles', () => {
 
     // Select profile and open customization
     hardwareProfileSection.selectProfile(
-      'Large Profile CPU: Request = 4; Limit = 4; Memory: Request = 8Gi; Limit = 8Gi',
+      'Large Profile CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB',
     );
     hardwareProfileSection.findCustomizeButton().click();
 
