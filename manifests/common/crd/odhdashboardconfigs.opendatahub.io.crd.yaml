@@ -65,8 +65,6 @@ spec:
                       type: boolean
                     disableKServeRaw:
                       type: boolean
-                    disableKServeOCIModels:
-                      type: boolean
                     disableModelMesh:
                       type: boolean
                     disableAcceleratorProfiles:
