@@ -401,6 +401,7 @@ describe('createNIMPVC', () => {
   const pvcName = 'test-pvc';
   const pvcSize = '10Gi';
   const dryRun = true;
+  const storageClassName = 'testStorageClass';
 
   const pvcMock: PersistentVolumeClaimKind = {
     apiVersion: 'v1',
@@ -426,13 +427,14 @@ describe('createNIMPVC', () => {
 
   it('should call createPvc with correct arguments and return the result', async () => {
     (createPvc as jest.Mock).mockResolvedValueOnce(pvcMock);
-    const result = await createNIMPVC(projectName, pvcName, pvcSize, dryRun);
+    const result = await createNIMPVC(projectName, pvcName, pvcSize, dryRun, storageClassName);
 
     expect(createPvc).toHaveBeenCalledWith(
       {
         name: pvcName,
         description: '',
         size: pvcSize,
+        storageClassName,
       },
       projectName,
       { dryRun },
@@ -443,13 +445,14 @@ describe('createNIMPVC', () => {
 
   it('should handle the dryRun flag correctly', async () => {
     const dryRunFlag = false;
-    await createNIMPVC(projectName, pvcName, pvcSize, dryRunFlag);
+    await createNIMPVC(projectName, pvcName, pvcSize, dryRunFlag, storageClassName);
 
     expect(createPvc).toHaveBeenCalledWith(
       {
         name: pvcName,
         description: '',
         size: pvcSize,
+        storageClassName,
       },
       projectName,
       { dryRun: dryRunFlag },
