@@ -37,7 +37,10 @@ export const formatNodeSelector = (selector: NodeSelector): string[] =>
   Object.entries(selector).map(([key, value]) => `Key = ${key}; Value = ${value}`);
 
 export const formatResource = (identifier: string, request: string, limit: string): string =>
-  `${identifier}: Request = ${request}; Limit = ${limit}`;
+  `${identifier}: Request = ${formatResourceValue(
+    request,
+    identifier,
+  )}; Limit = ${formatResourceValue(limit, identifier)}`;
 
 export const useProfileIdentifiers = (
   acceleratorProfile?: AcceleratorProfileKind,
@@ -118,10 +121,7 @@ export const getContainerResourcesFromHardwareProfile = (
   };
 };
 
-export const formatResourceValue = (
-  v: string | number,
-  resourceType?: IdentifierResourceType,
-): string | number => {
+export const formatResourceValue = (v: string | number, resourceType?: string): string | number => {
   const valueStr = typeof v === 'number' ? v.toString() : v;
   switch (resourceType) {
     case IdentifierResourceType.CPU: {
