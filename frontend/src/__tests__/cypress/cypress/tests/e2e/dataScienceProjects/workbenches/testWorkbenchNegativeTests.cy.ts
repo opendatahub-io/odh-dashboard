@@ -14,7 +14,7 @@ import {
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
-describe('[Product Bug RHOAIENG-21039] Workbenches - negative tests', () => {
+describe('[Automation Bug RHOAIENG-21039] Workbenches - negative tests', () => {
   let testData: WBNegativeTestsData;
   let projectName: string;
 

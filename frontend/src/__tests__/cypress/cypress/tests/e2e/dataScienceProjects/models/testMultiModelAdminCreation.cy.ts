@@ -18,6 +18,7 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { attemptToClickTooltip } from '~/__tests__/cypress/cypress/utils/models';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -136,8 +137,7 @@ describe('[Automation Bug: RHOAIENG-20591] Verify Admin Multi Model Creation and
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
       checkInferenceServiceState(testData.multiModelAdminName);
       modelServingSection.findModelServerName(testData.multiModelAdminName);
-      modelServingSection.findStatusTooltip().click({ force: true });
-      cy.contains('Loaded', { timeout: 120000 }).should('be.visible');
+      attemptToClickTooltip();
 
       //Verify the Model is accessible externally
       cy.step('Verify the model is accessible externally');

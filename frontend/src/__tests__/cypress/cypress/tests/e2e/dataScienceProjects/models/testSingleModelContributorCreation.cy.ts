@@ -19,6 +19,7 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { attemptToClickTooltip } from '~/__tests__/cypress/cypress/utils/models';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -106,8 +107,7 @@ describe('[Product Bug: RHOAIENG-21662] Verify Model Creation and Validation usi
       modelServingSection.findModelServerName(testData.singleModelName);
       // Note reload is required as status tooltip was not found due to a stale element
       cy.reload();
-      modelServingSection.findStatusTooltip().click({ force: true });
-      cy.contains('Loaded', { timeout: 120000 }).should('be.visible');
+      attemptToClickTooltip();
     },
   );
 });
