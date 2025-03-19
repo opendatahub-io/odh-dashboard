@@ -9,31 +9,12 @@ import { MODEL_CATALOG_SOURCES_CONFIGMAP } from './const';
 
 type State = ModelCatalogSource[];
 
-
 const isK8sNotFoundError = (e: unknown): boolean =>
   typeof e === 'object' &&
   e != null &&
   'statusObject' in e &&
   isK8sStatus(e.statusObject) &&
   e.statusObject.code === 404;
-
-const fetchConfigMap = async (
-  namespace: string,
-  name: string,
-): Promise<ModelCatalogSource | null> => {
-  try {
-    const configMap = await getConfigMap(namespace, name);
-    if (!configMap.data?.modelCatalogSource) {
-      return null;
-    }
-    return JSON.parse(configMap.data.modelCatalogSource);
-  } catch (e: unknown) {
-    if (isK8sNotFoundError(e)) {
-      return null;
-    }
-    throw e;
-  }
-};
 
 export const useModelCatalogSources = (): FetchState<State> => {
   const { dashboardNamespace } = useNamespaces();

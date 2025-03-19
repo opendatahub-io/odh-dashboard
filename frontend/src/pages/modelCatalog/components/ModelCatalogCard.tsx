@@ -13,15 +13,14 @@ import {
   Split,
   SplitItem,
   CardFooter,
-  Skeleton,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { CatalogModel } from '~/concepts/modelCatalog/types';
 import { getCatalogModelDetailsUrlFromModel } from '~/pages/modelCatalog/routeUtils';
 import { getTagFromModel } from '~/pages/modelCatalog/utils';
 import { RhUiTagIcon } from '~/images/icons';
-import { ModelCatalogLabels } from '~/pages/modelCatalog/components/ModelCatalogLabels';
 import BrandImage from '~/components/BrandImage';
+import { ModelCatalogLabels } from './ModelCatalogLabels';
 
 export const ModelCatalogCard: React.FC<{ model: CatalogModel; source: string }> = ({
   model,
@@ -30,17 +29,10 @@ export const ModelCatalogCard: React.FC<{ model: CatalogModel; source: string }>
   <Card isFullHeight data-testid="model-catalog-card">
     <CardHeader>
       <CardTitle>
-        <Flex alignItems={{ default: 'alignItemsCenter' }}>
-          {model.logo ? (
-            <img src={model.logo} alt="model logo" style={{ height: '36px', width: '36px' }} />
-          ) : (
-            <Skeleton
-              shape="square"
-              width="36px"
-              height="36px"
-              screenreaderText="Brand image loading"
-            />
-          )}
+        <Flex>
+          <FlexItem>
+            <BrandImage src={model.logo || ''} alt={`${model.name} logo`} />
+          </FlexItem>
           <FlexItem align={{ default: 'alignRight' }}>
             <Label>{source}</Label>
           </FlexItem>
@@ -72,10 +64,17 @@ export const ModelCatalogCard: React.FC<{ model: CatalogModel; source: string }>
           </Split>
         </StackItem>
         <StackItem isFilled>{model.description}</StackItem>
+        <StackItem>
+          <ModelCatalogLabels labels={model.labels} tasks={model.tasks} />
+        </StackItem>
       </Stack>
     </CardBody>
     <CardFooter>
-      <ModelCatalogLabels labels={model.labels} tasks={model.tasks} />
+      {(model.tasks ?? []).map((task, index) => (
+        <Label variant="outline" key={index}>
+          {task}
+        </Label>
+      ))}
     </CardFooter>
   </Card>
 );

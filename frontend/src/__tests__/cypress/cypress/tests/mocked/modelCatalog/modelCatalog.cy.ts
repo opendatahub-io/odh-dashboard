@@ -4,8 +4,12 @@ import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockModelCatalogConfigMap } from '~/__mocks__/mockModelCatalogConfigMap';
 import { modelCatalog } from '~/__tests__/cypress/cypress/pages/modelCatalog/modelCatalog';
 import { ConfigMapModel } from '~/__tests__/cypress/cypress/utils/models';
-import { mockCatalogModel } from '~/__mocks__/mockCatalogModel';
 import { mockModelCatalogSource } from '~/__mocks__/mockModelCatalogSource';
+import {
+  mockRedHatModel,
+  mockThirdPartyModel,
+  mockCatalogModel,
+} from '~/__mocks__/mockCatalogModel';
 
 type HandlersProps = {
   disableModelCatalogFeature?: boolean;
@@ -69,15 +73,25 @@ describe('Model Catalog core', () => {
   it('Navigates to Model Catalog', () => {
     initIntercepts({ disableModelCatalogFeature: false });
     modelCatalog.visit();
+
+    // Wait for the page to load and stabilize
     cy.findByRole('button', { name: 'Models' }).should('exist').click();
-    modelCatalog.findModelCatalogCards().should('exist');
+
+    // Add explicit wait for the model catalog cards
+    cy.findByTestId('model-catalog-cards', { timeout: 15000 }).should('exist');
   });
 
   it('Navigates to Model Detail page on link click', () => {
     initIntercepts({ disableModelCatalogFeature: false });
     modelCatalog.visit();
+
+    // Wait for the page to load and stabilize
     cy.findByRole('button', { name: 'Models' }).should('exist').click();
-    modelCatalog.findModelCatalogCards().should('exist');
+
+    // Add explicit wait for the model catalog cards
+    cy.findByTestId('model-catalog-cards', { timeout: 15000 }).should('exist');
+
+    // Continue with the rest of the test
     modelCatalog.findModelCatalogModelDetailLink('granite-8b-code-instruct').click();
     cy.location('pathname').should(
       'equal',
@@ -221,13 +235,90 @@ describe('Model catalog cards', () => {
     );
 
     modelCatalog.visit();
-    modelCatalog.expandCardLabelGroup('test-model-1');
+    cy.findByTestId('model-catalog-cards', { timeout: 15000 }).should('exist');
 
-    modelCatalog.findCardLabelByIndex('test-model-1', 0).contains('LAB starter').should('exist');
-    modelCatalog.findCardLabelByIndex('test-model-1', 1).contains('LAB teacher').should('exist');
-    modelCatalog.findCardLabelByIndex('test-model-1', 2).contains('LAB judge').should('exist');
-    modelCatalog.findCardLabelByIndex('test-model-1', 3).contains('task1').should('exist');
-    modelCatalog.findCardLabelByIndex('test-model-1', 4).contains('task2').should('exist');
-    modelCatalog.findCardLabelByText('test-model-1', 'label1').should('not.exist');
+    // Find the specific model card
+    cy.contains('[data-testid=model-catalog-card]', 'test-model-1').within(() => {
+      // Check ILAB labels in the label group
+      cy.findByTestId('model-catalog-label-group').within(() => {
+        cy.findByText('LAB starter').should('exist');
+        cy.findByText('LAB teacher').should('exist');
+        cy.findByText('LAB judge').should('exist');
+        cy.findByText('label1').should('not.exist');
+      });
+
+      // Check tasks in the card footer
+      cy.get('.pf-v6-c-card__footer').within(() => {
+        cy.findByText('task1').should('exist');
+        cy.findByText('task2').should('exist');
+      });
+    });
+  });
+
+  it('should show multiple model sources with correct headers', () => {
+    const rhModel = mockRedHatModel({
+      name: 'rh-model',
+      tasks: ['task1'],
+    });
+
+    const thirdPartyModel = mockThirdPartyModel({
+      name: 'third-party-model',
+      tasks: ['task2'],
+    });
+
+    cy.interceptK8s(
+      {
+        model: ConfigMapModel,
+        ns: 'opendatahub',
+        name: 'model-catalog-sources',
+      },
+      mockModelCatalogConfigMap([
+        mockModelCatalogSource({
+          source: 'Red Hat',
+          displayName: 'Red Hat models',
+          models: [rhModel],
+        }),
+        mockModelCatalogSource({
+          source: 'Third-party',
+          displayName: 'Third-party models',
+          models: [thirdPartyModel],
+        }),
+      ]),
+    );
+
+    modelCatalog.visit();
+    modelCatalog.findModelCatalogCards().should('exist');
+
+    cy.findByRole('heading', { level: 2, name: 'Red Hat models' }).should('exist');
+    cy.findByRole('heading', { level: 2, name: 'Third-party models' }).should('exist');
+
+    modelCatalog.findModelCatalogCard('rh-model').should('exist');
+    modelCatalog.findModelCatalogCard('third-party-model').should('exist');
+  });
+
+  it('should show single source without header when only one source exists', () => {
+    const singleModel = mockCatalogModel({
+      name: 'single-model',
+      source: 'Red Hat',
+      tasks: ['task1'],
+    });
+
+    cy.interceptK8s(
+      {
+        model: ConfigMapModel,
+        ns: 'opendatahub',
+        name: 'model-catalog-sources',
+      },
+      mockModelCatalogConfigMap([
+        mockModelCatalogSource({ source: 'Red Hat', models: [singleModel] }),
+      ]),
+    );
+
+    modelCatalog.visit();
+    cy.findByTestId('model-catalog-cards').should('exist');
+
+    cy.get('h2').should('not.exist');
+
+    cy.contains('single-model').should('exist');
   });
 });

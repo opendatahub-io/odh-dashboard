@@ -4,6 +4,7 @@ export const mockCatalogModel = (partial?: Partial<CatalogModel>): CatalogModel 
   repository: 'rhelai1',
   name: 'granite-8b-code-instruct',
   provider: 'IBM',
+  source: 'Red Hat',
   description: 'A fine-tuned model based on Granite 8B Code Base',
   longDescription:
     'Granite-8B-Code-Instruct is a 8B parameter model fine tuned from\nGranite-8B-Code-Base on a combination of permissively licensed instruction\ndata to enhance instruction following capabilities including logical\nreasoning and problem-solving skills.',
@@ -348,7 +349,7 @@ export const mockCatalogModel = (partial?: Partial<CatalogModel>): CatalogModel 
   language: ['ar', 'cs', 'de', 'en', 'es', 'fr', 'it', 'ja', 'ko', 'nl', 'pt', 'zh'],
   license: 'apache-2.0',
   licenseLink: 'https://www.apache.org/licenses/LICENSE-2.0.txt',
-  maturity: 'Generally Available',
+  maturity: 'Technology preview',
   libraryName: 'transformers',
   baseModel: [
     {
@@ -358,8 +359,8 @@ export const mockCatalogModel = (partial?: Partial<CatalogModel>): CatalogModel 
   ],
   labels: ['language', 'granite-3.1'],
   tasks: ['text-generation'],
-  createTimeSinceEpoch: 1733514949000,
-  lastUpdateTimeSinceEpoch: 1734637721000,
+  createTimeSinceEpoch: 1739210683000,
+  lastUpdateTimeSinceEpoch: 1739210683000,
   artifacts: [
     {
       protocol: ArtifactsProtocol.OCI,
@@ -370,3 +371,18 @@ export const mockCatalogModel = (partial?: Partial<CatalogModel>): CatalogModel 
   ],
   ...partial,
 });
+
+export const mockRedHatModel = (partial?: Partial<CatalogModel>): CatalogModel =>
+  mockCatalogModel({
+    source: 'Red Hat',
+    provider: 'Red Hat',
+    ...partial,
+  });
+
+export const mockThirdPartyModel = (partial?: Partial<CatalogModel>): CatalogModel =>
+  mockCatalogModel({
+    source: 'Third-party',
+    provider: 'Third Party Provider',
+    repository: 'thirdparty',
+    ...partial,
+  });
