@@ -73,11 +73,11 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
             if (identifier.resourceType === IdentifierResourceType.CPU) {
               // Convert CPU to smallest unit for comparison
               const [value, unit] = splitValueUnit(maxValue.toString(), CPU_UNITS);
-              score += value * unit.weight;
+              score += (value ?? 0) * unit.weight;
             } else if (identifier.resourceType === IdentifierResourceType.MEMORY) {
               // Convert memory to smallest unit for comparison
               const [value, unit] = splitValueUnit(maxValue.toString(), MEMORY_UNITS_FOR_PARSING);
-              score += value * unit.weight;
+              score += (value ?? 0) * unit.weight;
             } else {
               score += Number(maxValue);
             }

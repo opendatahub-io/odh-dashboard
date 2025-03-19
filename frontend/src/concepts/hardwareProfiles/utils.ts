@@ -126,11 +126,11 @@ export const formatResourceValue = (
   switch (resourceType) {
     case IdentifierResourceType.CPU: {
       const [cpuValue, cpuUnit] = splitValueUnit(valueStr, CPU_UNITS);
-      return `${cpuValue} ${cpuUnit.name}`;
+      return `${cpuValue ?? ''} ${cpuUnit.name}`;
     }
     case IdentifierResourceType.MEMORY: {
       const [memoryValue, memoryUnit] = splitValueUnit(valueStr, MEMORY_UNITS_FOR_PARSING);
-      return `${memoryValue} ${memoryUnit.name}`;
+      return `${memoryValue ?? ''} ${memoryUnit.name}`;
     }
     default:
       return v;
