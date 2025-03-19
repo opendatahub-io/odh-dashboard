@@ -74,24 +74,18 @@ describe('Model Catalog core', () => {
     initIntercepts({ disableModelCatalogFeature: false });
     modelCatalog.visit();
 
-    // Wait for the page to load and stabilize
     cy.findByRole('button', { name: 'Models' }).should('exist').click();
 
-    // Add explicit wait for the model catalog cards
-    cy.findByTestId('model-catalog-cards', { timeout: 15000 }).should('exist');
+    cy.findByTestId('model-catalog-cards').should('exist');
   });
 
   it('Navigates to Model Detail page on link click', () => {
     initIntercepts({ disableModelCatalogFeature: false });
     modelCatalog.visit();
-
-    // Wait for the page to load and stabilize
     cy.findByRole('button', { name: 'Models' }).should('exist').click();
 
-    // Add explicit wait for the model catalog cards
-    cy.findByTestId('model-catalog-cards', { timeout: 15000 }).should('exist');
+    cy.findByTestId('model-catalog-cards').should('exist');
 
-    // Continue with the rest of the test
     modelCatalog.findModelCatalogModelDetailLink('granite-8b-code-instruct').click();
     cy.location('pathname').should(
       'equal',
