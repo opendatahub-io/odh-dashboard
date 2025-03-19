@@ -15,12 +15,14 @@ import ImageVersionSelector from './ImageVersionSelector';
 import ImageStreamSelector from './ImageStreamSelector';
 
 type ImageSelectorFieldProps = {
+  currentProject: string;
   selectedImage: ImageStreamAndVersion;
   setSelectedImage: React.Dispatch<React.SetStateAction<ImageStreamAndVersion>>;
   compatibleIdentifiers?: string[];
 };
 
 const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
+  currentProject,
   selectedImage,
   setSelectedImage,
   compatibleIdentifiers,
@@ -28,6 +30,11 @@ const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
   const { dashboardNamespace } = useDashboardNamespace();
   const buildStatuses = useBuildStatuses(dashboardNamespace);
   const [imageStreams, loaded, error] = useImageStreams(dashboardNamespace);
+  const [
+    currentProjectImageStreams,
+    currentProjectImageStreamsLoaded,
+    currentProjectImageStreamsError,
+  ] = useImageStreams(currentProject);
 
   const imageVersionData = React.useMemo(() => {
     const { imageStream } = selectedImage;
@@ -52,21 +59,22 @@ const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
     });
   };
 
-  if (error) {
+  if (error || currentProjectImageStreamsError) {
     return (
       <Alert title="Image loading error" variant="danger">
-        {error.message}
+        {error?.message || currentProjectImageStreamsError?.message}
       </Alert>
     );
   }
 
-  if (!loaded) {
+  if (!loaded || !currentProjectImageStreamsLoaded) {
     return <Skeleton />;
   }
 
   return (
     <>
       <ImageStreamSelector
+        currentProjectStreams={currentProjectImageStreams}
         imageStreams={imageStreams.filter((imageStream) => !isInvalidBYONImageStream(imageStream))}
         buildStatuses={buildStatuses}
         onImageStreamSelect={onImageStreamSelect}
