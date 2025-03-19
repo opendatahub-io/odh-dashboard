@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { FormGroup, Label, Split, SplitItem } from '@patternfly/react-core';
+import {
+  Divider,
+  FormGroup,
+  Label,
+  MenuGroup,
+  MenuItem,
+  Split,
+  SplitItem,
+} from '@patternfly/react-core';
 import { BuildStatus } from '~/pages/projects/screens/spawner/types';
 import {
   checkImageStreamAvailability,
@@ -11,8 +19,13 @@ import {
 import { ImageStreamKind } from '~/k8sTypes';
 import SimpleSelect from '~/components/SimpleSelect';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
+import GlobalIcon from '~/images/icons/GlobalIcon';
+import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
+import SearchSelector from '~/components/searchSelector/SearchSelector';
+import ProjectScopedPopover from '~/components/ProjectScopedPopover';
 
 type ImageStreamSelectorProps = {
+  currentProjectStreams?: ImageStreamKind[];
   imageStreams: ImageStreamKind[];
   buildStatuses: BuildStatus[];
   selectedImageStream?: ImageStreamKind;
@@ -21,6 +34,7 @@ type ImageStreamSelectorProps = {
 };
 
 const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
+  currentProjectStreams,
   imageStreams,
   selectedImageStream,
   onImageStreamSelect,
@@ -28,6 +42,102 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
   compatibleIdentifiers,
 }) => {
   const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
+  const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
+  const [searchImageStreamName, setSearchImageStreamName] = React.useState('');
+
+  const getFilteredImageStreams = () => (
+    <>
+      <MenuGroup
+        label={
+          <Split>
+            <SplitItem>
+              <img
+                style={{ height: 20 }}
+                src={typedObjectImage(ProjectObjectType.project)}
+                alt=""
+              />
+            </SplitItem>
+            <SplitItem>Project-scoped images </SplitItem>
+          </Split>
+        }
+      >
+        {currentProjectStreams &&
+          currentProjectStreams
+            .filter((imageStream) =>
+              imageStream.metadata.name.toLowerCase().includes(searchImageStreamName.toLowerCase()),
+            )
+            .map((imageStream, index) => (
+              <MenuItem
+                key={`imageStream-${index}`}
+                onClick={() => onImageStreamSelect(imageStream)}
+              >
+                <Split>
+                  <SplitItem>
+                    <img
+                      style={{ height: 25 }}
+                      src={typedObjectImage(ProjectObjectType.project)}
+                      alt=""
+                    />
+                  </SplitItem>
+                  {getImageStreamDisplayName(imageStream)}
+                  <SplitItem isFilled />
+                  <SplitItem>
+                    {compatibleIdentifiers?.some((identifier) =>
+                      isCompatibleWithIdentifier(identifier, imageStream),
+                    ) && (
+                      <Label color="blue">
+                        Compatible with
+                        {isHardwareProfilesAvailable ? 'hardware profile' : 'accelerator'}
+                      </Label>
+                    )}
+                  </SplitItem>
+                </Split>
+              </MenuItem>
+            ))}
+      </MenuGroup>
+      <Divider />
+      <MenuGroup
+        label={
+          <Split>
+            <SplitItem>
+              <GlobalIcon />
+            </SplitItem>
+            <SplitItem />
+            <SplitItem> Global images </SplitItem>
+          </Split>
+        }
+      >
+        {imageStreams
+          .filter((imageStream) =>
+            imageStream.metadata.name.toLowerCase().includes(searchImageStreamName.toLowerCase()),
+          )
+          .map((imageStream, index) => (
+            <MenuItem
+              key={`imageStream-global-${index}`}
+              onClick={() => onImageStreamSelect(imageStream)}
+            >
+              <Split>
+                <SplitItem>
+                  <GlobalIcon />
+                </SplitItem>
+                {getImageStreamDisplayName(imageStream)}
+                <SplitItem isFilled />
+                <SplitItem>
+                  {compatibleIdentifiers?.some((identifier) =>
+                    isCompatibleWithIdentifier(identifier, imageStream),
+                  ) && (
+                    <Label color="blue">
+                      Compatible with
+                      {isHardwareProfilesAvailable ? 'hardware profile' : 'accelerator'}
+                    </Label>
+                  )}
+                </SplitItem>
+              </Split>
+            </MenuItem>
+          ))}
+      </MenuGroup>
+    </>
+  );
 
   const options = imageStreams.toSorted(compareImageStreamOrder).map((imageStream) => {
     const description = getRelatedVersionDescription(imageStream);
@@ -57,26 +167,77 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
   });
 
   return (
-    <FormGroup isRequired label="Image selection" fieldId="workbench-image-stream-selection">
-      <SimpleSelect
-        isScrollable
-        isFullWidth
-        id="workbench-image-stream-selection"
-        dataTestId="workbench-image-stream-selection"
-        aria-label="Select an image"
-        options={options}
-        placeholder="Select one"
-        value={selectedImageStream?.metadata.name ?? ''}
-        popperProps={{ appendTo: 'inline' }}
-        onChange={(key) => {
-          const imageStream = imageStreams.find(
-            (currentImageStream) => currentImageStream.metadata.name === key,
-          );
-          if (imageStream) {
-            onImageStreamSelect(imageStream);
+    <FormGroup
+      isRequired
+      label="Image selection"
+      fieldId="workbench-image-stream-selection"
+      labelHelp={
+        isProjectScopedAvailable ? (
+          <ProjectScopedPopover title="Workbench image" item="images" />
+        ) : (
+          <></>
+        )
+      }
+    >
+      {isProjectScopedAvailable && currentProjectStreams && currentProjectStreams.length > 0 ? (
+        <SearchSelector
+          isFullWidth
+          dataTestId="image-stream-selector"
+          onSearchChange={(newValue) => setSearchImageStreamName(newValue)}
+          onSearchClear={() => setSearchImageStreamName('')}
+          searchValue={searchImageStreamName}
+          toggleText={
+            selectedImageStream && (
+              <Split>
+                {getImageStreamDisplayName(selectedImageStream)}
+                <SplitItem>
+                  {currentProjectStreams.includes(selectedImageStream) ? (
+                    <Label
+                      variant="outline"
+                      color="blue"
+                      icon={
+                        <img
+                          style={{ height: 20 }}
+                          src={typedObjectImage(ProjectObjectType.project)}
+                          alt=""
+                        />
+                      }
+                    >
+                      Project-scoped
+                    </Label>
+                  ) : (
+                    <Label variant="outline" color="blue" icon={<GlobalIcon />}>
+                      Global-scoped
+                    </Label>
+                  )}
+                </SplitItem>
+              </Split>
+            )
           }
-        }}
-      />
+        >
+          {getFilteredImageStreams()}
+        </SearchSelector>
+      ) : (
+        <SimpleSelect
+          isScrollable
+          isFullWidth
+          id="workbench-image-stream-selection"
+          dataTestId="workbench-image-stream-selection"
+          aria-label="Select an image"
+          options={options}
+          placeholder="Select one"
+          value={selectedImageStream?.metadata.name ?? ''}
+          popperProps={{ appendTo: 'inline' }}
+          onChange={(key) => {
+            const imageStream = imageStreams.find(
+              (currentImageStream) => currentImageStream.metadata.name === key,
+            );
+            if (imageStream) {
+              onImageStreamSelect(imageStream);
+            }
+          }}
+        />
+      )}
     </FormGroup>
   );
 };
