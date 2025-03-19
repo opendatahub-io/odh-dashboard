@@ -470,7 +470,7 @@ describe('Serving Runtime List', () => {
       inferenceServiceModal.findSubmitButton().should('be.disabled');
       inferenceServiceModal.findNewConnectionOption().click();
       inferenceServiceModal.findConnectionNameInput().type('Test Name');
-      inferenceServiceModal.findConnectionFieldInput().type('https://test');
+      inferenceServiceModal.findConnectionFieldInput('URI').type('https://test');
       inferenceServiceModal.findSubmitButton().should('be.enabled');
       inferenceServiceModal.findExistingConnectionOption().click();
       inferenceServiceModal.findExistingConnectionSelect().should('have.attr', 'disabled');
@@ -783,7 +783,7 @@ describe('Serving Runtime List', () => {
       kserveModal.findSubmitButton().should('be.disabled');
       kserveModal.findNewConnectionOption().click();
       kserveModal.findConnectionNameInput().type('Test Name');
-      kserveModal.findConnectionFieldInput().type('https://test');
+      kserveModal.findConnectionFieldInput('URI').type('https://test');
       kserveModal.findSubmitButton().should('be.enabled');
       kserveModal.findExistingConnectionOption().click();
       kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
@@ -1020,7 +1020,7 @@ describe('Serving Runtime List', () => {
       kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
       kserveModal.findNewConnectionOption().click();
       kserveModal.findConnectionNameInput().type('Test Name');
-      kserveModal.findConnectionFieldInput().type('https://test');
+      kserveModal.findConnectionFieldInput('URI').type('https://test');
       kserveModal.findSubmitButton().should('be.enabled');
 
       // test submitting form, an error should appear
@@ -1297,7 +1297,7 @@ describe('Serving Runtime List', () => {
       kserveModal.findSubmitButton().should('be.disabled');
       kserveModal.findNewConnectionOption().click();
       kserveModal.findConnectionNameInput().type('Test Name');
-      kserveModal.findConnectionFieldInput().type('https://test');
+      kserveModal.findConnectionFieldInput('URI').type('https://test');
       kserveModal.findSubmitButton().should('be.enabled');
       kserveModal.findExistingConnectionOption().click();
       kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');

@@ -187,11 +187,10 @@ class InferenceServiceModal extends Modal {
     return this.find().findByTestId('model-uri');
   }
 
-  selectConnectionType(name: string) {
-    this.findExistingConnectionSelect()
+  findConnectionType(name: string | RegExp) {
+    return this.findExistingConnectionSelect()
       .findByRole('button', { name: 'Typeahead menu toggle' })
-      .findSelectOption(name)
-      .click();
+      .findSelectOption(name);
   }
 
   selectExistingConnectionSelectOptionByResourceName() {
@@ -202,8 +201,8 @@ class InferenceServiceModal extends Modal {
     return this.find().findByTestId('connection-name-desc-name');
   }
 
-  findConnectionFieldInput() {
-    return this.find().findByTestId('field URI');
+  findConnectionFieldInput(envVar: string) {
+    return this.find().findByTestId(`field ${envVar}`);
   }
 
   findLocationNameInput() {
