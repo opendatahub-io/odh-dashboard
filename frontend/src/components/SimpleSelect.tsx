@@ -135,7 +135,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
             {toggleLabel || <Truncate content={selectedLabel} className="truncate-no-min-width" />}
           </MenuToggle>
         )}
-        shouldFocusToggleOnSelect
+        shouldFocusFirstItemOnOpen
         popperProps={{ maxWidth: 'trigger', ...popperProps }}
       >
         {groupedOptions?.map((group, index) => (

@@ -175,6 +175,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
               }
             }}
             dataTestId="accelerator-profile-select"
+            popperProps={{ appendTo: 'inline' }}
           />
         </FormGroup>
       </StackItem>

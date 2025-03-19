@@ -44,6 +44,7 @@ export const KServeDeploymentModeDropdown: React.FC<Props> = ({ isRaw, setIsRaw,
           setIsRaw(key === DeploymentMode.RawDeployment);
         }}
         isFullWidth
+        popperProps={{ appendTo: 'inline' }}
       />
     </FormGroup>
   );

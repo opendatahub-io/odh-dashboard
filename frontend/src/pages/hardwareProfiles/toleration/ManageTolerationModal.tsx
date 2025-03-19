@@ -73,6 +73,7 @@ const ManageTolerationModal: React.FC<ManageTolerationModalProps> = ({
               setToleration('operator', operator ?? undefined);
             }}
             dataTestId="toleration-operator-select"
+            popperProps={{ appendTo: 'inline' }}
           />
         </FormGroup>
         <FormGroup label="Effect" fieldId="effect-select">
@@ -85,6 +86,7 @@ const ManageTolerationModal: React.FC<ManageTolerationModalProps> = ({
               setToleration('effect', effect ?? undefined);
             }}
             dataTestId="toleration-effect-select"
+            popperProps={{ appendTo: 'inline' }}
           />
         </FormGroup>
         <FormGroup label="Key" isRequired fieldId="toleration-key">

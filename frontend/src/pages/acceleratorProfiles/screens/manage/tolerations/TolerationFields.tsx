@@ -42,6 +42,7 @@ const TolerationFields: React.FC<TolerationFieldsProps> = ({ toleration, onUpdat
           value={toleration.operator || ''}
           onChange={(key) => handleFieldUpdate('operator', key)}
           dataTestId="toleration-operator-select"
+          popperProps={{ appendTo: 'inline' }}
         />
       </FormGroup>
 
@@ -52,6 +53,7 @@ const TolerationFields: React.FC<TolerationFieldsProps> = ({ toleration, onUpdat
           value={toleration.effect || ''}
           onChange={(key) => handleFieldUpdate('effect', key)}
           dataTestId="toleration-effect-select"
+          popperProps={{ appendTo: 'inline' }}
         />
       </FormGroup>
 
