@@ -166,7 +166,7 @@ const AppLauncher: React.FC = () => {
         </MenuToggle>
       )}
       isOpen={isOpen}
-      shouldFocusToggleOnSelect
+      shouldFocusFirstItemOnOpen
     >
       {applicationSections.map(renderApplicationLauncherGroup)}
     </Dropdown>

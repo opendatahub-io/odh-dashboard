@@ -74,7 +74,7 @@ const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
       </SplitItem>
       <SplitItem>
         <Dropdown
-          shouldFocusToggleOnSelect
+          shouldFocusFirstItemOnOpen
           popperProps={{ appendTo: menuAppendTo }}
           toggle={(toggleRef) => (
             <MenuToggle

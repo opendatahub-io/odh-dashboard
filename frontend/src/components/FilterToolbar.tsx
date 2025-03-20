@@ -48,7 +48,7 @@ function FilterToolbar<T extends string>({
           <ToolbarItem>
             <Dropdown
               onOpenChange={(isOpenChange) => setOpen(isOpenChange)}
-              shouldFocusToggleOnSelect
+              shouldFocusFirstItemOnOpen
               toggle={(toggleRef) => (
                 <MenuToggle
                   data-testid={`${testId}-dropdown`}
