@@ -22,6 +22,8 @@ import SimpleSelect from '~/components/SimpleSelect';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import NumberInputWrapper from '~/components/NumberInputWrapper';
 import { asEnumMember } from '~/utilities/utils';
+import { useValidation } from '~/utilities/useValidation';
+import { tolerationSchema } from '~/pages/hardwareProfiles/manage/validationUtils';
 import { effectDropdownOptions, EMPTY_TOLERATION, operatorDropdownOptions } from './const';
 
 type ManageTolerationModalProps = {
@@ -47,6 +49,8 @@ const ManageTolerationModal: React.FC<ManageTolerationModalProps> = ({
     onClose();
   };
 
+  const isValidated = useValidation(toleration, tolerationSchema);
+
   return (
     <Modal
       title={existingToleration ? 'Edit toleration' : 'Add toleration'}
@@ -58,7 +62,7 @@ const ManageTolerationModal: React.FC<ManageTolerationModalProps> = ({
           submitLabel={existingToleration ? 'Update' : 'Add'}
           onSubmit={handleSubmit}
           onCancel={onClose}
-          isSubmitDisabled={!toleration.key}
+          isSubmitDisabled={!isValidated.validationResult.success}
         />
       }
     >
