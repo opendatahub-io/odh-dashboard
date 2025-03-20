@@ -34,7 +34,7 @@ class ConnectionsPage {
 }
 class ConnectionModal extends Modal {
   constructor(edit = false) {
-    super(`${edit ? 'Edit' : 'Add'} connection`);
+    super(`${edit ? 'Edit' : 'Create'} connection`);
   }
 
   findConnectionTypeDropdown() {
