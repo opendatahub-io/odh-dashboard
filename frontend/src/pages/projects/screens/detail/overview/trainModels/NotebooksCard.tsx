@@ -79,7 +79,7 @@ const NotebooksCard: React.FC = () => {
         sectionType={SectionType.training}
         title="Workbenches"
         popoverHeaderContent="About workbenches"
-        popoverBodyContent="A workbench is an isolated area where you can work with models in your preferred IDE, such as a Jupyter notebook. You can add accelerators and data connections, create pipelines, and add cluster storage in your workbench."
+        popoverBodyContent="A workbench is an isolated area where you can work with models in your preferred IDE, such as a Jupyter notebook. You can add accelerators and connections, create pipelines, and add cluster storage in your workbench."
       >
         <CardBody>
           <Flex
@@ -95,7 +95,7 @@ const NotebooksCard: React.FC = () => {
                 <Content>
                   <Content component="small">
                     A workbench is an isolated area where you can work with models in your preferred
-                    IDE, such as a Jupyter notebook. You can add accelerators and data connections,
+                    IDE, such as a Jupyter notebook. You can add accelerators and connections,
                     create pipelines, and configure cluster storage in your workbench.
                   </Content>
                 </Content>
@@ -127,7 +127,7 @@ const NotebooksCard: React.FC = () => {
       sectionType={SectionType.training}
       title="Workbenches"
       popoverHeaderContent="About workbenches"
-      popoverBodyContent="A workbench is an isolated area where you can work with models in your preferred IDE, such as a Jupyter notebook. You can add accelerators and data connections, create pipelines, and add cluster storage in your workbench."
+      popoverBodyContent="A workbench is an isolated area where you can work with models in your preferred IDE, such as a Jupyter notebook. You can add accelerators and connections, create pipelines, and add cluster storage in your workbench."
     >
       <MetricsContents
         title="Workbenches"

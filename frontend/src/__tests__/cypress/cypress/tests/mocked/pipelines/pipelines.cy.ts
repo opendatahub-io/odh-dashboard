@@ -54,7 +54,7 @@ describe('Pipelines', () => {
     pipelinesGlobal.findConfigurePipelineServerButton().should('be.enabled');
   });
 
-  it('Configure pipeline server when data connection exist', () => {
+  it('Configure pipeline server when viable connection exists', () => {
     initIntercepts({ isEmpty: true });
 
     cy.interceptK8s(
@@ -91,7 +91,7 @@ describe('Pipelines', () => {
     );
     pipelinesGlobal.findConfigurePipelineServerButton().should('be.enabled');
     pipelinesGlobal.findConfigurePipelineServerButton().click();
-    configurePipelineServerModal.selectDataConnection('Test Secret •••••••••••••••••');
+    configurePipelineServerModal.selectViableConnection('Test Secret •••••••••••••••••');
     configurePipelineServerModal.findAwsKeyInput().should('have.value', 'sdsd');
     configurePipelineServerModal.findShowPasswordButton().click();
     configurePipelineServerModal.findAwsSecretKeyInput().should('have.value', 'sdsd');
@@ -148,7 +148,7 @@ describe('Pipelines', () => {
     });
   });
 
-  it('Configure pipeline server when data connection does not exist', () => {
+  it('Configure pipeline server when viable connection does not exist', () => {
     initIntercepts({ isEmpty: true });
     pipelinesGlobal.visit(projectName);
 

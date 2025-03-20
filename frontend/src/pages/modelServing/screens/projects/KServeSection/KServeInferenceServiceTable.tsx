@@ -35,7 +35,7 @@ const KServeInferenceServiceTable: React.FC = () => {
 
   const {
     servingRuntimes: { refresh: refreshServingRuntime },
-    dataConnections: { refresh: refreshDataConnections },
+    connections: { refresh: refreshConnections },
     inferenceServices: { data: inferenceServices, refresh: refreshInferenceServices },
     serverSecrets: { refresh: refreshServerSecrets },
     filterTokens,
@@ -95,7 +95,7 @@ const KServeInferenceServiceTable: React.FC = () => {
             if (submit) {
               refreshServingRuntime();
               refreshInferenceServices();
-              refreshDataConnections();
+              refreshConnections();
               refreshServerSecrets();
             }
           }}
