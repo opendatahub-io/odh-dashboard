@@ -2,7 +2,7 @@ import { HardwareProfileKind } from '~/k8sTypes';
 import { Identifier } from '~/types';
 import { HardwareProfileWarningType, WarningNotification } from '~/concepts/hardwareProfiles/types';
 import { hardwareProfileWarningSchema } from '~/concepts/hardwareProfiles/validationUtils';
-import { determineUnit, splitValueUnit } from '~/utilities/valueUnits';
+import { determineIdentifierUnit, splitValueUnit } from '~/utilities/valueUnits';
 import { HARDWARE_PROFILES_DEFAULT_WARNING_MESSAGE } from './nodeResource/const';
 import { hasCPUandMemory } from './manage/ManageNodeResourceSection';
 
@@ -100,15 +100,15 @@ export const isHardwareProfileIdentifierValid = (identifier: Identifier): boolea
     }
     const minCount = splitValueUnit(
       identifier.minCount.toString(),
-      determineUnit(identifier),
+      determineIdentifierUnit(identifier),
       true,
     )[0];
     const [maxCount] = identifier.maxCount
-      ? splitValueUnit(identifier.maxCount.toString(), determineUnit(identifier), true)
+      ? splitValueUnit(identifier.maxCount.toString(), determineIdentifierUnit(identifier), true)
       : [undefined];
     const defaultCount = splitValueUnit(
       identifier.defaultCount.toString(),
-      determineUnit(identifier),
+      determineIdentifierUnit(identifier),
       true,
     )[0];
     if (
@@ -137,7 +137,7 @@ export const createHardwareProfileWarningTitle = (hardwareProfile: HardwareProfi
   return `${complete ? 'Invalid' : 'Incomplete'} hardware profile`;
 };
 
-export const createIdentifierWarningMessage = (message: string, isDefault: boolean): string =>
+export const createIdentifierWarningMessage = (message: string, isDefault?: boolean): string =>
   `${message} ${
     isDefault
       ? HARDWARE_PROFILES_DEFAULT_WARNING_MESSAGE
@@ -152,12 +152,10 @@ export const validateProfileWarning = (
   const warnings = hardwareProfileWarningSchema.safeParse({ isDefault: false, value: identifiers });
   if (warnings.error) {
     warnings.error.issues.forEach((issue) => {
-      if ('params' in issue && typeof issue.params !== 'undefined') {
-        warningMessages.push({
-          message: issue.message,
-          type: issue.params.type,
-        });
-      }
+      warningMessages.push({
+        message: issue.message,
+        type: HardwareProfileWarningType.OTHER,
+      });
     });
   }
   return warningMessages;
