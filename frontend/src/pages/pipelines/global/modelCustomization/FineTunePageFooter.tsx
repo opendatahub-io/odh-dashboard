@@ -14,9 +14,9 @@ import useRunFormData from '~/concepts/pipelines/content/createRun/useRunFormDat
 import { handleSubmit } from '~/concepts/pipelines/content/createRun/submitUtils';
 import { isRunSchedule } from '~/concepts/pipelines/utils';
 import {
-  getModelCustomizationPath,
   globalPipelineRunDetailsRoute,
   globalPipelineRunsRoute,
+  modelCustomizationRootPath,
   ModelCustomizationRouterState,
 } from '~/routes';
 import useNotification from '~/utilities/useNotification';
@@ -76,7 +76,7 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
 }) => {
   const [error, setError] = React.useState<Error>();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const { api, namespace, metadataStoreServiceClient, project } = usePipelinesAPI();
+  const { api, namespace, metadataStoreServiceClient } = usePipelinesAPI();
   const { registerNotification } = React.useContext(NotificationWatcherContext);
   const notification = useNotification();
   const navigate = useNavigate();
@@ -330,6 +330,7 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
           <ActionListItem>
             <Button
               variant="link"
+              data-testid="model-customization-cancel-button"
               onClick={() => {
                 if (
                   state &&
@@ -345,7 +346,7 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
                     ),
                   );
                 } else {
-                  navigate(getModelCustomizationPath(project.metadata.name));
+                  navigate(modelCustomizationRootPath);
                 }
               }}
             >
