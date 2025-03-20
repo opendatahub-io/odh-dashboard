@@ -1,3 +1,4 @@
 # connectionTypes.cy.ts Test Data #
-s3: "S3 compatible object storage - v1"
-uri: "URI - v1"
+s3: 'S3 compatible object storage - v1'
+uri: 'URI - v1'
+oci: 'OCI compliant registry - v1'
