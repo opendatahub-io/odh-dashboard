@@ -22,9 +22,9 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
-import { cleanupHardwareProfiles } from '~/__tests__/cypress/cypress/utils/oc_commands/hardwareProfiles';
-import { createCustomResource } from '~/__tests__/cypress/cypress/utils/oc_commands/customResources';
+import { cleanupHardwareProfiles, createCleanHardwareProfile } from '~/__tests__/cypress/cypress/utils/oc_commands/hardwareProfiles';
 import { hardwareProfileSection } from '~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
+import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 
 describe('Workbenches - tolerations tests', () => {
   let testData: WBTolerationsTestData;
@@ -53,28 +53,27 @@ describe('Workbenches - tolerations tests', () => {
         
         // Load Hardware Profile
         cy.log(`Loaded Hardware Profile Name: ${hardwareProfileResourceName}`);
-        //Cleanup Hardware Profile if it already exists 
-        cleanupHardwareProfiles(hardwareProfileResourceName);
-        //Create a Hardware Profile
-        createCustomResource(applicationNamespace, testData.resourceYamlPath);
+        // Cleanup Hardware Profile if it already exists 
+        createCleanHardwareProfile(testData.resourceYamlPath);
       });
   });
 
+  // Cleanup: Restore original toleration settings and delete the created project
   after(() => {
-    //Check if the Before Method was executed to perform the setup
+    // Check if the Before Method was executed to perform the setup
     if (!wasSetupPerformed()) return;
 
     // Load Hardware Profile
     cy.log(`Loaded Hardware Profile Name: ${hardwareProfileResourceName}`);
 
     // Call cleanupHardwareProfiles here, after hardwareProfileResourceName is set
-    cleanupHardwareProfiles(hardwareProfileResourceName);
-
-    // Delete provisioned Project
-    if (projectName) {
-      cy.log(`Deleting Project ${projectName} after the test has finished.`);
-      deleteOpenShiftProject(projectName);
-    }
+    return cleanupHardwareProfiles(hardwareProfileResourceName).then(() => {
+      // Delete provisioned Project
+      if (projectName) {
+        cy.log(`Deleting Project ${projectName} after the test has finished.`);
+        deleteOpenShiftProject(projectName);
+      }
+    });
   });
 
   it(
@@ -91,7 +90,7 @@ describe('Workbenches - tolerations tests', () => {
       projectListPage.findProjectLink(projectName).click();
       // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
       // Reapply projectDetails.findSectionTab('workbenches').click();
-      cy.visit(`projects/${projectName}?section=workbenches`);
+      projectDetails.findSectionTab('workbenches').click();
 
       // Create workbench and verify it starts running
       cy.step(`Create workbench ${testData.workbenchName}`);
@@ -100,7 +99,7 @@ describe('Workbenches - tolerations tests', () => {
       createSpawnerPage.getDescriptionInput().type(projectDescription);
       createSpawnerPage.findNotebookImage('code-server-notebook').click();
       hardwareProfileSection.selectProfile(
-        testData.hardwareProfileName,
+        testData.hardwareProfileDeploymentSize,
       );
       createSpawnerPage.findSubmitButton().click();
 
@@ -109,7 +108,6 @@ describe('Workbenches - tolerations tests', () => {
       notebookRow.findNotebookDescription(projectDescription);
       notebookRow.expectStatusLabelToBe('Running', 120000);
       notebookRow.shouldHaveNotebookImageName('code-server');
-      notebookRow.shouldHaveContainerSize('Small');
 
       // Validate that the toleration applied earlier displays in the newly created pod
       cy.step('Validate the Tolerations for the pod include the newly added toleration');
@@ -125,44 +123,44 @@ describe('Workbenches - tolerations tests', () => {
       });
     },
   );
+
+  it(
+    'Validate pod tolerations for a stopped workbench',
+    // TODO: This test will be reworked this Sprint as part of RHOAIENG-20099
+    { tags: ['@Featureflagged', '@HardwareProfiles'] },
+    () => {
+      // Authentication and navigation
+      cy.step('Log into the application');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+
+      // Project navigation
+      cy.step(`Navigate to workbenches tab of Project ${projectName}`);
+      projectListPage.navigate();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
+      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
+      // Reapply projectDetails.findSectionTab('workbenches').click();
+      projectDetails.findSectionTab('workbenches').click();
+
+      // Stop workbench and verify it stops running
+      cy.step(`Stop workbench ${testData.workbenchName}`);
+      const notebookRow = workbenchPage.getNotebookRow(testData.workbenchName);
+      notebookRow.findNotebookStop().click();
+      notebookConfirmModal.findStopWorkbenchButton().click();
+      notebookRow.expectStatusLabelToBe('Stopped', 120000);
+      cy.reload();
+
+      // Validate that the pod stops running
+      cy.step('Validate that the pod stops running');
+      validateWorkbenchTolerations(projectName, testData.workbenchName, null, false).then(
+        (resolvedPodName) => {
+          cy.log(`Pod should not be running - name: ${resolvedPodName}`);
+        },
+      );
+    },
+  );
 });
 
-
-  // it(
-  //   'Validate pod tolerations for a stopped workbench',
-  //   // TODO: This test will be reworked this Sprint as part of RHOAIENG-20099
-  //   { tags: ['@Featureflagged', '@HardwareProfiles'] },
-  //   () => {
-  //     // Authentication and navigation
-  //     cy.step('Log into the application');
-  //     cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-
-  //     // Project navigation
-  //     cy.step(`Navigate to workbenches tab of Project ${projectName}`);
-  //     projectListPage.navigate();
-  //     projectListPage.filterProjectByName(projectName);
-  //     projectListPage.findProjectLink(projectName).click();
-  //     // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-  //     // Reapply projectDetails.findSectionTab('workbenches').click();
-  //     cy.visit(`projects/${projectName}?section=workbenches`);
-
-  //     // Stop workbench and verify it stops running
-  //     cy.step(`Stop workbench ${testData.workbenchName}`);
-  //     const notebookRow = workbenchPage.getNotebookRow(testData.workbenchName);
-  //     notebookRow.findNotebookStop().click();
-  //     notebookConfirmModal.findStopWorkbenchButton().click();
-  //     notebookRow.expectStatusLabelToBe('Stopped', 120000);
-  //     cy.reload();
-
-  //     // Validate that the pod stops running
-  //     cy.step('Validate that the pod stops running');
-  //     validateWorkbenchTolerations(projectName, testData.workbenchName, null, false).then(
-  //       (resolvedPodName) => {
-  //         cy.log(`Pod should not be running - name: ${resolvedPodName}`);
-  //       },
-  //     );
-  //   },
-  // );
 
 //   it(
 //     'Validate pod tolerations when a workbench is restarted with tolerations and tolerations are disabled',

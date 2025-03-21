@@ -116,6 +116,7 @@ export type WBTolerationsTestData = {
   resourceYamlPath: string;
   hardwareProfileName: string;
   tolerationValue: string;
+  hardwareProfileDeploymentSize: string;
 };
 
 export type WBStatusTestData = {
