@@ -60,6 +60,7 @@ const ProjectActions: React.FC<Props> = ({ project }) => {
       )}
       isOpen={open}
       popperProps={{ position: 'right', appendTo: getDashboardMainContainer() }}
+      shouldFocusFirstItemOnOpen
     >
       <DropdownList>
         {canEdit ? (

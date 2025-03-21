@@ -192,6 +192,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
             isFullWidth
             isSkeleton={!hardwareProfilesLoaded && !hardwareProfilesError}
             isScrollable
+            popperProps={{ appendTo: 'inline' }}
           />
         </FlexItem>
         <FlexItem>

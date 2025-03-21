@@ -120,7 +120,7 @@ const ServingRuntimeSizeSection = ({
                     podSpecOptionState.modelSize.setSelectedSize(valuesSelected);
                   }
                 }}
-                popperProps={{ appendTo: document.body }}
+                popperProps={{ appendTo: 'inline' }}
               />
             </StackItem>
             {podSpecOptionState.modelSize.selectedSize.name === 'Custom' && (

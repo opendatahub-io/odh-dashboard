@@ -114,6 +114,7 @@ const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
                 setIdentifier('defaultCount', EMPTY_IDENTIFIER.defaultCount);
             }
           }}
+          popperProps={{ appendTo: 'inline' }}
         />
       </FormGroup>
 

@@ -248,6 +248,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
                 {userName}
               </MenuToggle>
             )}
+            shouldFocusFirstItemOnOpen
             isOpen={userMenuOpen}
           >
             <DropdownList>{userMenuItems}</DropdownList>

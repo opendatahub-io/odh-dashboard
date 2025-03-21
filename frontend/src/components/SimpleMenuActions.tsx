@@ -64,6 +64,7 @@ const SimpleMenuActions: React.FC<SimpleDropdownProps> = ({
       popperProps={
         !toggleLabel ? { position: 'right', appendTo: 'inline' } : { appendTo: 'inline' }
       }
+      shouldFocusFirstItemOnOpen
     >
       <DropdownList>
         {dropdownItems.map((itemOrSpacer, i) =>
