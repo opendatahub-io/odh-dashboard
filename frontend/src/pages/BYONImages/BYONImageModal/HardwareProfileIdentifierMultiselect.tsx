@@ -40,6 +40,7 @@ export const HardwareProfileIdentifierMultiselect: React.FC<
       }))}
       setValue={(newState) => setData(newState.filter((n) => n.selected).map((n) => String(n.id)))}
       placeholder="Example, nvidia.com/gpu"
+      toggleTestId="hardware-profile-identifier-multiselect"
       isCreatable
       createOptionMessage={(newValue) => `Create new option "${newValue}"`}
     />

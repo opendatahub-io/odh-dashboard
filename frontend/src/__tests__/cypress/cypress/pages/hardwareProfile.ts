@@ -88,6 +88,31 @@ class HardwareProfile {
     return appChrome.findNavItem('Hardware profiles', 'Settings');
   }
 
+  getCell(rowIndex: number, columnIndex: number) {
+    return this.findTable()
+      .children('tbody')
+      .eq(rowIndex)
+      .find('tr')
+      .eq(0)
+      .find('td')
+      .eq(columnIndex);
+  }
+
+  getLabelsFromCell(rowIndex: number, columnIndex: number) {
+    const labels: string[] = [];
+
+    return this.getCell(rowIndex, columnIndex)
+      .find('[data-testid^="label-"]')
+      .each((el) => {
+        labels.push(el.text().trim());
+      })
+      .then(() => labels);
+  }
+
+  getFeatureLabels(rowIndex: number) {
+    return this.getLabelsFromCell(rowIndex, 3);
+  }
+
   private wait() {
     this.findAppPage();
     cy.testA11y();
@@ -105,7 +130,7 @@ class HardwareProfile {
     return new HardwareProfileWarningBanner(() => this.findHardwareProfileDisabledBanner());
   }
 
-  private findTable() {
+  findTable() {
     return cy.findByTestId('hardware-profile-table');
   }
 
@@ -294,6 +319,10 @@ class EditHardwareProfile extends ManageHardwareProfile {
     cy.testA11y();
   }
 
+  findMigrationAlert() {
+    return cy.findByTestId('migration-alert');
+  }
+
   findErrorText() {
     return cy.findByTestId('problem-loading-hardware-profile');
   }
@@ -450,6 +479,20 @@ class NodeResourceModal extends Modal {
   }
 }
 
+class LegacyHardwareProfile extends HardwareProfile {
+  findSection() {
+    return cy.findByTestId('migrated-hardware-profiles-section');
+  }
+
+  findExpandButton() {
+    return this.findSection().findByRole('button');
+  }
+
+  findTable() {
+    return this.findSection().findByTestId('hardware-profile-table');
+  }
+}
+
 export const hardwareProfile = new HardwareProfile();
 export const createHardwareProfile = new CreateHardwareProfile();
 export const createTolerationModal = new TolerationModal(false);
@@ -460,3 +503,4 @@ export const createNodeResourceModal = new NodeResourceModal(false);
 export const editNodeResourceModal = new NodeResourceModal(true);
 export const editHardwareProfile = new EditHardwareProfile();
 export const duplicateHardwareProfile = new DuplicateHardwareProfile();
+export const legacyHardwareProfile = new LegacyHardwareProfile();
