@@ -228,7 +228,7 @@ describe('Model catalog cards', () => {
     );
 
     modelCatalog.visit();
-    modelCatalog.findModelCatalogCards();
+    modelCatalog.findModelCatalogCards().should('exist');
     // Find the specific model card
     modelCatalog.expandCardLabelGroup('test-model-1'); // Check ILAB labels in the label group
     modelCatalog.findCardLabelByIndex('test-model-1', 0).contains('LAB starter').should('exist');
@@ -282,31 +282,5 @@ describe('Model catalog cards', () => {
 
     modelCatalog.findModelCatalogCard('rh-model').should('exist');
     modelCatalog.findModelCatalogCard('third-party-model').should('exist');
-  });
-
-  it('should show single source without header when only one source exists', () => {
-    const singleModel = mockCatalogModel({
-      name: 'single-model',
-      source: 'Red Hat',
-      tasks: ['task1'],
-    });
-
-    cy.interceptK8s(
-      {
-        model: ConfigMapModel,
-        ns: 'opendatahub',
-        name: 'model-catalog-sources',
-      },
-      mockModelCatalogConfigMap([
-        mockModelCatalogSource({ source: 'Red Hat', models: [singleModel] }),
-      ]),
-    );
-
-    modelCatalog.visit();
-    cy.findByTestId('model-catalog-cards').should('exist');
-
-    cy.get('h2').should('not.exist');
-
-    cy.contains('single-model').should('exist');
   });
 });

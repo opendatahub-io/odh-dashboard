@@ -34,7 +34,6 @@ export type CatalogModel = {
   createTimeSinceEpoch?: number;
   lastUpdateTimeSinceEpoch?: number;
   artifacts?: CatalogArtifacts[];
-  source: string;
 };
 
 export type ModelCatalogSource = {

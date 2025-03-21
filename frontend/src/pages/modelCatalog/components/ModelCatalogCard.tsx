@@ -5,9 +5,9 @@ import {
   CardBody,
   CardTitle,
   Flex,
+  FlexItem,
   Label,
   Stack,
-  FlexItem,
   StackItem,
   Icon,
   Split,
@@ -20,7 +20,7 @@ import { CatalogModel } from '~/concepts/modelCatalog/types';
 import { getCatalogModelDetailsUrlFromModel } from '~/pages/modelCatalog/routeUtils';
 import { getTagFromModel } from '~/pages/modelCatalog/utils';
 import { RhUiTagIcon } from '~/images/icons';
-import { ModelCatalogLabels } from './ModelCatalogLabels';
+import { ModelCatalogLabels } from '~/pages/modelCatalog/components/ModelCatalogLabels';
 
 export const ModelCatalogCard: React.FC<{ model: CatalogModel; source: string }> = ({
   model,
@@ -71,17 +71,10 @@ export const ModelCatalogCard: React.FC<{ model: CatalogModel; source: string }>
           </Split>
         </StackItem>
         <StackItem isFilled>{model.description}</StackItem>
-        <StackItem>
-          <ModelCatalogLabels labels={model.labels} tasks={model.tasks} />
-        </StackItem>
       </Stack>
     </CardBody>
     <CardFooter>
-      {(model.tasks ?? []).map((task, index) => (
-        <Label variant="outline" key={index}>
-          {task}
-        </Label>
-      ))}
+      <ModelCatalogLabels labels={model.labels} tasks={model.tasks} />
     </CardFooter>
   </Card>
 );
