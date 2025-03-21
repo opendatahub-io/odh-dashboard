@@ -6,7 +6,7 @@ import { ModelCatalogCard } from './ModelCatalogCard';
 const ModelCatalogSection: React.FC<{ source: ModelCatalogSource }> = ({ source }) => (
   <Stack hasGutter>
     <StackItem>
-      <Title headingLevel="h2">{source.displayName || `${source.source} models`}</Title>
+      <Title headingLevel="h2">{`${source.source} models`}</Title>
     </StackItem>
     <StackItem>
       <Gallery hasGutter>

@@ -76,7 +76,7 @@ describe('Model Catalog core', () => {
 
     cy.findByRole('button', { name: 'Models' }).should('exist').click();
 
-    cy.findByTestId('model-catalog-cards').should('exist');
+    modelCatalog.findModelCatalogCards();
   });
 
   it('Navigates to Model Detail page on link click', () => {
@@ -84,8 +84,7 @@ describe('Model Catalog core', () => {
     modelCatalog.visit();
     cy.findByRole('button', { name: 'Models' }).should('exist').click();
 
-    cy.findByTestId('model-catalog-cards').should('exist');
-
+    modelCatalog.findModelCatalogCards();
     modelCatalog.findModelCatalogModelDetailLink('granite-8b-code-instruct').click();
     cy.location('pathname').should(
       'equal',
@@ -229,23 +228,20 @@ describe('Model catalog cards', () => {
     );
 
     modelCatalog.visit();
-    cy.findByTestId('model-catalog-cards', { timeout: 15000 }).should('exist');
-
+    modelCatalog.findModelCatalogCards();
     // Find the specific model card
-    cy.contains('[data-testid=model-catalog-card]', 'test-model-1').within(() => {
-      // Check ILAB labels in the label group
-      cy.findByTestId('model-catalog-label-group').within(() => {
-        cy.findByText('LAB starter').should('exist');
-        cy.findByText('LAB teacher').should('exist');
-        cy.findByText('LAB judge').should('exist');
-        cy.findByText('label1').should('not.exist');
-      });
+    modelCatalog.expandCardLabelGroup('test-model-1'); // Check ILAB labels in the label group
+    modelCatalog.findCardLabelByIndex('test-model-1', 0).contains('LAB starter').should('exist');
+    modelCatalog.findCardLabelByIndex('test-model-1', 1).contains('LAB teacher').should('exist');
+    modelCatalog.findCardLabelByIndex('test-model-1', 2).contains('LAB judge').should('exist');
+    modelCatalog.findCardLabelByIndex('test-model-1', 3).contains('task1').should('exist');
+    modelCatalog.findCardLabelByIndex('test-model-1', 4).contains('task2').should('exist');
+    modelCatalog.findCardLabelByText('test-model-1', 'label1').should('not.exist');
 
-      // Check tasks in the card footer
-      cy.get('.pf-v6-c-card__footer').within(() => {
-        cy.findByText('task1').should('exist');
-        cy.findByText('task2').should('exist');
-      });
+    // Check tasks in the card footer
+    cy.get('.pf-v6-c-card__footer').within(() => {
+      cy.findByText('task1').should('exist');
+      cy.findByText('task2').should('exist');
     });
   });
 
@@ -269,12 +265,10 @@ describe('Model catalog cards', () => {
       mockModelCatalogConfigMap([
         mockModelCatalogSource({
           source: 'Red Hat',
-          displayName: 'Red Hat models',
           models: [rhModel],
         }),
         mockModelCatalogSource({
           source: 'Third-party',
-          displayName: 'Third-party models',
           models: [thirdPartyModel],
         }),
       ]),
