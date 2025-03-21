@@ -76,7 +76,7 @@ describe('Model Catalog core', () => {
 
     cy.findByRole('button', { name: 'Models' }).should('exist').click();
 
-    modelCatalog.findModelCatalogCards();
+    modelCatalog.findModelCatalogCards().should('exist');
   });
 
   it('Navigates to Model Detail page on link click', () => {
@@ -84,7 +84,7 @@ describe('Model Catalog core', () => {
     modelCatalog.visit();
     cy.findByRole('button', { name: 'Models' }).should('exist').click();
 
-    modelCatalog.findModelCatalogCards();
+    modelCatalog.findModelCatalogCards().should('exist');
     modelCatalog.findModelCatalogModelDetailLink('granite-8b-code-instruct').click();
     cy.location('pathname').should(
       'equal',
