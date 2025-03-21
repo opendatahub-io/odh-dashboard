@@ -1,5 +1,5 @@
 import type { DataScienceProjectData } from '~/__tests__/cypress/cypress/types';
-import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
+import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import { permissions } from '~/__tests__/cypress/cypress/pages/permissions';
 import {
   HTPASSWD_CLUSTER_ADMIN_USER,
@@ -48,7 +48,15 @@ describe('Verify that users can provide admin project permissions to non-admin u
   it(
     'Verify that user can be added as an Admin for a Project',
     {
-      tags: ['@Smoke', '@SmokeSet1', '@ODS-2194', '@ODS-2201', '@ODS-2208', '@Dashboard'],
+      tags: [
+        '@Smoke',
+        '@SmokeSet1',
+        '@ODS-2194',
+        '@ODS-2201',
+        '@ODS-2208',
+        '@Dashboard',
+        '@Andrew',
+      ],
     },
     () => {
       // Authentication and navigation
@@ -62,9 +70,7 @@ describe('Verify that users can provide admin project permissions to non-admin u
       projectListPage.navigate();
       projectListPage.filterProjectByName(testData.projectPermissionResourceName);
       projectListPage.findProjectLink(testData.projectPermissionResourceName).click();
-      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-      // Reapply projectDetails.findSectionTab('permissions').click();
-      cy.visit(`projects/${projectName}?section=permissions`);
+      projectDetails.findSectionTab('permissions').click();
 
       cy.step('Assign admin user Project Permissions');
       permissions.findAddUserButton().click();
@@ -86,7 +92,15 @@ describe('Verify that users can provide admin project permissions to non-admin u
   it(
     'Verify user can assign access permissions to user group',
     {
-      tags: ['@Smoke', '@SmokeSet1', '@ODS-2194', '@ODS-2201', '@ODS-2208', '@Dashboard'],
+      tags: [
+        '@Smoke',
+        '@SmokeSet1',
+        '@ODS-2194',
+        '@ODS-2201',
+        '@ODS-2208',
+        '@Dashboard',
+        '@Andrew',
+      ],
     },
     () => {
       // Authentication and navigation
@@ -100,9 +114,7 @@ describe('Verify that users can provide admin project permissions to non-admin u
       projectListPage.navigate();
       projectListPage.filterProjectByName(testData.projectPermissionResourceName);
       projectListPage.findProjectLink(testData.projectPermissionResourceName).click();
-      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-      // Reapply projectDetails.findSectionTab('permissions').click();
-      cy.visit(`projects/${projectName}?section=permissions`);
+      projectDetails.findSectionTab('permissions').click();
 
       cy.step('Assign admin group Project Permissions');
       permissions.findAddGroupButton().click();
@@ -118,7 +130,15 @@ describe('Verify that users can provide admin project permissions to non-admin u
   it(
     'Verify that user can access the created project with Admin rights',
     {
-      tags: ['@Smoke', '@SmokeSet1', '@ODS-2194', '@ODS-2201', '@ODS-2208', '@Dashboard'],
+      tags: [
+        '@Smoke',
+        '@SmokeSet1',
+        '@ODS-2194',
+        '@ODS-2201',
+        '@ODS-2208',
+        '@Dashboard',
+        '@Andrew',
+      ],
     },
     () => {
       // Authentication and navigation
@@ -130,9 +150,7 @@ describe('Verify that users can provide admin project permissions to non-admin u
       projectListPage.navigate();
       projectListPage.filterProjectByName(testData.projectPermissionResourceName);
       projectListPage.findProjectLink(testData.projectPermissionResourceName).click();
-      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-      // Reapply projectDetails.findSectionTab('permissions').click();
-      cy.visit(`projects/${projectName}?section=permissions`);
+      projectDetails.findSectionTab('permissions').click();
     },
   );
 });

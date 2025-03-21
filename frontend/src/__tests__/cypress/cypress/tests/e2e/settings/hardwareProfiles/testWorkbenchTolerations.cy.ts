@@ -1,5 +1,5 @@
 import type { WBTolerationsTestData } from '~/__tests__/cypress/cypress/types';
-import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
+import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import {
   workbenchPage,
   createSpawnerPage,
@@ -71,7 +71,7 @@ describe('[Automation Bug: RHOAIENG-20099] Workbenches - tolerations tests', () 
   it(
     'Validate pod tolerations are applied to a Workbench',
     // TODO: This test will be reworked this Sprint as part of RHOAIENG-20099
-    { tags: ['@Featureflagged', '@HardwareProfiles'] },
+    { tags: ['@Featureflagged', '@HardwareProfiles', '@Andrew'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -97,9 +97,7 @@ describe('[Automation Bug: RHOAIENG-20099] Workbenches - tolerations tests', () 
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-      // Reapply projectDetails.findSectionTab('workbenches').click();
-      cy.visit(`projects/${projectName}?section=workbenches`);
+      projectDetails.findSectionTab('workbenches').click();
 
       // Create workbench and verify it starts running
       cy.step(`Create workbench ${testData.workbenchName}`);
@@ -134,7 +132,7 @@ describe('[Automation Bug: RHOAIENG-20099] Workbenches - tolerations tests', () 
   it(
     'Validate pod tolerations for a stopped workbench',
     // TODO: This test will be reworked this Sprint as part of RHOAIENG-20099
-    { tags: ['@Featureflagged', '@HardwareProfiles'] },
+    { tags: ['@Featureflagged', '@HardwareProfiles', '@Andrew'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -145,9 +143,7 @@ describe('[Automation Bug: RHOAIENG-20099] Workbenches - tolerations tests', () 
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-      // Reapply projectDetails.findSectionTab('workbenches').click();
-      cy.visit(`projects/${projectName}?section=workbenches`);
+      projectDetails.findSectionTab('workbenches').click();
 
       // Stop workbench and verify it stops running
       cy.step(`Stop workbench ${testData.workbenchName}`);
@@ -186,9 +182,7 @@ describe('[Automation Bug: RHOAIENG-20099] Workbenches - tolerations tests', () 
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-      // Reapply projectDetails.findSectionTab('workbenches').click();
-      cy.visit(`projects/${projectName}?section=workbenches`);
+      projectDetails.findSectionTab('workbenches').click();
 
       // Stop workbench and verify it stops running
       cy.step(`Restart workbench ${testData.workbenchName} and validate it has been started`);
@@ -209,7 +203,7 @@ describe('[Automation Bug: RHOAIENG-20099] Workbenches - tolerations tests', () 
 
   it(
     'Verifies that a new toleration is added to a new workbench but not to an already running workbench',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard', '@Bug'] },
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard', '@Bug', '@Andrew'] },
     () => {
       // Set Pod Tolerations
       cy.step('Navigate to Cluster Settings, save and set pod tolerations');
@@ -225,9 +219,7 @@ describe('[Automation Bug: RHOAIENG-20099] Workbenches - tolerations tests', () 
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-      // Reapply projectDetails.findSectionTab('workbenches').click();
-      cy.visit(`projects/${projectName}?section=workbenches`);
+      projectDetails.findSectionTab('workbenches').click();
 
       // Create a second workbench with Config Map variables by uploading a yaml file
       cy.step(`Create a second workbench ${testData.workbenchName2} using config map variables`);

@@ -4,7 +4,7 @@ import {
   tearDownClusterStorageSCFeature,
 } from '~/__tests__/cypress/cypress/utils/storageClass';
 import { addClusterStorageModal } from '~/__tests__/cypress/cypress/pages/clusterStorage';
-import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
+import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import { findAddClusterStorageButton } from '~/__tests__/cypress/cypress/utils/clusterStorage';
 import { disableNonDefaultStorageClasses } from '~/__tests__/cypress/cypress/utils/oc_commands/storageClass';
 import {
@@ -30,7 +30,7 @@ describe('Regular Users can make use of the Storage Classes in the Cluster Stora
 
   it(
     'If all SC are disabled except one, the SC dropdown should be disabled',
-    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@Andrew'] },
     () => {
       // Authentication and navigation
       cy.visitWithLogin('/projects', LDAP_CONTRIBUTOR_USER);
@@ -40,9 +40,7 @@ describe('Regular Users can make use of the Storage Classes in the Cluster Stora
       projectListPage.findProjectLink(dspName).click();
       cy.step('Navigate to the Cluster Storage tab and disable all non-default storage classes');
       // Go to cluster storage tab
-      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-      // Reapply projectDetails.findSectionTab('cluster-storages').click();
-      cy.visit(`projects/${dspName}?section=cluster-storages`);
+      projectDetails.findSectionTab('cluster-storages').click();
       // Disable all non-default storage classes
       disableNonDefaultStorageClasses().then(() => {
         // Open the Create cluster storage Modal

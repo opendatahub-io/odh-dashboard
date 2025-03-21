@@ -2,7 +2,7 @@ import type { DataScienceProjectData } from '~/__tests__/cypress/cypress/types';
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
+import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import {
   modelServingGlobal,
   inferenceServiceModal,
@@ -64,7 +64,9 @@ describe('[Product Bug: RHOAIENG-20213] Verify Admin Single Model Creation and V
 
   it(
     'Verify that an Admin can Serve, Query a Single Model using both the UI and External links',
-    { tags: ['@Smoke', '@SmokeSet3', '@ODS-2626', '@Dashboard', '@Modelserving', '@Bug'] },
+    {
+      tags: ['@Smoke', '@SmokeSet3', '@ODS-2626', '@Dashboard', '@Modelserving', '@Bug', '@Andrew'],
+    },
     () => {
       cy.log('Model Name:', modelName);
       // Authentication and navigation
@@ -81,9 +83,7 @@ describe('[Product Bug: RHOAIENG-20213] Verify Admin Single Model Creation and V
 
       // Navigate to Model Serving tab and Deploy a Single Model
       cy.step('Navigate to Model Serving and click to Deploy a Single Model');
-      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-      // Reapply projectDetails.findSectionTab('model-server').click();
-      cy.visit(`projects/${projectName}?section=model-server`);
+      projectDetails.findSectionTab('model-server').click();
       modelServingGlobal.findSingleServingModelButton().click();
       modelServingGlobal.findDeployModelButton().click();
 

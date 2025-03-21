@@ -5,7 +5,7 @@ import {
 } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { LDAP_CONTRIBUTOR_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
+import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import {
   modelServingGlobal,
   inferenceServiceModal,
@@ -69,7 +69,7 @@ describe('Verify Model Creation and Validation using the UI', () => {
 
   it(
     'Verify that a Non Admin can Serve and Query a Model using the UI',
-    { tags: ['@Smoke', '@SmokeSet3', '@ODS-2552', '@Dashboard', '@Modelserving'] },
+    { tags: ['@Smoke', '@SmokeSet3', '@ODS-2552', '@Dashboard', '@Modelserving', '@Andrew'] },
     () => {
       cy.log('Model Name:', modelName);
       // Authentication and navigation
@@ -86,9 +86,7 @@ describe('Verify Model Creation and Validation using the UI', () => {
 
       // Navigate to Model Serving tab and Deploy a Single Model
       cy.step('Navigate to Model Serving and click to Deploy a Single Model');
-      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-      // Reapply projectDetails.findSectionTab('model-server').click();
-      cy.visit(`projects/${projectName}?section=model-server`);
+      projectDetails.findSectionTab('model-server').click();
       modelServingGlobal.findSingleServingModelButton().click();
       modelServingGlobal.findDeployModelButton().click();
 

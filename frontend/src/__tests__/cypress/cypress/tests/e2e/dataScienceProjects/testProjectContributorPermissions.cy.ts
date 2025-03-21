@@ -46,7 +46,7 @@ describe('Verify that users can provide contributor project permissions to non-a
 
   it(
     'Verify that user can be added as a Contributor for a Project',
-    { tags: ['@Smoke', '@SmokeSet2', '@ODS-2194', '@ODS-2201', '@Dashboard'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-2194', '@ODS-2201', '@Dashboard', '@Andrew'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -59,9 +59,7 @@ describe('Verify that users can provide contributor project permissions to non-a
       projectListPage.navigate();
       projectListPage.filterProjectByName(testData.projectContributorResourceName);
       projectListPage.findProjectLink(testData.projectContributorResourceName).click();
-      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-      // Reapply projectDetails.findSectionTab('permissions').click();
-      cy.visit(`projects/${projectName}?section=permissions`);
+      projectDetails.findSectionTab('permissions').click();
 
       cy.step('Assign contributor user Project Permissions');
       permissions.findAddUserButton().click();

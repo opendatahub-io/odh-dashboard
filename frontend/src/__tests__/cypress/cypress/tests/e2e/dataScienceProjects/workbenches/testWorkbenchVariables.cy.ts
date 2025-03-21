@@ -1,5 +1,5 @@
 import type { WBVariablesTestData } from '~/__tests__/cypress/cypress/types';
-import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
+import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import { workbenchPage, createSpawnerPage } from '~/__tests__/cypress/cypress/pages/workbench';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { loadWBVariablesFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
@@ -46,7 +46,17 @@ describe('Workbenches - variable tests', () => {
   });
   it(
     'Verify user can set environment variables in their workbenches by uploading a yaml Secret and Config Map file.',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'] },
+    {
+      tags: [
+        '@Sanity',
+        '@SanitySet2',
+        '@ODS-1883',
+        '@ODS-1864',
+        '@Dashboard',
+        '@Workbenches',
+        '@Andrew',
+      ],
+    },
     () => {
       const workbenchName = projectName;
       const workbenchName2 = projectName.replace('dsp-', 'secondwb-');
@@ -59,9 +69,7 @@ describe('Workbenches - variable tests', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-      // Reapply projectDetails.findSectionTab('workbenches').click();
-      cy.visit(`projects/${projectName}?section=workbenches`);
+      projectDetails.findSectionTab('workbenches').click();
 
       // Create workbench with Secret variables by uploading a yaml file
       cy.step(`Create workbench ${workbenchName} using secret variables`);
@@ -124,7 +132,17 @@ describe('Workbenches - variable tests', () => {
   );
   it(
     'Verify that the user can inject environment variables manually into a workbench using Key / Value',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'] },
+    {
+      tags: [
+        '@Sanity',
+        '@SanitySet2',
+        '@ODS-1883',
+        '@ODS-1864',
+        '@Dashboard',
+        '@Workbenches',
+        '@Andrew',
+      ],
+    },
     () => {
       const workbenchName = projectName;
       const workbenchName2 = projectName.replace('dsp-', 'secondwb-');
@@ -137,9 +155,7 @@ describe('Workbenches - variable tests', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-      // Reapply projectDetails.findSectionTab('workbenches').click();
-      cy.visit(`projects/${projectName}?section=workbenches`);
+      projectDetails.findSectionTab('workbenches').click();
 
       // Create workbench with Secret variables via Key / Value
       cy.step(`Create workbench ${workbenchName} using secret variables`);

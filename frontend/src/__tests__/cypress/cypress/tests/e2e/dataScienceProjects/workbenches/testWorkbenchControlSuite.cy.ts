@@ -1,5 +1,5 @@
 import type { WBControlSuiteTestData } from '~/__tests__/cypress/cypress/types';
-import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
+import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import {
   workbenchPage,
   createSpawnerPage,
@@ -61,6 +61,7 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
         '@ODS-1975',
         '@Dashboard',
         '@Workbenches',
+        '@Andrew',
       ],
     },
     () => {
@@ -75,9 +76,7 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(controlSuiteTestNamespace);
       projectListPage.findProjectLink(controlSuiteTestNamespace).click();
-      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-      // Reapply projectDetails.findSectionTab('workbenches').click();
-      cy.visit(`projects/${controlSuiteTestNamespace}?section=workbenches`);
+      projectDetails.findSectionTab('workbenches').click();
 
       // Create workbench
       cy.step(`Create workbench ${controlSuiteTestNamespace}`);
@@ -127,6 +126,7 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
         '@ODS-1975',
         '@Dashboard',
         '@Workbenches',
+        '@Andrew',
       ],
     },
     () => {
@@ -140,9 +140,7 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(controlSuiteTestNamespace);
       projectListPage.findProjectLink(controlSuiteTestNamespace).click();
-      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-      // Reapply projectDetails.findSectionTab('workbenches').click();
-      cy.visit(`projects/${controlSuiteTestNamespace}?section=workbenches`);
+      projectDetails.findSectionTab('workbenches').click();
 
       // Create workbench
       cy.step(`Create workbench ${controlSuiteTestNamespace}`);

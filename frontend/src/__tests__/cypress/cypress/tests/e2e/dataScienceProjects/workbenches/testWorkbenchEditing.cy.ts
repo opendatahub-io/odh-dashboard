@@ -1,5 +1,5 @@
 import type { WBEditTestData } from '~/__tests__/cypress/cypress/types';
-import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
+import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import {
   workbenchPage,
   createSpawnerPage,
@@ -53,7 +53,7 @@ describe('Edit and Update a Workbench in RHOAI', () => {
 
   it(
     'Editing Workbench Name and Description',
-    { tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@Dashboard', '@Workbenches'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@Dashboard', '@Workbenches', '@Andrew'] },
     () => {
       const workbenchName = editTestNamespace.replace('dsp-', '');
 
@@ -66,9 +66,7 @@ describe('Edit and Update a Workbench in RHOAI', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(editTestNamespace);
       projectListPage.findProjectLink(editTestNamespace).click();
-      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-      // Reapply projectDetails.findSectionTab('workbenches').click();
-      cy.visit(`projects/${editTestNamespace}?section=workbenches`);
+      projectDetails.findSectionTab('workbenches').click();
 
       // Create workbench
       cy.step(`Create workbench ${editTestNamespace} using storage ${pvcEditDisplayName}`);
