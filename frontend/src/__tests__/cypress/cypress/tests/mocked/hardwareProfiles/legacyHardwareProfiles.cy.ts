@@ -405,7 +405,116 @@ describe('legacy profiles table', () => {
       migrationModal.findInput().fill(testProfileDisplayName);
       migrationModal.findSubmitButton().should('be.enabled').click();
 
-      cy.wait(['@deleteSource', '@createTarget', '@deleteSource', '@createTarget']);
+      cy.wait('@deleteSource');
+      cy.wait('@createTarget').then((interception) => {
+        // Assert individually the properties that include random values
+        const { name, annotations } = interception.request.body.metadata;
+        expect(annotations).to.have.property('opendatahub.io/modified-date');
+        expect(name).to.include(testProfileName);
+
+        const actual = Cypress._.omit(
+          interception.request.body,
+          'metadata.annotations["opendatahub.io/modified-date"]',
+          'metadata.name',
+        );
+
+        expect(actual).to.eql({
+          apiVersion: 'dashboard.opendatahub.io/v1alpha1',
+          kind: 'HardwareProfile',
+          metadata: {
+            namespace: 'opendatahub',
+            annotations: {
+              'opendatahub.io/dashboard-feature-visibility': '["workbench"]',
+            },
+          },
+          spec: {
+            displayName: 'Test Accelerator Profile',
+            description: '',
+            enabled: true,
+            tolerations: [
+              { key: 'NotebooksOnlyChange', effect: 'NoSchedule', operator: 'Exists' },
+              { key: 'nvidia.com/gpu', operator: 'Exists', effect: 'NoSchedule' },
+            ],
+            identifiers: [
+              {
+                displayName: 'CPU',
+                resourceType: 'CPU',
+                identifier: 'cpu',
+                minCount: '1',
+                defaultCount: '1',
+              },
+              {
+                displayName: 'Memory',
+                resourceType: 'Memory',
+                identifier: 'memory',
+                minCount: '1Mi',
+                defaultCount: '1Mi',
+              },
+              {
+                identifier: 'nvidia.com/gpu',
+                displayName: 'nvidia.com/gpu',
+                minCount: 0,
+                defaultCount: 1,
+              },
+            ],
+          },
+        });
+      });
+      cy.wait('@deleteSource');
+      cy.wait('@createTarget').then((interception) => {
+        // Assert individually the properties that include random values
+        const { name, annotations } = interception.request.body.metadata;
+        expect(annotations).to.have.property('opendatahub.io/modified-date');
+        expect(name).to.include(testProfileName);
+
+        const actual = Cypress._.omit(
+          interception.request.body,
+          'metadata.annotations["opendatahub.io/modified-date"]',
+          'metadata.name',
+        );
+
+        expect(actual).to.eql({
+          apiVersion: 'dashboard.opendatahub.io/v1alpha1',
+          kind: 'HardwareProfile',
+          metadata: {
+            namespace: 'opendatahub',
+            annotations: {
+              'opendatahub.io/dashboard-feature-visibility': '["workbench"]',
+            },
+          },
+          spec: {
+            displayName: 'Test Accelerator Profile',
+            description: '',
+            enabled: true,
+            tolerations: [
+              { key: 'NotebooksOnlyChange', effect: 'NoSchedule', operator: 'Exists' },
+              { key: 'nvidia.com/gpu', operator: 'Exists', effect: 'NoSchedule' },
+            ],
+            identifiers: [
+              {
+                displayName: 'CPU',
+                resourceType: 'CPU',
+                identifier: 'cpu',
+                minCount: '1',
+                defaultCount: '1',
+              },
+              {
+                displayName: 'Memory',
+                resourceType: 'Memory',
+                identifier: 'memory',
+                minCount: '1Mi',
+                defaultCount: '1Mi',
+              },
+              {
+                identifier: 'nvidia.com/gpu',
+                displayName: 'nvidia.com/gpu',
+                minCount: 0,
+                defaultCount: 1,
+              },
+            ],
+          },
+        });
+      });
     });
 
     it('should show correct Visibility labels', () => {
@@ -500,7 +609,100 @@ describe('legacy profiles table', () => {
       migrationModal.findInput().fill(testProfileName);
       migrationModal.findSubmitButton().should('be.enabled').click();
 
-      cy.wait(['@deleteSource', '@createTarget', '@deleteSource', '@createTarget']);
+      cy.wait('@deleteSource');
+      cy.wait('@createTarget').then((interception) => {
+        // Assert individually the properties that include random values
+        const { name, annotations } = interception.request.body.metadata;
+        expect(annotations).to.have.property('opendatahub.io/modified-date');
+        expect(name).to.include(`${testProfileName}-notebooks`);
+
+        const actual = Cypress._.omit(
+          interception.request.body,
+          'metadata.annotations["opendatahub.io/modified-date"]',
+          'metadata.name',
+        );
+
+        expect(actual).to.eql({
+          apiVersion: 'dashboard.opendatahub.io/v1alpha1',
+          kind: 'HardwareProfile',
+          metadata: {
+            namespace: 'opendatahub',
+            annotations: {
+              'opendatahub.io/dashboard-feature-visibility': '["workbench"]',
+            },
+          },
+          spec: {
+            displayName: 'test-notebook-size-profile',
+            enabled: true,
+            identifiers: [
+              {
+                displayName: 'CPU',
+                resourceType: 'CPU',
+                identifier: 'cpu',
+                minCount: '1',
+                maxCount: '1',
+                defaultCount: '1',
+              },
+              {
+                displayName: 'Memory',
+                resourceType: 'Memory',
+                identifier: 'memory',
+                minCount: '1Gi',
+                maxCount: '1Gi',
+                defaultCount: '1Gi',
+              },
+            ],
+            tolerations: [{ key: 'NotebooksOnlyChange', effect: 'NoSchedule', operator: 'Exists' }],
+          },
+        });
+      });
+      cy.wait('@deleteSource');
+      cy.wait('@createTarget').then((interception) => {
+        // Assert individually the properties that include random values
+        const { name, annotations } = interception.request.body.metadata;
+        expect(annotations).to.have.property('opendatahub.io/modified-date');
+        expect(name).to.include(`${testProfileName}-notebooks`);
+
+        const actual = Cypress._.omit(
+          interception.request.body,
+          'metadata.annotations["opendatahub.io/modified-date"]',
+          'metadata.name',
+        );
+
+        expect(actual).to.eql({
+          apiVersion: 'dashboard.opendatahub.io/v1alpha1',
+          kind: 'HardwareProfile',
+          metadata: {
+            namespace: 'opendatahub',
+            annotations: {
+              'opendatahub.io/dashboard-feature-visibility': '["workbench"]',
+            },
+          },
+          spec: {
+            displayName: testProfileName,
+            enabled: true,
+            identifiers: [
+              {
+                displayName: 'CPU',
+                resourceType: 'CPU',
+                identifier: 'cpu',
+                minCount: '1',
+                maxCount: '1',
+                defaultCount: '1',
+              },
+              {
+                displayName: 'Memory',
+                resourceType: 'Memory',
+                identifier: 'memory',
+                minCount: '1Gi',
+                maxCount: '1Gi',
+                defaultCount: '1Gi',
+              },
+            ],
+            tolerations: [{ key: 'NotebooksOnlyChange', effect: 'NoSchedule', operator: 'Exists' }],
+          },
+        });
+      });
     });
 
     it('should show correct Visibility labels', () => {
@@ -590,7 +792,98 @@ describe('legacy profiles table', () => {
       migrationModal.findInput().fill(testProfileName);
       migrationModal.findSubmitButton().should('be.enabled').click();
 
-      cy.wait(['@deleteSource', '@createTarget', '@deleteSource', '@createTarget']);
+      cy.wait('@deleteSource');
+      cy.wait('@createTarget').then((interception) => {
+        // Assert individually the properties that include random values
+        const { name, annotations } = interception.request.body.metadata;
+        expect(annotations).to.have.property('opendatahub.io/modified-date');
+        expect(name).to.include(`${testProfileName}-serving`);
+
+        const actual = Cypress._.omit(
+          interception.request.body,
+          'metadata.annotations["opendatahub.io/modified-date"]',
+          'metadata.name',
+        );
+
+        expect(actual).to.eql({
+          apiVersion: 'dashboard.opendatahub.io/v1alpha1',
+          kind: 'HardwareProfile',
+          metadata: {
+            namespace: 'opendatahub',
+            annotations: {
+              'opendatahub.io/dashboard-feature-visibility': '["model-serving"]',
+            },
+          },
+          spec: {
+            displayName: 'test-model-server-size-profile',
+            enabled: true,
+            identifiers: [
+              {
+                displayName: 'CPU',
+                resourceType: 'CPU',
+                identifier: 'cpu',
+                minCount: '1',
+                maxCount: '1',
+                defaultCount: '1',
+              },
+              {
+                displayName: 'Memory',
+                resourceType: 'Memory',
+                identifier: 'memory',
+                minCount: '1Gi',
+                maxCount: '1Gi',
+                defaultCount: '1Gi',
+              },
+            ],
+          },
+        });
+      });
+      cy.wait('@deleteSource');
+      cy.wait('@createTarget').then((interception) => {
+        // Assert individually the properties that include random values
+        const { name, annotations } = interception.request.body.metadata;
+        expect(annotations).to.have.property('opendatahub.io/modified-date');
+        expect(name).to.include(`${testProfileName}-serving`);
+
+        const actual = Cypress._.omit(
+          interception.request.body,
+          'metadata.annotations["opendatahub.io/modified-date"]',
+          'metadata.name',
+        );
+
+        expect(actual).to.eql({
+          apiVersion: 'dashboard.opendatahub.io/v1alpha1',
+          kind: 'HardwareProfile',
+          metadata: {
+            namespace: 'opendatahub',
+            annotations: {
+              'opendatahub.io/dashboard-feature-visibility': '["model-serving"]',
+            },
+          },
+          spec: {
+            displayName: 'test-model-server-size-profile',
+            enabled: true,
+            identifiers: [
+              {
+                displayName: 'CPU',
+                resourceType: 'CPU',
+                identifier: 'cpu',
+                minCount: '1',
+                maxCount: '1',
+                defaultCount: '1',
+              },
+              {
+                displayName: 'Memory',
+                resourceType: 'Memory',
+                identifier: 'memory',
+                minCount: '1Gi',
+                maxCount: '1Gi',
+                defaultCount: '1Gi',
+              },
+            ],
+          },
+        });
+      });
     });
 
     it('should show correct Visibility labels', () => {
