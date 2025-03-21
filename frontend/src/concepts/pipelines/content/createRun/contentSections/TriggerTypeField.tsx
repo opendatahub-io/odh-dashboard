@@ -125,6 +125,7 @@ const TriggerTypeField: React.FC<TriggerTypeFieldProps> = ({ data, onChange }) =
               onChange({ ...data, triggerType, value });
             }}
             popperProps={{ appendTo: 'inline' }}
+            shouldFocusToggleOnSelect
           />
         </FormGroup>
       </StackItem>
