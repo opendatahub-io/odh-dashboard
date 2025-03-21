@@ -3,7 +3,7 @@
 [Settings Panel]: admin-dashboard.md
 [User Interaction]: user-interaction.md
 [Bring Your Own Notebook]: byon.md
-[Architecture]: https://github.com/opendatahub-io/architecture-decision-records/blob/main/architecture/components/dashboard/README.md
+[Architecture]: https://github.com/opendatahub-io/architecture-decision-records/blob/main/documentation/components/dashboard/README.md
 [SDK]: SDK.md
 
 # Dashboard Documentation
