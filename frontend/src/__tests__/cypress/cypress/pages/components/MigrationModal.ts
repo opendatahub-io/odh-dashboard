@@ -6,10 +6,6 @@ export class MigrationModal extends Modal {
     super(title);
   }
 
-  findInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByLabelText('Migration modal input');
-  }
-
   findSubmitButton(options?: ByRoleOptions | undefined): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findFooter().findByRole('button', { name: /Migrate/, hidden: true, ...options });
   }

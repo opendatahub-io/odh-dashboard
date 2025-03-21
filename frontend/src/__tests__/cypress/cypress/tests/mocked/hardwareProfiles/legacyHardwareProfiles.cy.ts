@@ -400,9 +400,6 @@ describe('legacy profiles table', () => {
       legacyHardwareProfile.visit();
       legacyHardwareProfile.findExpandButton().click();
       legacyHardwareProfile.getRow(testProfileDisplayName).findKebabAction('Migrate').click();
-
-      migrationModal.findSubmitButton().should('be.disabled');
-      migrationModal.findInput().fill(testProfileDisplayName);
       migrationModal.findSubmitButton().should('be.enabled').click();
 
       cy.wait('@deleteSource');
@@ -604,9 +601,6 @@ describe('legacy profiles table', () => {
       legacyHardwareProfile.visit();
       legacyHardwareProfile.findExpandButton().click();
       legacyHardwareProfile.getRow(testProfileName).findKebabAction('Migrate').click();
-
-      migrationModal.findSubmitButton().should('be.disabled');
-      migrationModal.findInput().fill(testProfileName);
       migrationModal.findSubmitButton().should('be.enabled').click();
 
       cy.wait('@deleteSource');
@@ -787,9 +781,6 @@ describe('legacy profiles table', () => {
       legacyHardwareProfile.visit();
       legacyHardwareProfile.findExpandButton().click();
       legacyHardwareProfile.getRow(testProfileName).findKebabAction('Migrate').click();
-
-      migrationModal.findSubmitButton().should('be.disabled');
-      migrationModal.findInput().fill(testProfileName);
       migrationModal.findSubmitButton().should('be.enabled').click();
 
       cy.wait('@deleteSource');
