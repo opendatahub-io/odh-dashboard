@@ -3,6 +3,7 @@
 [contributing guidelines]: CONTRIBUTING.md
 [issue]: https://github.com/opendatahub-io/odh-dashboard/issues/new/choose
 [definition of ready]: docs/definition-of-ready.md
+[e2e testing]: docs/e2e-testing.md
 
 # Open Data Hub Dashboard
 
@@ -24,3 +25,4 @@ Read more about the Dashboard in one of our documentation links.
 
 * [Dev setup & Requirements]
 * [Dashboard documentation]
+* [e2e testing]
