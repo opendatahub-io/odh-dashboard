@@ -64,6 +64,34 @@ class NIMDeployModal extends Modal {
   findServiceAccountNameInput() {
     return this.find().findByTestId('service-account-form-name');
   }
+
+  selectNIMToDeploy(name: string) {
+    // const items = Array()
+    cy.findByTestId('nim-model-list-selection').click()
+    cy.get('ul[role="listbox"]').within(() => {
+      // cy.get('li').each(($el, index, $list) => {
+      //   if ($el.attr('data-testid')?.includes('latest')) {
+      //     items.push($el.attr('data-testid'))
+      //   }
+      //   cy.log(String($el.attr('data-testid')))
+      // })
+      // cy.writeFile('cypress/fixtures/nimModelList.json', items)
+      cy.findByTestId(name).scrollIntoView().click()
+    });
+  }
+
+  selectAccelerator(name: string) {
+    cy.findByTestId('accelerator-profile-select').click()
+    cy.get('ul[role="listbox"]').within(() => {
+      cy.contains(name).scrollIntoView().click()
+    }); 
+  }
+
+  findModelServerSizeSelect() {
+    return this.find().findByTestId('model-server-size-selection');
+  }
+
+
 }
 
 export const nimDeployModal = new NIMDeployModal();
