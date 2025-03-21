@@ -4,7 +4,6 @@ export const mockCatalogModel = (partial?: Partial<CatalogModel>): CatalogModel 
   repository: 'rhelai1',
   name: 'granite-8b-code-instruct',
   provider: 'IBM',
-  source: 'Red Hat',
   description: 'A fine-tuned model based on Granite 8B Code Base',
   longDescription:
     'Granite-8B-Code-Instruct is a 8B parameter model fine tuned from\nGranite-8B-Code-Base on a combination of permissively licensed instruction\ndata to enhance instruction following capabilities including logical\nreasoning and problem-solving skills.',
@@ -374,14 +373,12 @@ export const mockCatalogModel = (partial?: Partial<CatalogModel>): CatalogModel 
 
 export const mockRedHatModel = (partial?: Partial<CatalogModel>): CatalogModel =>
   mockCatalogModel({
-    source: 'Red Hat',
     provider: 'Red Hat',
     ...partial,
   });
 
 export const mockThirdPartyModel = (partial?: Partial<CatalogModel>): CatalogModel =>
   mockCatalogModel({
-    source: 'Third-party',
     provider: 'Third Party Provider',
     repository: 'thirdparty',
     ...partial,
