@@ -68,7 +68,12 @@ export const splitValueUnit = (
   value: ValueUnitString,
   options: UnitOption[],
   strict = false,
-): [value: number, unit: UnitOption] => {
+): [value: number | undefined, unit: UnitOption] => {
+  // If value is empty string
+  const unitOnly = options.find((o) => o.unit === value);
+  if (unitOnly) {
+    return [undefined, unitOnly];
+  }
   const match = value.match(/^(\d*\.?\d*)(.*)$/);
   if (!(match && match[1])) {
     if (strict) {
@@ -96,9 +101,9 @@ export const convertToUnit = (
   const targetUnit = options.find(({ unit }) => unit === targetUnitStr);
   const lowestUnit = options.find(({ weight }) => weight === 1);
   if (!targetUnit || !lowestUnit) {
-    return [parsedValue, parsedUnit];
+    return [parsedValue ?? 0, parsedUnit];
   }
-  const valueInLowestUnit = parsedValue * parsedUnit.weight;
+  const valueInLowestUnit = (parsedValue ?? 0) * parsedUnit.weight;
   const valueInTargetUnit = valueInLowestUnit / targetUnit.weight;
   return [valueInTargetUnit, targetUnit];
 };
@@ -110,7 +115,7 @@ const calculateDelta = (
 ): number => {
   const [val1, unit1] = splitValueUnit(value1, units);
   const [val2, unit2] = splitValueUnit(value2, units);
-  return val1 * unit1.weight - val2 * unit2.weight;
+  return (val1 ?? 0) * unit1.weight - (val2 ?? 0) * unit2.weight;
 };
 
 export const isEqual = (

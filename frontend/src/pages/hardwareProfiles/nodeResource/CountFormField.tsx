@@ -15,6 +15,7 @@ type CountFormFieldProps = {
   errorMessage?: string;
   isValid?: boolean;
   tooltip?: string;
+  isRequired?: boolean;
 };
 
 const CountFormField: React.FC<CountFormFieldProps> = ({
@@ -26,23 +27,38 @@ const CountFormField: React.FC<CountFormFieldProps> = ({
   errorMessage,
   isValid = true,
   tooltip,
+  isRequired,
 }) => {
   const renderInputField = () => {
+    const validated = isValid ? 'default' : 'error';
     switch (type) {
       case IdentifierResourceType.CPU:
-        return <CPUField onChange={(value) => setSize(value)} value={size} />;
+        return (
+          <CPUField
+            validated={validated}
+            onChange={(value) => setSize(value)}
+            value={size}
+            min={0}
+          />
+        );
       case IdentifierResourceType.MEMORY:
-        return <MemoryField onChange={(value) => setSize(value)} value={String(size)} />;
+        return (
+          <MemoryField
+            validated={validated}
+            onChange={(value) => setSize(value)}
+            value={size}
+            min={0}
+          />
+        );
       default:
         return (
           <NumberInputWrapper
+            validated={validated}
             min={0}
             value={Number(size)}
-            onChange={(value) => {
-              if (value) {
-                setSize(value);
-              }
-            }}
+            // If value is undefined, we cannot set it to empty string
+            // Because Number('') will be 0, then the field cannot be cleared
+            onChange={(value) => setSize(value ?? Number.NaN.toString())}
           />
         );
     }
@@ -54,6 +70,7 @@ const CountFormField: React.FC<CountFormFieldProps> = ({
       fieldId={fieldId}
       data-testid={`node-resource-size-${fieldId}`}
       labelHelp={tooltip ? <DashboardHelpTooltip content={tooltip} /> : undefined}
+      isRequired={isRequired}
     >
       {renderInputField()}
       {!isValid && errorMessage && (

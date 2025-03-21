@@ -57,7 +57,7 @@ const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
         <NumberInputWrapper
           min={minAsNumber}
           max={maxAsNumber}
-          value={currentValue}
+          value={Number(currentValue)}
           validated={validated}
           onBlur={
             onBlur &&
@@ -66,7 +66,7 @@ const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
             })
           }
           onChange={(value) => {
-            onChange(`${value ?? minAsNumber ?? ''}${currentUnitOption.unit}`);
+            onChange(`${value ?? ''}${currentUnitOption.unit}`);
           }}
           isDisabled={isDisabled}
           data-testid={dataTestId ? `${dataTestId}-input` : undefined}
@@ -99,7 +99,7 @@ const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
               <DropdownItem
                 key={option.unit}
                 onClick={() => {
-                  onChange(`${currentValue}${option.unit}`);
+                  onChange(`${currentValue ?? ''}${option.unit}`);
                   setOpen(false);
                 }}
               >
