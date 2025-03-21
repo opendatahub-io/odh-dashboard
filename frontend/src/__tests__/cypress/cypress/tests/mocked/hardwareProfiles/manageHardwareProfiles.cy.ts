@@ -153,7 +153,7 @@ describe('Manage Hardware Profile', () => {
     editNodeResourceModal.findNodeResourceMinInput().type('3');
     editNodeResourceModal.findNodeResourceMinErrorMessage().should('exist');
     editNodeResourceModal.findNodeResourceMinInput().clear();
-    editNodeResourceModal.findNodeResourceMinErrorMessage().should('not.exist');
+    editNodeResourceModal.findNodeResourceMinErrorMessage().should('exist');
     editNodeResourceModal.findCancelButton().click();
 
     createHardwareProfile.getNodeResourceTableRow('memory').findEditAction().click();
@@ -167,7 +167,7 @@ describe('Manage Hardware Profile', () => {
     editNodeResourceModal.findNodeResourceMinInput().type('3');
     editNodeResourceModal.findNodeResourceMinErrorMessage().should('exist');
     editNodeResourceModal.findNodeResourceMinInput().clear();
-    editNodeResourceModal.findNodeResourceMinErrorMessage().should('not.exist');
+    editNodeResourceModal.findNodeResourceMinErrorMessage().should('exist');
     editNodeResourceModal.findCancelButton().click();
 
     createHardwareProfile.getNodeResourceTableRow('test-gpu').findEditAction().click();
