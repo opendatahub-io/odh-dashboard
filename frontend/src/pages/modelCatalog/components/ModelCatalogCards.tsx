@@ -20,14 +20,12 @@ const ModelCatalogSection: React.FC<{ source: ModelCatalogSource }> = ({ source 
   </Stack>
 );
 
-export const ModelCatalogCards: React.FC<{ sources: ModelCatalogSource[] }> = ({ sources }) => {
-  return (
-    <Stack hasGutter data-testid="model-catalog-cards">
-      {sources.map((source) => (
-        <StackItem key={source.source}>
-          <ModelCatalogSection source={source} />
-        </StackItem>
-      ))}
-    </Stack>
-  );
-};
+export const ModelCatalogCards: React.FC<{ sources: ModelCatalogSource[] }> = ({ sources }) => (
+  <Stack hasGutter data-testid="model-catalog-cards">
+    {sources.map((source) => (
+      <StackItem key={source.source}>
+        <ModelCatalogSection source={source} />
+      </StackItem>
+    ))}
+  </Stack>
+);
