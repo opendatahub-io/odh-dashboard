@@ -905,7 +905,7 @@ describe('Workbench page', () => {
     notFoundSpawnerPage.shouldHaveErrorMessageTitle('Unable to edit workbench');
     notFoundSpawnerPage.findReturnToPage().should('be.enabled');
     notFoundSpawnerPage.findReturnToPage().click();
-    verifyRelativeURL('/projects/test-project?section=overview');
+    verifyRelativeURL('/projects/test-project');
   });
 
   it('Expanded workbench table row', () => {
