@@ -7,6 +7,7 @@ import {
   findModelFromModelCatalogSources,
   getILabLabels,
   getTagFromModel,
+  isLabBase,
   removeILabLabels,
 } from '~/pages/modelCatalog/utils';
 import { EMPTY_CUSTOM_PROPERTY_STRING } from '~/pages/modelCatalog/const';
@@ -146,6 +147,17 @@ describe('removeILabLabels', () => {
   it('should return an empty list if given undefined', () => {
     const result = removeILabLabels(undefined);
     expect(result).toEqual([]);
+  });
+});
+
+describe('isLabBase', () => {
+  it('should return true if lab-base is present', () => {
+    const result = isLabBase(['foo', 'lab-base', 'bar', 'baz']);
+    expect(result).toEqual(true);
+  });
+  it('should return false if lab-base is not present', () => {
+    const result = isLabBase(['foo', 'bar', 'baz']);
+    expect(result).toEqual(false);
   });
 });
 

@@ -1,7 +1,6 @@
 import { ImageStreamKind } from '~/k8sTypes';
 import {
   ConfigMapCategory,
-  DataConnectionData,
   EnvironmentVariableType,
   EnvVariable,
   SecretCategory,
@@ -85,43 +84,6 @@ export const mockStorageData: StorageData[] = [
     storageClassName: 'gp2-csi',
   },
 ];
-
-export const mockDataConnectionData: DataConnectionData = {
-  type: 'creating',
-  enabled: true,
-  creating: {
-    type: EnvironmentVariableType.SECRET,
-    values: {
-      category: SecretCategory.AWS,
-      data: [
-        {
-          key: 'Name',
-          value: 'test-name',
-        },
-        {
-          key: 'AWS_ACCESS_KEY_ID',
-          value: 'test-access-key',
-        },
-        {
-          key: 'AWS_SECRET_ACCESS_KEY',
-          value: 'test-secret-key',
-        },
-        {
-          key: 'AWS_S3_BUCKET',
-          value: '',
-        },
-        {
-          key: 'AWS_S3_ENDPOINT',
-          value: 'test-endpoint',
-        },
-        {
-          key: 'AWS_DEFAULT_REGION',
-          value: '',
-        },
-      ],
-    },
-  },
-};
 
 export const mockEnvVariables: EnvVariable[] = [
   {

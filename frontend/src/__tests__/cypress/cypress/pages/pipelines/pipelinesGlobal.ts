@@ -109,12 +109,12 @@ class ConfigurePipelineServerModal extends Modal {
     return this.find().findByRole('button', { name: 'Show password' });
   }
 
-  private findSelectDataConnectionButton() {
-    return cy.findByTestId('select-data-connection');
+  private findSelectViableConnectionButton() {
+    return cy.findByTestId('select-connection');
   }
 
-  selectDataConnection(name: string) {
-    this.findSelectDataConnectionButton().click();
+  selectViableConnection(name: string) {
+    this.findSelectViableConnectionButton().click();
     cy.findByRole('menuitem', { name }).click();
   }
 

@@ -26,7 +26,6 @@ const ServingRuntimeTable: React.FC = () => {
   const {
     servingRuntimes: { data: modelServers, refresh: refreshServingRuntime },
     serverSecrets: { refresh: refreshTokens },
-    dataConnections: { data: dataConnections, refresh: refreshDataConnections },
     connections: { data: connections, refresh: refreshConnections },
     inferenceServices: { data: inferenceServices, refresh: refreshInferenceServices },
     filterTokens,
@@ -99,7 +98,6 @@ const ServingRuntimeTable: React.FC = () => {
             setDeployServingRuntime(undefined);
             if (submit) {
               refreshInferenceServices();
-              refreshDataConnections();
               refreshConnections();
               setExpandedServingRuntimeName(deployServingRuntime.metadata.name);
             }
@@ -111,7 +109,6 @@ const ServingRuntimeTable: React.FC = () => {
           projectContext={{
             currentProject,
             currentServingRuntime: deployServingRuntime,
-            dataConnections,
             connections,
           }}
         />
