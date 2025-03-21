@@ -46,7 +46,7 @@ describe('Verify that users can provide contributor project permissions to non-a
 
   it(
     'Verify that user can be added as a Contributor for a Project',
-    { tags: ['@Smoke', '@SmokeSet2', '@ODS-2194', '@ODS-2201', '@Dashboard', '@Andrew'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-2194', '@ODS-2201', '@Dashboard'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');

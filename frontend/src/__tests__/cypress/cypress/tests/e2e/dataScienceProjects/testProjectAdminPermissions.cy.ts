@@ -48,15 +48,7 @@ describe('Verify that users can provide admin project permissions to non-admin u
   it(
     'Verify that user can be added as an Admin for a Project',
     {
-      tags: [
-        '@Smoke',
-        '@SmokeSet1',
-        '@ODS-2194',
-        '@ODS-2201',
-        '@ODS-2208',
-        '@Dashboard',
-        '@Andrew',
-      ],
+      tags: ['@Smoke', '@SmokeSet1', '@ODS-2194', '@ODS-2201', '@ODS-2208', '@Dashboard'],
     },
     () => {
       // Authentication and navigation
@@ -92,15 +84,7 @@ describe('Verify that users can provide admin project permissions to non-admin u
   it(
     'Verify user can assign access permissions to user group',
     {
-      tags: [
-        '@Smoke',
-        '@SmokeSet1',
-        '@ODS-2194',
-        '@ODS-2201',
-        '@ODS-2208',
-        '@Dashboard',
-        '@Andrew',
-      ],
+      tags: ['@Smoke', '@SmokeSet1', '@ODS-2194', '@ODS-2201', '@ODS-2208', '@Dashboard'],
     },
     () => {
       // Authentication and navigation
@@ -130,15 +114,7 @@ describe('Verify that users can provide admin project permissions to non-admin u
   it(
     'Verify that user can access the created project with Admin rights',
     {
-      tags: [
-        '@Smoke',
-        '@SmokeSet1',
-        '@ODS-2194',
-        '@ODS-2201',
-        '@ODS-2208',
-        '@Dashboard',
-        '@Andrew',
-      ],
+      tags: ['@Smoke', '@SmokeSet1', '@ODS-2194', '@ODS-2201', '@ODS-2208', '@Dashboard'],
     },
     () => {
       // Authentication and navigation

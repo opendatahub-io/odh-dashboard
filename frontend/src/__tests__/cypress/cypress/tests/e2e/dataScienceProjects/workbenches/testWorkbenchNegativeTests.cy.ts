@@ -50,7 +50,7 @@ describe('Workbenches - negative tests', () => {
 
   it(
     'Verify UI informs users about workbenches failed to start',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1973', '@Dashboard', '@Workbenches', '@Andrew'] },
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1973', '@Dashboard', '@Workbenches'] },
     () => {
       const workbenchName = projectName.replace('dsp-', '');
 
@@ -85,7 +85,7 @@ describe('Workbenches - negative tests', () => {
   );
   it(
     'Verify User cannot create a workbench using special characters or long names in the Resource name field',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1973', '@Dashboard', '@Workbenches', '@Andrew'] },
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1973', '@Dashboard', '@Workbenches'] },
     () => {
       const workbenchName = projectName.replace('dsp-', '');
 

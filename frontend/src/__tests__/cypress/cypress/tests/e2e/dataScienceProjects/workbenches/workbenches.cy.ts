@@ -64,7 +64,7 @@ describe('Workbench and PVSs tests', () => {
 
   it(
     'Verify users can create a workbench and connect an existent PersistentVolume',
-    { tags: ['@Smoke', '@SmokeSet1', '@ODS-1814', '@Dashboard', '@Andrew'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@ODS-1814', '@Dashboard'] },
     () => {
       const workbenchName = projectName.replace('dsp-', '');
 

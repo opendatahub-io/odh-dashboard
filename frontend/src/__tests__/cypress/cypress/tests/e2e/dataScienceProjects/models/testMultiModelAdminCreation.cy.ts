@@ -74,7 +74,6 @@ describe('[Product Bug: RHOAIENG-20213] Verify Admin Multi Model Creation and Va
         '@Dashboard',
         '@Modelserving',
         '@Bug',
-        '@Andrew',
       ],
     },
     () => {

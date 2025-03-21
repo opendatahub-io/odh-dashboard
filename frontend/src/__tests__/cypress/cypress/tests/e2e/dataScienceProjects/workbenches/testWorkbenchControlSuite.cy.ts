@@ -61,7 +61,6 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
         '@ODS-1975',
         '@Dashboard',
         '@Workbenches',
-        '@Andrew',
       ],
     },
     () => {
@@ -126,7 +125,6 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
         '@ODS-1975',
         '@Dashboard',
         '@Workbenches',
-        '@Andrew',
       ],
     },
     () => {
