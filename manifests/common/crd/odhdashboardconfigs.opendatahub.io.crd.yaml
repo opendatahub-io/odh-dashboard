@@ -45,6 +45,8 @@ spec:
                       type: boolean
                     disableProjects:
                       type: boolean
+                    disableProjectScoped:
+                      type: boolean
                     disableModelServing:
                       type: boolean
                     disableProjectSharing:
@@ -64,8 +66,6 @@ spec:
                     disableKServeMetrics:
                       type: boolean
                     disableKServeRaw:
-                      type: boolean
-                    disableKServeOCIModels:
                       type: boolean
                     disableModelMesh:
                       type: boolean

@@ -50,7 +50,7 @@ class RegisterModelPage {
   }
 
   findConnectionSelector() {
-    return this.findConnectionAutofillModal().findByTestId('select-data-connection');
+    return this.findConnectionAutofillModal().findByTestId('select-connection');
   }
 
   findAutofillButton() {

@@ -70,7 +70,8 @@ describe('[Automation Bug: RHOAIENG-20099] Workbenches - tolerations tests', () 
 
   it(
     'Validate pod tolerations are applied to a Workbench',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard', '@Bug'] },
+    // TODO: This test will be reworked this Sprint as part of RHOAIENG-20099
+    { tags: ['@Featureflagged', '@HardwareProfiles'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -132,7 +133,8 @@ describe('[Automation Bug: RHOAIENG-20099] Workbenches - tolerations tests', () 
 
   it(
     'Validate pod tolerations for a stopped workbench',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard', '@Bug'] },
+    // TODO: This test will be reworked this Sprint as part of RHOAIENG-20099
+    { tags: ['@Featureflagged', '@HardwareProfiles'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');

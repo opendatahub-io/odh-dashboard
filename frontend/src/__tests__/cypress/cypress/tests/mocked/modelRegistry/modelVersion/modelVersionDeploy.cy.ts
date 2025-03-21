@@ -499,15 +499,17 @@ describe('Deploy model version', () => {
     kserveModal.findLocationAccessKeyInput().type('test-access-key');
     kserveModal.findLocationSecretKeyInput().type('test-secret-key');
 
-    kserveModal.selectConnectionType(
-      'URI - v1 Connection type description Category: existing-category',
-    );
-    kserveModal.findConnectionFieldInput().type('http://test-uri');
+    kserveModal
+      .findConnectionType('URI - v1 Connection type description Category: existing-category')
+      .click();
+    kserveModal.findConnectionFieldInput('URI').type('http://test-uri');
 
     // switch the connection type to s3 to check whether all the data is still persistent
-    kserveModal.selectConnectionType(
-      'S3 compatible object storage - v1 description 2 Category: existing-category',
-    );
+    kserveModal
+      .findConnectionType(
+        'S3 compatible object storage - v1 description 2 Category: existing-category',
+      )
+      .click();
     kserveModal.findLocationBucketInput().should('have.value', 'test-bucket');
     kserveModal.findLocationEndpointInput().should('have.value', 'test-endpoint');
     kserveModal.findLocationRegionInput().should('have.value', 'test-region');
@@ -516,10 +518,10 @@ describe('Deploy model version', () => {
     kserveModal.findLocationSecretKeyInput().should('have.value', 'test-secret-key');
 
     //switch it back to uri
-    kserveModal.selectConnectionType(
-      'URI - v1 Connection type description Category: existing-category',
-    );
-    kserveModal.findConnectionFieldInput().should('have.value', 'http://test-uri');
+    kserveModal
+      .findConnectionType('URI - v1 Connection type description Category: existing-category')
+      .click();
+    kserveModal.findConnectionFieldInput('URI').should('have.value', 'http://test-uri');
   });
 
   it('Prefills when there is one s3 matching connection', () => {

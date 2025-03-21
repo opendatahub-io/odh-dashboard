@@ -417,7 +417,6 @@ describe('Pipeline runs', () => {
           activeRunsTable.mockGetActiveRuns(
             mockActiveRuns.filter((mockRun) => mockRun.display_name.includes('run 1')),
             projectName,
-            1,
           );
 
           // Verify only rows with the typed run name exist
@@ -443,7 +442,6 @@ describe('Pipeline runs', () => {
           activeRunsTable.mockGetActiveRuns(
             mockActiveRuns.filter((mockRun) => mockRun.experiment_id === 'test-experiment-1'),
             projectName,
-            1,
           );
 
           // Select an experiment to filter by
@@ -470,7 +468,6 @@ describe('Pipeline runs', () => {
           activeRunsTable.mockGetActiveRuns(
             mockActiveRuns.filter((mockRun) => mockRun.created_at.includes('2024-02-10')),
             projectName,
-            1,
           );
           pipelineRunsGlobal
             .findActiveRunsToolbar()
@@ -490,7 +487,6 @@ describe('Pipeline runs', () => {
           activeRunsTable.mockGetActiveRuns(
             mockActiveRuns.filter((mockRun) => mockRun.created_at.includes('2024-02-15')),
             projectName,
-            1,
           );
           pipelineRunsGlobal
             .findActiveRunsToolbar()
@@ -515,7 +511,6 @@ describe('Pipeline runs', () => {
           activeRunsTable.mockGetActiveRuns(
             mockActiveRuns.filter((mockRun) => mockRun.state === RuntimeStateKF.RUNNING),
             projectName,
-            1,
           );
           // Select a filter value of 'RUNNING'
           pipelineRunsGlobal
@@ -532,7 +527,6 @@ describe('Pipeline runs', () => {
           activeRunsTable.mockGetActiveRuns(
             mockActiveRuns.filter((mockRun) => mockRun.state === RuntimeStateKF.SUCCEEDED),
             projectName,
-            1,
           );
           // Select a filter value of 'SUCCEEDED'
           pipelineRunsGlobal
@@ -549,7 +543,6 @@ describe('Pipeline runs', () => {
           activeRunsTable.mockGetActiveRuns(
             mockActiveRuns.filter((mockRun) => mockRun.state === RuntimeStateKF.PENDING),
             projectName,
-            1,
           );
           // Select a filter value of 'PENDING'
           pipelineRunsGlobal
@@ -661,7 +654,6 @@ describe('Pipeline runs', () => {
           archivedRunsTable.mockGetArchivedRuns(
             mockArchivedRuns.filter((mockRun) => mockRun.display_name.includes('run 1')),
             projectName,
-            1,
           );
 
           // Verify only rows with the typed run name exist
@@ -685,7 +677,6 @@ describe('Pipeline runs', () => {
           archivedRunsTable.mockGetArchivedRuns(
             mockArchivedRuns.filter((mockRun) => mockRun.experiment_id === 'test-experiment-1'),
             projectName,
-            1,
           );
 
           // Select an experiment to filter by
@@ -709,7 +700,6 @@ describe('Pipeline runs', () => {
           archivedRunsTable.mockGetArchivedRuns(
             mockArchivedRuns.filter((mockRun) => mockRun.created_at.includes('2024-02-05')),
             projectName,
-            1,
           );
           pipelineRunsGlobal
             .findArchivedRunsToolbar()
@@ -726,7 +716,6 @@ describe('Pipeline runs', () => {
           archivedRunsTable.mockGetArchivedRuns(
             mockArchivedRuns.filter((mockRun) => mockRun.created_at.includes('2024-02-15')),
             projectName,
-            1,
           );
           pipelineRunsGlobal
             .findArchivedRunsToolbar()
@@ -749,7 +738,6 @@ describe('Pipeline runs', () => {
           archivedRunsTable.mockGetArchivedRuns(
             mockArchivedRuns.filter((mockRun) => mockRun.state === RuntimeStateKF.SUCCEEDED),
             projectName,
-            1,
           );
           // Select a filter value of 'SUCCEEDED'
           pipelineRunsGlobal
@@ -767,7 +755,6 @@ describe('Pipeline runs', () => {
           archivedRunsTable.mockGetArchivedRuns(
             mockArchivedRuns.filter((mockRun) => mockRun.state === RuntimeStateKF.RUNNING),
             projectName,
-            1,
           );
           // Select a filter value of 'RUNNING'
           pipelineRunsGlobal

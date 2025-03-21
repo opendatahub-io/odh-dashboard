@@ -29,3 +29,5 @@ S3:
 PIP_INDEX_URL: https://pypi.org/simple
 PIP_TRUSTED_HOST: pypi.org
 NGC_API_KEY: bm90IGEgdmFsaWQgYXBpIGtleQo=
+OCI_SECRET_DETAILS_FILE: /home/user/.docker/config.json 
+OCI_MODEL_URI: quay.io/my_user/my_oci_model:latest

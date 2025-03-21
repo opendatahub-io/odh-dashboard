@@ -1,0 +1,5 @@
+# testDeployOCIModel.cy.ts Test Data #
+projectName: 'test-oci-deployment'
+connectionName: 'test-oci-connection'
+ociRegistryHost: 'quay.io'
+modelDeploymentName: 'test-oci-model-deployment'

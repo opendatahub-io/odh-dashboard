@@ -13,30 +13,29 @@ import React from 'react';
 import { EyeIcon, EyeSlashIcon, KeyIcon } from '@patternfly/react-icons';
 import styles from '@patternfly/react-styles/css/components/Menu/menu';
 import { css } from '@patternfly/react-styles';
-import { DataConnection, AWSDataEntry } from '~/pages/projects/types';
-import {
-  convertAWSSecretData,
-  getDataConnectionDisplayName,
-} from '~/pages/projects/screens/detail/data-connections/utils';
+import { AWSDataEntry } from '~/pages/projects/types';
 import { PIPELINE_AWS_KEY } from '~/pages/projects/dataConnections/const';
+import { Connection } from '~/concepts/connectionTypes/types';
+import { convertObjectStorageSecretData } from '~/concepts/connectionTypes/utils';
+import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { PipelineServerConfigType } from './types';
 import { getLabelName } from './utils';
 
 type PipelineDropdownProps = {
   setConfig: (config: PipelineServerConfigType) => void;
   config: PipelineServerConfigType;
-  dataConnections: DataConnection[];
+  connections: Connection[];
 };
 export const PipelineDropdown = ({
   config,
   setConfig,
-  dataConnections,
+  connections,
 }: PipelineDropdownProps): React.JSX.Element => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState<boolean[]>([]);
 
-  const existingDataConnection = (connection: DataConnection): AWSDataEntry | null =>
-    convertAWSSecretData(connection).filter((dataItem) =>
+  const existingConnection = (connection: Connection): AWSDataEntry | null =>
+    convertObjectStorageSecretData(connection).filter((dataItem) =>
       PIPELINE_AWS_KEY.some((filterItem) => filterItem === dataItem.key),
     );
 
@@ -51,11 +50,11 @@ export const PipelineDropdown = ({
   ) => {
     setIsOpen(false);
     if (typeof option === 'string') {
-      const value = dataConnections.find((d) => d.data.metadata.name === option);
+      const value = connections.find((d) => d.metadata.name === option);
       if (!value) {
         return;
       }
-      const optionValue = existingDataConnection(value);
+      const optionValue = existingConnection(value);
       const updatedObjectStorageValue = config.objectStorage.newValue.map((item) => {
         const matchingOption = optionValue?.find((optItem) => optItem.key === item.key);
 
@@ -79,7 +78,7 @@ export const PipelineDropdown = ({
       popperProps={{ position: 'right' }}
       toggle={(toggleRef) => (
         <MenuToggle
-          data-testid="select-data-connection"
+          data-testid="select-connection"
           ref={toggleRef}
           onClick={onToggle}
           isExpanded={isOpen}
@@ -94,14 +93,14 @@ export const PipelineDropdown = ({
           <MenuGroup
             label={
               <h1 className={css(styles.menuGroupTitle)}>
-                <KeyIcon /> Populate the form with credentials from your selected data connection
+                <KeyIcon /> Populate the form with credentials from your selected connection
               </h1>
             }
           >
             <MenuList>
-              {dataConnections.map((dataItem, index) => (
+              {connections.map((dataItem, index) => (
                 <MenuItem
-                  key={dataItem.data.metadata.name}
+                  key={dataItem.metadata.name}
                   actions={
                     <MenuItemAction
                       icon={showPassword[index] ? <EyeSlashIcon /> : <EyeIcon />}
@@ -116,13 +115,13 @@ export const PipelineDropdown = ({
                           ...s.slice(index + 1),
                         ]);
                       }}
-                      aria-label={dataItem.data.metadata.name}
+                      aria-label={dataItem.metadata.name}
                     />
                   }
                   description={
                     showPassword[index] ? (
                       <Content className={css(styles.menuItemDescription)}>
-                        {existingDataConnection(dataItem)?.map(
+                        {existingConnection(dataItem)?.map(
                           (field) =>
                             field.value && (
                               <Content component="p" key={field.key}>
@@ -135,9 +134,9 @@ export const PipelineDropdown = ({
                       '•••••••••••••••••'
                     )
                   }
-                  itemId={dataItem.data.metadata.name}
+                  itemId={dataItem.metadata.name}
                 >
-                  {getDataConnectionDisplayName(dataItem)}
+                  {getDisplayNameFromK8sResource(dataItem)}
                 </MenuItem>
               ))}
             </MenuList>

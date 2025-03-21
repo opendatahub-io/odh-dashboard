@@ -12,6 +12,8 @@ export const useInferenceServicesForConnection = (
   const connectionName = connection.metadata.name;
 
   return inferenceServices.filter(
-    (inferenceService) => inferenceService.spec.predictor.model?.storage?.key === connectionName,
+    (inferenceService) =>
+      inferenceService.spec.predictor.model?.storage?.key === connectionName ||
+      inferenceService.spec.predictor.imagePullSecrets?.[0].name === connectionName,
   );
 };
