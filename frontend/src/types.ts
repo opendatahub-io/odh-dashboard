@@ -603,7 +603,6 @@ export enum NotebookState {
 
 export enum ProgressionStep {
   SERVER_REQUESTED = 'SERVER_REQUESTED',
-  POD_CREATED = 'POD_CREATED',
   POD_ASSIGNED = 'POD_ASSIGNED',
   PVC_ATTACHED = 'PVC_ATTACHED',
   INTERFACE_ADDED = 'INTERFACE_ADDED',
@@ -620,7 +619,6 @@ export enum ProgressionStep {
 
 export const ProgressionStepTitles = {
   [ProgressionStep.SERVER_REQUESTED]: 'Server requested',
-  [ProgressionStep.POD_CREATED]: 'Pod created',
   [ProgressionStep.POD_ASSIGNED]: 'Pod assigned',
   [ProgressionStep.PVC_ATTACHED]: 'PVC attached',
   [ProgressionStep.INTERFACE_ADDED]: 'Interface added',

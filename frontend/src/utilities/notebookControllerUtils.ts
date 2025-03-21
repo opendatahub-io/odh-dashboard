@@ -358,12 +358,6 @@ export const getNotebookEventStatus = (
   }
 
   switch (event.reason) {
-    case 'SuccessfulCreate':
-      return {
-        step: ProgressionStep.POD_CREATED,
-        status: EventStatus.SUCCESS,
-        timestamp,
-      };
     case 'Scheduled':
       return {
         step: ProgressionStep.POD_ASSIGNED,
