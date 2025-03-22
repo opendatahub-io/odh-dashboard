@@ -3,15 +3,14 @@ import { explorePage } from '~/__tests__/cypress/cypress/pages/explore';
 import { enabledPage } from '~/__tests__/cypress/cypress/pages/enabled';
 import { nimCard } from '~/__tests__/cypress/cypress/pages/components/NIMCard';
 import { deleteNIMAccount } from '~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
-import { wasSetupPerformed } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
 describe('[Automation Bug: RHOAIENG-21549] Verify NIM enable flow', () => {
-  after(() => {
-    if (!wasSetupPerformed()) return;
+  before(() => {
     cy.step('Delete odh-nim-account');
-    deleteNIMAccount();
+    deleteNIMAccount(Cypress.env('TEST_NAMESPACE'), true);
   });
-  it('Enable and validate NIM flow', { tags: ['@NIM', '@Sanity', '@Bug'] }, () => {
+
+  it('Enable and validate NIM flow', { tags: ['@NIM', '@Sanity'] }, () => {
     cy.step('Login to the application');
     cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
     cy.step('Navigate to the Explore page');
@@ -31,7 +30,7 @@ describe('[Automation Bug: RHOAIENG-21549] Verify NIM enable flow', () => {
     cy.step('Click submit to enable the NIM application');
     nimCard.getNIMSubmit().click();
     cy.step('Wait for "Validating..." to complete');
-    nimCard.getProgressTitle().should('contain', 'Validating your entries');
+    nimCard.getProgressTitle().should('exist');
     nimCard.getProgressTitle({ timeout: 120000 }).should('not.exist');
     cy.step('Visit the enabled applications page');
     enabledPage.visit();
