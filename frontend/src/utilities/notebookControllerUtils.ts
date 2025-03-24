@@ -309,8 +309,8 @@ export const getNotebookEventStatus = (
   gracePeriod?: boolean,
 ): NotebookProgressStep => {
   const timestamp = new Date(getEventTimestamp(event)).getTime();
-
-  if (event.message.includes('oauth-proxy')) {
+  //for oauth-related events
+  if (event.message.includes('oauth-proxy') || event.message.includes('ose-oauth-proxy')) {
     switch (event.reason) {
       case 'Pulling':
         return {
@@ -356,7 +356,7 @@ export const getNotebookEventStatus = (
         };
     }
   }
-
+  //for events not related to oauth
   switch (event.reason) {
     case 'Scheduled':
       return {
@@ -546,7 +546,6 @@ export const useNotebookProgress = (
       }
     }
   });
-
 
   // If the container is started and the server is running, mark the server started step complete
   if (
