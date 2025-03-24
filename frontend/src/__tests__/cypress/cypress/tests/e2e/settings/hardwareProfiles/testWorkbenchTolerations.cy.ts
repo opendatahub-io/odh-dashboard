@@ -119,7 +119,7 @@ describe('Workbenches - tolerations tests', () => {
     'Validate pod tolerations for a stopped workbench',
     // TODO: Add the below tags once this feature is enabled in 2.20+
     //  { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard'] },
-    { tags: ['@Featureflagged', '@HardwareProfiles'] },
+    { tags: ['@Featureflagged', '@HardwareProfilesWB', '@HardwareProfiles'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -156,7 +156,7 @@ describe('Workbenches - tolerations tests', () => {
     'Validate pod tolerations when a workbench is restarted with tolerations and tolerations are disabled',
     // TODO: Add the below tags once this feature is enabled in 2.20+
     //  { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard'] },
-    { tags: ['@Featureflagged', '@HardwareProfiles'] },
+    { tags: ['@Featureflagged', '@HardwareProfilesWB', '@HardwareProfiles'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
