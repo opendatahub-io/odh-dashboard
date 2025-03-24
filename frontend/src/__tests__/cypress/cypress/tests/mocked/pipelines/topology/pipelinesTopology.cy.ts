@@ -375,7 +375,7 @@ describe('Pipeline topology', () => {
 
         pipelineRecurringRunDetails.findDetailsTab().click();
         pipelineRecurringRunDetails.findDetailItem('Project').findValue().find('a').click();
-        verifyRelativeURL(`/projects/${projectId}?section=overview`);
+        verifyRelativeURL(`/projects/${projectId}`);
       });
 
       it('Test pipeline recurring run details pipeline version navigation', () => {

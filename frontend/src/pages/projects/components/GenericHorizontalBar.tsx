@@ -1,27 +1,30 @@
 import * as React from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { Tabs, Tab, TabTitleIcon, TabTitleText, PageSection } from '@patternfly/react-core';
 import { SVGIconProps } from '@patternfly/react-icons/dist/esm/createIcon';
 
-type GenericHorizontalBarProps = {
-  activeKey: string | null;
-  sections: {
-    title: string;
-    component: React.ReactNode;
-    icon?: React.ReactElement<React.ComponentClass<SVGIconProps>>;
-    id: string;
-  }[];
+export type SectionDefinition = {
+  title: string;
+  component: React.ReactNode;
+  icon?: React.ReactElement<React.ComponentClass<SVGIconProps>>;
+  id: string;
 };
 
-const GenericHorizontalBar: React.FC<GenericHorizontalBarProps> = ({ activeKey, sections }) => {
-  const [queryParams, setQueryParams] = useSearchParams();
+type GenericHorizontalBarProps = {
+  activeKey: string | null;
+  sections: [SectionDefinition, ...SectionDefinition[]];
+  onSectionChange: (sectionId: SectionDefinition['id'], replace?: boolean) => void;
+};
 
+const GenericHorizontalBar: React.FC<GenericHorizontalBarProps> = ({
+  activeKey,
+  sections,
+  onSectionChange,
+}) => {
   React.useEffect(() => {
-    if (!sections.find((s) => s.id === activeKey) && sections[0].id) {
-      queryParams.set('section', sections[0].id);
-      setQueryParams(queryParams, { replace: true });
+    if (activeKey && !sections.find((s) => s.id === activeKey)) {
+      onSectionChange(sections[0].id, true);
     }
-  }, [sections, activeKey, queryParams, setQueryParams]);
+  }, [sections, activeKey, onSectionChange]);
 
   const activeSection = sections.find((section) => section.id === activeKey) || sections[0];
 
@@ -35,10 +38,9 @@ const GenericHorizontalBar: React.FC<GenericHorizontalBarProps> = ({ activeKey, 
         aria-label="horizontal-bar-tab-section"
       >
         <Tabs
-          activeKey={activeKey || sections[0].id}
+          activeKey={activeSection.id}
           onSelect={(event, tabIndex) => {
-            queryParams.set('section', `${tabIndex}`);
-            setQueryParams(queryParams);
+            onSectionChange(`${tabIndex}`);
           }}
           aria-label="Horizontal bar"
           style={{ paddingInlineStart: 'var(--pf-t--global--spacer--lg' }}
