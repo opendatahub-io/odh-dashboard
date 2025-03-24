@@ -17,7 +17,11 @@ import ManageTolerationSection from '~/pages/hardwareProfiles/manage/ManageToler
 import ManageHardwareProfileFooter from '~/pages/hardwareProfiles/manage/ManageHardwareProfileFooter';
 import ManageNodeResourceSection from '~/pages/hardwareProfiles/manage/ManageNodeResourceSection';
 import { MigrationAction } from '~/pages/hardwareProfiles/migration/types';
-import { HardwareProfileFormData, ManageHardwareProfileSectionID } from './types';
+import {
+  HardwareProfileFormData,
+  HardwareProfileVisibility,
+  ManageHardwareProfileSectionID,
+} from './types';
 import { HardwareProfileVisibilitySection } from './HardwareProfileVisibilitySection';
 
 type ManageHardwareProfileProps = {
@@ -38,7 +42,10 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
   const [state, setState] = useGenericObjectState<HardwareProfileKind['spec']>(
     DEFAULT_HARDWARE_PROFILE_SPEC,
   );
-  const [visibility, setVisibility] = React.useState<string[]>([]);
+  const [visibility, setVisibility] = React.useState<HardwareProfileVisibility>({
+    isUnlimited: true,
+    features: [],
+  });
   const { data: profileNameDesc, onDataChange: setProfileNameDesc } =
     useK8sNameDescriptionFieldData({
       initialData: existingHardwareProfile
@@ -50,63 +57,43 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
         : undefined,
     });
 
-  React.useEffect(() => {
-    if (existingHardwareProfile) {
-      setState('identifiers', existingHardwareProfile.spec.identifiers);
-      setState('enabled', existingHardwareProfile.spec.enabled);
-      setState('nodeSelector', existingHardwareProfile.spec.nodeSelector);
-      setState('tolerations', existingHardwareProfile.spec.tolerations);
+  const prefillFormData = React.useCallback(
+    (hardwareProfile?: HardwareProfileKind) => {
+      if (hardwareProfile) {
+        setState('identifiers', hardwareProfile.spec.identifiers);
+        setState('enabled', hardwareProfile.spec.enabled);
+        setState('nodeSelector', hardwareProfile.spec.nodeSelector);
+        setState('tolerations', hardwareProfile.spec.tolerations);
 
-      // set the visibility from the annotations
-      try {
-        if (
-          existingHardwareProfile.metadata.annotations?.[
-            'opendatahub.io/dashboard-feature-visibility'
-          ]
-        ) {
-          const visibleIn = JSON.parse(
-            existingHardwareProfile.metadata.annotations[
-              'opendatahub.io/dashboard-feature-visibility'
-            ],
-          );
-          setVisibility(visibleIn);
-        } else {
-          setVisibility([]);
+        // set the visibility from the annotations
+        try {
+          if (
+            hardwareProfile.metadata.annotations?.['opendatahub.io/dashboard-feature-visibility'] &&
+            hardwareProfile.metadata.annotations['opendatahub.io/dashboard-feature-visibility'] !==
+              '[]'
+          ) {
+            const visibleIn = JSON.parse(
+              hardwareProfile.metadata.annotations['opendatahub.io/dashboard-feature-visibility'],
+            );
+            setVisibility({ isUnlimited: false, features: visibleIn });
+          } else {
+            setVisibility({ isUnlimited: true, features: [] });
+          }
+        } catch (error) {
+          setVisibility({ isUnlimited: true, features: [] });
         }
-      } catch (error) {
-        setVisibility([]);
       }
-    }
-  }, [existingHardwareProfile, setState]);
+    },
+    [setState],
+  );
 
   React.useEffect(() => {
-    if (duplicatedHardwareProfile) {
-      setState('identifiers', duplicatedHardwareProfile.spec.identifiers);
-      setState('enabled', duplicatedHardwareProfile.spec.enabled);
-      setState('nodeSelector', duplicatedHardwareProfile.spec.nodeSelector);
-      setState('tolerations', duplicatedHardwareProfile.spec.tolerations);
+    prefillFormData(existingHardwareProfile);
+  }, [existingHardwareProfile, prefillFormData]);
 
-      // set the use cases from the annotations
-      try {
-        if (
-          duplicatedHardwareProfile.metadata.annotations?.[
-            'opendatahub.io/dashboard-feature-visibility'
-          ]
-        ) {
-          const visibleIn = JSON.parse(
-            duplicatedHardwareProfile.metadata.annotations[
-              'opendatahub.io/dashboard-feature-visibility'
-            ],
-          );
-          setVisibility(visibleIn);
-        } else {
-          setVisibility([]);
-        }
-      } catch (error) {
-        setVisibility([]);
-      }
-    }
-  }, [duplicatedHardwareProfile, setState]);
+  React.useEffect(() => {
+    prefillFormData(duplicatedHardwareProfile);
+  }, [duplicatedHardwareProfile, prefillFormData]);
 
   const formState: HardwareProfileFormData = React.useMemo(
     () => ({

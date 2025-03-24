@@ -12,7 +12,9 @@ export type ManageHardwareProfileSectionTitlesType = {
   [key in ManageHardwareProfileSectionID]: string;
 };
 
+export type HardwareProfileVisibility = { isUnlimited: boolean; features: string[] };
+
 export type HardwareProfileFormData = {
   name: string;
-  visibility: string[];
+  visibility: HardwareProfileVisibility;
 } & HardwareProfileKind['spec'];

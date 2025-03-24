@@ -4,24 +4,23 @@ import { HardwareProfileFeatureVisibility } from '~/k8sTypes';
 import { MultiSelection, type SelectionOptions } from '~/components/MultiSelection';
 import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
 import { ManageHardwareProfileSectionTitles } from '~/pages/hardwareProfiles/const';
-import { ManageHardwareProfileSectionID } from './types';
+import { HardwareProfileVisibility, ManageHardwareProfileSectionID } from './types';
 import { HardwareProfileFeatureVisibilityTitles } from './const';
 
 type HardwareProfileUseCaseSectionProps = {
-  visibility: string[];
-  setVisibility: (visibility: string[]) => void;
+  visibility: HardwareProfileVisibility;
+  setVisibility: (visibility: HardwareProfileVisibility) => void;
 };
 
 export const HardwareProfileVisibilitySection: React.FC<HardwareProfileUseCaseSectionProps> = ({
   visibility,
   setVisibility,
 }) => {
-  const [isLimited, setIsLimited] = React.useState(visibility.length > 0);
   const visibilityOptions: SelectionOptions[] = Object.values(HardwareProfileFeatureVisibility).map(
     (value) => ({
       id: value,
       name: HardwareProfileFeatureVisibilityTitles[value],
-      selected: visibility.includes(value),
+      selected: visibility.features.includes(value),
     }),
   );
 
@@ -45,24 +44,28 @@ export const HardwareProfileVisibilitySection: React.FC<HardwareProfileUseCaseSe
         id="all-features"
         name="features-visibility"
         label="Visible everywhere"
-        isChecked={!isLimited}
+        isChecked={visibility.isUnlimited}
         onChange={() => {
-          setIsLimited(false);
-          setVisibility([]);
+          setVisibility({ ...visibility, isUnlimited: true });
         }}
       />
       <Radio
         id="limited-features"
         name="features-visibility"
         label="Limited visibility"
-        isChecked={isLimited}
-        onChange={() => setIsLimited(true)}
+        isChecked={!visibility.isUnlimited}
+        onChange={() => {
+          setVisibility({ ...visibility, isUnlimited: false });
+        }}
         body={
-          isLimited && (
+          !visibility.isUnlimited && (
             <MultiSelection
               value={visibilityOptions}
               setValue={(value) =>
-                setVisibility(value.filter((v) => v.selected).map((v) => String(v.id)))
+                setVisibility({
+                  ...visibility,
+                  features: value.filter((v) => v.selected).map((v) => String(v.id)),
+                })
               }
               ariaLabel="Select features"
               placeholder="Select features"

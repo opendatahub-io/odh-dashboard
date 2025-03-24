@@ -7,7 +7,7 @@ import {
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { HardwareProfileKind } from '~/k8sTypes';
+import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '~/k8sTypes';
 import { HardwareProfileModel } from '~/api/models';
 import {
   createHardwareProfile,
@@ -155,6 +155,56 @@ describe('createHardwareProfiles', () => {
       model: HardwareProfileModel,
       queryOptions: { queryParams: {} },
       resource: assembleHardwareProfileResult,
+    });
+    expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
+    expect(result).toStrictEqual(mockHardwareProfile({ uid: 'test' }));
+  });
+
+  it('should set visibility as empty array when it is unlimited', async () => {
+    k8sCreateResourceMock.mockResolvedValue(mockHardwareProfile({ uid: 'test' }));
+    const result = await createHardwareProfile('test-1', data, 'namespace', {
+      isUnlimited: true,
+      features: [HardwareProfileFeatureVisibility.WORKBENCH],
+    });
+    expect(k8sCreateResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: HardwareProfileModel,
+      queryOptions: { queryParams: {} },
+      resource: {
+        ...assembleHardwareProfileResult,
+        metadata: {
+          ...assembleHardwareProfileResult.metadata,
+          annotations: {
+            'opendatahub.io/modified-date': expect.anything(),
+            'opendatahub.io/dashboard-feature-visibility': '[]',
+          },
+        },
+      },
+    });
+    expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
+    expect(result).toStrictEqual(mockHardwareProfile({ uid: 'test' }));
+  });
+
+  it('should set visibility as expected array when it is limited and set the values', async () => {
+    k8sCreateResourceMock.mockResolvedValue(mockHardwareProfile({ uid: 'test' }));
+    const result = await createHardwareProfile('test-1', data, 'namespace', {
+      isUnlimited: false,
+      features: [HardwareProfileFeatureVisibility.WORKBENCH],
+    });
+    expect(k8sCreateResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: HardwareProfileModel,
+      queryOptions: { queryParams: {} },
+      resource: {
+        ...assembleHardwareProfileResult,
+        metadata: {
+          ...assembleHardwareProfileResult.metadata,
+          annotations: {
+            'opendatahub.io/modified-date': expect.anything(),
+            'opendatahub.io/dashboard-feature-visibility': '["workbench"]',
+          },
+        },
+      },
     });
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
     expect(result).toStrictEqual(mockHardwareProfile({ uid: 'test' }));

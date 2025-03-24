@@ -12,6 +12,7 @@ import { HardwareProfileKind, K8sAPIOptions } from '~/k8sTypes';
 import { HardwareProfileModel } from '~/api/models';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { kindApiVersion, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
+import { HardwareProfileVisibility } from '~/pages/hardwareProfiles/manage/types';
 
 export const listHardwareProfiles = async (namespace: string): Promise<HardwareProfileKind[]> =>
   k8sListResource<HardwareProfileKind>({
@@ -31,7 +32,7 @@ export const assembleHardwareProfile = (
   hardwareProfileName: string,
   data: HardwareProfileKind['spec'],
   namespace: string,
-  visibility: string[] = [],
+  visibility: HardwareProfileVisibility = { isUnlimited: true, features: [] },
 ): HardwareProfileKind => ({
   apiVersion: kindApiVersion(HardwareProfileModel),
   kind: HardwareProfileModel.kind,
@@ -40,7 +41,9 @@ export const assembleHardwareProfile = (
     namespace,
     annotations: {
       'opendatahub.io/modified-date': new Date().toISOString(),
-      'opendatahub.io/dashboard-feature-visibility': JSON.stringify(visibility),
+      'opendatahub.io/dashboard-feature-visibility': JSON.stringify(
+        visibility.isUnlimited ? [] : visibility.features,
+      ),
     },
   },
   spec: data,
@@ -50,7 +53,7 @@ export const createHardwareProfile = (
   hardwareProfileName: string,
   data: HardwareProfileKind['spec'],
   namespace: string,
-  visibility?: string[],
+  visibility?: HardwareProfileVisibility,
   opts?: K8sAPIOptions,
 ): Promise<HardwareProfileKind> => {
   const resource = assembleHardwareProfile(hardwareProfileName, data, namespace, visibility);
@@ -83,7 +86,7 @@ export const updateHardwareProfile = (
   data: HardwareProfileKind['spec'],
   existingHardwareProfile: HardwareProfileKind,
   namespace: string,
-  visibility?: string[],
+  visibility?: HardwareProfileVisibility,
   opts?: K8sAPIOptions,
 ): Promise<HardwareProfileKind> => {
   const resource = assembleHardwareProfile(
