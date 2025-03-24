@@ -5,52 +5,54 @@ import StartNotebookModal from '~/concepts/notebooks/StartNotebookModal';
 import {
   mockCompletedStates,
   mockFailedStates,
-  mockInitialStates,
+  //mockInitialStates,
   mockInProgressStates,
 } from '~/concepts/__tests__/mockNotebookStates';
 
 describe('Start Notebook modal', () => {
-  it('should show initial notebook startup status', async () => {
-    const mockData = mockInitialStates;
-    render(
-      <StartNotebookModal
-        notebookStatus={mockData.notebookStatus}
-        isStarting={mockData.notebookState.isStarting}
-        isStopping={mockData.notebookState.isStopping}
-        isRunning={mockData.notebookState.isRunning}
-        events={mockData.events}
-        buttons={null}
-      />,
-    );
+  //TODO: RHOAIENG-22056 uncomment this test once 'pod created' event is reintroduced AND uncomment the mockInitialStates import
+  // it('should show initial notebook startup status', async () => {
+  //   const mockData = mockInitialStates;
+  //   render(
+  //     <StartNotebookModal
+  //       notebookStatus={mockData.notebookStatus}
+  //       isStarting={mockData.notebookState.isStarting}
+  //       isStopping={mockData.notebookState.isStopping}
+  //       isRunning={mockData.notebookState.isRunning}
+  //       events={mockData.events}
+  //       buttons={null}
+  //     />,
+  //   );
 
-    // Validate the header contents
-    const header = screen.getByTestId('notebook-status-modal-header');
-    expect(header).toHaveTextContent('Workbench statusStarting');
+  //   // Validate the header contents
+  //   const header = screen.getByTestId('notebook-status-modal-header');
+  //   expect(header).toHaveTextContent('Workbench statusStarting');
 
-    const statusLabel = screen.getByTestId('notebook-latest-status');
-    expect(statusLabel).toHaveTextContent('Waiting for server request to start');
+  //   const statusLabel = screen.getByTestId('notebook-latest-status');
+  //   expect(statusLabel).toHaveTextContent('Waiting for server request to start');
 
-    // Validate the steps
-    const stepper = screen.getByTestId('notebook-startup-steps');
-    expect(stepper).toBeTruthy();
-    const steps = screen.getAllByRole('listitem');
-    expect(steps).toHaveLength(14);
-    expect(steps[0]).toHaveTextContent('Server requested');
-    expect(steps[1]).toHaveTextContent('Pod created');
-    expect(steps[2]).toHaveTextContent('Pod assigned');
-    expect(steps[3]).toHaveTextContent('PVC attached');
-    expect(steps[4]).toHaveTextContent('Interface added');
-    expect(steps[5]).toHaveTextContent('Pulling workbench image');
-    expect(steps[6]).toHaveTextContent('Workbench image pulled');
-    expect(steps[7]).toHaveTextContent('Workbench container created');
-    expect(steps[8]).toHaveTextContent('Workbench container started');
-    expect(steps[9]).toHaveTextContent('Pulling oauth proxy');
-    expect(steps[10]).toHaveTextContent('Oauth proxy pulled');
-    expect(steps[11]).toHaveTextContent('Oauth proxy container created');
-    expect(steps[12]).toHaveTextContent('Oauth proxy container started');
-    expect(steps[13]).toHaveTextContent('Server started');
-  });
+  //   // Validate the steps
+  //   const stepper = screen.getByTestId('notebook-startup-steps');
+  //   expect(stepper).toBeTruthy();
+  //   const steps = screen.getAllByRole('listitem');
+  //   expect(steps).toHaveLength(14);
+  //   expect(steps[0]).toHaveTextContent('Server requested');
+  //   expect(steps[1]).toHaveTextContent('Pod created');
+  //   expect(steps[2]).toHaveTextContent('Pod assigned');
+  //   expect(steps[3]).toHaveTextContent('PVC attached');
+  //   expect(steps[4]).toHaveTextContent('Interface added');
+  //   expect(steps[5]).toHaveTextContent('Pulling workbench image');
+  //   expect(steps[6]).toHaveTextContent('Workbench image pulled');
+  //   expect(steps[7]).toHaveTextContent('Workbench container created');
+  //   expect(steps[8]).toHaveTextContent('Workbench container started');
+  //   expect(steps[9]).toHaveTextContent('Pulling oauth proxy');
+  //   expect(steps[10]).toHaveTextContent('Oauth proxy pulled');
+  //   expect(steps[11]).toHaveTextContent('Oauth proxy container created');
+  //   expect(steps[12]).toHaveTextContent('Oauth proxy container started');
+  //   expect(steps[13]).toHaveTextContent('Server started');
+  // });
 
+  //TODO: RHOAIENG-22056 increment .toHaveLength after reintroducting the 'pod created' event
   it('should show failed notebook startup status', async () => {
     const mockData = mockFailedStates;
     render(
@@ -76,10 +78,11 @@ describe('Start Notebook modal', () => {
     const stepper = screen.getByTestId('notebook-startup-steps');
     expect(stepper).toBeTruthy();
     const steps = screen.getAllByRole('listitem');
-    expect(steps).toHaveLength(15);
+    expect(steps).toHaveLength(14);
     expect(steps[1]).toHaveTextContent('Failed to scale-up');
   });
 
+  //TODO: RHOAIENG-22056 increment 'listItem' AND 'step-status-success' .toHaveLength after reintroducting the 'pod created' event
   it('should show in progress notebook startup status', async () => {
     const mockData = mockInProgressStates;
     render(
@@ -103,11 +106,12 @@ describe('Start Notebook modal', () => {
     // Validate the steps
     const stepper = screen.getByTestId('notebook-startup-steps');
     expect(stepper).toBeTruthy();
-    expect(screen.getAllByRole('listitem')).toHaveLength(14);
-    expect(screen.getAllByTestId('step-status-Success')).toHaveLength(10);
+    expect(screen.getAllByRole('listitem')).toHaveLength(13);
+    expect(screen.getAllByTestId('step-status-Success')).toHaveLength(9);
     expect(screen.getAllByTestId('step-status-Pending')).toHaveLength(4);
   });
 
+  //TODO: RHOAIENG-22056 increment both .toHaveLength after reintroducting the 'pod created' event
   it('should show completed notebook startup status', async () => {
     const mockData = mockCompletedStates;
     render(
@@ -129,10 +133,11 @@ describe('Start Notebook modal', () => {
     const stepper = screen.getByTestId('notebook-startup-steps');
     expect(stepper).toBeTruthy();
     const steps = screen.getAllByRole('listitem');
-    expect(steps).toHaveLength(14);
-    expect(screen.getAllByTestId('step-status-Success')).toHaveLength(14);
+    expect(steps).toHaveLength(13);
+    expect(screen.getAllByTestId('step-status-Success')).toHaveLength(13);
   });
 
+  //TODO: RHOAIENG-22056 increment both .toHaveLength after reintroducting the 'pod created' event
   it('should show completed notebook startup status for standalone notebooks', async () => {
     const mockData = mockCompletedStates;
     render(
@@ -154,10 +159,11 @@ describe('Start Notebook modal', () => {
     const stepper = screen.getByTestId('notebook-startup-steps');
     expect(stepper).toBeTruthy();
     const steps = screen.getAllByRole('listitem');
-    expect(steps).toHaveLength(14);
-    expect(screen.getAllByTestId('step-status-Success')).toHaveLength(14);
+    expect(steps).toHaveLength(13);
+    expect(screen.getAllByTestId('step-status-Success')).toHaveLength(13);
   });
 
+  //TODO: RHOAIENG-22056 increment both .toHaveLength after reintroducting the 'pod created' event
   it('should show stopping notebook status', async () => {
     render(
       <StartNotebookModal
@@ -181,7 +187,7 @@ describe('Start Notebook modal', () => {
     const stepper = screen.getByTestId('notebook-startup-steps');
     expect(stepper).toBeTruthy();
     const steps = screen.getAllByRole('listitem');
-    expect(steps).toHaveLength(14);
-    expect(screen.getAllByTestId('step-status-Pending')).toHaveLength(14);
+    expect(steps).toHaveLength(13);
+    expect(screen.getAllByTestId('step-status-Pending')).toHaveLength(13);
   });
 });
