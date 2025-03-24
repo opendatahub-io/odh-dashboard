@@ -18,6 +18,7 @@ const KServeAutoscalerReplicaSection: React.FC<KServeAutoscalerReplicaSectionPro
   infoContent,
 }) => {
   const MIN_SIZE = 0;
+  const MAX_SIZE = 999;
 
   const onStep = (step: number) => {
     setData('minReplicas', normalizeBetween(data.minReplicas + step, MIN_SIZE));
@@ -44,20 +45,17 @@ const KServeAutoscalerReplicaSection: React.FC<KServeAutoscalerReplicaSectionPro
         inputAriaLabel="model server replicas number input"
         value={data.minReplicas}
         widthChars={10}
+        max={MAX_SIZE}
         min={MIN_SIZE}
         onPlus={() => onStep(1)}
         onMinus={() => onStep(-1)}
         onChange={(event) => {
           if (isHTMLInputElement(event.target)) {
             const newSize = Number(event.target.value);
-            setData(
-              'minReplicas',
-              Number.isNaN(newSize) ? MIN_SIZE : normalizeBetween(newSize, MIN_SIZE),
-            );
-            setData(
-              'maxReplicas',
-              Number.isNaN(newSize) ? MIN_SIZE : normalizeBetween(newSize, MIN_SIZE),
-            );
+            if (!Number.isNaN(newSize) && newSize <= 999) {
+              setData('minReplicas', normalizeBetween(newSize, MIN_SIZE));
+              setData('maxReplicas', normalizeBetween(newSize, MIN_SIZE));
+            }
           }
         }}
       />
