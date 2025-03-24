@@ -356,7 +356,7 @@ export const getNotebookEventStatus = (
         };
     }
   }
-  //for events not related to oauth
+  //for notebook events
   switch (event.reason) {
     case 'Scheduled':
       return {
