@@ -655,12 +655,14 @@ export const createNIMPVC = (
   pvcName: string,
   pvcSize: string,
   dryRun: boolean,
+  storageClassName: string,
 ): Promise<PersistentVolumeClaimKind> =>
   createPvc(
     {
       name: pvcName,
       description: '',
       size: pvcSize,
+      storageClassName,
     },
     projectName,
     {
