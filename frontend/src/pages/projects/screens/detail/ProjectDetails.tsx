@@ -40,8 +40,8 @@ const ProjectDetails: React.FC = () => {
   const projectSharingEnabled = useIsAreaAvailable(SupportedArea.DS_PROJECTS_PERMISSIONS).status;
   const pipelinesEnabled = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
   const modelServingEnabled = useModelServingEnabled();
-  const [queryParams, setSearchParams] = useSearchParams();
-  const state = queryParams.get('section');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const state = searchParams.get('section');
   const [allowCreate, rbacLoaded] = useAccessReview({
     ...accessReviewResource,
     namespace: currentProject.metadata.name,
@@ -79,11 +79,11 @@ const ProjectDetails: React.FC = () => {
         activeKey={state}
         onSectionChange={React.useCallback(
           (sectionId, replace) => {
-            const newSearchParams = new URLSearchParams(queryParams);
+            const newSearchParams = new URLSearchParams(searchParams);
             newSearchParams.set('section', sectionId);
             setSearchParams(newSearchParams, replace ? { replace } : undefined);
           },
-          [queryParams, setSearchParams],
+          [searchParams, setSearchParams],
         )}
         sections={React.useMemo(
           () => [
