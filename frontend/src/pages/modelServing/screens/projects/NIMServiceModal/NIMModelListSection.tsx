@@ -85,7 +85,7 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
     getModelNames();
   }, [isEditing, inferenceServiceData.format.name]);
 
-  const getSupportedModelFormatsInfo = (key: string) => {
+  const extractModelAndVersion = (key: string) => {
     const matchedModelsInfo = modelList.filter((model) => key.startsWith(`${model.name}-`));
 
     if (matchedModelsInfo.length === 0) {
@@ -98,24 +98,19 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
 
     const { name } = modelInfo;
     const version = key.slice(name.length + 1);
+    return { modelInfo, version };
+  };
 
-    return { name, version };
+  const getSupportedModelFormatsInfo = (key: string) => {
+    const result = extractModelAndVersion(key);
+    return result ? { name: result.modelInfo.name, version: result.version } : null;
   };
 
   const getNIMImageName = (key: string) => {
-    const matchedModelsInfo = modelList.filter((model) => key.startsWith(`${model.name}-`));
-
-    if (matchedModelsInfo.length === 0) {
-      return '';
-    }
-
-    const modelInfo = matchedModelsInfo.reduce((longest, current) =>
-      current.name.length > longest.name.length ? current : longest,
-    );
-
-    const { name, namespace } = modelInfo;
-    const version = key.slice(name.length + 1);
-    return `nvcr.io/${namespace}/${name}:${version}`;
+    const result = extractModelAndVersion(key);
+    return result
+      ? `nvcr.io/${result.modelInfo.namespace}/${result.modelInfo.name}:${result.version}`
+      : '';
   };
 
   const onSelect = (
