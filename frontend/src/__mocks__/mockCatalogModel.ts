@@ -348,7 +348,7 @@ export const mockCatalogModel = (partial?: Partial<CatalogModel>): CatalogModel 
   language: ['ar', 'cs', 'de', 'en', 'es', 'fr', 'it', 'ja', 'ko', 'nl', 'pt', 'zh'],
   license: 'apache-2.0',
   licenseLink: 'https://www.apache.org/licenses/LICENSE-2.0.txt',
-  maturity: 'Generally Available',
+  maturity: 'Technology preview',
   libraryName: 'transformers',
   baseModel: [
     {
@@ -358,8 +358,8 @@ export const mockCatalogModel = (partial?: Partial<CatalogModel>): CatalogModel 
   ],
   labels: ['language', 'granite-3.1'],
   tasks: ['text-generation'],
-  createTimeSinceEpoch: 1733514949000,
-  lastUpdateTimeSinceEpoch: 1734637721000,
+  createTimeSinceEpoch: 1739210683000,
+  lastUpdateTimeSinceEpoch: 1739210683000,
   artifacts: [
     {
       protocol: ArtifactsProtocol.OCI,
@@ -370,3 +370,16 @@ export const mockCatalogModel = (partial?: Partial<CatalogModel>): CatalogModel 
   ],
   ...partial,
 });
+
+export const mockRedHatModel = (partial?: Partial<CatalogModel>): CatalogModel =>
+  mockCatalogModel({
+    provider: 'Red Hat',
+    ...partial,
+  });
+
+export const mockThirdPartyModel = (partial?: Partial<CatalogModel>): CatalogModel =>
+  mockCatalogModel({
+    provider: 'Third Party Provider',
+    repository: 'thirdparty',
+    ...partial,
+  });

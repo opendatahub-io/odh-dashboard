@@ -12,7 +12,7 @@ import {
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
-describe('Verify Data Connections - Creation and Deletion', () => {
+describe('Verify Connections - Creation and Deletion', () => {
   let testData: DataScienceProjectData;
   let projectName: string;
   let s3Config: AWSS3BucketDetails;
@@ -61,7 +61,7 @@ describe('Verify Data Connections - Creation and Deletion', () => {
   });
 
   it(
-    'Create and Delete a Data Connection',
+    'Create and Delete a Connection',
     { tags: ['@Sanity', '@SanitySet1', '@ODS-1826', '@Dashboard'] },
     () => {
       // Authentication and navigation
@@ -74,15 +74,15 @@ describe('Verify Data Connections - Creation and Deletion', () => {
       projectListPage.filterProjectByName(testData.projectDCResourceName);
       projectListPage.findProjectLink(testData.projectDCResourceName).click();
 
-      //Navigate to Data Connections and create Connection
+      //Navigate to Connections and create Connection
       cy.step('Navigate to Connections and click to create Connection');
       // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
       // Reapply projectDetails.findSectionTab('connections').click();
       cy.visit(`projects/${projectName}?section=connections`);
       connectionsPage.findCreateConnectionButton().click();
 
-      // Enter validate Data Connection details into the Data Connection Modal
-      cy.step('Enter valid Data Connection details and verify creation');
+      // Enter validate Connection details into the Connection Modal
+      cy.step('Enter valid Connection details and verify creation');
       addConnectionModal.findConnectionTypeDropdown().click();
       addConnectionModal.findS3CompatibleStorageOption().click();
       addConnectionModal.findConnectionNameInput().type(s3Config.NAME);
@@ -95,8 +95,8 @@ describe('Verify Data Connections - Creation and Deletion', () => {
       addConnectionModal.findCreateButton().click();
       connectionsPage.getConnectionRow(s3Config.NAME).find().should('exist');
 
-      // Delete the Data Connection and confirm that the deletion was successful
-      cy.step('Delete the Data Connection and verify deletion');
+      // Delete the Connection and confirm that the deletion was successful
+      cy.step('Delete the Connection and verify deletion');
       connectionsPage.findKebabToggle().click();
       connectionsPage.getConnectionRow(s3Config.NAME).findKebabAction('Delete').click();
       deleteModal.shouldBeOpen();

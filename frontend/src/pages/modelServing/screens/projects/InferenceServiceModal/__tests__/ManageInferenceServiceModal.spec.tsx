@@ -45,7 +45,6 @@ describe('ManageInferenceServiceModal', () => {
       <ManageInferenceServiceModal
         projectContext={{
           currentProject,
-          dataConnections: [],
           connections: [],
         }}
         onClose={jest.fn()}
@@ -69,7 +68,6 @@ describe('ManageInferenceServiceModal', () => {
         <ManageInferenceServiceModal
           projectContext={{
             currentProject: projectChange,
-            dataConnections: [],
             connections: [],
           }}
           onClose={jest.fn()}

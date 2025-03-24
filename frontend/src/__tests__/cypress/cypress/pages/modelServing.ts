@@ -141,6 +141,10 @@ class InferenceServiceModal extends Modal {
     return this.find().findByTestId('openvino_ir - opset13');
   }
 
+  findOpenVinoOnnx() {
+    return this.find().findByTestId('onnx - 1');
+  }
+
   findDeploymentModeSelect() {
     return this.find().findByTestId('deployment-mode-select');
   }
@@ -203,6 +207,10 @@ class InferenceServiceModal extends Modal {
 
   findConnectionFieldInput(envVar: string) {
     return this.find().findByTestId(`field ${envVar}`);
+  }
+
+  findOCIModelURI() {
+    return this.find().findByTestId('model-uri');
   }
 
   findLocationNameInput() {

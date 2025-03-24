@@ -76,6 +76,8 @@ const TEST_NAMESPACE = testConfig?.APPLICATIONS_NAMESPACE;
 const PIP_INDEX_URL = testConfig?.PIP_INDEX_URL;
 const PIP_TRUSTED_HOST = testConfig?.PIP_TRUSTED_HOST;
 const NGC_API_KEY = testConfig?.NGC_API_KEY;
+const OCI_SECRET_DETAILS_FILE = testConfig?.OCI_SECRET_DETAILS_FILE;
+const OCI_MODEL_URI = testConfig?.OCI_MODEL_URI;
 
 // spread the cypressEnv variables into the cypress config
 export const cypressEnv = {
@@ -87,6 +89,8 @@ export const cypressEnv = {
   PIP_INDEX_URL,
   PIP_TRUSTED_HOST,
   NGC_API_KEY,
+  OCI_SECRET_DETAILS_FILE,
+  OCI_MODEL_URI,
 };
 
 // re-export the updated process env

@@ -1,6 +1,5 @@
-import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { ImageStreamAndVersion, KeyValuePair, Volume, VolumeMount } from '~/types';
-import { AWSSecretKind, PersistentVolumeClaimKind } from '~/k8sTypes';
+import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
 import { NotebookPodSpecOptions } from '~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { AwsKeys } from './dataConnections/const';
@@ -90,35 +89,6 @@ export type ConfigMapRef = {
 };
 
 export type EnvironmentFromVariable = Partial<SecretRef> & Partial<ConfigMapRef>;
-
-export type DataConnectionData = {
-  type: 'creating' | 'existing';
-  enabled: boolean;
-  creating?: EnvVariable;
-  existing?: SecretRef;
-};
-
-export enum DataConnectionType {
-  UNKNOWN = -1,
-  AWS,
-}
-
-export type DataConnectionAWS = {
-  type: DataConnectionType.AWS;
-  data: AWSSecretKind;
-};
-
-export type DataConnection =
-  | {
-      type: DataConnectionType;
-      data: K8sResourceCommon & {
-        metadata: {
-          name: string;
-          namespace: string;
-        };
-      };
-    }
-  | DataConnectionAWS;
 
 export type AWSDataEntry = { key: AwsKeys; value: string }[];
 
