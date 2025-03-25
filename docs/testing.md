@@ -128,29 +128,7 @@ Cypress is used to run tests against the frontend by either mocking all network 
 
 Cypress e2e tests run against a live cluster.
 
-Before running the Cypress e2e tests, you must populate the test variables by first creating a copy of the `test-variables.yml.example` file and setting the `CY_TEST_CONFIG` env variable value to be the path to this file. Update the variables according to your testing environment.
-
-```bash
-CY_TEST_CONFIG=./test-variables.yml
-```
-
-Cypress e2e tests can make use of the `oc` command line tool. This is useful for test setup and tear down. When run in CI, the default user will be a cluster admin.
-```ts
-cy.exec(`oc new-project test-project`);
-```
-
-Prior to running the Cypress e2e tests, run `oc login` to login as a cluster admin to ensure the test env matches that of our CI and provides a default user for all `oc` commands executed in tests.
-
-To run all Cypress e2e tests, a specific test, or open the Cypress GUI:
-```bash
-npm run cypress:run
-
-npm run cypress:run -- --spec "**/testfile.cy.ts"
-
-npm run cypress:open
-```
-
-Use the custom command `cy.visitWithLogin` to visit a page and perform the login procedure steps if the user is not already logged in. The default user is not an ODH admin. `cy.visitWithLogin` can be used to login with different users by supplying the user auth configuration as a parameter.
+[Please see the extended e2e testing documentation, here.](e2e-testing.md)
 
 ### Mocked Tests
 
