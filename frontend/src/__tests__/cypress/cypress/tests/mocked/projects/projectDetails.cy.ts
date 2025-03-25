@@ -442,6 +442,7 @@ describe('Project Details', () => {
       projectDetails.getKserveModelMetricLink('Test Inference Service').click();
       cy.findByTestId('app-page-title').should('have.text', 'Test Inference Service metrics');
     });
+
     it('Multi model serving platform is enabled', () => {
       initIntercepts({ templates: true, disableKServeConfig: true, disableModelConfig: false });
       projectDetails.visit('test-project');

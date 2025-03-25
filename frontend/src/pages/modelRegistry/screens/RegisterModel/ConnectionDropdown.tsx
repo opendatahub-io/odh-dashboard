@@ -80,7 +80,7 @@ export const ConnectionDropdown = ({
         <MenuToggle
           isDisabled={!filteredConnections.length}
           isFullWidth
-          data-testid="select-data-connection"
+          data-testid="select-connection"
           ref={toggleRef}
           onClick={onToggle}
           isExpanded={isOpen}

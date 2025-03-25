@@ -26,7 +26,6 @@ const ServeModelButton: React.FC = () => {
     servingRuntimeTemplates: [templates],
     servingRuntimeTemplateOrder: { data: templateOrder },
     servingRuntimeTemplateDisablement: { data: templateDisablement },
-    dataConnections: { data: dataConnections },
     connections: { data: connections },
   } = React.useContext(ModelServingContext);
   const { projects } = React.useContext(ProjectsContext);
@@ -89,7 +88,6 @@ const ServeModelButton: React.FC = () => {
         <ManageInferenceServiceModal
           projectContext={{
             currentProject: project,
-            dataConnections,
             connections,
           }}
           onClose={(submit: boolean) => {
@@ -99,10 +97,7 @@ const ServeModelButton: React.FC = () => {
       ) : null}
       {platformSelected === ServingRuntimePlatform.SINGLE ? (
         isKServeNIMEnabled ? (
-          <ManageNIMServingModal
-            projectContext={{ currentProject: project, dataConnections }}
-            onClose={onSubmit}
-          />
+          <ManageNIMServingModal projectContext={{ currentProject: project }} onClose={onSubmit} />
         ) : (
           <ManageKServeModal
             projectContext={{

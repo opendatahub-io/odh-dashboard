@@ -32,7 +32,6 @@ const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform, isNIM
     servingRuntimeTemplates: [templates],
     servingRuntimeTemplateOrder: { data: templateOrder },
     servingRuntimeTemplateDisablement: { data: templateDisablement },
-    dataConnections: { data: dataConnections },
     connections: { data: connections },
     serverSecrets: { refresh: refreshTokens },
     inferenceServices: { refresh: refreshInferenceServices },
@@ -114,10 +113,7 @@ const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform, isNIM
         />
       ) : null}
       {modalShown && isNIM ? (
-        <ManageNIMServingModal
-          projectContext={{ currentProject, dataConnections }}
-          onClose={onSubmit}
-        />
+        <ManageNIMServingModal projectContext={{ currentProject }} onClose={onSubmit} />
       ) : null}
     </CardFooter>
   );

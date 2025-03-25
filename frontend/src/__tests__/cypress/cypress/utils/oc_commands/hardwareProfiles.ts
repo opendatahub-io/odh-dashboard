@@ -1,4 +1,5 @@
 import type { CommandLineResult } from '~/__tests__/cypress/cypress/types';
+import { createCustomResource } from './customResources';
 
 const applicationNamespace = Cypress.env('TEST_NAMESPACE');
 
@@ -28,5 +29,23 @@ export const cleanupHardwareProfiles = (
     }
     cy.log('No matching profile found, proceeding with the test.');
     return cy.wrap(result);
+  });
+};
+
+/**
+ * Creates a clean hardware profile by first cleaning up any existing profile with the same name,
+ * then creating a new one.
+ *
+ * @param hardwareProfile - The name or path of the hardware profile to create
+ *
+ * This function performs the following steps:
+ * 1. Cleans up any existing hardware profile with the given name by calling `cleanupHardwareProfiles`.
+ * 2. Creates a new hardware profile using the provided name or path.
+ */
+export const createCleanHardwareProfile = (hardwareProfile: string): void => {
+  cy.log(`Cleaning up and creating Hardware Profile: ${hardwareProfile}`);
+  cleanupHardwareProfiles(hardwareProfile).then(() => {
+    cy.log(`Creating Hardware Profile: ${hardwareProfile}`);
+    createCustomResource(applicationNamespace, hardwareProfile);
   });
 };

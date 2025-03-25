@@ -1,79 +1,10 @@
-import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import {
   getExistingVersionsForImageStream,
-  isAWSValid,
   checkVersionRecommended,
   getVersion,
 } from '~/pages/projects/screens/spawner/spawnerUtils';
-import { EnvVariableDataEntry } from '~/pages/projects/types';
 import { mockImageStreamK8sResource } from '~/__mocks__/mockImageStreamK8sResource';
 import { IMAGE_ANNOTATIONS } from '~/pages/projects/screens/spawner/const';
-
-describe('isAWSValid', () => {
-  const getMockAWSData = ({
-    name = 'test-name',
-    accessKey = 'test-access-key',
-    accessSecret = 'test-access-secret',
-    endpoint = 'test-endpoint',
-    region = '',
-    bucket = '',
-  }): EnvVariableDataEntry[] => [
-    {
-      key: AwsKeys.NAME,
-      value: name,
-    },
-    {
-      key: AwsKeys.ACCESS_KEY_ID,
-      value: accessKey,
-    },
-    {
-      key: AwsKeys.SECRET_ACCESS_KEY,
-      value: accessSecret,
-    },
-    {
-      key: AwsKeys.S3_ENDPOINT,
-      value: endpoint,
-    },
-    {
-      key: AwsKeys.DEFAULT_REGION,
-      value: region,
-    },
-    {
-      key: AwsKeys.AWS_S3_BUCKET,
-      value: bucket,
-    },
-  ];
-
-  it('should be valid when all the required fields are met', () => {
-    expect(isAWSValid(getMockAWSData({}))).toBe(true);
-  });
-
-  it('should be invalid when the name field is missing', () => {
-    expect(isAWSValid(getMockAWSData({ name: '' }))).toBe(false);
-  });
-
-  it('should be invalid when the access key field is missing', () => {
-    expect(isAWSValid(getMockAWSData({ accessKey: '' }))).toBe(false);
-  });
-
-  it('should be invalid when the secret key field is missing', () => {
-    expect(isAWSValid(getMockAWSData({ accessSecret: '' }))).toBe(false);
-  });
-
-  it('should be invalid when the endpoint field is missing', () => {
-    expect(isAWSValid(getMockAWSData({ endpoint: '' }))).toBe(false);
-  });
-
-  it('should be invalid when the bucket field is set to required while the value is missing', () => {
-    expect(isAWSValid(getMockAWSData({}), [AwsKeys.AWS_S3_BUCKET])).toBe(false);
-  });
-
-  it('should be valid when the bucket field is set to required and the value is set', () => {
-    expect(isAWSValid(getMockAWSData({ bucket: 'test-bucket' }), [AwsKeys.AWS_S3_BUCKET])).toBe(
-      true,
-    );
-  });
-});
 
 describe('getExistingVersionsForImageStream', () => {
   it('should handle no image tags', () => {

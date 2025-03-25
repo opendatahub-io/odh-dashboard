@@ -54,7 +54,7 @@ describe('Pipelines', () => {
     pipelinesGlobal.findConfigurePipelineServerButton().should('be.enabled');
   });
 
-  it('Configure pipeline server when data connection exist', () => {
+  it('Configure pipeline server when viable connection exists', () => {
     initIntercepts({ isEmpty: true });
 
     cy.interceptK8s(
@@ -91,7 +91,7 @@ describe('Pipelines', () => {
     );
     pipelinesGlobal.findConfigurePipelineServerButton().should('be.enabled');
     pipelinesGlobal.findConfigurePipelineServerButton().click();
-    configurePipelineServerModal.selectDataConnection('Test Secret •••••••••••••••••');
+    configurePipelineServerModal.selectViableConnection('Test Secret •••••••••••••••••');
     configurePipelineServerModal.findAwsKeyInput().should('have.value', 'sdsd');
     configurePipelineServerModal.findShowPasswordButton().click();
     configurePipelineServerModal.findAwsSecretKeyInput().should('have.value', 'sdsd');
@@ -148,7 +148,7 @@ describe('Pipelines', () => {
     });
   });
 
-  it('Configure pipeline server when data connection does not exist', () => {
+  it('Configure pipeline server when viable connection does not exist', () => {
     initIntercepts({ isEmpty: true });
     pipelinesGlobal.visit(projectName);
 
@@ -758,6 +758,14 @@ describe('Pipelines', () => {
         projectName,
       )
       .as('refreshVersions');
+    pipelineDetails.mockGetPipeline(projectName, uploadedMockPipelineVersion).as('getPipeline');
+    pipelineDetails
+      .mockGetPipelineVersion(
+        initialMockPipeline.pipeline_id,
+        uploadedMockPipelineVersion,
+        projectName,
+      )
+      .as('getPipelineVersion');
     pipelineVersionImportModal.submit();
 
     // Wait for upload/fetch requests
@@ -784,13 +792,12 @@ describe('Pipelines', () => {
       });
     });
 
-    // Verify the uploaded pipeline version is in the table
-    const pipelineRow = pipelinesTable.getRowById(initialMockPipeline.pipeline_id);
-    pipelineRow.findExpandButton().click();
-    pipelineRow
-      .getPipelineVersionRowById(uploadedMockPipelineVersion.pipeline_version_id)
-      .find()
-      .should('exist');
+    cy.wait('@getPipeline');
+    cy.wait('@getPipelineVersion');
+
+    verifyRelativeURL(
+      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${uploadedMockPipelineVersion.pipeline_version_id}/view`,
+    );
   });
 
   it('uploads fails with argo workflow', () => {
@@ -846,7 +853,14 @@ describe('Pipelines', () => {
     pipelineVersionImportModal
       .mockCreatePipelineVersion(createPipelineVersionParams, projectName)
       .as('createVersion');
-
+    pipelineDetails.mockGetPipeline(projectName, uploadedMockPipelineVersion).as('getPipeline');
+    pipelineDetails
+      .mockGetPipelineVersion(
+        initialMockPipeline.pipeline_id,
+        uploadedMockPipelineVersion,
+        projectName,
+      )
+      .as('getPipelineVersion');
     // Fill out the "Upload new version" modal and submit
     pipelineVersionImportModal.shouldBeOpen();
     pipelineVersionImportModal.selectPipelineByName('Test pipeline');
@@ -866,14 +880,12 @@ describe('Pipelines', () => {
     // Wait for upload/fetch requests
     cy.wait('@createVersion');
     cy.wait('@refreshVersions');
+    cy.wait('@getPipeline');
+    cy.wait('@getPipelineVersion');
 
-    // Verify the uploaded pipeline version is in the table
-    const pipelineRow = pipelinesTable.getRowById(initialMockPipeline.pipeline_id);
-    pipelineRow.findExpandButton().click();
-    pipelineRow
-      .getPipelineVersionRowById(uploadedMockPipelineVersion.pipeline_version_id)
-      .find()
-      .should('exist');
+    verifyRelativeURL(
+      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${uploadedMockPipelineVersion.pipeline_version_id}/view`,
+    );
   });
 
   it('delete a single pipeline', () => {

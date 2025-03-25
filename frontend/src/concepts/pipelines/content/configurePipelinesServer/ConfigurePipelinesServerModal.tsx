@@ -3,13 +3,13 @@ import { Alert, Form, Stack, StackItem } from '@patternfly/react-core';
 import { Modal } from '@patternfly/react-core/deprecated';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { createPipelinesCR, deleteSecret } from '~/api';
-import useDataConnections from '~/pages/projects/screens/detail/data-connections/useDataConnections';
 import { EMPTY_AWS_PIPELINE_DATA } from '~/pages/projects/dataConnections/const';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 import SamplePipelineSettingsSection from '~/concepts/pipelines/content/configurePipelinesServer/SamplePipelineSettingsSection';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
 import {
@@ -35,7 +35,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   onClose,
 }) => {
   const { project, namespace } = usePipelinesAPI();
-  const [dataConnections, loaded] = useDataConnections(namespace);
+  const [connections, loaded] = useConnections(namespace, undefined, true);
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState<Error>();
   const [config, setConfig] = React.useState<PipelineServerConfigType>(FORM_DEFAULTS);
@@ -152,7 +152,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
               setConfig={setConfig}
               config={config}
               loaded={loaded}
-              dataConnections={dataConnections}
+              connections={connections}
             />
             <PipelinesDatabaseSection setConfig={setConfig} config={config} />
             {isFineTuningAvailable && (

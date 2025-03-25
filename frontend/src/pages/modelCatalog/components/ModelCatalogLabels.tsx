@@ -1,6 +1,7 @@
 import React from 'react';
 import { Label, LabelGroup } from '@patternfly/react-core';
 import { getILabLabels, removeILabLabels } from '~/pages/modelCatalog/utils';
+import { ReservedILabLabel } from '~/pages/modelCatalog/const';
 
 export const ModelCatalogLabels: React.FC<{
   labels?: string[];
@@ -10,19 +11,19 @@ export const ModelCatalogLabels: React.FC<{
   <LabelGroup data-testid="model-catalog-label-group">
     {getILabLabels(labels).map((l) => {
       switch (l) {
-        case 'lab-base':
+        case ReservedILabLabel.LabBase:
           return (
             <Label data-testid="model-catalog-label" color="yellow" variant="filled">
               LAB starter
             </Label>
           );
-        case 'lab-teacher':
+        case ReservedILabLabel.LabTeacher:
           return (
             <Label data-testid="model-catalog-label" color="purple" variant="filled">
               LAB teacher
             </Label>
           );
-        case 'lab-judge':
+        case ReservedILabLabel.LabJudge:
           return (
             <Label data-testid="model-catalog-label" color="orange" variant="filled">
               LAB judge

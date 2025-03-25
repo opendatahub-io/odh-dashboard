@@ -1,12 +1,14 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { FormGroup, StackItem } from '@patternfly/react-core';
+import { useNavigate } from 'react-router';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import PipelineSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineSelector';
 import { getNameEqualsFilter } from '~/concepts/pipelines/utils';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+import { pipelineVersionDetailsRoute } from '~/routes';
 import { generatePipelineVersionName, PipelineUploadOption } from './utils';
 import { usePipelineVersionImportModalData } from './useImportModalData';
 import PipelineImportBase from './PipelineImportBase';
@@ -21,8 +23,27 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
   existingPipeline,
   onClose,
 }) => {
-  const { api } = usePipelinesAPI();
+  const { api, namespace } = usePipelinesAPI();
+  const navigate = useNavigate();
   const [modalData, setData, resetData] = usePipelineVersionImportModalData(existingPipeline);
+
+  const handleClose = React.useCallback(
+    async (result?: PipelineKF | PipelineVersionKF | undefined, pipeline?: PipelineKF | null) => {
+      if (!pipeline) {
+        fireFormTrackingEvent(eventName, { outcome: TrackingOutcome.cancel });
+      }
+
+      if (result && 'pipeline_version_id' in result && pipeline) {
+        onClose(result, pipeline);
+        navigate(
+          pipelineVersionDetailsRoute(namespace, pipeline.pipeline_id, result.pipeline_version_id),
+        );
+      } else {
+        onClose();
+      }
+    },
+    [namespace, navigate, onClose],
+  );
 
   const checkForDuplicateName = React.useCallback(
     async (value: string) => {
@@ -67,12 +88,7 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
     <PipelineImportBase
       title="Upload new version"
       submitButtonText="Upload"
-      onClose={(result, pipeline) => {
-        onClose(result && 'pipeline_version_id' in result ? result : undefined, pipeline);
-        if (!pipeline) {
-          fireFormTrackingEvent(eventName, { outcome: TrackingOutcome.cancel });
-        }
-      }}
+      onClose={handleClose}
       data={modalData}
       setData={setData}
       resetData={resetData}

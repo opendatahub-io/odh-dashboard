@@ -9,7 +9,7 @@ import {
   Button,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { DataConnection } from '~/pages/projects/types';
+import { Connection } from '~/concepts/connectionTypes/types';
 import { AwsKeys, PIPELINE_AWS_FIELDS } from '~/pages/projects/dataConnections/const';
 import { FieldListField } from '~/components/FieldList';
 import FormSection from '~/components/pf-overrides/FormSection';
@@ -27,14 +27,14 @@ type ObjectStorageSectionProps = {
   loaded: boolean;
   setConfig: (config: PipelineServerConfigType) => void;
   config: PipelineServerConfigType;
-  dataConnections: DataConnection[];
+  connections: Connection[];
 };
 
 export const ObjectStorageSection = ({
   setConfig,
   config,
   loaded,
-  dataConnections,
+  connections,
 }: ObjectStorageSectionProps): React.JSX.Element => {
   const onChange = (key: FieldOptions['key'], value: string) => {
     setConfig({
@@ -67,12 +67,12 @@ export const ObjectStorageSection = ({
                   onChange={(_, value) => onChange(field.key, value)}
                 />
               </InputGroupItem>
-              {loaded && !!dataConnections.length && (
+              {loaded && !!connections.length && (
                 <Tooltip content="Populate the form with credentials from your selected data connection">
                   <PipelineDropdown
                     config={config}
                     setConfig={setConfig}
-                    dataConnections={dataConnections}
+                    connections={connections}
                   />
                 </Tooltip>
               )}

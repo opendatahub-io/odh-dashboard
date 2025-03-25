@@ -7,11 +7,16 @@ import useFetchState, {
 } from '~/utilities/useFetchState';
 import { Connection } from '~/concepts/connectionTypes/types';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '~/const';
-import { isConnection, isModelServingCompatible } from '~/concepts/connectionTypes/utils';
+import {
+  isConnection,
+  isModelServingCompatible,
+  ModelServingCompatibleTypes,
+} from '~/concepts/connectionTypes/utils';
 
 const useConnections = (
   namespace?: string,
   modelServingCompatible?: boolean,
+  pipelinesCompatible?: boolean,
 ): FetchState<Connection[]> => {
   const callback = React.useCallback<FetchStateCallbackPromise<Connection[]>>(
     async (opts) => {
@@ -29,10 +34,15 @@ const useConnections = (
       if (modelServingCompatible) {
         connections = connections.filter((c) => isModelServingCompatible(c));
       }
+      if (pipelinesCompatible) {
+        connections = connections.filter((c) =>
+          isModelServingCompatible(c, ModelServingCompatibleTypes.S3ObjectStorage),
+        );
+      }
 
       return connections;
     },
-    [namespace, modelServingCompatible],
+    [namespace, modelServingCompatible, pipelinesCompatible],
   );
 
   return useFetchState(callback, []);

@@ -29,6 +29,7 @@ import {
   decodeParams,
   findModelFromModelCatalogSources,
   getTagFromModel,
+  isLabBase,
 } from '~/pages/modelCatalog/utils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { getRegisterCatalogModelUrl } from '~/pages/modelCatalog/routeUtils';
@@ -194,7 +195,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
         loaded && (
           <ActionList>
             <ActionListGroup>
-              {tuningAvailable && fineTuneActionItem}
+              {tuningAvailable && isLabBase(model?.labels) && fineTuneActionItem}
               {registerModelButton()}
             </ActionListGroup>
           </ActionList>
