@@ -1,5 +1,5 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
+import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import type { DataScienceProjectData, AWSS3BucketDetails } from '~/__tests__/cypress/cypress/types';
 import { connectionsPage, addConnectionModal } from '~/__tests__/cypress/cypress/pages/connections';
@@ -76,9 +76,7 @@ describe('Verify Connections - Creation and Deletion', () => {
 
       //Navigate to Connections and create Connection
       cy.step('Navigate to Connections and click to create Connection');
-      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-      // Reapply projectDetails.findSectionTab('connections').click();
-      cy.visit(`projects/${projectName}?section=connections`);
+      projectDetails.findSectionTab('connections').click();
       connectionsPage.findCreateConnectionButton().click();
 
       // Enter validate Connection details into the Connection Modal
