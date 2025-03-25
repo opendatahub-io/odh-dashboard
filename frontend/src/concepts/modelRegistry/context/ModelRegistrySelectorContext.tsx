@@ -55,13 +55,10 @@ const EnabledModelRegistrySelectorContextProvider: React.FC<React.PropsWithChild
     [],
   );
 
-  // Create a stable namespace value for the hook
   const namespaceForHook = React.useMemo(
     () => modelRegistryNamespace || '',
     [modelRegistryNamespace],
   );
-
-  // Always call the hook with the stable value
   const {
     modelRegistryServices = [],
     isLoaded,
@@ -70,11 +67,9 @@ const EnabledModelRegistrySelectorContextProvider: React.FC<React.PropsWithChild
   } = useModelRegistryServices(namespaceForHook);
 
   const contextValue = React.useMemo(() => {
-    // Move error calculation inside useMemo
     const error = !modelRegistryNamespace
       ? new Error('No registries namespace could be found')
       : servicesError;
-
     return {
       modelRegistryServicesLoaded: isLoaded,
       modelRegistryServicesLoadError: error,

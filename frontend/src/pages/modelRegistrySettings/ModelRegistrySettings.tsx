@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {
   Button,
   EmptyState,
@@ -8,11 +8,12 @@ import {
   EmptyStateVariant,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
+import { AreaContext } from '~/concepts/areas/AreaContext';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import useModelRegistriesBackend from '~/concepts/modelRegistrySettings/useModelRegistriesBackend';
+import RedirectErrorState from '~/pages/external/RedirectErrorState';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
+import useModelRegistriesBackend from '~/concepts/modelRegistrySettings/useModelRegistriesBackend';
 import { useContextResourceData } from '~/utilities/useContextResourceData';
 import { RoleBindingKind } from '~/k8sTypes';
 import ModelRegistriesTable from './ModelRegistriesTable';
@@ -20,18 +21,35 @@ import CreateModal from './CreateModal';
 import useModelRegistryRoleBindings from './useModelRegistryRoleBindings';
 
 const ModelRegistrySettings: React.FC = () => {
+  const { dscStatus } = React.useContext(AreaContext);
+  const modelRegistryNamespace = dscStatus?.components?.modelregistry?.registriesNamespace;
   const [createModalOpen, setCreateModalOpen] = React.useState(false);
+
   const [modelRegistries, mrloaded, loadError, refreshModelRegistries] =
     useModelRegistriesBackend();
   const roleBindings = useContextResourceData<RoleBindingKind>(useModelRegistryRoleBindings());
-  const { refreshRulesReview } = React.useContext(ModelRegistrySelectorContext);
   const loaded = mrloaded && roleBindings.loaded;
 
   const refreshAll = React.useCallback(
-    () => Promise.all([refreshModelRegistries(), refreshRulesReview()]),
-    [refreshModelRegistries, refreshRulesReview],
+    () => Promise.all([refreshModelRegistries(), roleBindings.refresh()]),
+    [refreshModelRegistries, roleBindings],
   );
 
+  if (!modelRegistryNamespace) {
+    return (
+      <ApplicationsPage
+        loaded
+        empty={false}
+        loadError={new Error('No registries namespace could be found')}
+        loadErrorPage={
+          <RedirectErrorState
+            title="Could not load component state"
+            errorMessage="No registries namespace could be found"
+          />
+        }
+      />
+    );
+  }
   return (
     <>
       <ApplicationsPage

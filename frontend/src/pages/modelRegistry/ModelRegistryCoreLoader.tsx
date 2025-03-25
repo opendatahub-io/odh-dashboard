@@ -8,6 +8,8 @@ import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import WhosMyAdministrator from '~/components/WhosMyAdministrator';
+import RedirectErrorState from '~/pages/external/RedirectErrorState';
+import { AreaContext } from '~/concepts/areas/AreaContext';
 import InvalidModelRegistry from './screens/InvalidModelRegistry';
 import EmptyModelRegistryState from './screens/components/EmptyModelRegistryState';
 import ModelRegistrySelectorNavigator from './screens/ModelRegistrySelectorNavigator';
@@ -30,30 +32,30 @@ const ModelRegistryCoreLoader: React.FC<ModelRegistryCoreLoaderProps> =
     true,
   )(({ getInvalidRedirectPath }) => {
     const { modelRegistry } = useParams<{ modelRegistry: string }>();
+    const { dscStatus } = React.useContext(AreaContext);
+    const modelRegistryNamespace = dscStatus?.components?.modelregistry?.registriesNamespace;
     const {
       modelRegistryServicesLoaded,
       modelRegistryServicesLoadError,
       modelRegistryServices,
       preferredModelRegistry,
-      updatePreferredModelRegistry,
     } = React.useContext(ModelRegistrySelectorContext);
 
-    const modelRegistryFromRoute = modelRegistryServices.find(
-      (mr) => mr.metadata.name === modelRegistry,
-    );
-
-    React.useEffect(() => {
-      if (
-        modelRegistryFromRoute &&
-        preferredModelRegistry?.metadata.name !== modelRegistryFromRoute.metadata.name
-      ) {
-        updatePreferredModelRegistry(modelRegistryFromRoute);
-      }
-    }, [
-      modelRegistryFromRoute,
-      updatePreferredModelRegistry,
-      preferredModelRegistry?.metadata.name,
-    ]);
+    if (!modelRegistryNamespace) {
+      return (
+        <ApplicationsPage
+          loaded
+          empty={false}
+          loadError={new Error('No registries namespace could be found')}
+          loadErrorPage={
+            <RedirectErrorState
+              title="Could not load component state"
+              errorMessage="No registries namespace could be found"
+            />
+          }
+        />
+      );
+    }
 
     if (modelRegistryServicesLoadError) {
       return (
