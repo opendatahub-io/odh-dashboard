@@ -187,6 +187,15 @@ class InferenceServiceModal extends Modal {
     });
   }
 
+  findHardProfileSelection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('hardware-profile-select');
+  }
+
+  selectProfile(name: string): void {
+    this.findHardProfileSelection().click();
+    cy.findByRole('option', { name }).click();
+  }
+
   findModelURITextBox() {
     return this.find().findByTestId('model-uri');
   }

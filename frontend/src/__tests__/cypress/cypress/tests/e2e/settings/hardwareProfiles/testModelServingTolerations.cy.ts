@@ -1,11 +1,11 @@
-import type { DataScienceProjectData } from '~/__tests__/cypress/cypress/types';
+import type { ModelTolerationsTestData } from '~/__tests__/cypress/cypress/types';
 import {
   addUserToProject,
   deleteOpenShiftProject,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
-import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
+import { loadModelTolerationsFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { LDAP_CONTRIBUTOR_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
+import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import {
   modelServingGlobal,
   inferenceServiceModal,
@@ -20,15 +20,22 @@ import {
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 import { attemptToClickTooltip } from '~/__tests__/cypress/cypress/utils/models';
+import {
+  cleanupHardwareProfiles,
+  createCleanHardwareProfile,
+} from '~/__tests__/cypress/cypress/utils/oc_commands/hardwareProfiles';
+import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
+import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 
-let testData: DataScienceProjectData;
+let testData: ModelTolerationsTestData;
 let projectName: string;
 let contributor: string;
 let modelName: string;
 let modelFilePath: string;
+let hardwareProfileResourceName: string;
 const awsBucket = 'BUCKET_3' as const;
 
-describe('Verify Model Creation and Validation using the UI', () => {
+describe('Verify Model Creation using Hardware Profiles and applying Tolerations', () => {
   retryableBefore(() => {
     Cypress.on('uncaught:exception', (err) => {
       if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
@@ -37,18 +44,29 @@ describe('Verify Model Creation and Validation using the UI', () => {
       return true;
     });
     // Setup: Load test data and ensure clean state
-    return loadDSPFixture('e2e/dataScienceProjects/testSingleModelContributorCreation.yaml').then(
-      (fixtureData: DataScienceProjectData) => {
+    return loadModelTolerationsFixture('e2e/hardwareProfiles/testModelServingTolerations.yaml').then(
+      (fixtureData: ModelTolerationsTestData) => {
         testData = fixtureData;
-        projectName = testData.projectSingleModelResourceName;
+        projectName = testData.modelServingTolerationsTestNamespace;
         contributor = LDAP_CONTRIBUTOR_USER.USERNAME;
-        modelName = testData.singleModelName;
+        modelName = testData.modelName;
         modelFilePath = testData.modelFilePath;
+        hardwareProfileResourceName = testData.hardwareProfileName;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
         }
         cy.log(`Loaded project name: ${projectName}`);
+        return createCleanProject(projectName);
+      })
+      .then(() => {
+        cy.log(`Project ${projectName} confirmed to be created and verified successfully`);
+
+        // Load Hardware Profile
+        cy.log(`Loaded Hardware Profile Name: ${hardwareProfileResourceName}`);
+        // Cleanup Hardware Profile if it already exists
+        createCleanHardwareProfile(testData.resourceYamlPath);
+
         // Create a Project for pipelines
         provisionProjectForModelServing(
           projectName,
@@ -56,20 +74,33 @@ describe('Verify Model Creation and Validation using the UI', () => {
           'resources/yaml/data_connection_model_serving.yaml',
         );
         addUserToProject(projectName, contributor, 'edit');
-      },
-    );
-  });
-  after(() => {
-    //Check if the Before Method was executed to perform the setup
-    if (!wasSetupPerformed()) return;
 
-    // Delete provisioned Project - 5 min timeout to accomadate increased time to delete a project with a model
-    deleteOpenShiftProject(projectName, { timeout: 300000 });
+      });
   });
+
+  // Cleanup: Restore original toleration settings and delete the created project
+  // after(() => {
+  //   // Check if the Before Method was executed to perform the setup
+  //   if (!wasSetupPerformed()) return;
+
+  //   // Load Hardware Profile
+  //   cy.log(`Loaded Hardware Profile Name: ${hardwareProfileResourceName}`);
+
+  //   // Call cleanupHardwareProfiles here, after hardwareProfileResourceName is set
+  //   return cleanupHardwareProfiles(hardwareProfileResourceName).then(() => {
+  //     // Delete provisioned Project
+  //     if (projectName) {
+  //       cy.log(`Deleting Project ${projectName} after the test has finished.`);
+  //       deleteOpenShiftProject(projectName);
+  //     }
+  //   });
+  // });
 
   it(
     'Verify that a Non Admin can Serve and Query a Model using the UI',
-    { tags: ['@Smoke', '@SmokeSet3', '@ODS-2552', '@Dashboard', '@Modelserving'] },
+    // TODO: Add the below tags once this feature is enabled in 2.20+
+    //  { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard'] },
+    { tags: ['@Featureflagged', '@HardwareProfileModelServing', '@HardwareProfiles'] },
     () => {
       cy.log('Model Name:', modelName);
       // Authentication and navigation
@@ -78,11 +109,11 @@ describe('Verify Model Creation and Validation using the UI', () => {
 
       // Project navigation, add user and provide contributor permissions
       cy.step(
-        `Navigate to the Project list tab and search for ${testData.projectSingleModelResourceName}`,
+        `Navigate to the Project list tab and search for ${projectName}`,
       );
       projectListPage.navigate();
-      projectListPage.filterProjectByName(testData.projectSingleModelResourceName);
-      projectListPage.findProjectLink(testData.projectSingleModelResourceName).click();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
 
       // Navigate to Model Serving tab and Deploy a Single Model
       cy.step('Navigate to Model Serving and click to Deploy a Single Model');
@@ -92,17 +123,18 @@ describe('Verify Model Creation and Validation using the UI', () => {
 
       // Launch a Single Serving Model and select the required entries
       cy.step('Launch a Single Serving Model using Caikit TGIS ServingRuntime for KServe');
-      inferenceServiceModal.findModelNameInput().type(testData.singleModelName);
+      inferenceServiceModal.findModelNameInput().type(modelName);
       inferenceServiceModal.findServingRuntimeTemplate().click();
       inferenceServiceModal.findCalkitTGISServingRuntime().click();
 
+      inferenceServiceModal.selectProfile(testData.hardwareProfileDeploymentSize);
       inferenceServiceModal.findLocationPathInput().type(modelFilePath);
       inferenceServiceModal.findSubmitButton().click();
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
-      checkInferenceServiceState(testData.singleModelName);
-      modelServingSection.findModelServerName(testData.singleModelName);
+      checkInferenceServiceState(modelName);
+      modelServingSection.findModelServerName(modelName);
       // Note reload is required as status tooltip was not found due to a stale element
       cy.reload();
       attemptToClickTooltip();
