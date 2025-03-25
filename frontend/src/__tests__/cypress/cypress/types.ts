@@ -113,9 +113,10 @@ export type WBTolerationsTestData = {
   wbTolerationsTestNamespace: string;
   wbTolerationsTestDescription: string;
   workbenchName: string;
+  resourceYamlPath: string;
+  hardwareProfileName: string;
   tolerationValue: string;
-  tolerationValueUpdate: string;
-  workbenchName2: string;
+  hardwareProfileDeploymentSize: string;
 };
 
 export type WBStatusTestData = {
