@@ -1,5 +1,5 @@
 import type { WBTolerationsTestData } from '~/__tests__/cypress/cypress/types';
-import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
+import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import {
   workbenchPage,
   createSpawnerPage,
@@ -130,8 +130,6 @@ describe('Workbenches - tolerations tests', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-      // Reapply projectDetails.findSectionTab('workbenches').click();
       projectDetails.findSectionTab('workbenches').click();
 
       // Stop workbench and verify it stops running
@@ -172,8 +170,6 @@ describe('Workbenches - tolerations tests', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-      // Reapply projectDetails.findSectionTab('workbenches').click();
       projectDetails.findSectionTab('workbenches').click();
 
       // Stop workbench and verify it stops running
@@ -183,8 +179,6 @@ describe('Workbenches - tolerations tests', () => {
       notebookRow.expectStatusLabelToBe('Running', 120000);
       cy.reload();
 
-      // Validate that the toleration applied earlier still displays in the pod
-      cy.step('Validate the Tolerations for the pod still include the tolerations applied earlier');
       validateWorkbenchTolerations(
         projectName,
         testData.workbenchName,
