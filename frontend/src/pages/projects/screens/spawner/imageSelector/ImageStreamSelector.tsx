@@ -1,6 +1,8 @@
 import * as React from 'react';
 import {
   Divider,
+  Flex,
+  FlexItem,
   FormGroup,
   Label,
   MenuGroup,
@@ -49,16 +51,23 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
     <>
       <MenuGroup
         label={
-          <Split>
-            <SplitItem>
+          <Flex
+            spaceItems={{ default: 'spaceItemsXs' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+            style={{ paddingBottom: '5px' }}
+          >
+            <FlexItem
+              style={{ display: 'flex', paddingLeft: '12px' }}
+              data-testid="project-scoped-image"
+            >
               <img
-                style={{ height: 20 }}
+                style={{ height: 20, paddingTop: '3px' }}
                 src={typedObjectImage(ProjectObjectType.project)}
                 alt=""
               />
-            </SplitItem>
-            <SplitItem>Project-scoped images </SplitItem>
-          </Split>
+            </FlexItem>
+            <FlexItem>Project-scoped images</FlexItem>
+          </Flex>
         }
       >
         {currentProjectStreams &&
@@ -70,15 +79,15 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
               <MenuItem
                 key={`imageStream-${index}`}
                 onClick={() => onImageStreamSelect(imageStream)}
+                icon={
+                  <img
+                    style={{ height: 25 }}
+                    src={typedObjectImage(ProjectObjectType.project)}
+                    alt=""
+                  />
+                }
               >
                 <Split>
-                  <SplitItem>
-                    <img
-                      style={{ height: 25 }}
-                      src={typedObjectImage(ProjectObjectType.project)}
-                      alt=""
-                    />
-                  </SplitItem>
                   {getImageStreamDisplayName(imageStream)}
                   <SplitItem isFilled />
                   <SplitItem>
@@ -87,7 +96,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
                     ) && (
                       <Label color="blue">
                         Compatible with
-                        {isHardwareProfilesAvailable ? 'hardware profile' : 'accelerator'}
+                        {isHardwareProfilesAvailable ? ' hardware profile' : ' accelerator'}
                       </Label>
                     )}
                   </SplitItem>
@@ -98,13 +107,12 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
       <Divider />
       <MenuGroup
         label={
-          <Split>
-            <SplitItem>
+          <Flex>
+            <FlexItem style={{ paddingLeft: '12px', paddingRight: 0 }}>
               <GlobalIcon />
-            </SplitItem>
-            <SplitItem />
-            <SplitItem> Global images </SplitItem>
-          </Split>
+            </FlexItem>
+            <FlexItem> Global images </FlexItem>
+          </Flex>
         }
       >
         {imageStreams
@@ -115,11 +123,9 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
             <MenuItem
               key={`imageStream-global-${index}`}
               onClick={() => onImageStreamSelect(imageStream)}
+              icon={<GlobalIcon />}
             >
               <Split>
-                <SplitItem>
-                  <GlobalIcon />
-                </SplitItem>
                 {getImageStreamDisplayName(imageStream)}
                 <SplitItem isFilled />
                 <SplitItem>
@@ -128,7 +134,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
                   ) && (
                     <Label color="blue">
                       Compatible with
-                      {isHardwareProfilesAvailable ? 'hardware profile' : 'accelerator'}
+                      {isHardwareProfilesAvailable ? ' hardware profile' : ' accelerator'}
                     </Label>
                   )}
                 </SplitItem>
@@ -157,7 +163,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
               isCompatibleWithIdentifier(identifier, imageStream),
             ) && (
               <Label color="blue">
-                Compatible with {isHardwareProfilesAvailable ? 'hardware profile' : 'accelerator'}
+                Compatible with {isHardwareProfilesAvailable ? ' hardware profile' : ' accelerator'}
               </Label>
             )}
           </SplitItem>
@@ -188,11 +194,12 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
           searchValue={searchImageStreamName}
           toggleText={
             selectedImageStream && (
-              <Split>
+              <Flex>
                 {getImageStreamDisplayName(selectedImageStream)}
-                <SplitItem>
+                <FlexItem>
                   {currentProjectStreams.includes(selectedImageStream) ? (
                     <Label
+                      isCompact
                       variant="outline"
                       color="blue"
                       icon={
@@ -206,12 +213,12 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
                       Project-scoped
                     </Label>
                   ) : (
-                    <Label variant="outline" color="blue" icon={<GlobalIcon />}>
+                    <Label isCompact variant="outline" color="blue" icon={<GlobalIcon />}>
                       Global-scoped
                     </Label>
                   )}
-                </SplitItem>
-              </Split>
+                </FlexItem>
+              </Flex>
             )
           }
         >

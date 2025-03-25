@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Popover } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+import PopoverListContent from './PopoverListContent';
 
 type PropjectScopedPopoverProps = {
   title: string;
@@ -10,20 +11,21 @@ type PropjectScopedPopoverProps = {
 
 const ProjectScopedPopover: React.FC<PropjectScopedPopoverProps> = ({ title, item }) => (
   <Popover
+    showClose
+    hasAutoWidth
+    maxWidth="370px"
     bodyContent={
-      <>
-        <strong>{title} accessibility</strong>
-        <div>
-          <ul>
-            <li key="project-scoped">
-              <strong>Project-scoped {item}</strong> are accessible only within this project
-            </li>
-            <li key="global-scoped">
-              <strong>Global {item}</strong> are accessible across all projects
-            </li>
-          </ul>
-        </div>
-      </>
+      <PopoverListContent
+        listHeading={`${title} accessibility`}
+        listItems={[
+          <span key="project-scoped">
+            <strong>Project-scoped {item}</strong> are accessible only within this project
+          </span>,
+          <span key="global-scoped">
+            <strong>Global {item}</strong> are accessible across all projects
+          </span>,
+        ]}
+      />
     }
   >
     <DashboardPopupIconButton icon={<OutlinedQuestionCircleIcon />} aria-label="More info" />
