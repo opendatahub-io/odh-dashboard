@@ -1,3 +1,5 @@
+import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
+
 class ModelCustomizationFormGlobal {
   visit(projectName: string, empty = false) {
     const state = {
@@ -114,7 +116,7 @@ class TaxonomySection {
     return cy.findByTestId('username-and-token-radio');
   }
 
-  findTaxonomySShKey() {
+  findTaxonomySSHText() {
     return cy.findByTestId('taxonomy-ssh-key');
   }
 
@@ -124,6 +126,10 @@ class TaxonomySection {
 
   findTaxonomyToken() {
     return cy.findAllByTestId('taxonomy-token');
+  }
+
+  getSSHUpload() {
+    return new SSHFileUpload(() => cy.findByTestId('fine-tune-sshupload'));
   }
 }
 
@@ -163,6 +169,19 @@ class BaseModelSection {
     this.findEditInlineTextButton().click();
     this.findEditInlineTextInput().type(text);
     this.findEditInlineTextSaveButton().click();
+  }
+}
+class SSHFileUpload extends Contextual<HTMLElement> {
+  findTaxonomySShKey() {
+    return this.find().find('[data-testid="taxonomy-ssh-key"] input[type="file"]');
+  }
+
+  uploadSSHFile(filePath: string) {
+    this.findTaxonomySShKey().selectFile([filePath], { force: true });
+  }
+
+  findSSHFileUploadHelptext() {
+    return cy.findByTestId('ssh-key-helpText');
   }
 }
 
