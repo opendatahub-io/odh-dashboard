@@ -51,7 +51,7 @@ describe('Workbenches - tolerations tests', () => {
       });
   });
 
-  // Cleanup: Restore original toleration settings and delete the created project
+  // Cleanup: Delete Hardware Profile and the associated Project
   after(() => {
     // Check if the Before Method was executed to perform the setup
     if (!wasSetupPerformed()) return;
@@ -70,7 +70,7 @@ describe('Workbenches - tolerations tests', () => {
   });
 
   it(
-    'Validate pod tolerations are applied to a Workbench when applying a Hardware Profile',
+    'Verify Workbench Creation using Hardware Profiles and applying Tolerations',
     // TODO: Add the below tags once this feature is enabled in 2.20+
     //  { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard'] },
     { tags: ['@Featureflagged', '@HardwareProfilesWB', '@HardwareProfiles'] },
@@ -192,7 +192,7 @@ describe('Workbenches - tolerations tests', () => {
         true,
       ).then((resolvedPodName) => {
         cy.log(
-          `Resolved Pod Name: ${resolvedPodName} and ${testData.tolerationValue} displays in the pod as expected`,
+          `✅ Resolved Pod Name: ${resolvedPodName} and ${testData.tolerationValue} displays in the pod as expected`,
         );
       });
     },

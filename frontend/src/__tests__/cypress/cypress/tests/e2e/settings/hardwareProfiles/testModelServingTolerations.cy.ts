@@ -5,7 +5,7 @@ import {
 } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { loadModelTolerationsFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { LDAP_CONTRIBUTOR_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
+import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import {
   modelServingGlobal,
   inferenceServiceModal,
@@ -14,6 +14,7 @@ import {
 import {
   checkInferenceServiceState,
   provisionProjectForModelServing,
+  validateInferenceServiceTolerations,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
 import {
   retryableBefore,
@@ -25,7 +26,6 @@ import {
   createCleanHardwareProfile,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/hardwareProfiles';
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
-import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 
 let testData: ModelTolerationsTestData;
 let projectName: string;
@@ -33,9 +33,10 @@ let contributor: string;
 let modelName: string;
 let modelFilePath: string;
 let hardwareProfileResourceName: string;
+let tolerationValue: string;
 const awsBucket = 'BUCKET_3' as const;
 
-describe('Verify Model Creation using Hardware Profiles and applying Tolerations', () => {
+describe('Notebooks - tolerations tests', () => {
   retryableBefore(() => {
     Cypress.on('uncaught:exception', (err) => {
       if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
@@ -44,14 +45,15 @@ describe('Verify Model Creation using Hardware Profiles and applying Tolerations
       return true;
     });
     // Setup: Load test data and ensure clean state
-    return loadModelTolerationsFixture('e2e/hardwareProfiles/testModelServingTolerations.yaml').then(
-      (fixtureData: ModelTolerationsTestData) => {
+    return loadModelTolerationsFixture('e2e/hardwareProfiles/testModelServingTolerations.yaml')
+      .then((fixtureData: ModelTolerationsTestData) => {
         testData = fixtureData;
         projectName = testData.modelServingTolerationsTestNamespace;
         contributor = LDAP_CONTRIBUTOR_USER.USERNAME;
         modelName = testData.modelName;
         modelFilePath = testData.modelFilePath;
         hardwareProfileResourceName = testData.hardwareProfileName;
+        tolerationValue = testData.tolerationValue;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
@@ -74,32 +76,31 @@ describe('Verify Model Creation using Hardware Profiles and applying Tolerations
           'resources/yaml/data_connection_model_serving.yaml',
         );
         addUserToProject(projectName, contributor, 'edit');
-
       });
   });
 
-  // Cleanup: Restore original toleration settings and delete the created project
-  // after(() => {
-  //   // Check if the Before Method was executed to perform the setup
-  //   if (!wasSetupPerformed()) return;
+  // Cleanup: Delete Hardware Profile and the associated Project
+  after(() => {
+    // Check if the Before Method was executed to perform the setup
+    if (!wasSetupPerformed()) return;
 
-  //   // Load Hardware Profile
-  //   cy.log(`Loaded Hardware Profile Name: ${hardwareProfileResourceName}`);
+    // Load Hardware Profile
+    cy.log(`Loaded Hardware Profile Name: ${hardwareProfileResourceName}`);
 
-  //   // Call cleanupHardwareProfiles here, after hardwareProfileResourceName is set
-  //   return cleanupHardwareProfiles(hardwareProfileResourceName).then(() => {
-  //     // Delete provisioned Project
-  //     if (projectName) {
-  //       cy.log(`Deleting Project ${projectName} after the test has finished.`);
-  //       deleteOpenShiftProject(projectName);
-  //     }
-  //   });
-  // });
+    // Call cleanupHardwareProfiles here, after hardwareProfileResourceName is set
+    return cleanupHardwareProfiles(hardwareProfileResourceName).then(() => {
+      // Delete provisioned Project
+      if (projectName) {
+        cy.log(`Deleting Project ${projectName} after the test has finished.`);
+        deleteOpenShiftProject(projectName, { timeout: 300000 });
+      }
+    });
+  });
 
   it(
-    'Verify that a Non Admin can Serve and Query a Model using the UI',
+    'Verify Model Serving Creation using Hardware Profiles and applying Tolerations',
     // TODO: Add the below tags once this feature is enabled in 2.20+
-    //  { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard'] },
+    //  { tags: ['@Sanity', '@SanitySet2', '@Dashboard'] },
     { tags: ['@Featureflagged', '@HardwareProfileModelServing', '@HardwareProfiles'] },
     () => {
       cy.log('Model Name:', modelName);
@@ -108,9 +109,7 @@ describe('Verify Model Creation using Hardware Profiles and applying Tolerations
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
       // Project navigation, add user and provide contributor permissions
-      cy.step(
-        `Navigate to the Project list tab and search for ${projectName}`,
-      );
+      cy.step(`Navigate to the Project list tab and search for ${projectName}`);
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
@@ -122,7 +121,7 @@ describe('Verify Model Creation using Hardware Profiles and applying Tolerations
       modelServingGlobal.findDeployModelButton().click();
 
       // Launch a Single Serving Model and select the required entries
-      cy.step('Launch a Single Serving Model using Caikit TGIS ServingRuntime for KServe');
+      cy.step('Launch a Single Serving Model using Caikit TGIS ServingRuntime for KServe and by selecting the Hardware Profile');
       inferenceServiceModal.findModelNameInput().type(modelName);
       inferenceServiceModal.findServingRuntimeTemplate().click();
       inferenceServiceModal.findCalkitTGISServingRuntime().click();
@@ -138,6 +137,20 @@ describe('Verify Model Creation using Hardware Profiles and applying Tolerations
       // Note reload is required as status tooltip was not found due to a stale element
       cy.reload();
       attemptToClickTooltip();
+
+      // Validate that the toleration applied earlier displays in the newly created pod
+      cy.step('Validate the Tolerations for the pod include the newly added toleration');  
+      validateInferenceServiceTolerations(
+        projectName,
+        modelName, // InferenceService name
+        {
+          key: 'test-taint',
+          operator: 'Equal',
+          effect: tolerationValue,
+          },
+      ).then(() => {
+        cy.log(`✅ Toleration value "${tolerationValue}" displays in the pod as expected`);
+      });
     },
   );
 });

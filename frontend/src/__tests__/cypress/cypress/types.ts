@@ -346,3 +346,11 @@ export type ModelTolerationsTestData = {
   modelName: string;
   modelFilePath: string;
 };
+
+export type NotebookTolerationsTestData = {
+  codeserverImageName: string;
+  resourceYamlPath: string;
+  hardwareProfileName: string;
+  tolerationValue: string;
+  hardwareProfileDeploymentSize: string;
+};

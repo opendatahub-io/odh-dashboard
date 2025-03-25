@@ -76,6 +76,15 @@ class NotebookServer {
     return cy.findByTestId('accelerator-profile-select');
   }
 
+  findHardProfileSelection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('hardware-profile-select');
+  }
+
+  selectProfile(name: string): void {
+    this.findHardProfileSelection().click();
+    cy.findByRole('option', { name }).click();
+  }
+
   findOpenInNewTabButton() {
     return cy.findByRole('button', { name: 'Open in new tab' });
   }

@@ -1,7 +1,7 @@
 # testModelServingTolerations.cy.ts Test Data #
 modelServingTolerationsTestNamespace: 'dsp-model-tolerations-test'
 resourceYamlPath: "resources/hardwareProfile/model_tolerations.yaml"
-hardwareProfileName: "cypress-hardware-profile-model-serving"
+hardwareProfileName: "cypress-hardware-profile-model"
 tolerationValue: "PreferNoSchedule"
 hardwareProfileDeploymentSize: "cypress-hardware-profile-model CPU: Request = 2; Limit = 2; Memory: Request = 4Gi; Limit = 4Gi"
 modelName: "cypress-toleration-single-model"
