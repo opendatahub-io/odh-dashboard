@@ -25,4 +25,3 @@ Read more about the Dashboard in one of our documentation links.
 
 * [Dev setup & Requirements]
 * [Dashboard documentation]
-* [e2e testing]
