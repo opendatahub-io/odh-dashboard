@@ -43,30 +43,55 @@ const EnabledModelRegistrySelectorContextProvider: React.FC<React.PropsWithChild
   children,
 }) => {
   const { dscStatus } = React.useContext(AreaContext);
-  const {
-    modelRegistryServices = [],
-    isLoaded,
-    error,
-    refreshRulesReview,
-  } = useModelRegistryServices(dscStatus?.components?.modelregistry?.registriesNamespace || '');
+  const modelRegistryNamespace = dscStatus?.components?.modelregistry?.registriesNamespace;
   const [preferredModelRegistry, setPreferredModelRegistry] = React.useState<ServiceKind | null>(
     null,
   );
 
-  const updatePreferredModelRegistry = (modelRegistry: ServiceKind | undefined) =>
-    setPreferredModelRegistry(modelRegistry ?? null);
+  const updatePreferredModelRegistry = React.useCallback(
+    (modelRegistry: ServiceKind | undefined) => {
+      setPreferredModelRegistry(modelRegistry || null);
+    },
+    [],
+  );
 
-  const contextValue = React.useMemo(
-    () => ({
+  // Create a stable namespace value for the hook
+  const namespaceForHook = React.useMemo(
+    () => modelRegistryNamespace || '',
+    [modelRegistryNamespace],
+  );
+
+  // Always call the hook with the stable value
+  const {
+    modelRegistryServices = [],
+    isLoaded,
+    error: servicesError,
+    refreshRulesReview,
+  } = useModelRegistryServices(namespaceForHook);
+
+  const contextValue = React.useMemo(() => {
+    // Move error calculation inside useMemo
+    const error = !modelRegistryNamespace
+      ? new Error('No registries namespace could be found')
+      : servicesError;
+
+    return {
       modelRegistryServicesLoaded: isLoaded,
       modelRegistryServicesLoadError: error,
-      modelRegistryServices,
+      modelRegistryServices: modelRegistryNamespace ? modelRegistryServices : [],
       preferredModelRegistry: preferredModelRegistry ?? modelRegistryServices[0],
       updatePreferredModelRegistry,
       refreshRulesReview,
-    }),
-    [isLoaded, error, modelRegistryServices, preferredModelRegistry, refreshRulesReview],
-  );
+    };
+  }, [
+    isLoaded,
+    servicesError,
+    modelRegistryServices,
+    preferredModelRegistry,
+    updatePreferredModelRegistry,
+    refreshRulesReview,
+    modelRegistryNamespace,
+  ]);
 
   return (
     <ModelRegistrySelectorContext.Provider value={contextValue}>

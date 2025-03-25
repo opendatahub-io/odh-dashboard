@@ -37,6 +37,8 @@ import {
 import { RecursivePartial } from '~/typeHelpers';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+import ApplicationsPage from '~/pages/ApplicationsPage';
+import RedirectErrorState from '~/pages/external/RedirectErrorState';
 import { CreateMRSecureDBSection, SecureDBInfo } from './CreateMRSecureDBSection';
 import ModelRegistryDatabasePassword from './ModelRegistryDatabasePassword';
 import { ResourceType, SecureDBRType } from './const';
@@ -80,7 +82,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
     key: '',
     isValid: true,
   });
-  const modelRegistryNamespace = dscStatus?.components?.modelregistry?.registriesNamespace || '';
+  const modelRegistryNamespace = dscStatus?.components?.modelregistry?.registriesNamespace;
 
   React.useEffect(() => {
     if (configSecretsLoaded && !configSecretsError && !mr) {
@@ -204,7 +206,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
         kind: 'ModelRegistry',
         metadata: {
           name: nameDesc.k8sName.value || translateDisplayNameForK8s(nameDesc.name),
-          namespace: dscStatus?.components?.modelregistry?.registriesNamespace || '',
+          namespace: modelRegistryNamespace!,
           annotations: {
             'openshift.io/description': nameDesc.description,
             'openshift.io/display-name': nameDesc.name.trim(),
@@ -275,6 +277,22 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
     hasContent(username) &&
     hasContent(database) &&
     (!addSecureDB || (secureDBInfo.isValid && !configSecretsError));
+
+  if (!modelRegistryNamespace) {
+    return (
+      <ApplicationsPage
+        loaded
+        empty={false}
+        loadError={new Error('No registries namespace could be found')}
+        loadErrorPage={
+          <RedirectErrorState
+            title="Could not load component state"
+            errorMessage="No registries namespace could be found"
+          />
+        }
+      />
+    );
+  }
 
   return (
     <Modal

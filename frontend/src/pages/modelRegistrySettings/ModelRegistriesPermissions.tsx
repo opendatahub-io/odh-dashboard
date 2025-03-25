@@ -23,6 +23,7 @@ import {
   createModelRegistryRoleBinding,
   deleteModelRegistryRoleBinding,
 } from '~/services/modelRegistrySettingsService';
+import RedirectErrorState from '~/pages/external/RedirectErrorState';
 import useModelRegistryRoleBindings from './useModelRegistryRoleBindings';
 import ProjectsSettingsTab from './ProjectsTab/ProjectsSettingsTab';
 
@@ -47,6 +48,22 @@ const ModelRegistriesManagePermissions: React.FC = () => {
       setOwnerReference(undefined);
     }
   }, [modelRegistryCR]);
+
+  if (!modelRegistryNamespace) {
+    return (
+      <ApplicationsPage
+        loaded
+        empty={false}
+        loadError={new Error('No registries namespace could be found')}
+        loadErrorPage={
+          <RedirectErrorState
+            title="Could not load component state"
+            errorMessage="No registries namespace could be found"
+          />
+        }
+      />
+    );
+  }
 
   if (
     (roleBindings.loaded && filteredRoleBindings.length === 0) ||
@@ -114,7 +131,7 @@ const ModelRegistriesManagePermissions: React.FC = () => {
                 'app.kubernetes.io/name': mrName || '',
                 component: SupportedArea.MODEL_REGISTRY,
               }}
-              projectName={modelRegistryNamespace || ''}
+              projectName={modelRegistryNamespace}
               description={
                 <>
                   To enable access for all cluster users, add{' '}
@@ -155,7 +172,7 @@ const ModelRegistriesManagePermissions: React.FC = () => {
                 'app.kubernetes.io/name': mrName || '',
                 component: SupportedArea.MODEL_REGISTRY,
               }}
-              projectName={modelRegistryNamespace || ''}
+              projectName={modelRegistryNamespace}
               isProjectSubject={activeTabKey === 'projects'}
               roleBindingPermissionsRB={{ ...roleBindings, data: filteredRoleBindings }}
             />
