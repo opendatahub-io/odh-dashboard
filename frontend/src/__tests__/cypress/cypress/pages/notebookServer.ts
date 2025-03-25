@@ -76,6 +76,17 @@ class NotebookServer {
     return cy.findByTestId('accelerator-profile-select');
   }
 
+  findHardwareProfileSelect() {
+    return cy.findByTestId('hardware-profile-select');
+  }
+
+  findHardwareProfileSelectOptionValues() {
+    return cy.findAllByRole('option').then((options) => {
+      const values = [...options].map((option) => option.textContent?.trim());
+      return cy.wrap(values);
+    });
+  }
+
   findOpenInNewTabButton() {
     return cy.findByRole('button', { name: 'Open in new tab' });
   }
