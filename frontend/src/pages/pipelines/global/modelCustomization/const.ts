@@ -38,10 +38,6 @@ export const CONTAINER_RESOURCE_DEFAULT = {
     memory: '20Gi',
   },
 };
-export enum RunTypeFormat {
-  FULL = 'Full',
-  SIMPLE = 'Simple',
-}
 
 export enum KnownFineTuningPipelineParameters {
   OUTPUT_OCI_MODEL_URI = 'output_oci_model_uri',
