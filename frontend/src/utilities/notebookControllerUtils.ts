@@ -310,7 +310,8 @@ export const getNotebookEventStatus = (
 ): NotebookProgressStep => {
   const timestamp = new Date(getEventTimestamp(event)).getTime();
 
-  if (event.message.includes('oauth-proxy')) {
+  // For Oauth-related events
+  if (event.message.includes('oauth-proxy') || event.message.includes('ose-oauth-proxy')) {
     switch (event.reason) {
       case 'Pulling':
         return {
@@ -357,6 +358,7 @@ export const getNotebookEventStatus = (
     }
   }
 
+  // For notebook-related events
   switch (event.reason) {
     case 'SuccessfulCreate':
       return {
