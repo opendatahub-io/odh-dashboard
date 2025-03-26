@@ -5,7 +5,6 @@ export enum FineTunePageSections {
   TAXONOMY_DETAILS = 'fine-tune-section-taxonomy-details',
   TEACHER_MODEL = 'fine-tune-section-teacher-model',
   JUDGE_MODEL = 'fine-tune-section-judge-model',
-  RUN_TYPE = 'fine-tune-section-run-type',
   TRAINING_HARDWARE = 'fine-tune-section-training-hardware',
   HYPERPARAMETERS = 'fine-tune-section-hyperparameters',
   FINE_TUNED_MODEL_DETAILS = 'fine-tune-section-fine-tuned-model-details',
@@ -18,7 +17,6 @@ export const fineTunePageSectionTitles: Record<FineTunePageSections, string> = {
   [FineTunePageSections.BASE_MODEL]: 'Base model',
   [FineTunePageSections.TEACHER_MODEL]: 'LAB teacher model',
   [FineTunePageSections.JUDGE_MODEL]: 'LAB judge model',
-  [FineTunePageSections.RUN_TYPE]: 'Run type',
   [FineTunePageSections.TRAINING_HARDWARE]: 'Training hardware',
   [FineTunePageSections.HYPERPARAMETERS]: 'Hyperparameters',
   [FineTunePageSections.FINE_TUNED_MODEL_DETAILS]: 'Fine-tuned model details',
@@ -44,13 +42,6 @@ export enum RunTypeFormat {
   FULL = 'Full',
   SIMPLE = 'Simple',
 }
-
-export const RunTypeFormatDescriptions: Record<RunTypeFormat, string> = {
-  [RunTypeFormat.FULL]:
-    'This run type has a larger synthetic data generation step, requires more time and resources, and is ideal for creating production-ready models.',
-  [RunTypeFormat.SIMPLE]:
-    'This run type has a shorter synthetic data generation step, requires less time and resources, and is best for quickly testing and iterating.',
-};
 
 export enum KnownFineTuningPipelineParameters {
   OUTPUT_OCI_MODEL_URI = 'output_oci_model_uri',
