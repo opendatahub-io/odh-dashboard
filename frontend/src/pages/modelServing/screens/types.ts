@@ -47,6 +47,7 @@ export type CreatingServingRuntimeObject = CreatingModelServingObjectCommon & {
   numReplicas: number;
   imageName?: string;
   supportedModelFormatsInfo?: SupportedModelFormatsInfo;
+  scope?: string;
 };
 
 export type ServingRuntimeToken = {

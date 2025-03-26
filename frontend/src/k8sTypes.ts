@@ -138,6 +138,7 @@ export type ServingRuntimeAnnotations = Partial<{
   'enable-route': string;
   'enable-auth': string;
   'modelmesh-enabled': 'true' | 'false';
+  'serving-runtime-scope': string;
 }>;
 
 export type BuildConfigKind = K8sResourceCommon & {

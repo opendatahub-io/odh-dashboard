@@ -62,6 +62,10 @@ export const assembleServingRuntime = (
     delete annotations['enable-auth'];
   }
 
+  if (data.scope) {
+    annotations['serving-runtime-scope'] = data.scope;
+  }
+
   // TODO: Enable GRPC
   if (!isEditing) {
     updatedServingRuntime.metadata = {

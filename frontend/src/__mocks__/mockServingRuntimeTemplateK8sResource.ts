@@ -1,4 +1,4 @@
-import { TemplateKind } from '~/k8sTypes';
+import { SupportedModelFormats, TemplateKind } from '~/k8sTypes';
 import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
 
 type MockResourceConfigType = {
@@ -12,6 +12,7 @@ type MockResourceConfigType = {
   isModelmesh?: boolean;
   containerName?: string;
   containerEnvVars?: { name: string; value: string }[];
+  supportedModelFormats?: SupportedModelFormats[];
 };
 
 export const mockServingRuntimeTemplateK8sResource = ({
@@ -25,6 +26,18 @@ export const mockServingRuntimeTemplateK8sResource = ({
   preInstalled = false,
   containerName = 'ovms',
   containerEnvVars = undefined,
+  supportedModelFormats = [
+    {
+      autoSelect: true,
+      name: 'openvino_ir',
+      version: 'opset1',
+    },
+    {
+      autoSelect: true,
+      name: 'onnx',
+      version: '1',
+    },
+  ],
 }: MockResourceConfigType): TemplateKind => ({
   apiVersion: 'template.openshift.io/v1',
   kind: 'Template',
@@ -92,18 +105,7 @@ export const mockServingRuntimeTemplateK8sResource = ({
         multiModel: true,
         protocolVersions: ['grpc-v1'],
         ...(isModelmesh && { replicas }),
-        supportedModelFormats: [
-          {
-            autoSelect: true,
-            name: 'openvino_ir',
-            version: 'opset1',
-          },
-          {
-            autoSelect: true,
-            name: 'onnx',
-            version: '1',
-          },
-        ],
+        supportedModelFormats,
       },
     },
   ],
