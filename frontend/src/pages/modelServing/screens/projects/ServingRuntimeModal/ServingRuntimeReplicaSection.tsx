@@ -17,6 +17,7 @@ const ServingRuntimeReplicaSection: React.FC<ServingRuntimeReplicaSectionProps> 
   infoContent,
 }) => {
   const MIN_SIZE = 0;
+  const MAX_SIZE = 999;
 
   const onStep = (step: number) => {
     setData('numReplicas', normalizeBetween(data.numReplicas + step, MIN_SIZE));
@@ -42,15 +43,15 @@ const ServingRuntimeReplicaSection: React.FC<ServingRuntimeReplicaSectionProps> 
           value={data.numReplicas}
           widthChars={10}
           min={MIN_SIZE}
+          max={MAX_SIZE}
           onPlus={() => onStep(1)}
           onMinus={() => onStep(-1)}
           onChange={(event) => {
             if (isHTMLInputElement(event.target)) {
               const newSize = Number(event.target.value);
-              setData(
-                'numReplicas',
-                Number.isNaN(newSize) ? MIN_SIZE : normalizeBetween(newSize, MIN_SIZE),
-              );
+              if (!Number.isNaN(newSize) && newSize <= MAX_SIZE) {
+                setData('numReplicas', normalizeBetween(newSize, MIN_SIZE, MAX_SIZE));
+              }
             }
           }}
         />
