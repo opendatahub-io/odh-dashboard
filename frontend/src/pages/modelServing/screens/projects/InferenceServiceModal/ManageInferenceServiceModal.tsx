@@ -8,7 +8,6 @@ import {
   useCreateInferenceServiceObject,
 } from '~/pages/modelServing/screens/projects/utils';
 import { InferenceServiceKind, ProjectKind, ServingRuntimeKind } from '~/k8sTypes';
-import { DataConnection } from '~/pages/projects/types';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
@@ -19,6 +18,10 @@ import K8sNameDescriptionField, {
 } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import usePrefillDeployModalFromModelRegistry from '~/pages/modelRegistry/screens/RegisteredModels/usePrefillDeployModalFromModelRegistry';
+import {
+  isModelServingCompatible,
+  ModelServingCompatibleTypes,
+} from '~/concepts/connectionTypes/utils';
 import ProjectSection from './ProjectSection';
 import InferenceServiceFrameworkSection from './InferenceServiceFrameworkSection';
 import InferenceServiceServingRuntimeSection from './InferenceServiceServingRuntimeSection';
@@ -35,7 +38,6 @@ type ManageInferenceServiceModalProps = {
     projectContext?: {
       currentProject: ProjectKind;
       currentServingRuntime?: ServingRuntimeKind;
-      dataConnections: DataConnection[];
       connections: Connection[];
     };
   }
@@ -65,6 +67,13 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
       setCreateData,
       registeredModelDeployInfo,
     );
+  const modelMeshConnections = React.useMemo(
+    () =>
+      connections.filter(
+        (c) => !isModelServingCompatible(c.connection, ModelServingCompatibleTypes.OCI),
+      ),
+    [connections],
+  );
 
   const [connection, setConnection] = React.useState<Connection>();
   const [isConnectionValid, setIsConnectionValid] = React.useState(false);
@@ -198,7 +207,10 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
                 connection={connection}
                 setConnection={setConnection}
                 setIsConnectionValid={setIsConnectionValid}
-                connections={connections}
+                connections={modelMeshConnections}
+                connectionTypeFilter={(ct) =>
+                  !isModelServingCompatible(ct, ModelServingCompatibleTypes.OCI)
+                }
               />
             </FormSection>
           </>

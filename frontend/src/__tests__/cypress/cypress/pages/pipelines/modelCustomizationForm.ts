@@ -46,6 +46,10 @@ class ModelCustomizationFormGlobal {
     return cy.findByTestId('model-customization-submit-button');
   }
 
+  findCancelButton() {
+    return cy.findByTestId('model-customization-cancel-button');
+  }
+
   findProjectDropdown() {
     cy.findByTestId('project-selector-toggle').click();
   }

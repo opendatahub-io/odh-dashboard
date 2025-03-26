@@ -113,9 +113,10 @@ export type WBTolerationsTestData = {
   wbTolerationsTestNamespace: string;
   wbTolerationsTestDescription: string;
   workbenchName: string;
+  resourceYamlPath: string;
+  hardwareProfileName: string;
   tolerationValue: string;
-  tolerationValueUpdate: string;
-  workbenchName2: string;
+  hardwareProfileDeploymentSize: string;
 };
 
 export type WBStatusTestData = {
@@ -147,6 +148,8 @@ export type TestConfig = {
   PIP_INDEX_URL: string;
   PIP_TRUSTED_HOST: string;
   NGC_API_KEY: string;
+  OCI_SECRET_DETAILS_FILE: string;
+  OCI_MODEL_URI: string;
 };
 
 export type DataScienceProjectData = {
@@ -248,6 +251,12 @@ export type ResourcesData = {
   };
 };
 
+export type HardwareProfilesData = {
+  hardwareProfileName: string;
+  hardwareProfileDescription: string;
+  hardwareProfileEditedDescription: string;
+};
+
 export type NamespaceConfig = {
   APPLICATIONS_NAMESPACE: string;
 };
@@ -255,11 +264,13 @@ export type NamespaceConfig = {
 enum OOTBConnectionTypes {
   s3 = 'S3 compatible object storage - v1',
   uri = 'URI - v1',
+  oci = 'OCI compliant registry - v1',
 }
 
 export type OOTBConnectionTypesData = {
   s3: OOTBConnectionTypes.s3;
   uri: OOTBConnectionTypes.uri;
+  oci: OOTBConnectionTypes.oci;
 };
 
 export type WorkloadMetricsTestData = {
@@ -318,3 +329,10 @@ export enum KnownFineTuningPipelineParameters {
   EVAL_JUDGE_SECRET = 'eval_judge_secret',
   K8S_STORAGE_CLASS_NAME = 'k8s_storage_class_name',
 }
+
+export type DeployOCIModelData = {
+  projectName: string;
+  connectionName: string;
+  ociRegistryHost: string;
+  modelDeploymentName: string;
+};

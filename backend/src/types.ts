@@ -26,6 +26,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableHome: boolean;
       disableProjects: boolean;
       disableModelServing: boolean;
+      disableProjectScoped: boolean;
       disableProjectSharing: boolean;
       disableCustomServingRuntimes: boolean;
       disablePipelines: boolean;
@@ -35,7 +36,6 @@ export type DashboardConfig = K8sResourceCommon & {
       disableKServeAuth: boolean;
       disableKServeMetrics: boolean;
       disableKServeRaw: boolean;
-      disableKServeOCIModels: boolean;
       disableModelMesh: boolean;
       disableAcceleratorProfiles: boolean;
       disableHardwareProfiles: boolean;

@@ -70,7 +70,10 @@ export const getClusterAdminUserList = async (fastify: KubeFastifyInstance): Pro
 export const getAllowedUserList = async (fastify: KubeFastifyInstance): Promise<string[]> => {
   const auth = getAuth();
   if (auth) {
-    return getGroupUserList(fastify, auth.spec.allowedGroups);
+    return getGroupUserList(
+      fastify,
+      auth.spec.allowedGroups.filter((groupName) => groupName && !groupName.startsWith('system:')), // Handle edge-cases and ignore k8s defaults
+    );
   }
 
   // FIXME: see RHOAIENG-16988
