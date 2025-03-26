@@ -38,7 +38,7 @@ type HardwareProfilesTableRowProps = {
   rowIndex: number;
   hardwareProfile: HardwareProfileKind;
   migrationAction?: MigrationAction;
-  isMigratedTable?: boolean;
+  isMigratedTable: boolean;
   handleDelete: (cr: HardwareProfileKind) => void;
   handleMigrate: (migrationAction: MigrationAction) => void;
 };
@@ -47,7 +47,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
   hardwareProfile,
   rowIndex,
   migrationAction,
-  isMigratedTable = false,
+  isMigratedTable,
   handleDelete,
   handleMigrate,
 }) => {
