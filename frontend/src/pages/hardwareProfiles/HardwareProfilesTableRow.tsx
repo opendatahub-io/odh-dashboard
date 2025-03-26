@@ -135,7 +135,9 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
           ) : (
             <LabelGroup>
               {useCases.map((v) => (
-                <Label key={v}>{HardwareProfileFeatureVisibilityTitles[v]}</Label>
+                <Label key={v} data-testid={`label-${v}`}>
+                  {HardwareProfileFeatureVisibilityTitles[v]}
+                </Label>
               ))}
             </LabelGroup>
           )}

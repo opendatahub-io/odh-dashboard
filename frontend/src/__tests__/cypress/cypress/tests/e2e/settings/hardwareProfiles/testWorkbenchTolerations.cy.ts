@@ -130,8 +130,6 @@ describe('Workbenches - tolerations tests', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-      // Reapply projectDetails.findSectionTab('workbenches').click();
       projectDetails.findSectionTab('workbenches').click();
 
       // Stop workbench and verify it stops running
@@ -172,8 +170,6 @@ describe('Workbenches - tolerations tests', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-      // Reapply projectDetails.findSectionTab('workbenches').click();
       projectDetails.findSectionTab('workbenches').click();
 
       // Stop workbench and verify it stops running
