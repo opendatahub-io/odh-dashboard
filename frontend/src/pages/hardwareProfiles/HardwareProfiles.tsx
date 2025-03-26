@@ -147,6 +147,7 @@ const HardwareProfiles: React.FC = () => {
             </StackItem>
             <StackItem>
               <ExpandableSection
+                data-testid="migrated-hardware-profiles-section"
                 toggleTextExpanded={`Hide legacy profiles (${migratedHardwareProfiles.length})`}
                 toggleTextCollapsed={`Show legacy profiles (${migratedHardwareProfiles.length})`}
               >

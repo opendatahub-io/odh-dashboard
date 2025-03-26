@@ -109,6 +109,20 @@ class ImportUpdateNotebookImageModal extends Modal {
     return this.k8sNameDescription.findDescriptionInput();
   }
 
+  findHardwareProfileSelect() {
+    return this.find().findByTestId('hardware-profile-identifier-multiselect');
+  }
+
+  findHardwareProfileSelectOptionValues() {
+    return cy
+      .findAllByRole('option')
+      .then((options) => [...options].map((option) => option.textContent?.trim()));
+  }
+
+  findHardwareProfileSelectOption(option: string) {
+    return cy.findByRole('option', { name: option, hidden: true });
+  }
+
   // Software tab
   findSoftwareTab() {
     return this.find().findByTestId('displayed-content-software-tab');

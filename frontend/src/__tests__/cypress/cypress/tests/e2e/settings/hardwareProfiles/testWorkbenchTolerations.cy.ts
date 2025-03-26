@@ -11,32 +11,28 @@ import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChe
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { validateWorkbenchTolerations } from '~/__tests__/cypress/cypress/utils/oc_commands/workbench';
 import {
-  clusterSettings,
-  notebookTolerationSettings,
-} from '~/__tests__/cypress/cypress/pages/clusterSettings';
-import {
-  handleTolerationSettings,
-  saveTolerationSettings,
-  restoreTolerationSettings,
-  disableTolerationsWithRetry,
-} from '~/__tests__/cypress/cypress/utils/clusterSettingsUtils';
-import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import {
+  cleanupHardwareProfiles,
+  createCleanHardwareProfile,
+} from '~/__tests__/cypress/cypress/utils/oc_commands/hardwareProfiles';
+import { hardwareProfileSection } from '~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
 
-describe('[Automation Bug: RHOAIENG-20099] Workbenches - tolerations tests', () => {
+describe('Workbenches - tolerations tests', () => {
   let testData: WBTolerationsTestData;
   let projectName: string;
   let projectDescription: string;
-  let initialState: { isChecked: boolean; tolerationValue: string };
+  let hardwareProfileResourceName: string;
 
   // Setup: Load test data and ensure clean state
   retryableBefore(() => {
-    return loadWBTolerationsFixture('e2e/dataScienceProjects/testWorkbenchTolerations.yaml')
+    return loadWBTolerationsFixture('e2e/hardwareProfiles/testWorkbenchTolerations.yaml')
       .then((fixtureData: WBTolerationsTestData) => {
         projectName = fixtureData.wbTolerationsTestNamespace;
         projectDescription = fixtureData.wbTolerationsTestDescription;
+        hardwareProfileResourceName = fixtureData.hardwareProfileName;
         testData = fixtureData;
 
         if (!projectName) {
@@ -47,53 +43,43 @@ describe('[Automation Bug: RHOAIENG-20099] Workbenches - tolerations tests', () 
       })
       .then(() => {
         cy.log(`Project ${projectName} confirmed to be created and verified successfully`);
+
+        // Load Hardware Profile
+        cy.log(`Loaded Hardware Profile Name: ${hardwareProfileResourceName}`);
+        // Cleanup Hardware Profile if it already exists
+        createCleanHardwareProfile(testData.resourceYamlPath);
       });
   });
 
   // Cleanup: Restore original toleration settings and delete the created project
   after(() => {
-    //Check if the Before Method was executed to perform the setup
+    // Check if the Before Method was executed to perform the setup
     if (!wasSetupPerformed()) return;
 
-    // Restore original toleration settings
-    clusterSettings.visit();
-    cy.log('Restoring Original toleration settings restored');
-    restoreTolerationSettings(initialState);
-    cy.log('Original toleration settings restored');
+    // Load Hardware Profile
+    cy.log(`Loaded Hardware Profile Name: ${hardwareProfileResourceName}`);
 
-    // Delete provisioned Project
-    if (projectName) {
-      cy.log(`Deleting Project ${projectName} after the test has finished.`);
-      deleteOpenShiftProject(projectName);
-    }
+    // Call cleanupHardwareProfiles here, after hardwareProfileResourceName is set
+    return cleanupHardwareProfiles(hardwareProfileResourceName).then(() => {
+      // Delete provisioned Project
+      if (projectName) {
+        cy.log(`Deleting Project ${projectName} after the test has finished.`);
+        deleteOpenShiftProject(projectName);
+      }
+    });
   });
 
   it(
-    'Validate pod tolerations are applied to a Workbench',
-    // TODO: This test will be reworked this Sprint as part of RHOAIENG-20099
-    { tags: ['@Featureflagged', '@HardwareProfiles'] },
+    'Validate pod tolerations are applied to a Workbench when applying a Hardware Profile',
+    // TODO: Add the below tags once this feature is enabled in 2.20+
+    //  { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard'] },
+    { tags: ['@Featureflagged', '@HardwareProfilesWB', '@HardwareProfiles'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
-      // Navigate to cluster settings and save the original pod toleration
-      // Note - the stored toleration will be restored in the After Method
-      cy.step('Navigate to Cluster Settings, save and set pod tolerations');
-      clusterSettings.visit();
-      saveTolerationSettings().then((state) => {
-        initialState = state;
-        cy.log('Initial toleration settings saved:', JSON.stringify(initialState));
-      });
-
-      //Set Pod Tolerations
-      cy.step(`Set pod tolerations to ${testData.tolerationValue}`);
-      handleTolerationSettings(testData.tolerationValue);
-      clusterSettings.visit();
-      notebookTolerationSettings.findKeyInput().should('have.value', testData.tolerationValue);
-
       // Project navigation
-      cy.step(`Navigate to workbenches tab of Project ${projectName}`);
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
@@ -105,6 +91,7 @@ describe('[Automation Bug: RHOAIENG-20099] Workbenches - tolerations tests', () 
       createSpawnerPage.getNameInput().type(testData.workbenchName);
       createSpawnerPage.getDescriptionInput().type(projectDescription);
       createSpawnerPage.findNotebookImage('code-server-notebook').click();
+      hardwareProfileSection.selectProfile(testData.hardwareProfileDeploymentSize);
       createSpawnerPage.findSubmitButton().click();
 
       cy.step(`Wait for workbench ${testData.workbenchName} to display a "Running" status`);
@@ -112,7 +99,6 @@ describe('[Automation Bug: RHOAIENG-20099] Workbenches - tolerations tests', () 
       notebookRow.findNotebookDescription(projectDescription);
       notebookRow.expectStatusLabelToBe('Running', 120000);
       notebookRow.shouldHaveNotebookImageName('code-server');
-      notebookRow.shouldHaveContainerSize('Small');
 
       // Validate that the toleration applied earlier displays in the newly created pod
       cy.step('Validate the Tolerations for the pod include the newly added toleration');
@@ -131,8 +117,9 @@ describe('[Automation Bug: RHOAIENG-20099] Workbenches - tolerations tests', () 
 
   it(
     'Validate pod tolerations for a stopped workbench',
-    // TODO: This test will be reworked this Sprint as part of RHOAIENG-20099
-    { tags: ['@Featureflagged', '@HardwareProfiles'] },
+    // TODO: Add the below tags once this feature is enabled in 2.20+
+    //  { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard'] },
+    { tags: ['@Featureflagged', '@HardwareProfilesWB', '@HardwareProfiles'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -165,7 +152,9 @@ describe('[Automation Bug: RHOAIENG-20099] Workbenches - tolerations tests', () 
 
   it(
     'Validate pod tolerations when a workbench is restarted with tolerations and tolerations are disabled',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard', '@Bug'] },
+    // TODO: Add the below tags once this feature is enabled in 2.20+
+    //  { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard'] },
+    { tags: ['@Featureflagged', '@HardwareProfilesWB', '@HardwareProfiles'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -173,9 +162,8 @@ describe('[Automation Bug: RHOAIENG-20099] Workbenches - tolerations tests', () 
 
       // Set Pod Tolerations
       cy.step('Navigate to Cluster Settings and disable Pod Tolerations');
-      clusterSettings.visit();
-      // Use the util to disable tolerations with retry
-      disableTolerationsWithRetry();
+      // Delete Hardware Profile
+      cleanupHardwareProfiles(hardwareProfileResourceName);
 
       // Project navigation
       cy.step(`Navigate to workbenches tab of Project ${projectName}`);
@@ -191,69 +179,16 @@ describe('[Automation Bug: RHOAIENG-20099] Workbenches - tolerations tests', () 
       notebookRow.expectStatusLabelToBe('Running', 120000);
       cy.reload();
 
-      // Validate that the toleration is not present in the pod
-      cy.step('Validate that the toleration is not present in the pod');
-      validateWorkbenchTolerations(projectName, testData.workbenchName, null, true).then(
-        (resolvedPodName) => {
-          cy.log(`Pod should be running without tolerations - name: ${resolvedPodName}`);
-        },
-      );
-    },
-  );
-
-  it(
-    'Verifies that a new toleration is added to a new workbench but not to an already running workbench',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard', '@Bug'] },
-    () => {
-      // Set Pod Tolerations
-      cy.step('Navigate to Cluster Settings, save and set pod tolerations');
-      clusterSettings.visit();
-      handleTolerationSettings(testData.tolerationValueUpdate);
-      clusterSettings.visit();
-      notebookTolerationSettings
-        .findKeyInput()
-        .should('have.value', testData.tolerationValueUpdate);
-
-      // Project navigation
-      cy.step(`Navigate to workbenches tab of Project ${projectName}`);
-      projectListPage.navigate();
-      projectListPage.filterProjectByName(projectName);
-      projectListPage.findProjectLink(projectName).click();
-      projectDetails.findSectionTab('workbenches').click();
-
-      // Create a second workbench with Config Map variables by uploading a yaml file
-      cy.step(`Create a second workbench ${testData.workbenchName2} using config map variables`);
-      workbenchPage.findCreateButton().click();
-      createSpawnerPage.getNameInput().type(testData.workbenchName2);
-      createSpawnerPage.findNotebookImage('code-server-notebook').click();
-      createSpawnerPage.findSubmitButton().click();
-
-      // Wait for workbench to run
-      cy.step(`Wait for workbench ${testData.workbenchName2} to display a "Running" status`);
-      const notebookRow2 = workbenchPage.getNotebookRow(testData.workbenchName2);
-      notebookRow2.expectStatusLabelToBe('Running', 120000);
-      notebookRow2.shouldHaveNotebookImageName('code-server');
-      notebookRow2.shouldHaveContainerSize('Small');
-
-      // Validate that the pod stops running
-      cy.step('Validate the Tolerations for the second pod');
       validateWorkbenchTolerations(
         projectName,
-        testData.workbenchName2,
-        testData.tolerationValueUpdate,
+        testData.workbenchName,
+        testData.tolerationValue,
         true,
       ).then((resolvedPodName) => {
         cy.log(
-          `Resolved Pod Name: ${resolvedPodName} and ${testData.tolerationValueUpdate} displays in the pod as expected`,
+          `Resolved Pod Name: ${resolvedPodName} and ${testData.tolerationValue} displays in the pod as expected`,
         );
       });
-      // Validate that the toleration is not present in the already running pod
-      cy.step('Validate that the toleration is not present in the already running pod');
-      validateWorkbenchTolerations(projectName, testData.workbenchName, null, true).then(
-        (resolvedPodName) => {
-          cy.log(`Pod should be running without tolerations - name: ${resolvedPodName}`);
-        },
-      );
     },
   );
 });
