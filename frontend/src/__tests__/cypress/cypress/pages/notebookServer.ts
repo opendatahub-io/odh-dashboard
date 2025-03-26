@@ -84,7 +84,7 @@ class NotebookServer {
     this.findHardProfileSelection().click();
     cy.findByRole('option', { name }).click();
   }
-  
+
   findHardwareProfileSelect() {
     return cy.findByTestId('hardware-profile-select');
   }
