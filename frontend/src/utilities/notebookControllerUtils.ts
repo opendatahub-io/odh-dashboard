@@ -553,18 +553,6 @@ export const useNotebookProgress = (
     }
   });
 
-  // Some events are not always received, mark all steps prior to the last completed step complete.
-  const lastCompleteIndex = progressSteps.findLastIndex(
-    (step) => step.status === EventStatus.SUCCESS,
-  );
-  if (lastCompleteIndex > 0) {
-    for (let i = 0; i < lastCompleteIndex; i++) {
-      if (progressSteps[i].status === EventStatus.PENDING) {
-        progressSteps[i].status = EventStatus.SUCCESS;
-      }
-    }
-  }
-
   // If the container is started and the server is running, mark the server started step complete
   if (
     isRunning &&
