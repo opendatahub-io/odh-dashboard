@@ -38,6 +38,7 @@ type HardwareProfilesTableRowProps = {
   rowIndex: number;
   hardwareProfile: HardwareProfileKind;
   migrationAction?: MigrationAction;
+  isMigratedTable?: boolean;
   handleDelete: (cr: HardwareProfileKind) => void;
   handleMigrate: (migrationAction: MigrationAction) => void;
 };
@@ -46,6 +47,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
   hardwareProfile,
   rowIndex,
   migrationAction,
+  isMigratedTable = false,
   handleDelete,
   handleMigrate,
 }) => {
@@ -151,20 +153,22 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
             <HardwareProfileEnableToggle hardwareProfile={hardwareProfile} />
           )}
         </Td>
-        <Td dataLabel="Last modified">
-          {modifiedDate && !Number.isNaN(new Date(modifiedDate).getTime()) ? (
-            <Timestamp
-              date={new Date(modifiedDate)}
-              tooltip={{
-                variant: TimestampTooltipVariant.default,
-              }}
-            >
-              {relativeTime(Date.now(), new Date(modifiedDate).getTime())}
-            </Timestamp>
-          ) : (
-            '--'
-          )}
-        </Td>
+        {!isMigratedTable && (
+          <Td dataLabel="Last modified">
+            {modifiedDate && !Number.isNaN(new Date(modifiedDate).getTime()) ? (
+              <Timestamp
+                date={new Date(modifiedDate)}
+                tooltip={{
+                  variant: TimestampTooltipVariant.default,
+                }}
+              >
+                {relativeTime(Date.now(), new Date(modifiedDate).getTime())}
+              </Timestamp>
+            ) : (
+              '--'
+            )}
+          </Td>
+        )}
         <Td isActionCell>
           <ActionsColumn
             items={[
