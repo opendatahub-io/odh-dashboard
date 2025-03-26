@@ -1,3 +1,8 @@
+import { LabeledConnection } from '~/pages/modelServing/screens/types';
+import {
+  ConnectionTypeConfigMapObj,
+  ConnectionTypeValueType,
+} from '~/concepts/connectionTypes/types';
 import { ModelVersion, ModelState, RegisteredModel } from './types';
 
 export type ObjectStorageFields = {
@@ -12,6 +17,14 @@ export type RegisteredModelLocation = {
   uri: string | null;
   ociUri: string | null;
 } | null;
+
+export type PrefilledConnection = {
+  initialNewConnectionType: ConnectionTypeConfigMapObj | undefined;
+  initialNewConnectionValues: { [key: string]: ConnectionTypeValueType };
+  connections: LabeledConnection[];
+  connectionsLoaded: boolean;
+  connectionsLoadError: Error | undefined;
+};
 
 export const objectStorageFieldsToUri = (fields: ObjectStorageFields): string | null => {
   const { endpoint, bucket, region, path } = fields;
