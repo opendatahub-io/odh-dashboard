@@ -4,25 +4,38 @@ import { HardwareProfileFeatureVisibility } from '~/k8sTypes';
 import { MultiSelection, type SelectionOptions } from '~/components/MultiSelection';
 import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
 import { ManageHardwareProfileSectionTitles } from '~/pages/hardwareProfiles/const';
-import { HardwareProfileVisibility, ManageHardwareProfileSectionID } from './types';
+import { ManageHardwareProfileSectionID } from './types';
 import { HardwareProfileFeatureVisibilityTitles } from './const';
 
 type HardwareProfileUseCaseSectionProps = {
-  visibility: HardwareProfileVisibility;
-  setVisibility: (visibility: HardwareProfileVisibility) => void;
+  visibility: string[];
+  setVisibility: (visibility: string[]) => void;
 };
 
 export const HardwareProfileVisibilitySection: React.FC<HardwareProfileUseCaseSectionProps> = ({
   visibility,
   setVisibility,
 }) => {
-  const visibilityOptions: SelectionOptions[] = Object.values(HardwareProfileFeatureVisibility).map(
-    (value) => ({
-      id: value,
-      name: HardwareProfileFeatureVisibilityTitles[value],
-      selected: visibility.features.includes(value),
-    }),
+  const [isLimitedOptionSelected, setLimitedOptionSelected] = React.useState(false);
+  const [selectedOptions, setSelectedOptions] = React.useState<string[]>([]);
+  const visibilityOptions: SelectionOptions[] = React.useMemo(
+    () =>
+      Object.values(HardwareProfileFeatureVisibility).map((value) => ({
+        id: value,
+        name: HardwareProfileFeatureVisibilityTitles[value],
+        selected: selectedOptions.includes(value),
+      })),
+    [selectedOptions],
   );
+
+  React.useEffect(() => {
+    if (visibility.length === 0) {
+      setLimitedOptionSelected(false);
+    } else {
+      setLimitedOptionSelected(true);
+      setSelectedOptions(visibility);
+    }
+  }, [visibility]);
 
   return (
     <FormGroup
@@ -44,29 +57,32 @@ export const HardwareProfileVisibilitySection: React.FC<HardwareProfileUseCaseSe
         id="all-features"
         name="features-visibility"
         label="Visible everywhere"
-        isChecked={visibility.isUnlimited}
+        isChecked={!isLimitedOptionSelected}
         onChange={() => {
-          setVisibility({ ...visibility, isUnlimited: true });
+          setLimitedOptionSelected(false);
+          setVisibility([]);
         }}
       />
       <Radio
         id="limited-features"
         name="features-visibility"
         label="Limited visibility"
-        isChecked={!visibility.isUnlimited}
+        isChecked={isLimitedOptionSelected}
         onChange={() => {
-          setVisibility({ ...visibility, isUnlimited: false });
+          setLimitedOptionSelected(true);
+          if (selectedOptions.length !== 0) {
+            setVisibility(selectedOptions);
+          }
         }}
         body={
-          !visibility.isUnlimited && (
+          isLimitedOptionSelected && (
             <MultiSelection
               value={visibilityOptions}
-              setValue={(value) =>
-                setVisibility({
-                  ...visibility,
-                  features: value.filter((v) => v.selected).map((v) => String(v.id)),
-                })
-              }
+              setValue={(value) => {
+                const selected = value.filter((v) => v.selected).map((v) => String(v.id));
+                setVisibility(selected);
+                setSelectedOptions(selected);
+              }}
               ariaLabel="Select features"
               placeholder="Select features"
             />

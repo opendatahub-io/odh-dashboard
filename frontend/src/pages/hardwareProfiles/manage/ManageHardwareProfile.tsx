@@ -17,11 +17,7 @@ import ManageTolerationSection from '~/pages/hardwareProfiles/manage/ManageToler
 import ManageHardwareProfileFooter from '~/pages/hardwareProfiles/manage/ManageHardwareProfileFooter';
 import ManageNodeResourceSection from '~/pages/hardwareProfiles/manage/ManageNodeResourceSection';
 import { MigrationAction } from '~/pages/hardwareProfiles/migration/types';
-import {
-  HardwareProfileFormData,
-  HardwareProfileVisibility,
-  ManageHardwareProfileSectionID,
-} from './types';
+import { HardwareProfileFormData, ManageHardwareProfileSectionID } from './types';
 import { HardwareProfileVisibilitySection } from './HardwareProfileVisibilitySection';
 
 type ManageHardwareProfileProps = {
@@ -42,10 +38,7 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
   const [state, setState] = useGenericObjectState<HardwareProfileKind['spec']>(
     DEFAULT_HARDWARE_PROFILE_SPEC,
   );
-  const [visibility, setVisibility] = React.useState<HardwareProfileVisibility>({
-    isUnlimited: true,
-    features: [],
-  });
+  const [visibility, setVisibility] = React.useState<string[]>([]);
   const { data: profileNameDesc, onDataChange: setProfileNameDesc } =
     useK8sNameDescriptionFieldData({
       initialData: existingHardwareProfile
@@ -68,19 +61,17 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
         // set the visibility from the annotations
         try {
           if (
-            hardwareProfile.metadata.annotations?.['opendatahub.io/dashboard-feature-visibility'] &&
-            hardwareProfile.metadata.annotations['opendatahub.io/dashboard-feature-visibility'] !==
-              '[]'
+            hardwareProfile.metadata.annotations?.['opendatahub.io/dashboard-feature-visibility']
           ) {
             const visibleIn = JSON.parse(
               hardwareProfile.metadata.annotations['opendatahub.io/dashboard-feature-visibility'],
             );
-            setVisibility({ isUnlimited: false, features: visibleIn });
+            setVisibility(visibleIn);
           } else {
-            setVisibility({ isUnlimited: true, features: [] });
+            setVisibility([]);
           }
         } catch (error) {
-          setVisibility({ isUnlimited: true, features: [] });
+          setVisibility([]);
         }
       }
     },
