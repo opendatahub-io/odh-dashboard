@@ -7,13 +7,18 @@ import {
   waitForPodReady,
   deleteNotebook,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
-import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
-import { createCleanHardwareProfile, cleanupHardwareProfiles } from '~/__tests__/cypress/cypress/utils/oc_commands/hardwareProfiles';
-import { wasSetupPerformed } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import {
+  retryableBefore,
+  wasSetupPerformed,
+} from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import {
+  createCleanHardwareProfile,
+  cleanupHardwareProfiles,
+} from '~/__tests__/cypress/cypress/utils/oc_commands/hardwareProfiles';
+import { checkNotebookTolerations } from '~/__tests__/cypress/cypress/utils/oc_commands/notebooks';
 
 describe('Notebooks - tolerations tests', () => {
   let testData: NotebookTolerationsTestData;
-  let hardwareProfileResourceName: string;
 
   retryableBefore(() => {
     return cy
@@ -21,25 +26,24 @@ describe('Notebooks - tolerations tests', () => {
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as NotebookTolerationsTestData;
 
-        // Check if a notebook is running and delete if it is
-        deleteNotebook('jupyter-nb');
-
         // Load Hardware Profile
-        cy.log(`Loaded Hardware Profile Name: ${hardwareProfileResourceName}`);
+        cy.log(`Loaded Hardware Profile Name: ${testData.hardwareProfileName}`);
         // Cleanup Hardware Profile if it already exists
         createCleanHardwareProfile(testData.resourceYamlPath);
       });
   });
 
-    // Cleanup: Delete Hardware Profile and the associated Project
-    after(() => {
-      // Check if the Before Method was executed to perform the setup
-      if (!wasSetupPerformed()) return;
-  
-      // Call cleanupHardwareProfiles here, after hardwareProfileResourceName is set
-      cleanupHardwareProfiles(hardwareProfileResourceName).then(() => {
-      });
-    });
+  // Cleanup: Delete Hardware Profile and the associated Project
+  after(() => {
+    // Check if the Before Method was executed to perform the setup
+    if (!wasSetupPerformed()) return;
+
+    // Check if a notebook is running and delete if it is
+    deleteNotebook('jupyter-nb');
+
+    // Call cleanupHardwareProfiles here, after hardwareProfileResourceName is set
+    cleanupHardwareProfiles(testData.hardwareProfileName);
+  });
 
   it(
     'Verify Juypter Notebook Creation using Hardware Profiles and applying Tolerations',
@@ -92,17 +96,25 @@ describe('Notebooks - tolerations tests', () => {
       cy.step('Waits for the Success alert');
       notebookServer.findSuccessAlert().should('exist');
 
-      // // Open the server in a new tab
-      // cy.step('Opens the server in a new tab');
-      // notebookServer.findOpenInNewTabButton().click();
+      // Validate that the toleration applied earlier displays in the newly created pod
+      cy.step('Validate the Tolerations for the pod include the newly added toleration');
+      checkNotebookTolerations('jupyter-nb', {
+        key: 'test-taint',
+        operator: 'Equal',
+        effect: testData.tolerationValue,
+      });
 
-      // // Stop the server
-      // cy.step('Stop the server');
-      // notebookServer.findStopServerButton().click();
+      // Open the server in a new tab
+      cy.step('Opens the server in a new tab');
+      notebookServer.findOpenInNewTabButton().click();
 
-      // // Stop the server confirmation
-      // cy.step('Confirm stopping the server');
-      // notebookServer.findStopNotebookServerButton().click();
+      // Stop the server
+      cy.step('Stop the server');
+      notebookServer.findStopServerButton().click();
+
+      // Stop the server confirmation
+      cy.step('Confirm stopping the server');
+      notebookServer.findStopNotebookServerButton().click();
     },
   );
 });

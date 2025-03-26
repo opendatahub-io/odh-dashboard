@@ -121,7 +121,9 @@ describe('Notebooks - tolerations tests', () => {
       modelServingGlobal.findDeployModelButton().click();
 
       // Launch a Single Serving Model and select the required entries
-      cy.step('Launch a Single Serving Model using Caikit TGIS ServingRuntime for KServe and by selecting the Hardware Profile');
+      cy.step(
+        'Launch a Single Serving Model using Caikit TGIS ServingRuntime for KServe and by selecting the Hardware Profile',
+      );
       inferenceServiceModal.findModelNameInput().type(modelName);
       inferenceServiceModal.findServingRuntimeTemplate().click();
       inferenceServiceModal.findCalkitTGISServingRuntime().click();
@@ -139,7 +141,7 @@ describe('Notebooks - tolerations tests', () => {
       attemptToClickTooltip();
 
       // Validate that the toleration applied earlier displays in the newly created pod
-      cy.step('Validate the Tolerations for the pod include the newly added toleration');  
+      cy.step('Validate the Tolerations for the pod include the newly added toleration');
       validateInferenceServiceTolerations(
         projectName,
         modelName, // InferenceService name
@@ -147,7 +149,7 @@ describe('Notebooks - tolerations tests', () => {
           key: 'test-taint',
           operator: 'Equal',
           effect: tolerationValue,
-          },
+        },
       ).then(() => {
         cy.log(`✅ Toleration value "${tolerationValue}" displays in the pod as expected`);
       });
