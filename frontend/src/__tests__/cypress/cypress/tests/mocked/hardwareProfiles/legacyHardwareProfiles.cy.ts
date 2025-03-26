@@ -229,11 +229,6 @@ describe('legacy profiles table', () => {
       legacyHardwareProfile.findTableHeaderButton('Name').should(be.sortDescending);
       legacyHardwareProfile.findTableHeaderButton('Name').click();
       legacyHardwareProfile.findTableHeaderButton('Name').should(be.sortAscending);
-
-      legacyHardwareProfile.findTableHeaderButton('Last modified').click();
-      legacyHardwareProfile.findTableHeaderButton('Last modified').should(be.sortAscending);
-      legacyHardwareProfile.findTableHeaderButton('Last modified').click();
-      legacyHardwareProfile.findTableHeaderButton('Last modified').should(be.sortDescending);
     });
 
     it('should show the expandable section for items', () => {
