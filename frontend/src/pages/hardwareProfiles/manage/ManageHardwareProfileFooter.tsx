@@ -133,6 +133,7 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
               isExpandable
               isInline
               variant="warning"
+              data-testid="migration-alert"
               title="Updating this profile will trigger migration"
             >
               You are editing a legacy hardware profile that was created from the{' '}

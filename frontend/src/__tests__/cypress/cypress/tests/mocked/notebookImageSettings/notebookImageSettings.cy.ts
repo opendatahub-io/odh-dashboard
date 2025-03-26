@@ -14,6 +14,15 @@ import {
   asProjectAdminUser,
 } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
+import {
+  AcceleratorProfileModel,
+  HardwareProfileModel,
+} from '~/__tests__/cypress/cypress/utils/models';
+import { mockDashboardConfig, mockK8sResourceList } from '~/__mocks__';
+import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
+import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
+import { IdentifierResourceType } from '~/types';
+import { HardwareProfileFeatureVisibility } from '~/k8sTypes';
 
 it('Notebook image settings should not be available for non product admins', () => {
   asProjectAdminUser();
@@ -190,10 +199,87 @@ describe('Notebook image settings', () => {
   it('Edit form fields match', () => {
     cy.interceptOdh('GET /api/images/byon', mockByon([{ url: 'test-image:latest' }]));
     cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableHardwareProfiles: false,
+      }),
+    );
+    cy.interceptOdh(
       'PUT /api/images/:image',
       { path: { image: 'byon-123' } },
       { success: true },
     ).as('editNotebookImage');
+
+    cy.interceptK8sList(
+      { model: AcceleratorProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList([
+        mockAcceleratorProfile({
+          name: 'test-accelerator-profile',
+          displayName: 'Test Accelerator Profile',
+          identifier: 'test-accelerator-profile',
+        }),
+      ]),
+    );
+
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList([
+        mockHardwareProfile({
+          name: 'test-hardware-profile-visible',
+          displayName: 'Test Hardware Profile Visible',
+          annotations: {
+            'opendatahub.io/dashboard-feature-visibility': JSON.stringify([
+              HardwareProfileFeatureVisibility.WORKBENCH,
+            ]),
+          },
+          identifiers: [
+            {
+              displayName: 'hwp1',
+              identifier: 'hwp1',
+              minCount: '2Gi',
+              maxCount: '5Gi',
+              defaultCount: '2Gi',
+              resourceType: IdentifierResourceType.MEMORY,
+            },
+            {
+              displayName: 'hwp2',
+              identifier: 'hwp2',
+              minCount: '1',
+              maxCount: '2',
+              defaultCount: '1',
+              resourceType: IdentifierResourceType.CPU,
+            },
+          ],
+        }),
+        mockHardwareProfile({
+          name: 'test-hardware-profile-not-visible',
+          displayName: 'Test Hardware Profile Not Visible',
+          annotations: {
+            'opendatahub.io/dashboard-feature-visibility': JSON.stringify([
+              HardwareProfileFeatureVisibility.PIPELINES,
+            ]),
+          },
+          identifiers: [
+            {
+              displayName: 'hwp3',
+              identifier: 'hwp3',
+              minCount: '2Gi',
+              maxCount: '5Gi',
+              defaultCount: '2Gi',
+              resourceType: IdentifierResourceType.MEMORY,
+            },
+            {
+              displayName: 'hwp4',
+              identifier: 'hwp4',
+              minCount: '1',
+              maxCount: '2',
+              defaultCount: '1',
+              resourceType: IdentifierResourceType.CPU,
+            },
+          ],
+        }),
+      ]),
+    );
 
     notebookImageSettings.visit();
 
@@ -204,6 +290,15 @@ describe('Notebook image settings', () => {
     updateNotebookImageModal.findImageLocationInput().should('have.value', 'test-image:latest');
     updateNotebookImageModal.findNameInput().should('have.value', 'Testing Custom Image');
     updateNotebookImageModal.findDescriptionInput().should('have.value', 'A custom notebook image');
+
+    // test hardware profile
+    updateNotebookImageModal.findHardwareProfileSelect().click();
+    updateNotebookImageModal
+      .findHardwareProfileSelectOptionValues()
+      .should('deep.equal', ['hwp1', 'hwp2']);
+    updateNotebookImageModal.findHardwareProfileSelectOption('hwp1').click();
+    updateNotebookImageModal.findHardwareProfileSelectOption('hwp2').click();
+    updateNotebookImageModal.findHardwareProfileSelect().click();
 
     // test software and packages have correct values
     let notebookImageTabRow = importNotebookImageModal.getSoftwareRow('test-software', 0);
@@ -226,7 +321,7 @@ describe('Notebook image settings', () => {
         /* eslint-disable-next-line camelcase */
         display_name: 'Updated custom image',
         description: 'A custom notebook image',
-        recommendedAcceleratorIdentifiers: [],
+        recommendedAcceleratorIdentifiers: ['hwp1', 'hwp2'],
         packages: [{ name: 'test-package', version: '1.0', visible: true }],
         software: [{ name: 'test-software', version: '2.0', visible: true }],
       });
