@@ -247,7 +247,7 @@ export const getEventFullMessage = (event: EventKind): string =>
 const filterEvents = (
   allEvents: EventKind[],
   lastActivity: Date,
-): [filterEvents: EventKind[], thisInstanceEvents: EventKind[], gracePeroid: boolean] => {
+): [filterEvents: EventKind[], thisInstanceEvents: EventKind[], gracePeriod: boolean] => {
   const thisInstanceEvents = allEvents
     .filter((event) => new Date(getEventTimestamp(event)) >= lastActivity)
     .toSorted((a, b) => getEventTimestamp(a).localeCompare(getEventTimestamp(b)));
