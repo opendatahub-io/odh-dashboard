@@ -93,7 +93,7 @@ export const SshKeyFileUpload: React.FC<{
             data-testid="ssh-key-helpText"
             variant={rejectedReason ? 'error' : 'default'}
           >
-            {isLoading ? 'Reading file...' : rejectedReason}
+            {rejectedReason}
           </HelperTextItem>
         </HelperText>
       </FormHelperText>
