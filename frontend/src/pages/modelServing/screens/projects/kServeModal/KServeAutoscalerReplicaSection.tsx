@@ -52,9 +52,9 @@ const KServeAutoscalerReplicaSection: React.FC<KServeAutoscalerReplicaSectionPro
         onChange={(event) => {
           if (isHTMLInputElement(event.target)) {
             const newSize = Number(event.target.value);
-            if (!Number.isNaN(newSize) && newSize <= 999) {
-              setData('minReplicas', normalizeBetween(newSize, MIN_SIZE));
-              setData('maxReplicas', normalizeBetween(newSize, MIN_SIZE));
+            if (!Number.isNaN(newSize) && newSize <= MAX_SIZE) {
+              setData('minReplicas', normalizeBetween(newSize, MIN_SIZE, MAX_SIZE));
+              setData('maxReplicas', normalizeBetween(newSize, MIN_SIZE, MAX_SIZE));
             }
           }
         }}
