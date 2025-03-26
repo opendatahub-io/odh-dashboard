@@ -635,6 +635,27 @@ export const ProgressionStepTitles = {
   [ProgressionStep.SERVER_STARTED]: 'Server started',
 };
 
+export const AssociatedSteps = {
+  [ProgressionStep.NOTEBOOK_CONTAINER_STARTED]: [
+    ProgressionStep.SERVER_REQUESTED,
+    ProgressionStep.POD_CREATED,
+    ProgressionStep.POD_ASSIGNED,
+    ProgressionStep.PVC_ATTACHED,
+    ProgressionStep.INTERFACE_ADDED,
+    ProgressionStep.PULLING_NOTEBOOK_IMAGE,
+    ProgressionStep.NOTEBOOK_IMAGE_PULLED,
+    ProgressionStep.NOTEBOOK_CONTAINER_CREATED,
+  ],
+  [ProgressionStep.OAUTH_CONTAINER_STARTED]: [
+    ProgressionStep.PULLING_OAUTH,
+    ProgressionStep.OAUTH_PULLED,
+    ProgressionStep.OAUTH_CONTAINER_CREATED,
+    ProgressionStep.OAUTH_CONTAINER_STARTED,
+  ],
+  [ProgressionStep.POD_ASSIGNED]: [ProgressionStep.POD_CREATED],
+  [ProgressionStep.SERVER_STARTED]: [ProgressionStep],
+};
+
 export type NotebookProgressStep = {
   step?: ProgressionStep;
   description?: string;

@@ -3,6 +3,7 @@ import { AxiosError } from 'axios';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { createRoleBinding, getRoleBinding } from '~/services/roleBindingService';
 import {
+  AssociatedSteps,
   EnvVarReducedTypeKeyValues,
   EventStatus,
   Notebook,
@@ -566,6 +567,18 @@ export const useNotebookProgress = (
       startedStep.status = EventStatus.SUCCESS;
     }
   }
+
+  // If milestone steps are completed, mark off associated steps
+  Object.entries(AssociatedSteps).forEach(([key, values]) => {
+    if (progressSteps.find((p) => p.step === key)?.status === EventStatus.SUCCESS) {
+      values.forEach((value) => {
+        const currentStep = progressSteps.find((p) => p.step === value);
+        if (currentStep && currentStep.status !== EventStatus.SUCCESS) {
+          currentStep.status = EventStatus.SUCCESS;
+        }
+      });
+    }
+  });
 
   // Insert the last error or warning after the last pending step
   if (currentProgress.length) {
