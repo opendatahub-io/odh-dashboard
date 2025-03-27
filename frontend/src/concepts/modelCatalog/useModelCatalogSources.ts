@@ -3,6 +3,7 @@ import { getConfigMap, isK8sStatus } from '~/api';
 import useNamespaces from '~/pages/notebookController/useNamespaces';
 import { useIsAreaAvailable } from '~/concepts/areas';
 import { SupportedArea } from '~/concepts/areas/types';
+import { allSettledPromises } from '~/utilities/allSettledPromises';
 import useFetchState, { NotReadyError, FetchState } from '~/utilities/useFetchState';
 import { ModelCatalogSource, ModelCatalogSourcesObject } from './types';
 import { MODEL_CATALOG_SOURCES_CONFIGMAP } from './const';
@@ -27,22 +28,28 @@ export const useModelCatalogSources = (): FetchState<State> => {
       throw new NotReadyError('Model catalog feature is not enabled');
     }
 
-    try {
-      const configMap = await getConfigMap(dashboardNamespace, MODEL_CATALOG_SOURCES_CONFIGMAP);
-      if (!configMap.data || !configMap.data.modelCatalogSources) {
+    const [successes, fails] = await allSettledPromises([
+      getConfigMap(dashboardNamespace, MODEL_CATALOG_SOURCES_CONFIGMAP),
+      getConfigMap(dashboardNamespace, 'model-catalog-unmanaged-sources'),
+    ]);
+
+    for (const fail of fails) {
+      if (!isK8sNotFoundError(fail.reason)) {
+        throw fail.reason;
+      }
+    }
+
+    const sources: ModelCatalogSource[] = successes.flatMap((success) => {
+      const { data } = success.value;
+      if (!data || typeof data.modelCatalogSources !== 'string') {
         return [];
       }
 
-      const parsed: ModelCatalogSourcesObject | undefined = JSON.parse(
-        configMap.data.modelCatalogSources,
-      );
+      const parsed: ModelCatalogSourcesObject | undefined = JSON.parse(data.modelCatalogSources);
       return parsed ? parsed.sources : [];
-    } catch (e: unknown) {
-      if (isK8sNotFoundError(e)) {
-        return [];
-      }
-      throw e;
-    }
+    });
+
+    return sources;
   }, [dashboardNamespace, isModelCatalogAvailable]);
 
   return useFetchState<State>(callback, []);
