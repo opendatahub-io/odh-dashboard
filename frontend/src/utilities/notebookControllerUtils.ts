@@ -361,6 +361,12 @@ export const getNotebookEventStatus = (
 
   // For notebook-related events
   switch (event.reason) {
+    case 'SuccessfulCreate':
+      return {
+        step: ProgressionStep.POD_CREATED,
+        status: EventStatus.SUCCESS,
+        timestamp,
+      };
     case 'Scheduled':
       return {
         step: ProgressionStep.POD_ASSIGNED,
@@ -567,7 +573,7 @@ export const useNotebookProgress = (
     if (progressSteps.find((p) => p.step === key)?.status === EventStatus.SUCCESS) {
       values.forEach((value) => {
         const currentStep = progressSteps.find((p) => p.step === value);
-        if (currentStep && currentStep.status !== EventStatus.SUCCESS) {
+        if (currentStep) {
           currentStep.status = EventStatus.SUCCESS;
         }
       });
