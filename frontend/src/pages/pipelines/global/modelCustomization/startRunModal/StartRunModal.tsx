@@ -1,6 +1,9 @@
 import * as React from 'react';
 import { Modal } from '@patternfly/react-core/deprecated';
 import {
+  Alert,
+  Content,
+  ContentVariants,
   Form,
   FormGroup,
   FormHelperText,
@@ -11,9 +14,6 @@ import {
   ModalVariant,
   Stack,
   StackItem,
-  Alert,
-  Content,
-  ContentVariants,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import ProjectSelector from '~/concepts/projects/ProjectSelector';
@@ -21,6 +21,8 @@ import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { PipelineContextProvider } from '~/concepts/pipelines/context';
 import MissingConditionAlert from '~/pages/pipelines/global/modelCustomization/startRunModal/MissingConditionAlert';
 import { modelCustomizationRootPath } from '~/routes';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 
 export type StartRunModalProps = {
   onSubmit: (selectedProject: string) => void;
@@ -29,6 +31,7 @@ export type StartRunModalProps = {
   loadError?: Error | null;
 };
 
+const eventName = 'Lab Tune requested';
 const StartRunModal: React.FC<StartRunModalProps> = ({
   onSubmit,
   onCancel,
@@ -47,10 +50,17 @@ const StartRunModal: React.FC<StartRunModalProps> = ({
         <DashboardModalFooter
           onSubmit={() => {
             if (selectedProject) {
+              fireFormTrackingEvent(eventName, { outcome: TrackingOutcome.submit });
               onSubmit(selectedProject);
             }
           }}
-          onCancel={onCancel}
+          onCancel={() => {
+            fireFormTrackingEvent(eventName, {
+              outcome: TrackingOutcome.cancel,
+              couldContinue: canContinue,
+            });
+            onCancel();
+          }}
           submitLabel="Continue to run details"
           isSubmitDisabled={!canContinue || !loaded || !!loadError}
         />
