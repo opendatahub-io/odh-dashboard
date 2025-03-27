@@ -87,8 +87,8 @@ describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
       addClusterStorageModal.findDescriptionInput().type(pvStorageDescription);
       const numericPvcSize = dashboardConfig.notebookController.pvcSize.replace(/\D/g, '');
       addClusterStorageModal.findPVStorageSizeValue().should('have.value', numericPvcSize);
-      addClusterStorageModal.findSubmitButton().click();
-      clusterStorage.getClusterStorageRow(pvStorageName);
+      addClusterStorageModal.findSubmitButton().click({ force: true });
+      clusterStorage.getClusterStorageRow(pvStorageName).find().should('exist');
 
       // Edit the Cluster Storage, amend the name and update
       cy.step('Edit the Cluster Storage and verify edits are successful');
@@ -96,8 +96,8 @@ describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
       clusterStorage.getClusterStorageRow(pvStorageName).findKebabAction('Edit storage').click();
       updateClusterStorageModal.findNameInput().clear();
       updateClusterStorageModal.findNameInput().type(pvStorageNameEdited);
-      updateClusterStorageModal.findSubmitButton().click();
-      clusterStorage.getClusterStorageRow(pvStorageNameEdited);
+      updateClusterStorageModal.findSubmitButton().click({ force: true });
+      clusterStorage.getClusterStorageRow(pvStorageNameEdited).find().should('exist');
 
       // Delete the Cluster Storage and confirm that the deletion was successful
       cy.step('Delete the Cluster Storage and verify deletion');
