@@ -101,6 +101,12 @@ class InferenceServiceModal extends Modal {
     super(`${edit ? 'Edit' : 'Deploy'} model`);
   }
 
+  findConnectionType(name: string | RegExp) {
+    return this.findExistingConnectionSelect()
+      .findByRole('button', { name: 'Typeahead menu toggle' })
+      .findSelectOption(name);
+  }
+
   findSubmitButton() {
     return this.findFooter().findByTestId('modal-submit-button');
   }
@@ -200,10 +206,9 @@ class InferenceServiceModal extends Modal {
     return this.find().findByTestId('model-uri');
   }
 
-  findConnectionType(name: string | RegExp) {
-    return this.findExistingConnectionSelect()
-      .findByRole('button', { name: 'Typeahead menu toggle' })
-      .findSelectOption(name);
+  selectConnectionType(name: string) {
+    this.findExistingConnectionSelect().click();
+    cy.findByRole('option', { name, hidden: true }).click();
   }
 
   selectExistingConnectionSelectOptionByResourceName() {
@@ -240,6 +245,10 @@ class InferenceServiceModal extends Modal {
 
   findLocationBucketInput() {
     return this.find().findByTestId('field AWS_S3_BUCKET');
+  }
+
+  findBaseURL() {
+    return this.find().findByTestId('field OCI_HOST');
   }
 
   findLocationRegionInput() {
