@@ -34,12 +34,16 @@ const ModelRegistriesManagePermissions: React.FC = () => {
   const [ownerReference, setOwnerReference] = React.useState<ModelRegistryKind>();
   const [groups] = useGroups();
   const roleBindings = useContextResourceData<RoleBindingKind>(useModelRegistryRoleBindings());
-  const { mrName } = useParams();
-  const state = useModelRegistryNamespaceCR(modelRegistryNamespace || '', mrName || '');
+  const { mrName } = useParams<{ mrName: string }>();
+  const state = useModelRegistryNamespaceCR(modelRegistryNamespace, mrName || '');
   const [modelRegistryCR, crLoaded] = state;
   const filteredRoleBindings = roleBindings.data.filter(
     (rb) => rb.metadata.labels?.['app.kubernetes.io/name'] === mrName,
   );
+
+  const error = !modelRegistryNamespace
+    ? new Error('No registries namespace could be found')
+    : null;
 
   React.useEffect(() => {
     if (modelRegistryCR) {
@@ -51,17 +55,9 @@ const ModelRegistriesManagePermissions: React.FC = () => {
 
   if (!modelRegistryNamespace) {
     return (
-      <ApplicationsPage
-        loaded
-        empty={false}
-        loadError={new Error('No registries namespace could be found')}
-        loadErrorPage={
-          <RedirectErrorState
-            title="Could not load component state"
-            errorMessage="No registries namespace could be found"
-          />
-        }
-      />
+      <ApplicationsPage loaded empty={false}>
+        <RedirectErrorState title="Could not load component state" errorMessage={error?.message} />
+      </ApplicationsPage>
     );
   }
 

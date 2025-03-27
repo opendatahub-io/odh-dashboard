@@ -55,25 +55,22 @@ const EnabledModelRegistrySelectorContextProvider: React.FC<React.PropsWithChild
     [],
   );
 
-  const namespaceForHook = React.useMemo(
-    () => modelRegistryNamespace || '',
-    [modelRegistryNamespace],
-  );
   const {
     modelRegistryServices = [],
     isLoaded,
     error: servicesError,
     refreshRulesReview,
-  } = useModelRegistryServices(namespaceForHook);
+  } = useModelRegistryServices(modelRegistryNamespace);
 
   const contextValue = React.useMemo(() => {
     const error = !modelRegistryNamespace
       ? new Error('No registries namespace could be found')
       : servicesError;
+
     return {
       modelRegistryServicesLoaded: isLoaded,
       modelRegistryServicesLoadError: error,
-      modelRegistryServices: modelRegistryNamespace ? modelRegistryServices : [],
+      modelRegistryServices,
       preferredModelRegistry: preferredModelRegistry ?? modelRegistryServices[0],
       updatePreferredModelRegistry,
       refreshRulesReview,

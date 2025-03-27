@@ -280,17 +280,9 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
 
   if (!modelRegistryNamespace) {
     return (
-      <ApplicationsPage
-        loaded
-        empty={false}
-        loadError={new Error('No registries namespace could be found')}
-        loadErrorPage={
-          <RedirectErrorState
-            title="Could not load component state"
-            errorMessage="No registries namespace could be found"
-          />
-        }
-      />
+      <ApplicationsPage loaded empty={false}>
+        <RedirectErrorState title="Could not load component state" errorMessage={error?.message} />
+      </ApplicationsPage>
     );
   }
 

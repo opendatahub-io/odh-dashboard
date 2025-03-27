@@ -35,9 +35,13 @@ const listServicesOrFetchThemByNames = async (
   allowList: boolean,
   accessReviewLoaded: boolean,
   rulesReviewLoaded: boolean,
-  namespace: string,
+  namespace: string | undefined,
   serviceNames?: string[],
 ): Promise<ServiceKind[]> => {
+  if (!namespace) {
+    throw new NotReadyError('No registries namespace could be found');
+  }
+
   if (!accessReviewLoaded || !rulesReviewLoaded) {
     throw new NotReadyError('Access review or Rules review not loaded');
   }
@@ -56,9 +60,16 @@ export type ModelRegistryServicesResult = {
   refreshRulesReview: () => void;
 };
 
-export const useModelRegistryServices = (namespace: string): ModelRegistryServicesResult => {
-  const [allowList, accessReviewLoaded] = useAccessReview({ ...accessReviewResource, namespace });
-  const [rulesReviewStatus, rulesReviewLoaded, refreshRulesReview] = useRulesReview(namespace);
+export const useModelRegistryServices = (
+  namespace: string | undefined,
+): ModelRegistryServicesResult => {
+  const [allowList, accessReviewLoaded] = useAccessReview(
+    { ...accessReviewResource, namespace: namespace || '' },
+    !!namespace,
+  );
+  const [rulesReviewStatus, rulesReviewLoaded, refreshRulesReview] = useRulesReview(
+    namespace || '',
+  );
 
   const serviceNames = React.useMemo(() => {
     if (!rulesReviewLoaded) {
@@ -72,17 +83,19 @@ export const useModelRegistryServices = (namespace: string): ModelRegistryServic
       .flatMap((rule) => rule.resourceNames || []);
   }, [rulesReviewLoaded, rulesReviewStatus]);
 
-  const callback = React.useCallback<FetchStateCallbackPromise<ServiceKind[]>>(
-    () =>
-      listServicesOrFetchThemByNames(
-        allowList,
-        accessReviewLoaded,
-        rulesReviewLoaded,
-        namespace,
-        serviceNames,
-      ),
-    [allowList, accessReviewLoaded, rulesReviewLoaded, serviceNames, namespace],
-  );
+  const callback = React.useCallback<FetchStateCallbackPromise<ServiceKind[]>>(() => {
+    if (!namespace) {
+      return Promise.reject(new NotReadyError('No registries namespace could be found'));
+    }
+
+    return listServicesOrFetchThemByNames(
+      allowList,
+      accessReviewLoaded,
+      rulesReviewLoaded,
+      namespace,
+      serviceNames,
+    );
+  }, [allowList, accessReviewLoaded, rulesReviewLoaded, serviceNames, namespace]);
 
   const [modelRegistryServices, isLoaded, error] = useFetchState(callback, [], {
     initialPromisePurity: true,

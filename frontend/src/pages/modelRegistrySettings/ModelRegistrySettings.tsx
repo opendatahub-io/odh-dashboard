@@ -16,6 +16,7 @@ import { ProjectObjectType } from '~/concepts/design/utils';
 import useModelRegistriesBackend from '~/concepts/modelRegistrySettings/useModelRegistriesBackend';
 import { useContextResourceData } from '~/utilities/useContextResourceData';
 import { RoleBindingKind } from '~/k8sTypes';
+import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import ModelRegistriesTable from './ModelRegistriesTable';
 import CreateModal from './CreateModal';
 import useModelRegistryRoleBindings from './useModelRegistryRoleBindings';
@@ -28,26 +29,23 @@ const ModelRegistrySettings: React.FC = () => {
   const [modelRegistries, mrloaded, loadError, refreshModelRegistries] =
     useModelRegistriesBackend();
   const roleBindings = useContextResourceData<RoleBindingKind>(useModelRegistryRoleBindings());
+  const { refreshRulesReview } = React.useContext(ModelRegistrySelectorContext);
   const loaded = mrloaded && roleBindings.loaded;
 
   const refreshAll = React.useCallback(
-    () => Promise.all([refreshModelRegistries(), roleBindings.refresh()]),
-    [refreshModelRegistries, roleBindings],
+    () => Promise.all([refreshModelRegistries(), roleBindings.refresh(), refreshRulesReview()]),
+    [refreshModelRegistries, roleBindings, refreshRulesReview],
   );
+
+  const error = !modelRegistryNamespace
+    ? new Error('No registries namespace could be found')
+    : null;
 
   if (!modelRegistryNamespace) {
     return (
-      <ApplicationsPage
-        loaded
-        empty={false}
-        loadError={new Error('No registries namespace could be found')}
-        loadErrorPage={
-          <RedirectErrorState
-            title="Could not load component state"
-            errorMessage="No registries namespace could be found"
-          />
-        }
-      />
+      <ApplicationsPage loaded empty={false}>
+        <RedirectErrorState title="Could not load component state" errorMessage={error?.message} />
+      </ApplicationsPage>
     );
   }
   return (

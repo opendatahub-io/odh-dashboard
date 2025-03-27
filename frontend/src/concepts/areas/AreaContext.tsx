@@ -37,20 +37,15 @@ const AreaContextProvider: React.FC<AreaContextProps> = ({ children }) => {
 
   const contextValue = React.useMemo(() => ({ dscStatus, dsciStatus }), [dscStatus, dsciStatus]);
 
-  if (error || (dscStatus && Object.keys(dscStatus).length === 0)) {
+  if (error || !dscStatus || Object.keys(dscStatus).length === 0) {
     return (
       <Page>
-        <ApplicationsPage
-          loaded
-          empty={false}
-          loadError={error}
-          loadErrorPage={
-            <RedirectErrorState
-              title="Could not load component state"
-              errorMessage={error?.message}
-            />
-          }
-        />
+        <ApplicationsPage loaded empty={false}>
+          <RedirectErrorState
+            title="Could not load component state"
+            errorMessage={error?.message}
+          />
+        </ApplicationsPage>
       </Page>
     );
   }
@@ -65,5 +60,4 @@ const AreaContextProvider: React.FC<AreaContextProps> = ({ children }) => {
 
   return <AreaContext.Provider value={contextValue}>{children}</AreaContext.Provider>;
 };
-
 export default AreaContextProvider;
