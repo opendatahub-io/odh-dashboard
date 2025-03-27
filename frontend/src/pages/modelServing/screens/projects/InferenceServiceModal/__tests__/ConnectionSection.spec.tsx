@@ -79,6 +79,8 @@ describe('ConnectionsFormSection', () => {
           },
         })}
         setData={mockSetData}
+        initialNewConnectionType={undefined}
+        initialNewConnectionValues={{}}
         connection={undefined}
         setConnection={mockSetConnection}
         setIsConnectionValid={() => undefined}
@@ -125,6 +127,8 @@ describe('ConnectionsFormSection', () => {
           },
         })}
         setData={() => undefined}
+        initialNewConnectionType={undefined}
+        initialNewConnectionValues={{}}
         connection={undefined}
         setConnection={() => undefined}
         setIsConnectionValid={() => undefined}
@@ -166,7 +170,10 @@ describe('ConnectionsFormSection', () => {
           },
         })}
         setData={mockSetData}
+        initialNewConnectionType={undefined}
+        initialNewConnectionValues={{}}
         connection={undefined}
+        loaded
         setConnection={mockSetConnection}
         setIsConnectionValid={() => undefined}
       />,
@@ -201,7 +208,10 @@ describe('ConnectionsFormSection', () => {
           },
         })}
         setData={() => undefined}
+        initialNewConnectionType={undefined}
+        initialNewConnectionValues={{}}
         connection={undefined}
+        loaded
         setConnection={() => undefined}
         setIsConnectionValid={() => undefined}
       />,
@@ -225,7 +235,10 @@ describe('ConnectionsFormSection', () => {
           },
         })}
         setData={mockSetData}
+        initialNewConnectionType={undefined}
+        initialNewConnectionValues={{}}
         connection={undefined}
+        loaded
         setConnection={mockSetConnection}
         setIsConnectionValid={() => undefined}
       />,
@@ -260,8 +273,11 @@ describe('ConnectionsFormSection', () => {
         })}
         setData={mockSetData}
         connection={undefined}
+        loaded
         setConnection={mockSetConnection}
         setIsConnectionValid={() => undefined}
+        initialNewConnectionType={undefined}
+        initialNewConnectionValues={{}}
       />,
     );
 
