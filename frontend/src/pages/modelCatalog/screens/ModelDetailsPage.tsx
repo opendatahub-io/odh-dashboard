@@ -67,7 +67,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
     [modelCatalogSources, decodedParams],
   );
 
-  const registerModelButton = (isSecondary = false) => {
+  const registerModelButton = () => {
     if (modelRegistryServicesLoadError) {
       return null;
     }
@@ -86,18 +86,14 @@ const ModelDetailsPage: React.FC = conditionalArea(
           />
         }
       >
-        <Button
-          variant={isSecondary ? 'secondary' : 'primary'}
-          isAriaDisabled
-          data-testid="register-model-button"
-        >
+        <Button variant="secondary" isAriaDisabled data-testid="register-model-button">
           Register model
         </Button>
       </Popover>
     ) : (
       <Button
         data-testid="register-model-button"
-        variant={isSecondary ? 'secondary' : 'primary'}
+        variant="secondary"
         onClick={() => {
           navigate(getRegisterCatalogModelUrl(decodedParams));
         }}
@@ -106,6 +102,12 @@ const ModelDetailsPage: React.FC = conditionalArea(
       </Button>
     );
   };
+
+  const deployModelButton = (
+    <Button variant="primary" data-testid="deploy-model-button" onClick={() => alert('TODO')}>
+      Deploy model
+    </Button>
+  );
 
   const fineTuneActionItem = (
     <Popover
@@ -123,7 +125,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
       footerContent={
         <ActionList>
           <ActionListGroup>
-            <ActionListItem>{registerModelButton(true)}</ActionListItem>
+            <ActionListItem>{registerModelButton()}</ActionListItem>
             <ActionListItem>
               <Button variant="link" onClick={() => navigate(modelCustomizationRootPath)}>
                 Learn more about model customization
@@ -204,6 +206,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
             <ActionListGroup>
               {tuningAvailable && isLabBase(model?.labels) && fineTuneActionItem}
               {registerModelButton()}
+              {deployModelButton}
             </ActionListGroup>
           </ActionList>
         )
