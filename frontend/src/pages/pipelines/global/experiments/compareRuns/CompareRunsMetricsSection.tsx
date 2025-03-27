@@ -3,7 +3,7 @@ import * as _ from 'lodash-es';
 import { ExpandableSection, Tab, TabContentBody, TabTitleText, Tabs } from '@patternfly/react-core';
 import { useCompareRuns } from '~/concepts/pipelines/content/compareRuns/CompareRunsContext';
 import { useGetArtifactTypes } from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactTypes';
-import { RunArtifact } from '~/concepts/pipelines/apiHooks/mlmd/types';
+import { MlmdContextTypes, RunArtifact } from '~/concepts/pipelines/apiHooks/mlmd/types';
 import {
   MetricSectionTabLabels,
   MetricsType,
@@ -18,10 +18,12 @@ import RocCurveCompare from '~/concepts/pipelines/content/compareRuns/metricsSec
 import ConfusionMatrixCompare from '~/concepts/pipelines/content/compareRuns/metricsSection/confusionMatrix/ConfusionMatrixCompare';
 import MarkdownCompare from '~/concepts/pipelines/content/compareRuns/metricsSection/markdown/MarkdownCompare';
 import useFetchMarkdownMaps from '~/concepts/pipelines/content/compareRuns/metricsSection/markdown/useFetchMarkdownMaps';
+import { useMlmdContextsByType } from '~/concepts/pipelines/apiHooks/mlmd/useMlmdContextsByType';
 
 export const CompareRunMetricsSection: React.FunctionComponent = () => {
   const { runs, selectedRuns } = useCompareRuns();
-  const [mlmdPackages, mlmdPackagesLoaded] = useMlmdPackagesForPipelineRuns(runs);
+  const [context, contextLoaded] = useMlmdContextsByType(MlmdContextTypes.RUN);
+  const [mlmdPackages, mlmdPackagesLoaded] = useMlmdPackagesForPipelineRuns(runs, context);
   const [artifactTypes, artifactTypesLoaded] = useGetArtifactTypes();
   const [isSectionOpen, setIsSectionOpen] = React.useState(true);
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(
@@ -33,7 +35,7 @@ export const CompareRunMetricsSection: React.FunctionComponent = () => {
     [mlmdPackages],
   );
 
-  const isLoaded = mlmdPackagesLoaded && artifactTypesLoaded;
+  const isLoaded = mlmdPackagesLoaded && contextLoaded && artifactTypesLoaded;
 
   const [markdownArtifacts, ...allArtifacts] = React.useMemo(() => {
     if (!isLoaded) {

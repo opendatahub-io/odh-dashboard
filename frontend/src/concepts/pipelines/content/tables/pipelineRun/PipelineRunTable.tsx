@@ -65,8 +65,14 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   const { experiments: allExperiments } = React.useContext(PipelineRunExperimentsContext);
   const { namespace, refreshAllAPI } = usePipelinesAPI();
   const { onClearFilters, ...filterToolbarProps } = usePipelineFilterSearchParams(setFilter);
-  const { metricsColumnNames, runs, runArtifactsError, runArtifactsLoaded, metricsNames } =
-    useMetricColumns(runWithoutMetrics, experiment?.experiment_id);
+  const {
+    metricsColumnNames,
+    runs,
+    contextError,
+    runArtifactsError,
+    runArtifactsLoaded,
+    metricsNames,
+  } = useMetricColumns(runWithoutMetrics, experiment?.experiment_id);
   const {
     selections: selectedIds,
     tableProps: checkboxTableProps,
@@ -270,7 +276,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
             run={run}
             customCells={metricsColumnNames.map((metricName: string) => (
               <Td key={metricName} dataLabel={metricName}>
-                {!runArtifactsLoaded && !runArtifactsError ? (
+                {!runArtifactsLoaded && !runArtifactsError && !contextError ? (
                   <Skeleton />
                 ) : (
                   run.metrics.find((metric) => metric.name === metricName)?.value ?? (
