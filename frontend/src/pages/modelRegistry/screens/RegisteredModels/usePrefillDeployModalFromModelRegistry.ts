@@ -6,7 +6,7 @@ import {
   ConnectionTypeValueType,
 } from '~/concepts/connectionTypes/types';
 import { ProjectKind } from '~/k8sTypes';
-import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
+import { ModelDeployPrefillInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 import {
   CreatingInferenceServiceObject,
   InferenceServiceStorageType,
@@ -27,11 +27,12 @@ import { getResourceNameFromK8sResource } from '~/concepts/k8s/utils';
 import { PrefilledConnection } from '~/concepts/modelRegistry/utils';
 import useLabeledConnections from './useLabeledConnections';
 
+// TODO maybe move this to ~/concepts/modelServing or ~/pages/modelServing
 const usePrefillDeployModalFromModelRegistry = (
   projectContext: { currentProject: ProjectKind; connections: Connection[] } | undefined,
   createData: CreatingInferenceServiceObject,
   setCreateData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>,
-  registeredModelDeployInfo?: RegisteredModelDeployInfo,
+  registeredModelDeployInfo?: ModelDeployPrefillInfo,
 ): PrefilledConnection => {
   const [fetchedConnections, connectionsLoaded, connectionsLoadError] = useConnections(
     projectContext ? projectContext.currentProject.metadata.name : createData.project,

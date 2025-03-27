@@ -11,7 +11,7 @@ import { InferenceServiceKind, ProjectKind, ServingRuntimeKind } from '~/k8sType
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
+import { ModelDeployPrefillInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 import { Connection } from '~/concepts/connectionTypes/types';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
@@ -29,7 +29,7 @@ import { ConnectionSection } from './ConnectionSection';
 
 type ManageInferenceServiceModalProps = {
   onClose: (submit: boolean) => void;
-  registeredModelDeployInfo?: RegisteredModelDeployInfo;
+  registeredModelDeployInfo?: ModelDeployPrefillInfo;
   shouldFormHidden?: boolean;
   projectSection?: React.ReactNode;
 } & EitherOrNone<

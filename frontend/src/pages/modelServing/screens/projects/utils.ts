@@ -38,7 +38,7 @@ import {
   updateServingRuntime,
 } from '~/api';
 import { containsOnlySlashes, isS3PathValid, removeLeadingSlash } from '~/utilities/string';
-import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
+import { ModelDeployPrefillInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 import { getNIMData, getNIMResource } from '~/pages/modelServing/screens/projects/nimUtils';
 import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
 import { Connection } from '~/concepts/connectionTypes/types';
@@ -672,9 +672,7 @@ export const createNIMPVC = (
   );
 
 export const getCreateInferenceServiceLabels = (
-  data:
-    | Pick<RegisteredModelDeployInfo, 'registeredModelId' | 'modelVersionId' | 'mrName'>
-    | undefined,
+  data: Pick<ModelDeployPrefillInfo, 'registeredModelId' | 'modelVersionId' | 'mrName'> | undefined,
 ): { labels: Record<string, string> } | undefined => {
   if (data?.registeredModelId || data?.modelVersionId || data?.mrName) {
     const { registeredModelId, modelVersionId, mrName } = data;

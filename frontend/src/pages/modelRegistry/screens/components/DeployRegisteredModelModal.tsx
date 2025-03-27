@@ -10,7 +10,7 @@ import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformS
 import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/projects/utils';
 import { ServingRuntimePlatform } from '~/types';
 import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
-import useRegisteredModelDeployInfo from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
+import useRegisteredModelDeployPrefillInfo from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 import {
   ModelRegistryContext,
   useModelRegistryAPI,
@@ -52,10 +52,10 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
     useRegisteredModelById(modelVersion.registeredModelId);
 
   const {
-    registeredModelDeployInfo,
+    modelDeployPrefillInfo: registeredModelDeployInfo,
     loaded: deployInfoLoaded,
     error: deployInfoError,
-  } = useRegisteredModelDeployInfo(modelVersion, preferredModelRegistry?.metadata.name);
+  } = useRegisteredModelDeployPrefillInfo(modelVersion, preferredModelRegistry?.metadata.name);
 
   const isOciModel = registeredModelDeployInfo.modelArtifactUri?.includes('oci://');
   const platformToUse = platform || (isOciModel ? ServingRuntimePlatform.SINGLE : undefined);

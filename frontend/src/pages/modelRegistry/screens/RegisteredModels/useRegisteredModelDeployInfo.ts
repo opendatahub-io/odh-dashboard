@@ -4,7 +4,8 @@ import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegiste
 import { ModelVersion } from '~/concepts/modelRegistry/types';
 import { uriToStorageFields } from '~/concepts/modelRegistry/utils';
 
-export type RegisteredModelDeployInfo = {
+// TODO move this to ~/concepts/modelServing or ~/concepts/modelRegistry?
+export type ModelDeployPrefillInfo = {
   modelName: string;
   modelFormat?: string;
   modelArtifactUri?: string;
@@ -15,11 +16,13 @@ export type RegisteredModelDeployInfo = {
   mrName?: string;
 };
 
-const useRegisteredModelDeployInfo = (
+// TODO move this to ~/concepts/modelRegistry?
+
+const useRegisteredModelDeployPrefillInfo = (
   modelVersion: ModelVersion,
   mrName?: string,
 ): {
-  registeredModelDeployInfo: RegisteredModelDeployInfo;
+  modelDeployPrefillInfo: ModelDeployPrefillInfo;
   loaded: boolean;
   error: Error | undefined;
 } => {
@@ -86,4 +89,4 @@ const useRegisteredModelDeployInfo = (
   return registeredModelDeployInfo;
 };
 
-export default useRegisteredModelDeployInfo;
+export default useRegisteredModelDeployPrefillInfo;

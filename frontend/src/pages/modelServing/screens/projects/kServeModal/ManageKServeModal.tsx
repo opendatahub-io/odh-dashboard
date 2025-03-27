@@ -38,7 +38,7 @@ import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import AuthServingRuntimeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
 import { useAccessReview } from '~/api';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
+import { ModelDeployPrefillInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import {
   FormTrackingEventProperties,
@@ -70,7 +70,7 @@ const accessReviewResource: AccessReviewResourceAttributes = {
 type ManageKServeModalProps = {
   onClose: (submit: boolean) => void;
   servingRuntimeTemplates?: TemplateKind[];
-  registeredModelDeployInfo?: RegisteredModelDeployInfo;
+  registeredModelDeployInfo?: ModelDeployPrefillInfo;
   shouldFormHidden?: boolean;
   projectSection?: React.ReactNode;
   existingUriOption?: string;
