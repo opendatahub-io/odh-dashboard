@@ -107,7 +107,7 @@ describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
       clusterStorage
         .getClusterStorageRow(pvStorageNameEdited)
         .findKebabAction('Delete storage')
-        .click();
+        .click({ force: true });
       deleteModal.shouldBeOpen();
       deleteModal.findInput().type(pvStorageNameEdited);
       deleteModal.findSubmitButton().should('be.enabled').click();
