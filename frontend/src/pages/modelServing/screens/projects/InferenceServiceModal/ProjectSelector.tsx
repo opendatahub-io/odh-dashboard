@@ -69,7 +69,6 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
                 : 'Select target project'
             }
             toggleProps={{ id: 'deploy-model-project-selector' }}
-            popperProps={{ appendTo: 'inline' }}
           />
         </StackItem>
         {error && selectedProject && (

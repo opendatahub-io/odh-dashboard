@@ -1,17 +1,30 @@
 import { AlertVariant } from '@patternfly/react-core';
 import React from 'react';
-import { Connection } from '~/concepts/connectionTypes/types';
+import {
+  Connection,
+  ConnectionTypeConfigMapObj,
+  ConnectionTypeValueType,
+} from '~/concepts/connectionTypes/types';
 import { ProjectKind } from '~/k8sTypes';
 import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 import {
   CreatingInferenceServiceObject,
   InferenceServiceStorageType,
-  LabeledConnection,
 } from '~/pages/modelServing/screens/types';
 import { AwsKeys, EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
 import { isRedHatRegistryUri } from '~/pages/modelRegistry/screens/utils';
+import {
+  getMRConnectionValues,
+  OCIConnectionTypeKeys,
+  S3ConnectionTypeKeys,
+  URIConnectionTypeKeys,
+  withRequiredFields,
+} from '~/concepts/connectionTypes/utils';
+import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
+import { getResourceNameFromK8sResource } from '~/concepts/k8s/utils';
+import { PrefilledConnection } from '~/concepts/modelRegistry/utils';
 import useLabeledConnections from './useLabeledConnections';
 
 const usePrefillDeployModalFromModelRegistry = (
@@ -19,7 +32,7 @@ const usePrefillDeployModalFromModelRegistry = (
   createData: CreatingInferenceServiceObject,
   setCreateData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>,
   registeredModelDeployInfo?: RegisteredModelDeployInfo,
-): [LabeledConnection[], boolean, Error | undefined] => {
+): PrefilledConnection => {
   const [fetchedConnections, connectionsLoaded, connectionsLoadError] = useConnections(
     projectContext ? projectContext.currentProject.metadata.name : createData.project,
     true,
@@ -28,6 +41,16 @@ const usePrefillDeployModalFromModelRegistry = (
     registeredModelDeployInfo?.modelArtifactUri,
     fetchedConnections,
   );
+  const [connectionTypes, connectionTypesLoaded, connectionTypeError] =
+    useWatchConnectionTypes(true);
+  const [initialNewConnectionType, setInitialNewConnectionType] = React.useState<
+    ConnectionTypeConfigMapObj | undefined
+  >(undefined);
+  const [initialNewConnectionValues, setinitialNewConnectionValues] = React.useState<{
+    [key: string]: ConnectionTypeValueType;
+  }>({});
+  const loaded = connectionsLoaded && connectionTypesLoaded;
+  const loadError = connectionsLoadError || connectionTypeError;
 
   React.useEffect(() => {
     const alert = {
@@ -36,7 +59,7 @@ const usePrefillDeployModalFromModelRegistry = (
       message:
         'The selected project does not have a connection that matches the model location. You can create a matching connection by using the data in the autopopulated fields, or edit the fields to create a different connection. Alternatively, click Existing connection to select an existing non-matching connection.',
     };
-    if (registeredModelDeployInfo?.modelArtifactUri) {
+    if (registeredModelDeployInfo?.modelArtifactUri && loaded) {
       setCreateData('name', registeredModelDeployInfo.modelName);
       const recommendedConnections = connections.filter(
         (dataConnection) => dataConnection.isRecommended,
@@ -67,12 +90,20 @@ const usePrefillDeployModalFromModelRegistry = (
           setCreateData('storage', {
             awsData: prefilledAWSData,
             dataConnection: '',
-            // FIXME: Remove connectionType: Look at https://issues.redhat.com/browse/RHOAIENG-19991 for more details
-            connectionType: registeredModelDeployInfo.modelLocationType,
             path: storageFields.s3Fields.path,
             type: InferenceServiceStorageType.NEW_STORAGE,
             alert,
           });
+          setInitialNewConnectionType(
+            withRequiredFields(
+              connectionTypes.find(
+                (t) =>
+                  getResourceNameFromK8sResource(t) === registeredModelDeployInfo.modelLocationType,
+              ),
+              S3ConnectionTypeKeys,
+            ),
+          );
+          setinitialNewConnectionValues(getMRConnectionValues(prefilledAWSData));
         } else if (recommendedConnections.length === 1) {
           setCreateData('storage', {
             awsData: prefilledAWSData,
@@ -94,12 +125,20 @@ const usePrefillDeployModalFromModelRegistry = (
             awsData: EMPTY_AWS_SECRET_DATA,
             uri: storageFields.uri,
             dataConnection: '',
-            // FIXME: Remove connectionType: Look at https://issues.redhat.com/browse/RHOAIENG-19991 for more details
-            connectionType: registeredModelDeployInfo.modelLocationType,
             path: '',
             type: InferenceServiceStorageType.NEW_STORAGE,
             alert,
           });
+          setInitialNewConnectionType(
+            withRequiredFields(
+              connectionTypes.find(
+                (t) =>
+                  getResourceNameFromK8sResource(t) === registeredModelDeployInfo.modelLocationType,
+              ),
+              URIConnectionTypeKeys,
+            ),
+          );
+          setinitialNewConnectionValues(getMRConnectionValues(storageFields.uri));
         } else if (recommendedConnections.length === 1) {
           setCreateData('storage', {
             uri: storageFields.uri,
@@ -113,8 +152,6 @@ const usePrefillDeployModalFromModelRegistry = (
             uri: storageFields.uri,
             awsData: EMPTY_AWS_SECRET_DATA,
             dataConnection: '',
-            // FIXME: Remove connectionType: Look at https://issues.redhat.com/browse/RHOAIENG-19991 for more details
-            connectionType: registeredModelDeployInfo.modelLocationType,
             path: '',
             type: InferenceServiceStorageType.EXISTING_STORAGE,
           });
@@ -125,8 +162,6 @@ const usePrefillDeployModalFromModelRegistry = (
             uri: storageFields.ociUri,
             awsData: EMPTY_AWS_SECRET_DATA,
             dataConnection: '',
-            // FIXME: Remove connectionType: Look at https://issues.redhat.com/browse/RHOAIENG-19991 for more details
-            connectionType: '',
             path: '',
             type: InferenceServiceStorageType.EXISTING_URI,
           });
@@ -135,12 +170,19 @@ const usePrefillDeployModalFromModelRegistry = (
             awsData: EMPTY_AWS_SECRET_DATA,
             uri: storageFields.ociUri,
             dataConnection: '',
-            // FIXME: Remove connectionType: Look at https://issues.redhat.com/browse/RHOAIENG-19991 for more details
-            connectionType: registeredModelDeployInfo.modelLocationType,
             path: '',
             type: InferenceServiceStorageType.NEW_STORAGE,
             alert,
           });
+          setInitialNewConnectionType(
+            withRequiredFields(
+              connectionTypes.find(
+                (t) =>
+                  getResourceNameFromK8sResource(t) === registeredModelDeployInfo.modelLocationType,
+              ),
+              OCIConnectionTypeKeys,
+            ),
+          );
         } else if (recommendedConnections.length === 1) {
           setCreateData('storage', {
             uri: storageFields.ociUri,
@@ -154,17 +196,28 @@ const usePrefillDeployModalFromModelRegistry = (
             uri: storageFields.ociUri,
             awsData: EMPTY_AWS_SECRET_DATA,
             dataConnection: '',
-            // FIXME: Remove connectionType: Look at https://issues.redhat.com/browse/RHOAIENG-19991 for more details
-            connectionType: registeredModelDeployInfo.modelLocationType,
             path: '',
             type: InferenceServiceStorageType.EXISTING_STORAGE,
           });
         }
       }
     }
-  }, [connections, storageFields, registeredModelDeployInfo, setCreateData, connectionsLoaded]);
+  }, [
+    connections,
+    storageFields,
+    registeredModelDeployInfo,
+    setCreateData,
+    loaded,
+    connectionTypes,
+  ]);
 
-  return [connections, connectionsLoaded, connectionsLoadError];
+  return {
+    initialNewConnectionType,
+    initialNewConnectionValues,
+    connections,
+    connectionsLoaded: loaded,
+    connectionsLoadError: loadError,
+  };
 };
 
 export default usePrefillDeployModalFromModelRegistry;
