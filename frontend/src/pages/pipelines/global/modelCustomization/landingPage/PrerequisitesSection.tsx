@@ -33,10 +33,9 @@ export const PrerequisitesSection: React.FC<PrerequisitesSectionProps> = ({ hand
           cascading file structure. A LAB-tuning taxonomy contains two types of data: skills, which
           enable the model to complete performative actions; and knowledge, which enables the model
           to answer questions that involve facts, data, or references.
-          <br />
           <Button
             data-testid="learn-more-taxonomy"
-            isInline
+            style={{ padding: 0 }}
             variant="link"
             onClick={() =>
               handleOpenDrawer({
@@ -56,10 +55,9 @@ export const PrerequisitesSection: React.FC<PrerequisitesSectionProps> = ({ hand
         >
           The teacher model is responsible for the creation of synthetic data. The judge model is
           responsible for evaluating the LAB-tuning run.
-          <br />
           <Button
             data-testid="learn-more-teacher-judge-models"
-            isInline
+            style={{ padding: 0 }}
             variant="link"
             onClick={() =>
               handleOpenDrawer({

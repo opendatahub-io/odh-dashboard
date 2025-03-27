@@ -6,6 +6,7 @@ import { ModelCustomizationAccordionItem } from '~/pages/pipelines/global/modelC
 import { BaseSection } from '~/pages/pipelines/global/modelCustomization/landingPage/BaseSection';
 import { useToggleAccordion } from '~/pages/pipelines/global/modelCustomization/landingPage/useToggleAccordion';
 import { pipelineRunsRootPath } from '~/routes';
+import { modelCatalogUrl } from '~/pages/modelCatalog/routeUtils';
 
 export const NextStepsSection: React.FC = () => {
   const { accordionItemsExpanded, handleToggleAccordion } = useToggleAccordion();
@@ -15,12 +16,12 @@ export const NextStepsSection: React.FC = () => {
       <Accordion togglePosition="start" data-testid="accordion-next-steps">
         <ModelCustomizationAccordionItem
           id="register-base-model"
-          title="1. Register a base model"
+          title="Register a base model"
           itemsExpanded={accordionItemsExpanded}
           handleToggle={handleToggleAccordion}
         >
-          Select a base model from the model catalog and register it to an {ODH_PRODUCT_NAME} model
-          registry.
+          Select a base model from the <Link to={modelCatalogUrl}>Model catalog page</Link> and
+          register it to an {ODH_PRODUCT_NAME} model registry.
           <br />
           Note: You can choose any base model, but {ODH_PRODUCT_NAME} currently supports LAB-tuning
           for only Granite models with the{' '}
@@ -31,7 +32,7 @@ export const NextStepsSection: React.FC = () => {
         </ModelCustomizationAccordionItem>
         <ModelCustomizationAccordionItem
           id="create-lab-tuning-run"
-          title="2. Create a LAB-tuning run"
+          title="Create a LAB-tuning run"
           itemsExpanded={accordionItemsExpanded}
           handleToggle={handleToggleAccordion}
         >
@@ -41,7 +42,7 @@ export const NextStepsSection: React.FC = () => {
         </ModelCustomizationAccordionItem>
         <ModelCustomizationAccordionItem
           id="monitor-run"
-          title="3. Monitor your run"
+          title="Monitor your run"
           itemsExpanded={accordionItemsExpanded}
           handleToggle={handleToggleAccordion}
         >
@@ -54,7 +55,7 @@ export const NextStepsSection: React.FC = () => {
         </ModelCustomizationAccordionItem>
         <ModelCustomizationAccordionItem
           id="view-model"
-          title="4. View the LAB-tuned model"
+          title="View the LAB-tuned model"
           itemsExpanded={accordionItemsExpanded}
           handleToggle={handleToggleAccordion}
         >

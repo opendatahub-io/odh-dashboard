@@ -2,11 +2,8 @@ import React from 'react';
 import {
   Alert,
   Checkbox,
-  Content,
-  ContentVariants,
   FormGroup,
   FormHelperText,
-  FormSection,
   HelperText,
   HelperTextItem,
   Stack,
@@ -25,6 +22,7 @@ import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
 import { ValidationContext } from '~/utilities/useValidation';
+import FormSection from '~/components/pf-overrides/FormSection';
 
 const FIELD_ID_PREFIX = 'model-customization-fineTunedModel';
 
@@ -53,10 +51,8 @@ const FineTunedModelSection: React.FC<FineTunedModelSectionProps> = ({
     <FormSection
       id={FineTunePageSections.FINE_TUNED_MODEL_DETAILS}
       title={fineTunePageSectionTitles[FineTunePageSections.FINE_TUNED_MODEL_DETAILS]}
+      description=" Configure details for the fine-tuned version of the base model."
     >
-      <Content component={ContentVariants.small}>
-        Configure details for the fine-tuned version of the base model.
-      </Content>
       <FormGroup
         label="Model output storage location"
         fieldId={`${FIELD_ID_PREFIX}-storage-location`}

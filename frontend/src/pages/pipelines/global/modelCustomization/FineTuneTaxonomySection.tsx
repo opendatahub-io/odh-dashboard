@@ -1,12 +1,4 @@
-import {
-  Button,
-  Content,
-  ContentVariants,
-  FormGroup,
-  FormSection,
-  Radio,
-  TextInput,
-} from '@patternfly/react-core';
+import { Button, FormGroup, Radio, TextInput } from '@patternfly/react-core';
 import React from 'react';
 import { FineTuneTaxonomyType } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
 import { FineTuneTaxonomyFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
@@ -15,6 +7,7 @@ import { ValidationContext } from '~/utilities/useValidation';
 import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
 import { ModelCustomizationDrawerContentArgs } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
 import MarkdownView from '~/components/MarkdownView';
+import FormSection from '~/components/pf-overrides/FormSection';
 import {
   FineTunePageSections,
   fineTunePageSectionTitles,
@@ -51,23 +44,25 @@ export const FineTuneTaxonomySection = ({
       id={FineTunePageSections.TAXONOMY_DETAILS}
       data-testid={FineTunePageSections.TAXONOMY_DETAILS}
       title={fineTunePageSectionTitles[FineTunePageSections.TAXONOMY_DETAILS]}
+      description={
+        <>
+          A taxonomy is the structured git repository containing the information used to generate
+          synthetic data for the fine-tuning run.{' '}
+          <Button
+            style={{ padding: 0 }}
+            variant="link"
+            onClick={() =>
+              handleOpenDrawer({
+                title: taxonomyMarkdownTitle,
+                content: <MarkdownView markdown={taxonomyMarkdownContent} />,
+              })
+            }
+          >
+            Learn more about taxonomy
+          </Button>
+        </>
+      }
     >
-      <Content component={ContentVariants.small}>
-        A taxonomy is the structured git repository containing the information used to generate
-        synthetic data for the fine-tuning run.{' '}
-        <Button
-          isInline
-          variant="link"
-          onClick={() =>
-            handleOpenDrawer({
-              title: taxonomyMarkdownTitle,
-              content: <MarkdownView markdown={taxonomyMarkdownContent} />,
-            })
-          }
-        >
-          Learn more about taxonomy
-        </Button>
-      </Content>
       <FormGroup label="Taxonomy GIT URL" fieldId="fine-tune-taxonomy-git-url" isRequired>
         <TextInput
           aria-label="taxonomy github url"
