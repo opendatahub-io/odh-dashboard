@@ -2,7 +2,7 @@ import React from 'react';
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
-import { uriToStorageFields } from '~/concepts/modelRegistry/utils';
+import { uriToModelLocation } from '~/concepts/modelRegistry/utils';
 
 // TODO move this along with usePrefillDeployModal
 export type ModelDeployPrefillInfo = {
@@ -47,7 +47,7 @@ const useRegisteredModelDeployPrefillInfo = (
       };
     }
     const modelArtifact = modelArtifactList.items[0];
-    const storageFields = uriToStorageFields(modelArtifact.uri || '');
+    const storageFields = uriToModelLocation(modelArtifact.uri || '');
     let connectionTypeName;
     if (storageFields?.uri) {
       connectionTypeName = 'uri-v1';

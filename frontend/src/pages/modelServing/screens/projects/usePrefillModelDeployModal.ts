@@ -37,7 +37,7 @@ const usePrefillModelDeployModal = (
     projectContext ? projectContext.currentProject.metadata.name : createData.project,
     true,
   );
-  const { connections, storageFields } = useLabeledConnections(
+  const { connections, modelLocation: storageFields } = useLabeledConnections(
     modelDeployPrefillInfo?.modelArtifactUri,
     fetchedConnections,
   );

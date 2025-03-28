@@ -12,8 +12,7 @@ export type ObjectStorageFields = {
   path: string;
 };
 
-// TODO rename this to PrefilledModelLocation and move it along with ObjectStorageFields
-export type RegisteredModelLocation = {
+export type ModelLocation = {
   s3Fields: ObjectStorageFields | null;
   uri: string | null;
   ociUri: string | null;
@@ -40,7 +39,7 @@ export const objectStorageFieldsToUri = (fields: ObjectStorageFields): string | 
   return `s3://${bucket}/${path}?${searchParams.toString()}`;
 };
 
-export const uriToStorageFields = (uri: string): RegisteredModelLocation => {
+export const uriToModelLocation = (uri: string): ModelLocation => {
   try {
     const urlObj = new URL(uri);
     if (urlObj.toString().startsWith('s3:')) {
