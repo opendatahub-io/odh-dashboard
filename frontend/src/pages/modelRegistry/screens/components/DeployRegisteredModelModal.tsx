@@ -10,7 +10,7 @@ import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformS
 import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/projects/utils';
 import { ServingRuntimePlatform } from '~/types';
 import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
-import useRegisteredModelDeployPrefillInfo from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
+import useRegisteredModelDeployPrefillInfo from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployPrefillInfo';
 import {
   ModelRegistryContext,
   useModelRegistryAPI,

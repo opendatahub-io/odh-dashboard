@@ -26,6 +26,9 @@ import { getResourceNameFromK8sResource } from '~/concepts/k8s/utils';
 import { PrefilledConnection } from '~/concepts/modelRegistry/utils';
 import useLabeledConnections from './useLabeledConnections';
 
+// TODO look for other MR-specific imports in the serving prefilling code, make it all MR-agnostic
+// TODO new modal for prefilling from catalog, pass in ModelDeployPrefillInfo from its own source (make an equivalient to useRegisteredModelDeployPrefillInfo)
+
 export type ModelDeployPrefillInfo = {
   modelName: string;
   modelFormat?: string;
