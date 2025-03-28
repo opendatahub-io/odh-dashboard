@@ -161,16 +161,20 @@ describe('getUrlsFromKserveInferenceService', () => {
 describe('getCreateInferenceServiceLabels', () => {
   it('returns undefined when "registeredModelId" and "modelVersionId" are undefined', () => {
     const createLabels = getCreateInferenceServiceLabels({
-      registeredModelId: undefined,
-      modelVersionId: undefined,
+      modelRegistryInfo: {
+        registeredModelId: undefined,
+        modelVersionId: undefined,
+      },
     });
     expect(createLabels).toBeUndefined();
   });
 
   it('returns labels with "registered-model-id" when "registeredModelId" is defined', () => {
     const createLabels = getCreateInferenceServiceLabels({
-      registeredModelId: 'some-register-model-id',
-      modelVersionId: undefined,
+      modelRegistryInfo: {
+        registeredModelId: 'some-register-model-id',
+        modelVersionId: undefined,
+      },
     });
     expect(createLabels).toEqual({
       labels: {
@@ -181,8 +185,10 @@ describe('getCreateInferenceServiceLabels', () => {
 
   it('returns labels with "model-version-id" when "modelVersionId" is defined', () => {
     const createLabels = getCreateInferenceServiceLabels({
-      registeredModelId: undefined,
-      modelVersionId: 'some-model-version-id',
+      modelRegistryInfo: {
+        registeredModelId: undefined,
+        modelVersionId: 'some-model-version-id',
+      },
     });
     expect(createLabels).toEqual({
       labels: {
@@ -193,8 +199,10 @@ describe('getCreateInferenceServiceLabels', () => {
 
   it('returns labels with "registered-model-id" and "model-version-id" when registeredModelId and "modelVersionId" are defined', () => {
     const createLabels = getCreateInferenceServiceLabels({
-      registeredModelId: 'some-register-model-id',
-      modelVersionId: 'some-model-version-id',
+      modelRegistryInfo: {
+        registeredModelId: 'some-register-model-id',
+        modelVersionId: 'some-model-version-id',
+      },
     });
     expect(createLabels).toEqual({
       labels: {

@@ -32,14 +32,14 @@ const usePrefillDeployModalFromModelRegistry = (
   projectContext: { currentProject: ProjectKind; connections: Connection[] } | undefined,
   createData: CreatingInferenceServiceObject,
   setCreateData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>,
-  registeredModelDeployInfo?: ModelDeployPrefillInfo,
+  modelDeployPrefillInfo?: ModelDeployPrefillInfo,
 ): PrefilledConnection => {
   const [fetchedConnections, connectionsLoaded, connectionsLoadError] = useConnections(
     projectContext ? projectContext.currentProject.metadata.name : createData.project,
     true,
   );
   const { connections, storageFields } = useLabeledConnections(
-    registeredModelDeployInfo?.modelArtifactUri,
+    modelDeployPrefillInfo?.modelArtifactUri,
     fetchedConnections,
   );
   const [connectionTypes, connectionTypesLoaded, connectionTypeError] =
@@ -60,8 +60,8 @@ const usePrefillDeployModalFromModelRegistry = (
       message:
         'The selected project does not have a connection that matches the model location. You can create a matching connection by using the data in the autopopulated fields, or edit the fields to create a different connection. Alternatively, click Existing connection to select an existing non-matching connection.',
     };
-    if (registeredModelDeployInfo?.modelArtifactUri && loaded) {
-      setCreateData('name', registeredModelDeployInfo.modelName);
+    if (modelDeployPrefillInfo?.modelArtifactUri && loaded) {
+      setCreateData('name', modelDeployPrefillInfo.modelName);
       const recommendedConnections = connections.filter(
         (dataConnection) => dataConnection.isRecommended,
       );
@@ -81,7 +81,7 @@ const usePrefillDeployModalFromModelRegistry = (
           AwsKeys.DEFAULT_REGION,
         ];
         const prefilledAWSData = [
-          { key: AwsKeys.NAME, value: registeredModelDeployInfo.modelArtifactStorageKey || '' },
+          { key: AwsKeys.NAME, value: modelDeployPrefillInfo.modelArtifactStorageKey || '' },
           { key: AwsKeys.AWS_S3_BUCKET, value: storageFields.s3Fields.bucket },
           { key: AwsKeys.S3_ENDPOINT, value: storageFields.s3Fields.endpoint },
           { key: AwsKeys.DEFAULT_REGION, value: storageFields.s3Fields.region || '' },
@@ -99,7 +99,7 @@ const usePrefillDeployModalFromModelRegistry = (
             withRequiredFields(
               connectionTypes.find(
                 (t) =>
-                  getResourceNameFromK8sResource(t) === registeredModelDeployInfo.modelLocationType,
+                  getResourceNameFromK8sResource(t) === modelDeployPrefillInfo.modelLocationType,
               ),
               S3ConnectionTypeKeys,
             ),
@@ -134,7 +134,7 @@ const usePrefillDeployModalFromModelRegistry = (
             withRequiredFields(
               connectionTypes.find(
                 (t) =>
-                  getResourceNameFromK8sResource(t) === registeredModelDeployInfo.modelLocationType,
+                  getResourceNameFromK8sResource(t) === modelDeployPrefillInfo.modelLocationType,
               ),
               URIConnectionTypeKeys,
             ),
@@ -179,7 +179,7 @@ const usePrefillDeployModalFromModelRegistry = (
             withRequiredFields(
               connectionTypes.find(
                 (t) =>
-                  getResourceNameFromK8sResource(t) === registeredModelDeployInfo.modelLocationType,
+                  getResourceNameFromK8sResource(t) === modelDeployPrefillInfo.modelLocationType,
               ),
               OCIConnectionTypeKeys,
             ),
@@ -203,14 +203,7 @@ const usePrefillDeployModalFromModelRegistry = (
         }
       }
     }
-  }, [
-    connections,
-    storageFields,
-    registeredModelDeployInfo,
-    setCreateData,
-    loaded,
-    connectionTypes,
-  ]);
+  }, [connections, storageFields, modelDeployPrefillInfo, setCreateData, loaded, connectionTypes]);
 
   return {
     initialNewConnectionType,

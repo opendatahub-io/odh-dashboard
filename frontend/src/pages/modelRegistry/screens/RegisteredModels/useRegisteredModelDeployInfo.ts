@@ -11,9 +11,11 @@ export type ModelDeployPrefillInfo = {
   modelArtifactUri?: string;
   modelLocationType?: string;
   modelArtifactStorageKey?: string;
-  modelVersionId?: string;
-  registeredModelId?: string;
-  mrName?: string;
+  modelRegistryInfo?: {
+    modelVersionId?: string;
+    registeredModelId?: string;
+    mrName?: string;
+  };
 };
 
 // TODO move this to ~/concepts/modelRegistry?
@@ -32,12 +34,12 @@ const useRegisteredModelDeployPrefillInfo = (
   const [modelArtifactList, modelArtifactListLoaded, modelArtifactListError] =
     useModelArtifactsByVersionId(modelVersion.id);
 
-  const registeredModelDeployInfo = React.useMemo(() => {
+  const modelDeployPrefillInfo = React.useMemo(() => {
     const modelName = `${registeredModel?.name ?? ''} - ${modelVersion.name}`.slice(0, 63);
 
     if (modelArtifactList.size === 0) {
       return {
-        registeredModelDeployInfo: {
+        modelDeployPrefillInfo: {
           modelName,
         },
         loaded: registeredModelLoaded && modelArtifactListLoaded,
@@ -57,7 +59,7 @@ const useRegisteredModelDeployPrefillInfo = (
       modelLocationType = 'oci-v1';
     }
     return {
-      registeredModelDeployInfo: {
+      modelDeployPrefillInfo: {
         modelName,
         modelFormat: modelArtifact.modelFormatName
           ? `${modelArtifact.modelFormatName} - ${modelArtifact.modelFormatVersion ?? ''}`
@@ -65,9 +67,11 @@ const useRegisteredModelDeployPrefillInfo = (
         modelArtifactUri: modelArtifact.uri,
         modelLocationType,
         modelArtifactStorageKey: modelArtifact.storageKey,
-        modelVersionId: modelVersion.id,
-        registeredModelId: modelVersion.registeredModelId,
-        mrName,
+        modelRegistryInfo: {
+          modelVersionId: modelVersion.id,
+          registeredModelId: modelVersion.registeredModelId,
+          mrName,
+        },
       },
       loaded: registeredModelLoaded && modelArtifactListLoaded,
       error: registeredModelError || modelArtifactListError,
@@ -86,7 +90,7 @@ const useRegisteredModelDeployPrefillInfo = (
     mrName,
   ]);
 
-  return registeredModelDeployInfo;
+  return modelDeployPrefillInfo;
 };
 
 export default useRegisteredModelDeployPrefillInfo;

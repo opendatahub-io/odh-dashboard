@@ -672,11 +672,10 @@ export const createNIMPVC = (
   );
 
 export const getCreateInferenceServiceLabels = (
-  data: Pick<ModelDeployPrefillInfo, 'registeredModelId' | 'modelVersionId' | 'mrName'> | undefined,
+  data: Pick<ModelDeployPrefillInfo, 'modelRegistryInfo'> | undefined,
 ): { labels: Record<string, string> } | undefined => {
-  if (data?.registeredModelId || data?.modelVersionId || data?.mrName) {
-    const { registeredModelId, modelVersionId, mrName } = data;
-
+  const { registeredModelId, modelVersionId, mrName } = data?.modelRegistryInfo || {};
+  if (registeredModelId || modelVersionId || mrName) {
     return {
       labels: {
         ...(registeredModelId && {

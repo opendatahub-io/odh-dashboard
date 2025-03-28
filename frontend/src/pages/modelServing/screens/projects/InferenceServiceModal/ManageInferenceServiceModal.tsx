@@ -29,7 +29,7 @@ import { ConnectionSection } from './ConnectionSection';
 
 type ManageInferenceServiceModalProps = {
   onClose: (submit: boolean) => void;
-  registeredModelDeployInfo?: ModelDeployPrefillInfo;
+  modelDeployPrefillInfo?: ModelDeployPrefillInfo;
   shouldFormHidden?: boolean;
   projectSection?: React.ReactNode;
 } & EitherOrNone<
@@ -48,7 +48,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
   editInfo,
   projectContext,
   projectSection,
-  registeredModelDeployInfo,
+  modelDeployPrefillInfo,
   shouldFormHidden,
 }) => {
   const [createData, setCreateData] = useCreateInferenceServiceObject(editInfo);
@@ -70,7 +70,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     projectContext,
     createData,
     setCreateData,
-    registeredModelDeployInfo,
+    modelDeployPrefillInfo,
   );
 
   const modelMeshConnections = React.useMemo(
@@ -128,7 +128,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     submitInferenceServiceResourceWithDryRun(
       {
         ...createData,
-        ...getCreateInferenceServiceLabels(registeredModelDeployInfo),
+        ...getCreateInferenceServiceLabels(modelDeployPrefillInfo),
       },
       editInfo,
       createData.servingRuntimeName,
@@ -201,7 +201,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
               setData={setCreateData}
               servingRuntimeName={projectContext?.currentServingRuntime?.metadata.name}
               modelContext={projectContext?.currentServingRuntime?.spec.supportedModelFormats}
-              registeredModelFormat={registeredModelDeployInfo?.modelFormat}
+              registeredModelFormat={modelDeployPrefillInfo?.modelFormat}
             />
             <FormSection title="Source model location" id="model-location">
               <ConnectionSection
@@ -211,7 +211,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
                 initialNewConnectionType={initialNewConnectionType}
                 initialNewConnectionValues={initialNewConnectionValues}
                 loaded={
-                  registeredModelDeployInfo
+                  modelDeployPrefillInfo
                     ? !!projectContext?.connections && connectionsLoaded
                     : !!projectContext?.connections || connectionsLoaded
                 }

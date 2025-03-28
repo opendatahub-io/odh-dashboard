@@ -52,12 +52,12 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
     useRegisteredModelById(modelVersion.registeredModelId);
 
   const {
-    modelDeployPrefillInfo: registeredModelDeployInfo,
+    modelDeployPrefillInfo,
     loaded: deployInfoLoaded,
     error: deployInfoError,
   } = useRegisteredModelDeployPrefillInfo(modelVersion, preferredModelRegistry?.metadata.name);
 
-  const isOciModel = registeredModelDeployInfo.modelArtifactUri?.includes('oci://');
+  const isOciModel = modelDeployPrefillInfo.modelArtifactUri?.includes('oci://');
   const platformToUse = platform || (isOciModel ? ServingRuntimePlatform.SINGLE : undefined);
   const { loaded: projectDeployStatusLoaded, error: projectError } =
     useProjectErrorForRegisteredModel(selectedProject?.metadata.name, platformToUse);
@@ -164,13 +164,13 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
         onClose={onClose}
         servingRuntimeTemplates={getKServeTemplates(templates, templateOrder, templateDisablement)}
         shouldFormHidden={!!error}
-        registeredModelDeployInfo={registeredModelDeployInfo}
+        modelDeployPrefillInfo={modelDeployPrefillInfo}
         projectContext={{ currentProject: selectedProject, connections }}
         projectSection={projectSection}
         existingUriOption={
-          registeredModelDeployInfo.modelArtifactUri &&
-          isRedHatRegistryUri(registeredModelDeployInfo.modelArtifactUri)
-            ? registeredModelDeployInfo.modelArtifactUri
+          modelDeployPrefillInfo.modelArtifactUri &&
+          isRedHatRegistryUri(modelDeployPrefillInfo.modelArtifactUri)
+            ? modelDeployPrefillInfo.modelArtifactUri
             : undefined
         }
       />
@@ -181,7 +181,7 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
     <ManageInferenceServiceModal
       onClose={onClose}
       shouldFormHidden={!!error}
-      registeredModelDeployInfo={registeredModelDeployInfo}
+      modelDeployPrefillInfo={modelDeployPrefillInfo}
       projectContext={{ currentProject: selectedProject, connections }}
       projectSection={projectSection}
     />

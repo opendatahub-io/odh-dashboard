@@ -70,7 +70,7 @@ const accessReviewResource: AccessReviewResourceAttributes = {
 type ManageKServeModalProps = {
   onClose: (submit: boolean) => void;
   servingRuntimeTemplates?: TemplateKind[];
-  registeredModelDeployInfo?: ModelDeployPrefillInfo;
+  modelDeployPrefillInfo?: ModelDeployPrefillInfo;
   shouldFormHidden?: boolean;
   projectSection?: React.ReactNode;
   existingUriOption?: string;
@@ -96,7 +96,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   projectContext,
   editInfo,
   projectSection,
-  registeredModelDeployInfo,
+  modelDeployPrefillInfo,
   shouldFormHidden: hideForm,
   existingUriOption,
 }) => {
@@ -149,7 +149,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     projectContext,
     createDataInferenceService,
     setCreateDataInferenceService,
-    registeredModelDeployInfo,
+    modelDeployPrefillInfo,
   );
 
   const [actionInProgress, setActionInProgress] = React.useState(false);
@@ -266,7 +266,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     const submitInferenceServiceResource = getSubmitInferenceServiceResourceFn(
       {
         ...createDataInferenceService,
-        ...getCreateInferenceServiceLabels(registeredModelDeployInfo),
+        ...getCreateInferenceServiceLabels(modelDeployPrefillInfo),
       },
       editInfo?.inferenceServiceEditInfo,
       servingRuntimeName,
@@ -381,7 +381,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                 setData={setCreateDataInferenceService}
                 servingRuntimeName={servingRuntimeSelected?.metadata.name}
                 modelContext={servingRuntimeSelected?.spec.supportedModelFormats}
-                registeredModelFormat={registeredModelDeployInfo?.modelFormat}
+                registeredModelFormat={modelDeployPrefillInfo?.modelFormat}
               />
               {isRawAvailable && isServerlessAvailable && (
                 <KServeDeploymentModeDropdown
@@ -429,7 +429,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
               initialNewConnectionType={initialNewConnectionType}
               initialNewConnectionValues={initialNewConnectionValues}
               loaded={
-                registeredModelDeployInfo
+                modelDeployPrefillInfo
                   ? !!projectContext?.connections && connectionsLoaded
                   : !!projectContext?.connections || connectionsLoaded
               }
