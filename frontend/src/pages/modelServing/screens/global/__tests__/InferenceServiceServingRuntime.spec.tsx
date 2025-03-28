@@ -12,6 +12,6 @@ describe('InferenceServiceServingRuntime', () => {
   it('should display serving runtime name', () => {
     const mockServingRuntime = mockServingRuntimeK8sResource({});
     const wrapper = render(<InferenceServiceServingRuntime servingRuntime={mockServingRuntime} />);
-    expect(wrapper.container.textContent).toBe('OpenVINO Serving Runtime (Supports GPUs)');
+    expect(wrapper.container.textContent).toBe('OpenVINO Serving Runtime (Supports GPUs) ');
   });
 });

@@ -33,7 +33,7 @@ describe('NIM Models Deployments', () => {
     modelServingSection
       .getInferenceServiceRow('Test Name')
       .findServingRuntime()
-      .should('have.text', 'NVIDIA NIM');
+      .should('have.text', 'NVIDIA NIM ');
     modelServingSection
       .getInferenceServiceRow('Test Name')
       .findAPIProtocol()

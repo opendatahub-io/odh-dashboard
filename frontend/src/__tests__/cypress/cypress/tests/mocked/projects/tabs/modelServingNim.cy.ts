@@ -120,7 +120,7 @@ describe('NIM Model Serving', () => {
       projectDetails
         .getKserveTableRow('Test Name')
         .findServiceRuntime()
-        .should('have.text', 'NVIDIA NIM');
+        .should('have.text', 'NVIDIA NIM ');
       projectDetails.getKserveTableRow('Test Name').findAPIProtocol().should('have.text', 'REST');
 
       // Open toggle to validate Model details
@@ -162,7 +162,7 @@ describe('NIM Model Serving', () => {
       // Card is visible
       projectDetailsOverviewTab
         .findDeployedModelServingRuntime('Test Name')
-        .should('have.text', 'NVIDIA NIM');
+        .should('have.text', 'NVIDIA NIM ');
     });
 
     it('should be blocked if failed to fetch NIM model list', () => {
