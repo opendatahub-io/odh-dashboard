@@ -604,8 +604,8 @@ export enum NotebookState {
 export enum ProgressionStep {
   SERVER_REQUESTED = 'SERVER_REQUESTED',
   POD_CREATED = 'POD_CREATED',
-  POD_ASSIGNED = 'POD_ASSIGNED',
   POD_PROBLEM = 'POD_PROBLEM',
+  POD_ASSIGNED = 'POD_ASSIGNED',
   PVC_ATTACHED = 'PVC_ATTACHED',
   INTERFACE_ADDED = 'INTERFACE_ADDED',
   PULLING_NOTEBOOK_IMAGE = 'PULLING_NOTEBOOK_IMAGE',
@@ -624,8 +624,8 @@ export enum ProgressionStep {
 export const ProgressionStepTitles: Record<ProgressionStep, string> = {
   [ProgressionStep.SERVER_REQUESTED]: 'Server requested',
   [ProgressionStep.POD_CREATED]: 'Pod created',
-  [ProgressionStep.POD_ASSIGNED]: 'Pod assigned',
   [ProgressionStep.POD_PROBLEM]: 'There was a problem with the pod',
+  [ProgressionStep.POD_ASSIGNED]: 'Pod assigned',
   [ProgressionStep.PVC_ATTACHED]: 'PVC attached',
   [ProgressionStep.INTERFACE_ADDED]: 'Interface added',
   [ProgressionStep.PULLING_NOTEBOOK_IMAGE]: 'Pulling workbench image',
@@ -656,14 +656,12 @@ export const AssociatedSteps: Record<string, ProgressionStep[]> = {
   [ProgressionStep.SERVER_STARTED]: Object.values(ProgressionStep),
 };
 
-export const OptionalSteps: Record<string, ProgressionStep[]> = {
-  Steps: [
-    ProgressionStep.POD_PROBLEM,
-    ProgressionStep.NOTEBOOK_PROBLEM,
-    ProgressionStep.OAUTH_PROBLEM,
-    ProgressionStep.PVC_ATTACHED,
-  ],
-};
+export const OptionalSteps: ProgressionStep[] = [
+  ProgressionStep.POD_PROBLEM,
+  ProgressionStep.NOTEBOOK_PROBLEM,
+  ProgressionStep.OAUTH_PROBLEM,
+  ProgressionStep.PVC_ATTACHED,
+];
 
 export type NotebookProgressStep = {
   step: ProgressionStep;

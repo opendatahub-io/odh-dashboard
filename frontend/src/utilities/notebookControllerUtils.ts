@@ -578,7 +578,7 @@ export const useNotebookProgress = (
   // If milestone steps are completed, mark off associated steps
   Object.entries(AssociatedSteps).forEach(([key, values]) => {
     if (progressSteps.find((p) => p.step === key)?.status === EventStatus.SUCCESS) {
-      const filteredValues = values.filter((step) => !OptionalSteps.Steps.includes(step));
+      const filteredValues = values.filter((step) => !OptionalSteps.includes(step));
       filteredValues.forEach((value) => {
         const currentStep = progressSteps.find((p) => p.step === value);
         if (currentStep) {
@@ -592,7 +592,7 @@ export const useNotebookProgress = (
   return progressSteps.filter(
     (notebookProgressStep) =>
       !(
-        OptionalSteps.Steps.includes(notebookProgressStep.step) &&
+        OptionalSteps.includes(notebookProgressStep.step) &&
         progressSteps.find((p) => p.step === notebookProgressStep.step)?.status ===
           EventStatus.PENDING
       ),

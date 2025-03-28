@@ -77,7 +77,7 @@ describe('Start Notebook modal', () => {
     const steps = screen.getAllByRole('listitem');
     expect(steps).toHaveLength(14);
     /* TODO: This finds the POD_PROBLEM: 'There was a problem with the pod'
-      once text and location of error is finalized with UX set the error location and error text
+      once text and location of error is finalized with UX set the error location index and error text
     */
     //expect(steps[3]).toHaveTextContent('Failed to scale-up');
   });
