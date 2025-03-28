@@ -82,7 +82,12 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
   );
 
   const filteredColumns = React.useMemo(
-    () => hardwareProfileColumns.filter((column) => isMigratedTable || column.field !== 'source'),
+    () =>
+      hardwareProfileColumns.filter(
+        (column) =>
+          (isMigratedTable && column.field !== 'last_modified') ||
+          (!isMigratedTable && column.field !== 'source'),
+      ),
     [isMigratedTable],
   );
 
@@ -105,6 +110,7 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
               key={cr.metadata.name}
               rowIndex={index}
               hardwareProfile={cr}
+              isMigratedTable={isMigratedTable}
               handleDelete={(hardwareProfile) =>
                 setDeleteHardwareProfile({ hardwareProfile, migrationAction })
               }
