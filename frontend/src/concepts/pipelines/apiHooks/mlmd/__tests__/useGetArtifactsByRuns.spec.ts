@@ -7,7 +7,6 @@ import {
   Context,
 } from '~/third_party/mlmd';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { getMlmdContext } from '~/concepts/pipelines/apiHooks/mlmd/useMlmdContext';
 import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import {
   GetArtifactsByContextResponse,
@@ -46,13 +45,13 @@ describe('useGetArtifactsByRuns', () => {
   const mockUsePipelinesAPI = jest.mocked(
     usePipelinesAPI as () => Partial<ReturnType<typeof usePipelinesAPI>>,
   );
-  const mockGetMlmdContext = jest.mocked(getMlmdContext);
   const mockGetArtifactsByContext = jest.mocked(mockClient.getArtifactsByContext);
   const mockGetExecutionsByContext = jest.mocked(mockClient.getExecutionsByContext);
   const mockGetEventsByExecutionIDs = jest.mocked(mockClient.getEventsByExecutionIDs);
 
   const mockContext = new Context();
   mockContext.setId(1);
+  mockContext.setName('test-run-id');
 
   const mockArtifact = new Artifact();
   mockArtifact.setId(1);
@@ -76,8 +75,10 @@ describe('useGetArtifactsByRuns', () => {
   });
 
   it('throws error when no MLMD context is found', async () => {
-    mockGetMlmdContext.mockResolvedValue(undefined);
-    const renderResult = testHook(useGetArtifactsByRuns)([mockRun]);
+    const mockInvalidContext = new Context();
+    mockInvalidContext.setName('test-invalid-id');
+
+    const renderResult = testHook(useGetArtifactsByRuns)([mockRun], [mockInvalidContext]);
 
     // wait for update
     await renderResult.waitForNextUpdate();
@@ -88,7 +89,6 @@ describe('useGetArtifactsByRuns', () => {
   });
 
   it('should fetch and return MLMD packages for pipeline runs', async () => {
-    mockGetMlmdContext.mockResolvedValue(mockContext);
     mockGetArtifactsByContext.mockResolvedValue({
       getArtifactsList: () => [mockArtifact],
     } as GetArtifactsByContextResponse);
@@ -99,7 +99,7 @@ describe('useGetArtifactsByRuns', () => {
       getEventsList: () => [mockEvent],
     } as GetEventsByExecutionIDsResponse);
 
-    const renderResult = testHook(useGetArtifactsByRuns)([mockRun]);
+    const renderResult = testHook(useGetArtifactsByRuns)([mockRun], [mockContext]);
 
     expect(renderResult.result.current).toStrictEqual(standardUseFetchState([]));
     expect(renderResult).hookToHaveUpdateCount(1);
@@ -120,28 +120,11 @@ describe('useGetArtifactsByRuns', () => {
     expect(renderResult).hookToHaveUpdateCount(2);
   });
 
-  it('should handle errors from getMlmdContext', async () => {
-    const error = new Error('Cannot fetch context');
-    mockGetMlmdContext.mockRejectedValue(error);
-
-    const renderResult = testHook(useGetArtifactsByRuns)([mockRun]);
-
-    expect(renderResult.result.current).toStrictEqual(standardUseFetchState([]));
-    expect(renderResult).hookToHaveUpdateCount(1);
-
-    // wait for update
-    await renderResult.waitForNextUpdate();
-
-    expect(renderResult.result.current).toStrictEqual(standardUseFetchState([], false, error));
-    expect(renderResult).hookToHaveUpdateCount(2);
-  });
-
   it('should handle errors from getArtifactsByContext', async () => {
     const error = new Error('Cannot fetch artifacts');
-    mockGetMlmdContext.mockResolvedValue(mockContext);
     mockGetArtifactsByContext.mockRejectedValue(error);
 
-    const renderResult = testHook(useGetArtifactsByRuns)([mockRun]);
+    const renderResult = testHook(useGetArtifactsByRuns)([mockRun], [mockContext]);
 
     expect(renderResult.result.current).toStrictEqual(standardUseFetchState([]));
     expect(renderResult).hookToHaveUpdateCount(1);
