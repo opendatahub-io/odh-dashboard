@@ -322,7 +322,7 @@ describe('Data science projects details', () => {
     notebookRows.should('have.length', 1);
 
     const notebookRow = projectTableRow.getNotebookRow('Test Notebook');
-    notebookRow.findNotebookRouteLink().should('have.attr', 'aria-disabled', 'false');
+    notebookRow.findNotebookRouteLink().should('not.have.attr', 'aria-disabled');
 
     notebookRow.findNotebookStop().click();
 

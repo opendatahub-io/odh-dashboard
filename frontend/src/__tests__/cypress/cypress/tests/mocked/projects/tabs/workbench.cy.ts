@@ -529,7 +529,7 @@ describe('Workbench page', () => {
     notebookRow.shouldHaveNotebookImageName('Test Image');
     notebookRow.shouldHaveContainerSize('Small');
     notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
-    notebookRow.findNotebookRouteLink().should('have.attr', 'aria-disabled', 'false');
+    notebookRow.findNotebookRouteLink().should('not.have.attr', 'aria-disabled');
 
     //Name sorting
     workbenchPage.findNotebookTableHeaderButton('Name').click();
