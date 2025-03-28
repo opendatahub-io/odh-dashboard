@@ -89,7 +89,7 @@ const useNotebookImageData = (notebook?: NotebookKind, project?: string): Notebo
     }
     let allImages = dashboardImages;
 
-    if (project) {
+    if (projectLoaded && projectImages.length > 0) {
       allImages = [...projectImages, ...dashboardImages];
     }
     const data = getNotebookImageData(notebook, allImages);
@@ -104,7 +104,6 @@ const useNotebookImageData = (notebook?: NotebookKind, project?: string): Notebo
     dashboardLoaded,
     projectLoaded,
     dashboardImages,
-    project,
     dashboardLoadError,
     projectLoadError,
     projectImages,
