@@ -99,7 +99,7 @@ const usePrefillDeployModalFromModelRegistry = (
             withRequiredFields(
               connectionTypes.find(
                 (t) =>
-                  getResourceNameFromK8sResource(t) === modelDeployPrefillInfo.modelLocationType,
+                  getResourceNameFromK8sResource(t) === modelDeployPrefillInfo.connectionTypeName,
               ),
               S3ConnectionTypeKeys,
             ),
@@ -134,7 +134,7 @@ const usePrefillDeployModalFromModelRegistry = (
             withRequiredFields(
               connectionTypes.find(
                 (t) =>
-                  getResourceNameFromK8sResource(t) === modelDeployPrefillInfo.modelLocationType,
+                  getResourceNameFromK8sResource(t) === modelDeployPrefillInfo.connectionTypeName,
               ),
               URIConnectionTypeKeys,
             ),
@@ -179,7 +179,7 @@ const usePrefillDeployModalFromModelRegistry = (
             withRequiredFields(
               connectionTypes.find(
                 (t) =>
-                  getResourceNameFromK8sResource(t) === modelDeployPrefillInfo.modelLocationType,
+                  getResourceNameFromK8sResource(t) === modelDeployPrefillInfo.connectionTypeName,
               ),
               OCIConnectionTypeKeys,
             ),
