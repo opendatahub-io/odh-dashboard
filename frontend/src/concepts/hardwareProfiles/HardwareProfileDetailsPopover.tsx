@@ -13,7 +13,7 @@ import {
 import { QuestionCircleIcon } from '@patternfly/react-icons';
 import { Toleration, NodeSelector, ContainerResources } from '~/types';
 import { HardwareProfileKind } from '~/k8sTypes';
-import { formatToleration, formatNodeSelector, formatResource } from './utils';
+import { formatToleration, formatNodeSelector, formatResource, formatResourceValue } from './utils';
 
 type HardwareProfileDetailsPopoverProps = {
   tolerations?: Toleration[];
@@ -54,6 +54,8 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
       limit: limits[identifier]?.toString() || '',
       displayName: hardwareProfile?.spec.identifiers?.find((id) => id.identifier === identifier)
         ?.displayName,
+      resourceType: hardwareProfile?.spec.identifiers?.find((id) => id.identifier === identifier)
+        ?.resourceType,
     }));
   }, [resources, hardwareProfile]);
 
@@ -83,7 +85,11 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
             allResources.map((resource) => (
               <StackItem key={resource.identifier}>
                 {renderSection(resource.displayName || resource.identifier, [
-                  formatResource(resource.identifier, resource.request, resource.limit),
+                  formatResource(
+                    resource.identifier,
+                    formatResourceValue(resource.request, resource.resourceType).toString(),
+                    formatResourceValue(resource.limit, resource.resourceType).toString(),
+                  ),
                 ])}
               </StackItem>
             ))}

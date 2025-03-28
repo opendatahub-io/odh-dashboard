@@ -1,15 +1,13 @@
-import { mockDataConnection } from '~/__mocks__/mockDataConnection';
 import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
 import {
   createNIMPVC,
   createNIMSecret,
   fetchNIMModelNames,
-  filterOutConnectionsWithoutBucket,
   getCreateInferenceServiceLabels,
   getProjectModelServingPlatform,
   getUrlFromKserveInferenceService,
 } from '~/pages/modelServing/screens/projects/utils';
-import { LabeledDataConnection, ServingPlatformStatuses } from '~/pages/modelServing/screens/types';
+import { ServingPlatformStatuses } from '~/pages/modelServing/screens/types';
 import { ServingRuntimePlatform } from '~/types';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
 import { createPvc, createSecret } from '~/api';
@@ -32,33 +30,6 @@ jest.mock('~/pages/modelServing/screens/projects/nimUtils', () => ({
   getNIMData: jest.fn(),
   getNIMResource: jest.fn(),
 }));
-
-describe('filterOutConnectionsWithoutBucket', () => {
-  it('should return an empty array if input connections array is empty', () => {
-    const inputConnections: LabeledDataConnection[] = [];
-    const result = filterOutConnectionsWithoutBucket(inputConnections);
-    expect(result).toEqual([]);
-  });
-
-  it('should filter out connections without an AWS_S3_BUCKET property', () => {
-    const dataConnections = [
-      { dataConnection: mockDataConnection({ name: 'name1', s3Bucket: 'bucket1' }) },
-      { dataConnection: mockDataConnection({ name: 'name2', s3Bucket: '' }) },
-      { dataConnection: mockDataConnection({ name: 'name3', s3Bucket: 'bucket2' }) },
-    ];
-
-    const result = filterOutConnectionsWithoutBucket(dataConnections);
-
-    expect(result).toMatchObject([
-      {
-        dataConnection: { data: { data: { Name: 'name1' } } },
-      },
-      {
-        dataConnection: { data: { data: { Name: 'name3' } } },
-      },
-    ]);
-  });
-});
 
 const getMockServingPlatformStatuses = ({
   kServeEnabled = true,
@@ -401,6 +372,7 @@ describe('createNIMPVC', () => {
   const pvcName = 'test-pvc';
   const pvcSize = '10Gi';
   const dryRun = true;
+  const storageClassName = 'testStorageClass';
 
   const pvcMock: PersistentVolumeClaimKind = {
     apiVersion: 'v1',
@@ -426,13 +398,14 @@ describe('createNIMPVC', () => {
 
   it('should call createPvc with correct arguments and return the result', async () => {
     (createPvc as jest.Mock).mockResolvedValueOnce(pvcMock);
-    const result = await createNIMPVC(projectName, pvcName, pvcSize, dryRun);
+    const result = await createNIMPVC(projectName, pvcName, pvcSize, dryRun, storageClassName);
 
     expect(createPvc).toHaveBeenCalledWith(
       {
         name: pvcName,
         description: '',
         size: pvcSize,
+        storageClassName,
       },
       projectName,
       { dryRun },
@@ -443,13 +416,14 @@ describe('createNIMPVC', () => {
 
   it('should handle the dryRun flag correctly', async () => {
     const dryRunFlag = false;
-    await createNIMPVC(projectName, pvcName, pvcSize, dryRunFlag);
+    await createNIMPVC(projectName, pvcName, pvcSize, dryRunFlag, storageClassName);
 
     expect(createPvc).toHaveBeenCalledWith(
       {
         name: pvcName,
         description: '',
         size: pvcSize,
+        storageClassName,
       },
       projectName,
       { dryRun: dryRunFlag },

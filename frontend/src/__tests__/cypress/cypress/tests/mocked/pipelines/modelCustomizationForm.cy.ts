@@ -37,7 +37,7 @@ import {
   StorageClassModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
-import { TolerationEffect, TolerationOperator } from '~/types';
+import { IdentifierResourceType, TolerationEffect, TolerationOperator } from '~/types';
 
 const projectName = 'test-project-name-2';
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
@@ -111,12 +111,11 @@ describe('Model Customization Form', () => {
     taxonomySection.findTaxonomyUsername().fill('test');
     taxonomySection.findTaxonomyToken().fill('test');
     hardwareSection.selectProfile(
-      'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi; Nvidia.com/gpu: Request = 2; Limit = 2',
+      'Small Profile CPU: Request = 1 Cores; Limit = 1 Cores; Memory: Request = 2 GiB; Limit = 2 GiB; Nvidia.com/gpu: Request = 2; Limit = 2',
     );
     hardwareSection.findTrainingNodePlusButton().click();
 
     modelCustomizationFormGlobal.findSubmitButton().should('not.be.disabled');
-    modelCustomizationFormGlobal.findSimpleRunButton().click();
   });
 
   it('Alert message when ilab pipeline required parameters are absent', () => {
@@ -287,6 +286,7 @@ export const initIntercepts = (
             minCount: '1',
             maxCount: '2',
             defaultCount: '1',
+            resourceType: IdentifierResourceType.CPU,
           },
           {
             displayName: 'Memory',
@@ -294,6 +294,7 @@ export const initIntercepts = (
             minCount: '2Gi',
             maxCount: '4Gi',
             defaultCount: '2Gi',
+            resourceType: IdentifierResourceType.MEMORY,
           },
           {
             displayName: 'Nvidia.com/gpu',
@@ -322,6 +323,7 @@ export const initIntercepts = (
             minCount: '1',
             maxCount: '2',
             defaultCount: '1',
+            resourceType: IdentifierResourceType.CPU,
           },
           {
             displayName: 'Memory',
@@ -329,6 +331,7 @@ export const initIntercepts = (
             minCount: '2Gi',
             maxCount: '4Gi',
             defaultCount: '2Gi',
+            resourceType: IdentifierResourceType.MEMORY,
           },
           {
             displayName: 'Nvidia.com/gpu',

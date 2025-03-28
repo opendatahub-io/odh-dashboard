@@ -113,9 +113,10 @@ export type WBTolerationsTestData = {
   wbTolerationsTestNamespace: string;
   wbTolerationsTestDescription: string;
   workbenchName: string;
+  resourceYamlPath: string;
+  hardwareProfileName: string;
   tolerationValue: string;
-  tolerationValueUpdate: string;
-  workbenchName2: string;
+  hardwareProfileDeploymentSize: string;
 };
 
 export type WBStatusTestData = {
@@ -334,4 +335,22 @@ export type DeployOCIModelData = {
   connectionName: string;
   ociRegistryHost: string;
   modelDeploymentName: string;
+};
+
+export type ModelTolerationsTestData = {
+  modelServingTolerationsTestNamespace: string;
+  resourceYamlPath: string;
+  hardwareProfileName: string;
+  tolerationValue: string;
+  hardwareProfileDeploymentSize: string;
+  modelName: string;
+  modelFilePath: string;
+};
+
+export type NotebookTolerationsTestData = {
+  codeserverImageName: string;
+  resourceYamlPath: string;
+  hardwareProfileName: string;
+  tolerationValue: string;
+  hardwareProfileDeploymentSize: string;
 };

@@ -1,5 +1,9 @@
 import { CatalogArtifacts, CatalogModel, ModelCatalogSource } from '~/concepts/modelCatalog/types';
-import { EMPTY_CUSTOM_PROPERTY_STRING, RESERVED_ILAB_LABELS } from '~/pages/modelCatalog/const';
+import {
+  EMPTY_CUSTOM_PROPERTY_STRING,
+  RESERVED_ILAB_LABELS,
+  ReservedILabLabel,
+} from '~/pages/modelCatalog/const';
 import { ModelRegistryCustomProperties } from '~/concepts/modelRegistry/types';
 import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
 
@@ -45,10 +49,13 @@ export const getTagFromModel = (model: CatalogModel): string | undefined =>
   model.artifacts?.[0]?.tags?.[0];
 
 export const getILabLabels = (labels?: string[]): string[] =>
-  labels?.filter((l) => RESERVED_ILAB_LABELS.includes(l)) ?? [];
+  labels?.filter((l) => RESERVED_ILAB_LABELS.some((ril) => ril === l)) ?? [];
 
 export const removeILabLabels = (labels?: string[]): string[] =>
-  labels?.filter((l) => !RESERVED_ILAB_LABELS.includes(l)) ?? [];
+  labels?.filter((l) => !RESERVED_ILAB_LABELS.some((ril) => ril === l)) ?? [];
+
+export const isLabBase = (labels?: string[]): boolean =>
+  !!labels?.includes(ReservedILabLabel.LabBase);
 
 export const createCustomPropertiesFromModel = (
   model: CatalogModel,

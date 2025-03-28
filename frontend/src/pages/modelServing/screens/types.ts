@@ -1,8 +1,7 @@
 import { AlertVariant } from '@patternfly/react-core';
 import { Connection } from '~/concepts/connectionTypes/types';
 import { ImagePullSecret, SecretKind, ServingContainer, ServingRuntimeKind } from '~/k8sTypes';
-import { ModelLocationType } from '~/pages/modelRegistry/screens/RegisterModel/useRegisterModelData';
-import { DataConnection, EnvVariableDataEntry } from '~/pages/projects/types';
+import { EnvVariableDataEntry } from '~/pages/projects/types';
 import { ContainerResources } from '~/types';
 
 export enum PerformanceMetricType {
@@ -93,8 +92,6 @@ export type InferenceServiceStorage = {
   type: InferenceServiceStorageType;
   path: string;
   dataConnection: string;
-  // FIXME: Remove connectionType. Look at https://issues.redhat.com/browse/RHOAIENG-19991 for more details.
-  connectionType?: ModelLocationType | string;
   uri?: string;
   awsData: EnvVariableDataEntry[];
   alert?: {
@@ -124,11 +121,6 @@ export type ServingPlatformStatuses = {
   modelMesh: PlatformStatus;
   platformEnabledCount: number;
   refreshNIMAvailability: () => Promise<boolean | undefined>;
-};
-
-export type LabeledDataConnection = {
-  dataConnection: DataConnection;
-  isRecommended?: boolean;
 };
 
 export type LabeledConnection = {

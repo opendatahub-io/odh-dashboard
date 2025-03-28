@@ -28,7 +28,7 @@ import { workbenchPage, editSpawnerPage } from '~/__tests__/cypress/cypress/page
 import { hardwareProfileSection } from '~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import type { PodKind } from '~/k8sTypes';
-import { TolerationEffect, TolerationOperator } from '~/types';
+import { IdentifierResourceType, TolerationEffect, TolerationOperator } from '~/types';
 
 type HandlersProps = {
   isEmpty?: boolean;
@@ -57,6 +57,7 @@ const initIntercepts = ({
             minCount: '1',
             maxCount: '2',
             defaultCount: '1',
+            resourceType: IdentifierResourceType.CPU,
           },
           {
             displayName: 'Memory',
@@ -64,6 +65,7 @@ const initIntercepts = ({
             minCount: '2Gi',
             maxCount: '4Gi',
             defaultCount: '2Gi',
+            resourceType: IdentifierResourceType.MEMORY,
           },
         ],
         tolerations: [
@@ -85,6 +87,7 @@ const initIntercepts = ({
             minCount: '4',
             maxCount: '8',
             defaultCount: '4',
+            resourceType: IdentifierResourceType.CPU,
           },
           {
             displayName: 'Memory',
@@ -92,6 +95,7 @@ const initIntercepts = ({
             minCount: '8Gi',
             maxCount: '16Gi',
             defaultCount: '8Gi',
+            resourceType: IdentifierResourceType.MEMORY,
           },
         ],
       }),
@@ -167,10 +171,10 @@ describe('Workbench Hardware Profiles', () => {
 
     // Verify available profiles
     hardwareProfileSection.selectProfile(
-      'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
+      'Small Profile CPU: Request = 1 Cores; Limit = 1 Cores; Memory: Request = 2 GiB; Limit = 2 GiB',
     );
     hardwareProfileSection.selectProfile(
-      'Large Profile CPU: Request = 4; Limit = 4; Memory: Request = 8Gi; Limit = 8Gi',
+      'Large Profile CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB',
     );
   });
 
@@ -184,7 +188,7 @@ describe('Workbench Hardware Profiles', () => {
 
     // Select profile and open customization
     hardwareProfileSection.selectProfile(
-      'Large Profile CPU: Request = 4; Limit = 4; Memory: Request = 8Gi; Limit = 8Gi',
+      'Large Profile CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB',
     );
     hardwareProfileSection.findCustomizeButton().click();
 

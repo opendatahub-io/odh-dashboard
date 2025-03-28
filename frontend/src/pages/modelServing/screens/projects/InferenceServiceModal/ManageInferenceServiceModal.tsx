@@ -8,7 +8,6 @@ import {
   useCreateInferenceServiceObject,
 } from '~/pages/modelServing/screens/projects/utils';
 import { InferenceServiceKind, ProjectKind, ServingRuntimeKind } from '~/k8sTypes';
-import { DataConnection } from '~/pages/projects/types';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
@@ -39,7 +38,6 @@ type ManageInferenceServiceModalProps = {
     projectContext?: {
       currentProject: ProjectKind;
       currentServingRuntime?: ServingRuntimeKind;
-      dataConnections: DataConnection[];
       connections: Connection[];
     };
   }
@@ -62,13 +60,19 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
   const currentProjectName = projectContext?.currentProject.metadata.name || '';
   const currentServingRuntimeName = projectContext?.currentServingRuntime?.metadata.name || '';
 
-  const [connections, connectionsLoaded, connectionsLoadError] =
-    usePrefillDeployModalFromModelRegistry(
-      projectContext,
-      createData,
-      setCreateData,
-      registeredModelDeployInfo,
-    );
+  const {
+    initialNewConnectionType,
+    initialNewConnectionValues,
+    connections,
+    connectionsLoaded,
+    connectionsLoadError,
+  } = usePrefillDeployModalFromModelRegistry(
+    projectContext,
+    createData,
+    setCreateData,
+    registeredModelDeployInfo,
+  );
+
   const modelMeshConnections = React.useMemo(
     () =>
       connections.filter(
@@ -204,7 +208,13 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
                 existingUriOption={editInfo?.spec.predictor.model?.storageUri}
                 data={createData}
                 setData={setCreateData}
-                loaded={!!projectContext?.connections || connectionsLoaded}
+                initialNewConnectionType={initialNewConnectionType}
+                initialNewConnectionValues={initialNewConnectionValues}
+                loaded={
+                  registeredModelDeployInfo
+                    ? !!projectContext?.connections && connectionsLoaded
+                    : !!projectContext?.connections || connectionsLoaded
+                }
                 loadError={connectionsLoadError}
                 connection={connection}
                 setConnection={setConnection}

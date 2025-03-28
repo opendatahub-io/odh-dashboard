@@ -3,7 +3,6 @@ import { NotebookSize, Volume, VolumeMount } from '~/types';
 import { BuildKind, ImageStreamKind, ImageStreamSpecTagType, K8sDSGResource } from '~/k8sTypes';
 import {
   ConfigMapCategory,
-  DataConnectionData,
   EnvVariable,
   EnvVariableDataEntry,
   SecretCategory,
@@ -336,7 +335,6 @@ export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => 
 export const checkRequiredFieldsForNotebookStart = (
   startNotebookData: StartNotebookData,
   envVariables: EnvVariable[],
-  dataConnection: DataConnectionData,
 ): boolean => {
   const { projectName, notebookData, image } = startNotebookData;
   const isNotebookDataValid = !!(
@@ -346,15 +344,7 @@ export const checkRequiredFieldsForNotebookStart = (
     image.imageVersion
   );
 
-  const newDataConnectionInvalid =
-    dataConnection.type === 'creating' &&
-    !(dataConnection.creating?.values?.data && isAWSValid(dataConnection.creating.values.data));
-  const existingDataConnectionInvalid =
-    dataConnection.type === 'existing' && !dataConnection.existing?.secretRef.name;
-  const isDataConnectionValid =
-    !dataConnection.enabled || (!newDataConnectionInvalid && !existingDataConnectionInvalid);
-
-  return isNotebookDataValid && isEnvVariableDataValid(envVariables) && isDataConnectionValid;
+  return isNotebookDataValid && isEnvVariableDataValid(envVariables);
 };
 
 export const isInvalidBYONImageStream = (imageStream: ImageStreamKind): boolean => {

@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
   - ./s3.yaml
   - ./uri-v1.yaml
+  - ./oci-v1.yaml

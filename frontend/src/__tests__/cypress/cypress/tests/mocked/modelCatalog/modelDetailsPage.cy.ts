@@ -11,9 +11,11 @@ import type { ServiceKind } from '~/k8sTypes';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import { mockCatalogModel } from '~/__mocks__/mockCatalogModel';
 import { mockModelCatalogSource } from '~/__mocks__/mockModelCatalogSource';
+import type { ModelCatalogSource } from '~/concepts/modelCatalog/types';
 
 type HandlersProps = {
   modelRegistries?: ServiceKind[];
+  catalogModels?: ModelCatalogSource[];
   disableFineTuning?: boolean;
 };
 
@@ -26,6 +28,7 @@ const initIntercepts = ({
       description: '',
     }),
   ],
+  catalogModels = [mockModelCatalogSource({})],
   disableFineTuning = false,
 }: HandlersProps) => {
   cy.interceptOdh(
@@ -52,7 +55,7 @@ const initIntercepts = ({
       ns: 'opendatahub',
       name: 'model-catalog-sources',
     },
-    mockModelCatalogConfigMap(),
+    mockModelCatalogConfigMap(catalogModels),
   );
 
   cy.interceptK8sList(ServiceModel, mockK8sResourceList(modelRegistries));
@@ -120,34 +123,70 @@ describe('Model details page', () => {
   });
 });
 
-it('Should show tune action item with popover when fineTuning is enabled', () => {
-  initIntercepts({});
+it('Should show tune action item with popover when fineTuning is enabled and lab-base label exists', () => {
+  initIntercepts({
+    catalogModels: [
+      mockModelCatalogSource({
+        models: [
+          mockCatalogModel({
+            labels: ['lab-base', 'foo', 'bar', 'label1'],
+          }),
+        ],
+      }),
+    ],
+  });
   modelDetailsPage.visit();
   modelDetailsPage.findTuneModelButton().click();
   modelDetailsPage.findTuneModelPopover().should('be.visible');
 });
 
 it('Should not show tune action item with popover when fineTuning is disabled', () => {
-  initIntercepts({ disableFineTuning: true });
+  initIntercepts({
+    disableFineTuning: true,
+    catalogModels: [
+      mockModelCatalogSource({
+        models: [
+          mockCatalogModel({
+            labels: ['lab-base', 'foo', 'bar', 'label1'],
+          }),
+        ],
+      }),
+    ],
+  });
+  modelDetailsPage.visit();
+  modelDetailsPage.findTuneModelButton().should('not.exist');
+});
+
+it('Should not show tune action item when there is no lab-base', () => {
+  initIntercepts({
+    catalogModels: [
+      mockModelCatalogSource({
+        models: [
+          mockCatalogModel({
+            labels: ['foo', 'bar', 'label1'],
+          }),
+        ],
+      }),
+    ],
+  });
   modelDetailsPage.visit();
   modelDetailsPage.findTuneModelButton().should('not.exist');
 });
 
 it('Should correctly show labels, including reserved ILab labels, correctly and in the correct order', () => {
-  initIntercepts({ disableFineTuning: true });
-  const model2 = mockCatalogModel({
-    labels: ['lab-base', 'lab-teacher', 'lab-judge', 'label1'],
-    tasks: ['task1', 'task2'],
+  initIntercepts({
+    disableFineTuning: true,
+    catalogModels: [
+      mockModelCatalogSource({
+        models: [
+          mockCatalogModel({
+            labels: ['lab-base', 'lab-teacher', 'lab-judge', 'label1'],
+            tasks: ['task1', 'task2'],
+          }),
+        ],
+      }),
+    ],
   });
-
-  cy.interceptK8s(
-    {
-      model: ConfigMapModel,
-      ns: 'opendatahub',
-      name: 'model-catalog-sources',
-    },
-    mockModelCatalogConfigMap([mockModelCatalogSource({ models: [model2] })]),
-  );
   modelDetailsPage.visit();
   modelDetailsPage.expandLabelGroup();
 

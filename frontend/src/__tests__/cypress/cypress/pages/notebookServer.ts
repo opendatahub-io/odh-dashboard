@@ -76,6 +76,26 @@ class NotebookServer {
     return cy.findByTestId('accelerator-profile-select');
   }
 
+  findHardProfileSelection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('hardware-profile-select');
+  }
+
+  selectProfile(name: string): void {
+    this.findHardProfileSelection().click();
+    cy.findByRole('option', { name }).click();
+  }
+
+  findHardwareProfileSelect() {
+    return cy.findByTestId('hardware-profile-select');
+  }
+
+  findHardwareProfileSelectOptionValues() {
+    return cy.findAllByRole('option').then((options) => {
+      const values = [...options].map((option) => option.textContent?.trim());
+      return cy.wrap(values);
+    });
+  }
+
   findOpenInNewTabButton() {
     return cy.findByRole('button', { name: 'Open in new tab' });
   }

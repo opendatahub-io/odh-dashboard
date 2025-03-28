@@ -62,10 +62,6 @@ class ModelCustomizationFormGlobal {
     return cy.findByTestId('empty-state-title');
   }
 
-  findSimpleRunButton() {
-    return cy.findByTestId('simple-run-radio');
-  }
-
   findExpandableSectionButton() {
     return cy.findByTestId('hyperparameters-expandable').findByRole('button');
   }
