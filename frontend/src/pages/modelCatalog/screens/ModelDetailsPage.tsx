@@ -66,45 +66,43 @@ const ModelDetailsPage: React.FC = conditionalArea(
     [modelCatalogSources, decodedParams],
   );
 
-  const registerModelButton = () => {
+  const registerModelButton = (isSecondary = false) => {
     if (modelRegistryServicesLoadError) {
       return null;
     }
 
-    if (modelRegistryServices.length === 0) {
-      return (
-        <ActionListItem>
-          <Popover
-            headerContent="Register model"
-            bodyContent={
-              <PopoverListContent
-                title="No model registries available"
-                listItems={[
-                  'Contact your administrator to create a model registry.',
-                  ...FindAdministratorOptions,
-                ]}
-              />
-            }
-          >
-            <Button variant="secondary" isDisabled>
-              Register model
-            </Button>
-          </Popover>
-        </ActionListItem>
-      );
-    }
-
-    return (
-      <ActionListItem>
+    return modelRegistryServices.length === 0 ? (
+      <Popover
+        headerContent="Request access to a model registry"
+        triggerAction="hover"
+        data-testid="register-catalog-model-popover"
+        bodyContent={
+          <PopoverListContent
+            data-testid="Register-model-button-popover"
+            leadText="To request a new model registry, or to request permission to access an existing model registry, contact your administrator."
+            listHeading="Your administrator might be:"
+            listItems={FindAdministratorOptions}
+          />
+        }
+      >
         <Button
-          variant="secondary"
-          onClick={() => {
-            navigate(getRegisterCatalogModelUrl(decodedParams));
-          }}
+          variant={isSecondary ? 'secondary' : 'primary'}
+          isAriaDisabled
+          data-testid="register-model-button"
         >
           Register model
         </Button>
-      </ActionListItem>
+      </Popover>
+    ) : (
+      <Button
+        data-testid="register-model-button"
+        variant={isSecondary ? 'secondary' : 'primary'}
+        onClick={() => {
+          navigate(getRegisterCatalogModelUrl(decodedParams));
+        }}
+      >
+        Register model
+      </Button>
     );
   };
 
@@ -124,7 +122,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
       footerContent={
         <ActionList>
           <ActionListGroup>
-            {registerModelButton()}
+            <ActionListItem>{registerModelButton(true)}</ActionListItem>
             <ActionListItem>
               <Button variant="link" onClick={() => navigate(modelCustomizationRootPath)}>
                 Learn more about model customization
