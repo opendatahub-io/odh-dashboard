@@ -11,11 +11,11 @@ const fetchDscStatus = (): Promise<DataScienceClusterKindStatus | null> => {
     .get(url)
     .then((response) => response.data)
     .catch((e) => {
-      if (e.response.status === 404) {
-        // DSC is not available, assume v1 Operator
+      // Handle 404 errors specifically to maintain backward compatibility with tests
+      if (e.response?.status === 404) {
         return null;
       }
-      throw new Error(e.response.data.message);
+      throw new Error(e.response?.data?.message || e.message);
     });
 };
 

@@ -67,8 +67,12 @@ const ModelDetailsPage: React.FC = conditionalArea(
     [modelCatalogSources, decodedParams],
   );
 
-  const registerModelButton = (isSecondary = false) =>
-    modelRegistryServices.length === 0 ? (
+  const registerModelButton = (isSecondary = false) => {
+    if (modelRegistryServicesLoadError) {
+      return null;
+    }
+
+    return modelRegistryServices.length === 0 ? (
       <Popover
         headerContent="Request access to a model registry"
         triggerAction="hover"
@@ -83,22 +87,25 @@ const ModelDetailsPage: React.FC = conditionalArea(
         }
       >
         <Button
-          data-testid="register-model-button"
-          isAriaDisabled
           variant={isSecondary ? 'secondary' : 'primary'}
+          isAriaDisabled
+          data-testid="register-model-button"
         >
           Register model
         </Button>
       </Popover>
     ) : (
       <Button
-        variant={isSecondary ? 'secondary' : 'primary'}
         data-testid="register-model-button"
-        onClick={() => navigate(getRegisterCatalogModelUrl(params))}
+        variant={isSecondary ? 'secondary' : 'primary'}
+        onClick={() => {
+          navigate(getRegisterCatalogModelUrl(decodedParams));
+        }}
       >
         Register model
       </Button>
     );
+  };
 
   const fineTuneActionItem = (
     <Popover
@@ -187,7 +194,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
           )}
         />
       }
-      loadError={modelRegistryServicesLoadError || modelCatalogSources.error}
+      loadError={modelCatalogSources.error}
       loaded={loaded}
       errorMessage="Unable to load model catalog"
       provideChildrenPadding

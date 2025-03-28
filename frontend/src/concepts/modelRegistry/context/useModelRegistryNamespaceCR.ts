@@ -17,13 +17,20 @@ export const isModelRegistryCRStatusAvailable = (cr: ModelRegistryKind): boolean
 export const isModelRegistryAvailable = ([state, loaded]: FetchState<State>): boolean =>
   loaded && !!state && isModelRegistryCRStatusAvailable(state);
 
-export const useModelRegistryNamespaceCR = (namespace: string, name: string): FetchState<State> => {
+export const useModelRegistryNamespaceCR = (
+  namespace: string | undefined,
+  name: string,
+): FetchState<State> => {
   const modelRegistryAreaAvailable = useModelRegistryEnabled();
 
   const callback = React.useCallback<FetchStateCallbackPromise<State>>(
     (opts) => {
       if (!modelRegistryAreaAvailable) {
         return Promise.reject(new NotReadyError('Model registry not enabled'));
+      }
+
+      if (!namespace) {
+        return Promise.reject(new NotReadyError('No registries namespace could be found'));
       }
 
       return getModelRegistryCR(namespace, name, opts).catch((e) => {
