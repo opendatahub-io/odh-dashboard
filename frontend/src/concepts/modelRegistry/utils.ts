@@ -12,6 +12,7 @@ export type ObjectStorageFields = {
   path: string;
 };
 
+// TODO rename this to PrefilledModelLocation and move it along with ObjectStorageFields
 export type RegisteredModelLocation = {
   s3Fields: ObjectStorageFields | null;
   uri: string | null;

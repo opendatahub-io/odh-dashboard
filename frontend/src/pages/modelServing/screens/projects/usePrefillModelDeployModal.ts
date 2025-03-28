@@ -27,8 +27,7 @@ import { getResourceNameFromK8sResource } from '~/concepts/k8s/utils';
 import { PrefilledConnection } from '~/concepts/modelRegistry/utils';
 import useLabeledConnections from './useLabeledConnections';
 
-// TODO maybe move this to ~/concepts/modelServing or ~/pages/modelServing
-const usePrefillDeployModalFromModelRegistry = (
+const usePrefillModelDeployModal = (
   projectContext: { currentProject: ProjectKind; connections: Connection[] } | undefined,
   createData: CreatingInferenceServiceObject,
   setCreateData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>,
@@ -214,4 +213,4 @@ const usePrefillDeployModalFromModelRegistry = (
   };
 };
 
-export default usePrefillDeployModalFromModelRegistry;
+export default usePrefillModelDeployModal;

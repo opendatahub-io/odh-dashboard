@@ -17,7 +17,7 @@ import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
-import usePrefillDeployModalFromModelRegistry from '~/pages/modelRegistry/screens/RegisteredModels/usePrefillDeployModalFromModelRegistry';
+import usePrefillModelDeployModal from '~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
@@ -66,12 +66,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     connections,
     connectionsLoaded,
     connectionsLoadError,
-  } = usePrefillDeployModalFromModelRegistry(
-    projectContext,
-    createData,
-    setCreateData,
-    modelDeployPrefillInfo,
-  );
+  } = usePrefillModelDeployModal(projectContext, createData, setCreateData, modelDeployPrefillInfo);
 
   const modelMeshConnections = React.useMemo(
     () =>

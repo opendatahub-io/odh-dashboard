@@ -53,7 +53,7 @@ import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescription
 import { useProfileIdentifiers } from '~/concepts/hardwareProfiles/utils';
 import { useModelServingPodSpecOptionsState } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import { validateEnvVarName } from '~/concepts/connectionTypes/utils';
-import usePrefillDeployModalFromModelRegistry from '~/pages/modelRegistry/screens/RegisteredModels/usePrefillDeployModalFromModelRegistry';
+import usePrefillModelDeployModal from '~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 import EnvironmentVariablesSection from './EnvironmentVariablesSection';
@@ -145,7 +145,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     connections,
     connectionsLoaded,
     connectionsLoadError,
-  } = usePrefillDeployModalFromModelRegistry(
+  } = usePrefillModelDeployModal(
     projectContext,
     createDataInferenceService,
     setCreateDataInferenceService,

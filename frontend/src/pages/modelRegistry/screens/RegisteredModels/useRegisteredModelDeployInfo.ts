@@ -4,7 +4,7 @@ import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegiste
 import { ModelVersion } from '~/concepts/modelRegistry/types';
 import { uriToStorageFields } from '~/concepts/modelRegistry/utils';
 
-// TODO move this to ~/concepts/modelServing or ~/concepts/modelRegistry?
+// TODO move this along with usePrefillDeployModal
 export type ModelDeployPrefillInfo = {
   modelName: string;
   modelFormat?: string;

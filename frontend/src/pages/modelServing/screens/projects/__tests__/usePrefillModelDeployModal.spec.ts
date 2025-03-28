@@ -7,7 +7,7 @@ import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
 import { mockConnection } from '~/__mocks__/mockConnection';
 import { mockConnectionTypeConfigMapObj } from '~/__mocks__/mockConnectionType';
 import { ModelDeployPrefillInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
-import usePrefillDeployModalFromModelRegistry from '~/pages/modelRegistry/screens/RegisteredModels/usePrefillDeployModalFromModelRegistry';
+import usePrefillModelDeployModal from '~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 
 jest.mock('~/concepts/areas/useIsAreaAvailable', () => () => ({
   status: true,
@@ -37,7 +37,7 @@ jest.mock('~/utilities/useWatchConnectionTypes');
 const mockUseConnections = jest.mocked(useConnections);
 const mockuseWatchConnectionTypes = jest.mocked(useWatchConnectionTypes);
 
-describe('usePrefillDeployModalFromModelRegistry', () => {
+describe('usePrefillModelDeployModal', () => {
   it('when no storage filed exist', () => {
     const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
       modelName: 'test-model',
@@ -51,7 +51,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
       undefined,
       jest.fn(),
     ]);
-    const renderResult = testHook(usePrefillDeployModalFromModelRegistry)(
+    const renderResult = testHook(usePrefillModelDeployModal)(
       mockProjectContext,
       data,
       mockSetCreateData,
@@ -80,7 +80,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
       };
       mockUseConnections.mockReturnValue([[], false, undefined, jest.fn()]);
       mockuseWatchConnectionTypes.mockReturnValue([[], true, undefined, jest.fn()]);
-      const renderResult = testHook(usePrefillDeployModalFromModelRegistry)(
+      const renderResult = testHook(usePrefillModelDeployModal)(
         mockProjectContext,
         data,
         mockSetCreateData,
@@ -103,7 +103,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
       };
       mockUseConnections.mockReturnValue([[], true, undefined, jest.fn()]);
       mockuseWatchConnectionTypes.mockReturnValue([[], false, undefined, jest.fn()]);
-      const renderResult = testHook(usePrefillDeployModalFromModelRegistry)(
+      const renderResult = testHook(usePrefillModelDeployModal)(
         mockProjectContext,
         data,
         mockSetCreateData,
@@ -131,7 +131,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
         undefined,
         jest.fn(),
       ]);
-      const renderResult = testHook(usePrefillDeployModalFromModelRegistry)(
+      const renderResult = testHook(usePrefillModelDeployModal)(
         mockProjectContext,
         data,
         mockSetCreateData,
@@ -210,7 +210,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
         undefined,
         jest.fn(),
       ]);
-      const renderResult = testHook(usePrefillDeployModalFromModelRegistry)(
+      const renderResult = testHook(usePrefillModelDeployModal)(
         mockProjectContext,
         data,
         mockSetCreateData,
@@ -295,7 +295,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
         undefined,
         jest.fn(),
       ]);
-      const renderResult = testHook(usePrefillDeployModalFromModelRegistry)(
+      const renderResult = testHook(usePrefillModelDeployModal)(
         mockProjectContext,
         data,
         mockSetCreateData,
@@ -370,7 +370,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
         undefined,
         jest.fn(),
       ]);
-      const renderResult = testHook(usePrefillDeployModalFromModelRegistry)(
+      const renderResult = testHook(usePrefillModelDeployModal)(
         mockProjectContext,
         data,
         mockSetCreateData,
@@ -440,7 +440,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
         undefined,
         jest.fn(),
       ]);
-      const renderResult = testHook(usePrefillDeployModalFromModelRegistry)(
+      const renderResult = testHook(usePrefillModelDeployModal)(
         mockProjectContext,
         data,
         mockSetCreateData,
@@ -507,7 +507,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
         undefined,
         jest.fn(),
       ]);
-      const renderResult = testHook(usePrefillDeployModalFromModelRegistry)(
+      const renderResult = testHook(usePrefillModelDeployModal)(
         mockProjectContext,
         data,
         mockSetCreateData,
@@ -568,7 +568,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
         undefined,
         jest.fn(),
       ]);
-      const renderResult = testHook(usePrefillDeployModalFromModelRegistry)(
+      const renderResult = testHook(usePrefillModelDeployModal)(
         mockProjectContext,
         data,
         mockSetCreateData,
@@ -627,7 +627,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
         undefined,
         jest.fn(),
       ]);
-      const renderResult = testHook(usePrefillDeployModalFromModelRegistry)(
+      const renderResult = testHook(usePrefillModelDeployModal)(
         mockProjectContext,
         data,
         mockSetCreateData,
@@ -692,7 +692,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
         undefined,
         jest.fn(),
       ]);
-      const renderResult = testHook(usePrefillDeployModalFromModelRegistry)(
+      const renderResult = testHook(usePrefillModelDeployModal)(
         mockProjectContext,
         data,
         mockSetCreateData,
@@ -766,7 +766,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
         undefined,
         jest.fn(),
       ]);
-      const renderResult = testHook(usePrefillDeployModalFromModelRegistry)(
+      const renderResult = testHook(usePrefillModelDeployModal)(
         mockProjectContext,
         data,
         mockSetCreateData,
