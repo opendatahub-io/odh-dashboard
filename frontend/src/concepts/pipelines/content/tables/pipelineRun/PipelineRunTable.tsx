@@ -68,7 +68,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   const {
     metricsColumnNames,
     runs,
-    contextError,
+    contextsError,
     runArtifactsError,
     runArtifactsLoaded,
     metricsNames,
@@ -276,7 +276,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
             run={run}
             customCells={metricsColumnNames.map((metricName: string) => (
               <Td key={metricName} dataLabel={metricName}>
-                {!runArtifactsLoaded && !runArtifactsError && !contextError ? (
+                {!runArtifactsLoaded && !runArtifactsError && !contextsError ? (
                   <Skeleton />
                 ) : (
                   run.metrics.find((metric) => metric.name === metricName)?.value ?? (

@@ -12,7 +12,7 @@ import { PipelineRunRelatedMlmd } from './types';
 
 const useMlmdPackagesForPipelineRuns = (
   runs: PipelineRunKF[],
-  contexts: Context[] | null,
+  contexts: Context[],
 ): FetchState<PipelineRunRelatedMlmd[]> => {
   const { metadataStoreServiceClient } = usePipelinesAPI();
 
@@ -20,7 +20,7 @@ const useMlmdPackagesForPipelineRuns = (
     () =>
       Promise.all(
         runs.map(async (run) => {
-          const context = contexts?.find((x) => x.getName() === run.run_id);
+          const context = contexts.find((x) => x.getName() === run.run_id);
           if (!context) {
             throw new Error(`No context for run: ${run.run_id}`);
           }

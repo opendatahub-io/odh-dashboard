@@ -29,10 +29,10 @@ const getMlmdContextsByType = async (
 export const useMlmdContextsByType = (
   type?: MlmdContextTypes,
   refreshRate?: number,
-): FetchState<Context[] | null> => {
+): FetchState<Context[]> => {
   const { metadataStoreServiceClient } = usePipelinesAPI();
 
-  const call = React.useCallback<FetchStateCallbackPromise<Context[] | null>>(async () => {
+  const call = React.useCallback<FetchStateCallbackPromise<Context[]>>(async () => {
     if (!type) {
       return Promise.reject(new NotReadyError('No context type'));
     }
@@ -41,7 +41,7 @@ export const useMlmdContextsByType = (
     return context;
   }, [metadataStoreServiceClient, type]);
 
-  return useFetchState(call, null, {
+  return useFetchState(call, [], {
     refreshRate,
   });
 };

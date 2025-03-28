@@ -8,7 +8,7 @@ import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 
 export const useGetArtifactsByRuns = (
   runs: PipelineRunKF[],
-  contexts: Context[] | null,
+  contexts: Context[],
 ): FetchState<Record<string, Artifact[]>[]> => {
   const { metadataStoreServiceClient } = usePipelinesAPI();
 
@@ -16,7 +16,7 @@ export const useGetArtifactsByRuns = (
     () =>
       Promise.all(
         runs.map(async (run) => {
-          const context = contexts?.find((x) => x.getName() === run.run_id);
+          const context = contexts.find((x) => x.getName() === run.run_id);
           if (!context) {
             throw new Error(`No context for run: ${run.run_id}`);
           }

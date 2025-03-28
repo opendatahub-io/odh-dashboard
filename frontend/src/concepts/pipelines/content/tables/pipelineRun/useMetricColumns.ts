@@ -54,14 +54,14 @@ export const useMetricColumns = (
   runs: RunWithMetrics[];
   metricsColumnNames: string[];
   runArtifactsLoaded: boolean;
-  contextError: Error | undefined;
+  contextsError: Error | undefined;
   runArtifactsError: Error | undefined;
   metricsNames: Set<string>;
 } => {
-  const [context, , contextError] = useMlmdContextsByType(MlmdContextTypes.RUN);
+  const [contexts, , contextsError] = useMlmdContextsByType(MlmdContextTypes.RUN);
   const [runArtifacts, runArtifactsLoaded, runArtifactsError] = useGetArtifactsByRuns(
     runs,
-    context,
+    contexts,
   );
   const metricsNames = new Set<string>();
 
@@ -92,7 +92,7 @@ export const useMetricColumns = (
     metricsColumnNames,
     runArtifactsLoaded,
     runArtifactsError,
-    contextError,
+    contextsError,
     metricsNames,
   };
 };

@@ -28,7 +28,7 @@ jest.mock('~/third_party/mlmd', () => {
   };
 });
 
-describe('useMlmdContextByType', () => {
+describe('useMlmdContextsByType', () => {
   const mockClient = new MetadataStoreServicePromiseClient('');
   const mockUsePipelinesAPI = jest.mocked(
     usePipelinesAPI as () => Partial<ReturnType<typeof usePipelinesAPI>>,
@@ -48,9 +48,7 @@ describe('useMlmdContextByType', () => {
   it('should return an error when no type is provided', async () => {
     const renderResult = testHook(useMlmdContextsByType)(MlmdContextTypes.RUN);
 
-    expect(renderResult.result.current).toStrictEqual(
-      standardUseFetchState(null, false, undefined),
-    );
+    expect(renderResult.result.current).toStrictEqual(standardUseFetchState([], false, undefined));
   });
 
   it('should fetch and return the context', async () => {
@@ -60,7 +58,7 @@ describe('useMlmdContextByType', () => {
 
     const renderResult = testHook(useMlmdContextsByType)(MlmdContextTypes.RUN);
 
-    expect(renderResult.result.current).toStrictEqual(standardUseFetchState(null));
+    expect(renderResult.result.current).toStrictEqual(standardUseFetchState([]));
     expect(renderResult).hookToHaveUpdateCount(1);
 
     // wait for update
@@ -76,13 +74,13 @@ describe('useMlmdContextByType', () => {
 
     const renderResult = testHook(useMlmdContextsByType)(MlmdContextTypes.RUN);
 
-    expect(renderResult.result.current).toStrictEqual(standardUseFetchState(null));
+    expect(renderResult.result.current).toStrictEqual(standardUseFetchState([]));
     expect(renderResult).hookToHaveUpdateCount(1);
 
     // wait for update
     await renderResult.waitForNextUpdate();
 
-    expect(renderResult.result.current).toStrictEqual(standardUseFetchState(null, false, error));
+    expect(renderResult.result.current).toStrictEqual(standardUseFetchState([], false, error));
     expect(renderResult).hookToHaveUpdateCount(2);
   });
 });

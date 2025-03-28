@@ -22,8 +22,8 @@ import { useMlmdContextsByType } from '~/concepts/pipelines/apiHooks/mlmd/useMlm
 
 export const CompareRunMetricsSection: React.FunctionComponent = () => {
   const { runs, selectedRuns } = useCompareRuns();
-  const [context, contextLoaded] = useMlmdContextsByType(MlmdContextTypes.RUN);
-  const [mlmdPackages, mlmdPackagesLoaded] = useMlmdPackagesForPipelineRuns(runs, context);
+  const [contexts, contextLoaded] = useMlmdContextsByType(MlmdContextTypes.RUN);
+  const [mlmdPackages, mlmdPackagesLoaded] = useMlmdPackagesForPipelineRuns(runs, contexts);
   const [artifactTypes, artifactTypesLoaded] = useGetArtifactTypes();
   const [isSectionOpen, setIsSectionOpen] = React.useState(true);
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(
