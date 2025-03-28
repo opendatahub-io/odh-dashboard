@@ -37,8 +37,48 @@ export const provisionProjectForModelServing = (
 };
 
 /**
- * Check InferenceService active model state
- *
+ * Type for InferenceService Condition
+ */
+type InferenceServiceCondition = {
+  type: string;
+  status: string;
+  reason?: string;
+  message?: string;
+  lastTransitionTime?: string;
+  severity?: string;
+};
+
+/**
+ * Type for InferenceService State
+ */
+type InferenceServiceState = {
+  status?: {
+    conditions?: InferenceServiceCondition[];
+    modelStatus?: {
+      states?: {
+        activeModelState?: string;
+      };
+    };
+  };
+};
+
+/**
+ * Type for Condition Check
+ */
+type ConditionCheck = {
+  type: string;
+  expectedStatus: string;
+  check: (condition: InferenceServiceCondition) => boolean;
+  name: string;
+};
+
+/**
+ * Safely get a string value, defaulting to an empty string
+ */
+const safeString = (value: string | undefined | null): string => value ?? '';
+
+/**
+ * Check InferenceService active model state and additional conditions
  *
  * @param serviceName InferenceService name
  * @returns Result Object of the operation
@@ -46,7 +86,7 @@ export const provisionProjectForModelServing = (
 export const checkInferenceServiceState = (
   serviceName: string,
 ): Cypress.Chainable<Cypress.Exec> => {
-  const ocCommand = `oc get inferenceService ${serviceName} -o json | grep activeModelState`;
+  const ocCommand = `oc get inferenceService ${serviceName} -o json`;
   const maxAttempts = 96; // 8 minutes / 5 seconds = 96 attempts
   let attempts = 0;
 
@@ -54,19 +94,112 @@ export const checkInferenceServiceState = (
     return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
       attempts++;
 
-      // Use cy.log for both Cypress logging and console output
-      cy.log(`🧐 Attempt ${attempts}: Checking InferenceService state
-          Command: ${ocCommand}
-          Output: ${result.stdout}`);
-
-      if (result.stdout.includes('"activeModelState": "Loaded"')) {
+      let serviceState: InferenceServiceState;
+      try {
+        serviceState = JSON.parse(result.stdout) as InferenceServiceState;
+      } catch (error) {
         cy.log(
-          `✅ InferenceService ${serviceName} is in "Loaded" state after ${attempts} attempts`,
+          `❌ Failed to parse JSON: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
+        throw new Error(
+          `Failed to parse InferenceService JSON: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`,
+        );
+      }
+
+      // Check active model state
+      const activeModelState =
+        serviceState.status?.modelStatus?.states?.activeModelState || 'EMPTY';
+      const conditions = serviceState.status?.conditions || [];
+
+      // Detailed initial logging
+      cy.log(`🧐 Attempt ${attempts}: Checking InferenceService state
+        Service Name: ${serviceName}
+        Active Model State: ${activeModelState}
+        Total Conditions: ${conditions.length}`);
+
+      // Prepare condition checks with logging
+      const conditionChecks: ConditionCheck[] = [
+        {
+          type: 'LatestDeploymentReady',
+          expectedStatus: 'True',
+          check: (condition) =>
+            condition.type === 'LatestDeploymentReady' && condition.status === 'True',
+          name: 'Latest Deployment Ready',
+        },
+        {
+          type: 'Ready',
+          expectedStatus: 'True',
+          check: (condition) => condition.type === 'Ready' && condition.status === 'True',
+          name: 'Service Ready',
+        },
+      ];
+
+      // Perform condition checks with detailed logging
+      const checkedConditions = conditionChecks.map((condCheck) => {
+        const foundCondition = conditions.find((condition) => condition.type === condCheck.type);
+
+        const isPassed = foundCondition ? condCheck.check(foundCondition) : false;
+
+        // Detailed condition logging
+        cy.log(`🔍 Condition Check: ${condCheck.name}
+          Type: ${condCheck.type}
+          Expected Status: ${condCheck.expectedStatus}
+          Found Condition: ${foundCondition ? 'Yes' : 'No'}
+          Status: ${safeString(foundCondition?.status)}
+          Reason: ${safeString(foundCondition?.reason)}
+          Passed: ${isPassed ? '✅' : '❌'}`);
+
+        return {
+          ...condCheck,
+          foundCondition,
+          isPassed,
+        };
+      });
+
+      // Check if active model state is "Loaded"
+      const isModelLoaded = activeModelState === 'Loaded';
+      cy.log(`Active Model State Check: ${isModelLoaded ? '✅ Loaded' : '❌ Not Loaded'}`);
+
+      // Determine overall success
+      const allConditionsPassed = checkedConditions.every((check) => check.isPassed);
+
+      if (isModelLoaded && allConditionsPassed) {
+        cy.log(
+          `✅ InferenceService ${serviceName} is in "Loaded" state and meets all conditions after ${attempts} attempts`,
         );
         return cy.wrap(result);
       }
+
       if (attempts >= maxAttempts) {
-        const errorMessage = `❌ InferenceService ${serviceName} did not reach "Loaded" state within 5 minutes`;
+        // Prepare detailed error message with full condition details
+        const conditionDetails = conditions
+          .map(
+            (condition) =>
+              `Type: ${safeString(condition.type)}, Status: ${safeString(
+                condition.status,
+              )}, Reason: ${safeString(condition.reason)}, Message: ${safeString(
+                condition.message,
+              )}`,
+          )
+          .join('\n');
+
+        const errorMessage = `❌ InferenceService ${serviceName} did not meet all conditions within 8 minutes
+          Active Model State: ${activeModelState}
+          Condition Checks:
+          ${checkedConditions
+            .map(
+              (check) =>
+                `${check.name}: ${check.isPassed ? '✅' : '❌'} (Status: ${safeString(
+                  check.foundCondition?.status,
+                )})`,
+            )
+            .join('\n')}
+          
+          Full Condition Details:
+          ${conditionDetails}`;
+
         cy.log(errorMessage);
         throw new Error(errorMessage);
       } else {
