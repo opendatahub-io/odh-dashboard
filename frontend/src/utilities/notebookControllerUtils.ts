@@ -354,7 +354,7 @@ export const getNotebookEventStatus = (
           };
         }
         return {
-          step: ProgressionStep.OAUTH_PROBLEM,
+          step: ProgressionStep.OAUTH_CONTAINER_PROBLEM,
           status: EventStatus.WARNING,
           timestamp,
         };
@@ -443,7 +443,7 @@ export const getNotebookEventStatus = (
       }
       if (!gracePeriod && event.reason === 'BackOff') {
         return {
-          step: ProgressionStep.NOTEBOOK_PROBLEM,
+          step: ProgressionStep.NOTEBOOK_CONTAINER_PROBLEM,
           description: 'ImagePullBackOff',
           status: EventStatus.ERROR,
           timestamp,
@@ -451,14 +451,14 @@ export const getNotebookEventStatus = (
       }
       if (event.type === 'Warning') {
         return {
-          step: ProgressionStep.NOTEBOOK_PROBLEM,
+          step: ProgressionStep.NOTEBOOK_CONTAINER_PROBLEM,
           description: 'Issue creating workbench container',
           status: EventStatus.WARNING,
           timestamp,
         };
       }
       return {
-        step: ProgressionStep.NOTEBOOK_PROBLEM,
+        step: ProgressionStep.NOTEBOOK_CONTAINER_PROBLEM,
         description: '',
         status: EventStatus.WARNING,
         timestamp,
@@ -497,11 +497,11 @@ export const useNotebookStatus = (
 
   // Parse the last event
   const lastItem = filteredEvents[filteredEvents.length - 1];
-  const { step, status } = getNotebookEventStatus(lastItem, gracePeriod);
+  const { step, description, status } = getNotebookEventStatus(lastItem, gracePeriod);
 
   return [
     {
-      currentEvent: ProgressionStepTitles[step],
+      currentEvent: description || ProgressionStepTitles[step],
       currentEventReason: lastItem.reason,
       currentEventDescription: lastItem.message,
       currentStatus: status,
