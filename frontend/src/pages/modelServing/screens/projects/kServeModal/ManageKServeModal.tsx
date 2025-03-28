@@ -38,7 +38,6 @@ import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import AuthServingRuntimeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
 import { useAccessReview } from '~/api';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { ModelDeployPrefillInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import {
   FormTrackingEventProperties,
@@ -53,7 +52,9 @@ import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescription
 import { useProfileIdentifiers } from '~/concepts/hardwareProfiles/utils';
 import { useModelServingPodSpecOptionsState } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import { validateEnvVarName } from '~/concepts/connectionTypes/utils';
-import usePrefillModelDeployModal from '~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
+import usePrefillModelDeployModal, {
+  ModelDeployPrefillInfo,
+} from '~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 import EnvironmentVariablesSection from './EnvironmentVariablesSection';

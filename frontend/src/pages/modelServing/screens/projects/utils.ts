@@ -38,7 +38,6 @@ import {
   updateServingRuntime,
 } from '~/api';
 import { containsOnlySlashes, isS3PathValid, removeLeadingSlash } from '~/utilities/string';
-import { ModelDeployPrefillInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 import { getNIMData, getNIMResource } from '~/pages/modelServing/screens/projects/nimUtils';
 import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
 import { Connection } from '~/concepts/connectionTypes/types';
@@ -47,6 +46,7 @@ import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
 } from '~/concepts/connectionTypes/utils';
+import { ModelDeployPrefillInfo } from './usePrefillModelDeployModal';
 
 export const getServingRuntimeSizes = (config: DashboardConfigKind): ModelServingSize[] => {
   let sizes = config.spec.modelServerSizes || [];

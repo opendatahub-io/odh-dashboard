@@ -6,8 +6,9 @@ import useConnections from '~/pages/projects/screens/detail/connections/useConne
 import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
 import { mockConnection } from '~/__mocks__/mockConnection';
 import { mockConnectionTypeConfigMapObj } from '~/__mocks__/mockConnectionType';
-import { ModelDeployPrefillInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
-import usePrefillModelDeployModal from '~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
+import usePrefillModelDeployModal, {
+  ModelDeployPrefillInfo,
+} from '~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 
 jest.mock('~/concepts/areas/useIsAreaAvailable', () => () => ({
   status: true,

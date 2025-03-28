@@ -6,7 +6,6 @@ import {
   ConnectionTypeValueType,
 } from '~/concepts/connectionTypes/types';
 import { ProjectKind } from '~/k8sTypes';
-import { ModelDeployPrefillInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 import {
   CreatingInferenceServiceObject,
   InferenceServiceStorageType,
@@ -27,6 +26,19 @@ import { getResourceNameFromK8sResource } from '~/concepts/k8s/utils';
 import { PrefilledConnection } from '~/concepts/modelRegistry/utils';
 import useLabeledConnections from './useLabeledConnections';
 
+export type ModelDeployPrefillInfo = {
+  modelName: string;
+  modelFormat?: string;
+  modelArtifactUri?: string;
+  connectionTypeName?: string;
+  modelArtifactStorageKey?: string;
+  modelRegistryInfo?: {
+    modelVersionId?: string;
+    registeredModelId?: string;
+    mrName?: string;
+  };
+};
+
 const usePrefillModelDeployModal = (
   projectContext: { currentProject: ProjectKind; connections: Connection[] } | undefined,
   createData: CreatingInferenceServiceObject,
@@ -37,7 +49,7 @@ const usePrefillModelDeployModal = (
     projectContext ? projectContext.currentProject.metadata.name : createData.project,
     true,
   );
-  const { connections, modelLocation: storageFields } = useLabeledConnections(
+  const { connections, modelLocation } = useLabeledConnections(
     modelDeployPrefillInfo?.modelArtifactUri,
     fetchedConnections,
   );
@@ -65,14 +77,14 @@ const usePrefillModelDeployModal = (
         (dataConnection) => dataConnection.isRecommended,
       );
 
-      if (!storageFields) {
+      if (!modelLocation) {
         setCreateData('storage', {
           awsData: EMPTY_AWS_SECRET_DATA,
           dataConnection: '',
           path: '',
           type: InferenceServiceStorageType.EXISTING_STORAGE,
         });
-      } else if (storageFields.s3Fields) {
+      } else if (modelLocation.s3Fields) {
         const prefilledKeys: (typeof EMPTY_AWS_SECRET_DATA)[number]['key'][] = [
           AwsKeys.NAME,
           AwsKeys.AWS_S3_BUCKET,
@@ -81,16 +93,16 @@ const usePrefillModelDeployModal = (
         ];
         const prefilledAWSData = [
           { key: AwsKeys.NAME, value: modelDeployPrefillInfo.modelArtifactStorageKey || '' },
-          { key: AwsKeys.AWS_S3_BUCKET, value: storageFields.s3Fields.bucket },
-          { key: AwsKeys.S3_ENDPOINT, value: storageFields.s3Fields.endpoint },
-          { key: AwsKeys.DEFAULT_REGION, value: storageFields.s3Fields.region || '' },
+          { key: AwsKeys.AWS_S3_BUCKET, value: modelLocation.s3Fields.bucket },
+          { key: AwsKeys.S3_ENDPOINT, value: modelLocation.s3Fields.endpoint },
+          { key: AwsKeys.DEFAULT_REGION, value: modelLocation.s3Fields.region || '' },
           ...EMPTY_AWS_SECRET_DATA.filter((item) => !prefilledKeys.includes(item.key)),
         ];
         if (recommendedConnections.length === 0) {
           setCreateData('storage', {
             awsData: prefilledAWSData,
             dataConnection: '',
-            path: storageFields.s3Fields.path,
+            path: modelLocation.s3Fields.path,
             type: InferenceServiceStorageType.NEW_STORAGE,
             alert,
           });
@@ -108,22 +120,22 @@ const usePrefillModelDeployModal = (
           setCreateData('storage', {
             awsData: prefilledAWSData,
             dataConnection: recommendedConnections[0].connection.metadata.name,
-            path: storageFields.s3Fields.path,
+            path: modelLocation.s3Fields.path,
             type: InferenceServiceStorageType.EXISTING_STORAGE,
           });
         } else {
           setCreateData('storage', {
             awsData: prefilledAWSData,
             dataConnection: '',
-            path: storageFields.s3Fields.path,
+            path: modelLocation.s3Fields.path,
             type: InferenceServiceStorageType.EXISTING_STORAGE,
           });
         }
-      } else if (storageFields.uri) {
+      } else if (modelLocation.uri) {
         if (recommendedConnections.length === 0) {
           setCreateData('storage', {
             awsData: EMPTY_AWS_SECRET_DATA,
-            uri: storageFields.uri,
+            uri: modelLocation.uri,
             dataConnection: '',
             path: '',
             type: InferenceServiceStorageType.NEW_STORAGE,
@@ -138,10 +150,10 @@ const usePrefillModelDeployModal = (
               URIConnectionTypeKeys,
             ),
           );
-          setinitialNewConnectionValues(getMRConnectionValues(storageFields.uri));
+          setinitialNewConnectionValues(getMRConnectionValues(modelLocation.uri));
         } else if (recommendedConnections.length === 1) {
           setCreateData('storage', {
-            uri: storageFields.uri,
+            uri: modelLocation.uri,
             awsData: EMPTY_AWS_SECRET_DATA,
             dataConnection: recommendedConnections[0].connection.metadata.name,
             path: '',
@@ -149,17 +161,17 @@ const usePrefillModelDeployModal = (
           });
         } else {
           setCreateData('storage', {
-            uri: storageFields.uri,
+            uri: modelLocation.uri,
             awsData: EMPTY_AWS_SECRET_DATA,
             dataConnection: '',
             path: '',
             type: InferenceServiceStorageType.EXISTING_STORAGE,
           });
         }
-      } else if (storageFields.ociUri) {
-        if (isRedHatRegistryUri(storageFields.ociUri)) {
+      } else if (modelLocation.ociUri) {
+        if (isRedHatRegistryUri(modelLocation.ociUri)) {
           setCreateData('storage', {
-            uri: storageFields.ociUri,
+            uri: modelLocation.ociUri,
             awsData: EMPTY_AWS_SECRET_DATA,
             dataConnection: '',
             path: '',
@@ -168,7 +180,7 @@ const usePrefillModelDeployModal = (
         } else if (recommendedConnections.length === 0) {
           setCreateData('storage', {
             awsData: EMPTY_AWS_SECRET_DATA,
-            uri: storageFields.ociUri,
+            uri: modelLocation.ociUri,
             dataConnection: '',
             path: '',
             type: InferenceServiceStorageType.NEW_STORAGE,
@@ -185,7 +197,7 @@ const usePrefillModelDeployModal = (
           );
         } else if (recommendedConnections.length === 1) {
           setCreateData('storage', {
-            uri: storageFields.ociUri,
+            uri: modelLocation.ociUri,
             awsData: EMPTY_AWS_SECRET_DATA,
             dataConnection: recommendedConnections[0].connection.metadata.name,
             path: '',
@@ -193,7 +205,7 @@ const usePrefillModelDeployModal = (
           });
         } else {
           setCreateData('storage', {
-            uri: storageFields.ociUri,
+            uri: modelLocation.ociUri,
             awsData: EMPTY_AWS_SECRET_DATA,
             dataConnection: '',
             path: '',
@@ -202,7 +214,7 @@ const usePrefillModelDeployModal = (
         }
       }
     }
-  }, [connections, storageFields, modelDeployPrefillInfo, setCreateData, loaded, connectionTypes]);
+  }, [connections, modelLocation, modelDeployPrefillInfo, setCreateData, loaded, connectionTypes]);
 
   return {
     initialNewConnectionType,

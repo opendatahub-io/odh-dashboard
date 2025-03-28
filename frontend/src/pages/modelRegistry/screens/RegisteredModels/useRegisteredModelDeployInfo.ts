@@ -3,22 +3,7 @@ import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useM
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
 import { uriToModelLocation } from '~/concepts/modelRegistry/utils';
-
-// TODO move this along with usePrefillDeployModal
-export type ModelDeployPrefillInfo = {
-  modelName: string;
-  modelFormat?: string;
-  modelArtifactUri?: string;
-  connectionTypeName?: string;
-  modelArtifactStorageKey?: string;
-  modelRegistryInfo?: {
-    modelVersionId?: string;
-    registeredModelId?: string;
-    mrName?: string;
-  };
-};
-
-// TODO move this to ~/concepts/modelRegistry?
+import { ModelDeployPrefillInfo } from '~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 
 const useRegisteredModelDeployPrefillInfo = (
   modelVersion: ModelVersion,
