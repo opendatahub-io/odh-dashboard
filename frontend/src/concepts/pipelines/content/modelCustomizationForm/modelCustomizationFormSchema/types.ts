@@ -10,7 +10,6 @@ export enum FineTuneTaxonomyType {
 
 export enum ProjectFields {
   PROJECT_NAME = 'projectName',
-  RUN_TYPE = 'runType',
   HYPERPARAMETERS = 'hyperparameters',
   BASE_MODEL = 'baseModel',
 }
