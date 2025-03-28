@@ -103,10 +103,14 @@ describe('[Product Bug: RHOAIENG-20213] Verify Admin Single Model Creation and V
       inferenceServiceModal.findTokenAuthenticationCheckbox().should('not.be.checked');
       inferenceServiceModal.findLocationPathInput().type(modelFilePath);
       inferenceServiceModal.findSubmitButton().click();
+      modelServingSection.findModelServerName(testData.singleModelAdminName);
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
-      checkInferenceServiceState(testData.singleModelAdminName);
+      checkInferenceServiceState(testData.singleModelAdminName, {
+        checkReady: true,
+        checkLatestDeploymentReady: true,
+      });
       modelServingSection.findModelServerName(testData.singleModelAdminName);
       // Note reload is required as status tooltip was not found due to a stale element
       cy.reload();

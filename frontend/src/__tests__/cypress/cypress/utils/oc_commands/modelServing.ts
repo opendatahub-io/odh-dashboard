@@ -73,6 +73,14 @@ type ConditionCheck = {
 };
 
 /**
+ * Type for Condition Check Options
+ */
+type ConditionCheckOptions = {
+  checkLatestDeploymentReady?: boolean;
+  checkReady?: boolean;
+};
+
+/**
  * Safely get a string value, defaulting to an empty string
  */
 const safeString = (value: string | undefined | null): string => value ?? '';
@@ -81,10 +89,12 @@ const safeString = (value: string | undefined | null): string => value ?? '';
  * Check InferenceService active model state and additional conditions
  *
  * @param serviceName InferenceService name
+ * @param options Optional configuration for condition checks
  * @returns Result Object of the operation
  */
 export const checkInferenceServiceState = (
   serviceName: string,
+  options: ConditionCheckOptions = {},
 ): Cypress.Chainable<Cypress.Exec> => {
   const ocCommand = `oc get inferenceService ${serviceName} -o json`;
   const maxAttempts = 96; // 8 minutes / 5 seconds = 96 attempts
@@ -120,21 +130,30 @@ export const checkInferenceServiceState = (
         Total Conditions: ${conditions.length}`);
 
       // Prepare condition checks with logging
-      const conditionChecks: ConditionCheck[] = [
-        {
+      const conditionChecks: ConditionCheck[] = [];
+
+      // Only add condition checks that are explicitly enabled
+      if (options.checkLatestDeploymentReady) {
+        conditionChecks.push({
           type: 'LatestDeploymentReady',
           expectedStatus: 'True',
           check: (condition) =>
             condition.type === 'LatestDeploymentReady' && condition.status === 'True',
           name: 'Latest Deployment Ready',
-        },
-        {
+        });
+      }
+
+      if (options.checkReady) {
+        conditionChecks.push({
           type: 'Ready',
           expectedStatus: 'True',
           check: (condition) => condition.type === 'Ready' && condition.status === 'True',
           name: 'Service Ready',
-        },
-      ];
+        });
+      }
+
+      // If no condition checks are specified, skip condition validation
+      const shouldValidateConditions = conditionChecks.length > 0;
 
       // Perform condition checks with detailed logging
       const checkedConditions = conditionChecks.map((condCheck) => {
@@ -163,7 +182,9 @@ export const checkInferenceServiceState = (
       cy.log(`Active Model State Check: ${isModelLoaded ? '✅ Loaded' : '❌ Not Loaded'}`);
 
       // Determine overall success
-      const allConditionsPassed = checkedConditions.every((check) => check.isPassed);
+      // If no condition checks were specified, only check model state
+      const allConditionsPassed =
+        !shouldValidateConditions || checkedConditions.every((check) => check.isPassed);
 
       if (isModelLoaded && allConditionsPassed) {
         cy.log(
