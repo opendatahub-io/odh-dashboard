@@ -138,3 +138,82 @@ export const modelExternalURLOpenVinoTester = (
       });
   });
 };
+
+/**
+ * Validates tolerations in a workbench pod
+ *
+ * @param namespace The namespace where the workbench pod is running
+ * @param modelName The prefix or partial name of the Model pod
+ * @param expectedToleration The toleration to check for, or null if no toleration is expected
+ * @param expectPodRunning Whether the pod is expected to be running
+ * @returns Cypress.Chainable<string> that resolves to the result of the validation or pod name
+ */
+/**
+ * Validates tolerations in an InferenceService resource.
+ *
+ * @param namespace The namespace where the InferenceService is deployed.
+ * @param inferenceServiceName The name of the InferenceService resource.
+ * @param expectedToleration The toleration object to check for, or null if no toleration is expected.
+ * @returns Cypress.Chainable<void> that resolves after validation.
+ */
+export const validateInferenceServiceTolerations = (
+  namespace: string,
+  inferenceServiceName: string,
+  expectedToleration: { key: string; operator: string; effect: string } | null,
+): Cypress.Chainable<Cypress.Exec> => {
+  // Construct the `oc` command to retrieve the InferenceService JSON
+  const getInferenceServiceCmd = `oc get inferenceService ${inferenceServiceName} -n ${namespace} -o json`;
+
+  // Log the command being executed for debugging purposes
+  cy.log(`Executing command: ${getInferenceServiceCmd}`);
+
+  return cy.exec(getInferenceServiceCmd, { failOnNonZeroExit: false }).then((result) => {
+    // Handle command failure
+    if (result.code !== 0) {
+      const errorMsg = result.stderr.includes('NotFound')
+        ? `InferenceService "${inferenceServiceName}" not found in namespace "${namespace}".`
+        : `Command failed: ${result.stderr}`;
+      cy.log(`❌ Error executing command:\n${errorMsg}`);
+      throw new Error(errorMsg);
+    }
+
+    // Parse JSON output to extract tolerations
+    const inferenceService = JSON.parse(result.stdout);
+    const tolerations = inferenceService.spec.predictor.tolerations || [];
+    cy.log(`Found tolerations: ${JSON.stringify(tolerations)}`);
+
+    if (expectedToleration) {
+      // Validate that the expected toleration exists in the list
+      const exists = tolerations.some(
+        (t: { key: string; operator: string; effect: string }) =>
+          t.key === expectedToleration.key &&
+          t.operator === expectedToleration.operator &&
+          t.effect === expectedToleration.effect,
+      );
+
+      if (!exists) {
+        throw new Error(
+          `Expected toleration ${JSON.stringify(
+            expectedToleration,
+          )} not found in InferenceService "${inferenceServiceName}".\n` +
+            `Found tolerations: ${JSON.stringify(tolerations)}`,
+        );
+      }
+
+      cy.log(
+        `✅ Verified expected toleration exists in InferenceService "${inferenceServiceName}".`,
+      );
+    } else {
+      // Validate that no tolerations exist
+      if (tolerations.length > 0) {
+        throw new Error(
+          `Unexpected tolerations found in InferenceService "${inferenceServiceName}":\n${JSON.stringify(
+            tolerations,
+          )}`,
+        );
+      }
+
+      cy.log(`✅ No tolerations found as expected in InferenceService "${inferenceServiceName}".`);
+    }
+  });
+};

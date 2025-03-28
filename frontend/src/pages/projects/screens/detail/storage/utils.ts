@@ -28,15 +28,19 @@ export const isPvcUpdateRequired = (
   existingPvc.spec.resources.requests.storage !== storageData.size ||
   existingPvc.spec.storageClassName !== storageData.storageClassName;
 
-export const handleConnectedNotebooks = (
-  tempData: ClusterStorageNotebookSelection[],
-  notebooks: NotebookKind[],
-): {
+export type NotebooksChangesResult = {
   updatedNotebooks: ClusterStorageNotebookSelection[];
   removedNotebooks: string[];
-} => {
+  newNotebooks: ClusterStorageNotebookSelection[];
+};
+
+export const handleNotebooksChanges = (
+  tempData: ClusterStorageNotebookSelection[],
+  notebooks: NotebookKind[],
+): NotebooksChangesResult => {
   const updatedNotebooks: ClusterStorageNotebookSelection[] = [];
   const removedNotebooks: string[] = [];
+  const newNotebooks = tempData.filter((notebook) => !notebook.existingPvc);
   notebooks.forEach((notebook) => {
     const tempEntry = tempData.find(
       (item) => item.existingPvc && item.name === notebook.metadata.name,
@@ -48,8 +52,17 @@ export const handleConnectedNotebooks = (
     }
   });
 
-  return { updatedNotebooks, removedNotebooks };
+  return { updatedNotebooks, removedNotebooks, newNotebooks };
 };
+
+export const hasAllValidNotebookRelationship = (
+  notebookData: ClusterStorageNotebookSelection[],
+): boolean =>
+  notebookData.every((currentNotebookData) =>
+    currentNotebookData.name
+      ? !!currentNotebookData.mountPath.value && !currentNotebookData.mountPath.error
+      : false,
+  );
 
 export const mountPathSuffix = (mountPath: string): string =>
   mountPath.startsWith(MOUNT_PATH_PREFIX)

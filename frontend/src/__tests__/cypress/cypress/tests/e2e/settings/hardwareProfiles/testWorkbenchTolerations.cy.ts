@@ -1,5 +1,5 @@
 import type { WBTolerationsTestData } from '~/__tests__/cypress/cypress/types';
-import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
+import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import {
   workbenchPage,
   createSpawnerPage,
@@ -51,7 +51,7 @@ describe('Workbenches - tolerations tests', () => {
       });
   });
 
-  // Cleanup: Restore original toleration settings and delete the created project
+  // Cleanup: Delete Hardware Profile and the associated Project
   after(() => {
     // Check if the Before Method was executed to perform the setup
     if (!wasSetupPerformed()) return;
@@ -70,7 +70,7 @@ describe('Workbenches - tolerations tests', () => {
   });
 
   it(
-    'Validate pod tolerations are applied to a Workbench when applying a Hardware Profile',
+    'Verify Workbench Creation using Hardware Profiles and applying Tolerations',
     // TODO: Add the below tags once this feature is enabled in 2.20+
     //  { tags: ['@Sanity', '@SanitySet2', '@ODS-1969', '@ODS-2057', '@Dashboard'] },
     { tags: ['@Featureflagged', '@HardwareProfilesWB', '@HardwareProfiles'] },
@@ -179,6 +179,8 @@ describe('Workbenches - tolerations tests', () => {
       notebookRow.expectStatusLabelToBe('Running', 120000);
       cy.reload();
 
+      // Validate that the toleration applied earlier still displays in the pod
+      cy.step('Validate the Tolerations for the pod still include the tolerations applied earlier');
       validateWorkbenchTolerations(
         projectName,
         testData.workbenchName,
@@ -186,7 +188,7 @@ describe('Workbenches - tolerations tests', () => {
         true,
       ).then((resolvedPodName) => {
         cy.log(
-          `Resolved Pod Name: ${resolvedPodName} and ${testData.tolerationValue} displays in the pod as expected`,
+          `✅ Resolved Pod Name: ${resolvedPodName} and ${testData.tolerationValue} displays in the pod as expected`,
         );
       });
     },
