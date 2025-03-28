@@ -19,6 +19,7 @@ const KServeAutoscalerReplicaSection: React.FC<KServeAutoscalerReplicaSectionPro
 }) => (
   <FormGroup
     label="Number of model server replicas to deploy"
+    data-testid="model-server-replicas"
     labelHelp={
       infoContent ? (
         <Popover bodyContent={<div>{infoContent}</div>}>
