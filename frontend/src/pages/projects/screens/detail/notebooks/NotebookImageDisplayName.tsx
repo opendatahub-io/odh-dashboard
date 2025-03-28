@@ -19,6 +19,7 @@ import { NotebookImageAvailability } from './const';
 import { NotebookImage } from './types';
 
 type NotebookImageDisplayNameProps = {
+  isImageStreamProjectScoped: boolean;
   notebookImage: NotebookImage | null;
   loaded: boolean;
   loadError?: Error;
@@ -26,6 +27,7 @@ type NotebookImageDisplayNameProps = {
 };
 
 export const NotebookImageDisplayName = ({
+  isImageStreamProjectScoped,
   notebookImage,
   loaded,
   loadError,
@@ -39,7 +41,6 @@ export const NotebookImageDisplayName = ({
       </HelperText>
     );
   }
-
   // If the image is not loaded, display a spinner
   if (!loaded || !notebookImage) {
     return <Spinner size="md" />;
@@ -85,7 +86,6 @@ export const NotebookImageDisplayName = ({
         variant: 'danger',
       };
     }
-
     return {};
   };
 
@@ -96,8 +96,6 @@ export const NotebookImageDisplayName = ({
         return 'grey';
       case NotebookImageAvailability.DELETED:
         return 'red';
-      case NotebookImageAvailability.ENABLED:
-        return 'blue';
       default:
         return undefined;
     }
@@ -110,10 +108,6 @@ export const NotebookImageDisplayName = ({
         return <InfoCircleIcon />;
       case NotebookImageAvailability.DELETED:
         return <ExclamationCircleIcon />;
-      case NotebookImageAvailability.ENABLED:
-        return (
-          <img style={{ height: 25 }} src={typedObjectImage(ProjectObjectType.project)} alt="" />
-        );
       default:
         return undefined;
     }
@@ -123,9 +117,27 @@ export const NotebookImageDisplayName = ({
   if (notebookImage.imageAvailability === NotebookImageAvailability.ENABLED) {
     return (
       <>
-        <HelperText>
-          <HelperTextItem>{notebookImage.imageDisplayName}</HelperTextItem>
-        </HelperText>
+        <Flex>
+          <FlexItem>{notebookImage.imageDisplayName}</FlexItem>
+          <FlexItem>
+            {isImageStreamProjectScoped && (
+              <Label
+                isCompact
+                variant="outline"
+                color="blue"
+                icon={
+                  <img
+                    style={{ height: 20 }}
+                    src={typedObjectImage(ProjectObjectType.project)}
+                    alt=""
+                  />
+                }
+              >
+                Project-scoped
+              </Label>
+            )}
+          </FlexItem>
+        </Flex>
         {isExpanded && (
           <Content component={ContentVariants.small}>{notebookImage.tagSoftware}</Content>
         )}
