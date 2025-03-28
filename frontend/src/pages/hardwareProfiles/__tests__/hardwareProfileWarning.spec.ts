@@ -121,7 +121,7 @@ describe('validateProfileWarning', () => {
           displayName: 'Memory',
           identifier: 'memory',
           resourceType: IdentifierResourceType.MEMORY,
-          minCount: 'Gi',
+          minCount: 'Invalid',
           maxCount: '5Gi',
           defaultCount: '2Gi',
         },
@@ -140,6 +140,38 @@ describe('validateProfileWarning', () => {
       {
         type: HardwareProfileWarningType.OTHER,
         message: `The resource count for ${IdentifierResourceType.MEMORY} has an invalid unit. Edit the profile to make the profile valid.`,
+      },
+    ]);
+  });
+
+  it('should generate warnings for missing identifier counts', () => {
+    const hardwareProfileMock = mockHardwareProfile({
+      uid: 'test-4',
+      enabled: false,
+      identifiers: [
+        {
+          displayName: 'Memory',
+          identifier: 'memory',
+          resourceType: IdentifierResourceType.MEMORY,
+          minCount: 'Gi',
+          maxCount: '5Gi',
+          defaultCount: '2Gi',
+        },
+        {
+          displayName: 'CPU',
+          identifier: 'cpu',
+          resourceType: IdentifierResourceType.CPU,
+          minCount: '1',
+          maxCount: '2',
+          defaultCount: '1',
+        },
+      ],
+    });
+    const hardwareProfilesResult = validateProfileWarning(hardwareProfileMock);
+    expect(hardwareProfilesResult).toEqual([
+      {
+        type: HardwareProfileWarningType.OTHER,
+        message: `The resource count for ${IdentifierResourceType.MEMORY} has the unit only but doesn't have a value. Edit the profile to make the profile valid.`,
       },
     ]);
   });

@@ -193,13 +193,36 @@ describe('Workbench Hardware Profiles', () => {
     hardwareProfileSection.findCustomizeButton().click();
 
     // Test CPU validation
-    hardwareProfileSection.verifyResourceValidation('cpu-requests', '3', 'Must be at least 4');
-    hardwareProfileSection.verifyResourceValidation('cpu-requests', '1');
+    hardwareProfileSection.verifyResourceValidation(
+      'cpu-requests',
+      '3',
+      'Must be at least 4 Cores',
+    );
+    hardwareProfileSection.verifyResourceValidation('cpu-requests', '', 'CPU must be provided');
+    hardwareProfileSection.verifyResourceValidation('cpu-requests', '9', 'Must not exceed 8 Cores');
+    hardwareProfileSection.verifyResourceValidation('cpu-requests', '6');
+    hardwareProfileSection.verifyResourceValidation(
+      'cpu-limits',
+      '5',
+      'Limit must be greater than or equal to request',
+    );
 
     // Test Memory validation
-    hardwareProfileSection.verifyResourceValidation('memory-requests', '1', 'Must be at least 8Gi');
-    hardwareProfileSection.verifyResourceValidation('memory-requests', '5');
-    hardwareProfileSection.verifyResourceValidation('memory-requests', '3');
+    hardwareProfileSection.verifyResourceValidation(
+      'memory-requests',
+      '1',
+      'Must be at least 8 GiB',
+    );
+    hardwareProfileSection.verifyResourceValidation(
+      'memory-requests',
+      '',
+      'Memory must be provided',
+    );
+    hardwareProfileSection.verifyResourceValidation(
+      'memory-requests',
+      '17',
+      'Must not exceed 16 GiB',
+    );
   });
 
   it('should not display hardware profile selection when feature flag is disabled', () => {

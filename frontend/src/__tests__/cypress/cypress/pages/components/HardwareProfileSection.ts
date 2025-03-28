@@ -47,12 +47,10 @@ export class HardwareProfileSection {
 
   verifyResourceValidation(label: string, value: string, errorMessage?: string): void {
     this.findCustomizeForm().within(() => {
-      cy.findByTestId(`${label}-input`).clear();
+      cy.findByTestId(`${label}-input`).findByLabelText('Input').clear();
       cy.findByTestId(`${label}-input`).type(`{moveToEnd}${value}`, { delay: 100 });
       if (errorMessage) {
         cy.findByText(errorMessage).should('exist');
-      } else {
-        cy.findByText('Value must be').should('not.exist');
       }
     });
   }

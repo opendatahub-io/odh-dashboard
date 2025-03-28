@@ -25,7 +25,12 @@ import {
   HARDWARE_PROFILE_COLUMN_HELP_TOOLTIP,
 } from '~/pages/hardwareProfiles/nodeResource/const';
 import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
-import { validateDefaultCount, validateMinCount } from './utils';
+import {
+  getValidationMessage,
+  validateDefaultCount,
+  validateMaxCount,
+  validateMinCount,
+} from './utils';
 import CountFormField from './CountFormField';
 
 type NodeResourceFormProps = {
@@ -42,6 +47,10 @@ const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
   isUniqueIdentifier,
 }) => {
   const validated = isUniqueIdentifier ? 'default' : 'error';
+  const defaultCountValidation = validateDefaultCount(identifier, unitOptions);
+  const minCountValidation = validateMinCount(identifier, unitOptions);
+  const maxCountValidation = validateMaxCount(identifier, unitOptions);
+  const [isUnlimitedMax, setUnlimitedMax] = React.useState(false);
 
   return (
     <Form>
@@ -123,9 +132,10 @@ const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
         type={identifier.resourceType}
         size={identifier.defaultCount}
         setSize={(value) => setIdentifier('defaultCount', value)}
-        isValid={validateDefaultCount(identifier, unitOptions)}
-        errorMessage="Default must be equal to or between the minimum and maximum allowed limits."
+        isValid={defaultCountValidation.isValid}
+        errorMessage={getValidationMessage(defaultCountValidation.issues)}
         tooltip={HARDWARE_PROFILE_COLUMN_HELP_TOOLTIP.defaultCount}
+        isRequired
       />
 
       <CountFormField
@@ -134,9 +144,10 @@ const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
         type={identifier.resourceType}
         size={identifier.minCount}
         setSize={(value) => setIdentifier('minCount', value)}
-        isValid={validateMinCount(identifier, unitOptions)}
-        errorMessage="Minimum allowed value cannot exceed the maximum allowed value (if specified)."
+        isValid={minCountValidation.isValid}
+        errorMessage={getValidationMessage(minCountValidation.issues)}
         tooltip={HARDWARE_PROFILE_COLUMN_HELP_TOOLTIP.minCount}
+        isRequired
       />
 
       <FormGroup
@@ -152,8 +163,11 @@ const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
                   id="limited-radio"
                   name="max-limit"
                   label="Set maximum limit"
-                  isChecked={identifier.maxCount !== undefined}
-                  onChange={() => setIdentifier('maxCount', identifier.minCount || 1)}
+                  isChecked={!isUnlimitedMax}
+                  onChange={() => {
+                    setUnlimitedMax(false);
+                    setIdentifier('maxCount', identifier.minCount || 1);
+                  }}
                   data-testid="node-resource-max-limited"
                 />
               </SplitItem>
@@ -162,20 +176,25 @@ const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
                   id="unlimited-radio"
                   name="max-limit"
                   label="No maximum limit"
-                  isChecked={!identifier.maxCount}
-                  onChange={() => setIdentifier('maxCount', undefined)}
+                  isChecked={isUnlimitedMax}
+                  onChange={() => {
+                    setUnlimitedMax(true);
+                    setIdentifier('maxCount', undefined);
+                  }}
                   data-testid="node-resource-max-unlimited"
                 />
               </SplitItem>
             </Split>
           </StackItem>
           <StackItem>
-            {identifier.maxCount !== undefined && (
+            {!isUnlimitedMax && (
               <CountFormField
                 fieldId="maximum-allowed"
                 type={identifier.resourceType}
-                size={identifier.maxCount}
+                size={identifier.maxCount ?? 1}
                 setSize={(value) => setIdentifier('maxCount', value)}
+                isValid={maxCountValidation.isValid}
+                errorMessage={getValidationMessage(maxCountValidation.issues)}
               />
             )}
           </StackItem>
