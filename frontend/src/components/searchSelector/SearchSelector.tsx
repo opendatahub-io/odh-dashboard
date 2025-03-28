@@ -39,7 +39,7 @@ type SearchSelectorProps = {
   searchHelpText?: string;
   searchPlaceholder?: string;
   searchValue: string;
-  toggleText: string;
+  toggleText: React.ReactNode | string;
   toggleVariant?: React.ComponentProps<typeof MenuToggle>['variant'];
 };
 
@@ -93,7 +93,7 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
           data-testid={`${dataTestId}-toggle`}
           variant={toggleVariant}
         >
-          <Truncate content={toggleText} />
+          {typeof toggleText !== 'string' ? toggleText : <Truncate content={toggleText} />}
         </MenuToggle>
       }
       menu={

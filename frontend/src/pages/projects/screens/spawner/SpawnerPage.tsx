@@ -264,6 +264,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.NOTEBOOK_IMAGE]}
             >
               <ImageSelectorField
+                currentProject={currentProject.metadata.name}
                 selectedImage={selectedImage}
                 setSelectedImage={setSelectedImage}
                 compatibleIdentifiers={profileIdentifiers}
