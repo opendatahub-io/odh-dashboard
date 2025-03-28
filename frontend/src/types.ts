@@ -605,39 +605,44 @@ export enum ProgressionStep {
   SERVER_REQUESTED = 'SERVER_REQUESTED',
   POD_CREATED = 'POD_CREATED',
   POD_ASSIGNED = 'POD_ASSIGNED',
+  POD_PROBLEM = 'POD_PROBLEM',
   PVC_ATTACHED = 'PVC_ATTACHED',
   INTERFACE_ADDED = 'INTERFACE_ADDED',
   PULLING_NOTEBOOK_IMAGE = 'PULLING_NOTEBOOK_IMAGE',
   NOTEBOOK_IMAGE_PULLED = 'NOTEBOOK_IMAGE_PULLED',
   NOTEBOOK_CONTAINER_CREATED = 'NOTEBOOK_CONTAINER_CREATED',
+  NOTEBOOK_PROBLEM = 'NOTEBOOK_PROBLEM',
   NOTEBOOK_CONTAINER_STARTED = 'NOTEBOOK_CONTAINER_STARTED',
   PULLING_OAUTH = 'PULLING_OAUTH',
   OAUTH_PULLED = 'OAUTH_PULLED',
   OAUTH_CONTAINER_CREATED = 'OAUTH_CONTAINER_CREATED',
+  OAUTH_PROBLEM = 'OAUTH_PROBLEM',
   OAUTH_CONTAINER_STARTED = 'OAUTH_CONTAINER_STARTED',
   SERVER_STARTED = 'SERVER_STARTED',
 }
 
-export const ProgressionStepTitles = {
+export const ProgressionStepTitles: Record<ProgressionStep, string> = {
   [ProgressionStep.SERVER_REQUESTED]: 'Server requested',
   [ProgressionStep.POD_CREATED]: 'Pod created',
   [ProgressionStep.POD_ASSIGNED]: 'Pod assigned',
+  [ProgressionStep.POD_PROBLEM]: 'There was a problem with the pod',
   [ProgressionStep.PVC_ATTACHED]: 'PVC attached',
   [ProgressionStep.INTERFACE_ADDED]: 'Interface added',
   [ProgressionStep.PULLING_NOTEBOOK_IMAGE]: 'Pulling workbench image',
   [ProgressionStep.NOTEBOOK_IMAGE_PULLED]: 'Workbench image pulled',
   [ProgressionStep.NOTEBOOK_CONTAINER_CREATED]: 'Workbench container created',
+  [ProgressionStep.NOTEBOOK_PROBLEM]: 'There was a problem with the notebook',
   [ProgressionStep.NOTEBOOK_CONTAINER_STARTED]: 'Workbench container started',
   [ProgressionStep.PULLING_OAUTH]: 'Pulling oauth proxy',
   [ProgressionStep.OAUTH_PULLED]: 'Oauth proxy pulled',
   [ProgressionStep.OAUTH_CONTAINER_CREATED]: 'Oauth proxy container created',
+  [ProgressionStep.OAUTH_PROBLEM]: 'There was a problem with Oauth',
   [ProgressionStep.OAUTH_CONTAINER_STARTED]: 'Oauth proxy container started',
   [ProgressionStep.SERVER_STARTED]: 'Server started',
 };
 
-export const AssociatedSteps = {
+export const AssociatedSteps: Record<string, ProgressionStep[]> = {
   [ProgressionStep.NOTEBOOK_CONTAINER_STARTED]: [
-    ProgressionStep.PVC_ATTACHED,
     ProgressionStep.INTERFACE_ADDED,
     ProgressionStep.PULLING_NOTEBOOK_IMAGE,
     ProgressionStep.NOTEBOOK_IMAGE_PULLED,
@@ -651,8 +656,17 @@ export const AssociatedSteps = {
   [ProgressionStep.SERVER_STARTED]: Object.values(ProgressionStep),
 };
 
+export const OptionalSteps: Record<string, ProgressionStep[]> = {
+  Steps: [
+    ProgressionStep.POD_PROBLEM,
+    ProgressionStep.NOTEBOOK_PROBLEM,
+    ProgressionStep.OAUTH_PROBLEM,
+    ProgressionStep.PVC_ATTACHED,
+  ],
+};
+
 export type NotebookProgressStep = {
-  step?: ProgressionStep;
+  step: ProgressionStep;
   description?: string;
   status: EventStatus;
   timestamp: number;

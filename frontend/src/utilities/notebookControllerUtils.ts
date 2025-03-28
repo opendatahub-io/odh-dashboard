@@ -10,6 +10,7 @@ import {
   NotebookControllerUserState,
   NotebookProgressStep,
   NotebookStatus,
+  OptionalSteps,
   ProgressionStep,
   ProgressionStepTitles,
   ResourceCreator,
@@ -353,6 +354,7 @@ export const getNotebookEventStatus = (
           };
         }
         return {
+          step: ProgressionStep.OAUTH_PROBLEM,
           status: EventStatus.WARNING,
           timestamp,
         };
@@ -411,18 +413,21 @@ export const getNotebookEventStatus = (
       };
     case 'NotTriggerScaleUp':
       return {
+        step: ProgressionStep.POD_PROBLEM,
         description: 'Failed to scale-up',
         status: EventStatus.ERROR,
         timestamp,
       };
     case 'TriggeredScaleUp':
       return {
+        step: ProgressionStep.POD_PROBLEM,
         description: 'Pod triggered scale-up',
         status: EventStatus.INFO,
         timestamp,
       };
     case 'FailedCreate':
       return {
+        step: ProgressionStep.POD_PROBLEM,
         description: 'Failed to create pod',
         status: EventStatus.ERROR,
         timestamp,
@@ -430,6 +435,7 @@ export const getNotebookEventStatus = (
     default: {
       if (!gracePeriod && event.reason === 'FailedScheduling') {
         return {
+          step: ProgressionStep.POD_PROBLEM,
           description: 'Insufficient resources to start',
           status: EventStatus.ERROR,
           timestamp,
@@ -437,6 +443,7 @@ export const getNotebookEventStatus = (
       }
       if (!gracePeriod && event.reason === 'BackOff') {
         return {
+          step: ProgressionStep.NOTEBOOK_PROBLEM,
           description: 'ImagePullBackOff',
           status: EventStatus.ERROR,
           timestamp,
@@ -444,12 +451,14 @@ export const getNotebookEventStatus = (
       }
       if (event.type === 'Warning') {
         return {
+          step: ProgressionStep.NOTEBOOK_PROBLEM,
           description: 'Issue creating workbench container',
           status: EventStatus.WARNING,
           timestamp,
         };
       }
       return {
+        step: ProgressionStep.NOTEBOOK_PROBLEM,
         description: '',
         status: EventStatus.WARNING,
         timestamp,
@@ -488,11 +497,11 @@ export const useNotebookStatus = (
 
   // Parse the last event
   const lastItem = filteredEvents[filteredEvents.length - 1];
-  const { step, description, status } = getNotebookEventStatus(lastItem, gracePeriod);
+  const { step, status } = getNotebookEventStatus(lastItem, gracePeriod);
 
   return [
     {
-      currentEvent: step ? ProgressionStepTitles[step] : description ?? '',
+      currentEvent: ProgressionStepTitles[step],
       currentEventReason: lastItem.reason,
       currentEventDescription: lastItem.message,
       currentStatus: status,
@@ -523,7 +532,7 @@ export const useNotebookProgress = (
   const progressSteps: NotebookProgressStep[] = Object.values(ProgressionStep).map((step) => ({
     step: ProgressionStep[step],
     percentile: 0,
-    status: isRunning ? EventStatus.SUCCESS : EventStatus.PENDING,
+    status: EventStatus.PENDING,
     timestamp: 0,
   }));
   progressSteps[0].status = isStopped || isStopping ? EventStatus.PENDING : EventStatus.SUCCESS;
@@ -547,12 +556,10 @@ export const useNotebookProgress = (
     .toSorted(compareProgressSteps);
 
   currentProgress.forEach((currentStep) => {
-    if (currentStep.step) {
-      const progressStep = progressSteps.find((step) => step.step === currentStep.step);
-      if (progressStep) {
-        progressStep.status = currentStep.status;
-        progressStep.timestamp = currentStep.timestamp;
-      }
+    const progressStep = progressSteps.find((step) => step.step === currentStep.step);
+    if (progressStep) {
+      progressStep.status = currentStep.status;
+      progressStep.timestamp = currentStep.timestamp;
     }
   });
 
@@ -571,7 +578,8 @@ export const useNotebookProgress = (
   // If milestone steps are completed, mark off associated steps
   Object.entries(AssociatedSteps).forEach(([key, values]) => {
     if (progressSteps.find((p) => p.step === key)?.status === EventStatus.SUCCESS) {
-      values.forEach((value) => {
+      const filteredValues = values.filter((step) => !OptionalSteps.Steps.includes(step));
+      filteredValues.forEach((value) => {
         const currentStep = progressSteps.find((p) => p.step === value);
         if (currentStep) {
           currentStep.status = EventStatus.SUCCESS;
@@ -580,26 +588,15 @@ export const useNotebookProgress = (
     }
   });
 
-  // Insert the last error or warning after the last pending step
-  if (currentProgress.length) {
-    const lastProgression = currentProgress[currentProgress.length - 1];
-    if (!lastProgression.step) {
-      if (lastProgression.description) {
-        const lastStep = progressSteps.findIndex((step) => step.status === EventStatus.PENDING);
-        if (lastStep === -1) {
-          progressSteps.push(lastProgression);
-          return progressSteps;
-        }
-        return [
-          ...progressSteps.slice(0, lastStep),
-          lastProgression,
-          ...progressSteps.slice(lastStep),
-        ];
-      }
-    }
-  }
-
-  return progressSteps;
+  // Filter out pending optional steps
+  return progressSteps.filter(
+    (notebookProgressStep) =>
+      !(
+        OptionalSteps.Steps.includes(notebookProgressStep.step) &&
+        progressSteps.find((p) => p.step === notebookProgressStep.step)?.status ===
+          EventStatus.PENDING
+      ),
+  );
 };
 
 export const useCheckJupyterEnabled = (): boolean => {
