@@ -134,7 +134,11 @@ describe('[Product Bug: RHOAIENG-20213] Verify Admin Multi Model Creation and Va
       //Verify the Model was created successfully
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
       checkInferenceServiceState(testData.multiModelAdminName);
-      modelServingSection.findModelServerName(testData.multiModelAdminName);
+      // Check only LatestDeploymentReady
+      checkInferenceServiceState(testData.multiModelAdminName, {
+        checkReady: true,
+        checkLatestDeploymentReady: false,
+      });
       attemptToClickTooltip();
 
       //Verify the Model is accessible externally
