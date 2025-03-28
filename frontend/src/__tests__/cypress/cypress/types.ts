@@ -336,3 +336,21 @@ export type DeployOCIModelData = {
   ociRegistryHost: string;
   modelDeploymentName: string;
 };
+
+export type ModelTolerationsTestData = {
+  modelServingTolerationsTestNamespace: string;
+  resourceYamlPath: string;
+  hardwareProfileName: string;
+  tolerationValue: string;
+  hardwareProfileDeploymentSize: string;
+  modelName: string;
+  modelFilePath: string;
+};
+
+export type NotebookTolerationsTestData = {
+  codeserverImageName: string;
+  resourceYamlPath: string;
+  hardwareProfileName: string;
+  tolerationValue: string;
+  hardwareProfileDeploymentSize: string;
+};
