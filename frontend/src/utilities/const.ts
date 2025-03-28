@@ -12,6 +12,9 @@ const POLL_INTERVAL = process.env.POLL_INTERVAL ? parseInt(process.env.POLL_INTE
 const FAST_POLL_INTERVAL = process.env.FAST_POLL_INTERVAL
   ? parseInt(process.env.FAST_POLL_INTERVAL)
   : 3000;
+const FAST_NOTEBOOK_START_STOP_POLL_INTERVAL = process.env.FAST_NOTEBOOK_START_STOP_POLL_INTERVAL
+  ? parseInt(process.env.FAST_NOTEBOOK_START_STOP_POLL_INTERVAL)
+  : 1500;
 const SERVER_TIMEOUT = process.env.SERVER_TIMEOUT ? parseInt(process.env.SERVER_TIMEOUT) : 300000; // 5 minutes
 const { DOC_LINK } = process.env;
 const { COMMUNITY_LINK } = process.env;
@@ -30,6 +33,7 @@ export {
   API_PORT,
   POLL_INTERVAL,
   FAST_POLL_INTERVAL,
+  FAST_NOTEBOOK_START_STOP_POLL_INTERVAL,
   SERVER_TIMEOUT,
   DOC_LINK,
   COMMUNITY_LINK,

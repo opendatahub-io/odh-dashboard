@@ -10,7 +10,13 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import * as _ from 'lodash-es';
 import { NotebookModel } from '~/api/models';
-import { K8sAPIOptions, KnownLabels, NotebookKind } from '~/k8sTypes';
+import {
+  ImageStreamKind,
+  ImageStreamSpecTagType,
+  K8sAPIOptions,
+  KnownLabels,
+  NotebookKind,
+} from '~/k8sTypes';
 import { usernameTranslate } from '~/utilities/notebookControllerUtils';
 import { EnvironmentFromVariable, StartNotebookData } from '~/pages/projects/types';
 import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
@@ -28,6 +34,97 @@ import { Volume, VolumeMount } from '~/types';
 import { getImageStreamDisplayName } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { k8sMergePatchResource } from '~/api/k8sUtils';
 import { getshmVolume, getshmVolumeMount } from '~/api/k8s/utils';
+
+export const assembleNotebookImage = (
+  existingNotebook: NotebookKind,
+  latestImageVersion: ImageStreamSpecTagType,
+  imageStream: ImageStreamKind,
+  username: string,
+): NotebookKind => {
+  const imageUrl = `${imageStream.status?.dockerImageRepository ?? ''}:${latestImageVersion.name}`;
+  const imageSelection = `${imageStream.metadata.name}:${latestImageVersion.name}`;
+  return {
+    ...existingNotebook,
+    metadata: {
+      ...existingNotebook.metadata,
+      annotations: {
+        'openshift.io/display-name':
+          existingNotebook.metadata.annotations?.['openshift.io/display-name'] ?? '',
+        'openshift.io/description':
+          existingNotebook.metadata.annotations?.['openshift.io/description'] ?? '',
+        'notebooks.opendatahub.io/oauth-logout-url':
+          existingNotebook.metadata.annotations?.['notebooks.opendatahub.io/oauth-logout-url'] ??
+          '',
+        'notebooks.opendatahub.io/last-size-selection':
+          existingNotebook.metadata.annotations?.['notebooks.opendatahub.io/last-size-selection'] ??
+          '',
+        'notebooks.opendatahub.io/last-image-selection': imageSelection,
+        'notebooks.opendatahub.io/inject-oauth': 'true',
+        'opendatahub.io/username':
+          existingNotebook.metadata.annotations?.['opendatahub.io/username'] ?? '',
+        'opendatahub.io/accelerator-name':
+          existingNotebook.metadata.annotations?.['opendatahub.io/accelerator-name'] || '',
+        'opendatahub.io/hardware-profile-name':
+          existingNotebook.metadata.annotations?.['opendatahub.io/hardware-profile-name'] || '',
+      },
+    },
+    spec: {
+      ...existingNotebook.spec,
+      template: {
+        ...existingNotebook.spec.template,
+        spec: {
+          enableServiceLinks: false,
+          containers: [
+            {
+              ...existingNotebook.spec.template.spec.containers.at(0),
+              image: imageUrl,
+              imagePullPolicy: 'Always',
+              workingDir: ROOT_MOUNT_PATH,
+              name: existingNotebook.spec.template.spec.containers.at(0)?.name ?? '',
+              env: [
+                {
+                  name: 'NOTEBOOK_ARGS',
+                  value: `--ServerApp.port=8888
+                  --ServerApp.token=''
+                  --ServerApp.password=''
+                  --ServerApp.base_url=/notebook/${existingNotebook.metadata.namespace}/${
+                    existingNotebook.metadata.name
+                  }
+                  --ServerApp.quit_button=False
+                  --ServerApp.tornado_settings={"user":"${
+                    existingNotebook.metadata.labels?.['opendatahub.io/user'] ??
+                    usernameTranslate(username)
+                  }","hub_host":"${origin}","hub_prefix":"/projects/${
+                    existingNotebook.metadata.namespace
+                  }"}`,
+                },
+                {
+                  name: 'JUPYTER_IMAGE',
+                  value: imageUrl,
+                },
+              ],
+              envFrom: existingNotebook.spec.template.spec.containers.at(0)?.envFrom,
+              resources: existingNotebook.spec.template.spec.containers.at(0)?.resources,
+              volumeMounts: existingNotebook.spec.template.spec.containers.at(0)?.volumeMounts,
+              ports: [
+                {
+                  name: 'notebook-port',
+                  containerPort: 8888,
+                  protocol: 'TCP',
+                },
+              ],
+              livenessProbe: existingNotebook.spec.template.spec.containers.at(0)?.livenessProbe,
+              readinessProbe: existingNotebook.spec.template.spec.containers.at(0)?.readinessProbe,
+            },
+          ],
+          volumes: existingNotebook.spec.template.spec.volumes,
+          tolerations: existingNotebook.spec.template.spec.tolerations,
+          nodeSelector: existingNotebook.spec.template.spec.nodeSelector,
+        },
+      },
+    },
+  };
+};
 
 export const assembleNotebook = (
   data: StartNotebookData,
@@ -307,6 +404,62 @@ export const updateNotebook = (
     ),
   );
 };
+
+export const updateNotebookImage = (
+  existingNotebook: NotebookKind,
+  latestImageVersion: ImageStreamSpecTagType,
+  imageStream: ImageStreamKind,
+  username: string,
+  opts?: K8sAPIOptions,
+): Promise<NotebookKind> => {
+  const notebook: NotebookKind = assembleNotebookImage(
+    existingNotebook,
+    latestImageVersion,
+    imageStream,
+    username,
+  );
+  const oldNotebook = structuredClone(existingNotebook);
+  const container = oldNotebook.spec.template.spec.containers[0];
+
+  // clean the envFrom array in case of merging the old value again
+  container.envFrom = [];
+  // clean the resources, affinity and tolerations for accelerator
+  oldNotebook.spec.template.spec.tolerations = [];
+  oldNotebook.spec.template.spec.affinity = {};
+  container.resources = {};
+
+  return k8sUpdateResource<NotebookKind>(
+    applyK8sAPIOptions(
+      {
+        model: NotebookModel,
+        resource: _.merge({}, oldNotebook, notebook),
+      },
+      opts,
+    ),
+  );
+};
+
+export const mergePatchUpdateNotebookImage = (
+  existingNotebook: NotebookKind,
+  latestImageVersion: ImageStreamSpecTagType,
+  imageStream: ImageStreamKind,
+  username: string,
+  opts?: K8sAPIOptions,
+): Promise<NotebookKind> =>
+  k8sMergePatchResource<NotebookKind>(
+    applyK8sAPIOptions(
+      {
+        model: NotebookModel,
+        resource: assembleNotebookImage(
+          existingNotebook,
+          latestImageVersion,
+          imageStream,
+          username,
+        ),
+      },
+      opts,
+    ),
+  );
 
 export const mergePatchUpdateNotebook = (
   assignableData: StartNotebookData,
