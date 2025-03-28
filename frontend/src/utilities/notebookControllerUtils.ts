@@ -3,12 +3,14 @@ import { AxiosError } from 'axios';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { createRoleBinding, getRoleBinding } from '~/services/roleBindingService';
 import {
+  AssociatedSteps,
   EnvVarReducedTypeKeyValues,
   EventStatus,
   Notebook,
   NotebookControllerUserState,
   NotebookProgressStep,
   NotebookStatus,
+  OptionalSteps,
   ProgressionStep,
   ProgressionStepTitles,
   ResourceCreator,
@@ -247,7 +249,7 @@ export const getEventFullMessage = (event: EventKind): string =>
 const filterEvents = (
   allEvents: EventKind[],
   lastActivity: Date,
-): [filterEvents: EventKind[], thisInstanceEvents: EventKind[], gracePeroid: boolean] => {
+): [filterEvents: EventKind[], thisInstanceEvents: EventKind[], gracePeriod: boolean] => {
   const thisInstanceEvents = allEvents
     .filter((event) => new Date(getEventTimestamp(event)) >= lastActivity)
     .toSorted((a, b) => getEventTimestamp(a).localeCompare(getEventTimestamp(b)));
@@ -310,7 +312,8 @@ export const getNotebookEventStatus = (
 ): NotebookProgressStep => {
   const timestamp = new Date(getEventTimestamp(event)).getTime();
 
-  if (event.message.includes('oauth-proxy')) {
+  // For Oauth-related events
+  if (event.message.includes('oauth-proxy') || event.message.includes('ose-oauth-proxy')) {
     switch (event.reason) {
       case 'Pulling':
         return {
@@ -351,12 +354,14 @@ export const getNotebookEventStatus = (
           };
         }
         return {
+          step: ProgressionStep.OAUTH_CONTAINER_PROBLEM,
           status: EventStatus.WARNING,
           timestamp,
         };
     }
   }
 
+  // For notebook-related events
   switch (event.reason) {
     case 'SuccessfulCreate':
       return {
@@ -408,18 +413,21 @@ export const getNotebookEventStatus = (
       };
     case 'NotTriggerScaleUp':
       return {
+        step: ProgressionStep.POD_PROBLEM,
         description: 'Failed to scale-up',
         status: EventStatus.ERROR,
         timestamp,
       };
     case 'TriggeredScaleUp':
       return {
+        step: ProgressionStep.POD_PROBLEM,
         description: 'Pod triggered scale-up',
         status: EventStatus.INFO,
         timestamp,
       };
     case 'FailedCreate':
       return {
+        step: ProgressionStep.POD_PROBLEM,
         description: 'Failed to create pod',
         status: EventStatus.ERROR,
         timestamp,
@@ -427,6 +435,7 @@ export const getNotebookEventStatus = (
     default: {
       if (!gracePeriod && event.reason === 'FailedScheduling') {
         return {
+          step: ProgressionStep.POD_PROBLEM,
           description: 'Insufficient resources to start',
           status: EventStatus.ERROR,
           timestamp,
@@ -434,6 +443,7 @@ export const getNotebookEventStatus = (
       }
       if (!gracePeriod && event.reason === 'BackOff') {
         return {
+          step: ProgressionStep.NOTEBOOK_CONTAINER_PROBLEM,
           description: 'ImagePullBackOff',
           status: EventStatus.ERROR,
           timestamp,
@@ -441,12 +451,14 @@ export const getNotebookEventStatus = (
       }
       if (event.type === 'Warning') {
         return {
+          step: ProgressionStep.NOTEBOOK_CONTAINER_PROBLEM,
           description: 'Issue creating workbench container',
           status: EventStatus.WARNING,
           timestamp,
         };
       }
       return {
+        step: ProgressionStep.NOTEBOOK_CONTAINER_PROBLEM,
         description: '',
         status: EventStatus.WARNING,
         timestamp,
@@ -489,7 +501,7 @@ export const useNotebookStatus = (
 
   return [
     {
-      currentEvent: step ? ProgressionStepTitles[step] : description ?? '',
+      currentEvent: description || ProgressionStepTitles[step],
       currentEventReason: lastItem.reason,
       currentEventDescription: lastItem.message,
       currentStatus: status,
@@ -520,7 +532,7 @@ export const useNotebookProgress = (
   const progressSteps: NotebookProgressStep[] = Object.values(ProgressionStep).map((step) => ({
     step: ProgressionStep[step],
     percentile: 0,
-    status: isRunning ? EventStatus.SUCCESS : EventStatus.PENDING,
+    status: EventStatus.PENDING,
     timestamp: 0,
   }));
   progressSteps[0].status = isStopped || isStopping ? EventStatus.PENDING : EventStatus.SUCCESS;
@@ -544,26 +556,12 @@ export const useNotebookProgress = (
     .toSorted(compareProgressSteps);
 
   currentProgress.forEach((currentStep) => {
-    if (currentStep.step) {
-      const progressStep = progressSteps.find((step) => step.step === currentStep.step);
-      if (progressStep) {
-        progressStep.status = currentStep.status;
-        progressStep.timestamp = currentStep.timestamp;
-      }
+    const progressStep = progressSteps.find((step) => step.step === currentStep.step);
+    if (progressStep) {
+      progressStep.status = currentStep.status;
+      progressStep.timestamp = currentStep.timestamp;
     }
   });
-
-  // Some events are not always received, mark all steps prior to the last completed step complete.
-  const lastCompleteIndex = progressSteps.findLastIndex(
-    (step) => step.status === EventStatus.SUCCESS,
-  );
-  if (lastCompleteIndex > 0) {
-    for (let i = 0; i < lastCompleteIndex; i++) {
-      if (progressSteps[i].status === EventStatus.PENDING) {
-        progressSteps[i].status = EventStatus.SUCCESS;
-      }
-    }
-  }
 
   // If the container is started and the server is running, mark the server started step complete
   if (
@@ -577,26 +575,28 @@ export const useNotebookProgress = (
     }
   }
 
-  // Insert the last error or warning after the last pending step
-  if (currentProgress.length) {
-    const lastProgression = currentProgress[currentProgress.length - 1];
-    if (!lastProgression.step) {
-      if (lastProgression.description) {
-        const lastStep = progressSteps.findIndex((step) => step.status === EventStatus.PENDING);
-        if (lastStep === -1) {
-          progressSteps.push(lastProgression);
-          return progressSteps;
+  // If milestone steps are completed, mark off associated steps
+  Object.entries(AssociatedSteps).forEach(([key, values]) => {
+    if (progressSteps.find((p) => p.step === key)?.status === EventStatus.SUCCESS) {
+      const filteredValues = values.filter((step) => !OptionalSteps.includes(step));
+      filteredValues.forEach((value) => {
+        const currentStep = progressSteps.find((p) => p.step === value);
+        if (currentStep) {
+          currentStep.status = EventStatus.SUCCESS;
         }
-        return [
-          ...progressSteps.slice(0, lastStep),
-          lastProgression,
-          ...progressSteps.slice(lastStep),
-        ];
-      }
+      });
     }
-  }
+  });
 
-  return progressSteps;
+  // Filter out pending optional steps
+  return progressSteps.filter(
+    (notebookProgressStep) =>
+      !(
+        OptionalSteps.includes(notebookProgressStep.step) &&
+        progressSteps.find((p) => p.step === notebookProgressStep.step)?.status ===
+          EventStatus.PENDING
+      ),
+  );
 };
 
 export const useCheckJupyterEnabled = (): boolean => {

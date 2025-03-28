@@ -251,9 +251,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
               titleId={`${progressStep.timestamp}-title`}
               data-testid={`step-status-${progressStep.status}`}
             >
-              {progressStep.step
-                ? ProgressionStepTitles[progressStep.step]
-                : progressStep.description}
+              {ProgressionStepTitles[progressStep.step]}
             </ProgressStep>
           ))}
         </ProgressStepper>
