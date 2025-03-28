@@ -73,7 +73,7 @@ const ParamsDefaultFields: React.FC<ParamsDefaultFieldsProps> = ({
         <TextInput
           data-testid={inputProps.id}
           {...inputProps}
-          value={inputProps.value === undefined ? '' : String(inputProps.value)}
+          value={String(inputProps.value ?? '')}
           validated={hasValidationIssues ? 'error' : 'default'}
         />
       );
