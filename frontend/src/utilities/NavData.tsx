@@ -14,7 +14,7 @@ import {
   generateWarningForHardwareProfiles,
   HardwareProfileBannerWarningTitles,
 } from '~/pages/hardwareProfiles/utils';
-import { HardwareProfileModel } from '~/api';
+import { AuthModel, HardwareProfileModel } from '~/api';
 import { AccessReviewResourceAttributes } from '~/k8sTypes';
 import { useAccessAllowed, verbModelAccess } from '~/concepts/userSSAR';
 import useMigratedHardwareProfiles from '~/pages/hardwareProfiles/migration/useMigratedHardwareProfiles';
@@ -233,13 +233,17 @@ const useModelRegisterySettingsNav = (): NavDataHref[] =>
   ]);
 
 const useUserManagementNav = (): NavDataHref[] =>
-  useIsAdminAreaCheck<NavDataHref>(SupportedArea.USER_MANAGEMENT, [
-    {
-      id: 'settings-group-settings',
-      label: 'User management',
-      href: '/groupSettings',
-    },
-  ]);
+  useAreaCheck<NavDataHref>(
+    SupportedArea.USER_MANAGEMENT,
+    [
+      {
+        id: 'settings-group-settings',
+        label: 'User management',
+        href: '/groupSettings',
+      },
+    ],
+    verbModelAccess('update', AuthModel),
+  );
 
 const useAcceleratorProfilesNav = (): NavDataHref[] => {
   const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;

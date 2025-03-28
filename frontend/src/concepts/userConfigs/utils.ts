@@ -1,22 +1,6 @@
-import * as React from 'react';
 import { AuthKind, GroupKind } from '~/k8sTypes';
 import { getAuth, patchAuth } from '~/api';
-import useFetchState from '~/utilities/useFetchState';
 import { GroupsConfig } from './groupTypes';
-
-export const useDoesUserHaveAuthAccess = (): [hasAccess: boolean, loadedAccess: boolean] => {
-  const [state, loaded] = useFetchState(
-    React.useCallback(
-      () =>
-        getAuth()
-          .then(() => true)
-          .catch(() => false),
-      [],
-    ),
-    false,
-  );
-  return [state, loaded];
-};
 
 const ALL_USERS = 'system:authenticated';
 
