@@ -6,6 +6,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { ErrorCode } from 'react-dropzone';
 
 type PipelineFileUploadProps = {
   fileContents: string;
@@ -57,7 +58,7 @@ const PipelineFileUpload: React.FC<PipelineFileUploadProps> = ({ fileContents, o
 
               let reason = error.message || 'Unknown reason';
               // TODO: Find out from PF how to get access to ErrorCode.FileTooLarge
-              if (error.code === 'file-too-large') {
+              if (error.code === ErrorCode.FileTooLarge) {
                 reason = `File size exceeds ${MAX_SIZE_AS_MB} MB`;
               }
 
