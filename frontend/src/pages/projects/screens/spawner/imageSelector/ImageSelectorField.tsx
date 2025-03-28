@@ -75,6 +75,7 @@ const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
     <>
       <ImageStreamSelector
         currentProjectStreams={currentProjectImageStreams}
+        currentProject={currentProject}
         imageStreams={imageStreams.filter((imageStream) => !isInvalidBYONImageStream(imageStream))}
         buildStatuses={buildStatuses}
         onImageStreamSelect={onImageStreamSelect}

@@ -14,6 +14,7 @@ import {
 } from '@patternfly/react-core';
 import React from 'react';
 import { ExclamationCircleIcon, InfoCircleIcon } from '@patternfly/react-icons';
+import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
 import { NotebookImageAvailability } from './const';
 import { NotebookImage } from './types';
 
@@ -95,6 +96,8 @@ export const NotebookImageDisplayName = ({
         return 'grey';
       case NotebookImageAvailability.DELETED:
         return 'red';
+      case NotebookImageAvailability.ENABLED:
+        return 'blue';
       default:
         return undefined;
     }
@@ -107,6 +110,10 @@ export const NotebookImageDisplayName = ({
         return <InfoCircleIcon />;
       case NotebookImageAvailability.DELETED:
         return <ExclamationCircleIcon />;
+      case NotebookImageAvailability.ENABLED:
+        return (
+          <img style={{ height: 25 }} src={typedObjectImage(ProjectObjectType.project)} alt="" />
+        );
       default:
         return undefined;
     }

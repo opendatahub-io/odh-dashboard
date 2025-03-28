@@ -28,6 +28,7 @@ import ProjectScopedPopover from '~/components/ProjectScopedPopover';
 
 type ImageStreamSelectorProps = {
   currentProjectStreams?: ImageStreamKind[];
+  currentProject?: string;
   imageStreams: ImageStreamKind[];
   buildStatuses: BuildStatus[];
   selectedImageStream?: ImageStreamKind;
@@ -37,6 +38,7 @@ type ImageStreamSelectorProps = {
 
 const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
   currentProjectStreams,
+  currentProject,
   imageStreams,
   selectedImageStream,
   onImageStreamSelect,
@@ -78,6 +80,12 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
             .map((imageStream, index) => (
               <MenuItem
                 key={`imageStream-${index}`}
+                isSelected={
+                  selectedImageStream &&
+                  getImageStreamDisplayName(selectedImageStream) ===
+                    getImageStreamDisplayName(imageStream) &&
+                  selectedImageStream.metadata.namespace === imageStream.metadata.namespace
+                }
                 onClick={() => onImageStreamSelect(imageStream)}
                 icon={
                   <img
@@ -122,6 +130,12 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
           .map((imageStream, index) => (
             <MenuItem
               key={`imageStream-global-${index}`}
+              isSelected={
+                selectedImageStream &&
+                getImageStreamDisplayName(selectedImageStream) ===
+                  getImageStreamDisplayName(imageStream) &&
+                selectedImageStream.metadata.namespace === imageStream.metadata.namespace
+              }
               onClick={() => onImageStreamSelect(imageStream)}
               icon={<GlobalIcon />}
             >
@@ -197,7 +211,8 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
               <Flex>
                 {getImageStreamDisplayName(selectedImageStream)}
                 <FlexItem>
-                  {currentProjectStreams.includes(selectedImageStream) ? (
+                  {currentProjectStreams.includes(selectedImageStream) &&
+                  selectedImageStream.metadata.namespace === currentProject ? (
                     <Label
                       isCompact
                       variant="outline"
