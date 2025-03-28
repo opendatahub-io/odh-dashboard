@@ -10,10 +10,15 @@ import { NotebookImage } from './types';
 
 const useNotebookImage = (
   notebook: NotebookKind | undefined,
+  project: string,
+  isProjectScopedAvailable?: boolean,
 ):
   | [notebookImage: null, loaded: false, loadError?: Error]
   | [notebookImage: NotebookImage, loaded: true, loadError: undefined] => {
-  const [data, loaded, loadError] = useNotebookImageData(notebook);
+  const [data, loaded, loadError] = useNotebookImageData(
+    notebook,
+    isProjectScopedAvailable ? project : undefined,
+  );
 
   if (!notebook || !loaded) {
     return [null, false, loadError];

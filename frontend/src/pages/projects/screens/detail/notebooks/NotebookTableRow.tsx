@@ -55,6 +55,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const acceleratorResources = extractAcceleratorResources(
     obj.notebook.spec.template.spec.containers[0].resources,
   );
+  const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
 
   const lastDeployedSize: NotebookSize = {
     name: 'Custom',
@@ -63,7 +64,11 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
       requests: {},
     },
   };
-  const [notebookImage, loaded, loadError] = useNotebookImage(obj.notebook);
+  const [notebookImage, loaded, loadError] = useNotebookImage(
+    obj.notebook,
+    currentProject.metadata.name,
+    isProjectScopedAvailable,
+  );
   const podSpecOptionsState = useNotebookKindPodSpecOptionsState(obj.notebook);
   const [dontShowModalValue] = useStopNotebookModalAvailability();
   const { dashboardConfig } = useAppContext();

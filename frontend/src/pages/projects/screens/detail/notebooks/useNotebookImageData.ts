@@ -73,22 +73,42 @@ export const getNotebookImageData = (
   };
 };
 
-const useNotebookImageData = (notebook?: NotebookKind): NotebookImageData => {
+const useNotebookImageData = (notebook?: NotebookKind, project?: string): NotebookImageData => {
   const { dashboardNamespace } = useNamespaces();
-  const [images, loaded, loadError] = useImageStreams(dashboardNamespace, true);
+
+  const [dashboardImages, dashboardLoaded, dashboardLoadError] = useImageStreams(
+    dashboardNamespace,
+    true,
+  );
+
+  const [projectImages, projectLoaded, projectLoadError] = useImageStreams(project ?? '', true);
 
   return React.useMemo(() => {
-    if (!loaded || !notebook) {
-      return [null, false, loadError];
+    if (!notebook || (!dashboardLoaded && !projectLoaded)) {
+      return [null, false, dashboardLoadError || projectLoadError];
     }
-    const data = getNotebookImageData(notebook, images);
+    let allImages = dashboardImages;
+
+    if (project) {
+      allImages = [...projectImages, ...dashboardImages];
+    }
+    const data = getNotebookImageData(notebook, allImages);
 
     if (data === null) {
-      return [null, false, loadError];
+      return [null, false, dashboardLoadError || projectLoadError];
     }
 
     return [data, true, undefined];
-  }, [images, notebook, loaded, loadError]);
+  }, [
+    notebook,
+    dashboardLoaded,
+    projectLoaded,
+    dashboardImages,
+    project,
+    dashboardLoadError,
+    projectLoadError,
+    projectImages,
+  ]);
 };
 
 const getNotebookImageInternalRegistry = (
