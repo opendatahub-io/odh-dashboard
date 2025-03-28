@@ -36,6 +36,7 @@ export const createOpenShiftProject = (
 export const deleteOpenShiftProject = (
   projectName: string,
   options: { timeout?: number } = {},
+  ignoreErrors = false,
 ): Cypress.Chainable<CommandLineResult> => {
   const { timeout } = options;
   const ocCommand = `oc delete project ${projectName}`;
@@ -43,12 +44,14 @@ export const deleteOpenShiftProject = (
     .exec(ocCommand, { failOnNonZeroExit: false, ...(timeout && { timeout }) })
     .then((result) => {
       if (result.code !== 0) {
-        cy.log(`ERROR deleting ${projectName} Project
-                stdout: ${result.stdout}
-                stderr: ${result.stderr}`);
-        throw new Error(`Command failed with code ${result.code}`);
+        if (!ignoreErrors) {
+          throw new Error(`Command failed with code ${result.code}`);
+        } else {
+          cy.log(`ERROR deleting ${projectName} Project
+            stdout: ${result.stdout}
+            stderr: ${result.stderr}`);
+        }
       }
-      return result;
     });
 };
 
