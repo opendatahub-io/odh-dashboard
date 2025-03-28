@@ -31,6 +31,8 @@ import {
   startPatch,
   mergePatchUpdateNotebook,
   restartNotebook,
+  assembleNotebookImage,
+  mergePatchUpdateNotebookImage,
 } from '~/api/k8s/notebooks';
 
 import {
@@ -43,6 +45,7 @@ import {
 import { TolerationChanges, getTolerationPatch } from '~/utilities/tolerations';
 import { NotebookModel } from '~/api/models';
 import { k8sMergePatchResource } from '~/api/k8sUtils';
+import { mockImageStreamK8sResource } from '~/__mocks__/mockImageStreamK8sResource';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sCreateResource: jest.fn(),
@@ -77,6 +80,124 @@ global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
 const uid = 'test-uid_notebook';
 const username = 'test-user';
 
+describe('assembleNotebookImage', () => {
+  it('should return NotebookKind object with updated image', () => {
+    const result = assembleNotebookImage(
+      mockNotebookK8sResource({
+        name: 'outdated-notebook',
+        displayName: 'Outdated Notebook',
+        image: 'test:2023.1',
+        opts: {
+          metadata: {
+            name: 'outdated-notebook',
+            labels: {
+              'opendatahub.io/notebook-image': 'true',
+            },
+            annotations: {
+              'opendatahub.io/image-display-name': 'Outdated image',
+            },
+          },
+        },
+      }),
+      {
+        name: '2024.1',
+        annotations: {
+          'opendatahub.io/notebook-python-dependencies':
+            '[{"name":"JupyterLab","version": "3.2"}, {"name": "Notebook","version": "6.4"}]',
+          'opendatahub.io/notebook-software': '[{"name":"Python","version":"v3.8"}]',
+        },
+        from: {
+          kind: 'DockerImage',
+          name: 'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+        },
+      },
+      mockImageStreamK8sResource({
+        namespace: 'opendatahub',
+        name: 'test',
+        displayName: 'Test image 10',
+        opts: {
+          spec: {
+            tags: [
+              {
+                name: '2023.1',
+                annotations: {
+                  'opendatahub.io/image-tag-outdated': 'true',
+                  'opendatahub.io/workbench-image-recommended': 'false',
+                  'opendatahub.io/notebook-python-dependencies':
+                    '[{"name":"JupyterLab","version": "3.2"}, {"name": "Notebook","version": "6.4"}]',
+                  'opendatahub.io/notebook-software': '[{"name":"Python","version":"v3.8"}]',
+                },
+                from: {
+                  kind: 'DockerImage',
+                  name: 'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+                },
+              },
+              {
+                name: '2024.2',
+                annotations: {
+                  'opendatahub.io/workbench-image-recommended': 'true',
+                  'opendatahub.io/notebook-python-dependencies':
+                    '[{"name":"JupyterLab","version": "3.2"}, {"name": "Notebook","version": "6.4"}]',
+                  'opendatahub.io/notebook-software': '[{"name":"Python","version":"v3.8"}]',
+                },
+                from: {
+                  kind: 'DockerImage',
+                  name: 'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+                },
+              },
+            ],
+          },
+          status: {
+            dockerImageRepository:
+              'image-registry.openshift-image-registry.svc:5000/opendatahub/jupyter-minimal-notebook',
+            tags: [
+              {
+                tag: '2023.1',
+                items: [
+                  {
+                    created: '2023-06-30T15:07:36Z',
+                    dockerImageReference:
+                      'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+                    image:
+                      'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+                    generation: 2,
+                  },
+                ],
+              },
+              {
+                tag: '2024.2',
+                items: [
+                  {
+                    created: '2023-06-30T15:07:36Z',
+                    dockerImageReference:
+                      'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+                    image:
+                      'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+                    generation: 2,
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      }),
+      username,
+    );
+    expect(result.metadata.annotations?.['notebooks.opendatahub.io/last-image-selection']).toBe(
+      'test:2024.1',
+    );
+    expect(result.spec.template.spec.containers.at(0)?.image).toBe(
+      'image-registry.openshift-image-registry.svc:5000/opendatahub/jupyter-minimal-notebook:2024.1',
+    );
+    expect(
+      result.spec.template.spec.containers.at(0)?.env.includes({
+        name: 'JUPYTER_IMAGE',
+        value:
+          'image-registry.openshift-image-registry.svc:5000/opendatahub/jupyter-minimal-notebook:2024.1',
+      }),
+    );
+  });
+});
 describe('assembleNotebook', () => {
   it('should return NotebookKind object with pipelines', () => {
     const canEnablePipelines = true;
@@ -487,6 +608,152 @@ describe('stopNotebook', () => {
       model: NotebookModel,
       patches: [getStopPatch()],
       queryOptions: { name, ns: namespace },
+    });
+  });
+});
+describe('updateNotebookImage', () => {
+  const existingNotebook = mockNotebookK8sResource({
+    name: 'outdated-notebook',
+    displayName: 'Outdated Notebook',
+    image: 'test:2023.1',
+    opts: {
+      metadata: {
+        name: 'outdated-notebook',
+        labels: {
+          'opendatahub.io/notebook-image': 'true',
+        },
+        annotations: {
+          'opendatahub.io/image-display-name': 'Outdated image',
+        },
+      },
+    },
+  });
+  const latestImageVersion = {
+    name: '2024.1',
+    annotations: {
+      'opendatahub.io/notebook-python-dependencies':
+        '[{"name":"JupyterLab","version": "3.2"}, {"name": "Notebook","version": "6.4"}]',
+      'opendatahub.io/notebook-software': '[{"name":"Python","version":"v3.8"}]',
+    },
+    from: {
+      kind: 'DockerImage',
+      name: 'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+    },
+  };
+  const imageStream = mockImageStreamK8sResource({
+    namespace: 'opendatahub',
+    name: 'test',
+    displayName: 'Test image 10',
+    opts: {
+      spec: {
+        tags: [
+          {
+            name: '2023.1',
+            annotations: {
+              'opendatahub.io/image-tag-outdated': 'true',
+              'opendatahub.io/workbench-image-recommended': 'false',
+              'opendatahub.io/notebook-python-dependencies':
+                '[{"name":"JupyterLab","version": "3.2"}, {"name": "Notebook","version": "6.4"}]',
+              'opendatahub.io/notebook-software': '[{"name":"Python","version":"v3.8"}]',
+            },
+            from: {
+              kind: 'DockerImage',
+              name: 'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+            },
+          },
+          {
+            name: '2024.2',
+            annotations: {
+              'opendatahub.io/workbench-image-recommended': 'true',
+              'opendatahub.io/notebook-python-dependencies':
+                '[{"name":"JupyterLab","version": "3.2"}, {"name": "Notebook","version": "6.4"}]',
+              'opendatahub.io/notebook-software': '[{"name":"Python","version":"v3.8"}]',
+            },
+            from: {
+              kind: 'DockerImage',
+              name: 'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+            },
+          },
+        ],
+      },
+      status: {
+        dockerImageRepository:
+          'image-registry.openshift-image-registry.svc:5000/opendatahub/jupyter-minimal-notebook',
+        tags: [
+          {
+            tag: '2023.1',
+            items: [
+              {
+                created: '2023-06-30T15:07:36Z',
+                dockerImageReference:
+                  'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+                image:
+                  'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+                generation: 2,
+              },
+            ],
+          },
+          {
+            tag: '2024.2',
+            items: [
+              {
+                created: '2023-06-30T15:07:36Z',
+                dockerImageReference:
+                  'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+                image:
+                  'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+                generation: 2,
+              },
+            ],
+          },
+        ],
+      },
+    },
+  });
+  it('should update a notebook image', async () => {
+    const notebook = assembleNotebookImage(
+      existingNotebook,
+      latestImageVersion,
+      imageStream,
+      username,
+    );
+    k8sMergePatchResourceMock.mockResolvedValue(existingNotebook);
+    const renderResult = await mergePatchUpdateNotebookImage(
+      existingNotebook,
+      latestImageVersion,
+      imageStream,
+      username,
+    );
+    expect(k8sMergePatchResourceMock).toHaveBeenCalledWith({
+      fetchOptions: {
+        requestInit: {},
+      },
+      model: NotebookModel,
+      queryOptions: { queryParams: {} },
+      resource: notebook,
+    });
+    expect(k8sMergePatchResourceMock).toHaveBeenCalledTimes(1);
+    expect(renderResult).toStrictEqual(existingNotebook);
+  });
+  it('should handle errors and rethrow', async () => {
+    const notebook = assembleNotebookImage(
+      existingNotebook,
+      latestImageVersion,
+      imageStream,
+      username,
+    );
+    k8sMergePatchResourceMock.mockRejectedValue(new Error('error1'));
+    await expect(
+      mergePatchUpdateNotebookImage(existingNotebook, latestImageVersion, imageStream, username),
+    ).rejects.toThrow('error1');
+    expect(k8sMergePatchResourceMock).toHaveBeenCalledTimes(1);
+    expect(k8sMergePatchResourceMock).toHaveBeenCalledWith({
+      fetchOptions: {
+        requestInit: {},
+      },
+      model: NotebookModel,
+      queryOptions: { queryParams: {} },
+      resource: notebook,
     });
   });
 });

@@ -25,6 +25,8 @@ import StopNotebookConfirmModal from '~/pages/projects/notebook/StopNotebookConf
 import { useNotebookKindPodSpecOptionsState } from '~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import NotebookTableRowHardwareProfile from '~/pages/projects/screens/detail/notebooks/NotebookTableRowHardwareProfile';
+import useNamespaces from '~/pages/notebookController/useNamespaces';
+import useImageStreams from '~/pages/projects/screens/spawner/useImageStreams';
 import { NotebookImageAvailability } from './const';
 import { NotebookImageDisplayName } from './NotebookImageDisplayName';
 import NotebookStorageBars from './NotebookStorageBars';
@@ -32,6 +34,7 @@ import NotebookSizeDetails from './NotebookSizeDetails';
 import useNotebookImage from './useNotebookImage';
 import useNotebookDeploymentSize from './useNotebookDeploymentSize';
 import { extractAcceleratorResources } from './utils';
+import { useImageStreamAlert } from './useImageStreamAlert';
 
 type NotebookTableRowProps = {
   obj: NotebookState;
@@ -63,7 +66,11 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
       requests: {},
     },
   };
+  const { dashboardNamespace } = useNamespaces();
+  const [images, imagesLoaded, imagesLoadError] = useImageStreams(dashboardNamespace, true);
   const [notebookImage, loaded, loadError] = useNotebookImage(obj.notebook);
+  const [notebookImageStatus, notebookImageStatusLoaded, notebookImageStatusLoadError] =
+    useImageStreamAlert(obj.notebook);
   const podSpecOptionsState = useNotebookKindPodSpecOptionsState(obj.notebook);
   const [dontShowModalValue] = useStopNotebookModalAvailability();
   const { dashboardConfig } = useAppContext();
@@ -133,8 +140,11 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
             <SplitItem>
               <NotebookImageDisplayName
                 notebookImage={notebookImage}
-                loaded={loaded}
-                loadError={loadError}
+                notebookImageStatus={notebookImageStatus}
+                images={images}
+                notebook={obj.notebook}
+                loaded={loaded && notebookImageStatusLoaded && imagesLoaded}
+                loadError={loadError && notebookImageStatusLoadError && imagesLoadError}
                 isExpanded
               />
             </SplitItem>
