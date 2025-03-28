@@ -149,22 +149,23 @@ export const deleteNotebook = (
 /**
  * Deletes odh-nim-account in the TEST_NAMESPACE.
  * @param namespace The namespace where account exist.
+ * @param ignoreErrors Throw error on failure or ignore, default is false.
  * @returns A Cypress chainable that performs the account deletion process.
  */
 export const deleteNIMAccount = (
   namespace: string = Cypress.env('TEST_NAMESPACE'),
+  ignoreErrors = false,
 ): Cypress.Chainable<CommandLineResult> => {
   const ocCommand = `oc delete account odh-nim-account -n ${namespace}`;
   cy.log(`Executing: ${ocCommand}`);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
     if (result.code !== 0) {
-      throw new Error(`Command failed with code ${result.stderr}`);
-    }
-    if (result.stdout.trim() === '') {
-      cy.log('No accounts found');
-    } else {
-      cy.log(`Account deletion: ${result.stdout}`);
+      if (!ignoreErrors) {
+        throw new Error(`Command failed with code ${result.stderr}`);
+      } else {
+        cy.log(`No accounts found: ${result.stderr}`);
+      }
     }
   });
 };
