@@ -94,6 +94,8 @@ describe('useNotebookPodSpecOptionsState', () => {
       isFormDataValid: true,
       setFormData: jest.fn(),
       resetFormData: jest.fn(),
+      profilesLoaded: true,
+      profilesLoadError: undefined,
     });
 
     mockUseNotebookAcceleratorProfileFormState.mockReturnValue({
@@ -149,6 +151,8 @@ describe('useNotebookPodSpecOptionsState', () => {
       isFormDataValid: true,
       setFormData: jest.fn(),
       resetFormData: jest.fn(),
+      profilesLoaded: true,
+      profilesLoadError: undefined,
     });
 
     const renderResult = testHook(useNotebookPodSpecOptionsState)();
@@ -206,6 +210,8 @@ describe('useNotebookPodSpecOptionsState', () => {
       isFormDataValid: true,
       setFormData: jest.fn(),
       resetFormData: jest.fn(),
+      profilesLoaded: true,
+      profilesLoadError: undefined,
     });
 
     const renderResult = testHook(useNotebookPodSpecOptionsState)(notebook as Notebook);
