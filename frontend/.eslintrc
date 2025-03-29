@@ -199,9 +199,14 @@
       {
         "pathGroups": [
           {
-            "pattern": "~/**",
+            "pattern": "@mf/**",
             "group": "external",
             "position": "after"
+          },
+          {
+            "pattern": "~/**",
+            "group": "internal",
+            "position": "before"
           }
         ],
         "pathGroupsExcludedImportTypes": ["builtin"],
