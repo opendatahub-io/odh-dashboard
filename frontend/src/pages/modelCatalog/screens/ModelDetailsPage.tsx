@@ -52,8 +52,8 @@ const ModelDetailsPage: React.FC = conditionalArea(
   const { modelRegistryServices, modelRegistryServicesLoaded, modelRegistryServicesLoadError } =
     React.useContext(ModelRegistrySelectorContext);
   const tuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
-  const loaded = modelRegistryServicesLoaded && modelCatalogSources.loaded;
-
+  const loaded =
+    (modelRegistryServicesLoaded || !!modelRegistryServicesLoadError) && modelCatalogSources.loaded;
   const model: CatalogModel | null = React.useMemo(
     () =>
       findModelFromModelCatalogSources(

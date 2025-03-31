@@ -37,7 +37,7 @@ const AreaContextProvider: React.FC<AreaContextProps> = ({ children }) => {
 
   const contextValue = React.useMemo(() => ({ dscStatus, dsciStatus }), [dscStatus, dsciStatus]);
 
-  if (error || !dscStatus || Object.keys(dscStatus).length === 0) {
+  if (error || (loaded && (!dscStatus || Object.keys(dscStatus).length === 0))) {
     return (
       <Page>
         <ApplicationsPage loaded empty={false}>
