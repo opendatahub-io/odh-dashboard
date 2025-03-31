@@ -334,6 +334,11 @@ describe('Pipeline create runs', () => {
                       parameterType: InputDefinitionParameterType.BOOLEAN,
                       defaultValue: true,
                     },
+                    optional_string_param: {
+                      parameterType: InputDefinitionParameterType.STRING,
+                      isOptional: true,
+                      description: 'Some string helper text',
+                    },
                   },
                 },
               },
@@ -368,6 +373,7 @@ describe('Pipeline create runs', () => {
       paramsSection.findParamById('struct_param').should('have.value', '{"default":"value"}');
       paramsSection.findParamById('list_param').should('have.value', '[{"default":"value"}]');
       paramsSection.findParamById('radio-bool_param-true').should('be.checked');
+      paramsSection.findParamById('optional_string_param').should('have.value', '');
 
       // Clear optional parameter then submit
       paramsSection.findParamById('double_param').clear();

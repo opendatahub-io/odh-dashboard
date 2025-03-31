@@ -43,6 +43,7 @@ const ParamsDefaultFields: React.FC<ParamsDefaultFieldsProps> = ({
 }) => {
   let input: React.ReactNode;
   const hasValidationIssues = validationIssues.length > 0;
+
   switch (parameterType) {
     case InputDefinitionParameterType.INTEGER:
       input = (
@@ -72,7 +73,7 @@ const ParamsDefaultFields: React.FC<ParamsDefaultFieldsProps> = ({
         <TextInput
           data-testid={inputProps.id}
           {...inputProps}
-          value={String(inputProps.value)}
+          value={String(inputProps.value ?? '')}
           validated={hasValidationIssues ? 'error' : 'default'}
         />
       );
