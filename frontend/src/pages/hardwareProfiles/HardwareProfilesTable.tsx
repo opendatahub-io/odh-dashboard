@@ -110,7 +110,6 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
               key={cr.metadata.name}
               rowIndex={index}
               hardwareProfile={cr}
-              isMigratedTable={isMigratedTable}
               handleDelete={(hardwareProfile) =>
                 setDeleteHardwareProfile({ hardwareProfile, migrationAction })
               }

@@ -38,7 +38,6 @@ type HardwareProfilesTableRowProps = {
   rowIndex: number;
   hardwareProfile: HardwareProfileKind;
   migrationAction?: MigrationAction;
-  isMigratedTable: boolean;
   handleDelete: (cr: HardwareProfileKind) => void;
   handleMigrate: (migrationAction: MigrationAction) => void;
 };
@@ -47,7 +46,6 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
   hardwareProfile,
   rowIndex,
   migrationAction,
-  isMigratedTable,
   handleDelete,
   handleMigrate,
 }) => {
@@ -120,17 +118,6 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
             }
           />
         </Td>
-        {migrationAction && (
-          <Td dataLabel="Source">
-            <TableRowTitleDescription
-              title={
-                MIGRATION_SOURCE_TYPE_LABELS[migrationAction.source.type].charAt(0).toUpperCase() +
-                MIGRATION_SOURCE_TYPE_LABELS[migrationAction.source.type].slice(1)
-              }
-              resource={migrationAction.source.resource}
-            />
-          </Td>
-        )}
         <Td dataLabel="Features">
           {useCases.length === 0 ? (
             <i>All features</i>
@@ -153,7 +140,18 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
             <HardwareProfileEnableToggle hardwareProfile={hardwareProfile} />
           )}
         </Td>
-        {!isMigratedTable && (
+        {migrationAction && (
+          <Td dataLabel="Source">
+            <TableRowTitleDescription
+              title={
+                MIGRATION_SOURCE_TYPE_LABELS[migrationAction.source.type].charAt(0).toUpperCase() +
+                MIGRATION_SOURCE_TYPE_LABELS[migrationAction.source.type].slice(1)
+              }
+              resource={migrationAction.source.resource}
+            />
+          </Td>
+        )}
+        {!migrationAction && (
           <Td dataLabel="Last modified">
             {modifiedDate && !Number.isNaN(new Date(modifiedDate).getTime()) ? (
               <Timestamp
