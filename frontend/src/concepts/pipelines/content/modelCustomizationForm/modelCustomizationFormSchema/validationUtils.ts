@@ -100,7 +100,6 @@ export const pipelineParameterSchema = z.record(z.string(), z.any()).superRefine
 
 export const modelCustomizationFormSchema = z.object({
   taxonomy: fineTuneTaxonomySchema,
-  runType: z.string(),
   hyperparameters: z.record(z.string(), z.any()),
   baseModel: baseModelSchema,
   outputModel: outputModelSchema,

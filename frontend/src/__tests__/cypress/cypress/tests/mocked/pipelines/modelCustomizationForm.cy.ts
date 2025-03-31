@@ -116,7 +116,6 @@ describe('Model Customization Form', () => {
     hardwareSection.findTrainingNodePlusButton().click();
 
     modelCustomizationFormGlobal.findSubmitButton().should('not.be.disabled');
-    modelCustomizationFormGlobal.findSimpleRunButton().click();
   });
 
   it('Alert message when ilab pipeline required parameters are absent', () => {

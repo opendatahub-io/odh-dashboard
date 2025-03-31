@@ -1,15 +1,14 @@
 import React from 'react';
 import {
   Bullseye,
-  Button,
   EmptyState,
   EmptyStateBody,
   Flex,
   FlexItem,
   FormSection,
-  Tooltip,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
+import ExtendedButton from '~/components/ExtendedButton';
 import { SortableData, Table } from '~/components/table';
 import { createSecret, replaceSecret } from '~/api';
 import { NotebookKind, ProjectKind } from '~/k8sTypes';
@@ -55,6 +54,8 @@ const getColumns = (connectionTypes: ConnectionTypeConfigMapObj[]): SortableData
 type Props = {
   project: ProjectKind;
   projectConnections: Connection[];
+  projectConnectionsLoaded: boolean;
+  projectConnectionsLoadError?: Error;
   refreshProjectConnections: () => void;
   notebook?: NotebookKind;
   notebookDisplayName: string;
@@ -66,12 +67,15 @@ export const ConnectionsFormSection: React.FC<Props> = ({
   project,
   projectConnections,
   refreshProjectConnections,
+  projectConnectionsLoaded,
+  projectConnectionsLoadError,
   notebook,
   notebookDisplayName,
   selectedConnections,
   setSelectedConnections,
 }) => {
-  const [connectionTypes] = useWatchConnectionTypes();
+  const [connectionTypes, connectionTypesLoaded, connectiontypesLoadError] =
+    useWatchConnectionTypes();
 
   const enabledConnectionTypes = React.useMemo(
     () => filterEnabledConnectionTypes(connectionTypes),
@@ -113,56 +117,44 @@ export const ConnectionsFormSection: React.FC<Props> = ({
     [selectedConnections],
   );
 
-  const connectionsTooltipRef = React.useRef<HTMLButtonElement>();
-  const connectionTypesTooltipRef = React.useRef<HTMLButtonElement>();
-
   return (
     <FormSection
       title={
         <Flex gap={{ default: 'gapSm' }}>
           <FlexItem>{SpawnerPageSectionTitles[SpawnerPageSectionID.CONNECTIONS]}</FlexItem>
           <FlexItem>
-            <Button
+            <ExtendedButton
               data-testid="attach-existing-connection-button"
-              aria-describedby={
-                unselectedConnections.length === 0 ? 'no-connections-tooltip' : undefined
-              }
               variant="secondary"
-              isAriaDisabled={unselectedConnections.length === 0}
               onClick={() => setShowAttachConnectionsModal(true)}
-              ref={connectionsTooltipRef}
+              loadProps={{
+                loaded: projectConnectionsLoaded,
+                error: projectConnectionsLoadError,
+              }}
+              tooltipProps={{
+                isEnabled: unselectedConnections.length === 0,
+                content: 'No connections available',
+              }}
             >
               Attach existing connections
-            </Button>
-            {unselectedConnections.length === 0 && (
-              <Tooltip
-                id="no-connections-tooltip"
-                content="No connections available"
-                triggerRef={connectionsTooltipRef}
-              />
-            )}
+            </ExtendedButton>
           </FlexItem>
           <FlexItem>
-            <Button
+            <ExtendedButton
               data-testid="create-connection-button"
-              aria-describedby={
-                enabledConnectionTypes.length === 0 ? 'no-connection-types-tooltip' : undefined
-              }
               variant="secondary"
-              content="No connection types available"
-              isAriaDisabled={enabledConnectionTypes.length === 0}
               onClick={() => setManageConnectionModal({ connection: undefined, isEdit: false })}
-              ref={connectionTypesTooltipRef}
+              loadProps={{
+                loaded: connectionTypesLoaded,
+                error: connectiontypesLoadError,
+              }}
+              tooltipProps={{
+                isEnabled: enabledConnectionTypes.length === 0,
+                content: 'No connection types available',
+              }}
             >
               Create connection
-            </Button>
-            {enabledConnectionTypes.length === 0 && (
-              <Tooltip
-                id="no-connection-types-tooltip"
-                content="No connection types available"
-                triggerRef={connectionTypesTooltipRef}
-              />
-            )}
+            </ExtendedButton>
           </FlexItem>
         </Flex>
       }
