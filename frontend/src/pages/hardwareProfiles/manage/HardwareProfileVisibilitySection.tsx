@@ -16,14 +16,26 @@ export const HardwareProfileVisibilitySection: React.FC<HardwareProfileUseCaseSe
   visibility,
   setVisibility,
 }) => {
-  const [isLimited, setIsLimited] = React.useState(visibility.length > 0);
-  const visibilityOptions: SelectionOptions[] = Object.values(HardwareProfileFeatureVisibility).map(
-    (value) => ({
-      id: value,
-      name: HardwareProfileFeatureVisibilityTitles[value],
-      selected: visibility.includes(value),
-    }),
+  const [isLimitedOptionSelected, setLimitedOptionSelected] = React.useState(false);
+  const [selectedOptions, setSelectedOptions] = React.useState<string[]>([]);
+  const visibilityOptions: SelectionOptions[] = React.useMemo(
+    () =>
+      Object.values(HardwareProfileFeatureVisibility).map((value) => ({
+        id: value,
+        name: HardwareProfileFeatureVisibilityTitles[value],
+        selected: selectedOptions.includes(value),
+      })),
+    [selectedOptions],
   );
+
+  React.useEffect(() => {
+    if (visibility.length === 0) {
+      setLimitedOptionSelected(false);
+    } else {
+      setLimitedOptionSelected(true);
+      setSelectedOptions(visibility);
+    }
+  }, [visibility]);
 
   return (
     <FormGroup
@@ -45,9 +57,9 @@ export const HardwareProfileVisibilitySection: React.FC<HardwareProfileUseCaseSe
         id="all-features"
         name="features-visibility"
         label="Visible everywhere"
-        isChecked={!isLimited}
+        isChecked={!isLimitedOptionSelected}
         onChange={() => {
-          setIsLimited(false);
+          setLimitedOptionSelected(false);
           setVisibility([]);
         }}
       />
@@ -55,15 +67,22 @@ export const HardwareProfileVisibilitySection: React.FC<HardwareProfileUseCaseSe
         id="limited-features"
         name="features-visibility"
         label="Limited visibility"
-        isChecked={isLimited}
-        onChange={() => setIsLimited(true)}
+        isChecked={isLimitedOptionSelected}
+        onChange={() => {
+          setLimitedOptionSelected(true);
+          if (selectedOptions.length !== 0) {
+            setVisibility(selectedOptions);
+          }
+        }}
         body={
-          isLimited && (
+          isLimitedOptionSelected && (
             <MultiSelection
               value={visibilityOptions}
-              setValue={(value) =>
-                setVisibility(value.filter((v) => v.selected).map((v) => String(v.id)))
-              }
+              setValue={(value) => {
+                const selected = value.filter((v) => v.selected).map((v) => String(v.id));
+                setVisibility(selected);
+                setSelectedOptions(selected);
+              }}
               ariaLabel="Select features"
               placeholder="Select features"
             />
