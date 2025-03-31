@@ -1,7 +1,7 @@
 import React from 'react';
 import { Alert, Button, Form, FormSection, Spinner } from '@patternfly/react-core';
 import { Modal } from '@patternfly/react-core/deprecated'; // TODO migrate to non-deprecated modal
-import { ModelVersion } from '~/concepts/modelRegistry/types';
+import { CatalogModel } from '~/concepts/modelCatalog/types';
 import { ProjectKind } from '~/k8sTypes';
 import useProjectErrorForRegisteredModel from '~/pages/modelRegistry/screens/RegisteredModels/useProjectErrorForRegisteredModel';
 import ProjectSelector from '~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSelector';
@@ -10,30 +10,29 @@ import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformS
 import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/projects/utils';
 import { ServingRuntimePlatform } from '~/types';
 import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
-import useRegisteredModelDeployPrefillInfo from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployPrefillInfo';
+import { getKServeTemplates } from '~/pages/modelServing/customServingRuntimes/utils';
+import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
+import { isRedHatRegistryUri } from '~/pages/modelRegistry/screens/utils';
 import ModelServingContextProvider, {
   ModelServingContext,
 } from '~/pages/modelServing/ModelServingContext';
-import { useModelRegistryAPI } from '~/concepts/modelRegistry/context/ModelRegistryContext';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import { getKServeTemplates } from '~/pages/modelServing/customServingRuntimes/utils';
-import { bumpBothTimestamps } from '~/concepts/modelRegistry/utils/updateTimestamps';
-import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
-import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
-import { isRedHatRegistryUri } from '~/pages/modelRegistry/screens/utils';
+import { ModelDeployPrefillInfo } from '~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 
-interface DeployRegisteredModelModalProps {
-  modelVersion: ModelVersion;
+interface DeployCatalogModelModalProps {
+  model: CatalogModel;
   onCancel: () => void;
   onSubmit?: () => void;
 }
 
-const DeployRegisteredModelModalContents: React.FC<
-  DeployRegisteredModelModalProps & {
+// TODO abstract away common logic here into a DeployPrefilledModelModal under serving
+// TODO what else can we do to clean these up after the abstraction?
+
+const DeployCatalogModelModalContents: React.FC<
+  DeployCatalogModelModalProps & {
     selectedProject: ProjectKind | null;
     setSelectedProject: (project: ProjectKind | null) => void;
   }
-> = ({ modelVersion, onCancel, onSubmit, selectedProject, setSelectedProject }) => {
+> = ({ model, onCancel, onSubmit, selectedProject, setSelectedProject }) => {
   const {
     servingRuntimeTemplates: [templates, templatesLoaded],
     servingRuntimeTemplateOrder: { data: templateOrder, loaded: templateOrderLoaded },
@@ -44,23 +43,18 @@ const DeployRegisteredModelModalContents: React.FC<
   } = React.useContext(ModelServingContext);
   const servingContextLoaded = templatesLoaded && templateOrderLoaded && templateDisablementLoaded;
 
-  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
-  const modelRegistryApi = useModelRegistryAPI();
-
   const servingPlatformStatuses = useServingPlatformStatuses();
   const { platform, error: platformError } = getProjectModelServingPlatform(
     selectedProject,
     servingPlatformStatuses,
   );
   const [connections] = useConnections(selectedProject?.metadata.name, true);
-  const [registeredModel, registeredModelLoaded, registeredModelLoadError, refreshRegisteredModel] =
-    useRegisteredModelById(modelVersion.registeredModelId);
 
-  const {
-    modelDeployPrefillInfo,
-    loaded: deployInfoLoaded,
-    error: deployInfoError,
-  } = useRegisteredModelDeployPrefillInfo(modelVersion, preferredModelRegistry?.metadata.name);
+  const modelDeployPrefillInfo: ModelDeployPrefillInfo = {
+    modelName: model.name,
+    modelArtifactUri: model.artifacts?.[0].uri,
+    connectionTypeName: 'oci-v1', // TODO maybe get this based on the URI like in useRegisteredModelDeployPrefillInfo? Also maybe it should be from an enum?
+  };
 
   const isOciModel = modelDeployPrefillInfo.modelArtifactUri?.includes('oci://');
   const platformToUse = platform || (isOciModel ? ServingRuntimePlatform.SINGLE : undefined);
@@ -69,22 +63,9 @@ const DeployRegisteredModelModalContents: React.FC<
 
   const error = platformError || projectError;
 
-  const loaded = servingContextLoaded && deployInfoLoaded && registeredModelLoaded;
-  const loadError = deployInfoError || registeredModelLoadError;
-
   const handleSubmit = React.useCallback(async () => {
-    if (!modelVersion.registeredModelId || !registeredModel) {
-      return;
-    }
-
-    try {
-      await bumpBothTimestamps(modelRegistryApi.api, registeredModel, modelVersion);
-      refreshRegisteredModel();
-      onSubmit?.();
-    } catch (submitError) {
-      throw new Error('Failed to update timestamps after deployment');
-    }
-  }, [modelRegistryApi.api, modelVersion, onSubmit, registeredModel, refreshRegisteredModel]);
+    onSubmit?.();
+  }, [onSubmit]);
 
   const onClose = React.useCallback(
     (submit: boolean) => {
@@ -102,9 +83,6 @@ const DeployRegisteredModelModalContents: React.FC<
       selectedProject={selectedProject}
       setSelectedProject={setSelectedProject}
       error={error}
-      modelRegistryName={preferredModelRegistry?.metadata.name}
-      registeredModelId={modelVersion.registeredModelId}
-      modelVersionId={modelVersion.id}
       isOciModel={isOciModel}
     />
   );
@@ -116,11 +94,7 @@ const DeployRegisteredModelModalContents: React.FC<
   ) {
     const modalForm = (
       <Form>
-        {loadError ? (
-          <Alert variant="danger" isInline title={loadError.name}>
-            {loadError.message}
-          </Alert>
-        ) : !loaded ? (
+        {!servingContextLoaded ? (
           <Spinner />
         ) : isOciModel ? (
           <FormSection title="Model deployment">
@@ -193,11 +167,11 @@ const DeployRegisteredModelModalContents: React.FC<
   );
 };
 
-const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = (props) => {
+const DeployCatalogModelModal: React.FC<DeployCatalogModelModalProps> = (props) => {
   const [selectedProject, setSelectedProject] = React.useState<ProjectKind | null>(null);
   return (
     <ModelServingContextProvider namespace={selectedProject?.metadata.name}>
-      <DeployRegisteredModelModalContents
+      <DeployCatalogModelModalContents
         {...props}
         selectedProject={selectedProject}
         setSelectedProject={setSelectedProject}
@@ -206,4 +180,4 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = (p
   );
 };
 
-export default DeployRegisteredModelModal;
+export default DeployCatalogModelModal;

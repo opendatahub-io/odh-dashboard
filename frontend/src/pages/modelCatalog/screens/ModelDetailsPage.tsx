@@ -41,6 +41,7 @@ import RhUiControlsIcon from '~/images/icons/RhUiControlsIcon';
 import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import ModelDetailsView from './ModelDetailsView';
+import DeployCatalogModelModal from './DeployCatalogModelModal';
 
 const ModelDetailsPage: React.FC = conditionalArea(
   SupportedArea.MODEL_CATALOG,
@@ -55,6 +56,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
   const tuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
   const loaded =
     (modelRegistryServicesLoaded || !!modelRegistryServicesLoadError) && modelCatalogSources.loaded;
+  const [isDeployModalOpen, setIsDeployModalOpen] = React.useState(false);
   const model: CatalogModel | null = React.useMemo(
     () =>
       findModelFromModelCatalogSources(
@@ -104,7 +106,11 @@ const ModelDetailsPage: React.FC = conditionalArea(
   };
 
   const deployModelButton = (
-    <Button variant="primary" data-testid="deploy-model-button" onClick={() => alert('TODO')}>
+    <Button
+      variant="primary"
+      data-testid="deploy-model-button"
+      onClick={() => setIsDeployModalOpen(true)}
+    >
       Deploy model
     </Button>
   );
@@ -212,7 +218,21 @@ const ModelDetailsPage: React.FC = conditionalArea(
         )
       }
     >
-      {model && <ModelDetailsView model={model} />}
+      {model && (
+        <>
+          <ModelDetailsView model={model} />
+          {isDeployModalOpen && (
+            <DeployCatalogModelModal
+              model={model}
+              onSubmit={() => {
+                // TODO navigate to serving page
+                alert('TODO navigate to serving page');
+              }}
+              onCancel={() => setIsDeployModalOpen(false)}
+            />
+          )}
+        </>
+      )}
     </ApplicationsPage>
   );
 });
