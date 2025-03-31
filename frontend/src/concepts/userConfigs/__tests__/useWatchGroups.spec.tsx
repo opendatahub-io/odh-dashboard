@@ -1,7 +1,6 @@
 import { act } from 'react';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import { GroupsConfig } from '~/concepts/userConfigs/groupTypes';
-import { fetchGroupsSettings, updateGroupsSettings } from '~/services/groupSettingsService';
 import { useWatchGroups } from '~/concepts/userConfigs/useWatchGroups';
 import { getAuth, patchAuth, useGroups } from '~/api';
 import useNotification from '~/utilities/useNotification';
@@ -10,10 +9,6 @@ import { mockGroup } from '~/__mocks__/mockGroup';
 import { fetchAuthGroups } from '~/concepts/userConfigs/utils';
 import { mockAuth } from '~/__mocks__/mockAuth';
 
-jest.mock('~/services/groupSettingsService', () => ({
-  fetchGroupsSettings: jest.fn(),
-  updateGroupsSettings: jest.fn(),
-}));
 jest.mock('~/api', () => ({
   ...jest.requireActual('~/api'),
   getAuth: jest.fn(),
@@ -37,11 +32,9 @@ jest.mock('../../../utilities/useNotification', () => {
 });
 const getAuthMock = jest.mocked(getAuth);
 const patchAuthMock = jest.mocked(patchAuth);
-const fetchGroupSettingsMock = jest.mocked(fetchGroupsSettings);
 const fetchAuthGroupsMock = jest.mocked(fetchAuthGroups);
 const useNotificationMock = jest.mocked(useNotification);
 const useGroupsMock = jest.mocked(useGroups);
-const updateGroupSettingsMock = jest.mocked(updateGroupsSettings);
 const mockEmptyGroupSettings = {
   adminGroups: [],
   allowedGroups: [],
@@ -76,14 +69,11 @@ describe('useWatchGroups', () => {
       allowedGroups: [],
     };
 
-    updateGroupSettingsMock.mockImplementation((group) => Promise.resolve(group));
     fetchAuthGroupsMock.mockResolvedValue(mockGroupSettings);
     const renderResult = testHook(useWatchGroups)();
-    expect(fetchGroupSettingsMock).toHaveBeenCalledTimes(0);
-    expect(fetchAuthGroupsMock).toHaveBeenCalledTimes(0); // useFetchState takes a cycle to invoke
-    expect(renderResult).hookToStrictEqual(createResult({ loaded: false, isLoading: false }));
+    expect(fetchAuthGroupsMock).toHaveBeenCalledTimes(1);
+    expect(renderResult).hookToStrictEqual(createResult({ loaded: false, isLoading: true }));
     await renderResult.waitForNextUpdate();
-    expect(fetchGroupSettingsMock).toHaveBeenCalledTimes(0);
     expect(fetchAuthGroupsMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(createResult({ groupSettings: mockGroupSettings }));
     renderResult.rerender();
@@ -130,11 +120,9 @@ describe('useWatchGroups', () => {
   it('should handle error', async () => {
     fetchAuthGroupsMock.mockRejectedValue(new Error(`Error getting group settings`));
     const renderResult = testHook(useWatchGroups)();
-    expect(fetchGroupSettingsMock).toHaveBeenCalledTimes(0);
-    expect(fetchAuthGroupsMock).toHaveBeenCalledTimes(0); // useFetchState takes a cycle to invoke
-    expect(renderResult).hookToStrictEqual(createResult({ loaded: false, isLoading: false }));
+    expect(fetchAuthGroupsMock).toHaveBeenCalledTimes(1);
+    expect(renderResult).hookToStrictEqual(createResult({ loaded: false, isLoading: true }));
     await renderResult.waitForNextUpdate();
-    expect(fetchGroupSettingsMock).toHaveBeenCalledTimes(0);
     expect(fetchAuthGroupsMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(
       createResult({ loaded: false, loadError: new Error('Error getting group settings') }),
