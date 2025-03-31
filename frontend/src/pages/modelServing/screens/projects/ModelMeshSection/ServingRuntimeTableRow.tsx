@@ -107,7 +107,9 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
           dataLabel="Deployed models"
           compoundExpand={
             inferenceServicesLoaded
-              ? compoundExpandParams(ServingRuntimeTableTabs.DEPLOYED_MODELS, false)
+              ? modelInferenceServices.length >= 1
+                ? compoundExpandParams(ServingRuntimeTableTabs.DEPLOYED_MODELS, false)
+                : compoundExpandParams(ServingRuntimeTableTabs.DEPLOYED_MODELS, true)
               : undefined
           }
         >
