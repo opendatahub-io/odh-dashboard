@@ -82,7 +82,7 @@ describe('useProjectErrorForRegisteredModel', () => {
     await renderResult.waitForNextUpdate();
     expect(renderResult).hookToStrictEqual({
       loaded: true,
-      error: new Error('Cannot deploy the model until you configure a model server'),
+      error: new Error('To deploy a model, you must first configure a model server.'),
     });
   });
 
@@ -93,7 +93,9 @@ describe('useProjectErrorForRegisteredModel', () => {
     await renderResult.waitForNextUpdate();
     expect(renderResult).hookToStrictEqual({
       loaded: true,
-      error: new Error('Cannot deploy the model until you select a model serving platform'),
+      error: new Error(
+        'To deploy a model, you must first select a model serving platform for this project.',
+      ),
     });
   });
 });

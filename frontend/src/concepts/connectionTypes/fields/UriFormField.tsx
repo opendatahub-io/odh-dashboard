@@ -35,7 +35,7 @@ const UriFormField: React.FC<FieldProps<UriField>> = ({
   const [isValid, setIsValid] = React.useState(() => validateUrl(value));
 
   React.useEffect(() => {
-    onValidate?.(isValid);
+    onValidate?.(!isValid, value);
     // do not run when callback changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isValid]);

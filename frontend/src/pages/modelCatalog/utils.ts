@@ -1,5 +1,11 @@
 import { CatalogArtifacts, CatalogModel, ModelCatalogSource } from '~/concepts/modelCatalog/types';
-import { ModelDetailsRouteParams } from './const';
+import {
+  EMPTY_CUSTOM_PROPERTY_STRING,
+  RESERVED_ILAB_LABELS,
+  ReservedILabLabel,
+} from '~/pages/modelCatalog/const';
+import { ModelRegistryCustomProperties } from '~/concepts/modelRegistry/types';
+import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
 
 export const findModelFromModelCatalogSources = (
   modelCatalogSources: ModelCatalogSource[],
@@ -24,7 +30,7 @@ export const findModelFromModelCatalogSources = (
   return modelMatched || null;
 };
 
-export const encodeParams = (params: ModelDetailsRouteParams): ModelDetailsRouteParams =>
+export const encodeParams = (params: CatalogModelDetailsParams): CatalogModelDetailsParams =>
   Object.fromEntries(
     Object.entries(params).map(([key, value]) => [
       key,
@@ -32,10 +38,40 @@ export const encodeParams = (params: ModelDetailsRouteParams): ModelDetailsRoute
     ]),
   );
 
-export const decodeParams = (params: Readonly<ModelDetailsRouteParams>): ModelDetailsRouteParams =>
+export const decodeParams = (
+  params: Readonly<CatalogModelDetailsParams>,
+): CatalogModelDetailsParams =>
   Object.fromEntries(
     Object.entries(params).map(([key, value]) => [key, decodeURIComponent(value)]),
   );
 
 export const getTagFromModel = (model: CatalogModel): string | undefined =>
   model.artifacts?.[0]?.tags?.[0];
+
+export const getILabLabels = (labels?: string[]): string[] =>
+  labels?.filter((l) => RESERVED_ILAB_LABELS.some((ril) => ril === l)) ?? [];
+
+export const removeILabLabels = (labels?: string[]): string[] =>
+  labels?.filter((l) => !RESERVED_ILAB_LABELS.some((ril) => ril === l)) ?? [];
+
+export const isLabBase = (labels?: string[]): boolean =>
+  !!labels?.includes(ReservedILabLabel.LabBase);
+
+export const createCustomPropertiesFromModel = (
+  model: CatalogModel,
+): ModelRegistryCustomProperties => {
+  const labels = removeILabLabels(model.labels).reduce<ModelRegistryCustomProperties>(
+    (acc, cur) => {
+      acc[cur] = EMPTY_CUSTOM_PROPERTY_STRING;
+      return acc;
+    },
+    {},
+  );
+
+  const tasks = model.tasks?.reduce<ModelRegistryCustomProperties>((acc, cur) => {
+    acc[cur] = EMPTY_CUSTOM_PROPERTY_STRING;
+    return acc;
+  }, {});
+
+  return { ...labels, ...tasks };
+};

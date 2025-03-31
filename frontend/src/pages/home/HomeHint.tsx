@@ -4,28 +4,29 @@ import {
   Card,
   CardBody,
   CardHeader,
+  Content,
   Flex,
   FlexItem,
   PageSection,
-  Content,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
 import { useBrowserStorage } from '~/components/browserStorage';
-import TitleWithIcon from '~/concepts/design/TitleWithIcon';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import ExternalLink from '~/components/ExternalLink';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
-const HomeHint: React.FC = () => {
+type HomeHintProps = {
+  title: React.ReactNode;
+  body: React.ReactNode;
+  isDisplayed: boolean;
+  homeHintKey: string;
+  image?: React.ReactNode;
+};
+
+const HomeHint: React.FC<HomeHintProps> = ({ title, body, isDisplayed, homeHintKey, image }) => {
   const [hintHidden, setHintHidden] = useBrowserStorage<boolean>(
-    'odh.dashboard.landing.hint',
+    `odh.dashboard.landing.hint-${homeHintKey}`,
     false,
   );
-  const isHardwareProfileAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
 
-  const releaseNoteDocumentation =
-    'https://docs.redhat.com/en/documentation/red_hat_openshift_ai/2025';
-  if (hintHidden || !isHardwareProfileAvailable) {
+  if (hintHidden || !isDisplayed) {
     return null;
   }
 
@@ -38,19 +39,7 @@ const HomeHint: React.FC = () => {
             justifyContent={{ default: 'justifyContentSpaceBetween' }}
           >
             <FlexItem>
-              <Content>
-                <Content component="h2">
-                  <TitleWithIcon
-                    title={
-                      <>
-                        Hardware profiles, formerly &quot;Accelerator profiles&quot;, have new
-                        features
-                      </>
-                    }
-                    objectType={ProjectObjectType.acceleratorProfile}
-                  />
-                </Content>
-              </Content>
+              <Content component="h2">{title}</Content>
             </FlexItem>
             <FlexItem>
               <Button
@@ -70,20 +59,8 @@ const HomeHint: React.FC = () => {
             gap={{ default: 'gapMd' }}
             flexWrap={{ default: 'nowrap' }}
           >
-            <FlexItem>
-              <Content>
-                <Content component="p" data-testid="hint-body-text">
-                  Hardware profiles offer more flexibility by enabling administrators to create
-                  profiles for additional types of identifiers, limit workload resource allocations,
-                  and target workloads to specific nodes by including tolerations and nodeSelectors
-                  in profiles.
-                </Content>
-                <ExternalLink
-                  text="Find the 2.19 release notes in the documentation"
-                  to={releaseNoteDocumentation}
-                />
-              </Content>
-            </FlexItem>
+            {image}
+            <FlexItem>{body}</FlexItem>
           </Flex>
         </CardBody>
       </Card>

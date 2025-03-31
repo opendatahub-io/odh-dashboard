@@ -1,12 +1,5 @@
 import { CustomObjectsApi } from '@kubernetes/client-node';
-import { setDashboardConfig } from '../routes/api/config/configUtils';
-import {
-  GroupCustomObject,
-  GroupObjResponse,
-  GroupsConfigBody,
-  KubeFastifyInstance,
-} from '../types';
-import { getDashboardConfig } from './resourceUtils';
+import { GroupCustomObject, GroupObjResponse } from '../types';
 
 export class MissingGroupError extends Error {
   constructor(message: string) {
@@ -14,49 +7,6 @@ export class MissingGroupError extends Error {
     Object.setPrototypeOf(this, MissingGroupError.prototype);
   }
 }
-
-/** @deprecated - see RHOAIENG-16988 */
-export const getGroupsCR = (): GroupsConfigBody => {
-  if (getDashboardConfig().spec.groupsConfig) {
-    return getDashboardConfig().spec.groupsConfig;
-  }
-  throw new Error(`Failed to retrieve Dashboard CR groups configuration`);
-};
-
-/** @deprecated - see RHOAIENG-16988 */
-export const updateGroupsCR = async (
-  fastify: KubeFastifyInstance,
-  groupsConfigBody: GroupsConfigBody,
-): Promise<GroupsConfigBody> => {
-  try {
-    const updatedConfig = await setDashboardConfig(fastify, {
-      spec: {
-        groupsConfig: groupsConfigBody,
-      },
-    });
-    return updatedConfig.spec.groupsConfig;
-  } catch (e) {
-    throw new Error(`Failed to update Dashboard CR groups configuration`);
-  }
-};
-
-/** @deprecated - see RHOAIENG-16988 */
-export const getAdminGroups = (): string => {
-  try {
-    return getGroupsCR().adminGroups;
-  } catch (e) {
-    throw new Error(`${e} for adminGroups attribute`);
-  }
-};
-
-/** @deprecated - see RHOAIENG-16988 */
-export const getAllowedGroups = (): string => {
-  try {
-    return getGroupsCR().allowedGroups;
-  } catch (e) {
-    throw new Error(`${e} for allowedGroups attribute`);
-  }
-};
 
 export const getGroup = async (
   customObjectsApi: CustomObjectsApi,
@@ -72,21 +22,6 @@ export const getGroup = async (
     return (adminGroupResponse.body as GroupObjResponse).users || [];
   } catch (e) {
     throw new MissingGroupError(`Failed to retrieve Group ${adminGroup}, might not exist.`);
-  }
-};
-
-/** @deprecated - see RHOAIENG-16988 */
-export const getAllGroups = async (customObjectsApi: CustomObjectsApi): Promise<string[]> => {
-  try {
-    const adminGroupResponse = await customObjectsApi.listClusterCustomObject(
-      'user.openshift.io',
-      'v1',
-      'groups',
-    );
-    const groups = adminGroupResponse.body as GroupCustomObject;
-    return groups.items.map((x) => x.metadata.name);
-  } catch (e) {
-    throw new Error(`Failed to list groups.`);
   }
 };
 

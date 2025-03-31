@@ -14,6 +14,7 @@ type GenericSidebarProps = {
   scrollableSelector?: string;
   maxWidth?: number;
   children: React.ReactNode;
+  onJumpLinksItemClick?: (section: string) => void;
 };
 
 const GenericSidebar: React.FC<GenericSidebarProps> = ({
@@ -22,6 +23,7 @@ const GenericSidebar: React.FC<GenericSidebarProps> = ({
   titles,
   scrollableSelector = DASHBOARD_SCROLL_CONTAINER_SELECTOR,
   maxWidth,
+  onJumpLinksItemClick,
 }) => (
   <Sidebar hasGutter>
     {/* Note from PF: the zIndex override here can be removed once the following issue is resolved:
@@ -37,7 +39,11 @@ const GenericSidebar: React.FC<GenericSidebarProps> = ({
         isExpanded
       >
         {sections.map((section) => (
-          <JumpLinksItem key={section} href={`#${section}`}>
+          <JumpLinksItem
+            key={section}
+            href={`#${section}`}
+            onClick={onJumpLinksItemClick ? () => onJumpLinksItemClick(section) : undefined}
+          >
             {titles[section]}
           </JumpLinksItem>
         ))}

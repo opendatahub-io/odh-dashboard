@@ -1,10 +1,26 @@
 import * as React from 'react';
 import { Modal } from '@patternfly/react-core/deprecated';
-import { Button, Form, FormGroup, Stack, StackItem, Alert } from '@patternfly/react-core';
+import {
+  Form,
+  FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  ModalBody,
+  ModalHeader,
+  ModalVariant,
+  Stack,
+  StackItem,
+  Alert,
+  Content,
+  ContentVariants,
+} from '@patternfly/react-core';
+import { Link } from 'react-router-dom';
 import ProjectSelector from '~/concepts/projects/ProjectSelector';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { PipelineContextProvider } from '~/concepts/pipelines/context';
 import MissingConditionAlert from '~/pages/pipelines/global/modelCustomization/startRunModal/MissingConditionAlert';
+import { modelCustomizationRootPath } from '~/routes';
 
 export type StartRunModalProps = {
   onSubmit: (selectedProject: string) => void;
@@ -25,7 +41,6 @@ const StartRunModal: React.FC<StartRunModalProps> = ({
 
   return (
     <Modal
-      title="Start an InstructLab run"
       isOpen
       onClose={onCancel}
       footer={
@@ -37,88 +52,79 @@ const StartRunModal: React.FC<StartRunModalProps> = ({
           }}
           onCancel={onCancel}
           submitLabel="Continue to run details"
-          isSubmitDisabled={!canContinue || !loaded}
+          isSubmitDisabled={!canContinue || !loaded || !!loadError}
         />
       }
-      variant="medium"
-      data-testid="start-run-modal"
+      variant={ModalVariant.medium}
+      hasNoBodyWrapper
     >
-      <Form>
-        <Stack hasGutter>
-          {loadError && (
-            <StackItem>
-              <Alert variant="danger" title="Error loading model data">
-                {loadError.message}
-              </Alert>
-            </StackItem>
-          )}
-          <StackItem>
-            Fine-tune your models to improve their performance, accuracy, and task specialization,
-            using the{' '}
-            <Button
-              data-testid="lab-method"
-              variant="link"
-              isInline
-              component="a"
-              style={{ textDecoration: 'none' }}
-              onClick={() => {
-                // TODO: Link to documentation
-              }}
-            >
-              LAB method
-            </Button>
-            . Before creating a run, a taxonomy is needed and a teacher and judge model must be
-            configured.{' '}
-            <Button
-              data-testid="learn-more-prerequisites"
-              variant="link"
-              isInline
-              component="a"
-              style={{ textDecoration: 'none' }}
-              onClick={() => {
-                // TODO: Link to documentation
-              }}
-            >
-              Learn more about prerequisites for InstructLab fine-tuning
-            </Button>
-            .
-          </StackItem>
-          <StackItem>
-            <FormGroup
-              label="Data science project"
-              fieldId="start-run-modal-project-name"
-              isRequired
-            >
-              <Stack hasGutter>
+      <ModalHeader
+        title="Start a LAB-tuning run"
+        description={
+          <>
+            <Content component={ContentVariants.p}>
+              Tune a model using the LAB method with the InstructLab pipeline. To create a
+              LAB-tuning run, you must have a taxonomy stored in a git repository, and a configured
+              teacher and judge model.
+            </Content>
+            <Link to={modelCustomizationRootPath}>Learn more about LAB-tuning prerequisites</Link>.
+          </>
+        }
+      />
+      <ModalBody data-testid="start-run-modal">
+        {loadError && (
+          <Alert variant="danger" title="Error loading model data" className="pf-v6-u-mb-md">
+            {loadError.message}
+          </Alert>
+        )}
+        <Form>
+          <FormGroup
+            label="Data science project"
+            fieldId="start-run-modal-project-name"
+            isRequired
+            labelHelp={
+              <HelperText>
+                <HelperTextItem>
+                  Select a project for the InstructLab pipeline to run in.
+                </HelperTextItem>
+              </HelperText>
+            }
+          >
+            <Stack hasGutter>
+              <StackItem>
+                <ProjectSelector
+                  isFullWidth
+                  onSelection={(projectName) => {
+                    setSelectedProject(projectName);
+                  }}
+                  namespace={selectedProject ?? ''}
+                  placeholder="Select a Data science project"
+                  isLoading={isLoadingProject}
+                />
+                <FormHelperText>
+                  <HelperText>
+                    <HelperTextItem>
+                      The InstructLab pipeline will run in the selected project
+                    </HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+              </StackItem>
+              {selectedProject && (
                 <StackItem>
-                  <ProjectSelector
-                    isFullWidth
-                    onSelection={(projectName) => {
-                      setSelectedProject(projectName);
-                    }}
-                    namespace={selectedProject ?? ''}
-                    placeholder="Select a Data science project"
-                    isLoading={isLoadingProject}
-                  />
+                  <PipelineContextProvider namespace={selectedProject}>
+                    <MissingConditionAlert
+                      key={selectedProject}
+                      selectedProject={selectedProject}
+                      setIsLoadingProject={setIsLoadingProject}
+                      setCanContinue={setCanContinue}
+                    />
+                  </PipelineContextProvider>
                 </StackItem>
-                <StackItem>The InstructLab pipeline will run in the selected project</StackItem>
-                {selectedProject && (
-                  <StackItem>
-                    <PipelineContextProvider namespace={selectedProject}>
-                      <MissingConditionAlert
-                        key={selectedProject}
-                        selectedProject={selectedProject}
-                        setIsLoadingProject={setIsLoadingProject}
-                        setCanContinue={setCanContinue}
-                      />
-                    </PipelineContextProvider>
-                  </StackItem>
-                )}
-              </Stack>
-            </FormGroup>
-          </StackItem>
-        </Stack>
-      </Form>
+              )}
+            </Stack>
+          </FormGroup>
+        </Form>
+      </ModalBody>
     </Modal>
   );
 };

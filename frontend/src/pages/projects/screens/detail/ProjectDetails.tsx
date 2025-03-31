@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Breadcrumb, BreadcrumbItem, Flex, FlexItem, Truncate } from '@patternfly/react-core';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import GenericHorizontalBar from '~/pages/projects/components/GenericHorizontalBar';
@@ -8,7 +8,6 @@ import ProjectSharing from '~/pages/projects/projectSharing/ProjectSharing';
 import ProjectSettingsPage from '~/pages/projects/projectSettings/ProjectSettingsPage';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
-import { useQueryParams } from '~/utilities/useQueryParams';
 import ModelServingPlatform from '~/pages/modelServing/screens/projects/ModelServingPlatform';
 import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
@@ -41,8 +40,8 @@ const ProjectDetails: React.FC = () => {
   const projectSharingEnabled = useIsAreaAvailable(SupportedArea.DS_PROJECTS_PERMISSIONS).status;
   const pipelinesEnabled = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
   const modelServingEnabled = useModelServingEnabled();
-  const queryParams = useQueryParams();
-  const state = queryParams.get('section');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const state = searchParams.get('section');
   const [allowCreate, rbacLoaded] = useAccessReview({
     ...accessReviewResource,
     namespace: currentProject.metadata.name,
@@ -67,7 +66,9 @@ const ProjectDetails: React.FC = () => {
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem render={() => <Link to="/projects">Data Science Projects</Link>} />
-          <BreadcrumbItem isActive>{displayName}</BreadcrumbItem>
+          <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
+            <Truncate content={displayName} />
+          </BreadcrumbItem>
         </Breadcrumb>
       }
       loaded={rbacLoaded}
@@ -76,64 +77,82 @@ const ProjectDetails: React.FC = () => {
     >
       <GenericHorizontalBar
         activeKey={state}
-        sections={[
-          { id: ProjectSectionID.OVERVIEW, title: 'Overview', component: <ProjectOverview /> },
-          ...(workbenchEnabled
-            ? [
-                {
-                  id: ProjectSectionID.WORKBENCHES,
-                  title: 'Workbenches',
-                  component: <NotebookList />,
-                },
-              ]
-            : []),
-          ...(pipelinesEnabled
-            ? [
-                {
-                  id: ProjectSectionID.PIPELINES,
-                  title: 'Pipelines',
-                  component: <PipelinesSection />,
-                },
-              ]
-            : []),
-          ...(modelServingEnabled
-            ? [
-                {
-                  id: ProjectSectionID.MODEL_SERVER,
-                  title: 'Models',
-                  component: <ModelServingPlatform />,
-                },
-              ]
-            : []),
-          {
-            id: ProjectSectionID.CLUSTER_STORAGES,
-            title: 'Cluster storage',
-            component: <StorageList />,
+        onSectionChange={React.useCallback(
+          (sectionId, replace) => {
+            const newSearchParams = new URLSearchParams(searchParams);
+            newSearchParams.set('section', sectionId);
+            setSearchParams(newSearchParams, replace ? { replace } : undefined);
           },
-          {
-            id: ProjectSectionID.CONNECTIONS,
-            title: 'Connections',
-            component: <ConnectionsList />,
-          },
-          ...(projectSharingEnabled && allowCreate
-            ? [
-                {
-                  id: ProjectSectionID.PERMISSIONS,
-                  title: 'Permissions',
-                  component: <ProjectSharing />,
-                },
-              ]
-            : []),
-          ...(biasMetricsAreaAvailable && allowCreate
-            ? [
-                {
-                  id: ProjectSectionID.SETTINGS,
-                  title: 'Settings',
-                  component: <ProjectSettingsPage />,
-                },
-              ]
-            : []),
-        ]}
+          [searchParams, setSearchParams],
+        )}
+        sections={React.useMemo(
+          () => [
+            { id: ProjectSectionID.OVERVIEW, title: 'Overview', component: <ProjectOverview /> },
+            ...(workbenchEnabled
+              ? [
+                  {
+                    id: ProjectSectionID.WORKBENCHES,
+                    title: 'Workbenches',
+                    component: <NotebookList />,
+                  },
+                ]
+              : []),
+            ...(pipelinesEnabled
+              ? [
+                  {
+                    id: ProjectSectionID.PIPELINES,
+                    title: 'Pipelines',
+                    component: <PipelinesSection />,
+                  },
+                ]
+              : []),
+            ...(modelServingEnabled
+              ? [
+                  {
+                    id: ProjectSectionID.MODEL_SERVER,
+                    title: 'Models',
+                    component: <ModelServingPlatform />,
+                  },
+                ]
+              : []),
+            {
+              id: ProjectSectionID.CLUSTER_STORAGES,
+              title: 'Cluster storage',
+              component: <StorageList />,
+            },
+            {
+              id: ProjectSectionID.CONNECTIONS,
+              title: 'Connections',
+              component: <ConnectionsList />,
+            },
+            ...(projectSharingEnabled && allowCreate
+              ? [
+                  {
+                    id: ProjectSectionID.PERMISSIONS,
+                    title: 'Permissions',
+                    component: <ProjectSharing />,
+                  },
+                ]
+              : []),
+            ...(biasMetricsAreaAvailable && allowCreate
+              ? [
+                  {
+                    id: ProjectSectionID.SETTINGS,
+                    title: 'Settings',
+                    component: <ProjectSettingsPage />,
+                  },
+                ]
+              : []),
+          ],
+          [
+            allowCreate,
+            biasMetricsAreaAvailable,
+            modelServingEnabled,
+            pipelinesEnabled,
+            projectSharingEnabled,
+            workbenchEnabled,
+          ],
+        )}
       />
     </ApplicationsPage>
   );

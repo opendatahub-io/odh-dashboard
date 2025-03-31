@@ -22,6 +22,8 @@ import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { RecurringRunTrigger } from '~/concepts/pipelines/content/tables/renderUtils';
 import { Artifact } from '~/third_party/mlmd';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { getIsArtifactModelRegistered } from '~/pages/pipelines/global/experiments/artifacts/utils';
 import PipelineRunRegisteredModelDetails from './PipelineRunRegisteredModelDetails';
 import { getArtifactModelData } from './artifacts/utils';
 
@@ -42,6 +44,7 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
     run?.pipeline_version_reference?.pipeline_version_id,
   );
   const [pipeline] = usePipelineById(run?.pipeline_version_reference?.pipeline_id);
+  const { status: modelRegistryAvailable } = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY);
 
   if (!run || !workflowName) {
     return (
@@ -56,7 +59,11 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
     );
   }
 
-  const artifactModelData = artifacts?.map((artifact) => getArtifactModelData(artifact));
+  const artifactModelData = modelRegistryAvailable
+    ? artifacts
+        ?.filter((artifact) => getIsArtifactModelRegistered(artifact))
+        .map((artifact) => getArtifactModelData(artifact))
+    : undefined;
 
   const runId = isPipelineRun(run) ? run.run_id : run.recurring_run_id;
 
@@ -91,23 +98,27 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
       : []),
     { key: 'Run ID', value: runId },
     { key: 'Workflow name', value: workflowName },
-    {
-      key: 'Registered models',
-      value: (
-        <>
-          {artifactModelData?.length ? (
-            artifactModelData.map((data) => (
-              <PipelineRunRegisteredModelDetails
-                key={data.modelVersionId}
-                artifactModelData={data}
-              />
-            ))
-          ) : (
-            <span>No model details available</span>
-          )}
-        </>
-      ),
-    },
+    ...(modelRegistryAvailable
+      ? [
+          {
+            key: 'Registered models',
+            value: (
+              <>
+                {artifactModelData?.length ? (
+                  artifactModelData.map((data) => (
+                    <PipelineRunRegisteredModelDetails
+                      key={data.modelVersionId}
+                      artifactModelData={data}
+                    />
+                  ))
+                ) : (
+                  <span>No model details available</span>
+                )}
+              </>
+            ),
+          },
+        ]
+      : []),
     ...(!isPipelineRecurringRun(run)
       ? [
           { key: 'Started', value: asTimestamp(new Date(run.created_at)) },

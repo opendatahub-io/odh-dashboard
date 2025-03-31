@@ -7,5 +7,6 @@ export type FieldProps<T extends ConnectionTypeDataField> = {
   mode?: FieldMode;
   onChange?: (value: T['properties']['defaultValue']) => void;
   value?: T['properties']['defaultValue'];
-  onValidate?: (isValid: boolean) => void;
+  onValidate?: (error: boolean | string, value: T['properties']['defaultValue']) => void;
+  error?: string | boolean;
 };

@@ -40,3 +40,7 @@ export type ModelCatalogSource = {
   source: string;
   models: CatalogModel[];
 };
+
+export type ModelCatalogSourcesObject = {
+  sources: ModelCatalogSource[];
+};

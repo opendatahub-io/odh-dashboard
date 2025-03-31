@@ -33,7 +33,10 @@ export const mockDscStatus = ({
       ],
     },
   },
-  installedComponents,
+  installedComponents = Object.values(StackComponent).reduce(
+    (acc, component) => ({ ...acc, [component]: true }),
+    {},
+  ),
   conditions = [],
   phase = 'Ready',
 }: MockDscStatus): DataScienceClusterKindStatus => ({
@@ -134,7 +137,7 @@ export const mockDscStatus = ({
   installedComponents: Object.values(StackComponent).reduce(
     (acc, component) => ({
       ...acc,
-      [component]: installedComponents?.[component] ?? false,
+      [component]: installedComponents[component] ?? false,
     }),
     {},
   ),

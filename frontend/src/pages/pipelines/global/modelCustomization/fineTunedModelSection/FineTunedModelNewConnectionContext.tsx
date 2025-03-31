@@ -17,7 +17,7 @@ type FineTunedModelNewConnectionContextType = {
   isValid: boolean;
   nameDescData: K8sNameDescriptionFieldData;
   setNameDescData: K8sNameDescriptionFieldUpdateFunction;
-  onValidate: (field: ConnectionTypeDataField, error: boolean) => void;
+  onValidate: (field: ConnectionTypeDataField, error: boolean | string) => void;
   connectionValues: { [key: string]: ConnectionTypeValueType };
   setConnectionValues: React.Dispatch<
     React.SetStateAction<{
@@ -59,8 +59,8 @@ export const FineTunedModelNewConnectionContextProvider: React.FC<
   FineTunedModelNewConnectionContextProviderProps
 > = ({ connectionType, children }) => {
   const { data: nameDescData, onDataChange: setNameDescData } = useK8sNameDescriptionFieldData();
-  const [connectionTypeFieldValidations, setConnectionTypeFieldValidations] = React.useState<{
-    [key: string]: boolean;
+  const [connectionErrors, setConnectionErrors] = React.useState<{
+    [key: string]: boolean | string;
   }>({});
   const [connectionValues, setConnectionValues] = React.useState<{
     [key: string]: ConnectionTypeValueType;
@@ -76,13 +76,13 @@ export const FineTunedModelNewConnectionContextProvider: React.FC<
           !connectionValues[field.envVar] &&
           field.type !== ConnectionTypeFieldType.Boolean,
       ) &&
-      !Object.values(connectionTypeFieldValidations).includes(false),
-    [nameDescData, connectionType?.data?.fields, connectionTypeFieldValidations, connectionValues],
+      !Object.values(connectionErrors).find((e) => !!e),
+    [nameDescData, connectionType?.data?.fields, connectionErrors, connectionValues],
   );
 
   const onValidate = React.useCallback(
-    (field: ConnectionTypeDataField, isFieldValid: boolean) =>
-      setConnectionTypeFieldValidations((prev) => ({ ...prev, [field.envVar]: isFieldValid })),
+    (field: ConnectionTypeDataField, error: boolean | string) =>
+      setConnectionErrors((prev) => ({ ...prev, [field.envVar]: error })),
     [],
   );
 

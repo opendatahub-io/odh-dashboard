@@ -2,7 +2,7 @@ import type { DataScienceProjectData } from '~/__tests__/cypress/cypress/types';
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
+import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
 import {
   modelServingGlobal,
   inferenceServiceModal,
@@ -17,6 +17,7 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { attemptToClickTooltip } from '~/__tests__/cypress/cypress/utils/models';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -63,7 +64,9 @@ describe('[Product Bug: RHOAIENG-20213] Verify Admin Single Model Creation and V
 
   it(
     'Verify that an Admin can Serve, Query a Single Model using both the UI and External links',
-    { tags: ['@Smoke', '@SmokeSet3', '@ODS-2626', '@Dashboard', '@Modelserving', '@Bug'] },
+    {
+      tags: ['@Smoke', '@SmokeSet3', '@ODS-2626', '@Dashboard', '@Modelserving', '@Bug'],
+    },
     () => {
       cy.log('Model Name:', modelName);
       // Authentication and navigation
@@ -80,9 +83,7 @@ describe('[Product Bug: RHOAIENG-20213] Verify Admin Single Model Creation and V
 
       // Navigate to Model Serving tab and Deploy a Single Model
       cy.step('Navigate to Model Serving and click to Deploy a Single Model');
-      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-      // Reapply projectDetails.findSectionTab('model-server').click();
-      cy.visit(`projects/${projectName}?section=model-server`);
+      projectDetails.findSectionTab('model-server').click();
       modelServingGlobal.findSingleServingModelButton().click();
       modelServingGlobal.findDeployModelButton().click();
 
@@ -109,8 +110,7 @@ describe('[Product Bug: RHOAIENG-20213] Verify Admin Single Model Creation and V
       modelServingSection.findModelServerName(testData.singleModelAdminName);
       // Note reload is required as status tooltip was not found due to a stale element
       cy.reload();
-      modelServingSection.findStatusTooltip().click({ force: true });
-      cy.contains('Loaded', { timeout: 120000 }).should('be.visible');
+      attemptToClickTooltip();
 
       //Verify the Model is accessible externally
       cy.step('Verify the model is accessible externally');

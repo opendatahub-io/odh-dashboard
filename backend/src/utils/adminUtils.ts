@@ -4,7 +4,7 @@ import {
   V1ClusterRoleBindingList,
 } from '@kubernetes/client-node';
 import { KubeFastifyInstance, ResourceAccessReviewResponse } from '../types';
-import { getAdminGroups, getAllGroupsByUser, getAllowedGroups, getGroup } from './groupsUtils';
+import { getAllGroupsByUser, getGroup } from './groupsUtils';
 import { flatten, uniq } from 'lodash';
 import { getNamespaces } from '../utils/notebookUtils';
 import { getAuth } from './resourceUtils';
@@ -26,17 +26,7 @@ const getGroupUserList = async (
 
 export const getAdminUserList = async (fastify: KubeFastifyInstance): Promise<string[]> => {
   const auth = getAuth();
-  if (auth) {
-    return getGroupUserList(fastify, auth.spec.adminGroups);
-  }
-
-  // FIXME: see RHOAIENG-16988
-  const adminGroups = getAdminGroups();
-  const adminGroupsList = adminGroups
-    .split(',')
-    .filter((groupName) => groupName && !groupName.startsWith('system:')); // Handle edge-cases and ignore k8s defaults
-
-  return getGroupUserList(fastify, adminGroupsList);
+  return getGroupUserList(fastify, auth.spec.adminGroups);
 };
 
 export const getClusterAdminUserList = async (fastify: KubeFastifyInstance): Promise<string[]> => {
@@ -69,16 +59,10 @@ export const getClusterAdminUserList = async (fastify: KubeFastifyInstance): Pro
 
 export const getAllowedUserList = async (fastify: KubeFastifyInstance): Promise<string[]> => {
   const auth = getAuth();
-  if (auth) {
-    return getGroupUserList(fastify, auth.spec.allowedGroups);
-  }
-
-  // FIXME: see RHOAIENG-16988
-  const allowedGroups = getAllowedGroups();
-  const allowedGroupList = allowedGroups
-    .split(',')
-    .filter((groupName) => groupName && !groupName.startsWith('system:')); // Handle edge-cases and ignore k8s defaults
-  return getGroupUserList(fastify, allowedGroupList);
+  return getGroupUserList(
+    fastify,
+    auth.spec.allowedGroups.filter((groupName) => groupName && !groupName.startsWith('system:')), // Handle edge-cases and ignore k8s defaults
+  );
 };
 
 export const getGroupsConfig = async (
@@ -88,15 +72,7 @@ export const getGroupsConfig = async (
 ): Promise<boolean> => {
   try {
     const auth = getAuth();
-
-    let adminGroupsList: string[];
-    if (auth) {
-      adminGroupsList = auth.spec.adminGroups;
-    } else {
-      // FIXME: see RHOAIENG-16988
-      const adminGroups = getAdminGroups();
-      adminGroupsList = adminGroups.split(',');
-    }
+    const adminGroupsList: string[] = auth.spec.adminGroups;
 
     if (adminGroupsList.includes(SYSTEM_AUTHENTICATED)) {
       throw new Error('It is not allowed to set system:authenticated as admin group.');
@@ -124,15 +100,7 @@ export const isUserAllowed = async (
 ): Promise<boolean> => {
   try {
     const auth = getAuth();
-
-    let allowedGroupsList: string[];
-    if (auth) {
-      allowedGroupsList = auth.spec.allowedGroups;
-    } else {
-      // FIXME: see RHOAIENG-16988
-      const allowedGroups = getAllowedGroups();
-      allowedGroupsList = allowedGroups.split(',');
-    }
+    const allowedGroupsList: string[] = auth.spec.allowedGroups;
 
     if (allowedGroupsList.includes(SYSTEM_AUTHENTICATED)) {
       return true;

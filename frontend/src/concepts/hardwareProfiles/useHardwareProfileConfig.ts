@@ -21,6 +21,8 @@ export type UseHardwareProfileConfigResult = {
   isFormDataValid: boolean;
   setFormData: UpdateObjectAtPropAndValue<HardwareProfileConfig>;
   resetFormData: () => void;
+  profilesLoaded: boolean;
+  profilesLoadError?: Error;
 };
 
 const matchToHardwareProfile = (
@@ -103,7 +105,8 @@ export const useHardwareProfileConfig = (
   nodeSelector?: NodeSelector,
   visibleIn?: HardwareProfileFeatureVisibility[],
 ): UseHardwareProfileConfigResult => {
-  const [profiles, profilesLoaded] = useHardwareProfilesByFeatureVisibility(visibleIn);
+  const [profiles, profilesLoaded, profilesLoadError] =
+    useHardwareProfilesByFeatureVisibility(visibleIn);
   const initialHardwareProfile = useRef<HardwareProfileKind | undefined>(undefined);
   const [formData, setFormData, resetFormData] = useGenericObjectState<HardwareProfileConfig>({
     selectedProfile: undefined,
@@ -168,5 +171,7 @@ export const useHardwareProfileConfig = (
     isFormDataValid,
     setFormData,
     resetFormData,
+    profilesLoaded,
+    profilesLoadError,
   };
 };

@@ -1,6 +1,6 @@
 import React, { act } from 'react';
 import '@testing-library/jest-dom';
-import { render } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import { mockConnection } from '~/__mocks__/mockConnection';
 import {
   mockConnectionTypeConfigMapObj,
@@ -79,6 +79,8 @@ describe('ConnectionsFormSection', () => {
           },
         })}
         setData={mockSetData}
+        initialNewConnectionType={undefined}
+        initialNewConnectionValues={{}}
         connection={undefined}
         setConnection={mockSetConnection}
         setIsConnectionValid={() => undefined}
@@ -125,6 +127,8 @@ describe('ConnectionsFormSection', () => {
           },
         })}
         setData={() => undefined}
+        initialNewConnectionType={undefined}
+        initialNewConnectionValues={{}}
         connection={undefined}
         setConnection={() => undefined}
         setIsConnectionValid={() => undefined}
@@ -166,7 +170,10 @@ describe('ConnectionsFormSection', () => {
           },
         })}
         setData={mockSetData}
+        initialNewConnectionType={undefined}
+        initialNewConnectionValues={{}}
         connection={undefined}
+        loaded
         setConnection={mockSetConnection}
         setIsConnectionValid={() => undefined}
       />,
@@ -201,7 +208,10 @@ describe('ConnectionsFormSection', () => {
           },
         })}
         setData={() => undefined}
+        initialNewConnectionType={undefined}
+        initialNewConnectionValues={{}}
         connection={undefined}
+        loaded
         setConnection={() => undefined}
         setIsConnectionValid={() => undefined}
       />,
@@ -225,7 +235,10 @@ describe('ConnectionsFormSection', () => {
           },
         })}
         setData={mockSetData}
+        initialNewConnectionType={undefined}
+        initialNewConnectionValues={{}}
         connection={undefined}
+        loaded
         setConnection={mockSetConnection}
         setIsConnectionValid={() => undefined}
       />,
@@ -243,5 +256,68 @@ describe('ConnectionsFormSection', () => {
     expect(result.getByText('Secret details'));
     expect(result.getByRole('textbox', { name: 'Registry host' })).toHaveValue('');
     expect(result.getByRole('textbox', { name: 'Model URI' })).toHaveValue('');
+  });
+
+  it('should show error if OCI is push only', async () => {
+    const mockSetData = jest.fn();
+    const mockSetConnection = jest.fn();
+    const result = render(
+      <ConnectionSection
+        data={mockInferenceServiceModalData({
+          storage: {
+            type: InferenceServiceStorageType.NEW_STORAGE,
+            path: '',
+            dataConnection: '',
+            awsData: [],
+          },
+        })}
+        setData={mockSetData}
+        connection={undefined}
+        loaded
+        setConnection={mockSetConnection}
+        setIsConnectionValid={() => undefined}
+        initialNewConnectionType={undefined}
+        initialNewConnectionValues={{}}
+      />,
+    );
+
+    expect(result.getByRole('radio', { name: 'Create connection' })).toBeChecked();
+    expect(result.getByRole('combobox', { name: 'Type to filter' })).toHaveValue('');
+
+    await act(async () => result.getByRole('button', { name: 'Typeahead menu toggle' }).click());
+    await act(async () => result.getByRole('option', { name: /oci/ }).click());
+    await act(async () =>
+      fireEvent.change(result.getByRole('textbox', { name: 'Connection name' }), {
+        target: { value: 'new name' },
+      }),
+    );
+    await act(async () => result.getByRole('button', { name: 'Access type' }).click());
+    await act(async () =>
+      result.getByRole('checkbox', { name: 'Push secret Value: Push' }).click(),
+    );
+
+    await waitFor(() =>
+      expect(mockSetConnection).toHaveBeenLastCalledWith({
+        apiVersion: 'v1',
+        kind: 'Secret',
+        metadata: {
+          name: 'new-name',
+          namespace: 'caikit-example',
+          labels: {
+            'opendatahub.io/dashboard': 'true',
+          },
+          annotations: {
+            'openshift.io/display-name': 'new name',
+            'openshift.io/description': '',
+            'opendatahub.io/connection-type-ref': 'oci-v1',
+          },
+        },
+        stringData: {
+          ACCESS_TYPE: '["Push"]',
+        },
+      }),
+    );
+    expect(result.getByRole('button', { name: 'Access type' })).toHaveTextContent(/1 selected/);
+    expect(result.getByText('Access type must include pull')).toBeTruthy();
   });
 });

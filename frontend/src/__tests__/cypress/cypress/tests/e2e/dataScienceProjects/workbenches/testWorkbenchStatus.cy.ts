@@ -1,5 +1,5 @@
 import type { WBStatusTestData } from '~/__tests__/cypress/cypress/types';
-import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
+import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import {
   workbenchPage,
   createSpawnerPage,
@@ -62,9 +62,7 @@ describe('Workbenches - status tests', () => {
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-      // Reapply projectDetails.findSectionTab('workbenches').click();
-      cy.visit(`projects/${projectName}?section=workbenches`);
+      projectDetails.findSectionTab('workbenches').click();
 
       // Create workbench
       cy.step(`Create workbench ${workbenchName}`);

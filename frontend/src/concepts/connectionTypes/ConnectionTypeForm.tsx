@@ -112,6 +112,10 @@ type Props = Pick<
   connectionValues?: {
     [key: string]: ConnectionTypeValueType;
   };
+  connectionErrors?: {
+    [key: string]: boolean | string;
+  };
+  Alert?: React.JSX.Element;
 };
 
 const ConnectionTypeForm: React.FC<Props> = ({
@@ -124,6 +128,8 @@ const ConnectionTypeForm: React.FC<Props> = ({
   connectionValues,
   onChange,
   onValidate,
+  connectionErrors,
+  Alert,
 }) => {
   const [connectionTypeName, connectionType] =
     typeof connectionTypeUnion === 'string'
@@ -143,39 +149,47 @@ const ConnectionTypeForm: React.FC<Props> = ({
         data-testid="connection-type-dropdown"
         isRequired
       >
-        <TypeaheadSelect
-          id="connection-type"
-          selectOptions={selectOptions}
-          onSelect={(_, selection) => {
-            if (typeof selection === 'string') {
-              setConnectionType?.(selection);
-            }
-          }}
-          isDisabled={isPreview || !options}
-          placeholder={
-            isPreview && !connectionType?.metadata.annotations?.['openshift.io/display-name']
-              ? 'Unspecified'
-              : 'Select a type, or search by keyword or category'
-          }
-          toggleProps={
-            isPreview && !connectionType?.metadata.annotations?.['openshift.io/display-name']
-              ? { status: MenuToggleStatus.danger }
-              : undefined
-          }
-          isScrollable
-          popperProps={{ maxWidth: 'trigger' }}
-          filterFunction={(filterValue: string, filterOptions: TypeaheadSelectOption[]) =>
-            filterOptions.filter(
-              (o) =>
-                String(o.content).toLowerCase().includes(filterValue.toLowerCase()) ||
-                String(o.data).toLowerCase().includes(filterValue.toLowerCase()),
-            )
-          }
-          previewDescription={false}
-        />
-        {connectionType && (
-          <ConnectionTypeDetailsHelperText connectionType={connectionType} isPreview={isPreview} />
-        )}
+        <Flex direction={{ default: 'row' }} spaceItems={{ default: 'spaceItemsSm' }}>
+          <FlexItem grow={{ default: 'grow' }}>
+            <TypeaheadSelect
+              id="connection-type"
+              selectOptions={selectOptions}
+              onSelect={(_, selection) => {
+                if (typeof selection === 'string') {
+                  setConnectionType?.(selection);
+                }
+              }}
+              isDisabled={isPreview || !options}
+              placeholder={
+                isPreview && !connectionType?.metadata.annotations?.['openshift.io/display-name']
+                  ? 'Unspecified'
+                  : 'Select a type, or search by keyword or category'
+              }
+              toggleProps={
+                isPreview && !connectionType?.metadata.annotations?.['openshift.io/display-name']
+                  ? { status: MenuToggleStatus.danger }
+                  : undefined
+              }
+              isScrollable
+              popperProps={{ maxWidth: 'trigger' }}
+              filterFunction={(filterValue: string, filterOptions: TypeaheadSelectOption[]) =>
+                filterOptions.filter(
+                  (o) =>
+                    String(o.content).toLowerCase().includes(filterValue.toLowerCase()) ||
+                    String(o.data).toLowerCase().includes(filterValue.toLowerCase()),
+                )
+              }
+              previewDescription={false}
+            />
+          </FlexItem>
+          <FlexItem>
+            <ConnectionTypeDetailsHelperText
+              connectionType={connectionType}
+              isPreview={isPreview}
+            />
+          </FlexItem>
+        </Flex>
+        {Alert}
       </FormGroup>
       {(isPreview || connectionTypeName) && (
         <FormSection title="Connection details">
@@ -207,6 +221,7 @@ const ConnectionTypeForm: React.FC<Props> = ({
             connectionValues={connectionValues}
             onChange={onChange}
             onValidate={onValidate}
+            connectionErrors={connectionErrors}
           />
         </FormSection>
       )}

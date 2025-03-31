@@ -159,30 +159,22 @@ const HardwareProfileCustomize: React.FC<HardwareProfileCustomizeProps> = ({
             <Stack hasGutter>
               <StackItem>
                 <p>
-                  <strong>Requests:</strong> Kubernetes defines requests as a guaranteed minimum
-                  amount of a resource to be used by a container. It will set the minimum amount of
-                  the resource for the container to consume. Your workload will be scheduled on a
-                  node with the requested amount of resources available.
+                  <strong>Requests:</strong> A request is the guaranteed minimum amount of a
+                  resource to be used by a container. Your workload will be scheduled on a node with
+                  the requested amount of resources available.
                 </p>
               </StackItem>
               <StackItem>
                 <p>
-                  <strong>Limits:</strong> Kubernetes defines limits as a maximum amount of a
-                  resource to be used by a container. This means that the container can never
-                  consume more than the memory amount or CPU/accelerator amount indicated. If your
-                  workload consumes more than the resource limit the container may either be
-                  throttled or killed
+                  <strong>Limits:</strong> A limit is the maximum amount of a resource that can be
+                  used by a container. If CPU or GPU limits are exceeded, they are throttled and the
+                  container is slowed. If the memory limit is exceeded, the container is killed.
                 </p>
               </StackItem>
               <StackItem>
                 <p>
-                  You can set resource requests and limits to values within the minimum and maximum
-                  bounds set by your administrator.
-                </p>
-              </StackItem>
-              <StackItem>
-                <p>
-                  Learn more about requests and limits by visiting the Kubernetes documentation.
+                  Request and limit values must be within the minimum and maximum bounds defined by
+                  your administrator.
                 </p>
               </StackItem>
             </Stack>

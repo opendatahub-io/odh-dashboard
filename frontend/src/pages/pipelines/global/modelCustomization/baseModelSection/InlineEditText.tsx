@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React, { ComponentProps, useState } from 'react';
 import {
   TextInput,
   Button,
   Flex,
   FlexItem,
   Content,
-  Alert,
-  Stack,
-  StackItem,
+  FormHelperText,
+  HelperTextItem,
+  HelperText,
 } from '@patternfly/react-core';
 import { PencilAltIcon, CheckIcon, TimesIcon } from '@patternfly/react-icons';
 
@@ -16,12 +16,14 @@ interface InlineEditTextProps {
   onSave: (text: string) => void;
   checkSupported: (text: string) => boolean;
   unsupportedMessage: string;
+  validated?: ComponentProps<typeof TextInput>['validated'];
 }
 
 const InlineEditText: React.FC<InlineEditTextProps> = ({
   text,
   onSave,
   checkSupported,
+  validated,
   unsupportedMessage,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -57,62 +59,72 @@ const InlineEditText: React.FC<InlineEditTextProps> = ({
   };
 
   return (
-    <Stack>
-      <StackItem>
-        <Flex alignItems={{ default: 'alignItemsCenter' }}>
-          {isEditing ? (
-            <>
-              <FlexItem grow={{ default: 'grow' }} style={{ maxWidth: 500 }}>
-                <TextInput
-                  aria-label="Edit text"
-                  value={inputValue}
-                  onChange={(_, value) => setInputValue(value)}
-                  autoFocus
-                  style={{ maxWidth: '100%' }}
-                  onKeyDown={(e) => {
-                    handleTextInputKeyDown(e);
-                  }}
-                />
-              </FlexItem>
-              <FlexItem>
-                <Button
-                  variant="plain"
-                  onClick={() => {
-                    handleSave();
-                  }}
-                  aria-label="Save"
-                >
-                  <CheckIcon />
-                </Button>
-                <Button
-                  variant="plain"
-                  onClick={() => {
-                    handleCancel();
-                  }}
-                  aria-label="Cancel"
-                >
-                  <TimesIcon />
-                </Button>
-              </FlexItem>
-            </>
-          ) : (
-            <>
-              <FlexItem>{isEmpty ? <i>Set a value ...</i> : <Content>{text}</Content>}</FlexItem>
-              <FlexItem>
-                <Button variant="plain" onClick={() => setIsEditing(true)} aria-label="Edit">
-                  <PencilAltIcon />
-                </Button>
-              </FlexItem>
-            </>
-          )}
-        </Flex>
-      </StackItem>
-      <StackItem>
-        {showUnsupportedMessage && (
-          <Alert variant="warning" isInline isPlain title={unsupportedMessage} />
+    <>
+      <Flex alignItems={{ default: 'alignItemsCenter' }}>
+        {isEditing ? (
+          <>
+            <FlexItem grow={{ default: 'grow' }} style={{ maxWidth: 500 }}>
+              <TextInput
+                aria-label="Edit text"
+                value={inputValue}
+                onChange={(_, value) => setInputValue(value)}
+                autoFocus
+                style={{ maxWidth: '100%' }}
+                onKeyDown={(e) => {
+                  handleTextInputKeyDown(e);
+                }}
+                validated={validated}
+                data-testid="edit-inline-text-input"
+              />
+            </FlexItem>
+            <FlexItem>
+              <Button
+                variant="plain"
+                onClick={() => {
+                  handleSave();
+                }}
+                aria-label="Save"
+                data-testid="edit-inline-text-save-button"
+              >
+                <CheckIcon />
+              </Button>
+              <Button
+                variant="plain"
+                onClick={() => {
+                  handleCancel();
+                }}
+                aria-label="Cancel"
+                data-testid="edit-inline-text-cancel-button"
+              >
+                <TimesIcon />
+              </Button>
+            </FlexItem>
+          </>
+        ) : (
+          <>
+            <FlexItem>{isEmpty ? <i>Set a value ...</i> : <Content>{text}</Content>}</FlexItem>
+            <FlexItem>
+              <Button
+                data-testid="edit-inline-text-button"
+                variant="plain"
+                onClick={() => setIsEditing(true)}
+                aria-label="Edit"
+              >
+                <PencilAltIcon />
+              </Button>
+            </FlexItem>
+          </>
         )}
-      </StackItem>
-    </Stack>
+      </Flex>
+
+      {showUnsupportedMessage && (
+        <FormHelperText>
+          <HelperText>
+            <HelperTextItem variant="warning">{unsupportedMessage}</HelperTextItem>
+          </HelperText>
+        </FormHelperText>
+      )}
+    </>
   );
 };
 

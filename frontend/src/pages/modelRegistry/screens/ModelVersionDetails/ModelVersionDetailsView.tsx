@@ -18,9 +18,9 @@ import { EditableLabelsDescriptionListGroup } from '~/components/EditableLabelsD
 import ModelPropertiesDescriptionListGroup from '~/pages/modelRegistry/screens/ModelPropertiesDescriptionListGroup';
 import {
   getLabels,
-  getProperties,
-  isPipelineRunExist,
   mergeUpdatedLabels,
+  getCatalogModelDetailsProps,
+  getPipelineModelCustomProps,
 } from '~/pages/modelRegistry/screens/utils';
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
@@ -34,7 +34,8 @@ import {
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { globalPipelineRunDetailsRoute } from '~/routes';
 import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
-import { pipelineRunSpecificKeys } from './const';
+import { getCatalogModelDetailsUrl } from '~/pages/modelCatalog/routeUtils';
+import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
 
 type ModelVersionDetailsViewProps = {
   modelVersion: ModelVersion;
@@ -49,11 +50,10 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
 }) => {
   const [modelArtifacts, modelArtifactsLoaded, modelArtifactsLoadError, refreshModelArtifacts] =
     useModelArtifactsByVersionId(mv.id);
-
   const modelArtifact = modelArtifacts.items.length ? modelArtifacts.items[0] : null;
   const { apiState } = React.useContext(ModelRegistryContext);
   const storageFields = uriToStorageFields(modelArtifact?.uri || '');
-  const filteredProperties = getProperties(mv.customProperties);
+  const pipelineCustomProperties = getPipelineModelCustomProps(mv.customProperties);
   const [registeredModel, registeredModelLoaded, registeredModelLoadError, refreshRegisteredModel] =
     useRegisteredModelById(mv.registeredModelId);
 
@@ -95,6 +95,11 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
       );
     }
   };
+
+  const catalogModelCustomProps: CatalogModelDetailsParams = getCatalogModelDetailsProps(
+    mv.customProperties,
+  );
+  const catalogModelDetailsUrl = getCatalogModelDetailsUrl(catalogModelCustomProps);
 
   return (
     <Flex
@@ -152,12 +157,12 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
           >
             <InlineTruncatedClipboardCopy testId="model-version-id" textToCopy={mv.id} />
           </DashboardDescriptionListGroup>
-          {isPipelineRunExist(mv.customProperties, pipelineRunSpecificKeys) && (
+          {Object.values(pipelineCustomProperties).every((value) => !!value) && (
             <DashboardDescriptionListGroup title="Registered from">
               <Flex
                 spaceItems={{ default: 'spaceItemsXs' }}
                 alignItems={{ default: 'alignItemsCenter' }}
-                data-testid="registered-from"
+                data-testid="registered-from-pipeline"
               >
                 <FlexItem data-testid="pipeline-run-link">
                   Run{' '}
@@ -165,11 +170,11 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                     <Link
                       style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
                       to={globalPipelineRunDetailsRoute(
-                        filteredProperties[pipelineRunSpecificKeys[0]].string_value,
-                        filteredProperties[pipelineRunSpecificKeys[1]].string_value,
+                        pipelineCustomProperties.project,
+                        pipelineCustomProperties.runId,
                       )}
                     >
-                      {filteredProperties[pipelineRunSpecificKeys[2]].string_value}
+                      {pipelineCustomProperties.runName}
                     </Link>
                   }{' '}
                   in
@@ -187,9 +192,19 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                     fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
                   }}
                 >
-                  {filteredProperties[pipelineRunSpecificKeys[0]].string_value}
+                  {pipelineCustomProperties.project}
                 </FlexItem>
               </Flex>
+            </DashboardDescriptionListGroup>
+          )}
+          {catalogModelDetailsUrl && (
+            <DashboardDescriptionListGroup title="Registered from" isEmpty={!mv.id}>
+              <Link to={catalogModelDetailsUrl} data-testid="registered-from-catalog">
+                <span style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
+                  {catalogModelCustomProps.modelName} ({catalogModelCustomProps.tag})
+                </span>
+              </Link>{' '}
+              in Model catalog
             </DashboardDescriptionListGroup>
           )}
         </DescriptionList>
@@ -283,7 +298,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                     ),
                   )
                 }
-                title="Model Format"
+                title="Model format"
                 contentWhenEmpty="No model format specified"
               />
               <EditableTextDescriptionListGroup
@@ -300,8 +315,8 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                     ),
                   )
                 }
-                title="Version"
-                contentWhenEmpty="No source model format version"
+                title="Model format version"
+                contentWhenEmpty="No model format version specified"
               />
             </DescriptionList>
           </>
@@ -315,7 +330,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             {mv.author}
           </DashboardDescriptionListGroup>
           <DashboardDescriptionListGroup
-            title="Last modified at"
+            title="Last modified"
             isEmpty={!mv.lastUpdateTimeSinceEpoch}
             contentWhenEmpty="Unknown"
           >

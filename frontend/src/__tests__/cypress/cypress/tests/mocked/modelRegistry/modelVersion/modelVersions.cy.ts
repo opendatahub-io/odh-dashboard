@@ -297,9 +297,42 @@ describe('Model Versions', () => {
       }),
     );
 
-    // Mock tuning data endpoint
+    modelRegistry.visit();
+    const registeredModelRow = modelRegistry.getRow('Fraud detection model');
+    registeredModelRow.findName().contains('Fraud detection model').click();
+
+    const modelVersionRow = modelRegistry.getModelVersionRow('model version');
+    modelVersionRow.findKebabAction('LAB-tune').click();
+  });
+
+  it('should show error in lab tune modal if loading artifacts failed', () => {
+    initIntercepts({
+      disableModelRegistryFeature: false,
+    });
+
+    // Enable fine-tuning feature
     cy.interceptOdh(
-      'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/tuning',
+      'GET /api/config',
+      mockDashboardConfig({
+        disableModelRegistry: false,
+        disableFineTuning: false,
+      }),
+    );
+
+    // Mock DSC status with required components
+    cy.interceptOdh(
+      'GET /api/dsc/status',
+      mockDscStatus({
+        installedComponents: {
+          'model-registry-operator': true,
+          'data-science-pipelines-operator': true,
+        },
+      }),
+    );
+
+    // Mock failing artifacts data
+    cy.interceptOdh(
+      'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts',
       {
         method: 'GET',
         path: {
@@ -308,14 +341,16 @@ describe('Model Versions', () => {
           modelVersionId: '1',
         },
       },
-      mockModelVersion({ id: '1', name: 'model version' }),
-    ).as('getTuningData');
+      { statusCode: 500 },
+    );
 
     modelRegistry.visit();
     const registeredModelRow = modelRegistry.getRow('Fraud detection model');
     registeredModelRow.findName().contains('Fraud detection model').click();
 
     const modelVersionRow = modelRegistry.getModelVersionRow('model version');
-    modelVersionRow.findKebabAction('LAB tune').click();
+    modelVersionRow.findKebabAction('LAB-tune').click();
+
+    cy.findByText('Error loading model data').should('exist');
   });
 });

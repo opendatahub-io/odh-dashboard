@@ -3,13 +3,15 @@ import { explorePage } from '~/__tests__/cypress/cypress/pages/explore';
 import { enabledPage } from '~/__tests__/cypress/cypress/pages/enabled';
 import { nimCard } from '~/__tests__/cypress/cypress/pages/components/NIMCard';
 import { deleteNIMAccount } from '~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
+import { wasSetupPerformed } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
-describe('Verify NIM enable flow', () => {
+describe('[Automation Bug: RHOAIENG-21549] Verify NIM enable flow', () => {
   after(() => {
+    if (!wasSetupPerformed()) return;
     cy.step('Delete odh-nim-account');
     deleteNIMAccount();
   });
-  it('Enable and validate NIM flow', { tags: ['@NIM', '@Sanity'] }, () => {
+  it('Enable and validate NIM flow', { tags: ['@NIM', '@Sanity', '@Bug'] }, () => {
     cy.step('Login to the application');
     cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
     cy.step('Navigate to the Explore page');

@@ -18,7 +18,7 @@ const ModelCatalog: React.FC = conditionalArea(
   return (
     <ApplicationsPage
       title={<TitleWithIcon title="Model catalog" objectType={ProjectObjectType.modelCatalog} />}
-      description="Discover models provided by Red Hat and our partners that are available for your organization to register, deploy, and customize."
+      description="Discover models that are available for your organization to register, deploy, and customize."
       empty={modelCatalogSources.data.length === 0}
       emptyStatePage={
         <EmptyModelCatalogState

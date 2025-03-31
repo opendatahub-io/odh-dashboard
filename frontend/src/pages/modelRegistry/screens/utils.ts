@@ -1,6 +1,7 @@
 import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import {
   ModelRegistryCustomProperties,
+  ModelRegistryCustomProperty,
   ModelRegistryMetadataType,
   ModelRegistryStringCustomProperties,
   ModelVersion,
@@ -8,6 +9,8 @@ import {
 } from '~/concepts/modelRegistry/types';
 import { ServiceKind } from '~/k8sTypes';
 import { KeyValuePair } from '~/types';
+import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
+import { PipelineModelCustomProps } from './ModelVersionDetails/const';
 
 // Retrieves the labels from customProperties that have non-empty string_value.
 export const getLabels = <T extends ModelRegistryCustomProperties>(customProperties: T): string[] =>
@@ -38,7 +41,7 @@ export const mergeUpdatedLabels = (
   return customPropertiesCopy;
 };
 
-// Retrives the customProperties that are not labels (they have a defined string_value).
+// Retrieves the customProperties that are not special (_RegisteredFrom) or labels (they have a defined string_value).
 export const getProperties = <T extends ModelRegistryCustomProperties>(
   customProperties: T,
 ): ModelRegistryStringCustomProperties => {
@@ -46,7 +49,7 @@ export const getProperties = <T extends ModelRegistryCustomProperties>(
   return Object.keys(customProperties).reduce((acc, key) => {
     // _lastModified is a property that is required to update the timestamp on the backend and we have a workaround for it. It should be resolved by
     // backend team See https://issues.redhat.com/browse/RHOAIENG-17614 .
-    if (key === '_lastModified') {
+    if (key === '_lastModified' || /^_registeredFrom/.test(key)) {
       return acc;
     }
 
@@ -81,6 +84,37 @@ export const mergeUpdatedProperty = (
   }
   return customPropertiesCopy;
 };
+
+export const getCustomPropString = <
+  T extends Record<string, ModelRegistryCustomProperty | undefined>,
+>(
+  customProperties: T,
+  key: string,
+): string => {
+  const prop = customProperties[key];
+
+  if (prop?.metadataType === 'MetadataStringValue') {
+    return prop.string_value;
+  }
+  return '';
+};
+
+export const getCatalogModelDetailsProps = (
+  customProps: ModelRegistryCustomProperties,
+): CatalogModelDetailsParams => ({
+  sourceName: getCustomPropString(customProps, '_registeredFromCatalogSourceName'),
+  repositoryName: getCustomPropString(customProps, '_registeredFromCatalogRepositoryName'),
+  modelName: getCustomPropString(customProps, '_registeredFromCatalogModelName'),
+  tag: getCustomPropString(customProps, '_registeredFromCatalogTag'),
+});
+
+export const getPipelineModelCustomProps = (
+  customProps: ModelRegistryCustomProperties,
+): PipelineModelCustomProps => ({
+  project: getCustomPropString(customProps, '_registeredFromPipelineProject'),
+  runId: getCustomPropString(customProps, '_registeredFromPipelineRunId'),
+  runName: getCustomPropString(customProps, '_registeredFromPipelineRunName'),
+});
 
 export const filterModelVersions = (
   unfilteredModelVersions: ModelVersion[],
@@ -177,22 +211,5 @@ export const isValidHttpUrl = (value: string): boolean => {
   }
 };
 
-export const filterCustomProperties = (
-  customProperties: ModelRegistryCustomProperties,
-  keys: string[],
-): ModelRegistryCustomProperties => {
-  const filteredCustomProperties: ModelRegistryCustomProperties = {};
-  Object.keys(customProperties).forEach((key) => {
-    if (!keys.includes(key)) {
-      filteredCustomProperties[key] = customProperties[key];
-    }
-  });
-  return filteredCustomProperties;
-};
-
-export const isPipelineRunExist = (
-  customProperties: ModelRegistryCustomProperties,
-  keys: string[],
-): boolean => keys.every((key) => key in customProperties);
 export const isRedHatRegistryUri = (uri: string): boolean =>
   uri.startsWith('oci://registry.redhat.io/');

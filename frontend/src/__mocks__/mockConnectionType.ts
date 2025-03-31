@@ -3,7 +3,10 @@ import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeField,
 } from '~/concepts/connectionTypes/types';
-import { toConnectionTypeConfigMap } from '~/concepts/connectionTypes/utils';
+import {
+  toConnectionTypeConfigMap,
+  toConnectionTypeConfigMapObj,
+} from '~/concepts/connectionTypes/utils';
 
 type MockConnectionTypeConfigMap = {
   name?: string;
@@ -570,9 +573,9 @@ export const mockModelServingFields: ConnectionTypeField[] = [
   },
 ];
 
-export const mockOciConnectionType = (): ConnectionTypeConfigMapObj =>
-  mockConnectionTypeConfigMapObj({
-    name: 'oci',
+export const mockOciConnectionTypeConfigMap = (): ConnectionTypeConfigMap =>
+  mockConnectionTypeConfigMap({
+    name: 'oci-v1',
     fields: [
       {
         type: 'dropdown',
@@ -605,3 +608,6 @@ export const mockOciConnectionType = (): ConnectionTypeConfigMapObj =>
       },
     ],
   });
+
+export const mockOciConnectionType = (): ConnectionTypeConfigMapObj =>
+  toConnectionTypeConfigMapObj(mockOciConnectionTypeConfigMap());

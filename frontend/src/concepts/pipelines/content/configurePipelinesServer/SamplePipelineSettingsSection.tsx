@@ -13,10 +13,15 @@ const SamplePipelineSettingsSection: React.FC<SamplePipelineSettingsSectionProps
   setConfig,
 }) => (
   <FormSection
-    title="Enable sample pipelines"
-    description="Enabled pipelines will be accessible and automatically updated within your pipeline server."
+    title="Install preconfigured pipelines"
+    description={
+      <>
+        The selected preconfigured pipelines will be installed on your project, and updates will be
+        applied to them automatically. To turn off automatic updates, click{' '}
+        <b>Manage preconfigured pipelines</b> in the action dropdown on the <b>Pipelines</b> page.
+      </>
+    }
   >
-    {/* TODO: add description for the instruct lab pipeline */}
     <InstructLabPipelineEnablement
       isEnabled={config.enableInstructLab}
       setEnabled={(enabled) => {

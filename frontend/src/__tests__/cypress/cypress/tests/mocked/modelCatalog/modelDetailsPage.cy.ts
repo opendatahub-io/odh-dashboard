@@ -9,9 +9,13 @@ import { modelDetailsPage } from '~/__tests__/cypress/cypress/pages/modelCatalog
 import { ConfigMapModel, ServiceModel } from '~/__tests__/cypress/cypress/utils/models';
 import type { ServiceKind } from '~/k8sTypes';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
+import { mockCatalogModel } from '~/__mocks__/mockCatalogModel';
+import { mockModelCatalogSource } from '~/__mocks__/mockModelCatalogSource';
+import type { ModelCatalogSource } from '~/concepts/modelCatalog/types';
 
 type HandlersProps = {
   modelRegistries?: ServiceKind[];
+  catalogModels?: ModelCatalogSource[];
   disableFineTuning?: boolean;
 };
 
@@ -24,6 +28,7 @@ const initIntercepts = ({
       description: '',
     }),
   ],
+  catalogModels = [mockModelCatalogSource({})],
   disableFineTuning = false,
 }: HandlersProps) => {
   cy.interceptOdh(
@@ -48,9 +53,9 @@ const initIntercepts = ({
     {
       model: ConfigMapModel,
       ns: 'opendatahub',
-      name: 'model-catalog-source-redhat',
+      name: 'model-catalog-sources',
     },
-    mockModelCatalogConfigMap(),
+    mockModelCatalogConfigMap(catalogModels),
   );
 
   cy.interceptK8sList(ServiceModel, mockK8sResourceList(modelRegistries));
@@ -102,7 +107,9 @@ describe('Model details page', () => {
     modelDetailsPage.findRegisterCatalogModelPopover().should('be.visible');
     modelDetailsPage
       .findRegisterCatalogModelPopover()
-      .findByText('To request access to the model registry, contact your administrator.');
+      .findByText(
+        'To request a new model registry, or to request permission to access an existing model registry, contact your administrator.',
+      );
   });
 
   it('Should redirect to register catalog model page, when register model button is enabled', () => {
@@ -116,17 +123,79 @@ describe('Model details page', () => {
   });
 });
 
-it('Should show tune action item with popover when fineTuning is enabled', () => {
-  initIntercepts({});
+it('Should show tune action item with popover when fineTuning is enabled and lab-base label exists', () => {
+  initIntercepts({
+    catalogModels: [
+      mockModelCatalogSource({
+        models: [
+          mockCatalogModel({
+            labels: ['lab-base', 'foo', 'bar', 'label1'],
+          }),
+        ],
+      }),
+    ],
+  });
   modelDetailsPage.visit();
   modelDetailsPage.findTuneModelButton().click();
   modelDetailsPage.findTuneModelPopover().should('be.visible');
 });
 
 it('Should not show tune action item with popover when fineTuning is disabled', () => {
-  initIntercepts({ disableFineTuning: true });
+  initIntercepts({
+    disableFineTuning: true,
+    catalogModels: [
+      mockModelCatalogSource({
+        models: [
+          mockCatalogModel({
+            labels: ['lab-base', 'foo', 'bar', 'label1'],
+          }),
+        ],
+      }),
+    ],
+  });
   modelDetailsPage.visit();
   modelDetailsPage.findTuneModelButton().should('not.exist');
+});
+
+it('Should not show tune action item when there is no lab-base', () => {
+  initIntercepts({
+    catalogModels: [
+      mockModelCatalogSource({
+        models: [
+          mockCatalogModel({
+            labels: ['foo', 'bar', 'label1'],
+          }),
+        ],
+      }),
+    ],
+  });
+  modelDetailsPage.visit();
+  modelDetailsPage.findTuneModelButton().should('not.exist');
+});
+
+it('Should correctly show labels, including reserved ILab labels, correctly and in the correct order', () => {
+  initIntercepts({
+    disableFineTuning: true,
+    catalogModels: [
+      mockModelCatalogSource({
+        models: [
+          mockCatalogModel({
+            labels: ['lab-base', 'lab-teacher', 'lab-judge', 'label1'],
+            tasks: ['task1', 'task2'],
+          }),
+        ],
+      }),
+    ],
+  });
+  modelDetailsPage.visit();
+  modelDetailsPage.expandLabelGroup();
+
+  modelDetailsPage.findLabelByIndex(0).contains('LAB starter').should('exist');
+  modelDetailsPage.findLabelByIndex(1).contains('LAB teacher').should('exist');
+  modelDetailsPage.findLabelByIndex(2).contains('LAB judge').should('exist');
+  modelDetailsPage.findLabelByIndex(3).contains('task1').should('exist');
+  modelDetailsPage.findLabelByIndex(4).contains('task2').should('exist');
+  modelDetailsPage.findLabelByIndex(5).contains('label1').should('exist');
 });
 
 describe('Model Details loading states', () => {
@@ -138,7 +207,7 @@ describe('Model Details loading states', () => {
       {
         model: ConfigMapModel,
         ns: 'opendatahub',
-        name: 'model-catalog-source-redhat',
+        name: 'model-catalog-sources',
       },
       {
         statusCode: 404,
@@ -146,7 +215,7 @@ describe('Model Details loading states', () => {
           kind: 'Status',
           apiVersion: 'v1',
           status: 'Failure',
-          message: 'configmaps "model-catalog-source-redhat" not found',
+          message: 'configmaps "model-catalog-sources" not found',
           reason: 'NotFound',
           code: 404,
         },
@@ -161,16 +230,16 @@ describe('Model Details loading states', () => {
       {
         model: ConfigMapModel,
         ns: 'opendatahub',
-        name: 'model-catalog-source-redhat',
+        name: 'model-catalog-sources',
       },
       {
         apiVersion: 'v1',
         kind: 'ConfigMap',
         metadata: {
-          name: 'model-catalog-source-redhat',
+          name: 'model-catalog-sources',
           namespace: 'opendatahub',
         },
-        data: { modelCatalogSource: '[]' },
+        data: { modelCatalogSources: '' },
       },
     );
 
@@ -183,7 +252,7 @@ describe('Model Details loading states', () => {
       {
         model: ConfigMapModel,
         ns: 'opendatahub',
-        name: 'model-catalog-source-redhat',
+        name: 'model-catalog-sources',
       },
       {
         statusCode: 500,
@@ -207,16 +276,16 @@ describe('Model Details loading states', () => {
       {
         model: ConfigMapModel,
         ns: 'opendatahub',
-        name: 'model-catalog-source-redhat',
+        name: 'model-catalog-sources',
       },
       {
         apiVersion: 'v1',
         kind: 'ConfigMap',
         metadata: {
-          name: 'model-catalog-source-redhat',
+          name: 'model-catalog-sources',
           namespace: 'opendatahub',
         },
-        data: { modelCatalogSource: 'invalid JSON here' },
+        data: { modelCatalogSources: 'invalid JSON here' },
       },
     );
 
@@ -229,7 +298,7 @@ describe('Model Details loading states', () => {
       {
         model: ConfigMapModel,
         ns: 'opendatahub',
-        name: 'model-catalog-source-redhat',
+        name: 'model-catalog-sources',
       },
       mockModelCatalogConfigMap(),
     );

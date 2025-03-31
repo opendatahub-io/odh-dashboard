@@ -101,6 +101,12 @@ class InferenceServiceModal extends Modal {
     super(`${edit ? 'Edit' : 'Deploy'} model`);
   }
 
+  findConnectionType(name: string | RegExp) {
+    return this.findExistingConnectionSelect()
+      .findByRole('button', { name: 'Typeahead menu toggle' })
+      .findSelectOption(name);
+  }
+
   findSubmitButton() {
     return this.findFooter().findByTestId('modal-submit-button');
   }
@@ -139,6 +145,10 @@ class InferenceServiceModal extends Modal {
 
   findOpenVinoIROpSet13() {
     return this.find().findByTestId('openvino_ir - opset13');
+  }
+
+  findOpenVinoOnnx() {
+    return this.find().findByTestId('onnx - 1');
   }
 
   findDeploymentModeSelect() {
@@ -183,15 +193,22 @@ class InferenceServiceModal extends Modal {
     });
   }
 
+  findHardProfileSelection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('hardware-profile-select');
+  }
+
+  selectProfile(name: string): void {
+    this.findHardProfileSelection().click();
+    cy.findByRole('option', { name }).click();
+  }
+
   findModelURITextBox() {
     return this.find().findByTestId('model-uri');
   }
 
   selectConnectionType(name: string) {
-    this.findExistingConnectionSelect()
-      .findByRole('button', { name: 'Typeahead menu toggle' })
-      .findSelectOption(name)
-      .click();
+    this.findExistingConnectionSelect().click();
+    cy.findByRole('option', { name, hidden: true }).click();
   }
 
   selectExistingConnectionSelectOptionByResourceName() {
@@ -202,8 +219,12 @@ class InferenceServiceModal extends Modal {
     return this.find().findByTestId('connection-name-desc-name');
   }
 
-  findConnectionFieldInput() {
-    return this.find().findByTestId('field URI');
+  findConnectionFieldInput(envVar: string) {
+    return this.find().findByTestId(`field ${envVar}`);
+  }
+
+  findOCIModelURI() {
+    return this.find().findByTestId('model-uri');
   }
 
   findLocationNameInput() {
@@ -224,6 +245,10 @@ class InferenceServiceModal extends Modal {
 
   findLocationBucketInput() {
     return this.find().findByTestId('field AWS_S3_BUCKET');
+  }
+
+  findBaseURL() {
+    return this.find().findByTestId('field OCI_HOST');
   }
 
   findLocationRegionInput() {

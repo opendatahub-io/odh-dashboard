@@ -26,6 +26,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableHome: boolean;
       disableProjects: boolean;
       disableModelServing: boolean;
+      disableProjectScoped: boolean;
       disableProjectSharing: boolean;
       disableCustomServingRuntimes: boolean;
       disablePipelines: boolean;
@@ -35,7 +36,6 @@ export type DashboardConfig = K8sResourceCommon & {
       disableKServeAuth: boolean;
       disableKServeMetrics: boolean;
       disableKServeRaw: boolean;
-      disableKServeOCIModels: boolean;
       disableModelMesh: boolean;
       disableAcceleratorProfiles: boolean;
       disableHardwareProfiles: boolean;
@@ -338,6 +338,7 @@ export type OdhApplication = {
       variableDisplayText?: { [key: string]: string };
       variableHelpText?: { [key: string]: string };
       variables?: { [key: string]: string };
+      inProgressText?: string;
     };
     enableCR: {
       field?: string;
@@ -705,16 +706,6 @@ export type GroupStatus = {
   id: number;
   name: string;
   enabled: boolean;
-};
-
-export type GroupsConfigBodyList = {
-  adminGroups: string[];
-  allowedGroups: string[];
-};
-
-export type GroupsConfigBody = {
-  adminGroups: string;
-  allowedGroups: string;
 };
 
 export type GroupObjResponse = {

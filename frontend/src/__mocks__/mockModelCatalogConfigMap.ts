@@ -1,12 +1,19 @@
 import type { ConfigMapKind } from '~/k8sTypes';
+import { ModelCatalogSourcesObject } from '~/concepts/modelCatalog/types';
 import { mockConfigMap } from './mockConfigMap';
 import { mockModelCatalogSource } from './mockModelCatalogSource';
 
-export const mockModelCatalogConfigMap = (): ConfigMapKind =>
-  mockConfigMap({
-    name: 'model-catalog-source-redhat',
+export const mockModelCatalogConfigMap = (
+  sources = [mockModelCatalogSource({})],
+): ConfigMapKind => {
+  const sourcesObj: ModelCatalogSourcesObject = {
+    sources,
+  };
+  return mockConfigMap({
+    name: 'model-catalog-sources',
     namespace: 'opendatahub',
     data: {
-      modelCatalogSource: JSON.stringify(mockModelCatalogSource({})),
+      modelCatalogSources: JSON.stringify(sourcesObj),
     },
   });
+};

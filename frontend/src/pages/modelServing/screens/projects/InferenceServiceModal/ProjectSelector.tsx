@@ -69,17 +69,21 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
                 : 'Select target project'
             }
             toggleProps={{ id: 'deploy-model-project-selector' }}
-            popperProps={{ appendTo: 'inline' }}
           />
         </StackItem>
         {error && selectedProject && (
           <StackItem>
-            <Alert isInline variant="danger" title={error.message}>
-              <Link
-                to={`/projects/${selectedProject.metadata.name}?${projectLinkUrlParams.toString()}`}
-              >
-                Go to <b>{getDisplayNameFromK8sResource(selectedProject)}</b> project page
-              </Link>
+            <Alert isInline variant="danger" title="Configuration required">
+              {error.message}
+              <div>
+                <Link
+                  to={`/projects/${
+                    selectedProject.metadata.name
+                  }?${projectLinkUrlParams.toString()}`}
+                >
+                  Go to <b>{getDisplayNameFromK8sResource(selectedProject)}</b> project page
+                </Link>
+              </div>
             </Alert>
           </StackItem>
         )}

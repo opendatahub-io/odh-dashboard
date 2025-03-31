@@ -5,10 +5,11 @@ import {
   InputGroup,
   Tooltip,
   InputGroupItem,
-  Alert,
   Popover,
+  Button,
 } from '@patternfly/react-core';
-import { DataConnection } from '~/pages/projects/types';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { Connection } from '~/concepts/connectionTypes/types';
 import { AwsKeys, PIPELINE_AWS_FIELDS } from '~/pages/projects/dataConnections/const';
 import { FieldListField } from '~/components/FieldList';
 import FormSection from '~/components/pf-overrides/FormSection';
@@ -26,14 +27,14 @@ type ObjectStorageSectionProps = {
   loaded: boolean;
   setConfig: (config: PipelineServerConfigType) => void;
   config: PipelineServerConfigType;
-  dataConnections: DataConnection[];
+  connections: Connection[];
 };
 
 export const ObjectStorageSection = ({
   setConfig,
   config,
   loaded,
-  dataConnections,
+  connections,
 }: ObjectStorageSectionProps): React.JSX.Element => {
   const onChange = (key: FieldOptions['key'], value: string) => {
     setConfig({
@@ -66,12 +67,12 @@ export const ObjectStorageSection = ({
                   onChange={(_, value) => onChange(field.key, value)}
                 />
               </InputGroupItem>
-              {loaded && !!dataConnections.length && (
+              {loaded && !!connections.length && (
                 <Tooltip content="Populate the form with credentials from your selected data connection">
                   <PipelineDropdown
                     config={config}
                     setConfig={setConfig}
-                    dataConnections={dataConnections}
+                    connections={connections}
                   />
                 </Tooltip>
               )}
@@ -89,28 +90,26 @@ export const ObjectStorageSection = ({
             />
 
             {field.key === AwsKeys.AWS_S3_BUCKET && (
-              <Popover
-                aria-label="bucket tooltip"
-                headerContent="Where is my data stored within the bucket?"
-                position="right"
-                hasAutoWidth
-                bodyContent={
-                  <div className="pf-v6-u-mt-md">
-                    Uploaded pipelines will be stored in the <b>/pipelines</b> directory.
-                    <br />
-                    When running a pipeline, artifacts will be stored in dedicated folders at the{' '}
-                    <b>/root</b> directory.
-                  </div>
-                }
-              >
-                <Alert
-                  variant="info"
-                  isInline
-                  isPlain
-                  title="Where is my data stored within the bucket?"
-                  style={{ width: 'fit-content' }}
-                />
-              </Popover>
+              <div>
+                <Popover
+                  aria-label="bucket tooltip"
+                  headerContent="Where is my data stored within the bucket?"
+                  position="right"
+                  hasAutoWidth
+                  bodyContent={
+                    <div className="pf-v6-u-mt-md">
+                      Uploaded pipelines will be stored in the <b>/pipelines</b> directory.
+                      <br />
+                      When running a pipeline, artifacts will be stored in dedicated folders at the{' '}
+                      <b>/root</b> directory.
+                    </div>
+                  }
+                >
+                  <Button icon={<OutlinedQuestionCircleIcon />} variant="link">
+                    Where is my data stored within the bucket?
+                  </Button>
+                </Popover>
+              </div>
             )}
           </React.Fragment>
         ),

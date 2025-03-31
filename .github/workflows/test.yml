@@ -5,33 +5,45 @@ env:
 jobs:
   Setup:
     runs-on: ubuntu-latest
+    outputs:
+      modules-cache-key: ${{ steps.key.outputs.modules-cache-key }}
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4.1.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
+      - name: Check for uncomitted changes
+        run: git diff --exit-code
+      - name: Generate modules cache key
+        id: key
+        run: |
+          echo "modules-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}" >> $GITHUB_OUTPUT
       - name: Node.js modules cache
         uses: actions/cache@v4
         id: modules-cache
         with:
+          lookup-only: true
           path: |
             ~/.cache/Cypress
             ${{ github.workspace }}/node_modules
             ${{ github.workspace }}/backend/node_modules
             ${{ github.workspace }}/frontend/node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ steps.key.outputs.modules-cache-key }}
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        if: steps.modules-cache.outputs.cache-hit != 'true'
+        uses: actions/setup-node@v4.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
       - name: Install dependencies
         if: steps.modules-cache.outputs.cache-hit != 'true'
         run: npm install
-      - name: Check for uncomitted changes
-        run: git diff --exit-code
 
   Lint:
     needs: Setup
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
       - name: Restore cache
         uses: actions/cache/restore@v4
         with:
@@ -45,10 +57,14 @@ jobs:
         run: npm run lint:frontend:backend
 
   Unit-Tests:
-    needs: Setup
+    needs: [Setup, Lint]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
       - name: Restore cache
         uses: actions/cache/restore@v4
         with:
@@ -57,7 +73,7 @@ jobs:
             ${{ github.workspace }}/node_modules
             ${{ github.workspace }}/backend/node_modules
             ${{ github.workspace }}/frontend/node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ needs.Setup.outputs.modules-cache-key }}
       - name: Run backend unit tests with coverage
         run: |
           npm run test:backend:unit-coverage
@@ -132,9 +148,24 @@ jobs:
   Cypress-Setup:
     needs: [Setup]
     runs-on: ubuntu-latest
+    outputs:
+      cypress-cache-key: ${{ steps.key.outputs.cypress-cache-key }}
     steps:
       - uses: actions/checkout@v4
+      - name: Generate cypress cache key
+        id: key
+        run: |
+          echo "cypress-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-build-${{ github.sha }}" >> $GITHUB_OUTPUT
+      - name: Cypress build cache
+        uses: actions/cache@v4
+        id: cypress-build-cache
+        with:
+          lookup-only: true
+          path: |
+            ${{ github.workspace }}/frontend/public-cypress
+          key: ${{ steps.key.outputs.cypress-cache-key }}
       - name: Restore cache
+        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -142,21 +173,19 @@ jobs:
             ${{ github.workspace }}/node_modules
             ${{ github.workspace }}/backend/node_modules
             ${{ github.workspace }}/frontend/node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}
-      - name: Cypress build cache
-        uses: actions/cache@v4
-        id: cypress-build-cache
+          key: ${{ needs.Setup.outputs.modules-cache-key }}
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
+        uses: actions/setup-node@v4.1.0
         with:
-          path: |
-            ${{ github.workspace }}/frontend/public-cypress
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-build-${{ github.sha }}
+          node-version: ${{ env.NODE_VERSION }}
       - name: Build frontend for cypress
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
         run: npm run cypress:server:build:coverage
         working-directory: ./frontend
 
   Cypress-Mock-Tests:
-    needs: [Cypress-Setup, Get-Test-Groups]
+    needs: [Setup, Lint, Cypress-Setup, Get-Test-Groups]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -164,6 +193,10 @@ jobs:
         test-group: ${{ fromJson(needs.Get-Test-Groups.outputs.test-groups) }}
     steps:
       - uses: actions/checkout@v4
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
       - name: Restore cache
         uses: actions/cache/restore@v4
         with:
@@ -172,13 +205,13 @@ jobs:
             ${{ github.workspace }}/node_modules
             ${{ github.workspace }}/backend/node_modules
             ${{ github.workspace }}/frontend/node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ needs.Setup.outputs.modules-cache-key }}
       - name: Restore Cypress build cache
         uses: actions/cache/restore@v4
         with:
           path: |
             ${{ github.workspace }}/frontend/public-cypress
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-build-${{ github.sha }}
+          key: ${{ needs.Cypress-Setup.outputs.cypress-cache-key }}
       - name: Run Cypress Mock tests
         run: |
           if [ "${{ matrix.test-group }}" == "default" ]; then
@@ -206,6 +239,10 @@ jobs:
     needs: [Unit-Tests, Cypress-Mock-Tests]
     runs-on: ubuntu-latest
     steps:
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:

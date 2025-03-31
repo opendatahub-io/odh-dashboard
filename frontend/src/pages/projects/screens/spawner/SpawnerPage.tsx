@@ -11,9 +11,11 @@ import {
   PageSection,
   Stack,
   StackItem,
+  Truncate,
 } from '@patternfly/react-core';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ImageStreamAndVersion } from '~/types';
+import ExtendedButton from '~/components/ExtendedButton';
 import GenericSidebar from '~/components/GenericSidebar';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { HardwareProfileKind, HardwareProfileFeatureVisibility, NotebookKind } from '~/k8sTypes';
@@ -23,6 +25,7 @@ import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksR
 import CanEnableElyraPipelinesCheck from '~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
 import AcceleratorProfileSelectField from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import { NotebookImageAvailability } from '~/pages/projects/screens/detail/notebooks/const';
+import useProjectPvcs from '~/pages/projects/screens/detail/storage/useProjectPvcs';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import K8sNameDescriptionField, {
@@ -51,7 +54,6 @@ import ImageSelectorField from './imageSelector/ImageSelectorField';
 import ContainerSizeSelector from './deploymentSize/ContainerSizeSelector';
 import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
 import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
-import { useNotebookDataConnection } from './dataConnection/useNotebookDataConnection';
 import useDefaultStorageClass from './storage/useDefaultStorageClass';
 import usePreferredStorageClass from './storage/usePreferredStorageClass';
 import { ConnectionsFormSection } from './connections/ConnectionsFormSection';
@@ -72,8 +74,12 @@ type SpawnerPageProps = {
 const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const {
     currentProject,
-    dataConnections,
-    connections: { data: projectConnections, refresh: refreshProjectConnections },
+    connections: {
+      data: projectConnections,
+      refresh: refreshProjectConnections,
+      loaded: projectConnectionsLoaded,
+      error: projectConnectionsLoadError,
+    },
     notebooks: { data: notebooks },
   } = React.useContext(ProjectDetailsContext);
   const displayName = getDisplayNameFromK8sResource(currentProject);
@@ -94,6 +100,10 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const preferredStorageClass = usePreferredStorageClass();
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
+
+  const [storages, storagesLoaded, storagesLoadError] = useProjectPvcs(
+    currentProject.metadata.name,
+  );
 
   const defaultStorageClassName = isStorageClassesAvailable
     ? defaultStorageClass?.metadata.name
@@ -133,8 +143,6 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   );
   const existingStorageNames = storageData.map((storageDataEntry) => storageDataEntry.name);
 
-  const [dataConnectionData] = useNotebookDataConnection(dataConnections.data, existingNotebook);
-
   const [notebookConnections, setNotebookConnections] = React.useState<Connection[]>(
     existingNotebook ? getConnectionsFromNotebook(existingNotebook, projectConnections) : [],
   );
@@ -142,7 +150,6 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const [envVariables, setEnvVariables, envVariablesLoaded, deletedConfigMaps, deletedSecrets] =
     useNotebookEnvVariables(existingNotebook, [
       ...notebookConnections.map((connection) => connection.metadata.name),
-      dataConnectionData.existing?.secretRef.name || '',
     ]);
 
   const notebooksUsingPVCsWithSizeChanges = React.useMemo(() => {
@@ -214,8 +221,11 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
         <Breadcrumb>
           <BreadcrumbItem render={() => <Link to="/projects">Data Science Projects</Link>} />
           <BreadcrumbItem
+            style={{ maxWidth: 300 }}
             render={() => (
-              <Link to={`/projects/${currentProject.metadata.name}`}>{displayName}</Link>
+              <Link to={`/projects/${currentProject.metadata.name}`}>
+                <Truncate content={displayName} style={{ textDecoration: 'underline' }} />
+              </Link>
             )}
           />
           {existingNotebook && <BreadcrumbItem>{editNotebookDisplayName}</BreadcrumbItem>}
@@ -314,13 +324,21 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                     {SpawnerPageSectionTitles[SpawnerPageSectionID.CLUSTER_STORAGE]}
                   </FlexItem>
 
-                  <Button
+                  <ExtendedButton
                     variant="secondary"
                     data-testid="existing-storage-button"
                     onClick={() => setIsAttachStorageModalOpen(true)}
+                    loadProps={{
+                      loaded: storagesLoaded,
+                      error: storagesLoadError,
+                    }}
+                    tooltipProps={{
+                      isEnabled: storages.length === 0,
+                      content: 'No storage available',
+                    }}
                   >
                     Attach existing storage
-                  </Button>
+                  </ExtendedButton>
 
                   <Button
                     variant="secondary"
@@ -350,6 +368,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               project={currentProject}
               projectConnections={projectConnections}
               refreshProjectConnections={refreshProjectConnections}
+              projectConnectionsLoaded={projectConnectionsLoaded}
+              projectConnectionsLoadError={projectConnectionsLoadError}
               notebook={existingNotebook}
               notebookDisplayName={k8sNameDescriptionData.data.name}
               selectedConnections={notebookConnections}
@@ -379,7 +399,6 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   }}
                   storageData={storageData}
                   envVariables={envVariables}
-                  dataConnection={dataConnectionData}
                   connections={notebookConnections}
                   canEnablePipelines={canEnablePipelines}
                 />

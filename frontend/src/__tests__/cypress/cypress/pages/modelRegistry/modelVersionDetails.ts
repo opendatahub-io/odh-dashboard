@@ -20,8 +20,12 @@ class ModelVersionDetails {
     return cy.findByTestId('model-version-id');
   }
 
-  findRegisteredFrom() {
-    return cy.findByTestId('registered-from');
+  findRegisteredFromCatalog() {
+    return cy.findByTestId('registered-from-catalog');
+  }
+
+  findRegisteredFromPipeline() {
+    return cy.findByTestId('registered-from-pipeline');
   }
 
   findPipelineRunLink() {
@@ -164,7 +168,7 @@ class ModelVersionDetails {
   }
 
   findStartRunModal() {
-    return cy.findByTestId('start-run-modal');
+    return cy.findByRole('dialog', { hidden: true }).contains('Start a LAB-tuning run');
   }
 }
 

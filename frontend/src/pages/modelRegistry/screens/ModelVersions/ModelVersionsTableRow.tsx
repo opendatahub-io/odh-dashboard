@@ -73,7 +73,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
         ...(isFineTuningEnabled
           ? [
               {
-                title: 'LAB tune',
+                title: 'LAB-tune',
                 onClick: () => setTuningModelVersionId(mv.id),
               },
             ]
@@ -192,7 +192,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
               modelVersionName={mv.name}
             />
           ) : null}
-          {tuningModelVersionId && tuningData && (
+          {tuningModelVersionId && (
             <StartRunModal
               onCancel={() => setTuningModelVersionId(null)}
               onSubmit={(selectedProject) => {
