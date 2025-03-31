@@ -8,7 +8,6 @@ import { ModelCatalogSource, ModelCatalogSourcesObject } from './types';
 import { MODEL_CATALOG_SOURCES_CONFIGMAP } from './const';
 
 type State = ModelCatalogSource[];
-
 // Temporary implementation for MVP - will be replaced with API for remote model catalog sources
 // See: https://issues.redhat.com/browse/RHOAISTRAT-455
 

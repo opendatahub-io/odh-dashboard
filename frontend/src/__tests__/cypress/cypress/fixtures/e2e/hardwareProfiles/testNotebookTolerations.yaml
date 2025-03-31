@@ -1,0 +1,6 @@
+# testNotebookTolerations.cy.ts Test Data #
+codeserverImageName: "code-server-notebook:2024.2" 
+resourceYamlPath: "resources/hardwareProfile/notebook_tolerations.yaml"
+hardwareProfileName: "cypress-hardware-profile-notebooks"
+tolerationValue: "PreferNoSchedule"
+hardwareProfileDeploymentSize: "cypress-hardware-profile-notebooks CPU: Request = 2; Limit = 2; Memory: Request = 4Gi; Limit = 4Gi"

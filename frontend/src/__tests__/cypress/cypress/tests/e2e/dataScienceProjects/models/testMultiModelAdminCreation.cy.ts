@@ -2,7 +2,7 @@ import type { DataScienceProjectData } from '~/__tests__/cypress/cypress/types';
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
+import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import {
   modelServingGlobal,
   inferenceServiceModal,
@@ -18,6 +18,7 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { attemptToClickTooltip } from '~/__tests__/cypress/cypress/utils/models';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -25,7 +26,7 @@ let modelName: string;
 let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 
-describe('[Automation Bug: RHOAIENG-20591] Verify Admin Multi Model Creation and Validation using the UI', () => {
+describe('[Product Bug: RHOAIENG-20213] Verify Admin Multi Model Creation and Validation using the UI', () => {
   retryableBefore(() => {
     Cypress.on('uncaught:exception', (err) => {
       if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
@@ -91,9 +92,7 @@ describe('[Automation Bug: RHOAIENG-20591] Verify Admin Multi Model Creation and
 
       // Navigate to Model Serving tab and Deploy a Multi Model
       cy.step('Navigate to Model Serving and click to Deploy a Model Server');
-      // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-      // Reapply projectDetails.findSectionTab('model-server').click();
-      cy.visit(`projects/${projectName}?section=model-server`);
+      projectDetails.findSectionTab('model-server').click();
       modelServingGlobal.findMultiModelButton().click();
       modelServingSection.findAddModelServerButton().click();
       createServingRuntimeModal.findModelServerName().type(testData.multiModelAdminName);
@@ -136,8 +135,7 @@ describe('[Automation Bug: RHOAIENG-20591] Verify Admin Multi Model Creation and
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
       checkInferenceServiceState(testData.multiModelAdminName);
       modelServingSection.findModelServerName(testData.multiModelAdminName);
-      modelServingSection.findStatusTooltip().click({ force: true });
-      cy.contains('Loaded', { timeout: 120000 }).should('be.visible');
+      attemptToClickTooltip();
 
       //Verify the Model is accessible externally
       cy.step('Verify the model is accessible externally');

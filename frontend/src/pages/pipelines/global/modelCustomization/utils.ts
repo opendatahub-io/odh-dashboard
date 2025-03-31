@@ -268,7 +268,6 @@ export const translateIlabForm = (
     data.hardware.podSpecOptions.nodeSelector,
   [KnownFineTuningPipelineParameters.TRAIN_NUM_WORKERS]: data.trainingNode,
   [KnownFineTuningPipelineParameters.K8S_STORAGE_CLASS_NAME]: data.storageClass,
-  [KnownFineTuningPipelineParameters.SDG_PIPELINE]: data.runType,
   ...data.hyperparameters,
   /* eslint-enable camelcase */
 });

@@ -23,13 +23,13 @@ The following are a list of features that are supported, along with there defaul
 | disableProjects              | false   | Disables Data Science Projects from the dashboard.                                                   |
 | disablePipelines             | false   | Disables Data Science Pipelines from the dashboard.                                                  |
 | disableModelServing          | false   | Disables Model Serving from the dashboard and from Data Science Projects.                            |
+| disableProjectScoped         | true    | Disables Project Scoped items from Workbenches, hardware profiles and serving runtimes               |
 | disableProjectSharing        | false   | Disables Project Sharing from Data Science Projects.                                                 |
 | disableCustomServingRuntimes | false   | Disables Custom Serving Runtimes from the Admin Panel.                                               |
 | disableKServe                | false   | Disables the ability to select KServe as a Serving Platform.                                         |
 | disableKServeAuth            | false   | Disables the ability to use auth in KServe.                                                          |
 | disableKServeMetrics         | false   | Disables the ability to see KServe Metrics.                                                          |
 | disableKServeRaw             | false   | Disables the option to deploy in raw instead of serverless.                                          |
-| disableKServeOCIModels       | true    | Disables the option to deploy models in the OCI format.                                              |
 | disableModelMesh             | false   | Disables the ability to select ModelMesh as a Serving Platform.                                      |
 | disableAcceleratorProfiles   | false   | Disables Accelerator profiles from the Admin Panel.                                                  |
 | disableHardwareProfiles      | true    | Disables Hardware profiles from the Admin Panel.                                                     |

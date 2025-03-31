@@ -22,7 +22,7 @@ import {
   StorageClassModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
-import type { EnvironmentVariable } from '~/types';
+import type { EnvironmentVariable, NotebookData } from '~/types';
 import { mockConfigMap } from '~/__mocks__/mockConfigMap';
 
 const groupSubjects: RoleBindingSubject[] = [
@@ -180,6 +180,56 @@ describe('NotebookServer', () => {
     notebookServer.findEnvVarSecretEyeToggle(1).click();
     // Seems Cypress doesn't handle atob well -- expect(atob('dGVzdDIK')).to.eql('test2') is not true, `test2\n` is the value of atob in Cypress
     notebookServer.findEnvVarValue(1).should('contain.value', 'test2');
+  });
+
+  it('should start notebook server with hardware profile', () => {
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableHardwareProfiles: false,
+      }),
+    );
+
+    notebookServer.visit();
+    notebookServer.findHardwareProfileSelect().click();
+    notebookServer
+      .findHardwareProfileSelectOptionValues()
+      .should('not.satisfy', (arr: string[]) => arr.some((item) => item.includes('Test GPU')));
+    notebookServer
+      .findHardwareProfileSelect()
+      .findSelectOption(
+        'Large CPU: Request = 7 Cores; Limit = 7 Cores; Memory: Request = 56 GiB; Limit = 56 GiB',
+      )
+      .click();
+    notebookServer.findHardwareProfileSelect().should('contain', 'Large');
+    notebookServer.findStartServerButton().should('be.visible');
+    notebookServer.findStartServerButton().click();
+
+    cy.wait('@startNotebookServer').then((interception) => {
+      const { podSpecOptions } = interception.request.body as NotebookData;
+
+      expect(podSpecOptions.selectedAcceleratorProfile).to.eq(undefined);
+      expect(podSpecOptions.selectedHardwareProfile).not.to.eq(undefined);
+      expect(podSpecOptions.selectedHardwareProfile?.spec.displayName).to.eq('Large');
+      expect(podSpecOptions.selectedHardwareProfile?.spec.identifiers).to.eql([
+        {
+          displayName: 'CPU',
+          resourceType: 'CPU',
+          identifier: 'cpu',
+          minCount: '7',
+          maxCount: '14',
+          defaultCount: '7',
+        },
+        {
+          displayName: 'Memory',
+          resourceType: 'Memory',
+          identifier: 'memory',
+          minCount: '56Gi',
+          maxCount: '56Gi',
+          defaultCount: '56Gi',
+        },
+      ]);
+    });
   });
 
   it('should start notebook server with accelerator profile', () => {

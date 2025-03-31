@@ -502,12 +502,22 @@ describe('Deploy model version', () => {
     kserveModal.selectConnectionType(
       'URI - v1 Connection type description Category: existing-category',
     );
-    kserveModal.findConnectionFieldInput().type('http://test-uri');
+
+    kserveModal.findConnectionFieldInput('URI').type('http://test-uri');
+
+    // switch the connection type to OCI and fill data
+    kserveModal.selectConnectionType(
+      'OCI compliant registry - v1 Connection type description Category: Database, Testing',
+    );
+
+    kserveModal.findBaseURL().type('oci://test');
+    kserveModal.findModelURITextBox().type('test.io/test/private:test');
 
     // switch the connection type to s3 to check whether all the data is still persistent
     kserveModal.selectConnectionType(
       'S3 compatible object storage - v1 description 2 Category: existing-category',
     );
+
     kserveModal.findLocationBucketInput().should('have.value', 'test-bucket');
     kserveModal.findLocationEndpointInput().should('have.value', 'test-endpoint');
     kserveModal.findLocationRegionInput().should('have.value', 'test-region');
@@ -519,7 +529,15 @@ describe('Deploy model version', () => {
     kserveModal.selectConnectionType(
       'URI - v1 Connection type description Category: existing-category',
     );
-    kserveModal.findConnectionFieldInput().should('have.value', 'http://test-uri');
+
+    kserveModal.findConnectionFieldInput('URI').should('have.value', 'http://test-uri');
+    // oci-connection
+    kserveModal.selectConnectionType(
+      'OCI compliant registry - v1 Connection type description Category: Database, Testing',
+    );
+
+    kserveModal.findModelURITextBox().should('have.value', 'test.io/test/private:test');
+    kserveModal.findBaseURL().should('have.value', 'oci://test');
   });
 
   it('Prefills when there is one s3 matching connection', () => {

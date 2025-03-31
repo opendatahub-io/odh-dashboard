@@ -10,6 +10,8 @@ import type {
   OOTBConnectionTypesData,
   WBTolerationsTestData,
   WBImagesTestData,
+  DeployOCIModelData,
+  ModelTolerationsTestData,
 } from '~/__tests__/cypress/cypress/types';
 
 // Load fixture function that returns DataScienceProjectData
@@ -92,6 +94,26 @@ export const loadWBTolerationsFixture = (
 export const loadWBImagesFixture = (fixturePath: string): Cypress.Chainable<WBImagesTestData> => {
   return cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as WBImagesTestData;
+
+    return data;
+  });
+};
+
+export const loadDeployOCIModelFixture = (
+  fixturePath: string,
+): Cypress.Chainable<DeployOCIModelData> => {
+  return cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as DeployOCIModelData;
+
+    return data;
+  });
+};
+
+export const loadModelTolerationsFixture = (
+  fixturePath: string,
+): Cypress.Chainable<ModelTolerationsTestData> => {
+  return cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as ModelTolerationsTestData;
 
     return data;
   });
