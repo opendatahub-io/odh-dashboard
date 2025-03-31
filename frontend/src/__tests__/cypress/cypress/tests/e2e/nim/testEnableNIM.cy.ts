@@ -4,7 +4,7 @@ import { enabledPage } from '~/__tests__/cypress/cypress/pages/enabled';
 import { nimCard } from '~/__tests__/cypress/cypress/pages/components/NIMCard';
 import { deleteNIMAccount } from '~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
 
-describe('[Automation Bug: RHOAIENG-21549] Verify NIM enable flow', () => {
+describe('Verify NIM enable flow', () => {
   before(() => {
     cy.step('Delete odh-nim-account');
     deleteNIMAccount(Cypress.env('TEST_NAMESPACE'), true);
@@ -29,7 +29,7 @@ describe('[Automation Bug: RHOAIENG-21549] Verify NIM enable flow', () => {
     nimCard.getNGCAPIKey().type(Cypress.env('NGC_API_KEY'));
     cy.step('Click submit to enable the NIM application');
     nimCard.getNIMSubmit().click();
-    cy.step('Wait for "Validating..." to complete');
+    cy.step('Wait for Validation to complete');
     nimCard.getProgressTitle().should('exist');
     nimCard.getProgressTitle({ timeout: 120000 }).should('not.exist');
     cy.step('Visit the enabled applications page');
