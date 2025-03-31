@@ -137,7 +137,7 @@ export const mockDscStatus = ({
   installedComponents: Object.values(StackComponent).reduce(
     (acc, component) => ({
       ...acc,
-      [component]: installedComponents[component] ?? true,
+      [component]: installedComponents[component] ?? false,
     }),
     {},
   ),
