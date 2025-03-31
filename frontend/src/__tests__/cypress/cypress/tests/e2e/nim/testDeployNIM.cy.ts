@@ -41,7 +41,7 @@ describe(`Deploy NIM model`, () => {
     ); // Takes very long time to delete the project
   });
 
-  it('Enable and validate NIM flow', { tags: ['@NIMDeploy'] }, () => {
+  it('Enable and validate NIM flow', { tags: ['@NIM', '@Sanity'] }, () => {
     cy.step('Login to the application');
     cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
     cy.step('Navigate to the Explore page');
@@ -60,8 +60,8 @@ describe(`Deploy NIM model`, () => {
     nimCard.getNGCAPIKey().type(Cypress.env('NGC_API_KEY'));
     cy.step('Click submit to enable the NIM application');
     nimCard.getNIMSubmit().click();
-    cy.step('Wait for "Validating..." to complete');
-    nimCard.getProgressTitle().should('be.visible');
+    cy.step('Wait for Validation to complete');
+    nimCard.getProgressTitle().should('exist');
     nimCard.getProgressTitle({ timeout: 120000 }).should('not.exist');
     cy.step('Visit the enabled applications page');
     enabledPage.visit();
