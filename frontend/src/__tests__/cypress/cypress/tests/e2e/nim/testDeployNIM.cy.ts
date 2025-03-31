@@ -13,7 +13,7 @@ import { modelServingSection } from '__tests__/cypress/cypress/pages/modelServin
 import { nimCard } from '__tests__/cypress/cypress/pages/components/NIMCard';
 import { enabledPage } from '__tests__/cypress/cypress/pages/enabled';
 import { explorePage } from '__tests__/cypress/cypress/pages/explore';
-import { deleteNIMAccount } from '__tests__/cypress/cypress/utils/oc_commands/baseCommands';
+import { deleteNIMAccount, validateNIMAccountStatus } from '__tests__/cypress/cypress/utils/oc_commands/baseCommands';
 
 const model = 'phi-3-mini-4k-instruct-latest';
 
@@ -75,6 +75,16 @@ describe(`Deploy NIM model`, () => {
     nimCard.getNIMCard().within(() => {
       cy.contains('button', 'Disabled', { timeout: 60000 }).should('not.exist');
     });
+    cy.step('Validate odh-nim-account AccountStatus is True');
+    validateNIMAccountStatus('AccountStatus', 'True')
+    cy.step('Validate odh-nim-account APIKeyValidation is True');
+    validateNIMAccountStatus('APIKeyValidation', 'True')
+    cy.step('Validate odh-nim-account ConfigMapUpdate is True');
+    validateNIMAccountStatus('ConfigMapUpdate', 'True')
+    cy.step('Validate odh-nim-account TemplateUpdate is True');
+    validateNIMAccountStatus('TemplateUpdate', 'True')
+    cy.step('Validate odh-nim-account SecretUpdate is True');
+    validateNIMAccountStatus('SecretUpdate', 'True')
   });
 
   it(`Deploy ${model} NIM model and verify deployment`, { tags: ['@NIMDeploy', '@GPU'] }, () => {
