@@ -44,6 +44,9 @@ import ModelCustomizationDrawerContent, {
 } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import useDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
+import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
+import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
+import useOpenshiftDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useOpenshiftDefaultStorageClass';
 import FineTunePage from './FineTunePage';
 import {
   FineTunePageSections,
@@ -143,6 +146,9 @@ const ModelCustomizationForm: React.FC = () => {
 
   const [defaultStorageClass, defaultStorageClassLoaded, defaultStorageClassError] =
     useDefaultStorageClass();
+  const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
+  const preferredStorageClass = usePreferredStorageClass();
+  const openshiftDefaultStorageClass = useOpenshiftDefaultStorageClass();
   // set default storage class
   React.useEffect(() => {
     //  not ready if ilabPipelineVersion is not loaded or defaultStorageClass is not loaded or had an error
@@ -151,10 +157,22 @@ const ModelCustomizationForm: React.FC = () => {
     }
 
     // if defaultStorageClass is not null, use it
-    if (defaultStorageClass) {
+    if (isStorageClassesAvailable && defaultStorageClass) {
       setData('storageClass', defaultStorageClass.metadata.name);
-    } else {
-      // if defaultStorageClass is null, use the default value from the pipeline input
+    }
+
+    // if preferredStorageClass is not null, use it
+    else if (preferredStorageClass) {
+      setData('storageClass', preferredStorageClass.metadata.name);
+    }
+
+    // if openshiftDefaultStorageClass is not null, use it
+    else if (openshiftDefaultStorageClass) {
+      setData('storageClass', openshiftDefaultStorageClass.metadata.name);
+    }
+
+    // if defaultStorageClass is null, use the default value from the pipeline input
+    else {
       const storageClassDefaultValue = getParamsValueFromPipelineInput(
         ilabPipelineVersion,
         KnownFineTuningPipelineParameters.K8S_STORAGE_CLASS_NAME,
@@ -168,6 +186,9 @@ const ModelCustomizationForm: React.FC = () => {
     defaultStorageClassError,
     defaultStorageClassLoaded,
     ilabPipelineVersion,
+    isStorageClassesAvailable,
+    openshiftDefaultStorageClass,
+    preferredStorageClass,
     setData,
   ]);
 
