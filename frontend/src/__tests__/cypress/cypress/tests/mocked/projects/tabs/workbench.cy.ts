@@ -50,6 +50,7 @@ type HandlersProps = {
   notebookSizes?: NotebookSize[];
   mockPodList?: PodKind[];
   envFrom?: EnvironmentFromVariable[];
+  disableProjectScoped?: boolean;
 };
 
 const initIntercepts = ({
@@ -71,6 +72,7 @@ const initIntercepts = ({
     },
   ],
   mockPodList = [mockPodK8sResource({})],
+  disableProjectScoped = true,
 }: HandlersProps) => {
   cy.interceptK8sList(StorageClassModel, mockStorageClassList());
   cy.interceptOdh(
@@ -85,6 +87,7 @@ const initIntercepts = ({
     'GET /api/config',
     mockDashboardConfig({
       notebookSizes,
+      disableProjectScoped,
     }),
   );
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
@@ -331,6 +334,78 @@ describe('Workbench page', () => {
     verifyRelativeURL('/projects/test-project?section=workbenches');
   });
 
+  it('Display and select project-scoped and global-scoped notebook images while creating', () => {
+    initIntercepts({
+      disableProjectScoped: false,
+      isEmpty: true,
+      notebookSizes: [
+        {
+          name: 'XSmall',
+          resources: {
+            limits: {
+              cpu: '0.5',
+              memory: '500Mi',
+            },
+            requests: {
+              cpu: '0.1',
+              memory: '100Mi',
+            },
+          },
+        },
+        {
+          name: 'Small',
+          resources: {
+            limits: {
+              cpu: '2',
+              memory: '8Gi',
+            },
+            requests: {
+              cpu: '1',
+              memory: '8Gi',
+            },
+          },
+        },
+      ],
+    });
+    cy.interceptK8sList(
+      ImageStreamModel,
+      mockK8sResourceList([
+        mockImageStreamK8sResource({
+          name: 'test-10',
+          displayName: 'Project-scoped test image',
+        }),
+      ]),
+    );
+    workbenchPage.visit('test-project');
+    workbenchPage.findCreateButton().click();
+    createSpawnerPage.findSubmitButton().should('be.disabled');
+    verifyRelativeURL('/projects/test-project/spawner');
+    createSpawnerPage.k8sNameDescription.findDisplayNameInput().fill('test-project');
+    createSpawnerPage.k8sNameDescription.findDescriptionInput().fill('test-description');
+
+    // Check for project specific serving runtimes
+    createSpawnerPage.findNotebookImageSearchSelector().click();
+    const projectScopedNotebookImage = createSpawnerPage.getProjectScopedNotebookImages();
+    projectScopedNotebookImage
+      .find()
+      .findByRole('menuitem', { name: 'Project-scoped test image', hidden: true })
+      .click();
+    createSpawnerPage.findProjectScopedLabel().should('exist');
+    createSpawnerPage.selectContainerSize(
+      'XSmall Limits: 0.5 CPU, 500MiB Memory Requests: 0.1 CPU, 100MiB Memory',
+    );
+    createSpawnerPage.findSubmitButton().should('be.enabled');
+
+    // Check for global specific serving runtimes
+    createSpawnerPage.findNotebookImageSearchSelector().click();
+    const globalScopedNotebookImage = createSpawnerPage.getGlobalScopedNotebookImages();
+    globalScopedNotebookImage
+      .find()
+      .findByRole('menuitem', { name: 'Test Image', hidden: true })
+      .click();
+    createSpawnerPage.findGlobalScopedLabel().should('exist');
+  });
+
   it('Create workbench with numbers', () => {
     initIntercepts({
       isEmpty: true,
@@ -526,7 +601,7 @@ describe('Workbench page', () => {
     });
     workbenchPage.visit('test-project');
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
-    notebookRow.shouldHaveNotebookImageName('Test Image');
+    notebookRow.shouldHaveNotebookImageName('Test ImagePython v3.8');
     notebookRow.shouldHaveContainerSize('Small');
     notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
     notebookRow.findNotebookRouteLink().should('have.attr', 'aria-disabled', 'false');
@@ -915,7 +990,7 @@ describe('Workbench page', () => {
     });
     workbenchPage.visit('test-project');
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
-    notebookRow.shouldHaveNotebookImageName('Test Image');
+    notebookRow.shouldHaveNotebookImageName('Test ImagePython v3.8');
     notebookRow.shouldHaveContainerSize('Custom');
     notebookRow.findKebabAction('Edit workbench').click();
     editSpawnerPage.shouldHaveContainerSizeInput('Keep custom size');

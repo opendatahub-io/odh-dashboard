@@ -52,16 +52,14 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
   const getFilteredImageStreams = () => (
     <>
       <MenuGroup
+        data-testid="project-scoped-notebook-images"
         label={
           <Flex
             spaceItems={{ default: 'spaceItemsXs' }}
             alignItems={{ default: 'alignItemsCenter' }}
             style={{ paddingBottom: '5px' }}
           >
-            <FlexItem
-              style={{ display: 'flex', paddingLeft: '12px' }}
-              data-testid="project-scoped-image"
-            >
+            <FlexItem style={{ display: 'flex', paddingLeft: '12px' }}>
               <img
                 style={{ height: 20, paddingTop: '3px' }}
                 src={typedObjectImage(ProjectObjectType.project)}
@@ -114,6 +112,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
       </MenuGroup>
       <Divider />
       <MenuGroup
+        data-testid="global-scoped-notebook-images"
         label={
           <Flex>
             <FlexItem style={{ paddingLeft: '12px', paddingRight: 0 }}>
@@ -217,6 +216,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
                       isCompact
                       variant="outline"
                       color="blue"
+                      data-testid="project-scoped-image"
                       icon={
                         <img
                           style={{ height: 20 }}
@@ -228,7 +228,13 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
                       Project-scoped
                     </Label>
                   ) : (
-                    <Label isCompact variant="outline" color="blue" icon={<GlobalIcon />}>
+                    <Label
+                      isCompact
+                      variant="outline"
+                      data-testid="global-scoped-image"
+                      color="blue"
+                      icon={<GlobalIcon />}
+                    >
                       Global-scoped
                     </Label>
                   )}
