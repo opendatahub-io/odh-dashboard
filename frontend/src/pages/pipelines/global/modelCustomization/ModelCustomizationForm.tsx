@@ -148,7 +148,7 @@ const ModelCustomizationForm: React.FC = () => {
     useDefaultStorageClass();
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const preferredStorageClass = usePreferredStorageClass();
-  const openshiftDefaultStorageClass = useOpenshiftDefaultStorageClass();
+  const openshiftDefaultStorageClass = useOpenshiftDefaultStorageClass(true);
   // set default storage class
   React.useEffect(() => {
     //  not ready if ilabPipelineVersion is not loaded or defaultStorageClass is not loaded or had an error
