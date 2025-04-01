@@ -115,7 +115,9 @@ const ProjectDetails: React.FC = () => {
                     component: (
                       <ModelServingContextProvider project={currentProject}>
                         <ModelServingProjectTab
-                          pageTitle={ProjectSectionTitles[ProjectSectionID.MODEL_SERVER]}
+                          objectType={ProjectObjectType.model}
+                          id={ProjectSectionID.MODEL_SERVER}
+                          title={ProjectSectionTitles[ProjectSectionID.MODEL_SERVER]}
                         />
                       </ModelServingContextProvider>
                     ),

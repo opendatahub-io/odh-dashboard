@@ -11,21 +11,30 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
-import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
+import DetailsSection from '~/pages/projects/screens/detail/DetailsSection'; // TODO: pages import is weird
 import EmptyDetailsView from '~/components/EmptyDetailsView';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
-import EmptyModelServingPlatform from '~/pages/modelServing/screens/projects/EmptyModelServingPlatform';
-import { NamespaceApplicationCase } from '~/pages/projects/types';
-import ModelServingPlatformSelectButton from '~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
-import ModelServingPlatformSelectErrorAlert from '~/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
+import EmptyModelServingPlatform from '~/concepts/modelServing/shared/EmptyModelServingPlatform';
 import { ModelServingContext } from '~/concepts/modelServing/foundation/ModelServingContext';
 import useDetermineProjectServingPlatform from '~/concepts/modelServing/foundation/useDetermineProjectServingPlatform';
-import { ServingLabel } from '~/concepts/modelServing/platforms/exports';
+import { ServingLabel, ProjectEnableCards } from '~/concepts/modelServing/platforms/exports';
 import useAvailableServingPlatforms from '~/concepts/modelServing/foundation/useAvailableServingPlatforms';
+import { trimForActiveServing } from '~/concepts/modelServing/foundation/utils';
+import ModelServingPlatformSelectButton from '~/concepts/modelServing/shared/ModelServingPlatformSelectButton';
+import ModelServingPlatformSelectErrorAlert from '~/concepts/modelServing/shared/ModelServingPlatformSelectErrorAlert';
+import { NamespaceApplicationCase } from '~/concepts/projects/const';
 
-const ModelServingProjectTab: React.FC<{ pageTitle: string }> = ({ pageTitle }) => {
+type ModelServingProjectTabProps = Pick<
+  React.ComponentProps<typeof DetailsSection>,
+  'objectType' | 'id' | 'title'
+>;
+
+const ModelServingProjectTab: React.FC<ModelServingProjectTabProps> = ({
+  objectType,
+  id,
+  title,
+}) => {
   const [errorSelectingPlatform, setErrorSelectingPlatform] = React.useState<Error>();
   const {
     project,
@@ -40,6 +49,7 @@ const ModelServingProjectTab: React.FC<{ pageTitle: string }> = ({ pageTitle }) 
   const availableServingPlatforms = useAvailableServingPlatforms();
   const servingPlatform = useDetermineProjectServingPlatform(project);
   const ServingPlatformLabel = servingPlatform ? ServingLabel[servingPlatform] : null;
+  const SelectServingCards = trimForActiveServing(ProjectEnableCards, availableServingPlatforms);
 
   console.debug(
     'Data',
@@ -119,9 +129,9 @@ const ModelServingProjectTab: React.FC<{ pageTitle: string }> = ({ pageTitle }) 
   return (
     <>
       <DetailsSection
-        objectType={!emptyModelServer ? ProjectObjectType.model : undefined}
-        id={ProjectSectionID.MODEL_SERVER}
-        title={!emptyModelServer ? pageTitle : undefined}
+        objectType={!emptyModelServer ? objectType : undefined}
+        id={id}
+        title={!emptyModelServer ? title : undefined}
         actions={shouldShowPlatformSelection || emptyModelServer ? undefined : [<>Foobar</>]}
         description={
           shouldShowPlatformSelection && emptyModelServer
@@ -145,7 +155,7 @@ const ModelServingProjectTab: React.FC<{ pageTitle: string }> = ({ pageTitle }) 
         isEmpty={shouldShowPlatformSelection}
         loadError={servingRuntimeError || templateError}
         emptyState={
-          availableServingPlatforms.length > 1 ? (
+          SelectServingCards.length > 1 ? (
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapLg' }}>
               <FlexItem
                 flex={{ default: 'flex_1' }}
@@ -167,37 +177,30 @@ const ModelServingProjectTab: React.FC<{ pageTitle: string }> = ({ pageTitle }) 
                   </StackItem>
                   <StackItem>
                     <Gallery hasGutter>
-                      <GalleryItem>Coming soon</GalleryItem>
-                      {/* source from folders
-                      {kServeEnabled && (
-                        <GalleryItem>
-                          <EmptySingleModelServingCard
-                            setErrorSelectingPlatform={setErrorSelectingPlatform}
+                      {SelectServingCards.map((ServingCard, idx) => (
+                        <GalleryItem key={idx}>
+                          <ServingCard
+                            resetButton={
+                              <ModelServingPlatformSelectButton
+                                namespace={project.metadata.name}
+                                servingPlatform={NamespaceApplicationCase.KSERVE_PROMOTION}
+                                setError={setErrorSelectingPlatform}
+                                variant="secondary"
+                                data-testid="single-serving-select-button"
+                              />
+                            }
                           />
                         </GalleryItem>
-                      )}
-                      {modelMeshEnabled && (
-                        <GalleryItem>
-                          <EmptyMultiModelServingCard
-                            setErrorSelectingPlatform={setErrorSelectingPlatform}
-                          />
-                        </GalleryItem>
-                      )}
-                      {isNIMAvailable && (
-                        <GalleryItem>
-                          <EmptyNIMModelServingCard
-                            setErrorSelectingPlatform={setErrorSelectingPlatform}
-                          />
-                        </GalleryItem>
-                      )}
-                      */}
+                      ))}
                     </Gallery>
                   </StackItem>
                   {errorSelectingPlatform && (
-                    <ModelServingPlatformSelectErrorAlert
-                      error={errorSelectingPlatform}
-                      clearError={() => setErrorSelectingPlatform(undefined)}
-                    />
+                    <StackItem>
+                      <ModelServingPlatformSelectErrorAlert
+                        error={errorSelectingPlatform}
+                        clearError={() => setErrorSelectingPlatform(undefined)}
+                      />
+                    </StackItem>
                   )}
                   <StackItem>
                     <Alert

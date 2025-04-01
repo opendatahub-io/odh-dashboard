@@ -1,6 +1,6 @@
 export enum SupportedServingPlatform {
-  MODEL_MESH = 'MODEL_MESH',
   KSERVE = 'KSERVE',
+  MODEL_MESH = 'MODEL_MESH',
   // KSERVE_NIM = 'NIM',
 }
 
