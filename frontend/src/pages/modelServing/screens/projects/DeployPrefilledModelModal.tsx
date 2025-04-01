@@ -22,14 +22,14 @@ import useConnections from '~/pages/projects/screens/detail/connections/useConne
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { isRedHatRegistryUri } from '~/pages/modelRegistry/screens/utils';
 
-interface DeployRegisteredModelModalProps {
+interface DeployPrefilledModelModalProps {
   modelVersion: ModelVersion;
   onCancel: () => void;
   onSubmit?: () => void;
 }
 
-const DeployRegisteredModelModalContents: React.FC<
-  DeployRegisteredModelModalProps & {
+const DeployPrefilledModelModalContents: React.FC<
+  DeployPrefilledModelModalProps & {
     selectedProject: ProjectKind | null;
     setSelectedProject: (project: ProjectKind | null) => void;
   }
@@ -193,11 +193,11 @@ const DeployRegisteredModelModalContents: React.FC<
   );
 };
 
-const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = (props) => {
+const DeployPrefilledModelModal: React.FC<DeployPrefilledModelModalProps> = (props) => {
   const [selectedProject, setSelectedProject] = React.useState<ProjectKind | null>(null);
   return (
     <ModelServingContextProvider namespace={selectedProject?.metadata.name}>
-      <DeployRegisteredModelModalContents
+      <DeployPrefilledModelModalContents
         {...props}
         selectedProject={selectedProject}
         setSelectedProject={setSelectedProject}
@@ -206,4 +206,4 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = (p
   );
 };
 
-export default DeployRegisteredModelModal;
+export default DeployPrefilledModelModal;
