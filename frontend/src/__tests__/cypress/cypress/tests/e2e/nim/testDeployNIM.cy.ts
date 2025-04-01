@@ -84,7 +84,7 @@ describe(`Deploy NIM model`, () => {
     cy.step('Validate odh-nim-account TemplateUpdate is True');
     validateNIMAccountStatus('TemplateUpdate', 'True')
     cy.step('Validate odh-nim-account SecretUpdate is True');
-    validateNIMAccountStatus('SecretUpdate', 'True')
+    validateNIMAccountStatus('SecretUpdate', 'True');
   });
 
   it(`Deploy ${model} NIM model and verify deployment`, { tags: ['@NIMDeploy', '@GPU'] }, () => {
