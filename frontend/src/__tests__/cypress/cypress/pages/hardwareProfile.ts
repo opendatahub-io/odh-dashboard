@@ -110,7 +110,7 @@ class HardwareProfile {
   }
 
   getFeatureLabels(rowIndex: number) {
-    return this.getLabelsFromCell(rowIndex, 3);
+    return this.getLabelsFromCell(rowIndex, 2);
   }
 
   private wait() {
