@@ -58,6 +58,27 @@ const initIntercepts = ({
     mockModelCatalogConfigMap(catalogModels),
   );
 
+  cy.interceptK8s(
+    {
+      model: ConfigMapModel,
+      ns: 'opendatahub',
+      name: 'model-catalog-unmanaged-sources',
+    },
+    {
+      apiVersion: 'v1',
+      kind: 'ConfigMap',
+      metadata: {
+        name: 'model-catalog-unmanaged-sources',
+        namespace: 'opendatahub',
+      },
+      data: {
+        modelCatalogSources: JSON.stringify({
+          sources: [],
+        }),
+      },
+    },
+  );
+
   cy.interceptK8sList(ServiceModel, mockK8sResourceList(modelRegistries));
 };
 
@@ -225,7 +246,8 @@ describe('Model Details loading states', () => {
     modelDetailsPage.findModelCatalogEmptyState().should('exist');
   });
 
-  it('should show empty state when configmap has empty data', () => {
+  it('should show error state when configmap has empty data', () => {
+    // Mock managed ConfigMap with empty data
     cy.interceptK8s(
       {
         model: ConfigMapModel,
@@ -244,7 +266,7 @@ describe('Model Details loading states', () => {
     );
 
     modelDetailsPage.visit();
-    modelDetailsPage.findModelCatalogEmptyState().should('exist');
+    cy.contains('Unable to load model catalog').should('exist');
   });
 
   it('should show error state when configmap fetch fails (non-404)', () => {
