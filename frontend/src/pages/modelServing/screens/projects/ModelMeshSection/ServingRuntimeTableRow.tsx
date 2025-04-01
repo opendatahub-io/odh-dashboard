@@ -226,7 +226,6 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
           activeColumn={expandedColumn}
           obj={obj}
           onClose={() => setExpandedColumn(undefined)}
-          onDeployModel={() => onDeployModel(obj)}
         />
       </Tr>
     </Tbody>
