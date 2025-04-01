@@ -66,6 +66,27 @@ const initIntercepts = ({
     mockModelCatalogConfigMap(),
   );
 
+  cy.interceptK8s(
+    {
+      model: ConfigMapModel,
+      ns: 'opendatahub',
+      name: 'model-catalog-unmanaged-sources',
+    },
+    {
+      apiVersion: 'v1',
+      kind: 'ConfigMap',
+      metadata: {
+        name: 'model-catalog-unmanaged-sources',
+        namespace: 'opendatahub',
+      },
+      data: {
+        modelCatalogSources: JSON.stringify({
+          sources: [],
+        }),
+      },
+    },
+  );
+
   cy.interceptK8sList(ServiceModel, mockK8sResourceList(modelRegistries));
   cy.interceptOdh(
     'POST /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models',

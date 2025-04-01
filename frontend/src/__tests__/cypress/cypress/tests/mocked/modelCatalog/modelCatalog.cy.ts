@@ -1,26 +1,44 @@
 /* eslint-disable camelcase */
+import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { mockDscStatus } from '~/__mocks__';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { mockModelCatalogConfigMap } from '~/__mocks__/mockModelCatalogConfigMap';
 import { modelCatalog } from '~/__tests__/cypress/cypress/pages/modelCatalog/modelCatalog';
-import { ConfigMapModel } from '~/__tests__/cypress/cypress/utils/models';
+import { ConfigMapModel, ServiceModel } from '~/__tests__/cypress/cypress/utils/models';
 import { mockModelCatalogSource } from '~/__mocks__/mockModelCatalogSource';
 import {
   mockRedHatModel,
   mockThirdPartyModel,
   mockCatalogModel,
 } from '~/__mocks__/mockCatalogModel';
+import {
+  mockManagedModelCatalogConfigMap,
+  mockUnmanagedModelCatalogConfigMap,
+  mockConfigMap404Response,
+  mockModelCatalogConfigMap,
+} from '~/__mocks__/mockModelCatalogConfigMap';
+import { mockModelRegistryService } from '~/__mocks__/mockModelRegistryService';
+import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
+import type { ModelCatalogSource } from '~/concepts/modelCatalog/types';
 
 type HandlersProps = {
+  modelRegistries?: K8sResourceCommon[];
+  catalogModels?: ModelCatalogSource[];
+  disableFineTuning?: boolean;
   disableModelCatalogFeature?: boolean;
 };
 
-const initIntercepts = ({ disableModelCatalogFeature = false }: HandlersProps) => {
+const initIntercepts = ({
+  modelRegistries = [mockModelRegistryService({ name: 'modelregistry-sample' })],
+  catalogModels = [mockModelCatalogSource({})],
+  disableFineTuning = false,
+  disableModelCatalogFeature = false,
+}: HandlersProps) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
       installedComponents: {
         'model-registry-operator': true,
+        'data-science-pipelines-operator': true,
       },
     }),
   );
@@ -29,28 +47,78 @@ const initIntercepts = ({ disableModelCatalogFeature = false }: HandlersProps) =
     'GET /api/config',
     mockDashboardConfig({
       disableModelCatalog: disableModelCatalogFeature,
+      disableFineTuning,
     }),
   );
 
+  // Mock the managed ConfigMap (Red Hat sources)
   cy.interceptK8s(
     {
       model: ConfigMapModel,
       ns: 'opendatahub',
       name: 'model-catalog-sources',
     },
-    mockModelCatalogConfigMap(),
+    mockModelCatalogConfigMap(catalogModels),
   );
+
+  // Mock the unmanaged ConfigMap (Third-party sources)
+  cy.interceptK8s(
+    {
+      model: ConfigMapModel,
+      ns: 'opendatahub',
+      name: 'model-catalog-unmanaged-sources',
+    },
+    {
+      apiVersion: 'v1',
+      kind: 'ConfigMap',
+      metadata: {
+        name: 'model-catalog-unmanaged-sources',
+        namespace: 'opendatahub',
+      },
+      data: {
+        modelCatalogSources: JSON.stringify({
+          sources: [], // Empty array for tests that don't need third-party sources
+        }),
+      },
+    },
+  );
+
+  cy.interceptK8sList(ServiceModel, mockK8sResourceList(modelRegistries));
 };
 
 describe('Model Catalog core', () => {
+  beforeEach(() => {
+    // Mock the managed configmap for all tests
+    cy.interceptK8s(
+      {
+        model: ConfigMapModel,
+        ns: 'opendatahub',
+        name: 'model-catalog-sources',
+      },
+      mockManagedModelCatalogConfigMap(),
+    );
+
+    // Mock 404 for unmanaged configmap by default
+    cy.interceptK8s(
+      {
+        model: ConfigMapModel,
+        ns: 'opendatahub',
+        name: 'model-catalog-unmanaged-sources',
+      },
+      mockConfigMap404Response('model-catalog-unmanaged-sources'),
+    );
+  });
+
   it('Model Catalog Disabled in the cluster and URLs should not exist', () => {
-    initIntercepts({
-      disableModelCatalogFeature: true,
-    });
+    // Override the config to disable model catalog
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableModelCatalog: true,
+      }),
+    );
 
-    modelCatalog.landingPage();
-
-    cy.findByRole('button', { name: 'Models' }).click();
+    cy.visit('/');
     cy.findByRole('link', { name: 'Model catalog' }).should('not.exist');
 
     cy.visitWithLogin(`/modelCatalog`);
@@ -166,7 +234,7 @@ describe('Model Catalog loading states', () => {
       },
     );
     modelCatalog.visit();
-    modelCatalog.findModelCatalogEmptyState().should('exist');
+    cy.contains('Unable to load model catalog').should('exist');
   });
 
   it('should show empty state when configmap has malformed data', () => {
@@ -282,5 +350,101 @@ describe('Model catalog cards', () => {
 
     modelCatalog.findModelCatalogCard('rh-model').should('exist');
     modelCatalog.findModelCatalogCard('third-party-model').should('exist');
+  });
+});
+
+describe('Model catalog sources from multiple configmaps', () => {
+  beforeEach(() => {
+    initIntercepts({ disableModelCatalogFeature: false });
+  });
+
+  it('should show models from both managed and unmanaged configmaps', () => {
+    const rhModel = mockRedHatModel({
+      name: 'rh-model',
+      tasks: ['task1'],
+    });
+
+    const thirdPartyModel = mockThirdPartyModel({
+      name: 'third-party-model',
+      tasks: ['task2'],
+    });
+
+    cy.interceptK8s(
+      {
+        model: ConfigMapModel,
+        ns: 'opendatahub',
+        name: 'model-catalog-sources',
+      },
+      mockManagedModelCatalogConfigMap([
+        mockModelCatalogSource({
+          source: 'Red Hat',
+          models: [rhModel],
+        }),
+      ]),
+    );
+
+    cy.interceptK8s(
+      {
+        model: ConfigMapModel,
+        ns: 'opendatahub',
+        name: 'model-catalog-unmanaged-sources',
+      },
+      mockUnmanagedModelCatalogConfigMap([
+        mockModelCatalogSource({
+          source: 'Third-party',
+          models: [thirdPartyModel],
+        }),
+      ]),
+    );
+
+    modelCatalog.visit();
+    modelCatalog.findModelCatalogCards().should('exist');
+
+    cy.findByRole('heading', { level: 2, name: 'Red Hat models' }).should('exist');
+    cy.findByRole('heading', { level: 2, name: 'Third-party models' }).should('exist');
+
+    modelCatalog.findModelCatalogCard('rh-model').should('exist');
+    modelCatalog.findModelCatalogCard('third-party-model').should('exist');
+  });
+
+  it('should show only Red Hat models when unmanaged configmap returns 404', () => {
+    const rhModel = mockRedHatModel({
+      name: 'rh-model',
+      tasks: ['task1'],
+    });
+
+    cy.interceptK8s(
+      {
+        model: ConfigMapModel,
+        ns: 'opendatahub',
+        name: 'model-catalog-sources',
+      },
+      mockManagedModelCatalogConfigMap([
+        mockModelCatalogSource({
+          source: 'Red Hat',
+          models: [rhModel],
+        }),
+      ]),
+    );
+
+    cy.interceptK8s(
+      {
+        model: ConfigMapModel,
+        ns: 'opendatahub',
+        name: 'model-catalog-unmanaged-sources',
+      },
+      mockConfigMap404Response('model-catalog-unmanaged-sources'),
+    );
+
+    modelCatalog.visit();
+    modelCatalog.findModelCatalogCards().should('exist');
+
+    cy.findByRole('heading', { level: 2, name: 'Red Hat models' }).should('exist');
+    cy.findByRole('heading', { level: 2, name: 'Third-party models' }).should('not.exist');
+
+    modelCatalog.findModelCatalogCard('rh-model').should('exist');
+
+    cy.contains('Unable to load model catalog').should('not.exist');
+    modelCatalog.findModelCatalogEmptyState().should('not.exist');
   });
 });
