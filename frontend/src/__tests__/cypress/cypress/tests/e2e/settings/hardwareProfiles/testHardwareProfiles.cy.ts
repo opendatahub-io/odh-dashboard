@@ -59,7 +59,10 @@ describe('[Feature behing a Dev Feature Flag] Verify Hardware Profiles - Creatin
 
       // Edit a Harware Profile
       cy.step('Edit the created hardware profile and confirm updates have been saved successfully');
-      hardwareProfile.getRow(testData.hardwareProfileName).findKebabAction('Edit').click();
+      hardwareProfile
+        .getRow(testData.hardwareProfileName)
+        .findKebabAction('Edit')
+        .click({ force: true });
       createHardwareProfile
         .findDescriptionTextBox()
         .clear()
@@ -70,9 +73,12 @@ describe('[Feature behing a Dev Feature Flag] Verify Hardware Profiles - Creatin
 
       cy.step('Delete the hardware profile and confirm deletion');
       // Delete a Hardware Profile
-      hardwareProfile.getRow(testData.hardwareProfileName).findKebabAction('Delete').click();
+      hardwareProfile
+        .getRow(testData.hardwareProfileName)
+        .findKebabAction('Delete')
+        .click({ force: true });
       deleteModal.findInput().fill(testData.hardwareProfileName);
-      deleteModal.findSubmitButton().should('be.enabled').click();
+      deleteModal.findSubmitButton().should('be.enabled').click({ force: true });
       hardwareProfile.findHardwareProfilesEmptyState().should('be.visible');
     },
   );

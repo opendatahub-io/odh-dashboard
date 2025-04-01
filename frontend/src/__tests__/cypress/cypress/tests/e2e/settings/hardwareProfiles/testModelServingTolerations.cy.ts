@@ -79,7 +79,7 @@ describe('Notebooks - tolerations tests', () => {
       });
   });
 
-  // Cleanup: Delete Hardware Profile and the associated Project
+  //Cleanup: Delete Hardware Profile and the associated Project
   after(() => {
     // Check if the Before Method was executed to perform the setup
     if (!wasSetupPerformed()) return;
@@ -128,7 +128,10 @@ describe('Notebooks - tolerations tests', () => {
       inferenceServiceModal.findServingRuntimeTemplate().click();
       inferenceServiceModal.findCalkitTGISServingRuntime().click();
 
-      inferenceServiceModal.selectProfile(testData.hardwareProfileDeploymentSize);
+      inferenceServiceModal.selectPotentiallyDisabledProfile(
+        testData.hardwareProfileDeploymentSize,
+        testData.hardwareProfileName,
+      );
       inferenceServiceModal.findLocationPathInput().type(modelFilePath);
       inferenceServiceModal.findSubmitButton().click();
 

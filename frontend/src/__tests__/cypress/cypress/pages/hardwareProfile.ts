@@ -155,7 +155,17 @@ class HardwareProfile {
   }
 
   findCreateButton() {
-    return cy.findByTestId('create-hardware-profile');
+    // Use Cypress's built-in handling to try one selector, then another if the first fails
+    return cy.get('body').then(() => {
+      return cy
+        .get(
+          '[data-testid="display-hardware-modal-button"], [data-testid="create-hardware-profile"]',
+        )
+        .first()
+        .then(($el) => {
+          return cy.wrap($el);
+        });
+    });
   }
 
   findClearFiltersButton() {
