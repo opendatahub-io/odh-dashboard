@@ -79,7 +79,9 @@ const FineTunePage: React.FC<FineTunePageProps> = ({
             fieldId="model-customization-projectName"
             isRequired
           >
-            <div>{getDisplayNameFromK8sResource(project)}</div>
+            <div data-testid="data-science-project-name">
+              {getDisplayNameFromK8sResource(project)}
+            </div>
           </FormGroup>
         </FormSection>
         <PipelineDetailsSection

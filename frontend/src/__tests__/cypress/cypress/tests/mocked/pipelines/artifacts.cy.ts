@@ -93,6 +93,18 @@ describe('Artifacts', () => {
       cy.url().should('include', `/artifacts/${projectName}/1`);
     });
 
+    it('it has label Registered for fine tune artifact', () => {
+      artifactsTable.mockGetArtifacts(
+        projectName,
+        mockGetArtifactsResponse(mockedArtifactsResponse),
+      );
+      artifactsGlobal.visit(projectName);
+      artifactsTable
+        .getRowByName('registered model metrics')
+        .findLabel()
+        .should('have.text', 'Registered');
+    });
+
     describe('filters data by', () => {
       beforeEach(() => {
         artifactsTable.mockGetArtifacts(
@@ -101,7 +113,7 @@ describe('Artifacts', () => {
           3,
         );
         artifactsGlobal.visit(projectName);
-        artifactsTable.findRows().should('have.length', 6);
+        artifactsTable.findRows().should('have.length', 7);
       });
 
       it('name', () => {
@@ -118,7 +130,7 @@ describe('Artifacts', () => {
           1,
         );
         artifactsGlobal.findFilterFieldInput().type('metrics');
-        artifactsTable.findRows().should('have.length', 3);
+        artifactsTable.findRows().should('have.length', 4);
         artifactsTable.getRowByName('scalar metrics').find().should('be.visible');
         artifactsTable.getRowByName('confidence metrics').find().should('be.visible');
       });
@@ -194,6 +206,23 @@ describe('Artifacts', () => {
       artifactDetails.findExecutionLink('execution/211');
       artifactDetails.findExecutionLink('execution/211').click();
       verifyRelativeURL('/executions/test-project-name/211');
+    });
+
+    it('Registered models section', () => {
+      artifactDetails.mockGetArtifactById(
+        projectName,
+        mockGetArtifactsById({
+          artifacts: [mockedArtifactsResponse.artifacts[6]],
+          artifactTypes: [],
+        }),
+      );
+      artifactDetails.visit(projectName, 'registered model metrics', '8');
+      artifactDetails
+        .findRegisteredModelSection()
+        .should('have.text', 'model (1) in model-registry registry');
+      artifactDetails
+        .findModelVersionLink()
+        .should('eq', '/modelRegistry/model-registry/registeredModels/1/versions/1');
     });
   });
 

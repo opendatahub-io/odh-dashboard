@@ -91,7 +91,9 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
             variant={EmptyStateVariant.lg}
             data-id="error-empty-state"
           >
-            <EmptyStateBody>{loadError.message}</EmptyStateBody>
+            <EmptyStateBody data-testid="error-empty-state-body">
+              {loadError.message}
+            </EmptyStateBody>
           </EmptyState>
         </PageSection>
       ) : (
