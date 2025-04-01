@@ -623,6 +623,11 @@ declare global {
           response: OdhResponse<GrpcResponse>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetContextsByType`,
+          options: { path: { namespace: string; serviceName: string } },
+          response: OdhResponse<GrpcResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'GET /api/rolebindings/opendatahub/openshift-ai-notebooks-image-pullers',
           response: OdhResponse<K8sResourceListResult<RoleBindingKind>>,
         ) => Cypress.Chainable<null>) &

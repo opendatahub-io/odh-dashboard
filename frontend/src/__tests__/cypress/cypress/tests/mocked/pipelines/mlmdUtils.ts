@@ -10,6 +10,7 @@ import { mockGetExecutionsByID } from '~/__mocks__/mlmd/mockGetExecutionsByID';
 import { GetExecutionsRequest } from '~/__mocks__/third_party/mlmd';
 import { mockGetContextsByExecution } from '~/__mocks__/mlmd/mockGetContextsByExecution';
 import { mockGetContextType } from '~/__mocks__/mlmd/mockGetContextType';
+import { mockGetContextsByType } from '~/__mocks__/mlmd/mockGetContextsByType';
 
 export const initMlmdIntercepts = (
   projectName: string,
@@ -67,6 +68,11 @@ export const initMlmdIntercepts = (
     'POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetEventsByArtifactIDs',
     { path: { namespace: projectName, serviceName: 'dspa' } },
     mockGetEventsByArtifactIDs(),
+  );
+  cy.interceptOdh(
+    'POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetContextsByType',
+    { path: { namespace: projectName, serviceName: 'dspa' } },
+    mockGetContextsByType(),
   );
 };
 
