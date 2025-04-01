@@ -43,6 +43,7 @@ import ModelCustomizationDrawerContent, {
   ModelCustomizationDrawerContentRef,
 } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import useDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 import FineTunePage from './FineTunePage';
 import {
   FineTunePageSections,
@@ -122,6 +123,15 @@ const ModelCustomizationForm: React.FC = () => {
         ...hyperparameterFormData,
       });
 
+      // set default storage class
+      const storageClassDefaultValue = getParamsValueFromPipelineInput(
+        ilabPipelineVersion,
+        KnownFineTuningPipelineParameters.K8S_STORAGE_CLASS_NAME,
+      )?.defaultValue;
+      if (storageClassDefaultValue) {
+        setData('storageClass', storageClassDefaultValue ? String(storageClassDefaultValue) : '');
+      }
+
       // set default training node
       const trainingNodeDefaultValue = getParamsValueFromPipelineInput(
         ilabPipelineVersion,
@@ -139,6 +149,14 @@ const ModelCustomizationForm: React.FC = () => {
       hyperparameters: createHyperParametersSchema(hyperparameters),
     }),
   );
+
+  const [defaultStorageClass] = useDefaultStorageClass();
+  // set default storage class
+  React.useEffect(() => {
+    if (defaultStorageClass) {
+      setData('storageClass', defaultStorageClass.metadata.name);
+    }
+  }, [defaultStorageClass, setData]);
 
   const navigate = useNavigate();
 
