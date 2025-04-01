@@ -18,12 +18,18 @@ const checkAccess = (ns: string): Promise<SelfSubjectRulesReviewKind> => {
 };
 
 export const useRulesReview = (
-  namespace: string,
+  namespace: string | undefined,
 ): [SelfSubjectRulesReviewKind['status'], boolean, () => void] => {
   const [loaded, setLoaded] = React.useState(false);
   const [status, setStatus] = React.useState<SelfSubjectRulesReviewKind['status']>(undefined);
 
   const refreshRulesReview = React.useCallback(() => {
+    // If namespace is undefined, mark as loaded but don't make the API call
+    if (!namespace) {
+      setLoaded(true);
+      return;
+    }
+
     setLoaded(false);
     checkAccess(namespace)
       .then((result) => {
