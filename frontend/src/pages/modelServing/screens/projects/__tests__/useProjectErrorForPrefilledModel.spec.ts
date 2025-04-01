@@ -5,7 +5,7 @@ import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import { useAccessReview } from '~/api';
 import { useAppContext } from '~/app/AppContext';
 import { ServingRuntimeKind } from '~/k8sTypes';
-import useProjectErrorForRegisteredModel from '~/pages/modelRegistry/screens/RegisteredModels/useProjectErrorForRegisteredModel';
+import useProjectErrorForPrefilledModel from '~/pages/modelServing/screens/projects/useProjectErrorForPrefilledModel';
 import { ServingRuntimePlatform } from '~/types';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
@@ -32,7 +32,7 @@ const useAppContextMock = jest.mocked(useAppContext);
 const k8sListResourceMock = jest.mocked(k8sListResource<ServingRuntimeKind>);
 const useAccessReviewMock = jest.mocked(useAccessReview);
 
-describe('useProjectErrorForRegisteredModel', () => {
+describe('useProjectErrorForPrefilledModel', () => {
   beforeEach(() => {
     useAppContextMock.mockReturnValue({
       buildStatuses: [],
@@ -44,7 +44,7 @@ describe('useProjectErrorForRegisteredModel', () => {
   });
   it('should return undefined when the project is not selected', async () => {
     k8sListResourceMock.mockResolvedValue(mockK8sResourceList([]));
-    const renderResult = testHook(useProjectErrorForRegisteredModel)(undefined, undefined);
+    const renderResult = testHook(useProjectErrorForPrefilledModel)(undefined, undefined);
     // wait for update
     await renderResult.waitForNextUpdate();
     expect(renderResult).hookToStrictEqual({ loaded: true, error: undefined });
@@ -52,7 +52,7 @@ describe('useProjectErrorForRegisteredModel', () => {
 
   it('should return undefined when only kServe is supported', async () => {
     k8sListResourceMock.mockResolvedValue(mockK8sResourceList([]));
-    const renderResult = testHook(useProjectErrorForRegisteredModel)(
+    const renderResult = testHook(useProjectErrorForPrefilledModel)(
       'test-project',
       ServingRuntimePlatform.SINGLE,
     );
@@ -63,7 +63,7 @@ describe('useProjectErrorForRegisteredModel', () => {
 
   it('should return undefined when only modelMesh is supported with server deployed', async () => {
     k8sListResourceMock.mockResolvedValue(mockK8sResourceList([mockServingRuntimeK8sResource({})]));
-    const renderResult = testHook(useProjectErrorForRegisteredModel)(
+    const renderResult = testHook(useProjectErrorForPrefilledModel)(
       'test-project',
       ServingRuntimePlatform.MULTI,
     );
@@ -74,7 +74,7 @@ describe('useProjectErrorForRegisteredModel', () => {
 
   it('should return error when only modelMesh is supported with no server deployed', async () => {
     k8sListResourceMock.mockResolvedValue(mockK8sResourceList([]));
-    const renderResult = testHook(useProjectErrorForRegisteredModel)(
+    const renderResult = testHook(useProjectErrorForPrefilledModel)(
       'test-project',
       ServingRuntimePlatform.MULTI,
     );
@@ -88,7 +88,7 @@ describe('useProjectErrorForRegisteredModel', () => {
 
   it('should return error when platform is not selected', async () => {
     k8sListResourceMock.mockResolvedValue(mockK8sResourceList([]));
-    const renderResult = testHook(useProjectErrorForRegisteredModel)('test-project', undefined);
+    const renderResult = testHook(useProjectErrorForPrefilledModel)('test-project', undefined);
     // wait for update
     await renderResult.waitForNextUpdate();
     expect(renderResult).hookToStrictEqual({

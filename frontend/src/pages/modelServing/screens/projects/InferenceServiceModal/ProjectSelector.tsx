@@ -11,9 +11,7 @@ type ProjectSelectorProps = {
   selectedProject: ProjectKind | null;
   setSelectedProject: (project: ProjectKind | null) => void;
   error?: Error;
-  modelRegistryName?: string;
-  registeredModelId?: string;
-  modelVersionId?: string;
+  projectLinkExtraUrlParams?: Record<string, string | undefined>;
   isOciModel?: boolean;
 };
 
@@ -21,9 +19,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   selectedProject,
   setSelectedProject,
   error,
-  modelRegistryName,
-  registeredModelId,
-  modelVersionId,
+  projectLinkExtraUrlParams,
   isOciModel,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
@@ -35,10 +31,12 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
 
   const projectLinkUrlParams = new URLSearchParams();
   projectLinkUrlParams.set('section', ProjectSectionID.MODEL_SERVER);
-  if (modelRegistryName && registeredModelId && modelVersionId) {
-    projectLinkUrlParams.set('modelRegistryName', modelRegistryName);
-    projectLinkUrlParams.set('registeredModelId', registeredModelId);
-    projectLinkUrlParams.set('modelVersionId', modelVersionId);
+  if (projectLinkExtraUrlParams) {
+    Object.entries(projectLinkExtraUrlParams).forEach(([key, value]) => {
+      if (value) {
+        projectLinkUrlParams.set(key, value);
+      }
+    });
   }
 
   return (
