@@ -1,0 +1,10 @@
+- Common Model Serving items
+- Has no explicit Model Serving dependencies
+- Provides a common UX / Conceptual foundation
+- Is Serving Type Agnostic
+- Good usage:
+    - Common Components
+    - Common Hooks / Utilities
+- Bad usage:
+    - Contexts
+    - Decided factors on how to show serving type components

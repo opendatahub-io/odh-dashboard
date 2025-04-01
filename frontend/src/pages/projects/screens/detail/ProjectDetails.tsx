@@ -8,7 +8,6 @@ import ProjectSharing from '~/pages/projects/projectSharing/ProjectSharing';
 import ProjectSettingsPage from '~/pages/projects/projectSettings/ProjectSettingsPage';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
-import ModelServingPlatform from '~/pages/modelServing/screens/projects/ModelServingPlatform';
 import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { AccessReviewResourceAttributes } from '~/k8sTypes';
@@ -16,6 +15,9 @@ import { useAccessReview } from '~/api';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import HeaderIcon from '~/concepts/design/HeaderIcon';
+import ModelServingContextProvider from '~/concepts/modelServing/foundation/ModelServingContext';
+import ModelServingProjectTab from '~/concepts/modelServing/foundation/ModelServingProjectTab';
+import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
 import useCheckLogoutParams from './useCheckLogoutParams';
 import ProjectOverview from './overview/ProjectOverview';
 import NotebookList from './notebooks/NotebookList';
@@ -23,7 +25,6 @@ import StorageList from './storage/StorageList';
 import ConnectionsList from './connections/ConnectionsList';
 import PipelinesSection from './pipelines/PipelinesSection';
 import ProjectActions from './ProjectActions';
-
 import './ProjectDetails.scss';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
@@ -111,7 +112,13 @@ const ProjectDetails: React.FC = () => {
                   {
                     id: ProjectSectionID.MODEL_SERVER,
                     title: 'Models',
-                    component: <ModelServingPlatform />,
+                    component: (
+                      <ModelServingContextProvider project={currentProject}>
+                        <ModelServingProjectTab
+                          pageTitle={ProjectSectionTitles[ProjectSectionID.MODEL_SERVER]}
+                        />
+                      </ModelServingContextProvider>
+                    ),
                   },
                 ]
               : []),
