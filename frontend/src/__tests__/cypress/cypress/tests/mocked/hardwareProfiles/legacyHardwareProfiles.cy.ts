@@ -526,8 +526,8 @@ describe('legacy profiles table', () => {
       legacyHardwareProfile.visit();
       legacyHardwareProfile.findExpandButton().click();
 
-      legacyHardwareProfile.getCell(0, 2).should('have.text', 'Accelerator profile');
-      legacyHardwareProfile.getCell(1, 2).should('have.text', 'Accelerator profile');
+      legacyHardwareProfile.getCell(0, 4).should('have.text', 'Accelerator profile');
+      legacyHardwareProfile.getCell(1, 4).should('have.text', 'Accelerator profile');
     });
   });
 
@@ -707,7 +707,7 @@ describe('legacy profiles table', () => {
       legacyHardwareProfile.visit();
       legacyHardwareProfile.findExpandButton().click();
 
-      legacyHardwareProfile.getCell(0, 2).should('have.text', 'Workbench container size');
+      legacyHardwareProfile.getCell(0, 4).should('have.text', 'Workbench container size');
     });
   });
 
@@ -885,7 +885,7 @@ describe('legacy profiles table', () => {
       legacyHardwareProfile.visit();
       legacyHardwareProfile.findExpandButton().click();
 
-      legacyHardwareProfile.getCell(0, 2).should('have.text', 'Model serving container size');
+      legacyHardwareProfile.getCell(0, 4).should('have.text', 'Model serving container size');
     });
   });
 });
