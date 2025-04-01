@@ -22,7 +22,7 @@ import { useMlmdContextsByType } from '~/concepts/pipelines/apiHooks/mlmd/useMlm
 
 export const CompareRunMetricsSection: React.FunctionComponent = () => {
   const { runs, selectedRuns } = useCompareRuns();
-  const [contexts, contextLoaded] = useMlmdContextsByType(MlmdContextTypes.RUN);
+  const [contexts, contextsLoaded] = useMlmdContextsByType(MlmdContextTypes.RUN);
   const [mlmdPackages, mlmdPackagesLoaded] = useMlmdPackagesForPipelineRuns(runs, contexts);
   const [artifactTypes, artifactTypesLoaded] = useGetArtifactTypes();
   const [isSectionOpen, setIsSectionOpen] = React.useState(true);
@@ -35,7 +35,7 @@ export const CompareRunMetricsSection: React.FunctionComponent = () => {
     [mlmdPackages],
   );
 
-  const isLoaded = mlmdPackagesLoaded && contextLoaded && artifactTypesLoaded;
+  const isLoaded = mlmdPackagesLoaded && contextsLoaded && artifactTypesLoaded;
 
   const [markdownArtifacts, ...allArtifacts] = React.useMemo(() => {
     if (!isLoaded) {
