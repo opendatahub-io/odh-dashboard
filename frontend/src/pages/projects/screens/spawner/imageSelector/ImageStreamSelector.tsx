@@ -191,7 +191,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
       label="Image selection"
       fieldId="workbench-image-stream-selection"
       labelHelp={
-        isProjectScopedAvailable ? (
+        isProjectScopedAvailable && currentProjectStreams && currentProjectStreams.length > 0 ? (
           <ProjectScopedPopover title="Workbench image" item="images" />
         ) : (
           <></>
@@ -210,8 +210,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
               <Flex>
                 {getImageStreamDisplayName(selectedImageStream)}
                 <FlexItem>
-                  {currentProjectStreams.includes(selectedImageStream) &&
-                  selectedImageStream.metadata.namespace === currentProject ? (
+                  {selectedImageStream.metadata.namespace === currentProject ? (
                     <Label
                       isCompact
                       variant="outline"

@@ -601,7 +601,7 @@ describe('Workbench page', () => {
     });
     workbenchPage.visit('test-project');
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
-    notebookRow.shouldHaveNotebookImageName('Test ImagePython v3.8');
+    notebookRow.shouldHaveNotebookImageName('Test Image');
     notebookRow.shouldHaveContainerSize('Small');
     notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
     notebookRow.findNotebookRouteLink().should('have.attr', 'aria-disabled', 'false');
@@ -990,7 +990,7 @@ describe('Workbench page', () => {
     });
     workbenchPage.visit('test-project');
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
-    notebookRow.shouldHaveNotebookImageName('Test ImagePython v3.8');
+    notebookRow.shouldHaveNotebookImageName('Test Image');
     notebookRow.shouldHaveContainerSize('Custom');
     notebookRow.findKebabAction('Edit workbench').click();
     editSpawnerPage.shouldHaveContainerSizeInput('Keep custom size');

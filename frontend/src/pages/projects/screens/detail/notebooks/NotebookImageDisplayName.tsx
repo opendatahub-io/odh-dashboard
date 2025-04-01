@@ -15,6 +15,7 @@ import {
 import React from 'react';
 import { ExclamationCircleIcon, InfoCircleIcon } from '@patternfly/react-icons';
 import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { NotebookImageAvailability } from './const';
 import { NotebookImage } from './types';
 
@@ -33,6 +34,7 @@ export const NotebookImageDisplayName = ({
   loadError,
   isExpanded,
 }: NotebookImageDisplayNameProps): React.JSX.Element => {
+  const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
   // if there was an error loading the image, display unknown WITHOUT a label
   if (loadError) {
     return (
@@ -117,10 +119,10 @@ export const NotebookImageDisplayName = ({
   if (notebookImage.imageAvailability === NotebookImageAvailability.ENABLED) {
     return (
       <>
-        <Flex>
-          <FlexItem>{notebookImage.imageDisplayName}</FlexItem>
-          <FlexItem>
-            {isImageStreamProjectScoped && (
+        <HelperText style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <HelperTextItem>{notebookImage.imageDisplayName}</HelperTextItem>
+          {isProjectScopedAvailable && isImageStreamProjectScoped && (
+            <HelperTextItem>
               <Label
                 isCompact
                 variant="outline"
@@ -135,9 +137,9 @@ export const NotebookImageDisplayName = ({
               >
                 Project-scoped
               </Label>
-            )}
-          </FlexItem>
-        </Flex>
+            </HelperTextItem>
+          )}
+        </HelperText>
         {isExpanded && (
           <Content component={ContentVariants.small}>{notebookImage.tagSoftware}</Content>
         )}
