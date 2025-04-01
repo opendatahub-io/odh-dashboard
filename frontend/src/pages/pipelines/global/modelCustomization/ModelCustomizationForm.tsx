@@ -123,15 +123,6 @@ const ModelCustomizationForm: React.FC = () => {
         ...hyperparameterFormData,
       });
 
-      // set default storage class
-      const storageClassDefaultValue = getParamsValueFromPipelineInput(
-        ilabPipelineVersion,
-        KnownFineTuningPipelineParameters.K8S_STORAGE_CLASS_NAME,
-      )?.defaultValue;
-      if (storageClassDefaultValue) {
-        setData('storageClass', storageClassDefaultValue ? String(storageClassDefaultValue) : '');
-      }
-
       // set default training node
       const trainingNodeDefaultValue = getParamsValueFromPipelineInput(
         ilabPipelineVersion,
@@ -150,13 +141,35 @@ const ModelCustomizationForm: React.FC = () => {
     }),
   );
 
-  const [defaultStorageClass] = useDefaultStorageClass();
+  const [defaultStorageClass, defaultStorageClassLoaded, defaultStorageClassError] =
+    useDefaultStorageClass();
   // set default storage class
   React.useEffect(() => {
+    //  not ready if ilabPipelineVersion is not loaded or defaultStorageClass is not loaded or had an error
+    if (!ilabPipelineVersion || !(defaultStorageClassLoaded || defaultStorageClassError)) {
+      return;
+    }
+
+    // if defaultStorageClass is not null, use it
     if (defaultStorageClass) {
       setData('storageClass', defaultStorageClass.metadata.name);
+    } else {
+      // if defaultStorageClass is null, use the default value from the pipeline input
+      const storageClassDefaultValue = getParamsValueFromPipelineInput(
+        ilabPipelineVersion,
+        KnownFineTuningPipelineParameters.K8S_STORAGE_CLASS_NAME,
+      )?.defaultValue;
+      if (storageClassDefaultValue) {
+        setData('storageClass', String(storageClassDefaultValue));
+      }
     }
-  }, [defaultStorageClass, setData]);
+  }, [
+    defaultStorageClass,
+    defaultStorageClassError,
+    defaultStorageClassLoaded,
+    ilabPipelineVersion,
+    setData,
+  ]);
 
   const navigate = useNavigate();
 
