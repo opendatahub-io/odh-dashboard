@@ -4,6 +4,7 @@ import * as monaco from 'monaco-editor';
 import { loader } from '@monaco-editor/react';
 
 import './DashboardCodeEditor.scss';
+import { useThemeContext } from '~/app/ThemeContext';
 
 loader.config({ monaco });
 
@@ -18,10 +19,18 @@ const DashboardCodeEditor: React.FC<Partial<DashboardCodeEditorProps>> = ({
   height = 'calc(100% - 38px)',
   codeEditorHeight = '400px',
   ...props
-}) => (
-  <div data-testid={props.testId} style={{ height, padding: '14px' }}>
-    <CodeEditor height={codeEditorHeight} className="odh-dashboard__code-editor" {...props} />
-  </div>
-);
+}) => {
+  const { theme } = useThemeContext();
+  return (
+    <div data-testid={props.testId} style={{ height, padding: '14px' }}>
+      <CodeEditor
+        height={codeEditorHeight}
+        className="odh-dashboard__code-editor"
+        isDarkTheme={theme === 'dark'}
+        {...props}
+      />
+    </div>
+  );
+};
 
 export default DashboardCodeEditor;
