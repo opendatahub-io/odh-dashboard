@@ -19,6 +19,7 @@ import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
 
 type ServingRuntimeSizeSectionProps = {
   podSpecOptionState: ModelServingPodSpecOptionsState;
+  projectName?: string;
   servingRuntimeSelected?: ServingRuntimeKind;
   infoContent?: string;
   isEditing?: boolean;
@@ -27,6 +28,7 @@ type ServingRuntimeSizeSectionProps = {
 
 const ServingRuntimeSizeSection = ({
   podSpecOptionState,
+  projectName,
   servingRuntimeSelected,
   infoContent,
   isEditing = false,
@@ -83,6 +85,7 @@ const ServingRuntimeSizeSection = ({
     <>
       {isHardwareProfileEnabled ? (
         <HardwareProfileFormSection
+          project={projectName}
           podSpecOptionsState={podSpecOptionState}
           isEditing={isEditing}
           isHardwareProfileSupported={isHardwareProfileSupported}

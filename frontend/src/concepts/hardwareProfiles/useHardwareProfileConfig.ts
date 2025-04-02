@@ -104,14 +104,26 @@ export const useHardwareProfileConfig = (
   tolerations?: Toleration[],
   nodeSelector?: NodeSelector,
   visibleIn?: HardwareProfileFeatureVisibility[],
+  namespace?: string,
 ): UseHardwareProfileConfigResult => {
-  const [profiles, profilesLoaded, profilesLoadError] =
+  const [dashboardProfiles, dashboardProfilesLoaded, dashboardProfilesLoadError] =
     useHardwareProfilesByFeatureVisibility(visibleIn);
+  const [projectScopedProfiles, projectScopedProfilesLoaded, projectScopedProfilesLoadError] =
+    useHardwareProfilesByFeatureVisibility(visibleIn, namespace);
   const initialHardwareProfile = useRef<HardwareProfileKind | undefined>(undefined);
   const [formData, setFormData, resetFormData] = useGenericObjectState<HardwareProfileConfig>({
     selectedProfile: undefined,
     useExistingSettings: false,
   });
+
+  let profiles = dashboardProfiles;
+  let profilesLoaded = dashboardProfilesLoaded;
+  let profilesLoadError = dashboardProfilesLoadError;
+  if (namespace) {
+    profiles = [...dashboardProfiles, ...projectScopedProfiles];
+    profilesLoaded = dashboardProfilesLoaded && projectScopedProfilesLoaded;
+    profilesLoadError = dashboardProfilesLoadError || projectScopedProfilesLoadError;
+  }
 
   const hardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
   const isFormDataValid = React.useMemo(

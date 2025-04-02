@@ -136,3 +136,41 @@ export const formatResourceValue = (
       return v;
   }
 };
+
+export const getProfileScore = (profile: HardwareProfileKind): number => {
+  const { identifiers } = profile.spec;
+  if (!identifiers?.length) {
+    return 0;
+  }
+
+  // Check if profile has any unlimited resources (no maxValue)
+  const hasUnlimitedResources = identifiers.some((identifier) => !identifier.maxCount);
+  // Profiles with unlimited resources should sort towards bottom
+  if (hasUnlimitedResources) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+
+  let score = 0;
+
+  // Add up normalized scores for each identifier
+  identifiers.forEach((identifier) => {
+    const maxValue = identifier.maxCount;
+    if (!maxValue) {
+      return;
+    }
+
+    if (identifier.resourceType === IdentifierResourceType.CPU) {
+      // Convert CPU to smallest unit for comparison
+      const [value, unit] = splitValueUnit(maxValue.toString(), CPU_UNITS);
+      score += (value ?? 0) * unit.weight;
+    } else if (identifier.resourceType === IdentifierResourceType.MEMORY) {
+      // Convert memory to smallest unit for comparison
+      const [value, unit] = splitValueUnit(maxValue.toString(), MEMORY_UNITS_FOR_PARSING);
+      score += (value ?? 0) * unit.weight;
+    } else {
+      score += Number(maxValue);
+    }
+  });
+
+  return score;
+};

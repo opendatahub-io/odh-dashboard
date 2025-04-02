@@ -1,12 +1,27 @@
 import type { ContainerResources } from '~/types';
+import { Contextual } from './Contextual';
+
+class HardwareProfileGroup extends Contextual<HTMLElement> {}
 
 export class HardwareProfileSection {
   findSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('hardware-profile-select');
   }
 
+  findHardwareProfileSearchSelector(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('hardware-profile-selection-toggle');
+  }
+
   findDetails(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('hardware-profile-details');
+  }
+
+  findProjectScopedLabel(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('project-scoped-label');
+  }
+
+  findGlobalScopedLabel(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('global-scoped-label');
   }
 
   findDetailsPopover(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -44,6 +59,14 @@ export class HardwareProfileSection {
         cy.findByRole('option', { name: profileDisplayName }).click();
       }
     });
+  }
+
+  getProjectScopedHardwareProfile(): Contextual<HTMLElement> {
+    return new HardwareProfileGroup(() => cy.findByTestId('project-scoped-hardware-profiles'));
+  }
+
+  getGlobalScopedHardwareProfile(): Contextual<HTMLElement> {
+    return new HardwareProfileGroup(() => cy.findByTestId('global-scoped-hardware-profiles'));
   }
 
   verifyProfileDetails(resources: ContainerResources): void {
