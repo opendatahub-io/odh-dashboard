@@ -25,6 +25,7 @@ spec:
     disableKServe: false
     disableKServeAuth: false
     disableKServeMetrics: false
+    disableKServeRaw: false
     disableModelMesh: false
     disableDistributedWorkloads: false
     disableModelRegistry: false
