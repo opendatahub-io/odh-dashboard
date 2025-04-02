@@ -79,7 +79,7 @@ describe('[Feature behing a Dev Feature Flag] Verify Hardware Profiles - Creatin
         .click({ force: true });
       deleteModal.findInput().fill(testData.hardwareProfileName);
       deleteModal.findSubmitButton().should('be.enabled').click({ force: true });
-      cy.get('body').should('not.contain', testData.hardwareProfileName);
+      row.findDescription().should('not.contain', testData.hardwareProfileName);
     },
   );
 });
