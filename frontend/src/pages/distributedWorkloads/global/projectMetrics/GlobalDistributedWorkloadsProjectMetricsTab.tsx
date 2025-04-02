@@ -22,7 +22,7 @@ const GlobalDistributedWorkloadsProjectMetricsTab: React.FC = () => (
     </StackItem>
     <StackItem data-testid="dw-top-consuming-workloads">
       <DWSectionCard
-        title="Top FIVE resource-consuming distributed workloads"
+        title="Top 5 resource-consuming distributed workloads"
         content={<TopResourceConsumingWorkloads />}
       />
     </StackItem>

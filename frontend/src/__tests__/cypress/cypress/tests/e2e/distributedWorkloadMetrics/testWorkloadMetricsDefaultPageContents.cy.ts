@@ -98,7 +98,7 @@ describe('Verify Workload Metrics Default page Contents', () => {
         .should('equal', `Total shared quota: ${testData.memoryQuota} GiB`);
       cy.findByTestId('dw-top-consuming-workloads')
         .should('be.visible')
-        .and('contain', 'Top FIVE resource-consuming distributed workloads')
+        .and('contain', 'Top 5 resource-consuming distributed workloads')
         .and('contain', 'No distributed workloads')
         .and(
           'contain',
