@@ -1,4 +1,5 @@
 import {
+  PipelineVersionToUse,
   RunDateTime,
   RunFormData,
   RunTypeOption,
@@ -35,7 +36,10 @@ const createRun = async (
     description: formData.nameDesc.description,
     pipeline_version_reference: {
       pipeline_id: formData.pipeline.pipeline_id || '',
-      pipeline_version_id: formData.version?.pipeline_version_id || '',
+      pipeline_version_id:
+        formData.versionToUse === PipelineVersionToUse.SPECIFIC
+          ? formData.version?.pipeline_version_id
+          : undefined,
     },
     runtime_config: {
       parameters: normalizeInputParams(formData.params, formData.version),
@@ -75,7 +79,10 @@ const createRecurringRun = async (
     description: formData.nameDesc.description,
     pipeline_version_reference: {
       pipeline_id: formData.pipeline.pipeline_id || '',
-      pipeline_version_id: formData.version?.pipeline_version_id || '',
+      pipeline_version_id:
+        formData.versionToUse === PipelineVersionToUse.SPECIFIC
+          ? formData.version?.pipeline_version_id
+          : undefined,
     },
     runtime_config: {
       parameters: normalizeInputParams(formData.params, formData.version),

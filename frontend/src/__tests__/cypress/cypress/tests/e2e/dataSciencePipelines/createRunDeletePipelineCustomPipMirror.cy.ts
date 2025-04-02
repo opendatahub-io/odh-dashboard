@@ -92,6 +92,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
           createRunPage.fillName(testRunName);
           createRunPage.fillDescription('Run Description');
           createRunPage.pipelineSelect.openAndSelectItem(testPipelineIrisName);
+          createRunPage.findUseFixedVersionRadio().click();
           createRunPage.pipelineVersionSelect.openAndSelectItem(testPipelineIrisName);
           createRunPage.findSubmitButton().click();
 

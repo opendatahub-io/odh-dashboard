@@ -1,7 +1,11 @@
 import * as React from 'react';
 import { Form, FormSection } from '@patternfly/react-core';
 import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
-import { RunFormData, RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
+import {
+  PipelineVersionToUse,
+  RunFormData,
+  RunTypeOption,
+} from '~/concepts/pipelines/content/createRun/types';
 import { ValueOf } from '~/typeHelpers';
 import { ParamsSection } from '~/concepts/pipelines/content/createRun/contentSections/ParamsSection';
 import RunTypeSectionScheduled from '~/concepts/pipelines/content/createRun/contentSections/RunTypeSectionScheduled';
@@ -13,7 +17,7 @@ import {
 } from '~/concepts/pipelines/kfTypes';
 import ProjectAndExperimentSection from '~/concepts/pipelines/content/createRun/contentSections/ProjectAndExperimentSection';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { useLatestPipelineVersion } from '~/concepts/pipelines/apiHooks/useLatestPipelineVersion';
+import usePipelineVersionsForPipeline from '~/concepts/pipelines/apiHooks/usePipelineVersionsForPipeline';
 import { getNameEqualsFilter } from '~/concepts/pipelines/utils';
 import { DuplicateNameHelperText } from '~/concepts/pipelines/content/DuplicateNameHelperText';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
@@ -36,7 +40,18 @@ type RunFormProps = {
 
 const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) => {
   const { api } = usePipelinesAPI();
-  const [latestVersion] = useLatestPipelineVersion(data.pipeline?.pipeline_id);
+
+  const [{ items }, versionsLoaded] = usePipelineVersionsForPipeline(data.pipeline?.pipeline_id, {
+    pageSize: 1,
+    sortField: 'created_at',
+    sortDirection: 'desc',
+  });
+
+  const latestVersion = React.useMemo(
+    () => items.find((item) => !isArgoWorkflow(item.pipeline_spec)) ?? null,
+    [items],
+  );
+
   // Use this state to avoid the pipeline version being set as the latest version at the initial load
   const [initialLoadedState, setInitialLoadedState] = React.useState(true);
   const selectedVersion = React.useMemo(() => {
@@ -98,6 +113,7 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) 
   React.useEffect(() => {
     if (!initialLoadedState && latestVersion) {
       onValueChange('version', latestVersion);
+      onValueChange('versionToUse', PipelineVersionToUse.LATEST);
       updateInputParams(latestVersion);
     }
   }, [initialLoadedState, latestVersion, onValueChange, updateInputParams]);
@@ -146,7 +162,10 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) 
 
       <PipelineSection
         pipeline={data.pipeline}
-        version={selectedVersion}
+        selectedVersion={selectedVersion}
+        latestVersion={latestVersion}
+        latestVersionLoaded={versionsLoaded}
+        versionToUse={data.versionToUse}
         onValueChange={onValueChange}
         updateInputParams={updateInputParams}
         setInitialLoadedState={setInitialLoadedState}

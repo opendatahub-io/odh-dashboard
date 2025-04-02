@@ -2,6 +2,7 @@ import * as React from 'react';
 import useGenericObjectState, { GenericObjectState } from '~/utilities/useGenericObjectState';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import {
+  PipelineVersionToUse,
   RunDateTime,
   RunFormData,
   RunType,
@@ -137,6 +138,7 @@ const useUpdateDuplicateData = (
     setFunction('experiment', duplicateExperiment);
     setFunction('pipeline', duplicateRunPipeline);
     setFunction('version', duplicateRunPipelineVersion);
+    setFunction('versionToUse', PipelineVersionToUse.SPECIFIC);
   }, [
     setFunction,
     initialData,
@@ -151,13 +153,14 @@ const useRunFormData = (
   initialFormData?: Partial<RunFormData>,
 ): GenericObjectState<RunFormData> => {
   const { project } = usePipelinesAPI();
-  const { pipeline, version, experiment, nameDesc } = initialFormData || {};
+  const { pipeline, version, experiment, nameDesc, versionToUse } = initialFormData || {};
 
   const formState = useGenericObjectState<RunFormData>(() => ({
     project,
     nameDesc: nameDesc ?? { name: '', description: '' },
     pipeline: pipeline ?? null,
     version: version ?? null,
+    versionToUse: versionToUse ?? PipelineVersionToUse.LATEST,
     experiment: experiment ?? null,
     runType: { type: RunTypeOption.ONE_TRIGGER },
     params:

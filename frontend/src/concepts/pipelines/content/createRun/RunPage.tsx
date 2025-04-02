@@ -12,6 +12,7 @@ import RunForm from '~/concepts/pipelines/content/createRun/RunForm';
 import useRunFormData from '~/concepts/pipelines/content/createRun/useRunFormData';
 import RunPageFooter from '~/concepts/pipelines/content/createRun/RunPageFooter';
 import {
+  PipelineVersionToUse,
   RunFormData,
   RunType,
   RunTypeOption,
@@ -40,8 +41,11 @@ const RunPage: React.FC<RunPageProps> = ({
 }) => {
   const location = useLocation();
   // the data passed in when creating a run from a pipeline version
-  const { pipeline: contextPipeline, version: contextPipelineVersion } =
-    location.state?.contextData || {};
+  const {
+    pipeline: contextPipeline,
+    version: contextPipelineVersion,
+    versionToUse: contextVersionToUse,
+  } = location.state?.contextData || {};
   // the data passed in when switching between runs and schedules
   const {
     nameDesc: locationNameDesc,
@@ -79,6 +83,15 @@ const RunPage: React.FC<RunPageProps> = ({
     [isSchedule, triggerType],
   );
 
+  const versionToUseData = React.useMemo<PipelineVersionToUse>(() => {
+    if (Object.values(PipelineVersionToUse).includes(contextVersionToUse)) {
+      return contextVersionToUse;
+    }
+    return locationVersion || contextPipelineVersion
+      ? PipelineVersionToUse.SPECIFIC
+      : PipelineVersionToUse.LATEST;
+  }, [contextVersionToUse, locationVersion, contextPipelineVersion]);
+
   const [formData, setFormDataValue] = useRunFormData(duplicateRun, {
     nameDesc: duplicateRun
       ? {
@@ -89,6 +102,7 @@ const RunPage: React.FC<RunPageProps> = ({
     runType: runTypeData,
     pipeline: locationPipeline || contextPipeline,
     version: locationVersion || contextPipelineVersion,
+    versionToUse: versionToUseData,
     experiment: locationExperiment || contextExperiment || defaultExperiment,
   });
 

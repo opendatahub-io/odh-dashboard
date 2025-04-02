@@ -10,20 +10,26 @@ import {
 import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import PipelineSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineSelector';
 import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipelineButton';
-import PipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
 import RunForm from '~/concepts/pipelines/content/createRun/RunForm';
-import ImportPipelineVersionButton from '~/concepts/pipelines/content/import/ImportPipelineVersionButton';
+import { PipelineVersionToUse } from '~/concepts/pipelines/content/createRun/types';
+import PipelineVersionRadioGroup from '~/concepts/pipelines/content/createRun/contentSections/PipelineVersionRadioGroup';
 
 type PipelineSectionProps = Pick<React.ComponentProps<typeof RunForm>, 'onValueChange'> & {
   pipeline: PipelineKF | null;
-  version: PipelineVersionKF | null;
+  selectedVersion: PipelineVersionKF | null;
+  latestVersion: PipelineVersionKF | null;
+  latestVersionLoaded: boolean;
+  versionToUse: PipelineVersionToUse;
   updateInputParams: (version: PipelineVersionKF | undefined) => void;
   setInitialLoadedState: (isInitial: boolean) => void;
 };
 
 const PipelineSection: React.FC<PipelineSectionProps> = ({
   pipeline,
-  version,
+  selectedVersion,
+  latestVersion,
+  latestVersionLoaded,
+  versionToUse,
   onValueChange,
   updateInputParams,
   setInitialLoadedState,
@@ -32,15 +38,17 @@ const PipelineSection: React.FC<PipelineSectionProps> = ({
     (value: PipelineKF) => {
       onValueChange('pipeline', value);
       onValueChange('version', undefined);
+      onValueChange('versionToUse', PipelineVersionToUse.LATEST);
       setInitialLoadedState(false);
     },
     [onValueChange, setInitialLoadedState],
   );
 
   const onVersionChange = React.useCallback(
-    (value: PipelineVersionKF) => {
-      onValueChange('version', value);
-      updateInputParams(value);
+    (args: { value: PipelineVersionKF; versionToUse: PipelineVersionToUse }) => {
+      onValueChange('version', args.value);
+      onValueChange('versionToUse', args.versionToUse);
+      updateInputParams(args.value);
     },
     [onValueChange, updateInputParams],
   );
@@ -69,24 +77,14 @@ const PipelineSection: React.FC<PipelineSectionProps> = ({
       </FormGroup>
 
       <FormGroup label="Pipeline version" isRequired>
-        <Stack hasGutter>
-          <StackItem>
-            <PipelineVersionSelector
-              selection={version?.display_name}
-              pipelineId={pipeline?.pipeline_id}
-              onSelect={onVersionChange}
-              isCreatePage
-            />
-          </StackItem>
-          <StackItem>
-            <ImportPipelineVersionButton
-              selectedPipeline={pipeline}
-              variant="link"
-              icon={<PlusCircleIcon />}
-              onCreate={onVersionChange}
-            />
-          </StackItem>
-        </Stack>
+        <PipelineVersionRadioGroup
+          pipeline={pipeline}
+          selectedVersion={selectedVersion}
+          latestVersion={latestVersion}
+          latestVersionLoaded={latestVersionLoaded}
+          versionToUse={versionToUse}
+          onVersionChange={onVersionChange}
+        />
       </FormGroup>
     </FormSection>
   );
