@@ -4,6 +4,8 @@ import { ArtifactType, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import { getArtifactProperties } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
 import { ArtifactProperty } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/types';
 import { RunWithMetrics } from '~/concepts/pipelines/content/tables/pipelineRun/types';
+import { useMlmdContextsByType } from '~/concepts/pipelines/apiHooks/mlmd/useMlmdContextsByType';
+import { MlmdContextTypes } from '~/concepts/pipelines/apiHooks/mlmd/types';
 import { getMetricsColumnsLocalStorageKey } from './utils';
 
 export const useMetricColumnNames = (
@@ -52,10 +54,15 @@ export const useMetricColumns = (
   runs: RunWithMetrics[];
   metricsColumnNames: string[];
   runArtifactsLoaded: boolean;
+  contextsError: Error | undefined;
   runArtifactsError: Error | undefined;
   metricsNames: Set<string>;
 } => {
-  const [runArtifacts, runArtifactsLoaded, runArtifactsError] = useGetArtifactsByRuns(runs);
+  const [contexts, , contextsError] = useMlmdContextsByType(MlmdContextTypes.RUN);
+  const [runArtifacts, runArtifactsLoaded, runArtifactsError] = useGetArtifactsByRuns(
+    runs,
+    contexts,
+  );
   const metricsNames = new Set<string>();
 
   const runsWithMetrics: RunWithMetrics[] = runs.map((run) => ({
@@ -85,6 +92,7 @@ export const useMetricColumns = (
     metricsColumnNames,
     runArtifactsLoaded,
     runArtifactsError,
+    contextsError,
     metricsNames,
   };
 };
