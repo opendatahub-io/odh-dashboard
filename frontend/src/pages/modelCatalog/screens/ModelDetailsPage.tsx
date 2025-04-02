@@ -224,9 +224,8 @@ const ModelDetailsPage: React.FC = conditionalArea(
           {isDeployModalOpen && (
             <DeployCatalogModelModal
               model={model}
-              onSubmit={() => {
-                // TODO navigate to serving page
-                alert('TODO navigate to serving page');
+              onSubmit={(selectedProject) => {
+                navigate(`/modelServing/${selectedProject.metadata.name}`);
               }}
               onCancel={() => setIsDeployModalOpen(false)}
             />

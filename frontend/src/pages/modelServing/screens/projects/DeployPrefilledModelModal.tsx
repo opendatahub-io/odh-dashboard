@@ -23,8 +23,21 @@ interface DeployPrefilledModelModalProps {
   prefillInfoLoadError?: Error;
   projectLinkExtraUrlParams?: Record<string, string | undefined>;
   onCancel: () => void;
-  onSubmit?: () => void;
+  onSubmit?: (selectedProject: ProjectKind) => void;
 }
+
+const DeployPrefilledModelModal: React.FC<DeployPrefilledModelModalProps> = (props) => {
+  const [selectedProject, setSelectedProject] = React.useState<ProjectKind | null>(null);
+  return (
+    <ModelServingContextProvider namespace={selectedProject?.metadata.name}>
+      <DeployPrefilledModelModalContents
+        {...props}
+        selectedProject={selectedProject}
+        setSelectedProject={setSelectedProject}
+      />
+    </ModelServingContextProvider>
+  );
+};
 
 const DeployPrefilledModelModalContents: React.FC<
   DeployPrefilledModelModalProps & {
@@ -69,8 +82,8 @@ const DeployPrefilledModelModalContents: React.FC<
   const loadError = prefillInfoLoadError; // Note: serving context load errors are handled/rendered in ModelServingContextProvider
 
   const handleSubmit = React.useCallback(async () => {
-    onSubmit?.();
-  }, [onSubmit]);
+    onSubmit?.(selectedProject!);
+  }, [onSubmit, selectedProject]);
 
   const onClose = React.useCallback(
     (submit: boolean) => {
@@ -174,19 +187,6 @@ const DeployPrefilledModelModalContents: React.FC<
       projectContext={{ currentProject: selectedProject, connections }}
       projectSection={projectSection}
     />
-  );
-};
-
-const DeployPrefilledModelModal: React.FC<DeployPrefilledModelModalProps> = (props) => {
-  const [selectedProject, setSelectedProject] = React.useState<ProjectKind | null>(null);
-  return (
-    <ModelServingContextProvider namespace={selectedProject?.metadata.name}>
-      <DeployPrefilledModelModalContents
-        {...props}
-        selectedProject={selectedProject}
-        setSelectedProject={setSelectedProject}
-      />
-    </ModelServingContextProvider>
   );
 };
 
