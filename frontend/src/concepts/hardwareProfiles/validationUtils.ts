@@ -6,6 +6,8 @@ import {
   ValueUnitString,
   determineUnit,
   splitValueUnit,
+  CPU_UNITS,
+  MEMORY_UNITS_FOR_PARSING,
 } from '~/utilities/valueUnits';
 import { hasCPUandMemory } from '~/pages/hardwareProfiles/manage/ManageNodeResourceSection';
 import { createIdentifierWarningMessage } from '~/pages/hardwareProfiles/utils';
@@ -29,16 +31,23 @@ export type ResourceSchema = z.ZodEffects<
 export const createCpuSchema = (minCount: ValueUnitCPU, maxCount?: ValueUnitCPU): ResourceSchema =>
   z.union([z.string(), z.number()]).superRefine((val, ctx) => {
     const stringVal = String(val);
+    const [value] = splitValueUnit(stringVal, CPU_UNITS);
+    if (value === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `CPU must be provided`,
+      });
+    }
     if (isCpuLimitLarger(stringVal, minCount)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `Must be at least ${formatResourceValue(minCount)}`,
+        message: `Must be at least ${formatResourceValue(minCount, IdentifierResourceType.CPU)}`,
       });
     }
     if (maxCount && isCpuLimitLarger(maxCount, stringVal)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `Must not exceed ${formatResourceValue(maxCount)}`,
+        message: `Must not exceed ${formatResourceValue(maxCount, IdentifierResourceType.CPU)}`,
       });
     }
   });
@@ -49,17 +58,23 @@ export const createMemorySchema = (
 ): ResourceSchema =>
   z.union([z.string(), z.number()]).superRefine((val, ctx) => {
     const stringVal = String(val);
-
+    const [value] = splitValueUnit(stringVal, MEMORY_UNITS_FOR_PARSING);
+    if (value === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Memory must be provided`,
+      });
+    }
     if (isMemoryLimitLarger(stringVal, minCount)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `Must be at least ${formatResourceValue(minCount)}`,
+        message: `Must be at least ${formatResourceValue(minCount, IdentifierResourceType.MEMORY)}`,
       });
     }
     if (isMemoryLimitLarger(maxCount, stringVal)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `Must not exceed ${formatResourceValue(maxCount)}`,
+        message: `Must not exceed ${formatResourceValue(maxCount, IdentifierResourceType.MEMORY)}`,
       });
     }
   });
@@ -77,13 +92,19 @@ export const createNumericSchema = (minCount: number, maxCount: number): Resourc
     if (value < minCount) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `Must be at least ${formatResourceValue(minCount)}`,
+        message: `Must be at least ${formatResourceValue(
+          minCount,
+          IdentifierResourceType.ACCELERATOR,
+        )}`,
       });
     }
     if (value > maxCount) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `Must not exceed ${formatResourceValue(maxCount)}`,
+        message: `Must not exceed ${formatResourceValue(
+          maxCount,
+          IdentifierResourceType.ACCELERATOR,
+        )}`,
       });
     }
   });
@@ -245,20 +266,34 @@ export const hardwareProfileWarningSchema = z
           //Exit to prevent errors from splitValueUnit
           continue;
         }
-        const [minCount] = splitValueUnit(
+        const minCount = splitValueUnit(
           identifier.minCount.toString(),
           determineUnit(identifier),
           true,
-        );
+        )[0];
         const [maxCount] = identifier.maxCount
           ? splitValueUnit(identifier.maxCount.toString(), determineUnit(identifier), true)
           : [undefined];
-        const [defaultCount] = splitValueUnit(
+        const defaultCount = splitValueUnit(
           identifier.defaultCount.toString(),
           determineUnit(identifier),
           true,
-        );
-        if (!Number.isInteger(minCount)) {
+        )[0];
+        if (minCount === undefined || defaultCount === undefined) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: createIdentifierWarningMessage(
+              `The resource count for ${
+                identifier.resourceType ?? identifier.displayName
+              } has the unit only but doesn't have a value.`,
+              data.isDefault,
+            ),
+            params: {
+              type: HardwareProfileWarningType.OTHER,
+            },
+          });
+        }
+        if (minCount !== undefined && !Number.isInteger(minCount)) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: createIdentifierWarningMessage(
@@ -300,7 +335,7 @@ export const hardwareProfileWarningSchema = z
             },
           });
         }
-        if (maxCount !== undefined && minCount > maxCount) {
+        if (maxCount !== undefined && minCount !== undefined && minCount > maxCount) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: createIdentifierWarningMessage(
@@ -316,7 +351,10 @@ export const hardwareProfileWarningSchema = z
             },
           });
         }
-        if (defaultCount < minCount || (maxCount !== undefined && defaultCount > maxCount)) {
+        if (
+          (defaultCount !== undefined && minCount !== undefined && defaultCount < minCount) ||
+          (maxCount !== undefined && defaultCount !== undefined && defaultCount > maxCount)
+        ) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: createIdentifierWarningMessage(
