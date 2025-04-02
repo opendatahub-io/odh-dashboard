@@ -7,14 +7,11 @@ import {
 } from '@patternfly/react-core';
 import React from 'react';
 import { ErrorCode } from 'react-dropzone';
-import { ZodIssue } from 'zod';
-import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
 import { MAX_SIZE, MAX_SIZE_AS_MB } from '~/concepts/pipelines/content/const';
 
 export const SshKeyFileUpload: React.FC<{
   onChange: (value: string) => void;
-  validationIssues: ZodIssue[];
-}> = ({ onChange, validationIssues }) => {
+}> = ({ onChange }) => {
   const [value, setValue] = React.useState('');
   const [filename, setFilename] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
@@ -82,7 +79,6 @@ export const SshKeyFileUpload: React.FC<{
             }
           },
         }}
-        validated={validationIssues.length > 0 ? 'error' : 'default'}
         browseButtonText="Upload"
         allowEditingUploadedText
       />
@@ -97,7 +93,6 @@ export const SshKeyFileUpload: React.FC<{
           </HelperTextItem>
         </HelperText>
       </FormHelperText>
-      <ZodErrorHelperText zodIssue={validationIssues} />
     </>
   );
 };

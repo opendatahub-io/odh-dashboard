@@ -9,6 +9,7 @@ import {
   baseModelSection,
   dataScienceProjectSection,
   pipelineSection,
+  hyperparameterSection,
 } from '~/__tests__/cypress/cypress/pages/pipelines/modelCustomizationForm';
 import {
   buildMockPipeline,
@@ -151,6 +152,76 @@ describe('Model Customization Form', () => {
     hardwareSection.findTrainingNodePlusButton().click();
 
     modelCustomizationFormGlobal.findSubmitButton().should('not.be.disabled');
+  });
+
+  it('Should not submit when there is a validation error', () => {
+    initIntercepts({});
+    setupModelRegistryIntercepts({ modelRegistryServiceName: 'modelregistry-sample' });
+    visitModelVersionDetails({ serviceName: 'modelregistry-sample', versionNo: '1' });
+    cy.wait('@getIlabPipeline');
+    cy.wait('@getPipelineVersions');
+
+    // fill everything first
+    baseModelSection.editInlineText('http://test.com');
+    teacherModelSection.findEndpointInput().type('http://test.com');
+    teacherModelSection.findModelNameInput().type('test');
+    judgeModelSection.findEndpointInput().type('http://test.com');
+    judgeModelSection.findModelNameInput().type('test');
+    taxonomySection.findTaxonomyUrl().type('http://github.git');
+    taxonomySection.findSshKeyRadio().check();
+    taxonomySection.findTaxonomySSHText().type('test');
+    taxonomySection.findUsernameAndTokenRadio().check();
+    taxonomySection.findTaxonomyUsername().fill('test');
+    taxonomySection.findTaxonomyToken().fill('test');
+    hardwareSection.selectProfile(
+      'Small Profile CPU: Request = 1 Cores; Limit = 1 Cores; Memory: Request = 2 GiB; Limit = 2 GiB; Nvidia.com/gpu: Request = 2; Limit = 2',
+    );
+    hardwareSection.findTrainingNodePlusButton().click();
+    modelCustomizationFormGlobal.findSubmitButton().should('not.be.disabled');
+
+    // test base model section
+    baseModelSection.clearInlineText();
+    modelCustomizationFormGlobal.findSubmitButton().should('be.disabled');
+    baseModelSection.editInlineText('http://test.com');
+
+    // test teacher model section
+    teacherModelSection.findEndpointInput().clear();
+    modelCustomizationFormGlobal.findSubmitButton().should('be.disabled');
+    teacherModelSection.findEndpointInput().type('http://test.com');
+    modelCustomizationFormGlobal.findSubmitButton().should('not.be.disabled');
+    teacherModelSection.findModelNameInput().clear();
+    modelCustomizationFormGlobal.findSubmitButton().should('be.disabled');
+    teacherModelSection.findModelNameInput().type('test');
+    modelCustomizationFormGlobal.findSubmitButton().should('not.be.disabled');
+    teacherModelSection.findPrivateRadioButton().click();
+    modelCustomizationFormGlobal.findSubmitButton().should('be.disabled');
+    teacherModelSection.findTokenInput().type('test token');
+    modelCustomizationFormGlobal.findSubmitButton().should('not.be.disabled');
+
+    // test training hardware section
+    hardwareSection.findCustomizeButton().click();
+    hardwareSection.findCPUFieldInput().clear();
+    modelCustomizationFormGlobal.findSubmitButton().should('be.disabled');
+    hardwareSection.findCPUFieldInput().type('3');
+    modelCustomizationFormGlobal.findSubmitButton().should('be.disabled');
+    hardwareSection.findCPUFieldInput().clear();
+    hardwareSection.findCPUFieldInput().type('2');
+    modelCustomizationFormGlobal.findSubmitButton().should('not.be.disabled');
+
+    // test hyperparameter section
+    hyperparameterSection.findExpandableSectionButton().click();
+    hyperparameterSection
+      .findLongNumberInput('train_learning_rate_phase_1-long-number-field')
+      .clear();
+    modelCustomizationFormGlobal.findSubmitButton().should('be.disabled');
+    hyperparameterSection
+      .findLongNumberInput('train_learning_rate_phase_1-long-number-field')
+      .type('0');
+    modelCustomizationFormGlobal.findSubmitButton().should('not.be.disabled');
+    hyperparameterSection
+      .findLongNumberInput('train_learning_rate_phase_1-long-number-field')
+      .type('a');
+    modelCustomizationFormGlobal.findSubmitButton().should('be.disabled');
   });
 
   it('Alert message when ilab pipeline required parameters are absent', () => {

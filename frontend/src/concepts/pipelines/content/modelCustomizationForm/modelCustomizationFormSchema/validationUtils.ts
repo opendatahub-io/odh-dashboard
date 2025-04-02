@@ -68,19 +68,26 @@ export const fineTuneTaxonomySchema = z.object({
   ]),
 });
 
-const hardwareSchema = z.object({
-  podSpecOptions: z.object({
-    cpuCount: z
-      .union([z.string(), z.number()])
-      .refine((val) => isCpuLimitLarger(0, val), { message: 'CPU count must be greater than 0' }),
-    memoryCount: z.string().refine((val) => isMemoryLimitLarger('0', val), {
-      message: 'Memory count must be greater than 0',
-    }),
-    gpuCount: z.number().refine((val) => val > 0, { message: 'GPU count must be greater than 0' }),
-    gpuIdentifier: z.string().trim().min(1, 'GPU identifier cannot be empty'),
-    tolerations: z.array(z.any()).optional(),
-    nodeSelector: z.record(z.any()).optional(),
+export const podSpecSizeSchema = z.object({
+  cpuCount: z
+    .union([z.string(), z.number()])
+    .refine((val) => isCpuLimitLarger(0, val), { message: 'CPU count must be greater than 0' }),
+  memoryCount: z.string().refine((val) => isMemoryLimitLarger('0', val), {
+    message: 'Memory count must be greater than 0',
   }),
+});
+
+const hardwareSchema = z.object({
+  podSpecOptions: z
+    .object({
+      gpuCount: z
+        .number()
+        .refine((val) => val > 0, { message: 'GPU count must be greater than 0' }),
+      gpuIdentifier: z.string().trim().min(1, 'GPU identifier cannot be empty'),
+      tolerations: z.array(z.any()).optional(),
+      nodeSelector: z.record(z.any()).optional(),
+    })
+    .and(podSpecSizeSchema),
   hardwareProfileConfig: hardwareProfileValidationSchema.optional(),
   acceleratorProfileConfig: z.custom<AcceleratorProfileFormData>().optional(),
 });
@@ -98,6 +105,15 @@ export const pipelineParameterSchema = z.record(z.string(), z.any()).superRefine
   }
 });
 
+export const trainingNodeSchema = z
+  .number()
+  .refine((val) => val > 0, { message: 'Number must be greater than 0' });
+
+export const storageClassSchema = z
+  .string()
+  .trim()
+  .min(1, { message: 'storage class is required' });
+
 export const modelCustomizationFormSchema = z.object({
   taxonomy: fineTuneTaxonomySchema,
   hyperparameters: z.record(z.string(), z.any()),
@@ -105,8 +121,8 @@ export const modelCustomizationFormSchema = z.object({
   outputModel: outputModelSchema,
   teacher: teacherJudgeModel,
   judge: teacherJudgeModel,
-  trainingNode: z.number().refine((val) => val > 0, { message: 'Number must be greater than 0' }),
-  storageClass: z.string().trim().min(1, { message: 'storage class is required' }),
+  trainingNode: trainingNodeSchema,
+  storageClass: storageClassSchema,
   hardware: hardwareSchema,
 });
 
