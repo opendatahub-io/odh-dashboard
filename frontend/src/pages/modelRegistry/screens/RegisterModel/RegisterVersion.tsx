@@ -5,6 +5,7 @@ import {
   Form,
   FormGroup,
   PageSection,
+  Skeleton,
   Spinner,
   Stack,
   StackItem,
@@ -121,18 +122,24 @@ const RegisterVersion: React.FC = () => {
               <FormGroup
                 id="registered-model-container"
                 label="Model name"
-                isRequired
+                isRequired={!prefilledRegisteredModelId}
                 fieldId="model-name"
                 labelHelp={
                   !loadedPrefillData ? <Spinner size="sm" className={spacing.mlMd} /> : undefined
                 }
               >
-                <RegisteredModelSelector
-                  registeredModels={liveRegisteredModels}
-                  registeredModelId={registeredModelId}
-                  setRegisteredModelId={(id) => setData('registeredModelId', id)}
-                  isDisabled={!!prefilledRegisteredModelId}
-                />
+                {
+                  // If we're registering a new version for an existing model, we prefill the model as text.
+                  prefilledRegisteredModelId ? (
+                    registeredModel?.name || <Skeleton screenreaderText="Loading model name" />
+                  ) : (
+                    <RegisteredModelSelector
+                      registeredModels={liveRegisteredModels}
+                      registeredModelId={registeredModelId}
+                      setRegisteredModelId={(id) => setData('registeredModelId', id)}
+                    />
+                  )
+                }
               </FormGroup>
             </StackItem>
             <StackItem>
