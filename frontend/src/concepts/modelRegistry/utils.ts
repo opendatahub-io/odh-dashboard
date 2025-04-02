@@ -3,11 +3,11 @@ import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeValueType,
 } from '~/concepts/connectionTypes/types';
-import { ModelVersion, ModelState, RegisteredModel } from './types';
 import {
   getModelServingConnectionTypeName,
   ModelServingCompatibleTypes,
-} from '../connectionTypes/utils';
+} from '~/concepts/connectionTypes/utils';
+import { ModelVersion, ModelState, RegisteredModel } from './types';
 
 export type ObjectStorageFields = {
   endpoint: string;
