@@ -67,24 +67,6 @@ class ModelCustomizationFormGlobal {
   findEmptyErrorState() {
     return cy.findByTestId('error-empty-state-body');
   }
-
-  findExpandableSectionButton() {
-    return cy.findByTestId('hyperparameters-expandable').findByRole('button');
-  }
-
-  findNumericInputPlusButton(name: string) {
-    return cy.findByTestId(name).findByRole('button', {
-      name: 'Plus',
-    });
-  }
-
-  findLongNumberInput(name: string) {
-    return cy.findByTestId(name);
-  }
-
-  findRadioInput(name: string) {
-    return cy.findByTestId(name);
-  }
 }
 
 class TeacherModelSection {
@@ -94,6 +76,14 @@ class TeacherModelSection {
 
   findModelNameInput() {
     return cy.findByTestId('teacher-model-name-input');
+  }
+
+  findTokenInput() {
+    return cy.findByTestId('teacher-token-input');
+  }
+
+  findPrivateRadioButton() {
+    return cy.findByTestId('teacher-section-authenticated-endpoint-radio');
   }
 }
 
@@ -150,6 +140,20 @@ class HardwareSection {
   findTrainingNodePlusButton() {
     return cy.findByTestId('training-node').findByRole('button', { name: 'Plus', hidden: true });
   }
+
+  findCustomizeButton() {
+    return cy.findByTestId('hardware-profile-customize').findByRole('button', {
+      name: 'Customize resource requests and limits',
+    });
+  }
+
+  findCustomizeForm() {
+    return cy.findByTestId('hardware-profile-customize-form');
+  }
+
+  findCPUFieldInput() {
+    return this.findCustomizeForm().findByTestId('cpu-requests-input').findByLabelText('Input');
+  }
 }
 
 class BaseModelSection {
@@ -190,6 +194,26 @@ class BaseModelSection {
     this.findEditInlineTextInput().type(text);
     this.findEditInlineTextSaveButton().click();
   }
+
+  clearInlineText() {
+    this.findEditInlineTextButton().click();
+    this.findEditInlineTextInput().clear();
+    this.findEditInlineTextSaveButton().click();
+  }
+}
+
+class HyperparameterSection {
+  findExpandableSectionButton() {
+    return cy.findByTestId('hyperparameters-expandable').findByRole('button');
+  }
+
+  findLongNumberInput(name: string) {
+    return cy.findByTestId(name);
+  }
+
+  findRadioInput(name: string) {
+    return cy.findByTestId(name);
+  }
 }
 class SSHFileUpload extends Contextual<HTMLElement> {
   findTaxonomySShKey() {
@@ -229,3 +253,4 @@ export const taxonomySection = new TaxonomySection();
 export const hardwareSection = new HardwareSection();
 export const dataScienceProjectSection = new DataScienceProjectSection();
 export const pipelineSection = new PipelineSection();
+export const hyperparameterSection = new HyperparameterSection();

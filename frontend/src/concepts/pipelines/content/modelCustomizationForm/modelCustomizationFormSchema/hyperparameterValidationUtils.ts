@@ -34,8 +34,9 @@ const getZodTypeFromParameterType = (paramType: InputDefinitionParameterType) =>
   }
 };
 
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export const createHyperParametersSchema = (parameters: ParametersKF) => {
+export const createHyperParametersSchema = (
+  parameters: ParametersKF,
+): z.ZodObject<Record<string, z.ZodTypeAny>> => {
   const hyperParamShape: Record<string, z.ZodTypeAny> = {};
 
   Object.entries(parameters).forEach(([key, param]) => {

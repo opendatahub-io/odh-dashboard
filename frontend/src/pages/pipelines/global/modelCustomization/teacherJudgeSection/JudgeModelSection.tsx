@@ -19,11 +19,14 @@ import {
   JudgeModelNameInput,
   JudgeTokenInput,
 } from '~/pages/pipelines/global/modelCustomization/teacherJudgeSection/TeacherJudgeInputComponents';
-import { TeacherJudgeFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
+import {
+  TeacherJudgeFormData,
+  teacherJudgeModel,
+} from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import { ModelCustomizationDrawerContentArgs } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
 import MarkdownView from '~/components/MarkdownView';
-import { ValidationContext } from '~/utilities/useValidation';
 import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
+import { useZodFormValidation } from '~/hooks/useZodFormValidation';
 
 type JudgeModelSectionProps = {
   data: TeacherJudgeFormData;
@@ -36,16 +39,10 @@ const JudgeModelSection: React.FC<JudgeModelSectionProps> = ({
   setData,
   handleOpenDrawer,
 }) => {
-  const { getAllValidationIssues } = React.useContext(ValidationContext);
-  const endpointValidationIssues = data.endpoint
-    ? getAllValidationIssues(['judge', 'endpoint'])
-    : [];
-  const modelNameValidationIssues = data.modelName
-    ? getAllValidationIssues(['judge', 'modelName'])
-    : [];
-  const apiTokenValidationIssues = data.apiToken
-    ? getAllValidationIssues(['judge', 'apiToken'])
-    : [];
+  const { getFieldValidation, getFieldValidationProps } = useZodFormValidation(
+    data,
+    teacherJudgeModel,
+  );
 
   return (
     <FormSection
@@ -87,15 +84,15 @@ const JudgeModelSection: React.FC<JudgeModelSectionProps> = ({
                 <JudgeEndpointInput
                   value={data.endpoint}
                   setValue={(value) => setData({ ...data, endpoint: value })}
-                  validated={endpointValidationIssues.length > 0 ? 'error' : 'default'}
+                  {...getFieldValidationProps(['endpoint'])}
                 />
-                <ZodErrorHelperText zodIssue={endpointValidationIssues} />
+                <ZodErrorHelperText zodIssue={getFieldValidation(['endpoint'])} />
                 <JudgeModelNameInput
                   value={data.modelName}
                   setValue={(value) => setData({ ...data, modelName: value })}
-                  validated={modelNameValidationIssues.length > 0 ? 'error' : 'default'}
+                  {...getFieldValidationProps(['modelName'])}
                 />
-                <ZodErrorHelperText zodIssue={modelNameValidationIssues} />
+                <ZodErrorHelperText zodIssue={getFieldValidation(['modelName'])} />
               </>
             )
           }
@@ -118,21 +115,21 @@ const JudgeModelSection: React.FC<JudgeModelSectionProps> = ({
                 <JudgeEndpointInput
                   value={data.endpoint}
                   setValue={(value) => setData({ ...data, endpoint: value })}
-                  validated={endpointValidationIssues.length > 0 ? 'error' : 'default'}
+                  {...getFieldValidationProps(['endpoint'])}
                 />
-                <ZodErrorHelperText zodIssue={endpointValidationIssues} />
+                <ZodErrorHelperText zodIssue={getFieldValidation(['endpoint'])} />
                 <JudgeTokenInput
                   value={data.apiToken}
                   setValue={(value) => setData({ ...data, apiToken: value })}
-                  validated={apiTokenValidationIssues.length > 0 ? 'error' : 'default'}
+                  {...getFieldValidationProps(['apiToken'])}
                 />
-                <ZodErrorHelperText zodIssue={apiTokenValidationIssues} />
+                <ZodErrorHelperText zodIssue={getFieldValidation(['apiToken'])} />
                 <JudgeModelNameInput
                   value={data.modelName}
                   setValue={(value) => setData({ ...data, modelName: value })}
-                  validated={modelNameValidationIssues.length > 0 ? 'error' : 'default'}
+                  {...getFieldValidationProps(['modelName'])}
                 />
-                <ZodErrorHelperText zodIssue={modelNameValidationIssues} />
+                <ZodErrorHelperText zodIssue={getFieldValidation(['modelName'])} />
               </>
             )
           }
