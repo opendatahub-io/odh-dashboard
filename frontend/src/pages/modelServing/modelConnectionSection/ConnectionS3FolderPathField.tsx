@@ -11,12 +11,12 @@ import { containsOnlySlashes, isS3PathValid } from '~/utilities/string';
 import useDebounceCallback from '~/utilities/useDebounceCallback';
 
 type ConnectionFolderPathFieldProps = {
-  folderPath: string;
+  folderPath?: string;
   setFolderPath: (folderPath: string) => void;
 };
 
 const ConnectionS3FolderPathField: React.FC<ConnectionFolderPathFieldProps> = ({
-  folderPath,
+  folderPath = '',
   setFolderPath,
 }) => {
   type Validate = React.ComponentProps<typeof TextInput>['validated'];

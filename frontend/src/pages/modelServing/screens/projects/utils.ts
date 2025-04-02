@@ -696,16 +696,16 @@ export const getCreateInferenceServiceLabels = (
   return undefined;
 };
 
-export const isModelPathValid = (connection: Connection, path: string, uri?: string): boolean => {
+export const isModelPathValid = (connection: Connection, path?: string, uri?: string): boolean => {
   if (isModelServingCompatible(connection, ModelServingCompatibleTypes.URI)) {
     return true;
   }
-  if (containsOnlySlashes(path)) {
+  if (path && containsOnlySlashes(path)) {
     return false;
   }
   if (
     isModelServingCompatible(connection, ModelServingCompatibleTypes.S3ObjectStorage) &&
-    !isS3PathValid(path)
+    (!path || !isS3PathValid(path))
   ) {
     return false;
   }

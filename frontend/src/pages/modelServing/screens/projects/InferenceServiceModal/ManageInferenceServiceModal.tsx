@@ -25,7 +25,7 @@ import {
 import ProjectSection from './ProjectSection';
 import InferenceServiceFrameworkSection from './InferenceServiceFrameworkSection';
 import InferenceServiceServingRuntimeSection from './InferenceServiceServingRuntimeSection';
-import { ConnectionSection } from './ConnectionSection';
+import { ConnectionSection } from '../../../modelConnectionSection/ModelConnectionSection';
 
 type ManageInferenceServiceModalProps = {
   onClose: (submit: boolean) => void;
@@ -204,12 +204,12 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
               registeredModelFormat={registeredModelDeployInfo?.modelFormat}
             />
             <FormSection title="Source model location" id="model-location">
-              <ConnectionSection
-                existingUriOption={editInfo?.spec.predictor.model?.storageUri}
-                data={createData}
-                setData={setCreateData}
-                initialNewConnectionType={initialNewConnectionType}
-                initialNewConnectionValues={initialNewConnectionValues}
+              {/* <ConnectionSection
+                // existingUriOption={editInfo?.spec.predictor.model?.storageUri}
+                // data={createData}
+                // setData={setCreateData}
+                // initialNewConnectionType={initialNewConnectionType}
+                // initialNewConnectionValues={initialNewConnectionValues}
                 loaded={
                   registeredModelDeployInfo
                     ? !!projectContext?.connections && connectionsLoaded
@@ -220,10 +220,10 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
                 setConnection={setConnection}
                 setIsConnectionValid={setIsConnectionValid}
                 connections={modelMeshConnections}
-                connectionTypeFilter={(ct) =>
-                  !isModelServingCompatible(ct, ModelServingCompatibleTypes.OCI)
-                }
-              />
+                // connectionTypeFilter={(ct) =>
+                //   !isModelServingCompatible(ct, ModelServingCompatibleTypes.OCI)
+                // }
+              /> */}
             </FormSection>
           </>
         )}
