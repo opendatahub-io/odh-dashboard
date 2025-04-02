@@ -34,7 +34,7 @@ describe('[Feature behing a Dev Feature Flag] Verify Hardware Profiles - Creatin
 
   it(
     'Create, Edit and Delete a Hardware Profile',
-    { tags: ['@Featureflagged', '@HardwareProfiles', '@Blah'] },
+    { tags: ['@Featureflagged', '@HardwareProfiles'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
