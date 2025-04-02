@@ -3,6 +3,7 @@ import { CatalogModel } from '~/concepts/modelCatalog/types';
 import { ModelDeployPrefillInfo } from '~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 import DeployPrefilledModelModal from '~/pages/modelServing/screens/projects/DeployPrefilledModelModal';
 import { ProjectKind } from '~/k8sTypes';
+import { uriToConnectionTypeName } from '~/concepts/modelRegistry/utils';
 
 interface DeployCatalogModelModalProps {
   model: CatalogModel;
@@ -15,10 +16,11 @@ const DeployCatalogModelModal: React.FC<DeployCatalogModelModalProps> = ({
   onCancel,
   onSubmit,
 }) => {
+  const uri = model.artifacts?.[0].uri;
   const modelDeployPrefillInfo: ModelDeployPrefillInfo = {
     modelName: model.name,
-    modelArtifactUri: model.artifacts?.[0].uri,
-    connectionTypeName: 'oci-v1', // TODO maybe get this based on the URI like in useRegisteredModelDeployPrefillInfo? Also maybe it should be from an enum?
+    modelArtifactUri: uri,
+    connectionTypeName: uriToConnectionTypeName(uri),
   };
   return (
     <DeployPrefilledModelModal

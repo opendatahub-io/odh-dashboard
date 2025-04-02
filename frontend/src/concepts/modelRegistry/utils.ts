@@ -4,6 +4,10 @@ import {
   ConnectionTypeValueType,
 } from '~/concepts/connectionTypes/types';
 import { ModelVersion, ModelState, RegisteredModel } from './types';
+import {
+  getModelServingConnectionTypeName,
+  ModelServingCompatibleTypes,
+} from '../connectionTypes/utils';
 
 export type ObjectStorageFields = {
   endpoint: string;
@@ -39,7 +43,10 @@ export const objectStorageFieldsToUri = (fields: ObjectStorageFields): string | 
   return `s3://${bucket}/${path}?${searchParams.toString()}`;
 };
 
-export const uriToModelLocation = (uri: string): ModelLocation => {
+export const uriToModelLocation = (uri?: string): ModelLocation => {
+  if (!uri) {
+    return null;
+  }
   try {
     const urlObj = new URL(uri);
     if (urlObj.toString().startsWith('s3:')) {
@@ -67,6 +74,20 @@ export const uriToModelLocation = (uri: string): ModelLocation => {
   } catch {
     return null;
   }
+};
+
+export const uriToConnectionTypeName = (uri?: string): string => {
+  const storageFields = uriToModelLocation(uri);
+  if (storageFields?.uri) {
+    return getModelServingConnectionTypeName(ModelServingCompatibleTypes.URI);
+  }
+  if (storageFields?.s3Fields) {
+    return getModelServingConnectionTypeName(ModelServingCompatibleTypes.S3ObjectStorage);
+  }
+  if (storageFields?.ociUri) {
+    return getModelServingConnectionTypeName(ModelServingCompatibleTypes.OCI);
+  }
+  return getModelServingConnectionTypeName(ModelServingCompatibleTypes.URI);
 };
 
 export const getLastCreatedItem = <T extends { createTimeSinceEpoch?: string }>(
