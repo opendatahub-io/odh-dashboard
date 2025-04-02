@@ -15,7 +15,7 @@ import React from 'react';
 import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import useStorageClasses from '~/concepts/k8s/useStorageClasses';
 import { getStorageClassConfig } from '~/pages/storageClasses/utils';
-import useDefaultStorageClass from './useDefaultStorageClass';
+import useAdminDefaultStorageClass from './useAdminDefaultStorageClass';
 
 type StorageClassSelectProps = {
   storageClassName?: string;
@@ -38,7 +38,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
 }) => {
   const [storageClasses, storageClassesLoaded] = useStorageClasses();
   const hasStorageClassConfigs = storageClasses.some((sc) => !!getStorageClassConfig(sc));
-  const [defaultSc] = useDefaultStorageClass();
+  const [defaultSc] = useAdminDefaultStorageClass();
 
   const enabledStorageClasses = storageClasses
     .filter((sc) => getStorageClassConfig(sc)?.isEnabled === true)
@@ -83,7 +83,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
           <SplitItem isFilled />
           <SplitItem>
             {/* If multiple storage classes have `isDefault` set to true,
-            prioritize the one returned by useDefaultStorageClass() as the default class */}
+            prioritize the one returned by useAdminDefaultStorageClass() as the default class */}
             {sc.metadata.name === defaultSc?.metadata.name && (
               <Label isCompact color="green" data-testid="is-default-label">
                 Default class

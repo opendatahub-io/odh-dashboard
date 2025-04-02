@@ -44,7 +44,7 @@ import { getEnvConfigMap, getEnvSecret } from '~/services/envService';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
-import useDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
+import useAdminDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
 import HardwareProfileFormSection from '~/concepts/hardwareProfiles/HardwareProfileFormSection';
 import { useNotebookPodSpecOptionsState } from '~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { HardwareProfileFeatureVisibility } from '~/k8sTypes';
@@ -82,7 +82,7 @@ const SpawnerPage: React.FC = () => {
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
 
-  const [defaultStorageClass, defaultStorageClassLoaded] = useDefaultStorageClass();
+  const [defaultStorageClass, defaultStorageClassLoaded] = useAdminDefaultStorageClass();
 
   const disableSubmit =
     createInProgress ||

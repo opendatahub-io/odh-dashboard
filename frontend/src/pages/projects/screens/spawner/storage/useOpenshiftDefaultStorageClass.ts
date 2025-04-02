@@ -2,7 +2,7 @@ import * as React from 'react';
 import { AppContext } from '~/app/AppContext';
 import { MetadataAnnotation, StorageClassKind } from '~/k8sTypes';
 
-const useOpenshiftDefaultStorageClass = (fallbackToFirst = false): StorageClassKind | undefined => {
+const useOpenshiftDefaultStorageClass = (): StorageClassKind | undefined => {
   const { storageClasses } = React.useContext(AppContext);
 
   const defaultClusterStorageClasses = storageClasses.filter(
@@ -12,10 +12,6 @@ const useOpenshiftDefaultStorageClass = (fallbackToFirst = false): StorageClassK
 
   if (defaultClusterStorageClasses.length > 0) {
     return defaultClusterStorageClasses[0];
-  }
-
-  if (fallbackToFirst && storageClasses.length > 0) {
-    return storageClasses[0];
   }
 
   return undefined;

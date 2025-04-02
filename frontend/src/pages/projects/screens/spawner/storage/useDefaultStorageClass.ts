@@ -1,52 +1,49 @@
-import * as React from 'react';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 import useStorageClasses from '~/concepts/k8s/useStorageClasses';
 import { StorageClassKind } from '~/k8sTypes';
-import { getStorageClassConfig } from '~/pages/storageClasses/utils';
-import useFetchState, {
-  FetchState,
-  FetchStateCallbackPromise,
-  NotReadyError,
-} from '~/utilities/useFetchState';
+import useAdminDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
+import useOpenshiftDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useOpenshiftDefaultStorageClass';
+import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
+import { FetchState } from '~/utilities/useFetchState';
 
-const useDefaultStorageClass = (): FetchState<StorageClassKind | null> => {
+export const useDefaultStorageClass = (
+  fallbackToFirst = false,
+): FetchState<StorageClassKind | null> => {
+  const [defaultStorageClass, defaultStorageClassLoaded, defaultStorageClassError, refresh] =
+    useAdminDefaultStorageClass();
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
+  const preferredStorageClass = usePreferredStorageClass();
+  const openshiftDefaultStorageClass = useOpenshiftDefaultStorageClass();
   const [storageClasses, storageClassesLoaded, storageClassesError] = useStorageClasses();
 
-  const fetchDefaultStorageClass: FetchStateCallbackPromise<StorageClassKind | null> =
-    React.useCallback(
-      () =>
-        new Promise((resolve, reject) => {
-          if (!isStorageClassesAvailable) {
-            resolve(null);
-          }
-          if (!storageClassesLoaded) {
-            reject(new NotReadyError('Storage classes are not loaded'));
-          }
-          if (storageClassesError) {
-            resolve(null);
-          }
+  let storageClass: StorageClassKind | null = null;
+  let error: Error | undefined;
+  let loaded = true;
 
-          const enabledStorageClasses = storageClasses.filter(
-            (sc) => getStorageClassConfig(sc)?.isEnabled === true,
-          );
+  // if using storage class feature, use default storage class
+  if (isStorageClassesAvailable && (defaultStorageClassError || storageClassesLoaded)) {
+    storageClass = defaultStorageClass;
+    error = defaultStorageClassError;
+    loaded = defaultStorageClassLoaded;
+  }
 
-          const defaultSc = enabledStorageClasses.find(
-            (sc) => getStorageClassConfig(sc)?.isDefault === true,
-          );
+  // otherwise, use preferred storage class if available
+  else if (preferredStorageClass) {
+    storageClass = preferredStorageClass;
+  }
 
-          if (!defaultSc && enabledStorageClasses.length > 0) {
-            resolve(enabledStorageClasses[0]);
-          } else if (defaultSc) {
-            resolve(defaultSc);
-          } else {
-            resolve(null);
-          }
-        }),
-      [storageClasses, storageClassesLoaded, storageClassesError, isStorageClassesAvailable],
-    );
+  // otherwise, use openshift default storage class if available
+  else if (openshiftDefaultStorageClass) {
+    storageClass = openshiftDefaultStorageClass;
+  }
 
-  return useFetchState(fetchDefaultStorageClass, null);
+  // otherwise, use first storage class if fallbackToFirst is true
+  if (fallbackToFirst && (storageClassesLoaded || storageClassesError)) {
+    storageClass = storageClasses[0] || null;
+    error = storageClassesError;
+    loaded = storageClassesLoaded;
+  }
+
+  // otherwise, return null and no error and loaded
+  return [storageClass, loaded, error, refresh];
 };
-
-export default useDefaultStorageClass;
