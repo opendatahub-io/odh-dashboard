@@ -34,7 +34,7 @@ describe('[Feature behing a Dev Feature Flag] Verify Hardware Profiles - Creatin
 
   it(
     'Create, Edit and Delete a Hardware Profile',
-    { tags: ['@Featureflagged', '@HardwareProfiles'] },
+    { tags: ['@Featureflagged', '@HardwareProfiles', '@Blah'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -52,15 +52,15 @@ describe('[Feature behing a Dev Feature Flag] Verify Hardware Profiles - Creatin
         .fill(testData.hardwareProfileName);
       createHardwareProfile.findDescriptionTextBox().fill(testData.hardwareProfileDescription);
       createHardwareProfile.findSubmitButton().click();
-      const toolbar = hardwareProfile.getTableToolbar();
+      const toolbar = hardwareProfile.getUniqueTableToolbar();
       toolbar.findSearchInput().type(testData.hardwareProfileName);
-      const row = hardwareProfile.getRow(testData.hardwareProfileName);
+      const row = hardwareProfile.getUniqueRow(testData.hardwareProfileName);
       row.findDescription().should('contain', testData.hardwareProfileDescription);
 
       // Edit a Harware Profile
       cy.step('Edit the created hardware profile and confirm updates have been saved successfully');
       hardwareProfile
-        .getRow(testData.hardwareProfileName)
+        .getUniqueRow(testData.hardwareProfileName)
         .findKebabAction('Edit')
         .click({ force: true });
       createHardwareProfile
@@ -79,7 +79,7 @@ describe('[Feature behing a Dev Feature Flag] Verify Hardware Profiles - Creatin
         .click({ force: true });
       deleteModal.findInput().fill(testData.hardwareProfileName);
       deleteModal.findSubmitButton().should('be.enabled').click({ force: true });
-      hardwareProfile.findHardwareProfilesEmptyState().should('be.visible');
+      cy.get('body').should('not.contain', testData.hardwareProfileName);
     },
   );
 });

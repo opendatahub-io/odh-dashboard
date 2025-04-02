@@ -134,13 +134,23 @@ class HardwareProfile {
     return cy.findByTestId('hardware-profile-table');
   }
 
+  findUniqueTable() {
+    return cy.get('[data-testid="hardware-profile-table"]').first();
+  }
+
   private findHardwareProfileDisabledBanner() {
     return cy.findByTestId('hardware-profiles-error-alert');
   }
 
+  getUniqueRow(name: string) {
+    return new HardwareProfileRow(() =>
+      this.findUniqueTable().find(`[data-label=Name]`).contains(name).parents('tr'),
+    );
+  }
+
   getRow(name: string) {
     return new HardwareProfileRow(() =>
-      this.findTable().find(`[data-label=Name]`).contains(name).parents('tr'),
+      this.findUniqueTable().find(`[data-label=Name]`).contains(name).parents('tr'),
     );
   }
 
@@ -165,6 +175,21 @@ class HardwareProfile {
         .then(($el) => {
           return cy.wrap($el);
         });
+    });
+  }
+
+  getUniqueTableToolbar() {
+    return new HardwareProfileTableToolbar(() => {
+      // This approach will get all matching elements, then return the first one that's visible
+      return cy.get('[data-testid="hardware-profiles-table-toolbar"]').then(($elements) => {
+        // Return the first element that's visible
+        const visibleElements = $elements.filter(':visible');
+        if (visibleElements.length > 0) {
+          return cy.wrap(visibleElements.first());
+        }
+        // Fallback to the first element if none are visible
+        return cy.wrap($elements.first());
+      });
     });
   }
 
