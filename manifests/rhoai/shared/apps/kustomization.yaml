@@ -8,4 +8,3 @@ resources:
   - ./watson-x
   - ./rhoai
   - ./nvidia-nim
-  - ./model-catalog
