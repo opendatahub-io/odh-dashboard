@@ -5,4 +5,4 @@ workbenchName: 'dsp-test-wb'
 resourceYamlPath: "resources/hardwareProfile/workbench_tolerations.yaml"
 hardwareProfileName: "cypress-hardware-profile-workbenches"
 tolerationValue: "PreferNoSchedule"
-hardwareProfileDeploymentSize: "cypress-hardware-profile-workbenches CPU: Request = 2; Limit = 2; Memory: Request = 4Gi; Limit = 4Gi"
+hardwareProfileDeploymentSize: "cypress-hardware-profile-workbenches CPU: Request = 2 Cores; Limit = 2 Cores; Memory: Request = 4 GiB; Limit = 4 GiB"
