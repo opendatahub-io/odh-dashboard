@@ -6,7 +6,10 @@ import { kserveModal } from '~/__tests__/cypress/cypress/pages/modelServing';
 import { initDeployPrefilledModelIntercepts } from '~/__tests__/cypress/cypress/utils/modelServingUtils';
 import type { ModelCatalogSource } from '~/concepts/modelCatalog/types';
 import { mockModelCatalogSource } from '~/__mocks__/mockModelCatalogSource';
-import { mockModelCatalogConfigMap } from '~/__mocks__/mockModelCatalogConfigMap';
+import {
+  mockModelCatalogConfigMap,
+  mockUnmanagedModelCatalogConfigMap,
+} from '~/__mocks__/mockModelCatalogConfigMap';
 import { modelCatalogDeployModal } from '~/__tests__/cypress/cypress/pages/modelCatalog/modelCatalogDeployModal';
 
 type HandlersProps = {
@@ -29,6 +32,14 @@ const initIntercepts = ({
       name: 'model-catalog-sources',
     },
     mockModelCatalogConfigMap(catalogModels),
+  );
+  cy.interceptK8s(
+    {
+      model: ConfigMapModel,
+      ns: 'opendatahub',
+      name: 'model-catalog-unmanaged-sources',
+    },
+    mockUnmanagedModelCatalogConfigMap(catalogModels),
   );
 };
 

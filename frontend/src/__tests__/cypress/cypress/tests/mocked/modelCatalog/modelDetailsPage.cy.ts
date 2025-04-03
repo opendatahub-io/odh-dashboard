@@ -4,7 +4,10 @@ import {
   mockK8sResourceList,
   mockModelRegistryService,
 } from '~/__mocks__';
-import { mockModelCatalogConfigMap } from '~/__mocks__/mockModelCatalogConfigMap';
+import {
+  mockModelCatalogConfigMap,
+  mockUnmanagedModelCatalogConfigMap,
+} from '~/__mocks__/mockModelCatalogConfigMap';
 import { modelDetailsPage } from '~/__tests__/cypress/cypress/pages/modelCatalog/modelDetailsPage';
 import { ConfigMapModel, ServiceModel } from '~/__tests__/cypress/cypress/utils/models';
 import type { ServiceKind } from '~/k8sTypes';
@@ -63,19 +66,7 @@ const initIntercepts = ({
       ns: 'opendatahub',
       name: 'model-catalog-unmanaged-sources',
     },
-    {
-      apiVersion: 'v1',
-      kind: 'ConfigMap',
-      metadata: {
-        name: 'model-catalog-unmanaged-sources',
-        namespace: 'opendatahub',
-      },
-      data: {
-        modelCatalogSources: JSON.stringify({
-          sources: [],
-        }),
-      },
-    },
+    mockUnmanagedModelCatalogConfigMap([]),
   );
 
   cy.interceptK8sList(ServiceModel, mockK8sResourceList(modelRegistries));
@@ -245,7 +236,7 @@ describe('Model Details loading states', () => {
     modelDetailsPage.findModelCatalogEmptyState().should('exist');
   });
 
-  it('should show error state when configmap has empty sources', () => {
+  it('should show empty state when configmap has empty sources', () => {
     // Mock managed ConfigMap with empty data
     cy.interceptK8s(
       {
@@ -260,7 +251,7 @@ describe('Model Details loading states', () => {
           name: 'model-catalog-sources',
           namespace: 'opendatahub',
         },
-        modelCatalogSources: JSON.stringify({ sources: [] }),
+        data: { modelCatalogSources: JSON.stringify({ sources: [] }) },
       },
     );
 

@@ -92,8 +92,9 @@ describe('Model Catalog core', () => {
       disableModelCatalogFeature: true,
       hasUnmanagedSourcesConfigMap: false,
     });
-
+    modelCatalog.landingPage();
     cy.visit('/');
+    cy.findByRole('button', { name: 'Models' }).click();
     cy.findByRole('link', { name: 'Model catalog' }).should('not.exist');
 
     cy.visitWithLogin(`/modelCatalog`);
@@ -209,7 +210,7 @@ describe('Model Catalog loading states', () => {
       },
     );
     modelCatalog.visit();
-    cy.contains('Request access to model catalog').should('exist');
+    modelCatalog.findModelCatalogEmptyState();
   });
 
   it('should show empty state when configmap has malformed data', () => {
