@@ -8,7 +8,6 @@ import { useValidation } from '~/utilities/useValidation';
 import { identifierSchema } from '~/pages/hardwareProfiles/manage/validationUtils';
 import { EMPTY_IDENTIFIER } from './const';
 import NodeResourceForm from './NodeResourceForm';
-import { validateDefaultCount, validateMaxCount, validateMinCount } from './utils';
 
 type ManageNodeResourceModalProps = {
   onClose: () => void;
@@ -46,10 +45,6 @@ const ManageNodeResourceModal: React.FC<ManageNodeResourceModalProps> = ({
     }
   }, [identifier]);
 
-  const isValidCounts =
-    validateDefaultCount(identifier, unitOptions).isValid &&
-    validateMinCount(identifier, unitOptions).isValid &&
-    validateMaxCount(identifier, unitOptions).isValid;
   const isModalValidated = useValidation(identifier, identifierSchema);
 
   const isButtonDisabled = !isUniqueIdentifier || !isModalValidated.validationResult.success;

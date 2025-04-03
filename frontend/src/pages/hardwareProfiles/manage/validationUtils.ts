@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { IdentifierResourceType, TolerationEffect, TolerationOperator } from '~/types';
 import {
   validateDefaultCount,
+  validateMaxCount,
   validateMinCount,
 } from '~/pages/hardwareProfiles/nodeResource/utils';
 import { determineIdentifierUnit, splitValueUnit } from '~/utilities/valueUnits';
@@ -52,32 +53,22 @@ export const identifierSchema = baseIdentifierSchema.superRefine((identifier, ct
     }
   };
 
-  // 1. Validate minCount vs maxCount
-  if (!validateMinCount(identifier, unitOptions)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: createIdentifierWarningMessage(
-        `Minimum allowed ${
-          identifier.resourceType ?? identifier.displayName
-        } cannot exceed maximum allowed ${identifier.resourceType ?? identifier.displayName}.`,
-      ),
-      path: ['minCount'],
-    });
+  // 1. Validate minCount is within range
+  const minCountValidation = validateMinCount(identifier, unitOptions);
+  if (!minCountValidation.isValid) {
+    minCountValidation.issues?.forEach((issue) => ctx.addIssue(issue));
   }
 
   // 2. Validate defaultCount is within range
-  if (!validateDefaultCount(identifier, unitOptions)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: createIdentifierWarningMessage(
-        `The default count for ${
-          identifier.resourceType ?? identifier.displayName
-        } must be between the minimum allowed ${
-          identifier.resourceType ?? identifier.displayName
-        } and maximum allowed ${identifier.resourceType ?? identifier.displayName}.`,
-      ),
-      path: ['defaultCount'],
-    });
+  const defaultCountValidation = validateDefaultCount(identifier, unitOptions);
+  if (!defaultCountValidation.isValid) {
+    defaultCountValidation.issues?.forEach((issue) => ctx.addIssue(issue));
+  }
+
+  // 3. Validate maxCount is within range
+  const maxCountValidation = validateMaxCount(identifier, unitOptions);
+  if (!maxCountValidation.isValid) {
+    maxCountValidation.issues?.forEach((issue) => ctx.addIssue(issue));
   }
 
   // 3. Prevent negative values
@@ -100,8 +91,12 @@ export const identifierSchema = baseIdentifierSchema.superRefine((identifier, ct
     const defaultCount = parseCount(identifier.defaultCount);
 
     // 4. Prevent decimal values
-    checkDecimal(minCount, 'Minimum count');
-    checkDecimal(defaultCount, 'Default count');
+    if (minCount !== undefined) {
+      checkDecimal(minCount, 'Minimum count');
+    }
+    if (defaultCount !== undefined) {
+      checkDecimal(defaultCount, 'Default count');
+    }
     if (maxCount !== undefined) {
       checkDecimal(maxCount, 'Maximum count');
     }
