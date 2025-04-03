@@ -36,7 +36,7 @@ const PipelineSelector: React.FC<PipelineSelectorProps> = ({ selection, onSelect
       searchValue={searchProps.value ?? ''}
       isLoading={!initialLoaded}
       isFullWidth
-      toggleText={
+      toggleContent={
         initialLoaded
           ? selection || (totalSize === 0 ? 'No pipelines available' : 'Select a pipeline')
           : 'Loading pipelines'
