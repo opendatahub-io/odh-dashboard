@@ -234,10 +234,11 @@ export const checkInferenceServiceState = (
 
 /**
  * Extracts the external URL of a model from its InferenceService and performs a test request.
+ * Retries the request every 5 seconds for up to 30 seconds if the initial request fails.
  *
  * @param modelName - The name of the InferenceService/model to test.
  */
-export const modelExternalURLOpenVinoTester = (
+export const modelExternalTester = (
   modelName: string,
 ): Cypress.Chainable<{ url: string; response: Cypress.Response<unknown> }> => {
   return cy.exec(`oc get inferenceService ${modelName} -o json`).then((result) => {
@@ -248,30 +249,17 @@ export const modelExternalURLOpenVinoTester = (
       throw new Error('External URL not found in InferenceService');
     }
 
-    cy.log(`Request URL: ${url}/v2/models/${modelName}/infer`);
-    cy.log(`Request method: POST`);
-    cy.log(`Request headers: ${JSON.stringify({ 'Content-Type': 'application/json' })}`);
-    cy.log(
-      `Request body: ${JSON.stringify({
-        inputs: [
-          {
-            name: 'Func/StatefulPartitionedCall/input/_0:0',
-            shape: [1, 30],
-            datatype: 'FP32',
-            data: Array.from({ length: 30 }, (_, i) => i + 1),
-          },
-        ],
-      })}`,
-    );
-
-    return cy
-      .request({
-        method: 'POST',
-        url: `${url}/v2/models/${modelName}/infer`,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: {
+    const makeRequest = (
+      attemptNumber = 1,
+      maxAttempts = 7, // Initial attempt + 6 retries = 30 seconds total
+      waitTime = 5000, // 5 seconds
+    ): Cypress.Chainable<{ url: string; response: Cypress.Response<unknown> }> => {
+      cy.log(`Request attempt ${attemptNumber} of ${maxAttempts}`);
+      cy.log(`Request URL: ${url}/v2/models/${modelName}/infer`);
+      cy.log(`Request method: POST`);
+      cy.log(`Request headers: ${JSON.stringify({ 'Content-Type': 'application/json' })}`);
+      cy.log(
+        `Request body: ${JSON.stringify({
           inputs: [
             {
               name: 'Func/StatefulPartitionedCall/input/_0:0',
@@ -280,16 +268,59 @@ export const modelExternalURLOpenVinoTester = (
               data: Array.from({ length: 30 }, (_, i) => i + 1),
             },
           ],
-        },
-        failOnStatusCode: false,
-      })
-      .then((response) => {
-        cy.log(`Response status: ${response.status}`);
-        cy.log(`Response body: ${JSON.stringify(response.body)}`);
+        })}`,
+      );
 
-        // Return a Cypress chain instead of a plain object
-        return cy.wrap({ url, response });
-      });
+      return cy
+        .request({
+          method: 'POST',
+          url: `${url}/v2/models/${modelName}/infer`,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: {
+            inputs: [
+              {
+                name: 'Func/StatefulPartitionedCall/input/_0:0',
+                shape: [1, 30],
+                datatype: 'FP32',
+                data: Array.from({ length: 30 }, (_, i) => i + 1),
+              },
+            ],
+          },
+          failOnStatusCode: false,
+        })
+        .then((response) => {
+          cy.log(`Response status: ${response.status}`);
+          cy.log(`Response body: ${JSON.stringify(response.body)}`);
+
+          // If the request is successful (200 status), return the result
+          if (response.status === 200) {
+            return cy.wrap({ url, response });
+          }
+
+          // If we've reached the maximum number of attempts, return the last response
+          if (attemptNumber >= maxAttempts) {
+            cy.log(`Maximum retry attempts (${maxAttempts}) reached, returning last response`);
+            return cy.wrap({ url, response });
+          }
+
+          // Otherwise, wait and retry
+          cy.log(
+            `Request failed with status ${response.status}, retrying in ${
+              waitTime / 1000
+            } seconds...`,
+          );
+
+          // Use Cypress's wait command before making the next attempt
+          return cy.wait(waitTime).then(() => {
+            return makeRequest(attemptNumber + 1, maxAttempts, waitTime);
+          });
+        });
+    };
+
+    // Start the request chain with the first attempt
+    return makeRequest();
   });
 };
 
