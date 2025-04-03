@@ -7,7 +7,8 @@ import {
   filterLiveVersions,
   getLastCreatedItem,
   objectStorageFieldsToUri,
-  uriToStorageFields,
+  uriToConnectionTypeName,
+  uriToModelLocation,
 } from '~/concepts/modelRegistry/utils';
 import { RegisteredModel, ModelState, ModelVersion } from '~/concepts/modelRegistry/types';
 
@@ -78,9 +79,9 @@ describe('objectStorageFieldsToUri', () => {
   });
 });
 
-describe('uriToStorageFields', () => {
+describe('uriToModelLocation', () => {
   it('converts URI to fields with all params present', () => {
-    const fields = uriToStorageFields(
+    const fields = uriToModelLocation(
       's3://test-bucket/demo-models/flan-t5-small-caikit?endpoint=http%3A%2F%2Fs3.amazonaws.com%2F&defaultRegion=us-east-1',
     );
     expect(fields).toEqual({
@@ -96,7 +97,7 @@ describe('uriToStorageFields', () => {
   });
 
   it('converts URI to fields with region missing', () => {
-    const fields = uriToStorageFields(
+    const fields = uriToModelLocation(
       's3://test-bucket/demo-models/flan-t5-small-caikit?endpoint=http%3A%2F%2Fs3.amazonaws.com%2F',
     );
     expect(fields).toEqual({
@@ -112,30 +113,30 @@ describe('uriToStorageFields', () => {
   });
 
   it('falls back to null if endpoint is missing', () => {
-    const fields = uriToStorageFields('s3://test-bucket/demo-models/flan-t5-small-caikit');
+    const fields = uriToModelLocation('s3://test-bucket/demo-models/flan-t5-small-caikit');
     expect(fields).toBeNull();
   });
 
   it('falls back to null if path is missing', () => {
-    const fields = uriToStorageFields(
+    const fields = uriToModelLocation(
       's3://test-bucket/?endpoint=http%3A%2F%2Fs3.amazonaws.com%2F&defaultRegion=us-east-1',
     );
     expect(fields).toBeNull();
   });
 
   it('falls back to null if bucket is missing', () => {
-    const fields = uriToStorageFields(
+    const fields = uriToModelLocation(
       's3://?endpoint=http%3A%2F%2Fs3.amazonaws.com%2F&defaultRegion=us-east-1',
     );
     expect(fields).toBeNull();
   });
 
   it('falls back to null if the URI is malformed', () => {
-    const fields = uriToStorageFields('test-bucket/demo-models/flan-t5-small-caikit');
+    const fields = uriToModelLocation('test-bucket/demo-models/flan-t5-small-caikit');
     expect(fields).toBeNull();
   });
   it('returns the same URI', () => {
-    const fields = uriToStorageFields('https://model-repository/folder.zip');
+    const fields = uriToModelLocation('https://model-repository/folder.zip');
     expect(fields).toEqual({
       s3Fields: null,
       uri: 'https://model-repository/folder.zip',
@@ -143,12 +144,39 @@ describe('uriToStorageFields', () => {
     });
   });
   it('returns ociUri in case URI is OCI', () => {
-    const fields = uriToStorageFields('oci://quay.io/test');
+    const fields = uriToModelLocation('oci://quay.io/test');
     expect(fields).toEqual({
       s3Fields: null,
       uri: null,
       ociUri: 'oci://quay.io/test',
     });
+  });
+});
+
+describe('uriToConnectionTypeName', () => {
+  it('returns the correct value for URI models', () => {
+    const uri = 'https://model-repository/folder.zip';
+    expect(uriToConnectionTypeName(uri)).toEqual('uri-v1');
+  });
+
+  it('returns the correct value for S3 models', () => {
+    const uri =
+      's3://test-bucket/demo-models/flan-t5-small-caikit?endpoint=http%3A%2F%2Fs3.amazonaws.com%2F&defaultRegion=us-east-1';
+    expect(uriToConnectionTypeName(uri)).toEqual('s3');
+  });
+
+  it('returns the correct value for OCI models', () => {
+    const uri = 'oci://quay.io/test';
+    expect(uriToConnectionTypeName(uri)).toEqual('oci-v1');
+  });
+
+  it('falls back to URI connection type if the format is unknown/malformed', () => {
+    const uri = 'test-bucket/demo-models/flan-t5-small-caikit';
+    expect(uriToConnectionTypeName(uri)).toEqual('uri-v1');
+  });
+
+  it('falls back to URI connection type if the input is undefined', () => {
+    expect(uriToConnectionTypeName(undefined)).toEqual('uri-v1');
   });
 });
 

@@ -6,8 +6,9 @@ import useConnections from '~/pages/projects/screens/detail/connections/useConne
 import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
 import { mockConnection } from '~/__mocks__/mockConnection';
 import { mockConnectionTypeConfigMapObj } from '~/__mocks__/mockConnectionType';
-import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
-import usePrefillDeployModalFromModelRegistry from '~/pages/modelRegistry/screens/RegisteredModels/usePrefillDeployModalFromModelRegistry';
+import usePrefillModelDeployModal, {
+  ModelDeployPrefillInfo,
+} from '~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 
 jest.mock('~/concepts/areas/useIsAreaAvailable', () => () => ({
   status: true,
@@ -37,9 +38,9 @@ jest.mock('~/utilities/useWatchConnectionTypes');
 const mockUseConnections = jest.mocked(useConnections);
 const mockuseWatchConnectionTypes = jest.mocked(useWatchConnectionTypes);
 
-describe('usePrefillDeployModalFromModelRegistry', () => {
+describe('usePrefillModelDeployModal', () => {
   it('when no storage filed exist', () => {
-    const mockRegisteredModelDeployInfo: RegisteredModelDeployInfo = {
+    const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
       modelName: 'test-model',
       modelArtifactUri: '',
       modelArtifactStorageKey: 'test-key',
@@ -51,7 +52,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
       undefined,
       jest.fn(),
     ]);
-    const renderResult = testHook(usePrefillDeployModalFromModelRegistry)(
+    const renderResult = testHook(usePrefillModelDeployModal)(
       mockProjectContext,
       data,
       mockSetCreateData,
@@ -73,14 +74,14 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
 
   describe('S3 -  connection', () => {
     it('should return empty array, when connections are not loaded', () => {
-      const mockRegisteredModelDeployInfo: RegisteredModelDeployInfo = {
+      const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
         modelName: 'test-model',
         modelArtifactUri: 's3://test/test?endpoint=test&defaultRegion=test',
         modelArtifactStorageKey: 'test-key',
       };
       mockUseConnections.mockReturnValue([[], false, undefined, jest.fn()]);
       mockuseWatchConnectionTypes.mockReturnValue([[], true, undefined, jest.fn()]);
-      const renderResult = testHook(usePrefillDeployModalFromModelRegistry)(
+      const renderResult = testHook(usePrefillModelDeployModal)(
         mockProjectContext,
         data,
         mockSetCreateData,
@@ -96,14 +97,14 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
     });
 
     it('should return empty array, when connections types are not loaded', () => {
-      const mockRegisteredModelDeployInfo: RegisteredModelDeployInfo = {
+      const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
         modelName: 'test-model',
         modelArtifactUri: 's3://test/test?endpoint=test&defaultRegion=test',
         modelArtifactStorageKey: 'test-key',
       };
       mockUseConnections.mockReturnValue([[], true, undefined, jest.fn()]);
       mockuseWatchConnectionTypes.mockReturnValue([[], false, undefined, jest.fn()]);
-      const renderResult = testHook(usePrefillDeployModalFromModelRegistry)(
+      const renderResult = testHook(usePrefillModelDeployModal)(
         mockProjectContext,
         data,
         mockSetCreateData,
@@ -119,7 +120,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
     });
 
     it('should return connections with new connections, when recommendation length is zero', () => {
-      const mockRegisteredModelDeployInfo: RegisteredModelDeployInfo = {
+      const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
         modelName: 'test-model',
         modelArtifactUri: 's3://test/test?endpoint=test&defaultRegion=test',
         modelArtifactStorageKey: 'test-key',
@@ -131,7 +132,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
         undefined,
         jest.fn(),
       ]);
-      const renderResult = testHook(usePrefillDeployModalFromModelRegistry)(
+      const renderResult = testHook(usePrefillModelDeployModal)(
         mockProjectContext,
         data,
         mockSetCreateData,
@@ -183,7 +184,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
     });
 
     it('should return connections with existing connections, when recommendation length is one', () => {
-      const mockRegisteredModelDeployInfo: RegisteredModelDeployInfo = {
+      const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
         modelName: 'test-model',
         modelArtifactUri: 's3://test/test?endpoint=test&defaultRegion=test',
         modelArtifactStorageKey: 'test-key',
@@ -210,7 +211,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
         undefined,
         jest.fn(),
       ]);
-      const renderResult = testHook(usePrefillDeployModalFromModelRegistry)(
+      const renderResult = testHook(usePrefillModelDeployModal)(
         mockProjectContext,
         data,
         mockSetCreateData,
@@ -259,7 +260,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
     });
 
     it('should return connections, when recommendation length is two', () => {
-      const mockRegisteredModelDeployInfo: RegisteredModelDeployInfo = {
+      const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
         modelName: 'test-model',
         modelArtifactUri: 's3://test/test?endpoint=test&defaultRegion=test',
         modelArtifactStorageKey: 'test-key',
@@ -295,7 +296,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
         undefined,
         jest.fn(),
       ]);
-      const renderResult = testHook(usePrefillDeployModalFromModelRegistry)(
+      const renderResult = testHook(usePrefillModelDeployModal)(
         mockProjectContext,
         data,
         mockSetCreateData,
@@ -358,7 +359,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
 
   describe('URI - connection', () => {
     it('should return connections with new connections, when recommendation length is zero', () => {
-      const mockRegisteredModelDeployInfo: RegisteredModelDeployInfo = {
+      const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
         modelName: 'test-model',
         modelArtifactUri: 'http://test',
         modelArtifactStorageKey: 'test-key',
@@ -370,7 +371,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
         undefined,
         jest.fn(),
       ]);
-      const renderResult = testHook(usePrefillDeployModalFromModelRegistry)(
+      const renderResult = testHook(usePrefillModelDeployModal)(
         mockProjectContext,
         data,
         mockSetCreateData,
@@ -417,7 +418,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
     });
 
     it('should return connections with existing connections, when recommendation length is one', () => {
-      const mockRegisteredModelDeployInfo: RegisteredModelDeployInfo = {
+      const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
         modelName: 'test-model',
         modelArtifactUri: 'http://tests',
         modelArtifactStorageKey: 'test-key',
@@ -440,7 +441,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
         undefined,
         jest.fn(),
       ]);
-      const renderResult = testHook(usePrefillDeployModalFromModelRegistry)(
+      const renderResult = testHook(usePrefillModelDeployModal)(
         mockProjectContext,
         data,
         mockSetCreateData,
@@ -483,7 +484,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
     });
 
     it('should return connections, when recommendation length is two', () => {
-      const mockRegisteredModelDeployInfo: RegisteredModelDeployInfo = {
+      const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
         modelName: 'test-model',
         modelArtifactUri: 'http://tests',
         modelArtifactStorageKey: 'test-key',
@@ -507,7 +508,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
         undefined,
         jest.fn(),
       ]);
-      const renderResult = testHook(usePrefillDeployModalFromModelRegistry)(
+      const renderResult = testHook(usePrefillModelDeployModal)(
         mockProjectContext,
         data,
         mockSetCreateData,
@@ -556,7 +557,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
 
   describe('OCI - connection', () => {
     it('should return connections with new connections, when recommendation length is zero', () => {
-      const mockRegisteredModelDeployInfo: RegisteredModelDeployInfo = {
+      const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
         modelName: 'test-model',
         modelArtifactUri: 'oci://test.io/test/private:test',
         modelArtifactStorageKey: 'test-key',
@@ -568,7 +569,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
         undefined,
         jest.fn(),
       ]);
-      const renderResult = testHook(usePrefillDeployModalFromModelRegistry)(
+      const renderResult = testHook(usePrefillModelDeployModal)(
         mockProjectContext,
         data,
         mockSetCreateData,
@@ -615,7 +616,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
     });
 
     it('should return connections with existing connections, when it is Red Hat registry url', () => {
-      const mockRegisteredModelDeployInfo: RegisteredModelDeployInfo = {
+      const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
         modelName: 'test-model',
         modelArtifactUri: 'oci://registry.redhat.io/test/private:test',
         modelArtifactStorageKey: 'test-key',
@@ -627,7 +628,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
         undefined,
         jest.fn(),
       ]);
-      const renderResult = testHook(usePrefillDeployModalFromModelRegistry)(
+      const renderResult = testHook(usePrefillModelDeployModal)(
         mockProjectContext,
         data,
         mockSetCreateData,
@@ -668,7 +669,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
     });
 
     it('should return connections with existing connections, when recommendation length is one', () => {
-      const mockRegisteredModelDeployInfo: RegisteredModelDeployInfo = {
+      const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
         modelName: 'test-model',
         modelArtifactUri: 'oci://registry.redhat.io/rhelai1/private:test',
         modelArtifactStorageKey: 'test-key',
@@ -692,7 +693,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
         undefined,
         jest.fn(),
       ]);
-      const renderResult = testHook(usePrefillDeployModalFromModelRegistry)(
+      const renderResult = testHook(usePrefillModelDeployModal)(
         mockProjectContext,
         data,
         mockSetCreateData,
@@ -742,7 +743,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
     });
 
     it('should return connections, when recommendation length is two', () => {
-      const mockRegisteredModelDeployInfo: RegisteredModelDeployInfo = {
+      const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
         modelName: 'test-model',
         modelArtifactUri: 'oci://registry.redhat.io/rhelai1/private:test',
         modelArtifactStorageKey: 'test-key',
@@ -766,7 +767,7 @@ describe('usePrefillDeployModalFromModelRegistry', () => {
         undefined,
         jest.fn(),
       ]);
-      const renderResult = testHook(usePrefillDeployModalFromModelRegistry)(
+      const renderResult = testHook(usePrefillModelDeployModal)(
         mockProjectContext,
         data,
         mockSetCreateData,

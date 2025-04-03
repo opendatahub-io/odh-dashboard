@@ -7,14 +7,12 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { ErrorCode } from 'react-dropzone';
+import { MAX_SIZE, MAX_SIZE_AS_MB } from '~/concepts/pipelines/content/const';
 
 type PipelineFileUploadProps = {
   fileContents: string;
   onUpload: (fileContents: string) => void;
 };
-
-const MAX_SIZE_AS_MB = 1;
-const MAX_SIZE = MAX_SIZE_AS_MB * 1024 * 1024; // as bytes
 
 const PipelineFileUpload: React.FC<PipelineFileUploadProps> = ({ fileContents, onUpload }) => {
   const [filename, setFilename] = React.useState('');
