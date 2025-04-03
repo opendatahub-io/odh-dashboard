@@ -204,6 +204,18 @@ class HardwareProfile {
   findHardwareProfilesEmptyState() {
     return cy.findByTestId('dashboard-empty-table-state');
   }
+
+  findHardwareProfilesCreateButton() {
+    return cy.findByTestId('display-hardware-modal-button');
+  }
+
+  findHardwareProfilePageEmptyState() {
+    return cy.findByTestId('empty-state-hardware-profiles');
+  }
+
+  findNoProfilesAvailableText() {
+    return cy.findByTestId('no-available-hardware-profiles');
+  }
 }
 
 class NodeResourceRow extends TableRow {
