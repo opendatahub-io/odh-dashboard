@@ -48,6 +48,7 @@ const TeacherModelSection: React.FC<TeacherModelSectionProps> = ({
     <FormSection
       id={FineTunePageSections.TEACHER_MODEL}
       title={fineTunePageSectionTitles[FineTunePageSections.TEACHER_MODEL]}
+      data-testid={FineTunePageSections.TEACHER_MODEL}
     >
       <Content component={ContentVariants.small}>
         Enter the URL endpoint of the teacher model to deploy for use in synthetic data generation

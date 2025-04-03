@@ -25,6 +25,7 @@ const HyperparameterPageSection: React.FC<HyperparameterPageSectionProps> = ({
     <FormSection
       id={FineTunePageSections.HYPERPARAMETERS}
       title={fineTunePageSectionTitles[FineTunePageSections.HYPERPARAMETERS]}
+      data-testid={FineTunePageSections.HYPERPARAMETERS}
     >
       <Content component={ContentVariants.small}>Configure advanced settings for this run.</Content>
       <ExpandableSection

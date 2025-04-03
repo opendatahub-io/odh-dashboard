@@ -70,66 +70,82 @@ class ModelCustomizationFormGlobal {
 }
 
 class TeacherModelSection {
+  find() {
+    return cy.findByTestId('fine-tune-section-teacher-model');
+  }
+
   findEndpointInput() {
-    return cy.findByTestId('teacher-endpoint-input');
+    return this.find().findByTestId('teacher-endpoint-input');
   }
 
   findModelNameInput() {
-    return cy.findByTestId('teacher-model-name-input');
+    return this.find().findByTestId('teacher-model-name-input');
   }
 
   findTokenInput() {
-    return cy.findByTestId('teacher-token-input');
+    return this.find().findByTestId('teacher-token-input');
   }
 
   findPrivateRadioButton() {
-    return cy.findByTestId('teacher-section-authenticated-endpoint-radio');
+    return this.find().findByTestId('teacher-section-authenticated-endpoint-radio');
   }
 }
 
 class JudgeModelSection {
+  find() {
+    return cy.findByTestId('fine-tune-section-judge-model');
+  }
+
   findEndpointInput() {
-    return cy.findByTestId('judge-endpoint-input');
+    return this.find().findByTestId('judge-endpoint-input');
   }
 
   findModelNameInput() {
-    return cy.findByTestId('judge-model-name-input');
+    return this.find().findByTestId('judge-model-name-input');
   }
 }
 
 class TaxonomySection {
+  find() {
+    return cy.findByTestId('fine-tune-section-taxonomy-details');
+  }
+
   findTaxonomyUrl() {
-    return cy.findByTestId('taxonomy-github-url');
+    return this.find().findByTestId('taxonomy-github-url');
   }
 
   findSshKeyRadio() {
-    return cy.findByTestId('ssh-key-radio');
+    return this.find().findByTestId('ssh-key-radio');
   }
 
   findUsernameAndTokenRadio() {
-    return cy.findByTestId('username-and-token-radio');
+    return this.find().findByTestId('username-and-token-radio');
   }
 
   findTaxonomySSHText() {
-    return cy.findByTestId('taxonomy-ssh-key');
+    return this.find().findByTestId('taxonomy-ssh-key');
   }
 
   findTaxonomyUsername() {
-    return cy.findByTestId('taxonomy-username');
+    return this.find().findByTestId('taxonomy-username');
   }
 
   findTaxonomyToken() {
-    return cy.findAllByTestId('taxonomy-token');
+    return this.find().findAllByTestId('taxonomy-token');
   }
 
   getSSHUpload() {
-    return new SSHFileUpload(() => cy.findByTestId('fine-tune-sshupload'));
+    return new SSHFileUpload(() => this.find().findByTestId('fine-tune-sshupload'));
   }
 }
 
 class HardwareSection {
+  find() {
+    return cy.findByTestId('fine-tune-section-training-hardware');
+  }
+
   private findHardwareProfileSelect() {
-    return cy.findByTestId('hardware-profile-select');
+    return this.find().findByTestId('hardware-profile-select');
   }
 
   selectProfile(name: string): void {
@@ -138,17 +154,19 @@ class HardwareSection {
   }
 
   findTrainingNodePlusButton() {
-    return cy.findByTestId('training-node').findByRole('button', { name: 'Plus', hidden: true });
+    return this.find()
+      .findByTestId('training-node')
+      .findByRole('button', { name: 'Plus', hidden: true });
   }
 
   findCustomizeButton() {
-    return cy.findByTestId('hardware-profile-customize').findByRole('button', {
+    return this.find().findByTestId('hardware-profile-customize').findByRole('button', {
       name: 'Customize resource requests and limits',
     });
   }
 
   findCustomizeForm() {
-    return cy.findByTestId('hardware-profile-customize-form');
+    return this.find().findByTestId('hardware-profile-customize-form');
   }
 
   findCPUFieldInput() {
@@ -157,36 +175,42 @@ class HardwareSection {
 }
 
 class BaseModelSection {
+  find() {
+    return cy.findByTestId('fine-tune-section-base-model');
+  }
+
   findModelName() {
-    return cy.findByTestId('base-model-name');
+    return this.find().findByTestId('base-model-name');
   }
 
   findModelRegistry() {
-    return cy.findByTestId('base-registry-name');
+    return this.find().findByTestId('base-registry-name');
   }
 
   findModelVersion() {
-    return cy.findByTestId('base-model-version');
+    return this.find().findByTestId('base-model-version');
   }
 
   findModelURI() {
-    return cy.findByTestId('base-model-uri').find('[data-testid="inline-edit-text-content"]');
+    return this.find()
+      .findByTestId('base-model-uri')
+      .find('[data-testid="inline-edit-text-content"]');
   }
 
   findEditInlineTextInput() {
-    return cy.findByTestId('edit-inline-text-input');
+    return this.find().findByTestId('edit-inline-text-input');
   }
 
   findEditInlineTextButton() {
-    return cy.findByTestId('edit-inline-text-button');
+    return this.find().findByTestId('edit-inline-text-button');
   }
 
   findEditInlineTextSaveButton() {
-    return cy.findByTestId('edit-inline-text-save-button');
+    return this.find().findByTestId('edit-inline-text-save-button');
   }
 
   findEditInlineTextCancelButton() {
-    return cy.findByTestId('edit-inline-text-cancel-button');
+    return this.find().findByTestId('edit-inline-text-cancel-button');
   }
 
   editInlineText(text: string) {
@@ -203,16 +227,20 @@ class BaseModelSection {
 }
 
 class HyperparameterSection {
+  find() {
+    return cy.findByTestId('fine-tune-section-hyperparameters');
+  }
+
   findExpandableSectionButton() {
-    return cy.findByTestId('hyperparameters-expandable').findByRole('button');
+    return this.find().findByTestId('hyperparameters-expandable').findByRole('button');
   }
 
   findLongNumberInput(name: string) {
-    return cy.findByTestId(name);
+    return this.find().findByTestId(name);
   }
 
   findRadioInput(name: string) {
-    return cy.findByTestId(name);
+    return this.find().findByTestId(name);
   }
 }
 class SSHFileUpload extends Contextual<HTMLElement> {
@@ -225,7 +253,7 @@ class SSHFileUpload extends Contextual<HTMLElement> {
   }
 
   findSSHFileUploadHelptext() {
-    return cy.findByTestId('ssh-key-helpText');
+    return this.find().findByTestId('ssh-key-helpText');
   }
 }
 

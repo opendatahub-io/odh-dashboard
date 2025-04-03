@@ -47,6 +47,7 @@ const BaseModelSection: React.FC<BaseModelSectionProps> = ({
     <FormSection
       id={FineTunePageSections.BASE_MODEL}
       title={fineTunePageSectionTitles[FineTunePageSections.BASE_MODEL]}
+      data-testid={FineTunePageSections.BASE_MODEL}
     >
       <Content component={ContentVariants.small}>
         The pre-trained model that the fine-tuning run will further refine.

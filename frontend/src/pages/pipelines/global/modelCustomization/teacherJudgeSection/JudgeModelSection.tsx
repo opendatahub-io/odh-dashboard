@@ -48,6 +48,7 @@ const JudgeModelSection: React.FC<JudgeModelSectionProps> = ({
     <FormSection
       id={FineTunePageSections.JUDGE_MODEL}
       title={fineTunePageSectionTitles[FineTunePageSections.JUDGE_MODEL]}
+      data-testid={FineTunePageSections.JUDGE_MODEL}
     >
       <Content component={ContentVariants.small}>
         Enter the URL endpoint of the judge model to deploy for use in synthetic data generation

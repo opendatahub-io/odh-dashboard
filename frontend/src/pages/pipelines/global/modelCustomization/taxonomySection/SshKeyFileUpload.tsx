@@ -1,6 +1,7 @@
 import {
   DropEvent,
   FileUpload,
+  FileUploadProps,
   FormHelperText,
   HelperText,
   HelperTextItem,
@@ -9,10 +10,19 @@ import React from 'react';
 import { ErrorCode } from 'react-dropzone';
 import { MAX_SIZE, MAX_SIZE_AS_MB } from '~/concepts/pipelines/content/const';
 
-export const SshKeyFileUpload: React.FC<{
+type SshKeyFileUploadProps = {
   onChange: (value: string) => void;
-}> = ({ onChange }) => {
-  const [value, setValue] = React.useState('');
+  onBlur: () => void;
+  validated: FileUploadProps['validated'];
+  data: string;
+};
+
+export const SshKeyFileUpload: React.FC<SshKeyFileUploadProps> = ({
+  data,
+  onChange,
+  onBlur,
+  validated,
+}) => {
   const [filename, setFilename] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
   const [rejectedReason, setRejectedReason] = React.useState<string | undefined>();
@@ -26,20 +36,17 @@ export const SshKeyFileUpload: React.FC<{
 
   const handleTextChange = (_event: React.ChangeEvent<HTMLTextAreaElement>, val: string) => {
     const trimmedVal = val.trim();
-    setValue(trimmedVal);
     onChange(trimmedVal);
   };
 
   const handleDataChange = (_event: DropEvent, val: string) => {
     const trimmedVal = val.trim();
     onChange(trimmedVal);
-    setValue(trimmedVal);
   };
 
   const handleClear = () => {
     onChange('');
     setFilename('');
-    setValue('');
     setRejectedReason(undefined);
   };
 
@@ -58,7 +65,7 @@ export const SshKeyFileUpload: React.FC<{
         id="sshKeyFileUpload"
         data-testid="taxonomy-ssh-key"
         type="text"
-        value={value}
+        value={data}
         filename={filename}
         filenamePlaceholder="Drag and drop a file or upload one"
         onFileInputChange={handleFileInputChange}
@@ -81,6 +88,8 @@ export const SshKeyFileUpload: React.FC<{
         }}
         browseButtonText="Upload"
         allowEditingUploadedText
+        onBlur={onBlur}
+        validated={validated}
       />
       <FormHelperText>
         <HelperText isLiveRegion>

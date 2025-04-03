@@ -38,6 +38,7 @@ const TrainingHardwareSection: React.FC<TrainingHardwareSectionProps> = ({
     <FormSection
       id={FineTunePageSections.TRAINING_HARDWARE}
       title={fineTunePageSectionTitles[FineTunePageSections.TRAINING_HARDWARE]}
+      data-testid={FineTunePageSections.TRAINING_HARDWARE}
     >
       <Content component={ContentVariants.small}>
         Select {isHardwareProfilesAvailable ? 'a hardware' : 'an accelerator'} profile to match the
