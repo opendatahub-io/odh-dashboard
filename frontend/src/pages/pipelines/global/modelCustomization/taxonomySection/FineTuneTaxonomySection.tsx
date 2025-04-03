@@ -99,6 +99,7 @@ export const FineTuneTaxonomySection = ({
             data.secret.type === FineTuneTaxonomyType.SSH_KEY && (
               <FormGroup label="SSH key" isRequired>
                 <SshKeyFileUpload
+                  data={data.secret.sshKey}
                   onChange={(value) =>
                     setData({
                       ...data,

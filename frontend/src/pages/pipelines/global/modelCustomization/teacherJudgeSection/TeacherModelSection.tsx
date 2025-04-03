@@ -60,6 +60,7 @@ const TeacherModelSection: React.FC<TeacherModelSectionProps> = ({
           </Button>
         </>
       }
+      data-testid={FineTunePageSections.TEACHER_MODEL}
     >
       <FormGroup label="Teacher" fieldId="model-customization-teacher" isRequired>
         <Radio

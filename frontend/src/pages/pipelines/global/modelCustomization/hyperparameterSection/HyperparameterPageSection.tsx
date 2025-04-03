@@ -27,6 +27,7 @@ const HyperparameterPageSection: React.FC<HyperparameterPageSectionProps> = ({
       id={FineTunePageSections.HYPERPARAMETERS}
       title={fineTunePageSectionTitles[FineTunePageSections.HYPERPARAMETERS]}
       description="Configure advanced settings for this run."
+      data-testid={FineTunePageSections.HYPERPARAMETERS}
     >
       <ExpandableSection
         toggleTextCollapsed="Show more"

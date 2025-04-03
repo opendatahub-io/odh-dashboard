@@ -47,6 +47,7 @@ const TrainingHardwareSection: React.FC<TrainingHardwareSectionProps> = ({
           resources will be used for the SDG, training, and evaluation run phases.
         </>
       }
+      data-testid={FineTunePageSections.TRAINING_HARDWARE}
     >
       {isHardwareProfilesAvailable ? (
         <TrainingHardwareProfileFormSection

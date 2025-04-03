@@ -3,7 +3,10 @@ import { useState } from 'react';
 import { ZodIssue, ZodType } from 'zod';
 import { useValidation } from '~/utilities/useValidation';
 
-export type FieldValidationProps = { validated: ValidatedOptions; onBlur: () => void };
+export type FieldValidationProps = {
+  validated: ValidatedOptions.error | ValidatedOptions.default;
+  onBlur: () => void;
+};
 
 /**
  * This hook is used to validate sections separately in a form. In that way, the logic to render the validation error message

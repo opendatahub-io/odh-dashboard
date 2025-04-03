@@ -60,6 +60,7 @@ const JudgeModelSection: React.FC<JudgeModelSectionProps> = ({
           </Button>
         </>
       }
+      data-testid={FineTunePageSections.JUDGE_MODEL}
     >
       <FormGroup label="Judge" fieldId="model-customization-judge" isRequired>
         <Radio

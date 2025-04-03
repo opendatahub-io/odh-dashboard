@@ -24,7 +24,9 @@ describe('FineTuneTaxonomySection', () => {
 
     expect(screen.getByTestId('ssh-key-radio')).toBeChecked();
     expect(screen.getByTestId('taxonomy-github-url')).toHaveValue('test-url');
-    expect(screen.getByTestId('taxonomy-ssh-key')).toHaveValue('test-key');
+    expect(screen.getByTestId('taxonomy-ssh-key').querySelector('#sshKeyFileUpload')).toHaveValue(
+      'test-key',
+    );
   });
 
   it('should render initial value for username and password radio', () => {

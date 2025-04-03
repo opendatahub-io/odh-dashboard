@@ -112,7 +112,7 @@ export const trainingNodeSchema = z
 export const storageClassSchema = z
   .string()
   .trim()
-  .min(1, { message: 'storage class is required' });
+  .min(1, { message: 'Storage class is required' });
 
 export const modelCustomizationFormSchema = z.object({
   taxonomy: fineTuneTaxonomySchema,

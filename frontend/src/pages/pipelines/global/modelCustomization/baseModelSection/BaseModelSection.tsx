@@ -41,6 +41,7 @@ const BaseModelSection: React.FC<BaseModelSectionProps> = ({
       id={FineTunePageSections.BASE_MODEL}
       title={fineTunePageSectionTitles[FineTunePageSections.BASE_MODEL]}
       description="The pre-trained model that the fine-tuning run will further refine."
+      data-testid={FineTunePageSections.BASE_MODEL}
     >
       <Flex>
         <FlexItem>
