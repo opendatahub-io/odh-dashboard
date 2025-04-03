@@ -21,6 +21,7 @@ import {
   taxonomyMarkdownContent,
   taxonomyMarkdownTitle,
 } from './const';
+import { SshKeyFileUpload } from './SshKeyFileUpload';
 
 type FineTuneTaxonomySectionProps = {
   data: FineTuneTaxonomyFormData;
@@ -77,7 +78,12 @@ export const FineTuneTaxonomySection = ({
         />
         <ZodErrorHelperText zodIssue={urlValidationIssues} />
       </FormGroup>
-      <FormGroup label="Authentication method" fieldId="authentication-method" isRequired>
+      <FormGroup
+        label="Authentication method"
+        fieldId="authentication-method"
+        data-testid="fine-tune-sshupload"
+        isRequired
+      >
         <Radio
           name="ssh-key-radio"
           data-testid="ssh-key-radio"
@@ -98,19 +104,15 @@ export const FineTuneTaxonomySection = ({
           body={
             data.secret.type === FineTuneTaxonomyType.SSH_KEY && (
               <FormGroup label="SSH key" isRequired>
-                <TextInput
-                  aria-label="taxonomy ssh key"
-                  data-testid="taxonomy-ssh-key"
-                  validated={sshKeyValidationIssues.length > 0 ? 'error' : 'default'}
-                  value={data.secret.sshKey}
-                  onChange={(_e, value) =>
+                <SshKeyFileUpload
+                  onChange={(value) =>
                     setData({
                       ...data,
                       secret: { ...data.secret, sshKey: value },
                     })
                   }
+                  validationIssues={sshKeyValidationIssues}
                 />
-                <ZodErrorHelperText zodIssue={sshKeyValidationIssues} />
               </FormGroup>
             )
           }

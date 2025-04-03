@@ -1,11 +1,14 @@
-import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
+import React from 'react';
 import { ServingRuntimePlatform } from '~/types';
+import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
 
-const useProjectErrorForRegisteredModel = (
+const useProjectErrorForPrefilledModel = (
   projectName?: string,
   platform?: ServingRuntimePlatform,
 ): { loaded: boolean; error: Error | undefined } => {
-  const [servingRuntimes, loaded, loadError] = useServingRuntimes(projectName);
+  const {
+    servingRuntimes: { data: servingRuntimes, loaded, error },
+  } = React.useContext(ModelServingContext);
 
   // If project is not selected, there is no error
   if (!projectName) {
@@ -22,8 +25,8 @@ const useProjectErrorForRegisteredModel = (
     };
   }
 
-  if (loadError) {
-    return { loaded: true, error: loadError };
+  if (error) {
+    return { loaded: true, error };
   }
 
   // If the platform is MULTI but it doesn't have a server
@@ -39,4 +42,4 @@ const useProjectErrorForRegisteredModel = (
   return { loaded, error: undefined };
 };
 
-export default useProjectErrorForRegisteredModel;
+export default useProjectErrorForPrefilledModel;

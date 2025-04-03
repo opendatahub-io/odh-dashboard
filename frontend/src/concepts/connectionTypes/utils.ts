@@ -178,6 +178,9 @@ const modelServingCompatibleTypesMetadata: Record<
   },
 };
 
+export const getModelServingConnectionTypeName = (type: ModelServingCompatibleTypes): string =>
+  modelServingCompatibleTypesMetadata[type].resource;
+
 export const isModelServingCompatible = (
   input: string[] | Connection | ConnectionTypeConfigMapObj,
   type?: ModelServingCompatibleTypes,

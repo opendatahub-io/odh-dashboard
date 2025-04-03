@@ -3,7 +3,7 @@ import { RegisteredModel, ModelVersion, ModelArtifact } from '~/concepts/modelRe
 import {
   filterLiveVersions,
   getLastCreatedItem,
-  uriToStorageFields,
+  uriToModelLocation,
 } from '~/concepts/modelRegistry/utils';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
@@ -53,7 +53,7 @@ export const usePrefillRegisterVersionFields = ({
         setData('sourceModelFormat', latestArtifact.modelFormatName || '');
         setData('sourceModelFormatVersion', latestArtifact.modelFormatVersion || '');
 
-        const decodedUri = (latestArtifact.uri && uriToStorageFields(latestArtifact.uri)) || null;
+        const decodedUri = (latestArtifact.uri && uriToModelLocation(latestArtifact.uri)) || null;
 
         setData('modelLocationType', ModelLocationType.ObjectStorage);
         if (decodedUri?.s3Fields) {

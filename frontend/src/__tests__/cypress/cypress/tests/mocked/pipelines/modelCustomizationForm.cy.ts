@@ -56,6 +56,9 @@ const initialMockPipelineVersion = buildMockPipelineVersion(
     },
   },
 );
+const smallMockSSHPath = './cypress/tests/mocked/pipelines/mock-upload-pipeline.yaml';
+
+const largeMockSSHPath = './cypress/tests/mocked/pipelines/not-a-pipeline-2-megabytes.yaml';
 
 const invalidMockIlabPipeline = buildMockPipelineVersion({
   pipeline_id: initialMockPipeline.pipeline_id,
@@ -106,7 +109,7 @@ describe('Model Customization Form', () => {
     judgeModelSection.findModelNameInput().type('test');
     taxonomySection.findTaxonomyUrl().type('http://github.git');
     taxonomySection.findSshKeyRadio().check();
-    taxonomySection.findTaxonomySShKey().type('test');
+    taxonomySection.findTaxonomySSHText().type('test');
     taxonomySection.findUsernameAndTokenRadio().check();
     taxonomySection.findTaxonomyUsername().fill('test');
     taxonomySection.findTaxonomyToken().fill('test');
@@ -157,6 +160,42 @@ describe('Model Customization Form', () => {
     visitModelVersionDetails({ serviceName: 'modelregistry-sample', versionNo: '1' });
     cy.url().should('include', `/modelCustomization/fine-tune/${projectName}`);
     modelCustomizationFormGlobal.findCancelButton().click();
+  });
+
+  it('should successfully upload an SSH file', () => {
+    initIntercepts({});
+    setupModelRegistryIntercepts({ modelRegistryServiceName: 'modelregistry-sample' });
+    visitModelVersionDetails({ serviceName: 'modelregistry-sample', versionNo: '1' });
+    cy.wait('@getIlabPipeline');
+    cy.wait('@getPipelineVersions');
+    baseModelSection.editInlineText('http://test.com');
+    teacherModelSection.findEndpointInput().type('http://test.com');
+    teacherModelSection.findModelNameInput().type('test');
+    judgeModelSection.findEndpointInput().type('http://test.com');
+    judgeModelSection.findModelNameInput().type('test');
+    taxonomySection.findTaxonomyUrl().type('http://github.git');
+    taxonomySection.findSshKeyRadio().check();
+    const sshUploadSection = taxonomySection.getSSHUpload();
+    sshUploadSection.uploadSSHFile(smallMockSSHPath);
+    taxonomySection.findTaxonomySSHText().type('test');
+  });
+
+  it('should throw an error if the uploaded SSH file exceeds the size limit', () => {
+    initIntercepts({});
+    setupModelRegistryIntercepts({ modelRegistryServiceName: 'modelregistry-sample' });
+    visitModelVersionDetails({ serviceName: 'modelregistry-sample', versionNo: '1' });
+    cy.wait('@getIlabPipeline');
+    cy.wait('@getPipelineVersions');
+    baseModelSection.editInlineText('http://test.com');
+    teacherModelSection.findEndpointInput().type('http://test.com');
+    teacherModelSection.findModelNameInput().type('test');
+    judgeModelSection.findEndpointInput().type('http://test.com');
+    judgeModelSection.findModelNameInput().type('test');
+    taxonomySection.findTaxonomyUrl().type('http://github.git');
+    taxonomySection.findSshKeyRadio().check();
+    const sshUploadSection = taxonomySection.getSSHUpload();
+    sshUploadSection.uploadSSHFile(largeMockSSHPath);
+    sshUploadSection.findSSHFileUploadHelptext().should('exist');
   });
 });
 
