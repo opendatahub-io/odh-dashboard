@@ -6,10 +6,10 @@ import {
   HelperTextItem,
 } from '@patternfly/react-core';
 import React from 'react';
+import { ErrorCode } from 'react-dropzone';
 import { ZodIssue } from 'zod';
 import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
-
-const MAX_SIZE = 1024 * 1024; // 1 MB as bytes
+import { MAX_SIZE, MAX_SIZE_AS_MB } from '~/concepts/pipelines/content/const';
 
 export const SshKeyFileUpload: React.FC<{
   onChange: (value: string) => void;
@@ -23,7 +23,7 @@ export const SshKeyFileUpload: React.FC<{
   const handleFileInputChange = (_event: DropEvent, file: File) => {
     setFilename(file.name);
     if (file.size > MAX_SIZE) {
-      setRejectedReason(`File size (${(file.size / 1024).toFixed(1)} KB) exceeds 1 MB limit`);
+      setRejectedReason(`File size exceeds ${MAX_SIZE_AS_MB} MB`);
     }
   };
 
@@ -75,8 +75,8 @@ export const SshKeyFileUpload: React.FC<{
           maxSize: MAX_SIZE,
           onDropRejected: (reason) => {
             const error = reason[0].errors[0];
-            if (error.code === 'file-too-large') {
-              setRejectedReason(`File exceeds maximum size (${MAX_SIZE / 1024} KB)`);
+            if (error.code === ErrorCode.FileTooLarge) {
+              setRejectedReason(`File size exceeds ${MAX_SIZE_AS_MB} MB`);
             } else {
               setRejectedReason(error.message || 'File rejected');
             }
