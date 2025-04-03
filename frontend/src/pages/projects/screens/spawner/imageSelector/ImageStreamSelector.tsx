@@ -110,7 +110,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
               </MenuItem>
             ))}
       </MenuGroup>
-      <Divider />
+      <Divider component="li" />
       <MenuGroup
         data-testid="global-scoped-notebook-images"
         label={

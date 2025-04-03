@@ -144,6 +144,12 @@ const initIntercepts = ({
         name: 'test-9',
         displayName: 'Test image 9',
       }),
+      mockImageStreamK8sResource({
+        name: 'test-10stream',
+        namespace: 'test-project',
+        tagName: '1.22',
+        displayName: 'Project-scoped test image',
+      }),
     ]),
   );
   cy.interceptK8s(
@@ -184,12 +190,34 @@ const initIntercepts = ({
                     'opendatahub.io/notebook-image': 'true',
                   },
                   annotations: {
-                    'opendatahub.io/image-display-name': 'Test image',
+                    'opendatahub.io/image-display-name': 'Project-scoped test image',
                   },
                 },
               },
             }),
             mockNotebookK8sResource({ name: 'another-test', displayName: 'Another Notebook' }),
+            mockNotebookK8sResource({
+              imageDisplayName: 'Project-scoped test image',
+              displayName: 'Test project-scoped notebook',
+              lastImageSelection: 'test-10stream:1.2',
+              image:
+                'image-registry.openshift-image-registry.svc:5000/test-project/test-10stream:1.22',
+              additionalEnvs: [
+                {
+                  name: 'JUPYTER_IMAGE',
+                  value:
+                    'image-registry.openshift-image-registry.svc:5000/test-project/test-10stream:1.22',
+                },
+              ],
+              opts: {
+                metadata: {
+                  name: 'test-notebook',
+                  labels: {
+                    'opendatahub.io/notebook-image': 'true',
+                  },
+                },
+              },
+            }),
           ],
     ),
   );
@@ -566,6 +594,46 @@ describe('Workbench page', () => {
       });
     });
     verifyRelativeURL('/projects/test-project?section=workbenches');
+  });
+
+  it('Display project-scoped label for a notebook in workbenches table', () => {
+    initIntercepts({
+      disableProjectScoped: false,
+      notebookSizes: [
+        {
+          name: 'XSmall',
+          resources: {
+            limits: {
+              cpu: '0.5',
+              memory: '500Mi',
+            },
+            requests: {
+              cpu: '0.1',
+              memory: '100Mi',
+            },
+          },
+        },
+        {
+          name: 'Small',
+          resources: {
+            limits: {
+              cpu: '2',
+              memory: '8Gi',
+            },
+            requests: {
+              cpu: '1',
+              memory: '8Gi',
+            },
+          },
+        },
+      ],
+    });
+    workbenchPage.visit('test-project');
+    const notebookRow = workbenchPage.getNotebookRow('Test project-scoped notebook');
+    notebookRow.find().findByText('Project-scoped test image').should('exist');
+    notebookRow.shouldHaveContainerSize('Small');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
+    notebookRow.findNotebookRouteLink().should('have.attr', 'aria-disabled', 'false');
   });
 
   it('list workbench and table sorting', () => {
