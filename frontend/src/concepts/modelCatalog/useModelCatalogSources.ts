@@ -6,7 +6,10 @@ import { SupportedArea } from '~/concepts/areas/types';
 import { allSettledPromises } from '~/utilities/allSettledPromises';
 import useFetchState, { NotReadyError, FetchState } from '~/utilities/useFetchState';
 import { ModelCatalogSource, ModelCatalogSourcesObject } from './types';
-import { MODEL_CATALOG_SOURCES_CONFIGMAP } from './const';
+import {
+  MODEL_CATALOG_SOURCES_CONFIGMAP,
+  MODEL_CATALOG_UNMANAGED_SOURCES_CONFIGMAP,
+} from './const';
 
 type State = ModelCatalogSource[];
 // Temporary implementation for MVP - will be replaced with API for remote model catalog sources
@@ -30,7 +33,7 @@ export const useModelCatalogSources = (): FetchState<State> => {
 
     const [successes, fails] = await allSettledPromises([
       getConfigMap(dashboardNamespace, MODEL_CATALOG_SOURCES_CONFIGMAP),
-      getConfigMap(dashboardNamespace, 'model-catalog-unmanaged-sources'),
+      getConfigMap(dashboardNamespace, MODEL_CATALOG_UNMANAGED_SOURCES_CONFIGMAP),
     ]);
 
     for (const fail of fails) {
