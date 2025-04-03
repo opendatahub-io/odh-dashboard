@@ -572,7 +572,7 @@ describe('Workbench page', () => {
     verifyRelativeURL('/projects/test-project?section=workbenches');
   });
 
-  it.only('Display project-scoped label for a notebook in workbenches table', () => {
+  it('Display project-scoped label for a notebook in workbenches table', () => {
     initIntercepts({
       disableProjectScoped: false,
       notebookSizes: [
