@@ -183,6 +183,7 @@ describe('Artifacts', () => {
       artifactDetails.findPropSection().should('contain.text', 'No properties');
       artifactDetails.findCustomPropSection().should('contain.text', 'No custom properties');
     });
+
     it('shows Overview tab content', () => {
       artifactDetails.mockGetArtifactById(
         projectName,
@@ -274,7 +275,21 @@ describe('Artifacts', () => {
   });
 });
 
-export const initIntercepts = (): void => {
+it('should show an error icon when pipeline run fails to run', () => {
+  initIntercepts(true);
+
+  artifactDetails.mockGetArtifactById(
+    projectName,
+    mockGetArtifactsById({
+      artifacts: [mockedArtifactsResponse.artifacts[0]],
+      artifactTypes: [],
+    }),
+  );
+  artifactDetails.visit(projectName, 'metrics', '1');
+  artifactDetails.shouldFailToLoadRun();
+});
+
+export const initIntercepts = (isRunError = false): void => {
   configIntercept();
   dspaIntercepts(projectName);
   projectsIntercept([{ k8sName: projectName, displayName: 'Test project' }]);
@@ -311,7 +326,7 @@ export const initIntercepts = (): void => {
         runId: mockRuns.run_id,
       },
     },
-    mockRuns,
+    isRunError ? { statusCode: 404 } : mockRuns,
   );
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',

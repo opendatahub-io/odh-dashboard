@@ -102,6 +102,11 @@ class ArtifactDetails {
     cy.testA11y();
   }
 
+  shouldFailToLoadRun() {
+    cy.findByTestId('error-icon').should('exist');
+    return this;
+  }
+
   findDatasetItemByLabel(label: string) {
     return cy.findByTestId(`dataset-description-list-${label}`);
   }
