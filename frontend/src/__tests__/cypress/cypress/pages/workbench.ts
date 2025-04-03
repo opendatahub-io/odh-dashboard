@@ -187,6 +187,10 @@ class NotebookRow extends TableRow {
     return this;
   }
 
+  findProjectScopedLabel() {
+    return this.find().findByTestId('project-scoped-label');
+  }
+
   findNotebookRouteLink() {
     return this.find().findByTestId('notebook-route-link');
   }

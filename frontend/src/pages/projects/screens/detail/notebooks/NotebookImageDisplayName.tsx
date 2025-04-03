@@ -127,6 +127,7 @@ export const NotebookImageDisplayName = ({
                 isCompact
                 variant="outline"
                 color="blue"
+                data-testid="project-scoped-label"
                 icon={
                   <img
                     style={{ height: 20 }}

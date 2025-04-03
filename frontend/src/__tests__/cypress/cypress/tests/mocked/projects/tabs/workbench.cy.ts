@@ -40,7 +40,7 @@ import { mock200Status, mock404Error } from '~/__mocks__/mockK8sStatus';
 import type { NotebookSize } from '~/types';
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import { mockConnectionTypeConfigMap } from '~/__mocks__/mockConnectionType';
-import type { PodKind } from '~/k8sTypes';
+import type { NotebookKind, PodKind } from '~/k8sTypes';
 import type { EnvironmentFromVariable } from '~/pages/projects/types';
 
 const configYamlPath = '../../__mocks__/mock-upload-configmap.yaml';
@@ -51,6 +51,7 @@ type HandlersProps = {
   mockPodList?: PodKind[];
   envFrom?: EnvironmentFromVariable[];
   disableProjectScoped?: boolean;
+  notebooks?: NotebookKind[];
 };
 
 const initIntercepts = ({
@@ -73,6 +74,23 @@ const initIntercepts = ({
   ],
   mockPodList = [mockPodK8sResource({})],
   disableProjectScoped = true,
+  notebooks = [
+    mockNotebookK8sResource({
+      envFrom,
+      opts: {
+        metadata: {
+          name: 'test-notebook',
+          labels: {
+            'opendatahub.io/notebook-image': 'true',
+          },
+          annotations: {
+            'opendatahub.io/image-display-name': 'Project-scoped test image',
+          },
+        },
+      },
+    }),
+    mockNotebookK8sResource({ name: 'another-test', displayName: 'Another Notebook' }),
+  ],
 }: HandlersProps) => {
   cy.interceptK8sList(StorageClassModel, mockStorageClassList());
   cy.interceptOdh(
@@ -177,49 +195,7 @@ const initIntercepts = ({
       model: NotebookModel,
       ns: 'test-project',
     },
-    mockK8sResourceList(
-      isEmpty
-        ? []
-        : [
-            mockNotebookK8sResource({
-              envFrom,
-              opts: {
-                metadata: {
-                  name: 'test-notebook',
-                  labels: {
-                    'opendatahub.io/notebook-image': 'true',
-                  },
-                  annotations: {
-                    'opendatahub.io/image-display-name': 'Project-scoped test image',
-                  },
-                },
-              },
-            }),
-            mockNotebookK8sResource({ name: 'another-test', displayName: 'Another Notebook' }),
-            mockNotebookK8sResource({
-              imageDisplayName: 'Project-scoped test image',
-              displayName: 'Test project-scoped notebook',
-              lastImageSelection: 'test-10stream:1.2',
-              image:
-                'image-registry.openshift-image-registry.svc:5000/test-project/test-10stream:1.22',
-              additionalEnvs: [
-                {
-                  name: 'JUPYTER_IMAGE',
-                  value:
-                    'image-registry.openshift-image-registry.svc:5000/test-project/test-10stream:1.22',
-                },
-              ],
-              opts: {
-                metadata: {
-                  name: 'test-notebook',
-                  labels: {
-                    'opendatahub.io/notebook-image': 'true',
-                  },
-                },
-              },
-            }),
-          ],
-    ),
+    mockK8sResourceList(isEmpty ? [] : notebooks),
   );
   cy.interceptK8sList(SecretModel, mockK8sResourceList([mockSecretK8sResource({})]));
   cy.interceptK8sList(
@@ -596,7 +572,7 @@ describe('Workbench page', () => {
     verifyRelativeURL('/projects/test-project?section=workbenches');
   });
 
-  it('Display project-scoped label for a notebook in workbenches table', () => {
+  it.only('Display project-scoped label for a notebook in workbenches table', () => {
     initIntercepts({
       disableProjectScoped: false,
       notebookSizes: [
@@ -627,10 +603,34 @@ describe('Workbench page', () => {
           },
         },
       ],
+      notebooks: [
+        mockNotebookK8sResource({
+          imageDisplayName: 'Project-scoped test image',
+          displayName: 'Test project-scoped notebook',
+          lastImageSelection: 'test-10stream:1.2',
+          image: 'image-registry.openshift-image-registry.svc:5000/test-project/test-10stream:1.22',
+          additionalEnvs: [
+            {
+              name: 'JUPYTER_IMAGE',
+              value:
+                'image-registry.openshift-image-registry.svc:5000/test-project/test-10stream:1.22',
+            },
+          ],
+          opts: {
+            metadata: {
+              name: 'test-notebook',
+              labels: {
+                'opendatahub.io/notebook-image': 'true',
+              },
+            },
+          },
+        }),
+      ],
     });
     workbenchPage.visit('test-project');
     const notebookRow = workbenchPage.getNotebookRow('Test project-scoped notebook');
     notebookRow.find().findByText('Project-scoped test image').should('exist');
+    notebookRow.findProjectScopedLabel().should('exist');
     notebookRow.shouldHaveContainerSize('Small');
     notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
     notebookRow.findNotebookRouteLink().should('have.attr', 'aria-disabled', 'false');
