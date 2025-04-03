@@ -4,6 +4,7 @@ import { ModelDeployPrefillInfo } from '~/pages/modelServing/screens/projects/us
 import DeployPrefilledModelModal from '~/pages/modelServing/screens/projects/DeployPrefilledModelModal';
 import { ProjectKind } from '~/k8sTypes';
 import { uriToConnectionTypeName } from '~/concepts/modelRegistry/utils';
+import { getTagFromModel } from '~/pages/modelCatalog/utils';
 
 interface DeployCatalogModelModalProps {
   model: CatalogModel;
@@ -17,8 +18,9 @@ const DeployCatalogModelModal: React.FC<DeployCatalogModelModalProps> = ({
   onSubmit,
 }) => {
   const uri = model.artifacts?.[0].uri;
+  const tag = getTagFromModel(model);
   const modelDeployPrefillInfo: ModelDeployPrefillInfo = {
-    modelName: model.name,
+    modelName: `${model.name}${tag ? ` - ${tag}` : ''}`,
     modelArtifactUri: uri,
     connectionTypeName: uriToConnectionTypeName(uri),
   };
