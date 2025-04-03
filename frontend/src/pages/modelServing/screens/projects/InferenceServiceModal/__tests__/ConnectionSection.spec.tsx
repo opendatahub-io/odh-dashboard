@@ -7,7 +7,7 @@ import {
   mockOciConnectionType,
 } from '~/__mocks__/mockConnectionType';
 import { mockInferenceServiceModalData } from '~/__mocks__/mockInferenceServiceModalData';
-import { ConnectionSection } from '~/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionSection';
+import { ConnectionSection } from '~/pages/modelServing/modelConnectionSection/ModelConnectionSection';
 import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
 
 jest.mock('~/utilities/useWatchConnectionTypes', () => ({
@@ -81,7 +81,7 @@ describe('ConnectionsFormSection', () => {
         setData={mockSetData}
         initialNewConnectionType={undefined}
         initialNewConnectionValues={{}}
-        connection={undefined}
+        selectedConnection={undefined}
         setConnection={mockSetConnection}
         setIsConnectionValid={() => undefined}
         loaded
@@ -129,7 +129,7 @@ describe('ConnectionsFormSection', () => {
         setData={() => undefined}
         initialNewConnectionType={undefined}
         initialNewConnectionValues={{}}
-        connection={undefined}
+        selectedConnection={undefined}
         setConnection={() => undefined}
         setIsConnectionValid={() => undefined}
         loaded
@@ -172,7 +172,7 @@ describe('ConnectionsFormSection', () => {
         setData={mockSetData}
         initialNewConnectionType={undefined}
         initialNewConnectionValues={{}}
-        connection={undefined}
+        selectedConnection={undefined}
         loaded
         setConnection={mockSetConnection}
         setIsConnectionValid={() => undefined}
@@ -210,7 +210,7 @@ describe('ConnectionsFormSection', () => {
         setData={() => undefined}
         initialNewConnectionType={undefined}
         initialNewConnectionValues={{}}
-        connection={undefined}
+        selectedConnection={undefined}
         loaded
         setConnection={() => undefined}
         setIsConnectionValid={() => undefined}
@@ -237,7 +237,7 @@ describe('ConnectionsFormSection', () => {
         setData={mockSetData}
         initialNewConnectionType={undefined}
         initialNewConnectionValues={{}}
-        connection={undefined}
+        selectedConnection={undefined}
         loaded
         setConnection={mockSetConnection}
         setIsConnectionValid={() => undefined}
@@ -272,7 +272,7 @@ describe('ConnectionsFormSection', () => {
           },
         })}
         setData={mockSetData}
-        connection={undefined}
+        selectedConnection={undefined}
         loaded
         setConnection={mockSetConnection}
         setIsConnectionValid={() => undefined}

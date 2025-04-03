@@ -45,7 +45,10 @@ import {
   TrackingOutcome,
 } from '~/concepts/analyticsTracking/trackingProperties';
 import { Connection } from '~/concepts/connectionTypes/types';
-import { ConnectionSection } from '~/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionSection';
+import {
+  ConnectionSection,
+  useModelLocationSection,
+} from '~/pages/modelServing/modelConnectionSection/ModelConnectionSection';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
@@ -118,26 +121,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const { data: kServeNameDesc, onDataChange: setKserveNameDesc } = useK8sNameDescriptionFieldData({
     initialData: editInfo?.inferenceServiceEditInfo,
   });
-
-  const [connection, setConnection] = React.useState<Connection>();
-  const [isConnectionValid, setIsConnectionValid] = React.useState(false);
-
-  const isAuthAvailable =
-    useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status ||
-    createDataInferenceService.isKServeRawDeployment;
   const currentProjectName = projectContext?.currentProject.metadata.name;
   const namespace = currentProjectName || createDataInferenceService.project;
-
-  const customServingRuntimesEnabled = useCustomServingRuntimesEnabled();
-  const [allowCreate] = useAccessReview({
-    ...accessReviewResource,
-    namespace,
-  });
-
-  const profileIdentifiers = useProfileIdentifiers(
-    podSpecOptionsState.acceleratorProfile.formData.profile,
-    podSpecOptionsState.hardwareProfile.formData.selectedProfile,
-  );
 
   const {
     initialNewConnectionType,
@@ -150,6 +135,49 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     createDataInferenceService,
     setCreateDataInferenceService,
     registeredModelDeployInfo,
+  );
+
+  const existingModelConnection = React.useMemo(
+    () =>
+      editInfo
+        ? {
+            connection: connections.find(
+              (c) =>
+                c.connection.metadata.name ===
+                  editInfo.inferenceServiceEditInfo?.spec.predictor.model?.storage?.key ||
+                c.connection.metadata.name ===
+                  editInfo.inferenceServiceEditInfo?.spec.predictor.imagePullSecrets?.[0].name,
+            )?.connection,
+            uri: editInfo.inferenceServiceEditInfo?.spec.predictor.model?.storageUri,
+            path: editInfo.inferenceServiceEditInfo?.spec.predictor.model?.storage?.path,
+          }
+        : undefined,
+    [connections, editInfo],
+  );
+
+  const modelConnectionData = useModelLocationSection(
+    namespace,
+    existingModelConnection,
+    undefined,
+    initialNewConnectionType,
+  );
+
+  // console.log('existingModelLocation', existingModelLocation);
+  // console.log('modelLocation', modelLocation);
+
+  const isAuthAvailable =
+    useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status ||
+    createDataInferenceService.isKServeRawDeployment;
+
+  const customServingRuntimesEnabled = useCustomServingRuntimesEnabled();
+  const [allowCreate] = useAccessReview({
+    ...accessReviewResource,
+    namespace,
+  });
+
+  const profileIdentifiers = useProfileIdentifiers(
+    podSpecOptionsState.acceleratorProfile.formData.profile,
+    podSpecOptionsState.hardwareProfile.formData.selectedProfile,
   );
 
   const [actionInProgress, setActionInProgress] = React.useState(false);
@@ -189,7 +217,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     if (createDataInferenceService.storage.type === InferenceServiceStorageType.EXISTING_URI) {
       return !!createDataInferenceService.storage.uri;
     }
-    return isConnectionValid;
+    return !!modelConnectionData.isModelLocationValid;
   };
 
   const baseInputValueValid =
@@ -276,7 +304,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       allowCreate,
       editInfo?.secrets,
       undefined,
-      connection,
+      // modelLocationData.existingModelLocation.connection,
     );
 
     const props: FormTrackingEventProperties = {
@@ -420,24 +448,24 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
         {!hideForm && (
           <FormSection title="Source model location" id="model-location">
             <ConnectionSection
-              existingUriOption={
-                existingUriOption ||
-                editInfo?.inferenceServiceEditInfo?.spec.predictor.model?.storageUri
-              }
-              data={createDataInferenceService}
-              setData={setCreateDataInferenceService}
-              initialNewConnectionType={initialNewConnectionType}
-              initialNewConnectionValues={initialNewConnectionValues}
+              modelConnectionData={modelConnectionData}
+              projectName={currentProjectName ?? ''}
+              selectedRadioOption={modelConnectionData.selectedRadioOption}
+              setSelectedRadioOption={modelConnectionData.setSelectedRadioOption}
+              existingModelLocation={existingModelConnection}
               loaded={
                 registeredModelDeployInfo
                   ? !!projectContext?.connections && connectionsLoaded
                   : !!projectContext?.connections || connectionsLoaded
               }
               loadError={connectionsLoadError}
-              connection={connection}
-              setConnection={setConnection}
-              setIsConnectionValid={setIsConnectionValid}
+              setIsModelLocationValid={modelConnectionData.setIsModelLocationValid}
               connections={connections}
+              connectionTypes={modelConnectionData.connectionTypes}
+              selectedConnectionType={modelConnectionData.selectedConnectionType}
+              // setSelectedConnectionType={modelLocationData.setSelectedConnectionType}
+              modelLocation={modelConnectionData.modelLocation}
+              setModelLocation={modelConnectionData.setModelLocation}
             />
           </FormSection>
         )}
