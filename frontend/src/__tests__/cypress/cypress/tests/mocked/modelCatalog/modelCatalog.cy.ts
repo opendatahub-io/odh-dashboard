@@ -23,7 +23,6 @@ import type { ModelCatalogSource } from '~/concepts/modelCatalog/types';
 type HandlersProps = {
   modelRegistries?: K8sResourceCommon[];
   catalogSources?: ModelCatalogSource[];
-  disableFineTuning?: boolean;
   disableModelCatalogFeature?: boolean;
   hasUnmanagedSourcesConfigMap?: boolean;
   unmanagedSources?: ModelCatalogSource[];
@@ -34,7 +33,6 @@ const initIntercepts = ({
   modelRegistries = [mockModelRegistryService({ name: 'modelregistry-sample' })],
   managedSources = [mockModelCatalogSource({})],
   unmanagedSources = [],
-  disableFineTuning = false,
   disableModelCatalogFeature = false,
   hasUnmanagedSourcesConfigMap = true,
 }: HandlersProps) => {
@@ -44,7 +42,6 @@ const initIntercepts = ({
     mockDscStatus({
       installedComponents: {
         'model-registry-operator': true,
-        'data-science-pipelines-operator': true,
       },
     }),
   );
@@ -53,7 +50,6 @@ const initIntercepts = ({
     'GET /api/config',
     mockDashboardConfig({
       disableModelCatalog: disableModelCatalogFeature,
-      disableFineTuning,
     }),
   );
 
@@ -193,7 +189,7 @@ describe('Model Catalog loading states', () => {
     cy.contains('Unable to load model catalog').should('exist');
   });
 
-  it('should show empty state when configmap has empty data', () => {
+  it('should show empty state when configmap has empty sources', () => {
     cy.interceptK8s(
       {
         model: ConfigMapModel,
@@ -208,12 +204,12 @@ describe('Model Catalog loading states', () => {
           namespace: 'opendatahub',
         },
         data: {
-          modelCatalogSources: '',
+          modelCatalogSources: JSON.stringify({ sources: [] }),
         },
       },
     );
     modelCatalog.visit();
-    cy.contains('Unable to load model catalog').should('exist');
+    cy.contains('Request access to model catalog').should('exist');
   });
 
   it('should show empty state when configmap has malformed data', () => {

@@ -36,7 +36,6 @@ const initIntercepts = ({
     mockDscStatus({
       installedComponents: {
         'model-registry-operator': true,
-        'data-science-pipelines-operator': true,
       },
     }),
   );
@@ -246,7 +245,7 @@ describe('Model Details loading states', () => {
     modelDetailsPage.findModelCatalogEmptyState().should('exist');
   });
 
-  it('should show error state when configmap has empty data', () => {
+  it('should show error state when configmap has empty sources', () => {
     // Mock managed ConfigMap with empty data
     cy.interceptK8s(
       {
@@ -261,12 +260,12 @@ describe('Model Details loading states', () => {
           name: 'model-catalog-sources',
           namespace: 'opendatahub',
         },
-        data: { modelCatalogSources: '' },
+        modelCatalogSources: JSON.stringify({ sources: [] }),
       },
     );
 
     modelDetailsPage.visit();
-    cy.contains('Unable to load model catalog').should('exist');
+    cy.contains('Details not found').should('exist');
   });
 
   it('should show error state when configmap fetch fails (non-404)', () => {
