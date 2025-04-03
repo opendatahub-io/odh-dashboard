@@ -1,12 +1,12 @@
 import {
   Breadcrumb,
   BreadcrumbItem,
+  capitalize,
+  Form,
   FormGroup,
   PageSection,
-  Form,
   Stack,
   StackItem,
-  capitalize,
 } from '@patternfly/react-core';
 import React from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -44,6 +44,8 @@ import {
 } from '~/concepts/modelRegistry/types';
 import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
 import { getCatalogModelDetailsUrl } from '~/pages/modelCatalog/routeUtils';
+import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 
 const RegisterCatalogModel: React.FC = () => {
   const navigate = useNavigate();
@@ -64,6 +66,7 @@ const RegisterCatalogModel: React.FC = () => {
   );
 
   const isModelNameValid = isNameValid(formData.modelName);
+  const eventName = 'Catalog Model Registered';
 
   // passing registeredModels as [] is temporary and will handle this as a part of https://issues.redhat.com/browse/RHOAIENG-20564
   const isSubmitDisabled =
@@ -161,6 +164,11 @@ const RegisterCatalogModel: React.FC = () => {
       errors,
     } = await registerModel(apiState, formData, author);
     if (registeredModel && modelVersion && modelArtifact) {
+      fireFormTrackingEvent(eventName, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+        model: params.modelName,
+      });
       navigate(registeredModelUrl(registeredModel.id, preferredModelRegistry?.metadata.name));
     } else if (Object.keys(errors).length > 0) {
       setIsSubmitting(false);
@@ -169,9 +177,18 @@ const RegisterCatalogModel: React.FC = () => {
       const resourceName = Object.keys(errors)[0];
       setRegistrationErrorType(resourceName);
       setSubmitError(errors[resourceName]);
+      fireFormTrackingEvent(eventName, {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: errors[resourceName]?.message,
+        model: params.modelName,
+      });
     }
   };
-  const onCancel = () => navigate(getCatalogModelDetailsUrl(params));
+  const onCancel = () => {
+    fireFormTrackingEvent(eventName, { outcome: TrackingOutcome.cancel, model: params.modelName });
+    navigate(getCatalogModelDetailsUrl(params));
+  };
 
   return (
     <ApplicationsPage

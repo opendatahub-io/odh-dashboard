@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Navigate, Outlet, useParams } from 'react-router';
-import { Bullseye, Alert } from '@patternfly/react-core';
+import { Bullseye } from '@patternfly/react-core';
 import { conditionalArea, SupportedArea } from '~/concepts/areas';
 import { ModelRegistryContextProvider } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import ApplicationsPage from '~/pages/ApplicationsPage';
@@ -8,6 +8,7 @@ import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import WhosMyAdministrator from '~/components/WhosMyAdministrator';
+import RedirectErrorState from '~/pages/external/RedirectErrorState';
 import InvalidModelRegistry from './screens/InvalidModelRegistry';
 import EmptyModelRegistryState from './screens/components/EmptyModelRegistryState';
 import ModelRegistrySelectorNavigator from './screens/ModelRegistrySelectorNavigator';
@@ -37,7 +38,6 @@ const ModelRegistryCoreLoader: React.FC<ModelRegistryCoreLoaderProps> =
       preferredModelRegistry,
       updatePreferredModelRegistry,
     } = React.useContext(ModelRegistrySelectorContext);
-
     const modelRegistryFromRoute = modelRegistryServices.find(
       (mr) => mr.metadata.name === modelRegistry,
     );
@@ -57,11 +57,12 @@ const ModelRegistryCoreLoader: React.FC<ModelRegistryCoreLoaderProps> =
 
     if (modelRegistryServicesLoadError) {
       return (
-        <Bullseye>
-          <Alert title="Model registry load error" variant="danger" isInline>
-            {modelRegistryServicesLoadError.message}
-          </Alert>
-        </Bullseye>
+        <ApplicationsPage loaded loadError={modelRegistryServicesLoadError} empty={false}>
+          <RedirectErrorState
+            title="Model registry load error"
+            errorMessage={modelRegistryServicesLoadError.message}
+          />
+        </ApplicationsPage>
       );
     }
     if (!modelRegistryServicesLoaded) {

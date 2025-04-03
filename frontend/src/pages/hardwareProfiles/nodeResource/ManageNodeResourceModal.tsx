@@ -6,7 +6,7 @@ import useGenericObjectState from '~/utilities/useGenericObjectState';
 import { CPU_UNITS, MEMORY_UNITS_FOR_SELECTION, UnitOption } from '~/utilities/valueUnits';
 import { EMPTY_IDENTIFIER } from './const';
 import NodeResourceForm from './NodeResourceForm';
-import { validateDefaultCount, validateMinCount } from './utils';
+import { validateDefaultCount, validateMaxCount, validateMinCount } from './utils';
 
 type ManageNodeResourceModalProps = {
   onClose: () => void;
@@ -45,7 +45,9 @@ const ManageNodeResourceModal: React.FC<ManageNodeResourceModalProps> = ({
   }, [identifier]);
 
   const isValidCounts =
-    validateDefaultCount(identifier, unitOptions) && validateMinCount(identifier, unitOptions);
+    validateDefaultCount(identifier, unitOptions).isValid &&
+    validateMinCount(identifier, unitOptions).isValid &&
+    validateMaxCount(identifier, unitOptions).isValid;
 
   const isButtonDisabled =
     !identifier.displayName || !identifier.identifier || !isUniqueIdentifier || !isValidCounts;

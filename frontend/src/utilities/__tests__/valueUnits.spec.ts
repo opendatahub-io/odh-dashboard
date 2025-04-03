@@ -27,6 +27,9 @@ describe('splitValueUnit', () => {
   it('should default back to base if unable to match a legit value', () => {
     expect(splitValueUnit('', options)).toEqual([1, options[0]]);
   });
+  it('should return undefined as the value and unit if matches unit only', () => {
+    expect(splitValueUnit('unit', options)).toEqual([undefined, options[0]]);
+  });
   it('should return the value and unit', () => {
     expect(splitValueUnit('1unit', options)).toEqual([1, options[0]]);
     expect(splitValueUnit('1name', options)).toEqual([1, options[0]]);

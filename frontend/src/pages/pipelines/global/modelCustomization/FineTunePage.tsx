@@ -15,7 +15,6 @@ import TeacherModelSection from '~/pages/pipelines/global/modelCustomization/tea
 import JudgeModelSection from '~/pages/pipelines/global/modelCustomization/teacherJudgeSection/JudgeModelSection';
 import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { ModelCustomizationRouterState } from '~/routes';
-import RunTypeSection from '~/pages/pipelines/global/modelCustomization/RunTypeSection';
 import FineTunedModelSection from '~/pages/pipelines/global/modelCustomization/fineTunedModelSection/FineTunedModelSection';
 import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
 import { FineTunedModelNewConnectionContextProvider } from '~/pages/pipelines/global/modelCustomization/fineTunedModelSection/FineTunedModelNewConnectionContext';
@@ -116,7 +115,6 @@ const FineTunePage: React.FC<FineTunePageProps> = ({
               setData={(judgeData) => setData('judge', judgeData)}
               handleOpenDrawer={handleOpenDrawer}
             />
-            <RunTypeSection data={data} setData={setData} />
             <TrainingHardwareSection
               ilabPipelineLoaded={ilabPipelineLoaded}
               ilabPipelineVersion={ilabPipelineVersion}

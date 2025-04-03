@@ -197,7 +197,9 @@ describe('NotebookServer', () => {
       .should('not.satisfy', (arr: string[]) => arr.some((item) => item.includes('Test GPU')));
     notebookServer
       .findHardwareProfileSelect()
-      .findSelectOption('Large CPU: Request = 7; Limit = 7; Memory: Request = 56Gi; Limit = 56Gi')
+      .findSelectOption(
+        'Large CPU: Request = 7 Cores; Limit = 7 Cores; Memory: Request = 56 GiB; Limit = 56 GiB',
+      )
       .click();
     notebookServer.findHardwareProfileSelect().should('contain', 'Large');
     notebookServer.findStartServerButton().should('be.visible');

@@ -167,11 +167,11 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   const hasSetDefault = React.useRef(false);
 
   React.useEffect(() => {
-    if (!hasSetDefault.current) {
+    if (!editInfo && !hasSetDefault.current) {
       podSpecOptionsState.modelSize.setSelectedSize(NIM_CUSTOM_DEFAULTS);
       hasSetDefault.current = true;
     }
-  }, [NIM_CUSTOM_DEFAULTS, podSpecOptionsState.modelSize]);
+  }, [NIM_CUSTOM_DEFAULTS, podSpecOptionsState.modelSize, editInfo]);
 
   // Serving Runtime Validation
   const isDisabledServingRuntime =
