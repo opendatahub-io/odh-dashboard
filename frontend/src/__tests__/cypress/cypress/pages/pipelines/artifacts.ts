@@ -85,6 +85,10 @@ class ArtifactsTableRow extends Contextual<HTMLTableRowElement> {
   findCreated() {
     return this.find().find(`[data-label=Created]`);
   }
+
+  findLabel() {
+    return this.find().findByTestId('model-registered-label');
+  }
 }
 
 class ArtifactDetails {
@@ -134,6 +138,14 @@ class ArtifactDetails {
 
   findCustomPropSection() {
     return cy.findByTestId('artifact-custom-properties-section');
+  }
+
+  findRegisteredModelSection() {
+    return cy.findByTestId('registered-model-details');
+  }
+
+  findModelVersionLink() {
+    return cy.findByTestId('model-version-link').invoke('attr', 'href');
   }
 
   mockGetArtifactById(projectName: string, response: GrpcResponse) {
