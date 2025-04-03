@@ -1,20 +1,14 @@
 /* eslint-disable camelcase */
 import {
   mockCustomSecretK8sResource,
-  mockDscStatus,
   mockK8sResourceList,
-  mockProjectK8sResource,
   mockSecretK8sResource,
 } from '~/__mocks__';
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
 import {
-  NIMAccountModel,
-  ProjectModel,
   SecretModel,
   ServiceModel,
   ServingRuntimeModel,
-  TemplateModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mockModelVersionList } from '~/__mocks__/mockModelVersionList';
 import { mockModelVersion } from '~/__mocks__/mockModelVersion';
@@ -25,19 +19,9 @@ import { modelRegistry } from '~/__tests__/cypress/cypress/pages/modelRegistry';
 import { mockModelRegistryService } from '~/__mocks__/mockModelRegistryService';
 import { modelVersionDeployModal } from '~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDeployModal';
 import { mockModelArtifactList } from '~/__mocks__/mockModelArtifactList';
-import {
-  mockInvalidTemplateK8sResource,
-  mockServingRuntimeTemplateK8sResource,
-} from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { ServingRuntimePlatform } from '~/types';
 import { kserveModal } from '~/__tests__/cypress/cypress/pages/modelServing';
 import { mockModelArtifact } from '~/__mocks__/mockModelArtifact';
-import { mockNimAccount } from '~/__mocks__/mockNimAccount';
-import {
-  mockConnectionTypeConfigMap,
-  mockModelServingFields,
-} from '~/__mocks__/mockConnectionType';
-import { ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
+import { initDeployPrefilledModelIntercepts } from '~/__tests__/cypress/cypress/utils/modelServingUtils';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 
@@ -73,22 +57,7 @@ const initIntercepts = ({
   modelMeshInstalled = true,
   kServeInstalled = true,
 }: HandlersProps) => {
-  cy.interceptOdh(
-    'GET /api/config',
-    mockDashboardConfig({
-      disableModelRegistry: false,
-    }),
-  );
-  cy.interceptOdh(
-    'GET /api/dsc/status',
-    mockDscStatus({
-      installedComponents: {
-        kserve: kServeInstalled,
-        'model-mesh': modelMeshInstalled,
-        'model-registry-operator': true,
-      },
-    }),
-  );
+  initDeployPrefilledModelIntercepts({ modelMeshInstalled, kServeInstalled });
 
   cy.interceptK8sList(
     ServiceModel,
@@ -150,23 +119,6 @@ const initIntercepts = ({
     },
     modelVersionMocked2,
   );
-
-  cy.interceptK8sList(
-    ProjectModel,
-    mockK8sResourceList([
-      mockProjectK8sResource({
-        enableModelMesh: true,
-        k8sName: 'model-mesh-project',
-        displayName: 'Model mesh project',
-      }),
-      mockProjectK8sResource({
-        enableModelMesh: false,
-        k8sName: 'kserve-project',
-        displayName: 'KServe project',
-      }),
-      mockProjectK8sResource({ k8sName: 'test-project', displayName: 'Test project' }),
-    ]),
-  ).as('getProjects');
 
   cy.interceptOdh(
     `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts`,
@@ -233,93 +185,6 @@ const initIntercepts = ({
     },
     mockModelArtifactList({}),
   );
-
-  cy.interceptK8sList(
-    TemplateModel,
-    mockK8sResourceList(
-      [
-        mockServingRuntimeTemplateK8sResource({
-          name: 'template-1',
-          displayName: 'Multi Platform',
-          platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
-        }),
-        mockServingRuntimeTemplateK8sResource({
-          name: 'template-2',
-          displayName: 'Caikit',
-          platforms: [ServingRuntimePlatform.SINGLE],
-        }),
-        mockServingRuntimeTemplateK8sResource({
-          name: 'template-3',
-          displayName: 'New OVMS Server',
-          platforms: [ServingRuntimePlatform.MULTI],
-        }),
-        mockServingRuntimeTemplateK8sResource({
-          name: 'template-4',
-          displayName: 'Serving Runtime with No Annotations',
-        }),
-        mockInvalidTemplateK8sResource({}),
-      ],
-      { namespace: 'opendatahub' },
-    ),
-  );
-  cy.interceptOdh('GET /api/connection-types', [
-    mockConnectionTypeConfigMap({
-      displayName: 'URI - v1',
-      name: 'uri-v1',
-      category: ['existing-category'],
-      fields: [
-        {
-          type: 'uri',
-          name: 'URI field test',
-          envVar: 'URI',
-          required: true,
-          properties: {},
-        },
-      ],
-    }),
-    mockConnectionTypeConfigMap({
-      name: 's3',
-      displayName: 'S3 compatible object storage - v1',
-      description: 'description 2',
-      category: ['existing-category'],
-      fields: mockModelServingFields,
-    }),
-    mockConnectionTypeConfigMap({
-      name: 'oci-v1',
-      displayName: 'OCI compliant registry - v1',
-      fields: [
-        {
-          name: 'Access type',
-          type: ConnectionTypeFieldType.Dropdown,
-          envVar: 'ACCESS_TYPE',
-          required: false,
-          properties: {
-            variant: 'multi',
-            items: [
-              { label: 'Push secret', value: 'Push' },
-              { label: 'Pull secret', value: 'Pull' },
-            ],
-          },
-        },
-        {
-          name: 'Secret details',
-          type: ConnectionTypeFieldType.File,
-          envVar: '.dockerconfigjson',
-          required: true,
-          properties: { extensions: ['.dockerconfigjson, .json'] },
-        },
-        {
-          name: 'Base URL / Registry URI',
-          type: ConnectionTypeFieldType.ShortText,
-          envVar: 'OCI_HOST',
-          required: true,
-          properties: {},
-        },
-      ],
-    }),
-  ]);
-
-  cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
 };
 
 describe('Deploy model version', () => {
