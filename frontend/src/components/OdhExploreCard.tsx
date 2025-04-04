@@ -1,6 +1,6 @@
 import React from 'react';
 import classNames from 'classnames';
-import { Card, CardHeader, CardBody, Flex, FlexItem, Label } from '@patternfly/react-core';
+import { Card, CardBody, CardHeader, Flex, FlexItem, Label } from '@patternfly/react-core';
 import { OdhApplication } from '~/types';
 import { makeCardVisible } from '~/utilities/utils';
 import EnableModal from '~/pages/exploreApplication/EnableModal';
@@ -101,7 +101,7 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
       </CardHeader>
       <SupportedAppTitle odhApp={odhApp} showProvider />
       <CardBody data-testid="cardbody">{odhApp.spec.description}</CardBody>
-      <EnableModal shown={enableOpen} onClose={onEnableClose} selectedApp={odhApp} />
+      {enableOpen && <EnableModal onClose={onEnableClose} selectedApp={odhApp} />}
     </Card>
   );
 };
