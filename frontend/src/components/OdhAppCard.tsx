@@ -280,7 +280,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
         </span>
       </CardBody>
       {cardFooter}
-      <EnableModal shown={enableOpen} onClose={() => setEnableOpen(false)} selectedApp={odhApp} />
+      {enableOpen && <EnableModal onClose={() => setEnableOpen(false)} selectedApp={odhApp} />}
     </Card>
   );
 };

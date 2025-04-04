@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { AlertVariant } from '@patternfly/react-core';
-import * as _ from 'lodash-es';
 import { getValidationStatus, postValidateIsv } from '~/services/validateIsvService';
 import {
   enableIntegrationApp,
@@ -29,8 +28,7 @@ export const useEnableApplication = (
     status: EnableApplicationStatus;
     error: string;
   }>({ status: EnableApplicationStatus.IDLE, error: '' });
-  const [lastVariablesValidationTimestamp, setLastVariablesValidationTimestamp] =
-    React.useState<string>('');
+
   const dispatch = useAppDispatch();
 
   const dispatchResults = React.useCallback(
@@ -59,13 +57,19 @@ export const useEnableApplication = (
     }
   }, [doEnable]);
 
+  const baselineTimestampRef = React.useRef<string>('');
+
   React.useEffect(() => {
     let cancelled = false;
     let watchHandle: ReturnType<typeof setTimeout>;
-
     if (enableStatus.status === EnableApplicationStatus.INPROGRESS) {
+      const baselineTimestamp = baselineTimestampRef.current;
       const shouldContinueWatching = (response: IntegrationAppStatus): boolean => {
-        if (!_.isEqual(response.variablesValidationTimestamp, lastVariablesValidationTimestamp)) {
+        const responseTime = new Date(
+          response.variablesValidationTimestamp ?? baselineTimestamp,
+        ).getTime();
+        const baselineTime = new Date(baselineTimestamp).getTime();
+        if (responseTime > baselineTime) {
           return false;
         }
         return true;
@@ -79,7 +83,6 @@ export const useEnableApplication = (
                 watchHandle = setTimeout(watchStatus, 10 * 1000);
                 return;
               }
-              setLastVariablesValidationTimestamp(response.variablesValidationTimestamp || '');
               setEnableStatus({
                 status:
                   response.variablesValidationStatus === VariablesValidationStatus.SUCCESS
@@ -131,47 +134,19 @@ export const useEnableApplication = (
       cancelled = true;
       clearTimeout(watchHandle);
     };
-  }, [
-    appId,
-    dispatchResults,
-    enableStatus.status,
-    internalRoute,
-    lastVariablesValidationTimestamp,
-  ]);
+  }, [appId, dispatchResults, enableStatus.status, internalRoute]);
 
   React.useEffect(() => {
     let closed = false;
     if (doEnable) {
       if (isInternalRouteIntegrationsApp(internalRoute)) {
+        // Capture the baseline timestamp before polling starts.
+        baselineTimestampRef.current = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
         enableIntegrationApp(internalRoute, enableValues)
           .then((response) => {
             if (!closed) {
               if (response.isInstalled && response.canInstall) {
                 setEnableStatus({ status: EnableApplicationStatus.INPROGRESS, error: '' });
-                setLastVariablesValidationTimestamp(response.variablesValidationTimestamp || '');
-
-                if (
-                  response.variablesValidationTimestamp !== '' &&
-                  lastVariablesValidationTimestamp !== '' &&
-                  response.variablesValidationTimestamp !== lastVariablesValidationTimestamp &&
-                  response.variablesValidationStatus !== VariablesValidationStatus.UNKNOWN
-                ) {
-                  setEnableStatus({
-                    status:
-                      response.variablesValidationStatus === VariablesValidationStatus.SUCCESS
-                        ? EnableApplicationStatus.SUCCESS
-                        : EnableApplicationStatus.FAILED,
-                    error:
-                      response.variablesValidationStatus === VariablesValidationStatus.SUCCESS
-                        ? ''
-                        : response.error,
-                  });
-                  dispatchResults(
-                    response.variablesValidationStatus === VariablesValidationStatus.SUCCESS
-                      ? undefined
-                      : response.error,
-                  );
-                }
               }
             }
           })
@@ -211,15 +186,6 @@ export const useEnableApplication = (
     return () => {
       closed = true;
     };
-  }, [
-    appId,
-    appName,
-    dispatch,
-    dispatchResults,
-    doEnable,
-    enableValues,
-    internalRoute,
-    lastVariablesValidationTimestamp,
-  ]);
+  }, [appId, appName, dispatch, dispatchResults, doEnable, enableValues, internalRoute]);
   return [enableStatus.status, enableStatus.error];
 };
