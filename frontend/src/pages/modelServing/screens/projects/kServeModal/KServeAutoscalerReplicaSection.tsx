@@ -4,6 +4,7 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
 import NumberInputWrapper from '~/components/NumberInputWrapper';
+import { normalizeBetween } from '~/utilities/utils';
 
 //TODO: Convert this to autoscaling section
 type KServeAutoscalerReplicaSectionProps = {
@@ -11,6 +12,9 @@ type KServeAutoscalerReplicaSectionProps = {
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
   infoContent?: string;
 };
+
+const MIN_SIZE = 0;
+const MAX_SIZE = 999;
 
 const KServeAutoscalerReplicaSection: React.FC<KServeAutoscalerReplicaSectionProps> = ({
   data,
@@ -33,9 +37,15 @@ const KServeAutoscalerReplicaSection: React.FC<KServeAutoscalerReplicaSectionPro
     isRequired
   >
     <NumberInputWrapper
-      min={0}
-      max={999}
-      onChange={(newValue) => setData('minReplicas', newValue ?? 0)}
+      min={MIN_SIZE}
+      max={MAX_SIZE}
+      onChange={(value) => {
+        const newSize = Number(value);
+        if (!Number.isNaN(newSize) && newSize <= MAX_SIZE) {
+          setData('minReplicas', normalizeBetween(newSize, MIN_SIZE, MAX_SIZE));
+          setData('maxReplicas', normalizeBetween(newSize, MIN_SIZE, MAX_SIZE));
+        }
+      }}
       value={data.minReplicas}
     />
   </FormGroup>

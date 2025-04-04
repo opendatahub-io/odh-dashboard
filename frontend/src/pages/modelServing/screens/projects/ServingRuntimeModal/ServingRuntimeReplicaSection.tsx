@@ -4,12 +4,16 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
 import NumberInputWrapper from '~/components/NumberInputWrapper';
+import { normalizeBetween } from '~/utilities/utils';
 
 type ServingRuntimeReplicaSectionProps = {
   data: CreatingServingRuntimeObject;
   setData: UpdateObjectAtPropAndValue<CreatingServingRuntimeObject>;
   infoContent?: string;
 };
+
+const MIN_SIZE = 0;
+const MAX_SIZE = 999;
 
 const ServingRuntimeReplicaSection: React.FC<ServingRuntimeReplicaSectionProps> = ({
   data,
@@ -31,9 +35,14 @@ const ServingRuntimeReplicaSection: React.FC<ServingRuntimeReplicaSectionProps> 
       }
     >
       <NumberInputWrapper
-        min={0}
-        max={999}
-        onChange={(newValue) => setData('numReplicas', newValue ?? 0)}
+        min={MIN_SIZE}
+        max={MAX_SIZE}
+        onChange={(value) => {
+          const newSize = Number(value);
+          if (!Number.isNaN(newSize) && newSize <= MAX_SIZE) {
+            setData('numReplicas', normalizeBetween(newSize, MIN_SIZE, MAX_SIZE));
+          }
+        }}
         value={data.numReplicas}
       />
     </FormGroup>
