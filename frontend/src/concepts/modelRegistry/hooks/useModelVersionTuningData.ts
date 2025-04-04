@@ -36,7 +36,9 @@ export const useModelVersionTuningData = (
   const modelRegistryDisplayName = registryService
     ? getDisplayNameFromK8sResource(registryService)
     : '';
-  const outputModelRegistryApiUrl = registryService ? getServerAddress(registryService) : '';
+  const outputModelRegistryApiUrl = registryService
+    ? `https://${getServerAddress(registryService)}`
+    : '';
 
   return {
     tuningData:
