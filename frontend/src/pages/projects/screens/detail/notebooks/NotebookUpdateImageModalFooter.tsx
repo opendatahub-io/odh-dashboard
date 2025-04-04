@@ -1,11 +1,4 @@
-import {
-  ModalFooter,
-  Button,
-  StackItem,
-  Alert,
-  AlertActionLink,
-  Stack,
-} from '@patternfly/react-core';
+import { ModalFooter, Button, StackItem, Alert, Stack } from '@patternfly/react-core';
 import * as React from 'react';
 import { K8sStatusError, patchNotebookImage } from '~/api';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
@@ -104,37 +97,7 @@ const NotebookUpdateImageModalFooter: React.FC<NotebookUpdateImageModalFooterPro
       <Stack hasGutter>
         {error && (
           <StackItem>
-            <Alert
-              isInline
-              variant="danger"
-              title="Error creating workbench"
-              actionLinks={
-                // If this is a 409 conflict error on the notebook (not PVC or Secret or ConfigMap)
-                error.statusObject.code === 409 &&
-                error.statusObject.details?.kind === 'notebooks' ? (
-                  <>
-                    <AlertActionLink
-                      onClick={() =>
-                        notebookImage.imageStatus !== NotebookImageStatus.DELETED &&
-                        notebookImage.latestImageVersion &&
-                        patchNotebookImage(
-                          notebook,
-                          notebookImage.imageStream,
-                          notebookImage.latestImageVersion,
-                        )
-                          .then(() => {
-                            afterStart(notebookImage.imageStream, notebookImage.latestImageVersion);
-                          })
-                          .catch(handleError)
-                      }
-                    >
-                      Force update
-                    </AlertActionLink>
-                    <AlertActionLink onClick={() => location.reload()}>Refresh</AlertActionLink>
-                  </>
-                ) : undefined
-              }
-            >
+            <Alert isInline variant="danger" title="Error creating workbench">
               {error.message}
             </Alert>
           </StackItem>
