@@ -32,6 +32,7 @@ import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
 import GlobalIcon from '~/images/icons/GlobalIcon';
 import { CustomWatchK8sResult } from '~/types';
 import { SERVING_RUNTIME_SCOPE } from '~/pages/modelServing/screens/const';
+import ProjectScopedPopover from '~/components/ProjectScopedPopover';
 
 type ServingRuntimeTemplateSectionProps = {
   data: CreatingServingRuntimeObject;
@@ -275,8 +276,18 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
   }
 
   return (
-    // TODO: need to add popover from this PR: https://github.com/opendatahub-io/odh-dashboard/pull/3955
-    <FormGroup label="Serving runtime" fieldId="serving-runtime-template-selection" isRequired>
+    <FormGroup
+      label="Serving runtime"
+      fieldId="serving-runtime-template-selection"
+      isRequired
+      labelHelp={
+        isProjectScoped &&
+        filterProjectScopedTemplates &&
+        filterProjectScopedTemplates.length > 0 ? (
+          <ProjectScopedPopover title="Serving runtime" item="serving runtimes" />
+        ) : undefined
+      }
+    >
       {isProjectScoped &&
       filterProjectScopedTemplates &&
       filterProjectScopedTemplates.length > 0 ? (
