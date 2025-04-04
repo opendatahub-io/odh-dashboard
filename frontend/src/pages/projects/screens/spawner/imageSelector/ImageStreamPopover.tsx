@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Popover, Stack, StackItem } from '@patternfly/react-core';
+import { Button, DescriptionListTerm, Popover, Stack, StackItem } from '@patternfly/react-core';
 import { QuestionCircleIcon } from '@patternfly/react-icons';
 import {
   getImageStreamDescription,
@@ -37,7 +37,7 @@ const ImageStreamPopover: React.FC<ImageStreamPopoverProps> = ({ selectedImage }
             {dependencies.length !== 0 && (
               <StackItem>
                 <NotebookImagePackageDetails
-                  title="Packages included"
+                  title={<DescriptionListTerm>Packages included</DescriptionListTerm>}
                   dependencies={dependencies}
                 />
               </StackItem>

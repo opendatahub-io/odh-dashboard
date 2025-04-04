@@ -10,7 +10,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { NotebookKind } from '~/k8sTypes';
 import useNamespaces from '~/pages/notebookController/useNamespaces';
-import { NotebookImageAvailability } from '~/pages/projects/screens/detail/notebooks/const';
+import { NotebookImageStatus } from '~/pages/projects/screens/detail/notebooks/const';
 import { getNotebookImageData } from '~/pages/projects/screens/detail/notebooks/useNotebookImageData';
 import useImageStreams from '~/pages/projects/screens/spawner/useImageStreams';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
@@ -47,7 +47,7 @@ export const ElyraInvalidVersionAlerts: React.FC<ElyraInvalidVersionProps> = ({
     return notebooks.reduce<[NotebookKind[], NotebookKind[]]>(
       ([outOfDate, updated], notebook) => {
         const imageData = getNotebookImageData(notebook, images);
-        if (imageData && imageData.imageAvailability !== NotebookImageAvailability.DELETED) {
+        if (imageData && imageData.imageStatus !== NotebookImageStatus.DELETED) {
           // technically the image can have both out of date and up to date versions, but unlikely
           if (isElyraVersionUpToDate(imageData.imageVersion)) {
             updated.push(notebook);
