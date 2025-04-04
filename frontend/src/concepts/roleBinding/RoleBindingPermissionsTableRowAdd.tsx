@@ -35,7 +35,7 @@ const RoleBindingPermissionsTableRowAdd: React.FC<RoleBindingPermissionsTableRow
   const [roleBindingName, setRoleBindingName] = React.useState('');
   const [roleBindingRoleRef, setRoleBindingRoleRef] =
     React.useState<RoleBindingPermissionsRoleType>(permissionOptions[0]?.type);
-  const [isLoading, setIsLoading] = React.useState(false);
+  //const [isLoading, setIsLoading] = React.useState(false);
 
   return (
     <Tbody>
@@ -76,9 +76,10 @@ const RoleBindingPermissionsTableRowAdd: React.FC<RoleBindingPermissionsTableRow
                 aria-label="Save role binding"
                 variant="link"
                 icon={<CheckIcon />}
-                isDisabled={isLoading || !roleBindingName || !roleBindingRoleRef}
+                //isDisabled={isLoading || !roleBindingName || !roleBindingRoleRef}
+                isDisabled={!roleBindingName || !roleBindingRoleRef}
                 onClick={() => {
-                  setIsLoading(true);
+                  //setIsLoading(true);
                   onChange(
                     isProjectSubject
                       ? `system:serviceaccounts:${projectDisplayNameToNamespace(
@@ -96,7 +97,7 @@ const RoleBindingPermissionsTableRowAdd: React.FC<RoleBindingPermissionsTableRow
                 data-id="cancel-rolebinding-button"
                 aria-label="Cancel role binding"
                 variant="plain"
-                isDisabled={isLoading}
+                //isDisabled={isLoading}
                 icon={<TimesIcon />}
                 onClick={() => {
                   onCancel();
