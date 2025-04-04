@@ -39,7 +39,7 @@ type SearchSelectorProps = {
   searchHelpText?: string;
   searchPlaceholder?: string;
   searchValue: string;
-  toggleText: string;
+  toggleContent: React.ReactNode | string;
   toggleVariant?: React.ComponentProps<typeof MenuToggle>['variant'];
 };
 
@@ -56,7 +56,7 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
   searchHelpText,
   searchPlaceholder,
   searchValue,
-  toggleText,
+  toggleContent,
   toggleVariant,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -93,7 +93,7 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
           data-testid={`${dataTestId}-toggle`}
           variant={toggleVariant}
         >
-          <Truncate content={toggleText} />
+          {typeof toggleContent !== 'string' ? toggleContent : <Truncate content={toggleContent} />}
         </MenuToggle>
       }
       menu={

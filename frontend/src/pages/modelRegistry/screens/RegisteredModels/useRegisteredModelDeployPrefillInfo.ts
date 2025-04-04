@@ -2,24 +2,14 @@ import React from 'react';
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
-import { uriToStorageFields } from '~/concepts/modelRegistry/utils';
+import { uriToConnectionTypeName } from '~/concepts/modelRegistry/utils';
+import { ModelDeployPrefillInfo } from '~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 
-export type RegisteredModelDeployInfo = {
-  modelName: string;
-  modelFormat?: string;
-  modelArtifactUri?: string;
-  modelLocationType?: string;
-  modelArtifactStorageKey?: string;
-  modelVersionId?: string;
-  registeredModelId?: string;
-  mrName?: string;
-};
-
-const useRegisteredModelDeployInfo = (
+const useRegisteredModelDeployPrefillInfo = (
   modelVersion: ModelVersion,
   mrName?: string,
 ): {
-  registeredModelDeployInfo: RegisteredModelDeployInfo;
+  modelDeployPrefillInfo: ModelDeployPrefillInfo;
   loaded: boolean;
   error: Error | undefined;
 } => {
@@ -29,12 +19,12 @@ const useRegisteredModelDeployInfo = (
   const [modelArtifactList, modelArtifactListLoaded, modelArtifactListError] =
     useModelArtifactsByVersionId(modelVersion.id);
 
-  const registeredModelDeployInfo = React.useMemo(() => {
+  return React.useMemo(() => {
     const modelName = `${registeredModel?.name ?? ''} - ${modelVersion.name}`.slice(0, 63);
 
     if (modelArtifactList.size === 0) {
       return {
-        registeredModelDeployInfo: {
+        modelDeployPrefillInfo: {
           modelName,
         },
         loaded: registeredModelLoaded && modelArtifactListLoaded,
@@ -42,30 +32,22 @@ const useRegisteredModelDeployInfo = (
       };
     }
     const modelArtifact = modelArtifactList.items[0];
-    const storageFields = uriToStorageFields(modelArtifact.uri || '');
-    let modelLocationType;
-    if (storageFields?.uri) {
-      modelLocationType = 'uri-v1';
-    }
-    if (storageFields?.s3Fields) {
-      modelLocationType = 's3';
-    }
-    if (storageFields?.ociUri) {
-      modelLocationType = 'oci-v1';
-    }
+    const connectionTypeName = uriToConnectionTypeName(modelArtifact.uri);
     return {
-      registeredModelDeployInfo: {
+      modelDeployPrefillInfo: {
         modelName,
         modelFormat: modelArtifact.modelFormatName
           ? `${modelArtifact.modelFormatName} - ${modelArtifact.modelFormatVersion ?? ''}`
           : undefined,
         modelArtifactUri: modelArtifact.uri,
-        modelLocationType,
+        connectionTypeName,
         modelArtifactStorageKey: modelArtifact.storageKey,
-        modelVersionId: modelVersion.id,
-        registeredModelId: modelVersion.registeredModelId,
-        mrName,
-      },
+        modelRegistryInfo: {
+          modelVersionId: modelVersion.id,
+          registeredModelId: modelVersion.registeredModelId,
+          mrName,
+        },
+      } satisfies ModelDeployPrefillInfo,
       loaded: registeredModelLoaded && modelArtifactListLoaded,
       error: registeredModelError || modelArtifactListError,
     };
@@ -82,8 +64,6 @@ const useRegisteredModelDeployInfo = (
     registeredModelLoaded,
     mrName,
   ]);
-
-  return registeredModelDeployInfo;
 };
 
-export default useRegisteredModelDeployInfo;
+export default useRegisteredModelDeployPrefillInfo;

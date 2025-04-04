@@ -21,6 +21,10 @@ import { FineTunedModelNewConnectionContextProvider } from '~/pages/pipelines/gl
 import { ModelCustomizationDrawerContentArgs } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
 import { getInputDefinitionParams } from '~/concepts/pipelines/content/createRun/utils';
 import { RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
+import {
+  getModelServingConnectionTypeName,
+  ModelServingCompatibleTypes,
+} from '~/concepts/connectionTypes/utils';
 import { FineTuneTaxonomySection } from './FineTuneTaxonomySection';
 import TrainingHardwareSection from './trainingHardwareSection/TrainingHardwareSection';
 import { FineTunePageSections, fineTunePageSectionTitles } from './const';
@@ -54,7 +58,11 @@ const FineTunePage: React.FC<FineTunePageProps> = ({
   const { hyperparameters } = filterHyperparameters(ilabPipelineVersion);
   const [connectionTypes] = useWatchConnectionTypes();
   const ociConnectionType = React.useMemo(
-    () => connectionTypes.find((c) => c.metadata.name === 'oci-v1'),
+    () =>
+      connectionTypes.find(
+        (c) =>
+          c.metadata.name === getModelServingConnectionTypeName(ModelServingCompatibleTypes.OCI),
+      ),
     [connectionTypes],
   );
 
@@ -79,7 +87,9 @@ const FineTunePage: React.FC<FineTunePageProps> = ({
             fieldId="model-customization-projectName"
             isRequired
           >
-            <div>{getDisplayNameFromK8sResource(project)}</div>
+            <div data-testid="data-science-project-name">
+              {getDisplayNameFromK8sResource(project)}
+            </div>
           </FormGroup>
         </FormSection>
         <PipelineDetailsSection

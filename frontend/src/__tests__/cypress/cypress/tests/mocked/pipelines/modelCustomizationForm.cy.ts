@@ -7,6 +7,8 @@ import {
   taxonomySection,
   hardwareSection,
   baseModelSection,
+  dataScienceProjectSection,
+  pipelineSection,
 } from '~/__tests__/cypress/cypress/pages/pipelines/modelCustomizationForm';
 import {
   buildMockPipeline,
@@ -56,6 +58,9 @@ const initialMockPipelineVersion = buildMockPipelineVersion(
     },
   },
 );
+const smallMockSSHPath = './cypress/tests/mocked/pipelines/mock-upload-pipeline.yaml';
+
+const largeMockSSHPath = './cypress/tests/mocked/pipelines/not-a-pipeline-2-megabytes.yaml';
 
 const invalidMockIlabPipeline = buildMockPipelineVersion({
   pipeline_id: initialMockPipeline.pipeline_id,
@@ -93,6 +98,36 @@ describe('Model Customization Form', () => {
     modelCustomizationFormGlobal.findEmptyState().should('exist');
   });
 
+  it('Section Project details', () => {
+    initIntercepts({});
+    modelCustomizationFormGlobal.visit(projectName, true);
+    dataScienceProjectSection.findProjectName().should('have.text', 'Test Project 2');
+  });
+
+  it('Section Pipeline details', () => {
+    initIntercepts({});
+    modelCustomizationFormGlobal.visit(projectName, true);
+    pipelineSection.findPipelineName().should('have.text', 'instructlab');
+    pipelineSection.findPipelineVersion().should('have.text', 'Test pipeline version');
+  });
+
+  it('Section Base model', () => {
+    initIntercepts({});
+    setupModelRegistryIntercepts({ modelRegistryServiceName: 'modelregistry-sample' });
+    visitModelVersionDetails({ serviceName: 'modelregistry-sample', versionNo: '1' });
+    cy.wait('@getIlabPipeline');
+    cy.wait('@getPipelineVersions');
+    baseModelSection.findModelRegistry().should('have.text', 'modelregistry-sample');
+    baseModelSection.findModelName().should('have.text', 'test');
+    baseModelSection.findModelVersion().should('have.text', 'Version 1');
+    baseModelSection
+      .findModelURI()
+      .should(
+        'have.text',
+        's3://test-bucket/demo-models/test-path?endpoint=test-endpoint&defaultRegion=test-region',
+      );
+  });
+
   it('Should submit', () => {
     initIntercepts({});
     setupModelRegistryIntercepts({ modelRegistryServiceName: 'modelregistry-sample' });
@@ -106,7 +141,7 @@ describe('Model Customization Form', () => {
     judgeModelSection.findModelNameInput().type('test');
     taxonomySection.findTaxonomyUrl().type('http://github.git');
     taxonomySection.findSshKeyRadio().check();
-    taxonomySection.findTaxonomySShKey().type('test');
+    taxonomySection.findTaxonomySSHText().type('test');
     taxonomySection.findUsernameAndTokenRadio().check();
     taxonomySection.findTaxonomyUsername().fill('test');
     taxonomySection.findTaxonomyToken().fill('test');
@@ -126,7 +161,8 @@ describe('Model Customization Form', () => {
 
     modelCustomizationFormGlobal.findErrorMessage().should('exist');
   });
-  it('Should not submit', () => {
+
+  it('Should show error when pipeline is invalid', () => {
     initIntercepts({});
     cy.interceptOdh(
       'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/names/:pipelineName',
@@ -141,6 +177,9 @@ describe('Model Customization Form', () => {
     ).as('getIlabPipeline');
     modelCustomizationFormGlobal.visit(projectName);
     cy.wait('@getIlabPipeline');
+    modelCustomizationFormGlobal
+      .findEmptyErrorState()
+      .should('have.text', 'Error communicating with pipeline server');
     modelCustomizationFormGlobal.findSubmitButton().should('not.exist');
   });
 
@@ -157,6 +196,42 @@ describe('Model Customization Form', () => {
     visitModelVersionDetails({ serviceName: 'modelregistry-sample', versionNo: '1' });
     cy.url().should('include', `/modelCustomization/fine-tune/${projectName}`);
     modelCustomizationFormGlobal.findCancelButton().click();
+  });
+
+  it('should successfully upload an SSH file', () => {
+    initIntercepts({});
+    setupModelRegistryIntercepts({ modelRegistryServiceName: 'modelregistry-sample' });
+    visitModelVersionDetails({ serviceName: 'modelregistry-sample', versionNo: '1' });
+    cy.wait('@getIlabPipeline');
+    cy.wait('@getPipelineVersions');
+    baseModelSection.editInlineText('http://test.com');
+    teacherModelSection.findEndpointInput().type('http://test.com');
+    teacherModelSection.findModelNameInput().type('test');
+    judgeModelSection.findEndpointInput().type('http://test.com');
+    judgeModelSection.findModelNameInput().type('test');
+    taxonomySection.findTaxonomyUrl().type('http://github.git');
+    taxonomySection.findSshKeyRadio().check();
+    const sshUploadSection = taxonomySection.getSSHUpload();
+    sshUploadSection.uploadSSHFile(smallMockSSHPath);
+    taxonomySection.findTaxonomySSHText().type('test');
+  });
+
+  it('should throw an error if the uploaded SSH file exceeds the size limit', () => {
+    initIntercepts({});
+    setupModelRegistryIntercepts({ modelRegistryServiceName: 'modelregistry-sample' });
+    visitModelVersionDetails({ serviceName: 'modelregistry-sample', versionNo: '1' });
+    cy.wait('@getIlabPipeline');
+    cy.wait('@getPipelineVersions');
+    baseModelSection.editInlineText('http://test.com');
+    teacherModelSection.findEndpointInput().type('http://test.com');
+    teacherModelSection.findModelNameInput().type('test');
+    judgeModelSection.findEndpointInput().type('http://test.com');
+    judgeModelSection.findModelNameInput().type('test');
+    taxonomySection.findTaxonomyUrl().type('http://github.git');
+    taxonomySection.findSshKeyRadio().check();
+    const sshUploadSection = taxonomySection.getSSHUpload();
+    sshUploadSection.uploadSSHFile(largeMockSSHPath);
+    sshUploadSection.findSSHFileUploadHelptext().should('exist');
   });
 });
 

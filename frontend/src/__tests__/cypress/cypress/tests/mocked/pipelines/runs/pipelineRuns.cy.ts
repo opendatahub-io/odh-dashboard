@@ -33,6 +33,10 @@ import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { ProjectModel } from '~/__tests__/cypress/cypress/utils/models';
 import { tablePagination } from '~/__tests__/cypress/cypress/pages/components/Pagination';
 import { dspaIntercepts } from '~/__tests__/cypress/cypress/tests/mocked/pipelines/intercepts';
+import {
+  mockedArtifactsResponse,
+  mockGetArtifactsResponse,
+} from '~/__mocks__/mlmd/mockGetArtifacts';
 
 const projectName = 'test-project-filters';
 const pipelineId = 'test-pipeline';
@@ -580,6 +584,15 @@ describe('Pipeline runs', () => {
           pipelineRunFilterBar.findSortButtonForActive('Run').should(be.sortAscending);
           pipelineRunFilterBar.findSortButtonForActive('Run').click();
           pipelineRunFilterBar.findSortButtonForActive('Run').should(be.sortDescending);
+        });
+      });
+
+      describe('Labels', () => {
+        it('shows model registered label when fine tuning and model registry is enabled', () => {
+          pipelineRunsGlobal.visit(projectName, 'active');
+          activeRunsTable
+            .findModelRegisteredLabel('Test active run 1')
+            .should('have.text', 'Model registered');
         });
       });
     });
@@ -1191,5 +1204,13 @@ const initIntercepts = () => {
           : e,
       ),
     ]),
+  );
+
+  cy.interceptOdh(
+    'POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetArtifacts',
+    { path: { namespace: projectName, serviceName: 'dspa' } },
+    mockGetArtifactsResponse({
+      artifacts: mockedArtifactsResponse.artifacts.filter((mockArtifact) => mockArtifact.id === 8),
+    }),
   );
 };

@@ -31,7 +31,7 @@ const ArtifactsTableRow: React.FC<ArtifactsTableRowProps> = ({ artifact }) => {
           {isArtifactModelRegistered && (
             <>
               {' '}
-              <Label color="green" isCompact>
+              <Label color="green" isCompact data-testid="model-registered-label">
                 Registered
               </Label>
             </>

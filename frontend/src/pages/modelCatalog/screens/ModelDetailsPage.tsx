@@ -41,6 +41,7 @@ import RhUiControlsIcon from '~/images/icons/RhUiControlsIcon';
 import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import ModelDetailsView from './ModelDetailsView';
+import DeployCatalogModelModal from './DeployCatalogModelModal';
 
 const ModelDetailsPage: React.FC = conditionalArea(
   SupportedArea.MODEL_CATALOG,
@@ -55,6 +56,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
   const tuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
   const loaded =
     (modelRegistryServicesLoaded || !!modelRegistryServicesLoadError) && modelCatalogSources.loaded;
+  const [isDeployModalOpen, setIsDeployModalOpen] = React.useState(false);
   const model: CatalogModel | null = React.useMemo(
     () =>
       findModelFromModelCatalogSources(
@@ -67,7 +69,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
     [modelCatalogSources, decodedParams],
   );
 
-  const registerModelButton = (isSecondary = false) => {
+  const registerModelButton = () => {
     if (modelRegistryServicesLoadError) {
       return null;
     }
@@ -86,18 +88,14 @@ const ModelDetailsPage: React.FC = conditionalArea(
           />
         }
       >
-        <Button
-          variant={isSecondary ? 'secondary' : 'primary'}
-          isAriaDisabled
-          data-testid="register-model-button"
-        >
+        <Button variant="secondary" isAriaDisabled data-testid="register-model-button">
           Register model
         </Button>
       </Popover>
     ) : (
       <Button
         data-testid="register-model-button"
-        variant={isSecondary ? 'secondary' : 'primary'}
+        variant="secondary"
         onClick={() => {
           navigate(getRegisterCatalogModelUrl(decodedParams));
         }}
@@ -106,6 +104,16 @@ const ModelDetailsPage: React.FC = conditionalArea(
       </Button>
     );
   };
+
+  const deployModelButton = (
+    <Button
+      variant="primary"
+      data-testid="deploy-model-button"
+      onClick={() => setIsDeployModalOpen(true)}
+    >
+      Deploy model
+    </Button>
+  );
 
   const fineTuneActionItem = (
     <Popover
@@ -123,7 +131,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
       footerContent={
         <ActionList>
           <ActionListGroup>
-            <ActionListItem>{registerModelButton(true)}</ActionListItem>
+            <ActionListItem>{registerModelButton()}</ActionListItem>
             <ActionListItem>
               <Button variant="link" onClick={() => navigate(modelCustomizationRootPath)}>
                 Learn more about model customization
@@ -204,12 +212,26 @@ const ModelDetailsPage: React.FC = conditionalArea(
             <ActionListGroup>
               {tuningAvailable && isLabBase(model?.labels) && fineTuneActionItem}
               {registerModelButton()}
+              {deployModelButton}
             </ActionListGroup>
           </ActionList>
         )
       }
     >
-      {model && <ModelDetailsView model={model} />}
+      {model && (
+        <>
+          <ModelDetailsView model={model} />
+          {isDeployModalOpen && (
+            <DeployCatalogModelModal
+              model={model}
+              onSubmit={(selectedProject) => {
+                navigate(`/modelServing/${selectedProject.metadata.name}`);
+              }}
+              onCancel={() => setIsDeployModalOpen(false)}
+            />
+          )}
+        </>
+      )}
     </ApplicationsPage>
   );
 });

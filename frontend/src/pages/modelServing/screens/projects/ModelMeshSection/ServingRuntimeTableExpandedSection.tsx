@@ -6,7 +6,6 @@ import InferenceServiceTable from '~/pages/modelServing/screens/global/Inference
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
 import ScrollViewOnMount from '~/components/ScrollViewOnMount';
 import ServingRuntimeTokensTable from '~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeTokensTable';
-import EmptyInferenceServicesCell from '~/pages/modelServing/screens/projects/ModelMeshSection/EmptyInferenceServicesCell';
 import {
   getInferenceServiceFromServingRuntime,
   isServingRuntimeTokenEnabled,
@@ -16,14 +15,12 @@ import ServingRuntimeDetails from './ServingRuntimeDetails';
 type ServingRuntimeTableExpandedSectionProps = {
   activeColumn?: ServingRuntimeTableTabs;
   onClose: () => void;
-  onDeployModel: () => void;
   obj: ServingRuntimeKind;
 };
 
 const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSectionProps> = ({
   activeColumn,
   onClose,
-  onDeployModel,
   obj,
 }) => {
   const {
@@ -47,18 +44,14 @@ const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSe
     return (
       <Td dataLabel="Deployed models expansion" colSpan={7}>
         <ExpandableRowContent>
-          {modelInferenceServices.length > 0 ? (
-            <InferenceServiceTable
-              inferenceServices={modelInferenceServices}
-              servingRuntimes={[obj]}
-              refresh={() => {
-                refreshInferenceServices();
-                onClose();
-              }}
-            />
-          ) : (
-            <EmptyInferenceServicesCell onDeployModel={onDeployModel} />
-          )}
+          <InferenceServiceTable
+            inferenceServices={modelInferenceServices}
+            servingRuntimes={[obj]}
+            refresh={() => {
+              refreshInferenceServices();
+              onClose();
+            }}
+          />
           <ScrollViewOnMount shouldScroll />
         </ExpandableRowContent>
       </Td>

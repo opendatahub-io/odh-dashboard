@@ -1,3 +1,5 @@
+import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
+
 class ModelCustomizationFormGlobal {
   visit(projectName: string, empty = false) {
     const state = {
@@ -62,6 +64,10 @@ class ModelCustomizationFormGlobal {
     return cy.findByTestId('empty-state-title');
   }
 
+  findEmptyErrorState() {
+    return cy.findByTestId('error-empty-state-body');
+  }
+
   findExpandableSectionButton() {
     return cy.findByTestId('hyperparameters-expandable').findByRole('button');
   }
@@ -114,7 +120,7 @@ class TaxonomySection {
     return cy.findByTestId('username-and-token-radio');
   }
 
-  findTaxonomySShKey() {
+  findTaxonomySSHText() {
     return cy.findByTestId('taxonomy-ssh-key');
   }
 
@@ -124,6 +130,10 @@ class TaxonomySection {
 
   findTaxonomyToken() {
     return cy.findAllByTestId('taxonomy-token');
+  }
+
+  getSSHUpload() {
+    return new SSHFileUpload(() => cy.findByTestId('fine-tune-sshupload'));
   }
 }
 
@@ -143,6 +153,22 @@ class HardwareSection {
 }
 
 class BaseModelSection {
+  findModelName() {
+    return cy.findByTestId('base-model-name');
+  }
+
+  findModelRegistry() {
+    return cy.findByTestId('base-registry-name');
+  }
+
+  findModelVersion() {
+    return cy.findByTestId('base-model-version');
+  }
+
+  findModelURI() {
+    return cy.findByTestId('base-model-uri').find('[data-testid="inline-edit-text-content"]');
+  }
+
   findEditInlineTextInput() {
     return cy.findByTestId('edit-inline-text-input');
   }
@@ -165,6 +191,35 @@ class BaseModelSection {
     this.findEditInlineTextSaveButton().click();
   }
 }
+class SSHFileUpload extends Contextual<HTMLElement> {
+  findTaxonomySShKey() {
+    return this.find().find('[data-testid="taxonomy-ssh-key"] input[type="file"]');
+  }
+
+  uploadSSHFile(filePath: string) {
+    this.findTaxonomySShKey().selectFile([filePath], { force: true });
+  }
+
+  findSSHFileUploadHelptext() {
+    return cy.findByTestId('ssh-key-helpText');
+  }
+}
+
+class DataScienceProjectSection {
+  findProjectName() {
+    return cy.findByTestId('data-science-project-name');
+  }
+}
+
+class PipelineSection {
+  findPipelineName() {
+    return cy.findByTestId('pipeline-name');
+  }
+
+  findPipelineVersion() {
+    return cy.findByTestId('pipeline-version');
+  }
+}
 
 export const modelCustomizationFormGlobal = new ModelCustomizationFormGlobal();
 export const teacherModelSection = new TeacherModelSection();
@@ -172,3 +227,5 @@ export const baseModelSection = new BaseModelSection();
 export const judgeModelSection = new JudgeModelSection();
 export const taxonomySection = new TaxonomySection();
 export const hardwareSection = new HardwareSection();
+export const dataScienceProjectSection = new DataScienceProjectSection();
+export const pipelineSection = new PipelineSection();
