@@ -98,10 +98,14 @@ describe('Verify Model Creation and Validation using the UI', () => {
 
       inferenceServiceModal.findLocationPathInput().type(modelFilePath);
       inferenceServiceModal.findSubmitButton().click();
+      modelServingSection.findModelServerName(testData.singleModelName);
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
-      checkInferenceServiceState(testData.singleModelName);
+      checkInferenceServiceState(testData.singleModelName, {
+        checkReady: true,
+        checkLatestDeploymentReady: true,
+      });
       modelServingSection.findModelServerName(testData.singleModelName);
       // Note reload is required as status tooltip was not found due to a stale element
       cy.reload();
