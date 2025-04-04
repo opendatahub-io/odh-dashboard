@@ -69,7 +69,7 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
     <Stack hasGutter data-testid="hardware-profile-section">
       <StackItem>
         <FormGroup
-          label="Training hardware profile"
+          label="Hardware profile"
           isRequired
           labelHelp={
             <Popover

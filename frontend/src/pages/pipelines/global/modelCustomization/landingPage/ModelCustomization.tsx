@@ -62,7 +62,7 @@ const ModelCustomization: React.FC = () => {
               <CardTitle>
                 <TitleWithIcon title="LAB-tuning" objectType={ProjectObjectType.labTuning} />
               </CardTitle>
-              <CardBody>
+              <CardBody style={{ maxWidth: '470px' }}>
                 <Stack hasGutter>
                   <StackItem>
                     LAB-tuning significantly reduces limitations associated with traditional

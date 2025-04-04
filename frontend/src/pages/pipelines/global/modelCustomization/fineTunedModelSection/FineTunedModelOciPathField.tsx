@@ -8,10 +8,10 @@ import {
   InputGroupText,
   InputGroup,
   InputGroupItem,
-  FormSection,
 } from '@patternfly/react-core';
 import { ValidationContext } from '~/utilities/useValidation';
 import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
+import FormSection from '~/components/pf-overrides/FormSection';
 
 type FineTunedModelOciPathFieldProps = {
   ociHost?: string;
@@ -44,8 +44,10 @@ const FineTunedModelOciPathField: React.FC<FineTunedModelOciPathFieldProps> = ({
     : [];
 
   return (
-    <FormSection title="OCI storage location">
-      Provide the location of the model. This is not part of your connection instance.
+    <FormSection
+      title="OCI storage location"
+      description="Provide the location of the model. This is not part of your connection instance."
+    >
       {ociHost && (
         <FormGroup label="Registry host" className="pf-v6-u-mb-lg">
           {ociHost}

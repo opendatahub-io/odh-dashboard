@@ -17,7 +17,7 @@ export const LabMethodDescriptionSection: React.FC = () => (
       </ListItem>
       <ListItem>
         <b>Iterative, large-scale alignment tuning:</b> Finally, the model is retrained based on the
-        set of synthetic data. The LAB method includes 2 tuning types: knowledge tuning, skills
+        set of synthetic data. The LAB method includes 2 tuning types: knowledge tuning, and skills
         tuning.
       </ListItem>
     </List>

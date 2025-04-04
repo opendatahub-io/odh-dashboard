@@ -1,12 +1,4 @@
-import {
-  Content,
-  ContentVariants,
-  FormGroup,
-  FormSection,
-  Stack,
-  StackItem,
-  ValidatedOptions,
-} from '@patternfly/react-core';
+import { FormGroup, Stack, StackItem, ValidatedOptions } from '@patternfly/react-core';
 import React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import {
@@ -20,6 +12,7 @@ import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { ModelCustomizationFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import { ValidationContext } from '~/utilities/useValidation';
 import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
+import FormSection from '~/components/pf-overrides/FormSection';
 import TrainingHardwareProfileFormSection from './TrainingHardwareProfileFormSection';
 import { TrainingAcceleratorFormSection } from './TrainingAcceleratorFormSection';
 
@@ -54,12 +47,14 @@ const TrainingHardwareSection: React.FC<TrainingHardwareSectionProps> = ({
     <FormSection
       id={FineTunePageSections.TRAINING_HARDWARE}
       title={fineTunePageSectionTitles[FineTunePageSections.TRAINING_HARDWARE]}
+      description={
+        <>
+          Select {isHardwareProfilesAvailable ? 'a hardware' : 'an accelerator'} profile to match
+          the hardware requirements of your workload to available node resources. The hardware
+          resources will be used for the SDG, training, and evaluation run phases.
+        </>
+      }
     >
-      <Content component={ContentVariants.small}>
-        Select {isHardwareProfilesAvailable ? 'a hardware' : 'an accelerator'} profile to match the
-        hardware requirements of your workload to available node resources. The hardware resources
-        will be used for the SDG, training, and evaluation run phases.
-      </Content>
       {isHardwareProfilesAvailable ? (
         <TrainingHardwareProfileFormSection
           data={podSpecOptionsState.hardwareProfile.formData}
