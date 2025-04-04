@@ -4,7 +4,10 @@ import {
   mockK8sResourceList,
   mockModelRegistryService,
 } from '~/__mocks__';
-import { mockModelCatalogConfigMap } from '~/__mocks__/mockModelCatalogConfigMap';
+import {
+  mockModelCatalogConfigMap,
+  mockUnmanagedModelCatalogConfigMap,
+} from '~/__mocks__/mockModelCatalogConfigMap';
 import { modelDetailsPage } from '~/__tests__/cypress/cypress/pages/modelCatalog/modelDetailsPage';
 import { ConfigMapModel, ServiceModel } from '~/__tests__/cypress/cypress/utils/models';
 import type { ServiceKind } from '~/k8sTypes';
@@ -36,7 +39,6 @@ const initIntercepts = ({
     mockDscStatus({
       installedComponents: {
         'model-registry-operator': true,
-        'data-science-pipelines-operator': true,
       },
     }),
   );
@@ -56,6 +58,15 @@ const initIntercepts = ({
       name: 'model-catalog-sources',
     },
     mockModelCatalogConfigMap(catalogModels),
+  );
+
+  cy.interceptK8s(
+    {
+      model: ConfigMapModel,
+      ns: 'opendatahub',
+      name: 'model-catalog-unmanaged-sources',
+    },
+    mockUnmanagedModelCatalogConfigMap([]),
   );
 
   cy.interceptK8sList(ServiceModel, mockK8sResourceList(modelRegistries));
@@ -225,7 +236,8 @@ describe('Model Details loading states', () => {
     modelDetailsPage.findModelCatalogEmptyState().should('exist');
   });
 
-  it('should show empty state when configmap has empty data', () => {
+  it('should show empty state when configmap has empty sources', () => {
+    // Mock managed ConfigMap with empty data
     cy.interceptK8s(
       {
         model: ConfigMapModel,
@@ -239,12 +251,12 @@ describe('Model Details loading states', () => {
           name: 'model-catalog-sources',
           namespace: 'opendatahub',
         },
-        data: { modelCatalogSources: '' },
+        data: { modelCatalogSources: JSON.stringify({ sources: [] }) },
       },
     );
 
     modelDetailsPage.visit();
-    modelDetailsPage.findModelCatalogEmptyState().should('exist');
+    cy.contains('Details not found').should('exist');
   });
 
   it('should show error state when configmap fetch fails (non-404)', () => {

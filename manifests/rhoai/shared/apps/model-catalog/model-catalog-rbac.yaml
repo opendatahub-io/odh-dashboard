@@ -13,6 +13,7 @@ rules:
       - configmaps
     resourceNames:
       - model-catalog-sources
+      - model-catalog-unmanaged-sources
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

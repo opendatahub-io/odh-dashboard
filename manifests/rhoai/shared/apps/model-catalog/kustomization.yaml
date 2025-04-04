@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
 - model-catalog-configmap.yaml
 - model-catalog-rbac.yaml
+- model-catalog-unmanaged-sources.yaml
