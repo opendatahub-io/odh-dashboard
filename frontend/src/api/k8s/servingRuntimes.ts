@@ -41,6 +41,7 @@ export const assembleServingRuntime = (
     tokenAuth,
     imageName,
     supportedModelFormatsInfo,
+    scope,
   } = data;
   const createName = isCustomServingRuntimesEnabled
     ? k8sName || translateDisplayNameForK8s(displayName)
@@ -60,6 +61,10 @@ export const assembleServingRuntime = (
     annotations['enable-auth'] = 'true';
   } else {
     delete annotations['enable-auth'];
+  }
+
+  if (scope) {
+    annotations['opendatahub.io/serving-runtime-scope'] = scope;
   }
 
   // TODO: Enable GRPC

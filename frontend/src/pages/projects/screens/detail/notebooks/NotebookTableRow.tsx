@@ -24,6 +24,7 @@ import NotebookStateAction from '~/pages/projects/notebook/NotebookStateAction';
 import StopNotebookConfirmModal from '~/pages/projects/notebook/StopNotebookConfirmModal';
 import { useNotebookKindPodSpecOptionsState } from '~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import NotebookTableRowHardwareProfile from '~/pages/projects/screens/detail/notebooks/NotebookTableRowHardwareProfile';
 import { NotebookImageAvailability } from './const';
 import { NotebookImageDisplayName } from './NotebookImageDisplayName';
 import NotebookStorageBars from './NotebookStorageBars';
@@ -70,9 +71,6 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const [inProgress, setInProgress] = React.useState(false);
   const { name: notebookName, namespace: notebookNamespace } = obj.notebook.metadata;
   const isHardwareProfileAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
-  const {
-    hardwareProfile: { initialHardwareProfile },
-  } = useNotebookKindPodSpecOptionsState(obj.notebook);
 
   const onStart = React.useCallback(() => {
     setInProgress(true);
@@ -179,9 +177,15 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
             alignItems={{ default: 'alignItemsCenter' }}
           >
             <FlexItem>
-              {isHardwareProfileAvailable
-                ? initialHardwareProfile?.spec.displayName ?? <i>Custom</i>
-                : notebookSize?.name ?? <i>{lastDeployedSize.name}</i>}
+              {isHardwareProfileAvailable ? (
+                <NotebookTableRowHardwareProfile
+                  loaded={podSpecOptionsState.hardwareProfile.profilesLoaded}
+                  loadError={podSpecOptionsState.hardwareProfile.profilesLoadError}
+                  hardwareProfile={podSpecOptionsState.hardwareProfile.initialHardwareProfile}
+                />
+              ) : (
+                notebookSize?.name ?? <i>{lastDeployedSize.name}</i>
+              )}
             </FlexItem>
           </Flex>
         </Td>

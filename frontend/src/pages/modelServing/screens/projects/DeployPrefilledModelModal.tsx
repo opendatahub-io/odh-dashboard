@@ -1,85 +1,89 @@
 import React from 'react';
 import { Alert, Button, Form, FormSection, Spinner } from '@patternfly/react-core';
-import { Modal } from '@patternfly/react-core/deprecated';
-import { ModelVersion } from '~/concepts/modelRegistry/types';
+import { Modal } from '@patternfly/react-core/deprecated'; // TODO migrate to non-deprecated modal
 import { ProjectKind } from '~/k8sTypes';
-import useProjectErrorForRegisteredModel from '~/pages/modelRegistry/screens/RegisteredModels/useProjectErrorForRegisteredModel';
+import useProjectErrorForPrefilledModel from '~/pages/modelServing/screens/projects/useProjectErrorForPrefilledModel';
 import ProjectSelector from '~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSelector';
 import ManageKServeModal from '~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/projects/utils';
 import { ServingRuntimePlatform } from '~/types';
 import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
-import useRegisteredModelDeployInfo from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
-import {
-  ModelRegistryContext,
-  useModelRegistryAPI,
-} from '~/concepts/modelRegistry/context/ModelRegistryContext';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
+import ModelServingContextProvider, {
+  ModelServingContext,
+} from '~/pages/modelServing/ModelServingContext';
 import { getKServeTemplates } from '~/pages/modelServing/customServingRuntimes/utils';
-import { bumpBothTimestamps } from '~/concepts/modelRegistry/utils/updateTimestamps';
 import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
-import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { isRedHatRegistryUri } from '~/pages/modelRegistry/screens/utils';
+import { ModelDeployPrefillInfo } from './usePrefillModelDeployModal';
 
-interface DeployRegisteredModelModalProps {
-  modelVersion: ModelVersion;
+interface DeployPrefilledModelModalProps {
+  modelDeployPrefillInfo: ModelDeployPrefillInfo;
+  prefillInfoLoaded: boolean;
+  prefillInfoLoadError?: Error;
+  projectLinkExtraUrlParams?: Record<string, string | undefined>;
   onCancel: () => void;
-  onSubmit?: () => void;
+  onSubmit?: (selectedProject: ProjectKind) => void;
 }
 
-const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
-  modelVersion,
+const DeployPrefilledModelModal: React.FC<DeployPrefilledModelModalProps> = (props) => {
+  const [selectedProject, setSelectedProject] = React.useState<ProjectKind | null>(null);
+  return (
+    <ModelServingContextProvider namespace={selectedProject?.metadata.name}>
+      <DeployPrefilledModelModalContents
+        {...props}
+        selectedProject={selectedProject}
+        setSelectedProject={setSelectedProject}
+      />
+    </ModelServingContextProvider>
+  );
+};
+
+const DeployPrefilledModelModalContents: React.FC<
+  DeployPrefilledModelModalProps & {
+    selectedProject: ProjectKind | null;
+    setSelectedProject: (project: ProjectKind | null) => void;
+  }
+> = ({
+  modelDeployPrefillInfo,
+  prefillInfoLoaded,
+  prefillInfoLoadError,
+  projectLinkExtraUrlParams,
   onCancel,
   onSubmit,
+  selectedProject,
+  setSelectedProject,
 }) => {
   const {
-    servingRuntimeTemplates: [templates],
-    servingRuntimeTemplateOrder: { data: templateOrder },
-    servingRuntimeTemplateDisablement: { data: templateDisablement },
-  } = React.useContext(ModelRegistryContext);
-  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
-  const modelRegistryApi = useModelRegistryAPI();
+    servingRuntimeTemplates: [templates, templatesLoaded],
+    servingRuntimeTemplateOrder: { data: templateOrder, loaded: templateOrderLoaded },
+    servingRuntimeTemplateDisablement: {
+      data: templateDisablement,
+      loaded: templateDisablementLoaded,
+    },
+  } = React.useContext(ModelServingContext);
+  const servingContextLoaded = templatesLoaded && templateOrderLoaded && templateDisablementLoaded;
 
-  const [selectedProject, setSelectedProject] = React.useState<ProjectKind | null>(null);
   const servingPlatformStatuses = useServingPlatformStatuses();
   const { platform, error: platformError } = getProjectModelServingPlatform(
     selectedProject,
     servingPlatformStatuses,
   );
   const [connections] = useConnections(selectedProject?.metadata.name, true);
-  const [registeredModel, registeredModelLoaded, registeredModelLoadError, refreshRegisteredModel] =
-    useRegisteredModelById(modelVersion.registeredModelId);
 
-  const {
-    registeredModelDeployInfo,
-    loaded: deployInfoLoaded,
-    error: deployInfoError,
-  } = useRegisteredModelDeployInfo(modelVersion, preferredModelRegistry?.metadata.name);
-
-  const isOciModel = registeredModelDeployInfo.modelArtifactUri?.includes('oci://');
+  const isOciModel = modelDeployPrefillInfo.modelArtifactUri?.includes('oci://');
   const platformToUse = platform || (isOciModel ? ServingRuntimePlatform.SINGLE : undefined);
   const { loaded: projectDeployStatusLoaded, error: projectError } =
-    useProjectErrorForRegisteredModel(selectedProject?.metadata.name, platformToUse);
+    useProjectErrorForPrefilledModel(selectedProject?.metadata.name, platformToUse);
 
   const error = platformError || projectError;
 
-  const loaded = deployInfoLoaded && registeredModelLoaded;
-  const loadError = deployInfoError || registeredModelLoadError;
+  const loaded = servingContextLoaded && prefillInfoLoaded;
+  const loadError = prefillInfoLoadError; // Note: serving context load errors are handled/rendered in ModelServingContextProvider
 
   const handleSubmit = React.useCallback(async () => {
-    if (!modelVersion.registeredModelId || !registeredModel) {
-      return;
-    }
-
-    try {
-      await bumpBothTimestamps(modelRegistryApi.api, registeredModel, modelVersion);
-      refreshRegisteredModel();
-      onSubmit?.();
-    } catch (submitError) {
-      throw new Error('Failed to update timestamps after deployment');
-    }
-  }, [modelRegistryApi.api, modelVersion, onSubmit, registeredModel, refreshRegisteredModel]);
+    onSubmit?.(selectedProject!);
+  }, [onSubmit, selectedProject]);
 
   const onClose = React.useCallback(
     (submit: boolean) => {
@@ -89,7 +93,7 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
       setSelectedProject(null);
       onCancel();
     },
-    [handleSubmit, onCancel],
+    [handleSubmit, onCancel, setSelectedProject],
   );
 
   const projectSection = (
@@ -97,9 +101,7 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
       selectedProject={selectedProject}
       setSelectedProject={setSelectedProject}
       error={error}
-      modelRegistryName={preferredModelRegistry?.metadata.name}
-      registeredModelId={modelVersion.registeredModelId}
-      modelVersionId={modelVersion.id}
+      projectLinkExtraUrlParams={projectLinkExtraUrlParams}
       isOciModel={isOciModel}
     />
   );
@@ -144,7 +146,7 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
           // The Deploy button is disabled as this particular return of the Modal
           // only happens when there's not a valid selected project, otherwise we'll
           // render the ManageKServeModal or ManageInferenceServiceModal
-          <Button key="deploy" variant="primary" onClick={handleSubmit} isDisabled>
+          <Button key="deploy" variant="primary" isDisabled>
             Deploy
           </Button>,
           <Button key="cancel" variant="link" onClick={() => onClose(false)}>
@@ -164,13 +166,13 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
         onClose={onClose}
         servingRuntimeTemplates={getKServeTemplates(templates, templateOrder, templateDisablement)}
         shouldFormHidden={!!error}
-        registeredModelDeployInfo={registeredModelDeployInfo}
+        modelDeployPrefillInfo={modelDeployPrefillInfo}
         projectContext={{ currentProject: selectedProject, connections }}
         projectSection={projectSection}
         existingUriOption={
-          registeredModelDeployInfo.modelArtifactUri &&
-          isRedHatRegistryUri(registeredModelDeployInfo.modelArtifactUri)
-            ? registeredModelDeployInfo.modelArtifactUri
+          modelDeployPrefillInfo.modelArtifactUri &&
+          isRedHatRegistryUri(modelDeployPrefillInfo.modelArtifactUri)
+            ? modelDeployPrefillInfo.modelArtifactUri
             : undefined
         }
       />
@@ -181,11 +183,11 @@ const DeployRegisteredModelModal: React.FC<DeployRegisteredModelModalProps> = ({
     <ManageInferenceServiceModal
       onClose={onClose}
       shouldFormHidden={!!error}
-      registeredModelDeployInfo={registeredModelDeployInfo}
+      modelDeployPrefillInfo={modelDeployPrefillInfo}
       projectContext={{ currentProject: selectedProject, connections }}
       projectSection={projectSection}
     />
   );
 };
 
-export default DeployRegisteredModelModal;
+export default DeployPrefilledModelModal;

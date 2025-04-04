@@ -49,7 +49,6 @@ import {
   fineTunePageSectionTitles,
   SCROLLABLE_SELECTOR_ID,
   KnownFineTuningPipelineParameters,
-  RunTypeFormat,
 } from './const';
 import { filterHyperparameters, getParamsValueFromPipelineInput } from './utils';
 
@@ -109,7 +108,6 @@ const ModelCustomizationForm: React.FC = () => {
         nodeSelector: {},
       },
     },
-    runType: RunTypeFormat.FULL,
     hyperparameters: {},
   });
 

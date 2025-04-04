@@ -10,7 +10,7 @@ type PipelineRunRegisteredModelDeatilsProps = {
 const PipelineRunRegisteredModelDetails = ({
   artifactModelData,
 }: PipelineRunRegisteredModelDeatilsProps): React.ReactNode => (
-  <>
+  <div data-testid="registered-model-details">
     <strong>
       <Link
         to={modelVersionUrl(
@@ -18,12 +18,13 @@ const PipelineRunRegisteredModelDetails = ({
           artifactModelData.registeredModelId,
           artifactModelData.modelRegistryName,
         )}
+        data-testid="model-version-link"
       >
         {artifactModelData.registeredModelName} ({artifactModelData.modelVersionName ?? 'N/A'})
       </Link>
     </strong>{' '}
     in <strong>{artifactModelData.modelRegistryName ?? 'N/A'}</strong> registry
-  </>
+  </div>
 );
 
 export default PipelineRunRegisteredModelDetails;

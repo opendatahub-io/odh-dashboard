@@ -19,15 +19,14 @@ import { Link } from 'react-router-dom';
 import { Artifact } from '~/third_party/mlmd';
 import { ArtifactUriLink } from '~/concepts/pipelines/content/artifacts/ArtifactUriLink';
 import { useGetEventByArtifactId } from '~/concepts/pipelines/apiHooks/mlmd/useGetEventByArtifactId';
-import { executionDetailsRoute, experimentRunDetailsRoute } from '~/routes';
+import { executionDetailsRoute } from '~/routes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { useGetExecutionById } from '~/concepts/pipelines/apiHooks/mlmd/useGetExecutionById';
-import { useGetPipelineRunContextByExecution } from '~/concepts/pipelines/apiHooks/mlmd/useGetMlmdContextByExecution';
-import usePipelineRunById from '~/concepts/pipelines/apiHooks/usePipelineRunById';
 import { getOriginalExecutionId } from '~/pages/pipelines/global/experiments/executions/utils';
 import PipelineRunRegisteredModelDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunRegisteredModelDetails';
 import { getArtifactModelData } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import ExperimentPipelineRunLink from '~/pages/pipelines/global/experiments/ExperimentPipelineRunLink';
 import { ArtifactPropertyDescriptionList } from './ArtifactPropertyDescriptionList';
 
 interface ArtifactOverviewDetailsProps {
@@ -41,8 +40,6 @@ export const ArtifactOverviewDetails: React.FC<ArtifactOverviewDetailsProps> = (
   const { namespace } = usePipelinesAPI();
   const originalExecutionId = getOriginalExecutionId(execution);
   const actualExecutionId = originalExecutionId ? Number(originalExecutionId) : execution?.getId();
-  const [context] = useGetPipelineRunContextByExecution(actualExecutionId);
-  const [run, runLoaded, runError] = usePipelineRunById(context?.getName());
   const { status: modelRegistryAvailable } = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY);
 
   const artifactModelData = React.useMemo(() => {
@@ -99,21 +96,10 @@ export const ArtifactOverviewDetails: React.FC<ArtifactOverviewDetailsProps> = (
                 <Tr>
                   <Td dataLabel="Name">Original run</Td>
                   <Td dataLabel="Link">
-                    {runLoaded && !runError ? (
-                      run ? (
-                        <Link
-                          to={experimentRunDetailsRoute(namespace, run.experiment_id, run.run_id)}
-                        >
-                          {`runs/details/${run.run_id}`}
-                        </Link>
-                      ) : context?.getName() ? (
-                        `runs/details/${context.getName()}`
-                      ) : (
-                        'Unknown'
-                      )
-                    ) : (
-                      <Skeleton />
-                    )}
+                    <ExperimentPipelineRunLink
+                      executionId={actualExecutionId}
+                      namespace={namespace}
+                    />
                   </Td>
                 </Tr>
                 <Tr>

@@ -14,7 +14,6 @@ import {
   DropdownList,
   ToggleGroup,
   ToggleGroupItem,
-  Icon,
 } from '@patternfly/react-core';
 import { QuestionCircleIcon, MoonIcon, SunIcon } from '@patternfly/react-icons';
 import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK, DEV_MODE, EXT_CLUSTER } from '~/utilities/const';
@@ -190,11 +189,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
             <ToggleGroup aria-label="Theme toggle group">
               <ToggleGroupItem
                 aria-label="light theme"
-                icon={
-                  <Icon size="md">
-                    <SunIcon />
-                  </Icon>
-                }
+                icon={<SunIcon />}
                 isSelected={theme === 'light'}
                 onChange={() => {
                   setTheme('light');
@@ -202,11 +197,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
               />
               <ToggleGroupItem
                 aria-label="dark theme"
-                icon={
-                  <Icon size="md">
-                    <MoonIcon />
-                  </Icon>
-                }
+                icon={<MoonIcon />}
                 isSelected={theme === 'dark'}
                 onChange={() => {
                   setTheme('dark');

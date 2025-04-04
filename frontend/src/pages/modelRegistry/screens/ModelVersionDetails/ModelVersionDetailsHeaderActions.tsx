@@ -19,7 +19,7 @@ import {
   modelVersionDeploymentsUrl,
   modelVersionListUrl,
 } from '~/pages/modelRegistry/screens/routeUtils';
-import DeployRegisteredModelModal from '~/pages/modelRegistry/screens/components/DeployRegisteredModelModal';
+import DeployRegisteredVersionModal from '~/pages/modelRegistry/screens/components/DeployRegisteredVersionModal';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 import StartRunModal from '~/pages/pipelines/global/modelCustomization/startRunModal/StartRunModal';
 import { useModelVersionTuningData } from '~/concepts/modelRegistry/hooks/useModelVersionTuningData';
@@ -134,7 +134,7 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
         />
       ) : null}
       {isDeployModalOpen && (
-        <DeployRegisteredModelModal
+        <DeployRegisteredVersionModal
           onSubmit={() => {
             refresh();
             navigate(

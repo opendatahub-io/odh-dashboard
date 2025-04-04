@@ -27,7 +27,6 @@ import type {
 
 import type { StartNotebookData } from '~/pages/projects/types';
 import type { AllowedUser } from '~/pages/notebookController/screens/admin/types';
-import type { GroupsConfig } from '~/concepts/userConfigs/groupTypes';
 import type { StatusResponse } from '~/redux/types';
 import type {
   BYONImage,
@@ -98,14 +97,6 @@ declare global {
         ((
           type: 'GET /api/console-links',
           response: OdhResponse<ConsoleLinkKind[]>,
-        ) => Cypress.Chainable<null>) &
-        ((
-          type: 'GET /api/groups-config',
-          response: OdhResponse<GroupsConfig>,
-        ) => Cypress.Chainable<null>) &
-        ((
-          type: 'PUT /api/groups-config',
-          response: OdhResponse<GroupsConfig>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/components',
@@ -628,6 +619,11 @@ declare global {
         ) => Cypress.Chainable<null>) &
         ((
           type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetEventsByArtifactIDs`,
+          options: { path: { namespace: string; serviceName: string } },
+          response: OdhResponse<GrpcResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: `POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetContextsByType`,
           options: { path: { namespace: string; serviceName: string } },
           response: OdhResponse<GrpcResponse>,
         ) => Cypress.Chainable<null>) &

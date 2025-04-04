@@ -12,6 +12,11 @@ class ExecutionPage {
   findText(text: string) {
     cy.contains(text);
   }
+
+  shouldFailToLoadRun() {
+    cy.findByTestId('error-icon').should('exist');
+    return this;
+  }
 }
 
 class ExecutionFilter {

@@ -15,6 +15,7 @@ import {
   inferenceServiceModal,
   inferenceServiceModalEdit,
   kserveModal,
+  kserveModalEdit,
   modelServingGlobal,
 } from '~/__tests__/cypress/cypress/pages/modelServing';
 import {
@@ -45,6 +46,7 @@ type HandlersProps = {
   delayServingRuntimes?: boolean;
   disableKServeMetrics?: boolean;
   disableServingRuntimeParamsConfig?: boolean;
+  disableProjectScoped?: boolean;
 };
 
 const initIntercepts = ({
@@ -57,6 +59,7 @@ const initIntercepts = ({
   delayServingRuntimes,
   disableKServeMetrics,
   disableServingRuntimeParamsConfig,
+  disableProjectScoped = true,
 }: HandlersProps) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
@@ -74,8 +77,37 @@ const initIntercepts = ({
       disableModelMesh: disableModelMeshConfig,
       disableKServeMetrics,
       disableServingRuntimeParams: disableServingRuntimeParamsConfig,
+      disableProjectScoped,
     }),
   );
+
+  cy.interceptK8sList(
+    TemplateModel,
+    mockK8sResourceList(
+      [
+        mockServingRuntimeTemplateK8sResource({
+          name: 'template-1',
+          displayName: 'Multi Platform',
+          platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
+        }),
+        mockServingRuntimeTemplateK8sResource({
+          name: 'template-2',
+          displayName: 'Caikit',
+          platforms: [ServingRuntimePlatform.SINGLE],
+          supportedModelFormats: [
+            {
+              autoSelect: true,
+              name: 'openvino_ir',
+              version: 'opset1',
+            },
+          ],
+        }),
+        mockInvalidTemplateK8sResource({}),
+      ],
+      { namespace: 'test-project' },
+    ),
+  );
+
   cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(servingRuntimes));
   cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList(inferenceServices));
   cy.interceptK8sList(SecretModel, mockK8sResourceList([mockSecretK8sResource({})]));
@@ -536,6 +568,92 @@ describe('Model Serving Global', () => {
     kserveModal.findServingRuntimeTemplateHelptext().should('not.exist');
     kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
     kserveModal.findServingRuntimeTemplateHelptext().should('exist');
+  });
+
+  it('Display project specific serving runtimes while deploying', () => {
+    initIntercepts({
+      projectEnableModelMesh: false,
+      disableServingRuntimeParamsConfig: false,
+      disableProjectScoped: false,
+    });
+    modelServingGlobal.visit('test-project');
+
+    modelServingGlobal.findDeployModelButton().click();
+
+    kserveModal.findModelNameInput().should('exist');
+
+    // Check for project specific serving runtimes
+    kserveModal.findServingRuntimeTemplateSearchSelector().click();
+    const projectScopedSR = kserveModal.getProjectScopedServingRuntime();
+    projectScopedSR.find().findByRole('menuitem', { name: 'Multi Platform', hidden: true }).click();
+    kserveModal.findProjectScopedLabel().should('exist');
+
+    // Check for global specific serving runtimes
+    kserveModal.findServingRuntimeTemplateSearchSelector().click();
+    const globalScopedSR = kserveModal.getGlobalScopedServingRuntime();
+    globalScopedSR.find().findByRole('menuitem', { name: 'Multi Platform', hidden: true }).click();
+    kserveModal.findGlobalScopedLabel().should('exist');
+    kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
+
+    // check model framework selection when serving runtime changes
+    kserveModal.findServingRuntimeTemplateSearchSelector().click();
+    globalScopedSR.find().findByRole('menuitem', { name: 'Multi Platform', hidden: true }).click();
+    kserveModal.findModelFrameworkSelect().should('have.text', 'onnx - 1');
+
+    kserveModal.findServingRuntimeTemplateSearchSelector().click();
+    globalScopedSR.find().findByRole('menuitem', { name: 'Caikit', hidden: true }).click();
+    kserveModal.findModelFrameworkSelect().should('be.enabled');
+    kserveModal.findModelFrameworkSelect().should('have.text', 'Select a framework');
+
+    kserveModal.findServingRuntimeTemplateSearchSelector().click();
+    projectScopedSR.find().findByRole('menuitem', { name: 'Caikit', hidden: true }).click();
+    kserveModal.findModelFrameworkSelect().should('be.disabled');
+    kserveModal.findModelFrameworkSelect().should('have.text', 'openvino_ir - opset1');
+  });
+
+  it('Display project scoped label on serving runtime selection', () => {
+    initIntercepts({
+      projectEnableModelMesh: false,
+      disableServingRuntimeParamsConfig: false,
+      disableProjectScoped: false,
+      servingRuntimes: [
+        mockServingRuntimeK8sResource({
+          isProjectScoped: true,
+          scope: 'project',
+          templateDisplayName: 'test-project-scoped-sr',
+        }),
+      ],
+    });
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
+    kserveModalEdit.findServingRuntimeTemplateSearchSelector().should('be.disabled');
+    kserveModalEdit
+      .findServingRuntimeTemplateSearchSelector()
+      .should('have.text', 'test-project-scoped-sr Project-scoped');
+    kserveModalEdit.findProjectScopedLabel().should('exist');
+    kserveModalEdit.findModelFrameworkSelect().should('have.text', 'onnx - 1');
+  });
+
+  it('Display global scoped label on serving runtime selection', () => {
+    initIntercepts({
+      projectEnableModelMesh: false,
+      disableServingRuntimeParamsConfig: false,
+      disableProjectScoped: false,
+      servingRuntimes: [
+        mockServingRuntimeK8sResource({
+          isProjectScoped: true,
+          scope: 'global',
+        }),
+      ],
+    });
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
+    kserveModalEdit.findServingRuntimeTemplateSearchSelector().should('be.disabled');
+    kserveModalEdit
+      .findServingRuntimeTemplateSearchSelector()
+      .should('have.text', 'OpenVINO Serving Runtime (Supports GPUs) Global-scoped');
+    kserveModalEdit.findGlobalScopedLabel().should('exist');
+    kserveModalEdit.findModelFrameworkSelect().should('have.text', 'onnx - 1');
   });
 
   it('View predefined args popover populates', () => {

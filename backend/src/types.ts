@@ -708,16 +708,6 @@ export type GroupStatus = {
   enabled: boolean;
 };
 
-export type GroupsConfigBodyList = {
-  adminGroups: string[];
-  allowedGroups: string[];
-};
-
-export type GroupsConfigBody = {
-  adminGroups: string;
-  allowedGroups: string;
-};
-
 export type GroupObjResponse = {
   users: string[] | null;
 };

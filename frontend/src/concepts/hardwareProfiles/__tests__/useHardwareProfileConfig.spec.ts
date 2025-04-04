@@ -50,6 +50,8 @@ describe('useHardwareProfileConfig', () => {
       isFormDataValid: false,
       setFormData: expect.any(Function),
       resetFormData: expect.any(Function),
+      profilesLoaded: true,
+      profilesLoadError: undefined,
     });
   });
 
@@ -101,6 +103,8 @@ describe('useHardwareProfileConfig', () => {
       isFormDataValid: true,
       setFormData: expect.any(Function),
       resetFormData: expect.any(Function),
+      profilesLoaded: true,
+      profilesLoadError: undefined,
     });
   });
 

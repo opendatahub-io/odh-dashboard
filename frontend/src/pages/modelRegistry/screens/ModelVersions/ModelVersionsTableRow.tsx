@@ -15,7 +15,7 @@ import {
 import { ArchiveModelVersionModal } from '~/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { RestoreModelVersionModal } from '~/pages/modelRegistry/screens/components/RestoreModelVersionModal';
-import DeployRegisteredModelModal from '~/pages/modelRegistry/screens/components/DeployRegisteredModelModal';
+import DeployRegisteredVersionModal from '~/pages/modelRegistry/screens/components/DeployRegisteredVersionModal';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 import StartRunModal from '~/pages/pipelines/global/modelCustomization/startRunModal/StartRunModal';
 import { useModelVersionTuningData } from '~/concepts/modelRegistry/hooks/useModelVersionTuningData';
@@ -153,7 +153,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
             />
           ) : null}
           {isDeployModalOpen ? (
-            <DeployRegisteredModelModal
+            <DeployRegisteredVersionModal
               onSubmit={() => {
                 navigate(
                   modelVersionDeploymentsUrl(

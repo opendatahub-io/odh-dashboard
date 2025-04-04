@@ -355,6 +355,23 @@ export const mockedArtifactsResponse: GetArtifactsResponse = {
       createTimeSinceEpoch: 1611399342384,
       lastUpdateTimeSinceEpoch: 1611399342384,
     },
+    {
+      id: 8,
+      typeId: 15,
+      uri: 's3://scalar-metrics-uri-scalar-metrics-uri',
+      customProperties: {
+        display_name: { stringValue: 'registered model metrics' },
+        registeredModelName: { stringValue: 'model' },
+        registeredModelId: { stringValue: '1' },
+        modelVersionName: { stringValue: '1' },
+        modelVersionId: { stringValue: '1' },
+        modelRegistryName: { stringValue: 'model-registry' },
+      },
+      state: 2,
+      properties: {},
+      createTimeSinceEpoch: 1611399342384,
+      lastUpdateTimeSinceEpoch: 1611399342384,
+    },
   ],
 };
 

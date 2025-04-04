@@ -9,7 +9,7 @@ jest.mock('~/pages/projects/notebook/useNotebooksStates', () => ({
   useNotebooksStates: jest.fn().mockReturnValue([[]]),
 }));
 jest.mock('~/utilities/useWatchConnectionTypes', () => ({
-  useWatchConnectionTypes: jest.fn().mockReturnValue([[]]),
+  useWatchConnectionTypes: jest.fn().mockReturnValue([[], true, undefined, jest.fn()]),
 }));
 
 describe('ConnectionsFormSection', () => {
@@ -19,6 +19,8 @@ describe('ConnectionsFormSection', () => {
         project={mockProjectK8sResource({})}
         projectConnections={[]}
         refreshProjectConnections={() => undefined}
+        projectConnectionsLoaded
+        projectConnectionsLoadError={undefined}
         notebookDisplayName=""
         selectedConnections={[]}
         setSelectedConnections={() => undefined}
@@ -40,6 +42,8 @@ describe('ConnectionsFormSection', () => {
           mockConnection({ name: 's3-connection-3', displayName: 's3 connection 3' }),
         ]}
         refreshProjectConnections={() => undefined}
+        projectConnectionsLoaded
+        projectConnectionsLoadError={undefined}
         notebookDisplayName=""
         selectedConnections={[
           mockConnection({ name: 's3-connection-1', displayName: 's3 connection 1' }),
@@ -62,6 +66,8 @@ describe('ConnectionsFormSection', () => {
         project={mockProjectK8sResource({})}
         projectConnections={[]}
         refreshProjectConnections={() => undefined}
+        projectConnectionsLoaded
+        projectConnectionsLoadError={undefined}
         notebookDisplayName=""
         selectedConnections={[
           mockConnection({
@@ -100,6 +106,8 @@ describe('ConnectionsFormSection', () => {
           mockConnection({ name: 's3-connection-3', displayName: 's3 connection 3' }),
         ]}
         refreshProjectConnections={() => undefined}
+        projectConnectionsLoaded
+        projectConnectionsLoadError={undefined}
         notebookDisplayName=""
         selectedConnections={[
           mockConnection({ name: 's3-connection-1', displayName: 's3 connection 1' }),

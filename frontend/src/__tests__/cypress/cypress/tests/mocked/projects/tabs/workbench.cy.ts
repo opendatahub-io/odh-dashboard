@@ -399,6 +399,33 @@ describe('Workbench page', () => {
     verifyRelativeURL('/projects/test-project?section=workbenches');
   });
 
+  it('Cannot create workbench without a connection', () => {
+    initIntercepts({ isEmpty: true });
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableConnectionTypes: false }));
+    cy.interceptOdh('GET /api/connection-types', []);
+    cy.interceptK8sList({ model: SecretModel, ns: 'test-project' }, mockK8sResourceList([]));
+
+    workbenchPage.visit('test-project');
+    workbenchPage.findCreateButton().click();
+
+    createSpawnerPage.findAttachConnectionButton().should('have.attr', 'aria-disabled', 'true');
+    createSpawnerPage.findSubmitButton().should('be.disabled');
+  });
+
+  it('Cannot create workbench without a storage', () => {
+    initIntercepts({ isEmpty: true });
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableConnectionTypes: false }));
+    cy.interceptK8sList({ model: PVCModel, ns: 'test-project' }, mockK8sResourceList([]));
+
+    workbenchPage.visit('test-project');
+    workbenchPage.findCreateButton().click();
+
+    createSpawnerPage
+      .findAttachExistingStorageButton()
+      .should('have.attr', 'aria-disabled', 'true');
+    createSpawnerPage.findSubmitButton().should('be.disabled');
+  });
+
   it('Create workbench with connection', () => {
     initIntercepts({ isEmpty: true });
     cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableConnectionTypes: false }));

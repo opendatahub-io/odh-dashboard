@@ -34,21 +34,20 @@ describe('Start Notebook modal', () => {
     const stepper = screen.getByTestId('notebook-startup-steps');
     expect(stepper).toBeTruthy();
     const steps = screen.getAllByRole('listitem');
-    expect(steps).toHaveLength(14);
+    expect(steps).toHaveLength(13);
     expect(steps[0]).toHaveTextContent('Server requested');
     expect(steps[1]).toHaveTextContent('Pod created');
     expect(steps[2]).toHaveTextContent('Pod assigned');
-    expect(steps[3]).toHaveTextContent('PVC attached');
-    expect(steps[4]).toHaveTextContent('Interface added');
-    expect(steps[5]).toHaveTextContent('Pulling workbench image');
-    expect(steps[6]).toHaveTextContent('Workbench image pulled');
-    expect(steps[7]).toHaveTextContent('Workbench container created');
-    expect(steps[8]).toHaveTextContent('Workbench container started');
-    expect(steps[9]).toHaveTextContent('Pulling oauth proxy');
-    expect(steps[10]).toHaveTextContent('Oauth proxy pulled');
-    expect(steps[11]).toHaveTextContent('Oauth proxy container created');
-    expect(steps[12]).toHaveTextContent('Oauth proxy container started');
-    expect(steps[13]).toHaveTextContent('Server started');
+    expect(steps[3]).toHaveTextContent('Interface added');
+    expect(steps[4]).toHaveTextContent('Pulling workbench image');
+    expect(steps[5]).toHaveTextContent('Workbench image pulled');
+    expect(steps[6]).toHaveTextContent('Workbench container created');
+    expect(steps[7]).toHaveTextContent('Workbench container started');
+    expect(steps[8]).toHaveTextContent('Pulling oauth proxy');
+    expect(steps[9]).toHaveTextContent('Oauth proxy pulled');
+    expect(steps[10]).toHaveTextContent('Oauth proxy container created');
+    expect(steps[11]).toHaveTextContent('Oauth proxy container started');
+    expect(steps[12]).toHaveTextContent('Server started');
   });
 
   it('should show failed notebook startup status', async () => {
@@ -76,8 +75,8 @@ describe('Start Notebook modal', () => {
     const stepper = screen.getByTestId('notebook-startup-steps');
     expect(stepper).toBeTruthy();
     const steps = screen.getAllByRole('listitem');
-    expect(steps).toHaveLength(15);
-    expect(steps[1]).toHaveTextContent('Failed to scale-up');
+    expect(steps).toHaveLength(14);
+    expect(steps[1]).toHaveTextContent('There was a problem with the pod');
   });
 
   it('should show in progress notebook startup status', async () => {
@@ -181,7 +180,7 @@ describe('Start Notebook modal', () => {
     const stepper = screen.getByTestId('notebook-startup-steps');
     expect(stepper).toBeTruthy();
     const steps = screen.getAllByRole('listitem');
-    expect(steps).toHaveLength(14);
-    expect(screen.getAllByTestId('step-status-Pending')).toHaveLength(14);
+    expect(steps).toHaveLength(13);
+    expect(screen.getAllByTestId('step-status-Pending')).toHaveLength(13);
   });
 });

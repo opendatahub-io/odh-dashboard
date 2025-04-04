@@ -202,5 +202,6 @@ const testExecutionDetailsPage = () => {
   executionPage.findText(`${id}`);
   executionPage.findText('system.ContainerExecution');
   executionPage.findText('Custom properties');
+  executionPage.shouldFailToLoadRun();
   verifyRelativeURL(`/executions/${projectName}/${id}`);
 };

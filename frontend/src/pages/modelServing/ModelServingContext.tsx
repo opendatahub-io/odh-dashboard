@@ -32,7 +32,7 @@ import useTemplateDisablement from './customServingRuntimes/useTemplateDisableme
 import { getTokenNames } from './utils';
 import useServingRuntimeSecrets from './screens/projects/useServingRuntimeSecrets';
 
-type ModelServingContextType = {
+export type ModelServingContextType = {
   refreshAllData: () => void;
   filterTokens: (servingRuntime?: string) => SecretKind[];
   connections: ContextResourceData<Connection>;

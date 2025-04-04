@@ -41,6 +41,7 @@ import RhUiControlsIcon from '~/images/icons/RhUiControlsIcon';
 import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import ModelDetailsView from './ModelDetailsView';
+import DeployCatalogModelModal from './DeployCatalogModelModal';
 
 const ModelDetailsPage: React.FC = conditionalArea(
   SupportedArea.MODEL_CATALOG,
@@ -53,8 +54,9 @@ const ModelDetailsPage: React.FC = conditionalArea(
   const { modelRegistryServices, modelRegistryServicesLoaded, modelRegistryServicesLoadError } =
     React.useContext(ModelRegistrySelectorContext);
   const tuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
-  const loaded = modelRegistryServicesLoaded && modelCatalogSources.loaded;
-
+  const loaded =
+    (modelRegistryServicesLoaded || !!modelRegistryServicesLoadError) && modelCatalogSources.loaded;
+  const [isDeployModalOpen, setIsDeployModalOpen] = React.useState(false);
   const model: CatalogModel | null = React.useMemo(
     () =>
       findModelFromModelCatalogSources(
@@ -67,8 +69,12 @@ const ModelDetailsPage: React.FC = conditionalArea(
     [modelCatalogSources, decodedParams],
   );
 
-  const registerModelButton = (isSecondary = false) =>
-    modelRegistryServices.length === 0 ? (
+  const registerModelButton = () => {
+    if (modelRegistryServicesLoadError) {
+      return null;
+    }
+
+    return modelRegistryServices.length === 0 ? (
       <Popover
         headerContent="Request access to a model registry"
         triggerAction="hover"
@@ -82,23 +88,32 @@ const ModelDetailsPage: React.FC = conditionalArea(
           />
         }
       >
-        <Button
-          data-testid="register-model-button"
-          isAriaDisabled
-          variant={isSecondary ? 'secondary' : 'primary'}
-        >
+        <Button variant="secondary" isAriaDisabled data-testid="register-model-button">
           Register model
         </Button>
       </Popover>
     ) : (
       <Button
-        variant={isSecondary ? 'secondary' : 'primary'}
         data-testid="register-model-button"
-        onClick={() => navigate(getRegisterCatalogModelUrl(params))}
+        variant="secondary"
+        onClick={() => {
+          navigate(getRegisterCatalogModelUrl(decodedParams));
+        }}
       >
         Register model
       </Button>
     );
+  };
+
+  const deployModelButton = (
+    <Button
+      variant="primary"
+      data-testid="deploy-model-button"
+      onClick={() => setIsDeployModalOpen(true)}
+    >
+      Deploy model
+    </Button>
+  );
 
   const fineTuneActionItem = (
     <Popover
@@ -116,7 +131,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
       footerContent={
         <ActionList>
           <ActionListGroup>
-            <ActionListItem>{registerModelButton(true)}</ActionListItem>
+            <ActionListItem>{registerModelButton()}</ActionListItem>
             <ActionListItem>
               <Button variant="link" onClick={() => navigate(modelCustomizationRootPath)}>
                 Learn more about model customization
@@ -187,7 +202,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
           )}
         />
       }
-      loadError={modelRegistryServicesLoadError || modelCatalogSources.error}
+      loadError={modelCatalogSources.error}
       loaded={loaded}
       errorMessage="Unable to load model catalog"
       provideChildrenPadding
@@ -197,12 +212,26 @@ const ModelDetailsPage: React.FC = conditionalArea(
             <ActionListGroup>
               {tuningAvailable && isLabBase(model?.labels) && fineTuneActionItem}
               {registerModelButton()}
+              {deployModelButton}
             </ActionListGroup>
           </ActionList>
         )
       }
     >
-      {model && <ModelDetailsView model={model} />}
+      {model && (
+        <>
+          <ModelDetailsView model={model} />
+          {isDeployModalOpen && (
+            <DeployCatalogModelModal
+              model={model}
+              onSubmit={(selectedProject) => {
+                navigate(`/modelServing/${selectedProject.metadata.name}`);
+              }}
+              onCancel={() => setIsDeployModalOpen(false)}
+            />
+          )}
+        </>
+      )}
     </ApplicationsPage>
   );
 });

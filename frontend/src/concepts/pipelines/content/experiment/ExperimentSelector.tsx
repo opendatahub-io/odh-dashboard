@@ -37,7 +37,7 @@ const InnerExperimentSelector: React.FC<
     searchValue={searchProps.value ?? ''}
     isLoading={!initialLoaded}
     isFullWidth
-    toggleText={
+    toggleContent={
       initialLoaded
         ? selection || (totalSize === 0 ? 'No experiments available' : 'Select an experiment')
         : 'Loading experiments'

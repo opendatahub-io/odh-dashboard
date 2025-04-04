@@ -102,7 +102,13 @@ const InlineEditText: React.FC<InlineEditTextProps> = ({
           </>
         ) : (
           <>
-            <FlexItem>{isEmpty ? <i>Set a value ...</i> : <Content>{text}</Content>}</FlexItem>
+            <FlexItem>
+              {isEmpty ? (
+                <i>Set a value ...</i>
+              ) : (
+                <Content data-testid="inline-edit-text-content">{text}</Content>
+              )}
+            </FlexItem>
             <FlexItem>
               <Button
                 data-testid="edit-inline-text-button"

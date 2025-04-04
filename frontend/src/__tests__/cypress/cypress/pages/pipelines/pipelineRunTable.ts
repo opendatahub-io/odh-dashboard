@@ -17,6 +17,10 @@ class PipelineRunTableRow extends PipelineRunsRow {
     this.find().findKebab().click();
     return cy.findByTestId('pipeline-run-table-row-actions').findByRole('menuitem', { name });
   }
+
+  findModelRegisteredLabel() {
+    return this.find().findByTestId('model-registered-label');
+  }
 }
 
 class PipelineRecurringRunTableRow extends PipelineRunsRow {
@@ -164,6 +168,16 @@ class ActiveRunsTable extends PipelineRunsTable {
     return new PipelineRunTableRow(() =>
       this.find().find(`[data-label=Name]`).contains(name).parents('tr'),
     );
+  }
+
+  getLabelInRowByName(name: string) {
+    return new PipelineRunTableRow(() =>
+      this.find().find(`[data-label=Name]`).contains(name).parents('tr'),
+    );
+  }
+
+  findModelRegisteredLabel(name: string) {
+    return this.getLabelInRowByName(name).findModelRegisteredLabel();
   }
 }
 class ArchivedRunsTable extends PipelineRunsTable {

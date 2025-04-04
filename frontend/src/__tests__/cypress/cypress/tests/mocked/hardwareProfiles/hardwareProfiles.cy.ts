@@ -1,12 +1,16 @@
 import { hardwareProfile } from '~/__tests__/cypress/cypress/pages/hardwareProfile';
 import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import { HardwareProfileModel } from '~/__tests__/cypress/cypress/utils/models';
+import {
+  HardwareProfileModel,
+  SelfSubjectAccessReviewModel,
+} from '~/__tests__/cypress/cypress/utils/models';
 import { mock200Status, mockDashboardConfig, mockK8sResourceList } from '~/__mocks__';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
 import { IdentifierResourceType } from '~/types';
+import { mockSelfSubjectAccessReview } from '~/__mocks__/mockSelfSubjectAccessReview';
 
 const initIntercepts = () => {
   cy.interceptOdh(
@@ -494,5 +498,44 @@ describe('Hardware Profile', () => {
         .find(`[data-label="Toleration seconds"]`)
         .should('contain.text', '-');
     });
+  });
+});
+
+describe('hardware profiles - empty state', () => {
+  it('shows warning when no hardware profiles exist.', () => {
+    asProductAdminUser();
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        modelServerSizes: [],
+        notebookSizes: [],
+      }),
+    );
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList([]),
+    );
+
+    hardwareProfile.visit();
+    hardwareProfile.findHardwareProfilePageEmptyState().should('be.visible');
+    hardwareProfile.findNoProfilesAvailableText().should('contain', 'No hardware profiles');
+    hardwareProfile.findHardwareProfilesCreateButton().and('contain', 'Add new hardware profile');
+    hardwareProfile.findHardwareProfilesCreateButton().click();
+    cy.url().should('include', '/hardwareProfiles/create');
+  });
+
+  it('should hide "Add new hardware profile" button when user does not have create permission', () => {
+    cy.interceptK8s(
+      'POST',
+      SelfSubjectAccessReviewModel,
+      mockSelfSubjectAccessReview({
+        verb: 'create',
+        resource: 'hardwareprofiles',
+        group: 'dashboard.opendatahub.io',
+        allowed: false,
+      }),
+    ).as('selfSubjectAccessReviewsCall');
+    hardwareProfile.visit();
+    hardwareProfile.findHardwareProfilesCreateButton().should('not.exist');
   });
 });

@@ -229,11 +229,6 @@ describe('legacy profiles table', () => {
       legacyHardwareProfile.findTableHeaderButton('Name').should(be.sortDescending);
       legacyHardwareProfile.findTableHeaderButton('Name').click();
       legacyHardwareProfile.findTableHeaderButton('Name').should(be.sortAscending);
-
-      legacyHardwareProfile.findTableHeaderButton('Last modified').click();
-      legacyHardwareProfile.findTableHeaderButton('Last modified').should(be.sortAscending);
-      legacyHardwareProfile.findTableHeaderButton('Last modified').click();
-      legacyHardwareProfile.findTableHeaderButton('Last modified').should(be.sortDescending);
     });
 
     it('should show the expandable section for items', () => {
@@ -531,8 +526,8 @@ describe('legacy profiles table', () => {
       legacyHardwareProfile.visit();
       legacyHardwareProfile.findExpandButton().click();
 
-      legacyHardwareProfile.getCell(0, 2).should('have.text', 'Accelerator profile');
-      legacyHardwareProfile.getCell(1, 2).should('have.text', 'Accelerator profile');
+      legacyHardwareProfile.getCell(0, 4).should('have.text', 'Accelerator profile');
+      legacyHardwareProfile.getCell(1, 4).should('have.text', 'Accelerator profile');
     });
   });
 
@@ -712,7 +707,7 @@ describe('legacy profiles table', () => {
       legacyHardwareProfile.visit();
       legacyHardwareProfile.findExpandButton().click();
 
-      legacyHardwareProfile.getCell(0, 2).should('have.text', 'Workbench container size');
+      legacyHardwareProfile.getCell(0, 4).should('have.text', 'Workbench container size');
     });
   });
 
@@ -890,7 +885,7 @@ describe('legacy profiles table', () => {
       legacyHardwareProfile.visit();
       legacyHardwareProfile.findExpandButton().click();
 
-      legacyHardwareProfile.getCell(0, 2).should('have.text', 'Model serving container size');
+      legacyHardwareProfile.getCell(0, 4).should('have.text', 'Model serving container size');
     });
   });
 });

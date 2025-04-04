@@ -4,6 +4,7 @@ import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 import { mixin } from '~/__tests__/cypress/cypress/utils/mixin';
 import { K8sNameDescriptionField } from '~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
 import { TableToolbar } from './components/TableToolbar';
+import { Contextual } from './components/Contextual';
 
 class ModelServingToolbar extends TableToolbar {}
 class ModelServingGlobal {
@@ -92,7 +93,13 @@ class ModelServingGlobal {
   getTableToolbar() {
     return new ModelServingToolbar(() => cy.findByTestId('dashboard-table-toolbar'));
   }
+
+  findServingRuntime(name: string) {
+    return this.findModelsTable().find(`[data-label=Serving Runtime]`).contains(name);
+  }
 }
+
+class ServingRuntimeGroup extends Contextual<HTMLElement> {}
 
 class InferenceServiceModal extends Modal {
   k8sNameDescription = new K8sNameDescriptionField('inference-service');
@@ -117,6 +124,26 @@ class InferenceServiceModal extends Modal {
 
   findServingRuntimeSelect() {
     return this.find().findByTestId('inference-service-model-selection');
+  }
+
+  findServingRuntimeTemplateSearchSelector() {
+    return this.find().findByTestId('serving-runtime-template-selection-toggle');
+  }
+
+  findProjectScopedLabel() {
+    return this.find().findByTestId('project-scoped-image');
+  }
+
+  findGlobalScopedLabel() {
+    return this.find().findByTestId('global-scoped-image');
+  }
+
+  getProjectScopedServingRuntime() {
+    return new ServingRuntimeGroup(() => cy.findByTestId('project-scoped-serving-runtimes'));
+  }
+
+  getGlobalScopedServingRuntime() {
+    return new ServingRuntimeGroup(() => cy.findByTestId('global-scoped-serving-runtimes'));
   }
 
   findServingRuntimeTemplate() {
@@ -200,6 +227,24 @@ class InferenceServiceModal extends Modal {
   selectProfile(name: string): void {
     this.findHardProfileSelection().click();
     cy.findByRole('option', { name }).click();
+  }
+
+  selectPotentiallyDisabledProfile(profileDisplayName: string, profileName?: string): void {
+    const dropdown = this.findHardProfileSelection();
+
+    dropdown.then(($el) => {
+      if ($el.prop('disabled')) {
+        // If disabled, verify it contains the base profile name
+        // Use the shorter profileName if provided, otherwise use profileDisplayName
+        const nameToCheck = profileName || profileDisplayName;
+        cy.wrap($el).contains(nameToCheck).should('exist');
+        cy.log(`Dropdown is disabled with value: ${nameToCheck}`);
+      } else {
+        // If enabled, proceed with selection as before using the full display name
+        dropdown.click();
+        cy.findByRole('option', { name: profileDisplayName }).click();
+      }
+    });
   }
 
   findModelURITextBox() {
@@ -456,6 +501,10 @@ class KServeRow extends ModelMeshRow {
 
   findDescriptionListItem(itemName: string) {
     return this.find().next('tr').find(`dt:contains("${itemName}")`);
+  }
+
+  findProjectScopedLabel() {
+    return this.find().findByTestId('project-scoped-label');
   }
 }
 

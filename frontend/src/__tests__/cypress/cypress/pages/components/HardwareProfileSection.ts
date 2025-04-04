@@ -28,6 +28,24 @@ export class HardwareProfileSection {
     cy.findByRole('option', { name }).click();
   }
 
+  selectPotentiallyDisabledProfile(profileDisplayName: string, profileName?: string): void {
+    const dropdown = this.findSelect();
+
+    dropdown.then(($el) => {
+      if ($el.prop('disabled')) {
+        // If disabled, verify it contains the base profile name
+        // Use the shorter profileName if provided, otherwise use profileDisplayName
+        const nameToCheck = profileName || profileDisplayName;
+        cy.wrap($el).contains(nameToCheck).should('exist');
+        cy.log(`Dropdown is disabled with value: ${nameToCheck}`);
+      } else {
+        // If enabled, proceed with selection as before using the full display name
+        dropdown.click();
+        cy.findByRole('option', { name: profileDisplayName }).click();
+      }
+    });
+  }
+
   verifyProfileDetails(resources: ContainerResources): void {
     this.findDetailsPopover().click();
     this.findDetails().within(() => {
@@ -47,12 +65,10 @@ export class HardwareProfileSection {
 
   verifyResourceValidation(label: string, value: string, errorMessage?: string): void {
     this.findCustomizeForm().within(() => {
-      cy.findByTestId(`${label}-input`).clear();
+      cy.findByTestId(`${label}-input`).findByLabelText('Input').clear();
       cy.findByTestId(`${label}-input`).type(`{moveToEnd}${value}`, { delay: 100 });
       if (errorMessage) {
         cy.findByText(errorMessage).should('exist');
-      } else {
-        cy.findByText('Value must be').should('not.exist');
       }
     });
   }

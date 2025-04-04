@@ -135,6 +135,7 @@ export type ServingRuntimeAnnotations = Partial<{
   'opendatahub.io/recommended-accelerators': string;
   'opendatahub.io/accelerator-name': string;
   'opendatahub.io/apiProtocol': string;
+  'opendatahub.io/serving-runtime-scope': string;
   'enable-route': string;
   'enable-auth': string;
   'modelmesh-enabled': 'true' | 'false';

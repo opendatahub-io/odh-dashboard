@@ -17,6 +17,10 @@ class ModelDetailsPage {
     return cy.findByTestId('register-model-button');
   }
 
+  findDeployModelButton() {
+    return cy.findByTestId('deploy-model-button');
+  }
+
   findTuneModelButton() {
     return cy.findByTestId('tune-model-button');
   }

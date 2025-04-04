@@ -89,6 +89,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
             fireFormTrackingEvent(serverConfiguredEvent, {
               outcome: TrackingOutcome.submit,
               success: true,
+              isILabEnabled: config.enableInstructLab,
             });
           })
           .catch((e) => {

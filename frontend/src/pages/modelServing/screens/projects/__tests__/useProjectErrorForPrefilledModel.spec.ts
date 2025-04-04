@@ -1,11 +1,12 @@
-import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { mockDashboardConfig, mockK8sResourceList } from '~/__mocks__';
+import React from 'react';
+import { mockDashboardConfig } from '~/__mocks__';
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import { useAccessReview } from '~/api';
 import { useAppContext } from '~/app/AppContext';
 import { ServingRuntimeKind } from '~/k8sTypes';
-import useProjectErrorForRegisteredModel from '~/pages/modelRegistry/screens/RegisteredModels/useProjectErrorForRegisteredModel';
+import { ModelServingContextType } from '~/pages/modelServing/ModelServingContext';
+import useProjectErrorForPrefilledModel from '~/pages/modelServing/screens/projects/useProjectErrorForPrefilledModel';
 import { ServingRuntimePlatform } from '~/types';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
@@ -28,11 +29,26 @@ jest.mock('~/app/AppContext', () => ({
   useAppContext: jest.fn(),
 }));
 
+jest.mock('react', () => ({
+  ...jest.requireActual('react'),
+  useContext: jest.fn(),
+}));
+
+const useContextMock = React.useContext as jest.Mock;
+const mockServingRuntimesFromContext = (data: ServingRuntimeKind[]) => {
+  useContextMock.mockReturnValue({
+    servingRuntimes: {
+      data,
+      loaded: true,
+      error: undefined,
+    } satisfies Pick<ModelServingContextType['servingRuntimes'], 'data' | 'loaded' | 'error'>,
+  });
+};
+
 const useAppContextMock = jest.mocked(useAppContext);
-const k8sListResourceMock = jest.mocked(k8sListResource<ServingRuntimeKind>);
 const useAccessReviewMock = jest.mocked(useAccessReview);
 
-describe('useProjectErrorForRegisteredModel', () => {
+describe('useProjectErrorForPrefilledModel', () => {
   beforeEach(() => {
     useAppContextMock.mockReturnValue({
       buildStatuses: [],
@@ -43,43 +59,35 @@ describe('useProjectErrorForRegisteredModel', () => {
     useAccessReviewMock.mockReturnValue([true, true]);
   });
   it('should return undefined when the project is not selected', async () => {
-    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([]));
-    const renderResult = testHook(useProjectErrorForRegisteredModel)(undefined, undefined);
-    // wait for update
-    await renderResult.waitForNextUpdate();
+    mockServingRuntimesFromContext([]);
+    const renderResult = testHook(useProjectErrorForPrefilledModel)(undefined, undefined);
     expect(renderResult).hookToStrictEqual({ loaded: true, error: undefined });
   });
 
   it('should return undefined when only kServe is supported', async () => {
-    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([]));
-    const renderResult = testHook(useProjectErrorForRegisteredModel)(
+    mockServingRuntimesFromContext([]);
+    const renderResult = testHook(useProjectErrorForPrefilledModel)(
       'test-project',
       ServingRuntimePlatform.SINGLE,
     );
-    // wait for update
-    await renderResult.waitForNextUpdate();
     expect(renderResult).hookToStrictEqual({ loaded: true, error: undefined });
   });
 
   it('should return undefined when only modelMesh is supported with server deployed', async () => {
-    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([mockServingRuntimeK8sResource({})]));
-    const renderResult = testHook(useProjectErrorForRegisteredModel)(
+    mockServingRuntimesFromContext([mockServingRuntimeK8sResource({})]);
+    const renderResult = testHook(useProjectErrorForPrefilledModel)(
       'test-project',
       ServingRuntimePlatform.MULTI,
     );
-    // wait for update
-    await renderResult.waitForNextUpdate();
     expect(renderResult).hookToStrictEqual({ loaded: true, error: undefined });
   });
 
   it('should return error when only modelMesh is supported with no server deployed', async () => {
-    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([]));
-    const renderResult = testHook(useProjectErrorForRegisteredModel)(
+    mockServingRuntimesFromContext([]);
+    const renderResult = testHook(useProjectErrorForPrefilledModel)(
       'test-project',
       ServingRuntimePlatform.MULTI,
     );
-    // wait for update
-    await renderResult.waitForNextUpdate();
     expect(renderResult).hookToStrictEqual({
       loaded: true,
       error: new Error('To deploy a model, you must first configure a model server.'),
@@ -87,10 +95,8 @@ describe('useProjectErrorForRegisteredModel', () => {
   });
 
   it('should return error when platform is not selected', async () => {
-    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([]));
-    const renderResult = testHook(useProjectErrorForRegisteredModel)('test-project', undefined);
-    // wait for update
-    await renderResult.waitForNextUpdate();
+    mockServingRuntimesFromContext([]);
+    const renderResult = testHook(useProjectErrorForPrefilledModel)('test-project', undefined);
     expect(renderResult).hookToStrictEqual({
       loaded: true,
       error: new Error(

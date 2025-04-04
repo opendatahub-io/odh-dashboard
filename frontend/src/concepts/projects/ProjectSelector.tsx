@@ -65,7 +65,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
       searchValue={searchText}
       isLoading={isLoading}
       isDisabled={isLoading}
-      toggleText={toggleLabel}
+      toggleContent={toggleLabel}
       toggleVariant={primary ? 'primary' : undefined}
     >
       <>

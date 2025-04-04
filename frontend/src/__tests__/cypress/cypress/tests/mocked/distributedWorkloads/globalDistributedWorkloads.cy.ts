@@ -218,7 +218,7 @@ describe('Distributed Workload Metrics root page', () => {
 
     cy.findByLabelText('Project metrics tab').click();
     cy.url().should('include', '/projectMetrics/test-project');
-    cy.findByText('Top resource-consuming distributed workloads').should('exist');
+    cy.findByText('Top 5 resource-consuming distributed workloads').should('exist');
 
     cy.findByLabelText('Distributed workload status tab').click();
     cy.url().should('include', '/workloadStatus/test-project');

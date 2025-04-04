@@ -17,7 +17,7 @@ import { IdentifierResourceType } from '~/types';
 import { splitValueUnit, CPU_UNITS, MEMORY_UNITS_FOR_PARSING } from '~/utilities/valueUnits';
 import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
 import { HardwareProfileConfig } from './useHardwareProfileConfig';
-import { formatResource } from './utils';
+import { formatResource, formatResourceValue } from './utils';
 
 type HardwareProfileSelectProps = {
   initialHardwareProfile?: HardwareProfileKind;
@@ -73,11 +73,11 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
             if (identifier.resourceType === IdentifierResourceType.CPU) {
               // Convert CPU to smallest unit for comparison
               const [value, unit] = splitValueUnit(maxValue.toString(), CPU_UNITS);
-              score += value * unit.weight;
+              score += (value ?? 0) * unit.weight;
             } else if (identifier.resourceType === IdentifierResourceType.MEMORY) {
               // Convert memory to smallest unit for comparison
               const [value, unit] = splitValueUnit(maxValue.toString(), MEMORY_UNITS_FOR_PARSING);
-              score += value * unit.weight;
+              score += (value ?? 0) * unit.weight;
             } else {
               score += Number(maxValue);
             }
@@ -123,13 +123,13 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
               <StackItem>
                 <Truncate
                   content={profile.spec.identifiers
-                    .map((identifier) =>
-                      formatResource(
-                        identifier.displayName,
-                        identifier.defaultCount.toString(),
-                        identifier.defaultCount.toString(),
-                      ),
-                    )
+                    .map((identifier) => {
+                      const resourceValue = formatResourceValue(
+                        identifier.defaultCount,
+                        identifier.resourceType,
+                      ).toString();
+                      return formatResource(identifier.displayName, resourceValue, resourceValue);
+                    })
                     .join('; ')}
                 />
               </StackItem>

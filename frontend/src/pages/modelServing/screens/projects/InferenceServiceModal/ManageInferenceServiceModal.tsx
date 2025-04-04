@@ -11,13 +11,14 @@ import { InferenceServiceKind, ProjectKind, ServingRuntimeKind } from '~/k8sType
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { RegisteredModelDeployInfo } from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployInfo';
 import { Connection } from '~/concepts/connectionTypes/types';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
-import usePrefillDeployModalFromModelRegistry from '~/pages/modelRegistry/screens/RegisteredModels/usePrefillDeployModalFromModelRegistry';
+import usePrefillModelDeployModal, {
+  ModelDeployPrefillInfo,
+} from '~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
@@ -29,7 +30,7 @@ import { ConnectionSection } from './ConnectionSection';
 
 type ManageInferenceServiceModalProps = {
   onClose: (submit: boolean) => void;
-  registeredModelDeployInfo?: RegisteredModelDeployInfo;
+  modelDeployPrefillInfo?: ModelDeployPrefillInfo;
   shouldFormHidden?: boolean;
   projectSection?: React.ReactNode;
 } & EitherOrNone<
@@ -48,7 +49,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
   editInfo,
   projectContext,
   projectSection,
-  registeredModelDeployInfo,
+  modelDeployPrefillInfo,
   shouldFormHidden,
 }) => {
   const [createData, setCreateData] = useCreateInferenceServiceObject(editInfo);
@@ -66,12 +67,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     connections,
     connectionsLoaded,
     connectionsLoadError,
-  } = usePrefillDeployModalFromModelRegistry(
-    projectContext,
-    createData,
-    setCreateData,
-    registeredModelDeployInfo,
-  );
+  } = usePrefillModelDeployModal(projectContext, createData, setCreateData, modelDeployPrefillInfo);
 
   const modelMeshConnections = React.useMemo(
     () =>
@@ -128,7 +124,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     submitInferenceServiceResourceWithDryRun(
       {
         ...createData,
-        ...getCreateInferenceServiceLabels(registeredModelDeployInfo),
+        ...getCreateInferenceServiceLabels(modelDeployPrefillInfo),
       },
       editInfo,
       createData.servingRuntimeName,
@@ -201,7 +197,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
               setData={setCreateData}
               servingRuntimeName={projectContext?.currentServingRuntime?.metadata.name}
               modelContext={projectContext?.currentServingRuntime?.spec.supportedModelFormats}
-              registeredModelFormat={registeredModelDeployInfo?.modelFormat}
+              registeredModelFormat={modelDeployPrefillInfo?.modelFormat}
             />
             <FormSection title="Source model location" id="model-location">
               <ConnectionSection
@@ -211,7 +207,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
                 initialNewConnectionType={initialNewConnectionType}
                 initialNewConnectionValues={initialNewConnectionValues}
                 loaded={
-                  registeredModelDeployInfo
+                  modelDeployPrefillInfo
                     ? !!projectContext?.connections && connectionsLoaded
                     : !!projectContext?.connections || connectionsLoaded
                 }

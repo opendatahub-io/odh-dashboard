@@ -63,6 +63,7 @@ const HardwareProfiles: React.FC = () => {
         <EmptyState
           variant={EmptyStateVariant.full}
           data-id="empty-empty-state"
+          data-testid="empty-state-hardware-profiles"
           icon={PlusCircleIcon}
         >
           <Title data-testid="no-available-hardware-profiles" headingLevel="h5" size="lg">
@@ -85,7 +86,12 @@ const HardwareProfiles: React.FC = () => {
           </EmptyStateFooter>
         </EmptyState>
       ) : (
-        <EmptyState variant={EmptyStateVariant.full} data-id="empty-empty-state" icon={BanIcon}>
+        <EmptyState
+          variant={EmptyStateVariant.full}
+          data-id="empty-empty-state"
+          icon={BanIcon}
+          data-testid="empty-state-hardware-profiles"
+        >
           <Title data-testid="no-available-hardware-profiles" headingLevel="h5" size="lg">
             No hardware profiles
           </Title>

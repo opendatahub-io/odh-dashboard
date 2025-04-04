@@ -81,6 +81,8 @@ describe('useModelServingPodSpecOptionsState', () => {
       isFormDataValid: true,
       setFormData: jest.fn(),
       resetFormData: jest.fn(),
+      profilesLoaded: true,
+      profilesLoadError: undefined,
     });
 
     mockUseAcceleratorProfileFormState.mockReturnValue({
@@ -143,6 +145,8 @@ describe('useModelServingPodSpecOptionsState', () => {
       isFormDataValid: true,
       setFormData: jest.fn(),
       resetFormData: jest.fn(),
+      profilesLoaded: true,
+      profilesLoadError: undefined,
     });
 
     const renderResult = testHook(useModelServingPodSpecOptionsState)();
@@ -184,6 +188,8 @@ describe('useModelServingPodSpecOptionsState', () => {
       isFormDataValid: true,
       setFormData: jest.fn(),
       resetFormData: jest.fn(),
+      profilesLoaded: true,
+      profilesLoadError: undefined,
     });
 
     const renderResult = testHook(useModelServingPodSpecOptionsState)(servingRuntime);

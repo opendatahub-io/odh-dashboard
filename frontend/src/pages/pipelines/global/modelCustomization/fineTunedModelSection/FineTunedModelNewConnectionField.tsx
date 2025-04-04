@@ -1,6 +1,10 @@
 import React from 'react';
 import ConnectionTypeForm from '~/concepts/connectionTypes/ConnectionTypeForm';
 import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
+import {
+  getModelServingConnectionTypeName,
+  ModelServingCompatibleTypes,
+} from '~/concepts/connectionTypes/utils';
 import { FineTunedModelNewConnectionContext } from '~/pages/pipelines/global/modelCustomization/fineTunedModelSection/FineTunedModelNewConnectionContext';
 
 type FineTunedModelNewConnectionFieldProps = {
@@ -18,7 +22,10 @@ export const FineTunedModelNewConnectionField: React.FC<FineTunedModelNewConnect
       connectionTypes
         .filter((t) => t.metadata.annotations?.['opendatahub.io/disabled'] !== 'true')
         // We only use OCI connection here for the ilab
-        .find((c) => c.metadata.name === 'oci-v1'),
+        .find(
+          (c) =>
+            c.metadata.name === getModelServingConnectionTypeName(ModelServingCompatibleTypes.OCI),
+        ),
     [connectionTypes],
   );
 

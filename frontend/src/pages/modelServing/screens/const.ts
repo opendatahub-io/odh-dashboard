@@ -1,5 +1,10 @@
 import { ModelServingSize } from './types';
 
+export const SERVING_RUNTIME_SCOPE = {
+  Global: 'global',
+  Project: 'project',
+};
+
 export const DEFAULT_MODEL_SERVER_SIZES: ModelServingSize[] = [
   {
     name: 'Small',

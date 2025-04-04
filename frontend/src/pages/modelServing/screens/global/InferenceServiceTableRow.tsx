@@ -41,6 +41,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   const isKServeNIMEnabled = project ? isProjectNIMSupported(project) : false;
   const servingPlatformStatuses = useServingPlatformStatuses();
   const isNIMAvailable = servingPlatformStatuses.kServeNIM.enabled;
+  const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
 
   const [modelMetricsEnabled] = useModelMetricsEnabled();
   const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
@@ -79,7 +80,10 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
 
       {columnNames.includes(ColumnField.ServingRuntime) && (
         <Td dataLabel="Serving Runtime">
-          <InferenceServiceServingRuntime servingRuntime={servingRuntime} />
+          <InferenceServiceServingRuntime
+            servingRuntime={servingRuntime}
+            isProjectScoped={isProjectScoped}
+          />
         </Td>
       )}
 

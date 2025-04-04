@@ -25,7 +25,7 @@ import {
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
-import { uriToStorageFields } from '~/concepts/modelRegistry/utils';
+import { uriToModelLocation } from '~/concepts/modelRegistry/utils';
 import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
 import {
   bumpBothTimestamps,
@@ -52,7 +52,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
     useModelArtifactsByVersionId(mv.id);
   const modelArtifact = modelArtifacts.items.length ? modelArtifacts.items[0] : null;
   const { apiState } = React.useContext(ModelRegistryContext);
-  const storageFields = uriToStorageFields(modelArtifact?.uri || '');
+  const storageFields = uriToModelLocation(modelArtifact?.uri || '');
   const pipelineCustomProperties = getPipelineModelCustomProps(mv.customProperties);
   const [registeredModel, registeredModelLoaded, registeredModelLoadError, refreshRegisteredModel] =
     useRegisteredModelById(mv.registeredModelId);

@@ -98,26 +98,26 @@ export const isHardwareProfileIdentifierValid = (identifier: Identifier): boolea
     ) {
       return false;
     }
-    const [minCount] = splitValueUnit(
+    const minCount = splitValueUnit(
       identifier.minCount.toString(),
       determineUnit(identifier),
       true,
-    );
+    )[0];
     const [maxCount] = identifier.maxCount
       ? splitValueUnit(identifier.maxCount.toString(), determineUnit(identifier), true)
       : [undefined];
-    const [defaultCount] = splitValueUnit(
+    const defaultCount = splitValueUnit(
       identifier.defaultCount.toString(),
       determineUnit(identifier),
       true,
-    );
+    )[0];
     if (
       !Number.isInteger(minCount) ||
       (maxCount !== undefined && !Number.isInteger(maxCount)) ||
       !Number.isInteger(defaultCount) ||
-      (maxCount && minCount > maxCount) ||
-      defaultCount < minCount ||
-      (maxCount && defaultCount > maxCount)
+      (maxCount && minCount !== undefined && minCount > maxCount) ||
+      (defaultCount !== undefined && minCount !== undefined && defaultCount < minCount) ||
+      (maxCount && defaultCount !== undefined && defaultCount > maxCount)
     ) {
       return false;
     }
