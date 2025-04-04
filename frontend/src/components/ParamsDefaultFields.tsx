@@ -14,6 +14,7 @@ import {
   InputDefinitionParameterType,
   RuntimeConfigParamValue,
 } from '~/concepts/pipelines/kfTypes';
+import { FieldValidationProps } from '~/hooks/useZodFormValidation';
 import { ZodErrorHelperText } from './ZodErrorFormHelperText';
 
 type ParamsDefaultFieldsProps = {
@@ -31,6 +32,7 @@ type ParamsDefaultFieldsProps = {
   description: string | undefined;
   isOptional: boolean | undefined;
   validationIssues?: ZodIssue[];
+  validationProps?: FieldValidationProps;
 };
 
 const ParamsDefaultFields: React.FC<ParamsDefaultFieldsProps> = ({
@@ -40,33 +42,22 @@ const ParamsDefaultFields: React.FC<ParamsDefaultFieldsProps> = ({
   description,
   isOptional,
   validationIssues = [],
+  validationProps = {},
 }) => {
   let input: React.ReactNode;
-  const hasValidationIssues = validationIssues.length > 0;
-
   switch (parameterType) {
     case InputDefinitionParameterType.INTEGER:
-      input = (
-        <NumberInputParam {...inputProps} validated={hasValidationIssues ? 'error' : 'default'} />
-      );
+      input = <NumberInputParam {...inputProps} {...validationProps} />;
       break;
     case InputDefinitionParameterType.BOOLEAN:
       input = <RadioInputParam {...inputProps} />;
       break;
     case InputDefinitionParameterType.LIST:
     case InputDefinitionParameterType.STRUCT:
-      input = (
-        <JsonInputParam {...inputProps} validated={hasValidationIssues ? 'error' : 'default'} />
-      );
+      input = <JsonInputParam {...inputProps} {...validationProps} />;
       break;
     case InputDefinitionParameterType.DOUBLE:
-      input = (
-        <NumberInputParam
-          isFloat
-          {...inputProps}
-          validated={hasValidationIssues ? 'error' : 'default'}
-        />
-      );
+      input = <NumberInputParam isFloat {...inputProps} {...validationProps} />;
       break;
     case InputDefinitionParameterType.STRING:
       input = (
@@ -74,7 +65,7 @@ const ParamsDefaultFields: React.FC<ParamsDefaultFieldsProps> = ({
           data-testid={inputProps.id}
           {...inputProps}
           value={String(inputProps.value ?? '')}
-          validated={hasValidationIssues ? 'error' : 'default'}
+          {...validationProps}
         />
       );
   }

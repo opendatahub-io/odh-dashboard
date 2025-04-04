@@ -62,7 +62,7 @@ const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
           onBlur={
             onBlur &&
             ((value) => {
-              onBlur(`${Math.max(value ?? minAsNumber)}${currentUnitOption.unit}`);
+              onBlur(`${Number(value ?? minAsNumber)}${currentUnitOption.unit}`);
             })
           }
           onChange={(value) => {

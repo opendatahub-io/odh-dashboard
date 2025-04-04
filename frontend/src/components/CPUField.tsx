@@ -9,6 +9,7 @@ type CPUFieldProps = {
   validated?: ComponentProps<typeof ValueUnitField>['validated'];
   dataTestId?: string;
   min?: number;
+  onBlur?: () => void;
 };
 
 const CPUField: React.FC<CPUFieldProps> = ({
@@ -17,6 +18,7 @@ const CPUField: React.FC<CPUFieldProps> = ({
   validated,
   dataTestId,
   min = 1,
+  onBlur,
 }) => (
   <ValueUnitField
     min={min}
@@ -25,6 +27,7 @@ const CPUField: React.FC<CPUFieldProps> = ({
     value={String(value)}
     validated={validated}
     dataTestId={dataTestId}
+    onBlur={onBlur}
   />
 );
 

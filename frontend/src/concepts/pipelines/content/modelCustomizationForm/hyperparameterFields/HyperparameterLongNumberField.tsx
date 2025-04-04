@@ -12,6 +12,7 @@ type HyperparameterLongNumberFieldProps = {
   description?: string;
   isRequired?: boolean;
   validationIssues?: ZodIssue[];
+  onBlur?: () => void;
 };
 
 const HyperparameterLongNumberField: React.FC<HyperparameterLongNumberFieldProps> = ({
@@ -22,6 +23,7 @@ const HyperparameterLongNumberField: React.FC<HyperparameterLongNumberFieldProps
   description,
   isRequired = true,
   validationIssues = [],
+  onBlur,
 }) => {
   const formatNumber = React.useCallback((num?: RuntimeConfigParamValue): string => {
     if (num === undefined) {
@@ -73,6 +75,9 @@ const HyperparameterLongNumberField: React.FC<HyperparameterLongNumberFieldProps
   );
 
   const handleBlur = () => {
+    if (onBlur) {
+      onBlur();
+    }
     handleUnknownValue(displayValue, true);
   };
 
