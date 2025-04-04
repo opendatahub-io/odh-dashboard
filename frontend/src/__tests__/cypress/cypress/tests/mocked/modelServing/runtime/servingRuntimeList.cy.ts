@@ -82,6 +82,7 @@ type HandlersProps = {
   rejectConnection?: boolean;
   requiredCapabilities?: StackCapability[];
   DscComponents?: DataScienceClusterKindStatus['components'];
+  disableProjectScoped?: boolean;
 };
 
 const initIntercepts = ({
@@ -92,6 +93,7 @@ const initIntercepts = ({
   disableAccelerator,
   disableKServeRaw = true,
   projectEnableModelMesh,
+  disableProjectScoped = true,
   servingRuntimes = [
     mockServingRuntimeK8sResourceLegacy({ tolerations: [], nodeSelector: {} }),
     mockServingRuntimeK8sResource({
@@ -148,6 +150,7 @@ const initIntercepts = ({
       disableKServeAuth: disableKServeAuthConfig,
       disableServingRuntimeParams,
       disableKServeRaw,
+      disableProjectScoped,
     }),
   );
   cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
@@ -696,6 +699,36 @@ describe('Serving Runtime List', () => {
       inferenceServiceRow
         .findExternalServicePopover()
         .findByText('https://another-inference-service-test-project.apps.user.com/infer')
+        .should('exist');
+    });
+
+    it('Display only project scoped label on deployments table', () => {
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        disableProjectScoped: false,
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            isProjectScoped: true,
+            scope: 'project',
+            templateDisplayName: 'test-project-scoped-sr',
+          }),
+        ],
+        inferenceServices: [
+          mockInferenceServiceK8sResource({ displayName: 'Test Inference Service' }),
+        ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+      modelServingSection
+        .getKServeRow('Test Inference Service')
+        .find()
+        .findByText('test-project-scoped-sr')
+        .should('exist');
+
+      modelServingSection
+        .getKServeRow('Test Inference Service')
+        .findProjectScopedLabel()
         .should('exist');
     });
 

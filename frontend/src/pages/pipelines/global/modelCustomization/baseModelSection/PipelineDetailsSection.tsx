@@ -55,11 +55,13 @@ export const PipelineDetailsSection: React.FC<PipelineDetailsSectionProps> = ({
       {ilabPipelineLoaded ? (
         <>
           <FormGroup label="Pipeline name" fieldId="pipeline-name" isRequired>
-            {ilabPipeline?.display_name ?? '-'}
+            <div data-testid="pipeline-name">{ilabPipeline?.display_name ?? '-'}</div>
           </FormGroup>
           <FormGroup label="Pipeline version" fieldId="pipeline-version" isRequired>
             <Stack hasGutter>
-              <StackItem>{ilabPipelineVersion?.display_name ?? '-'}</StackItem>
+              <StackItem data-testid="pipeline-version">
+                {ilabPipelineVersion?.display_name ?? '-'}
+              </StackItem>
               <StackItem>
                 {hasValidationErrors && (
                   <Alert

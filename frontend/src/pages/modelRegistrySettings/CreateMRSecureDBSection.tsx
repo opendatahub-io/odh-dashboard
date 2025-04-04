@@ -243,7 +243,7 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
               onSearchChange={(newValue) => setSearchConfigSecretName(newValue)}
               onSearchClear={() => setSearchConfigSecretName('')}
               searchValue={searchConfigSecretName}
-              toggleText={secureDBInfo.resourceName || 'Select a ConfigMap or a Secret'}
+              toggleContent={secureDBInfo.resourceName || 'Select a ConfigMap or a Secret'}
             >
               {getFilteredExistingCAResources()}
             </SearchSelector>
@@ -261,7 +261,7 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
               isDisabled={!secureDBInfo.resourceName}
               onSearchClear={() => setSearchKey('')}
               searchValue={searchKey}
-              toggleText={
+              toggleContent={
                 secureDBInfo.key ||
                 (!secureDBInfo.resourceName
                   ? 'Select a resource to view its available keys'

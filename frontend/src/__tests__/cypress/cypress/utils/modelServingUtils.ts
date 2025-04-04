@@ -24,15 +24,18 @@ import { ServingRuntimePlatform } from '~/types';
 export const initDeployPrefilledModelIntercepts = ({
   modelMeshInstalled = true,
   kServeInstalled = true,
+  disableProjectScoped = true,
 }: {
   modelMeshInstalled?: boolean;
   kServeInstalled?: boolean;
+  disableProjectScoped?: boolean;
 }): void => {
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
       disableModelRegistry: false,
       disableModelCatalog: false,
+      disableProjectScoped,
     }),
   );
 
@@ -92,6 +95,34 @@ export const initDeployPrefilledModelIntercepts = ({
       { namespace: 'opendatahub' },
     ),
   );
+
+  cy.interceptK8sList(
+    TemplateModel,
+    mockK8sResourceList(
+      [
+        mockServingRuntimeTemplateK8sResource({
+          name: 'template-1',
+          displayName: 'Multi Platform',
+          platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
+        }),
+        mockServingRuntimeTemplateK8sResource({
+          name: 'template-2',
+          displayName: 'Caikit',
+          platforms: [ServingRuntimePlatform.SINGLE],
+          supportedModelFormats: [
+            {
+              autoSelect: true,
+              name: 'openvino_ir',
+              version: 'opset1',
+            },
+          ],
+        }),
+        mockInvalidTemplateK8sResource({}),
+      ],
+      { namespace: 'kserve-project' },
+    ),
+  );
+
   cy.interceptOdh('GET /api/connection-types', [
     mockConnectionTypeConfigMap({
       displayName: 'URI - v1',
