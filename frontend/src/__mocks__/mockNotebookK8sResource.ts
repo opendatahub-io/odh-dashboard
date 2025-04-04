@@ -23,6 +23,7 @@ type MockResourceConfigType = {
   additionalEnvs?: EnvironmentVariable[];
   resources?: ContainerResources;
   image?: string;
+  imageDisplayName?: string;
   lastImageSelection?: string;
   opts?: RecursivePartial<NotebookKind>;
   uid?: string;
@@ -47,6 +48,7 @@ export const mockNotebookK8sResource = ({
   description = '',
   resources = DEFAULT_NOTEBOOK_SIZES[0].resources,
   image = 'test-imagestream:1.2',
+  imageDisplayName = 'test-image',
   lastImageSelection = 's2i-minimal-notebook:py3.8-v1',
   opts = {},
   uid = genUID('notebook'),
@@ -60,6 +62,7 @@ export const mockNotebookK8sResource = ({
       kind: 'Notebook',
       metadata: {
         annotations: {
+          'opendatahub.io/image-display-name': imageDisplayName,
           'notebooks.kubeflow.org/last-activity': '2023-02-14T21:45:14Z',
           'notebooks.opendatahub.io/inject-oauth': 'true',
           'notebooks.opendatahub.io/last-image-selection': lastImageSelection,
