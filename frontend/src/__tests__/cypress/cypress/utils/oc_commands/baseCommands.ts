@@ -153,18 +153,48 @@ export const deleteNotebook = (
  */
 export const deleteNIMAccount = (
   namespace: string = Cypress.env('TEST_NAMESPACE'),
+  ignoreErrors = false,
 ): Cypress.Chainable<CommandLineResult> => {
   const ocCommand = `oc delete account odh-nim-account -n ${namespace}`;
   cy.log(`Executing: ${ocCommand}`);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
     if (result.code !== 0) {
-      throw new Error(`Command failed with code ${result.stderr}`);
-    }
-    if (result.stdout.trim() === '') {
-      cy.log('No accounts found');
-    } else {
-      cy.log(`Account deletion: ${result.stdout}`);
+      if (!ignoreErrors) {
+        throw new Error(`Command failed with code ${result.stderr}`);
+      } else {
+        cy.log(`No accounts found: ${result.stderr}`);
+      }
     }
   });
 };
+
+/**
+ * Validates odh-nim-account status in the TEST_NAMESPACE.
+ * @param conditionType The Account condition type to validate.
+ * @param conditionStatus The Account condition status to validate.
+ * @param namespace The namespace where account exist.
+ * @returns A Cypress chainable that performs the account deletion process.
+ */
+export const validateNIMAccountStatus = (
+ conditionType: string,
+ conditionStatus: string,
+ namespace: string = Cypress.env('TEST_NAMESPACE'),
+): Cypress.Chainable<CommandLineResult> => {
+ const ocCommand = `oc get account odh-nim-account -n ${namespace} -o json | jq -r '.status.conditions[] | select(.type=="${conditionType}") | @base64'`;
+ cy.log(`Executing: ${ocCommand}`);
+
+ return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
+   if (result.code !== 0) {
+       throw new Error(`Command failed with code ${result.stderr}`);
+   } else {
+    const decoded = JSON.parse(Buffer.from(result.stdout.trim(), 'base64').toString('utf8'))
+    const status = decoded.status;
+    const message = decoded.message;
+    cy.log(`Condition [${conditionType}] Status: ${status}`)
+    cy.log(`Condition [${conditionType}] Message: ${message}`)
+    expect(status).to.eq(conditionStatus)
+   }
+ });
+};
+

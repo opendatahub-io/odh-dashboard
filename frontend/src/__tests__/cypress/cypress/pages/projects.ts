@@ -175,6 +175,10 @@ class CreateEditProjectModal extends Modal {
     return this.findFooter().findByRole('button', { name: this.edit ? /Update/ : /Create/ });
   }
 
+  findCreateProjectModalCreateButton() {
+    return cy.findByTestId('create-project-submit');
+  }
+
   findEditProjectName() {
     return this.find().findByTestId('manage-project-modal-name');
   }

@@ -561,6 +561,10 @@ class ModelServingSection {
     return cy.findByTestId('section-model-server');
   }
 
+  getModelServingPlatformButton() {
+    return cy.findByTestId('model-serving-platform-button');
+  }
+
   private findKServeTable() {
     return this.find().findByTestId('kserve-inference-service-table');
   }
@@ -573,8 +577,12 @@ class ModelServingSection {
     return this.find().findByTestId(`metrics-link-${name}`);
   }
 
-  findStatusTooltip() {
-    return this.find().findByTestId('status-tooltip');
+  findStatusTooltip(options: object = {}) {
+    return this.find().findByTestId('status-tooltip', options);
+  }
+
+  findModelStatusTooltip(options: object = {}) {
+    return cy.findByTestId('model-status-tooltip', options);
   }
 
   findKServeTableHeaderButton(name: string) {
