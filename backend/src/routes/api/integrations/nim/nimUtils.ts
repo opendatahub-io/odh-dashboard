@@ -109,10 +109,22 @@ export const manageNIMSecret = async (
   } catch (e: any) {
     if (e.response?.statusCode === 409) {
       // Secret already exists, so update it (replace)
+      // Add annotation to force validation
+      const updatedSecret = {
+        ...nimSecret,
+        metadata: {
+          ...nimSecret.metadata,
+          annotations: {
+            ...(nimSecret.metadata as any).annotations,
+            'runtimes.opendatahub.io/nim-force-validation': new Date().toISOString(),
+          },
+        },
+      };
+
       const updateResponse = await coreV1Api.replaceNamespacedSecret(
         NIM_SECRET_NAME,
         namespace,
-        nimSecret,
+        updatedSecret,
       );
       return { secret: updateResponse.body as SecretKind };
     } else {
