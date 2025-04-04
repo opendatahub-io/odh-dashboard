@@ -66,7 +66,7 @@ const ConnectionS3FolderPathField: React.FC<ConnectionFolderPathFieldProps> = ({
               ? containsOnlySlashes(folderPath)
                 ? 'The path must not point to a root folder.'
                 : 'Invalid path format.'
-              : 'Enter a path to a model or folder. This path cannot point to a root folder.'}
+              : 'Enter a path to your model or the folder containing your model. The path cannot point to a root folder.'}
           </HelperTextItem>
         </HelperText>
       </FormHelperText>

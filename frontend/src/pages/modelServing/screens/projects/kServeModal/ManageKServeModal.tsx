@@ -36,7 +36,7 @@ import { NamespaceApplicationCase } from '~/pages/projects/types';
 import InferenceServiceFrameworkSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/InferenceServiceFrameworkSection';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import AuthServingRuntimeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
-import { useAccessReview } from '~/api';
+import { useAccessReview, useTemplates } from '~/api';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import {
@@ -56,6 +56,7 @@ import usePrefillModelDeployModal, {
   ModelDeployPrefillInfo,
 } from '~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
+import { SERVING_RUNTIME_SCOPE } from '~/pages/modelServing/screens/const';
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 import EnvironmentVariablesSection from './EnvironmentVariablesSection';
 import ServingRuntimeArgsSection from './ServingRuntimeArgsSection';
@@ -128,6 +129,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     createDataInferenceService.isKServeRawDeployment;
   const currentProjectName = projectContext?.currentProject.metadata.name;
   const namespace = currentProjectName || createDataInferenceService.project;
+
+  const projectTemplates = useTemplates(namespace);
 
   const customServingRuntimesEnabled = useCustomServingRuntimesEnabled();
   const [allowCreate] = useAccessReview({
@@ -210,15 +213,22 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     ) ||
     !podSpecOptionsState.hardwareProfile.isFormDataValid;
 
-  const servingRuntimeSelected = React.useMemo(
-    () =>
+  const servingRuntimeSelected = React.useMemo(() => {
+    const templates =
+      createDataServingRuntime.scope === SERVING_RUNTIME_SCOPE.Project
+        ? projectTemplates[0]
+        : servingRuntimeTemplates;
+    return (
       editInfo?.servingRuntimeEditInfo?.servingRuntime ||
-      getServingRuntimeFromName(
-        createDataServingRuntime.servingRuntimeTemplateName,
-        servingRuntimeTemplates,
-      ),
-    [editInfo, servingRuntimeTemplates, createDataServingRuntime.servingRuntimeTemplateName],
-  );
+      getServingRuntimeFromName(createDataServingRuntime.servingRuntimeTemplateName, templates)
+    );
+  }, [
+    createDataServingRuntime.scope,
+    createDataServingRuntime.servingRuntimeTemplateName,
+    editInfo?.servingRuntimeEditInfo?.servingRuntime,
+    projectTemplates,
+    servingRuntimeTemplates,
+  ]);
 
   const servingRuntimeArgsInputRef = React.useRef<HTMLTextAreaElement>(null);
 
@@ -373,6 +383,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                 }
                 setData={setCreateDataServingRuntime}
                 templates={servingRuntimeTemplates || []}
+                projectSpecificTemplates={projectTemplates}
                 isEditing={!!editInfo}
                 compatibleIdentifiers={profileIdentifiers}
                 resetModelFormat={() => setCreateDataInferenceService('format', { name: '' })}

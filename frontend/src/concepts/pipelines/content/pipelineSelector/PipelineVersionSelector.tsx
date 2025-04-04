@@ -51,7 +51,7 @@ const PipelineVersionSelector: React.FC<PipelineVersionSelectorProps> = ({
       searchValue={searchProps.value ?? ''}
       isLoading={!!pipelineId && !initialLoaded}
       isFullWidth
-      toggleText={
+      toggleContent={
         !pipelineId
           ? 'Select a pipeline version'
           : initialLoaded

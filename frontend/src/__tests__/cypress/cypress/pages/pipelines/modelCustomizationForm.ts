@@ -64,6 +64,10 @@ class ModelCustomizationFormGlobal {
     return cy.findByTestId('empty-state-title');
   }
 
+  findEmptyErrorState() {
+    return cy.findByTestId('error-empty-state-body');
+  }
+
   findExpandableSectionButton() {
     return cy.findByTestId('hyperparameters-expandable').findByRole('button');
   }
@@ -149,6 +153,22 @@ class HardwareSection {
 }
 
 class BaseModelSection {
+  findModelName() {
+    return cy.findByTestId('base-model-name');
+  }
+
+  findModelRegistry() {
+    return cy.findByTestId('base-registry-name');
+  }
+
+  findModelVersion() {
+    return cy.findByTestId('base-model-version');
+  }
+
+  findModelURI() {
+    return cy.findByTestId('base-model-uri').find('[data-testid="inline-edit-text-content"]');
+  }
+
   findEditInlineTextInput() {
     return cy.findByTestId('edit-inline-text-input');
   }
@@ -185,9 +205,27 @@ class SSHFileUpload extends Contextual<HTMLElement> {
   }
 }
 
+class DataScienceProjectSection {
+  findProjectName() {
+    return cy.findByTestId('data-science-project-name');
+  }
+}
+
+class PipelineSection {
+  findPipelineName() {
+    return cy.findByTestId('pipeline-name');
+  }
+
+  findPipelineVersion() {
+    return cy.findByTestId('pipeline-version');
+  }
+}
+
 export const modelCustomizationFormGlobal = new ModelCustomizationFormGlobal();
 export const teacherModelSection = new TeacherModelSection();
 export const baseModelSection = new BaseModelSection();
 export const judgeModelSection = new JudgeModelSection();
 export const taxonomySection = new TaxonomySection();
 export const hardwareSection = new HardwareSection();
+export const dataScienceProjectSection = new DataScienceProjectSection();
+export const pipelineSection = new PipelineSection();

@@ -30,6 +30,7 @@ type HandlersProps = {
   modelVersions?: ModelVersion[];
   modelMeshInstalled?: boolean;
   kServeInstalled?: boolean;
+  disableProjectScoped?: boolean;
 };
 
 const registeredModelMocked = mockRegisteredModel({ name: 'test-1' });
@@ -56,8 +57,9 @@ const initIntercepts = ({
   ],
   modelMeshInstalled = true,
   kServeInstalled = true,
+  disableProjectScoped = true,
 }: HandlersProps) => {
-  initDeployPrefilledModelIntercepts({ modelMeshInstalled, kServeInstalled });
+  initDeployPrefilledModelIntercepts({ modelMeshInstalled, kServeInstalled, disableProjectScoped });
 
   cy.interceptK8sList(
     ServiceModel,
@@ -291,6 +293,73 @@ describe('Deploy model version', () => {
     // Validate connection section
     kserveModal.findExistingUriOption().should('be.checked');
     cy.findByText('oci://registry.redhat.io/rhel/private:test').should('exist');
+  });
+
+  it('Display project specific serving runtimes while deploying', () => {
+    initIntercepts({ disableProjectScoped: false });
+    cy.interceptK8sList(
+      SecretModel,
+      mockK8sResourceList([
+        mockCustomSecretK8sResource({
+          namespace: 'kserve-project',
+          name: 'test-secret',
+          annotations: {
+            'opendatahub.io/connection-type': 'oci-v1',
+            'openshift.io/display-name': 'Test Secret',
+          },
+          data: {
+            '.dockerconfigjson': 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw',
+            OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWw=',
+          },
+        }),
+      ]),
+    );
+    cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
+    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 4');
+    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDeployModal.selectProjectByName('KServe project');
+    kserveModal.findModelNameInput().should('exist');
+
+    // Check for project specific serving runtimes
+    kserveModal.findServingRuntimeTemplateSearchSelector().click();
+    const projectScopedSR = kserveModal.getProjectScopedServingRuntime();
+    projectScopedSR.find().findByRole('menuitem', { name: 'Caikit', hidden: true }).click();
+    kserveModal.findProjectScopedLabel().should('exist');
+    kserveModal.findModelFrameworkSelect().should('be.disabled');
+    kserveModal.findModelFrameworkSelect().should('have.text', 'openvino_ir - opset1');
+    cy.findByText(
+      `The format of the source model is ${modelArtifactMocked.modelFormatName ?? ''} - ${
+        modelArtifactMocked.modelFormatVersion ?? ''
+      }`,
+    ).should('exist');
+
+    // Check for global specific serving runtimes
+    kserveModal.findServingRuntimeTemplateSearchSelector().click();
+    const globalScopedSR = kserveModal.getGlobalScopedServingRuntime();
+    globalScopedSR.find().findByRole('menuitem', { name: 'Multi Platform', hidden: true }).click();
+    kserveModal.findGlobalScopedLabel().should('exist');
+    kserveModal.findModelFrameworkSelect().should('be.enabled');
+    kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
+    cy.findByText(
+      `The format of the source model is ${modelArtifactMocked.modelFormatName ?? ''} - ${
+        modelArtifactMocked.modelFormatVersion ?? ''
+      }`,
+    ).should('exist');
+
+    // check model framework selection when serving runtime changes
+    kserveModal.findServingRuntimeTemplateSearchSelector().click();
+    globalScopedSR.find().findByRole('menuitem', { name: 'Multi Platform', hidden: true }).click();
+    kserveModal.findModelFrameworkSelect().should('have.text', 'onnx - 1');
+
+    kserveModal.findServingRuntimeTemplateSearchSelector().click();
+    globalScopedSR.find().findByRole('menuitem', { name: 'Caikit', hidden: true }).click();
+    kserveModal.findModelFrameworkSelect().should('be.enabled');
+    kserveModal.findModelFrameworkSelect().should('have.text', 'Select a framework');
+
+    kserveModal.findServingRuntimeTemplateSearchSelector().click();
+    projectScopedSR.find().findByRole('menuitem', { name: 'Caikit', hidden: true }).click();
+    kserveModal.findModelFrameworkSelect().should('be.disabled');
+    kserveModal.findModelFrameworkSelect().should('have.text', 'openvino_ir - opset1');
   });
 
   it('Selects Create Connection in case of no matching connections', () => {
