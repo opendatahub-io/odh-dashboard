@@ -193,9 +193,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
       labelHelp={
         isProjectScopedAvailable && currentProjectStreams && currentProjectStreams.length > 0 ? (
           <ProjectScopedPopover title="Workbench image" item="images" />
-        ) : (
-          <></>
-        )
+        ) : undefined
       }
     >
       {isProjectScopedAvailable && currentProjectStreams && currentProjectStreams.length > 0 ? (
@@ -205,7 +203,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
           onSearchChange={(newValue) => setSearchImageStreamName(newValue)}
           onSearchClear={() => setSearchImageStreamName('')}
           searchValue={searchImageStreamName}
-          toggleText={
+          toggleContent={
             selectedImageStream && (
               <Flex>
                 {getImageStreamDisplayName(selectedImageStream)}
@@ -218,7 +216,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
                       data-testid="project-scoped-image"
                       icon={
                         <img
-                          style={{ height: 20 }}
+                          style={{ height: '20px' }}
                           src={typedObjectImage(ProjectObjectType.project)}
                           alt=""
                         />

@@ -130,7 +130,7 @@ export const NotebookImageDisplayName = ({
                 data-testid="project-scoped-label"
                 icon={
                   <img
-                    style={{ height: 20 }}
+                    style={{ height: '20px' }}
                     src={typedObjectImage(ProjectObjectType.project)}
                     alt=""
                   />

@@ -59,10 +59,11 @@ const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
     });
   };
 
-  if (error || currentProjectImageStreamsError) {
+  const errorMessage = error?.message || currentProjectImageStreamsError?.message;
+  if (errorMessage) {
     return (
       <Alert title="Image loading error" variant="danger">
-        {error?.message || currentProjectImageStreamsError?.message}
+        {errorMessage}
       </Alert>
     );
   }
