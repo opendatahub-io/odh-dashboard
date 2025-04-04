@@ -6,7 +6,7 @@ import CreateNewStorageSection from '~/pages/projects/screens/spawner/storage/Cr
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
-import useDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
+import useAdminDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
 import { useCreateStorageObject } from '~/pages/projects/screens/spawner/storage/utils';
 import { StorageData } from '~/pages/projects/types';
 
@@ -46,7 +46,7 @@ const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
   const [nameDescValid, setNameDescValid] = React.useState<boolean>();
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const preferredStorageClass = usePreferredStorageClass();
-  const [defaultStorageClass] = useDefaultStorageClass();
+  const [defaultStorageClass] = useAdminDefaultStorageClass();
   const [error, setError] = React.useState<Error | undefined>();
   const [actionInProgress, setActionInProgress] = React.useState(false);
 

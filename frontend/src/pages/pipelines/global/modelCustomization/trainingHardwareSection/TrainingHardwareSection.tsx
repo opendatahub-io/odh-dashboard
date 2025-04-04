@@ -16,7 +16,6 @@ import {
 import { useIlabPodSpecOptionsState } from '~/pages/pipelines/global/modelCustomization/useIlabPodSpecOptionsState';
 import NumberInputWrapper from '~/components/NumberInputWrapper';
 import StorageClassSelect from '~/pages/projects/screens/spawner/storage/StorageClassSelect';
-import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
 import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { ModelCustomizationFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import { ValidationContext } from '~/utilities/useValidation';
@@ -45,18 +44,9 @@ const TrainingHardwareSection: React.FC<TrainingHardwareSectionProps> = ({
 }) => {
   const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
-  const preferredStorageClass = usePreferredStorageClass();
   const { getAllValidationIssues } = React.useContext(ValidationContext);
   const trainingNodeValidationIssues = getAllValidationIssues(['trainingNode']);
   const storageClassValidationIssues = getAllValidationIssues(['storageClass']);
-
-  // when storageClass is unavailable
-  React.useEffect(() => {
-    if (!isStorageClassesAvailable && preferredStorageClass) {
-      setStorageClass(preferredStorageClass.metadata.name);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isStorageClassesAvailable, preferredStorageClass]);
 
   const podSpecOptionsState = useIlabPodSpecOptionsState(ilabPipelineVersion, setHardwareFormData);
 

@@ -54,7 +54,7 @@ import ImageSelectorField from './imageSelector/ImageSelectorField';
 import ContainerSizeSelector from './deploymentSize/ContainerSizeSelector';
 import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
 import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
-import useDefaultStorageClass from './storage/useDefaultStorageClass';
+import useAdminDefaultStorageClass from './storage/useAdminDefaultStorageClass';
 import usePreferredStorageClass from './storage/usePreferredStorageClass';
 import { ConnectionsFormSection } from './connections/ConnectionsFormSection';
 import { getConnectionsFromNotebook } from './connections/utils';
@@ -96,7 +96,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     imageStream: undefined,
     imageVersion: undefined,
   });
-  const [defaultStorageClass] = useDefaultStorageClass();
+  const [defaultStorageClass] = useAdminDefaultStorageClass();
   const preferredStorageClass = usePreferredStorageClass();
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
