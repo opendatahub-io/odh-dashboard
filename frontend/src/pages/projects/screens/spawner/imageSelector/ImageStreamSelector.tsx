@@ -205,8 +205,8 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
           searchValue={searchImageStreamName}
           toggleContent={
             selectedImageStream && (
-              <Flex>
-                {getImageStreamDisplayName(selectedImageStream)}
+              <Flex alignItems={{ default: 'alignItemsCenter' }}>
+                <FlexItem>{getImageStreamDisplayName(selectedImageStream)}</FlexItem>
                 <FlexItem>
                   {selectedImageStream.metadata.namespace === currentProject ? (
                     <Label
