@@ -48,6 +48,7 @@ const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({
           isInline
           data-testid="notebook-route-link"
           isDisabled={!canLink}
+          isAriaDisabled={!canLink}
           href={error || !routeLink ? undefined : routeLink}
           target="_blank"
           variant={variant || 'link'}

@@ -4,7 +4,6 @@ import {
   DrawerCloseButton,
   DrawerHead,
   DrawerPanelBody,
-  DrawerPanelContent,
   Flex,
   Popover,
   Title,
@@ -36,8 +35,12 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
   }
 
   return (
-    <DrawerPanelContent
+    // TODO: Revisit below approach, either to further to look into what caused the content to not render or
+    // to restructure the code
+    <div
+      className="pf-v6-c-drawer__panel"
       data-testid="pipeline-run-drawer-right-content"
+      // TODO: look into removing this inline style; PF Drawers should handle height/scrolling by default
       style={{ height: '100%', overflowY: 'auto' }}
     >
       {task.type === 'artifact' ? (
@@ -79,7 +82,7 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
           </DrawerPanelBody>
         </>
       )}
-    </DrawerPanelContent>
+    </div>
   );
 };
 
