@@ -11,7 +11,7 @@ export const ProjectSetupSection: React.FC = () => {
   const { accordionItemsExpanded, handleToggleAccordion } = useToggleAccordion();
 
   return (
-    <BaseSection title="Setting up your project pipeline:">
+    <BaseSection title="Next, set up your project and pipeline:">
       <Accordion togglePosition="start" data-testid="accordion-project-setup">
         <ModelCustomizationAccordionItem
           id="prepared-project"
@@ -42,8 +42,8 @@ export const ProjectSetupSection: React.FC = () => {
           itemsExpanded={accordionItemsExpanded}
           handleToggle={handleToggleAccordion}
         >
-          Hardware profiles are necessary for picking the hardware resources you want to allocate
-          for the LAB-tuning run. For help, contact your {ODH_PRODUCT_NAME} administrator.
+          Allocate hardware resources to the LAB-tuning run using hardware profiles. For help,
+          contact your {ODH_PRODUCT_NAME} administrator.
         </ModelCustomizationAccordionItem>
       </Accordion>
     </BaseSection>

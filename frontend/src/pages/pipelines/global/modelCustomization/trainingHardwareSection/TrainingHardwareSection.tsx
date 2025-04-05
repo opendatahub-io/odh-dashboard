@@ -1,12 +1,4 @@
-import {
-  Content,
-  ContentVariants,
-  FormGroup,
-  FormSection,
-  Stack,
-  StackItem,
-  ValidatedOptions,
-} from '@patternfly/react-core';
+import { FormGroup, Stack, StackItem, ValidatedOptions } from '@patternfly/react-core';
 import React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import {
@@ -16,11 +8,11 @@ import {
 import { useIlabPodSpecOptionsState } from '~/pages/pipelines/global/modelCustomization/useIlabPodSpecOptionsState';
 import NumberInputWrapper from '~/components/NumberInputWrapper';
 import StorageClassSelect from '~/pages/projects/screens/spawner/storage/StorageClassSelect';
-import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
 import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import { ModelCustomizationFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import { ValidationContext } from '~/utilities/useValidation';
 import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
+import FormSection from '~/components/pf-overrides/FormSection';
 import TrainingHardwareProfileFormSection from './TrainingHardwareProfileFormSection';
 import { TrainingAcceleratorFormSection } from './TrainingAcceleratorFormSection';
 
@@ -45,18 +37,9 @@ const TrainingHardwareSection: React.FC<TrainingHardwareSectionProps> = ({
 }) => {
   const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
-  const preferredStorageClass = usePreferredStorageClass();
   const { getAllValidationIssues } = React.useContext(ValidationContext);
   const trainingNodeValidationIssues = getAllValidationIssues(['trainingNode']);
   const storageClassValidationIssues = getAllValidationIssues(['storageClass']);
-
-  // when storageClass is unavailable
-  React.useEffect(() => {
-    if (!isStorageClassesAvailable && preferredStorageClass) {
-      setStorageClass(preferredStorageClass.metadata.name);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isStorageClassesAvailable, preferredStorageClass]);
 
   const podSpecOptionsState = useIlabPodSpecOptionsState(ilabPipelineVersion, setHardwareFormData);
 
@@ -64,12 +47,14 @@ const TrainingHardwareSection: React.FC<TrainingHardwareSectionProps> = ({
     <FormSection
       id={FineTunePageSections.TRAINING_HARDWARE}
       title={fineTunePageSectionTitles[FineTunePageSections.TRAINING_HARDWARE]}
+      description={
+        <>
+          Select {isHardwareProfilesAvailable ? 'a hardware' : 'an accelerator'} profile to match
+          the hardware requirements of your workload to available node resources. The hardware
+          resources will be used for the SDG, training, and evaluation run phases.
+        </>
+      }
     >
-      <Content component={ContentVariants.small}>
-        Select {isHardwareProfilesAvailable ? 'a hardware' : 'an accelerator'} profile to match the
-        hardware requirements of your workload to available node resources. The hardware resources
-        will be used for the SDG, training, and evaluation run phases.
-      </Content>
       {isHardwareProfilesAvailable ? (
         <TrainingHardwareProfileFormSection
           data={podSpecOptionsState.hardwareProfile.formData}

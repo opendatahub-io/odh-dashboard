@@ -11,7 +11,7 @@ import {
 import {
   checkInferenceServiceState,
   provisionProjectForModelServing,
-  modelExternalURLOpenVinoTester,
+  modelExternalTester,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
 import {
   retryableBefore,
@@ -25,7 +25,7 @@ let modelName: string;
 let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 
-describe('[Product Bug: RHOAIENG-20213] Verify Admin Single Model Creation and Validation using the UI', () => {
+describe('Verify Admin Single Model Creation and Validation using the UI', () => {
   retryableBefore(() => {
     Cypress.on('uncaught:exception', (err) => {
       if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
@@ -65,7 +65,7 @@ describe('[Product Bug: RHOAIENG-20213] Verify Admin Single Model Creation and V
   it(
     'Verify that an Admin can Serve, Query a Single Model using both the UI and External links',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@ODS-2626', '@Dashboard', '@Modelserving', '@Bug'],
+      tags: ['@Smoke', '@SmokeSet3', '@ODS-2626', '@Dashboard', '@Modelserving'],
     },
     () => {
       cy.log('Model Name:', modelName);
@@ -103,10 +103,14 @@ describe('[Product Bug: RHOAIENG-20213] Verify Admin Single Model Creation and V
       inferenceServiceModal.findTokenAuthenticationCheckbox().should('not.be.checked');
       inferenceServiceModal.findLocationPathInput().type(modelFilePath);
       inferenceServiceModal.findSubmitButton().click();
+      modelServingSection.findModelServerName(testData.singleModelAdminName);
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
-      checkInferenceServiceState(testData.singleModelAdminName);
+      checkInferenceServiceState(testData.singleModelAdminName, {
+        checkReady: true,
+        checkLatestDeploymentReady: true,
+      });
       modelServingSection.findModelServerName(testData.singleModelAdminName);
       // Note reload is required as status tooltip was not found due to a stale element
       cy.reload();
@@ -114,7 +118,7 @@ describe('[Product Bug: RHOAIENG-20213] Verify Admin Single Model Creation and V
 
       //Verify the Model is accessible externally
       cy.step('Verify the model is accessible externally');
-      modelExternalURLOpenVinoTester(modelName).then(({ url, response }) => {
+      modelExternalTester(modelName).then(({ url, response }) => {
         expect(response.status).to.equal(200);
 
         //verify the External URL Matches the Backend

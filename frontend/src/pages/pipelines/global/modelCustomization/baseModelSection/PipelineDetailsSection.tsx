@@ -5,12 +5,9 @@ import {
   Alert,
   Button,
   ExpandableSection,
-  Content,
-  ContentVariants,
   FormGroup,
   FormHelperText,
   HelperText,
-  FormSection,
   Skeleton,
   Stack,
   StackItem,
@@ -25,6 +22,7 @@ import {
 import { createRunRoute } from '~/routes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import FormSection from '~/components/pf-overrides/FormSection';
 
 type PipelineDetailsSectionProps = {
   ilabPipeline: PipelineKF | null;
@@ -47,11 +45,9 @@ export const PipelineDetailsSection: React.FC<PipelineDetailsSectionProps> = ({
     <FormSection
       id={FineTunePageSections.PIPELINE_DETAILS}
       title={fineTunePageSectionTitles[FineTunePageSections.PIPELINE_DETAILS]}
+      description="InstructLab's pipeline automates the LAB tuning process, facilitating efficient
+        fine-tuning of large language models and enabling scalable utilization of compute resources."
     >
-      <Content component={ContentVariants.small}>
-        InstructLab&apos;s pipeline automates the LAB tuning process, facilitating efficient
-        fine-tuning of large language models and enabling scalable utilization of compute resources.
-      </Content>
       {ilabPipelineLoaded ? (
         <>
           <FormGroup label="Pipeline name" fieldId="pipeline-name" isRequired>

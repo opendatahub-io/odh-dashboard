@@ -43,6 +43,7 @@ import ModelCustomizationDrawerContent, {
   ModelCustomizationDrawerContentRef,
 } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { useDefaultStorageClass } from '~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 import FineTunePage from './FineTunePage';
 import {
   FineTunePageSections,
@@ -139,6 +140,38 @@ const ModelCustomizationForm: React.FC = () => {
       hyperparameters: createHyperParametersSchema(hyperparameters),
     }),
   );
+
+  const [defaultStorageClass, defaultStorageClassLoaded, defaultStorageClassError] =
+    useDefaultStorageClass();
+
+  // set default storage class
+  React.useEffect(() => {
+    //  not ready if ilabPipelineVersion is not loaded or defaultStorageClass is not loaded or had an error
+    if (!ilabPipelineVersion || !(defaultStorageClassLoaded || defaultStorageClassError)) {
+      return;
+    }
+
+    // if defaultStorageClass is not null, use it
+    if (defaultStorageClass) {
+      setData('storageClass', defaultStorageClass.metadata.name);
+    }
+    // if defaultStorageClass is null, use the default value from the pipeline input
+    else {
+      const storageClassDefaultValue = getParamsValueFromPipelineInput(
+        ilabPipelineVersion,
+        KnownFineTuningPipelineParameters.K8S_STORAGE_CLASS_NAME,
+      )?.defaultValue;
+      if (storageClassDefaultValue) {
+        setData('storageClass', String(storageClassDefaultValue));
+      }
+    }
+  }, [
+    defaultStorageClass,
+    defaultStorageClassError,
+    defaultStorageClassLoaded,
+    ilabPipelineVersion,
+    setData,
+  ]);
 
   const navigate = useNavigate();
 

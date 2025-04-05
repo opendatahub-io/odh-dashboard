@@ -12,7 +12,7 @@ import {
 import {
   checkInferenceServiceState,
   provisionProjectForModelServing,
-  modelExternalURLOpenVinoTester,
+  modelExternalTester,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
 import {
   retryableBefore,
@@ -26,7 +26,7 @@ let modelName: string;
 let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 
-describe('[Product Bug: RHOAIENG-20213] Verify Admin Multi Model Creation and Validation using the UI', () => {
+describe('Verify Admin Multi Model Creation and Validation using the UI', () => {
   retryableBefore(() => {
     Cypress.on('uncaught:exception', (err) => {
       if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
@@ -66,15 +66,7 @@ describe('[Product Bug: RHOAIENG-20213] Verify Admin Multi Model Creation and Va
   it(
     'Verify that an Admin can Serve, Query a Multi Model using both the UI and External links',
     {
-      tags: [
-        '@Smoke',
-        '@SmokeSet3',
-        '@ODS-2053',
-        '@ODS-2054',
-        '@Dashboard',
-        '@Modelserving',
-        '@Bug',
-      ],
+      tags: ['@Smoke', '@SmokeSet3', '@ODS-2053', '@ODS-2054', '@Dashboard', '@Modelserving'],
     },
     () => {
       cy.log('Model Name:', modelName);
@@ -134,12 +126,16 @@ describe('[Product Bug: RHOAIENG-20213] Verify Admin Multi Model Creation and Va
       //Verify the Model was created successfully
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
       checkInferenceServiceState(testData.multiModelAdminName);
-      modelServingSection.findModelServerName(testData.multiModelAdminName);
+      // Check only LatestDeploymentReady
+      checkInferenceServiceState(testData.multiModelAdminName, {
+        checkReady: true,
+        checkLatestDeploymentReady: false,
+      });
       attemptToClickTooltip();
 
       //Verify the Model is accessible externally
       cy.step('Verify the model is accessible externally');
-      modelExternalURLOpenVinoTester(modelName).then(({ url, response }) => {
+      modelExternalTester(modelName).then(({ url, response }) => {
         expect(response.status).to.equal(200);
 
         //verify the External URL Matches the Backend

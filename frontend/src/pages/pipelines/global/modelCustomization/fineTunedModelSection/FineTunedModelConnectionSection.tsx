@@ -80,15 +80,18 @@ const FineTunedModelConnectionSection: React.FC<FineTunedModelConnectionSectionP
                     });
                   }}
                 />
-                <FineTunedModelOciPathField
-                  modelUri={data.uri}
-                  setModelUri={(uri) =>
-                    setData({
-                      ...data,
-                      uri,
-                    })
-                  }
-                />
+                {selectedConnection && (
+                  <FineTunedModelOciPathField
+                    modelUri={data.uri}
+                    setModelUri={(uri) =>
+                      setData({
+                        ...data,
+                        uri,
+                      })
+                    }
+                    ociHost={window.atob(selectedConnection.data?.OCI_HOST ?? '')}
+                  />
+                )}
               </>
             ))
           }

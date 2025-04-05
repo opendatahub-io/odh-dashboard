@@ -1,4 +1,4 @@
-import { FormSection, ExpandableSection, Content, ContentVariants } from '@patternfly/react-core';
+import { ExpandableSection } from '@patternfly/react-core';
 import * as React from 'react';
 import { ProjectFields } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
 import {
@@ -8,6 +8,7 @@ import {
 import { ModelCustomizationFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { ParametersKF, RuntimeConfigParamValue } from '~/concepts/pipelines/kfTypes';
+import FormSection from '~/components/pf-overrides/FormSection';
 import HyperparameterFieldsDisplay from './HyperparameterFields';
 
 type HyperparameterPageSectionProps = {
@@ -27,8 +28,8 @@ const HyperparameterPageSection: React.FC<HyperparameterPageSectionProps> = ({
     <FormSection
       id={FineTunePageSections.HYPERPARAMETERS}
       title={fineTunePageSectionTitles[FineTunePageSections.HYPERPARAMETERS]}
+      description="Configure advanced settings for this run."
     >
-      <Content component={ContentVariants.small}>Configure advanced settings for this run.</Content>
       <ExpandableSection
         toggleTextCollapsed="Show more"
         toggleTextExpanded="Show less"

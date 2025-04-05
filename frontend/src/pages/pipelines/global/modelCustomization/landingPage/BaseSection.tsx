@@ -11,7 +11,6 @@ export const BaseSection: React.FC<BaseSectionProps> = ({ children, title }) => 
       component={ContentVariants.p}
       className="pf-v6-u-font-weight-bold"
       style={{
-        marginLeft: 'var(--pf-t--global--spacer--md)',
         marginTop: 'var(--pf-t--global--spacer--md)',
       }}
     >

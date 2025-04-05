@@ -49,7 +49,7 @@ import { KServeDeploymentModeDropdown } from '~/pages/modelServing/screens/proje
 import { useModelServingPodSpecOptionsState } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
 import StorageClassSelect from '~/pages/projects/screens/spawner/storage/StorageClassSelect';
-import useDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
+import useAdminDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
 import { NoAuthAlert } from './NoAuthAlert';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
@@ -128,7 +128,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   );
 
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
-  const [defaultSc] = useDefaultStorageClass();
+  const [defaultSc] = useAdminDefaultStorageClass();
   const defaultStorageClassName = defaultSc?.metadata.name || '';
   const deployedStorageClassName = pvc?.spec.storageClassName || '';
   const [storageClassName, setStorageClassName] = React.useState(

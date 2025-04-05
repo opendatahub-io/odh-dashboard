@@ -32,6 +32,7 @@ import NotebookSizeDetails from './NotebookSizeDetails';
 import useNotebookImage from './useNotebookImage';
 import useNotebookDeploymentSize from './useNotebookDeploymentSize';
 import { extractAcceleratorResources } from './utils';
+import useNotebookImageData from './useNotebookImageData';
 
 type NotebookTableRowProps = {
   obj: NotebookState;
@@ -55,6 +56,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const acceleratorResources = extractAcceleratorResources(
     obj.notebook.spec.template.spec.containers[0].resources,
   );
+  const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
 
   const lastDeployedSize: NotebookSize = {
     name: 'Custom',
@@ -63,7 +65,15 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
       requests: {},
     },
   };
-  const [notebookImage, loaded, loadError] = useNotebookImage(obj.notebook);
+  const [notebookImage, loaded, loadError] = useNotebookImage(
+    obj.notebook,
+    currentProject.metadata.name,
+    isProjectScopedAvailable,
+  );
+  const [data, notebookImageStreamLoaded] = useNotebookImageData(
+    obj.notebook,
+    currentProject.metadata.name,
+  );
   const podSpecOptionsState = useNotebookKindPodSpecOptionsState(obj.notebook);
   const [dontShowModalValue] = useStopNotebookModalAvailability();
   const { dashboardConfig } = useAppContext();
@@ -132,6 +142,11 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
           <Split>
             <SplitItem>
               <NotebookImageDisplayName
+                isImageStreamProjectScoped={
+                  notebookImageStreamLoaded &&
+                  data.imageAvailability !== NotebookImageAvailability.DELETED &&
+                  data.imageStream.metadata.namespace === currentProject.metadata.name
+                }
                 notebookImage={notebookImage}
                 loaded={loaded}
                 loadError={loadError}

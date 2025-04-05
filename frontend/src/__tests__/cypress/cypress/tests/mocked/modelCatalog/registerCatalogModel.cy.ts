@@ -7,7 +7,10 @@ import {
   mockModelVersion,
   mockRegisteredModel,
 } from '~/__mocks__';
-import { mockModelCatalogConfigMap } from '~/__mocks__/mockModelCatalogConfigMap';
+import {
+  mockModelCatalogConfigMap,
+  mockUnmanagedModelCatalogConfigMap,
+} from '~/__mocks__/mockModelCatalogConfigMap';
 import { ConfigMapModel, ServiceModel } from '~/__tests__/cypress/cypress/utils/models';
 import type { ServiceKind } from '~/k8sTypes';
 import { mockModelArtifact } from '~/__mocks__/mockModelArtifact';
@@ -64,6 +67,15 @@ const initIntercepts = ({
       name: 'model-catalog-sources',
     },
     mockModelCatalogConfigMap(),
+  );
+
+  cy.interceptK8s(
+    {
+      model: ConfigMapModel,
+      ns: 'opendatahub',
+      name: 'model-catalog-unmanaged-sources',
+    },
+    mockUnmanagedModelCatalogConfigMap([]),
   );
 
   cy.interceptK8sList(ServiceModel, mockK8sResourceList(modelRegistries));
