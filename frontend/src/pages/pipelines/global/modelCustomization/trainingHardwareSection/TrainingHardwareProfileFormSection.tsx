@@ -24,11 +24,13 @@ import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
 type TrainingHardwareProfileFormSectionProps = {
   data: HardwareProfileConfig;
   setData: UpdateObjectAtPropAndValue<HardwareProfileConfig>;
+  projectName: string;
 };
 
 const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSectionProps> = ({
   data,
   setData,
+  projectName,
 }) => {
   const { getAllValidationIssues } = React.useContext(ValidationContext);
   const validationIssues = getAllValidationIssues(['hardware', 'hardwareProfileConfig']);
@@ -38,6 +40,10 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
   const [hardwareProfiles, loaded, error] = useHardwareProfilesByFeatureVisibility([
     HardwareProfileFeatureVisibility.PIPELINES,
   ]);
+  const projectScopedHardwareProfiles = useHardwareProfilesByFeatureVisibility(
+    [HardwareProfileFeatureVisibility.PIPELINES],
+    projectName,
+  );
 
   const onProfileSelect = (profile?: HardwareProfileKind) => {
     if (profile) {
@@ -102,6 +108,8 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
             hardwareProfilesError={error}
             hardwareProfileConfig={data}
             onChange={onProfileSelect}
+            projectScopedHardwareProfiles={projectScopedHardwareProfiles}
+            project={projectName}
           />
           <ZodErrorHelperText zodIssue={validationIssues} />
         </FormGroup>

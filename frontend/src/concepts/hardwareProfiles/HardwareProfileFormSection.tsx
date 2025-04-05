@@ -5,6 +5,8 @@ import { useValidation, ValidationContext } from '~/utilities/useValidation';
 import { ContainerResources } from '~/types';
 import { useHardwareProfilesByFeatureVisibility } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
 import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
+import ProjectScopedPopover from '~/components/ProjectScopedPopover';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { hardwareProfileValidationSchema } from './validationUtils';
 import HardwareProfileSelect from './HardwareProfileSelect';
 import HardwareProfileCustomize from './HardwareProfileCustomize';
@@ -13,6 +15,7 @@ import { getContainerResourcesFromHardwareProfile } from './utils';
 
 type HardwareProfileFormSectionProps<T extends PodSpecOptions> = {
   isEditing: boolean;
+  project?: string;
   visibleIn?: HardwareProfileFeatureVisibility[];
   podSpecOptionsState: PodSpecOptionsState<T>;
   isHardwareProfileSupported?: (profile: HardwareProfileKind) => boolean;
@@ -20,6 +23,7 @@ type HardwareProfileFormSectionProps<T extends PodSpecOptions> = {
 
 const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSpecOptions>> = ({
   podSpecOptionsState,
+  project,
   isEditing,
   visibleIn = [],
   isHardwareProfileSupported = () => false,
@@ -27,10 +31,12 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
   const {
     hardwareProfile: { formData, initialHardwareProfile, setFormData },
   } = podSpecOptionsState;
+  const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
 
   const validation = useValidation(formData, hardwareProfileValidationSchema);
   const hasValidationErrors = Object.keys(validation.getAllValidationIssues()).length > 0;
   const [hardwareProfiles, loaded, error] = useHardwareProfilesByFeatureVisibility(visibleIn);
+  const projectScopedHardwareProfiles = useHardwareProfilesByFeatureVisibility(visibleIn, project);
 
   const [isExpanded, setIsExpanded] = React.useState(false);
 
@@ -60,17 +66,27 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
     <ValidationContext.Provider value={validation}>
       <Stack hasGutter data-testid="hardware-profile-section">
         <StackItem>
-          <FormGroup label="Hardware profile" isRequired>
+          <FormGroup
+            label="Hardware profile"
+            isRequired
+            labelHelp={
+              isProjectScoped && projectScopedHardwareProfiles[0].length > 0 ? (
+                <ProjectScopedPopover title="Hardware profile" item="hardware profiles" />
+              ) : undefined
+            }
+          >
             <HardwareProfileSelect
               hardwareProfileConfig={formData}
               previewDescription
               hardwareProfiles={hardwareProfiles}
               hardwareProfilesLoaded={loaded}
               hardwareProfilesError={error}
+              projectScopedHardwareProfiles={projectScopedHardwareProfiles}
               isHardwareProfileSupported={isHardwareProfileSupported}
               initialHardwareProfile={initialHardwareProfile}
               onChange={onProfileSelect}
               allowExistingSettings={isEditing && !initialHardwareProfile}
+              project={project}
             />
             <ZodErrorHelperText zodIssue={validation.getAllValidationIssues()} showAllErrors />
           </FormGroup>

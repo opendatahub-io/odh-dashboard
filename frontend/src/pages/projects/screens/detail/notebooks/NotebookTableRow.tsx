@@ -194,6 +194,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
             <FlexItem>
               {isHardwareProfileAvailable ? (
                 <NotebookTableRowHardwareProfile
+                  namespace={obj.notebook.metadata.namespace}
                   loaded={podSpecOptionsState.hardwareProfile.profilesLoaded}
                   loadError={podSpecOptionsState.hardwareProfile.profilesLoadError}
                   hardwareProfile={podSpecOptionsState.hardwareProfile.initialHardwareProfile}
