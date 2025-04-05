@@ -11,12 +11,12 @@ import { ImageVersionDependencyType } from '~/pages/projects/screens/spawner/typ
 
 type NotebookPackageDetailsProps = {
   dependencies: ImageVersionDependencyType[];
-  title?: string;
+  title?: React.ReactNode;
 };
 
 const NotebookImagePackageDetails: React.FC<NotebookPackageDetailsProps> = ({
   dependencies,
-  title,
+  title = <DescriptionListTerm>Packages</DescriptionListTerm>,
 }) => {
   if (dependencies.length === 0) {
     return null;
@@ -25,7 +25,7 @@ const NotebookImagePackageDetails: React.FC<NotebookPackageDetailsProps> = ({
   return (
     <DescriptionList>
       <DescriptionListGroup>
-        <DescriptionListTerm>{title || 'Packages'}</DescriptionListTerm>
+        {title}
         <DescriptionListDescription>
           {dependencies.map(getNameVersionString).map((pkg) => (
             <div key={pkg}>

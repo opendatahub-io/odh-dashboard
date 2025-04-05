@@ -1,7 +1,10 @@
 import { mockNotebookK8sResource } from '~/__mocks__';
 import { mockImageStreamK8sResource } from '~/__mocks__/mockImageStreamK8sResource';
 import { getNotebookImageData } from '~/pages/projects/screens/detail/notebooks/useNotebookImageData';
-import { NotebookImageAvailability } from '~/pages/projects/screens/detail/notebooks/const';
+import {
+  NotebookImageAvailability,
+  NotebookImageStatus,
+} from '~/pages/projects/screens/detail/notebooks/const';
 
 describe('getNotebookImageData', () => {
   it('should return image data when image stream exists and image version exists with internal registry', () => {
@@ -18,7 +21,9 @@ describe('getNotebookImageData', () => {
       }),
     ];
     const result = getNotebookImageData(notebook, images);
-    expect(result?.imageAvailability).toBe(NotebookImageAvailability.ENABLED);
+    expect(result?.imageStatus !== NotebookImageStatus.DELETED && result?.imageAvailability).toBe(
+      NotebookImageAvailability.ENABLED,
+    );
   });
 
   it('should return image data when image stream exists and image version exists without internal registry', () => {
@@ -37,7 +42,9 @@ describe('getNotebookImageData', () => {
       }),
     ];
     const result = getNotebookImageData(notebook, images);
-    expect(result?.imageAvailability).toBe(NotebookImageAvailability.ENABLED);
+    expect(result?.imageStatus !== NotebookImageStatus.DELETED && result?.imageAvailability).toBe(
+      NotebookImageAvailability.ENABLED,
+    );
   });
 
   it('should return the right image if multiple ImageStreams have the same image with internal registry', () => {
@@ -104,7 +111,7 @@ describe('getNotebookImageData', () => {
       }),
     ];
     const result = getNotebookImageData(notebook, images);
-    expect(result?.imageAvailability).toBe(NotebookImageAvailability.DELETED);
+    expect(result?.imageStatus).toBe(NotebookImageStatus.DELETED);
   });
 
   it('should fail when custom image shows unexpected Deleted flag', () => {
@@ -121,7 +128,9 @@ describe('getNotebookImageData', () => {
       }),
     ];
     const result = getNotebookImageData(notebook, images);
-    expect(result?.imageAvailability).toBe(NotebookImageAvailability.ENABLED);
+    expect(result?.imageStatus !== NotebookImageStatus.DELETED && result?.imageAvailability).toBe(
+      NotebookImageAvailability.ENABLED,
+    );
   });
 
   it('should test an image defined via sha', () => {
@@ -138,6 +147,8 @@ describe('getNotebookImageData', () => {
       }),
     ];
     const result = getNotebookImageData(notebook, images);
-    expect(result?.imageAvailability).toBe(NotebookImageAvailability.ENABLED);
+    expect(result?.imageStatus !== NotebookImageStatus.DELETED && result?.imageAvailability).toBe(
+      NotebookImageAvailability.ENABLED,
+    );
   });
 });

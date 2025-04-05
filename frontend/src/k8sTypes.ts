@@ -97,6 +97,7 @@ type ImageStreamSpecTagAnnotations = Partial<{
   'opendatahub.io/workbench-image-recommended': string;
   'opendatahub.io/default-image': string;
   'opendatahub.io/image-tag-outdated': string;
+  'opendatahub.io/notebook-build-commit': string;
 }>;
 
 export type NotebookAnnotations = Partial<{
@@ -108,6 +109,7 @@ export type NotebookAnnotations = Partial<{
   'opendatahub.io/accelerator-name': string; // the accelerator attached to the notebook
   'opendatahub.io/hardware-profile-name': string; // the hardware profile attached to the notebook
   'opendatahub.io/image-display-name': string; // the display name of the image
+  'notebooks.opendatahub.io/last-image-version-git-commit-selection': string; // the build commit of the last image they selected
 }>;
 
 export type DashboardLabels = {

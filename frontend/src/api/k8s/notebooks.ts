@@ -10,7 +10,13 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import * as _ from 'lodash-es';
 import { NotebookModel } from '~/api/models';
-import { K8sAPIOptions, KnownLabels, NotebookKind } from '~/k8sTypes';
+import {
+  ImageStreamKind,
+  ImageStreamSpecTagType,
+  K8sAPIOptions,
+  KnownLabels,
+  NotebookKind,
+} from '~/k8sTypes';
 import { usernameTranslate } from '~/utilities/notebookControllerUtils';
 import { EnvironmentFromVariable, StartNotebookData } from '~/pages/projects/types';
 import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
@@ -109,6 +115,8 @@ export const assembleNotebook = (
         'opendatahub.io/username': username,
         'opendatahub.io/accelerator-name': selectedAcceleratorProfile?.metadata.name || '',
         'opendatahub.io/hardware-profile-name': selectedHardwareProfile?.metadata.name || '',
+        'notebooks.opendatahub.io/last-image-version-git-commit-selection':
+          image.imageVersion?.annotations?.['opendatahub.io/notebook-build-commit'] ?? '',
       },
       name: notebookId,
       namespace: projectName,
@@ -322,6 +330,57 @@ export const mergePatchUpdateNotebook = (
       opts,
     ),
   );
+
+export const patchNotebookImage = (
+  existingNotebook: NotebookKind,
+  imageStream: ImageStreamKind,
+  imageVersion: ImageStreamSpecTagType,
+  opts?: K8sAPIOptions,
+): Promise<NotebookKind> => {
+  const imageUrl = `${imageStream.status?.dockerImageRepository ?? ''}:${imageVersion.name}`;
+  const imageSelection = `${imageStream.metadata.name}:${imageVersion.name}`;
+  const patches: Patch[] = [
+    {
+      op: 'replace',
+      path: '/metadata/annotations/notebooks.opendatahub.io~1last-image-selection',
+      value: imageSelection,
+    },
+    {
+      op: 'replace',
+      path: '/spec/template/spec/containers/0/image',
+      value: imageUrl,
+    },
+    {
+      op: 'replace',
+      path: '/spec/template/spec/containers/0/env/1/value',
+      value: imageUrl,
+    },
+  ];
+
+  patches.push({
+    op: existingNotebook.metadata.annotations?.[
+      'notebooks.opendatahub.io/last-image-version-git-commit-selection'
+    ]
+      ? 'replace'
+      : 'add',
+    path: '/metadata/annotations/notebooks.opendatahub.io~1last-image-version-git-commit-selection',
+    value: imageVersion.annotations?.['opendatahub.io/notebook-build-commit'],
+  });
+
+  return k8sPatchResource<NotebookKind>(
+    applyK8sAPIOptions(
+      {
+        model: NotebookModel,
+        queryOptions: {
+          name: existingNotebook.metadata.name,
+          ns: existingNotebook.metadata.namespace,
+        },
+        patches,
+      },
+      opts,
+    ),
+  );
+};
 
 export const deleteNotebook = (notebookName: string, namespace: string): Promise<K8sStatus> =>
   k8sDeleteResource<NotebookKind, K8sStatus>({
