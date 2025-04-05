@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TooltipProps } from '@patternfly/react-core';
-import { useAccessReview } from '~/api';
-import { AccessReviewResourceAttributes, ProjectKind } from '~/k8sTypes';
+import { ProjectKind } from '~/k8sTypes';
+import { useProjectAccessReview } from '~/concepts/projects/accessChecks';
 
 type KebabItem = {
   title?: string;
@@ -10,11 +10,6 @@ type KebabItem = {
   isSeparator?: boolean;
   onClick?: () => void;
   tooltipProps?: TooltipProps;
-};
-const accessReviewResource: AccessReviewResourceAttributes = {
-  group: 'rbac.authorization.k8s.io',
-  resource: 'rolebindings',
-  verb: 'create',
 };
 const useProjectTableRowItems = (
   project: ProjectKind,
@@ -25,27 +20,14 @@ const useProjectTableRowItems = (
   const navigate = useNavigate();
   const [shouldRunCheck, setShouldRunCheck] = React.useState(false);
 
-  const [allowUpdate, allowUpdateLoaded] = useAccessReview(
-    {
-      ...accessReviewResource,
-      namespace: project.metadata.name,
-      verb: 'update',
-    },
+  const [allowUpdate, allowUpdateLoaded] = useProjectAccessReview(
+    'update',
+    project.metadata.name,
     shouldRunCheck,
   );
-  const [allowCreate, allowCreateLoaded] = useAccessReview(
-    {
-      ...accessReviewResource,
-      namespace: project.metadata.name,
-    },
-    shouldRunCheck,
-  );
-  const [allowDelete, allowDeleteLoaded] = useAccessReview(
-    {
-      ...accessReviewResource,
-      namespace: project.metadata.name,
-      verb: 'delete',
-    },
+  const [allowDelete, allowDeleteLoaded] = useProjectAccessReview(
+    'delete',
+    project.metadata.name,
     shouldRunCheck,
   );
 
@@ -69,11 +51,11 @@ const useProjectTableRowItems = (
     },
     {
       title: 'Edit permissions',
-      isAriaDisabled: !allowCreate || !allowCreateLoaded,
+      isAriaDisabled: !allowUpdate || !allowUpdateLoaded,
       onClick: () => {
         navigate(`/projects/${project.metadata.name}?section=permissions`);
       },
-      ...noPermissionToolTip(allowCreate, allowCreateLoaded),
+      ...noPermissionToolTip(allowUpdate, allowUpdateLoaded),
     },
     {
       isSeparator: true,

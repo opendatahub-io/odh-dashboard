@@ -2,22 +2,10 @@ import * as React from 'react';
 import { Dropdown, DropdownItem, MenuToggle, DropdownList, Divider } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { getDashboardMainContainer } from '~/utilities/utils';
-import { AccessReviewResourceAttributes, ProjectKind } from '~/k8sTypes';
-import { useAccessReview } from '~/api';
+import { ProjectKind } from '~/k8sTypes';
 import DeleteProjectModal from '~/pages/projects/screens/projects/DeleteProjectModal';
 import ManageProjectModal from '~/pages/projects/screens/projects/ManageProjectModal';
-
-const projectEditAccessReview: AccessReviewResourceAttributes = {
-  group: 'project.openshift.io',
-  resource: 'projectrequests',
-  verb: 'update',
-};
-
-const projectDeleteAccessReview: AccessReviewResourceAttributes = {
-  group: 'project.openshift.io',
-  resource: 'projectrequests',
-  verb: 'delete',
-};
+import { useProjectAccessReview } from '~/concepts/projects/accessChecks';
 
 type Props = {
   project: ProjectKind;
@@ -25,14 +13,8 @@ type Props = {
 
 const ProjectActions: React.FC<Props> = ({ project }) => {
   const navigate = useNavigate();
-  const [canEdit, editRbacLoaded] = useAccessReview({
-    ...projectEditAccessReview,
-    namespace: project.metadata.name,
-  });
-  const [canDelete, deleteRbacLoaded] = useAccessReview({
-    ...projectDeleteAccessReview,
-    namespace: project.metadata.name,
-  });
+  const [canEdit, editRbacLoaded] = useProjectAccessReview('update', project.metadata.name);
+  const [canDelete, deleteRbacLoaded] = useProjectAccessReview('delete', project.metadata.name);
   const [open, setOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
