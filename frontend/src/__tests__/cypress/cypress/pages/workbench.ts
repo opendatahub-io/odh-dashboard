@@ -187,6 +187,10 @@ class NotebookRow extends TableRow {
     return this;
   }
 
+  findProjectScopedLabel() {
+    return this.find().findByTestId('project-scoped-label');
+  }
+
   findNotebookRouteLink() {
     return this.find().findByTestId('notebook-route-link');
   }
@@ -298,6 +302,7 @@ class StorageTable {
   }
 }
 
+class NotebookImageGroup extends Contextual<HTMLElement> {}
 class CreateSpawnerPage {
   k8sNameDescription = new K8sNameDescriptionField('workbench');
 
@@ -374,6 +379,26 @@ class CreateSpawnerPage {
       .findByTestId('workbench-image-stream-selection')
       .findDropdownItemByTestId(name)
       .scrollIntoView();
+  }
+
+  findNotebookImageSearchSelector() {
+    return cy.findByTestId('image-stream-selector-toggle');
+  }
+
+  findProjectScopedLabel() {
+    return cy.findByTestId('project-scoped-image');
+  }
+
+  findGlobalScopedLabel() {
+    return cy.findByTestId('global-scoped-image');
+  }
+
+  getProjectScopedNotebookImages() {
+    return new NotebookImageGroup(() => cy.findByTestId('project-scoped-notebook-images'));
+  }
+
+  getGlobalScopedNotebookImages() {
+    return new NotebookImageGroup(() => cy.findByTestId('global-scoped-notebook-images'));
   }
 
   findNotebookVersion(version: string): Cypress.Chainable<JQuery<HTMLElement>> {

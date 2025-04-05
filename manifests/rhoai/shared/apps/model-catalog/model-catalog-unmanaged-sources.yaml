@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: model-catalog-unmanaged-sources
+  labels:
+    opendatahub.io/dashboard: 'true'
+  annotations:
+    opendatahub.io/managed: 'false'
+data:
+  modelCatalogSources: '{ "sources" : [] }'

@@ -14,10 +14,13 @@ import {
 } from '@patternfly/react-core';
 import React from 'react';
 import { ExclamationCircleIcon, InfoCircleIcon } from '@patternfly/react-icons';
+import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { NotebookImageAvailability } from './const';
 import { NotebookImage } from './types';
 
 type NotebookImageDisplayNameProps = {
+  isImageStreamProjectScoped: boolean;
   notebookImage: NotebookImage | null;
   loaded: boolean;
   loadError?: Error;
@@ -25,11 +28,13 @@ type NotebookImageDisplayNameProps = {
 };
 
 export const NotebookImageDisplayName = ({
+  isImageStreamProjectScoped,
   notebookImage,
   loaded,
   loadError,
   isExpanded,
 }: NotebookImageDisplayNameProps): React.JSX.Element => {
+  const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
   // if there was an error loading the image, display unknown WITHOUT a label
   if (loadError) {
     return (
@@ -38,7 +43,6 @@ export const NotebookImageDisplayName = ({
       </HelperText>
     );
   }
-
   // If the image is not loaded, display a spinner
   if (!loaded || !notebookImage) {
     return <Spinner size="md" />;
@@ -84,7 +88,6 @@ export const NotebookImageDisplayName = ({
         variant: 'danger',
       };
     }
-
     return {};
   };
 
@@ -116,8 +119,27 @@ export const NotebookImageDisplayName = ({
   if (notebookImage.imageAvailability === NotebookImageAvailability.ENABLED) {
     return (
       <>
-        <HelperText>
+        <HelperText style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <HelperTextItem>{notebookImage.imageDisplayName}</HelperTextItem>
+          {isProjectScopedAvailable && isImageStreamProjectScoped && (
+            <HelperTextItem>
+              <Label
+                isCompact
+                variant="outline"
+                color="blue"
+                data-testid="project-scoped-label"
+                icon={
+                  <img
+                    style={{ height: '20px' }}
+                    src={typedObjectImage(ProjectObjectType.project)}
+                    alt=""
+                  />
+                }
+              >
+                Project-scoped
+              </Label>
+            </HelperTextItem>
+          )}
         </HelperText>
         {isExpanded && (
           <Content component={ContentVariants.small}>{notebookImage.tagSoftware}</Content>

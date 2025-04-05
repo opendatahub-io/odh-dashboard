@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Content, ContentVariants, Form, FormGroup, FormSection } from '@patternfly/react-core';
+import { Form, FormGroup } from '@patternfly/react-core';
 import { useLocation } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
@@ -25,6 +25,7 @@ import {
   getModelServingConnectionTypeName,
   ModelServingCompatibleTypes,
 } from '~/concepts/connectionTypes/utils';
+import FormSection from '~/components/pf-overrides/FormSection';
 import { FineTuneTaxonomySection } from './FineTuneTaxonomySection';
 import TrainingHardwareSection from './trainingHardwareSection/TrainingHardwareSection';
 import { FineTunePageSections, fineTunePageSectionTitles } from './const';
@@ -78,10 +79,8 @@ const FineTunePage: React.FC<FineTunePageProps> = ({
         <FormSection
           id={FineTunePageSections.PROJECT_DETAILS}
           title={fineTunePageSectionTitles[FineTunePageSections.PROJECT_DETAILS]}
+          description="The project where your pipeline will run."
         >
-          <Content component={ContentVariants.small}>
-            The project where your pipeline will run.
-          </Content>
           <FormGroup
             label="Data science project"
             fieldId="model-customization-projectName"

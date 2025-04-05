@@ -1,13 +1,5 @@
 import React from 'react';
-import {
-  Alert,
-  Content,
-  ContentVariants,
-  Flex,
-  FlexItem,
-  FormGroup,
-  FormSection,
-} from '@patternfly/react-core';
+import { Alert, Flex, FlexItem, FormGroup } from '@patternfly/react-core';
 import { BaseModelFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import {
   FineTunePageSections,
@@ -16,6 +8,7 @@ import {
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { ValidationContext } from '~/utilities/useValidation';
 import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
+import FormSection from '~/components/pf-overrides/FormSection';
 import InlineEditText from './InlineEditText';
 
 const RED_HAT_REGISTRY_PREFIX = 'registry.redhat.io';
@@ -45,10 +38,8 @@ const BaseModelSection: React.FC<BaseModelSectionProps> = ({
     <FormSection
       id={FineTunePageSections.BASE_MODEL}
       title={fineTunePageSectionTitles[FineTunePageSections.BASE_MODEL]}
+      description="The pre-trained model that the fine-tuning run will further refine."
     >
-      <Content component={ContentVariants.small}>
-        The pre-trained model that the fine-tuning run will further refine.
-      </Content>
       <Flex>
         <FlexItem>
           <Alert

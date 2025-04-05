@@ -1,21 +1,42 @@
 /* eslint-disable camelcase */
+import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { mockDscStatus } from '~/__mocks__';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { mockModelCatalogConfigMap } from '~/__mocks__/mockModelCatalogConfigMap';
 import { modelCatalog } from '~/__tests__/cypress/cypress/pages/modelCatalog/modelCatalog';
-import { ConfigMapModel } from '~/__tests__/cypress/cypress/utils/models';
+import { ConfigMapModel, ServiceModel } from '~/__tests__/cypress/cypress/utils/models';
 import { mockModelCatalogSource } from '~/__mocks__/mockModelCatalogSource';
 import {
   mockRedHatModel,
   mockThirdPartyModel,
   mockCatalogModel,
 } from '~/__mocks__/mockCatalogModel';
+import {
+  mockManagedModelCatalogConfigMap,
+  mockUnmanagedModelCatalogConfigMap,
+  mockConfigMap404Response,
+  mockModelCatalogConfigMap,
+} from '~/__mocks__/mockModelCatalogConfigMap';
+import { mockModelRegistryService } from '~/__mocks__/mockModelRegistryService';
+import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
+import type { ModelCatalogSource } from '~/concepts/modelCatalog/types';
 
 type HandlersProps = {
+  modelRegistries?: K8sResourceCommon[];
+  catalogSources?: ModelCatalogSource[];
   disableModelCatalogFeature?: boolean;
+  hasUnmanagedSourcesConfigMap?: boolean;
+  unmanagedSources?: ModelCatalogSource[];
+  managedSources?: ModelCatalogSource[];
 };
 
-const initIntercepts = ({ disableModelCatalogFeature = false }: HandlersProps) => {
+const initIntercepts = ({
+  modelRegistries = [mockModelRegistryService({ name: 'modelregistry-sample' })],
+  managedSources = [mockModelCatalogSource({})],
+  unmanagedSources = [],
+  disableModelCatalogFeature = false,
+  hasUnmanagedSourcesConfigMap = true,
+}: HandlersProps) => {
+  // Ensure DSC status is mocked
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
@@ -32,24 +53,46 @@ const initIntercepts = ({ disableModelCatalogFeature = false }: HandlersProps) =
     }),
   );
 
+  // Mock the managed ConfigMap (Red Hat sources)
   cy.interceptK8s(
     {
       model: ConfigMapModel,
       ns: 'opendatahub',
       name: 'model-catalog-sources',
     },
-    mockModelCatalogConfigMap(),
+    mockManagedModelCatalogConfigMap(managedSources),
   );
+
+  if (hasUnmanagedSourcesConfigMap) {
+    cy.interceptK8s(
+      {
+        model: ConfigMapModel,
+        ns: 'opendatahub',
+        name: 'model-catalog-unmanaged-sources',
+      },
+      mockUnmanagedModelCatalogConfigMap(unmanagedSources),
+    );
+  } else {
+    cy.interceptK8s(
+      {
+        model: ConfigMapModel,
+        ns: 'opendatahub',
+        name: 'model-catalog-unmanaged-sources',
+      },
+      mockConfigMap404Response('model-catalog-unmanaged-sources'),
+    );
+  }
+
+  cy.interceptK8sList(ServiceModel, mockK8sResourceList(modelRegistries));
 };
 
 describe('Model Catalog core', () => {
   it('Model Catalog Disabled in the cluster and URLs should not exist', () => {
     initIntercepts({
       disableModelCatalogFeature: true,
+      hasUnmanagedSourcesConfigMap: false,
     });
-
     modelCatalog.landingPage();
-
     cy.findByRole('button', { name: 'Models' }).click();
     cy.findByRole('link', { name: 'Model catalog' }).should('not.exist');
 
@@ -146,7 +189,7 @@ describe('Model Catalog loading states', () => {
     cy.contains('Unable to load model catalog').should('exist');
   });
 
-  it('should show empty state when configmap has empty data', () => {
+  it('should show empty state when configmap has empty sources', () => {
     cy.interceptK8s(
       {
         model: ConfigMapModel,
@@ -161,7 +204,7 @@ describe('Model Catalog loading states', () => {
           namespace: 'opendatahub',
         },
         data: {
-          modelCatalogSources: '',
+          modelCatalogSources: JSON.stringify({ sources: [] }),
         },
       },
     );
@@ -282,5 +325,70 @@ describe('Model catalog cards', () => {
 
     modelCatalog.findModelCatalogCard('rh-model').should('exist');
     modelCatalog.findModelCatalogCard('third-party-model').should('exist');
+  });
+});
+
+describe('Model catalog sources from multiple configmaps', () => {
+  it('should show models from both managed and unmanaged configmaps', () => {
+    const rhModel = mockRedHatModel({
+      name: 'rh-model',
+      tasks: ['task1'],
+    });
+
+    const thirdPartyModel = mockThirdPartyModel({
+      name: 'third-party-model',
+      tasks: ['task2'],
+    });
+
+    initIntercepts({
+      managedSources: [
+        mockModelCatalogSource({
+          source: 'Red Hat',
+          models: [rhModel],
+        }),
+      ],
+      unmanagedSources: [
+        mockModelCatalogSource({
+          source: 'Third-party',
+          models: [thirdPartyModel],
+        }),
+      ],
+    });
+
+    modelCatalog.visit();
+
+    cy.findByRole('heading', { level: 2, name: 'Red Hat models' }).should('exist');
+    cy.findByRole('heading', { level: 2, name: 'Third-party models' }).should('exist');
+
+    modelCatalog.findModelCatalogCard('rh-model').should('exist');
+    modelCatalog.findModelCatalogCard('third-party-model').should('exist');
+  });
+
+  it('should show only Red Hat models when unmanaged configmap returns 404', () => {
+    const rhModel = mockRedHatModel({
+      name: 'rh-model',
+      tasks: ['task1'],
+    });
+
+    initIntercepts({
+      managedSources: [
+        mockModelCatalogSource({
+          source: 'Red Hat',
+          models: [rhModel],
+        }),
+      ],
+      hasUnmanagedSourcesConfigMap: false,
+    });
+
+    modelCatalog.visit();
+    modelCatalog.findModelCatalogCards().should('exist');
+
+    cy.findByRole('heading', { level: 2, name: 'Red Hat models' }).should('exist');
+    cy.findByRole('heading', { level: 2, name: 'Third-party models' }).should('not.exist');
+
+    modelCatalog.findModelCatalogCard('rh-model').should('exist');
+
+    cy.contains('Unable to load model catalog').should('not.exist');
+    modelCatalog.findModelCatalogEmptyState().should('not.exist');
   });
 });

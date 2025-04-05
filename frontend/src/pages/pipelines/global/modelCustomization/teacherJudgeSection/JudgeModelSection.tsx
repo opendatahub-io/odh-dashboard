@@ -1,12 +1,5 @@
 import React from 'react';
-import {
-  Button,
-  Content,
-  ContentVariants,
-  FormGroup,
-  FormSection,
-  Radio,
-} from '@patternfly/react-core';
+import { Button, FormGroup, Radio } from '@patternfly/react-core';
 import {
   FineTunePageSections,
   fineTunePageSectionTitles,
@@ -24,6 +17,7 @@ import { ModelCustomizationDrawerContentArgs } from '~/pages/pipelines/global/mo
 import MarkdownView from '~/components/MarkdownView';
 import { ValidationContext } from '~/utilities/useValidation';
 import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
+import FormSection from '~/components/pf-overrides/FormSection';
 
 type JudgeModelSectionProps = {
   data: TeacherJudgeFormData;
@@ -51,23 +45,25 @@ const JudgeModelSection: React.FC<JudgeModelSectionProps> = ({
     <FormSection
       id={FineTunePageSections.JUDGE_MODEL}
       title={fineTunePageSectionTitles[FineTunePageSections.JUDGE_MODEL]}
+      description={
+        <>
+          Enter the URL endpoint of the judge model to deploy for use in synthetic data generation
+          (SDG).{' '}
+          <Button
+            style={{ padding: 0 }}
+            variant="link"
+            onClick={() =>
+              handleOpenDrawer({
+                title: teacherJudgeMarkdownTitle,
+                content: <MarkdownView markdown={teacherJudgeMarkdownContent} />,
+              })
+            }
+          >
+            Learn more about how to deploy a judge model
+          </Button>
+        </>
+      }
     >
-      <Content component={ContentVariants.small}>
-        Enter the URL endpoint of the judge model to deploy for use in synthetic data generation
-        (SDG).{' '}
-        <Button
-          isInline
-          variant="link"
-          onClick={() =>
-            handleOpenDrawer({
-              title: teacherJudgeMarkdownTitle,
-              content: <MarkdownView markdown={teacherJudgeMarkdownContent} />,
-            })
-          }
-        >
-          Learn more about how to deploy a judge model
-        </Button>
-      </Content>
       <FormGroup label="Judge" fieldId="model-customization-judge" isRequired>
         <Radio
           name="judge-section-unauthenticated-endpoint-radio"
