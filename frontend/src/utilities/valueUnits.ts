@@ -48,7 +48,7 @@ export const MEMORY_UNITS_FOR_PARSING: UnitOption[] = [
 ];
 export const OTHER: UnitOption[] = [{ name: 'Other', unit: '', weight: 1 }];
 
-export const determineUnit = (nodeResource: Identifier): UnitOption[] => {
+export const determineIdentifierUnit = (nodeResource: Identifier): UnitOption[] => {
   if (
     nodeResource.resourceType === IdentifierResourceType.CPU ||
     nodeResource.identifier === DEFAULT_CPU_IDENTIFIER

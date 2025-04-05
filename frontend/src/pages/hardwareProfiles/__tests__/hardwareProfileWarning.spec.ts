@@ -35,11 +35,12 @@ describe('validateProfileWarning', () => {
     expect(hardwareProfilesResult).toEqual([
       {
         type: HardwareProfileWarningType.OTHER,
-        message: `Minimum allowed ${IdentifierResourceType.MEMORY} cannot exceed maximum allowed ${IdentifierResourceType.MEMORY}. Edit the profile to make the profile valid.`,
+        message: 'Minimum allowed value cannot exceed the maximum allowed value (if specified).',
       },
       {
         type: HardwareProfileWarningType.OTHER,
-        message: `The default count for ${IdentifierResourceType.MEMORY} must be between the minimum allowed ${IdentifierResourceType.MEMORY} and maximum allowed ${IdentifierResourceType.MEMORY}. Edit the profile to make the profile valid.`,
+        message:
+          'Default value must be equal to or between the minimum and maximum allowed limits.',
       },
     ]);
   });
@@ -71,7 +72,7 @@ describe('validateProfileWarning', () => {
     expect(hardwareProfilesResult).toEqual([
       {
         type: HardwareProfileWarningType.OTHER,
-        message: `Minimum allowed ${IdentifierResourceType.CPU} cannot be negative. Edit the profile to make the profile valid.`,
+        message: `Minimum count for ${IdentifierResourceType.CPU} cannot be negative. Edit the profile to make the profile valid.`,
       },
     ]);
   });
@@ -103,11 +104,16 @@ describe('validateProfileWarning', () => {
     expect(hardwareProfilesResult).toEqual([
       {
         type: HardwareProfileWarningType.OTHER,
+        message:
+          'Default value must be equal to or between the minimum and maximum allowed limits.',
+      },
+      {
+        type: HardwareProfileWarningType.OTHER,
         message: `Default count for ${IdentifierResourceType.MEMORY} cannot be negative. Edit the profile to make the profile valid.`,
       },
       {
         type: HardwareProfileWarningType.OTHER,
-        message: `Maximum allowed ${IdentifierResourceType.CPU} cannot be negative. Edit the profile to make the profile valid.`,
+        message: `Maximum count for ${IdentifierResourceType.CPU} cannot be negative. Edit the profile to make the profile valid.`,
       },
     ]);
   });
@@ -171,7 +177,7 @@ describe('validateProfileWarning', () => {
     expect(hardwareProfilesResult).toEqual([
       {
         type: HardwareProfileWarningType.OTHER,
-        message: `The resource count for ${IdentifierResourceType.MEMORY} has the unit only but doesn't have a value. Edit the profile to make the profile valid.`,
+        message: 'Minimum allowed value must be provided.',
       },
     ]);
   });
@@ -221,7 +227,7 @@ describe('validateProfileWarning', () => {
           displayName: 'Memory',
           identifier: 'memory',
           resourceType: IdentifierResourceType.MEMORY,
-          minCount: '0Gi',
+          minCount: '1Gi',
           maxCount: '5Gi',
           defaultCount: '2.2384092380Gi',
         },

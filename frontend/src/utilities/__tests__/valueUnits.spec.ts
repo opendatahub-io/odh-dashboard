@@ -12,7 +12,7 @@ import {
   formatMemory,
   MEMORY_UNITS_FOR_SELECTION,
   CPU_UNITS,
-  determineUnit,
+  determineIdentifierUnit,
   OTHER,
 } from '~/utilities/valueUnits';
 
@@ -55,7 +55,7 @@ describe('determine unit', () => {
       defaultCount: '1',
       resourceType: IdentifierResourceType.CPU,
     };
-    expect(determineUnit(nodeCPUResource)).toEqual(CPU_UNITS);
+    expect(determineIdentifierUnit(nodeCPUResource)).toEqual(CPU_UNITS);
   });
   it('should correctly return memory units', () => {
     const nodeMemoryResource: Identifier = {
@@ -66,7 +66,7 @@ describe('determine unit', () => {
       defaultCount: '2Gi',
       resourceType: IdentifierResourceType.MEMORY,
     };
-    expect(determineUnit(nodeMemoryResource)).toEqual(MEMORY_UNITS_FOR_SELECTION);
+    expect(determineIdentifierUnit(nodeMemoryResource)).toEqual(MEMORY_UNITS_FOR_SELECTION);
   });
   it('should correctly return other if resource type is unknown', () => {
     const nodeUnknownResource: Identifier = {
@@ -76,7 +76,7 @@ describe('determine unit', () => {
       maxCount: '5Gi',
       defaultCount: '2Gi',
     };
-    expect(determineUnit(nodeUnknownResource)).toEqual(OTHER);
+    expect(determineIdentifierUnit(nodeUnknownResource)).toEqual(OTHER);
   });
 });
 

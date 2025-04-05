@@ -7,7 +7,6 @@ import { HardwareProfileKind } from '~/k8sTypes';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import {
   DEFAULT_HARDWARE_PROFILE_SPEC,
   ManageHardwareProfileSectionTitles,
@@ -17,8 +16,10 @@ import ManageTolerationSection from '~/pages/hardwareProfiles/manage/ManageToler
 import ManageHardwareProfileFooter from '~/pages/hardwareProfiles/manage/ManageHardwareProfileFooter';
 import ManageNodeResourceSection from '~/pages/hardwareProfiles/manage/ManageNodeResourceSection';
 import { MigrationAction } from '~/pages/hardwareProfiles/migration/types';
+import { useValidation, ValidationContext } from '~/utilities/useValidation';
 import { HardwareProfileFormData, ManageHardwareProfileSectionID } from './types';
 import { HardwareProfileVisibilitySection } from './HardwareProfileVisibilitySection';
+import { manageHardwareProfileValidationSchema } from './validationUtils';
 
 type ManageHardwareProfileProps = {
   existingHardwareProfile?: HardwareProfileKind;
@@ -97,76 +98,87 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
     [state, profileNameDesc, visibility],
   );
 
-  const validFormData = isK8sNameDescriptionDataValid(profileNameDesc);
+  const validation = useValidation(formState, manageHardwareProfileValidationSchema);
 
   return (
-    <ApplicationsPage
-      title={
-        existingHardwareProfile
-          ? `Edit ${existingHardwareProfile.spec.displayName}`
-          : duplicatedHardwareProfile
-          ? `Duplicate ${duplicatedHardwareProfile.spec.displayName}`
-          : 'Create hardware profile'
-      }
-      description={
-        duplicatedHardwareProfile
-          ? 'Create a new, editable profile by duplicating an existing profile.'
-          : 'A hardware profile allows you to target notebook and model deployment workloads to particular cluster nodes by allowing you to specify node resources, node selectors and tolerations.'
-      }
-      breadcrumb={
-        <Breadcrumb>
-          <BreadcrumbItem render={() => <Link to={contextPath}>{homepageTitle}</Link>} />
-          <BreadcrumbItem isActive>
-            {existingHardwareProfile ? 'Edit' : duplicatedHardwareProfile ? 'Duplicate' : 'Create'}{' '}
-            hardware profile
-          </BreadcrumbItem>
-        </Breadcrumb>
-      }
-      loaded
-      empty={false}
-    >
-      <PageSection
-        hasBodyWrapper={false}
-        isFilled
-        aria-label="manage-hardware-profile-spawner-section"
+    <ValidationContext.Provider value={validation}>
+      <ApplicationsPage
+        title={
+          existingHardwareProfile
+            ? `Edit ${existingHardwareProfile.spec.displayName}`
+            : duplicatedHardwareProfile
+            ? `Duplicate ${duplicatedHardwareProfile.spec.displayName}`
+            : 'Create hardware profile'
+        }
+        description={
+          duplicatedHardwareProfile
+            ? 'Create a new, editable profile by duplicating an existing profile.'
+            : 'A hardware profile allows you to target notebook and model deployment workloads to particular cluster nodes by allowing you to specify node resources, node selectors and tolerations.'
+        }
+        breadcrumb={
+          <Breadcrumb>
+            <BreadcrumbItem render={() => <Link to={contextPath}>{homepageTitle}</Link>} />
+            <BreadcrumbItem isActive>
+              {existingHardwareProfile
+                ? 'Edit'
+                : duplicatedHardwareProfile
+                ? 'Duplicate'
+                : 'Create'}{' '}
+              hardware profile
+            </BreadcrumbItem>
+          </Breadcrumb>
+        }
+        loaded
+        empty={false}
       >
-        <Form>
-          <FormSection
-            id={ManageHardwareProfileSectionID.DETAILS}
-            aria-label={ManageHardwareProfileSectionTitles[ManageHardwareProfileSectionID.DETAILS]}
-            title={ManageHardwareProfileSectionTitles[ManageHardwareProfileSectionID.DETAILS]}
-          >
-            <K8sNameDescriptionField
-              data={profileNameDesc}
-              onDataChange={setProfileNameDesc}
-              dataTestId="hardware-profile-name-desc"
+        <PageSection
+          hasBodyWrapper={false}
+          isFilled
+          aria-label="manage-hardware-profile-spawner-section"
+        >
+          <Form>
+            <FormSection
+              id={ManageHardwareProfileSectionID.DETAILS}
+              aria-label={
+                ManageHardwareProfileSectionTitles[ManageHardwareProfileSectionID.DETAILS]
+              }
+              title={ManageHardwareProfileSectionTitles[ManageHardwareProfileSectionID.DETAILS]}
+            >
+              <K8sNameDescriptionField
+                data={profileNameDesc}
+                onDataChange={setProfileNameDesc}
+                dataTestId="hardware-profile-name-desc"
+              />
+            </FormSection>
+            <HardwareProfileVisibilitySection
+              visibility={visibility}
+              setVisibility={setVisibility}
             />
-          </FormSection>
-          <HardwareProfileVisibilitySection visibility={visibility} setVisibility={setVisibility} />
-          <ManageNodeResourceSection
-            nodeResources={state.identifiers ?? []}
-            setNodeResources={(identifiers) => setState('identifiers', identifiers)}
+            <ManageNodeResourceSection
+              nodeResources={state.identifiers ?? []}
+              setNodeResources={(identifiers) => setState('identifiers', identifiers)}
+            />
+            <ManageNodeSelectorSection
+              nodeSelector={state.nodeSelector ?? {}}
+              setNodeSelector={(nodeSelector) => setState('nodeSelector', nodeSelector)}
+            />
+            <ManageTolerationSection
+              tolerations={state.tolerations ?? []}
+              setTolerations={(tolerations) => setState('tolerations', tolerations)}
+            />
+          </Form>
+        </PageSection>
+        <PageSection hasBodyWrapper={false} stickyOnBreakpoint={{ default: 'bottom' }}>
+          <ManageHardwareProfileFooter
+            state={formState}
+            existingHardwareProfile={existingHardwareProfile}
+            validFormData={validation.validationResult.success}
+            redirectPath={contextPath}
+            migrationAction={migrationAction}
           />
-          <ManageNodeSelectorSection
-            nodeSelector={state.nodeSelector ?? {}}
-            setNodeSelector={(nodeSelector) => setState('nodeSelector', nodeSelector)}
-          />
-          <ManageTolerationSection
-            tolerations={state.tolerations ?? []}
-            setTolerations={(tolerations) => setState('tolerations', tolerations)}
-          />
-        </Form>
-      </PageSection>
-      <PageSection hasBodyWrapper={false} stickyOnBreakpoint={{ default: 'bottom' }}>
-        <ManageHardwareProfileFooter
-          state={formState}
-          existingHardwareProfile={existingHardwareProfile}
-          validFormData={validFormData}
-          redirectPath={contextPath}
-          migrationAction={migrationAction}
-        />
-      </PageSection>
-    </ApplicationsPage>
+        </PageSection>
+      </ApplicationsPage>
+    </ValidationContext.Provider>
   );
 };
 
