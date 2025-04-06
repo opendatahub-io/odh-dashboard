@@ -29,6 +29,9 @@ type TestOptions = {
   [key: string]: unknown;
 };
 
+const softAssert = require('soft-assert');
+(global as any).softAssert = softAssert;
+
 // Define an interface for the test function that supports retries.
 interface TestWithRetries extends Mocha.TestFunction {
   retries: (n: number) => void;
@@ -55,6 +58,12 @@ declare global {
       (name: string, options: TestOptions, fn?: Mocha.AsyncFunc | Mocha.Func): Mocha.Test;
     };
   }
+
+  const softAssert: {
+    softAssert: (actual: any, expected: any, msg?: string) => void;
+    softAssertAll: () => void;
+    softTrue: (condition: boolean, msg?: string) => void;
+  };
 }
 /* eslint-enable @typescript-eslint/no-namespace */
 
@@ -145,9 +154,17 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
 
   // Chain Cypress commands
   cy.task('log', `Test title: ${testTitle}`)
-    .then(() => cy.task('log', `Test tags: ${JSON.stringify(mappedTestTags)}`))
-    .then(() => cy.task('log', `Skip tags: ${JSON.stringify(skipTags)}`))
-    .then(() => cy.task('log', `Grep tags: ${JSON.stringify(grepTags)}`))
+    .then(() =>
+      mappedTestTags.length > 0
+        ? cy.task('log', `Test tags: ${JSON.stringify(mappedTestTags)}`)
+        : undefined
+    )
+    .then(() =>
+      skipTags.length > 0 ? cy.task('log', `Skip tags: ${JSON.stringify(skipTags)}`) : undefined
+    )
+    .then(() =>
+      grepTags.length > 0 ? cy.task('log', `Grep tags: ${JSON.stringify(grepTags)}`) : undefined
+    )
     .then(() => {
       // Determine if the test should be skipped.
       const shouldSkip =
@@ -186,4 +203,11 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
     cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
     asProjectAdminUser();
   }
+});
+
+after(() => {
+  // Optional: Add logging
+  cy.task('log', 'Checking soft assertions...').then(() => {
+    softAssert.softAssertAll();
+  });
 });
