@@ -21,6 +21,7 @@ const resultsDir = `${env.CY_RESULTS_DIR || 'results'}/${env.CY_MOCK ? 'mocked' 
 
 export default defineConfig({
   experimentalMemoryManagement: true,
+  watchForFileChanges: false,
   // Use relative path as a workaround to https://github.com/cypress-io/cypress/issues/6406
   reporter: '../../../node_modules/cypress-multi-reporters',
   reporterOptions: {
