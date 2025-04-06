@@ -11,7 +11,7 @@ import {
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 import { getNotebookImageNames } from '~/__tests__/cypress/cypress/utils/oc_commands/imageStreams';
 
-const applicationNamespace = Cypress.env('TEST_NAMESPACE');
+const applicationNamespace = Cypress.env('ODH_NAMESPACE');
 
 describe('Workbenches - image/version tests', () => {
   let projectName: string;
