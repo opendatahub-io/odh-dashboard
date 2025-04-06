@@ -7,6 +7,7 @@ import useMigratedHardwareProfiles from './useMigratedHardwareProfiles';
 
 export const useHardwareProfilesByFeatureVisibility = (
   visibility?: HardwareProfileFeatureVisibility[],
+  namespace?: string,
 ): [
   data: HardwareProfileKind[],
   loaded: boolean,
@@ -20,10 +21,10 @@ export const useHardwareProfilesByFeatureVisibility = (
     loaded: loadedMigratedHardwareProfiles,
     loadError: loadErrorMigratedHardwareProfiles,
     refresh,
-  } = useMigratedHardwareProfiles(dashboardNamespace);
+  } = useMigratedHardwareProfiles(namespace ?? dashboardNamespace);
 
   const [hardwareProfiles, loadedHardwareProfiles, loadErrorHardwareProfiles] =
-    useWatchHardwareProfiles(dashboardNamespace);
+    useWatchHardwareProfiles(namespace ?? dashboardNamespace);
 
   const loaded = loadedMigratedHardwareProfiles && loadedHardwareProfiles;
   const loadError = loadErrorMigratedHardwareProfiles || loadErrorHardwareProfiles;

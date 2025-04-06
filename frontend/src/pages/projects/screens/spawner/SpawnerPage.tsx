@@ -296,6 +296,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               ) : (
                 <HardwareProfileFormSection
                   isEditing={!!existingNotebook}
+                  project={currentProject.metadata.name}
                   podSpecOptionsState={podSpecOptionsState}
                   isHardwareProfileSupported={isHardwareProfileSupported}
                   visibleIn={[HardwareProfileFeatureVisibility.WORKBENCH]}

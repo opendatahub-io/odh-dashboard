@@ -2,7 +2,10 @@ import * as React from 'react';
 import { Form, FormGroup } from '@patternfly/react-core';
 import { useLocation } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import {
+  getDisplayNameFromK8sResource,
+  getResourceNameFromK8sResource,
+} from '~/concepts/k8s/utils';
 import {
   FineTuneTaxonomyFormData,
   ModelCustomizationFormData,
@@ -136,6 +139,7 @@ const FineTunePage: React.FC<FineTunePageProps> = ({
                 setData('storageClass', storageClassName)
               }
               setHardwareFormData={(hardwareFormData) => setData('hardware', hardwareFormData)}
+              projectName={getResourceNameFromK8sResource(project)}
             />
             <HyperparameterPageSection
               data={data}

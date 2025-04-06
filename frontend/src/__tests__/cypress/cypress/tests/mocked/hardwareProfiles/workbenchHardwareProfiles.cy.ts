@@ -34,12 +34,14 @@ type HandlersProps = {
   isEmpty?: boolean;
   mockPodList?: PodKind[];
   disableHardwareProfiles?: boolean;
+  disableProjectScoped?: boolean;
 };
 
 const initIntercepts = ({
   isEmpty = false,
   mockPodList = [mockPodK8sResource({})],
   disableHardwareProfiles = false,
+  disableProjectScoped = true,
 }: HandlersProps = {}) => {
   asProductAdminUser();
 
@@ -102,6 +104,62 @@ const initIntercepts = ({
     ]),
   ).as('hardwareProfiles');
 
+  cy.interceptK8sList(
+    { model: HardwareProfileModel, ns: 'test-project' },
+    mockK8sResourceList([
+      mockHardwareProfile({
+        name: 'small-profile',
+        displayName: 'Small Profile',
+        namespace: 'test-project',
+        identifiers: [
+          {
+            displayName: 'CPU',
+            identifier: 'cpu',
+            minCount: '1',
+            maxCount: '2',
+            defaultCount: '1',
+          },
+          {
+            displayName: 'Memory',
+            identifier: 'memory',
+            minCount: '2Gi',
+            maxCount: '4Gi',
+            defaultCount: '2Gi',
+          },
+        ],
+        tolerations: [
+          {
+            effect: TolerationEffect.NO_SCHEDULE,
+            key: 'NotebooksOnlyChange',
+            operator: TolerationOperator.EXISTS,
+          },
+        ],
+        nodeSelector: {},
+      }),
+      mockHardwareProfile({
+        name: 'large-profile-1',
+        displayName: 'Large Profile-1',
+        namespace: 'test-project',
+        identifiers: [
+          {
+            displayName: 'CPU',
+            identifier: 'cpu',
+            minCount: '4',
+            maxCount: '8',
+            defaultCount: '4',
+          },
+          {
+            displayName: 'Memory',
+            identifier: 'memory',
+            minCount: '8Gi',
+            maxCount: '16Gi',
+            defaultCount: '8Gi',
+          },
+        ],
+      }),
+    ]),
+  ).as('hardwareProfiles');
+
   // Mock standard resources similar to workbench.cy.ts
   cy.interceptK8sList(StorageClassModel, mockStorageClassList());
   cy.interceptOdh(
@@ -116,6 +174,7 @@ const initIntercepts = ({
     'GET /api/config',
     mockDashboardConfig({
       disableHardwareProfiles,
+      disableProjectScoped,
     }),
   );
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
@@ -176,6 +235,72 @@ describe('Workbench Hardware Profiles', () => {
     hardwareProfileSection.selectProfile(
       'Large Profile CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB',
     );
+  });
+
+  it('should display hardware profile selection in workbench creation when both hardware profile and project-scoped feature flag is enabled', () => {
+    initIntercepts({ disableHardwareProfiles: false, disableProjectScoped: false });
+
+    // Navigate to workbench creation
+    projectDetails.visit(projectName);
+    projectDetails.findSectionTab('workbenches').click();
+    workbenchPage.findCreateButton().click();
+
+    // wait for hardware profile select to be loaded in
+    cy.wait('@hardwareProfiles');
+
+    // Verify hardware profile section exists
+    hardwareProfileSection.findHardwareProfileSearchSelector().should('exist');
+    hardwareProfileSection.findHardwareProfileSearchSelector().click();
+
+    // verify available project-scoped hardware profile
+    const projectScopedHardwareProfile = hardwareProfileSection.getProjectScopedHardwareProfile();
+    projectScopedHardwareProfile
+      .find()
+      .findByRole('menuitem', {
+        name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
+        hidden: true,
+      })
+      .click();
+    hardwareProfileSection.findProjectScopedLabel().should('exist');
+
+    // verify available global-scoped hardware profile
+    hardwareProfileSection.findHardwareProfileSearchSelector().click();
+    const globalScopedHardwareProfile = hardwareProfileSection.getGlobalScopedHardwareProfile();
+    globalScopedHardwareProfile
+      .find()
+      .findByRole('menuitem', {
+        name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
+        hidden: true,
+      })
+      .click();
+    hardwareProfileSection.findGlobalScopedLabel().should('exist');
+  });
+
+  it('should have project scoped label on table row', () => {
+    initIntercepts({ disableHardwareProfiles: false, disableProjectScoped: false });
+
+    // Mock notebook with hardware profile annotation
+    cy.interceptK8sList(
+      {
+        model: NotebookModel,
+        ns: 'test-project',
+      },
+      mockK8sResourceList([
+        mockNotebookK8sResource({
+          hardwareProfileName: 'large-profile-1',
+          displayName: 'Test Notebook',
+        }),
+      ]),
+    );
+
+    projectDetails.visit(projectName);
+    projectDetails.findSectionTab('workbenches').click();
+    workbenchPage
+      .getNotebookRow('Test Notebook')
+      .find()
+      .findByText('Large Profile-1')
+      .should('exist');
+    workbenchPage.getNotebookRow('Test Notebook').findProjectScopedLabel().should('exist');
   });
 
   it('should validate hardware profile customization within limits', () => {
@@ -264,6 +389,38 @@ describe('Workbench Hardware Profiles', () => {
 
       editSpawnerPage.visit('test-notebook');
       hardwareProfileSection.findSelect().should('contain.text', 'Small Profile');
+    });
+
+    it('should auto-select project-scoped hardware profile from annotations', () => {
+      initIntercepts({
+        disableHardwareProfiles: false,
+        disableProjectScoped: false,
+      });
+
+      // Mock notebook with hardware profile annotation
+      cy.interceptK8sList(
+        {
+          model: NotebookModel,
+          ns: 'test-project',
+        },
+        mockK8sResourceList([
+          mockNotebookK8sResource({
+            hardwareProfileName: 'large-profile-1',
+            displayName: 'Test Notebook',
+          }),
+        ]),
+      );
+
+      cy.interceptK8sList(
+        PVCModel,
+        mockK8sResourceList([mockPVCK8sResource({ name: 'test-notebook' })]),
+      );
+
+      editSpawnerPage.visit('test-notebook');
+      hardwareProfileSection
+        .findHardwareProfileSearchSelector()
+        .should('contain.text', 'Large Profile-1');
+      hardwareProfileSection.findProjectScopedLabel().should('exist');
     });
 
     it('should auto-select disabled hardware profile from annotations and show disabled state', () => {

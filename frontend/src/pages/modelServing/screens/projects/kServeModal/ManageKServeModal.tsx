@@ -415,6 +415,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
               />
               <ServingRuntimeSizeSection
                 podSpecOptionState={podSpecOptionsState}
+                projectName={namespace}
                 servingRuntimeSelected={servingRuntimeSelected}
                 infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
                 isEditing={!!editInfo}

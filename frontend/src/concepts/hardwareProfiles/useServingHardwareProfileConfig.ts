@@ -3,6 +3,7 @@ import {
   InferenceServiceKind,
   ServingRuntimeKind,
 } from '~/k8sTypes';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import {
   useHardwareProfileConfig,
   UseHardwareProfileConfigResult,
@@ -20,10 +21,17 @@ const useServingHardwareProfileConfig = (
     inferenceService?.spec.predictor.tolerations || servingRuntime?.spec.tolerations;
   const nodeSelector =
     inferenceService?.spec.predictor.nodeSelector || servingRuntime?.spec.nodeSelector;
+  const namespace = servingRuntime?.metadata.namespace;
+  const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
 
-  return useHardwareProfileConfig(name, resources, tolerations, nodeSelector, [
-    HardwareProfileFeatureVisibility.MODEL_SERVING,
-  ]);
+  return useHardwareProfileConfig(
+    name,
+    resources,
+    tolerations,
+    nodeSelector,
+    [HardwareProfileFeatureVisibility.MODEL_SERVING],
+    isProjectScoped ? namespace : undefined,
+  );
 };
 
 export default useServingHardwareProfileConfig;
