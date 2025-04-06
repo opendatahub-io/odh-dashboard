@@ -19,6 +19,10 @@ export class AboutDialog {
     return cy.findByTestId('about-text');
   }
 
+  findImageByAltText(altText: string): Chainable<JQuery<HTMLElement>> {
+    return cy.get(`img[alt*="${altText}"]`);
+  }
+
   findProductName(): Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('about-product-name');
   }
