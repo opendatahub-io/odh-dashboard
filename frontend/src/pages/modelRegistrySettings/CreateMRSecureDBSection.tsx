@@ -110,38 +110,43 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
     setSecureDBInfo({ ...newInfo, isValid: isValid(newInfo) });
   };
 
-  const getFilteredExistingCAResources = () => (
-    <>
-      <MenuGroup label="ConfigMaps">
-        {existingCertConfigMaps
-          .filter((configMap) =>
-            configMap.name.toLowerCase().includes(searchConfigSecretName.toLowerCase()),
-          )
-          .map((configMap, index) => (
-            <MenuItem
-              key={`configmap-${index}`}
-              onClick={() => handleResourceSelect(configMap.name, ResourceType.ConfigMap)}
-            >
-              {configMap.name}
-            </MenuItem>
-          ))}
-      </MenuGroup>
-      <MenuGroup label="Secrets">
-        {existingCertSecrets
-          .filter((secret) =>
-            secret.name.toLowerCase().includes(searchConfigSecretName.toLowerCase()),
-          )
-          .map((secret, index) => (
-            <MenuItem
-              key={`secret-${index}`}
-              onClick={() => handleResourceSelect(secret.name, ResourceType.Secret)}
-            >
-              {secret.name}
-            </MenuItem>
-          ))}
-      </MenuGroup>
-    </>
-  );
+  const getFilteredExistingCAResources = () => {
+    const filteredConfigMaps = existingCertConfigMaps.filter((configMap) =>
+      configMap.name.toLowerCase().includes(searchConfigSecretName.toLowerCase()),
+    );
+    const filteredSecrets = existingCertSecrets.filter((secret) =>
+      secret.name.toLowerCase().includes(searchConfigSecretName.toLowerCase()),
+    );
+
+    return (
+      <>
+        {filteredConfigMaps.length > 0 && (
+          <MenuGroup label="ConfigMaps">
+            {filteredConfigMaps.map((configMap, index) => (
+              <MenuItem
+                key={`configmap-${index}`}
+                onClick={() => handleResourceSelect(configMap.name, ResourceType.ConfigMap)}
+              >
+                {configMap.name}
+              </MenuItem>
+            ))}
+          </MenuGroup>
+        )}
+        {filteredSecrets.length > 0 && (
+          <MenuGroup label="Secrets">
+            {filteredSecrets.map((secret, index) => (
+              <MenuItem
+                key={`secret-${index}`}
+                onClick={() => handleResourceSelect(secret.name, ResourceType.Secret)}
+              >
+                {secret.name}
+              </MenuItem>
+            ))}
+          </MenuGroup>
+        )}
+      </>
+    );
+  };
 
   return (
     <>
