@@ -35,7 +35,9 @@ describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
     return loadDSPFixture('e2e/dataScienceProjects/testClusterStorageCreation.yaml')
       .then((fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
-        projectName = testData.projectPVStorageResourceName;
+        const uniqueSuffix = `-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+
+        projectName = testData.projectPVStorageResourceName + uniqueSuffix;
         pvStorageName = testData.pvStorageName;
         pvStorageDescription = testData.pvStorageDescription;
         pvStorageNameEdited = testData.pvStorageNameEdited;
@@ -62,7 +64,7 @@ describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
 
   it(
     'Create, Edit and Delete a Persistent Volume Storage',
-    { tags: ['@Sanity', '@SanitySet1', '@ODS-1824', '@Dashboard'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ODS-1824', '@Dashboard', '@CI'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -70,11 +72,11 @@ describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
 
       // Project navigation and navigate to the Cluster Storage tab
       cy.step(
-        `Navigate to the Project list tab and search for ${testData.projectPVStorageResourceName}`,
+        `Navigate to the Project list tab and search for ${projectName}`,
       );
       projectListPage.navigate();
-      projectListPage.filterProjectByName(testData.projectPVStorageResourceName);
-      projectListPage.findProjectLink(testData.projectPVStorageResourceName).click();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
 
       //Navigate to Cluster Storage and click to Add Storage
       cy.step('Navigate to Cluster Storage and click to create Cluster Storage');

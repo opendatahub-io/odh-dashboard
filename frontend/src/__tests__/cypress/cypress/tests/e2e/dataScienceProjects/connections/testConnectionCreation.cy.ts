@@ -62,7 +62,7 @@ describe('Verify Connections - Creation and Deletion', () => {
 
   it(
     'Create and Delete a Connection',
-    { tags: ['@Sanity', '@SanitySet1', '@ODS-1826', '@Dashboard'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ODS-1826', '@Dashboard', '@CI'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
