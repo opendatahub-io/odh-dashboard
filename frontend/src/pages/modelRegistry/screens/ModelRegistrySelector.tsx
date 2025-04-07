@@ -24,8 +24,8 @@ import { ServiceKind } from '~/k8sTypes';
 import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import WhosMyAdministrator from '~/components/WhosMyAdministrator';
 import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
-import { getServerAddress } from './utils';
 import ModelRegistrySelectIcon from '~/images/icons/ModelRegistrySelectIcon';
+import { getServerAddress } from './utils';
 
 const MODEL_REGISTRY_FAVORITE_STORAGE_KEY = 'odh.dashboard.model.registry.favorite';
 
