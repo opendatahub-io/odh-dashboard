@@ -24,8 +24,8 @@ import { ServiceKind } from '~/k8sTypes';
 import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import WhosMyAdministrator from '~/components/WhosMyAdministrator';
 import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
-import ModelRegistrySelectIcon from '~/images/icons/ModelRegistrySelectIcon';
 import { getServerAddress } from './utils';
+import ModelRegistrySelectIcon from '~/images/icons/ModelRegistrySelectIcon';
 
 const MODEL_REGISTRY_FAVORITE_STORAGE_KEY = 'odh.dashboard.model.registry.favorite';
 
@@ -153,8 +153,8 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
             style={{
               width: 'var(--pf-t--global--icon--size--font--xl)',
               height: 'var(--pf-t--global--icon--size--font--xl)',
-              marginTop: 'var(--pf-t--global--spacer--lg)',
-              marginLeft: 'var(--pf-t--global--spacer--sm)',
+              margin:
+                'var(--pf-t--global--spacer--lg) var(--pf-t--global--spacer--xs) 0 var(--pf-t--global--spacer--sm)',
             }}
           />
         </Icon>
