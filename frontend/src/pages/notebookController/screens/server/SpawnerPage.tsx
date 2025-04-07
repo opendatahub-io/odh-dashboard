@@ -344,7 +344,7 @@ const SpawnerPage: React.FC = () => {
           <FormSection title="Deployment size">
             {isHardwareProfilesAvailable ? (
               <HardwareProfileFormSection
-                project={projectName}
+                isNotebookServer
                 podSpecOptionsState={podSpecOptionsState}
                 isEditing={!!currentUserNotebook}
                 visibleIn={[HardwareProfileFeatureVisibility.WORKBENCH]}
