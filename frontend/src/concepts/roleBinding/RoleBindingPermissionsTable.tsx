@@ -67,12 +67,11 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
     newRBObject: RoleBindingKind,
     rb: RoleBindingKind,
   ) => {
-    const usedNames: string[] = [];
-    Object.entries(permissions).forEach((permission) => {
-      const permissionName = permission[1].subjects[0].name;
-      usedNames.push(permissionName);
-    });
-    if (isAdding && usedNames.includes(subjectName)) {
+    const usedNames: string[] = permissions
+      .map((p) => p.subjects[0].name)
+      .filter((name) => isAdding || name !== rb.subjects[0].name);
+    const isDuplicateName = usedNames.includes(subjectName);
+    if (isDuplicateName) {
       onError(new Error(`${subjectName} has been used already. Try another name.`));
       refresh();
     } else if (isAdding) {
@@ -94,6 +93,10 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
               setEditCell((prev) => prev.filter((cell) => cell !== rb.metadata.name));
             }),
         )
+        .then(() => {
+          onDismissNewRow();
+          refresh();
+        })
         .catch((e) => {
           onError(e);
           setEditCell((prev) => prev.filter((cell) => cell !== rb.metadata.name));
