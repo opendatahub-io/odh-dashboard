@@ -111,6 +111,10 @@ class InferenceServiceModal extends Modal {
     return this.findFooter().findByTestId('modal-submit-button');
   }
 
+  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findFooter().findByTestId('modal-cancel-button');
+  }
+
   findModelNameInput() {
     return this.k8sNameDescription.findDisplayNameInput();
   }

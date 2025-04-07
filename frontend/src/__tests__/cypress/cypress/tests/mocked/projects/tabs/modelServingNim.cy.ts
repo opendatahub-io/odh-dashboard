@@ -32,7 +32,7 @@ describe('NIM Model Serving', () => {
 
     it('should be enabled if the modal has the minimal info', () => {
       initInterceptsToEnableNim({});
-      const nimInferenceService = mockNimInferenceService();
+      const nimInferenceService = mockNimInferenceService({});
       initInterceptsToDeployModel(nimInferenceService);
 
       projectDetails.visitSection('test-project', 'model-server');
@@ -108,7 +108,10 @@ describe('NIM Model Serving', () => {
 
     it('should list the deployed model in Models tab', () => {
       initInterceptsToEnableNim({ hasAllModels: false });
-      cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([mockNimInferenceService()]));
+      cy.interceptK8sList(
+        InferenceServiceModel,
+        mockK8sResourceList([mockNimInferenceService({})]),
+      );
       cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([mockNimServingRuntime()]));
 
       projectDetails.visitSection('test-project', 'model-server');
@@ -154,7 +157,10 @@ describe('NIM Model Serving', () => {
 
     it('should list the deployed model in Overview tab', () => {
       initInterceptsToEnableNim({ hasAllModels: false });
-      cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([mockNimInferenceService()]));
+      cy.interceptK8sList(
+        InferenceServiceModel,
+        mockK8sResourceList([mockNimInferenceService({})]),
+      );
       cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([mockNimServingRuntime()]));
 
       projectDetails.visit('test-project');
