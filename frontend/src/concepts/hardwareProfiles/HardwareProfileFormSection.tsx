@@ -16,6 +16,7 @@ import { getContainerResourcesFromHardwareProfile } from './utils';
 type HardwareProfileFormSectionProps<T extends PodSpecOptions> = {
   isEditing: boolean;
   project?: string;
+  isNotebookServer?: boolean;
   visibleIn?: HardwareProfileFeatureVisibility[];
   podSpecOptionsState: PodSpecOptionsState<T>;
   isHardwareProfileSupported?: (profile: HardwareProfileKind) => boolean;
@@ -24,6 +25,7 @@ type HardwareProfileFormSectionProps<T extends PodSpecOptions> = {
 const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSpecOptions>> = ({
   podSpecOptionsState,
   project,
+  isNotebookServer,
   isEditing,
   visibleIn = [],
   isHardwareProfileSupported = () => false,
@@ -70,7 +72,9 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
             label="Hardware profile"
             isRequired
             labelHelp={
-              isProjectScoped && projectScopedHardwareProfiles[0].length > 0 ? (
+              isProjectScoped &&
+              !isNotebookServer &&
+              projectScopedHardwareProfiles[0].length > 0 ? (
                 <ProjectScopedPopover title="Hardware profile" item="hardware profiles" />
               ) : undefined
             }
@@ -81,7 +85,11 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
               hardwareProfiles={hardwareProfiles}
               hardwareProfilesLoaded={loaded}
               hardwareProfilesError={error}
-              projectScopedHardwareProfiles={projectScopedHardwareProfiles}
+              projectScopedHardwareProfiles={
+                isNotebookServer
+                  ? [[], true, undefined, () => Promise.resolve()]
+                  : projectScopedHardwareProfiles
+              }
               isHardwareProfileSupported={isHardwareProfileSupported}
               initialHardwareProfile={initialHardwareProfile}
               onChange={onProfileSelect}
