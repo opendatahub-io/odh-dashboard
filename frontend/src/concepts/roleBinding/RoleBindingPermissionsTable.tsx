@@ -7,7 +7,6 @@ import RoleBindingPermissionsTableRow from './RoleBindingPermissionsTableRow';
 import { columnsRoleBindingPermissions } from './data';
 import { RoleBindingPermissionsRoleType } from './types';
 import { firstSubject } from './utils';
-//import RoleBindingPermissionsTableRowAdd from './RoleBindingPermissionsTableRowAdd';
 
 type RoleBindingPermissionsTableProps = {
   ownerReference?: K8sResourceCommon;
@@ -52,16 +51,6 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
   refresh,
 }) => {
   const [editCell, setEditCell] = React.useState<string[]>([]);
-  const defaultRoleBinding: RoleBindingKind = {
-    metadata: {
-      name: '',
-      namespace: '',
-    },
-    subjects: [],
-    roleRef: { name: 'edit', kind: 'ClusterRole' },
-    apiVersion: '',
-    kind: '',
-  };
   const createProjectRoleBinding = (
     subjectName: string,
     newRBObject: RoleBindingKind,
@@ -135,7 +124,6 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
             onCancel={onDismissNewRow}
             onDelete={() => null}
             onEdit={() => null}
-            roleBindingObject={defaultRoleBinding}
           />
         ) : null
       }

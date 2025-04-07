@@ -28,7 +28,7 @@ import RoleBindingPermissionsNameInput from './RoleBindingPermissionsNameInput';
 import RoleBindingPermissionsPermissionSelection from './RoleBindingPermissionsPermissionSelection';
 
 type RoleBindingPermissionsTableRowProps = {
-  roleBindingObject: RoleBindingKind;
+  roleBindingObject?: RoleBindingKind;
   subjectKind: RoleBindingSubject['kind'];
   isEditing: boolean;
   isAdding: boolean;
@@ -68,14 +68,28 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
   onDelete,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
-  const [roleBindingName, setRoleBindingName] = React.useState(
-    defaultValueName(obj, isProjectSubject, projects),
+  const [roleBindingName, setRoleBindingName] = React.useState(() =>
+    isAdding ? '' : defaultValueName(obj!, isProjectSubject, projects),
   );
   const [roleBindingRoleRef, setRoleBindingRoleRef] =
-    React.useState<RoleBindingPermissionsRoleType>(defaultValueRole(obj));
-  //const [isLoading, setIsLoading] = React.useState(false);
-  const createdDate = new Date(obj.metadata.creationTimestamp || '');
-  const isDefaultGroup = obj.metadata.name === defaultRoleBindingName;
+    React.useState<RoleBindingPermissionsRoleType>(
+      isAdding ? permissionOptions[0]?.type : defaultValueRole(obj!),
+    );
+  const [isLoading, setIsLoading] = React.useState(false);
+  const createdDate = new Date(obj?.metadata.creationTimestamp ?? '');
+  const isDefaultGroup = obj?.metadata.name === defaultRoleBindingName;
+
+  //Sync local state with props if exiting edit mode
+  React.useEffect(() => {
+    if (!isEditing && obj) {
+      setRoleBindingName(
+        isProjectSubject
+          ? defaultValueName(obj, isProjectSubject, projects)
+          : defaultValueName(obj),
+      );
+      setRoleBindingRoleRef(defaultValueRole(obj));
+    }
+  }, [obj, isEditing, isProjectSubject, projects]);
 
   return (
     <Tbody>
@@ -147,10 +161,9 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
                   aria-label="Save role binding"
                   variant="link"
                   icon={<CheckIcon />}
-                  //isDisabled={isLoading || !roleBindingName || !roleBindingRoleRef}
-                  isDisabled={!roleBindingName || !roleBindingRoleRef}
+                  isDisabled={isLoading || !roleBindingName || !roleBindingRoleRef}
                   onClick={() => {
-                    //setIsLoading(true);
+                    setIsLoading(true);
                     onChange(
                       isProjectSubject
                         ? `system:serviceaccounts:${projectDisplayNameToNamespace(
@@ -160,6 +173,7 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
                         : roleBindingName,
                       roleBindingRoleRef,
                     );
+                    setIsLoading(false);
                   }}
                 />
               </SplitItem>
@@ -168,22 +182,10 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
                   data-id="cancel-rolebinding-button"
                   aria-label="Cancel role binding"
                   variant="plain"
-                  //isDisabled={isLoading}
+                  isDisabled={isLoading}
                   icon={<TimesIcon />}
                   onClick={() => {
-                    if (isAdding) {
-                      onCancel();
-                    } else {
-                      // TODO: Fix this
-                      // This is why you do not store a copy of state
-                      setRoleBindingName(
-                        isProjectSubject
-                          ? defaultValueName(obj, isProjectSubject, projects)
-                          : defaultValueName(obj),
-                      );
-                      setRoleBindingRoleRef(defaultValueRole(obj));
-                      onCancel();
-                    }
+                    onCancel();
                   }}
                 />
               </SplitItem>
