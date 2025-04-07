@@ -17,6 +17,7 @@ import {
   kserveModal,
   kserveModalEdit,
   modelServingGlobal,
+  modelServingSection,
 } from '~/__tests__/cypress/cypress/pages/modelServing';
 import {
   HardwareProfileModel,
@@ -41,6 +42,7 @@ import {
   mockGlobalScopedHardwareProfiles,
   mockProjectScopedHardwareProfiles,
 } from '~/__mocks__/mockHardwareProfile';
+import { initInterceptsForAllProjects } from '~/__tests__/cypress/cypress/utils/servingUtils';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -287,6 +289,57 @@ describe('Model Serving Global', () => {
     cy.wait('@getInferenceServices').then((response) => {
       expect(response.error?.message).to.eq('Socket closed before finished writing response');
     });
+  });
+
+  it('All projects with every type of serving listed', () => {
+    asClusterAdminUser();
+    initInterceptsForAllProjects();
+
+    // Visit the all-projects view and ensure each project type is listed
+    modelServingGlobal.visit();
+    [
+      {
+        model: 'KServe Model',
+        project: 'KServe Project',
+        servingType: 'Single-model serving enabled',
+      },
+      {
+        model: 'Model Mesh Model',
+        project: 'Model Mesh Project',
+        servingType: 'Multi-model serving enabled',
+      },
+      {
+        model: 'NIM Model',
+        project: 'NIM Project',
+        servingType: 'NVIDIA NIM serving enabled',
+      },
+    ].forEach((row) => {
+      modelServingSection.getInferenceServiceRow(row.model).findProject().findByText(row.project);
+      modelServingSection
+        .getInferenceServiceRow(row.model)
+        .findProject()
+        .findByText(row.servingType);
+    });
+    // Double check NIM Runtime is listed
+    modelServingSection
+      .getInferenceServiceRow('NIM Model')
+      .findServingRuntime()
+      .should('have.text', 'NVIDIA NIM');
+
+    // Open each modal and make sure it is the correct one
+    modelServingGlobal.getModelRow('KServe Model').findKebabAction('Edit').click();
+    // KServe Modal has section at the bottom for configuring params where as Model Mesh does not
+    kserveModalEdit.findConfigurationParamsSection().should('exist');
+    kserveModalEdit.findCancelButton().click();
+
+    modelServingGlobal.getModelRow('Model Mesh Model').findKebabAction('Edit').click();
+    inferenceServiceModalEdit.findConfigurationParamsSection().should('not.exist');
+    inferenceServiceModalEdit.findCancelButton().click();
+
+    // NIM Modal is essentially the same layout as KServe so we check the runtime is correct
+    modelServingGlobal.getModelRow('NIM Model').findKebabAction('Edit').click();
+    kserveModalEdit.findServingRuntimeTemplate().should('have.text', 'NVIDIA NIM');
+    kserveModalEdit.findCancelButton().click();
   });
 
   it('Empty State No Project Selected', () => {
