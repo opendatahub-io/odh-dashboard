@@ -13,6 +13,20 @@ describe('Home page AI Flows', () => {
     homeAISection.getModelsFlowCard().find().should('be.visible');
   });
 
+  it('should show the AI flow hint and close it', () => {
+    homeAISection.findAIFlowHint().should('not.exist');
+    homePage.initHomeIntercepts({ disableFineTuning: false });
+    homePage.visit();
+    homeAISection.findAIFlowHint();
+    homeAISection
+      .findAIFlowHintText()
+      .contains(
+        'LAB-tuning significantly reduces limitations associated with traditional fine-tuning methods, such as high resource usage and time-consuming manual data generation.',
+      );
+    homeAISection.findAIFlowHintImage().should('be.visible');
+    homeAISection.findAIFlowHintCloseButton();
+  });
+
   it('should show the appropriate info cards', () => {
     homeAISection.getProjectCard().find().click();
     homeAISection.findProjectsAIFlowInfo().should('be.visible');

@@ -15,6 +15,22 @@ export class HomeAIFlow extends Contextual<HTMLElement> {
     return new AIFlowCard(() => this.find().findByTestId('ai-flow-models-card'));
   }
 
+  findAIFlowHint(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('ai-flow-hint');
+  }
+
+  findAIFlowHintText(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('ai-flow-hint-body-text');
+  }
+
+  findAIFlowHintImage(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('ai-flow-hint-image');
+  }
+
+  findAIFlowHintCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findAllByTestId('ai-flow-hint-close');
+  }
+
   findWorkbenchesAIFlowInfo(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('ai-flows-workbenches-info');
   }
