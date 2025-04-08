@@ -16,7 +16,7 @@ type NotebookPackageDetailsProps = {
 
 const NotebookImagePackageDetails: React.FC<NotebookPackageDetailsProps> = ({
   dependencies,
-  title = <DescriptionListTerm>Packages</DescriptionListTerm>,
+  title,
 }) => {
   if (dependencies.length === 0) {
     return null;
@@ -25,7 +25,7 @@ const NotebookImagePackageDetails: React.FC<NotebookPackageDetailsProps> = ({
   return (
     <DescriptionList>
       <DescriptionListGroup>
-        {title}
+        <DescriptionListTerm>{title || 'Packages'}</DescriptionListTerm>
         <DescriptionListDescription>
           {dependencies.map(getNameVersionString).map((pkg) => (
             <div key={pkg}>

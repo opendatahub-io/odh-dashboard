@@ -217,8 +217,7 @@ export const NotebookImageDisplayName = ({
               isVisible={isPopoverVisible}
             >
               <Label
-                // eslint-disable-next-line @typescript-eslint/no-empty-function
-                onClick={() => {}}
+                onClick={(e) => e.preventDefault()}
                 data-testid="notebook-image-availability"
                 isCompact
                 color={getNotebookImageLabelColor()}

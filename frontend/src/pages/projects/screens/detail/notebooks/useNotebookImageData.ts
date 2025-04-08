@@ -117,19 +117,8 @@ const getNotebookImageInternalRegistry = (
   versionName: string,
 ): NotebookImageData[0] => {
   const imageStream = images.find((image) => image.metadata.name === imageName);
-  const imageCommit = images.some(
-    (image) =>
-      image.spec.tags &&
-      image.spec.tags.some(
-        (imageTags) =>
-          imageTags.annotations?.['opendatahub.io/notebook-build-commit'] ===
-          notebook.metadata.annotations?.[
-            'notebooks.opendatahub.io/last-image-version-git-commit-selection'
-          ],
-      ),
-  );
 
-  if (!imageStream || !imageCommit) {
+  if (!imageStream || !findNotebookImageCommit(notebook, images)) {
     // Get the image display name from the notebook metadata if we can't find the image stream. (this is a fallback and could still be undefined)
     return getDeletedImageData(
       notebook.metadata.annotations?.['opendatahub.io/image-display-name'],
@@ -168,19 +157,8 @@ const getNotebookImageNoInternalRegistry = (
       image.metadata.name === lastImageSelectionName &&
       image.spec.tags?.find((version) => version.from?.name === containerImage),
   );
-  const imageCommit = images.some(
-    (image) =>
-      image.spec.tags &&
-      image.spec.tags.some(
-        (imageTags) =>
-          imageTags.annotations?.['opendatahub.io/notebook-build-commit'] ===
-          notebook.metadata.annotations?.[
-            'notebooks.opendatahub.io/last-image-version-git-commit-selection'
-          ],
-      ),
-  );
 
-  if (!imageStream || !imageCommit) {
+  if (!imageStream || !findNotebookImageCommit(notebook, images)) {
     // Get the image display name from the notebook metadata if we can't find the image stream. (this is a fallback and could still be undefined)
     return getDeletedImageData(
       notebook.metadata.annotations?.['opendatahub.io/image-display-name'],
@@ -221,19 +199,8 @@ const getNotebookImageNoInternalRegistryNoSHA = (
         version.items?.find((item) => item.dockerImageReference === containerImage),
     ),
   );
-  const imageCommit = images.some(
-    (image) =>
-      image.spec.tags &&
-      image.spec.tags.some(
-        (imageTags) =>
-          imageTags.annotations?.['opendatahub.io/notebook-build-commit'] ===
-          notebook.metadata.annotations?.[
-            'notebooks.opendatahub.io/last-image-version-git-commit-selection'
-          ],
-      ),
-  );
 
-  if (!imageStream || !imageCommit) {
+  if (!imageStream || !findNotebookImageCommit(notebook, images)) {
     // Get the image display name from the notebook metadata if we can't find the image stream. (this is a fallback and could still be undefined)
     return getDeletedImageData(
       notebook.metadata.annotations?.['opendatahub.io/image-display-name'],
@@ -282,5 +249,18 @@ const getImageStatus = (imageVersion: ImageStreamSpecTagType): NotebookImageStat
   }
   return undefined;
 };
+
+const findNotebookImageCommit = (notebook: NotebookKind, images: ImageStreamKind[]) =>
+  images.some(
+    (image) =>
+      image.spec.tags &&
+      image.spec.tags.some(
+        (imageTags) =>
+          imageTags.annotations?.['opendatahub.io/notebook-build-commit'] ===
+          notebook.metadata.annotations?.[
+            'notebooks.opendatahub.io/last-image-version-git-commit-selection'
+          ],
+      ),
+  );
 
 export default useNotebookImageData;
