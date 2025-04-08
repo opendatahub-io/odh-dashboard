@@ -68,7 +68,7 @@ const AIFlowHint: React.FC<AIFlowHintProps> = ({ title, body, isDisplayed, image
             <Button
               icon={<TimesIcon />}
               data-testid="ai-flow-hint-close"
-              aria-label="close landing page hint"
+              aria-label="close ai flow hint"
               isInline
               variant="plain"
               onClick={() => setHintHidden(true)}
