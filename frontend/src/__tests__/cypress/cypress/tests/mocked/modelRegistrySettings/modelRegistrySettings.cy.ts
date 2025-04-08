@@ -596,6 +596,20 @@ describe('CreateModal', () => {
     modelRegistrySettings.resourceNameSelect.openAndSelectItem('sampleSecret', true);
     modelRegistrySettings.findExistingCAKeyInputToggle().should('be.enabled');
     modelRegistrySettings.keySelect.openAndSelectItem('bar.crt', true);
+    // Open the resource selector and verify both groups are initially visible
+    modelRegistrySettings.resourceNameSelect.findToggleButton().click();
+    cy.contains('ConfigMaps').should('be.visible');
+    cy.contains('Secrets').should('be.visible');
+
+    // Search for a value that exists in ConfigMaps but not in Secrets
+    modelRegistrySettings.resourceNameSelect
+      .findSearchInput()
+      .should('be.visible')
+      .type('sampleSecret');
+
+    // Wait for and verify the groups are visible
+    cy.contains('Secrets').should('be.visible');
+    cy.get('body').should('not.contain', 'ConfigMaps');
 
     modelRegistrySettings.findSubmitButton().should('be.enabled');
     modelRegistrySettings.findSubmitButton().click();
@@ -652,6 +666,18 @@ describe('CreateModal', () => {
     modelRegistrySettings.resourceNameSelect.openAndSelectItem('foo-bar', true);
     modelRegistrySettings.findExistingCAKeyInputToggle().should('be.enabled');
     modelRegistrySettings.keySelect.openAndSelectItem('bar.crt', true);
+
+    // Open the resource selector and verify both groups are initially visible
+    modelRegistrySettings.resourceNameSelect.findToggleButton().click();
+    cy.contains('ConfigMaps').should('be.visible');
+    cy.contains('Secrets').should('be.visible');
+
+    // Search for a value that exists in ConfigMaps but not in Secrets
+    modelRegistrySettings.resourceNameSelect.findSearchInput().should('be.visible').type('foo-bar');
+
+    // Wait for and verify the groups are visible
+    cy.contains('ConfigMaps').should('be.visible');
+    cy.get('body').should('not.contain', 'Secrets');
 
     modelRegistrySettings.findSubmitButton().should('be.enabled');
     modelRegistrySettings.findSubmitButton().click();
