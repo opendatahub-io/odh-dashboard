@@ -25,7 +25,8 @@ describe('Workbench and PVSs tests', () => {
   retryableBefore(() => {
     return loadPVCFixture('e2e/dataScienceProjects/testProjectWbPV.yaml')
       .then((fixtureData: PVCReplacements) => {
-        projectName = fixtureData.NAMESPACE;
+        const uniqueSuffix = `-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+        projectName = fixtureData.NAMESPACE + uniqueSuffix;
         PVCName = fixtureData.PVC_NAME;
         PVCDisplayName = fixtureData.PVC_DISPLAY_NAME;
         PVCSize = fixtureData.PVC_SIZE;

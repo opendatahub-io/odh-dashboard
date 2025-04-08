@@ -13,7 +13,8 @@ import {
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
-const projectName = 'test-pipelines-prj';
+const uniqueSuffix = `-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+const projectName = `test-pipelines-prj${uniqueSuffix}`;
 const dspaSecretName = 'dashboard-dspa-secret';
 const testPipelineName = 'test-pipelines-pipeline';
 const testRunName = 'test-pipelines-run';

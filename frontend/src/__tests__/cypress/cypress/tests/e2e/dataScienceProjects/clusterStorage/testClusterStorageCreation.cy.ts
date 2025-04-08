@@ -71,9 +71,7 @@ describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       // Project navigation and navigate to the Cluster Storage tab
-      cy.step(
-        `Navigate to the Project list tab and search for ${projectName}`,
-      );
+      cy.step(`Navigate to the Project list tab and search for ${projectName}`);
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();

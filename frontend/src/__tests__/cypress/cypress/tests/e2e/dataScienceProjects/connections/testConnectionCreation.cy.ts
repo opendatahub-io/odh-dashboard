@@ -38,7 +38,9 @@ describe('Verify Connections - Creation and Deletion', () => {
     return loadDSPFixture('e2e/dataScienceProjects/testDataConnectionCreation.yaml')
       .then((fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
-        projectName = testData.projectDCResourceName;
+        const uniqueSuffix = `-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+
+        projectName = testData.projectDCResourceName + uniqueSuffix;
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
         }
@@ -69,10 +71,10 @@ describe('Verify Connections - Creation and Deletion', () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       // Project navigation
-      cy.step(`Navigate to the Project list tab and search for ${testData.projectDCResourceName}`);
+      cy.step(`Navigate to the Project list tab and search for ${projectName}`);
       projectListPage.navigate();
-      projectListPage.filterProjectByName(testData.projectDCResourceName);
-      projectListPage.findProjectLink(testData.projectDCResourceName).click();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
 
       //Navigate to Connections and create Connection
       cy.step('Navigate to Connections and click to create Connection');
