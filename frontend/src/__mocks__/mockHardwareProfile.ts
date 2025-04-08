@@ -87,3 +87,111 @@ export const mockHardwareProfile = ({
     description,
   },
 });
+
+export const mockGlobalScopedHardwareProfiles = [
+  mockHardwareProfile({
+    name: 'small-profile',
+    displayName: 'Small Profile',
+    identifiers: [
+      {
+        displayName: 'CPU',
+        identifier: 'cpu',
+        minCount: '1',
+        maxCount: '2',
+        defaultCount: '1',
+        resourceType: IdentifierResourceType.CPU,
+      },
+      {
+        displayName: 'Memory',
+        identifier: 'memory',
+        minCount: '2Gi',
+        maxCount: '4Gi',
+        defaultCount: '2Gi',
+        resourceType: IdentifierResourceType.MEMORY,
+      },
+    ],
+    tolerations: [
+      {
+        effect: TolerationEffect.NO_SCHEDULE,
+        key: 'NotebooksOnlyChange',
+        operator: TolerationOperator.EXISTS,
+      },
+    ],
+    nodeSelector: {},
+  }),
+  mockHardwareProfile({
+    name: 'large-profile',
+    displayName: 'Large Profile',
+    identifiers: [
+      {
+        displayName: 'CPU',
+        identifier: 'cpu',
+        minCount: '4',
+        maxCount: '8',
+        defaultCount: '4',
+        resourceType: IdentifierResourceType.CPU,
+      },
+      {
+        displayName: 'Memory',
+        identifier: 'memory',
+        minCount: '8Gi',
+        maxCount: '16Gi',
+        defaultCount: '8Gi',
+        resourceType: IdentifierResourceType.MEMORY,
+      },
+    ],
+  }),
+];
+
+export const mockProjectScopedHardwareProfiles = [
+  mockHardwareProfile({
+    name: 'small-profile',
+    displayName: 'Small Profile',
+    namespace: 'test-project',
+    identifiers: [
+      {
+        displayName: 'CPU',
+        identifier: 'cpu',
+        minCount: '1',
+        maxCount: '2',
+        defaultCount: '1',
+      },
+      {
+        displayName: 'Memory',
+        identifier: 'memory',
+        minCount: '2Gi',
+        maxCount: '4Gi',
+        defaultCount: '2Gi',
+      },
+    ],
+    tolerations: [
+      {
+        effect: TolerationEffect.NO_SCHEDULE,
+        key: 'NotebooksOnlyChange',
+        operator: TolerationOperator.EXISTS,
+      },
+    ],
+    nodeSelector: {},
+  }),
+  mockHardwareProfile({
+    name: 'large-profile-1',
+    displayName: 'Large Profile-1',
+    namespace: 'test-project',
+    identifiers: [
+      {
+        displayName: 'CPU',
+        identifier: 'cpu',
+        minCount: '4',
+        maxCount: '8',
+        defaultCount: '4',
+      },
+      {
+        displayName: 'Memory',
+        identifier: 'memory',
+        minCount: '8Gi',
+        maxCount: '16Gi',
+        defaultCount: '8Gi',
+      },
+    ],
+  }),
+];
