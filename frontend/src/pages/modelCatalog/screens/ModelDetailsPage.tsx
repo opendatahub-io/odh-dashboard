@@ -32,7 +32,7 @@ import {
   isLabBase,
 } from '~/pages/modelCatalog/utils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import { getRegisterCatalogModelUrl } from '~/pages/modelCatalog/routeUtils';
+import { getRegisterCatalogModelRoute } from '~/routes';
 import PopoverListContent from '~/components/PopoverListContent';
 import { FindAdministratorOptions } from '~/pages/projects/screens/projects/const';
 import { RhUiTagIcon } from '~/images/icons';
@@ -97,7 +97,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
         data-testid="register-model-button"
         variant="secondary"
         onClick={() => {
-          navigate(getRegisterCatalogModelUrl(decodedParams));
+          navigate(getRegisterCatalogModelRoute(decodedParams));
         }}
       >
         Register model

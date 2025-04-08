@@ -34,7 +34,7 @@ import {
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { globalPipelineRunDetailsRoute } from '~/routes';
 import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
-import { getCatalogModelDetailsUrl } from '~/pages/modelCatalog/routeUtils';
+import { getCatalogModelDetailsRoute } from '~/routes'
 import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
 
 type ModelVersionDetailsViewProps = {
@@ -99,7 +99,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
   const catalogModelCustomProps: CatalogModelDetailsParams = getCatalogModelDetailsProps(
     mv.customProperties,
   );
-  const catalogModelDetailsUrl = getCatalogModelDetailsUrl(catalogModelCustomProps);
+  const catalogModelDetailsUrl = getCatalogModelDetailsRoute(catalogModelCustomProps);
 
   return (
     <Flex

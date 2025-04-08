@@ -17,7 +17,7 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { CatalogModel } from '~/concepts/modelCatalog/types';
-import { getCatalogModelDetailsUrlFromModel } from '~/pages/modelCatalog/routeUtils';
+import { getCatalogModelDetailsRouteFromModel } from '~/routes'
 import { getTagFromModel } from '~/pages/modelCatalog/utils';
 import { RhUiTagIcon } from '~/images/icons';
 import { ModelCatalogLabels } from '~/pages/modelCatalog/components/ModelCatalogLabels';
@@ -51,7 +51,7 @@ export const ModelCatalogCard: React.FC<{ model: CatalogModel; source: string }>
         <StackItem>
           <Link
             data-testid="model-catalog-detail-link"
-            to={getCatalogModelDetailsUrlFromModel(model, source) || '#'}
+            to={getCatalogModelDetailsRouteFromModel(model, source) || '#'}
             style={{
               fontSize: 'var(--pf-t--global--font--size--body--default)',
               fontWeight: 'var(--pf-t--global--font--weight--body--bold)',

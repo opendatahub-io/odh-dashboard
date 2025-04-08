@@ -6,7 +6,7 @@ import { ModelCustomizationAccordionItem } from '~/pages/pipelines/global/modelC
 import { BaseSection } from '~/pages/pipelines/global/modelCustomization/landingPage/BaseSection';
 import { useToggleAccordion } from '~/pages/pipelines/global/modelCustomization/landingPage/useToggleAccordion';
 import { pipelineRunsRootPath } from '~/routes';
-import { modelCatalogUrl } from '~/pages/modelCatalog/routeUtils';
+import { modelCatalogRoute } from '~/routes';
 
 export const NextStepsSection: React.FC = () => {
   const { accordionItemsExpanded, handleToggleAccordion } = useToggleAccordion();
@@ -20,7 +20,7 @@ export const NextStepsSection: React.FC = () => {
           itemsExpanded={accordionItemsExpanded}
           handleToggle={handleToggleAccordion}
         >
-          Select a base model from the <Link to={modelCatalogUrl}>Model catalog page</Link> and
+          Select a base model from the <Link to={modelCatalogRoute}>Model catalog page</Link> and
           register it to an {ODH_PRODUCT_NAME} model registry.
           <br />
           Note: You can choose any base model, but {ODH_PRODUCT_NAME} currently supports LAB-tuning

@@ -43,7 +43,7 @@ import {
   ModelRegistryMetadataType,
 } from '~/concepts/modelRegistry/types';
 import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
-import { getCatalogModelDetailsUrl } from '~/pages/modelCatalog/routeUtils';
+import { getCatalogModelDetailsRoute } from '~/routes'
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 
@@ -187,7 +187,7 @@ const RegisterCatalogModel: React.FC = () => {
   };
   const onCancel = () => {
     fireFormTrackingEvent(eventName, { outcome: TrackingOutcome.cancel, model: params.modelName });
-    navigate(getCatalogModelDetailsUrl(params));
+    navigate(getCatalogModelDetailsRoute(params));
   };
 
   return (
@@ -199,7 +199,7 @@ const RegisterCatalogModel: React.FC = () => {
           <BreadcrumbItem render={() => <Link to="/modelCatalog">Model catalog</Link>} />
           <BreadcrumbItem
             render={() => (
-              <Link to={getCatalogModelDetailsUrl(params)}>{params.modelName || 'Loading...'}</Link>
+              <Link to={getCatalogModelDetailsRoute(params)}>{params.modelName || 'Loading...'}</Link>
             )}
           />
           <BreadcrumbItem data-testid="breadcrumb-version-name" isActive>
