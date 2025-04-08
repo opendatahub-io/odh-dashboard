@@ -2,9 +2,8 @@ import React from 'react';
 
 import { StorageClassConfig, StorageClassKind } from '~/k8sTypes';
 import { FetchStateRefreshPromise } from '~/utilities/useFetchState';
-import { ResponseStatus } from '~/types';
-import { updateStorageClassConfig } from '~/services/StorageClassService';
 import { allSettledPromises } from '~/utilities/allSettledPromises';
+import { updateStorageClassConfig } from '~/api';
 import { getStorageClassConfig, isOpenshiftDefaultStorageClass } from './utils';
 
 export interface StorageClassContextProps {
@@ -69,7 +68,7 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
     let hasDefaultConfig = false;
 
     const updateRequests = Object.entries(storageClassConfigs).reduce(
-      (acc: Promise<ResponseStatus>[], [name, config], index) => {
+      (acc: Promise<StorageClassConfig>[], [name, config], index) => {
         const isFirstConfig = index === 0;
         const isOpenshiftDefault = openshiftDefaultScName === name;
 

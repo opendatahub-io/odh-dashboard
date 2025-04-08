@@ -61,9 +61,9 @@ describe('Storage classes', () => {
       otherStorageClassTableRow.findDefaultRadioInput().should('not.have.attr', 'checked');
       otherStorageClassTableRow.findDefaultRadioInput().should('have.attr', 'disabled');
 
-      storageClassesTable
-        .mockUpdateStorageClass(otherStorageClass.metadata.name, 1)
-        .as('updateStorageClass-1');
+      storageClassesTable.mockGetStorageClass(otherStorageClass);
+      storageClassesTable.mockPatchStorageClass(otherStorageClass).as('updateStorageClass-1');
+
       storageClassesPage
         .mockGetStorageClasses(
           [
@@ -82,12 +82,14 @@ describe('Storage classes', () => {
       otherStorageClassTableRow.findEnableSwitchInput().should('have.attr', 'aria-checked', 'true');
       otherStorageClassTableRow.findDefaultRadioInput().should('not.have.attr', 'disabled');
 
+      storageClassesTable.mockGetStorageClass(otherStorageClass);
+      storageClassesTable.mockPatchStorageClass(otherStorageClass).as('updateStorageClass-2');
+
+      storageClassesTable.mockGetStorageClass(openshiftDefaultStorageClass);
       storageClassesTable
-        .mockUpdateStorageClass(otherStorageClass.metadata.name, 1)
-        .as('updateStorageClass-2');
-      storageClassesTable
-        .mockUpdateStorageClass(openshiftDefaultStorageClass.metadata.name, 1)
+        .mockPatchStorageClass(openshiftDefaultStorageClass)
         .as('updateStorageClass-3');
+
       storageClassesPage
         .mockGetStorageClasses(
           [
@@ -126,7 +128,9 @@ describe('Storage classes', () => {
       storageClassEditModal.fillDisplayNameInput('Updated name');
       storageClassEditModal.fillDescriptionInput('Updated description');
 
-      storageClassEditModal.mockUpdateStorageClass('test-storage-class-1', 1);
+      storageClassEditModal.mockGetStorageClass(otherStorageClass);
+      storageClassEditModal.mockPatchStorageClass(otherStorageClass);
+
       storageClassesPage
         .mockGetStorageClasses([
           openshiftDefaultStorageClass,
@@ -166,7 +170,9 @@ describe('Storage classes', () => {
       storageClassEditModal.findInfoAlert().should('contain.text', 'Reset the metadata');
       storageClassEditModal.fillDisplayNameInput('Readable config');
 
-      storageClassEditModal.mockUpdateStorageClass(storageClassName, 1);
+      storageClassEditModal.mockGetStorageClass(storageClass);
+      storageClassEditModal.mockPatchStorageClass(storageClass);
+
       storageClassesPage
         .mockGetStorageClasses([
           buildMockStorageClass(storageClass, {
@@ -214,7 +220,9 @@ describe('Storage classes', () => {
         .should('be.visible');
 
       // Reset enable
-      storageClassesTable.mockUpdateStorageClass(storageClassName, 1);
+      storageClassesTable.mockGetStorageClass(storageClass);
+      storageClassesTable.mockPatchStorageClass(storageClass);
+
       storageClassesPage
         .mockGetStorageClasses([
           buildMockStorageClass(storageClass, {
@@ -233,7 +241,9 @@ describe('Storage classes', () => {
       storageClassTableRow.findEnableSwitchInput().should('have.attr', 'aria-checked', 'false');
 
       // Reset default
-      storageClassesTable.mockUpdateStorageClass(storageClassName, 1);
+      storageClassesTable.mockGetStorageClass(storageClass);
+      storageClassesTable.mockPatchStorageClass(storageClass);
+
       storageClassesPage
         .mockGetStorageClasses([
           buildMockStorageClass(storageClass, {
@@ -253,7 +263,9 @@ describe('Storage classes', () => {
       storageClassTableRow.findDefaultRadioInput().should('not.have.attr', 'checked');
 
       // Reset last modified
-      storageClassesTable.mockUpdateStorageClass(storageClassName, 1);
+      storageClassesTable.mockGetStorageClass(storageClass);
+      storageClassesTable.mockPatchStorageClass(storageClass);
+
       storageClassesPage
         .mockGetStorageClasses([
           buildMockStorageClass(storageClass, {
@@ -295,7 +307,9 @@ describe('Storage classes', () => {
       storageClassEditModal.findInfoAlert().should('contain.text', 'Edit the invalid field');
       storageClassEditModal.fillDisplayNameInput('New name');
 
-      storageClassEditModal.mockUpdateStorageClass('invalid-name', 1);
+      storageClassEditModal.mockGetStorageClass(storageClass);
+      storageClassEditModal.mockPatchStorageClass(storageClass);
+
       storageClassesPage
         .mockGetStorageClasses([
           buildMockStorageClass(
@@ -333,7 +347,9 @@ describe('Storage classes', () => {
       storageClassEditModal.findDescriptionInput().should('be.empty');
       storageClassEditModal.findInfoAlert().should('contain.text', 'Edit the invalid field');
 
-      storageClassEditModal.mockUpdateStorageClass('invalid-description', 1);
+      storageClassEditModal.mockGetStorageClass(storageClass);
+      storageClassEditModal.mockPatchStorageClass(storageClass);
+
       storageClassesPage
         .mockGetStorageClasses([
           buildMockStorageClass(
@@ -371,7 +387,9 @@ describe('Storage classes', () => {
       storageClassEditModal.fillDisplayNameInput('New name');
       storageClassEditModal.fillDescriptionInput('New description');
 
-      storageClassEditModal.mockUpdateStorageClass('invalid-name-and-desc', 1);
+      storageClassEditModal.mockGetStorageClass(storageClass);
+      storageClassEditModal.mockPatchStorageClass(storageClass);
+
       storageClassesPage
         .mockGetStorageClasses([
           buildMockStorageClass(
@@ -437,7 +455,8 @@ describe('Storage classes', () => {
 
     it('should not show no default alert when there is an OpenShift default storage class', () => {
       storageClassesPage.mockGetStorageClasses([openshiftDefaultStorageClass]);
-      storageClassesTable.mockUpdateStorageClass(openshiftDefaultStorageClass.metadata.name, 1);
+      storageClassesTable.mockGetStorageClass(openshiftDefaultStorageClass);
+      storageClassesTable.mockPatchStorageClass(openshiftDefaultStorageClass);
       storageClassesPage.visit();
 
       storageClassesPage.findNoDefaultAlert().should('not.exist');
@@ -445,7 +464,8 @@ describe('Storage classes', () => {
 
     it('should show no default alert when there is no OpenShift default storage classes', () => {
       storageClassesPage.mockGetStorageClasses([otherStorageClass]);
-      storageClassesTable.mockUpdateStorageClass(otherStorageClass.metadata.name, 1);
+      storageClassesTable.mockGetStorageClass(otherStorageClass);
+      storageClassesTable.mockPatchStorageClass(otherStorageClass);
       storageClassesPage.visit();
 
       storageClassesPage.findNoDefaultAlert().should('exist');
