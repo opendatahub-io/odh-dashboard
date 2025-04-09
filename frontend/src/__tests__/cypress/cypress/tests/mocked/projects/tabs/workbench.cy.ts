@@ -19,6 +19,7 @@ import {
   editSpawnerPage,
   notFoundSpawnerPage,
   notebookConfirmModal,
+  notebookImageUpdateModal,
   workbenchPage,
 } from '~/__tests__/cypress/cypress/pages/workbench';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
@@ -84,12 +85,64 @@ const initIntercepts = ({
             'opendatahub.io/notebook-image': 'true',
           },
           annotations: {
-            'opendatahub.io/image-display-name': 'Project-scoped test image',
+            'opendatahub.io/image-display-name': 'Test image',
           },
         },
       },
     }),
     mockNotebookK8sResource({ name: 'another-test', displayName: 'Another Notebook' }),
+    mockNotebookK8sResource({
+      name: 'outdated-notebook',
+      displayName: 'Outdated Notebook',
+      image: 'test-10:2023.1',
+      envFrom,
+      opts: {
+        metadata: {
+          name: 'outdated-notebook',
+          labels: {
+            'opendatahub.io/notebook-image': 'true',
+          },
+          annotations: {
+            'opendatahub.io/image-display-name': 'Outdated image',
+          },
+        },
+      },
+    }),
+    mockNotebookK8sResource({
+      name: 'latest-notebook',
+      displayName: 'Latest Notebook',
+      image: 'test-10:2024.2',
+      envFrom,
+      opts: {
+        metadata: {
+          name: 'latest-notebook',
+          labels: {
+            'opendatahub.io/notebook-image': 'true',
+          },
+          annotations: {
+            'opendatahub.io/image-display-name': 'Latest image',
+          },
+        },
+      },
+    }),
+    mockNotebookK8sResource({
+      name: 'mismatch-commit-notebook',
+      displayName: 'Deleted Notebook',
+      image: 'test-10:2023.1',
+      envFrom,
+      opts: {
+        metadata: {
+          name: 'mismatch-commit-notebook',
+          labels: {
+            'opendatahub.io/notebook-image': 'true',
+          },
+          annotations: {
+            'notebooks.opendatahub.io/last-image-version-git-commit-selection': '123',
+            'opendatahub.io/image-display-name': 'Outdated image',
+          },
+        },
+      },
+    }),
   ],
 }: HandlersProps) => {
   cy.interceptK8sList(StorageClassModel, mockStorageClassList());
@@ -161,6 +214,77 @@ const initIntercepts = ({
         namespace: 'opendatahub',
         name: 'test-9',
         displayName: 'Test image 9',
+      }),
+      mockImageStreamK8sResource({
+        namespace: 'opendatahub',
+        name: 'test-10',
+        displayName: 'Test image 10',
+        opts: {
+          spec: {
+            tags: [
+              {
+                name: '2023.1',
+                annotations: {
+                  'opendatahub.io/image-tag-outdated': 'true',
+                  'opendatahub.io/workbench-image-recommended': 'false',
+                  'opendatahub.io/notebook-python-dependencies':
+                    '[{"name":"JupyterLab","version": "3.2"}, {"name": "Notebook","version": "6.4"}]',
+                  'opendatahub.io/notebook-software': '[{"name":"Python","version":"v3.8"}]',
+                  'opendatahub.io/notebook-build-commit': '1234',
+                },
+                from: {
+                  kind: 'DockerImage',
+                  name: 'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+                },
+              },
+              {
+                name: '2024.2',
+                annotations: {
+                  'opendatahub.io/workbench-image-recommended': 'true',
+                  'opendatahub.io/notebook-python-dependencies':
+                    '[{"name":"JupyterLab","version": "3.2"}, {"name": "Notebook","version": "6.4"}]',
+                  'opendatahub.io/notebook-software': '[{"name":"Python","version":"v3.8"}]',
+                },
+                from: {
+                  kind: 'DockerImage',
+                  name: 'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+                },
+              },
+            ],
+          },
+          status: {
+            dockerImageRepository:
+              'image-registry.openshift-image-registry.svc:5000/opendatahub/jupyter-minimal-notebook',
+            tags: [
+              {
+                tag: '2023.1',
+                items: [
+                  {
+                    created: '2023-06-30T15:07:36Z',
+                    dockerImageReference:
+                      'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+                    image:
+                      'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+                    generation: 2,
+                  },
+                ],
+              },
+              {
+                tag: '2024.2',
+                items: [
+                  {
+                    created: '2023-06-30T15:07:36Z',
+                    dockerImageReference:
+                      'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+                    image:
+                      'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+                    generation: 2,
+                  },
+                ],
+              },
+            ],
+          },
+        },
       }),
       mockImageStreamK8sResource({
         name: 'test-10stream',
@@ -570,6 +694,62 @@ describe('Workbench page', () => {
       });
     });
     verifyRelativeURL('/projects/test-project?section=workbenches');
+  });
+
+  it('Update Notebook Image', () => {
+    initIntercepts({});
+    cy.interceptK8sList(
+      PVCModel,
+      mockK8sResourceList([mockPVCK8sResource({ name: 'outdated-notebook' })]),
+    );
+    cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'outdated-notebook' }));
+    workbenchPage.visit('test-project');
+    workbenchPage.getNotebookRow('Outdated Notebook').findNotebookImageLabel().click();
+    notebookImageUpdateModal.findUpdateImageButton().click();
+    notebookImageUpdateModal.findSubmitUpdateImageButton().should('be.disabled');
+    notebookImageUpdateModal.findLatestVersionOption().click();
+    cy.interceptK8s(
+      'PATCH',
+      NotebookModel,
+      mockNotebookK8sResource({
+        name: 'outdated-notebook',
+      }),
+    ).as('updateNotebookImage');
+    cy.interceptK8s(
+      'GET',
+      NotebookModel,
+      mockNotebookK8sResource({
+        name: 'outdated-notebook',
+      }),
+    ).as('getWorkbench');
+
+    notebookImageUpdateModal.findSubmitUpdateImageButton().click();
+
+    cy.wait('@updateNotebookImage');
+  });
+
+  it('Shows latest image label', () => {
+    initIntercepts({});
+    cy.interceptK8sList(
+      PVCModel,
+      mockK8sResourceList([mockPVCK8sResource({ name: 'latest-notebook' })]),
+    );
+    cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'latest-notebook' }));
+    workbenchPage.visit('test-project');
+    workbenchPage.getNotebookRow('Latest Notebook').findNotebookImageLabel().click();
+    cy.contains('Latest image version');
+  });
+
+  it('Shows deleted image label for commit mismatch', () => {
+    initIntercepts({});
+    cy.interceptK8sList(
+      PVCModel,
+      mockK8sResourceList([mockPVCK8sResource({ name: 'mismatch-commit-notebook' })]),
+    );
+    cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'mismatch-commit-notebook' }));
+    workbenchPage.visit('test-project');
+    workbenchPage.getNotebookRow('Deleted Notebook').findNotebookImageLabel().click();
+    cy.contains('Notebook image deleted');
   });
 
   it('Display project-scoped label for a notebook in workbenches table', () => {
