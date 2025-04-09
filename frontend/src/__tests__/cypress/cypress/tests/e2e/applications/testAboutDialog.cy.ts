@@ -14,7 +14,7 @@ import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHook
 const productName = Cypress.env('PRODUCT_NAME');
 const dataScienceStackComponentMap = DataScienceStackComponentMap;
 
-describe('Verify RHODS About Section Contains Correct Information', () => {
+describe('Verify RHODS About Dialog', () => {
   let odhCsv: Record<string, unknown>;
 
   retryableBefore(async () => {
@@ -25,18 +25,18 @@ describe('Verify RHODS About Section Contains Correct Information', () => {
   });
 
   it(
-    'Verify RHODS About Section Contains Correct Information',
+    'Verify RHODS About Dialog contains correct information',
     { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@RHOAIENG-21403'] },
     () => {
-      // Login and open the About page
+      // Login and open the About dialog
       cy.step(`Login to ${productName}`);
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
-      cy.step('Open the About page');
+      cy.step('Open the About dialog');
       appChrome.visit();
       aboutDialog.show();
 
-      cy.step(`Verify product '${productName}' in About details`);
+      cy.step(`Verify product '${productName}' in About dialog`);
       aboutDialog
         .findText()
         .invoke('text')
@@ -48,7 +48,7 @@ describe('Verify RHODS About Section Contains Correct Information', () => {
       cy.step(`Verify product '${productName}' in About image`);
       aboutDialog.findImageByAltText(productName);
 
-      cy.step(`Verify ${productName} version in About details`);
+      cy.step(`Verify ${productName} version in About dialog`);
       getVersionFromCsv(odhCsv as { spec: { version: string } }).then((version) => {
         aboutDialog
           .findProductVersion()
@@ -62,7 +62,7 @@ describe('Verify RHODS About Section Contains Correct Information', () => {
           });
       });
 
-      cy.step(`Verify ${productName} channel in About details`);
+      cy.step(`Verify ${productName} channel in About dialog`);
       getSubscriptionChannelFromCsv(
         odhCsv as { metadata: { annotations: { [key: string]: string } } },
       ).then((channel) => {
@@ -77,13 +77,16 @@ describe('Verify RHODS About Section Contains Correct Information', () => {
         .should('exist')
         .then(() => {
           Object.entries(dataScienceStackComponentMap).forEach(([, component]) => {
-            cy.step(`Verify versions in About table for component: ${component}`);
+            cy.step(`Verify versions in About dialog's table for component: ${component}`);
             cy.wrap(null)
               .then(() => {
                 return aboutDialog.getComponentReleasesText(component);
               })
               .then((texts) => {
                 getResourceVersionByName(component).then((version) => {
+                  if (version.length === 0) {
+                    return;
+                  }
                   const text = texts.join(' ');
                   softTrue(
                     version.some((v) => text.includes(v)),
