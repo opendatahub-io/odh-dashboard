@@ -349,6 +349,7 @@ export type Notebook = K8sResourceCommon & {
       'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
       'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
       'opendatahub.io/accelerator-name': string | undefined;
+      'notebooks.opendatahub.io/last-image-version-git-commit-selection': string; // the build commit of the last image they selected
     }>;
     labels?: Partial<{
       'opendatahub.io/user': string; // translated username -- see translateUsername
