@@ -108,6 +108,7 @@ const setUserConfig = (userConfig: UserConfig = {}, isAllowed = true) => {
     },
   );
 
+  const PROJECT_ADMIN_RESOURCES = ['projects', 'rolebindings'];
   const EDIT_VERBS = ['*', 'create', 'delete', 'deletecollection', 'update', 'patch'];
   cy.interceptK8s('POST', SelfSubjectAccessReviewModel, (req) => {
     const { verb, group, resource, namespace } = req.body.spec.resourceAttributes;
@@ -124,8 +125,8 @@ const setUserConfig = (userConfig: UserConfig = {}, isAllowed = true) => {
             : // self provisioner capabilities grant access to project creation
             resource === 'projectrequests'
             ? isSelfProvisioner
-            : // only project admins can create rolebindings
-            resource === 'rolebindings' && EDIT_VERBS.includes(verb)
+            : // project admins
+            PROJECT_ADMIN_RESOURCES.includes(resource) && EDIT_VERBS.includes(verb)
             ? isProjectAdmin
             : isProductAdmin
             ? // product admins are getting direct access to resources in the deployment namespace (but importantly, not other projects)
