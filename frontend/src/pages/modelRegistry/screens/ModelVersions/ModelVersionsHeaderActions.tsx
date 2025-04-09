@@ -10,7 +10,7 @@ import {
 import { useNavigate } from 'react-router';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { ArchiveRegisteredModelModal } from '~/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';
-import { registeredModelsUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import { registeredModelsRoute } from '~/routes';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { RegisteredModel, ModelState } from '~/concepts/modelRegistry/types';
 
@@ -85,7 +85,7 @@ const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
                 },
                 rm.id,
               )
-              .then(() => navigate(registeredModelsUrl(preferredModelRegistry?.metadata.name)))
+              .then(() => navigate(registeredModelsRoute(preferredModelRegistry?.metadata.name)))
           }
           registeredModelName={rm.name}
         />

@@ -3,9 +3,9 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { RegisteredModel } from '~/concepts/modelRegistry/types';
 import {
-  registeredModelArchiveDetailsUrl,
-  registeredModelArchiveUrl,
-} from '~/pages/modelRegistry/screens/routeUtils';
+  registeredModelArchiveDetailsRoute,
+  registeredModelArchiveRoute,
+} from '~/routes';
 
 type ArchiveModelVersionDetailsBreadcrumbProps = {
   preferredModelRegistry?: string;
@@ -24,12 +24,12 @@ const ArchiveModelVersionDetailsBreadcrumb: React.FC<ArchiveModelVersionDetailsB
     />
     <BreadcrumbItem
       render={() => (
-        <Link to={registeredModelArchiveUrl(preferredModelRegistry)}>Archived models</Link>
+        <Link to={registeredModelArchiveRoute(preferredModelRegistry)}>Archived models</Link>
       )}
     />
     <BreadcrumbItem
       render={() => (
-        <Link to={registeredModelArchiveDetailsUrl(registeredModel?.id, preferredModelRegistry)}>
+        <Link to={registeredModelArchiveDetailsRoute(registeredModel?.id, preferredModelRegistry)}>
           {registeredModel?.name || 'Loading...'}
         </Link>
       )}

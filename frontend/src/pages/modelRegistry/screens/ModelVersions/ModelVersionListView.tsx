@@ -26,9 +26,9 @@ import {
 } from '~/pages/modelRegistry/screens/utils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import {
-  modelVersionArchiveUrl,
-  registerVersionForModelUrl,
-} from '~/pages/modelRegistry/screens/routeUtils';
+  modelVersionArchiveRoute,
+  registerVersionForModelRoute,
+} from '~/routes';
 import { asEnumMember } from '~/utilities/utils';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import { filterArchiveVersions, filterLiveVersions } from '~/concepts/modelRegistry/utils';
@@ -95,13 +95,13 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
         description={`${rm.name} has no active registered versions. Register a version to this model.`}
         primaryActionText="Register new version"
         primaryActionOnClick={() => {
-          navigate(registerVersionForModelUrl(rm.id, preferredModelRegistry?.metadata.name));
+          navigate(registerVersionForModelRoute(rm.id, preferredModelRegistry?.metadata.name));
         }}
         secondaryActionText={
           archiveModelVersions.length !== 0 ? 'View archived versions' : undefined
         }
         secondaryActionOnClick={() => {
-          navigate(modelVersionArchiveUrl(rm.id, preferredModelRegistry?.metadata.name));
+          navigate(modelVersionArchiveRoute(rm.id, preferredModelRegistry?.metadata.name));
         }}
       />
     );
@@ -176,7 +176,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
                     variant="primary"
                     onClick={() => {
                       navigate(
-                        registerVersionForModelUrl(rm.id, preferredModelRegistry?.metadata.name),
+                        registerVersionForModelRoute(rm.id, preferredModelRegistry?.metadata.name),
                       );
                     }}
                   >
@@ -209,7 +209,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
                       <DropdownItem
                         onClick={() =>
                           navigate(
-                            modelVersionArchiveUrl(rm.id, preferredModelRegistry?.metadata.name),
+                            modelVersionArchiveRoute(rm.id, preferredModelRegistry?.metadata.name),
                           )
                         }
                       >

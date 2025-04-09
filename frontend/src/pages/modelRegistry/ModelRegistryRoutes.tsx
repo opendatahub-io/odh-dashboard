@@ -12,7 +12,7 @@ import RegisteredModelsArchive from './screens/RegisteredModelsArchive/Registere
 import RegisteredModelsArchiveDetails from './screens/RegisteredModelsArchive/RegisteredModelArchiveDetails';
 import RegisterModel from './screens/RegisterModel/RegisterModel';
 import RegisterVersion from './screens/RegisterModel/RegisterVersion';
-import { modelRegistryUrl } from './screens/routeUtils';
+import { modelRegistryRoute } from '~/routes';
 import ArchiveModelVersionDetails from './screens/ModelVersionsArchive/ArchiveModelVersionDetails';
 
 const ModelRegistryRoutes: React.FC = () => (
@@ -21,7 +21,7 @@ const ModelRegistryRoutes: React.FC = () => (
       path={'/:modelRegistry?/*'}
       element={
         <ModelRegistryCoreLoader
-          getInvalidRedirectPath={(modelRegistry) => modelRegistryUrl(modelRegistry)}
+          getInvalidRedirectPath={(modelRegistry) => modelRegistryRoute(modelRegistry)}
         />
       }
     >

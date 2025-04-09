@@ -39,7 +39,7 @@ import ManageNIMServingModal from '~/pages/modelServing/screens/projects/NIMServ
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import ModelServingPlatformSelectButton from '~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
 import ModelServingPlatformSelectErrorAlert from '~/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
-import { modelVersionUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import { modelVersionRoute } from '~/routes';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ModelMeshServingRuntimeTable from './ModelMeshSection/ServingRuntimeTable';
@@ -154,7 +154,7 @@ const ModelServingPlatform: React.FC = () => {
                 <Button
                   variant="link"
                   onClick={() =>
-                    navigate(modelVersionUrl(modelVersionId, registeredModelId, modelRegistryName))
+                    navigate(modelVersionRoute(modelVersionId, registeredModelId, modelRegistryName))
                   }
                   data-testid="deploy-from-registry"
                 >

@@ -5,9 +5,9 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import useModelVersionById from '~/concepts/modelRegistry/apiHooks/useModelVersionById';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import {
-  archiveModelVersionDetailsUrl,
-  modelVersionUrl,
-} from '~/pages/modelRegistry/screens/routeUtils';
+  archiveModelVersionDetailsRoute,
+  modelVersionRoute,
+} from '~/routes';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { ModelVersionDetailsTab } from '~/pages/modelRegistry/screens/ModelVersionDetails/const';
 import ModelVersionDetailsTabs from '~/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
@@ -52,14 +52,14 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
   useEffect(() => {
     if (rm?.state === ModelState.ARCHIVED && mv?.id) {
       navigate(
-        archiveModelVersionDetailsUrl(
+        archiveModelVersionDetailsRoute(
           mv.id,
           mv.registeredModelId,
           preferredModelRegistry?.metadata.name,
         ),
       );
     } else if (mv?.state === ModelState.LIVE) {
-      navigate(modelVersionUrl(mv.id, mv.registeredModelId, preferredModelRegistry?.metadata.name));
+      navigate(modelVersionRoute(mv.id, mv.registeredModelId, preferredModelRegistry?.metadata.name));
     }
   }, [
     rm?.state,
@@ -123,7 +123,7 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
                 mv.id,
               )
               .then(() =>
-                navigate(modelVersionUrl(mv.id, rm?.id, preferredModelRegistry?.metadata.name)),
+                navigate(modelVersionRoute(mv.id, rm?.id, preferredModelRegistry?.metadata.name)),
               )
           }
           modelVersionName={mv.name}

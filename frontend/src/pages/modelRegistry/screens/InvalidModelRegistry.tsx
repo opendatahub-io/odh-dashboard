@@ -1,7 +1,7 @@
 import * as React from 'react';
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
 import ModelRegistrySelectorNavigator from './ModelRegistrySelectorNavigator';
-import { modelRegistryUrl } from './routeUtils';
+import { modelRegistryRoute } from '~/routes';
 
 type InvalidModelRegistryProps = {
   title?: string;
@@ -16,7 +16,7 @@ const InvalidModelRegistry: React.FC<InvalidModelRegistryProps> = ({ title, mode
     } was not found.`}
   >
     <ModelRegistrySelectorNavigator
-      getRedirectPath={(modelRegistryName) => modelRegistryUrl(modelRegistryName)}
+      getRedirectPath={(modelRegistryName) => modelRegistryRoute(modelRegistryName)}
       primary
     />
   </EmptyStateErrorMessage>

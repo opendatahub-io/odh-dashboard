@@ -16,9 +16,9 @@ import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegi
 import { ModelVersion, ModelState, RegisteredModel } from '~/concepts/modelRegistry/types';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import {
-  modelVersionDeploymentsUrl,
-  modelVersionListUrl,
-} from '~/pages/modelRegistry/screens/routeUtils';
+  modelVersionDeploymentsRoute,
+  modelVersionListRoute,
+} from '~/routes';
 import DeployRegisteredVersionModal from '~/pages/modelRegistry/screens/components/DeployRegisteredVersionModal';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 import StartRunModal from '~/pages/pipelines/global/modelCustomization/startRunModal/StartRunModal';
@@ -138,7 +138,7 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
           onSubmit={() => {
             refresh();
             navigate(
-              modelVersionDeploymentsUrl(
+              modelVersionDeploymentsRoute(
                 mv.id,
                 mv.registeredModelId,
                 preferredModelRegistry.metadata.name,
@@ -163,7 +163,7 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
               )
               .then(() =>
                 navigate(
-                  modelVersionListUrl(mv.registeredModelId, preferredModelRegistry.metadata.name),
+                  modelVersionListRoute(mv.registeredModelId, preferredModelRegistry.metadata.name),
                 ),
               )
           }

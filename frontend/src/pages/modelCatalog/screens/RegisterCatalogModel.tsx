@@ -26,7 +26,7 @@ import {
 import { SubmitLabel } from '~/pages/modelRegistry/screens/RegisterModel/const';
 import RegisterModelDetailsFormSection from '~/pages/modelRegistry/screens/RegisterModel/RegisterModelDetailsFormSection';
 import RegistrationFormFooter from '~/pages/modelRegistry/screens/RegisterModel/RegistrationFormFooter';
-import { registeredModelUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import { registeredModelRoute } from '~/routes';
 import { useAppSelector } from '~/redux/hooks';
 import { ModelCatalogContext } from '~/concepts/modelCatalog/context/ModelCatalogContext';
 import { CatalogModel } from '~/concepts/modelCatalog/types';
@@ -169,7 +169,7 @@ const RegisterCatalogModel: React.FC = () => {
         success: true,
         model: params.modelName,
       });
-      navigate(registeredModelUrl(registeredModel.id, preferredModelRegistry?.metadata.name));
+      navigate(registeredModelRoute(registeredModel.id, preferredModelRegistry?.metadata.name));
     } else if (Object.keys(errors).length > 0) {
       setIsSubmitting(false);
       setSubmittedRegisteredModelName(formData.modelName);
