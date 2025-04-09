@@ -17,7 +17,6 @@ spec:
     disableProjects: false
     disablePipelines: false
     disableModelServing: false
-    disableProjectScoped: false
     disableProjectSharing: false
     disableCustomServingRuntimes: false
     disableTrustyBiasMetrics: false
