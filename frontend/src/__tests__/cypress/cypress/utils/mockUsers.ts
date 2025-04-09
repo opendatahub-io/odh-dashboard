@@ -122,7 +122,7 @@ const setUserConfig = (userConfig: UserConfig = {}, isAllowed = true) => {
           isClusterAdmin
             ? true
             : // self provisioner capabilities grant access to project creation
-            resource === 'projectrequests' || resource === 'projects'
+            resource === 'projectrequests'
             ? isSelfProvisioner
             : // only project admins can create rolebindings
             resource === 'rolebindings' && EDIT_VERBS.includes(verb)
