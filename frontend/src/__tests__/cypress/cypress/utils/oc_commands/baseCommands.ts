@@ -5,7 +5,9 @@ import type { CommandLineResult } from '~/__tests__/cypress/cypress/types';
  * @param command The command to run.
  * @returns A Cypress chainable that resolves to an object with `exitCode` and `output` properties.
  */
-export const execWithOutput = (command: string): Cypress.Chainable<{ exitCode: number; output: string }> => {
+export const execWithOutput = (
+  command: string,
+): Cypress.Chainable<{ exitCode: number; output: string }> => {
   cy.log(`Executing command: ${command}`);
   return cy.exec(command, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
     const stdout = result.stdout.trim();
@@ -183,4 +185,3 @@ export const deleteNIMAccount = (
     }
   });
 };
-
