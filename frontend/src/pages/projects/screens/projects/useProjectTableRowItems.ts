@@ -28,7 +28,7 @@ const useProjectTableRowItems = (
     project.metadata.name,
     shouldRunCheck,
   );
-  const [allowCreate, allowCreateLoaded] = useProjectPermissionsAccessReview(
+  const [allowPermissions, allowPermissionsLoaded] = useProjectPermissionsAccessReview(
     'create',
     project.metadata.name,
     shouldRunCheck,
@@ -59,11 +59,11 @@ const useProjectTableRowItems = (
     },
     {
       title: 'Edit permissions',
-      isAriaDisabled: !allowUpdate || !allowUpdateLoaded,
+      isAriaDisabled: !allowPermissions || !allowPermissionsLoaded,
       onClick: () => {
         navigate(`/projects/${project.metadata.name}?section=permissions`);
       },
-      ...noPermissionToolTip(allowCreate, allowCreateLoaded),
+      ...noPermissionToolTip(allowPermissions, allowPermissionsLoaded),
     },
     {
       isSeparator: true,
