@@ -31,10 +31,11 @@ export const getOcResourceNames = (
  * @param resourceName - The name of the resource to retrieve the version for.
  * @returns A Cypress.Chainable that resolves to the version of the resource.
  */
-export const getResourceVersionByName = (
-  resourceName: string,
-): Cypress.Chainable<string[]> => {
-  const ocCommand = `oc get ${resourceName.replace(/\s/g, '')} -A -o jsonpath='{.items[*].status.releases[*].version}'`;
+export const getResourceVersionByName = (resourceName: string): Cypress.Chainable<string[]> => {
+  const ocCommand = `oc get ${resourceName.replace(
+    /\s/g,
+    '',
+  )} -A -o jsonpath='{.items[*].status.releases[*].version}'`;
   return execWithOutput(ocCommand).then(({ exitCode, output }) => {
     if (exitCode !== 0) {
       cy.log(`Failed to retrieve version of ${resourceName}:\n${output}`);
@@ -54,9 +55,11 @@ export const getResourceVersionByName = (
  */
 export const getCsvByDisplayName = (
   displayName: string,
-  namespace?: string
+  namespace?: string,
 ): Cypress.Chainable<unknown> => {
-  const ocCommand = `oc get csv ${namespace ? `-n ${namespace}` : '-A'} -o json | jq -r 'first(.items[] | select(.spec.displayName == "${displayName}"))'`;
+  const ocCommand = `oc get csv ${
+    namespace ? `-n ${namespace}` : '-A'
+  } -o json | jq -r 'first(.items[] | select(.spec.displayName == "${displayName}"))'`;
   return execWithOutput(ocCommand).then(({ exitCode, output }) => {
     if (exitCode !== 0) {
       throw new Error(`Failed to retrieve CSV for display name '${displayName}'\n${output}`);
@@ -72,13 +75,11 @@ export const getCsvByDisplayName = (
  * @returns A Cypress.Chainable that resolves to the version of the product.
  * @throws {Error} if the CSV format is invalid.
  */
-export const getVersionFromCsv = (
-  csvObject: { spec: { version: string } }
-): Cypress.Chainable<string> => {
-  if (csvObject && 'spec' in csvObject) {
-    return cy.wrap(csvObject.spec.version);
-  }
-  throw new Error('Invalid CSV format');
+export const getVersionFromCsv = (csvObject: {
+  spec: { version: string };
+}): Cypress.Chainable<string> => {
+  // Remove the unnecessary conditional
+  return cy.wrap(csvObject.spec.version);
 };
 
 /**
@@ -88,25 +89,24 @@ export const getVersionFromCsv = (
  * @returns A Cypress.Chainable that resolves to the channel name.
  * @throws {Error} if the CSV format is invalid or no subscription is found in the namespace.
  */
-export const getSubscriptionChannelFromCsv = (
-  csvObject: { metadata: { annotations: { [key: string]: string } } }
-): Cypress.Chainable<string> => {
-  if (csvObject && 'spec' in csvObject) {
-    // First, retrieve the operator namespace
-    const annotation = (csvObject as { metadata: { annotations: { [key: string]: string } } }).metadata.annotations;
-    const operatorNamespace = annotation['olm.operatorNamespace'];
-    if (operatorNamespace) {
-      // Then, retrieve the channel from the first subscription in that namespace
-      const ocCommand = `oc get subs -n ${operatorNamespace} -o jsonpath='{.items[0].spec.channel}'`;
-      return execWithOutput(ocCommand).then(({ exitCode, output }) => {
-        if (exitCode !== 0) {
-          throw new Error(`Failed to retrieve subscription in namespace '${operatorNamespace}'\n${output}`);
-        }
-        return output.trim();
-      });
-    }
-    throw new Error('Failed to retrieve operator namespace from CSV');
+export const getSubscriptionChannelFromCsv = (csvObject: {
+  metadata: { annotations: { [key: string]: string } };
+}): Cypress.Chainable<string> => {
+  // Remove the unnecessary conditional
+  // First, retrieve the operator namespace
+  const annotation = csvObject.metadata.annotations;
+  const operatorNamespace = annotation['olm.operatorNamespace'];
+  if (operatorNamespace) {
+    // Then, retrieve the channel from the first subscription in that namespace
+    const ocCommand = `oc get subs -n ${operatorNamespace} -o jsonpath='{.items[0].spec.channel}'`;
+    return execWithOutput(ocCommand).then(({ exitCode, output }) => {
+      if (exitCode !== 0) {
+        throw new Error(
+          `Failed to retrieve subscription in namespace '${operatorNamespace}'\n${output}`,
+        );
+      }
+      return output.trim();
+    });
   }
-  throw new Error('Invalid CSV format');
+  throw new Error('Failed to retrieve operator namespace from CSV');
 };
-
