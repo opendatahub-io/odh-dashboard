@@ -76,8 +76,7 @@ describe('Verify RHODS About Section Contains Correct Information', () => {
                 if (texts) {
                   getResourceVersionByName(component).then((version) => {
                     if (version.length === 0) {
-                      // return;
-                      version = ['1.2.3'];
+                      return;
                     }
                     const text = texts.join(' ');
                     softAssert.softTrue(
