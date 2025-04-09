@@ -118,6 +118,10 @@ export const CreateMRSecureDBSection: React.FC<CreateMRSecureDBSectionProps> = (
       secret.name.toLowerCase().includes(searchConfigSecretName.toLowerCase()),
     );
 
+    if (filteredConfigMaps.length === 0 && filteredSecrets.length === 0) {
+      return <MenuItem isDisabled>No results found</MenuItem>;
+    }
+
     return (
       <>
         {filteredConfigMaps.length > 0 && (
