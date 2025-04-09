@@ -1,6 +1,5 @@
 - Model Serving foundation items
-- Imports * activities from each serving type
-- Understands generic landing points
-    - which serving is selected
+- Understands generic concept points
+    - which serving is selected (Context)
 - Understands nothing serving-type related as first-class
-    - Uses hooks from the other folders to get information
+    - Imports concepts from platforms/export generically

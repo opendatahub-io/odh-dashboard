@@ -1,7 +1,6 @@
 - Common Model Serving items
-- Has no explicit Model Serving dependencies
+- Has no explicit Model Serving platform dependencies / Is Serving Platform Agnostic
 - Provides a common UX / Conceptual foundation
-- Is Serving Type Agnostic
 - Good usage:
     - Common Components
     - Common Hooks / Utilities
