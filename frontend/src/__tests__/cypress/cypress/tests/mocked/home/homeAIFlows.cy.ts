@@ -24,7 +24,16 @@ describe('Home page AI Flows', () => {
         'LAB-tuning significantly reduces limitations associated with traditional fine-tuning methods, such as high resource usage and time-consuming manual data generation.',
       );
     homeAISection.findAIFlowHintImage().should('be.visible');
-    homeAISection.findAIFlowHintCloseButton();
+    homeAISection.findAIFlowHintCloseButton().click();
+    homeAISection.findAIFlowHint().should('not.exist');
+  });
+
+  it('should navigate from ai flow hint to the model customization page', () => {
+    homePage.initHomeIntercepts({ disableFineTuning: false });
+    homePage.visit();
+    homeAISection.findAIFlowHint();
+    homeAISection.findAIFlowHintNavigationLink().click();
+    cy.url().should('include', '/modelCustomization');
   });
 
   it('should show the appropriate info cards', () => {

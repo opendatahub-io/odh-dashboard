@@ -46,7 +46,7 @@ const AIFlowHint: React.FC<AIFlowHintProps> = ({ title, body, isDisplayed, image
               <FlexItem className="pf-v6-u-display-inline pf-v6-u-display-none-on-lg">
                 <Button
                   icon={<TimesIcon />}
-                  data-testid="ai-flow-hint-close"
+                  data-testid="ai-flow-hint-close-md"
                   aria-label="close ai flow hint"
                   isInline
                   variant="plain"
@@ -67,7 +67,7 @@ const AIFlowHint: React.FC<AIFlowHintProps> = ({ title, body, isDisplayed, image
           <CardHeader>
             <Button
               icon={<TimesIcon />}
-              data-testid="ai-flow-hint-close"
+              data-testid="ai-flow-hint-close-lg"
               aria-label="close ai flow hint"
               isInline
               variant="plain"
