@@ -5,7 +5,7 @@ import { getDashboardMainContainer } from '~/utilities/utils';
 import { ProjectKind } from '~/k8sTypes';
 import DeleteProjectModal from '~/pages/projects/screens/projects/DeleteProjectModal';
 import ManageProjectModal from '~/pages/projects/screens/projects/ManageProjectModal';
-import { useRoleBindingsAccessReview } from '~/concepts/projects/accessChecks';
+import { useProjectAccessReview } from '~/concepts/projects/accessChecks';
 
 type Props = {
   project: ProjectKind;
@@ -13,11 +13,8 @@ type Props = {
 
 const ProjectActions: React.FC<Props> = ({ project }) => {
   const navigate = useNavigate();
-  const [canEdit, editRbacLoaded] = useRoleBindingsAccessReview('update', project.metadata.name);
-  const [canDelete, deleteRbacLoaded] = useRoleBindingsAccessReview(
-    'delete',
-    project.metadata.name,
-  );
+  const [canEdit, editRbacLoaded] = useProjectAccessReview('update', project.metadata.name);
+  const [canDelete, deleteRbacLoaded] = useProjectAccessReview('delete', project.metadata.name);
   const [open, setOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);

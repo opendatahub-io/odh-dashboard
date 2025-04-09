@@ -20,7 +20,7 @@ export const useProjectAccessReview = (
     shouldRunCheck,
   );
 
-export const useRoleBindingsAccessReview = (
+export const useProjectPermissionsAccessReview = (
   verb: K8sVerb,
   projectName: string,
   shouldRunCheck?: boolean,

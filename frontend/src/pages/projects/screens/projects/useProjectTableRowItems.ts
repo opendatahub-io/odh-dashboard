@@ -2,7 +2,10 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TooltipProps } from '@patternfly/react-core';
 import { ProjectKind } from '~/k8sTypes';
-import { useProjectAccessReview } from '~/concepts/projects/accessChecks';
+import {
+  useProjectAccessReview,
+  useProjectPermissionsAccessReview,
+} from '~/concepts/projects/accessChecks';
 
 type KebabItem = {
   title?: string;
@@ -22,6 +25,11 @@ const useProjectTableRowItems = (
 
   const [allowUpdate, allowUpdateLoaded] = useProjectAccessReview(
     'update',
+    project.metadata.name,
+    shouldRunCheck,
+  );
+  const [allowCreate, allowCreateLoaded] = useProjectPermissionsAccessReview(
+    'create',
     project.metadata.name,
     shouldRunCheck,
   );
@@ -55,7 +63,7 @@ const useProjectTableRowItems = (
       onClick: () => {
         navigate(`/projects/${project.metadata.name}?section=permissions`);
       },
-      ...noPermissionToolTip(allowUpdate, allowUpdateLoaded),
+      ...noPermissionToolTip(allowCreate, allowCreateLoaded),
     },
     {
       isSeparator: true,
