@@ -813,7 +813,7 @@ describe('Workbench page', () => {
     notebookRow.findProjectScopedLabel().should('exist');
     notebookRow.shouldHaveContainerSize('Small');
     notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
-    notebookRow.findNotebookRouteLink().should('have.attr', 'aria-disabled', 'false');
+    notebookRow.findNotebookRouteLink().should('not.have.attr', 'aria-disabled');
   });
 
   it('list workbench and table sorting', () => {
@@ -852,7 +852,7 @@ describe('Workbench page', () => {
     notebookRow.shouldHaveNotebookImageName('Test Image');
     notebookRow.shouldHaveContainerSize('Small');
     notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
-    notebookRow.findNotebookRouteLink().should('have.attr', 'aria-disabled', 'false');
+    notebookRow.findNotebookRouteLink().should('not.have.attr', 'aria-disabled');
 
     //Name sorting
     workbenchPage.findNotebookTableHeaderButton('Name').click();
