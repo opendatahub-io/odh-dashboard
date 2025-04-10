@@ -4,7 +4,6 @@ import {
   DrawerCloseButton,
   DrawerHead,
   DrawerPanelBody,
-  DrawerPanelContent,
   Title,
 } from '@patternfly/react-core';
 import { PipelineTask } from '~/concepts/pipelines/topology';
@@ -21,7 +20,14 @@ const SelectedTaskDrawerContent: React.FC<SelectedTaskDrawerContentProps> = ({ t
   }
 
   return (
-    <DrawerPanelContent data-testid="task-drawer" style={{ height: '100%', overflowY: 'auto' }}>
+    // TODO: Revisit below approach, either to further to look into what caused the content to not render or
+    // to restructure the code -- see  https://issues.redhat.com/browse/RHOAIENG-23537
+    <div
+      className="pf-v6-c-drawer__panel"
+      data-testid="task-drawer"
+      // TODO: look into removing this inline style; PF Drawers should handle height/scrolling by default
+      style={{ height: '100%', overflowY: 'auto' }}
+    >
       <DrawerHead>
         <Title headingLevel="h2" size="xl" data-testid="pipeline-task-name">
           {task.name} {task.type === 'artifact' ? 'Artifact details' : ''}
@@ -33,7 +39,7 @@ const SelectedTaskDrawerContent: React.FC<SelectedTaskDrawerContentProps> = ({ t
       <DrawerPanelBody>
         <PipelineTaskDetails task={task} />
       </DrawerPanelBody>
-    </DrawerPanelContent>
+    </div>
   );
 };
 
