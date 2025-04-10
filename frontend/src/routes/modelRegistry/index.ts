@@ -1,4 +1,3 @@
-export * from './modelDeploymentsRoute';
 export * from './modelArchiveRoutes';
 export * from './modelVersionArchiveRoute';
 export * from './modelVersionsRoute';

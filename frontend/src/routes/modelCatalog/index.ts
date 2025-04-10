@@ -1,2 +1,2 @@
-export * from './detailsRoutes';
-export * from './registerRoutes';
+export * from './catalogModelDetailsRoute';
+export * from './catalogModelRegisterRoutes';
