@@ -92,6 +92,11 @@ const initIntercepts = ({
         }),
         mockServingRuntimeTemplateK8sResource({
           name: 'template-2',
+          displayName: 'OpenVINO',
+          platforms: [ServingRuntimePlatform.SINGLE],
+        }),
+        mockServingRuntimeTemplateK8sResource({
+          name: 'template-3',
           displayName: 'Caikit',
           platforms: [ServingRuntimePlatform.SINGLE],
           supportedModelFormats: [

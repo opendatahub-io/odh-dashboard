@@ -130,6 +130,10 @@ class InferenceServiceModal extends Modal {
     return this.find().findByTestId('serving-runtime-template-selection-toggle');
   }
 
+  findServingRuntimeTemplateSearchInput() {
+    return cy.findByTestId('serving-runtime-template-selection-search').find('input');
+  }
+
   findProjectScopedLabel() {
     return this.find().findByTestId('project-scoped-image');
   }

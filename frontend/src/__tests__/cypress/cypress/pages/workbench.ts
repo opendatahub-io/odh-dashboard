@@ -385,6 +385,10 @@ class CreateSpawnerPage {
     return cy.findByTestId('image-stream-selector-toggle');
   }
 
+  findNotebookImageSearchInput() {
+    return cy.findByTestId('image-stream-selector-search').find('input');
+  }
+
   findProjectScopedLabel() {
     return cy.findByTestId('project-scoped-image');
   }
