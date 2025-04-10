@@ -596,18 +596,15 @@ describe('CreateModal', () => {
     modelRegistrySettings.resourceNameSelect.openAndSelectItem('sampleSecret', true);
     modelRegistrySettings.findExistingCAKeyInputToggle().should('be.enabled');
     modelRegistrySettings.keySelect.openAndSelectItem('bar.crt', true);
-    // Open the resource selector and verify both groups are initially visible
     modelRegistrySettings.resourceNameSelect.findToggleButton().click();
     cy.contains('ConfigMaps').should('be.visible');
     cy.contains('Secrets').should('be.visible');
 
-    // Search for a value that exists in ConfigMaps but not in Secrets
     modelRegistrySettings.resourceNameSelect
       .findSearchInput()
       .should('be.visible')
       .type('sampleSecret');
 
-    // Wait for and verify the groups are visible
     cy.contains('Secrets').should('be.visible');
     cy.get('body').should('not.contain', 'ConfigMaps');
 
@@ -667,15 +664,12 @@ describe('CreateModal', () => {
     modelRegistrySettings.findExistingCAKeyInputToggle().should('be.enabled');
     modelRegistrySettings.keySelect.openAndSelectItem('bar.crt', true);
 
-    // Open the resource selector and verify both groups are initially visible
     modelRegistrySettings.resourceNameSelect.findToggleButton().click();
     cy.contains('ConfigMaps').should('be.visible');
     cy.contains('Secrets').should('be.visible');
 
-    // Search for a value that exists in ConfigMaps but not in Secrets
     modelRegistrySettings.resourceNameSelect.findSearchInput().should('be.visible').type('foo-bar');
 
-    // Wait for and verify the groups are visible
     cy.contains('ConfigMaps').should('be.visible');
     cy.get('body').should('not.contain', 'Secrets');
 
@@ -707,6 +701,36 @@ describe('CreateModal', () => {
         databasePassword: 'strongPassword',
       });
     });
+  });
+
+  it('shows "No results found" when searching for non-existent value in both ConfigMaps and Secrets', () => {
+    setupMocksForMRSettingAccess({
+      disableModelRegistrySecureDB: false,
+    });
+    modelRegistrySettings.visit(true);
+    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
+    modelRegistrySettings.findAddSecureDbMRCheckbox().check();
+    modelRegistrySettings.findExistingCARadio().should('be.enabled');
+
+    modelRegistrySettings.findClusterWideCARadio().should('be.disabled');
+    modelRegistrySettings.findOpenshiftCARadio().should('be.disabled');
+    modelRegistrySettings.findExistingCARadio().should('be.checked');
+
+    modelRegistrySettings.findExistingCAKeyInputToggle().should('be.disabled');
+    modelRegistrySettings.findExistingCAResourceInputToggle().should('be.enabled');
+
+    modelRegistrySettings.resourceNameSelect.findToggleButton().click();
+
+    modelRegistrySettings.resourceNameSelect
+      .findSearchInput()
+      .should('be.visible')
+      .type('non-existent-value');
+
+    cy.contains('No results found').should('be.visible');
+
+    cy.contains('ConfigMaps').should('not.exist');
+    cy.contains('Secrets').should('not.exist');
   });
 
   it('create a model registry with Upload new certificate option', () => {
