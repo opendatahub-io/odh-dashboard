@@ -183,9 +183,32 @@ const initIntercepts = ({
           id: '1',
           name: existingModelName,
         }),
+        mockRegisteredModel({
+          id: '2',
+          name: 'model2',
+        }),
       ],
     }),
   ).as('getRegisteredModels');
+
+  cy.interceptOdh(
+    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models`,
+    {
+      path: { serviceName: 'modelregistry-sample-2', apiVersion: MODEL_REGISTRY_API_VERSION },
+    },
+    mockRegisteredModelList({
+      items: [
+        mockRegisteredModel({
+          id: '1',
+          name: existingModelName,
+        }),
+        mockRegisteredModel({
+          id: '2',
+          name: 'model2',
+        }),
+      ],
+    }),
+  );
 };
 
 describe('Register catalog model page', () => {
@@ -201,7 +224,6 @@ describe('Register catalog model page', () => {
   it('Register catalog model page ', () => {
     initIntercepts({});
     registerCatalogModelPage.visit();
-    registerModelPage.findSubmitButton().should('be.disabled');
     registerCatalogModelPage
       .findModelRegistrySelector()
       .findSelectOption('modelregistry-sample-2')
@@ -286,5 +308,21 @@ describe('Register catalog model page', () => {
     });
 
     cy.url().should('include', '/modelRegistry/modelregistry-sample-2/registeredModels/1');
+  });
+
+  it('Disables submit if model name is duplicated', () => {
+    initIntercepts({});
+    registerCatalogModelPage.visit();
+    registerCatalogModelPage
+      .findModelRegistrySelector()
+      .findSelectOption('modelregistry-sample-2')
+      .click();
+    registerModelPage.findSubmitButton().should('be.enabled');
+    registerModelPage
+      .findFormField(FormFieldSelector.MODEL_NAME)
+      .should('have.value', 'granite-8b-code-instruct-1.3.0');
+    registerModelPage.findFormField(FormFieldSelector.MODEL_NAME).clear().type(existingModelName);
+    registerModelPage.findSubmitButton().should('be.disabled');
+    registerModelPage.findModelNameError().contains('Model name already exists');
   });
 });
