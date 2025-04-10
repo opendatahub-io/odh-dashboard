@@ -1,17 +1,34 @@
-import { k8sGetResource, k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
+import {
+  k8sCreateResource,
+  k8sDeleteResource,
+  k8sGetResource,
+  k8sListResource,
+  k8sUpdateResource,
+} from '@openshift/dynamic-plugin-sdk-utils';
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import { AcceleratorProfileModel } from '~/api/models';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { getAcceleratorProfile, listAcceleratorProfiles } from '~/api/k8s/acceleratorProfiles';
+import {
+  createAcceleratorProfile,
+  getAcceleratorProfile,
+  listAcceleratorProfiles,
+  updateAcceleratorProfile,
+} from '~/api/k8s/acceleratorProfiles';
 import { AcceleratorProfileKind } from '~/k8sTypes';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
   k8sGetResource: jest.fn(),
+  k8sCreateResource: jest.fn(),
+  k8sUpdateResource: jest.fn(),
+  k8sDeleteResource: jest.fn(),
 }));
 
 const mockListResource = jest.mocked(k8sListResource<AcceleratorProfileKind>);
 const mockGetResource = jest.mocked(k8sGetResource<AcceleratorProfileKind>);
+const mockCreateResource = jest.mocked(k8sCreateResource<AcceleratorProfileKind>);
+const mockUpdateResource = jest.mocked(k8sUpdateResource<AcceleratorProfileKind>);
+const mockDeleteResource = jest.mocked(k8sDeleteResource<AcceleratorProfileKind>);
 
 describe('listAcceleratorProfile', () => {
   it('should fetch and return list of accelerator profile', async () => {
@@ -80,3 +97,63 @@ describe('getAcceleratorProfile', () => {
     });
   });
 });
+
+const mockedAcceleratorProfile = mockAcceleratorProfile({});
+
+const assembleAcceleratorProfileResult: AcceleratorProfileKind = {
+  apiVersion: mockedAcceleratorProfile.apiVersion,
+  kind: mockedAcceleratorProfile.kind,
+  metadata: {
+    name: mockedAcceleratorProfile.metadata.name,
+    namespace: mockedAcceleratorProfile.metadata.namespace,
+    annotations: {
+      'opendatahub.io/modified-date': expect.anything(),
+    },
+  },
+  spec: mockedAcceleratorProfile.spec,
+};
+
+describe('createAcceleratorProfile', () => {
+  it.only('should create an accelerator profile', async () => {
+    mockCreateResource.mockResolvedValue(mockedAcceleratorProfile);
+    const result = await createAcceleratorProfile(
+      {
+        name: mockedAcceleratorProfile.metadata.name,
+        ...mockedAcceleratorProfile.spec,
+      },
+      mockedAcceleratorProfile.metadata.namespace,
+    );
+    expect(mockCreateResource).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: AcceleratorProfileModel,
+      queryOptions: { queryParams: {} },
+      resource: assembleAcceleratorProfileResult,
+    });
+    expect(mockCreateResource).toHaveBeenCalledTimes(1);
+    expect(result).toStrictEqual(mockedAcceleratorProfile);
+  });
+});
+
+// describe('updateAcceleratorProfile', () => {
+//   it('should update an accelerator profile', async () => {
+//     mockUpdateResource.mockResolvedValue(mockAcceleratorProfile({}));
+//     const result = await updateAcceleratorProfile(
+//       mockedAcceleratorProfile.metadata.name,
+//       mockedAcceleratorProfile.metadata.namespace,
+//       mockedAcceleratorProfile.spec,
+//     );
+//     expect(mockUpdateResource).toHaveBeenCalledWith({
+//       fetchOptions: { requestInit: {} },
+//       model: AcceleratorProfileModel,
+//       queryOptions: { queryParams: {} },
+//       resource: mockHardwareProfile({
+//         uid: 'test-1',
+//         namespace: 'namespace',
+//         description: 'test description',
+//         displayName: 'test',
+//         nodeSelector: {},
+//         annotations: expect.anything(),
+//     });
+//     });
+//   });
+// });

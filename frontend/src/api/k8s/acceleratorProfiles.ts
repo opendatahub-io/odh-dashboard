@@ -9,7 +9,7 @@ import {
 import { AcceleratorProfileKind, K8sAPIOptions } from '~/k8sTypes';
 import { AcceleratorProfileModel } from '~/api/models';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { kindApiVersion } from '~/concepts/k8s/utils';
+import { kindApiVersion, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 
 export const listAcceleratorProfiles = async (
   namespace: string,
@@ -33,12 +33,12 @@ export const getAcceleratorProfile = (
 const assembleAcceleratorProfile = (
   spec: AcceleratorProfileKind['spec'],
   namespace: string,
-  name: string,
+  name?: string,
 ): AcceleratorProfileKind => ({
   apiVersion: kindApiVersion(AcceleratorProfileModel),
   kind: AcceleratorProfileModel.kind,
   metadata: {
-    name,
+    name: name || translateDisplayNameForK8s(spec.displayName),
     namespace,
     annotations: {
       'opendatahub.io/modified-date': new Date().toISOString(),
@@ -53,9 +53,6 @@ export const createAcceleratorProfile = (
   opts?: K8sAPIOptions,
 ): Promise<AcceleratorProfileKind> => {
   const { name, ...spec } = acceleratorProfile;
-  if (!name) {
-    throw new Error('name cannot be empty');
-  }
   const resource: AcceleratorProfileKind = assembleAcceleratorProfile(spec, namespace, name);
   return k8sCreateResource<AcceleratorProfileKind>(
     applyK8sAPIOptions(
@@ -77,6 +74,13 @@ export const updateAcceleratorProfile = async (
   const oldAcceleratorProfile = await getAcceleratorProfile(name, namespace);
   const resource = {
     ...oldAcceleratorProfile,
+    metadata: {
+      ...oldAcceleratorProfile.metadata,
+      annotations: {
+        ...oldAcceleratorProfile.metadata.annotations,
+        'opendatahub.io/modified-date': new Date().toISOString(),
+      },
+    },
     spec: {
       ...oldAcceleratorProfile.spec,
       ...spec,

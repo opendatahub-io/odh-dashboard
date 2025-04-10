@@ -65,16 +65,12 @@ export const ManageAcceleratorProfileFooter: React.FC<ManageAcceleratorProfileFo
   const onUpdateAcceleratorProfile = async () => {
     if (existingAcceleratorProfile) {
       setIsLoading(true);
-      updateAcceleratorProfile(existingAcceleratorProfile.metadata.name, state)
-        .then((res) => {
-          if (res.success) {
-            navigate(redirectPath);
-          } else {
-            setErrorMessage(res.error || 'Could not update accelerator profile');
-          }
+      updateAcceleratorProfile(existingAcceleratorProfile.metadata.name, dashboardNamespace, state)
+        .then(() => {
+          navigate(redirectPath);
         })
         .catch((err) => {
-          setErrorMessage(err.message);
+          setErrorMessage(err.message || 'Could not update accelerator profile');
         })
         .finally(() => {
           setIsLoading(false);
