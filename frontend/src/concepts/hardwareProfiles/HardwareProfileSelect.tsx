@@ -344,6 +344,9 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     return <Skeleton />;
   }
 
+  const filteredHardwareProfiles = getHardwareProfiles();
+  const filteredDashboardHardwareProfiles = getDashboardHardwareProfiles();
+
   return (
     <>
       <Flex direction={{ default: 'row' }} spaceItems={{ default: 'spaceItemsSm' }}>
@@ -397,51 +400,61 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                 }
               >
                 <>
-                  <MenuGroup
-                    key="project-scoped"
-                    data-testid="project-scoped-hardware-profiles"
-                    label={
-                      <Flex
-                        spaceItems={{ default: 'spaceItemsXs' }}
-                        alignItems={{ default: 'alignItemsCenter' }}
-                        style={{ paddingBottom: '5px' }}
-                      >
-                        <FlexItem style={{ display: 'flex', paddingLeft: '12px' }}>
-                          <img
-                            style={{ height: '20px', paddingTop: '3px' }}
-                            src={typedObjectImage(ProjectObjectType.project)}
-                            alt=""
-                          />
-                        </FlexItem>
-                        <FlexItem>Project-scoped Hardware profiles</FlexItem>
-                      </Flex>
-                    }
-                  >
-                    {getHardwareProfiles()}
-                  </MenuGroup>
-
-                  <Divider component="li" />
-                  <MenuGroup
-                    key="global-scoped"
-                    data-testid="global-scoped-hardware-profiles"
-                    label={
-                      <Flex
-                        spaceItems={{ default: 'spaceItemsXs' }}
-                        alignItems={{ default: 'alignItemsCenter' }}
-                        style={{ paddingBottom: '5px' }}
-                      >
-                        <FlexItem
-                          style={{ display: 'flex', paddingLeft: '10px' }}
-                          data-testid="ds-project-image"
+                  {filteredHardwareProfiles.length > 0 && (
+                    <MenuGroup
+                      key="project-scoped"
+                      data-testid="project-scoped-hardware-profiles"
+                      label={
+                        <Flex
+                          spaceItems={{ default: 'spaceItemsXs' }}
+                          alignItems={{ default: 'alignItemsCenter' }}
+                          style={{ paddingBottom: '5px' }}
                         >
-                          <GlobalIcon />
-                        </FlexItem>
-                        <FlexItem>Global hardware profiles</FlexItem>
-                      </Flex>
-                    }
-                  >
-                    {getDashboardHardwareProfiles()}
-                  </MenuGroup>
+                          <FlexItem style={{ display: 'flex', paddingLeft: '12px' }}>
+                            <img
+                              style={{ height: '20px', paddingTop: '3px' }}
+                              src={typedObjectImage(ProjectObjectType.project)}
+                              alt=""
+                            />
+                          </FlexItem>
+                          <FlexItem>Project-scoped Hardware profiles</FlexItem>
+                        </Flex>
+                      }
+                    >
+                      {filteredHardwareProfiles}
+                    </MenuGroup>
+                  )}
+                  {filteredHardwareProfiles.length > 0 &&
+                    filteredDashboardHardwareProfiles.length > 0 && <Divider component="li" />}
+                  {filteredDashboardHardwareProfiles.length > 0 && (
+                    <>
+                      <MenuGroup
+                        key="global-scoped"
+                        data-testid="global-scoped-hardware-profiles"
+                        label={
+                          <Flex
+                            spaceItems={{ default: 'spaceItemsXs' }}
+                            alignItems={{ default: 'alignItemsCenter' }}
+                            style={{ paddingBottom: '5px' }}
+                          >
+                            <FlexItem
+                              style={{ display: 'flex', paddingLeft: '10px' }}
+                              data-testid="ds-project-image"
+                            >
+                              <GlobalIcon />
+                            </FlexItem>
+                            <FlexItem>Global hardware profiles</FlexItem>
+                          </Flex>
+                        }
+                      >
+                        {filteredDashboardHardwareProfiles}
+                      </MenuGroup>
+                    </>
+                  )}
+                  {filteredHardwareProfiles.length === 0 &&
+                    filteredDashboardHardwareProfiles.length === 0 && (
+                      <MenuItem isDisabled>No results found</MenuItem>
+                    )}
                 </>
               </SearchSelector>
               {previewDescription &&
