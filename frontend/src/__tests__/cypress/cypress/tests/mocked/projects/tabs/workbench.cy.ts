@@ -511,8 +511,28 @@ describe('Workbench page', () => {
     createSpawnerPage.k8sNameDescription.findDisplayNameInput().fill('test-project');
     createSpawnerPage.k8sNameDescription.findDescriptionInput().fill('test-description');
 
-    // Check for project specific serving runtimes
+    // Verify both groups are initially visible
     createSpawnerPage.findNotebookImageSearchSelector().click();
+    cy.contains('Project-scoped images').should('be.visible');
+    cy.contains('Global images').should('be.visible');
+
+    // Search for a value that exists in Global images but not in Project-scoped images
+    createSpawnerPage.findNotebookImageSearchInput().should('be.visible').type('9');
+
+    // Wait for and verify the groups are visible
+    cy.contains('Test image 9').should('be.visible');
+    cy.get('body').should('not.contain', 'Project-scoped images');
+
+    // Search for a value that doesn't exist in either Global images or Project-scoped images
+    createSpawnerPage.findNotebookImageSearchInput().should('be.visible').clear().type('sample');
+
+    // Wait for and verify that no results are found
+    cy.contains('No results found').should('be.visible');
+    cy.get('body').should('not.contain', 'Global images');
+    cy.get('body').should('not.contain', 'Project-scoped images');
+    createSpawnerPage.findNotebookImageSearchInput().should('be.visible').clear();
+
+    // Check for project specific serving runtimes
     const projectScopedNotebookImage = createSpawnerPage.getProjectScopedNotebookImages();
     projectScopedNotebookImage
       .find()

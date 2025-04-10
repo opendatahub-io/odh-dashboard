@@ -12,6 +12,10 @@ export class HardwareProfileSection {
     return cy.findByTestId('hardware-profile-selection-toggle');
   }
 
+  findHardwareProfileSearchInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
+    return cy.findByTestId('hardware-profile-selection-search').find('input');
+  }
+
   findDetails(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('hardware-profile-details');
   }

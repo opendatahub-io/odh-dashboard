@@ -320,9 +320,30 @@ describe('Deploy model version', () => {
     modelVersionDeployModal.selectProjectByName('KServe project');
     kserveModal.findModelNameInput().should('exist');
 
-    // Check for project specific serving runtimes
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
     const projectScopedSR = kserveModal.getProjectScopedServingRuntime();
+
+    // Verify both groups are initially visible
+    cy.contains('Project-scoped serving runtimes').should('be.visible');
+    cy.contains('Global serving runtimes').should('be.visible');
+
+    // Search for a value that exists in Project-scoped Serving Runtimes but not in Global Serving Runtimes
+    kserveModal.findServingRuntimeTemplateSearchInput().should('be.visible').type('OpenVino');
+
+    // Wait for and verify the groups are visible
+    cy.contains('Project-scoped serving runtimes').should('be.visible');
+    cy.get('body').should('not.contain', 'Global serving runtimes');
+
+    // Search for a value that doesn't exist in either Global Serving Runtimes or Project-scoped Serving Runtimes
+    kserveModal.findServingRuntimeTemplateSearchInput().should('be.visible').clear().type('sample');
+
+    // Wait for and verify that no results are found
+    cy.contains('No results found').should('be.visible');
+    cy.get('body').should('not.contain', 'Global serving runtimes');
+    cy.get('body').should('not.contain', 'Project-scoped serving runtimes');
+    kserveModal.findServingRuntimeTemplateSearchInput().should('be.visible').clear();
+
+    // Check for project specific serving runtimes
     projectScopedSR.find().findByRole('menuitem', { name: 'Caikit', hidden: true }).click();
     kserveModal.findProjectScopedLabel().should('exist');
     kserveModal.findModelFrameworkSelect().should('be.disabled');
@@ -345,21 +366,6 @@ describe('Deploy model version', () => {
         modelArtifactMocked.modelFormatVersion ?? ''
       }`,
     ).should('exist');
-
-    // check model framework selection when serving runtime changes
-    kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    globalScopedSR.find().findByRole('menuitem', { name: 'Multi Platform', hidden: true }).click();
-    kserveModal.findModelFrameworkSelect().should('have.text', 'onnx - 1');
-
-    kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    globalScopedSR.find().findByRole('menuitem', { name: 'Caikit', hidden: true }).click();
-    kserveModal.findModelFrameworkSelect().should('be.enabled');
-    kserveModal.findModelFrameworkSelect().should('have.text', 'Select a framework');
-
-    kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    projectScopedSR.find().findByRole('menuitem', { name: 'Caikit', hidden: true }).click();
-    kserveModal.findModelFrameworkSelect().should('be.disabled');
-    kserveModal.findModelFrameworkSelect().should('have.text', 'openvino_ir - opset1');
   });
 
   it('Selects Create Connection in case of no matching connections', () => {

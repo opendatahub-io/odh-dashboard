@@ -237,6 +237,63 @@ describe('Workbench Hardware Profiles', () => {
     );
   });
 
+  it('should display and select project-scoped hardware and global hardware profiles while creating a workbench', () => {
+    initIntercepts({ disableHardwareProfiles: false, disableProjectScoped: false });
+
+    cy.interceptK8sList(
+      {
+        model: NotebookModel,
+        ns: 'test-project',
+      },
+      mockK8sResourceList([
+        mockNotebookK8sResource({
+          hardwareProfileName: 'large-profile-1',
+          displayName: 'Test Notebook',
+        }),
+      ]),
+    );
+
+    // Navigate to workbench creation
+    projectDetails.visit(projectName);
+    projectDetails.findSectionTab('workbenches').click();
+    workbenchPage.findCreateButton().click();
+
+    // wait for hardware profile select to be loaded in
+    cy.wait('@hardwareProfiles');
+
+    // Verify hardware profile section exists
+    hardwareProfileSection.findHardwareProfileSearchSelector().should('exist');
+    hardwareProfileSection.findHardwareProfileSearchSelector().click();
+
+    // Verify both groups are initially visible
+    cy.contains('Project-scoped Hardware profiles').should('be.visible');
+    cy.contains('Global hardware profiles').scrollIntoView();
+    cy.contains('Global hardware profiles').should('be.visible');
+
+    // Search for a value that exists in Project-scoped hardware profiles but not in Global hardware profiles
+    hardwareProfileSection
+      .findHardwareProfileSearchInput()
+      .should('be.visible')
+      .type('Large Profile-1');
+
+    // Wait for and verify the groups are visible
+    cy.contains('Large Profile-1').should('be.visible');
+    cy.get('body').should('not.contain', 'Global hardware profiles');
+
+    //Search for a value that doesn't exist in either Global hardware profiles or Project-scoped hardware profiles
+    hardwareProfileSection
+      .findHardwareProfileSearchInput()
+      .should('be.visible')
+      .clear()
+      .type('sample');
+
+    // Wait for and verify that no results are found
+    cy.contains('No results found').should('be.visible');
+    cy.get('body').should('not.contain', 'Global hardware profiles');
+    cy.get('body').should('not.contain', 'Project-scoped hardware profiles');
+    hardwareProfileSection.findHardwareProfileSearchInput().should('be.visible').clear();
+  });
+
   it('should display hardware profile selection in workbench creation when both hardware profile and project-scoped feature flag is enabled', () => {
     initIntercepts({ disableHardwareProfiles: false, disableProjectScoped: false });
 
