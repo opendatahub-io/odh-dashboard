@@ -5,8 +5,7 @@ import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { ModelCustomizationAccordionItem } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationAccordionItem';
 import { BaseSection } from '~/pages/pipelines/global/modelCustomization/landingPage/BaseSection';
 import { useToggleAccordion } from '~/pages/pipelines/global/modelCustomization/landingPage/useToggleAccordion';
-import { pipelineRunsRootPath } from '~/routes';
-import { modelCatalogRoute } from '~/routes';
+import { modelCatalogRoute, pipelineRunsRootPath } from '~/routes';
 
 export const NextStepsSection: React.FC = () => {
   const { accordionItemsExpanded, handleToggleAccordion } = useToggleAccordion();

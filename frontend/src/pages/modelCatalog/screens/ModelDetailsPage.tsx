@@ -32,11 +32,10 @@ import {
   isLabBase,
 } from '~/pages/modelCatalog/utils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import { getRegisterCatalogModelRoute } from '~/routes';
 import PopoverListContent from '~/components/PopoverListContent';
 import { FindAdministratorOptions } from '~/pages/projects/screens/projects/const';
 import { RhUiTagIcon } from '~/images/icons';
-import { modelCustomizationRootPath } from '~/routes';
+import { modelCustomizationRootPath, getRegisterCatalogModelRoute } from '~/routes';
 import RhUiControlsIcon from '~/images/icons/RhUiControlsIcon';
 import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';

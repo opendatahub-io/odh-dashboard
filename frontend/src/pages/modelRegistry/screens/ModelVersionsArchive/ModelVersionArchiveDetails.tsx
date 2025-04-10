@@ -4,10 +4,7 @@ import { Button, Flex, FlexItem, Label, Truncate } from '@patternfly/react-core'
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import useModelVersionById from '~/concepts/modelRegistry/apiHooks/useModelVersionById';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import {
-  archiveModelVersionDetailsRoute,
-  modelVersionRoute,
-} from '~/routes';
+import { archiveModelVersionDetailsRoute, modelVersionRoute } from '~/routes';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { ModelVersionDetailsTab } from '~/pages/modelRegistry/screens/ModelVersionDetails/const';
 import ModelVersionDetailsTabs from '~/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
@@ -59,7 +56,9 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
         ),
       );
     } else if (mv?.state === ModelState.LIVE) {
-      navigate(modelVersionRoute(mv.id, mv.registeredModelId, preferredModelRegistry?.metadata.name));
+      navigate(
+        modelVersionRoute(mv.id, mv.registeredModelId, preferredModelRegistry?.metadata.name),
+      );
     }
   }, [
     rm?.state,

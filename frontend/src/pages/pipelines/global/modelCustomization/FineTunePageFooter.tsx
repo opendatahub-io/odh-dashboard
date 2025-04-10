@@ -18,6 +18,7 @@ import {
   globalPipelineRunsRoute,
   modelCustomizationRootPath,
   ModelCustomizationRouterState,
+  modelVersionRoute,
 } from '~/routes';
 import useNotification from '~/utilities/useNotification';
 import {
@@ -45,7 +46,6 @@ import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types'
 import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
 import { deleteSecret } from '~/api';
 import { isFilledRunFormData } from '~/concepts/pipelines/content/createRun/utils';
-import { modelVersionRoute } from '~/routes';
 import { GetArtifactsRequest } from '~/third_party/mlmd';
 import { ListOperationOptions } from '~/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
 import { getArtifactModelData } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';

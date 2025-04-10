@@ -13,11 +13,7 @@ import {
 } from '@patternfly/react-core';
 import { EllipsisVIcon, FilterIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router';
-import {
-  registerModelRoute,
-  registerVersionRoute,
-  registeredModelArchiveRoute,
-} from '~/routes';
+import { registerModelRoute, registerVersionRoute, registeredModelArchiveRoute } from '~/routes';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 
 type RegisteredModelsTableToolbarProps = {

@@ -1,7 +1,7 @@
-import { modelVersionRoute } from "./modelVersionsRoute";
+import { modelVersionRoute } from './modelVersionsRoute';
 
 export const modelVersionDeploymentsRoute = (
-    mvId: string,
-    rmId?: string,
-    preferredModelRegistry?: string,
-  ): string => `${modelVersionRoute(mvId, rmId, preferredModelRegistry)}/deployments`;
+  mvId: string,
+  rmId?: string,
+  preferredModelRegistry?: string,
+): string => `${modelVersionRoute(mvId, rmId, preferredModelRegistry)}/deployments`;

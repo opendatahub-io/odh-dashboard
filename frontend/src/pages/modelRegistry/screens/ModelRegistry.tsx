@@ -1,12 +1,12 @@
 import React from 'react';
 import ApplicationsPage from '~/pages/ApplicationsPage';
+import { modelRegistryRoute } from '~/routes';
 import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegisteredModels';
 import useModelVersions from '~/concepts/modelRegistry/apiHooks/useModelVersions';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
 import RegisteredModelListView from './RegisteredModels/RegisteredModelListView';
 import ModelRegistrySelectorNavigator from './ModelRegistrySelectorNavigator';
-import { modelRegistryRoute } from '~/routes';
 
 type ModelRegistryProps = Omit<
   React.ComponentProps<typeof ApplicationsPage>,

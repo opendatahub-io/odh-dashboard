@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { modelRegistryRoute } from '~/routes';
 import ModelRegistryCoreLoader from './ModelRegistryCoreLoader';
 import ModelRegistry from './screens/ModelRegistry';
 import { ModelVersionsTab } from './screens/ModelVersions/const';
@@ -12,7 +13,6 @@ import RegisteredModelsArchive from './screens/RegisteredModelsArchive/Registere
 import RegisteredModelsArchiveDetails from './screens/RegisteredModelsArchive/RegisteredModelArchiveDetails';
 import RegisterModel from './screens/RegisterModel/RegisterModel';
 import RegisterVersion from './screens/RegisterModel/RegisterVersion';
-import { modelRegistryRoute } from '~/routes';
 import ArchiveModelVersionDetails from './screens/ModelVersionsArchive/ArchiveModelVersionDetails';
 
 const ModelRegistryRoutes: React.FC = () => (

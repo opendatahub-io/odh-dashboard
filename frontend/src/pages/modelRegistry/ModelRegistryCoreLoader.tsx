@@ -8,11 +8,11 @@ import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import WhosMyAdministrator from '~/components/WhosMyAdministrator';
+import { modelRegistryRoute } from '~/routes';
 import RedirectErrorState from '~/pages/external/RedirectErrorState';
 import InvalidModelRegistry from './screens/InvalidModelRegistry';
 import EmptyModelRegistryState from './screens/components/EmptyModelRegistryState';
 import ModelRegistrySelectorNavigator from './screens/ModelRegistrySelectorNavigator';
-import { modelRegistryRoute } from '~/routes';
 
 type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;
 

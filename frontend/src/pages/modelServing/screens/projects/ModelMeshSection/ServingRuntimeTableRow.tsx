@@ -175,7 +175,9 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
                   key: 'deployFromRegistry',
                   label: 'Deploy model from model registry',
                   onClick: () => {
-                    navigate(modelVersionRoute(modelVersionId, registeredModelId, modelRegistryName));
+                    navigate(
+                      modelVersionRoute(modelVersionId, registeredModelId, modelRegistryName),
+                    );
                   },
                 },
               ]}

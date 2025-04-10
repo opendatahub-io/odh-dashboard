@@ -8,10 +8,7 @@ import SimpleSelect from '~/components/SimpleSelect';
 import { filterRegisteredModels } from '~/pages/modelRegistry/screens/utils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
-import {
-  registerModelRoute,
-  registeredModelArchiveRoute,
-} from '~/routes';
+import { registerModelRoute, registeredModelArchiveRoute } from '~/routes';
 import { asEnumMember } from '~/utilities/utils';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import { filterArchiveModels, filterLiveModels } from '~/concepts/modelRegistry/utils';

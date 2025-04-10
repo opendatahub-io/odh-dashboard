@@ -1,7 +1,7 @@
 import * as React from 'react';
+import { modelRegistryRoute } from '~/routes';
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
 import ModelRegistrySelectorNavigator from './ModelRegistrySelectorNavigator';
-import { modelRegistryRoute } from '~/routes';
 
 type InvalidModelRegistryProps = {
   title?: string;

@@ -42,7 +42,9 @@ const ArchiveModelVersionDetails: React.FC<ArchiveModelVersionDetailsProps> = ({
 
   useEffect(() => {
     if (rm?.state === ModelState.LIVE && mv?.id) {
-      navigate(modelVersionRoute(mv.id, mv.registeredModelId, preferredModelRegistry?.metadata.name));
+      navigate(
+        modelVersionRoute(mv.id, mv.registeredModelId, preferredModelRegistry?.metadata.name),
+      );
     }
   }, [rm?.state, mv?.id, mv?.registeredModelId, preferredModelRegistry?.metadata.name, navigate]);
 

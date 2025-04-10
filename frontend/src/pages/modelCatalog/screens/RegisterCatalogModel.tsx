@@ -26,7 +26,7 @@ import {
 import { SubmitLabel } from '~/pages/modelRegistry/screens/RegisterModel/const';
 import RegisterModelDetailsFormSection from '~/pages/modelRegistry/screens/RegisterModel/RegisterModelDetailsFormSection';
 import RegistrationFormFooter from '~/pages/modelRegistry/screens/RegisterModel/RegistrationFormFooter';
-import { registeredModelRoute } from '~/routes';
+import { getCatalogModelDetailsRoute, registeredModelRoute } from '~/routes';
 import { useAppSelector } from '~/redux/hooks';
 import { ModelCatalogContext } from '~/concepts/modelCatalog/context/ModelCatalogContext';
 import { CatalogModel } from '~/concepts/modelCatalog/types';
@@ -43,7 +43,6 @@ import {
   ModelRegistryMetadataType,
 } from '~/concepts/modelRegistry/types';
 import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
-import { getCatalogModelDetailsRoute } from '~/routes'
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 
@@ -199,7 +198,9 @@ const RegisterCatalogModel: React.FC = () => {
           <BreadcrumbItem render={() => <Link to="/modelCatalog">Model catalog</Link>} />
           <BreadcrumbItem
             render={() => (
-              <Link to={getCatalogModelDetailsRoute(params)}>{params.modelName || 'Loading...'}</Link>
+              <Link to={getCatalogModelDetailsRoute(params)}>
+                {params.modelName || 'Loading...'}
+              </Link>
             )}
           />
           <BreadcrumbItem data-testid="breadcrumb-version-name" isActive>

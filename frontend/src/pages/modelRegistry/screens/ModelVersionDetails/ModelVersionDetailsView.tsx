@@ -32,9 +32,8 @@ import {
   bumpRegisteredModelTimestamp,
 } from '~/concepts/modelRegistry/utils/updateTimestamps';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
-import { globalPipelineRunDetailsRoute } from '~/routes';
+import { getCatalogModelDetailsRoute, globalPipelineRunDetailsRoute } from '~/routes';
 import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
-import { getCatalogModelDetailsRoute } from '~/routes'
 import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
 
 type ModelVersionDetailsViewProps = {

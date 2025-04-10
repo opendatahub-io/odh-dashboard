@@ -27,8 +27,6 @@ import {
   registeredModelRoute,
   modelVersionRoute,
   modelRegistryRoute,
-} from '~/routes';
-import {
   modelCustomizationRootPath,
   globalPipelineRecurringRunDetailsRoute,
   globalPipelineRunDetailsRoute,

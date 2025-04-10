@@ -2,10 +2,7 @@ import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { RegisteredModel } from '~/concepts/modelRegistry/types';
-import {
-  modelVersionArchiveRoute,
-  registeredModelRoute,
-} from '~/routes';
+import { modelVersionArchiveRoute, registeredModelRoute } from '~/routes';
 
 type ModelVersionArchiveDetailsBreadcrumbProps = {
   preferredModelRegistry?: string;

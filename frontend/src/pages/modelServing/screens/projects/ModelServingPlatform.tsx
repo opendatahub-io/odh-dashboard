@@ -154,7 +154,9 @@ const ModelServingPlatform: React.FC = () => {
                 <Button
                   variant="link"
                   onClick={() =>
-                    navigate(modelVersionRoute(modelVersionId, registeredModelId, modelRegistryName))
+                    navigate(
+                      modelVersionRoute(modelVersionId, registeredModelId, modelRegistryName),
+                    )
                   }
                   data-testid="deploy-from-registry"
                 >

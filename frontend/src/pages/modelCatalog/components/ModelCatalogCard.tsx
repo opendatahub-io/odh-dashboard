@@ -17,7 +17,7 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { CatalogModel } from '~/concepts/modelCatalog/types';
-import { getCatalogModelDetailsRouteFromModel } from '~/routes'
+import { getCatalogModelDetailsRouteFromModel } from '~/routes';
 import { getTagFromModel } from '~/pages/modelCatalog/utils';
 import { RhUiTagIcon } from '~/images/icons';
 import { ModelCatalogLabels } from '~/pages/modelCatalog/components/ModelCatalogLabels';
