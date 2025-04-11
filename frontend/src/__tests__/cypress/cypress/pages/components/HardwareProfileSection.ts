@@ -16,6 +16,14 @@ export class HardwareProfileSection {
     return cy.findByTestId('hardware-profile-selection-search').find('input');
   }
 
+  getGlobalHardwareProfileLabel(): Cypress.Chainable<JQuery<HTMLBodyElement>> {
+    return cy.get('body').contains('Global hardware profiles');
+  }
+
+  getProjectScopedHardwareProfileLabel(): Cypress.Chainable<JQuery<HTMLBodyElement>> {
+    return cy.get('body').contains('Project-scoped hardware profiles');
+  }
+
   findDetails(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('hardware-profile-details');
   }
