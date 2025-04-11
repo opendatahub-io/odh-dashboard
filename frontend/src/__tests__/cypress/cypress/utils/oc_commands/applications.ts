@@ -57,11 +57,9 @@ export const getCsvByDisplayName = (
   displayName: string,
   namespace?: string,
 ): Cypress.Chainable<unknown> => {
-  // Get CSVs, prioritize non-failed if subscription CSV is failed
-  const csvCommand =
-    `oc get csv ${
-      namespace ? `-n ${namespace}` : '-A'
-    } -o json | jq -r '[.items[] | select(.spec.displayName | test("${displayName}")) | select(.status.phase != "Failed")] | first // empty'`;
+  const csvCommand = `oc get csv ${
+    namespace ? `-n ${namespace}` : '-A'
+  } -o json | jq -r '[.items[] | select(.spec.displayName | test("${displayName}")) | select(.status.phase != "Failed")] | first // empty'`;
 
   return execWithOutput(csvCommand).then(({ exitCode: csvExitCode, output: csvOutput }) => {
     if (csvExitCode !== 0 || !csvOutput.trim()) {
@@ -110,4 +108,3 @@ export const getSubscriptionChannelFromCsv = (csvObject: {
     return output.trim();
   });
 };
-
