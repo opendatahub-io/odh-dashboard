@@ -164,12 +164,12 @@ export const deleteNotebook = (
 };
 
 /**
- * Deletes odh-nim-account in the ODH_NAMESPACE.
+ * Deletes odh-nim-account in the APPLICATIONS_NAMESPACE.
  * @param namespace The namespace where account exist.
  * @returns A Cypress chainable that performs the account deletion process.
  */
 export const deleteNIMAccount = (
-  namespace: string = Cypress.env('ODH_NAMESPACE'),
+  namespace: string = Cypress.env('APPLICATIONS_NAMESPACE'),
 ): Cypress.Chainable<CommandLineResult> => {
   const ocCommand = `oc delete account odh-nim-account -n ${namespace}`;
   cy.log(`Executing: ${ocCommand}`);

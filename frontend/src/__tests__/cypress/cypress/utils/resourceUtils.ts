@@ -2,7 +2,7 @@ import type { ResourcesData } from '~/__tests__/cypress/cypress/types';
 import { resources } from '~/__tests__/cypress/cypress/pages/resources';
 import { createCustomResource, deleteCustomResource } from './oc_commands/customResources';
 
-const applicationNamespace = Cypress.env('ODH_NAMESPACE');
+const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
 
 const listView = resources.getListView();
 const cardView = resources.getCardView();

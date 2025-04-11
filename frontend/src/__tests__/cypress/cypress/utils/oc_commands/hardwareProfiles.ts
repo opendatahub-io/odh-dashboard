@@ -1,7 +1,7 @@
 import type { CommandLineResult } from '~/__tests__/cypress/cypress/types';
 import { createCustomResource } from './customResources';
 
-const applicationNamespace = Cypress.env('ODH_NAMESPACE');
+const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
 
 /**
  * `cleanupHardwareProfiles` searches for a HardwareProfile in the specified namespace that contains a provided name.
