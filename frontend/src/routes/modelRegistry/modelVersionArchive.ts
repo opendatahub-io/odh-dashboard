@@ -1,4 +1,4 @@
-import { modelVersionListRoute } from './modelVersionsRoute';
+import { modelVersionListRoute } from './modelVersions';
 
 export const modelVersionArchiveRoute = (rmId?: string, preferredModelRegistry?: string): string =>
   `${modelVersionListRoute(rmId, preferredModelRegistry)}/archive`;

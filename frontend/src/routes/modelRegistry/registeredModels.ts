@@ -1,4 +1,4 @@
-import { modelRegistryRoute } from './registryBaseRoute';
+import { modelRegistryRoute } from './registryBase';
 
 export const registeredModelsRoute = (preferredModelRegistry?: string): string =>
   `${modelRegistryRoute(preferredModelRegistry)}/registeredModels`;
