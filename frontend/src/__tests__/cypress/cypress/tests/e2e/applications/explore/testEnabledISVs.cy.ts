@@ -4,7 +4,7 @@ import { getOcResourceNames } from '~/__tests__/cypress/cypress/utils/oc_command
 import { filterRhoaiIfHidden } from '~/__tests__/cypress/cypress/utils/appCheckUtils';
 import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
-const applicationNamespace = Cypress.env('ODH_NAMESPACE');
+const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
 
 describe('Verify RHODS Explore Section Contains Only Expected ISVs', () => {
   let expectedISVs: string[];
