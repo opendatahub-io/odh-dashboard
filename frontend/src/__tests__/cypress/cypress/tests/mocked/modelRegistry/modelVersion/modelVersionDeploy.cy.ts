@@ -366,6 +366,21 @@ describe('Deploy model version', () => {
         modelArtifactMocked.modelFormatVersion ?? ''
       }`,
     ).should('exist');
+
+    // check model framework selection when serving runtime changes
+    kserveModal.findServingRuntimeTemplateSearchSelector().click();
+    globalScopedSR.find().findByRole('menuitem', { name: 'Multi Platform', hidden: true }).click();
+    kserveModal.findModelFrameworkSelect().should('have.text', 'onnx - 1');
+
+    kserveModal.findServingRuntimeTemplateSearchSelector().click();
+    globalScopedSR.find().findByRole('menuitem', { name: 'Caikit', hidden: true }).click();
+    kserveModal.findModelFrameworkSelect().should('be.enabled');
+    kserveModal.findModelFrameworkSelect().should('have.text', 'Select a framework');
+
+    kserveModal.findServingRuntimeTemplateSearchSelector().click();
+    projectScopedSR.find().findByRole('menuitem', { name: 'Caikit', hidden: true }).click();
+    kserveModal.findModelFrameworkSelect().should('be.disabled');
+    kserveModal.findModelFrameworkSelect().should('have.text', 'openvino_ir - opset1');
   });
 
   it('Selects Create Connection in case of no matching connections', () => {
