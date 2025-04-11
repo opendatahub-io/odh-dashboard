@@ -114,6 +114,8 @@ const fetchOrCreateDashboardCR = async (fastify: KubeFastifyInstance): Promise<D
     });
 };
 
+// Do not contain any feature flags -- code overrides will do their trick until managed by users
+const defaultDashboardCR = _.omit(blankDashboardCR, 'spec.dashboardConfig');
 const createDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfig> => {
   return fastify.kube.customObjectsApi
     .createNamespacedCustomObject(
@@ -121,12 +123,12 @@ const createDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfi
       DASHBOARD_CONFIG.version,
       fastify.kube.namespace,
       DASHBOARD_CONFIG.plural,
-      blankDashboardCR,
+      defaultDashboardCR,
     )
     .then((result) => result.body as DashboardConfig)
     .catch((e) => {
       fastify.log.error('Error creating Dashboard CR: ', e);
-      return blankDashboardCR;
+      return defaultDashboardCR;
     });
 };
 
