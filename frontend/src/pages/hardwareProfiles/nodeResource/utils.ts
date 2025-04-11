@@ -1,4 +1,5 @@
 import { z, ZodIssue } from 'zod';
+import { HardwareProfileWarningType } from '~/concepts/hardwareProfiles/types';
 import { Identifier } from '~/types';
 import { isLarger, splitValueUnit, UnitOption } from '~/utilities/valueUnits';
 
@@ -10,6 +11,10 @@ const defaultCountSchema = (identifier: Identifier, unitOptions?: UnitOption[]) 
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: 'Value must be a number.',
+          params: {
+            code: HardwareProfileWarningType.INVALID_NO,
+          },
+          path: ['identifiers', identifier.identifier, 'defaultCount'],
         });
         return;
       }
@@ -17,6 +22,10 @@ const defaultCountSchema = (identifier: Identifier, unitOptions?: UnitOption[]) 
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: 'Value must be a positive number.',
+          params: {
+            code: HardwareProfileWarningType.CANNOT_BE_NEGATIVE,
+          },
+          path: ['identifiers', identifier.identifier, 'defaultCount'],
         });
         return;
       }
@@ -28,6 +37,10 @@ const defaultCountSchema = (identifier: Identifier, unitOptions?: UnitOption[]) 
           code: z.ZodIssueCode.custom,
           message:
             'Default value must be equal to or between the minimum and maximum allowed limits.',
+          params: {
+            code: HardwareProfileWarningType.OUT_OF_RANGE,
+          },
+          path: ['identifiers', identifier.identifier, 'defaultCount'],
         });
       }
       return;
@@ -42,6 +55,10 @@ const defaultCountSchema = (identifier: Identifier, unitOptions?: UnitOption[]) 
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'Default value must be provided.',
+        params: {
+          code: HardwareProfileWarningType.MISSING_VALUE,
+        },
+        path: ['identifiers', identifier.identifier, 'defaultCount'],
       });
       return;
     }
@@ -49,6 +66,10 @@ const defaultCountSchema = (identifier: Identifier, unitOptions?: UnitOption[]) 
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'Default value must be a positive number.',
+        params: {
+          code: HardwareProfileWarningType.CANNOT_BE_NEGATIVE,
+        },
+        path: ['identifiers', identifier.identifier, 'defaultCount'],
       });
       return;
     }
@@ -62,6 +83,10 @@ const defaultCountSchema = (identifier: Identifier, unitOptions?: UnitOption[]) 
         code: z.ZodIssueCode.custom,
         message:
           'Default value must be equal to or between the minimum and maximum allowed limits.',
+        params: {
+          code: HardwareProfileWarningType.OUT_OF_RANGE,
+        },
+        path: ['identifiers', identifier.identifier, 'defaultCount'],
       });
     }
   });
@@ -74,6 +99,10 @@ const minCountSchema = (identifier: Identifier, unitOptions?: UnitOption[]) =>
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: 'Value must be a number.',
+          params: {
+            code: HardwareProfileWarningType.INVALID_NO,
+          },
+          path: ['identifiers', identifier.identifier, 'minCount'],
         });
         return;
       }
@@ -81,6 +110,10 @@ const minCountSchema = (identifier: Identifier, unitOptions?: UnitOption[]) =>
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: 'Value must be a positive number.',
+          params: {
+            code: HardwareProfileWarningType.CANNOT_BE_NEGATIVE,
+          },
+          path: ['identifiers', identifier.identifier, 'minCount'],
         });
         return;
       }
@@ -89,6 +122,10 @@ const minCountSchema = (identifier: Identifier, unitOptions?: UnitOption[]) =>
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: 'Minimum allowed value cannot exceed the maximum allowed value (if specified).',
+          params: {
+            code: HardwareProfileWarningType.OUT_OF_RANGE,
+          },
+          path: ['identifiers', identifier.identifier, 'minCount'],
         });
       }
       return;
@@ -102,6 +139,10 @@ const minCountSchema = (identifier: Identifier, unitOptions?: UnitOption[]) =>
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'Minimum allowed value must be provided.',
+        params: {
+          code: HardwareProfileWarningType.MISSING_VALUE,
+        },
+        path: ['identifiers', identifier.identifier, 'minCount'],
       });
       return;
     }
@@ -109,6 +150,10 @@ const minCountSchema = (identifier: Identifier, unitOptions?: UnitOption[]) =>
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'Minimum allowed value must be a positive number.',
+        params: {
+          code: HardwareProfileWarningType.CANNOT_BE_NEGATIVE,
+        },
+        path: ['identifiers', identifier.identifier, 'minCount'],
       });
       return;
     }
@@ -119,11 +164,15 @@ const minCountSchema = (identifier: Identifier, unitOptions?: UnitOption[]) =>
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'Minimum allowed value cannot exceed the maximum allowed value (if specified).',
+        params: {
+          code: HardwareProfileWarningType.OUT_OF_RANGE,
+        },
+        path: ['identifiers', identifier.identifier, 'minCount'],
       });
     }
   });
 
-const maxCountSchema = (unitOptions?: UnitOption[]) =>
+const maxCountSchema = (identifier: Identifier, unitOptions?: UnitOption[]) =>
   z.union([z.string(), z.number()]).superRefine((maxCount, ctx) => {
     if (!unitOptions) {
       const maxVal = Number(maxCount);
@@ -131,6 +180,10 @@ const maxCountSchema = (unitOptions?: UnitOption[]) =>
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: 'Value must be a number.',
+          params: {
+            code: HardwareProfileWarningType.INVALID_NO,
+          },
+          path: ['identifiers', identifier.identifier, 'maxCount'],
         });
         return;
       }
@@ -138,6 +191,10 @@ const maxCountSchema = (unitOptions?: UnitOption[]) =>
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: 'Value must be a positive number.',
+          params: {
+            code: HardwareProfileWarningType.CANNOT_BE_NEGATIVE,
+          },
+          path: ['identifiers', identifier.identifier, 'maxCount'],
         });
         return;
       }
@@ -148,6 +205,10 @@ const maxCountSchema = (unitOptions?: UnitOption[]) =>
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'Maximum allowed value must be provided.',
+        params: {
+          code: HardwareProfileWarningType.MISSING_VALUE,
+        },
+        path: ['identifiers', identifier.identifier, 'maxCount'],
       });
       return;
     }
@@ -155,6 +216,10 @@ const maxCountSchema = (unitOptions?: UnitOption[]) =>
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'Maximum allowed value must be a positive number.',
+        params: {
+          code: HardwareProfileWarningType.CANNOT_BE_NEGATIVE,
+        },
+        path: ['identifiers', identifier.identifier, 'maxCount'],
       });
     }
   });
@@ -182,7 +247,7 @@ export const validateMaxCount = (
   if (identifier.maxCount === undefined) {
     return { isValid: true, issues: undefined };
   }
-  const result = maxCountSchema(unitOptions).safeParse(identifier.maxCount);
+  const result = maxCountSchema(identifier, unitOptions).safeParse(identifier.maxCount);
   return {
     isValid: result.success,
     issues: result.error?.issues,

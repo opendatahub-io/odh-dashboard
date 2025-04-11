@@ -19,7 +19,9 @@ const HardwareProfileEnableToggle: React.FC<HardwareProfileEnableToggleProps> = 
   const hardwareProfileWarnings = validateProfileWarning(hardwareProfile);
   const { enabled } = hardwareProfile.spec;
   const warning = hardwareProfileWarnings.some(
-    (hardwareProfileWarning) => hardwareProfileWarning.type === HardwareProfileWarningType.OTHER,
+    (hardwareProfileWarning) =>
+      hardwareProfileWarning.type !==
+      HardwareProfileWarningType.HARDWARE_PROFILES_MISSING_CPU_MEMORY,
   );
   const [isLoading, setLoading] = React.useState(false);
   const notification = useNotification();

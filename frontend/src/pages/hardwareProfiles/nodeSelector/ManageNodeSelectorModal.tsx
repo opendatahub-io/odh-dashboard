@@ -3,6 +3,8 @@ import { Modal } from '@patternfly/react-core/deprecated';
 import { Form, FormGroup, TextInput } from '@patternfly/react-core';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
+import { useValidation } from '~/utilities/useValidation';
+import { nodeSelectorSchema } from '~/pages/hardwareProfiles/manage/validationUtils';
 import { EMPTY_NODE_SELECTOR, NodeSelectorRow } from './const';
 
 type ManageNodeSelectorModalProps = {
@@ -25,6 +27,8 @@ const ManageNodeSelectorModal: React.FC<ManageNodeSelectorModalProps> = ({
     onClose();
   };
 
+  const isValidated = useValidation(nodeSelector, nodeSelectorSchema);
+
   return (
     <Modal
       title={existingNodeSelector ? 'Edit node selector' : 'Add node selector'}
@@ -36,7 +40,7 @@ const ManageNodeSelectorModal: React.FC<ManageNodeSelectorModalProps> = ({
           submitLabel={existingNodeSelector ? 'Update' : 'Add'}
           onSubmit={handleSubmit}
           onCancel={onClose}
-          isSubmitDisabled={!nodeSelector.key || !nodeSelector.value}
+          isSubmitDisabled={!isValidated.validationResult.success}
         />
       }
     >
