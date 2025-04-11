@@ -57,11 +57,9 @@ export const getCsvByDisplayName = (
   displayName: string,
   namespace?: string,
 ): Cypress.Chainable<unknown> => {
-  // Get CSVs, prioritize non-failed if subscription CSV is failed
-  const csvCommand =
-    `oc get csv ${
-      namespace ? `-n ${namespace}` : '-A'
-    } -o json | jq -r '[.items[] | select(.spec.displayName | test("${displayName}")) | select(.status.phase != "Failed")] | first // empty'`;
+  const csvCommand = `oc get csv ${
+    namespace ? `-n ${namespace}` : '-A'
+  } -o json | jq -r '[.items[] | select(.spec.displayName | test("${displayName}")) | select(.status.phase != "Failed")] | first // empty'`;
 
   return execWithOutput(csvCommand).then(({ exitCode: csvExitCode, output: csvOutput }) => {
     if (csvExitCode !== 0 || !csvOutput.trim()) {
@@ -98,8 +96,8 @@ export const getSubscriptionChannelFromCsv = (csvObject: {
     annotations?: { [key: string]: string };
   };
 }): Cypress.Chainable<string> => {
-  const packageName = csvObject.metadata.name.split('.v')[0];
-  const ocCommand = `oc get subscription -A -o json | jq -r '.items[] | select(.spec.name | test("${packageName}")) | .spec.channel' | head -n 1`;
+  const packageName = csvObject.metadata.name.split('.')[0];
+  const ocCommand = `oc get subscription -A -o json | jq -r '.items[] | select(.status.installedCSV | test("${packageName}")) | .spec.channel' | head -n 1`;
 
   return execWithOutput(ocCommand).then(({ exitCode, output }) => {
     if (exitCode !== 0 || !output.trim()) {
@@ -110,4 +108,3 @@ export const getSubscriptionChannelFromCsv = (csvObject: {
     return output.trim();
   });
 };
-

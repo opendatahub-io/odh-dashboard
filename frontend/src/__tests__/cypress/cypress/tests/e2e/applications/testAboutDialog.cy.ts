@@ -1,5 +1,4 @@
 import { aboutDialog } from '~/__tests__/cypress/cypress/pages/aboutDialog';
-import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 // eslint-disable-next-line no-restricted-syntax
 import { DataScienceStackComponentMap } from '~/concepts/areas/const';
 import {
@@ -40,8 +39,8 @@ describe('Verify RHODS About Dialog', () => {
         .findText()
         .invoke('text')
         .should((text) => {
-          const simplifiedText = text.replace(/[^\w\s]/g, '');
-          expect(simplifiedText).to.contain(productName);
+          // Remove special characters from the text before comparison
+          expect(text.replace(/[^\w\s]/g, '')).to.contain(productName);
         });
 
       cy.step(`Verify product '${productName}' in About image`);
@@ -62,38 +61,30 @@ describe('Verify RHODS About Dialog', () => {
       });
 
       cy.step(`Verify ${productName} channel in About dialog`);
-      getSubscriptionChannelFromCsv(odhCsv as { metadata: { name: string } },
-      ).then((channel) => {
+      getSubscriptionChannelFromCsv(odhCsv as { metadata: { name: string } }).then((channel) => {
         aboutDialog.findChannel().should('contain.text', channel);
       });
 
       cy.step(`Verify ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME} access level`);
       aboutDialog.isAdminAccessLevel();
 
-      aboutDialog
-        .findTable()
-        .should('exist')
-        .then(() => {
-          Object.entries(dataScienceStackComponentMap).forEach(([, component]) => {
-            cy.step(`Verify versions in About dialog's table for component: ${component}`);
-            cy.wrap(null)
-              .then(() => {
-                return aboutDialog.getComponentReleasesText(component);
-              })
-              .then((texts) => {
-                getResourceVersionByName(component).then((version) => {
-                  if (version.length === 0) {
-                    return;
-                  }
-                  const text = texts.join(' ');
-                  softTrue(
-                    version.some((v) => text.includes(v)),
-                    `Version ${version} not found for component ${component}`,
-                  );
-                });
-              });
+      aboutDialog.findTable().then(() => {
+        Object.entries(dataScienceStackComponentMap).forEach(([, component]) => {
+          cy.step(`Verify versions in About dialog's table for component: ${component}`);
+          aboutDialog.getComponentReleasesText(component).then((texts) => {
+            getResourceVersionByName(component).then((version) => {
+              if (version.length === 0) {
+                return;
+              }
+              const text = texts.join(' ');
+              softTrue(
+                version.some((v) => text.includes(v)),
+                `Version ${version} not found for component ${component}`,
+              );
+            });
           });
         });
+      });
     },
   );
 });

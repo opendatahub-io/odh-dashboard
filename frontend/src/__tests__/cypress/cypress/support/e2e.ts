@@ -102,7 +102,7 @@ Cypress.Keyboard.defaults({
 });
 
 // eslint-disable-next-line no-console
-console.log('Support file loaded');
+console.log(`Support file loaded. \nwatchForFileChanges: ${Cypress.config('watchForFileChanges')}`);
 
 // ============================
 // Test Tags Implementation

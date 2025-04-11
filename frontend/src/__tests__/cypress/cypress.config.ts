@@ -21,7 +21,8 @@ const resultsDir = `${env.CY_RESULTS_DIR || 'results'}/${env.CY_MOCK ? 'mocked' 
 
 export default defineConfig({
   experimentalMemoryManagement: true,
-  watchForFileChanges: false,
+  // Disable watching only if env variable `CY_WATCH=false`
+  watchForFileChanges: env.CY_WATCH ? env.CY_WATCH !== 'false' : undefined,
   // Use relative path as a workaround to https://github.com/cypress-io/cypress/issues/6406
   reporter: '../../../node_modules/cypress-multi-reporters',
   reporterOptions: {
@@ -72,6 +73,7 @@ export default defineConfig({
       cypressHighResolution(on, config);
       coverage(on, config);
       setupWebsockets(on, config);
+
       on('task', {
         readJSON(filePath: string) {
           const absPath = path.resolve(__dirname, filePath);
