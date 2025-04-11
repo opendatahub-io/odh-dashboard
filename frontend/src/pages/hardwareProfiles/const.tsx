@@ -47,7 +47,7 @@ export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
       popover: (
         <>
           Visible features indicate where the hardware profile can be used: in <b>workbenches</b>,
-          during <b>model serving</b>, and in LAB-tuning <b>pipelines</b>.
+          during <b>model serving</b>, and in <b>Data Science Pipelines</b>.
         </>
       ),
       popoverProps: {
