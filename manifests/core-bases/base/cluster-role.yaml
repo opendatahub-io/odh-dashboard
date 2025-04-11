@@ -133,17 +133,10 @@ rules:
   - apiGroups:
       - rbac.authorization.k8s.io
     verbs:
-      - get
       - list
-      - watch
-      - create
-      - update
-      - patch
-      - delete
     resources:
       - rolebindings
       - clusterrolebindings
-      - roles
   - apiGroups:
       - ''
       - events.k8s.io
