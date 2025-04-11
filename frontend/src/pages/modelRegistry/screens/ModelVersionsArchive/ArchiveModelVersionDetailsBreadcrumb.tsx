@@ -28,11 +28,15 @@ const ArchiveModelVersionDetailsBreadcrumb: React.FC<ArchiveModelVersionDetailsB
       )}
     />
     <BreadcrumbItem
-      render={() => (
-        <Link to={registeredModelArchiveDetailsUrl(registeredModel?.id, preferredModelRegistry)}>
-          {registeredModel?.name || 'Loading...'}
-        </Link>
-      )}
+      render={() =>
+        !registeredModel?.name ? (
+          'Loading...'
+        ) : (
+          <Link to={registeredModelArchiveDetailsUrl(registeredModel.id, preferredModelRegistry)}>
+            {registeredModel.name}
+          </Link>
+        )
+      }
     />
     <BreadcrumbItem isActive>{modelVersionName || 'Loading...'}</BreadcrumbItem>
   </Breadcrumb>
