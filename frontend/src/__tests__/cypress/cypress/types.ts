@@ -87,6 +87,7 @@ export type WBEditTestData = {
   editedTestNamespace: string;
   editedTestDescription: string;
   pvcEditDisplayName: string;
+  pvcStorageName: string;
 };
 
 export type WBControlSuiteTestData = {
