@@ -189,7 +189,7 @@ export const getKServeTemplates = (
   );
 };
 
-export const servingRuntimeTemplate = ({
+export const setServingRuntimeTemplate = ({
   template,
   scope,
   currentScope,

@@ -22,7 +22,7 @@ import { TemplateKind } from '~/k8sTypes';
 import {
   getServingRuntimeDisplayNameFromTemplate,
   getServingRuntimeNameFromTemplate,
-  servingRuntimeTemplate,
+  setServingRuntimeTemplate,
   isServingRuntimeKind,
 } from '~/pages/modelServing/customServingRuntimes/utils';
 import { isCompatibleWithIdentifier } from '~/pages/projects/screens/spawner/spawnerUtils';
@@ -153,7 +153,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
                   data.scope === SERVING_RUNTIME_SCOPE.Project
                 }
                 onClick={() =>
-                  servingRuntimeTemplate({
+                  setServingRuntimeTemplate({
                     template,
                     scope: SERVING_RUNTIME_SCOPE.Project,
                     currentScope: data.scope ?? '',
@@ -224,7 +224,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
                   data.scope === SERVING_RUNTIME_SCOPE.Global
                 }
                 onClick={() =>
-                  servingRuntimeTemplate({
+                  setServingRuntimeTemplate({
                     template,
                     scope: SERVING_RUNTIME_SCOPE.Global,
                     currentScope: data.scope ?? '',
