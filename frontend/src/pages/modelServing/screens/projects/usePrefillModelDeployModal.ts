@@ -16,6 +16,7 @@ import useConnections from '~/pages/projects/screens/detail/connections/useConne
 import { isRedHatRegistryUri } from '~/pages/modelRegistry/screens/utils';
 import {
   getMRConnectionValues,
+  OCIAccessTypeKey,
   OCIConnectionTypeKeys,
   S3ConnectionTypeKeys,
   URIConnectionTypeKeys,
@@ -186,6 +187,7 @@ const usePrefillModelDeployModal = (
             type: InferenceServiceStorageType.NEW_STORAGE,
             alert,
           });
+          setinitialNewConnectionValues({ [`${OCIAccessTypeKey}`]: ['Pull'] });
           setInitialNewConnectionType(
             withRequiredFields(
               connectionTypes.find(
