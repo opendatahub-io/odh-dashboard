@@ -50,9 +50,10 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
   const [searchImageStreamName, setSearchImageStreamName] = React.useState('');
 
   const getFilteredImageStreams = () => {
-    const filteredCurrentImageStreams = currentProjectStreams!.filter((imageStream) =>
-      imageStream.metadata.name.toLowerCase().includes(searchImageStreamName.toLowerCase()),
-    );
+    const filteredCurrentImageStreams =
+      currentProjectStreams?.filter((imageStream) =>
+        imageStream.metadata.name.toLowerCase().includes(searchImageStreamName.toLowerCase()),
+      ) || [];
     const filteredImageStreams = imageStreams.filter((imageStream) =>
       imageStream.metadata.name.toLowerCase().includes(searchImageStreamName.toLowerCase()),
     );

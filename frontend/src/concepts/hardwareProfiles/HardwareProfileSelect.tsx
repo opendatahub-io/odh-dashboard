@@ -417,7 +417,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                               alt=""
                             />
                           </FlexItem>
-                          <FlexItem>Project-scoped Hardware profiles</FlexItem>
+                          <FlexItem>Project-scoped hardware profiles</FlexItem>
                         </Flex>
                       }
                     >

@@ -22,6 +22,7 @@ import { TemplateKind } from '~/k8sTypes';
 import {
   getServingRuntimeDisplayNameFromTemplate,
   getServingRuntimeNameFromTemplate,
+  servingRuntimeTemplate,
   isServingRuntimeKind,
 } from '~/pages/modelServing/customServingRuntimes/utils';
 import { isCompatibleWithIdentifier } from '~/pages/projects/screens/spawner/spawnerUtils';
@@ -109,11 +110,12 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
   }));
 
   const getServingRuntime = () => {
-    const filteredProjectScopedTemplates = filterProjectScopedTemplates!.filter((template) =>
-      getServingRuntimeDisplayNameFromTemplate(template)
-        .toLocaleLowerCase()
-        .includes(searchServingRuntime.toLocaleLowerCase()),
-    );
+    const filteredProjectScopedTemplates =
+      filterProjectScopedTemplates?.filter((template) =>
+        getServingRuntimeDisplayNameFromTemplate(template)
+          .toLocaleLowerCase()
+          .includes(searchServingRuntime.toLocaleLowerCase()),
+      ) || [];
     const filteredScopedTemplates = filteredTemplates.filter((template) =>
       getServingRuntimeDisplayNameFromTemplate(template)
         .toLocaleLowerCase()
@@ -150,26 +152,17 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
                   data.servingRuntimeTemplateName === getServingRuntimeNameFromTemplate(template) &&
                   data.scope === SERVING_RUNTIME_SCOPE.Project
                 }
-                onClick={() => {
-                  if (
-                    getServingRuntimeNameFromTemplate(template) !==
-                      data.servingRuntimeTemplateName ||
-                    data.scope !== SERVING_RUNTIME_SCOPE.Project
-                  ) {
-                    setData(
-                      'servingRuntimeTemplateName',
-                      getServingRuntimeNameFromTemplate(template),
-                    );
-                    setData('scope', SERVING_RUNTIME_SCOPE.Project);
-                    setServingRuntimeDisplayName(
-                      getServingRuntimeDisplayNameFromTemplate(template),
-                    );
-                    // Reset model framework selection when changing the template in KServe modal only
-                    if (resetModelFormat) {
-                      resetModelFormat();
-                    }
-                  }
-                }}
+                onClick={() =>
+                  servingRuntimeTemplate({
+                    template,
+                    scope: SERVING_RUNTIME_SCOPE.Project,
+                    currentScope: data.scope ?? '',
+                    currentTemplateName: data.servingRuntimeTemplateName,
+                    setData,
+                    setDisplayName: setServingRuntimeDisplayName,
+                    resetModelFormat,
+                  })
+                }
               >
                 <Flex
                   spaceItems={{ default: 'spaceItemsXs' }}
@@ -230,27 +223,17 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
                   data.servingRuntimeTemplateName === getServingRuntimeNameFromTemplate(template) &&
                   data.scope === SERVING_RUNTIME_SCOPE.Global
                 }
-                onClick={() => {
-                  if (
-                    getServingRuntimeNameFromTemplate(template) !==
-                      data.servingRuntimeTemplateName ||
-                    data.scope !== SERVING_RUNTIME_SCOPE.Global
-                  ) {
-                    setData(
-                      'servingRuntimeTemplateName',
-                      getServingRuntimeNameFromTemplate(template),
-                    );
-                    setData('scope', SERVING_RUNTIME_SCOPE.Global);
-
-                    setServingRuntimeDisplayName(
-                      getServingRuntimeDisplayNameFromTemplate(template),
-                    );
-                    // Reset model framework selection when changing the template in KServe modal only
-                    if (resetModelFormat) {
-                      resetModelFormat();
-                    }
-                  }
-                }}
+                onClick={() =>
+                  servingRuntimeTemplate({
+                    template,
+                    scope: SERVING_RUNTIME_SCOPE.Global,
+                    currentScope: data.scope ?? '',
+                    currentTemplateName: data.servingRuntimeTemplateName,
+                    setData,
+                    setDisplayName: setServingRuntimeDisplayName,
+                    resetModelFormat,
+                  })
+                }
                 icon={<GlobalIcon />}
               >
                 <Split>
