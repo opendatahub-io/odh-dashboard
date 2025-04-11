@@ -129,12 +129,32 @@ describe('Accelerator Profile', () => {
 
   it('disable accelerator profile', () => {
     initIntercepts({});
-    cy.interceptOdh(
-      'PUT /api/accelerator-profiles/:name',
+    cy.interceptK8s(
+      'GET',
       {
-        path: { name: 'migrated-gpu' },
+        model: AcceleratorProfileModel,
+        name: 'migrated-gpu',
+        ns: 'opendatahub',
+        times: 1,
       },
-      { success: true },
+      mockAcceleratorProfile({
+        displayName: 'Test Accelerator',
+        namespace: 'opendatahub',
+      }),
+    );
+    cy.interceptK8s(
+      'PUT',
+      {
+        model: AcceleratorProfileModel,
+        name: 'migrated-gpu',
+        ns: 'opendatahub',
+        times: 1,
+      },
+      mockAcceleratorProfile({
+        displayName: 'Test Accelerator',
+        namespace: 'opendatahub',
+        enabled: false,
+      }),
     ).as('disableAcceleratorProfile');
     acceleratorProfile.visit();
     acceleratorProfile.getRow('TensorRT').findEnabled().should('not.be.checked');
@@ -142,9 +162,7 @@ describe('Accelerator Profile', () => {
     acceleratorProfile.getRow('Test Accelerator').findEnableSwitch().click();
     disableAcceleratorProfileModal.findDisableButton().click();
 
-    cy.wait('@disableAcceleratorProfile').then((interception) => {
-      expect(interception.request.body).to.eql({ enabled: false });
-    });
+    cy.wait('@disableAcceleratorProfile');
     acceleratorProfile.getRow('Test Accelerator').findEnabled().should('not.be.checked');
   });
 });

@@ -145,7 +145,6 @@ describe('Manage Accelerator Profile', () => {
     tableRow.findKebabAction('Delete').click();
     createAcceleratorProfile.getRow('toleration-key').findKebabAction('Delete').click();
     createAcceleratorProfile.shouldHaveModalEmptyState();
-    cy.interceptOdh('POST /api/accelerator-profiles', { success: true }).as('createAccelerator');
     cy.interceptK8s(
       'POST',
       {
@@ -195,6 +194,20 @@ describe('Manage Accelerator Profile', () => {
         namespace: 'opendatahub',
       }),
     ).as('updatedAccelerator');
+
+    cy.interceptK8s(
+      'GET',
+      {
+        model: AcceleratorProfileModel,
+        name: 'test-accelerator',
+        ns: 'opendatahub',
+        times: 1,
+      },
+      mockAcceleratorProfile({
+        name: 'test-accelerator',
+        namespace: 'opendatahub',
+      }),
+    );
 
     editAcceleratorProfile.k8sNameDescription.findDescriptionInput().fill('Updated description');
     editAcceleratorProfile.findSubmitButton().click();
