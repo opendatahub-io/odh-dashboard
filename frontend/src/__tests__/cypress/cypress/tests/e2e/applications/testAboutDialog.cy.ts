@@ -33,7 +33,6 @@ describe('Verify RHODS About Dialog', () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Open the About dialog');
-      appChrome.visit();
       aboutDialog.show();
 
       cy.step(`Verify product '${productName}' in About dialog`);
@@ -57,14 +56,13 @@ describe('Verify RHODS About Dialog', () => {
           .then((uiVersion) => {
             softTrue(
               version.includes(uiVersion),
-              `Expected version '${version}' to include '${uiVersion}'`,
+              `${productName} version '${version}' is not similar to '${uiVersion}' in About dialog`,
             );
           });
       });
 
       cy.step(`Verify ${productName} channel in About dialog`);
-      getSubscriptionChannelFromCsv(
-        odhCsv as { metadata: { annotations: { [key: string]: string } } },
+      getSubscriptionChannelFromCsv(odhCsv as { metadata: { name: string } },
       ).then((channel) => {
         aboutDialog.findChannel().should('contain.text', channel);
       });

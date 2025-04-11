@@ -47,24 +47,27 @@ export const getResourceVersionByName = (resourceName: string): Cypress.Chainabl
 };
 
 /**
- * Get CSV JSON by its display name.
+ * Get CSV JSON by its display name, considering active subscriptions.
  *
- * @param displayName - The display name of the product to retrieve the version for.
- * @returns A Cypress.Chainable that resolves to the version of the product.
- * @throws {Error} if no CSV is found with the given display name.
+ * @param displayName - The display name of the product to retrieve the CSV for.
+ * @returns A Cypress.Chainable that resolves to the CSV of the product.
+ * @throws {Error} if no CSV is found with the given display name and active subscription.
  */
 export const getCsvByDisplayName = (
   displayName: string,
   namespace?: string,
 ): Cypress.Chainable<unknown> => {
-  const ocCommand = `oc get csv ${
-    namespace ? `-n ${namespace}` : '-A'
-  } -o json | jq -r 'first(.items[] | select(.spec.displayName == "${displayName}"))'`;
-  return execWithOutput(ocCommand).then(({ exitCode, output }) => {
-    if (exitCode !== 0) {
-      throw new Error(`Failed to retrieve CSV for display name '${displayName}'\n${output}`);
+  // Get CSVs, prioritize non-failed if subscription CSV is failed
+  const csvCommand =
+    `oc get csv ${
+      namespace ? `-n ${namespace}` : '-A'
+    } -o json | jq -r '[.items[] | select(.spec.displayName | test("${displayName}")) | select(.status.phase != "Failed")] | first // empty'`;
+
+  return execWithOutput(csvCommand).then(({ exitCode: csvExitCode, output: csvOutput }) => {
+    if (csvExitCode !== 0 || !csvOutput.trim()) {
+      throw new Error(`Failed to find active non-failed CSV for '${displayName}':\n${csvOutput}`);
     }
-    return JSON.parse(output.trim());
+    return JSON.parse(csvOutput.trim());
   });
 };
 
@@ -83,30 +86,28 @@ export const getVersionFromCsv = (csvObject: {
 };
 
 /**
- * Get channel of the first subscription in a given namespace.
+ * Get the subscription channel that matches the given CSV.
  *
  * @param csvObject - The CSV object from which to retrieve the channel.
  * @returns A Cypress.Chainable that resolves to the channel name.
  * @throws {Error} if the CSV format is invalid or no subscription is found in the namespace.
  */
 export const getSubscriptionChannelFromCsv = (csvObject: {
-  metadata: { annotations: { [key: string]: string } };
+  metadata: {
+    name: string;
+    annotations?: { [key: string]: string };
+  };
 }): Cypress.Chainable<string> => {
-  // Remove the unnecessary conditional
-  // First, retrieve the operator namespace
-  const annotation = csvObject.metadata.annotations;
-  const operatorNamespace = annotation['olm.operatorNamespace'];
-  if (operatorNamespace) {
-    // Then, retrieve the channel from the first subscription in that namespace
-    const ocCommand = `oc get subs -n ${operatorNamespace} -o jsonpath='{.items[0].spec.channel}'`;
-    return execWithOutput(ocCommand).then(({ exitCode, output }) => {
-      if (exitCode !== 0) {
-        throw new Error(
-          `Failed to retrieve subscription in namespace '${operatorNamespace}'\n${output}`,
-        );
-      }
-      return output.trim();
-    });
-  }
-  throw new Error('Failed to retrieve operator namespace from CSV');
+  const packageName = csvObject.metadata.name.split('.v')[0];
+  const ocCommand = `oc get subscription -A -o json | jq -r '.items[] | select(.spec.name | test("${packageName}")) | .spec.channel' | head -n 1`;
+
+  return execWithOutput(ocCommand).then(({ exitCode, output }) => {
+    if (exitCode !== 0 || !output.trim()) {
+      throw new Error(
+        `Failed to retrieve subscription channel for package '${packageName}'\n${output}`,
+      );
+    }
+    return output.trim();
+  });
 };
+
