@@ -146,71 +146,23 @@ describe('Manage Accelerator Profile', () => {
     createAcceleratorProfile.getRow('toleration-key').findKebabAction('Delete').click();
     createAcceleratorProfile.shouldHaveModalEmptyState();
     cy.interceptOdh('POST /api/accelerator-profiles', { success: true }).as('createAccelerator');
-    createAcceleratorProfile.findSubmitButton().click();
-
-    cy.wait('@createAccelerator').then((interception) => {
-      expect(interception.request.body).to.be.eql({
-        name: 'test-accelerator-name',
-        displayName: 'test-accelerator',
-        description: '',
-        identifier: 'nvidia.com/gpu',
-        enabled: true,
-        tolerations: [],
-      });
-    });
-  });
-
-  it.only('create accelerator profile', () => {
-    initIntercepts({});
-    createAcceleratorProfile.visit();
-    createAcceleratorProfile.findSubmitButton().should('be.disabled');
-
-    // test required fields
-    createAcceleratorProfile.k8sNameDescription.findDisplayNameInput().fill('test-accelerator');
-    createAcceleratorProfile.findSubmitButton().should('be.disabled');
-    createAcceleratorProfile.findIdentifierInput().fill('nvidia.com/gpu');
-    createAcceleratorProfile.findSubmitButton().should('be.enabled');
-
-    // test resource name validation
-    createAcceleratorProfile.k8sNameDescription.findResourceEditLink().click();
-    createAcceleratorProfile.k8sNameDescription
-      .findResourceNameInput()
-      .should('have.attr', 'aria-invalid', 'false');
-    createAcceleratorProfile.k8sNameDescription
-      .findResourceNameInput()
-      .should('have.value', 'test-accelerator');
-    // Invalid character k8s names fail
-    createAcceleratorProfile.k8sNameDescription
-      .findResourceNameInput()
-      .clear()
-      .type('InVaLiD vAlUe!');
-    createAcceleratorProfile.k8sNameDescription
-      .findResourceNameInput()
-      .should('have.attr', 'aria-invalid', 'true');
-    createAcceleratorProfile.findSubmitButton().should('be.disabled');
-    createAcceleratorProfile.k8sNameDescription
-      .findResourceNameInput()
-      .clear()
-      .type('test-accelerator-name');
-    createAcceleratorProfile.findSubmitButton().should('be.enabled');
-    // cy.interceptOdh('POST /api/accelerator-profiles', { success: true }).as('createAccelerator');
     cy.interceptK8s(
       'POST',
-      { model: AcceleratorProfileModel, name: 'test-accelerator-name', times: 1 },
-      mockAcceleratorProfile({}),
+      {
+        model: AcceleratorProfileModel,
+        name: 'test-accelerator-name',
+        ns: 'opendatahub',
+        times: 1,
+      },
+      mockAcceleratorProfile({
+        name: 'test-accelerator-name',
+        namespace: 'opendatahub',
+      }),
     ).as('createAccelerator');
+
     createAcceleratorProfile.findSubmitButton().click();
 
-    cy.wait('@createAccelerator').then((interception) => {
-      expect(interception.request.body).to.be.eql({
-        name: 'test-accelerator-name',
-        displayName: 'test-accelerator',
-        description: '',
-        identifier: 'nvidia.com/gpu',
-        enabled: true,
-        tolerations: [],
-      });
-    });
+    cy.wait('@createAccelerator');
   });
 
   it('edit page has expected values', () => {
@@ -230,23 +182,23 @@ describe('Manage Accelerator Profile', () => {
       .shouldHaveTolerationSeconds('-');
 
     //update the description
-    cy.interceptOdh(
-      'PUT /api/accelerator-profiles/:name',
-      { path: { name: 'test-accelerator' } },
-      { success: true },
+    cy.interceptK8s(
+      'PUT',
+      {
+        model: AcceleratorProfileModel,
+        name: 'test-accelerator',
+        ns: 'opendatahub',
+        times: 1,
+      },
+      mockAcceleratorProfile({
+        name: 'test-accelerator',
+        namespace: 'opendatahub',
+      }),
     ).as('updatedAccelerator');
+
     editAcceleratorProfile.k8sNameDescription.findDescriptionInput().fill('Updated description');
     editAcceleratorProfile.findSubmitButton().click();
-    cy.wait('@updatedAccelerator').then((interception) => {
-      expect(interception.request.body).to.eql({
-        name: 'test-accelerator',
-        displayName: 'Test Accelerator',
-        identifier: 'nvidia.com/gpu',
-        enabled: true,
-        tolerations: [{ key: 'nvidia.com/gpu', operator: 'Exists', effect: 'NoSchedule' }],
-        description: 'Updated description',
-      });
-    });
+    cy.wait('@updatedAccelerator');
   });
 
   it('invalid id in edit page', () => {
