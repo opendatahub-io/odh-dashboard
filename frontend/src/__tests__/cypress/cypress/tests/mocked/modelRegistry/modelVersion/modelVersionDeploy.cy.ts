@@ -22,6 +22,7 @@ import { mockModelArtifactList } from '~/__mocks__/mockModelArtifactList';
 import { kserveModal } from '~/__tests__/cypress/cypress/pages/modelServing';
 import { mockModelArtifact } from '~/__mocks__/mockModelArtifact';
 import { initDeployPrefilledModelIntercepts } from '~/__tests__/cypress/cypress/utils/modelServingUtils';
+import { hardwareProfileSection } from '~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 
@@ -31,6 +32,7 @@ type HandlersProps = {
   modelMeshInstalled?: boolean;
   kServeInstalled?: boolean;
   disableProjectScoped?: boolean;
+  disableHardwareProfiles?: boolean;
 };
 
 const registeredModelMocked = mockRegisteredModel({ name: 'test-1' });
@@ -58,8 +60,14 @@ const initIntercepts = ({
   modelMeshInstalled = true,
   kServeInstalled = true,
   disableProjectScoped = true,
+  disableHardwareProfiles = true,
 }: HandlersProps) => {
-  initDeployPrefilledModelIntercepts({ modelMeshInstalled, kServeInstalled, disableProjectScoped });
+  initDeployPrefilledModelIntercepts({
+    modelMeshInstalled,
+    kServeInstalled,
+    disableProjectScoped,
+    disableHardwareProfiles,
+  });
 
   cy.interceptK8sList(
     ServiceModel,
@@ -360,6 +368,42 @@ describe('Deploy model version', () => {
     projectScopedSR.find().findByRole('menuitem', { name: 'Caikit', hidden: true }).click();
     kserveModal.findModelFrameworkSelect().should('be.disabled');
     kserveModal.findModelFrameworkSelect().should('have.text', 'openvino_ir - opset1');
+  });
+
+  it('Display project specific hardware profile while deploying', () => {
+    initIntercepts({ disableProjectScoped: false, disableHardwareProfiles: false });
+    cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
+    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 4');
+    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDeployModal.selectProjectByName('KServe project');
+    kserveModal.findModelNameInput().should('exist');
+
+    // Verify hardware profile section exists
+    hardwareProfileSection.findHardwareProfileSearchSelector().should('exist');
+    hardwareProfileSection.findHardwareProfileSearchSelector().click();
+
+    // verify available project-scoped hardware profile
+    const projectScopedHardwareProfile = hardwareProfileSection.getProjectScopedHardwareProfile();
+    projectScopedHardwareProfile
+      .find()
+      .findByRole('menuitem', {
+        name: 'Small CPU: Request = 1; Limit = 1; Memory: Request = 4Gi; Limit = 4Gi',
+        hidden: true,
+      })
+      .click();
+    hardwareProfileSection.findProjectScopedLabel().should('exist');
+
+    // verify available global-scoped hardware profile
+    hardwareProfileSection.findHardwareProfileSearchSelector().click();
+    const globalScopedHardwareProfile = hardwareProfileSection.getGlobalScopedHardwareProfile();
+    globalScopedHardwareProfile
+      .find()
+      .findByRole('menuitem', {
+        name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
+        hidden: true,
+      })
+      .click();
+    hardwareProfileSection.findGlobalScopedLabel().should('exist');
   });
 
   it('Selects Create Connection in case of no matching connections', () => {

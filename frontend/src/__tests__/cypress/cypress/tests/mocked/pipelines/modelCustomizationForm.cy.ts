@@ -40,6 +40,7 @@ import {
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
 import { IdentifierResourceType, TolerationEffect, TolerationOperator } from '~/types';
+import { hardwareProfileSection } from '~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
 
 const projectName = 'test-project-name-2';
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
@@ -126,6 +127,41 @@ describe('Model Customization Form', () => {
         'have.text',
         's3://test-bucket/demo-models/test-path?endpoint=test-endpoint&defaultRegion=test-region',
       );
+  });
+
+  it('Should show project scoped and global scoped hardware profiles when project-scoped hardware profiles exist', () => {
+    initIntercepts({ disableProjectScoped: false });
+    setupModelRegistryIntercepts({ modelRegistryServiceName: 'modelregistry-sample' });
+    visitModelVersionDetails({ serviceName: 'modelregistry-sample', versionNo: '1' });
+    cy.wait('@getIlabPipeline');
+    cy.wait('@getPipelineVersions');
+
+    // Verify hardware profile section exists
+    hardwareProfileSection.findHardwareProfileSearchSelector().should('exist');
+    hardwareProfileSection.findHardwareProfileSearchSelector().click();
+
+    // verify available project-scoped hardware profile
+    const projectScopedHardwareProfile = hardwareProfileSection.getProjectScopedHardwareProfile();
+    projectScopedHardwareProfile
+      .find()
+      .findByRole('menuitem', {
+        name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi; Nvidia.com/gpu: Request = 2; Limit = 2',
+        hidden: true,
+      })
+      .click();
+    hardwareProfileSection.findProjectScopedLabel().should('exist');
+
+    // verify available global-scoped hardware profile
+    hardwareProfileSection.findHardwareProfileSearchSelector().click();
+    const globalScopedHardwareProfile = hardwareProfileSection.getGlobalScopedHardwareProfile();
+    globalScopedHardwareProfile
+      .find()
+      .findByRole('menuitem', {
+        name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi; Nvidia.com/gpu: Request = 2; Limit = 2',
+        hidden: true,
+      })
+      .click();
+    hardwareProfileSection.findGlobalScopedLabel().should('exist');
   });
 
   it('Should submit', () => {
@@ -241,6 +277,7 @@ type HandlersProps = {
   isEmptyProject?: boolean;
   isValid?: boolean;
   disableModelRegistry?: boolean;
+  disableProjectScoped?: boolean;
 };
 
 type ModelRegistryProps = {
@@ -254,6 +291,7 @@ export const initIntercepts = (
     isEmptyProject,
     isValid = true,
     disableModelRegistry = false,
+    disableProjectScoped = true,
   }: HandlersProps = {
     isEmptyProject: false,
   },
@@ -264,6 +302,7 @@ export const initIntercepts = (
       disableFineTuning,
       disableHardwareProfiles,
       disableModelRegistry,
+      disableProjectScoped,
     }),
   );
   cy.interceptK8sList(
@@ -391,6 +430,87 @@ export const initIntercepts = (
       mockHardwareProfile({
         name: 'medium-profile',
         displayName: 'Medium Profile',
+        identifiers: [
+          {
+            displayName: 'CPU',
+            identifier: 'cpu',
+            minCount: '1',
+            maxCount: '2',
+            defaultCount: '1',
+            resourceType: IdentifierResourceType.CPU,
+          },
+          {
+            displayName: 'Memory',
+            identifier: 'memory',
+            minCount: '2Gi',
+            maxCount: '4Gi',
+            defaultCount: '2Gi',
+            resourceType: IdentifierResourceType.MEMORY,
+          },
+          {
+            displayName: 'Nvidia.com/gpu',
+            identifier: 'nvidia.cpm/gpu',
+            minCount: '2',
+            maxCount: '4',
+            defaultCount: '2',
+          },
+        ],
+        tolerations: [
+          {
+            effect: TolerationEffect.NO_SCHEDULE,
+            key: 'NotebooksOnlyChange',
+            operator: TolerationOperator.EXISTS,
+          },
+        ],
+        nodeSelector: {},
+      }),
+    ]),
+  );
+  cy.interceptK8sList(
+    { model: HardwareProfileModel, ns: projectName },
+    mockK8sResourceList([
+      mockHardwareProfile({
+        name: 'small-profile',
+        displayName: 'Small Profile',
+        namespace: projectName,
+        identifiers: [
+          {
+            displayName: 'CPU',
+            identifier: 'cpu',
+            minCount: '1',
+            maxCount: '2',
+            defaultCount: '1',
+            resourceType: IdentifierResourceType.CPU,
+          },
+          {
+            displayName: 'Memory',
+            identifier: 'memory',
+            minCount: '2Gi',
+            maxCount: '4Gi',
+            defaultCount: '2Gi',
+            resourceType: IdentifierResourceType.MEMORY,
+          },
+          {
+            displayName: 'Nvidia.com/gpu',
+            identifier: 'nvidia.com/gpu',
+            minCount: '2',
+            maxCount: '4',
+            defaultCount: '2',
+          },
+        ],
+        tolerations: [
+          {
+            effect: TolerationEffect.NO_SCHEDULE,
+            key: 'NotebooksOnlyChange',
+            operator: TolerationOperator.EXISTS,
+          },
+        ],
+        nodeSelector: {},
+      }),
+      mockHardwareProfile({
+        name: 'medium-profile-1',
+        displayName: 'Medium Profile-1',
+        namespace: projectName,
         identifiers: [
           {
             displayName: 'CPU',

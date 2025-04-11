@@ -14,21 +14,28 @@ import {
   mockInvalidTemplateK8sResource,
 } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import {
+  HardwareProfileModel,
   NIMAccountModel,
   ProjectModel,
   TemplateModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
 import { ServingRuntimePlatform } from '~/types';
+import {
+  globalScopedHardwareProfiles,
+  projectScopedHardwareProfiles,
+} from '~/__tests__/cypress/cypress/tests/mocked/hardwareProfiles/workbenchHardwareProfiles.cy';
 
 export const initDeployPrefilledModelIntercepts = ({
   modelMeshInstalled = true,
   kServeInstalled = true,
   disableProjectScoped = true,
+  disableHardwareProfiles = true,
 }: {
   modelMeshInstalled?: boolean;
   kServeInstalled?: boolean;
   disableProjectScoped?: boolean;
+  disableHardwareProfiles?: boolean;
 }): void => {
   cy.interceptOdh(
     'GET /api/config',
@@ -36,6 +43,7 @@ export const initDeployPrefilledModelIntercepts = ({
       disableModelRegistry: false,
       disableModelCatalog: false,
       disableProjectScoped,
+      disableHardwareProfiles,
     }),
   );
 
@@ -122,6 +130,17 @@ export const initDeployPrefilledModelIntercepts = ({
       { namespace: 'kserve-project' },
     ),
   );
+
+  // Mock hardware profiles
+  cy.interceptK8sList(
+    { model: HardwareProfileModel, ns: 'opendatahub' },
+    mockK8sResourceList(globalScopedHardwareProfiles),
+  ).as('hardwareProfiles');
+
+  cy.interceptK8sList(
+    { model: HardwareProfileModel, ns: 'test-project' },
+    mockK8sResourceList(projectScopedHardwareProfiles),
+  ).as('hardwareProfiles');
 
   cy.interceptOdh('GET /api/connection-types', [
     mockConnectionTypeConfigMap({
