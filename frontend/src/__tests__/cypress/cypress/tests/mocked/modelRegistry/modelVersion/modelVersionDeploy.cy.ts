@@ -332,15 +332,15 @@ describe('Deploy model version', () => {
 
     // Wait for and verify the groups are visible
     cy.contains('Project-scoped serving runtimes').should('be.visible');
-    cy.get('body').should('not.contain', 'Global serving runtimes');
+    kserveModal.getGlobalServingRuntimesLabel().should('not.exist');
 
     // Search for a value that doesn't exist in either Global serving runtimes or Project-scoped serving runtimes
     kserveModal.findServingRuntimeTemplateSearchInput().should('be.visible').clear().type('sample');
 
     // Wait for and verify that no results are found
     cy.contains('No results found').should('be.visible');
-    cy.get('body').should('not.contain', 'Global serving runtimes');
-    cy.get('body').should('not.contain', 'Project-scoped serving runtimes');
+    kserveModal.getGlobalServingRuntimesLabel().should('not.exist');
+    kserveModal.getProjectScopedServingRuntimesLabel().should('not.exist');
     kserveModal.findServingRuntimeTemplateSearchInput().should('be.visible').clear();
 
     // Check for project specific serving runtimes

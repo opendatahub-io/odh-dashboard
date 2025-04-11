@@ -521,15 +521,15 @@ describe('Workbench page', () => {
 
     // Wait for and verify the groups are visible
     cy.contains('Test image 9').should('be.visible');
-    cy.get('body').should('not.contain', 'Project-scoped images');
+    createSpawnerPage.getProjectScopedImagesLabel().should('not.exist');
 
     // Search for a value that doesn't exist in either Global images or Project-scoped images
     createSpawnerPage.findNotebookImageSearchInput().should('be.visible').clear().type('sample');
 
     // Wait for and verify that no results are found
     cy.contains('No results found').should('be.visible');
-    cy.get('body').should('not.contain', 'Global images');
-    cy.get('body').should('not.contain', 'Project-scoped images');
+    createSpawnerPage.getGlobalImagesLabel().should('not.exist');
+    createSpawnerPage.getProjectScopedImagesLabel().should('not.exist');
     createSpawnerPage.findNotebookImageSearchInput().should('be.visible').clear();
 
     // Check for project specific serving runtimes

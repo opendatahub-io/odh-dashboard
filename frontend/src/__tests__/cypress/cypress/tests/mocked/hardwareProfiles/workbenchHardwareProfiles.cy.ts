@@ -278,7 +278,7 @@ describe('Workbench Hardware Profiles', () => {
 
     // Wait for and verify the groups are visible
     cy.contains('Large Profile-1').should('be.visible');
-    cy.get('body').should('not.contain', 'Global hardware profiles');
+    hardwareProfileSection.getGlobalHardwareProfileLabel().should('not.exist');
 
     //Search for a value that doesn't exist in either Global hardware profiles or Project-scoped hardware profiles
     hardwareProfileSection
@@ -289,8 +289,8 @@ describe('Workbench Hardware Profiles', () => {
 
     // Wait for and verify that no results are found
     cy.contains('No results found').should('be.visible');
-    cy.get('body').should('not.contain', 'Global hardware profiles');
-    cy.get('body').should('not.contain', 'Project-scoped hardware profiles');
+    hardwareProfileSection.getGlobalHardwareProfileLabel().should('not.exist');
+    hardwareProfileSection.getProjectScopedHardwareProfileLabel().should('not.exist');
     hardwareProfileSection.findHardwareProfileSearchInput().should('be.visible').clear();
   });
 

@@ -134,6 +134,14 @@ class InferenceServiceModal extends Modal {
     return cy.findByTestId('serving-runtime-template-selection-search').find('input');
   }
 
+  getGlobalServingRuntimesLabel() {
+    return cy.get('body').contains('Global serving runtimes');
+  }
+
+  getProjectScopedServingRuntimesLabel() {
+    return cy.get('body').contains('Project-scoped serving runtimes');
+  }
+
   findProjectScopedLabel() {
     return this.find().findByTestId('project-scoped-image');
   }
