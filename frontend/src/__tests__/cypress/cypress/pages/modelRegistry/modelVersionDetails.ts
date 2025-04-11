@@ -32,6 +32,23 @@ class ModelVersionDetails {
     return cy.findByTestId('pipeline-run-link');
   }
 
+  shouldNotHavePipelineRunLink() {
+    this.findPipelineRunLink().find('a').should('not.exist');
+    return this;
+  }
+
+  findProjectAccessInfoButton() {
+    return cy.findByTestId('project-access-info-button');
+  }
+
+  shouldHaveProjectAccessInfo() {
+    cy.findByTestId('project-access-info-popover').should(
+      'contain.text',
+      "You don't have access to the source run. To request access, contact your administrator.",
+    );
+    return this;
+  }
+
   findDescription() {
     return cy.findByTestId('model-version-description');
   }

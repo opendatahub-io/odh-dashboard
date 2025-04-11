@@ -27,6 +27,7 @@ import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
 import { modelServingGlobal } from '~/__tests__/cypress/cypress/pages/modelServing';
 import { ModelRegistryMetadataType, ModelState } from '~/concepts/modelRegistry/types';
 import { KnownLabels } from '~/k8sTypes';
+import { asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 const mockModelVersions = mockModelVersion({
@@ -129,7 +130,7 @@ const mockModelVersions = mockModelVersion({
   },
 });
 
-const initIntercepts = () => {
+const initIntercepts = (isEmptyProject = false) => {
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
@@ -157,7 +158,10 @@ const initIntercepts = () => {
     ]),
   );
 
-  cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+  cy.interceptK8sList(
+    ProjectModel,
+    mockK8sResourceList(!isEmptyProject ? [mockProjectK8sResource({})] : []),
+  );
 
   cy.interceptOdh(
     `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId`,
@@ -282,7 +286,7 @@ describe('Model version details', () => {
       modelVersionDetails.findPropertiesTableRows().should('have.length', 7);
       modelVersionDetails
         .findRegisteredFromPipeline()
-        .should('have.text', 'Run pipeline-run-test intest-project');
+        .should('have.text', 'Run pipeline-run-test inTest Project');
       modelVersionDetails.findDescription().should('have.text', 'Description of model version');
       modelVersionDetails.findStorageEndpoint().contains('test-endpoint');
       modelVersionDetails.findStorageRegion().contains('test-region');
@@ -524,6 +528,16 @@ describe('Model version details', () => {
         .within(() => {
           cy.contains('Testing label already exists').should('exist');
         });
+    });
+
+    it('Pipeline run link unavailable for users without project access.', () => {
+      asProjectEditUser();
+      initIntercepts(true);
+      modelVersionDetails.visit();
+      modelVersionDetails.shouldNotHavePipelineRunLink();
+      modelVersionDetails.findPipelineRunLink().should('contain.text', 'pipeline-run-test');
+      modelVersionDetails.findProjectAccessInfoButton().click();
+      modelVersionDetails.shouldHaveProjectAccessInfo();
     });
   });
 
