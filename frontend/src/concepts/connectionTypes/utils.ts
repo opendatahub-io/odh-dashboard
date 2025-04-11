@@ -144,6 +144,7 @@ export enum ModelServingCompatibleTypes {
 
 export const URIConnectionTypeKeys = ['URI'];
 export const OCIConnectionTypeKeys = ['.dockerconfigjson', 'OCI_HOST'];
+export const OCIAccessTypeKey = ['ACCESS_TYPE'];
 export const S3ConnectionTypeKeys = [
   'AWS_ACCESS_KEY_ID',
   'AWS_SECRET_ACCESS_KEY',
