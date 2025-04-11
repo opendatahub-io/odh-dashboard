@@ -295,6 +295,15 @@ class InferenceServiceModal extends Modal {
     return this.find().findByTestId(`field ${envVar}`);
   }
 
+  verifyPullSecretCheckbox() {
+    return this.find()
+      .get('.pf-v6-c-menu')
+      .contains('Pull secret')
+      .parent()
+      .find('input[type="checkbox"]')
+      .should('be.checked');
+  }
+
   findOCIModelURI() {
     return this.find().findByTestId('model-uri');
   }
