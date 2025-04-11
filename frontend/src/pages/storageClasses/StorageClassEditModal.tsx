@@ -17,8 +17,8 @@ import {
 import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
 
 import { StorageClassKind } from '~/k8sTypes';
-import { updateStorageClassConfig } from '~/services/StorageClassService';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
+import { updateStorageClassConfig } from '~/api';
 import { getStorageClassConfig, isOpenshiftDefaultStorageClass, isValidConfigValue } from './utils';
 import { OpenshiftDefaultLabel } from './OpenshiftDefaultLabel';
 
