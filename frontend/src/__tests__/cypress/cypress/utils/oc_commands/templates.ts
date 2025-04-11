@@ -1,6 +1,6 @@
 import type { CommandLineResult } from '~/__tests__/cypress/cypress/types';
 
-const applicationNamespace = Cypress.env('TEST_NAMESPACE');
+const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
 
 /**
  * Cleans up OpenShift templates by searching for a template with a specific display name.

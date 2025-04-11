@@ -1,6 +1,23 @@
 import type { CommandLineResult } from '~/__tests__/cypress/cypress/types';
 
 /**
+ * Run a command and return the result exitCode and output (including stderr).
+ * @param command The command to run.
+ * @returns A Cypress chainable that resolves to an object with `exitCode` and `output` properties.
+ */
+export const execWithOutput = (
+  command: string,
+): Cypress.Chainable<{ exitCode: number; output: string }> => {
+  cy.log(`Executing command: ${command}`);
+  return cy.exec(command, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
+    const stdout = result.stdout.trim();
+    const stderr = result.stderr.trim();
+    const output = stdout && stderr ? `${stdout}\n${stderr}` : stdout || stderr;
+    return { exitCode: result.code, output };
+  });
+};
+
+/**
  * Applies the given YAML content using the `oc apply` command.
  *
  * @param yamlContent YAML content to be applied
@@ -147,12 +164,12 @@ export const deleteNotebook = (
 };
 
 /**
- * Deletes odh-nim-account in the TEST_NAMESPACE.
+ * Deletes odh-nim-account in the APPLICATIONS_NAMESPACE.
  * @param namespace The namespace where account exist.
  * @returns A Cypress chainable that performs the account deletion process.
  */
 export const deleteNIMAccount = (
-  namespace: string = Cypress.env('TEST_NAMESPACE'),
+  namespace: string = Cypress.env('APPLICATIONS_NAMESPACE'),
 ): Cypress.Chainable<CommandLineResult> => {
   const ocCommand = `oc delete account odh-nim-account -n ${namespace}`;
   cy.log(`Executing: ${ocCommand}`);
