@@ -103,6 +103,7 @@ const RoleBindingPermissionsTableSection: React.FC<RoleBindingPermissionsTableSe
           isAdding={addField}
           onDismissNewRow={() => {
             setAddField(false);
+            setError(undefined);
           }}
           onError={(e) => {
             setError(e);

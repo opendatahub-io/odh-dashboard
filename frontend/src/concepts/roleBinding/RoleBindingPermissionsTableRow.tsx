@@ -28,9 +28,10 @@ import RoleBindingPermissionsNameInput from './RoleBindingPermissionsNameInput';
 import RoleBindingPermissionsPermissionSelection from './RoleBindingPermissionsPermissionSelection';
 
 type RoleBindingPermissionsTableRowProps = {
-  roleBindingObject: RoleBindingKind;
+  roleBindingObject?: RoleBindingKind;
   subjectKind: RoleBindingSubject['kind'];
   isEditing: boolean;
+  isAdding: boolean;
   defaultRoleBindingName?: string;
   permissionOptions: {
     type: RoleBindingPermissionsRoleType;
@@ -56,6 +57,7 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
   roleBindingObject: obj,
   subjectKind,
   isEditing,
+  isAdding,
   defaultRoleBindingName,
   permissionOptions,
   typeAhead,
@@ -66,24 +68,38 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
   onDelete,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
-  const [roleBindingName, setRoleBindingName] = React.useState(
-    defaultValueName(obj, isProjectSubject, projects),
+  const [roleBindingName, setRoleBindingName] = React.useState(() =>
+    isAdding ? '' : defaultValueName(obj!, isProjectSubject, projects),
   );
   const [roleBindingRoleRef, setRoleBindingRoleRef] =
-    React.useState<RoleBindingPermissionsRoleType>(defaultValueRole(obj));
+    React.useState<RoleBindingPermissionsRoleType>(
+      isAdding ? permissionOptions[0]?.type : defaultValueRole(obj!),
+    );
   const [isLoading, setIsLoading] = React.useState(false);
-  const createdDate = new Date(obj.metadata.creationTimestamp || '');
-  const isDefaultGroup = obj.metadata.name === defaultRoleBindingName;
+  const createdDate = new Date(obj?.metadata.creationTimestamp ?? '');
+  const isDefaultGroup = obj?.metadata.name === defaultRoleBindingName;
+
+  //Sync local state with props if exiting edit mode
+  React.useEffect(() => {
+    if (!isEditing && obj) {
+      setRoleBindingName(
+        isProjectSubject
+          ? defaultValueName(obj, isProjectSubject, projects)
+          : defaultValueName(obj),
+      );
+      setRoleBindingRoleRef(defaultValueRole(obj));
+    }
+  }, [obj, isEditing, isProjectSubject, projects]);
 
   return (
     <Tbody>
       <Tr>
         <Td dataLabel="Username">
-          {isEditing ? (
+          {isEditing || isAdding ? (
             <RoleBindingPermissionsNameInput
               subjectKind={subjectKind}
               value={roleBindingName}
-              onChange={(selection) => {
+              onChange={(selection: React.SetStateAction<string>) => {
                 setRoleBindingName(selection);
               }}
               onClear={() => setRoleBindingName('')}
@@ -114,7 +130,7 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
           )}
         </Td>
         <Td dataLabel="Permission">
-          {isEditing && permissionOptions.length > 1 ? (
+          {(isEditing || isAdding) && permissionOptions.length > 1 ? (
             <RoleBindingPermissionsPermissionSelection
               permissionOptions={permissionOptions}
               selection={roleBindingRoleRef}
@@ -127,7 +143,7 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
           )}
         </Td>
         <Td dataLabel="Date added">
-          {!isEditing && (
+          {!isEditing && !isAdding && (
             <Content component="p">
               <Timestamp date={createdDate} tooltip={{ variant: TimestampTooltipVariant.default }}>
                 {relativeTime(Date.now(), createdDate.getTime())}
@@ -136,11 +152,11 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
           )}
         </Td>
         <Td isActionCell modifier="nowrap" style={{ textAlign: 'right' }}>
-          {isEditing ? (
+          {isEditing || isAdding ? (
             <Split>
               <SplitItem>
                 <Button
-                  data-testid={`save-button ${roleBindingName}`}
+                  data-testid={isAdding ? `save-new-button` : `save-button ${roleBindingName}`}
                   data-id="save-rolebinding-button"
                   aria-label="Save role binding"
                   variant="link"
@@ -157,6 +173,7 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
                         : roleBindingName,
                       roleBindingRoleRef,
                     );
+                    setIsLoading(false);
                   }}
                 />
               </SplitItem>
@@ -168,14 +185,6 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
                   isDisabled={isLoading}
                   icon={<TimesIcon />}
                   onClick={() => {
-                    // TODO: Fix this
-                    // This is why you do not store a copy of state
-                    setRoleBindingName(
-                      isProjectSubject
-                        ? defaultValueName(obj, isProjectSubject, projects)
-                        : defaultValueName(obj),
-                    );
-                    setRoleBindingRoleRef(defaultValueRole(obj));
                     onCancel();
                   }}
                 />
