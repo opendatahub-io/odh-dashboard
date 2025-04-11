@@ -19,38 +19,34 @@ const ReplicaSection: React.FC<ReplicaSectionProps> = ({
   onChange,
   infoContent,
   isRequired = false,
-}) => {
-  const replicaForm = (
-    <FormGroup
-      label="Number of model server replicas to deploy"
-      data-testid="model-server-replicas"
-      labelHelp={
-        infoContent ? (
-          <Popover bodyContent={<div>{infoContent}</div>}>
-            <Icon aria-label="Model server replicas info" role="button">
-              <OutlinedQuestionCircleIcon />
-            </Icon>
-          </Popover>
-        ) : undefined
-      }
-      fieldId="model-server-replicas"
-      isRequired={isRequired}
-    >
-      <NumberInputWrapper
-        min={MIN_SIZE}
-        max={MAX_SIZE}
-        value={value}
-        onChange={(val) => {
-          const newSize = Number(val);
-          if (!Number.isNaN(newSize) && newSize <= MAX_SIZE) {
-            onChange(normalizeBetween(newSize, MIN_SIZE, MAX_SIZE));
-          }
-        }}
-      />
-    </FormGroup>
-  );
-
-  return replicaForm;
-};
+}) => (
+  <FormGroup
+    label="Number of model server replicas to deploy"
+    data-testid="model-server-replicas"
+    labelHelp={
+      infoContent ? (
+        <Popover bodyContent={<div>{infoContent}</div>}>
+          <Icon aria-label="Model server replicas info" role="button">
+            <OutlinedQuestionCircleIcon />
+          </Icon>
+        </Popover>
+      ) : undefined
+    }
+    fieldId="model-server-replicas"
+    isRequired={isRequired}
+  >
+    <NumberInputWrapper
+      min={MIN_SIZE}
+      max={MAX_SIZE}
+      value={value}
+      onChange={(val) => {
+        const newSize = Number(val);
+        if (!Number.isNaN(newSize) && newSize <= MAX_SIZE) {
+          onChange(normalizeBetween(newSize, MIN_SIZE, MAX_SIZE));
+        }
+      }}
+    />
+  </FormGroup>
+);
 
 export default ReplicaSection;
