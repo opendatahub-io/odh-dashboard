@@ -100,6 +100,24 @@ describe('updateStorageClassConfig', () => {
         name: 'openshift-default-sc',
       },
     });
+    expect(mockPatchResource).toHaveBeenCalledWith({
+      fetchOptions: {
+        requestInit: {},
+      },
+      model: StorageClassModel,
+      queryOptions: {
+        name: 'openshift-default-sc',
+        queryParams: {},
+      },
+      patches: [
+        {
+          op: 'replace',
+          path: '/metadata/annotations/opendatahub.io~1sc-config',
+          value: expect.anything(),
+        },
+      ],
+    });
+    expect(mockGetResource).toBeCalledTimes(1);
     expect(mockPatchResource).toBeCalledTimes(1);
     expect(result).toStrictEqual(fullConfig);
   });
@@ -110,6 +128,24 @@ describe('updateStorageClassConfig', () => {
     await expect(updateStorageClassConfig('openshift-default-sc', config)).rejects.toThrow(
       'error1',
     );
+    expect(mockPatchResource).toHaveBeenCalledWith({
+      fetchOptions: {
+        requestInit: {},
+      },
+      model: StorageClassModel,
+      queryOptions: {
+        name: 'openshift-default-sc',
+        queryParams: {},
+      },
+      patches: [
+        {
+          op: 'replace',
+          path: '/metadata/annotations/opendatahub.io~1sc-config',
+          value: expect.anything(),
+        },
+      ],
+    });
+    expect(mockGetResource).toBeCalledTimes(1);
     expect(mockPatchResource).toHaveBeenCalledTimes(1);
   });
 });
