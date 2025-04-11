@@ -33,12 +33,5 @@ vars:
       apiVersion: v1
     fieldref:
       fieldpath: data.dashboard-url
-  - name: admin_groups
-    objref:
-      kind: ConfigMap
-      name: rhoai-dashboard-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.admin_groups
 configurations:
   - params.yaml
