@@ -14,25 +14,26 @@ describe('Home page AI Flows', () => {
   });
 
   it('should show the AI flow hint and close it', () => {
-    homeAISection.findAIFlowHint().should('not.exist');
+    const aiFlowSection = homeAISection.findAIFlowHint();
+    aiFlowSection.find().should('not.exist');
     homePage.initHomeIntercepts({ disableFineTuning: false });
     homePage.visit();
-    homeAISection.findAIFlowHint();
-    homeAISection
+    aiFlowSection.find().should('be.visible');
+    aiFlowSection
       .findAIFlowHintText()
       .contains(
         'LAB-tuning significantly reduces limitations associated with traditional fine-tuning methods, such as high resource usage and time-consuming manual data generation.',
       );
-    homeAISection.findAIFlowHintImage().should('be.visible');
-    homeAISection.findAIFlowHintCloseButton().click();
-    homeAISection.findAIFlowHint().should('not.exist');
+    aiFlowSection.findAIFlowHintImage().should('be.visible');
+    aiFlowSection.findAIFlowHintCloseButton().click();
+    aiFlowSection.find().should('not.exist');
   });
 
   it('should navigate from ai flow hint to the model customization page', () => {
     homePage.initHomeIntercepts({ disableFineTuning: false });
     homePage.visit();
-    homeAISection.findAIFlowHint();
-    homeAISection.findAIFlowHintNavigationLink().click();
+    const aiFlowSection = homeAISection.findAIFlowHint();
+    aiFlowSection.findAIFlowHintNavigationLink().click();
     cy.url().should('include', '/modelCustomization');
   });
 

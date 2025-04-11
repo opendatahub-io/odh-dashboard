@@ -2,6 +2,24 @@ import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Context
 
 class AIFlowCard extends Contextual<HTMLElement> {}
 
+class AIFlowHint extends Contextual<HTMLElement> {
+  findAIFlowHintText(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('ai-flow-hint-body-text');
+  }
+
+  findAIFlowHintImage(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('ai-flow-hint-image');
+  }
+
+  findAIFlowHintCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('ai-flow-hint-close-lg');
+  }
+
+  findAIFlowHintNavigationLink(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findAllByTestId('ai-flow-hint-navigate');
+  }
+}
+
 export class HomeAIFlow extends Contextual<HTMLElement> {
   getProjectCard(): AIFlowCard {
     return new AIFlowCard(() => this.find().findByTestId('ai-flow-projects-card'));
@@ -15,24 +33,8 @@ export class HomeAIFlow extends Contextual<HTMLElement> {
     return new AIFlowCard(() => this.find().findByTestId('ai-flow-models-card'));
   }
 
-  findAIFlowHint(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('ai-flow-hint');
-  }
-
-  findAIFlowHintText(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('ai-flow-hint-body-text');
-  }
-
-  findAIFlowHintImage(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('ai-flow-hint-image');
-  }
-
-  findAIFlowHintCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('ai-flow-hint-close-lg');
-  }
-
-  findAIFlowHintNavigationLink(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findAllByTestId('ai-flow-hint-navigate');
+  findAIFlowHint(): AIFlowHint {
+    return new AIFlowHint(() => this.find().findByTestId('ai-flow-hint'));
   }
 
   findWorkbenchesAIFlowInfo(): Cypress.Chainable<JQuery<HTMLElement>> {
