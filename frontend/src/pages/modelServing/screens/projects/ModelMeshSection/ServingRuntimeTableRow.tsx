@@ -11,7 +11,7 @@ import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
-import { modelVersionUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import { modelVersionRoute } from '~/routes';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 import {
@@ -175,7 +175,9 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
                   key: 'deployFromRegistry',
                   label: 'Deploy model from model registry',
                   onClick: () => {
-                    navigate(modelVersionUrl(modelVersionId, registeredModelId, modelRegistryName));
+                    navigate(
+                      modelVersionRoute(modelVersionId, registeredModelId, modelRegistryName),
+                    );
                   },
                 },
               ]}

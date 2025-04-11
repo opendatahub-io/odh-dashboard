@@ -14,7 +14,7 @@ import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
 import { useParams, useNavigate } from 'react-router';
 import { Link } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import { modelRegistryUrl, registeredModelUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import { modelRegistryRoute, registeredModelRoute } from '~/routes';
 import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegisteredModels';
 import { filterLiveModels } from '~/concepts/modelRegistry/utils';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
@@ -68,7 +68,7 @@ const RegisterVersion: React.FC = () => {
     } = await registerVersion(apiState, registeredModel, formData, author);
 
     if (modelVersion && modelArtifact) {
-      navigate(registeredModelUrl(registeredModel.id, mrName));
+      navigate(registeredModelRoute(registeredModel.id, mrName));
     } else if (Object.keys(errors).length > 0) {
       const resourceName = Object.keys(errors)[0];
       setSubmittedVersionName(formData.versionName);
@@ -81,8 +81,8 @@ const RegisterVersion: React.FC = () => {
   const onCancel = () =>
     navigate(
       prefilledRegisteredModelId && registeredModel
-        ? registeredModelUrl(registeredModel.id, mrName)
-        : modelRegistryUrl(mrName),
+        ? registeredModelRoute(registeredModel.id, mrName)
+        : modelRegistryRoute(mrName),
     );
 
   return (
@@ -92,12 +92,12 @@ const RegisterVersion: React.FC = () => {
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem
-            render={() => <Link to={modelRegistryUrl(mrName)}>Model registry - {mrName}</Link>}
+            render={() => <Link to={modelRegistryRoute(mrName)}>Model registry - {mrName}</Link>}
           />
           {prefilledRegisteredModelId && registeredModel && (
             <BreadcrumbItem
               render={() => (
-                <Link to={registeredModelUrl(registeredModel.id, mrName)}>
+                <Link to={registeredModelRoute(registeredModel.id, mrName)}>
                   {registeredModel.name}
                 </Link>
               )}

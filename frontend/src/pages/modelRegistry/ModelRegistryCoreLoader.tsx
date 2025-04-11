@@ -8,11 +8,11 @@ import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import WhosMyAdministrator from '~/components/WhosMyAdministrator';
+import { modelRegistryRoute } from '~/routes';
 import RedirectErrorState from '~/pages/external/RedirectErrorState';
 import InvalidModelRegistry from './screens/InvalidModelRegistry';
 import EmptyModelRegistryState from './screens/components/EmptyModelRegistryState';
 import ModelRegistrySelectorNavigator from './screens/ModelRegistrySelectorNavigator';
-import { modelRegistryUrl } from './screens/routeUtils';
 
 type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;
 
@@ -118,7 +118,7 @@ const ModelRegistryCoreLoader: React.FC<ModelRegistryCoreLoaderProps> =
         description="Select a model registry to view and manage your registered models. Model registries provide a structured and organized way to store, share, version, deploy, and track models."
         headerContent={
           <ModelRegistrySelectorNavigator
-            getRedirectPath={(modelRegistryName) => modelRegistryUrl(modelRegistryName)}
+            getRedirectPath={(modelRegistryName) => modelRegistryRoute(modelRegistryName)}
           />
         }
         {...renderStateProps}

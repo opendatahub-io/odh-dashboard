@@ -24,11 +24,9 @@ import {
   FineTuneTaxonomyType,
 } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
 import {
-  registeredModelUrl,
-  modelVersionUrl,
-  modelRegistryUrl,
-} from '~/pages/modelRegistry/screens/routeUtils';
-import {
+  registeredModelRoute,
+  modelVersionRoute,
+  modelRegistryRoute,
   modelCustomizationRootPath,
   globalPipelineRecurringRunDetailsRoute,
   globalPipelineRunDetailsRoute,
@@ -231,20 +229,20 @@ const ModelCustomizationForm: React.FC = () => {
               breadcrumb={
                 <Breadcrumb>
                   {state?.modelRegistryName && (
-                    <BreadcrumbItem to={modelRegistryUrl(state.modelRegistryName)}>
+                    <BreadcrumbItem to={modelRegistryRoute(state.modelRegistryName)}>
                       {state.modelRegistryDisplayName}
                     </BreadcrumbItem>
                   )}
                   {state?.registeredModelId && state.modelRegistryName && (
                     <BreadcrumbItem
-                      to={registeredModelUrl(state.registeredModelId, state.modelRegistryName)}
+                      to={registeredModelRoute(state.registeredModelId, state.modelRegistryName)}
                     >
                       {state.registeredModelName}
                     </BreadcrumbItem>
                   )}
                   {state?.modelVersionId && state.registeredModelId && state.modelRegistryName && (
                     <BreadcrumbItem
-                      to={modelVersionUrl(
+                      to={modelVersionRoute(
                         state.modelVersionId,
                         state.registeredModelId,
                         state.modelRegistryName,
@@ -283,7 +281,7 @@ const ModelCustomizationForm: React.FC = () => {
                           state.modelRegistryName
                         ) {
                           navigate(
-                            modelVersionUrl(
+                            modelVersionRoute(
                               state.modelVersionId,
                               state.registeredModelId,
                               state.modelRegistryName,
