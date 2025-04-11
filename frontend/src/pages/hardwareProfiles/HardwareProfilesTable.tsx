@@ -132,7 +132,13 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
           onClose={() => setMigrateModalMigrationAction(undefined)}
           onMigrate={async () => {
             const getMigrationPromises = (dryRun: boolean) => [
+              // delete source resource
               migrateModalMigrationAction.deleteSourceResource({ dryRun }),
+              // create dependent profiles
+              ...migrateModalMigrationAction.dependentProfiles.map((profile) =>
+                createHardwareProfileFromResource(profile, { dryRun }),
+              ),
+              // create target profile
               createHardwareProfileFromResource(migrateModalMigrationAction.targetProfile, {
                 dryRun,
               }),
