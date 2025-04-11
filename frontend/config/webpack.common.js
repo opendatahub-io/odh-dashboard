@@ -3,6 +3,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
+const { moduleFederationPlugins } = require('./moduleFederation');
 
 const RELATIVE_DIRNAME = process.env._ODH_RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._ODH_IS_PROJECT_ROOT_DIR;
@@ -229,6 +230,7 @@ module.exports = (env) => {
       new MonacoWebpackPlugin({
         languages: ['yaml'],
       }),
+      ...moduleFederationPlugins,
     ],
     resolve: {
       extensions: ['.js', '.ts', '.tsx', '.jsx'],
