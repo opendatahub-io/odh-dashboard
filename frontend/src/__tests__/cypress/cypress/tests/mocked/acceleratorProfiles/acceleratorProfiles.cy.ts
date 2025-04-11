@@ -5,7 +5,7 @@ import {
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { AcceleratorProfileModel } from '~/__tests__/cypress/cypress/utils/models';
-import { mockK8sResourceList } from '~/__mocks__';
+import { mock200Status, mockK8sResourceList } from '~/__mocks__';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
@@ -114,12 +114,10 @@ describe('Accelerator Profile', () => {
 
   it('delete accelerator profile', () => {
     initIntercepts({});
-    cy.interceptOdh(
-      'DELETE /api/accelerator-profiles/:name',
-      {
-        path: { name: 'some-other-gpu' },
-      },
-      { success: true },
+    cy.interceptK8s(
+      'DELETE',
+      { model: AcceleratorProfileModel, ns: 'opendatahub', name: 'some-other-gpu', times: 1 },
+      mock200Status({}),
     ).as('delete');
     acceleratorProfile.visit();
     acceleratorProfile.getRow('TensorRT').findKebabAction('Delete').click();

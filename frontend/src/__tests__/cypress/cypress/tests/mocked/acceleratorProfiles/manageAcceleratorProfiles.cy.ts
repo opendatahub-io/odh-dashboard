@@ -160,6 +160,59 @@ describe('Manage Accelerator Profile', () => {
     });
   });
 
+  it.only('create accelerator profile', () => {
+    initIntercepts({});
+    createAcceleratorProfile.visit();
+    createAcceleratorProfile.findSubmitButton().should('be.disabled');
+
+    // test required fields
+    createAcceleratorProfile.k8sNameDescription.findDisplayNameInput().fill('test-accelerator');
+    createAcceleratorProfile.findSubmitButton().should('be.disabled');
+    createAcceleratorProfile.findIdentifierInput().fill('nvidia.com/gpu');
+    createAcceleratorProfile.findSubmitButton().should('be.enabled');
+
+    // test resource name validation
+    createAcceleratorProfile.k8sNameDescription.findResourceEditLink().click();
+    createAcceleratorProfile.k8sNameDescription
+      .findResourceNameInput()
+      .should('have.attr', 'aria-invalid', 'false');
+    createAcceleratorProfile.k8sNameDescription
+      .findResourceNameInput()
+      .should('have.value', 'test-accelerator');
+    // Invalid character k8s names fail
+    createAcceleratorProfile.k8sNameDescription
+      .findResourceNameInput()
+      .clear()
+      .type('InVaLiD vAlUe!');
+    createAcceleratorProfile.k8sNameDescription
+      .findResourceNameInput()
+      .should('have.attr', 'aria-invalid', 'true');
+    createAcceleratorProfile.findSubmitButton().should('be.disabled');
+    createAcceleratorProfile.k8sNameDescription
+      .findResourceNameInput()
+      .clear()
+      .type('test-accelerator-name');
+    createAcceleratorProfile.findSubmitButton().should('be.enabled');
+    // cy.interceptOdh('POST /api/accelerator-profiles', { success: true }).as('createAccelerator');
+    cy.interceptK8s(
+      'POST',
+      { model: AcceleratorProfileModel, name: 'test-accelerator-name', times: 1 },
+      mockAcceleratorProfile({}),
+    ).as('createAccelerator');
+    createAcceleratorProfile.findSubmitButton().click();
+
+    cy.wait('@createAccelerator').then((interception) => {
+      expect(interception.request.body).to.be.eql({
+        name: 'test-accelerator-name',
+        displayName: 'test-accelerator',
+        description: '',
+        identifier: 'nvidia.com/gpu',
+        enabled: true,
+        tolerations: [],
+      });
+    });
+  });
+
   it('edit page has expected values', () => {
     initIntercepts({});
     editAcceleratorProfile.visit('test-accelerator');
