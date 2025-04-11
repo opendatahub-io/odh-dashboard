@@ -50,13 +50,8 @@ export type DashboardConfig = K8sResourceCommon & {
       disableAdminConnectionTypes: boolean;
       disableFineTuning: boolean;
     };
-    /** @deprecated -- replacing this with Platform Auth resource -- remove when this is no longer in the CRD */
-    groupsConfig?: {
-      /** @deprecated -- see above */
-      adminGroups: string;
-      /** @deprecated -- see above */
-      allowedGroups: string;
-    };
+    // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
+    // groupsConfig?: {
     notebookSizes?: NotebookSize[];
     modelServerSizes?: ModelServerSize[];
     notebookController?: {
