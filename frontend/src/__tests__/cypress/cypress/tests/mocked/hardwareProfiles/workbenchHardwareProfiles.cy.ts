@@ -266,7 +266,7 @@ describe('Workbench Hardware Profiles', () => {
     hardwareProfileSection.findHardwareProfileSearchSelector().click();
 
     // Verify both groups are initially visible
-    cy.contains('Project-scoped Hardware profiles').should('be.visible');
+    cy.contains('Project-scoped hardware profiles').should('be.visible');
     cy.contains('Global hardware profiles').scrollIntoView();
     cy.contains('Global hardware profiles').should('be.visible');
 
