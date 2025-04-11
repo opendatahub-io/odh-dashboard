@@ -3,6 +3,19 @@ import { ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
 import { asEnumMember } from '~/utilities/utils';
+import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
+
+type DataKeys = keyof CreatingServingRuntimeObject;
+
+type ServingRuntimeTemplateOptions = {
+  template: TemplateKind;
+  scope: string;
+  currentScope: string;
+  currentTemplateName: string;
+  setData: (key: DataKeys, value: string) => void;
+  setDisplayName: (name: string) => void;
+  resetModelFormat?: () => void;
+};
 
 export const getTemplateEnabled = (
   template: TemplateKind,
@@ -174,4 +187,29 @@ export const getKServeTemplates = (
   return templatesEnabled.filter((template) =>
     getTemplateEnabledForPlatform(template, ServingRuntimePlatform.SINGLE),
   );
+};
+
+export const servingRuntimeTemplate = ({
+  template,
+  scope,
+  currentScope,
+  currentTemplateName,
+  setData,
+  setDisplayName,
+  resetModelFormat,
+}: ServingRuntimeTemplateOptions): void => {
+  const templateName = getServingRuntimeNameFromTemplate(template);
+  const hasChanged = templateName !== currentTemplateName || scope !== currentScope;
+
+  if (!hasChanged) {
+    return;
+  }
+
+  setData('servingRuntimeTemplateName', templateName);
+  setData('scope', scope);
+  setDisplayName(getServingRuntimeDisplayNameFromTemplate(template));
+
+  if (resetModelFormat) {
+    resetModelFormat();
+  }
 };
