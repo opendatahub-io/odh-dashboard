@@ -16,7 +16,7 @@ spec:
   category: Self-managed
   support: third party support
   csvName: openvino-operator
-  docsLink: https://docs.openvinotoolkit.org/latest/index.html
+  docsLink: https://docs.openvino.ai
   quickStart: openvino-inference-notebook
   getStartedLink: https://github.com/openvinotoolkit/openvino_notebooks
   getStartedMarkDown: >-
