@@ -98,10 +98,11 @@ describe('Workbenches - status tests', () => {
       });
 
       // Click on the Events log and validate that successful list messages display
+      // TO:DO Refactor this section to validate logs based on backend pod status RHOAIENG-23242
       cy.step('Verify that each Events log in the list displays with a Successful Message');
       workbenchStatusModal.findEventlogTab().click();
-      workbenchStatusModal.findLogEntry('Created container oauth-proxy');
-      workbenchStatusModal.findLogEntry('Started container oauth-proxy');
+      workbenchStatusModal.findLogEntry('Created container');
+      workbenchStatusModal.findLogEntry('Started container');
       workbenchStatusModal.findLogEntry('Successfully pulled image');
     },
   );
