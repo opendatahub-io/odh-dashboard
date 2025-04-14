@@ -11,7 +11,7 @@ import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
 import { useParams, useNavigate } from 'react-router';
 import { Link } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import { modelRegistryUrl, registeredModelUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import { modelRegistryRoute, registeredModelRoute } from '~/routes';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { useAppSelector } from '~/redux/hooks';
 import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegisteredModels';
@@ -68,7 +68,7 @@ const RegisterModel: React.FC = () => {
         success: true,
         locationType: formData.modelLocationType,
       });
-      navigate(registeredModelUrl(registeredModel.id, mrName));
+      navigate(registeredModelRoute(registeredModel.id, mrName));
     } else if (Object.keys(errors).length > 0) {
       fireFormTrackingEvent(eventName, {
         outcome: TrackingOutcome.submit,
@@ -85,7 +85,7 @@ const RegisterModel: React.FC = () => {
   };
   const onCancel = () => {
     fireFormTrackingEvent(eventName, { outcome: TrackingOutcome.cancel });
-    navigate(modelRegistryUrl(mrName));
+    navigate(modelRegistryRoute(mrName));
   };
 
   return (
@@ -95,7 +95,7 @@ const RegisterModel: React.FC = () => {
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem
-            render={() => <Link to={modelRegistryUrl(mrName)}>Model registry - {mrName}</Link>}
+            render={() => <Link to={modelRegistryRoute(mrName)}>Model registry - {mrName}</Link>}
           />
           <BreadcrumbItem>Register model</BreadcrumbItem>
         </Breadcrumb>

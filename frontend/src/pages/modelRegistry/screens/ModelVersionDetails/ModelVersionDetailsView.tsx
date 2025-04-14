@@ -32,7 +32,7 @@ import {
   bumpRegisteredModelTimestamp,
 } from '~/concepts/modelRegistry/utils/updateTimestamps';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
-import { getCatalogModelDetailsUrl } from '~/pages/modelCatalog/routeUtils';
+import { getCatalogModelDetailsRoute } from '~/routes';
 import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
 import ModelVersionPipelineDescription from './ModelVersionPipelineDescription';
 
@@ -97,7 +97,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
   const catalogModelCustomProps: CatalogModelDetailsParams = getCatalogModelDetailsProps(
     mv.customProperties,
   );
-  const catalogModelDetailsUrl = getCatalogModelDetailsUrl(catalogModelCustomProps);
+  const catalogModelDetailsUrl = getCatalogModelDetailsRoute(catalogModelCustomProps);
 
   return (
     <Flex

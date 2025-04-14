@@ -6,11 +6,11 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import useModelVersionById from '~/concepts/modelRegistry/apiHooks/useModelVersionById';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import {
-  archiveModelVersionDetailsUrl,
-  modelVersionArchiveDetailsUrl,
-  modelVersionUrl,
-  registeredModelUrl,
-} from '~/pages/modelRegistry/screens/routeUtils';
+  archiveModelVersionDetailsRoute,
+  modelVersionArchiveDetailsRoute,
+  modelVersionRoute,
+  registeredModelRoute,
+} from '~/routes';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
@@ -55,7 +55,7 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
   useEffect(() => {
     if (rm?.state === ModelState.ARCHIVED && mv?.id) {
       navigate(
-        archiveModelVersionDetailsUrl(
+        archiveModelVersionDetailsRoute(
           mv.id,
           mv.registeredModelId,
           preferredModelRegistry?.metadata.name,
@@ -63,7 +63,7 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
       );
     } else if (mv?.state === ModelState.ARCHIVED) {
       navigate(
-        modelVersionArchiveDetailsUrl(
+        modelVersionArchiveDetailsRoute(
           mv.id,
           mv.registeredModelId,
           preferredModelRegistry?.metadata.name,
@@ -96,7 +96,7 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
               !rm?.name ? (
                 'Loading...'
               ) : (
-                <Link to={registeredModelUrl(rmId, preferredModelRegistry?.metadata.name)}>
+                <Link to={registeredModelRoute(rmId, preferredModelRegistry?.metadata.name)}>
                   {rm.name}
                 </Link>
               )
@@ -121,7 +121,7 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
                 selection={mv}
                 onSelect={(modelVersionId) =>
                   navigate(
-                    modelVersionUrl(modelVersionId, rmId, preferredModelRegistry?.metadata.name),
+                    modelVersionRoute(modelVersionId, rmId, preferredModelRegistry?.metadata.name),
                   )
                 }
               />

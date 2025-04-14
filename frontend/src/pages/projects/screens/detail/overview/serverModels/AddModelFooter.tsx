@@ -13,7 +13,7 @@ import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/pro
 import ManageServingRuntimeModal from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ManageServingRuntimeModal';
 import ManageKServeModal from '~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 import ManageNIMServingModal from '~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
-import { modelVersionUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import { modelVersionRoute } from '~/routes';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 
 type AddModelFooterProps = {
@@ -86,7 +86,7 @@ const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform, isNIM
               variant="link"
               isInline
               onClick={() => {
-                navigate(modelVersionUrl(modelVersionId, registeredModelId, modelRegistryName));
+                navigate(modelVersionRoute(modelVersionId, registeredModelId, modelRegistryName));
               }}
               data-testid="deploy-from-registry"
             >
