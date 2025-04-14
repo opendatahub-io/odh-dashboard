@@ -127,8 +127,8 @@ export const NotebookImageDisplayName = ({
       title: 'Latest image version',
       body: (
         <p>
-          The <b>{notebookImage.imageDisplayName}</b> notebook image is stable, reliable, and is
-          best suited for the current environment and task requirements.
+          This image is the latest installed version of the <b>{notebookImage.imageDisplayName}</b>{' '}
+          notebook image.
         </p>
       ),
       variant: 'success',
