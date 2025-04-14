@@ -2,11 +2,12 @@ import React from 'react';
 import { Button, Content, Flex, FlexItem, Popover, Stack, StackItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { globalPipelineRunDetailsRoute } from '~/routes';
-import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
+import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
+import { ProjectObjectType } from '~/concepts/design/utils';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { FindAdministratorOptions } from '~/pages/projects/screens/projects/const';
 import PopoverListContent from '~/components/PopoverListContent';
+import { globalPipelineRunDetailsRoute } from '~/routes';
 import { PipelineModelCustomProps } from './const';
 
 type ModelVersionPipelineDescriptionProps = {
@@ -48,7 +49,11 @@ const ModelVersionPipelineDescription: React.FC<ModelVersionPipelineDescriptionP
     >
       <FlexItem data-testid="pipeline-run-link">Run {renderRunLink} in</FlexItem>
       <FlexItem style={{ display: 'flex' }}>
-        <img style={{ height: 24 }} src={typedObjectImage(ProjectObjectType.project)} alt="" />
+        <TypedObjectIcon
+          resourceType={ProjectObjectType.project}
+          style={{ height: 24, width: 24 }}
+          useTypedColor
+        />
       </FlexItem>
       <FlexItem>
         <b>{renderProject}</b>
