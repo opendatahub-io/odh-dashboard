@@ -70,6 +70,7 @@ describe('AboutDialog', () => {
   let dscFetchStatus: FetchState<DataScienceClusterKindStatus>;
   let operatorSubscriptionStatus: SubscriptionStatusData;
   let operatorSubscriptionFetchStatus: FetchState<SubscriptionStatusData>;
+  const fixedDate = new Date('2024-06-25T00:00:00Z');
 
   beforeEach(() => {
     dashboardConfig = mockDashboardConfig({});
@@ -126,6 +127,10 @@ describe('AboutDialog', () => {
   });
 
   it('should show the appropriate odh values', async () => {
+    operatorSubscriptionStatus = {
+      channel: 'fast',
+      lastUpdated: fixedDate.toISOString(),
+    };
     useAppContextMock.mockReturnValue(appContext);
     useUserMock.mockReturnValue(userInfo);
     useClusterInfoMock.mockReturnValue(clusterInfo);
@@ -145,6 +150,7 @@ describe('AboutDialog', () => {
     const componentReleasesTable = await screen.findByTestId('component-releases-table');
     const componentReleasesTableHeader = await screen.findByTestId('component-releases-table');
     const componentReleasesTableRows = await screen.findAllByTestId('table-row-data');
+    const displayedDate = new Date(lastUpdate.textContent ?? '');
 
     // eslint-disable-next-line no-restricted-syntax
     expect(aboutText.textContent).toContain('Open Data Hub');
@@ -153,7 +159,7 @@ describe('AboutDialog', () => {
     expect(version.textContent).toContain('1.0.1');
     expect(channel.textContent).toContain('fast');
     expect(accessLevel.textContent).toContain('Non-administrator');
-    expect(lastUpdate.textContent).toContain('June 25, 2024');
+    expect(displayedDate.toDateString()).toBe(fixedDate.toDateString());
     // Component releases table checks
     expect(componentReleasesTable).toBeInTheDocument();
     expect(componentReleasesTableHeader.textContent).toContain('ODH');
@@ -165,6 +171,10 @@ describe('AboutDialog', () => {
   });
 
   it('should show the appropriate RHOAI values', async () => {
+    operatorSubscriptionStatus = {
+      channel: 'fast',
+      lastUpdated: fixedDate.toISOString(),
+    };
     dashboardConfig.metadata!.namespace = 'redhat-ods-applications';
     appContext.isRHOAI = true;
     userInfo.isAdmin = true;
@@ -189,6 +199,7 @@ describe('AboutDialog', () => {
     const componentReleasesTable = await screen.findByTestId('component-releases-table');
     const componentReleasesTableHeader = await screen.findByTestId('component-releases-table');
     const componentReleasesTableRows = await screen.findAllByTestId('table-row-data');
+    const displayedDate = new Date(lastUpdate.textContent ?? '');
 
     // eslint-disable-next-line no-restricted-syntax
     expect(aboutText.textContent).toContain('OpenShift');
@@ -196,7 +207,7 @@ describe('AboutDialog', () => {
     expect(version.textContent).toContain('1.0.1');
     expect(channel.textContent).toContain('fast');
     expect(accessLevel.textContent).toContain('Administrator');
-    expect(lastUpdate.textContent).toContain('June 25, 2024');
+    expect(displayedDate.toDateString()).toBe(fixedDate.toDateString());
     // Component releases table checks
     expect(componentReleasesTable).toBeInTheDocument();
     expect(componentReleasesTableHeader.textContent).toContain('RHOAI');
