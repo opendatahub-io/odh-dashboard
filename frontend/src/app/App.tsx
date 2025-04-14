@@ -25,6 +25,7 @@ import AreaContextProvider from '~/concepts/areas/AreaContext';
 import { NimContextProvider } from '~/concepts/nimServing/NIMAvailabilityContext';
 import { NotificationWatcherContextProvider } from '~/concepts/notificationWatcher/NotificationWatcherContext';
 import { AccessReviewProvider } from '~/concepts/userSSAR';
+import { ModelCatalogContextProvider } from '~/concepts/modelCatalog/context/ModelCatalogContext';
 import useDevFeatureFlags from './useDevFeatureFlags';
 import Header from './Header';
 import AppRoutes from './AppRoutes';
@@ -145,11 +146,13 @@ const App: React.FC = () => {
                 <NimContextProvider>
                   <ProjectsContextProvider>
                     <ModelRegistrySelectorContextProvider>
-                      <QuickStarts>
-                        <NotificationWatcherContextProvider>
-                          <AppRoutes />
-                        </NotificationWatcherContextProvider>
-                      </QuickStarts>
+                      <ModelCatalogContextProvider>
+                        <QuickStarts>
+                          <NotificationWatcherContextProvider>
+                            <AppRoutes />
+                          </NotificationWatcherContextProvider>
+                        </QuickStarts>
+                      </ModelCatalogContextProvider>
                     </ModelRegistrySelectorContextProvider>
                   </ProjectsContextProvider>
                 </NimContextProvider>
