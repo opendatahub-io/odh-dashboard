@@ -54,7 +54,7 @@ const useFetchDscStatusMock = jest.mocked(useFetchDscStatus);
 const useWatchOperatorSubscriptionStatusMock = jest.mocked(useWatchOperatorSubscriptionStatus);
 
 describe('AboutDialog', () => {
-  const fixedDate = new Date('2024-06-25T00:00:00Z');
+  const lastUpdated = new Date('2024-06-25T00:00:00Z');
   let dashboardConfig: DashboardConfigKind;
   let appContext: {
     buildStatuses: BuildStatus[];
@@ -126,15 +126,11 @@ describe('AboutDialog', () => {
     ];
     operatorSubscriptionStatus = {
       channel: 'fast',
-      lastUpdated: fixedDate.toISOString(),
+      lastUpdated: lastUpdated.toISOString(),
     };
   });
 
   it('should show the appropriate odh values', async () => {
-    // operatorSubscriptionStatus = {
-    //   channel: 'fast',
-    //   lastUpdated: fixedDate.toISOString(),
-    // };
     useAppContextMock.mockReturnValue(appContext);
     useUserMock.mockReturnValue(userInfo);
     useClusterInfoMock.mockReturnValue(clusterInfo);
@@ -163,7 +159,7 @@ describe('AboutDialog', () => {
     expect(version.textContent).toContain('1.0.1');
     expect(channel.textContent).toContain('fast');
     expect(accessLevel.textContent).toContain('Non-administrator');
-    expect(displayedDate.toDateString()).toBe(fixedDate.toDateString());
+    expect(displayedDate.toDateString()).toBe(lastUpdated.toDateString());
     // Component releases table checks
     expect(componentReleasesTable).toBeInTheDocument();
     expect(componentReleasesTableHeader.textContent).toContain('ODH');
@@ -175,10 +171,6 @@ describe('AboutDialog', () => {
   });
 
   it('should show the appropriate RHOAI values', async () => {
-    // operatorSubscriptionStatus = {
-    //   channel: 'fast',
-    //   lastUpdated: fixedDate.toISOString(),
-    // };
     dashboardConfig.metadata!.namespace = 'redhat-ods-applications';
     appContext.isRHOAI = true;
     userInfo.isAdmin = true;
@@ -211,7 +203,7 @@ describe('AboutDialog', () => {
     expect(version.textContent).toContain('1.0.1');
     expect(channel.textContent).toContain('fast');
     expect(accessLevel.textContent).toContain('Administrator');
-    expect(displayedDate.toDateString()).toBe(fixedDate.toDateString());
+    expect(displayedDate.toDateString()).toBe(lastUpdated.toDateString());
     // Component releases table checks
     expect(componentReleasesTable).toBeInTheDocument();
     expect(componentReleasesTableHeader.textContent).toContain('RHOAI');
