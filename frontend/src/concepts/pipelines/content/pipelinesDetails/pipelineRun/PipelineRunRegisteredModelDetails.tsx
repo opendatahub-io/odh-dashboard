@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router';
-import { modelVersionUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import { modelVersionRoute } from '~/routes';
 import { PipelineRunArtifactModelData } from './artifacts/types';
 
 type PipelineRunRegisteredModelDeatilsProps = {
@@ -13,7 +13,7 @@ const PipelineRunRegisteredModelDetails = ({
   <div data-testid="registered-model-details">
     <strong>
       <Link
-        to={modelVersionUrl(
+        to={modelVersionRoute(
           artifactModelData.modelVersionId ?? '',
           artifactModelData.registeredModelId,
           artifactModelData.modelRegistryName,

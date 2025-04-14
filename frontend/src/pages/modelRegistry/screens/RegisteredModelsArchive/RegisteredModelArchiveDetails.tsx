@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router';
 import { Button, Flex, FlexItem, Label, Truncate } from '@patternfly/react-core';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import { registeredModelUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import { registeredModelRoute } from '~/routes';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { ModelState } from '~/concepts/modelRegistry/types';
@@ -36,7 +36,7 @@ const RegisteredModelsArchiveDetails: React.FC<RegisteredModelsArchiveDetailsPro
 
   useEffect(() => {
     if (rm?.state === ModelState.LIVE) {
-      navigate(registeredModelUrl(rm.id, preferredModelRegistry?.metadata.name));
+      navigate(registeredModelRoute(rm.id, preferredModelRegistry?.metadata.name));
     }
   }, [rm?.state, preferredModelRegistry?.metadata.name, rm?.id, navigate]);
 
@@ -93,7 +93,7 @@ const RegisteredModelsArchiveDetails: React.FC<RegisteredModelsArchiveDetailsPro
                 rm.id,
               )
               .then(() =>
-                navigate(registeredModelUrl(rm.id, preferredModelRegistry?.metadata.name)),
+                navigate(registeredModelRoute(rm.id, preferredModelRegistry?.metadata.name)),
               )
           }
           registeredModelName={rm.name}

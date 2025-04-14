@@ -33,6 +33,14 @@ class RegisterModelPage {
     cy.testA11y();
   }
 
+  findAppTitle() {
+    return cy.findByTestId('app-page-title');
+  }
+
+  findBreadcrumbModelName() {
+    return cy.findByTestId('breadcrumb-model-name');
+  }
+
   findFormField(selector: FormFieldSelector) {
     return cy.get(selector);
   }

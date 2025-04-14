@@ -198,6 +198,19 @@ describe('Register catalog model page', () => {
     registerModelPage.findSubmitButton().should('be.enabled');
   });
 
+  it('Verify the app title and breadcrumb', () => {
+    initIntercepts({
+      modelRegistries: [mockModelRegistryService({ name: 'modelregistry-sample' })],
+    });
+    registerCatalogModelPage.visit('granite-3.1-8b-code-instruct-1.3.0');
+    registerModelPage
+      .findAppTitle()
+      .should('have.text', 'Register granite-3.1-8b-code-instruct-1.3.0 model');
+    registerModelPage
+      .findBreadcrumbModelName()
+      .should('have.text', 'granite-3.1-8b-code-instruct-1.3.0');
+  });
+
   it('Register catalog model page ', () => {
     initIntercepts({});
     registerCatalogModelPage.visit();
