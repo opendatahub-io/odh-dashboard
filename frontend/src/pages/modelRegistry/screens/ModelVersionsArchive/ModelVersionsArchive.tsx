@@ -4,7 +4,7 @@ import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import { registeredModelUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import { registeredModelRoute } from '~/routes';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import useModelVersionsByRegisteredModel from '~/concepts/modelRegistry/apiHooks/useModelVersionsByRegisteredModel';
 import { filterArchiveVersions } from '~/concepts/modelRegistry/utils';
@@ -35,11 +35,15 @@ const ModelVersionsArchive: React.FC<ModelVersionsArchiveProps> = ({ ...pageProp
             )}
           />
           <BreadcrumbItem
-            render={() => (
-              <Link to={registeredModelUrl(rmId, preferredModelRegistry?.metadata.name)}>
-                {rm?.name || 'Loading...'}
-              </Link>
-            )}
+            render={() =>
+              !rm?.name ? (
+                'Loading...'
+              ) : (
+                <Link to={registeredModelRoute(rmId, preferredModelRegistry?.metadata.name)}>
+                  {rm.name}
+                </Link>
+              )
+            }
           />
           <BreadcrumbItem data-testid="archive-version-page-breadcrumb" isActive>
             Archived versions

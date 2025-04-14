@@ -7,11 +7,11 @@ import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/M
 import ModelLabels from '~/pages/modelRegistry/screens/components/ModelLabels';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
 import {
-  archiveModelVersionDetailsUrl,
-  modelVersionArchiveDetailsUrl,
-  modelVersionDeploymentsUrl,
-  modelVersionUrl,
-} from '~/pages/modelRegistry/screens/routeUtils';
+  archiveModelVersionDetailsRoute,
+  modelVersionArchiveDetailsRoute,
+  modelVersionDeploymentsRoute,
+  modelVersionRoute,
+} from '~/routes';
 import { ArchiveModelVersionModal } from '~/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { RestoreModelVersionModal } from '~/pages/modelRegistry/screens/components/RestoreModelVersionModal';
@@ -97,18 +97,18 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
             <Link
               to={
                 isArchiveModel
-                  ? archiveModelVersionDetailsUrl(
+                  ? archiveModelVersionDetailsRoute(
                       mv.id,
                       mv.registeredModelId,
                       preferredModelRegistry.metadata.name,
                     )
                   : isArchiveRow
-                  ? modelVersionArchiveDetailsUrl(
+                  ? modelVersionArchiveDetailsRoute(
                       mv.id,
                       mv.registeredModelId,
                       preferredModelRegistry.metadata.name,
                     )
-                  : modelVersionUrl(
+                  : modelVersionRoute(
                       mv.id,
                       mv.registeredModelId,
                       preferredModelRegistry.metadata.name,
@@ -156,7 +156,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
             <DeployRegisteredVersionModal
               onSubmit={() => {
                 navigate(
-                  modelVersionDeploymentsUrl(
+                  modelVersionDeploymentsRoute(
                     mv.id,
                     mv.registeredModelId,
                     preferredModelRegistry.metadata.name,
@@ -181,7 +181,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
                   )
                   .then(() =>
                     navigate(
-                      modelVersionUrl(
+                      modelVersionRoute(
                         mv.id,
                         mv.registeredModelId,
                         preferredModelRegistry.metadata.name,

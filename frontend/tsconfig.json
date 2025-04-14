@@ -19,7 +19,8 @@
     "strict": true,
     "baseUrl": "./src",
     "paths": {
-      "~/*": ["./*"]
+      "~/*": ["./*"],
+      "@mf/*": ["../@mf-types/@mf/*"]
     },
     "importHelpers": true,
     "skipLibCheck": true,

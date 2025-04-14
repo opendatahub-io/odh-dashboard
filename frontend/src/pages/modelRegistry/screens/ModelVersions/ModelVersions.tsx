@@ -7,7 +7,7 @@ import useModelVersionsByRegisteredModel from '~/concepts/modelRegistry/apiHooks
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { ModelState } from '~/concepts/modelRegistry/types';
-import { registeredModelArchiveDetailsUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import { registeredModelArchiveDetailsRoute } from '~/routes';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import ModelVersionsTabs from './ModelVersionsTabs';
@@ -35,7 +35,7 @@ const ModelVersions: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
 
   useEffect(() => {
     if (rm?.state === ModelState.ARCHIVED) {
-      navigate(registeredModelArchiveDetailsUrl(rm.id, preferredModelRegistry?.metadata.name));
+      navigate(registeredModelArchiveDetailsRoute(rm.id, preferredModelRegistry?.metadata.name));
     }
   }, [rm?.state, rm?.id, preferredModelRegistry?.metadata.name, navigate]);
 
