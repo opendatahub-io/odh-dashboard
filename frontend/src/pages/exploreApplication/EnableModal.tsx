@@ -22,6 +22,17 @@ type EnableModalProps = {
   onClose: () => void;
 };
 
+// Poll /api/integrations/nim to confirm backend enablement
+const fetchNimIntegrationStatus = async (): Promise<boolean> => {
+  try {
+    const res = await fetch('/api/integrations/nim');
+    const data = await res.json();
+    return data?.isEnabled === true;
+  } catch {
+    return false;
+  }
+};
+
 const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }) => {
   const [postError, setPostError] = React.useState('');
   const [validationInProgress, setValidationInProgress] = React.useState(false);
@@ -33,6 +44,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
     enableValues,
     selectedApp.spec.internalRoute,
   );
+
   const focusRef = (element: HTMLElement | null) => {
     if (element) {
       element.focus();
@@ -40,11 +52,10 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
   };
 
   const updateEnableValue = (key: string, value: string): void => {
-    const updatedValues = {
-      ...enableValues,
+    setEnableValues((prev) => ({
+      ...prev,
       [key]: value,
-    };
-    setEnableValues(updatedValues);
+    }));
   };
 
   const onDoEnableApp = () => {
@@ -54,30 +65,55 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
 
   React.useEffect(() => {
     if (validationInProgress && validationStatus === EnableApplicationStatus.SUCCESS) {
-      setValidationInProgress(false);
-      // TODO: Disable rule below temporarily. Refactor to notify the owner and avoid modifying the object directly.
-      /* eslint-disable no-param-reassign */
-      selectedApp.spec.isEnabled = true;
-      selectedApp.spec.shownOnEnabledPage = true;
-      /* eslint-enable no-param-reassign */
+      const interval = setInterval(async () => {
+        const isEnabled = await fetchNimIntegrationStatus();
+        if (isEnabled) {
+          clearInterval(interval);
+          clearTimeout(timeout);
+          setValidationInProgress(false);
+          onClose();
+        }
+      }, 1000);
 
-      onClose();
+      const timeout = setTimeout(() => {
+        const timeoutError = 'Validation failed: The API key was not accepted by the backend.';
+        clearInterval(interval);
+        setPostError(timeoutError);
+        setValidationInProgress(false);
+      }, 50000);
+
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+      };
     }
+
     if (validationInProgress && validationStatus === EnableApplicationStatus.FAILED) {
       setValidationInProgress(false);
       setPostError(validationErrorMessage);
     }
-  }, [onClose, selectedApp.spec, validationErrorMessage, validationInProgress, validationStatus]);
+
+    return undefined;
+  }, [
+    validationInProgress,
+    validationStatus,
+    validationErrorMessage,
+    onClose,
+    selectedApp.metadata.name,
+  ]);
 
   React.useEffect(() => {
-    if (shown) {
-      if (!validationInProgress) {
+    if (shown && !validationInProgress) {
+      const isTimeoutError = postError.includes(
+        'The API key was not accepted by the backend. Contact your admin.',
+      );
+      const isNim = selectedApp.metadata.name === 'nvidia-nim';
+
+      if (!(isNim && isTimeoutError)) {
         setPostError('');
       }
     }
-    // Only update when shown is updated to true
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shown]);
+  }, [shown, validationInProgress, postError, selectedApp.metadata.name]);
 
   const handleClose = () => {
     if (!validationInProgress) {
@@ -89,6 +125,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
   if (!selectedApp.spec.enable || !shown) {
     return null;
   }
+
   const { enable } = selectedApp.spec;
 
   return (

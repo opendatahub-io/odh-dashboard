@@ -32,16 +32,20 @@ export const useEnableApplication = (
   const dispatchResults = React.useCallback(
     (error?: string) => {
       if (!error) {
-        dispatch(
-          addNotification({
-            status: AlertVariant.success,
-            title: `${appName} has been added to the Enabled page.`,
-            timestamp: new Date(),
-          }),
-        );
+        // Skip notification for NVIDIA NIM; inline message will handle it
+        if (appId !== 'nvidia-nim') {
+          dispatch(
+            addNotification({
+              status: AlertVariant.success,
+              title: `${appName} has been added to the Enabled page.`,
+              timestamp: new Date(),
+            }),
+          );
+        }
         dispatch(forceComponentsUpdate());
         return;
       }
+
       dispatch(
         addNotification({
           status: AlertVariant.danger,
@@ -51,7 +55,7 @@ export const useEnableApplication = (
         }),
       );
     },
-    [appName, dispatch],
+    [appId, appName, dispatch],
   );
 
   React.useEffect(() => {
