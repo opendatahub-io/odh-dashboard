@@ -92,11 +92,15 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
             )}
           />
           <BreadcrumbItem
-            render={() => (
-              <Link to={registeredModelRoute(rmId, preferredModelRegistry?.metadata.name)}>
-                {rm?.name || 'Loading...'}
-              </Link>
-            )}
+            render={() =>
+              !rm?.name ? (
+                'Loading...'
+              ) : (
+                <Link to={registeredModelRoute(rmId, preferredModelRegistry?.metadata.name)}>
+                  {rm.name}
+                </Link>
+              )
+            }
           />
           <BreadcrumbItem data-testid="breadcrumb-version-name" isActive>
             {mv?.name || 'Loading...'}

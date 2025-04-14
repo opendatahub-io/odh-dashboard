@@ -191,17 +191,22 @@ const RegisterCatalogModel: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title={`Register ${params.modelName || ''} model`}
+      title={`Register ${decodedParams.modelName || ''} model`}
       description="Create a new model and register the first version of your new model."
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem render={() => <Link to="/modelCatalog">Model catalog</Link>} />
           <BreadcrumbItem
-            render={() => (
-              <Link to={getCatalogModelDetailsRoute(params)}>
-                {params.modelName || 'Loading...'}
-              </Link>
-            )}
+            data-testid="breadcrumb-model-name"
+            render={() =>
+              !decodedParams.modelName ? (
+                'Loading...'
+              ) : (
+                <Link to={getCatalogModelDetailsRoute(decodedParams)}>
+                  {decodedParams.modelName}
+                </Link>
+              )
+            }
           />
           <BreadcrumbItem data-testid="breadcrumb-version-name" isActive>
             Register model

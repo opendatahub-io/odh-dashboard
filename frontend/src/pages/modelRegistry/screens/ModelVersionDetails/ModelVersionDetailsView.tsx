@@ -32,9 +32,9 @@ import {
   bumpRegisteredModelTimestamp,
 } from '~/concepts/modelRegistry/utils/updateTimestamps';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
-import { getCatalogModelDetailsRoute, globalPipelineRunDetailsRoute } from '~/routes';
-import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
+import { getCatalogModelDetailsRoute } from '~/routes';
 import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
+import ModelVersionPipelineDescription from './ModelVersionPipelineDescription';
 
 type ModelVersionDetailsViewProps = {
   modelVersion: ModelVersion;
@@ -55,7 +55,6 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
   const pipelineCustomProperties = getPipelineModelCustomProps(mv.customProperties);
   const [registeredModel, registeredModelLoaded, registeredModelLoadError, refreshRegisteredModel] =
     useRegisteredModelById(mv.registeredModelId);
-
   const loaded = modelArtifactsLoaded && registeredModelLoaded;
   const loadError = modelArtifactsLoadError || registeredModelLoadError;
   const refreshBoth = () => {
@@ -158,42 +157,9 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
           </DashboardDescriptionListGroup>
           {Object.values(pipelineCustomProperties).every((value) => !!value) && (
             <DashboardDescriptionListGroup title="Registered from">
-              <Flex
-                spaceItems={{ default: 'spaceItemsXs' }}
-                alignItems={{ default: 'alignItemsCenter' }}
-                data-testid="registered-from-pipeline"
-              >
-                <FlexItem data-testid="pipeline-run-link">
-                  Run{' '}
-                  {
-                    <Link
-                      style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
-                      to={globalPipelineRunDetailsRoute(
-                        pipelineCustomProperties.project,
-                        pipelineCustomProperties.runId,
-                      )}
-                    >
-                      {pipelineCustomProperties.runName}
-                    </Link>
-                  }{' '}
-                  in
-                </FlexItem>
-                <FlexItem style={{ display: 'flex' }}>
-                  <img
-                    style={{ height: 24 }}
-                    src={typedObjectImage(ProjectObjectType.project)}
-                    alt=""
-                  />
-                </FlexItem>
-                <FlexItem
-                  style={{
-                    display: 'flex',
-                    fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
-                  }}
-                >
-                  {pipelineCustomProperties.project}
-                </FlexItem>
-              </Flex>
+              <ModelVersionPipelineDescription
+                pipelineCustomProperties={pipelineCustomProperties}
+              />
             </DashboardDescriptionListGroup>
           )}
           {catalogModelDetailsUrl && (

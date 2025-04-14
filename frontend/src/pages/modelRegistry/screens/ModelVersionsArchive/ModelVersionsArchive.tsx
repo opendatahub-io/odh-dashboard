@@ -35,11 +35,15 @@ const ModelVersionsArchive: React.FC<ModelVersionsArchiveProps> = ({ ...pageProp
             )}
           />
           <BreadcrumbItem
-            render={() => (
-              <Link to={registeredModelRoute(rmId, preferredModelRegistry?.metadata.name)}>
-                {rm?.name || 'Loading...'}
-              </Link>
-            )}
+            render={() =>
+              !rm?.name ? (
+                'Loading...'
+              ) : (
+                <Link to={registeredModelRoute(rmId, preferredModelRegistry?.metadata.name)}>
+                  {rm.name}
+                </Link>
+              )
+            }
           />
           <BreadcrumbItem data-testid="archive-version-page-breadcrumb" isActive>
             Archived versions
