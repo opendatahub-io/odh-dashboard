@@ -277,6 +277,33 @@ export const ConnectionSection: React.FC<Props> = ({
     }
   }, [selectedConnection, connection, setConnection]);
 
+
+  
+  // React.useEffect(() => {
+  //   const defaultType =
+  //     connections && connections.length > 0
+  //       ? InferenceServiceStorageType.EXISTING_STORAGE
+  //       : InferenceServiceStorageType.NEW_STORAGE;
+
+  //   setData('storage', {
+  //     type: defaultType,
+  //     path: '',
+  //     dataConnection: '',
+  //     awsData: []
+  //   });
+  // }, [connections, setData ]);
+
+
+  const storageType = React.useMemo(() => {
+    return connections && connections.length > 0
+        ? InferenceServiceStorageType.EXISTING_STORAGE
+        : InferenceServiceStorageType.NEW_STORAGE;
+
+  }, [connections]);
+
+
+
+
   if (loadError) {
     return (
       <Alert title="Error loading connections" variant="danger">
@@ -315,7 +342,7 @@ export const ConnectionSection: React.FC<Props> = ({
         id="existing-connection-radio"
         data-testid="existing-connection-radio"
         label="Existing connection"
-        isChecked={data.storage.type === InferenceServiceStorageType.EXISTING_STORAGE}
+        isChecked={storageType === InferenceServiceStorageType.EXISTING_STORAGE}
         onChange={() => {
           setConnection(undefined);
           setData('storage', {
@@ -326,7 +353,7 @@ export const ConnectionSection: React.FC<Props> = ({
           });
         }}
         body={
-          data.storage.type === InferenceServiceStorageType.EXISTING_STORAGE &&
+          storageType === InferenceServiceStorageType.EXISTING_STORAGE &&
           connections && (
             <ExistingModelConnectionField
               connectionTypes={connectionTypes}
@@ -354,7 +381,7 @@ export const ConnectionSection: React.FC<Props> = ({
         data-testid="new-connection-radio"
         label="Create connection"
         className="pf-v6-u-mb-lg"
-        isChecked={data.storage.type === InferenceServiceStorageType.NEW_STORAGE}
+        isChecked={storageType === InferenceServiceStorageType.NEW_STORAGE}
         onChange={() => {
           setConnection(undefined);
           setData('storage', {
@@ -365,7 +392,7 @@ export const ConnectionSection: React.FC<Props> = ({
           });
         }}
         body={
-          data.storage.type === InferenceServiceStorageType.NEW_STORAGE && (
+          storageType === InferenceServiceStorageType.NEW_STORAGE && (
             <Stack hasGutter>
               {data.storage.alert && (
                 <StackItem>
