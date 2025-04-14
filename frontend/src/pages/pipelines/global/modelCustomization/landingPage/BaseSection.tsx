@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Content, ContentVariants, Title } from '@patternfly/react-core';
-import classNames from 'classnames';
 
 type BaseSectionProps = React.PropsWithChildren<{
   title: string;
