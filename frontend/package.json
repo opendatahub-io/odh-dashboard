@@ -196,6 +196,7 @@
     "cypress-mochawesome-reporter": "^3.8.2",
     "cypress-multi-reporters": "^1.6.4",
     "cypress-plugin-steps": "^1.1.1",
+    "soft-assert": "^0.2.7",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^8.6.0",
     "eslint-import-resolver-node": "^0.3.7",
