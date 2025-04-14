@@ -55,7 +55,7 @@ export const ManageAcceleratorProfileFooter: React.FC<ManageAcceleratorProfileFo
         navigate(redirectPath);
       })
       .catch((err) => {
-        setErrorMessage(err.message || 'Could not create accelerator profile');
+        setErrorMessage(err.message);
       })
       .finally(() => {
         setIsLoading(false);
@@ -70,7 +70,7 @@ export const ManageAcceleratorProfileFooter: React.FC<ManageAcceleratorProfileFo
           navigate(redirectPath);
         })
         .catch((err) => {
-          setErrorMessage(err.message || 'Could not update accelerator profile');
+          setErrorMessage(err.message);
         })
         .finally(() => {
           setIsLoading(false);
