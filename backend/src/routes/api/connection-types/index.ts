@@ -1,7 +1,7 @@
 import { V1ConfigMap } from '@kubernetes/client-node';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, RecursivePartial } from '../../../types';
-import { secureAdminRoute, secureRoute } from '../../../utils/route-security';
+import { secureAdminRoute } from '../../../utils/route-security';
 import {
   getConnectionType,
   listConnectionTypes,
@@ -12,27 +12,22 @@ import {
 } from './connectionTypeUtils';
 
 module.exports = async (fastify: KubeFastifyInstance) => {
-  fastify.get(
-    '/',
-    secureRoute(fastify)(async (request: FastifyRequest, reply: FastifyReply) =>
-      listConnectionTypes(fastify)
-        .then((res) => res)
-        .catch((res) => {
-          reply.send(res);
-        }),
-    ),
+  fastify.get('/', async (request: FastifyRequest, reply: FastifyReply) =>
+    listConnectionTypes(fastify)
+      .then((res) => res)
+      .catch((res) => {
+        reply.send(res);
+      }),
   );
 
   fastify.get(
     '/:name',
-    secureRoute(fastify)(
-      async (request: FastifyRequest<{ Params: { name: string } }>, reply: FastifyReply) =>
-        getConnectionType(fastify, request.params.name)
-          .then((res) => res)
-          .catch((res) => {
-            reply.send(res);
-          }),
-    ),
+    async (request: FastifyRequest<{ Params: { name: string } }>, reply: FastifyReply) =>
+      getConnectionType(fastify, request.params.name)
+        .then((res) => res)
+        .catch((res) => {
+          reply.send(res);
+        }),
   );
 
   fastify.post(
