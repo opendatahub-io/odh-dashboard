@@ -164,11 +164,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
           )}
           {catalogModelDetailsUrl && (
             <DashboardDescriptionListGroup title="Registered from" isEmpty={!mv.id}>
-              <Link
-                to={catalogModelDetailsUrl}
-                data-testid="registered-from-catalog"
-                style={{ color: 'var(--pf-t--global--link--Color)', textDecoration: 'none' }}
-              >
+              <Link to={catalogModelDetailsUrl} data-testid="registered-from-catalog">
                 <span style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
                   {catalogModelCustomProps.modelName} ({catalogModelCustomProps.tag})
                 </span>
