@@ -54,6 +54,7 @@ const useFetchDscStatusMock = jest.mocked(useFetchDscStatus);
 const useWatchOperatorSubscriptionStatusMock = jest.mocked(useWatchOperatorSubscriptionStatus);
 
 describe('AboutDialog', () => {
+  const fixedDate = new Date('2024-06-25T00:00:00Z');
   let dashboardConfig: DashboardConfigKind;
   let appContext: {
     buildStatuses: BuildStatus[];
@@ -70,7 +71,6 @@ describe('AboutDialog', () => {
   let dscFetchStatus: FetchState<DataScienceClusterKindStatus>;
   let operatorSubscriptionStatus: SubscriptionStatusData;
   let operatorSubscriptionFetchStatus: FetchState<SubscriptionStatusData>;
-  const fixedDate = new Date('2024-06-25T00:00:00Z');
 
   beforeEach(() => {
     dashboardConfig = mockDashboardConfig({});
@@ -124,13 +124,17 @@ describe('AboutDialog', () => {
       undefined,
       () => Promise.resolve(operatorSubscriptionStatus),
     ];
-  });
-
-  it('should show the appropriate odh values', async () => {
     operatorSubscriptionStatus = {
       channel: 'fast',
       lastUpdated: fixedDate.toISOString(),
     };
+  });
+
+  it('should show the appropriate odh values', async () => {
+    // operatorSubscriptionStatus = {
+    //   channel: 'fast',
+    //   lastUpdated: fixedDate.toISOString(),
+    // };
     useAppContextMock.mockReturnValue(appContext);
     useUserMock.mockReturnValue(userInfo);
     useClusterInfoMock.mockReturnValue(clusterInfo);
@@ -171,10 +175,10 @@ describe('AboutDialog', () => {
   });
 
   it('should show the appropriate RHOAI values', async () => {
-    operatorSubscriptionStatus = {
-      channel: 'fast',
-      lastUpdated: fixedDate.toISOString(),
-    };
+    // operatorSubscriptionStatus = {
+    //   channel: 'fast',
+    //   lastUpdated: fixedDate.toISOString(),
+    // };
     dashboardConfig.metadata!.namespace = 'redhat-ods-applications';
     appContext.isRHOAI = true;
     userInfo.isAdmin = true;
