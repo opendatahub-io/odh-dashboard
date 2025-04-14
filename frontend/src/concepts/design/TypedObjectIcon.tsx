@@ -6,13 +6,11 @@ import {
   NotebookIcon,
   CreateAndTrainIcon,
   DataConnectionIcon,
-  DeployedModelIcon,
   ProjectIcon,
   PipelineIcon,
   PipelineRunIcon,
   StorageIcon,
   ModelServerIcon,
-  RegisteredModelIcon,
   UserIcon,
   GroupIcon,
   StorageClassIcon,
@@ -105,14 +103,14 @@ const TypedObjectIcon: React.FC<TypedObjectIconProps> = ({
       break;
     case ProjectObjectType.registeredModels:
     case ProjectObjectType.modelRegistrySettings:
-      Icon = RegisteredModelIcon;
+      Icon = PipelineExecutionIcon;
       break;
     case ProjectObjectType.modelRegistryContext:
       Icon = ModelRegistrySelectIcon;
       break;
     case ProjectObjectType.deployedModels:
     case ProjectObjectType.deployingModels:
-      Icon = DeployedModelIcon;
+      Icon = PipelineExecutionIcon;
       break;
     case ProjectObjectType.servingRuntime:
       Icon = ServingRuntimeIcon;
