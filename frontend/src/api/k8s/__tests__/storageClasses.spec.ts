@@ -4,7 +4,7 @@ import {
   k8sPatchResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { StorageClassKind } from '~/k8sTypes';
+import { MetadataAnnotation, StorageClassKind } from '~/k8sTypes';
 import { StorageClassModel } from '~/api/models';
 import { mockStorageClasses } from '~/__mocks__';
 import {
@@ -76,8 +76,10 @@ describe('updateStorageClassConfig', () => {
     const lastModifiedDate = new Date().toISOString();
     const config = { isEnabled: false };
     const fullConfig = {
-      ...(mockStorageClasses[0].metadata.annotations?.['opendatahub.io/sc-config'] &&
-        JSON.parse(mockStorageClasses[0].metadata.annotations['opendatahub.io/sc-config'])),
+      ...(mockStorageClasses[0].metadata.annotations?.[MetadataAnnotation.OdhStorageClassConfig] &&
+        JSON.parse(
+          mockStorageClasses[0].metadata.annotations[MetadataAnnotation.OdhStorageClassConfig],
+        )),
       ...config,
       lastModified: lastModifiedDate,
     };
@@ -87,7 +89,7 @@ describe('updateStorageClassConfig', () => {
         ...mockStorageClasses[0].metadata,
         annotations: {
           ...mockStorageClasses[0].metadata.annotations,
-          'opendatahub.io/sc-config': JSON.stringify(fullConfig),
+          [MetadataAnnotation.OdhStorageClassConfig]: JSON.stringify(fullConfig),
         },
       },
     };

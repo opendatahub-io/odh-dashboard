@@ -4,7 +4,12 @@ import {
   k8sPatchResource,
   Patch,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sAPIOptions, StorageClassConfig, StorageClassKind } from '~/k8sTypes';
+import {
+  K8sAPIOptions,
+  MetadataAnnotation,
+  StorageClassConfig,
+  StorageClassKind,
+} from '~/k8sTypes';
 import { StorageClassModel } from '~/api/models';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 
@@ -22,7 +27,7 @@ export const getStorageClass = (name: string): Promise<StorageClassKind> =>
 
 export const updateStorageClassConfig = async (
   name: string,
-  config: Partial<Omit<StorageClassConfig, 'lastModified'>> | undefined,
+  config: Partial<StorageClassConfig> | undefined,
   opts?: K8sAPIOptions,
 ): Promise<StorageClassConfig> => {
   const oldStorageClassResource = await getStorageClass(name);
@@ -32,8 +37,14 @@ export const updateStorageClassConfig = async (
       path: '/metadata/annotations/opendatahub.io~1sc-config',
       value: config
         ? JSON.stringify({
-            ...(oldStorageClassResource.metadata.annotations?.['opendatahub.io/sc-config'] &&
-              JSON.parse(oldStorageClassResource.metadata.annotations['opendatahub.io/sc-config'])),
+            ...(oldStorageClassResource.metadata.annotations?.[
+              MetadataAnnotation.OdhStorageClassConfig
+            ] &&
+              JSON.parse(
+                oldStorageClassResource.metadata.annotations[
+                  MetadataAnnotation.OdhStorageClassConfig
+                ],
+              )),
             ...config,
             lastModified: new Date().toISOString(),
           })
@@ -52,6 +63,8 @@ export const updateStorageClassConfig = async (
       opts,
     ),
   ).then((storageClass) =>
-    JSON.parse(storageClass.metadata?.annotations?.['opendatahub.io/sc-config'] ?? ''),
+    JSON.parse(
+      storageClass.metadata?.annotations?.[MetadataAnnotation.OdhStorageClassConfig] ?? '',
+    ),
   );
 };
