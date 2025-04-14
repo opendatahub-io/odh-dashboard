@@ -11,7 +11,7 @@ export const ProjectSetupSection: React.FC = () => {
   const { accordionItemsExpanded, handleToggleAccordion } = useToggleAccordion();
 
   return (
-    <BaseSection title="Next, set up your project and pipeline:">
+    <BaseSection title="Next, set up your project and pipeline:" useH3>
       <Accordion togglePosition="start" data-testid="accordion-project-setup">
         <ModelCustomizationAccordionItem
           id="prepared-project"

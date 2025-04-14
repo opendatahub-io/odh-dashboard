@@ -12,7 +12,7 @@ export const NextStepsSection: React.FC = () => {
   const { accordionItemsExpanded, handleToggleAccordion } = useToggleAccordion();
 
   return (
-    <BaseSection title="Now that you're all set up:">
+    <BaseSection title="Now that you're all set up:" useH3>
       <Accordion togglePosition="start" data-testid="accordion-next-steps">
         <ModelCustomizationAccordionItem
           id="register-base-model"

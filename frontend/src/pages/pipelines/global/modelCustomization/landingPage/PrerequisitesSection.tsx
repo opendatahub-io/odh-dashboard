@@ -21,7 +21,7 @@ export const PrerequisitesSection: React.FC<PrerequisitesSectionProps> = ({ hand
   const { accordionItemsExpanded, handleToggleAccordion } = useToggleAccordion();
 
   return (
-    <BaseSection title="To get started, you'll need the following prerequisites:">
+    <BaseSection title="To get started, you'll need the following prerequisites:" useH3>
       <Accordion togglePosition="start" data-testid="accordion-prerequisites">
         <ModelCustomizationAccordionItem
           id="taxonomy-repository"
