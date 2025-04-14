@@ -61,7 +61,11 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
       .filter((name) => isAdding || name !== rb.subjects[0].name);
     const isDuplicateName = usedNames.includes(subjectName);
     if (isDuplicateName) {
-      onError(new Error(`Permissions for ${subjectName} already exist.`));
+      onError(
+        new Error(
+          `Permissions for ${subjectName} already exist. Either edit the existing permissions or add new permissions.`,
+        ),
+      );
       refresh();
     } else if (isAdding) {
       createRoleBinding(newRBObject)

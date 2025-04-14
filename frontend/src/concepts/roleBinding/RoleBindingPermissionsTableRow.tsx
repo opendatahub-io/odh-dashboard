@@ -68,13 +68,19 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
   onDelete,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
-  const [roleBindingName, setRoleBindingName] = React.useState(() =>
-    isAdding ? '' : defaultValueName(obj!, isProjectSubject, projects),
-  );
+  const [roleBindingName, setRoleBindingName] = React.useState(() => {
+    if (isAdding || !obj) {
+      return '';
+    }
+    return defaultValueName(obj, isProjectSubject, projects);
+  });
   const [roleBindingRoleRef, setRoleBindingRoleRef] =
-    React.useState<RoleBindingPermissionsRoleType>(
-      isAdding ? permissionOptions[0]?.type : defaultValueRole(obj!),
-    );
+    React.useState<RoleBindingPermissionsRoleType>(() => {
+      if (isAdding || !obj) {
+        return permissionOptions[0]?.type;
+      }
+      return defaultValueRole(obj);
+    });
   const [isLoading, setIsLoading] = React.useState(false);
   const createdDate = new Date(obj?.metadata.creationTimestamp ?? '');
   const isDefaultGroup = obj?.metadata.name === defaultRoleBindingName;
