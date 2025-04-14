@@ -116,7 +116,7 @@ describe('AboutDialog', () => {
     };
     operatorSubscriptionStatus = {
       channel: 'fast',
-      lastUpdated: '2024-06-25T05:36:37Z',
+      lastUpdated: lastUpdated.toISOString(),
     };
     operatorSubscriptionFetchStatus = [
       operatorSubscriptionStatus,
@@ -124,10 +124,6 @@ describe('AboutDialog', () => {
       undefined,
       () => Promise.resolve(operatorSubscriptionStatus),
     ];
-    operatorSubscriptionStatus = {
-      channel: 'fast',
-      lastUpdated: lastUpdated.toISOString(),
-    };
   });
 
   it('should show the appropriate odh values', async () => {
