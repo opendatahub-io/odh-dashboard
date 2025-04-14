@@ -172,7 +172,7 @@ export const getNotebookControllerConfig = (key?: string): Cypress.Chainable<unk
  * @returns A Cypress.Chainable that resolves to the requested config value or the full config object.
  */
 export const getNotebookControllerCullerConfig = (key?: string): Cypress.Chainable<unknown> => {
-  const applicationNamespace = Cypress.env('TEST_NAMESPACE');
+  const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
   const command = `oc get configmap -n ${applicationNamespace} notebook-controller-culler-config -o jsonpath='{.data}' | jq .`;
 
   // Log the command being executed
