@@ -171,7 +171,7 @@ describe('Storage classes', () => {
       storageClassEditModal.fillDisplayNameInput('Readable config');
 
       storageClassEditModal.mockGetStorageClass(storageClass);
-      storageClassEditModal.mockPatchStorageClass(storageClass);
+      storageClassEditModal.mockPatchStorageClass(storageClass).as('patchStorageClass');
 
       storageClassesPage
         .mockGetStorageClasses([
@@ -184,6 +184,7 @@ describe('Storage classes', () => {
         .as('updateStorageClass');
       storageClassEditModal.findSaveButton().click();
 
+      cy.wait('@patchStorageClass');
       cy.wait('@updateStorageClass');
 
       storageClassTableRow.findDisplayNameValue().should('have.text', 'Readable config');
@@ -242,7 +243,7 @@ describe('Storage classes', () => {
 
       // Reset default
       storageClassesTable.mockGetStorageClass(storageClass);
-      storageClassesTable.mockPatchStorageClass(storageClass);
+      storageClassesTable.mockPatchStorageClass(storageClass).as('patchStorageClass');
 
       storageClassesPage
         .mockGetStorageClasses([
@@ -259,12 +260,13 @@ describe('Storage classes', () => {
         .findByTestId('corrupted-metadata-alert-action')
         .click();
 
+      cy.wait('@patchStorageClass');
       cy.wait('@resetDefault');
       storageClassTableRow.findDefaultRadioInput().should('not.have.attr', 'checked');
 
       // Reset last modified
       storageClassesTable.mockGetStorageClass(storageClass);
-      storageClassesTable.mockPatchStorageClass(storageClass);
+      storageClassesTable.mockPatchStorageClass(storageClass).as('patchStorageClass');
 
       storageClassesPage
         .mockGetStorageClasses([
@@ -282,6 +284,7 @@ describe('Storage classes', () => {
         .findByTestId('corrupted-metadata-alert-action')
         .click();
 
+      cy.wait('@patchStorageClass');
       cy.wait('@resetLastModified');
       storageClassTableRow.findLastModifiedValue().should('contain.text', '8/22/2023');
     });
@@ -308,7 +311,7 @@ describe('Storage classes', () => {
       storageClassEditModal.fillDisplayNameInput('New name');
 
       storageClassEditModal.mockGetStorageClass(storageClass);
-      storageClassEditModal.mockPatchStorageClass(storageClass);
+      storageClassEditModal.mockPatchStorageClass(storageClass).as('patchStorageClass');
 
       storageClassesPage
         .mockGetStorageClasses([
@@ -323,6 +326,7 @@ describe('Storage classes', () => {
 
       storageClassEditModal.findSaveButton().click();
 
+      cy.wait('@patchStorageClass');
       cy.wait('@refreshStorageClasses');
       storageClassTableRow.findDisplayNameValue().should('contain.text', 'New name');
     });
@@ -348,7 +352,7 @@ describe('Storage classes', () => {
       storageClassEditModal.findInfoAlert().should('contain.text', 'Edit the invalid field');
 
       storageClassEditModal.mockGetStorageClass(storageClass);
-      storageClassEditModal.mockPatchStorageClass(storageClass);
+      storageClassEditModal.mockPatchStorageClass(storageClass).as('patchStorageClass');
 
       storageClassesPage
         .mockGetStorageClasses([
@@ -363,6 +367,7 @@ describe('Storage classes', () => {
 
       storageClassEditModal.findSaveButton().click();
 
+      cy.wait('@patchStorageClass');
       cy.wait('@refreshStorageClasses');
       storageClassTableRow.findDisplayNameValue().should('have.text', 'Test malformed description');
     });
@@ -388,7 +393,7 @@ describe('Storage classes', () => {
       storageClassEditModal.fillDescriptionInput('New description');
 
       storageClassEditModal.mockGetStorageClass(storageClass);
-      storageClassEditModal.mockPatchStorageClass(storageClass);
+      storageClassEditModal.mockPatchStorageClass(storageClass).as('patchStorageClass');
 
       storageClassesPage
         .mockGetStorageClasses([
@@ -404,6 +409,7 @@ describe('Storage classes', () => {
 
       storageClassEditModal.findSaveButton().click();
 
+      cy.wait('@patchStorageClass');
       cy.wait('@refreshStorageClasses');
       storageClassTableRow.findDisplayNameValue().should('contain.text', 'New name');
       storageClassTableRow.findDisplayNameValue().should('contain.text', 'New description');

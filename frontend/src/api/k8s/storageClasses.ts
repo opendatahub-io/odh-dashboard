@@ -25,32 +25,43 @@ export const getStorageClass = (name: string): Promise<StorageClassKind> =>
     queryOptions: { name },
   });
 
+const getStorageClassUpdateValue = (config: Partial<StorageClassConfig>, oldConfig?: string) => {
+  try {
+    return JSON.stringify({
+      ...(oldConfig && JSON.parse(oldConfig)),
+      ...config,
+      lastModified: new Date().toISOString(),
+    });
+  } catch (e) {
+    return JSON.stringify({
+      ...config,
+      lastModified: new Date().toISOString(),
+    });
+  }
+};
+
 export const updateStorageClassConfig = async (
   name: string,
   config: Partial<StorageClassConfig> | undefined,
   opts?: K8sAPIOptions,
 ): Promise<StorageClassConfig> => {
   const oldStorageClassResource = await getStorageClass(name);
-  const patches: Patch[] = [
-    {
-      op: 'replace',
-      path: '/metadata/annotations/opendatahub.io~1sc-config',
-      value: config
-        ? JSON.stringify({
-            ...(oldStorageClassResource.metadata.annotations?.[
-              MetadataAnnotation.OdhStorageClassConfig
-            ] &&
-              JSON.parse(
-                oldStorageClassResource.metadata.annotations[
-                  MetadataAnnotation.OdhStorageClassConfig
-                ],
-              )),
-            ...config,
-            lastModified: new Date().toISOString(),
-          })
-        : '',
-    },
-  ];
+  const oldConfig =
+    oldStorageClassResource.metadata.annotations?.[MetadataAnnotation.OdhStorageClassConfig];
+  const patches: Patch[] = [];
+  if (!oldStorageClassResource.metadata.annotations) {
+    patches.push({
+      op: 'add',
+      path: '/metadata/annotations',
+      value: {},
+    });
+  }
+  patches.push({
+    op: oldConfig ? 'replace' : 'add',
+    path: '/metadata/annotations/opendatahub.io~1sc-config',
+    value: config ? getStorageClassUpdateValue(config, oldConfig) : '',
+  });
+
   return k8sPatchResource(
     applyK8sAPIOptions(
       {
