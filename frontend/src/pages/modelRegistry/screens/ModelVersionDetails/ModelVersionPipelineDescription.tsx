@@ -52,7 +52,6 @@ const ModelVersionPipelineDescription: React.FC<ModelVersionPipelineDescriptionP
         <TypedObjectIcon
           resourceType={ProjectObjectType.project}
           style={{ height: 24, width: 24 }}
-          useTypedColor
         />
       </FlexItem>
       <FlexItem>
