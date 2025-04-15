@@ -77,7 +77,7 @@ export const initInterceptsToEnableNim = ({ hasAllModels = false }: EnableNimCon
   );
 
   cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
-  cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockNimProject(hasAllModels)]));
+  cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockNimProject({ hasAllModels })]));
 
   const templateMock = mockNimServingRuntimeTemplate();
   cy.interceptK8sList(TemplateModel, mockK8sResourceList([templateMock]));
@@ -129,7 +129,7 @@ export const initInterceptsToDeployModel = (nimInferenceService: InferenceServic
 // intercept all APIs required for deleting an existing NIM models
 export const initInterceptsForDeleteModel = (): void => {
   // create initial inference and runtime
-  cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([mockNimInferenceService()]));
+  cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([mockNimInferenceService({})]));
   cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([mockNimServingRuntime()]));
 
   // intercept delete inference request
