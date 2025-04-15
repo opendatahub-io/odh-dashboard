@@ -3,3 +3,4 @@ config
 src/third_party/mlmd
 src/__tests__/cypress/.nyc_output
 src/__tests__/cypress/coverage
+@mf-types

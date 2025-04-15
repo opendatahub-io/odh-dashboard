@@ -11,7 +11,7 @@ import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import { ModelState } from '~/concepts/modelRegistry/types';
-import { modelVersionUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import { modelVersionRoute } from '~/routes';
 import ArchiveModelVersionDetailsBreadcrumb from './ArchiveModelVersionDetailsBreadcrumb';
 
 type ArchiveModelVersionDetailsProps = {
@@ -42,7 +42,9 @@ const ArchiveModelVersionDetails: React.FC<ArchiveModelVersionDetailsProps> = ({
 
   useEffect(() => {
     if (rm?.state === ModelState.LIVE && mv?.id) {
-      navigate(modelVersionUrl(mv.id, mv.registeredModelId, preferredModelRegistry?.metadata.name));
+      navigate(
+        modelVersionRoute(mv.id, mv.registeredModelId, preferredModelRegistry?.metadata.name),
+      );
     }
   }, [rm?.state, mv?.id, mv?.registeredModelId, preferredModelRegistry?.metadata.name, navigate]);
 

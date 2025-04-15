@@ -13,11 +13,7 @@ import {
 } from '@patternfly/react-core';
 import { EllipsisVIcon, FilterIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router';
-import {
-  registerModelUrl,
-  registerVersionUrl,
-  registeredModelArchiveUrl,
-} from '~/pages/modelRegistry/screens/routeUtils';
+import { registerModelRoute, registerVersionRoute, registeredModelArchiveRoute } from '~/routes';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 
 type RegisteredModelsTableToolbarProps = {
@@ -61,7 +57,7 @@ const RegisteredModelsTableToolbar: React.FC<RegisteredModelsTableToolbarProps> 
                     data-testid="register-model-button"
                     aria-label="Register model"
                     onClick={() =>
-                      navigate(registerModelUrl(preferredModelRegistry?.metadata.name))
+                      navigate(registerModelRoute(preferredModelRegistry?.metadata.name))
                     }
                   >
                     Register model
@@ -78,7 +74,7 @@ const RegisteredModelsTableToolbar: React.FC<RegisteredModelsTableToolbarProps> 
                 aria-label="Register new version"
                 key="register-new-version-button"
                 onClick={() => {
-                  navigate(registerVersionUrl(preferredModelRegistry?.metadata.name));
+                  navigate(registerVersionRoute(preferredModelRegistry?.metadata.name));
                 }}
                 ref={tooltipRef}
               >
@@ -109,7 +105,7 @@ const RegisteredModelsTableToolbar: React.FC<RegisteredModelsTableToolbarProps> 
             <DropdownList>
               <DropdownItem
                 onClick={() =>
-                  navigate(registeredModelArchiveUrl(preferredModelRegistry?.metadata.name))
+                  navigate(registeredModelArchiveRoute(preferredModelRegistry?.metadata.name))
                 }
               >
                 View archived models

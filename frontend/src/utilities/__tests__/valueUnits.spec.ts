@@ -1,4 +1,3 @@
-import { Identifier, IdentifierResourceType } from '~/types';
 import {
   UnitOption,
   splitValueUnit,
@@ -12,8 +11,6 @@ import {
   formatMemory,
   MEMORY_UNITS_FOR_SELECTION,
   CPU_UNITS,
-  determineUnit,
-  OTHER,
 } from '~/utilities/valueUnits';
 
 describe('splitValueUnit', () => {
@@ -42,41 +39,6 @@ describe('splitValueUnit', () => {
   it('should throw an error if the unit is incorrect and strict is true', () => {
     expect(() => splitValueUnit('1', MEMORY_UNITS_FOR_SELECTION, true)).toThrow();
     expect(() => splitValueUnit('1GiB', CPU_UNITS, true)).toThrow();
-  });
-});
-
-describe('determine unit', () => {
-  it('should correctly return CPU units', () => {
-    const nodeCPUResource: Identifier = {
-      displayName: 'CPU',
-      identifier: 'cpu',
-      minCount: '1',
-      maxCount: '2',
-      defaultCount: '1',
-      resourceType: IdentifierResourceType.CPU,
-    };
-    expect(determineUnit(nodeCPUResource)).toEqual(CPU_UNITS);
-  });
-  it('should correctly return memory units', () => {
-    const nodeMemoryResource: Identifier = {
-      displayName: 'Memory',
-      identifier: 'memory',
-      minCount: '2Gi',
-      maxCount: '5Gi',
-      defaultCount: '2Gi',
-      resourceType: IdentifierResourceType.MEMORY,
-    };
-    expect(determineUnit(nodeMemoryResource)).toEqual(MEMORY_UNITS_FOR_SELECTION);
-  });
-  it('should correctly return other if resource type is unknown', () => {
-    const nodeUnknownResource: Identifier = {
-      displayName: 'GPU',
-      identifier: 'gpu',
-      minCount: '2Gi',
-      maxCount: '5Gi',
-      defaultCount: '2Gi',
-    };
-    expect(determineUnit(nodeUnknownResource)).toEqual(OTHER);
   });
 });
 

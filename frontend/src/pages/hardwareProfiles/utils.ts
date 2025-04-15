@@ -1,10 +1,16 @@
 import { HardwareProfileKind } from '~/k8sTypes';
-import { Identifier } from '~/types';
+import { Identifier, IdentifierResourceType } from '~/types';
 import { HardwareProfileWarningType, WarningNotification } from '~/concepts/hardwareProfiles/types';
-import { hardwareProfileWarningSchema } from '~/concepts/hardwareProfiles/validationUtils';
-import { determineUnit, splitValueUnit } from '~/utilities/valueUnits';
-import { HARDWARE_PROFILES_DEFAULT_WARNING_MESSAGE } from './nodeResource/const';
+import {
+  CPU_UNITS,
+  MEMORY_UNITS_FOR_SELECTION,
+  OTHER,
+  splitValueUnit,
+  UnitOption,
+} from '~/utilities/valueUnits';
+import { DEFAULT_CPU_IDENTIFIER, DEFAULT_MEMORY_IDENTIFIER } from './nodeResource/const';
 import { hasCPUandMemory } from './manage/ManageNodeResourceSection';
+import { createHardwareProfileWarningSchema } from './manage/validationUtils';
 
 export enum HardwareProfileBannerWarningTitles {
   ALL_INVALID = 'All hardware profiles are invalid',
@@ -14,11 +20,27 @@ export enum HardwareProfileBannerWarningTitles {
   SOME_INCOMPLETE = 'One or more hardware profiles are incomplete',
 }
 
+export const determineIdentifierUnit = (nodeResource: Identifier): UnitOption[] => {
+  if (
+    nodeResource.resourceType === IdentifierResourceType.CPU ||
+    nodeResource.identifier === DEFAULT_CPU_IDENTIFIER
+  ) {
+    return CPU_UNITS;
+  }
+  if (
+    nodeResource.resourceType === IdentifierResourceType.MEMORY ||
+    nodeResource.identifier === DEFAULT_MEMORY_IDENTIFIER
+  ) {
+    return MEMORY_UNITS_FOR_SELECTION;
+  }
+  return OTHER;
+};
+
 const generateWarningTitle = (
   hasEnabled: boolean,
   allInvalid: boolean,
   hasInvalid: boolean,
-  allIncomplete: boolean,
+  allIncompleteCPUorMemory: boolean,
 ): string => {
   if (allInvalid) {
     return HardwareProfileBannerWarningTitles.ALL_INVALID;
@@ -29,7 +51,7 @@ const generateWarningTitle = (
   if (hasInvalid) {
     return HardwareProfileBannerWarningTitles.SOME_INVALID;
   }
-  if (allIncomplete) {
+  if (allIncompleteCPUorMemory) {
     return HardwareProfileBannerWarningTitles.ALL_INCOMPLETE;
   }
   return HardwareProfileBannerWarningTitles.SOME_INCOMPLETE;
@@ -39,7 +61,7 @@ const generateWarningMessage = (
   hasEnabled: boolean,
   allInvalid: boolean,
   hasInvalid: boolean,
-  allIncomplete: boolean,
+  allIncompleteCPUorMemory: boolean,
 ): string => {
   if (allInvalid) {
     return 'You must have at least one valid hardware profile enabled for users to create workbenches or deploy models. Take the appropriate actions below to re-validate your profiles.';
@@ -50,7 +72,7 @@ const generateWarningMessage = (
   if (hasInvalid) {
     return 'One or more of your defined hardware profiles are invalid. Take the appropriate actions below to revalidate your profiles.';
   }
-  if (allIncomplete) {
+  if (allIncompleteCPUorMemory) {
     return 'All of your defined hardware profiles are missing either CPU or Memory. This is not recommended.';
   }
   return 'One or more of your defined hardware profiles are missing either CPU or Memory. This is not recommended.';
@@ -61,31 +83,38 @@ export const generateWarningForHardwareProfiles = (
 ): WarningNotification | undefined => {
   const hasInvalid = hardwareProfiles.some((profile) => {
     const warnings = validateProfileWarning(profile);
-    return warnings.some((warning) => warning.type === HardwareProfileWarningType.OTHER);
+    return warnings.some(
+      (warning) => warning.type !== HardwareProfileWarningType.HARDWARE_PROFILES_MISSING_CPU_MEMORY,
+    );
   });
   const hasEnabled = hardwareProfiles.some((profile) => profile.spec.enabled);
   const allInvalid = hardwareProfiles.every((profile) => {
     const warnings = validateProfileWarning(profile);
-    return warnings.some((warning) => warning.type === HardwareProfileWarningType.OTHER);
+    return warnings.some(
+      (warning) => warning.type !== HardwareProfileWarningType.HARDWARE_PROFILES_MISSING_CPU_MEMORY,
+    );
   });
-  const allIncomplete = hardwareProfiles.every((profile) => {
+  const allIncompleteCPUorMemory = hardwareProfiles.every((profile) => {
     const warnings = validateProfileWarning(profile);
     return warnings.some(
       (warning) => warning.type === HardwareProfileWarningType.HARDWARE_PROFILES_MISSING_CPU_MEMORY,
     );
   });
-  const someIncomplete = hardwareProfiles.some((profile) => {
+
+  const someIncompleteCPUorMemory = hardwareProfiles.some((profile) => {
     const warnings = validateProfileWarning(profile);
     return warnings.some(
       (warning) => warning.type === HardwareProfileWarningType.HARDWARE_PROFILES_MISSING_CPU_MEMORY,
     );
   });
-  if (hardwareProfiles.length === 0 || (!hasInvalid && !someIncomplete && hasEnabled)) {
+
+  if (hardwareProfiles.length === 0 || (!hasInvalid && !someIncompleteCPUorMemory && hasEnabled)) {
     return undefined;
   }
+
   return {
-    title: generateWarningTitle(hasEnabled, allInvalid, hasInvalid, allIncomplete),
-    message: generateWarningMessage(hasEnabled, allInvalid, hasInvalid, allIncomplete),
+    title: generateWarningTitle(hasEnabled, allInvalid, hasInvalid, allIncompleteCPUorMemory),
+    message: generateWarningMessage(hasEnabled, allInvalid, hasInvalid, allIncompleteCPUorMemory),
   };
 };
 
@@ -100,15 +129,15 @@ export const isHardwareProfileIdentifierValid = (identifier: Identifier): boolea
     }
     const minCount = splitValueUnit(
       identifier.minCount.toString(),
-      determineUnit(identifier),
+      determineIdentifierUnit(identifier),
       true,
     )[0];
     const [maxCount] = identifier.maxCount
-      ? splitValueUnit(identifier.maxCount.toString(), determineUnit(identifier), true)
+      ? splitValueUnit(identifier.maxCount.toString(), determineIdentifierUnit(identifier), true)
       : [undefined];
     const defaultCount = splitValueUnit(
       identifier.defaultCount.toString(),
-      determineUnit(identifier),
+      determineIdentifierUnit(identifier),
       true,
     )[0];
     if (
@@ -129,7 +158,7 @@ export const isHardwareProfileIdentifierValid = (identifier: Identifier): boolea
 
 type HardwareProfileWarning = {
   message: string;
-  type: HardwareProfileWarningType;
+  type: string | number;
 };
 
 export const createHardwareProfileWarningTitle = (hardwareProfile: HardwareProfileKind): string => {
@@ -137,27 +166,23 @@ export const createHardwareProfileWarningTitle = (hardwareProfile: HardwareProfi
   return `${complete ? 'Invalid' : 'Incomplete'} hardware profile`;
 };
 
-export const createIdentifierWarningMessage = (message: string, isDefault: boolean): string =>
-  `${message} ${
-    isDefault
-      ? HARDWARE_PROFILES_DEFAULT_WARNING_MESSAGE
-      : 'Edit the profile to make the profile valid.'
-  }`;
+export const createIdentifierWarningMessage = (message: string): string =>
+  `${message} Edit the profile to make the profile valid.`;
 
 export const validateProfileWarning = (
   hardwareProfile: HardwareProfileKind,
 ): HardwareProfileWarning[] => {
   const warningMessages: HardwareProfileWarning[] = [];
   const identifiers = hardwareProfile.spec.identifiers ?? [];
-  const warnings = hardwareProfileWarningSchema.safeParse({ isDefault: false, value: identifiers });
+  const schema = createHardwareProfileWarningSchema(hardwareProfile.metadata.name);
+  const warnings = schema.safeParse(identifiers);
+
   if (warnings.error) {
     warnings.error.issues.forEach((issue) => {
-      if ('params' in issue && typeof issue.params !== 'undefined') {
-        warningMessages.push({
-          message: issue.message,
-          type: issue.params.type,
-        });
-      }
+      warningMessages.push({
+        message: issue.message,
+        type: 'params' in issue ? issue.params?.code : HardwareProfileWarningType.OTHER,
+      });
     });
   }
   return warningMessages;
