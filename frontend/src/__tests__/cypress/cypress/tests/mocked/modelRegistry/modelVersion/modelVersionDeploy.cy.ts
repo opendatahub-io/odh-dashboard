@@ -328,9 +328,30 @@ describe('Deploy model version', () => {
     modelVersionDeployModal.selectProjectByName('KServe project');
     kserveModal.findModelNameInput().should('exist');
 
-    // Check for project specific serving runtimes
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
     const projectScopedSR = kserveModal.getProjectScopedServingRuntime();
+
+    // Verify both groups are initially visible
+    cy.contains('Project-scoped serving runtimes').should('be.visible');
+    cy.contains('Global serving runtimes').should('be.visible');
+
+    // Search for a value that exists in Project-scoped serving runtimes but not in Global serving runtimes
+    kserveModal.findServingRuntimeTemplateSearchInput().should('be.visible').type('OpenVino');
+
+    // Wait for and verify the groups are visible
+    cy.contains('Project-scoped serving runtimes').should('be.visible');
+    kserveModal.getGlobalServingRuntimesLabel().should('not.exist');
+
+    // Search for a value that doesn't exist in either Global serving runtimes or Project-scoped serving runtimes
+    kserveModal.findServingRuntimeTemplateSearchInput().should('be.visible').clear().type('sample');
+
+    // Wait for and verify that no results are found
+    cy.contains('No results found').should('be.visible');
+    kserveModal.getGlobalServingRuntimesLabel().should('not.exist');
+    kserveModal.getProjectScopedServingRuntimesLabel().should('not.exist');
+    kserveModal.findServingRuntimeTemplateSearchInput().should('be.visible').clear();
+
+    // Check for project specific serving runtimes
     projectScopedSR.find().findByRole('menuitem', { name: 'Caikit', hidden: true }).click();
     kserveModal.findProjectScopedLabel().should('exist');
     kserveModal.findModelFrameworkSelect().should('be.disabled');
