@@ -277,33 +277,6 @@ export const ConnectionSection: React.FC<Props> = ({
     }
   }, [selectedConnection, connection, setConnection]);
 
-
-  
-  // React.useEffect(() => {
-  //   const defaultType =
-  //     connections && connections.length > 0
-  //       ? InferenceServiceStorageType.EXISTING_STORAGE
-  //       : InferenceServiceStorageType.NEW_STORAGE;
-
-  //   setData('storage', {
-  //     type: defaultType,
-  //     path: '',
-  //     dataConnection: '',
-  //     awsData: []
-  //   });
-  // }, [connections, setData ]);
-
-
-  const storageType = React.useMemo(() => {
-    return connections && connections.length > 0
-        ? InferenceServiceStorageType.EXISTING_STORAGE
-        : InferenceServiceStorageType.NEW_STORAGE;
-
-  }, [connections]);
-
-
-
-
   if (loadError) {
     return (
       <Alert title="Error loading connections" variant="danger">
