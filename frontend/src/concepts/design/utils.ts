@@ -56,6 +56,7 @@ export enum ProjectObjectType {
   modelRegistryContext = 'modelRegistryContext',
   deployedModels = 'deployed-models',
   deployingModels = 'deploying-models',
+  deployedModelsList = 'deployed-models-list',
   modelRegistrySettings = 'model-registry-settings',
   modelRegistry = 'model-registry',
   servingRuntime = 'serving-runtime',
@@ -103,6 +104,7 @@ export const typedIconColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.deployedModels:
     case ProjectObjectType.deployingModels:
       return 'var(--ai-model-server--IconColor)';
+    case ProjectObjectType.deployedModelsList:
     case ProjectObjectType.modelRegistrySettings:
       return 'var(--ai-set-up--IconColor)';
     case ProjectObjectType.modelRegistryContext:
@@ -162,6 +164,7 @@ export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.modelRegistryContext:
     case ProjectObjectType.deployedModels:
     case ProjectObjectType.deployingModels:
+    case ProjectObjectType.deployedModelsList:
     case ProjectObjectType.modelCustomization:
     case ProjectObjectType.labTuning:
       return 'var(--ai-model-server--BackgroundColor)';
@@ -219,6 +222,7 @@ export const typedColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.modelRegistryContext:
     case ProjectObjectType.deployedModels:
     case ProjectObjectType.deployingModels:
+    case ProjectObjectType.deployedModelsList:
     case ProjectObjectType.modelCustomization:
     case ProjectObjectType.labTuning:
       return 'var(--ai-model-server--Color)';
@@ -260,6 +264,8 @@ export const typedObjectImage = (objectType: ProjectObjectType): string => {
       return deployedModelsImg;
     case ProjectObjectType.deployingModels:
       return deployingModelsImg;
+    case ProjectObjectType.deployedModelsList:
+      return pipelineRunImg;
     case ProjectObjectType.dataConnection:
     case ProjectObjectType.connections:
       return dataConnectionImg;
