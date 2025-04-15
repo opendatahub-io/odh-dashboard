@@ -34,10 +34,7 @@ const AIFlowHint: React.FC<AIFlowHintProps> = ({ isDisplayed }) => {
     <Card data-testid="ai-flow-hint" style={{ overflowY: 'hidden' }}>
       <Split>
         <SplitItem>
-          <Flex
-            flexWrap={{ default: 'wrap', '2xl': 'nowrap' }}
-            // justifyContent={{ default: 'justifyContentSpaceAround' }}
-          >
+          <Flex flexWrap={{ default: 'wrap', '2xl': 'nowrap' }}>
             <FlexItem flex={{ '2xl': 'flex_1' }}>
               <CardHeader>
                 <Flex>
