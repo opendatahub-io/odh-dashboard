@@ -1,4 +1,8 @@
-import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
+import {
+  mockGlobalScopedHardwareProfiles,
+  mockHardwareProfile,
+  mockProjectScopedHardwareProfiles,
+} from '~/__mocks__/mockHardwareProfile';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import {
   HardwareProfileModel,
@@ -28,7 +32,6 @@ import { workbenchPage, editSpawnerPage } from '~/__tests__/cypress/cypress/page
 import { hardwareProfileSection } from '~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import type { PodKind } from '~/k8sTypes';
-import { IdentifierResourceType, TolerationEffect, TolerationOperator } from '~/types';
 
 type HandlersProps = {
   isEmpty?: boolean;
@@ -48,116 +51,12 @@ const initIntercepts = ({
   // Mock hardware profiles
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: 'opendatahub' },
-    mockK8sResourceList([
-      mockHardwareProfile({
-        name: 'small-profile',
-        displayName: 'Small Profile',
-        identifiers: [
-          {
-            displayName: 'CPU',
-            identifier: 'cpu',
-            minCount: '1',
-            maxCount: '2',
-            defaultCount: '1',
-            resourceType: IdentifierResourceType.CPU,
-          },
-          {
-            displayName: 'Memory',
-            identifier: 'memory',
-            minCount: '2Gi',
-            maxCount: '4Gi',
-            defaultCount: '2Gi',
-            resourceType: IdentifierResourceType.MEMORY,
-          },
-        ],
-        tolerations: [
-          {
-            effect: TolerationEffect.NO_SCHEDULE,
-            key: 'NotebooksOnlyChange',
-            operator: TolerationOperator.EXISTS,
-          },
-        ],
-        nodeSelector: {},
-      }),
-      mockHardwareProfile({
-        name: 'large-profile',
-        displayName: 'Large Profile',
-        identifiers: [
-          {
-            displayName: 'CPU',
-            identifier: 'cpu',
-            minCount: '4',
-            maxCount: '8',
-            defaultCount: '4',
-            resourceType: IdentifierResourceType.CPU,
-          },
-          {
-            displayName: 'Memory',
-            identifier: 'memory',
-            minCount: '8Gi',
-            maxCount: '16Gi',
-            defaultCount: '8Gi',
-            resourceType: IdentifierResourceType.MEMORY,
-          },
-        ],
-      }),
-    ]),
+    mockK8sResourceList(mockGlobalScopedHardwareProfiles),
   ).as('hardwareProfiles');
 
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: 'test-project' },
-    mockK8sResourceList([
-      mockHardwareProfile({
-        name: 'small-profile',
-        displayName: 'Small Profile',
-        namespace: 'test-project',
-        identifiers: [
-          {
-            displayName: 'CPU',
-            identifier: 'cpu',
-            minCount: '1',
-            maxCount: '2',
-            defaultCount: '1',
-          },
-          {
-            displayName: 'Memory',
-            identifier: 'memory',
-            minCount: '2Gi',
-            maxCount: '4Gi',
-            defaultCount: '2Gi',
-          },
-        ],
-        tolerations: [
-          {
-            effect: TolerationEffect.NO_SCHEDULE,
-            key: 'NotebooksOnlyChange',
-            operator: TolerationOperator.EXISTS,
-          },
-        ],
-        nodeSelector: {},
-      }),
-      mockHardwareProfile({
-        name: 'large-profile-1',
-        displayName: 'Large Profile-1',
-        namespace: 'test-project',
-        identifiers: [
-          {
-            displayName: 'CPU',
-            identifier: 'cpu',
-            minCount: '4',
-            maxCount: '8',
-            defaultCount: '4',
-          },
-          {
-            displayName: 'Memory',
-            identifier: 'memory',
-            minCount: '8Gi',
-            maxCount: '16Gi',
-            defaultCount: '8Gi',
-          },
-        ],
-      }),
-    ]),
+    mockK8sResourceList(mockProjectScopedHardwareProfiles),
   ).as('hardwareProfiles');
 
   // Mock standard resources similar to workbench.cy.ts
