@@ -441,7 +441,7 @@ describe('legacy profiles table', () => {
           {
             displayName: originalAcceleratorProfile.spec.identifier,
             identifier: originalAcceleratorProfile.spec.identifier,
-            minCount: 0,
+            minCount: 1,
             defaultCount: 1,
           },
         ],
