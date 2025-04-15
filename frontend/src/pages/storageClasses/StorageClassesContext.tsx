@@ -106,7 +106,7 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
         }
         // If multiple defaults are set via OpenShift's dashboard,
         // unset all except the first indexed storage class
-        else if (config) {
+        else {
           if (config.isDefault === true) {
             if (!hasDefaultConfig) {
               hasDefaultConfig = true;
