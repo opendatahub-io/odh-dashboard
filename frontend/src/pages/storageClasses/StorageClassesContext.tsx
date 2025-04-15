@@ -74,7 +74,7 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
         if (storageClass.metadata.annotations?.[MetadataAnnotation.OdhStorageClassConfig]) {
           try {
             config = JSON.parse(
-              storageClass.metadata.annotations[MetadataAnnotation.OdhStorageClassConfig] || '',
+              storageClass.metadata.annotations[MetadataAnnotation.OdhStorageClassConfig],
             );
           } catch (e) {
             return acc;
