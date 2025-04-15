@@ -1,8 +1,8 @@
 import * as React from 'react';
 import {
   ActionList,
-  ActionListItem,
   Alert,
+  ActionListItem,
   Button,
   ButtonVariant,
   Divider,
@@ -14,6 +14,7 @@ import {
   Text,
   TextContent,
   Tooltip,
+  AlertVariant,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhApplication } from '~/types';
@@ -22,6 +23,9 @@ import { markdownConverter } from '~/utilities/markdown';
 import { useAppContext } from '~/app/AppContext';
 import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { useIntegratedAppStatus } from '~/pages/exploreApplication/useIntegratedAppStatus';
+import { addNotification } from '~/redux/actions/actions';
+import { useAppDispatch } from '~/redux/hooks';
+import { useUser } from '~/redux/selectors';
 
 const DEFAULT_BETA_TEXT =
   'This application is available for early access prior to official ' +
@@ -34,19 +38,72 @@ type GetStartedPanelProps = {
   onEnable: () => void;
 };
 
+const fetchNimIntegrationStatus = async (): Promise<boolean> => {
+  try {
+    const res = await fetch('/api/integrations/nim');
+    const data = await res.json();
+    return data?.isEnabled === true;
+  } catch (err) {
+    return false;
+  }
+};
+
 const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose, onEnable }) => {
   const { dashboardConfig } = useAppContext();
   const { enablement } = dashboardConfig.spec.dashboardConfig;
   const [{ isInstalled, canInstall, error }, loaded] = useIntegratedAppStatus(selectedApp);
+  const [isActuallyEnabled, setIsActuallyEnabled] = React.useState(false);
+  const { isAdmin } = useUser();
+
+  const dispatch = useAppDispatch();
+  const hasNotifiedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (selectedApp?.metadata.name !== 'nvidia-nim' || isActuallyEnabled) {
+      return;
+    }
+
+    const checkEnabled = async () => {
+      const enabled = await fetchNimIntegrationStatus();
+      if (enabled) {
+        setIsActuallyEnabled(true);
+        clearInterval(interval);
+
+        if (!hasNotifiedRef.current) {
+          dispatch(
+            addNotification({
+              status: AlertVariant.success,
+              title: `${selectedApp.spec.displayName} has been added to the Enabled page.`,
+              timestamp: new Date(),
+            }),
+          );
+          hasNotifiedRef.current = true;
+        }
+      }
+    };
+
+    checkEnabled();
+    const interval = setInterval(checkEnabled, 2000);
+    return () => clearInterval(interval);
+  }, [selectedApp?.metadata.name, isActuallyEnabled, dispatch, selectedApp?.spec.displayName]);
 
   if (!selectedApp) {
     return null;
   }
 
   const renderEnableButton = () => {
-    if (!selectedApp.spec.enable || selectedApp.spec.isEnabled || isInstalled) {
+    const isNim = selectedApp.metadata.name === 'nvidia-nim';
+    const shouldHide =
+      !selectedApp.spec.enable ||
+      selectedApp.spec.isEnabled ||
+      isInstalled ||
+      isActuallyEnabled ||
+      (isNim && !isAdmin);
+
+    if (shouldHide) {
       return null;
     }
+
     const button = (
       <Button
         variant={ButtonVariant.secondary}
@@ -57,10 +114,10 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
         Enable
       </Button>
     );
-    if (enablement) {
-      return button;
-    }
-    return (
+
+    return enablement ? (
+      button
+    ) : (
       <Tooltip content="This feature has been disabled by an administrator.">
         <span>{button}</span>
       </Tooltip>
@@ -79,14 +136,15 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
           <Text component="h2" style={{ marginBottom: 0 }}>
             {selectedApp.spec.displayName}
           </Text>
-          {selectedApp.spec.provider ? (
+          {selectedApp.spec.provider && (
             <Text component="small">by {selectedApp.spec.provider}</Text>
-          ) : null}
+          )}
         </TextContent>
         <DrawerActions>
           <DrawerCloseButton onClick={onClose} />
         </DrawerActions>
       </DrawerHead>
+
       {selectedApp.spec.getStartedLink && (
         <DrawerPanelBody>
           <ActionList>
@@ -111,9 +169,11 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
           </ActionList>
         </DrawerPanelBody>
       )}
+
       <Divider />
+
       <DrawerPanelBody style={{ paddingTop: 0 }}>
-        {selectedApp.spec.beta ? (
+        {selectedApp.spec.beta && (
           <Alert
             variantLabel="error"
             variant="info"
@@ -129,7 +189,7 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
               }}
             />
           </Alert>
-        ) : null}
+        )}
         <MarkdownView markdown={selectedApp.spec.getStartedMarkDown} />
       </DrawerPanelBody>
     </DrawerPanelContent>
