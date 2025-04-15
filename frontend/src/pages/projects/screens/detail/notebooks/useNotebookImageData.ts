@@ -73,7 +73,7 @@ export const getNotebookImageData = (
   };
 };
 
-const useNotebookImageData = (notebook?: NotebookKind, project?: string): NotebookImageData => {
+const useNotebookImageData = (project: string, notebook?: NotebookKind): NotebookImageData => {
   const { dashboardNamespace } = useNamespaces();
 
   const [dashboardImages, dashboardLoaded, dashboardLoadError] = useImageStreams(
@@ -81,7 +81,7 @@ const useNotebookImageData = (notebook?: NotebookKind, project?: string): Notebo
     true,
   );
 
-  const [projectImages, projectLoaded, projectLoadError] = useImageStreams(project ?? '', true);
+  const [projectImages, projectLoaded, projectLoadError] = useImageStreams(project, true);
 
   return React.useMemo(() => {
     if (!notebook || (!dashboardLoaded && !projectLoaded)) {
