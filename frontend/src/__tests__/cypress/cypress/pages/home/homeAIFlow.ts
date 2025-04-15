@@ -12,7 +12,7 @@ class AIFlowHint extends Contextual<HTMLElement> {
   }
 
   findAIFlowHintCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('ai-flow-hint-close-lg');
+    return this.find().findByTestId('ai-flow-hint-close');
   }
 
   findAIFlowHintNavigationLink(): Cypress.Chainable<JQuery<HTMLElement>> {

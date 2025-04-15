@@ -1,14 +1,11 @@
 import * as React from 'react';
 import { PageSection, Stack, Content } from '@patternfly/react-core';
-import { Link } from 'react-router';
 import { SectionType, sectionTypeBorderColor } from '~/concepts/design/utils';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
 import { SupportedArea } from '~/concepts/areas';
 import EvenlySpacedGallery from '~/components/EvenlySpacedGallery';
 import { CreateAndTrainIcon, ModelIcon, ProjectIcon } from '~/images/icons';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
-import aiFlowHintImage from '~/images/AIFlowHintImage.svg';
-import { modelCustomizationRootPath } from '~/routes';
 import ProjectsGallery from './ProjectsGallery';
 import CreateAndTrainGallery from './CreateAndTrainGallery';
 import DeployAndMonitorGallery from './DeployAndMonitorGallery';
@@ -96,36 +93,7 @@ export const useAIFlows = (): React.ReactNode => {
           <Content>
             <Content component="h1">Train, serve, monitor, and manage AI/ML models</Content>
           </Content>
-          <AIFlowHint
-            title={<>Customize starter models with the LAB method</>}
-            body={
-              <>
-                <Content component="p" data-testid="ai-flow-hint-body-text">
-                  LAB-tuning significantly reduces limitations associated with traditional
-                  fine-tuning methods, such as high resource usage and time-consuming manual data
-                  generation. The LAB method can enhance an LLM using far less human-generated
-                  information and fewer computing resources than are usually required to retrain a
-                  model.
-                </Content>
-                <Content>
-                  <Link to={modelCustomizationRootPath} data-testid="ai-flow-hint-navigate">
-                    Learn more about LAB-tuning
-                  </Link>
-                </Content>
-              </>
-            }
-            isDisplayed={fineTuningAvailable}
-            image={
-              <img
-                data-testid="ai-flow-hint-image"
-                src={aiFlowHintImage}
-                alt="ai-flow-hint-image"
-                style={{
-                  maxWidth: 'unset',
-                }}
-              />
-            }
-          />
+          <AIFlowHint isDisplayed={fineTuningAvailable} />
           <EvenlySpacedGallery itemCount={cards.length} hasGutter>
             {cards}
           </EvenlySpacedGallery>
