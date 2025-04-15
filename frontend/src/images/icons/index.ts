@@ -14,6 +14,7 @@ export { default as GroupIcon } from './GroupIcon';
 export { default as ModelIcon } from './ModelIcon';
 export { default as ModelCatalogIcon } from './ModelCatalogIcon';
 export { default as ModelRegistryIcon } from './ModelRegistryIcon';
+export { default as ModelRegistrySelectIcon } from './ModelRegistrySelectIcon';
 export { default as ModelServerIcon } from './ModelServerIcon';
 export { default as MultiModelIcon } from './MultiModelIcon';
 export { default as NotebookIcon } from './NotebookIcon';
