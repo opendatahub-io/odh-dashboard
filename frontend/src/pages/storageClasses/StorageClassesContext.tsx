@@ -46,37 +46,16 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
   const [isUpdatingConfigs, setIsUpdatingConfigs] = React.useState(true);
   const [isLoadingDefault, setIsLoadingDefault] = React.useState(false);
   const [isAutoDefaultAlertOpen, setIsAutoDefaultAlertOpen] = React.useState(false);
-  const [corruptedConfigMaps, setCorruptedConfigMaps] = React.useState({});
 
-  const storageClassConfigs = React.useMemo(() => {
-    let corruptedMaps = {};
-    const storageClassesReducer = storageClasses.reduce(
-      (acc: Record<string, StorageClassConfig | undefined>, storageClass) => {
+  const storageClassConfigs = React.useMemo(
+    () =>
+      storageClasses.reduce((acc: Record<string, StorageClassConfig | undefined>, storageClass) => {
         acc[storageClass.metadata.name] = getStorageClassConfig(storageClass);
-        if (storageClass.metadata.annotations?.[MetadataAnnotation.OdhStorageClassConfig]) {
-          try {
-            acc[storageClass.metadata.name] = JSON.parse(
-              storageClass.metadata.annotations[MetadataAnnotation.OdhStorageClassConfig],
-            );
-          } catch (e) {
-            corruptedMaps = {
-              ...corruptedMaps,
-              [storageClass.metadata.name]:
-                storageClass.metadata.annotations[MetadataAnnotation.OdhStorageClassConfig],
-            };
-            acc[storageClass.metadata.name] = undefined;
-          }
-        } else {
-          acc[storageClass.metadata.name] = undefined;
-        }
 
         return acc;
-      },
-      {},
-    );
-    setCorruptedConfigMaps(corruptedMaps);
-    return storageClassesReducer;
-  }, [storageClasses]);
+      }, {}),
+    [storageClasses],
+  );
 
   const [defaultStorageClassName] =
     Object.entries(storageClassConfigs).find(([, config]) => config?.isDefault === true) || [];
@@ -88,13 +67,27 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
   const updateConfigs = React.useCallback(async () => {
     let hasDefaultConfig = false;
 
-    const updateRequests = Object.entries(storageClassConfigs).reduce(
-      (acc: Promise<StorageClassConfig>[], [name, config], index) => {
+    const updateRequests = storageClasses.reduce(
+      (acc: Promise<StorageClassConfig>[], storageClass, index) => {
+        const { name } = storageClass.metadata;
+        let config;
+        if (storageClass.metadata.annotations?.[MetadataAnnotation.OdhStorageClassConfig]) {
+          try {
+            config = JSON.parse(
+              storageClass.metadata.annotations[MetadataAnnotation.OdhStorageClassConfig] || '',
+            );
+          } catch (e) {
+            return acc;
+          }
+        } else {
+          config = undefined;
+        }
+
         const isFirstConfig = index === 0;
         const isOpenshiftDefault = openshiftDefaultScName === name;
 
         // Add a default config annotation when one doesn't exist
-        if (!config && !(name in corruptedConfigMaps)) {
+        if (!config) {
           let isDefault = isOpenshiftDefault;
           let isEnabled = isDefault;
 
@@ -167,11 +160,11 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
       }
     }
   }, [
-    storageClassConfigs,
+    storageClasses,
     loaded,
     openshiftDefaultScName,
-    corruptedConfigMaps,
     defaultStorageClassName,
+    storageClassConfigs,
     refresh,
   ]);
 
