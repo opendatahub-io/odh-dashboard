@@ -29,10 +29,10 @@ import {
   ModelServingCompatibleTypes,
 } from '~/concepts/connectionTypes/utils';
 import FormSection from '~/components/pf-overrides/FormSection';
-import { FineTuneTaxonomySection } from './FineTuneTaxonomySection';
+import { FineTuneTaxonomySection } from './taxonomySection/FineTuneTaxonomySection';
 import TrainingHardwareSection from './trainingHardwareSection/TrainingHardwareSection';
 import { FineTunePageSections, fineTunePageSectionTitles } from './const';
-import HyperparameterPageSection from './HyperparameterSection/HyperparameterPageSection';
+import HyperparameterPageSection from './hyperparameterSection/HyperparameterPageSection';
 import { filterHyperparameters } from './utils';
 import { PipelineDetailsSection } from './baseModelSection/PipelineDetailsSection';
 
@@ -128,7 +128,6 @@ const FineTunePage: React.FC<FineTunePageProps> = ({
               handleOpenDrawer={handleOpenDrawer}
             />
             <TrainingHardwareSection
-              ilabPipelineLoaded={ilabPipelineLoaded}
               ilabPipelineVersion={ilabPipelineVersion}
               trainingNode={data.trainingNode}
               setTrainingNode={(trainingNodeValue: number) =>
@@ -142,9 +141,11 @@ const FineTunePage: React.FC<FineTunePageProps> = ({
               projectName={getResourceNameFromK8sResource(project)}
             />
             <HyperparameterPageSection
-              data={data}
+              data={data.hyperparameters}
               hyperparameters={hyperparameters}
-              setData={setData}
+              setData={(hyperparameterFormData) =>
+                setData('hyperparameters', hyperparameterFormData)
+              }
             />
             <FineTunedModelSection
               data={data.outputModel}

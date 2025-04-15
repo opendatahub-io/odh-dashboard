@@ -1,20 +1,18 @@
+import React from 'react';
 import { ExpandableSection } from '@patternfly/react-core';
-import * as React from 'react';
-import { ProjectFields } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
 import {
   FineTunePageSections,
   fineTunePageSectionTitles,
 } from '~/pages/pipelines/global/modelCustomization/const';
-import { ModelCustomizationFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { ParametersKF, RuntimeConfigParamValue } from '~/concepts/pipelines/kfTypes';
 import FormSection from '~/components/pf-overrides/FormSection';
-import HyperparameterFieldsDisplay from './HyperparameterFields';
+import { HyperParametersFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/hyperparameterValidationUtils';
+import HyperparameterFieldsDisplay from '~/pages/pipelines/global/modelCustomization/hyperparameterSection/HyperparameterFields';
 
 type HyperparameterPageSectionProps = {
   hyperparameters: ParametersKF;
-  data: ModelCustomizationFormData;
-  setData: UpdateObjectAtPropAndValue<ModelCustomizationFormData>;
+  data: HyperParametersFormData;
+  setData: (hyperparameters: HyperParametersFormData) => void;
 };
 
 const HyperparameterPageSection: React.FC<HyperparameterPageSectionProps> = ({
@@ -29,6 +27,7 @@ const HyperparameterPageSection: React.FC<HyperparameterPageSectionProps> = ({
       id={FineTunePageSections.HYPERPARAMETERS}
       title={fineTunePageSectionTitles[FineTunePageSections.HYPERPARAMETERS]}
       description="Configure advanced settings for this run."
+      data-testid={FineTunePageSections.HYPERPARAMETERS}
     >
       <ExpandableSection
         toggleTextCollapsed="Show more"
@@ -40,11 +39,10 @@ const HyperparameterPageSection: React.FC<HyperparameterPageSectionProps> = ({
       >
         <HyperparameterFieldsDisplay
           hyperparameters={hyperparameters}
-          isEmpty={Object.keys(hyperparameters).length === 0}
           data={data}
           onChange={(hyperparameter: string, hyperparameterValue?: RuntimeConfigParamValue) => {
-            setData(ProjectFields.HYPERPARAMETERS, {
-              ...data.hyperparameters,
+            setData({
+              ...data,
               [hyperparameter]: hyperparameterValue,
             });
           }}
