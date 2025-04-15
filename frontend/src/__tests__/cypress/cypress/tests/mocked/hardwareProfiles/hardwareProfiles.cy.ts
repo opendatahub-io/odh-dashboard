@@ -446,6 +446,9 @@ describe('Hardware Profile', () => {
           mockHardwareProfile({
             name: 'Test Hardware Profile',
             displayName: 'Test Hardware Profile',
+            nodeSelector: {
+              'test-key': 'test-value',
+            },
           }),
           mockHardwareProfile({
             name: 'Test Hardware Profile Empty',

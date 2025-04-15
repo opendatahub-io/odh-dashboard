@@ -721,7 +721,14 @@ describe('Manage Hardware Profile', () => {
           defaultCount: 1,
         },
       ],
-      tolerations: originalAcceleratorProfile.spec.tolerations,
+      tolerations: [
+        ...(originalAcceleratorProfile.spec.tolerations || []),
+        {
+          key: 'NotebooksOnlyChange',
+          operator: TolerationOperator.EXISTS,
+          effect: TolerationEffect.NO_SCHEDULE,
+        },
+      ],
     });
 
     // Mock the API calls for migration
