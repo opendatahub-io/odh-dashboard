@@ -144,7 +144,7 @@ const transformAcceleratorProfileToHardwareProfile = (
         {
           identifier: acceleratorProfile.spec.identifier,
           displayName: acceleratorProfile.spec.identifier,
-          minCount: 0,
+          minCount: 1,
           defaultCount: 1,
         },
       ],
