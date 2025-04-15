@@ -172,7 +172,7 @@ export const defaultInferenceService: CreatingInferenceServiceObject = {
   project: '',
   servingRuntimeName: '',
   storage: {
-    type: InferenceServiceStorageType.NEW_STORAGE,
+    type: InferenceServiceStorageType.EXISTING_STORAGE,
     path: '',
     dataConnection: '',
     awsData: EMPTY_AWS_SECRET_DATA,

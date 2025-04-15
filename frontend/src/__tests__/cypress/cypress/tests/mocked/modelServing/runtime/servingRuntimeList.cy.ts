@@ -1082,7 +1082,7 @@ describe('Serving Runtime List', () => {
       });
     });
 
-    it.only('Successfully submit KServe Modal on edit', () => {
+    it('Successfully submit KServe Modal on edit', () => {
       initIntercepts({
         projectEnableModelMesh: false,
         disableKServeConfig: true,
