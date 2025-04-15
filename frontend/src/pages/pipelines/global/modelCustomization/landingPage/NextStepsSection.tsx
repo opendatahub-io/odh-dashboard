@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
-import { Accordion, Label } from '@patternfly/react-core';
+import { Accordion, Label, Title } from '@patternfly/react-core';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { ModelCustomizationAccordionItem } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationAccordionItem';
 import { BaseSection } from '~/pages/pipelines/global/modelCustomization/landingPage/BaseSection';
@@ -10,8 +10,11 @@ import { modelCatalogRoute, pipelineRunsRootPath } from '~/routes';
 export const NextStepsSection: React.FC = () => {
   const { accordionItemsExpanded, handleToggleAccordion } = useToggleAccordion();
 
+  const titleText = "Now that you're all set up:";
+  const h3Title = <Title headingLevel="h3">{titleText}</Title>;
+
   return (
-    <BaseSection title="Now that you're all set up:" useH3>
+    <BaseSection title={h3Title}>
       <Accordion togglePosition="start" data-testid="accordion-next-steps">
         <ModelCustomizationAccordionItem
           id="register-base-model"

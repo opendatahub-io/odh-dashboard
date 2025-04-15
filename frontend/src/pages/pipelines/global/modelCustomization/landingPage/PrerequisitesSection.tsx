@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Accordion, Button } from '@patternfly/react-core';
+import { Accordion, Button, Title } from '@patternfly/react-core';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { ModelCustomizationAccordionItem } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationAccordionItem';
 import { BaseSection } from '~/pages/pipelines/global/modelCustomization/landingPage/BaseSection';
@@ -20,8 +20,11 @@ type PrerequisitesSectionProps = {
 export const PrerequisitesSection: React.FC<PrerequisitesSectionProps> = ({ handleOpenDrawer }) => {
   const { accordionItemsExpanded, handleToggleAccordion } = useToggleAccordion();
 
+  const titleText = "To get started, you'll need the following prerequisites:";
+  const h3Title = <Title headingLevel="h3">{titleText}</Title>;
+
   return (
-    <BaseSection title="To get started, you'll need the following prerequisites:" useH3>
+    <BaseSection title={h3Title}>
       <Accordion togglePosition="start" data-testid="accordion-prerequisites">
         <ModelCustomizationAccordionItem
           id="taxonomy-repository"
