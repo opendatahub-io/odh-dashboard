@@ -20,11 +20,14 @@ type PrerequisitesSectionProps = {
 export const PrerequisitesSection: React.FC<PrerequisitesSectionProps> = ({ handleOpenDrawer }) => {
   const { accordionItemsExpanded, handleToggleAccordion } = useToggleAccordion();
 
-  const titleText = "To get started, you'll need the following prerequisites:";
-  const h3Title = <Title headingLevel="h3">{titleText}</Title>;
-
   return (
-    <BaseSection title={h3Title}>
+    <BaseSection
+      title={
+        <Title headingLevel="h3">
+          To get started, you&#39;ll need the following prerequisites:
+        </Title>
+      }
+    >
       <Accordion togglePosition="start" data-testid="accordion-prerequisites">
         <ModelCustomizationAccordionItem
           id="taxonomy-repository"

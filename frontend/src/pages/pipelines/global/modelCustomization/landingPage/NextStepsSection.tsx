@@ -10,11 +10,8 @@ import { modelCatalogRoute, pipelineRunsRootPath } from '~/routes';
 export const NextStepsSection: React.FC = () => {
   const { accordionItemsExpanded, handleToggleAccordion } = useToggleAccordion();
 
-  const titleText = "Now that you're all set up:";
-  const h3Title = <Title headingLevel="h3">{titleText}</Title>;
-
   return (
-    <BaseSection title={h3Title}>
+    <BaseSection title={<Title headingLevel="h3">Now that you&#39;re all set up:</Title>}>
       <Accordion togglePosition="start" data-testid="accordion-next-steps">
         <ModelCustomizationAccordionItem
           id="register-base-model"

@@ -39,8 +39,6 @@ const ModelCustomization: React.FC = () => {
     setIsDrawerExpanded(true);
   };
 
-  const titleText = <Title headingLevel="h2">LAB-tuning</Title>;
-
   return (
     <Drawer isExpanded={isDrawerExpanded} data-testid="drawer-model-customization" isInline>
       <DrawerContent
@@ -63,7 +61,10 @@ const ModelCustomization: React.FC = () => {
           >
             <Card>
               <CardTitle>
-                <TitleWithIcon title={titleText} objectType={ProjectObjectType.labTuning} />
+                <TitleWithIcon
+                  title={<Title headingLevel="h2">LAB-tuning</Title>}
+                  objectType={ProjectObjectType.labTuning}
+                />
               </CardTitle>
               <CardBody style={{ maxWidth: '485px' }}>
                 <Stack hasGutter>

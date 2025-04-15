@@ -10,11 +10,8 @@ import { pipelinesRootPath } from '~/routes';
 export const ProjectSetupSection: React.FC = () => {
   const { accordionItemsExpanded, handleToggleAccordion } = useToggleAccordion();
 
-  const titleText = 'Next, set up your project and pipeline:';
-  const h3Title = <Title headingLevel="h3">{titleText}</Title>;
-
   return (
-    <BaseSection title={h3Title}>
+    <BaseSection title={<Title headingLevel="h3">Next, set up your project and pipeline:</Title>}>
       <Accordion togglePosition="start" data-testid="accordion-project-setup">
         <ModelCustomizationAccordionItem
           id="prepared-project"
