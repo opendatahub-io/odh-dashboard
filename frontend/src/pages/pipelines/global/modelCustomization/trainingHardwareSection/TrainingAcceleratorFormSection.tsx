@@ -4,15 +4,18 @@ import { IlabPodSpecOptionsState } from '~/pages/pipelines/global/modelCustomiza
 import { ContainerCustomSize } from './ContainerCustomSize';
 
 type TrainingAcceleratorSectionProps = {
+  projectName: string;
   podSpecOptionsState: IlabPodSpecOptionsState;
 };
 
 export const TrainingAcceleratorFormSection: React.FC<TrainingAcceleratorSectionProps> = ({
   podSpecOptionsState,
+  projectName,
 }) => (
   <>
     <AcceleratorProfileSelectField
       isRequired
+      currentProject={projectName}
       initialState={podSpecOptionsState.acceleratorProfile.initialState}
       formData={podSpecOptionsState.acceleratorProfile.formData}
       setFormData={podSpecOptionsState.acceleratorProfile.setFormData}

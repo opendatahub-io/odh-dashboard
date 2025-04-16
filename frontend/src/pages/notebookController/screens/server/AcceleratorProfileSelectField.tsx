@@ -26,15 +26,16 @@ import { AcceleratorProfileKind } from '~/k8sTypes';
 import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
-import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
-import NumberInputWrapper from '~/components/NumberInputWrapper';
 import ProjectScopedPopover from '~/components/ProjectScopedPopover';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import SearchSelector from '~/components/searchSelector/SearchSelector';
 import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
 import GlobalIcon from '~/images/icons/GlobalIcon';
-import useAcceleratorProfiles from './useAcceleratorProfiles';
+import useReadAcceleratorState, {
+  AcceleratorProfileState,
+} from '~/utilities/useReadAcceleratorState';
 import useAcceleratorCountWarning from './useAcceleratorCountWarning';
+import NumberInputWrapper from '~/components/NumberInputWrapper';
 
 type AcceleratorProfileSelectFieldProps = {
   currentProject?: string;
@@ -71,10 +72,14 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
   const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
   const [searchAcceleratorProfile, setSearchAcceleratorProfile] = React.useState('');
   const [
-    currentProjectAcceleratorProfiles,
+    currentProjectAcceleratorProfilesData,
     currentProjectAcceleratorProfilesLoaded,
     currentProjectAcceleratorProfilesError,
-  ] = useAcceleratorProfiles(currentProject || '');
+  ] = useReadAcceleratorState(undefined, undefined, undefined, currentProject);
+  let currentProjectAcceleratorProfiles: AcceleratorProfileKind[] = [];
+  if (currentProject) {
+    currentProjectAcceleratorProfiles = currentProjectAcceleratorProfilesData.acceleratorProfiles;
+  }
   const formatOption = (cr: AcceleratorProfileKind): SimpleSelectOption => {
     const displayName = `${cr.spec.displayName}${!cr.spec.enabled ? ' (disabled)' : ''}`;
 
@@ -115,11 +120,14 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
           .toLocaleLowerCase()
           .includes(searchAcceleratorProfile.toLocaleLowerCase()),
       )
-      .map((profile) => (
+      .map((profile, index) => (
         <MenuItem
-          key={profile.metadata.name}
+          key={index}
           description={profile.spec.description}
-          isSelected={formData.profile?.metadata.name === profile.metadata.name}
+          isSelected={
+            formData.profile?.metadata.name === profile.metadata.name &&
+            formData.profile.metadata.namespace === profile.metadata.namespace
+          }
           onClick={() => {
             setFormData('profile', profile);
           }}
@@ -146,11 +154,14 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
           .toLocaleLowerCase()
           .includes(searchAcceleratorProfile.toLocaleLowerCase()),
       )
-      .map((profile) => (
+      .map((profile, index) => (
         <MenuItem
-          key={profile.metadata.name}
+          key={index}
           description={profile.spec.description}
-          isSelected={formData.profile?.metadata.name === profile.metadata.name}
+          isSelected={
+            formData.profile?.metadata.name === profile.metadata.name &&
+            formData.profile.metadata.namespace === profile.metadata.namespace
+          }
           onClick={() => {
             setFormData('profile', profile);
           }}
@@ -290,7 +301,6 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
                   formData.profile?.spec.displayName ? (
                     <>
                       {formData.profile.spec.displayName}
-                      {'  '}
                       {formData.profile.metadata.namespace === currentProject ? (
                         <Label
                           variant="outline"

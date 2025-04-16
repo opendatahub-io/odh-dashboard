@@ -136,6 +136,7 @@ const ServingRuntimeSizeSection = ({
             )}
             {!gpuDisabled && (
               <AcceleratorProfileSelectField
+                currentProject={projectName}
                 initialState={podSpecOptionState.acceleratorProfile.initialState}
                 compatibleIdentifiers={
                   servingRuntimeSelected ? getCompatibleIdentifiers(servingRuntimeSelected) : []
