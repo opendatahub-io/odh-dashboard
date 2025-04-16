@@ -6,6 +6,7 @@ import {
   HelperTextItem,
   TextArea,
   TextInput,
+  ValidatedOptions,
 } from '@patternfly/react-core';
 import {
   K8sNameDescriptionFieldData,
@@ -43,8 +44,14 @@ type K8sNameDescriptionFieldProps = {
   hideDescription?: boolean;
 };
 
+const maxLength = 12; // for testing
+// const maxLength = 262000; // almost 256Kb
+type Validate = 'success' | 'warning' | 'error' | 'default';
 /**
  * Use in place of any K8s Resource creation / edit.
+ *
+ * this is a pass through
+ *
  * @see useK8sNameDescriptionFieldData
  */
 const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
@@ -60,6 +67,24 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   const [showK8sField, setShowK8sField] = React.useState(false);
 
   const { name, description, k8sName } = data;
+  const [nameValidated, setNameValidated] = React.useState<Validate>('default');
+  const [descValidated, setDescValidated] = React.useState<Validate>('default');
+
+  const [formName, setFormName] = React.useState<string>(name);
+  const [formDesc, setFormDesc] = React.useState<string>(description);
+
+  const onNameChange = (event: any, value: string) => {
+    setFormName(value);
+    const isValid = value.length < maxLength;
+    if (isValid) {
+      onDataChange?.('name', value);
+      setNameValidated('success');
+    } else {
+      setNameValidated('error');
+      // zero it out so that the prev value isn't there
+      onDataChange?.('name', '');
+    }
+  };
 
   return (
     <>
@@ -71,8 +96,9 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
           name={`${dataTestId}-name`}
           autoFocus={autoFocusName}
           isRequired
-          value={name}
-          onChange={(event, value) => onDataChange?.('name', value)}
+          value={formName}
+          validated={nameValidated}
+          onChange={onNameChange}
         />
         {nameHelperText || (!showK8sField && !k8sName.state.immutable) ? (
           <HelperText>

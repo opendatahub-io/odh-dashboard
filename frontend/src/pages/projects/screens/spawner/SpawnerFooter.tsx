@@ -248,6 +248,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       .catch(handleError);
   };
 
+  console.log('j4: has error???', error);
   return (
     <Stack hasGutter>
       {error && (
@@ -276,7 +277,9 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
                   </AlertActionLink>
                   <AlertActionLink onClick={() => location.reload()}>Refresh</AlertActionLink>
                 </>
-              ) : undefined
+              ) : (
+                <h1> ack weird error here </h1>
+              )
             }
           >
             {error.message}
