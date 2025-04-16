@@ -6,7 +6,7 @@ import DashboardSearchField, { SearchType } from '~/concepts/dashboard/Dashboard
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { getInferenceServiceProjectDisplayName } from './utils';
 import InferenceServiceTable from './InferenceServiceTable';
-import ServeModelButton from './ServeModelButton';
+import InferenceServiceToolbar from './InferenceServiceToolbar';
 
 type InferenceServiceListViewProps = {
   inferenceServices: InferenceServiceKind[];
@@ -59,26 +59,7 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
       }}
       filterTokens={filterTokens}
       enablePagination
-      toolbarContent={
-        <>
-          <ToolbarItem>
-            <DashboardSearchField
-              types={searchTypes}
-              searchType={searchType}
-              searchValue={search}
-              onSearchTypeChange={(newSearchType) => {
-                setSearchType(newSearchType);
-              }}
-              onSearchValueChange={(searchValue) => {
-                setSearch(searchValue);
-              }}
-            />
-          </ToolbarItem>
-          <ToolbarItem>
-            <ServeModelButton />
-          </ToolbarItem>
-        </>
-      }
+      toolbarContent={<InferenceServiceToolbar />}
     />
   );
 };
