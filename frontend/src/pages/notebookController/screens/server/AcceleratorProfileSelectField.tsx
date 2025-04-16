@@ -2,11 +2,20 @@ import * as React from 'react';
 import {
   Alert,
   AlertVariant,
+  Divider,
+  Flex,
+  FlexItem,
   FormGroup,
+  HelperText,
+  HelperTextItem,
   Icon,
   InputGroup,
   Label,
+  MenuGroup,
+  MenuItem,
+  NumberInput,
   Popover,
+  Skeleton,
   Split,
   SplitItem,
   Stack,
@@ -19,9 +28,16 @@ import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
 import NumberInputWrapper from '~/components/NumberInputWrapper';
+import ProjectScopedPopover from '~/components/ProjectScopedPopover';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import SearchSelector from '~/components/searchSelector/SearchSelector';
+import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
+import GlobalIcon from '~/images/icons/GlobalIcon';
+import useAcceleratorProfiles from './useAcceleratorProfiles';
 import useAcceleratorCountWarning from './useAcceleratorCountWarning';
 
 type AcceleratorProfileSelectFieldProps = {
+  currentProject?: string;
   compatibleIdentifiers?: string[];
   resourceDisplayName?: string;
   infoContent?: string;
@@ -39,6 +55,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
   formData,
   isRequired = false,
   setFormData,
+  currentProject,
 }) => {
   const acceleratorCountWarning = useAcceleratorCountWarning(
     formData.count,
@@ -51,7 +68,13 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
   const enabledAcceleratorProfiles = initialState.acceleratorProfiles.filter(
     (ac) => ac.spec.enabled,
   );
-
+  const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
+  const [searchAcceleratorProfile, setSearchAcceleratorProfile] = React.useState('');
+  const [
+    currentProjectAcceleratorProfiles,
+    currentProjectAcceleratorProfilesLoaded,
+    currentProjectAcceleratorProfilesError,
+  ] = useAcceleratorProfiles(currentProject || '');
   const formatOption = (cr: AcceleratorProfileKind): SimpleSelectOption => {
     const displayName = `${cr.spec.displayName}${!cr.spec.enabled ? ' (disabled)' : ''}`;
 
@@ -72,6 +95,119 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
       ),
     };
   };
+
+  const getAcceleratorProfiles = () =>
+    currentProjectAcceleratorProfiles
+      .filter((ac) => ac.spec.enabled)
+      .toSorted((a, b) => {
+        const aSupported = isAcceleratorProfileSupported(a);
+        const bSupported = isAcceleratorProfileSupported(b);
+        if (aSupported && !bSupported) {
+          return -1;
+        }
+        if (!aSupported && bSupported) {
+          return 1;
+        }
+        return 0;
+      })
+      .filter((profile) =>
+        profile.spec.displayName
+          .toLocaleLowerCase()
+          .includes(searchAcceleratorProfile.toLocaleLowerCase()),
+      )
+      .map((profile) => (
+        <MenuItem
+          key={profile.metadata.name}
+          description={profile.spec.description}
+          isSelected={formData.profile?.metadata.name === profile.metadata.name}
+          onClick={() => {
+            setFormData('profile', profile);
+          }}
+        >
+          {profile.spec.displayName}
+        </MenuItem>
+      ));
+
+  const getDashboardHardwareProfiles = () => {
+    const profileItems = enabledAcceleratorProfiles
+      .toSorted((a, b) => {
+        const aSupported = isAcceleratorProfileSupported(a);
+        const bSupported = isAcceleratorProfileSupported(b);
+        if (aSupported && !bSupported) {
+          return -1;
+        }
+        if (!aSupported && bSupported) {
+          return 1;
+        }
+        return 0;
+      })
+      .filter((profile) =>
+        profile.spec.displayName
+          .toLocaleLowerCase()
+          .includes(searchAcceleratorProfile.toLocaleLowerCase()),
+      )
+      .map((profile) => (
+        <MenuItem
+          key={profile.metadata.name}
+          description={profile.spec.description}
+          isSelected={formData.profile?.metadata.name === profile.metadata.name}
+          onClick={() => {
+            setFormData('profile', profile);
+          }}
+        >
+          {profile.spec.displayName}
+        </MenuItem>
+      ));
+
+    if (initialState.unknownProfileDetected) {
+      profileItems.push(
+        <MenuItem
+          key="use-existing"
+          description="Use existing resource requests/limits, tolerations, and node selectors."
+          isSelected={!formData.profile}
+          onClick={() => {
+            setFormData('profile', undefined);
+          }}
+        >
+          Use existing settings
+        </MenuItem>,
+      );
+    }
+
+    if (initialState.unknownProfileDetected) {
+      profileItems.push(
+        <MenuItem
+          key="unknown-existing"
+          description="Use the existing accelerator settings from the notebook server"
+          isSelected={!formData.profile}
+          onClick={() => {
+            setFormData('profile', undefined);
+          }}
+        >
+          Existing settings
+        </MenuItem>,
+      );
+    } else if (formData.profile && !formData.profile.spec.enabled) {
+      profileItems.push(
+        <MenuItem
+          key={formData.profile.metadata.name}
+          description={formData.profile.spec.description}
+          isSelected
+          onClick={() => {
+            setFormData('profile', formData.profile);
+          }}
+        >
+          {formData.profile.spec.displayName}
+        </MenuItem>,
+      );
+    }
+
+    return profileItems;
+  };
+
+  if (isProjectScopedAvailable && !currentProjectAcceleratorProfilesLoaded) {
+    return <Skeleton />;
+  }
 
   const options: SimpleSelectOption[] = enabledAcceleratorProfiles
     .toSorted((a, b) => {
@@ -131,7 +267,9 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
           fieldId="modal-notebook-accelerator"
           isRequired={isRequired}
           labelHelp={
-            infoContent ? (
+            isProjectScopedAvailable && currentProjectAcceleratorProfiles.length > 0 ? (
+              <ProjectScopedPopover title="Accelerator profile" item="accelerator profiles" />
+            ) : infoContent ? (
               <Popover bodyContent={<div>{infoContent}</div>}>
                 <Icon aria-label="Accelerator info" role="button">
                   <OutlinedQuestionCircleIcon />
@@ -140,37 +278,144 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
             ) : undefined
           }
         >
-          <SimpleSelect
-            isFullWidth
-            options={options}
-            value={
-              formData.useExistingSettings
-                ? 'use-existing'
-                : formData.profile?.metadata.name ?? 'none'
-            }
-            onChange={(key) => {
-              if (key === 'none') {
-                // none
-                setFormData('useExistingSettings', false);
-                setFormData('profile', undefined);
-                setFormData('count', 0);
-              } else if (key === 'use-existing') {
-                // use existing settings
-                setFormData('useExistingSettings', true);
-                setFormData('profile', undefined);
-                setFormData('count', 0);
-              } else {
-                // normal flow
-                setFormData('count', 1);
-                setFormData('useExistingSettings', false);
-                setFormData(
-                  'profile',
-                  initialState.acceleratorProfiles.find((ac) => ac.metadata.name === key),
-                );
+          {isProjectScopedAvailable && currentProjectAcceleratorProfiles.length > 0 ? (
+            <>
+              <SearchSelector
+                isFullWidth
+                dataTestId="hardware-profile-selection"
+                onSearchChange={(newValue) => setSearchAcceleratorProfile(newValue)}
+                onSearchClear={() => setSearchAcceleratorProfile('')}
+                searchValue={searchAcceleratorProfile}
+                toggleContent={
+                  formData.profile?.spec.displayName ? (
+                    <>
+                      {formData.profile.spec.displayName}
+                      {'  '}
+                      {formData.profile.metadata.namespace === currentProject ? (
+                        <Label
+                          variant="outline"
+                          color="blue"
+                          data-testid="project-scoped-label"
+                          isCompact
+                          icon={
+                            <img
+                              style={{ height: '15px', paddingTop: '3px' }}
+                              src={typedObjectImage(ProjectObjectType.project)}
+                              alt=""
+                            />
+                          }
+                        >
+                          Project-scoped
+                        </Label>
+                      ) : (
+                        <Label
+                          variant="outline"
+                          color="blue"
+                          data-testid="global-scoped-label"
+                          isCompact
+                          icon={<GlobalIcon />}
+                        >
+                          Global-scoped
+                        </Label>
+                      )}
+                    </>
+                  ) : (
+                    'Select accelerator profile...'
+                  )
+                }
+              >
+                <>
+                  <MenuGroup
+                    key="project-scoped"
+                    data-testid="project-scoped-accelerator-profiles"
+                    label={
+                      <Flex
+                        spaceItems={{ default: 'spaceItemsXs' }}
+                        alignItems={{ default: 'alignItemsCenter' }}
+                        style={{ paddingBottom: '5px' }}
+                      >
+                        <FlexItem style={{ display: 'flex', paddingLeft: '12px' }}>
+                          <img
+                            style={{ height: '20px', paddingTop: '3px' }}
+                            src={typedObjectImage(ProjectObjectType.project)}
+                            alt=""
+                          />
+                        </FlexItem>
+                        <FlexItem>Project-scoped accelerator profiles</FlexItem>
+                      </Flex>
+                    }
+                  >
+                    {getAcceleratorProfiles()}
+                  </MenuGroup>
+
+                  <Divider component="li" />
+                  <MenuGroup
+                    key="global-scoped"
+                    data-testid="global-scoped-accelerator-profiles"
+                    label={
+                      <Flex
+                        spaceItems={{ default: 'spaceItemsXs' }}
+                        alignItems={{ default: 'alignItemsCenter' }}
+                        style={{ paddingBottom: '5px' }}
+                      >
+                        <FlexItem
+                          style={{ display: 'flex', paddingLeft: '10px' }}
+                          data-testid="ds-project-image"
+                        >
+                          <GlobalIcon />
+                        </FlexItem>
+                        <FlexItem>Global accelerator profiles</FlexItem>
+                      </Flex>
+                    }
+                  >
+                    {getDashboardHardwareProfiles()}
+                  </MenuGroup>
+                </>
+              </SearchSelector>
+              {initialState.unknownProfileDetected
+                ? 'Use existing resource requests/limits, tolerations, and node selectors.'
+                : null}
+              {currentProjectAcceleratorProfilesError && (
+                <HelperText isLiveRegion>
+                  <HelperTextItem variant="error">
+                    Error loading accelerator profiles
+                  </HelperTextItem>
+                </HelperText>
+              )}
+            </>
+          ) : (
+            <SimpleSelect
+              isFullWidth
+              options={options}
+              value={
+                formData.useExistingSettings
+                  ? 'use-existing'
+                  : formData.profile?.metadata.name ?? 'none'
               }
-            }}
-            dataTestId="accelerator-profile-select"
-          />
+              onChange={(key) => {
+                if (key === 'none') {
+                  // none
+                  setFormData('useExistingSettings', false);
+                  setFormData('profile', undefined);
+                  setFormData('count', 0);
+                } else if (key === 'use-existing') {
+                  // use existing settings
+                  setFormData('useExistingSettings', true);
+                  setFormData('profile', undefined);
+                  setFormData('count', 0);
+                } else {
+                  // normal flow
+                  setFormData('count', 1);
+                  setFormData('useExistingSettings', false);
+                  setFormData(
+                    'profile',
+                    initialState.acceleratorProfiles.find((ac) => ac.metadata.name === key),
+                  );
+                }
+              }}
+              dataTestId="accelerator-profile-select"
+            />
+          )}
         </FormGroup>
       </StackItem>
       {acceleratorAlertMessage && (

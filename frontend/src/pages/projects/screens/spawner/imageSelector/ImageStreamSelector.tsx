@@ -25,6 +25,7 @@ import GlobalIcon from '~/images/icons/GlobalIcon';
 import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
 import SearchSelector from '~/components/searchSelector/SearchSelector';
 import ProjectScopedPopover from '~/components/ProjectScopedPopover';
+import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
 
 type ImageStreamSelectorProps = {
   currentProjectStreams?: ImageStreamKind[];
@@ -91,10 +92,9 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
                 }
                 onClick={() => onImageStreamSelect(imageStream)}
                 icon={
-                  <img
-                    style={{ height: 25 }}
-                    src={typedObjectImage(ProjectObjectType.project)}
-                    alt=""
+                  <TypedObjectIcon
+                    resourceType={ProjectObjectType.project}
+                    style={{ height: 24, width: 24 }}
                   />
                 }
               >
