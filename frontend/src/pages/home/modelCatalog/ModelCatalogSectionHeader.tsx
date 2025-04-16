@@ -9,9 +9,7 @@ const ModelCatalogSectionHeader: React.FC = () => (
       <HeaderIcon type={ProjectObjectType.modelCatalog} sectionType={SectionType.organize} />
     </FlexItem>
     <FlexItem>
-      <Content>
-        <Content component={ContentVariants.h1}>Model catalog</Content>
-      </Content>
+      <Content component={ContentVariants.h1}>Model catalog</Content>
     </FlexItem>
   </Flex>
 );

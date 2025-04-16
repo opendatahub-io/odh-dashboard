@@ -5,36 +5,30 @@ import { conditionalArea, SupportedArea } from '~/concepts/areas';
 import EvenlySpacedGallery from '~/components/EvenlySpacedGallery';
 import ModelCatalogSectionHeader from '~/pages/home/modelCatalog/ModelCatalogSectionHeader';
 import { ModelCatalogCard } from '~/pages/modelCatalog/components/ModelCatalogCard';
-import { ModelCatalogContext } from '~/concepts/modelCatalog/context/ModelCatalogContext';
 import ModelCatalogHint from '~/pages/home/modelCatalog/ModelCatalogHint';
 import { useBrowserStorage } from '~/components/browserStorage';
 import ProjectsLoading from '~/pages/home/projects/ProjectsLoading';
 import { CatalogModel, ModelCatalogSource } from '~/concepts/modelCatalog/types';
 import ModelCatalogSectionFooter from '~/pages/home/modelCatalog/ModelCatalogSectionFooter';
 import { MAX_SHOWN_MODELS, MIN_CARD_WIDTH } from '~/concepts/modelCatalog/const';
+import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
+import { useModelCatalogSources } from '~/concepts/modelCatalog/useModelCatalogSources';
 
 const ModelCatalogSection: React.FC = conditionalArea(
   SupportedArea.MODEL_CATALOG,
   true,
 )(() => {
-  const { modelCatalogSources } = React.useContext(ModelCatalogContext);
+  const modelCatalogSources = useMakeFetchObject(useModelCatalogSources());
   const { data, loaded } = modelCatalogSources;
 
-  const models = React.useMemo(
-    () =>
-      data.flatMap((sourceModels: ModelCatalogSource) =>
-        sourceModels.models.map((vals: CatalogModel) => ({ source: sourceModels.source, ...vals })),
-      ),
-    [data],
+  const models = data.flatMap((sourceModels: ModelCatalogSource) =>
+    sourceModels.models.map((vals: CatalogModel) => ({ source: sourceModels.source, ...vals })),
   );
 
   const [visibleCardCount, setVisibleCardCount] = React.useState<number>(MAX_SHOWN_MODELS);
   const numCards = Math.min(models.length, visibleCardCount);
 
-  const shownModels = React.useMemo(
-    () => (loaded ? models.slice(0, visibleCardCount) : []),
-    [loaded, models, visibleCardCount],
-  );
+  const shownModels = loaded ? models.slice(0, visibleCardCount) : [];
 
   const [hintHidden, setHintHidden] = useBrowserStorage<boolean>(
     'odh.dashboard.homepage.model.catalog.hint',
@@ -50,11 +44,6 @@ const ModelCatalogSection: React.FC = conditionalArea(
       );
     },
   });
-
-  const hintGridItemStyle = {
-    display: 'flex',
-    alignItems: 'stretch',
-  };
 
   if (!loaded) {
     return <ProjectsLoading data-testid="model-catalog-loading" />;
@@ -72,18 +61,9 @@ const ModelCatalogSection: React.FC = conditionalArea(
         </StackItem>
         <StackItem>
           <div ref={observe}>
-            <Grid span={12} height="100%" hasGutter>
+            <Grid span={12} hasGutter>
               {!hintHidden && (
-                <GridItem
-                  xl2={4}
-                  xl={5}
-                  lg={6}
-                  md={6}
-                  sm={6}
-                  span={12}
-                  rowSpan={1}
-                  style={hintGridItemStyle}
-                >
+                <GridItem xl2={4} xl={5} lg={6} md={6} sm={6} span={12} rowSpan={1}>
                   <ModelCatalogHint isHidden={hintHidden} setHidden={() => setHintHidden(true)} />
                 </GridItem>
               )}
