@@ -89,7 +89,6 @@ export type ModelRegistryBase = {
   description?: string;
   createTimeSinceEpoch: string;
   lastUpdateTimeSinceEpoch: string;
-  customProperties: ModelRegistryCustomProperties;
 };
 
 export type ModelArtifact = ModelRegistryBase & {
@@ -103,6 +102,10 @@ export type ModelArtifact = ModelRegistryBase & {
   serviceAccountName?: string;
   modelLocationType?: ModelLocationType;
   artifactType: string;
+  modelSourceGroup?: string;
+  modelSourceId?: string;
+  modelSourceName?: string;
+  customProperties?: ModelRegistryCustomProperties;
 };
 
 export type ModelVersion = ModelRegistryBase & {
@@ -110,11 +113,19 @@ export type ModelVersion = ModelRegistryBase & {
   author?: string;
   registeredModelId: string;
   labels?: string[];
+  modelSourceGroup?: string;
+  modelSourceId?: string;
+  modelSourceName?: string;
+  customProperties?: ModelRegistryCustomProperties;
 };
 
 export type RegisteredModel = ModelRegistryBase & {
   state?: ModelState;
   owner?: string;
+  modelSourceGroup?: string;
+  modelSourceId?: string;
+  modelSourceName?: string;
+  customProperties?: ModelRegistryCustomProperties;
 };
 
 export type InferenceService = ModelRegistryBase & {
@@ -150,7 +161,9 @@ export type CreateModelVersionData = Omit<
 export type CreateModelArtifactData = Omit<
   ModelArtifact,
   'lastUpdateTimeSinceEpoch' | 'createTimeSinceEpoch' | 'id'
->;
+> & {
+  customProperties?: ModelRegistryCustomProperties;
+};
 
 export type ModelRegistryListParams = {
   size: number;

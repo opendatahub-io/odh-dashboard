@@ -20,7 +20,6 @@ import {
   getLabels,
   mergeUpdatedLabels,
   getCatalogModelDetailsProps,
-  getPipelineModelCustomProps,
 } from '~/pages/modelRegistry/screens/utils';
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
@@ -52,7 +51,6 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
   const modelArtifact = modelArtifacts.items.length ? modelArtifacts.items[0] : null;
   const { apiState } = React.useContext(ModelRegistryContext);
   const storageFields = uriToModelLocation(modelArtifact?.uri || '');
-  const pipelineCustomProperties = getPipelineModelCustomProps(mv.customProperties);
   const [registeredModel, registeredModelLoaded, registeredModelLoadError, refreshRegisteredModel] =
     useRegisteredModelById(mv.registeredModelId);
   const loaded = modelArtifactsLoaded && registeredModelLoaded;
@@ -94,9 +92,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
     }
   };
 
-  const catalogModelCustomProps: CatalogModelDetailsParams = getCatalogModelDetailsProps(
-    mv.customProperties,
-  );
+  const catalogModelCustomProps: CatalogModelDetailsParams = getCatalogModelDetailsProps(mv.customProperties || {});
   const catalogModelDetailsUrl = getCatalogModelDetailsRoute(catalogModelCustomProps);
 
   return (
@@ -119,16 +115,16 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             }
           />
           <EditableLabelsDescriptionListGroup
-            labels={getLabels(mv.customProperties)}
+            labels={getLabels(mv.customProperties || {})}
             isArchive={isArchiveVersion}
-            allExistingKeys={Object.keys(mv.customProperties)}
+            allExistingKeys={Object.keys(mv.customProperties || {})}
             title="Labels"
             contentWhenEmpty="No labels"
             onLabelsChange={(editedLabels) =>
               handleVersionUpdate(
                 apiState.api.patchModelVersion(
                   {},
-                  { customProperties: mergeUpdatedLabels(mv.customProperties, editedLabels) },
+                  { customProperties: mergeUpdatedLabels(mv.customProperties || {}, editedLabels) },
                   mv.id,
                 ),
               )
@@ -137,7 +133,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
           />
           <ModelPropertiesDescriptionListGroup
             isArchive={isArchiveVersion}
-            customProperties={mv.customProperties}
+            customProperties={mv.customProperties || {}}
             saveEditedCustomProperties={(editedProperties) =>
               apiState.api
                 .patchModelVersion({}, { customProperties: editedProperties }, mv.id)
@@ -155,10 +151,14 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
           >
             <InlineTruncatedClipboardCopy testId="model-version-id" textToCopy={mv.id} />
           </DashboardDescriptionListGroup>
-          {Object.values(pipelineCustomProperties).every((value) => !!value) && (
+          {mv.modelSourceId && mv.modelSourceName && mv.modelSourceGroup && (
             <DashboardDescriptionListGroup title="Registered from">
               <ModelVersionPipelineDescription
-                pipelineCustomProperties={pipelineCustomProperties}
+                pipelineCustomProperties={{
+                  project: mv.modelSourceGroup,
+                  runId: mv.modelSourceId,
+                  runName: mv.modelSourceName
+                }}
               />
             </DashboardDescriptionListGroup>
           )}
