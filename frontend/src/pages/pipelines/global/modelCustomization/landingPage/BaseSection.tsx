@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Content, ContentVariants } from '@patternfly/react-core';
 
 type BaseSectionProps = React.PropsWithChildren<{
-  title: string;
+  title: React.ReactNode;
 }>;
 
 export const BaseSection: React.FC<BaseSectionProps> = ({ children, title }) => (

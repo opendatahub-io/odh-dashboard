@@ -1,4 +1,4 @@
-import { TolerationEffect, TolerationOperator } from '~/types';
+import { IdentifierResourceType, TolerationEffect, TolerationOperator } from '~/types';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { HardwareProfileModel } from '~/__tests__/cypress/cypress/utils/models';
 import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
@@ -35,6 +35,7 @@ const initIntercepts = ({ isPresent = true }: HandlersProps) => {
               minCount: '2Gi',
               maxCount: '5Gi',
               defaultCount: '2Gi',
+              resourceType: IdentifierResourceType.MEMORY,
             },
             {
               displayName: 'CPU',
@@ -42,6 +43,7 @@ const initIntercepts = ({ isPresent = true }: HandlersProps) => {
               minCount: '1',
               maxCount: '2',
               defaultCount: '1',
+              resourceType: IdentifierResourceType.CPU,
             },
             {
               identifier: 'nvidia.com/gpu',
@@ -209,6 +211,12 @@ describe('Manage Hardware Profile', () => {
     // test deleting the last Memory trigger the alert shown
     createHardwareProfile.getNodeResourceTableRow('memory').findDeleteAction().click();
     createHardwareProfile.findNodeResourceTableAlert().should('exist');
+    createHardwareProfile.findAddNodeResourceButton().click();
+    createNodeResourceModal.findNodeResourceLabelInput().fill('MEMORY');
+    createNodeResourceModal.findNodeResourceIdentifierInput().fill('memory');
+    createNodeResourceModal.findNodeResourceTypeSelect().findSelectOption('Memory').click();
+    createNodeResourceModal.findNodeResourceSubmitButton().should('be.enabled');
+    createNodeResourceModal.findNodeResourceSubmitButton().click();
 
     cy.interceptK8s(
       'POST',
@@ -237,6 +245,14 @@ describe('Manage Hardware Profile', () => {
           maxCount: 4,
           minCount: 1,
           resourceType: 'CPU',
+        },
+        {
+          identifier: 'memory',
+          displayName: 'MEMORY',
+          defaultCount: '4Gi',
+          maxCount: '8Gi',
+          minCount: '2Gi',
+          resourceType: 'Memory',
         },
       ]);
     });
@@ -442,6 +458,7 @@ describe('Manage Hardware Profile', () => {
             minCount: '2Gi',
             maxCount: '5Gi',
             defaultCount: '2Gi',
+            resourceType: IdentifierResourceType.MEMORY,
           },
           {
             displayName: 'CPU',
@@ -449,6 +466,7 @@ describe('Manage Hardware Profile', () => {
             minCount: '1',
             maxCount: '2',
             defaultCount: '1',
+            resourceType: IdentifierResourceType.CPU,
           },
         ],
         displayName: 'Test Hardware Profile',
@@ -516,6 +534,7 @@ describe('Manage Hardware Profile', () => {
             minCount: '2Gi',
             maxCount: '5Gi',
             defaultCount: '2Gi',
+            resourceType: IdentifierResourceType.MEMORY,
           },
           {
             displayName: 'CPU',
@@ -523,6 +542,7 @@ describe('Manage Hardware Profile', () => {
             minCount: '1',
             maxCount: '2',
             defaultCount: '1',
+            resourceType: IdentifierResourceType.CPU,
           },
           {
             identifier: 'nvidia.com/gpu',

@@ -183,7 +183,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       </Td>
       {customCells}
       {hasRowActions && (
-        <Td isActionCell dataLabel="Kebab">
+        <Td isActionCell>
           <ActionsColumn
             data-testid="pipeline-run-table-row-actions"
             items={actions}

@@ -30,7 +30,7 @@ class NIMDeployModal extends Modal {
   }
 
   findNimModelReplicas() {
-    return cy.get('[id="model-server-replicas"]');
+    return cy.get('[data-testid="model-server-replicas"] input');
   }
 
   findNimModelReplicasMinusButton() {

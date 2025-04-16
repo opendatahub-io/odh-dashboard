@@ -17,6 +17,7 @@ interface InlineEditTextProps {
   checkSupported: (text: string) => boolean;
   unsupportedMessage: string;
   validated?: ComponentProps<typeof TextInput>['validated'];
+  onEdit: () => void;
 }
 
 const InlineEditText: React.FC<InlineEditTextProps> = ({
@@ -25,6 +26,7 @@ const InlineEditText: React.FC<InlineEditTextProps> = ({
   checkSupported,
   validated,
   unsupportedMessage,
+  onEdit,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(text);
@@ -39,6 +41,11 @@ const InlineEditText: React.FC<InlineEditTextProps> = ({
   const handleSave = () => {
     onSave(inputValue);
     setIsEditing(false);
+  };
+
+  const handleEdit = () => {
+    onEdit();
+    setIsEditing(true);
   };
 
   const handleCancel = () => {
@@ -80,9 +87,7 @@ const InlineEditText: React.FC<InlineEditTextProps> = ({
             <FlexItem>
               <Button
                 variant="plain"
-                onClick={() => {
-                  handleSave();
-                }}
+                onClick={handleSave}
                 aria-label="Save"
                 data-testid="edit-inline-text-save-button"
               >
@@ -90,9 +95,7 @@ const InlineEditText: React.FC<InlineEditTextProps> = ({
               </Button>
               <Button
                 variant="plain"
-                onClick={() => {
-                  handleCancel();
-                }}
+                onClick={handleCancel}
                 aria-label="Cancel"
                 data-testid="edit-inline-text-cancel-button"
               >
@@ -113,7 +116,7 @@ const InlineEditText: React.FC<InlineEditTextProps> = ({
               <Button
                 data-testid="edit-inline-text-button"
                 variant="plain"
-                onClick={() => setIsEditing(true)}
+                onClick={handleEdit}
                 aria-label="Edit"
               >
                 <PencilAltIcon />
@@ -124,7 +127,7 @@ const InlineEditText: React.FC<InlineEditTextProps> = ({
       </Flex>
 
       {showUnsupportedMessage && (
-        <FormHelperText>
+        <FormHelperText data-testid="inline-edit-unsupported-message">
           <HelperText>
             <HelperTextItem variant="warning">{unsupportedMessage}</HelperTextItem>
           </HelperText>

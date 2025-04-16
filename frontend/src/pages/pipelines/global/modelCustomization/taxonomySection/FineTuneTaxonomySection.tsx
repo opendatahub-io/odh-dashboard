@@ -1,20 +1,23 @@
 import { Button, FormGroup, Radio, TextInput } from '@patternfly/react-core';
 import React from 'react';
 import { FineTuneTaxonomyType } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
-import { FineTuneTaxonomyFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
+import {
+  FineTuneTaxonomyFormData,
+  fineTuneTaxonomySchema,
+} from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import PasswordInput from '~/components/PasswordInput';
-import { ValidationContext } from '~/utilities/useValidation';
 import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
 import { ModelCustomizationDrawerContentArgs } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
 import MarkdownView from '~/components/MarkdownView';
 import FormSection from '~/components/pf-overrides/FormSection';
+import { useZodFormValidation } from '~/hooks/useZodFormValidation';
 import {
   FineTunePageSections,
   fineTunePageSectionTitles,
   taxonomyMarkdownContent,
   taxonomyMarkdownTitle,
-} from './const';
-import { SshKeyFileUpload } from './SshKeyFileUpload';
+} from '~/pages/pipelines/global/modelCustomization/const';
+import { SshKeyFileUpload } from '~/pages/pipelines/global/modelCustomization/taxonomySection/SshKeyFileUpload';
 
 type FineTuneTaxonomySectionProps = {
   data: FineTuneTaxonomyFormData;
@@ -27,17 +30,10 @@ export const FineTuneTaxonomySection = ({
   setData,
   handleOpenDrawer,
 }: FineTuneTaxonomySectionProps): React.JSX.Element => {
-  const { getAllValidationIssues } = React.useContext(ValidationContext);
-  const urlValidationIssues = data.url ? getAllValidationIssues(['taxonomy', 'url']) : [];
-  const sshKeyValidationIssues = data.secret.sshKey
-    ? getAllValidationIssues(['taxonomy', 'secret', 'sshKey'])
-    : [];
-  const usernameValidationIssues = data.secret.username
-    ? getAllValidationIssues(['taxonomy', 'secret', 'username'])
-    : [];
-  const tokenValidationIssues = data.secret.token
-    ? getAllValidationIssues(['taxonomy', 'secret', 'token'])
-    : [];
+  const { getFieldValidation, getFieldValidationProps } = useZodFormValidation(
+    data,
+    fineTuneTaxonomySchema,
+  );
 
   return (
     <FormSection
@@ -67,11 +63,14 @@ export const FineTuneTaxonomySection = ({
         <TextInput
           aria-label="taxonomy github url"
           data-testid="taxonomy-github-url"
-          validated={urlValidationIssues.length > 0 ? 'error' : 'default'}
           value={data.url}
           onChange={(_event, value) => setData({ ...data, url: value })}
+          {...getFieldValidationProps(['url'])}
         />
-        <ZodErrorHelperText zodIssue={urlValidationIssues} />
+        <ZodErrorHelperText
+          data-testid="taxonomy-github-url-error"
+          zodIssue={getFieldValidation(['url'])}
+        />
       </FormGroup>
       <FormGroup
         label="Authentication method"
@@ -100,13 +99,18 @@ export const FineTuneTaxonomySection = ({
             data.secret.type === FineTuneTaxonomyType.SSH_KEY && (
               <FormGroup label="SSH key" isRequired>
                 <SshKeyFileUpload
+                  data={data.secret.sshKey}
                   onChange={(value) =>
                     setData({
                       ...data,
                       secret: { ...data.secret, sshKey: value },
                     })
                   }
-                  validationIssues={sshKeyValidationIssues}
+                  {...getFieldValidationProps(['secret', 'sshKey'])}
+                />
+                <ZodErrorHelperText
+                  data-testid="taxonomy-ssh-key-error"
+                  zodIssue={getFieldValidation(['secret', 'sshKey'])}
                 />
               </FormGroup>
             )
@@ -137,7 +141,6 @@ export const FineTuneTaxonomySection = ({
                     aria-label="taxonomy username"
                     data-testid="taxonomy-username"
                     value={data.secret.username}
-                    validated={usernameValidationIssues.length > 0 ? 'error' : 'default'}
                     onChange={(_e, value) =>
                       setData({
                         ...data,
@@ -147,14 +150,18 @@ export const FineTuneTaxonomySection = ({
                         },
                       })
                     }
+                    {...getFieldValidationProps(['secret', 'username'])}
                   />
-                  <ZodErrorHelperText zodIssue={usernameValidationIssues} />
+                  <ZodErrorHelperText
+                    data-testid="taxonomy-username-error"
+                    zodIssue={getFieldValidation(['secret', 'username'])}
+                  />
                 </FormGroup>
                 <FormGroup label="Token" fieldId="token" isRequired>
                   <PasswordInput
+                    aria-label="taxonomy token"
                     data-testid="taxonomy-token"
                     value={data.secret.token}
-                    validated={tokenValidationIssues.length > 0 ? 'error' : 'default'}
                     onChange={(_e, value) =>
                       setData({
                         ...data,
@@ -164,8 +171,12 @@ export const FineTuneTaxonomySection = ({
                         },
                       })
                     }
+                    {...getFieldValidationProps(['secret', 'token'])}
                   />
-                  <ZodErrorHelperText zodIssue={tokenValidationIssues} />
+                  <ZodErrorHelperText
+                    data-testid="taxonomy-token-error"
+                    zodIssue={getFieldValidation(['secret', 'token'])}
+                  />
                 </FormGroup>
               </>
             )

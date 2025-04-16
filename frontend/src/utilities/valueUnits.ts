@@ -1,9 +1,3 @@
-import {
-  DEFAULT_CPU_IDENTIFIER,
-  DEFAULT_MEMORY_IDENTIFIER,
-} from '~/pages/hardwareProfiles/nodeResource/const';
-import { Identifier, IdentifierResourceType } from '~/types';
-
 /**
  * Format: '{value: number}{unit: string}'
  * eg. 1Unit; 100Mi; 10Gi; 5m
@@ -47,22 +41,6 @@ export const MEMORY_UNITS_FOR_PARSING: UnitOption[] = [
   { name: 'B', unit: '', weight: 1 },
 ];
 export const OTHER: UnitOption[] = [{ name: 'Other', unit: '', weight: 1 }];
-
-export const determineUnit = (nodeResource: Identifier): UnitOption[] => {
-  if (
-    nodeResource.resourceType === IdentifierResourceType.CPU ||
-    nodeResource.identifier === DEFAULT_CPU_IDENTIFIER
-  ) {
-    return CPU_UNITS;
-  }
-  if (
-    nodeResource.resourceType === IdentifierResourceType.MEMORY ||
-    nodeResource.identifier === DEFAULT_MEMORY_IDENTIFIER
-  ) {
-    return MEMORY_UNITS_FOR_SELECTION;
-  }
-  return OTHER;
-};
 
 export const splitValueUnit = (
   value: ValueUnitString,
