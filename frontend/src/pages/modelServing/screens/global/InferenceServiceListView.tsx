@@ -15,6 +15,18 @@ type InferenceServiceListViewProps = {
   filterTokens: (servingRuntime?: string | undefined) => SecretKind[];
 };
 
+export enum Options {
+  name = 'Name',
+  project = 'Project',
+}
+
+export type DashboardFilterDataType = Record<Options, string | undefined>;
+
+export const initialDashboardFilterData: DashboardFilterDataType = {
+  [Options.name]: '',
+  [Options.project]: '',
+};
+
 const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
   inferenceServices: unfilteredInferenceServices,
   servingRuntimes,
@@ -22,31 +34,46 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
   filterTokens,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
+  const [filterData, setFilterData] = React.useState<DashboardFilterDataType>(
+    initialDashboardFilterData,
+  );
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
   const [search, setSearch] = React.useState('');
 
-  const filteredInferenceServices = unfilteredInferenceServices.filter((project) => {
-    if (!search) {
-      return true;
-    }
+  const filteredInferenceServices = React.useMemo(
+    () =>
+      unfilteredInferenceServices.filter((project) => {
+        const nameFilter = filterData.Name?.toLowerCase();
+        const userFilter = filterData.Project?.toLowerCase();
 
-    switch (searchType) {
-      case SearchType.NAME:
-        return getDisplayNameFromK8sResource(project).toLowerCase().includes(search.toLowerCase());
-      case SearchType.PROJECT:
-        return getInferenceServiceProjectDisplayName(project, projects)
-          .toLowerCase()
-          .includes(search.toLowerCase());
-      default:
-        return true;
-    }
-  });
+        if (
+          nameFilter &&
+          !getDisplayNameFromK8sResource(project).toLowerCase().includes(nameFilter)
+        ) {
+          return false;
+        }
+
+        return (
+          !userFilter ||
+          getInferenceServiceProjectDisplayName(project, projects)
+            .toLowerCase()
+            .includes(userFilter)
+        );
+      }),
+    [projects, filterData],
+  );
 
   const resetFilters = () => {
     setSearch('');
   };
 
   const searchTypes = React.useMemo(() => [SearchType.NAME, SearchType.PROJECT], []);
+
+  const onFilterUpdate = React.useCallback(
+    (key: string, value: string | { label: string; value: string } | undefined) =>
+      setFilterData((prevValues) => ({ ...prevValues, [key]: value })),
+    [setFilterData],
+  );
 
   return (
     <InferenceServiceTable
@@ -59,7 +86,9 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
       }}
       filterTokens={filterTokens}
       enablePagination
-      toolbarContent={<InferenceServiceToolbar />}
+      toolbarContent={
+        <InferenceServiceToolbar filterData={filterData} onFilterUpdate={onFilterUpdate} />
+      }
     />
   );
 };
