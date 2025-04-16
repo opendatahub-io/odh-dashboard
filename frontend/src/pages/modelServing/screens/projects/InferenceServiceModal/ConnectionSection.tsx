@@ -550,6 +550,15 @@ export const ConnectionSection: React.FC<Props> = ({
           id="new-connection"
           data-testid="new-connection"
           className="pf-v6-u-mb-lg"
+          onChange={() => {
+            setConnection(undefined);
+            setData('storage', {
+              ...data.storage,
+              type: InferenceServiceStorageType.NEW_STORAGE,
+              uri: undefined,
+              alert: undefined,
+            });
+          }}
         >
           <Stack hasGutter>
             {data.storage.alert && (
