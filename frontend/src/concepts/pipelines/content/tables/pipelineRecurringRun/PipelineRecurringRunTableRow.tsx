@@ -102,7 +102,7 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
       <Td dataLabel="Created">
         <RecurringRunCreated recurringRun={recurringRun} />
       </Td>
-      <Td isActionCell dataLabel="Kebab">
+      <Td isActionCell>
         <ActionsColumn
           items={[
             ...(!version

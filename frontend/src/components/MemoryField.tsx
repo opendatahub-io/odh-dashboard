@@ -9,6 +9,7 @@ type MemoryFieldProps = {
   validated?: ComponentProps<typeof ValueUnitField>['validated'];
   dataTestId?: string;
   min?: number;
+  onBlur?: () => void;
 };
 
 const MemoryField: React.FC<MemoryFieldProps> = ({
@@ -17,6 +18,7 @@ const MemoryField: React.FC<MemoryFieldProps> = ({
   validated,
   dataTestId,
   min = 1,
+  onBlur,
 }) => (
   <ValueUnitField
     min={min}
@@ -25,6 +27,7 @@ const MemoryField: React.FC<MemoryFieldProps> = ({
     value={String(value)}
     validated={validated}
     dataTestId={dataTestId}
+    onBlur={onBlur}
   />
 );
 

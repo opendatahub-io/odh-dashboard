@@ -9,7 +9,7 @@ import {
 import useAcceleratorProfileFormState from '~/utilities/useAcceleratorProfileFormState';
 import { useHardwareProfileConfig } from '~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-import { ModelCustomizationFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
+import { HardwareFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import { CONTAINER_RESOURCE_DEFAULT, KnownFineTuningPipelineParameters } from './const';
 import { getParamsValueFromPipelineInput } from './utils';
 
@@ -34,7 +34,7 @@ export type IlabPodSpecOptionsState = {
 
 export const useIlabPodSpecOptionsState = (
   ilabPipelineVersion: PipelineVersionKF | null,
-  setHardwareFormData: (data: ModelCustomizationFormData['hardware']) => void,
+  setHardwareFormData: (data: HardwareFormData) => void,
 ): IlabPodSpecOptionsState => {
   const [size, setSize] = React.useState<ContainerResources>(CONTAINER_RESOURCE_DEFAULT);
 
