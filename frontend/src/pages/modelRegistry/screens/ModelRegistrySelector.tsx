@@ -16,7 +16,7 @@ import {
 } from '@patternfly/react-core';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
 import truncateStyles from '@patternfly/react-styles/css/components/Truncate/truncate';
-import { InfoCircleIcon, BlueprintIcon } from '@patternfly/react-icons';
+import { InfoCircleIcon } from '@patternfly/react-icons';
 import { useBrowserStorage } from '~/components/browserStorage';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
@@ -24,6 +24,7 @@ import { ServiceKind } from '~/k8sTypes';
 import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import WhosMyAdministrator from '~/components/WhosMyAdministrator';
 import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
+import ModelRegistrySelectIcon from '~/images/icons/ModelRegistrySelectIcon';
 import { getServerAddress } from './utils';
 
 const MODEL_REGISTRY_FAVORITE_STORAGE_KEY = 'odh.dashboard.model.registry.favorite';
@@ -147,7 +148,15 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
     <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
       <FlexItem>
         <Icon>
-          <BlueprintIcon />
+          <ModelRegistrySelectIcon
+            alt=""
+            style={{
+              width: 'var(--pf-t--global--icon--size--font--xl)',
+              height: 'var(--pf-t--global--icon--size--font--xl)',
+              margin:
+                'var(--pf-t--global--spacer--lg) var(--pf-t--global--spacer--xs) 0 var(--pf-t--global--spacer--sm)',
+            }}
+          />
         </Icon>
       </FlexItem>
       <FlexItem>

@@ -2,24 +2,28 @@ import { Grid, GridItem } from '@patternfly/react-core';
 import * as React from 'react';
 import ParamsDefaultFields from '~/components/ParamsDefaultFields';
 import { ParametersKF, RuntimeConfigParamValue } from '~/concepts/pipelines/kfTypes';
-import { ModelCustomizationFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
-import { ValidationContext } from '~/utilities/useValidation';
-import { HYPERPARAMETER_MAP } from './HyperparameterFieldsUtils';
+import {
+  createHyperParametersSchema,
+  HyperParametersFormData,
+} from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/hyperparameterValidationUtils';
+import { useZodFormValidation } from '~/hooks/useZodFormValidation';
+import { HYPERPARAMETER_MAP } from '~/pages/pipelines/global/modelCustomization/hyperparameterSection/HyperparameterFieldsUtils';
 
 type HyperparameterFieldsDisplayProps = {
   hyperparameters: ParametersKF;
-  data: ModelCustomizationFormData;
-  isEmpty: boolean;
+  data: HyperParametersFormData;
   onChange: (hyperparameter: string, hyperparameterValue?: RuntimeConfigParamValue) => void;
 };
 
 const HyperparameterFieldsDisplay: React.FC<HyperparameterFieldsDisplayProps> = ({
   hyperparameters,
   data,
-  isEmpty,
   onChange,
 }) => {
-  const { getAllValidationIssues } = React.useContext(ValidationContext);
+  const { getFieldValidation, getFieldValidationProps } = useZodFormValidation(
+    data,
+    createHyperParametersSchema(hyperparameters),
+  );
 
   // Memoize the sorted hyperparameters
   const sortedHyperparameters = React.useMemo(
@@ -41,7 +45,7 @@ const HyperparameterFieldsDisplay: React.FC<HyperparameterFieldsDisplayProps> = 
 
   return (
     <Grid hasGutter>
-      {!isEmpty &&
+      {Object.keys(hyperparameters).length !== 0 &&
         sortedHyperparameters.map(([key, value]) => {
           if (key in HYPERPARAMETER_MAP) {
             const { label, renderField, span } = HYPERPARAMETER_MAP[key];
@@ -54,10 +58,9 @@ const HyperparameterFieldsDisplay: React.FC<HyperparameterFieldsDisplayProps> = 
                     !value.isOptional,
                     value.description,
                     onChange,
-                    key in data.hyperparameters
-                      ? data.hyperparameters[key] ?? ''
-                      : value.defaultValue ?? '',
-                    getAllValidationIssues(['hyperparameters', key]),
+                    key in data ? data[key] ?? '' : value.defaultValue ?? '',
+                    getFieldValidation([key]),
+                    getFieldValidationProps([key]).onBlur,
                   )}
                 </GridItem>
               );
@@ -65,10 +68,7 @@ const HyperparameterFieldsDisplay: React.FC<HyperparameterFieldsDisplayProps> = 
           }
 
           const inputProps = {
-            value:
-              key in data.hyperparameters
-                ? data.hyperparameters[key] ?? ''
-                : value.defaultValue ?? '',
+            value: key in data ? data[key] ?? '' : value.defaultValue ?? '',
             id: key,
             name: key,
             onChange: (
@@ -87,9 +87,8 @@ const HyperparameterFieldsDisplay: React.FC<HyperparameterFieldsDisplayProps> = 
                 label={label ?? key}
                 description={value.description}
                 isOptional={value.isOptional}
-                validationIssues={
-                  inputProps.value ? getAllValidationIssues(['hyperparameters', key]) : []
-                }
+                validationIssues={getFieldValidation([key])}
+                validationProps={getFieldValidationProps([key])}
               />
             </GridItem>
           );

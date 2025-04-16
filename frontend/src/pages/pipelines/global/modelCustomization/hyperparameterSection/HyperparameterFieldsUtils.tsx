@@ -14,6 +14,7 @@ type RenderFieldProps = (
   onChange: (hyperparameter: string, hyperparameterValue?: RuntimeConfigParamValue) => void,
   value?: RuntimeConfigParamValue,
   validationIssues?: ZodIssue[],
+  onBlur?: () => void,
 ) => React.ReactNode;
 
 const renderLongNumberField: RenderFieldProps = (
@@ -24,6 +25,7 @@ const renderLongNumberField: RenderFieldProps = (
   onChange: (hyperparameter: string, hyperparameterValue?: RuntimeConfigParamValue) => void,
   value,
   validationIssues,
+  onBlur,
 ): React.ReactNode => (
   <HyperparameterLongNumberField
     key={label}
@@ -34,6 +36,7 @@ const renderLongNumberField: RenderFieldProps = (
     isRequired={isRequired}
     onChange={onChange}
     validationIssues={validationIssues}
+    onBlur={onBlur}
   />
 );
 

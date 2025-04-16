@@ -23,11 +23,26 @@ import './commands';
 import { asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import { addCommands as webSocketsAddCommands } from './websockets';
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const softAssert = require('soft-assert');
+
+// ============================
+// Type Definitions
+// ============================
+
 // Define a custom type for test options that includes tags.
 type TestOptions = {
   tags?: string[];
   [key: string]: unknown;
 };
+
+// Create type definition for soft-assert
+export interface SoftAssert {
+  softAssert: (actual: unknown, expected: unknown, message?: string) => void;
+  softAssertAll: () => void;
+  softTrue: (condition: boolean, msg?: string) => void;
+}
 
 // Define an interface for the test function that supports retries.
 interface TestWithRetries extends Mocha.TestFunction {
@@ -36,16 +51,18 @@ interface TestWithRetries extends Mocha.TestFunction {
 
 /* eslint-disable @typescript-eslint/no-namespace */
 declare global {
-  // Extend Cypress globals with a testTags property.
+  namespace globalThis {
+    let softAssert: SoftAssert | unknown;
+    function softTrue(condition: boolean, message?: string): void;
+  }
+
+  // Extend Cypress globals with custom properties
   namespace Cypress {
     interface Cypress {
       testTags: { [key: string]: string[] };
       suiteTestCount: { [key: string]: { total: number; skipped: number } };
-      Suite: {
-        beforeAll: Array<() => void>;
-        afterAll: Array<() => void>;
-        tests: Array<{ pending: boolean }>;
-      };
+      skippedSuites: Set<string>;
+      testsExecuted: boolean; // Flag to track if any tests were executed
     }
   }
 
@@ -58,24 +75,40 @@ declare global {
 }
 /* eslint-enable @typescript-eslint/no-namespace */
 
-// Initialize global configurations
+// ============================
+// Global Initialization
+// ============================
+
+// Initialize tracking objects
+Cypress.testTags = {};
+Cypress.suiteTestCount = {};
+Cypress.skippedSuites = new Set<string>();
+Cypress.testsExecuted = false;
+
+// Configure global settings
 chai.use(chaiSubset);
 webSocketsAddCommands();
 
-// eslint-disable-next-line no-console
-console.log('Support file loaded');
+// Initialize soft assert globally
+(globalThis as unknown as { softAssert: SoftAssert }).softAssert = softAssert;
+(globalThis as unknown as { softTrue: (condition: boolean, message?: string) => void }).softTrue =
+  function namedSoftTrue(condition: boolean, message?: string) {
+    (globalThis as unknown as { softAssert: SoftAssert }).softAssert.softTrue(condition, message);
+  };
 
 // Configure Cypress settings
 Cypress.Keyboard.defaults({
   keystrokeDelay: 0,
 });
 
-// Initialize tracking objects
-Cypress.testTags = {};
-Cypress.suiteTestCount = {};
+// eslint-disable-next-line no-console
+console.log(`Support file loaded. \nwatchForFileChanges: ${Cypress.config('watchForFileChanges')}`);
 
+// ============================
 // Test Tags Implementation
-(function setupTestTags() {
+// ============================
+
+function setupTestTags() {
   const originalIt = window.it;
 
   // Create a type-safe wrapper for the original it function.
@@ -108,20 +141,106 @@ Cypress.suiteTestCount = {};
   // casting it to the proper type to satisfy TypeScript.
   window.it = wrappedIt as Mocha.TestFunction &
     ((name: string, options: TestOptions, fn?: Mocha.AsyncFunc | Mocha.Func) => Mocha.Test);
-})();
+}
 
-// Event handlers
+// Initialize test tags
+setupTestTags();
+
+// ============================
+// Test Filtering Functions
+// ============================
+
+/**
+ * Determines if a test should be skipped based on its tags and environment variables
+ * @param testTags Array of tags for a test
+ * @returns Boolean indicating if the test should be skipped
+ */
+function shouldSkipTest(testTags: string[]): boolean {
+  const mappedTestTags = testTags.map((tag: string) => (tag.startsWith('@') ? tag : `@${tag}`));
+  const skipTags = Cypress.env('skipTags') ? Cypress.env('skipTags').split(' ') : [];
+  const grepTags = Cypress.env('grepTags') ? Cypress.env('grepTags').split(' ') : [];
+
+  const shouldSkip =
+    skipTags.length > 0 && skipTags.some((tag: string) => mappedTestTags.includes(tag));
+  const shouldRun =
+    grepTags.length === 0 ||
+    grepTags.some((tag: string) => {
+      const plainTag = tag.startsWith('@') ? tag.substring(1) : tag;
+      return mappedTestTags.some((t: string) => t === tag || t === `@${plainTag}`);
+    });
+
+  return shouldSkip || !shouldRun;
+}
+
+/**
+ * Marks a suite as skipped by emptying its hooks and updating tracking data
+ * @param suite The Mocha suite to skip
+ */
+function markSuiteAsSkipped(suite: Mocha.Suite) {
+  // Mark this suite as completely skipped
+  if (suite.title) {
+    Cypress.skippedSuites.add(suite.title);
+  }
+
+  // Skip all tests in the suite
+  suite.tests.forEach((test: { pending: boolean }) => {
+    // Create a copy of the test object with the pending property set to true
+    Object.assign(test, { ...test, pending: true });
+  });
+
+  // Empty all hooks
+  const emptyArray: unknown[] = [];
+  const hooks = ['_beforeAll', '_afterAll', '_beforeEach', '_afterEach'];
+
+  hooks.forEach((hookName) => {
+    if (hookName in suite) {
+      Object.defineProperty(suite, hookName, { value: [...emptyArray] });
+    }
+  });
+
+  if (suite.title) {
+    cy.log(`Skipping entire suite: ${suite.title} as all tests are tagged for skipping`);
+  }
+}
+
+// ============================
+// Event Handlers
+// ============================
+
+// Track test execution
 Cypress.on('test:before:run', (test) => {
+  // Set the flag to indicate a test is running
+  Cypress.testsExecuted = true;
   // eslint-disable-next-line no-console
   console.log(`Running test: ${test.title}`);
 });
 
 // Track suites and their tests
 Cypress.on('suite:start', (suite) => {
+  // Initialize suite tracking data
   if (suite.title) {
     Cypress.suiteTestCount[suite.title] = { total: suite.tests.length, skipped: 0 };
   }
+
+  // Check if we should skip the entire suite
+  if (!suite.title || Cypress.skippedSuites.has(suite.title)) {
+    return;
+  }
+
+  // Check if all tests in the suite should be skipped
+  const allTestsShouldBeSkipped = suite.tests.every((test: { title: string }) => {
+    const testTags = Cypress.testTags[test.title];
+    return shouldSkipTest(testTags);
+  });
+
+  if (allTestsShouldBeSkipped) {
+    markSuiteAsSkipped(suite);
+  }
 });
+
+// ============================
+// Test Hooks
+// ============================
 
 // Global before hook
 before(() => {
@@ -137,6 +256,13 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
   const testTitle = this.currentTest.title;
   const currentSuite = this.currentTest.parent;
   const suiteTitle = currentSuite?.title;
+
+  // If the entire suite is marked as skipped, skip this test immediately
+  if (suiteTitle && Cypress.skippedSuites.has(suiteTitle)) {
+    this.skip();
+    return;
+  }
+
   const testTags = Cypress.testTags[testTitle] ?? [];
   const mappedTestTags = testTags.map((tag: string) => (tag.startsWith('@') ? tag : `@${tag}`));
 
@@ -145,40 +271,36 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
 
   // Chain Cypress commands
   cy.task('log', `Test title: ${testTitle}`)
-    .then(() => cy.task('log', `Test tags: ${JSON.stringify(mappedTestTags)}`))
-    .then(() => cy.task('log', `Skip tags: ${JSON.stringify(skipTags)}`))
-    .then(() => cy.task('log', `Grep tags: ${JSON.stringify(grepTags)}`))
+    .then(() =>
+      mappedTestTags.length > 0
+        ? cy.task('log', `Test tags: ${JSON.stringify(mappedTestTags)}`)
+        : undefined,
+    )
+    .then(() =>
+      skipTags.length > 0 ? cy.task('log', `Skip tags: ${JSON.stringify(skipTags)}`) : undefined,
+    )
+    .then(() =>
+      grepTags.length > 0 ? cy.task('log', `Grep tags: ${JSON.stringify(grepTags)}`) : undefined,
+    )
     .then(() => {
-      // Determine if the test should be skipped.
-      const shouldSkip =
-        skipTags.length > 0 && skipTags.some((tag: string) => mappedTestTags.includes(tag));
-      const shouldRun =
-        grepTags.length === 0 ||
-        grepTags.some((tag: string) => {
-          const plainTag = tag.startsWith('@') ? tag.substring(1) : tag;
-          return mappedTestTags.some((t: string) => t === tag || t === `@${plainTag}`);
-        });
-
-      if (shouldSkip || !shouldRun) {
+      // Determine if the test should be skipped
+      if (shouldSkipTest(testTags)) {
         if (suiteTitle && typeof suiteTitle === 'string') {
           Cypress.suiteTestCount[suiteTitle] ??= { skipped: 0, total: 0 };
           Cypress.suiteTestCount[suiteTitle].skipped++;
 
+          // If all tests in the suite are now skipped, mark the suite as skipped
           const suiteStats = Cypress.suiteTestCount[suiteTitle];
-          if (suiteStats.skipped === suiteStats.total) {
-            // Empty the hooks arrays
-            (currentSuite as unknown as { beforeAll: (() => void)[] }).beforeAll = [];
-            (currentSuite as unknown as { afterAll: (() => void)[] }).afterAll = [];
-            // Also skip any remaining tests in the suite
-            currentSuite.tests = currentSuite.tests.map((test) =>
-              Object.assign({}, test, { pending: true }),
-            );
+          if (suiteStats.skipped === suiteStats.total && suiteStats.total > 0) {
+            Cypress.skippedSuites.add(suiteTitle);
+            cy.log(`All tests in suite "${suiteTitle}" are now skipped. Hooks will be skipped.`);
           }
         }
         this.skip();
       }
     });
 
+  // Set up mocks if the MOCK environment variable is set
   if (Cypress.env('MOCK')) {
     // Fallback: return 404 for all API requests.
     cy.intercept({ pathname: '/api/**' }, { statusCode: 404 });
@@ -186,4 +308,36 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
     cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
     asProjectAdminUser();
   }
+});
+
+// Handle skipped suites in afterEach hook
+afterEach(function afterEachHook(this: Mocha.Context) {
+  if (!this.currentTest) return;
+
+  const suiteTitle = this.currentTest.parent?.title;
+  if (suiteTitle && Cypress.skippedSuites.has(suiteTitle)) {
+    // If we're in a skipped suite, don't execute any more hooks for this suite
+    if (this.currentTest.parent) {
+      // Create no-op functions that return a value to avoid empty function warnings
+      const noOpFunction = (): null => null;
+
+      // Clear all remaining hooks with properly returning functions
+      this.currentTest.parent.afterAll(noOpFunction);
+      this.currentTest.parent.afterEach(noOpFunction);
+    }
+  }
+});
+
+// Handle soft assertions in after hook
+after(() => {
+  // Always run softAssertAll() if any tests were executed
+  cy.task('log', 'Checking if any tests were executed...').then(() => {
+    if (Cypress.testsExecuted) {
+      cy.task('log', 'Tests were executed. Running soft assertions...').then(() => {
+        softAssert.softAssertAll();
+      });
+    } else {
+      cy.task('log', 'No tests were executed. Skipping soft assertions.');
+    }
+  });
 });

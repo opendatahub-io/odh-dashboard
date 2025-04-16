@@ -8,6 +8,7 @@ import {
   DrawerContentBody,
   Stack,
   StackItem,
+  Title,
 } from '@patternfly/react-core';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
@@ -60,9 +61,12 @@ const ModelCustomization: React.FC = () => {
           >
             <Card>
               <CardTitle>
-                <TitleWithIcon title="LAB-tuning" objectType={ProjectObjectType.labTuning} />
+                <TitleWithIcon
+                  title={<Title headingLevel="h2">LAB-tuning</Title>}
+                  objectType={ProjectObjectType.labTuning}
+                />
               </CardTitle>
-              <CardBody style={{ maxWidth: '470px' }}>
+              <CardBody style={{ maxWidth: '485px' }}>
                 <Stack hasGutter>
                   <StackItem>
                     LAB-tuning significantly reduces limitations associated with traditional

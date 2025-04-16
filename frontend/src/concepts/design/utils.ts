@@ -20,6 +20,7 @@ import modelRegistryEmptyStateImg from '~/images/empty-state-model-registries.sv
 import storageClassesEmptyStateImg from '~/images/empty-state-storage-classes.svg';
 import modelRegistryMissingModelImg from '~/images/no-models-model-registry.svg';
 import modelRegistryMissingVersionImg from '~/images/no-versions-model-registry.svg';
+import modelRegistrySelectImg from '~/images/UI_icon-Red_Hat-Registered.svg';
 
 import './vars.scss';
 
@@ -52,9 +53,12 @@ export enum ProjectObjectType {
   modelServer = 'model-server',
   modelCatalog = 'model-catalog',
   registeredModels = 'registered-models',
+  modelRegistryContext = 'modelRegistryContext',
   deployedModels = 'deployed-models',
   deployingModels = 'deploying-models',
+  deployedModelsList = 'deployed-models-list',
   modelRegistrySettings = 'model-registry-settings',
+  modelRegistry = 'model-registry',
   servingRuntime = 'serving-runtime',
   distributedWorkload = 'distributed-workload',
   dataConnection = 'data-connection',
@@ -100,8 +104,10 @@ export const typedIconColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.deployedModels:
     case ProjectObjectType.deployingModels:
       return 'var(--ai-model-server--IconColor)';
+    case ProjectObjectType.deployedModelsList:
     case ProjectObjectType.modelRegistrySettings:
       return 'var(--ai-set-up--IconColor)';
+    case ProjectObjectType.modelRegistryContext:
     case ProjectObjectType.dataConnection:
     case ProjectObjectType.connections:
       return 'var(--ai-data-connection--IconColor)';
@@ -155,8 +161,10 @@ export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.multiModel:
     case ProjectObjectType.modelServer:
     case ProjectObjectType.registeredModels:
+    case ProjectObjectType.modelRegistryContext:
     case ProjectObjectType.deployedModels:
     case ProjectObjectType.deployingModels:
+    case ProjectObjectType.deployedModelsList:
     case ProjectObjectType.modelCustomization:
     case ProjectObjectType.labTuning:
       return 'var(--ai-model-server--BackgroundColor)';
@@ -211,8 +219,10 @@ export const typedColor = (objectType: ProjectObjectType): string => {
       return 'var(--ai-cluster-storage--Color)';
     case ProjectObjectType.modelServer:
     case ProjectObjectType.registeredModels:
+    case ProjectObjectType.modelRegistryContext:
     case ProjectObjectType.deployedModels:
     case ProjectObjectType.deployingModels:
+    case ProjectObjectType.deployedModelsList:
     case ProjectObjectType.modelCustomization:
     case ProjectObjectType.labTuning:
       return 'var(--ai-model-server--Color)';
@@ -248,10 +258,14 @@ export const typedObjectImage = (objectType: ProjectObjectType): string => {
       return modelServerImg;
     case ProjectObjectType.registeredModels:
       return registeredModelsImg;
+    case ProjectObjectType.modelRegistryContext:
+      return modelRegistrySelectImg;
     case ProjectObjectType.deployedModels:
       return deployedModelsImg;
     case ProjectObjectType.deployingModels:
       return deployingModelsImg;
+    case ProjectObjectType.deployedModelsList:
+      return pipelineRunImg;
     case ProjectObjectType.dataConnection:
     case ProjectObjectType.connections:
       return dataConnectionImg;

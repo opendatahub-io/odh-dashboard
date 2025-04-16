@@ -402,6 +402,18 @@ class CreateSpawnerPage {
     return cy.findByTestId('image-stream-selector-toggle');
   }
 
+  findNotebookImageSearchInput() {
+    return cy.findByTestId('image-stream-selector-search').find('input');
+  }
+
+  getGlobalImagesLabel() {
+    return cy.get('body').contains('Global images');
+  }
+
+  getProjectScopedImagesLabel() {
+    return cy.get('body').contains('Project-scoped images');
+  }
+
   findProjectScopedLabel() {
     return cy.findByTestId('project-scoped-image');
   }

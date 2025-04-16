@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
-import { Accordion } from '@patternfly/react-core';
+import { Accordion, Title } from '@patternfly/react-core';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { ModelCustomizationAccordionItem } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationAccordionItem';
 import { BaseSection } from '~/pages/pipelines/global/modelCustomization/landingPage/BaseSection';
@@ -11,7 +11,7 @@ export const ProjectSetupSection: React.FC = () => {
   const { accordionItemsExpanded, handleToggleAccordion } = useToggleAccordion();
 
   return (
-    <BaseSection title="Next, set up your project and pipeline:">
+    <BaseSection title={<Title headingLevel="h3">Next, set up your project and pipeline:</Title>}>
       <Accordion togglePosition="start" data-testid="accordion-project-setup">
         <ModelCustomizationAccordionItem
           id="prepared-project"

@@ -109,7 +109,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
       </Td>
 
       {columnNames.includes(ColumnField.Kebab) && (
-        <Td dataLabel="Kebab" isActionCell>
+        <Td isActionCell>
           <ResourceActionsColumn
             resource={inferenceService}
             items={[

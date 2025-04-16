@@ -1,9 +1,8 @@
 {
-  "name": "ods-dashboard-backend",
-  "version": "1.0.0",
+  "name": "odh-dashboard-backend",
+  "version": "2.0.0",
   "description": "Backend for the ODH dashboard.",
-  "author": "",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "private": true,
   "repository": {
     "type": "git",

@@ -19,6 +19,7 @@ import {
   modelServingGlobal,
 } from '~/__tests__/cypress/cypress/pages/modelServing';
 import {
+  HardwareProfileModel,
   InferenceServiceModel,
   ProjectModel,
   SecretModel,
@@ -35,6 +36,11 @@ import {
   mockModelServingFields,
   mockOciConnectionTypeConfigMap,
 } from '~/__mocks__/mockConnectionType';
+import { hardwareProfileSection } from '~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
+import {
+  mockGlobalScopedHardwareProfiles,
+  mockProjectScopedHardwareProfiles,
+} from '~/__mocks__/mockHardwareProfile';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -47,6 +53,7 @@ type HandlersProps = {
   disableKServeMetrics?: boolean;
   disableServingRuntimeParamsConfig?: boolean;
   disableProjectScoped?: boolean;
+  disableHardwareProfiles?: boolean;
 };
 
 const initIntercepts = ({
@@ -60,6 +67,7 @@ const initIntercepts = ({
   disableKServeMetrics,
   disableServingRuntimeParamsConfig,
   disableProjectScoped = true,
+  disableHardwareProfiles = true,
 }: HandlersProps) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
@@ -78,8 +86,20 @@ const initIntercepts = ({
       disableKServeMetrics,
       disableServingRuntimeParams: disableServingRuntimeParamsConfig,
       disableProjectScoped,
+      disableHardwareProfiles,
     }),
   );
+
+  // Mock hardware profiles
+  cy.interceptK8sList(
+    { model: HardwareProfileModel, ns: 'opendatahub' },
+    mockK8sResourceList(mockGlobalScopedHardwareProfiles),
+  ).as('hardwareProfiles');
+
+  cy.interceptK8sList(
+    { model: HardwareProfileModel, ns: 'test-project' },
+    mockK8sResourceList(mockProjectScopedHardwareProfiles),
+  ).as('hardwareProfiles');
 
   cy.interceptK8sList(
     TemplateModel,
@@ -92,6 +112,11 @@ const initIntercepts = ({
         }),
         mockServingRuntimeTemplateK8sResource({
           name: 'template-2',
+          displayName: 'OpenVINO',
+          platforms: [ServingRuntimePlatform.SINGLE],
+        }),
+        mockServingRuntimeTemplateK8sResource({
+          name: 'template-3',
           displayName: 'Caikit',
           platforms: [ServingRuntimePlatform.SINGLE],
           supportedModelFormats: [
@@ -611,7 +636,7 @@ describe('Model Serving Global', () => {
     kserveModal.findModelFrameworkSelect().should('have.text', 'openvino_ir - opset1');
   });
 
-  it('Display project scoped label on serving runtime selection', () => {
+  it('Display project scoped label on serving runtime selection on Edit', () => {
     initIntercepts({
       projectEnableModelMesh: false,
       disableServingRuntimeParamsConfig: false,
@@ -632,6 +657,65 @@ describe('Model Serving Global', () => {
       .should('have.text', 'test-project-scoped-sr Project-scoped');
     kserveModalEdit.findProjectScopedLabel().should('exist');
     kserveModalEdit.findModelFrameworkSelect().should('have.text', 'onnx - 1');
+  });
+
+  it('should display hardware profile selection when both hardware profile and project-scoped feature flag is enabled', () => {
+    initIntercepts({
+      projectEnableModelMesh: false,
+      disableServingRuntimeParamsConfig: false,
+      disableProjectScoped: false,
+      disableHardwareProfiles: false,
+    });
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findDeployModelButton().click();
+    kserveModal.findModelNameInput().should('exist');
+
+    // Verify hardware profile section exists
+    hardwareProfileSection.findHardwareProfileSearchSelector().should('exist');
+    hardwareProfileSection.findHardwareProfileSearchSelector().click();
+
+    // verify available project-scoped hardware profile
+    const projectScopedHardwareProfile = hardwareProfileSection.getProjectScopedHardwareProfile();
+    projectScopedHardwareProfile
+      .find()
+      .findByRole('menuitem', {
+        name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
+        hidden: true,
+      })
+      .click();
+    hardwareProfileSection.findProjectScopedLabel().should('exist');
+
+    // verify available global-scoped hardware profile
+    hardwareProfileSection.findHardwareProfileSearchSelector().click();
+    const globalScopedHardwareProfile = hardwareProfileSection.getGlobalScopedHardwareProfile();
+    globalScopedHardwareProfile
+      .find()
+      .findByRole('menuitem', {
+        name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
+        hidden: true,
+      })
+      .click();
+    hardwareProfileSection.findGlobalScopedLabel().should('exist');
+  });
+
+  it('Display project scoped label on serving runtime selection on Edit', () => {
+    initIntercepts({
+      projectEnableModelMesh: false,
+      disableServingRuntimeParamsConfig: false,
+      disableProjectScoped: false,
+      disableHardwareProfiles: false,
+      servingRuntimes: [
+        mockServingRuntimeK8sResource({
+          hardwareProfileName: 'large-profile-1',
+        }),
+      ],
+    });
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
+    hardwareProfileSection
+      .findHardwareProfileSearchSelector()
+      .should('contain.text', 'Large Profile-1');
+    hardwareProfileSection.findProjectScopedLabel().should('exist');
   });
 
   it('Display global scoped label on serving runtime selection', () => {

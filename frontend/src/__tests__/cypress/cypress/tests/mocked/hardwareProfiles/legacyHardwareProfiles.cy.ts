@@ -445,7 +445,7 @@ describe('legacy profiles table', () => {
               {
                 identifier: 'nvidia.com/gpu',
                 displayName: 'nvidia.com/gpu',
-                minCount: 0,
+                minCount: 1,
                 defaultCount: 1,
               },
             ],
@@ -500,7 +500,7 @@ describe('legacy profiles table', () => {
               {
                 identifier: 'nvidia.com/gpu',
                 displayName: 'nvidia.com/gpu',
-                minCount: 0,
+                minCount: 1,
                 defaultCount: 1,
               },
             ],
