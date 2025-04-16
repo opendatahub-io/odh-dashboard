@@ -20,7 +20,6 @@ import {
   isValidHttpUrl,
   isRedHatRegistryUri,
   getCatalogModelDetailsProps,
-  getPipelineModelCustomProps,
   getCustomPropString,
 } from '~/pages/modelRegistry/screens/utils';
 import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
@@ -235,48 +234,6 @@ describe('getCatalogModelDetailsParams', () => {
   });
 });
 
-describe('getPipelineModelCustomProps', () => {
-  it('should return a PipelineModelCustomProps object with the string values of the pipeline model custom props', () => {
-    const customProperties: ModelRegistryCustomProperties = {
-      property1: { metadataType: ModelRegistryMetadataType.STRING, string_value: 'non-empty' },
-      _lastModified: { metadataType: ModelRegistryMetadataType.STRING, string_value: 'non-empty' },
-      _registeredFromCatalogSourceName: {
-        metadataType: ModelRegistryMetadataType.STRING,
-        string_value: 'sourceName',
-      },
-      _registeredFromCatalogRepositoryName: {
-        metadataType: ModelRegistryMetadataType.STRING,
-        string_value: 'repoName',
-      },
-      _registeredFromCatalogModelName: {
-        metadataType: ModelRegistryMetadataType.STRING,
-        string_value: 'modelName',
-      },
-      _registeredFromCatalogTag: {
-        metadataType: ModelRegistryMetadataType.STRING,
-        string_value: 'tag',
-      },
-      _registeredFromPipelineProject: {
-        metadataType: ModelRegistryMetadataType.STRING,
-        string_value: 'project',
-      },
-      _registeredFromPipelineRunId: {
-        metadataType: ModelRegistryMetadataType.STRING,
-        string_value: 'runId',
-      },
-      _registeredFromPipelineRunName: {
-        metadataType: ModelRegistryMetadataType.STRING,
-        string_value: 'runName',
-      },
-    };
-    const result = getPipelineModelCustomProps(customProperties);
-    expect(result).toEqual({
-      project: 'project',
-      runId: 'runId',
-      runName: 'runName',
-    });
-  });
-});
 
 describe('mergeUpdatedProperty', () => {
   it('should handle the create operation', () => {
