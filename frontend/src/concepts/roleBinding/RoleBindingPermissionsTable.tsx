@@ -27,7 +27,7 @@ type RoleBindingPermissionsTableProps = {
   createRoleBinding: (roleBinding: RoleBindingKind) => Promise<RoleBindingKind>;
   deleteRoleBinding: (name: string, namespace: string) => Promise<K8sStatus>;
   onDismissNewRow: () => void;
-  onError: (error: Error) => void;
+  onError: (error: React.ReactNode) => void;
   refresh: () => void;
 };
 
@@ -62,9 +62,10 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
     const isDuplicateName = usedNames.includes(subjectName);
     if (isDuplicateName) {
       onError(
-        new Error(
-          `Permissions for ${subjectName} already exist. Either edit the existing permissions or add new permissions.`,
-        ),
+        <>
+          Permissions for <strong>{subjectName}</strong> already exist. Either edit the existing
+          permissions or add new permissions.
+        </>,
       );
       refresh();
     } else if (isAdding) {
@@ -74,7 +75,7 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
           refresh();
         })
         .catch((e) => {
-          onError(e);
+          onError(<>{e}</>);
         });
     } else {
       createRoleBinding(newRBObject)
@@ -82,7 +83,7 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
           deleteRoleBinding(rb.metadata.name, rb.metadata.namespace)
             .then(() => refresh())
             .catch((e) => {
-              onError(e);
+              onError(<>{e}</>);
               setEditCell((prev) => prev.filter((cell) => cell !== rb.metadata.name));
             }),
         )
@@ -91,7 +92,7 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
           refresh();
         })
         .catch((e) => {
-          onError(e);
+          onError(<>{e}</>);
           setEditCell((prev) => prev.filter((cell) => cell !== rb.metadata.name));
         });
     }
