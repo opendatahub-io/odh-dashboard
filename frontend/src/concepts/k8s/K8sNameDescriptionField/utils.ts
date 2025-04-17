@@ -43,6 +43,8 @@ export const resourceTypeLimits: Record<LimitNameResourceType, number> = {
   [LimitNameResourceType.WORKBENCH]: ROUTE_BASED_NAME_LENGTH,
   [LimitNameResourceType.PVC]: MAX_PVC_NAME_LENGTH,
 };
+export const K8S_MAX_LENGTH = 12; // for testing
+// const K8S_MAX_LENGTH  = 262000; // almost 256Kb
 
 export const isK8sNameDescriptionType = (
   x?: K8sNameDescriptionType | K8sResourceCommon,
@@ -144,11 +146,29 @@ export const handleUpdateLogic =
     return _.merge({}, existingData, changedData);
   };
 
+const isFieldLengthValid = (
+  fieldValue: string,
+  isRequired: boolean,
+  maxLength = K8S_MAX_LENGTH,
+) => {
+  const length = (fieldValue && fieldValue.trim().length) || 0;
+  if (isRequired) {
+    return length > 0 && length <= maxLength;
+  }
+  return length <= maxLength;
+};
+
 export const isK8sNameDescriptionDataValid = ({
   name,
   k8sName: {
     value,
     state: { invalidCharacters, invalidLength, regexp },
   },
+  description,
 }: K8sNameDescriptionFieldData): boolean =>
-  name.trim().length > 0 && isValidK8sName(value, regexp) && !invalidLength && !invalidCharacters;
+  isFieldLengthValid(name, true) &&
+  isFieldLengthValid(description, false) &&
+  name.trim().length > 0 &&
+  isValidK8sName(value, regexp) &&
+  !invalidLength &&
+  !invalidCharacters;

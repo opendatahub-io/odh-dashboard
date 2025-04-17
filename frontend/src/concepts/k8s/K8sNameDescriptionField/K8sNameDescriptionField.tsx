@@ -2,12 +2,14 @@ import * as React from 'react';
 import {
   Button,
   FormGroup,
+  FormHelperText,
   HelperText,
   HelperTextItem,
   TextArea,
   TextInput,
-  ValidatedOptions,
 } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { ChangeEvent, FormEvent } from 'react';
 import {
   K8sNameDescriptionFieldData,
   K8sNameDescriptionFieldUpdateFunction,
@@ -15,7 +17,11 @@ import {
   UseK8sNameDescriptionFieldData,
 } from '~/concepts/k8s/K8sNameDescriptionField/types';
 import ResourceNameDefinitionTooltip from '~/concepts/k8s/ResourceNameDefinitionTooltip';
-import { handleUpdateLogic, setupDefaults } from '~/concepts/k8s/K8sNameDescriptionField/utils';
+import {
+  handleUpdateLogic,
+  K8S_MAX_LENGTH,
+  setupDefaults,
+} from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import ResourceNameField from '~/concepts/k8s/K8sNameDescriptionField/ResourceNameField';
 
 /** Companion data hook */
@@ -42,11 +48,12 @@ type K8sNameDescriptionFieldProps = {
   nameHelperText?: React.ReactNode;
   onDataChange?: UseK8sNameDescriptionFieldData['onDataChange'];
   hideDescription?: boolean;
+  setValid?: (isValid: boolean) => void;
 };
 
-const maxLength = 12; // for testing
-// const maxLength = 262000; // almost 256Kb
 type Validate = 'success' | 'warning' | 'error' | 'default';
+const makeTooLongErrorText = (fieldName: string) =>
+  `Please shorten the ${fieldName}; the maximum length is ${K8S_MAX_LENGTH} characters.`;
 /**
  * Use in place of any K8s Resource creation / edit.
  *
@@ -63,6 +70,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   nameLabel = 'Name',
   nameHelperText,
   hideDescription,
+  setValid,
 }) => {
   const [showK8sField, setShowK8sField] = React.useState(false);
 
@@ -73,19 +81,47 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   const [formName, setFormName] = React.useState<string>(name);
   const [formDesc, setFormDesc] = React.useState<string>(description);
 
-  const onNameChange = (event: any, value: string) => {
+  const nameErrorText = makeTooLongErrorText('name');
+  const descErrorText = makeTooLongErrorText('description');
+
+  const onNameChange = (event: FormEvent<HTMLInputElement>, value: string) => {
     setFormName(value);
-    const isValid = value.length < maxLength;
+    const isValid = value.length < K8S_MAX_LENGTH;
+    let newValidity = 'error';
     if (isValid) {
       onDataChange?.('name', value);
+      newValidity = 'success';
       setNameValidated('success');
     } else {
       setNameValidated('error');
       // zero it out so that the prev value isn't there
       onDataChange?.('name', '');
     }
+    if (setValid) {
+      setValid(newValidity === 'success' && descValidated === 'success');
+    }
   };
 
+  const onDescriptionChange = (event: ChangeEvent<HTMLTextAreaElement>, value: string) => {
+    setFormDesc(value);
+    const isValid = value.length < K8S_MAX_LENGTH;
+    let newValidity = 'error';
+    if (isValid) {
+      onDataChange?.('description', value);
+      setDescValidated('success');
+      newValidity = 'success';
+    } else {
+      setDescValidated('error');
+      // zero it out so that the prev value isn't there
+      onDataChange?.('description', '');
+    }
+
+    if (setValid) {
+      setValid(newValidity === 'success' && nameValidated === 'success');
+    }
+  };
+
+  // todo: if too long; add warning text that it is too long (then do it all again for the description)
   return (
     <>
       <FormGroup label={nameLabel} isRequired fieldId={`${dataTestId}-name`}>
@@ -100,6 +136,15 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
           validated={nameValidated}
           onChange={onNameChange}
         />
+        {nameValidated === 'error' && (
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem icon={<ExclamationCircleIcon />} variant={nameValidated}>
+                {nameErrorText}
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
+        )}
         {nameHelperText || (!showK8sField && !k8sName.state.immutable) ? (
           <HelperText>
             {nameHelperText && <HelperTextItem>{nameHelperText}</HelperTextItem>}
@@ -139,10 +184,20 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
             data-testid={`${dataTestId}-description`}
             id={`${dataTestId}-description`}
             name={`${dataTestId}-description`}
-            value={description}
-            onChange={(event, value) => onDataChange?.('description', value)}
+            value={formDesc}
+            onChange={onDescriptionChange}
             resizeOrientation="vertical"
+            validated={descValidated}
           />
+          {descValidated === 'error' && (
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem icon={<ExclamationCircleIcon />} variant={descValidated}>
+                  {descErrorText}
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          )}
         </FormGroup>
       ) : null}
     </>

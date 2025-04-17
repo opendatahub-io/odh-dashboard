@@ -63,11 +63,13 @@ const CreateNewStorageSection = <D extends StorageData>({
 
   return (
     <FormSection>
+      hi there
       <K8sNameDescriptionField
         data={clusterStorageNameDesc}
         onDataChange={setClusterNameDesc}
         dataTestId="create-new-storage"
         autoFocusName={autoFocusName}
+        setValid={setValid}
         nameHelperText={
           hasDuplicateName ? (
             <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
