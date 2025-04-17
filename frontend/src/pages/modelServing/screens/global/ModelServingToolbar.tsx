@@ -16,39 +16,37 @@ type ModelServingToolbarProps = {
 const ModelServingToolbar: React.FC<ModelServingToolbarProps> = ({
   filterData,
   onFilterUpdate,
-}) => {
-  return (
-    <FilterToolbar<keyof typeof modelServingFilterOptions>
-      data-testid="dashboard-table-toolbar"
-      filterOptions={modelServingFilterOptions}
-      filterOptionRenders={{
-        [ModelServingToolbarFilterOptions.name]: ({ onChange, ...props }) => (
-          <SearchInput
-            {...props}
-            aria-label="Filter by name"
-            placeholder="Filter by name"
-            onChange={(_event, value) => onChange(value)}
-          />
-        ),
-        [ModelServingToolbarFilterOptions.project]: ({ onChange, ...props }) => (
-          <SearchInput
-            {...props}
-            aria-label="Filter by project"
-            placeholder="Filter by project"
-            onChange={(_event, value) => onChange(value)}
-          />
-        ),
-      }}
-      filterData={filterData}
-      onFilterUpdate={onFilterUpdate}
-    >
-      <ToolbarGroup>
-        <ToolbarItem>
-          <ServeModelButton />
-        </ToolbarItem>
-      </ToolbarGroup>
-    </FilterToolbar>
-  );
-};
+}) => (
+  <FilterToolbar<keyof typeof modelServingFilterOptions>
+    data-testid="dashboard-table-toolbar"
+    filterOptions={modelServingFilterOptions}
+    filterOptionRenders={{
+      [ModelServingToolbarFilterOptions.name]: ({ onChange, ...props }) => (
+        <SearchInput
+          {...props}
+          aria-label="Filter by name"
+          placeholder="Filter by name"
+          onChange={(_event, value) => onChange(value)}
+        />
+      ),
+      [ModelServingToolbarFilterOptions.project]: ({ onChange, ...props }) => (
+        <SearchInput
+          {...props}
+          aria-label="Filter by project"
+          placeholder="Filter by project"
+          onChange={(_event, value) => onChange(value)}
+        />
+      ),
+    }}
+    filterData={filterData}
+    onFilterUpdate={onFilterUpdate}
+  >
+    <ToolbarGroup>
+      <ToolbarItem>
+        <ServeModelButton />
+      </ToolbarItem>
+    </ToolbarGroup>
+  </FilterToolbar>
+);
 
 export default ModelServingToolbar;

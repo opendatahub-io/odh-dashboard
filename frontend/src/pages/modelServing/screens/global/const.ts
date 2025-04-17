@@ -8,7 +8,10 @@ export const modelServingFilterOptions = {
   [ModelServingToolbarFilterOptions.project]: 'Project',
 };
 
-export type ModelServingFilterDataType = Record<ModelServingToolbarFilterOptions, string | undefined>;
+export type ModelServingFilterDataType = Record<
+  ModelServingToolbarFilterOptions,
+  string | undefined
+>;
 
 export const initialModelServingFilterData: ModelServingFilterDataType = {
   [ModelServingToolbarFilterOptions.name]: '',
