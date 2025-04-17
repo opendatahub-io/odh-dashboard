@@ -146,7 +146,7 @@ const AppRoutes: React.FC = () => {
 
         {isAdmin && (
           <>
-            <Route path="/notebookImages/*" element={<BYONImageRoutes />} />
+            <Route path="/workbenchImages/*" element={<BYONImageRoutes />} />
             <Route path="/clusterSettings" element={<ClusterSettingsPage />} />
             <Route path="/acceleratorProfiles/*" element={<AcceleratorProfileRoutes />} />
             <Route path="/servingRuntimes/*" element={<CustomServingRuntimeRoutes />} />
