@@ -78,14 +78,10 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   const [nameValidated, setNameValidated] = React.useState<Validate>('default');
   const [descValidated, setDescValidated] = React.useState<Validate>('default');
 
-  const [formName, setFormName] = React.useState<string>(name);
-  const [formDesc, setFormDesc] = React.useState<string>(description);
-
   const nameErrorText = makeTooLongErrorText('name');
   const descErrorText = makeTooLongErrorText('description');
 
   const onNameChange = (event: FormEvent<HTMLInputElement>, value: string) => {
-    setFormName(value);
     const isValid = value.length > 0 && value.length < K8S_MAX_LENGTH;
     let newValidity = 'error';
     onDataChange?.('name', value);
@@ -101,7 +97,6 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   };
 
   const onDescriptionChange = (event: ChangeEvent<HTMLTextAreaElement>, value: string) => {
-    setFormDesc(value);
     const isValid = value.length < K8S_MAX_LENGTH;
     let newValidity = 'error';
     onDataChange?.('description', value);
@@ -129,7 +124,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
           name={`${dataTestId}-name`}
           autoFocus={autoFocusName}
           isRequired
-          value={formName}
+          value={name}
           validated={nameValidated}
           onChange={onNameChange}
         />
@@ -181,7 +176,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
             data-testid={`${dataTestId}-description`}
             id={`${dataTestId}-description`}
             name={`${dataTestId}-description`}
-            value={formDesc}
+            value={description}
             onChange={onDescriptionChange}
             resizeOrientation="vertical"
             validated={descValidated}
