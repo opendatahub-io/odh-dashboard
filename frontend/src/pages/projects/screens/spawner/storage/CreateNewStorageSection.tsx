@@ -69,7 +69,6 @@ const CreateNewStorageSection = <D extends StorageData>({
         onDataChange={setClusterNameDesc}
         dataTestId="create-new-storage"
         autoFocusName={autoFocusName}
-        setValid={setValid}
         nameHelperText={
           hasDuplicateName ? (
             <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">

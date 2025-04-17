@@ -48,7 +48,6 @@ type K8sNameDescriptionFieldProps = {
   nameHelperText?: React.ReactNode;
   onDataChange?: UseK8sNameDescriptionFieldData['onDataChange'];
   hideDescription?: boolean;
-  setValid?: (isValid: boolean) => void;
 };
 
 type Validate = 'success' | 'warning' | 'error' | 'default';
@@ -70,7 +69,6 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   nameLabel = 'Name',
   nameHelperText,
   hideDescription,
-  setValid,
 }) => {
   const [showK8sField, setShowK8sField] = React.useState(false);
 
@@ -82,34 +80,23 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   const descErrorText = makeTooLongErrorText('description');
 
   const onNameChange = (event: FormEvent<HTMLInputElement>, value: string) => {
-    const isValid = value.length > 0 && value.length < K8S_MAX_LENGTH;
-    let newValidity = 'error';
+    const isValid = value.length > 0 && value.length <= K8S_MAX_LENGTH;
     onDataChange?.('name', value);
     if (isValid) {
-      newValidity = 'success';
       setNameValidated('success');
     } else {
       setNameValidated('error');
     }
-    if (setValid) {
-      setValid(newValidity === 'success' && descValidated === 'success');
-    }
   };
 
   const onDescriptionChange = (event: ChangeEvent<HTMLTextAreaElement>, value: string) => {
-    const isValid = value.length < K8S_MAX_LENGTH;
-    let newValidity = 'error';
+    const isValid = value.length <= K8S_MAX_LENGTH;
     onDataChange?.('description', value);
 
     if (isValid) {
       setDescValidated('success');
-      newValidity = 'success';
     } else {
       setDescValidated('error');
-    }
-
-    if (setValid) {
-      setValid(newValidity === 'success' && nameValidated === 'success');
     }
   };
 
