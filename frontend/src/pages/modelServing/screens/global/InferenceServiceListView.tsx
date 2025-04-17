@@ -49,7 +49,7 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
             .includes(projectFilter)
         );
       }),
-    [projects, filterData],
+    [projects, filterData, unfilteredInferenceServices],
   );
 
   const resetFilters = () => {
