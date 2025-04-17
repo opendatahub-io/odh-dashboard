@@ -34,6 +34,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
   filterTokens,
   clearFilters,
   enablePagination,
+  onClearFilters,
   toolbarContent,
   isGlobal,
   isLoading,
@@ -69,6 +70,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
         columns={mappedColumns}
         loading={isLoading}
         variant={isGlobal ? undefined : 'compact'}
+        onClearFilters={onClearFilters}
         toolbarContent={toolbarContent}
         enablePagination={enablePagination}
         emptyTableView={

@@ -37,6 +37,10 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
   const [filterData, setFilterData] = React.useState<DashboardFilterDataType>(
     initialDashboardFilterData,
   );
+  const onClearFilters = React.useCallback(
+    () => setFilterData(initialDashboardFilterData),
+    [setFilterData],
+  );
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
   const [search, setSearch] = React.useState('');
 
@@ -63,8 +67,12 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
     [projects, filterData],
   );
 
+  // const resetFilters = () => {
+  //   setSearch('');
+  // };
+
   const resetFilters = () => {
-    setSearch('');
+    setFilterData(initialDashboardFilterData);
   };
 
   const searchTypes = React.useMemo(() => [SearchType.NAME, SearchType.PROJECT], []);
@@ -86,6 +94,7 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
       }}
       filterTokens={filterTokens}
       enablePagination
+      onClearFilters={onClearFilters}
       toolbarContent={
         <InferenceServiceToolbar filterData={filterData} onFilterUpdate={onFilterUpdate} />
       }
