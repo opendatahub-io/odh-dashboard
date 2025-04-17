@@ -807,7 +807,7 @@ describe('Model Serving Global', () => {
 
       // Select the "Name" filter
       const modelServingGlobalToolbar = modelServingGlobal.getTableToolbar();
-      modelServingGlobalToolbar.findFilterMenuOption('filter-dropdown-select', 'Name').click();
+      modelServingGlobalToolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Name').click();
       modelServingGlobalToolbar.findSearchInput().type('Test Inference Service');
       // Verify only rows with the typed run name exist
       modelServingGlobal.getModelRow('Test Inference Service').should('exist');
@@ -835,7 +835,7 @@ describe('Model Serving Global', () => {
 
       // Select the "Project" filter
       const modelServingGlobalToolbar = modelServingGlobal.getTableToolbar();
-      modelServingGlobalToolbar.findFilterMenuOption('filter-dropdown-select', 'Project').click();
+      modelServingGlobalToolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Project').click();
       modelServingGlobalToolbar.findSearchInput().type('test project');
       // Verify only rows with the typed run name exist
       modelServingGlobal.getModelRow('Test Inference Service').should('exist');
