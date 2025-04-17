@@ -4,8 +4,8 @@ import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { getInferenceServiceProjectDisplayName } from './utils';
 import InferenceServiceTable from './InferenceServiceTable';
-import InferenceServiceToolbar from './InferenceServiceToolbar';
-import { DashboardFilterDataType, initialDashboardFilterData } from './const';
+import ModelServingToolbar from './ModelServingToolbar';
+import { ModelServingFilterDataType, initialModelServingFilterData } from './const';
 
 type InferenceServiceListViewProps = {
   inferenceServices: InferenceServiceKind[];
@@ -21,11 +21,11 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
   filterTokens,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
-  const [filterData, setFilterData] = React.useState<DashboardFilterDataType>(
-    initialDashboardFilterData,
+  const [filterData, setFilterData] = React.useState<ModelServingFilterDataType>(
+    initialModelServingFilterData,
   );
   const onClearFilters = React.useCallback(
-    () => setFilterData(initialDashboardFilterData),
+    () => setFilterData(initialModelServingFilterData),
     [setFilterData],
   );
 
@@ -53,7 +53,7 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
   );
 
   const resetFilters = () => {
-    setFilterData(initialDashboardFilterData);
+    setFilterData(initialModelServingFilterData);
   };
 
   const onFilterUpdate = React.useCallback(
@@ -75,7 +75,7 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
       enablePagination
       onClearFilters={onClearFilters}
       toolbarContent={
-        <InferenceServiceToolbar filterData={filterData} onFilterUpdate={onFilterUpdate} />
+        <ModelServingToolbar filterData={filterData} onFilterUpdate={onFilterUpdate} />
       }
     />
   );

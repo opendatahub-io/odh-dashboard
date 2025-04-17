@@ -2,23 +2,27 @@ import * as React from 'react';
 import { SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import FilterToolbar from '~/components/FilterToolbar';
 import ServeModelButton from './ServeModelButton';
-import { Options, DashboardFilterDataType, options } from './const';
+import {
+  ModelServingToolbarFilterOptions,
+  ModelServingFilterDataType,
+  modelServingFilterOptions,
+} from './const';
 
-type DashboardToolbarProps = {
-  filterData: DashboardFilterDataType;
+type ModelServingToolbarProps = {
+  filterData: ModelServingFilterDataType;
   onFilterUpdate: (key: string, value?: string | { label: string; value: string }) => void;
 };
 
-const InferenceServiceToolbar: React.FC<DashboardToolbarProps> = ({
+const ModelServingToolbar: React.FC<ModelServingToolbarProps> = ({
   filterData,
   onFilterUpdate,
 }) => {
   return (
-    <FilterToolbar<keyof typeof options>
+    <FilterToolbar<keyof typeof modelServingFilterOptions>
       data-testid="dashboard-table-toolbar"
-      filterOptions={options}
+      filterOptions={modelServingFilterOptions}
       filterOptionRenders={{
-        [Options.name]: ({ onChange, ...props }) => (
+        [ModelServingToolbarFilterOptions.name]: ({ onChange, ...props }) => (
           <SearchInput
             {...props}
             aria-label="Filter by name"
@@ -26,7 +30,7 @@ const InferenceServiceToolbar: React.FC<DashboardToolbarProps> = ({
             onChange={(_event, value) => onChange(value)}
           />
         ),
-        [Options.project]: ({ onChange, ...props }) => (
+        [ModelServingToolbarFilterOptions.project]: ({ onChange, ...props }) => (
           <SearchInput
             {...props}
             aria-label="Filter by project"
@@ -47,4 +51,4 @@ const InferenceServiceToolbar: React.FC<DashboardToolbarProps> = ({
   );
 };
 
-export default InferenceServiceToolbar;
+export default ModelServingToolbar;
