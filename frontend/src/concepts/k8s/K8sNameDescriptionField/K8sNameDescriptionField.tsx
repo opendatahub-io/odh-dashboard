@@ -50,7 +50,9 @@ type K8sNameDescriptionFieldProps = {
   hideDescription?: boolean;
 };
 
+// todo: look elsewhere in the code for this! TODO
 type Validate = 'success' | 'warning' | 'error' | 'default';
+type NameError = 'tooShort' | 'tooLong' | 'none';
 const makeTooLongErrorText = (fieldName: string) =>
   `Please shorten the ${fieldName}; the maximum length is ${K8S_MAX_LENGTH} characters.`;
 /**
@@ -76,11 +78,22 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   const [nameValidated, setNameValidated] = React.useState<Validate>('default');
   const [descValidated, setDescValidated] = React.useState<Validate>('default');
 
+  const [nameError, setNameError] = React.useState<NameError>('none');
+
   const nameErrorText = makeTooLongErrorText('name');
   const descErrorText = makeTooLongErrorText('description');
 
+  // none is being set when name is zero'd out.  fix NEXT! TODO
   const onNameChange = (event: FormEvent<HTMLInputElement>, value: string) => {
     const isValid = value.length > 0 && value.length <= K8S_MAX_LENGTH;
+
+    if (!isValid) {
+      const actualNameError =
+        value.length && value.length > K8S_MAX_LENGTH ? 'tooLong' : 'tooShort';
+      setNameError(actualNameError);
+    }
+    setNameError('none');
+
     onDataChange?.('name', value);
     if (isValid) {
       setNameValidated('success');
@@ -119,7 +132,9 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
           <FormHelperText>
             <HelperText>
               <HelperTextItem icon={<ExclamationCircleIcon />} variant={nameValidated}>
-                {nameErrorText}
+                {nameError}
+                {nameError === 'tooLong' && nameErrorText}
+                {nameError === 'tooShort' && 'Name is required'}
               </HelperTextItem>
             </HelperText>
           </FormHelperText>

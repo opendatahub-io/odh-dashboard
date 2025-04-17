@@ -165,15 +165,10 @@ export const isK8sNameDescriptionDataValid = ({
     state: { invalidCharacters, invalidLength, regexp },
   },
   description,
-}: K8sNameDescriptionFieldData): boolean => {
-  console.log('here in isK8sNameDescriptionDataValid:', name, description);
-
-  return (
-    isFieldLengthValid(name, true) &&
-    isFieldLengthValid(description, false) &&
-    name.trim().length > 0 &&
-    isValidK8sName(value, regexp) &&
-    !invalidLength &&
-    !invalidCharacters
-  );
-};
+}: K8sNameDescriptionFieldData): boolean =>
+  isFieldLengthValid(name, true) &&
+  isFieldLengthValid(description, false) &&
+  name.trim().length > 0 &&
+  isValidK8sName(value, regexp) &&
+  !invalidLength &&
+  !invalidCharacters;
