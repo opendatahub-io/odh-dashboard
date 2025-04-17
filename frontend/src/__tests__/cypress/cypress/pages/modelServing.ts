@@ -6,7 +6,19 @@ import { K8sNameDescriptionField } from '~/__tests__/cypress/cypress/pages/compo
 import { TableToolbar } from './components/TableToolbar';
 import { Contextual } from './components/Contextual';
 
-class ModelServingToolbar extends TableToolbar {}
+class ModelServingToolbar extends Contextual<HTMLElement> {
+  findToggleButton(id: string) {
+    return this.find().pfSwitch(id).click();
+  }
+
+  findFilterMenuOption(id: string, name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findToggleButton(id).parents().findByRole('menuitem', { name });
+  }
+
+  findSearchInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('filter-toolbar-text-field');
+  }
+}
 class ModelServingGlobal {
   visit(project?: string) {
     cy.visitWithLogin(`/modelServing${project ? `/${project}` : ''}`);
@@ -91,7 +103,7 @@ class ModelServingGlobal {
   }
 
   getTableToolbar() {
-    return new ModelServingToolbar(() => cy.findByTestId('dashboard-table-toolbar'));
+    return new ModelServingToolbar(() => cy.findByTestId('model-serving-table-toolbar'));
   }
 
   findServingRuntime(name: string) {

@@ -18,7 +18,7 @@ const ModelServingToolbar: React.FC<ModelServingToolbarProps> = ({
   onFilterUpdate,
 }) => (
   <FilterToolbar<keyof typeof modelServingFilterOptions>
-    data-testid="dashboard-table-toolbar"
+    data-testid="model-serving-table-toolbar"
     filterOptions={modelServingFilterOptions}
     filterOptionRenders={{
       [ModelServingToolbarFilterOptions.name]: ({ onChange, ...props }) => (
