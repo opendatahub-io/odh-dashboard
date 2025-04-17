@@ -33,7 +33,7 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
     () =>
       unfilteredInferenceServices.filter((project) => {
         const nameFilter = filterData.Name?.toLowerCase();
-        const userFilter = filterData.Project?.toLowerCase();
+        const projectFilter = filterData.Project?.toLowerCase();
 
         if (
           nameFilter &&
@@ -43,10 +43,10 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
         }
 
         return (
-          !userFilter ||
+          !projectFilter ||
           getInferenceServiceProjectDisplayName(project, projects)
             .toLowerCase()
-            .includes(userFilter)
+            .includes(projectFilter)
         );
       }),
     [projects, filterData],
