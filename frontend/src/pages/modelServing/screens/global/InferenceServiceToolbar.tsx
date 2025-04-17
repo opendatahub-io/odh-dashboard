@@ -2,18 +2,7 @@ import * as React from 'react';
 import { SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import FilterToolbar from '~/components/FilterToolbar';
 import ServeModelButton from './ServeModelButton';
-
-export enum Options {
-  name = 'Name',
-  project = 'Project',
-}
-
-export const options = {
-  [Options.name]: 'Name',
-  [Options.project]: 'Project',
-};
-
-export type DashboardFilterDataType = Record<Options, string | undefined>;
+import { Options, DashboardFilterDataType, options } from './const';
 
 type DashboardToolbarProps = {
   filterData: DashboardFilterDataType;

@@ -23,6 +23,7 @@ type InferenceServiceTableProps = {
   getColumns?: (projects: ProjectKind[]) => SortableData<InferenceServiceKind>[];
   refresh?: () => void;
   clearFilters?: () => void;
+  onClearFilters?: () => void;
   filterTokens?: (servingRuntime?: string | undefined) => SecretKind[];
 } & Partial<Pick<React.ComponentProps<typeof Table>, 'enablePagination' | 'toolbarContent'>>;
 
