@@ -86,16 +86,14 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
 
   const onNameChange = (event: FormEvent<HTMLInputElement>, value: string) => {
     setFormName(value);
-    const isValid = value.length < K8S_MAX_LENGTH;
+    const isValid = value.length > 0 && value.length < K8S_MAX_LENGTH;
     let newValidity = 'error';
+    onDataChange?.('name', value);
     if (isValid) {
-      onDataChange?.('name', value);
       newValidity = 'success';
       setNameValidated('success');
     } else {
       setNameValidated('error');
-      // zero it out so that the prev value isn't there
-      onDataChange?.('name', '');
     }
     if (setValid) {
       setValid(newValidity === 'success' && descValidated === 'success');
@@ -106,14 +104,13 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
     setFormDesc(value);
     const isValid = value.length < K8S_MAX_LENGTH;
     let newValidity = 'error';
+    onDataChange?.('description', value);
+
     if (isValid) {
-      onDataChange?.('description', value);
       setDescValidated('success');
       newValidity = 'success';
     } else {
       setDescValidated('error');
-      // zero it out so that the prev value isn't there
-      onDataChange?.('description', '');
     }
 
     if (setValid) {
