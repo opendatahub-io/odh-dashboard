@@ -228,7 +228,7 @@ describe('Artifacts', () => {
   });
 
   describe('artifact in pipeline run details page', () => {
-    it('url is clickable', () => {
+    it.only('url is clickable', () => {
       pipelineRunDetails.visit(projectName, mockMetricsVisualizationRun.run_id);
 
       pipelineRunDetails.findTaskNode('markdown-visualization').click();

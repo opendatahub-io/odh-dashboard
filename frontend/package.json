@@ -58,16 +58,16 @@
     "@monaco-editor/react": "^4.6.0",
     "@openshift/dynamic-plugin-sdk": "^4.0.0",
     "@openshift/dynamic-plugin-sdk-utils": "^4.0.1",
-    "@patternfly/patternfly": "^6.2.0",
+    "@patternfly/patternfly": "^6.3.0-prerelease.6",
     "@patternfly/quickstarts": "^6.2.0",
     "@patternfly/react-catalog-view-extension": "^6.1.0",
     "@patternfly/react-charts": "^8.2.0",
     "@patternfly/react-code-editor": "^6.2.0",
-    "@patternfly/react-core": "^6.2.0",
+    "@patternfly/react-core": "^6.2.1-prerelease.5",
     "@patternfly/react-drag-drop": "^6.2.0",
     "@patternfly/react-icons": "^6.2.0",
     "@patternfly/react-log-viewer": "^6.1.0",
-    "@patternfly/react-styles": "^6.2.0",
+    "@patternfly/react-styles": "^6.2.1-prerelease.0",
     "@patternfly/react-table": "^6.2.0",
     "@patternfly/react-templates": "^6.2.0",
     "@patternfly/react-tokens": "^6.2.0",
@@ -228,9 +228,9 @@
       "react-router-dom": "^7.1.5",
       "react": "^18.2.0",
       "react-dom": "^18.2.0",
-      "@patternfly/react-core": "^6.2.0",
+      "@patternfly/react-core": "^6.2.1-prerelease.5",
       "@patternfly/react-icons": "^6.2.0",
-      "@patternfly/react-styles": "^6.2.0",
+      "@patternfly/react-styles": "^6.2.1-prerelease.0",
       "@patternfly/react-table": "^6.2.0",
       "@patternfly/react-virtualized-extension": "^6.0.0"
     },
@@ -238,7 +238,7 @@
       "react": "^18.2.0"
     },
     "@patternfly/quickstarts": {
-      "@patternfly/react-core": "^6.2.0"
+      "@patternfly/react-core": "^6.2.1-prerelease.5"
     },
     "ws": "^8.17.1",
     "dompurify": "^3.2.4"
