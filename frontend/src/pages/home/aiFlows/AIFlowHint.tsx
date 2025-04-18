@@ -66,7 +66,7 @@ const AIFlowHint: React.FC<AIFlowHintProps> = ({ isDisplayed }) => {
               flex={{ lg: 'flex_1' }}
               style={{ height: '220px' }}
             >
-              <Flex justifyContent={{ default: 'justifyContentCenter' }} style={{ height: '100%' }}>
+              <Flex justifyContent={{ default: 'justifyContentCenter' }} className="pf-v6-u-h-100">
                 <img
                   data-testid="ai-flow-hint-image"
                   src={aiFlowHintImage}
