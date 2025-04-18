@@ -10,6 +10,7 @@ import ProjectsGallery from './ProjectsGallery';
 import CreateAndTrainGallery from './CreateAndTrainGallery';
 import DeployAndMonitorGallery from './DeployAndMonitorGallery';
 import AIFlowCard from './AIFlowCard';
+import AIFlowHint from './AIFlowHint';
 
 export const useAIFlows = (): React.ReactNode => {
   const { status: workbenchesAvailable } = useIsAreaAvailable(SupportedArea.WORKBENCHES);
@@ -17,6 +18,8 @@ export const useAIFlows = (): React.ReactNode => {
   const { status: projectsAvailable } = useIsAreaAvailable(SupportedArea.DS_PROJECTS_VIEW);
   const { status: modelServingAvailable } = useIsAreaAvailable(SupportedArea.MODEL_SERVING);
   const { status: modelRegistryAvailable } = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY);
+  const { status: fineTuningAvailable } = useIsAreaAvailable(SupportedArea.FINE_TUNING);
+
   const servingPlatformStatuses = useServingPlatformStatuses();
   const [selected, setSelected] = React.useState<string | undefined>();
 
@@ -88,8 +91,9 @@ export const useAIFlows = (): React.ReactNode => {
       <PageSection hasBodyWrapper={false} data-testid="home-page-ai-flows">
         <Stack hasGutter>
           <Content>
-            <Content component="h1">Work with AI/ML models</Content>
+            <Content component="h1">Train, serve, monitor, and manage AI/ML models</Content>
           </Content>
+          <AIFlowHint isDisplayed={fineTuningAvailable} />
           <EvenlySpacedGallery itemCount={cards.length} hasGutter>
             {cards}
           </EvenlySpacedGallery>
@@ -113,5 +117,6 @@ export const useAIFlows = (): React.ReactNode => {
     selected,
     workbenchesAvailable,
     servingPlatformStatuses.platformEnabledCount,
+    fineTuningAvailable,
   ]);
 };
