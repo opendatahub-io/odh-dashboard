@@ -11,7 +11,7 @@ const resourceFilters = resources.getLearningCenterFilters();
 describe('[Automation Bug: RHOAIENG-21088] Verify the filters on Resources page', () => {
   it(
     'Test whether enabled, resource type, provider and provider type filters are working',
-    { tags: ['@Sanity', '@SanitySet1', '@ODS-489', '@Dashboard', '@Bug'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ODS-489', '@Dashboard', '@Maintain'] },
     () => {
       // Authentication
       cy.step('Log into the application');
