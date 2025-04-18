@@ -10,13 +10,13 @@ const BYONImageRoutes: React.FC = () => (
     <Route
       path="/hardwareProfile/create"
       element={
-        <ManageHardwareProfile homepageTitle="Notebook images" contextPath="/notebookImages" />
+        <ManageHardwareProfile homepageTitle="Workbench images" contextPath="/workbenchImages" />
       }
     />
     <Route
       path="/acceleratorProfile/create"
       element={
-        <ManageAcceleratorProfile homepageTitle="Notebook images" contextPath="/notebookImages" />
+        <ManageAcceleratorProfile homepageTitle="Workbench images" contextPath="/workbenchImages" />
       }
     />
     <Route path="*" element={<Navigate to="." />} />
