@@ -109,6 +109,14 @@ const RegisterCatalogModel: React.FC = () => {
       setData('modelLocationURI', model.artifacts?.map((artifact) => artifact.uri)[0] || '');
       setData('modelRegistry', preferredModelRegistry?.metadata.name || '');
 
+      // Set top-level source properties
+      setData('modelSourceName', model.name);
+      setData(
+        'modelSourceId',
+        model.artifacts?.map((artifact) => artifact.tags && artifact.tags[0])[0] ?? '',
+      );
+      setData('modelSourceGroup', decodedParams.sourceName || '');
+
       const registeredFromReferenceCustomProperties: ModelRegistryCustomProperties = Object.entries(
         decodedParams,
       )

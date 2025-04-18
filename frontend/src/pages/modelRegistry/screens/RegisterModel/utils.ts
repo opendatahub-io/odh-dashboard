@@ -1,10 +1,13 @@
 import {
-  ModelArtifact,
-  ModelArtifactState,
+  ModelRegistryMetadataType,
   ModelState,
+  ModelArtifactState,
+  ModelArtifact,
+  CreateModelArtifactData,
   ModelVersion,
   RegisteredModel,
   RegisteredModelList,
+  ModelRegistryCustomProperties,
 } from '~/concepts/modelRegistry/types';
 import { ModelRegistryAPIState } from '~/concepts/modelRegistry/context/useModelRegistryAPIState';
 import { objectStorageFieldsToUri } from '~/concepts/modelRegistry/utils';
@@ -77,6 +80,33 @@ export const registerVersion = async (
   let modelVersion;
   let modelArtifact;
   const errors: { [key: string]: Error | undefined } = {};
+
+  const versionCustomProperties = { ...(formData.versionCustomProperties || {}) };
+
+  if (formData.modelSourceGroup) {
+    versionCustomProperties.modelSourceGroup = {
+      metadataType: ModelRegistryMetadataType.STRING,
+      // eslint-disable-next-line camelcase
+      string_value: formData.modelSourceGroup,
+    };
+  }
+
+  if (formData.modelSourceId) {
+    versionCustomProperties.modelSourceId = {
+      metadataType: ModelRegistryMetadataType.STRING,
+      // eslint-disable-next-line camelcase
+      string_value: formData.modelSourceId,
+    };
+  }
+
+  if (formData.modelSourceName) {
+    versionCustomProperties.modelSourceName = {
+      metadataType: ModelRegistryMetadataType.STRING,
+      // eslint-disable-next-line camelcase
+      string_value: formData.modelSourceName,
+    };
+  }
+
   try {
     modelVersion = await apiState.api.createModelVersionForRegisteredModel(
       {},
@@ -84,7 +114,7 @@ export const registerVersion = async (
       {
         name: formData.versionName,
         description: formData.versionDescription,
-        customProperties: formData.versionCustomProperties || {},
+        customProperties: versionCustomProperties,
         state: ModelState.LIVE,
         author,
         registeredModelId: registeredModel.id,
@@ -100,18 +130,40 @@ export const registerVersion = async (
   }
 
   try {
-    modelArtifact = await apiState.api.createModelArtifactForModelVersion({}, modelVersion.id, {
+    const artifactCustomProperties: ModelRegistryCustomProperties = {};
+
+    if (formData.modelSourceGroup) {
+      artifactCustomProperties.modelSourceGroup = {
+        metadataType: ModelRegistryMetadataType.STRING,
+        // eslint-disable-next-line camelcase
+        string_value: formData.modelSourceGroup,
+      };
+    }
+
+    if (formData.modelSourceId) {
+      artifactCustomProperties.modelSourceId = {
+        metadataType: ModelRegistryMetadataType.STRING,
+        // eslint-disable-next-line camelcase
+        string_value: formData.modelSourceId,
+      };
+    }
+
+    if (formData.modelSourceName) {
+      artifactCustomProperties.modelSourceName = {
+        metadataType: ModelRegistryMetadataType.STRING,
+        // eslint-disable-next-line camelcase
+        string_value: formData.modelSourceName,
+      };
+    }
+
+    const artifactData: CreateModelArtifactData = {
       name: `${formData.versionName}`,
-      description: formData.versionDescription,
-      customProperties: {},
+      description: formData.versionDescription || '',
+      customProperties: artifactCustomProperties,
       state: ModelArtifactState.LIVE,
       author,
       modelFormatName: formData.sourceModelFormat,
       modelFormatVersion: formData.sourceModelFormatVersion,
-      // TODO fill in the name of the data connection we used to prefill if we used one
-      // TODO this should be done as part of https://issues.redhat.com/browse/RHOAIENG-9914
-      // TODO should be fixed via https://issues.redhat.com/browse/RHOAIENG-19921
-      // storageKey: 'TODO',
       uri:
         formData.modelLocationType === ModelLocationType.ObjectStorage
           ? objectStorageFieldsToUri({
@@ -119,10 +171,16 @@ export const registerVersion = async (
               bucket: formData.modelLocationBucket,
               region: formData.modelLocationRegion,
               path: formData.modelLocationPath,
-            }) || '' // We'll only hit this case if required fields are empty strings, so form validation should catch it.
+            }) || ''
           : formData.modelLocationURI,
       artifactType: 'model-artifact',
-    });
+    };
+
+    modelArtifact = await apiState.api.createModelArtifactForModelVersion(
+      {},
+      modelVersion.id,
+      artifactData,
+    );
   } catch (e) {
     if (e instanceof Error) {
       errors[RegistrationErrorType.MODEL_ARTIFACT] = e;
