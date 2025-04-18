@@ -113,7 +113,6 @@ export const getCatalogModelDetailsProps = (
       tag: model.modelSourceId,
     };
   }
-
   // Fall back to custom properties if top-level ones are not available, this will ensure that previously registered model will work well
   return {
     sourceName: getCustomPropString(customProps, '_registeredFromCatalogSourceName'),

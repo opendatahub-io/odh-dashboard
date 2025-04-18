@@ -154,7 +154,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
           {mv.modelSourceId && mv.modelSourceName && mv.modelSourceGroup && (
             <DashboardDescriptionListGroup title="Registered from">
               <ModelVersionPipelineDescription
-                pipelineCustomProperties={{
+                sourceInfo={{
                   project: mv.modelSourceGroup,
                   runId: mv.modelSourceId,
                   runName: mv.modelSourceName,
