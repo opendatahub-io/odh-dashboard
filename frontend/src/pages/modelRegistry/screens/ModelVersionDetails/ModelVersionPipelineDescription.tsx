@@ -8,38 +8,29 @@ import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { FindAdministratorOptions } from '~/pages/projects/screens/projects/const';
 import PopoverListContent from '~/components/PopoverListContent';
 import { globalPipelineRunDetailsRoute } from '~/routes';
-import { PipelineModelCustomProps } from './const';
-
-type ModelVersionPipelineDescriptionProps = {
-  pipelineCustomProperties: PipelineModelCustomProps;
-};
+import { ModelVersionPipelineDescriptionProps } from './const';
 
 const ModelVersionPipelineDescription: React.FC<ModelVersionPipelineDescriptionProps> = ({
-  pipelineCustomProperties,
+  sourceInfo: { project, runId, runName },
 }) => {
   const { projects } = React.useContext(ProjectsContext);
-  const registeredPipelineProject = projects.find(
-    (project) => project.metadata.name === pipelineCustomProperties.project,
-  );
+  const registeredPipelineProject = projects.find((p) => p.metadata.name === project);
 
   const renderRunLink = registeredPipelineProject ? (
     <Link
       style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
-      to={globalPipelineRunDetailsRoute(
-        pipelineCustomProperties.project,
-        pipelineCustomProperties.runId,
-      )}
+      to={globalPipelineRunDetailsRoute(project, runId)}
     >
-      {pipelineCustomProperties.runName}
+      {runName}
     </Link>
   ) : (
-    <b>{pipelineCustomProperties.runName}</b>
+    <b>{runName}</b>
   );
 
   const renderProject = registeredPipelineProject
     ? registeredPipelineProject.metadata.annotations?.['openshift.io/display-name'] ??
       registeredPipelineProject.metadata.name
-    : pipelineCustomProperties.project;
+    : project;
 
   return (
     <Flex
