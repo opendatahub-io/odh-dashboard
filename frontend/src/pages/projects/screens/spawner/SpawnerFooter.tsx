@@ -248,7 +248,6 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       .catch(handleError);
   };
 
-  console.log('j4: has error???', error);
   return (
     <Stack hasGutter>
       {error && (
