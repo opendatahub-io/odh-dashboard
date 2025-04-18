@@ -1,7 +1,8 @@
 import React from 'react';
 import DeleteModal from '~/pages/projects/components/DeleteModal';
 import { AcceleratorProfileKind } from '~/k8sTypes';
-import { deleteAcceleratorProfile } from '~/services/acceleratorProfileService';
+import { deleteAcceleratorProfile } from '~/api';
+import { useDashboardNamespace } from '~/redux/selectors';
 
 type DeleteAcceleratorProfileModalProps = {
   acceleratorProfile: AcceleratorProfileKind;
@@ -14,6 +15,7 @@ const DeleteAcceleratorProfileModal: React.FC<DeleteAcceleratorProfileModalProps
 }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
+  const { dashboardNamespace } = useDashboardNamespace();
 
   const onBeforeClose = (deleted: boolean) => {
     onClose(deleted);
@@ -30,7 +32,7 @@ const DeleteAcceleratorProfileModal: React.FC<DeleteAcceleratorProfileModalProps
       submitButtonLabel="Delete"
       onDelete={() => {
         setIsDeleting(true);
-        deleteAcceleratorProfile(acceleratorProfile.metadata.name)
+        deleteAcceleratorProfile(acceleratorProfile.metadata.name, dashboardNamespace)
           .then(() => {
             onBeforeClose(true);
           })

@@ -8,12 +8,10 @@ import {
 } from '@patternfly/react-core';
 import React from 'react';
 import { useNavigate } from 'react-router';
+import { createAcceleratorProfile, updateAcceleratorProfile } from '~/api';
 import { AcceleratorProfileKind } from '~/k8sTypes';
-import {
-  createAcceleratorProfile,
-  updateAcceleratorProfile,
-} from '~/services/acceleratorProfileService';
 import { AcceleratorProfileFormData } from '~/pages/acceleratorProfiles/screens/manage/types';
+import { useDashboardNamespace } from '~/redux/selectors';
 import useNotification from '~/utilities/useNotification';
 
 type ManageAcceleratorProfileFooterProps = {
@@ -33,31 +31,28 @@ export const ManageAcceleratorProfileFooter: React.FC<ManageAcceleratorProfileFo
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const navigate = useNavigate();
   const notification = useNotification();
+  const { dashboardNamespace } = useDashboardNamespace();
 
   const onCreateAcceleratorProfile = async () => {
     setIsLoading(true);
-    createAcceleratorProfile(state)
-      .then((res) => {
-        if (res.success) {
-          if (redirectPath !== '/acceleratorProfiles') {
-            notification.success(
-              'Accelerator profile has been created.',
-              <Stack hasGutter>
-                <StackItem>
-                  A new accelerator profile <strong>{state.displayName}</strong> has been created.
-                </StackItem>
-                <StackItem>
-                  <Button isInline variant="link" onClick={() => navigate(`/acceleratorProfiles`)}>
-                    View profile details
-                  </Button>
-                </StackItem>
-              </Stack>,
-            );
-          }
-          navigate(redirectPath);
-        } else {
-          setErrorMessage(res.error || 'Could not create accelerator profile');
+    createAcceleratorProfile(state, dashboardNamespace)
+      .then(() => {
+        if (redirectPath !== '/acceleratorProfiles') {
+          notification.success(
+            'Accelerator profile has been created.',
+            <Stack hasGutter>
+              <StackItem>
+                A new accelerator profile <strong>{state.displayName}</strong> has been created.
+              </StackItem>
+              <StackItem>
+                <Button isInline variant="link" onClick={() => navigate(`/acceleratorProfiles`)}>
+                  View profile details
+                </Button>
+              </StackItem>
+            </Stack>,
+          );
         }
+        navigate(redirectPath);
       })
       .catch((err) => {
         setErrorMessage(err.message);
@@ -70,13 +65,9 @@ export const ManageAcceleratorProfileFooter: React.FC<ManageAcceleratorProfileFo
   const onUpdateAcceleratorProfile = async () => {
     if (existingAcceleratorProfile) {
       setIsLoading(true);
-      updateAcceleratorProfile(existingAcceleratorProfile.metadata.name, state)
-        .then((res) => {
-          if (res.success) {
-            navigate(redirectPath);
-          } else {
-            setErrorMessage(res.error || 'Could not update accelerator profile');
-          }
+      updateAcceleratorProfile(existingAcceleratorProfile.metadata.name, dashboardNamespace, state)
+        .then(() => {
+          navigate(redirectPath);
         })
         .catch((err) => {
           setErrorMessage(err.message);
