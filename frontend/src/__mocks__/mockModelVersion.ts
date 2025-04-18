@@ -17,6 +17,10 @@ type MockModelVersionType = {
   modelSourceGroup?: string;
   modelSourceId?: string;
   modelSourceName?: string;
+  catalogSourceName?: string;
+  catalogRepositoryName?: string;
+  catalogModelName?: string;
+  catalogModelTag?: string;
 };
 
 export const mockModelVersion = ({
@@ -32,6 +36,10 @@ export const mockModelVersion = ({
   modelSourceGroup = '',
   modelSourceId = '',
   modelSourceName = '',
+  catalogSourceName = '',
+  catalogRepositoryName = '',
+  catalogModelName = '',
+  catalogModelTag = '',
 }: MockModelVersionType): ModelVersion => ({
   author,
   createTimeSinceEpoch,
@@ -45,4 +53,8 @@ export const mockModelVersion = ({
   modelSourceGroup,
   modelSourceId,
   modelSourceName,
+  catalogSourceName,
+  catalogRepositoryName,
+  catalogModelName,
+  catalogModelTag,
 });

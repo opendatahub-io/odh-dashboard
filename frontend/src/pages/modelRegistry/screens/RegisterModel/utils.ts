@@ -107,6 +107,39 @@ export const registerVersion = async (
     };
   }
 
+  // For backward compatibility, set catalog custom properties if catalog properties exist
+  if (formData.catalogSourceName) {
+    versionCustomProperties._registeredFromCatalogSourceName = {
+      metadataType: ModelRegistryMetadataType.STRING,
+      // eslint-disable-next-line camelcase
+      string_value: formData.catalogSourceName,
+    };
+  }
+
+  if (formData.catalogRepositoryName) {
+    versionCustomProperties._registeredFromCatalogRepositoryName = {
+      metadataType: ModelRegistryMetadataType.STRING,
+      // eslint-disable-next-line camelcase
+      string_value: formData.catalogRepositoryName,
+    };
+  }
+
+  if (formData.catalogModelName) {
+    versionCustomProperties._registeredFromCatalogModelName = {
+      metadataType: ModelRegistryMetadataType.STRING,
+      // eslint-disable-next-line camelcase
+      string_value: formData.catalogModelName,
+    };
+  }
+
+  if (formData.catalogModelTag) {
+    versionCustomProperties._registeredFromCatalogTag = {
+      metadataType: ModelRegistryMetadataType.STRING,
+      // eslint-disable-next-line camelcase
+      string_value: formData.catalogModelTag,
+    };
+  }
+
   try {
     modelVersion = await apiState.api.createModelVersionForRegisteredModel(
       {},
@@ -118,6 +151,13 @@ export const registerVersion = async (
         state: ModelState.LIVE,
         author,
         registeredModelId: registeredModel.id,
+        modelSourceGroup: formData.modelSourceGroup,
+        modelSourceId: formData.modelSourceId,
+        modelSourceName: formData.modelSourceName,
+        catalogSourceName: formData.catalogSourceName,
+        catalogRepositoryName: formData.catalogRepositoryName,
+        catalogModelName: formData.catalogModelName,
+        catalogModelTag: formData.catalogModelTag,
       },
       registeredModel,
       isFirstVersion,
@@ -132,6 +172,7 @@ export const registerVersion = async (
   try {
     const artifactCustomProperties: ModelRegistryCustomProperties = {};
 
+    // For backward compatibility, set pipeline custom properties
     if (formData.modelSourceGroup) {
       artifactCustomProperties.modelSourceGroup = {
         metadataType: ModelRegistryMetadataType.STRING,
@@ -156,6 +197,39 @@ export const registerVersion = async (
       };
     }
 
+    // For backward compatibility, set catalog custom properties
+    if (formData.catalogSourceName) {
+      artifactCustomProperties._registeredFromCatalogSourceName = {
+        metadataType: ModelRegistryMetadataType.STRING,
+        // eslint-disable-next-line camelcase
+        string_value: formData.catalogSourceName,
+      };
+    }
+
+    if (formData.catalogRepositoryName) {
+      artifactCustomProperties._registeredFromCatalogRepositoryName = {
+        metadataType: ModelRegistryMetadataType.STRING,
+        // eslint-disable-next-line camelcase
+        string_value: formData.catalogRepositoryName,
+      };
+    }
+
+    if (formData.catalogModelName) {
+      artifactCustomProperties._registeredFromCatalogModelName = {
+        metadataType: ModelRegistryMetadataType.STRING,
+        // eslint-disable-next-line camelcase
+        string_value: formData.catalogModelName,
+      };
+    }
+
+    if (formData.catalogModelTag) {
+      artifactCustomProperties._registeredFromCatalogTag = {
+        metadataType: ModelRegistryMetadataType.STRING,
+        // eslint-disable-next-line camelcase
+        string_value: formData.catalogModelTag,
+      };
+    }
+
     const artifactData: CreateModelArtifactData = {
       name: `${formData.versionName}`,
       description: formData.versionDescription || '',
@@ -164,6 +238,15 @@ export const registerVersion = async (
       author,
       modelFormatName: formData.sourceModelFormat,
       modelFormatVersion: formData.sourceModelFormatVersion,
+      // Set top-level pipeline source properties
+      modelSourceGroup: formData.modelSourceGroup,
+      modelSourceId: formData.modelSourceId,
+      modelSourceName: formData.modelSourceName,
+      // Set top-level catalog properties
+      catalogSourceName: formData.catalogSourceName,
+      catalogRepositoryName: formData.catalogRepositoryName,
+      catalogModelName: formData.catalogModelName,
+      catalogModelTag: formData.catalogModelTag,
       uri:
         formData.modelLocationType === ModelLocationType.ObjectStorage
           ? objectStorageFieldsToUri({

@@ -22,6 +22,10 @@ export type RegistrationCommonFormData = {
   modelSourceGroup?: string;
   modelSourceId?: string;
   modelSourceName?: string;
+  catalogSourceName?: string;
+  catalogRepositoryName?: string;
+  catalogModelName?: string;
+  catalogModelTag?: string;
 };
 
 export type RegisterModelFormData = RegistrationCommonFormData & {
@@ -53,6 +57,10 @@ const registrationCommonFormDataDefaults: RegistrationCommonFormData = {
   modelSourceGroup: '',
   modelSourceId: '',
   modelSourceName: '',
+  catalogSourceName: '',
+  catalogRepositoryName: '',
+  catalogModelName: '',
+  catalogModelTag: '',
 };
 
 const registerModelFormDataDefaults: RegisterModelFormData = {
