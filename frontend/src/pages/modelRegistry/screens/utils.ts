@@ -101,9 +101,16 @@ export const getCustomPropString = <
 export const getCatalogModelDetailsProps = (
   model: ModelVersion | RegisteredModel,
 ): CatalogModelDetailsParams => {
-  const customProps = model.customProperties || {};
+  // First, check for the new dedicated catalog top-level properties
+  if (model.catalogSourceName && model.catalogModelName) {
+    return {
+      sourceName: model.catalogSourceName,
+      repositoryName: model.catalogRepositoryName || '',
+      modelName: model.catalogModelName,
+      tag: model.catalogModelTag || '',
+    };
+  }
 
-  // First try to get source information from top-level properties
   if (model.modelSourceGroup && model.modelSourceName && model.modelSourceId) {
     // We're assuming the model source details match the expected format
     return {
@@ -113,12 +120,12 @@ export const getCatalogModelDetailsProps = (
       tag: model.modelSourceId,
     };
   }
-  // Fall back to custom properties if top-level ones are not available, this will ensure that previously registered model will work well
+  // Return empty values if neither catalog nor pipeline sources are available
   return {
-    sourceName: getCustomPropString(customProps, '_registeredFromCatalogSourceName'),
-    repositoryName: getCustomPropString(customProps, '_registeredFromCatalogRepositoryName'),
-    modelName: getCustomPropString(customProps, '_registeredFromCatalogModelName'),
-    tag: getCustomPropString(customProps, '_registeredFromCatalogTag'),
+    sourceName: '',
+    repositoryName: '',
+    modelName: '',
+    tag: '',
   };
 };
 

@@ -105,6 +105,10 @@ export type ModelArtifact = ModelRegistryBase & {
   modelSourceGroup?: string;
   modelSourceId?: string;
   modelSourceName?: string;
+  catalogSourceName?: string;
+  catalogRepositoryName?: string;
+  catalogModelName?: string;
+  catalogModelTag?: string;
   customProperties?: ModelRegistryCustomProperties;
 };
 
@@ -116,6 +120,10 @@ export type ModelVersion = ModelRegistryBase & {
   modelSourceGroup?: string;
   modelSourceId?: string;
   modelSourceName?: string;
+  catalogSourceName?: string;
+  catalogRepositoryName?: string;
+  catalogModelName?: string;
+  catalogModelTag?: string;
   customProperties?: ModelRegistryCustomProperties;
 };
 
@@ -125,6 +133,10 @@ export type RegisteredModel = ModelRegistryBase & {
   modelSourceGroup?: string;
   modelSourceId?: string;
   modelSourceName?: string;
+  catalogSourceName?: string;
+  catalogRepositoryName?: string;
+  catalogModelName?: string;
+  catalogModelTag?: string;
   customProperties?: ModelRegistryCustomProperties;
 };
 
