@@ -22,6 +22,7 @@ import {
 } from '@patternfly/react-icons';
 import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { NotebookImageAvailability, NotebookImageStatus } from './const';
 import { NotebookImage } from './types';
 
@@ -58,6 +59,19 @@ export const NotebookImageDisplayName = ({
     return <Spinner size="md" />;
   }
 
+  const updateToLatestButton = (
+    <Button
+      data-testid="update-latest-version-button"
+      variant="link"
+      onClick={() => {
+        setIsPopoverVisible(false);
+        onUpdateImageClick();
+      }}
+    >
+      Update to the latest version
+    </Button>
+  );
+
   // helper function to get the popover variant and text
   const getNotebookImagePopoverText = ():
     | Record<string, never>
@@ -68,22 +82,16 @@ export const NotebookImageDisplayName = ({
         footer?: React.ReactNode;
       } => {
     if (notebookImage.imageStatus === NotebookImageStatus.DELETED) {
-      const unknownBody = (
-        <p>
-          An <b>unknown</b> notebook image has been deleted. To run this workbench, select a new
-          notebook image.
-        </p>
-      );
-      const knownBody = (
-        <p>
-          The <b>{notebookImage.imageDisplayName}</b> notebook image has been deleted. To run this
-          workbench, select a new notebook image.
-        </p>
-      );
       return {
         title: 'Notebook image deleted',
-        body: notebookImage.imageDisplayName ? knownBody : unknownBody,
+        body: (
+          <p>
+            This image version has been deleted. To continue using this workbench, select an
+            available version or a different workbench image.
+          </p>
+        ),
         variant: 'danger',
+        footer: updateToLatestButton,
       };
     }
     if (notebookImage.imageAvailability === NotebookImageAvailability.DISABLED) {
@@ -91,44 +99,32 @@ export const NotebookImageDisplayName = ({
         title: 'Notebook image disabled',
         body: (
           <p>
-            The <b>{notebookImage.imageDisplayName}</b> notebook image has been disabled. This
-            workbench can continue using the image, but disabled images are not available for
-            selection when creating new workbenches.
-          </p>
-        ),
-        variant: 'info',
-      };
-    }
-    if (notebookImage.imageStatus === NotebookImageStatus.OUTDATED) {
-      return {
-        title: 'Notebook image outdated',
-        body: (
-          <p>
-            The <b>{notebookImage.imageDisplayName}</b> notebook image is outdated, This workbench
-            can continue using this version, but it will not get new version updates.
+            This image version is disabled. This workbench can continue using this image version,
+            but new workbenches cannot use it.
           </p>
         ),
         variant: 'warning',
-        footer: (
-          <Button
-            data-testid="update-latest-version-button"
-            variant="link"
-            onClick={() => {
-              setIsPopoverVisible(false);
-              onUpdateImageClick();
-            }}
-          >
-            Update to the latest version
-          </Button>
+      };
+    }
+    if (notebookImage.imageStatus === NotebookImageStatus.DEPRECATED) {
+      return {
+        title: 'Notebook image deprecated',
+        body: (
+          <p>
+            This image version is deprecated. This workbench can continue using this version, but
+            the workbench will not receive new version updates.
+          </p>
         ),
+        variant: 'warning',
+        footer: updateToLatestButton,
       };
     }
     return {
       title: 'Latest image version',
       body: (
         <p>
-          This image is the latest installed version of the <b>{notebookImage.imageDisplayName}</b>{' '}
-          notebook image.
+          This image is the latest version of the <b>{notebookImage.imageDisplayName}</b> notebook
+          image in this version of {ODH_PRODUCT_NAME}.
         </p>
       ),
       variant: 'success',
@@ -137,30 +133,36 @@ export const NotebookImageDisplayName = ({
 
   // helper function to get the label color
   const getNotebookImageLabelColor = (): LabelProps['color'] => {
-    switch (notebookImage.imageStatus) {
-      case NotebookImageStatus.DELETED:
-        return 'red';
-      case NotebookImageStatus.OUTDATED:
-        return 'yellow';
-      case NotebookImageStatus.LATEST:
-        return 'green';
-      default:
-        return 'grey';
+    if (notebookImage.imageStatus === NotebookImageStatus.DELETED) {
+      return 'red';
     }
+    if (
+      notebookImage.imageAvailability === NotebookImageAvailability.DISABLED ||
+      notebookImage.imageStatus === NotebookImageStatus.DEPRECATED
+    ) {
+      return 'yellow';
+    }
+    if (notebookImage.imageStatus === NotebookImageStatus.LATEST) {
+      return 'green';
+    }
+    return 'grey';
   };
 
   // helper function to get the label icon
   const getNotebookImageIcon = (): LabelProps['icon'] => {
-    switch (notebookImage.imageStatus) {
-      case NotebookImageStatus.DELETED:
-        return <ExclamationCircleIcon />;
-      case NotebookImageStatus.OUTDATED:
-        return <ExclamationTriangleIcon />;
-      case NotebookImageStatus.LATEST:
-        return <CheckCircleIcon />;
-      default:
-        return <InfoCircleIcon />;
+    if (notebookImage.imageStatus === NotebookImageStatus.DELETED) {
+      return <ExclamationCircleIcon />;
     }
+    if (
+      notebookImage.imageAvailability === NotebookImageAvailability.DISABLED ||
+      notebookImage.imageStatus === NotebookImageStatus.DEPRECATED
+    ) {
+      return <ExclamationTriangleIcon />;
+    }
+    if (notebookImage.imageStatus === NotebookImageStatus.LATEST) {
+      return <CheckCircleIcon />;
+    }
+    return <InfoCircleIcon />;
   };
 
   // get the popover title, body, and variant based on the image availability
@@ -205,7 +207,7 @@ export const NotebookImageDisplayName = ({
         {(notebookImage.imageStatus === NotebookImageStatus.DELETED ||
           notebookImage.imageAvailability === NotebookImageAvailability.DISABLED ||
           notebookImage.imageStatus === NotebookImageStatus.LATEST ||
-          notebookImage.imageStatus === NotebookImageStatus.OUTDATED) && (
+          notebookImage.imageStatus === NotebookImageStatus.DEPRECATED) && (
           <FlexItem>
             <Popover
               aria-label="Image display name popover"
@@ -223,9 +225,7 @@ export const NotebookImageDisplayName = ({
                 color={getNotebookImageLabelColor()}
                 icon={getNotebookImageIcon()}
               >
-                {notebookImage.imageStatus === NotebookImageStatus.DELETED
-                  ? NotebookImageStatus.DELETED
-                  : notebookImage.imageStatus || NotebookImageAvailability.DISABLED}
+                {notebookImage.imageStatus || NotebookImageAvailability.DISABLED}
               </Label>
             </Popover>
           </FlexItem>

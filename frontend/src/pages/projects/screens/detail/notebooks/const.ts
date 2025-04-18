@@ -6,5 +6,5 @@ export enum NotebookImageAvailability {
 export enum NotebookImageStatus {
   DELETED = 'Deleted',
   LATEST = 'Latest',
-  OUTDATED = 'Outdated',
+  DEPRECATED = 'Deprecated',
 }
