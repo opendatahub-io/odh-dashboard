@@ -16,7 +16,7 @@ import { useModelCatalogSources } from '~/concepts/modelCatalog/useModelCatalogS
 
 const ModelCatalogSection: React.FC = conditionalArea(
   SupportedArea.MODEL_CATALOG,
-  true,
+  false,
 )(() => {
   const modelCatalogSources = useMakeFetchObject(useModelCatalogSources());
   const { data, loaded } = modelCatalogSources;
