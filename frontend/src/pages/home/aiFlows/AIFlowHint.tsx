@@ -70,13 +70,15 @@ const AIFlowHint: React.FC<AIFlowHintProps> = ({ isDisplayed }) => {
               flex={{ lg: 'flex_1' }}
               style={{ height: '220px' }}
             >
-              <img
-                data-testid="ai-flow-hint-image"
-                src={aiFlowHintImage}
-                alt="ai-flow-hint-image"
-                className="pf-v6-u-h-100"
-                style={{ maxWidth: 'unset' }}
-              />
+              <Flex justifyContent={{ default: 'justifyContentCenter' }} style={{ height: '100%' }}>
+                <img
+                  data-testid="ai-flow-hint-image"
+                  src={aiFlowHintImage}
+                  alt="ai-flow-hint-image"
+                  className="pf-v6-u-h-100"
+                  style={{ maxWidth: 'unset' }}
+                />
+              </Flex>
             </FlexItem>
           </Flex>
         </SplitItem>
