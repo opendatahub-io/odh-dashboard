@@ -4,7 +4,7 @@ import { AlertProps, Button } from '@patternfly/react-core';
 import { SyncAltIcon } from '@patternfly/react-icons';
 
 import { StorageClassConfig, StorageClassKind } from '~/k8sTypes';
-import { updateStorageClassConfig } from '~/services/StorageClassService';
+import { updateStorageClassConfig } from '~/api';
 import { CorruptedMetadataAlert } from './CorruptedMetadataAlert';
 
 interface ResetCorruptConfigValueAlertProps extends Pick<AlertProps, 'variant'> {
