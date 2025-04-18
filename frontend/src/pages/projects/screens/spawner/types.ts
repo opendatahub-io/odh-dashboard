@@ -2,7 +2,7 @@ import { BuildPhase, ImageStreamKind, ImageStreamSpecTagType } from '~/k8sTypes'
 
 export enum SpawnerPageSectionID {
   NAME_DESCRIPTION = 'name-and-description',
-  NOTEBOOK_IMAGE = 'notebook-image',
+  WORKBENCH_IMAGE = 'workbench-image',
   DEPLOYMENT_SIZE = 'deployment-size',
   ENVIRONMENT_VARIABLES = 'environment-variables',
   CLUSTER_STORAGE = 'cluster-storage',

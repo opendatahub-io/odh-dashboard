@@ -3,7 +3,7 @@ import { SpawnerPageSectionID, SpawnerPageSectionTitlesType } from './types';
 
 export const SpawnerPageSectionTitles: SpawnerPageSectionTitlesType = {
   [SpawnerPageSectionID.NAME_DESCRIPTION]: 'Name and description',
-  [SpawnerPageSectionID.NOTEBOOK_IMAGE]: 'Notebook image',
+  [SpawnerPageSectionID.WORKBENCH_IMAGE]: 'Workbench image',
   [SpawnerPageSectionID.DEPLOYMENT_SIZE]: 'Deployment size',
   [SpawnerPageSectionID.ENVIRONMENT_VARIABLES]: 'Environment variables',
   [SpawnerPageSectionID.CLUSTER_STORAGE]: 'Cluster storage',

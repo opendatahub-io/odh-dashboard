@@ -272,9 +272,9 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               />
             </FormSection>
             <FormSection
-              title={SpawnerPageSectionTitles[SpawnerPageSectionID.NOTEBOOK_IMAGE]}
-              id={SpawnerPageSectionID.NOTEBOOK_IMAGE}
-              aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.NOTEBOOK_IMAGE]}
+              title={SpawnerPageSectionTitles[SpawnerPageSectionID.WORKBENCH_IMAGE]}
+              id={SpawnerPageSectionID.WORKBENCH_IMAGE}
+              aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.WORKBENCH_IMAGE]}
             >
               <ImageSelectorField
                 currentProject={currentProject.metadata.name}
