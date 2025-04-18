@@ -4,6 +4,9 @@ import {
   capitalize,
   Form,
   FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
   PageSection,
   Stack,
   StackItem,
@@ -19,6 +22,7 @@ import {
 } from '~/pages/modelRegistry/screens/RegisterModel/useRegisterModelData';
 import RegistrationCommonFormSections from '~/pages/modelRegistry/screens/RegisterModel/RegistrationCommonFormSections';
 import {
+  isModelNameExisting,
   isNameValid,
   isRegisterCatalogModelSubmitDisabled,
   registerModel,
@@ -45,6 +49,7 @@ import {
 import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegisteredModels';
 
 const RegisterCatalogModel: React.FC = () => {
   const navigate = useNavigate();
@@ -54,6 +59,8 @@ const RegisterCatalogModel: React.FC = () => {
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const { modelCatalogSources } = React.useContext(ModelCatalogContext);
 
+  const [registeredModels, registeredModelsLoaded, registeredModelsLoadError] =
+    useRegisteredModels();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<Error | undefined>(undefined);
   const [formData, setData] = useRegisterCatalogModelData();
@@ -67,15 +74,14 @@ const RegisterCatalogModel: React.FC = () => {
   const isModelNameValid = isNameValid(formData.modelName);
   const eventName = 'Catalog Model Registered';
 
-  // passing registeredModels as [] is temporary and will handle this as a part of https://issues.redhat.com/browse/RHOAIENG-20564
+  const isModelNameDuplicate = isModelNameExisting(formData.modelName, registeredModels);
+  const hasModelNameError = !isModelNameValid || isModelNameDuplicate;
+
   const isSubmitDisabled =
     isSubmitting ||
-    isRegisterCatalogModelSubmitDisabled(formData, {
-      size: 0,
-      pageSize: 0,
-      nextPageToken: '',
-      items: [],
-    });
+    isRegisterCatalogModelSubmitDisabled(formData, registeredModels) ||
+    !registeredModelsLoaded ||
+    !!registeredModelsLoadError;
 
   const model: CatalogModel | null = React.useMemo(
     () =>
@@ -101,6 +107,7 @@ const RegisterCatalogModel: React.FC = () => {
       setData('versionName', 'Version 1');
       setData('modelLocationType', ModelLocationType.URI);
       setData('modelLocationURI', model.artifacts?.map((artifact) => artifact.uri)[0] || '');
+      setData('modelRegistry', preferredModelRegistry?.metadata.name || '');
 
       const registeredFromReferenceCustomProperties: ModelRegistryCustomProperties = Object.entries(
         decodedParams,
@@ -148,7 +155,7 @@ const RegisterCatalogModel: React.FC = () => {
         },
       });
     }
-  }, [model, setData, decodedParams]);
+  }, [model, setData, decodedParams, preferredModelRegistry]);
 
   const hostPath = `/api/service/modelregistry/${preferredModelRegistry?.metadata.name || ''}`;
   const [apiState] = useModelRegistryAPIState(hostPath);
@@ -232,14 +239,27 @@ const RegisterCatalogModel: React.FC = () => {
                   onSelection={(mr) => setData('modelRegistry', mr)}
                   primary
                   isFullWidth
+                  hasError={!!registeredModelsLoadError}
                 />
+                {registeredModelsLoadError && (
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem variant="error" data-testid="model-registry-selector-error">
+                        {registeredModelsLoadError.message}
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                )}
               </FormGroup>
             </StackItem>
             <StackItem>
               <RegisterModelDetailsFormSection
                 formData={formData}
                 setData={setData}
-                hasModelNameError={!isModelNameValid}
+                hasModelNameError={hasModelNameError}
+                isModelNameDuplicate={isModelNameDuplicate}
+                registeredModelsLoaded={registeredModelsLoaded}
+                registeredModelsLoadError={registeredModelsLoadError}
               />
               <RegistrationCommonFormSections
                 formData={formData}
