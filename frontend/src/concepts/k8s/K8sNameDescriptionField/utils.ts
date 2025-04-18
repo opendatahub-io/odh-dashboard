@@ -43,8 +43,8 @@ export const resourceTypeLimits: Record<LimitNameResourceType, number> = {
   [LimitNameResourceType.WORKBENCH]: ROUTE_BASED_NAME_LENGTH,
   [LimitNameResourceType.PVC]: MAX_PVC_NAME_LENGTH,
 };
-export const K8S_MAX_LENGTH = 12; // for testing
-// const K8S_MAX_LENGTH  = 262000; // almost 256Kb
+
+export const K8S_MAX_LENGTH = 262000; // almost 256Kb
 
 export const isK8sNameDescriptionType = (
   x?: K8sNameDescriptionType | K8sResourceCommon,

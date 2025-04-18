@@ -52,7 +52,6 @@ type K8sNameDescriptionFieldProps = {
 };
 
 // using enum to make the type; cannot use enum directly
-// type Validate = ValidatedOptions.success | ValidatedOptions.error | ValidatedOptions.default;
 type Validate = `${ValidatedOptions}`;
 type NameError = 'tooShort' | 'tooLong' | 'none';
 const makeTooLongErrorText = (fieldName: string) =>
@@ -85,8 +84,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   const nameErrorText = makeTooLongErrorText('name');
   const descErrorText = makeTooLongErrorText('description');
 
-  // none is being set when name is zero'd out.  fix NEXT! TODO
-  const onNameChange = (event: FormEvent<HTMLInputElement>, value: string) => {
+  const onNameChange = (_event: FormEvent<HTMLInputElement>, value: string) => {
     const isValid = value.length > 0 && value.length <= K8S_MAX_LENGTH;
 
     if (!isValid) {
@@ -105,7 +103,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
     }
   };
 
-  const onDescriptionChange = (event: ChangeEvent<HTMLTextAreaElement>, value: string) => {
+  const onDescriptionChange = (_event: ChangeEvent<HTMLTextAreaElement>, value: string) => {
     const isValid = value.length <= K8S_MAX_LENGTH;
     onDataChange?.('description', value);
 
