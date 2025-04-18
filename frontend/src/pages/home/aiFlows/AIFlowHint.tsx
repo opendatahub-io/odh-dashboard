@@ -40,11 +40,7 @@ const AIFlowHint: React.FC<AIFlowHintProps> = ({ isDisplayed }) => {
           >
             <FlexItem flex={{ lg: 'flex_1' }}>
               <CardHeader>
-                <Flex>
-                  <FlexItem>
-                    <Content component="h2">Customize starter models with the LAB method</Content>
-                  </FlexItem>
-                </Flex>
+                <Content component="h2">Customize starter models with the LAB method</Content>
               </CardHeader>
               <CardBody>
                 <Content component="p" data-testid="ai-flow-hint-body-text">
