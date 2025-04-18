@@ -3,14 +3,27 @@ import { Label, LabelGroup } from '@patternfly/react-core';
 import { getILabLabels, removeILabLabels } from '~/pages/modelCatalog/utils';
 import { ReservedILabLabel } from '~/pages/modelCatalog/const';
 
-export const ModelCatalogLabels: React.FC<{
+const TRUNCATED_MAX_LABEL_NUM = 2;
+
+type ModelCatalogLabelsProps = {
   labels?: string[];
   tasks?: string[];
   showNonILabLabels?: boolean;
-}> = ({ labels = [], tasks = [], showNonILabLabels = false }) => (
-  <LabelGroup data-testid="model-catalog-label-group">
-    {getILabLabels(labels).map((l) => {
-      switch (l) {
+  truncate?: boolean;
+};
+
+export const ModelCatalogLabels: React.FC<ModelCatalogLabelsProps> = ({
+  labels = [],
+  tasks = [],
+  showNonILabLabels = false,
+  truncate = false,
+}) => (
+  <LabelGroup
+    numLabels={truncate ? TRUNCATED_MAX_LABEL_NUM : undefined}
+    data-testid="model-catalog-label-group"
+  >
+    {getILabLabels(labels).map((label) => {
+      switch (label) {
         case ReservedILabLabel.LabBase:
           return (
             <Label data-testid="model-catalog-label" color="yellow" variant="filled">
@@ -31,8 +44,8 @@ export const ModelCatalogLabels: React.FC<{
           );
         default:
           return (
-            <Label data-testid="model-catalog-label" key={l} variant="outline">
-              {l}
+            <Label data-testid="model-catalog-label" key={label} variant="outline">
+              {label}
             </Label>
           );
       }

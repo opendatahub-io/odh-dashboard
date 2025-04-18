@@ -17,7 +17,7 @@ import { getTagFromModel } from '~/pages/modelCatalog/utils';
 import ExternalLink from '~/components/ExternalLink';
 import MarkdownView from '~/components/MarkdownView';
 import { RhUiTagIcon } from '~/images/icons';
-import { ModelCatalogLabels } from '~/pages/modelCatalog/components/ModelCatalogLabels';
+import { ModelCatalogLabels } from '~/concepts/modelCatalog/content/ModelCatalogLabels';
 
 type ModelDetailsViewProps = {
   model: CatalogModel;
