@@ -42,7 +42,8 @@ const useLabeledConnections = (
       }
       if (modelLocation.ociUri && connection.data?.OCI_HOST) {
         const findURI = modelLocation.ociUri.includes(window.atob(connection.data.OCI_HOST));
-        if (findURI) {
+        const accessTypes = connection.data.ACCESS_TYPE && window.atob(connection.data.ACCESS_TYPE);
+        if (findURI && accessTypes.includes('Pull')) {
           return { connection, isRecommended: true };
         }
       }
