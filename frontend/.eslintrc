@@ -21,7 +21,8 @@
     "import",
     "no-only-tests",
     "no-relative-import-paths",
-    "prettier"
+    "prettier",
+    "no-barrel-files"
   ],
   "extends": [
     "eslint:recommended",
@@ -54,6 +55,7 @@
     }
   },
   "rules": {
+    "no-barrel-files/no-barrel-files": "error",
     "jsx-a11y/no-autofocus": ["error", { "ignoreNonDOM": true }],
     "jsx-a11y/anchor-is-valid": [
       "error",
@@ -392,7 +394,7 @@
         "no-restricted-syntax": [
           "error",
           {
-            "selector":"ImportDeclaration[importKind!='type'][source.value=/^~\\u002F(?!(__tests__|__mocks__|.*(types|Types|getCorePipelineSpec|utils)).*)/]",
+            "selector": "ImportDeclaration[importKind!='type'][source.value=/^~\\u002F(?!(__tests__|__mocks__|.*(types|Types|getCorePipelineSpec|utils)).*)/]",
             "message": "Must use 'import type' when importing. If you are importing enums that are flagged, please go to the .eslintrc file and add it to the regular expression."
           }
         ],
@@ -401,9 +403,7 @@
           {
             "patterns": [
               {
-                "group": [
-                  "@patternfly/**"
-                ],
+                "group": ["@patternfly/**"],
                 "message": "Cypress tests should only import mocks and types from outside the Cypress test directory."
               }
             ]

@@ -1,3 +1,5 @@
+/* eslint-disable no-barrel-files/no-barrel-files */
+
 export * from './mockDashboardConfig';
 export * from './mockDataSciencePipelinesApplicationK8sResource';
 export * from './mockK8sResourceList';

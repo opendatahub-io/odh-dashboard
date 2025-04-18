@@ -1,3 +1,5 @@
+/* eslint-disable no-barrel-files/no-barrel-files */
+
 export { default as AcceleratorProfileIcon } from './AcceleratorProfileIcon';
 export { default as ArtifactIcon } from './ArtifactIcon';
 export { default as BuildIcon } from './BuildIcon';

@@ -1,3 +1,5 @@
+/* eslint-disable no-barrel-files/no-barrel-files */
+
 import fs from 'fs';
 import path from 'path';
 import { env } from 'process';
