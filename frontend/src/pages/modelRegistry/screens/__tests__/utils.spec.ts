@@ -190,41 +190,46 @@ describe('getCustomPropString', () => {
   });
 });
 
-describe('getCatalogModelDetailsParams', () => {
-  it('should return a CatalogModelDetailsParams object with the string values of the catalog model custom props', () => {
-    const customProperties: ModelRegistryCustomProperties = {
-      property1: { metadataType: ModelRegistryMetadataType.STRING, string_value: 'non-empty' },
-      _lastModified: { metadataType: ModelRegistryMetadataType.STRING, string_value: 'non-empty' },
-      _registeredFromCatalogSourceName: {
-        metadataType: ModelRegistryMetadataType.STRING,
-        string_value: 'sourceName',
+describe('getCatalogModelDetailsProps', () => {
+  it('should return a CatalogModelDetailsParams object from custom properties when top-level properties are not available', () => {
+    const modelVersion = mockModelVersion({
+      customProperties: {
+        property1: { metadataType: ModelRegistryMetadataType.STRING, string_value: 'non-empty' },
+        _lastModified: {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: 'non-empty',
+        },
+        _registeredFromCatalogSourceName: {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: 'sourceName',
+        },
+        _registeredFromCatalogRepositoryName: {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: 'repoName',
+        },
+        _registeredFromCatalogModelName: {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: 'modelName',
+        },
+        _registeredFromCatalogTag: {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: 'tag',
+        },
+        _registeredFromCatalogProject: {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: 'project',
+        },
+        _registeredFromPipelineRunId: {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: 'runId',
+        },
+        _registeredFromPipelineRunName: {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: 'runName',
+        },
       },
-      _registeredFromCatalogRepositoryName: {
-        metadataType: ModelRegistryMetadataType.STRING,
-        string_value: 'repoName',
-      },
-      _registeredFromCatalogModelName: {
-        metadataType: ModelRegistryMetadataType.STRING,
-        string_value: 'modelName',
-      },
-      _registeredFromCatalogTag: {
-        metadataType: ModelRegistryMetadataType.STRING,
-        string_value: 'tag',
-      },
-      _registeredFromCatalogProject: {
-        metadataType: ModelRegistryMetadataType.STRING,
-        string_value: 'project',
-      },
-      _registeredFromPipelineRunId: {
-        metadataType: ModelRegistryMetadataType.STRING,
-        string_value: 'runId',
-      },
-      _registeredFromPipelineRunName: {
-        metadataType: ModelRegistryMetadataType.STRING,
-        string_value: 'runName',
-      },
-    };
-    const result = getCatalogModelDetailsProps(customProperties);
+    });
+    const result = getCatalogModelDetailsProps(modelVersion);
     expect(result).toEqual({
       sourceName: 'sourceName',
       repositoryName: 'repoName',
@@ -232,8 +237,22 @@ describe('getCatalogModelDetailsParams', () => {
       tag: 'tag',
     });
   });
-});
 
+  it('should return a CatalogModelDetailsParams object from top-level properties when available', () => {
+    const modelVersion = mockModelVersion({
+      modelSourceGroup: 'sourceGroup',
+      modelSourceName: 'sourceName',
+      modelSourceId: 'sourceId',
+    });
+    const result = getCatalogModelDetailsProps(modelVersion);
+    expect(result).toEqual({
+      sourceName: 'sourceGroup',
+      repositoryName: '',
+      modelName: 'sourceName',
+      tag: 'sourceId',
+    });
+  });
+});
 
 describe('mergeUpdatedProperty', () => {
   it('should handle the create operation', () => {

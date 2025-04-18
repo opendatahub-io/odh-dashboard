@@ -92,7 +92,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
     }
   };
 
-  const catalogModelCustomProps: CatalogModelDetailsParams = getCatalogModelDetailsProps(mv.customProperties || {});
+  const catalogModelCustomProps: CatalogModelDetailsParams = getCatalogModelDetailsProps(mv);
   const catalogModelDetailsUrl = getCatalogModelDetailsRoute(catalogModelCustomProps);
 
   return (
@@ -157,7 +157,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                 pipelineCustomProperties={{
                   project: mv.modelSourceGroup,
                   runId: mv.modelSourceId,
-                  runName: mv.modelSourceName
+                  runName: mv.modelSourceName,
                 }}
               />
             </DashboardDescriptionListGroup>

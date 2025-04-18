@@ -99,13 +99,29 @@ export const getCustomPropString = <
 };
 
 export const getCatalogModelDetailsProps = (
-  customProps: ModelRegistryCustomProperties,
-): CatalogModelDetailsParams => ({
-  sourceName: getCustomPropString(customProps, '_registeredFromCatalogSourceName'),
-  repositoryName: getCustomPropString(customProps, '_registeredFromCatalogRepositoryName'),
-  modelName: getCustomPropString(customProps, '_registeredFromCatalogModelName'),
-  tag: getCustomPropString(customProps, '_registeredFromCatalogTag'),
-});
+  model: ModelVersion | RegisteredModel,
+): CatalogModelDetailsParams => {
+  const customProps = model.customProperties || {};
+
+  // First try to get source information from top-level properties
+  if (model.modelSourceGroup && model.modelSourceName && model.modelSourceId) {
+    // We're assuming the model source details match the expected format
+    return {
+      sourceName: model.modelSourceGroup,
+      repositoryName: '', // No direct mapping for repository
+      modelName: model.modelSourceName,
+      tag: model.modelSourceId,
+    };
+  }
+
+  // Fall back to custom properties if top-level ones are not available, this will ensure that previously registered model will work well
+  return {
+    sourceName: getCustomPropString(customProps, '_registeredFromCatalogSourceName'),
+    repositoryName: getCustomPropString(customProps, '_registeredFromCatalogRepositoryName'),
+    modelName: getCustomPropString(customProps, '_registeredFromCatalogModelName'),
+    tag: getCustomPropString(customProps, '_registeredFromCatalogTag'),
+  };
+};
 
 export const filterModelVersions = (
   unfilteredModelVersions: ModelVersion[],
@@ -124,7 +140,10 @@ export const filterModelVersions = (
         return (
           mv.name.toLowerCase().includes(searchLower) ||
           (mv.description && mv.description.toLowerCase().includes(searchLower)) ||
-          (mv.customProperties && getLabels(mv.customProperties).some((label) => label.toLowerCase().includes(searchLower))) ||
+          (mv.customProperties &&
+            getLabels(mv.customProperties).some((label) =>
+              label.toLowerCase().includes(searchLower),
+            )) ||
           (mv.modelSourceName && mv.modelSourceName.toLowerCase().includes(searchLower)) ||
           (mv.modelSourceId && mv.modelSourceId.toLowerCase().includes(searchLower)) ||
           (mv.modelSourceGroup && mv.modelSourceGroup.toLowerCase().includes(searchLower))
@@ -166,7 +185,10 @@ export const filterRegisteredModels = (
         const matchesModel =
           rm.name.toLowerCase().includes(searchLower) ||
           (rm.description && rm.description.toLowerCase().includes(searchLower)) ||
-          (rm.customProperties && getLabels(rm.customProperties).some((label) => label.toLowerCase().includes(searchLower))) ||
+          (rm.customProperties &&
+            getLabels(rm.customProperties).some((label) =>
+              label.toLowerCase().includes(searchLower),
+            )) ||
           (rm.modelSourceName && rm.modelSourceName.toLowerCase().includes(searchLower)) ||
           (rm.modelSourceId && rm.modelSourceId.toLowerCase().includes(searchLower)) ||
           (rm.modelSourceGroup && rm.modelSourceGroup.toLowerCase().includes(searchLower));
@@ -175,12 +197,13 @@ export const filterRegisteredModels = (
           (mv: ModelVersion) =>
             mv.name.toLowerCase().includes(searchLower) ||
             (mv.description && mv.description.toLowerCase().includes(searchLower)) ||
-            (mv.customProperties && getLabels(mv.customProperties).some((label) =>
-              label.toLowerCase().includes(searchLower),
-            )) ||
+            (mv.customProperties &&
+              getLabels(mv.customProperties).some((label) =>
+                label.toLowerCase().includes(searchLower),
+              )) ||
             (mv.modelSourceName && mv.modelSourceName.toLowerCase().includes(searchLower)) ||
             (mv.modelSourceId && mv.modelSourceId.toLowerCase().includes(searchLower)) ||
-            (mv.modelSourceGroup && mv.modelSourceGroup.toLowerCase().includes(searchLower))
+            (mv.modelSourceGroup && mv.modelSourceGroup.toLowerCase().includes(searchLower)),
         );
 
         return matchesModel || matchesVersion;

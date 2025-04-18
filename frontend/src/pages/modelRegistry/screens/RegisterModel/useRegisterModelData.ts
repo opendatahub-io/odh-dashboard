@@ -19,6 +19,9 @@ export type RegistrationCommonFormData = {
   modelLocationURI: string;
   versionCustomProperties?: ModelRegistryCustomProperties;
   modelCustomProperties?: ModelRegistryCustomProperties;
+  modelSourceGroup?: string;
+  modelSourceId?: string;
+  modelSourceName?: string;
 };
 
 export type RegisterModelFormData = RegistrationCommonFormData & {
@@ -47,6 +50,9 @@ const registrationCommonFormDataDefaults: RegistrationCommonFormData = {
   modelLocationURI: '',
   modelCustomProperties: {},
   versionCustomProperties: {},
+  modelSourceGroup: '',
+  modelSourceId: '',
+  modelSourceName: '',
 };
 
 const registerModelFormDataDefaults: RegisterModelFormData = {

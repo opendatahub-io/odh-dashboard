@@ -14,6 +14,9 @@ type MockModelVersionType = {
   createTimeSinceEpoch?: string;
   lastUpdateTimeSinceEpoch?: string;
   customProperties?: ModelRegistryCustomProperties;
+  modelSourceGroup?: string;
+  modelSourceId?: string;
+  modelSourceName?: string;
 };
 
 export const mockModelVersion = ({
@@ -26,6 +29,9 @@ export const mockModelVersion = ({
   description = 'Description of model version',
   createTimeSinceEpoch = '1712234877179',
   lastUpdateTimeSinceEpoch = '1712234877179',
+  modelSourceGroup = '',
+  modelSourceId = '',
+  modelSourceName = '',
 }: MockModelVersionType): ModelVersion => ({
   author,
   createTimeSinceEpoch,
@@ -36,4 +42,7 @@ export const mockModelVersion = ({
   state,
   registeredModelId,
   description,
+  modelSourceGroup,
+  modelSourceId,
+  modelSourceName,
 });
