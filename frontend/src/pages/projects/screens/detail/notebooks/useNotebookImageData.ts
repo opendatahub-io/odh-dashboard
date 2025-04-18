@@ -84,14 +84,11 @@ const useNotebookImageData = (project: string, notebook?: NotebookKind): Noteboo
   const [projectImages, projectLoaded, projectLoadError] = useImageStreams(project, true);
 
   return React.useMemo(() => {
-    if (!notebook || (!dashboardLoaded && !projectLoaded)) {
+    if (!notebook || !dashboardLoaded || !projectLoaded) {
       return [null, false, dashboardLoadError || projectLoadError];
     }
-    let allImages = dashboardImages;
+    const allImages = [...projectImages, ...dashboardImages];
 
-    if (projectLoaded && projectImages.length > 0) {
-      allImages = [...projectImages, ...dashboardImages];
-    }
     const data = getNotebookImageData(notebook, allImages);
 
     if (data === null) {
@@ -242,7 +239,7 @@ export const getDeletedImageData = (
 
 const getImageStatus = (imageVersion: ImageStreamSpecTagType): NotebookImageStatus | undefined => {
   if (imageVersion.annotations?.['opendatahub.io/image-tag-outdated'] === 'true') {
-    return NotebookImageStatus.OUTDATED;
+    return NotebookImageStatus.DEPRECATED;
   }
   if (imageVersion.annotations?.['opendatahub.io/workbench-image-recommended'] === 'true') {
     return NotebookImageStatus.LATEST;
