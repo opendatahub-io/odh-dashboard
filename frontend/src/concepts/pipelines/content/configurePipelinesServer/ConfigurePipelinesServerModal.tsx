@@ -9,7 +9,7 @@ import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUti
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 import SamplePipelineSettingsSection from '~/concepts/pipelines/content/configurePipelinesServer/SamplePipelineSettingsSection';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
+import usePipelinesConnections from '~/pages/projects/screens/detail/connections/usePipelinesConnections';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
 import {
@@ -35,7 +35,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   onClose,
 }) => {
   const { project, namespace } = usePipelinesAPI();
-  const [connections, loaded] = useConnections(namespace, undefined, true);
+  const [connections, loaded] = usePipelinesConnections(namespace);
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState<Error>();
   const [config, setConfig] = React.useState<PipelineServerConfigType>(FORM_DEFAULTS);

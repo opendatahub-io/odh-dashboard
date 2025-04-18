@@ -13,8 +13,8 @@ import ModelServingContextProvider, {
   ModelServingContext,
 } from '~/pages/modelServing/ModelServingContext';
 import { getKServeTemplates } from '~/pages/modelServing/customServingRuntimes/utils';
-import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
 import { isRedHatRegistryUri } from '~/pages/modelRegistry/screens/utils';
+import useServingConnections from '~/pages/projects/screens/detail/connections/useServingConnections';
 import { ModelDeployPrefillInfo } from './usePrefillModelDeployModal';
 
 interface DeployPrefilledModelModalProps {
@@ -69,7 +69,7 @@ const DeployPrefilledModelModalContents: React.FC<
     selectedProject,
     servingPlatformStatuses,
   );
-  const [connections] = useConnections(selectedProject?.metadata.name, true);
+  const [connections] = useServingConnections(selectedProject?.metadata.name);
 
   const isOciModel = modelDeployPrefillInfo.modelArtifactUri?.includes('oci://');
   const platformToUse = platform || (isOciModel ? ServingRuntimePlatform.SINGLE : undefined);

@@ -8,9 +8,9 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import React from 'react';
-import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
 import { Connection } from '~/concepts/connectionTypes/types';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import useServingConnections from '~/pages/projects/screens/detail/connections/useServingConnections';
 import { ModelLocationType } from './useRegisterModelData';
 
 type ConnectionDropdownProps = {
@@ -26,7 +26,7 @@ export const ConnectionDropdown = ({
   selectedConnection,
 }: ConnectionDropdownProps): React.JSX.Element => {
   const [isOpen, setIsOpen] = React.useState(false);
-  const [connections, connectionsLoaded, connectionsLoadError] = useConnections(project, true);
+  const [connections, connectionsLoaded, connectionsLoadError] = useServingConnections(project);
 
   const onToggle = () => {
     setIsOpen(!isOpen);
