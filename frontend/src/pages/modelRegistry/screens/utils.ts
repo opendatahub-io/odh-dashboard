@@ -10,7 +10,6 @@ import {
 import { ServiceKind } from '~/k8sTypes';
 import { KeyValuePair } from '~/types';
 import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
-import { PipelineModelCustomProps } from './ModelVersionDetails/const';
 
 // Retrieves the labels from customProperties that have non-empty string_value.
 export const getLabels = <T extends ModelRegistryCustomProperties>(customProperties: T): string[] =>
@@ -100,21 +99,35 @@ export const getCustomPropString = <
 };
 
 export const getCatalogModelDetailsProps = (
-  customProps: ModelRegistryCustomProperties,
-): CatalogModelDetailsParams => ({
-  sourceName: getCustomPropString(customProps, '_registeredFromCatalogSourceName'),
-  repositoryName: getCustomPropString(customProps, '_registeredFromCatalogRepositoryName'),
-  modelName: getCustomPropString(customProps, '_registeredFromCatalogModelName'),
-  tag: getCustomPropString(customProps, '_registeredFromCatalogTag'),
-});
+  model: ModelVersion | RegisteredModel,
+): CatalogModelDetailsParams => {
+  // First, check for the new dedicated catalog top-level properties
+  if (model.catalogSourceName && model.catalogModelName) {
+    return {
+      sourceName: model.catalogSourceName,
+      repositoryName: model.catalogRepositoryName || '',
+      modelName: model.catalogModelName,
+      tag: model.catalogModelTag || '',
+    };
+  }
 
-export const getPipelineModelCustomProps = (
-  customProps: ModelRegistryCustomProperties,
-): PipelineModelCustomProps => ({
-  project: getCustomPropString(customProps, '_registeredFromPipelineProject'),
-  runId: getCustomPropString(customProps, '_registeredFromPipelineRunId'),
-  runName: getCustomPropString(customProps, '_registeredFromPipelineRunName'),
-});
+  if (model.modelSourceGroup && model.modelSourceName && model.modelSourceId) {
+    // We're assuming the model source details match the expected format
+    return {
+      sourceName: model.modelSourceGroup,
+      repositoryName: '', // No direct mapping for repository
+      modelName: model.modelSourceName,
+      tag: model.modelSourceId,
+    };
+  }
+  // Return empty values if neither catalog nor pipeline sources are available
+  return {
+    sourceName: '',
+    repositoryName: '',
+    modelName: '',
+    tag: '',
+  };
+};
 
 export const filterModelVersions = (
   unfilteredModelVersions: ModelVersion[],
@@ -133,7 +146,13 @@ export const filterModelVersions = (
         return (
           mv.name.toLowerCase().includes(searchLower) ||
           (mv.description && mv.description.toLowerCase().includes(searchLower)) ||
-          getLabels(mv.customProperties).some((label) => label.toLowerCase().includes(searchLower))
+          (mv.customProperties &&
+            getLabels(mv.customProperties).some((label) =>
+              label.toLowerCase().includes(searchLower),
+            )) ||
+          (mv.modelSourceName && mv.modelSourceName.toLowerCase().includes(searchLower)) ||
+          (mv.modelSourceId && mv.modelSourceId.toLowerCase().includes(searchLower)) ||
+          (mv.modelSourceGroup && mv.modelSourceGroup.toLowerCase().includes(searchLower))
         );
 
       case SearchType.AUTHOR: {
@@ -172,15 +191,25 @@ export const filterRegisteredModels = (
         const matchesModel =
           rm.name.toLowerCase().includes(searchLower) ||
           (rm.description && rm.description.toLowerCase().includes(searchLower)) ||
-          getLabels(rm.customProperties).some((label) => label.toLowerCase().includes(searchLower));
+          (rm.customProperties &&
+            getLabels(rm.customProperties).some((label) =>
+              label.toLowerCase().includes(searchLower),
+            )) ||
+          (rm.modelSourceName && rm.modelSourceName.toLowerCase().includes(searchLower)) ||
+          (rm.modelSourceId && rm.modelSourceId.toLowerCase().includes(searchLower)) ||
+          (rm.modelSourceGroup && rm.modelSourceGroup.toLowerCase().includes(searchLower));
 
         const matchesVersion = modelVersions.some(
           (mv: ModelVersion) =>
             mv.name.toLowerCase().includes(searchLower) ||
             (mv.description && mv.description.toLowerCase().includes(searchLower)) ||
-            getLabels(mv.customProperties).some((label) =>
-              label.toLowerCase().includes(searchLower),
-            ),
+            (mv.customProperties &&
+              getLabels(mv.customProperties).some((label) =>
+                label.toLowerCase().includes(searchLower),
+              )) ||
+            (mv.modelSourceName && mv.modelSourceName.toLowerCase().includes(searchLower)) ||
+            (mv.modelSourceId && mv.modelSourceId.toLowerCase().includes(searchLower)) ||
+            (mv.modelSourceGroup && mv.modelSourceGroup.toLowerCase().includes(searchLower)),
         );
 
         return matchesModel || matchesVersion;

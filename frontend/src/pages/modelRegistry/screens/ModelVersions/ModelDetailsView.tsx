@@ -48,9 +48,9 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
             }
           />
           <EditableLabelsDescriptionListGroup
-            labels={getLabels(rm.customProperties)}
+            labels={getLabels(rm.customProperties || {})}
             isArchive={isArchiveModel}
-            allExistingKeys={Object.keys(rm.customProperties)}
+            allExistingKeys={Object.keys(rm.customProperties || {})}
             title="Labels"
             contentWhenEmpty="No labels"
             onLabelsChange={(editedLabels) =>
@@ -58,7 +58,7 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
                 .patchRegisteredModel(
                   {},
                   {
-                    customProperties: mergeUpdatedLabels(rm.customProperties, editedLabels),
+                    customProperties: mergeUpdatedLabels(rm.customProperties || {}, editedLabels),
                   },
                   rm.id,
                 )
@@ -67,7 +67,7 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
           />
           <ModelPropertiesDescriptionListGroup
             isArchive={isArchiveModel}
-            customProperties={rm.customProperties}
+            customProperties={rm.customProperties || {}}
             saveEditedCustomProperties={(editedProperties) =>
               apiState.api
                 .patchRegisteredModel(

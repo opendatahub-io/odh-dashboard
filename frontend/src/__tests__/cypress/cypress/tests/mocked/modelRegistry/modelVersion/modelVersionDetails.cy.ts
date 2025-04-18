@@ -33,6 +33,13 @@ const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 const mockModelVersions = mockModelVersion({
   id: '1',
   name: 'Version 1',
+  modelSourceGroup: 'test-project',
+  modelSourceId: 'pipelinerun1',
+  modelSourceName: 'pipeline-run-test',
+  catalogSourceName: 'test-catalog-source',
+  catalogRepositoryName: 'test-catalog-repo',
+  catalogModelName: 'test-catalog-model',
+  catalogModelTag: 'test-catalog-tag',
   customProperties: {
     a1: {
       metadataType: ModelRegistryMetadataType.STRING,
@@ -199,7 +206,14 @@ const initIntercepts = (isEmptyProject = false) => {
     },
     mockModelVersionList({
       items: [
-        mockModelVersion({ name: 'Version 1', author: 'Author 1', registeredModelId: '1' }),
+        mockModelVersion({
+          name: 'Version 1',
+          author: 'Author 1',
+          registeredModelId: '1',
+          modelSourceGroup: 'test-project',
+          modelSourceId: 'pipelinerun1',
+          modelSourceName: 'pipeline-run-test',
+        }),
         mockModelVersion({
           author: 'Author 2',
           registeredModelId: '1',
