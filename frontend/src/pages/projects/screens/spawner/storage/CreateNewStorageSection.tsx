@@ -63,7 +63,6 @@ const CreateNewStorageSection = <D extends StorageData>({
 
   return (
     <FormSection>
-      hi there
       <K8sNameDescriptionField
         data={clusterStorageNameDesc}
         onDataChange={setClusterNameDesc}

@@ -7,6 +7,7 @@ import {
   HelperTextItem,
   TextArea,
   TextInput,
+  ValidatedOptions,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ChangeEvent, FormEvent } from 'react';
@@ -50,8 +51,9 @@ type K8sNameDescriptionFieldProps = {
   hideDescription?: boolean;
 };
 
-// todo: look elsewhere in the code for this! TODO
-type Validate = 'success' | 'warning' | 'error' | 'default';
+// using enum to make the type; cannot use enum directly
+// type Validate = ValidatedOptions.success | ValidatedOptions.error | ValidatedOptions.default;
+type Validate = `${ValidatedOptions}`;
 type NameError = 'tooShort' | 'tooLong' | 'none';
 const makeTooLongErrorText = (fieldName: string) =>
   `Please shorten the ${fieldName}; the maximum length is ${K8S_MAX_LENGTH} characters.`;
@@ -91,8 +93,9 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
       const actualNameError =
         value.length && value.length > K8S_MAX_LENGTH ? 'tooLong' : 'tooShort';
       setNameError(actualNameError);
+    } else {
+      setNameError('none');
     }
-    setNameError('none');
 
     onDataChange?.('name', value);
     if (isValid) {
@@ -113,7 +116,6 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
     }
   };
 
-  // todo: if too long; add warning text that it is too long (then do it all again for the description)
   return (
     <>
       <FormGroup label={nameLabel} isRequired fieldId={`${dataTestId}-name`}>
@@ -132,7 +134,6 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
           <FormHelperText>
             <HelperText>
               <HelperTextItem icon={<ExclamationCircleIcon />} variant={nameValidated}>
-                {nameError}
                 {nameError === 'tooLong' && nameErrorText}
                 {nameError === 'tooShort' && 'Name is required'}
               </HelperTextItem>
