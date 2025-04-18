@@ -80,6 +80,7 @@ export type PVCReplacements = {
   PVC_NAME: string;
   PVC_DISPLAY_NAME: string;
   PVC_SIZE: string;
+  STORAGE_CLASS: string;
 };
 
 export type WBEditTestData = {
