@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import {
   handleUpdateLogic,
   isK8sNameDescriptionDataValid,
@@ -314,7 +316,70 @@ describe('isK8sNameDescriptionDataValid', () => {
       ),
     ).toBe(false);
   });
-
+  it('should be false with a name that is too long', () => {
+    const filePath = path.join(__dirname, 'loremIpsum.txt'); // Adjust if it's in another folder
+    const fileContents = fs.readFileSync(filePath, 'utf8');
+    //  const fileContents = fs.readFileSync('./loremIpsum.txt', 'utf8'); // read as string
+    expect(
+      isK8sNameDescriptionDataValid(
+        mockK8sNameDescriptionFieldData({
+          name: fileContents,
+          description: 'does not matter',
+          k8sName: {
+            value: '',
+          },
+        }),
+      ),
+    ).toBe(false);
+  });
+  it('should be false with a description that is too long', () => {
+    const filePath = path.join(__dirname, 'loremIpsum.txt'); // Adjust if it's in another folder
+    const fileContents = fs.readFileSync(filePath, 'utf8');
+    //  const fileContents = fs.readFileSync('./loremIpsum.txt', 'utf8'); // read as string
+    expect(
+      isK8sNameDescriptionDataValid(
+        mockK8sNameDescriptionFieldData({
+          name: 'random name that is short enough',
+          description: fileContents,
+          k8sName: {
+            value: '',
+          },
+        }),
+      ),
+    ).toBe(false);
+  });
+  it('should be false with a name and description that is too long', () => {
+    const filePath = path.join(__dirname, 'loremIpsum.txt'); // Adjust if it's in another folder
+    const fileContents = fs.readFileSync(filePath, 'utf8');
+    //  const fileContents = fs.readFileSync('./loremIpsum.txt', 'utf8'); // read as string
+    expect(
+      isK8sNameDescriptionDataValid(
+        mockK8sNameDescriptionFieldData({
+          name: fileContents,
+          description: fileContents,
+          k8sName: {
+            value: '',
+          },
+        }),
+      ),
+    ).toBe(false);
+  });
+  it('should be true with a name that is NOT too long', () => {
+    const filePath = path.join(__dirname, 'loremIpsumShorter.txt'); // Adjust if it's in another folder
+    const fileContents = fs.readFileSync(filePath, 'utf8');
+    //  const fileContents = fs.readFileSync('./loremIpsum.txt', 'utf8'); // read as string
+    expect(
+      isK8sNameDescriptionDataValid(
+        mockK8sNameDescriptionFieldData({
+          name: fileContents,
+          description: 'does not matter',
+          k8sName: {
+            value: '',
+          },
+        }),
+      ),
+    ).toBe(false);
+  });
   it('should be true when no invalid states are present', () => {
     expect(
       isK8sNameDescriptionDataValid(
