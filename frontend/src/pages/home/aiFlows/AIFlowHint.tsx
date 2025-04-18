@@ -34,8 +34,11 @@ const AIFlowHint: React.FC<AIFlowHintProps> = ({ isDisplayed }) => {
     <Card data-testid="ai-flow-hint" style={{ overflowY: 'hidden' }}>
       <Split>
         <SplitItem>
-          <Flex flexWrap={{ default: 'wrap', '2xl': 'nowrap' }}>
-            <FlexItem flex={{ '2xl': 'flex_1' }}>
+          <Flex
+            flexWrap={{ default: 'wrap', lg: 'nowrap' }}
+            justifyContent={{ default: 'justifyContentCenter' }}
+          >
+            <FlexItem flex={{ lg: 'flex_1' }}>
               <CardHeader>
                 <Flex>
                   <FlexItem>
@@ -58,16 +61,21 @@ const AIFlowHint: React.FC<AIFlowHintProps> = ({ isDisplayed }) => {
                 </Content>
               </CardBody>
             </FlexItem>
-            <FlexItem alignSelf={{ default: 'alignSelfStretch' }} flex={{ '2xl': 'flex_1' }}>
+            <FlexItem
+              alignSelf={{
+                default: 'alignSelfFlexEnd',
+                lg: 'alignSelfCenter',
+                xl: 'alignSelfFlexEnd',
+              }}
+              flex={{ lg: 'flex_1' }}
+              style={{ height: '220px' }}
+            >
               <img
                 data-testid="ai-flow-hint-image"
                 src={aiFlowHintImage}
                 alt="ai-flow-hint-image"
-                style={{
-                  padding: '0 1.5rem',
-                  maxWidth: '700px',
-                  height: '100%',
-                }}
+                className="pf-v6-u-h-100"
+                style={{ maxWidth: 'unset' }}
               />
             </FlexItem>
           </Flex>
