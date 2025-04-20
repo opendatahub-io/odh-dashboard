@@ -18,11 +18,11 @@ const EmptyBYONImages: React.FC<EmptyBYONImagesProps> = ({ refresh }) => (
     <EmptyState
       headingLevel="h1"
       icon={PlusCircleIcon}
-      titleText="No custom notebook images found."
+      titleText="No custom workbench images"
       variant={EmptyStateVariant.full}
       data-id="empty-empty-state"
     >
-      <EmptyStateBody>To get started import a custom notebook image.</EmptyStateBody>
+      <EmptyStateBody>To get started, import a custom workbench image.</EmptyStateBody>
       <EmptyStateFooter>
         <ImportBYONImageButton refresh={refresh} />
       </EmptyStateFooter>
