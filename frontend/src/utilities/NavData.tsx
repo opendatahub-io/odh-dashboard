@@ -181,9 +181,9 @@ const useResourcesNav = (): NavDataHref[] => [
 const useCustomNotebooksNav = (): NavDataHref[] =>
   useIsAdminAreaCheck<NavDataHref>(SupportedArea.BYON, [
     {
-      id: 'settings-notebook-images',
-      label: 'Notebook images',
-      href: '/notebookImages',
+      id: 'settings-workbench-images',
+      label: 'Workbench images',
+      href: '/workbenchImages',
     },
   ]);
 

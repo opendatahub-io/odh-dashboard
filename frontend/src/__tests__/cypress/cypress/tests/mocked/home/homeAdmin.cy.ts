@@ -103,7 +103,7 @@ describe('Home page Admin section', () => {
     homePage.visit();
     const homeAdminSection = homePage.getHomeAdminSection();
     homeAdminSection.findNotebookImageButton().click();
-    verifyRelativeURL('/notebookImages');
+    verifyRelativeURL('/workbenchImages');
 
     // Verify the Settings nav menu is now expanded
     notebookImageSettings.findNavItem().should('be.visible');

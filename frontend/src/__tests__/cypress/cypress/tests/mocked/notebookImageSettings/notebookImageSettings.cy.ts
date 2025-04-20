@@ -24,14 +24,14 @@ import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import { IdentifierResourceType } from '~/types';
 import { HardwareProfileFeatureVisibility } from '~/k8sTypes';
 
-it('Notebook image settings should not be available for non product admins', () => {
+it('Workbench image settings should not be available for non product admins', () => {
   asProjectAdminUser();
   notebookImageSettings.visit(false);
   pageNotfound.findPage().should('exist');
   notebookImageSettings.findNavItem().should('not.exist');
 });
 
-describe('Notebook image settings', () => {
+describe('Workbench image settings', () => {
   beforeEach(() => {
     asProductAdminUser();
   });
