@@ -31,7 +31,7 @@ const AIFlowHint: React.FC<AIFlowHintProps> = ({ isDisplayed }) => {
   }
 
   return (
-    <Card data-testid="ai-flow-hint" style={{ overflowY: 'hidden' }}>
+    <Card data-testid="ai-flow-hint">
       <Split>
         <SplitItem>
           <Flex
@@ -78,17 +78,21 @@ const AIFlowHint: React.FC<AIFlowHintProps> = ({ isDisplayed }) => {
             </FlexItem>
           </Flex>
         </SplitItem>
-        <SplitItem>
-          <CardHeader>
-            <Button
-              icon={<TimesIcon />}
-              data-testid="ai-flow-hint-close"
-              aria-label="close ai flow hint"
-              isInline
-              variant="plain"
-              onClick={() => setHintHidden(true)}
-            />
-          </CardHeader>
+        <SplitItem isFilled>
+          <Flex justifyContent={{ default: 'justifyContentFlexEnd' }}>
+            <FlexItem>
+              <CardHeader>
+                <Button
+                  icon={<TimesIcon />}
+                  data-testid="ai-flow-hint-close"
+                  aria-label="close ai flow hint"
+                  isInline
+                  variant="plain"
+                  onClick={() => setHintHidden(true)}
+                />
+              </CardHeader>
+            </FlexItem>
+          </Flex>
         </SplitItem>
       </Split>
     </Card>
