@@ -12,7 +12,6 @@ import { useModelStatus } from '~/pages/modelServing/screens/global/useModelStat
 
 type ModelDeploymentNotification = {
   watchDeployment: () => void;
-  notifyError: (error: Error) => void;
 };
 
 export const useModelDeploymentNotification = (
@@ -98,20 +97,5 @@ export const useModelDeploymentNotification = (
     notification,
   ]);
 
-  const notifyError = React.useCallback(
-    (error: Error) => {
-      notification.error('Model deployment failed', error.message, [
-        {
-          title: 'View details',
-          onClick: () => {
-            // TODO: Navigate to deployment details
-            // This will be implemented in a follow-up PR
-          },
-        },
-      ]);
-    },
-    [notification],
-  );
-
-  return { watchDeployment, notifyError };
+  return { watchDeployment };
 };

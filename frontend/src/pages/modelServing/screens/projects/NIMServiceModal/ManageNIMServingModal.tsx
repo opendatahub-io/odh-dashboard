@@ -98,7 +98,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   const currentProjectName = projectContext?.currentProject.metadata.name;
   const namespace = currentProjectName || createDataInferenceService.project;
 
-  const { notifyError, watchDeployment } = useModelDeploymentNotification(
+  const { watchDeployment } = useModelDeploymentNotification(
     namespace,
     createDataInferenceService.k8sName,
     false,
@@ -239,7 +239,6 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   };
 
   const setErrorModal = (e: Error) => {
-    notifyError(e);
     setError(e);
     setActionInProgress(false);
   };

@@ -59,7 +59,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
-  const { notifyError, watchDeployment } = useModelDeploymentNotification(
+  const { watchDeployment } = useModelDeploymentNotification(
     createData.project,
     createData.k8sName,
     false,
@@ -116,7 +116,6 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     !storageCanCreate();
 
   const setErrorModal = (e: Error) => {
-    notifyError(e);
     setError(e);
     setActionInProgress(false);
   };

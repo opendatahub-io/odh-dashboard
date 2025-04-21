@@ -164,7 +164,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     SupportedArea.SERVING_RUNTIME_PARAMS,
   ).status;
 
-  const { notifyError, watchDeployment } = useModelDeploymentNotification(
+  const { watchDeployment } = useModelDeploymentNotification(
     namespace,
     createDataInferenceService.k8sName,
     true,
@@ -247,7 +247,6 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   };
 
   const setErrorModal = (e: Error) => {
-    notifyError(e);
     setError(e);
     setActionInProgress(false);
   };
