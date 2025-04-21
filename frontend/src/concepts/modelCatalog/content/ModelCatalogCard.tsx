@@ -61,7 +61,12 @@ export const ModelCatalogCard: React.FC<{
             }}
           >
             {truncate ? (
-              <Truncate content={model.name} position="middle" tooltipPosition="top" />
+              <Truncate
+                content={model.name}
+                position="middle"
+                tooltipPosition="top"
+                style={{ textDecoration: 'underline' }}
+              />
             ) : (
               <span>{model.name}</span>
             )}
