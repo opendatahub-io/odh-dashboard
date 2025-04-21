@@ -56,6 +56,7 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
     newRBObject: RoleBindingKind,
     rb: RoleBindingKind,
   ) => {
+    const roleType = newRBObject.subjects[0].kind.toLowerCase();
     const usedNames: string[] = permissions
       .map((p) => p.subjects[0].name)
       .filter((name) => isAdding || name !== rb.subjects[0].name);
@@ -63,8 +64,8 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
     if (isDuplicateName) {
       onError(
         <>
-          Permissions for <strong>{subjectName}</strong> already exist. Either edit the existing
-          permissions or add new permissions.
+          The {roleType} <strong>{subjectName}</strong> already exists. Edit the {roleType}
+          &apos;s existing permissions, or add a new {roleType} to assign it permissions.
         </>,
       );
       refresh();
