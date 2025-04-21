@@ -50,6 +50,7 @@ import { useModelServingPodSpecOptionsState } from '~/concepts/hardwareProfiles/
 import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
 import StorageClassSelect from '~/pages/projects/screens/spawner/storage/StorageClassSelect';
 import useAdminDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
+import { useModelDeploymentNotification } from '~/pages/modelServing/screens/projects/useModelDeploymentNotification';
 import { NoAuthAlert } from './NoAuthAlert';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
@@ -94,6 +95,15 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
       editInfo?.secrets,
     );
 
+  const currentProjectName = projectContext?.currentProject.metadata.name;
+  const namespace = currentProjectName || createDataInferenceService.project;
+
+  const { notifyError, watchDeployment } = useModelDeploymentNotification(
+    namespace,
+    createDataInferenceService.k8sName,
+    false,
+  );
+
   const podSpecOptionsState = useModelServingPodSpecOptionsState(
     editInfo?.servingRuntimeEditInfo?.servingRuntime,
     editInfo?.inferenceServiceEditInfo,
@@ -102,8 +112,6 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   const isAuthAvailable =
     useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status ||
     createDataInferenceService.isKServeRawDeployment;
-  const currentProjectName = projectContext?.currentProject.metadata.name;
-  const namespace = currentProjectName || createDataInferenceService.project;
 
   const [translatedName] = translateDisplayNameForK8sAndReport(createDataInferenceService.name, {
     maxLength: 253,
@@ -231,6 +239,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   };
 
   const setErrorModal = (e: Error) => {
+    notifyError(e);
     setError(e);
     setActionInProgress(false);
   };
@@ -310,7 +319,10 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
         }
         return Promise.all(promises);
       })
-      .then(() => onSuccess())
+      .then(() => {
+        onSuccess();
+        watchDeployment();
+      })
       .catch((e) => {
         setErrorModal(e);
       });
