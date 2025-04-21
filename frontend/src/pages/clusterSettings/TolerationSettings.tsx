@@ -33,7 +33,7 @@ const TolerationSettings: React.FC<TolerationSettingsProps> = ({
 
   return (
     <SettingSection
-      title="Notebook pod tolerations"
+      title="Workbench pod tolerations"
       footer={
         <HelperText>
           {tolerationSettings.error && (
@@ -42,9 +42,9 @@ const TolerationSettings: React.FC<TolerationSettingsProps> = ({
             </HelperTextItem>
           )}
           <HelperTextItem>
-            The toleration key above will be applied to all notebook pods when they are created. Add
-            a matching taint key (with any value) to the Machine Pool(s) that you want to dedicate
-            to Notebooks.
+            The toleration key will be applied to new workbench pods upon creation. Add a matching
+            taint key (with any value) to the machine pools that you want to dedicate to
+            workbenches.
           </HelperTextItem>
         </HelperText>
       }
@@ -52,7 +52,7 @@ const TolerationSettings: React.FC<TolerationSettingsProps> = ({
       <Stack hasGutter>
         <StackItem>
           <Checkbox
-            label="Add a toleration to notebook pods to allow them to be scheduled to tainted nodes"
+            label="Add a toleration to workbench pods to allow them to be scheduled to tainted nodes"
             isChecked={tolerationSettings.enabled}
             onChange={(e, enabled) => {
               const newNotebookTolerationSettings: NotebookTolerationFormSettings = {
@@ -67,7 +67,7 @@ const TolerationSettings: React.FC<TolerationSettingsProps> = ({
             name="tolerationsEnabledCheckbox"
             body={
               <Flex spaceItems={{ default: 'spaceItemsSm' }}>
-                <FlexItem>Toleration key for notebook pods:</FlexItem>
+                <FlexItem>Toleration key for workbench pods:</FlexItem>
                 <FlexItem>
                   <TextInput
                     id="toleration-key-input"

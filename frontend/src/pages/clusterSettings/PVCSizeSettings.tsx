@@ -28,8 +28,7 @@ const PVCSizeSettings: React.FC<PVCSizeSettingsProps> = ({ initialValue, pvcSize
   return (
     <SettingSection
       title="PVC size"
-      description="Changing the PVC size changes the storage size attached to the new notebook servers for
-all users."
+      description="Changing the PVC size will affect the storage size attached to new workbenches only, for all users."
     >
       <Stack hasGutter>
         <StackItem>
