@@ -134,9 +134,11 @@ rules:
       - rbac.authorization.k8s.io
     verbs:
       - list
+      - get
     resources:
       - rolebindings
       - clusterrolebindings
+      - roles
   - apiGroups:
       - ''
       - events.k8s.io
