@@ -26,12 +26,8 @@ export const useModelDeploymentNotification = (
   const [modelStatus] = useModelStatus(namespace, modelName, isKserve);
 
   const watchDeployment = React.useCallback(() => {
-    //console.log('📡 watching Deployment');
-
     registerNotification({
       callback: async (signal) => {
-        //console.log('🔁 in the polling callback');
-        //console.log('🔁 modelStatus', modelStatus);
         // Early failure detection from pod scheduling
         if (modelStatus?.failedToSchedule) {
           return {
@@ -43,7 +39,7 @@ export const useModelDeploymentNotification = (
               {
                 title: 'View details',
                 onClick: () => {
-                  // TODO: Navigate to deployment details
+                  navigate(`/modelServing/${namespace}`);
                 },
               },
             ],
@@ -52,29 +48,18 @@ export const useModelDeploymentNotification = (
 
         try {
           const inferenceService = await getInferenceService(modelName, namespace, { signal });
-          console.log('fetched InferenceService', inferenceService.status);
           const modelState = getInferenceServiceModelState(inferenceService);
-          console.log('modelState:', modelState);
           const statusMessage = getInferenceServiceStatusMessage(inferenceService);
 
           switch (modelState) {
             case InferenceServiceModelState.FAILED_TO_LOAD:
-              console.log('Model deployment failed');
-              return {
-                status: 'error',
-                title: 'Model deployment failed',
-                message:
-                  statusMessage ||
+              notification.error(
+                'Model deployment failed',
+                statusMessage ||
                   'Failed to load the model. Please check the model configuration and try again.',
-                actions: [
-                  {
-                    title: 'View details',
-                    onClick: () => {
-                      navigate(`/modelServing/${namespace}`);
-                    },
-                  },
-                ],
-              };
+                [{ title: 'View details', onClick: () => navigate(`/modelServing/${namespace}`) }],
+              );
+              return { status: 'stop' };
             case InferenceServiceModelState.LOADED:
             case InferenceServiceModelState.STANDBY:
               return { status: 'stop' };
@@ -94,10 +79,8 @@ export const useModelDeploymentNotification = (
             'code' in error.statusObject &&
             error.statusObject.code === 404
           ) {
-            console.log('⏳ InferenceService not found yet, keep polling');
             return { status: 'repoll' };
           }
-          //console.error('🔥 Unexpected error fetching inference service:', error);
           return {
             status: 'error',
             title: 'Error checking model deployment',
@@ -106,7 +89,14 @@ export const useModelDeploymentNotification = (
         }
       },
     });
-  }, [registerNotification, modelStatus, modelName, namespace, navigate]);
+  }, [
+    registerNotification,
+    modelStatus?.failedToSchedule,
+    navigate,
+    namespace,
+    modelName,
+    notification,
+  ]);
 
   const notifyError = React.useCallback(
     (error: Error) => {
