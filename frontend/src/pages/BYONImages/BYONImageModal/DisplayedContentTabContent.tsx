@@ -42,7 +42,7 @@ const DisplayedContentTabContent: React.FC<DisplayedContentTabContentProps> = ({
           variant={EmptyStateVariant.sm}
         >
           <EmptyStateBody>
-            Displayed contents help inform other users of what your notebook image contains. To add
+            Displayed contents help inform other users of what your workbench image contains. To add
             displayed content, add the names of software or packages included in your image that you
             want users to know about.
           </EmptyStateBody>
