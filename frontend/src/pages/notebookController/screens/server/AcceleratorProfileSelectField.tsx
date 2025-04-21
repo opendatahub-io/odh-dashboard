@@ -122,7 +122,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
       )
       .map((profile, index) => (
         <MenuItem
-          key={index}
+          key={`${index}-project-scoped`}
           description={profile.spec.description}
           isSelected={
             formData.profile?.metadata.name === profile.metadata.name &&
@@ -132,12 +132,28 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
             setFormData('profile', profile);
           }}
         >
-          {profile.spec.displayName}
+          <Flex
+            spaceItems={{ default: 'spaceItemsXs' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            <FlexItem style={{ display: 'flex' }}>
+              <img
+                style={{ height: '20px' }}
+                src={typedObjectImage(ProjectObjectType.project)}
+                alt=""
+              />
+            </FlexItem>
+            <FlexItem>{profile.spec.displayName} </FlexItem>
+            <FlexItem align={{ default: 'alignRight' }}>
+              {isAcceleratorProfileSupported(profile) && <Label color="blue">Compatible</Label>}
+            </FlexItem>
+          </Flex>
         </MenuItem>
       ));
 
-  const getDashboardHardwareProfiles = () => {
+  const getDashboardAcceleratorProfiles = () => {
     const profileItems = enabledAcceleratorProfiles
+      .filter((ac) => ac.spec.enabled && ac.metadata.namespace !== currentProject)
       .toSorted((a, b) => {
         const aSupported = isAcceleratorProfileSupported(a);
         const bSupported = isAcceleratorProfileSupported(b);
@@ -156,34 +172,26 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
       )
       .map((profile, index) => (
         <MenuItem
-          key={index}
+          key={`${index}-global`}
           description={profile.spec.description}
           isSelected={
             formData.profile?.metadata.name === profile.metadata.name &&
             formData.profile.metadata.namespace === profile.metadata.namespace
           }
+          icon={<GlobalIcon />}
           onClick={() => {
             setFormData('profile', profile);
           }}
         >
-          {profile.spec.displayName}
+          <Split>
+            <SplitItem>{profile.spec.displayName}</SplitItem>
+            <SplitItem isFilled />
+            <SplitItem>
+              {isAcceleratorProfileSupported(profile) && <Label color="blue">Compatible</Label>}
+            </SplitItem>
+          </Split>
         </MenuItem>
       ));
-
-    if (initialState.unknownProfileDetected) {
-      profileItems.push(
-        <MenuItem
-          key="use-existing"
-          description="Use existing resource requests/limits, tolerations, and node selectors."
-          isSelected={!formData.profile}
-          onClick={() => {
-            setFormData('profile', undefined);
-          }}
-        >
-          Use existing settings
-        </MenuItem>,
-      );
-    }
 
     if (initialState.unknownProfileDetected) {
       profileItems.push(
@@ -270,6 +278,9 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
     return null;
   }
 
+  const filteredAcceleratorProfiles = getAcceleratorProfiles();
+  const filteredDashboardAcceleratorProfiles = getDashboardAcceleratorProfiles();
+
   return (
     <Stack hasGutter>
       <StackItem>
@@ -329,57 +340,71 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
                         </Label>
                       )}
                     </>
+                  ) : formData.useExistingSettings ? (
+                    'Existing settings'
                   ) : (
                     'Select accelerator profile...'
                   )
                 }
               >
                 <>
-                  <MenuGroup
-                    key="project-scoped"
-                    data-testid="project-scoped-accelerator-profiles"
-                    label={
-                      <Flex
-                        spaceItems={{ default: 'spaceItemsXs' }}
-                        alignItems={{ default: 'alignItemsCenter' }}
-                        style={{ paddingBottom: '5px' }}
+                  {filteredAcceleratorProfiles.length > 0 && (
+                    <>
+                      <MenuGroup
+                        key="project-scoped"
+                        data-testid="project-scoped-accelerator-profiles"
+                        label={
+                          <Flex
+                            spaceItems={{ default: 'spaceItemsXs' }}
+                            alignItems={{ default: 'alignItemsCenter' }}
+                            style={{ paddingBottom: '5px' }}
+                          >
+                            <FlexItem style={{ display: 'flex', paddingLeft: '12px' }}>
+                              <img
+                                style={{ height: '20px', paddingTop: '3px' }}
+                                src={typedObjectImage(ProjectObjectType.project)}
+                                alt=""
+                              />
+                            </FlexItem>
+                            <FlexItem>Project-scoped accelerator profiles</FlexItem>
+                          </Flex>
+                        }
                       >
-                        <FlexItem style={{ display: 'flex', paddingLeft: '12px' }}>
-                          <img
-                            style={{ height: '20px', paddingTop: '3px' }}
-                            src={typedObjectImage(ProjectObjectType.project)}
-                            alt=""
-                          />
-                        </FlexItem>
-                        <FlexItem>Project-scoped accelerator profiles</FlexItem>
-                      </Flex>
-                    }
-                  >
-                    {getAcceleratorProfiles()}
-                  </MenuGroup>
-
-                  <Divider component="li" />
-                  <MenuGroup
-                    key="global-scoped"
-                    data-testid="global-scoped-accelerator-profiles"
-                    label={
-                      <Flex
-                        spaceItems={{ default: 'spaceItemsXs' }}
-                        alignItems={{ default: 'alignItemsCenter' }}
-                        style={{ paddingBottom: '5px' }}
+                        {filteredAcceleratorProfiles}
+                      </MenuGroup>
+                    </>
+                  )}
+                  {filteredDashboardAcceleratorProfiles.length > 0 &&
+                    filteredDashboardAcceleratorProfiles.length > 0 && <Divider component="li" />}
+                  {filteredDashboardAcceleratorProfiles.length > 0 && (
+                    <>
+                      <MenuGroup
+                        key="global-scoped"
+                        data-testid="global-scoped-accelerator-profiles"
+                        label={
+                          <Flex
+                            spaceItems={{ default: 'spaceItemsXs' }}
+                            alignItems={{ default: 'alignItemsCenter' }}
+                            style={{ paddingBottom: '5px' }}
+                          >
+                            <FlexItem
+                              style={{ display: 'flex', paddingLeft: '10px' }}
+                              data-testid="ds-project-image"
+                            >
+                              <GlobalIcon />
+                            </FlexItem>
+                            <FlexItem>Global accelerator profiles</FlexItem>
+                          </Flex>
+                        }
                       >
-                        <FlexItem
-                          style={{ display: 'flex', paddingLeft: '10px' }}
-                          data-testid="ds-project-image"
-                        >
-                          <GlobalIcon />
-                        </FlexItem>
-                        <FlexItem>Global accelerator profiles</FlexItem>
-                      </Flex>
-                    }
-                  >
-                    {getDashboardHardwareProfiles()}
-                  </MenuGroup>
+                        {filteredDashboardAcceleratorProfiles}
+                      </MenuGroup>
+                    </>
+                  )}
+                  {filteredAcceleratorProfiles.length === 0 &&
+                    filteredDashboardAcceleratorProfiles.length === 0 && (
+                      <MenuItem isDisabled>No results found</MenuItem>
+                    )}
                 </>
               </SearchSelector>
               {initialState.unknownProfileDetected
