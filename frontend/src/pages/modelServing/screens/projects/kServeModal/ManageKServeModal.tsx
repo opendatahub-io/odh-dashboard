@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Form, FormSection } from '@patternfly/react-core';
+import { Form, FormSection, Spinner } from '@patternfly/react-core';
 import { Modal } from '@patternfly/react-core/deprecated';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
@@ -162,6 +162,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const servingRuntimeParamsEnabled = useIsAreaAvailable(
     SupportedArea.SERVING_RUNTIME_PARAMS,
   ).status;
+  const [isLoading, setIsLoading] = React.useState(!!modelDeployPrefillInfo);
 
   React.useEffect(() => {
     if (currentProjectName) {
@@ -184,6 +185,29 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     // Don't update if kServeNameDesc changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [createDataInferenceService.name, setKserveNameDesc]);
+
+  React.useEffect(() => {
+    if (modelDeployPrefillInfo) {
+      const isDataReady =
+        !!kServeNameDesc.name &&
+        Array.isArray(servingRuntimeTemplates) &&
+        servingRuntimeTemplates.length > 0 &&
+        (!projectContext || connectionsLoaded) &&
+        (podSpecOptionsState.acceleratorProfile.loaded ||
+          podSpecOptionsState.hardwareProfile.profilesLoaded);
+
+      setIsLoading(!isDataReady);
+    }
+  }, [
+    kServeNameDesc.name,
+    servingRuntimeTemplates,
+    projectTemplates,
+    projectContext,
+    connectionsLoaded,
+    modelDeployPrefillInfo,
+    podSpecOptionsState.acceleratorProfile.loaded,
+    podSpecOptionsState.hardwareProfile.profilesLoaded,
+  ]);
 
   // Serving Runtime Validation
   const isDisabledServingRuntime = namespace === '' || actionInProgress;
@@ -361,7 +385,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
               }
             />
           )}
-          {!hideForm && (
+          {!hideForm && isLoading && <Spinner data-testid="spinner" />}
+          {!hideForm && !isLoading && (
             <>
               <K8sNameDescriptionField
                 data={kServeNameDesc}
@@ -430,7 +455,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
             </>
           )}
         </FormSection>
-        {!hideForm && (
+        {!hideForm && !isLoading && (
           <FormSection title="Source model location" id="model-location">
             <ConnectionSection
               existingUriOption={
@@ -454,7 +479,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
             />
           </FormSection>
         )}
-        {servingRuntimeParamsEnabled && (
+        {servingRuntimeParamsEnabled && !isLoading && (
           <FormSection
             title="Configuration parameters"
             id="configuration-params"

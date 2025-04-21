@@ -31,11 +31,13 @@ export const initDeployPrefilledModelIntercepts = ({
   kServeInstalled = true,
   disableProjectScoped = true,
   disableHardwareProfiles = true,
+  isEmpty = false,
 }: {
   modelMeshInstalled?: boolean;
   kServeInstalled?: boolean;
   disableProjectScoped?: boolean;
   disableHardwareProfiles?: boolean;
+  isEmpty?: boolean;
 }): void => {
   cy.interceptOdh(
     'GET /api/config',
@@ -77,31 +79,33 @@ export const initDeployPrefilledModelIntercepts = ({
 
   cy.interceptK8sList(
     TemplateModel,
-    mockK8sResourceList(
-      [
-        mockServingRuntimeTemplateK8sResource({
-          name: 'template-1',
-          displayName: 'Multi Platform',
-          platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
-        }),
-        mockServingRuntimeTemplateK8sResource({
-          name: 'template-2',
-          displayName: 'Caikit',
-          platforms: [ServingRuntimePlatform.SINGLE],
-        }),
-        mockServingRuntimeTemplateK8sResource({
-          name: 'template-3',
-          displayName: 'New OVMS Server',
-          platforms: [ServingRuntimePlatform.MULTI],
-        }),
-        mockServingRuntimeTemplateK8sResource({
-          name: 'template-4',
-          displayName: 'Serving Runtime with No Annotations',
-        }),
-        mockInvalidTemplateK8sResource({}),
-      ],
-      { namespace: 'opendatahub' },
-    ),
+    isEmpty
+      ? mockK8sResourceList([])
+      : mockK8sResourceList(
+          [
+            mockServingRuntimeTemplateK8sResource({
+              name: 'template-1',
+              displayName: 'Multi Platform',
+              platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
+            }),
+            mockServingRuntimeTemplateK8sResource({
+              name: 'template-2',
+              displayName: 'Caikit',
+              platforms: [ServingRuntimePlatform.SINGLE],
+            }),
+            mockServingRuntimeTemplateK8sResource({
+              name: 'template-3',
+              displayName: 'New OVMS Server',
+              platforms: [ServingRuntimePlatform.MULTI],
+            }),
+            mockServingRuntimeTemplateK8sResource({
+              name: 'template-4',
+              displayName: 'Serving Runtime with No Annotations',
+            }),
+            mockInvalidTemplateK8sResource({}),
+          ],
+          { namespace: 'opendatahub' },
+        ),
   );
 
   cy.interceptK8sList(

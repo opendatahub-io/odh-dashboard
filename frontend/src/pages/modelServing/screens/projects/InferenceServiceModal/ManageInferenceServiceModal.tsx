@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Form, FormSection, HelperTextItem } from '@patternfly/react-core';
+import { Form, FormSection, HelperTextItem, Spinner } from '@patternfly/react-core';
 import { Modal } from '@patternfly/react-core/deprecated';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
@@ -57,6 +57,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     useK8sNameDescriptionFieldData({ initialData: editInfo });
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
+  const [isLoading, setIsLoading] = React.useState(!!modelDeployPrefillInfo);
 
   const currentProjectName = projectContext?.currentProject.metadata.name || '';
   const currentServingRuntimeName = projectContext?.currentServingRuntime?.metadata.name || '';
@@ -99,6 +100,21 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     }
     return isConnectionValid;
   };
+
+  React.useEffect(() => {
+    if (createData.name && createData.name !== inferenceServiceNameDesc.name) {
+      setInferenceServiceNameDesc('name', createData.name);
+    }
+    setIsLoading(false);
+  }, [inferenceServiceNameDesc.name, createData.name, setInferenceServiceNameDesc]);
+
+  React.useEffect(() => {
+    if (modelDeployPrefillInfo) {
+      const isDataReady = !!inferenceServiceNameDesc.name && (!projectContext || connectionsLoaded);
+
+      setIsLoading(!isDataReady);
+    }
+  }, [inferenceServiceNameDesc.name, projectContext, connectionsLoaded, modelDeployPrefillInfo]);
 
   const isDisabled =
     actionInProgress ||
@@ -173,7 +189,8 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
             }
           />
         )}
-        {!shouldFormHidden && (
+        {!shouldFormHidden && isLoading && <Spinner />}
+        {!shouldFormHidden && !isLoading && (
           <>
             <K8sNameDescriptionField
               data={inferenceServiceNameDesc}
