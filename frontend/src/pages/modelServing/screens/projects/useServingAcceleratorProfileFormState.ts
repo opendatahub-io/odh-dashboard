@@ -1,3 +1,4 @@
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import useAcceleratorProfileFormState, {
   UseAcceleratorProfileFormResult,
@@ -14,9 +15,15 @@ const useServingAcceleratorProfileFormState = (
     servingRuntime?.spec.containers[0].resources;
   const tolerations =
     inferenceService?.spec.predictor.tolerations || servingRuntime?.spec.tolerations;
+  const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
   const namespace = servingRuntime?.metadata.namespace;
 
-  return useAcceleratorProfileFormState(resources, tolerations, acceleratorProfileName, namespace);
+  return useAcceleratorProfileFormState(
+    resources,
+    tolerations,
+    acceleratorProfileName,
+    isProjectScopedAvailable ? namespace : undefined,
+  );
 };
 
 export default useServingAcceleratorProfileFormState;
