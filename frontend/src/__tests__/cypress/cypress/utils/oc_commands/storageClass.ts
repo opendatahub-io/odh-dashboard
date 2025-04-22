@@ -69,7 +69,7 @@ export const getStorageClassConfig = (scName: string): Cypress.Chainable<Command
  * @returns Result Object of the operation
  */
 export const getOpenshiftDefaultStorageClass = (): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc get storageclass -o jsonpath='{.items[?(@.metadata.annotations.storageclass.kubernetes.io/is-default-class=="true")].metadata.name}'`;
+  const ocCommand = `oc get storageclass -o jsonpath='{.items[?(@.metadata.annotations.storageclass\\.kubernetes\\.io/is-default-class=="true")].metadata.name}'`;
   cy.log(ocCommand);
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
     if (result.code !== 0) {
