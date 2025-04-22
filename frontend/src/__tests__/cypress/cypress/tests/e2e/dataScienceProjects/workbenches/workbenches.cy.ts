@@ -11,6 +11,7 @@ import { loadPVCFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { createPersistentVolumeClaim } from '~/__tests__/cypress/cypress/utils/oc_commands/presistentVolumeClaim';
+import { getOpenshiftDefaultStorageClass } from '~/__tests__/cypress/cypress/utils/oc_commands/storageClass';
 import {
   retryableBefore,
   wasSetupPerformed,
@@ -21,9 +22,18 @@ describe('[Automation Bug: RHOAIENG-24129] Workbench and PVSs tests', () => {
   let PVCName: string;
   let PVCDisplayName: string;
   let PVCSize: string;
+  let defaultStorageClass: string;
 
   retryableBefore(() => {
-    return loadPVCFixture('e2e/dataScienceProjects/testProjectWbPV.yaml')
+    return getOpenshiftDefaultStorageClass()
+      .then((result) => {
+        if (result.code !== 0 || !result.stdout) {
+          throw new Error(`Failed to get default storage class: ${result.stderr}`);
+        }
+        defaultStorageClass = result.stdout;
+        cy.log(`Using default storage class: ${defaultStorageClass}`);
+        return loadPVCFixture('e2e/dataScienceProjects/testProjectWbPV.yaml');
+      })
       .then((fixtureData: PVCReplacements) => {
         projectName = fixtureData.NAMESPACE;
         PVCName = fixtureData.PVC_NAME;
@@ -43,6 +53,7 @@ describe('[Automation Bug: RHOAIENG-24129] Workbench and PVSs tests', () => {
           PVC_NAME: PVCName,
           PVC_DISPLAY_NAME: PVCDisplayName,
           PVC_SIZE: PVCSize,
+          STORAGE_CLASS: defaultStorageClass,
         };
         return createPersistentVolumeClaim(pvcReplacements);
       })
