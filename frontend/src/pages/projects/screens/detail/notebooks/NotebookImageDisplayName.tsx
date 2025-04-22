@@ -99,8 +99,8 @@ export const NotebookImageDisplayName = ({
         title: 'Notebook image disabled',
         body: (
           <p>
-            This image version is disabled. This workbench can continue using this image version,
-            but new workbenches cannot use it.
+            This image version is disabled. This workbench can continue using this version, but new
+            workbenches cannot use it.
           </p>
         ),
         variant: 'warning',
