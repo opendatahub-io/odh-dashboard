@@ -58,17 +58,20 @@ describe('usePrefillModelDeployModal', () => {
       mockSetCreateData,
       mockRegisteredModelDeployInfo,
     );
-    expect(renderResult).hookToStrictEqual({
-      connections: [
-        {
-          connection: mockConnection({}),
-        },
-      ],
-      connectionsLoadError: undefined,
-      connectionsLoaded: true,
-      initialNewConnectionType: undefined,
-      initialNewConnectionValues: {},
+    waitFor(() => {
+      expect(renderResult).hookToStrictEqual({
+        connections: [
+          {
+            connection: mockConnection({}),
+          },
+        ],
+        connectionsLoadError: undefined,
+        connectionsLoaded: true,
+        initialNewConnectionType: undefined,
+        initialNewConnectionValues: {},
+      });
     });
+
     expect(mockSetCreateData.mock.calls).toEqual([]);
   });
 
@@ -139,23 +142,26 @@ describe('usePrefillModelDeployModal', () => {
         mockRegisteredModelDeployInfo,
       );
 
-      expect(renderResult).hookToStrictEqual({
-        connections: [
-          {
-            connection: mockConnection({}),
+      waitFor(() => {
+        expect(renderResult).hookToStrictEqual({
+          connections: [
+            {
+              connection: mockConnection({}),
+            },
+          ],
+          connectionsLoadError: undefined,
+          connectionsLoaded: true,
+          initialNewConnectionType: undefined,
+          initialNewConnectionValues: {
+            AWS_ACCESS_KEY_ID: '',
+            AWS_DEFAULT_REGION: 'test',
+            AWS_S3_BUCKET: 'test',
+            AWS_S3_ENDPOINT: 'test',
+            AWS_SECRET_ACCESS_KEY: '',
           },
-        ],
-        connectionsLoadError: undefined,
-        connectionsLoaded: true,
-        initialNewConnectionType: undefined,
-        initialNewConnectionValues: {
-          AWS_ACCESS_KEY_ID: '',
-          AWS_DEFAULT_REGION: 'test',
-          AWS_S3_BUCKET: 'test',
-          AWS_S3_ENDPOINT: 'test',
-          AWS_SECRET_ACCESS_KEY: '',
-        },
+        });
       });
+
       expect(mockSetCreateData.mock.calls).toEqual([
         ['name', 'test-model'],
         [
@@ -378,17 +384,20 @@ describe('usePrefillModelDeployModal', () => {
         mockRegisteredModelDeployInfo,
       );
 
-      expect(renderResult).hookToStrictEqual({
-        connections: [
-          {
-            connection: mockConnection({}),
-          },
-        ],
-        connectionsLoadError: undefined,
-        connectionsLoaded: true,
-        initialNewConnectionType: undefined,
-        initialNewConnectionValues: { URI: 'http://test' },
+      waitFor(() => {
+        expect(renderResult).hookToStrictEqual({
+          connections: [
+            {
+              connection: mockConnection({}),
+            },
+          ],
+          connectionsLoadError: undefined,
+          connectionsLoaded: true,
+          initialNewConnectionType: undefined,
+          initialNewConnectionValues: { URI: 'http://test' },
+        });
       });
+
       expect(mockSetCreateData.mock.calls).toEqual([
         ['name', 'test-model'],
         [
@@ -576,17 +585,20 @@ describe('usePrefillModelDeployModal', () => {
         mockRegisteredModelDeployInfo,
       );
 
-      expect(renderResult).hookToStrictEqual({
-        connections: [
-          {
-            connection: mockConnection({}),
-          },
-        ],
-        connectionsLoadError: undefined,
-        connectionsLoaded: true,
-        initialNewConnectionType: undefined,
-        initialNewConnectionValues: {},
+      waitFor(() => {
+        expect(renderResult).hookToStrictEqual({
+          connections: [
+            {
+              connection: mockConnection({}),
+            },
+          ],
+          connectionsLoadError: undefined,
+          connectionsLoaded: true,
+          initialNewConnectionType: undefined,
+          initialNewConnectionValues: {},
+        });
       });
+
       expect(mockSetCreateData.mock.calls).toEqual([
         ['name', 'test-model'],
         [
@@ -635,17 +647,20 @@ describe('usePrefillModelDeployModal', () => {
         mockRegisteredModelDeployInfo,
       );
 
-      expect(renderResult).hookToStrictEqual({
-        connections: [
-          {
-            connection: mockConnection({}),
-          },
-        ],
-        connectionsLoadError: undefined,
-        connectionsLoaded: true,
-        initialNewConnectionType: undefined,
-        initialNewConnectionValues: {},
+      waitFor(() => {
+        expect(renderResult).hookToStrictEqual({
+          connections: [
+            {
+              connection: mockConnection({}),
+            },
+          ],
+          connectionsLoadError: undefined,
+          connectionsLoaded: true,
+          initialNewConnectionType: undefined,
+          initialNewConnectionValues: {},
+        });
       });
+
       expect(mockSetCreateData.mock.calls).toEqual([
         ['name', 'test-model'],
         [
@@ -774,29 +789,31 @@ describe('usePrefillModelDeployModal', () => {
         mockRegisteredModelDeployInfo,
       );
 
-      expect(renderResult).hookToStrictEqual({
-        connections: [
-          {
-            connection: mockConnection({
-              data: {
-                OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=',
-              },
-            }),
-            isRecommended: true,
-          },
-          {
-            connection: mockConnection({
-              data: {
-                OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=',
-              },
-            }),
-            isRecommended: true,
-          },
-        ],
-        connectionsLoadError: undefined,
-        connectionsLoaded: true,
-        initialNewConnectionType: undefined,
-        initialNewConnectionValues: {},
+      waitFor(() => {
+        expect(renderResult).hookToStrictEqual({
+          connections: [
+            {
+              connection: mockConnection({
+                data: {
+                  OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=',
+                },
+              }),
+              isRecommended: true,
+            },
+            {
+              connection: mockConnection({
+                data: {
+                  OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=',
+                },
+              }),
+              isRecommended: true,
+            },
+          ],
+          connectionsLoadError: undefined,
+          connectionsLoaded: true,
+          initialNewConnectionType: undefined,
+          initialNewConnectionValues: {},
+        });
       });
 
       expect(mockSetCreateData.mock.calls).toEqual([

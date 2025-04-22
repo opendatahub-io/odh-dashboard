@@ -154,7 +154,7 @@ export const proxyService =
           // Assign the `upstream` param so we can dynamically set the upstream URL for http-proxy
           setParam(request, 'upstream', upstream);
           if (tls) {
-            setAuthorizationHeader(request, fastify);
+            await setAuthorizationHeader(request, fastify);
           }
           fastify.log.info(`Proxy ${request.method} request ${request.url} to ${upstream}`);
           done();
@@ -232,7 +232,7 @@ export const registerProxy = async (
         return;
       }
       if (authorize) {
-        setAuthorizationHeader(request, fastify);
+        await setAuthorizationHeader(request, fastify);
       }
       fastify.log.info(`Proxy ${request.method} request ${request.url} to ${upstream}`);
     },
