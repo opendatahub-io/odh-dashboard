@@ -20,7 +20,7 @@ export const columns: SortableData<NotebookState>[] = [
   },
   {
     field: 'image',
-    label: 'Notebook image',
+    label: 'Workbench image',
     width: 20,
     sortable: false,
   },

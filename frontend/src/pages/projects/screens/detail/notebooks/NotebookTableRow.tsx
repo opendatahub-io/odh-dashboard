@@ -154,7 +154,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
             resource={obj.notebook}
           />
         </Td>
-        <Td dataLabel="Notebook image">
+        <Td dataLabel="Workbench image">
           <Split>
             <SplitItem>
               <NotebookImageDisplayName
