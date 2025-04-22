@@ -14,8 +14,9 @@ const useServingAcceleratorProfileFormState = (
     servingRuntime?.spec.containers[0].resources;
   const tolerations =
     inferenceService?.spec.predictor.tolerations || servingRuntime?.spec.tolerations;
+  const namespace = servingRuntime?.metadata.namespace;
 
-  return useAcceleratorProfileFormState(resources, tolerations, acceleratorProfileName);
+  return useAcceleratorProfileFormState(resources, tolerations, acceleratorProfileName, namespace);
 };
 
 export default useServingAcceleratorProfileFormState;
