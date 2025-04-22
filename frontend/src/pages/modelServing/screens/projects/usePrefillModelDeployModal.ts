@@ -12,7 +12,6 @@ import {
 } from '~/pages/modelServing/screens/types';
 import { AwsKeys, EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
 import { isRedHatRegistryUri } from '~/pages/modelRegistry/screens/utils';
 import {
   getMRConnectionValues,
@@ -24,6 +23,7 @@ import {
 import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
 import { getResourceNameFromK8sResource } from '~/concepts/k8s/utils';
 import { PrefilledConnection } from '~/concepts/modelRegistry/utils';
+import useServingConnections from '~/pages/projects/screens/detail/connections/useServingConnections';
 import useLabeledConnections from './useLabeledConnections';
 
 export type ModelDeployPrefillInfo = {
@@ -45,9 +45,8 @@ const usePrefillModelDeployModal = (
   setCreateData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>,
   modelDeployPrefillInfo?: ModelDeployPrefillInfo,
 ): PrefilledConnection => {
-  const [fetchedConnections, connectionsLoaded, connectionsLoadError] = useConnections(
+  const [fetchedConnections, connectionsLoaded, connectionsLoadError] = useServingConnections(
     projectContext ? projectContext.currentProject.metadata.name : createData.project,
-    true,
   );
   const { connections, modelLocation } = useLabeledConnections(
     modelDeployPrefillInfo?.modelArtifactUri,
