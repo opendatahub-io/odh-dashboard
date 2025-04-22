@@ -55,7 +55,7 @@ type K8sNameDescriptionFieldProps = {
 type Validate = `${ValidatedOptions}`;
 type NameError = 'tooShort' | 'tooLong' | 'none';
 const makeTooLongErrorText = (fieldName: string) =>
-  `Please shorten the ${fieldName}; the maximum length is ${K8S_MAX_LENGTH} characters.`;
+  `Please shorten the ${fieldName}; the maximum length is ${K8S_MAX_LENGTH.toLocaleString()} characters.`;
 /**
  * Use in place of any K8s Resource creation / edit.
  *

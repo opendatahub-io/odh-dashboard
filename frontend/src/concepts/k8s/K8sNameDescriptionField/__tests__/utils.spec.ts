@@ -367,7 +367,6 @@ describe('isK8sNameDescriptionDataValid', () => {
   it('should be true with a name that is NOT too long', () => {
     const filePath = path.join(__dirname, 'loremIpsumShorter.txt'); // Adjust if it's in another folder
     const fileContents = fs.readFileSync(filePath, 'utf8');
-    //  const fileContents = fs.readFileSync('./loremIpsum.txt', 'utf8'); // read as string
     expect(
       isK8sNameDescriptionDataValid(
         mockK8sNameDescriptionFieldData({

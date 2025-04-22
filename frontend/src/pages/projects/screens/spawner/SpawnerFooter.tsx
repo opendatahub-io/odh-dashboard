@@ -276,9 +276,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
                   </AlertActionLink>
                   <AlertActionLink onClick={() => location.reload()}>Refresh</AlertActionLink>
                 </>
-              ) : (
-                <h1> ack weird error here </h1>
-              )
+              ) : undefined
             }
           >
             {error.message}
