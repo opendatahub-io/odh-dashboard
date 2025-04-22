@@ -10,7 +10,6 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '~/k8sTypes';
-import { ValidationContext } from '~/utilities/useValidation';
 import { ContainerResources } from '~/types';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { HardwareProfileConfig } from '~/concepts/hardwareProfiles/useHardwareProfileConfig';
@@ -19,7 +18,6 @@ import HardwareProfileSelect from '~/concepts/hardwareProfiles/HardwareProfileSe
 import { filterHardwareProfilesForTraining } from '~/pages/pipelines/global/modelCustomization/utils';
 import { useHardwareProfilesByFeatureVisibility } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
-import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
 
 type TrainingHardwareProfileFormSectionProps = {
   data: HardwareProfileConfig;
@@ -32,11 +30,7 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
   setData,
   projectName,
 }) => {
-  const { getAllValidationIssues } = React.useContext(ValidationContext);
-  const validationIssues = getAllValidationIssues(['hardware', 'hardwareProfileConfig']);
-  const hasValidationErrors = validationIssues.length > 0;
-
-  const [isExpanded, setIsExpanded] = React.useState(hasValidationErrors);
+  const [isExpanded, setIsExpanded] = React.useState(false);
   const [hardwareProfiles, loaded, error] = useHardwareProfilesByFeatureVisibility([
     HardwareProfileFeatureVisibility.PIPELINES,
   ]);
@@ -111,7 +105,6 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
             projectScopedHardwareProfiles={projectScopedHardwareProfiles}
             project={projectName}
           />
-          <ZodErrorHelperText zodIssue={validationIssues} />
         </FormGroup>
       </StackItem>
       {data.selectedProfile?.spec.identifiers &&

@@ -145,6 +145,20 @@ class NotebookDeleteModal extends Modal {
   }
 }
 
+class NotebookImageUpdateModal {
+  findUpdateImageButton() {
+    return cy.findByTestId('update-latest-version-button');
+  }
+
+  findSubmitUpdateImageButton() {
+    return cy.findByTestId('submit-update-latest-version');
+  }
+
+  findLatestVersionOption() {
+    return cy.findByTestId('latest-image');
+  }
+}
+
 class NotebookRow extends TableRow {
   shouldHaveNotebookImageName(name: string) {
     this.find().find(`[data-label="Notebook image"]`).find('span').should('have.text', name);
@@ -217,6 +231,10 @@ class NotebookRow extends TableRow {
 
   findNotebookDescription(name: string) {
     return this.find().findByTestId('table-row-title-description').contains(name);
+  }
+
+  findNotebookImageLabel() {
+    return this.find().findByTestId('notebook-image-availability');
   }
 }
 
@@ -383,6 +401,18 @@ class CreateSpawnerPage {
 
   findNotebookImageSearchSelector() {
     return cy.findByTestId('image-stream-selector-toggle');
+  }
+
+  findNotebookImageSearchInput() {
+    return cy.findByTestId('image-stream-selector-search').find('input');
+  }
+
+  getGlobalImagesLabel() {
+    return cy.get('body').contains('Global images');
+  }
+
+  getProjectScopedImagesLabel() {
+    return cy.get('body').contains('Project-scoped images');
   }
 
   findProjectScopedLabel() {
@@ -572,3 +602,4 @@ export const notFoundSpawnerPage = new NotFoundSpawnerPage();
 export const attachConnectionModal = new AttachConnectionModal();
 export const attachExistingStorageModal = new AttachExistingStorageModal();
 export const workbenchStatusModal = new WorkbenchStatusModal();
+export const notebookImageUpdateModal = new NotebookImageUpdateModal();

@@ -6,10 +6,10 @@ import { ModelState, RegisteredModel } from '~/concepts/modelRegistry/types';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
 import {
-  registeredModelArchiveDetailsUrl,
-  registeredModelArchiveUrl,
-  registeredModelUrl,
-} from '~/pages/modelRegistry/screens/routeUtils';
+  registeredModelArchiveDetailsRoute,
+  registeredModelArchiveRoute,
+  registeredModelRoute,
+} from '~/routes';
 import ModelLabels from '~/pages/modelRegistry/screens/components/ModelLabels';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { ArchiveRegisteredModelModal } from '~/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';
@@ -34,7 +34,7 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
-  const rmUrl = registeredModelUrl(rm.id, preferredModelRegistry?.metadata.name);
+  const rmUrl = registeredModelRoute(rm.id, preferredModelRegistry?.metadata.name);
 
   const actions: IAction[] = [
     {
@@ -42,7 +42,7 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
       onClick: () => {
         if (isArchiveRow) {
           navigate(
-            `${registeredModelArchiveUrl(preferredModelRegistry?.metadata.name)}/${rm.id}/${
+            `${registeredModelArchiveRoute(preferredModelRegistry?.metadata.name)}/${rm.id}/${
               ModelVersionsTab.DETAILS
             }`,
           );
@@ -79,7 +79,7 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
             <Link
               to={
                 isArchiveRow
-                  ? registeredModelArchiveDetailsUrl(rm.id, preferredModelRegistry?.metadata.name)
+                  ? registeredModelArchiveDetailsRoute(rm.id, preferredModelRegistry?.metadata.name)
                   : rmUrl
               }
             >
@@ -136,7 +136,7 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
                   rm.id,
                 )
                 .then(() =>
-                  navigate(registeredModelUrl(rm.id, preferredModelRegistry?.metadata.name)),
+                  navigate(registeredModelRoute(rm.id, preferredModelRegistry?.metadata.name)),
                 )
             }
             registeredModelName={rm.name}

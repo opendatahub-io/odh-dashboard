@@ -2,10 +2,7 @@ import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { RegisteredModel } from '~/concepts/modelRegistry/types';
-import {
-  modelVersionArchiveUrl,
-  registeredModelUrl,
-} from '~/pages/modelRegistry/screens/routeUtils';
+import { modelVersionArchiveRoute, registeredModelRoute } from '~/routes';
 
 type ModelVersionArchiveDetailsBreadcrumbProps = {
   preferredModelRegistry?: string;
@@ -23,15 +20,19 @@ const ModelVersionArchiveDetailsBreadcrumb: React.FC<ModelVersionArchiveDetailsB
       render={() => <Link to="/modelRegistry">Model registry - {preferredModelRegistry}</Link>}
     />
     <BreadcrumbItem
-      render={() => (
-        <Link to={registeredModelUrl(registeredModel?.id, preferredModelRegistry)}>
-          {registeredModel?.name || 'Loading...'}
-        </Link>
-      )}
+      render={() =>
+        !registeredModel?.name ? (
+          'Loading...'
+        ) : (
+          <Link to={registeredModelRoute(registeredModel.id, preferredModelRegistry)}>
+            {registeredModel.name}
+          </Link>
+        )
+      }
     />
     <BreadcrumbItem
       render={() => (
-        <Link to={modelVersionArchiveUrl(registeredModel?.id, preferredModelRegistry)}>
+        <Link to={modelVersionArchiveRoute(registeredModel?.id, preferredModelRegistry)}>
           Archived versions
         </Link>
       )}

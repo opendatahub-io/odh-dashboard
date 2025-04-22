@@ -10,6 +10,7 @@ import { ImageStreamAndVersion } from '~/types';
 import useImageStreams from '~/pages/projects/screens/spawner/useImageStreams';
 import { useDashboardNamespace } from '~/redux/selectors';
 import useBuildStatuses from '~/pages/projects/screens/spawner/useBuildStatuses';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import ImageStreamPopover from './ImageStreamPopover';
 import ImageVersionSelector from './ImageVersionSelector';
 import ImageStreamSelector from './ImageStreamSelector';
@@ -30,12 +31,15 @@ const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
   const { dashboardNamespace } = useDashboardNamespace();
   const buildStatuses = useBuildStatuses(dashboardNamespace);
   const [imageStreams, loaded, error] = useImageStreams(dashboardNamespace);
+  const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
   const [
     currentProjectImageStreams,
     currentProjectImageStreamsLoaded,
     currentProjectImageStreamsError,
   ] = useImageStreams(currentProject);
-
+  const imageStreamsLoaded = isProjectScopedAvailable
+    ? loaded && currentProjectImageStreamsLoaded
+    : loaded;
   const imageVersionData = React.useMemo(() => {
     const { imageStream } = selectedImage;
     if (!imageStream) {
@@ -68,7 +72,7 @@ const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
     );
   }
 
-  if (!loaded || !currentProjectImageStreamsLoaded) {
+  if (!imageStreamsLoaded) {
     return <Skeleton />;
   }
 

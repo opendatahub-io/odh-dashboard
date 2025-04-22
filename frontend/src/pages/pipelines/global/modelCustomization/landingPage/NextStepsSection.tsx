@@ -1,18 +1,17 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
-import { Accordion, Label } from '@patternfly/react-core';
+import { Accordion, Label, Title } from '@patternfly/react-core';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import { ModelCustomizationAccordionItem } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationAccordionItem';
 import { BaseSection } from '~/pages/pipelines/global/modelCustomization/landingPage/BaseSection';
 import { useToggleAccordion } from '~/pages/pipelines/global/modelCustomization/landingPage/useToggleAccordion';
-import { pipelineRunsRootPath } from '~/routes';
-import { modelCatalogUrl } from '~/pages/modelCatalog/routeUtils';
+import { modelCatalogRoute, pipelineRunsRootPath } from '~/routes';
 
 export const NextStepsSection: React.FC = () => {
   const { accordionItemsExpanded, handleToggleAccordion } = useToggleAccordion();
 
   return (
-    <BaseSection title="Now that you're all set up:">
+    <BaseSection title={<Title headingLevel="h3">Now that you&#39;re all set up:</Title>}>
       <Accordion togglePosition="start" data-testid="accordion-next-steps">
         <ModelCustomizationAccordionItem
           id="register-base-model"
@@ -20,7 +19,7 @@ export const NextStepsSection: React.FC = () => {
           itemsExpanded={accordionItemsExpanded}
           handleToggle={handleToggleAccordion}
         >
-          Select a base model from the <Link to={modelCatalogUrl}>Model catalog page</Link> and
+          Select a base model from the <Link to={modelCatalogRoute}>Model catalog page</Link> and
           register it to an {ODH_PRODUCT_NAME} model registry.
           <br />
           Note: You can choose any base model, but {ODH_PRODUCT_NAME} currently supports LAB-tuning

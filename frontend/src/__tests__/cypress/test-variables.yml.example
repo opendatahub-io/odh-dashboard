@@ -1,4 +1,11 @@
 ODH_DASHBOARD_URL: "http://odh-dashboard-opendatahub.apps.my-cluster.test.redhat.com"
+PRODUCT: ODH
+ODH_DASHBOARD_PROJECT_NAME: Open Data Hub
+APPLICATIONS_NAMESPACE: opendatahub
+MONITORING_NAMESPACE: opendatahub
+OPERATOR_NAMESPACE: openshift-operators
+NOTEBOOKS_NAMESPACE: opendatahub
+
 TEST_USER:
   AUTH_TYPE: foo-auth
   USERNAME: foo-user
@@ -26,6 +33,7 @@ S3:
     NAME: model-bucket-name
     REGION: model-bucket-region
     ENDPOINT: https://model-bucket-endpoint.com/
+
 PIP_INDEX_URL: https://pypi.org/simple
 PIP_TRUSTED_HOST: pypi.org
 NGC_API_KEY: bm90IGEgdmFsaWQgYXBpIGtleQo=

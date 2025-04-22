@@ -12,12 +12,15 @@ import {
   TeacherModelNameInput,
   TeacherTokenInput,
 } from '~/pages/pipelines/global/modelCustomization/teacherJudgeSection/TeacherJudgeInputComponents';
-import { TeacherJudgeFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
+import {
+  TeacherJudgeFormData,
+  teacherJudgeModel,
+} from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import { ModelCustomizationDrawerContentArgs } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
 import MarkdownView from '~/components/MarkdownView';
-import { ValidationContext } from '~/utilities/useValidation';
 import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
 import FormSection from '~/components/pf-overrides/FormSection';
+import { useZodFormValidation } from '~/hooks/useZodFormValidation';
 
 type TeacherModelSectionProps = {
   data: TeacherJudgeFormData;
@@ -30,16 +33,10 @@ const TeacherModelSection: React.FC<TeacherModelSectionProps> = ({
   setData,
   handleOpenDrawer,
 }) => {
-  const { getAllValidationIssues } = React.useContext(ValidationContext);
-  const endpointValidationIssues = data.endpoint
-    ? getAllValidationIssues(['teacher', 'endpoint'])
-    : [];
-  const modelNameValidationIssues = data.modelName
-    ? getAllValidationIssues(['teacher', 'modelName'])
-    : [];
-  const apiTokenValidationIssues = data.apiToken
-    ? getAllValidationIssues(['teacher', 'apiToken'])
-    : [];
+  const { getFieldValidation, getFieldValidationProps } = useZodFormValidation(
+    data,
+    teacherJudgeModel,
+  );
 
   return (
     <FormSection
@@ -63,11 +60,13 @@ const TeacherModelSection: React.FC<TeacherModelSectionProps> = ({
           </Button>
         </>
       }
+      data-testid={FineTunePageSections.TEACHER_MODEL}
     >
       <FormGroup label="Teacher" fieldId="model-customization-teacher" isRequired>
         <Radio
           name="teacher-section-unauthenticated-endpoint-radio"
           id="teacher-section-unauthenticated-endpoint-radio"
+          data-testid="teacher-section-unauthenticated-endpoint-radio"
           label="Unauthenticated endpoint"
           className="pf-v6-u-mb-md"
           isChecked={data.endpointType === ModelCustomizationEndpointType.PUBLIC}
@@ -83,15 +82,21 @@ const TeacherModelSection: React.FC<TeacherModelSectionProps> = ({
                 <TeacherEndpointInput
                   value={data.endpoint}
                   setValue={(value) => setData({ ...data, endpoint: value })}
-                  validated={endpointValidationIssues.length > 0 ? 'error' : 'default'}
+                  {...getFieldValidationProps(['endpoint'])}
                 />
-                <ZodErrorHelperText zodIssue={endpointValidationIssues} />
+                <ZodErrorHelperText
+                  data-testid="teacher-endpoint-input-error"
+                  zodIssue={getFieldValidation(['endpoint'])}
+                />
                 <TeacherModelNameInput
                   value={data.modelName}
                   setValue={(value) => setData({ ...data, modelName: value })}
-                  validated={modelNameValidationIssues.length > 0 ? 'error' : 'default'}
+                  {...getFieldValidationProps(['modelName'])}
                 />
-                <ZodErrorHelperText zodIssue={modelNameValidationIssues} />
+                <ZodErrorHelperText
+                  data-testid="teacher-model-name-input-error"
+                  zodIssue={getFieldValidation(['modelName'])}
+                />
               </>
             )
           }
@@ -99,6 +104,7 @@ const TeacherModelSection: React.FC<TeacherModelSectionProps> = ({
         <Radio
           name="teacher-section-authenticated-endpoint-radio"
           id="teacher-section-authenticated-endpoint-radio"
+          data-testid="teacher-section-authenticated-endpoint-radio"
           label="Authenticated endpoint"
           isChecked={data.endpointType === ModelCustomizationEndpointType.PRIVATE}
           onChange={() => {
@@ -114,21 +120,30 @@ const TeacherModelSection: React.FC<TeacherModelSectionProps> = ({
                 <TeacherEndpointInput
                   value={data.endpoint}
                   setValue={(value) => setData({ ...data, endpoint: value })}
-                  validated={endpointValidationIssues.length > 0 ? 'error' : 'default'}
+                  {...getFieldValidationProps(['endpoint'])}
                 />
-                <ZodErrorHelperText zodIssue={endpointValidationIssues} />
+                <ZodErrorHelperText
+                  data-testid="teacher-endpoint-input-error"
+                  zodIssue={getFieldValidation(['endpoint'])}
+                />
                 <TeacherTokenInput
                   value={data.apiToken}
                   setValue={(value) => setData({ ...data, apiToken: value })}
-                  validated={apiTokenValidationIssues.length > 0 ? 'error' : 'default'}
+                  {...getFieldValidationProps(['apiToken'])}
                 />
-                <ZodErrorHelperText zodIssue={apiTokenValidationIssues} />
+                <ZodErrorHelperText
+                  data-testid="teacher-token-input-error"
+                  zodIssue={getFieldValidation(['apiToken'])}
+                />
                 <TeacherModelNameInput
                   value={data.modelName}
                   setValue={(value) => setData({ ...data, modelName: value })}
-                  validated={modelNameValidationIssues.length > 0 ? 'error' : 'default'}
+                  {...getFieldValidationProps(['modelName'])}
                 />
-                <ZodErrorHelperText zodIssue={modelNameValidationIssues} />
+                <ZodErrorHelperText
+                  data-testid="teacher-model-name-input-error"
+                  zodIssue={getFieldValidation(['modelName'])}
+                />
               </>
             )
           }

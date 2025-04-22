@@ -36,7 +36,7 @@ import {
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
+import { asProjectAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import { mockNimServingRuntimeTemplate } from '~/__mocks__/mockNimResource';
 import { mockNimAccount } from '~/__mocks__/mockNimAccount';
@@ -329,12 +329,20 @@ describe('Project Details', () => {
         .should('have.text', 'Data connection unsuccessfully verified');
     });
 
-    it('Should not allow actions for non-provisioning users', () => {
-      asProjectAdminUser({ isSelfProvisioner: false });
+    it('Should not allow actions toggle for project Edit users', () => {
+      asProjectEditUser({ isSelfProvisioner: false });
       initIntercepts({ disableKServeConfig: true, disableModelConfig: true });
       projectDetails.visit('test-project');
 
       projectDetails.findProjectActions().should('not.exist');
+    });
+
+    it('Should allow actions toggle for project Admin users', () => {
+      asProjectAdminUser({ isSelfProvisioner: true });
+      initIntercepts({ disableKServeConfig: true, disableModelConfig: true });
+      projectDetails.visit('test-project');
+
+      projectDetails.findProjectActions().should('exist');
     });
 
     it('Should allow actions for provisioning users', () => {

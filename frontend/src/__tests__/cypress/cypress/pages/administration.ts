@@ -36,6 +36,10 @@ class AdministrationTab {
     return this;
   }
 
+  findManageUsersAlert() {
+    return cy.findByTestId('manage-users-alert');
+  }
+
   findTableHeaderButton(name: string) {
     return this.findTable().find('thead').findByRole('button', { name });
   }

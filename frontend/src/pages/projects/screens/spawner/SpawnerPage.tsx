@@ -24,9 +24,15 @@ import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAle
 import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
 import CanEnableElyraPipelinesCheck from '~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
 import AcceleratorProfileSelectField from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
-import { NotebookImageAvailability } from '~/pages/projects/screens/detail/notebooks/const';
+import {
+  NotebookImageAvailability,
+  NotebookImageStatus,
+} from '~/pages/projects/screens/detail/notebooks/const';
 import useProjectPvcs from '~/pages/projects/screens/detail/storage/useProjectPvcs';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import {
+  getDisplayNameFromK8sResource,
+  getResourceNameFromK8sResource,
+} from '~/concepts/k8s/utils';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
@@ -171,10 +177,17 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     ...notebooksUsingPVCsWithSizeChanges,
   ]);
 
-  const [data, loaded, loadError] = useNotebookImageData(existingNotebook);
+  const [data, loaded, loadError] = useNotebookImageData(
+    getResourceNameFromK8sResource(currentProject),
+    existingNotebook,
+  );
+
   React.useEffect(() => {
     if (loaded) {
-      if (data.imageAvailability === NotebookImageAvailability.ENABLED) {
+      if (
+        data.imageStatus !== NotebookImageStatus.DELETED &&
+        data.imageAvailability === NotebookImageAvailability.ENABLED
+      ) {
         const { imageStream, imageVersion } = data;
         setSelectedImage({ imageStream, imageVersion });
       }

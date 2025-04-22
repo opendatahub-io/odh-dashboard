@@ -1,14 +1,17 @@
 import React from 'react';
 import { Alert, Flex, FlexItem, FormGroup } from '@patternfly/react-core';
-import { BaseModelFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
+import {
+  BaseModelFormData,
+  baseModelSchema,
+} from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import {
   FineTunePageSections,
   fineTunePageSectionTitles,
 } from '~/pages/pipelines/global/modelCustomization/const';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
-import { ValidationContext } from '~/utilities/useValidation';
 import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
 import FormSection from '~/components/pf-overrides/FormSection';
+import { useZodFormValidation } from '~/hooks/useZodFormValidation';
 import InlineEditText from './InlineEditText';
 
 const RED_HAT_REGISTRY_PREFIX = 'registry.redhat.io';
@@ -29,16 +32,16 @@ const BaseModelSection: React.FC<BaseModelSectionProps> = ({
   inputModelName,
   inputModelVersionName,
 }) => {
-  const { getAllValidationIssues } = React.useContext(ValidationContext);
-  const validationIssues = data.sdgBaseModel
-    ? getAllValidationIssues(['baseModel', 'sdgBaseModel'])
-    : [];
-  const hasValidationIssues = validationIssues.length > 0;
+  const { getFieldValidation, markFieldTouched, getFieldValidationProps } = useZodFormValidation(
+    data,
+    baseModelSchema,
+  );
   return (
     <FormSection
       id={FineTunePageSections.BASE_MODEL}
       title={fineTunePageSectionTitles[FineTunePageSections.BASE_MODEL]}
       description="The pre-trained model that the fine-tuning run will further refine."
+      data-testid={FineTunePageSections.BASE_MODEL}
     >
       <Flex>
         <FlexItem>
@@ -74,10 +77,14 @@ const BaseModelSection: React.FC<BaseModelSectionProps> = ({
           }}
           checkSupported={(text) => text.startsWith(`${RED_HAT_REGISTRY_PREFIX}/`)}
           text={data.sdgBaseModel}
+          onEdit={() => markFieldTouched(['sdgBaseModel'])}
+          validated={getFieldValidationProps(['sdgBaseModel']).validated}
           unsupportedMessage={`This feature is a technology preview. At this time, this form supports only models sourced from the catalog in Red Hat Registry (${RED_HAT_REGISTRY_PREFIX}). To learn how to LAB-tune an unsupported model, refer to the documentation.`}
-          validated={hasValidationIssues ? 'error' : 'default'}
         />
-        <ZodErrorHelperText zodIssue={validationIssues} />
+        <ZodErrorHelperText
+          data-testid={`${FIELD_ID_PREFIX}-location-uri-error`}
+          zodIssue={getFieldValidation(['sdgBaseModel'])}
+        />
       </FormGroup>
     </FormSection>
   );

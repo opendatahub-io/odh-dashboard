@@ -1,4 +1,4 @@
-import { FastifyRequest } from 'fastify';
+import { FastifyReply, FastifyRequest } from 'fastify';
 import httpProxy from '@fastify/http-proxy';
 import { K8sResourceCommon, KubeFastifyInstance, ServiceAddressAnnotation } from '../types';
 import { isK8sStatus, passThroughResource } from '../routes/api/k8s/pass-through';
@@ -26,6 +26,33 @@ const notFoundError = (kind: string, name: string, e?: any, overrideMessage?: st
     `${kind} '${name}' ${overrideMessage || 'not found'}.${message ? ` ${message}` : ''}`,
     404,
   );
+};
+
+const setAuthorizationHeader = async (request: FastifyRequest, fastify: KubeFastifyInstance) => {
+  const token = getAccessToken(await getDirectCallOptions(fastify, request, ''));
+  request.headers.authorization = `Bearer ${token}`;
+};
+
+export const checkRequestLimitExceeded = (
+  request: FastifyRequest,
+  fastify: KubeFastifyInstance,
+  reply: FastifyReply,
+): boolean => {
+  const limit = fastify.initialConfig.bodyLimit ?? 1024 * 1024;
+  const maxLimitInMiB = (limit / 1024 / 1024).toFixed();
+  const contentLength = Number(request.headers['content-length']);
+  if (contentLength > limit) {
+    reply.header('connection', 'close');
+    reply.send(
+      createCustomError(
+        'Payload Too Large',
+        `Request body is too large; the max limit is ${maxLimitInMiB} MiB`,
+        413,
+      ),
+    );
+    return true;
+  }
+  return false;
 };
 
 export const proxyService =
@@ -60,20 +87,10 @@ export const proxyService =
         getUpstream: (request) => getParam(request, 'upstream'),
       },
       preHandler: (request, reply, done) => {
-        const limit = fastify.initialConfig.bodyLimit ?? 1024 * 1024;
-        const maxLimitInMiB = (limit / 1024 / 1024).toFixed();
-        const contentLength = Number(request.headers['content-length']);
-        if (contentLength > limit) {
-          reply.header('connection', 'close');
-          reply.send(
-            createCustomError(
-              'Payload Too Large',
-              `Request body is too large; the max limit is ${maxLimitInMiB} MiB`,
-              413,
-            ),
-          );
+        if (checkRequestLimitExceeded(request, fastify, reply)) {
           return;
         }
+
         // see `prefix` for named params
         const serviceNamespace =
           typeof service.namespace === 'function' ? service.namespace(fastify) : service.namespace;
@@ -137,9 +154,7 @@ export const proxyService =
           // Assign the `upstream` param so we can dynamically set the upstream URL for http-proxy
           setParam(request, 'upstream', upstream);
           if (tls) {
-            const requestOptions = await getDirectCallOptions(fastify, request, '');
-            const token = getAccessToken(requestOptions);
-            request.headers.authorization = `Bearer ${token}`;
+            await setAuthorizationHeader(request, fastify);
           }
           fastify.log.info(`Proxy ${request.method} request ${request.url} to ${upstream}`);
           done();
@@ -174,3 +189,52 @@ export const proxyService =
         }
       },
     });
+
+export const registerProxy = async (
+  fastify: KubeFastifyInstance,
+  {
+    prefix,
+    rewritePrefix,
+    service,
+    local,
+    authorize,
+    tls,
+  }: {
+    prefix: string;
+    rewritePrefix: string;
+    authorize?: boolean;
+    tls?: boolean;
+    service: {
+      name: string;
+      namespace: string;
+      port: number | string;
+    };
+    local?: {
+      host?: string;
+      port?: number | string;
+    };
+  },
+): Promise<void> => {
+  const scheme = tls ? 'https' : 'http';
+  const upstream = DEV_MODE
+    ? `${scheme}://${local?.host || 'localhost'}:${local?.port ?? service.port}`
+    : `${scheme}://${service.name}.${service.namespace}.svc.cluster.local:${service.port}`;
+  fastify.log.info(`Proxy setup for: ${prefix} -> ${upstream}`);
+  return fastify.register(httpProxy, {
+    prefix,
+    rewritePrefix,
+    upstream,
+    replyOptions: {
+      getUpstream: () => upstream,
+    },
+    preHandler: async (request, reply) => {
+      if (checkRequestLimitExceeded(request, fastify, reply)) {
+        return;
+      }
+      if (authorize) {
+        await setAuthorizationHeader(request, fastify);
+      }
+      fastify.log.info(`Proxy ${request.method} request ${request.url} to ${upstream}`);
+    },
+  });
+};

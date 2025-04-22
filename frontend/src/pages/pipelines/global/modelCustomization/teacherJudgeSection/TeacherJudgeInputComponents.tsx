@@ -1,5 +1,5 @@
 import React from 'react';
-import { FormGroup, TextInput } from '@patternfly/react-core';
+import { FormGroup, TextInput, TextInputProps } from '@patternfly/react-core';
 import PasswordInput from '~/components/PasswordInput';
 
 type TeacherJudgeInputBaseProps = TeacherJudgeInputProps & {
@@ -11,92 +11,91 @@ type TeacherJudgeInputBaseProps = TeacherJudgeInputProps & {
 type TeacherJudgeInputProps = {
   value: string;
   setValue: (value: string) => void;
-  validated?: 'success' | 'error' | 'default';
-};
+} & TextInputProps;
 
 export const TeacherEndpointInput: React.FC<TeacherJudgeInputProps> = ({
   value,
   setValue,
-  validated,
+  ...props
 }) => (
   <TeacherJudgeInputBase
     label="Endpoint"
     fieldId="teacher-endpoint-input"
     value={value}
     setValue={setValue}
-    validated={validated}
+    {...props}
   />
 );
 
 export const TeacherModelNameInput: React.FC<TeacherJudgeInputProps> = ({
   value,
   setValue,
-  validated,
+  ...props
 }) => (
   <TeacherJudgeInputBase
     label="Model name"
     fieldId="teacher-model-name-input"
     value={value}
     setValue={setValue}
-    validated={validated}
+    {...props}
   />
 );
 
 export const TeacherTokenInput: React.FC<TeacherJudgeInputProps> = ({
   value,
   setValue,
-  validated,
+  ...props
 }) => (
   <TeacherJudgeInputBase
     label="Token"
     fieldId="teacher-token-input"
     value={value}
     setValue={setValue}
-    validated={validated}
     isPasswordType
+    {...props}
   />
 );
 
 export const JudgeEndpointInput: React.FC<TeacherJudgeInputProps> = ({
   value,
   setValue,
-  validated,
+  ...props
 }) => (
   <TeacherJudgeInputBase
     label="Endpoint"
     fieldId="judge-endpoint-input"
     value={value}
     setValue={setValue}
-    validated={validated}
+    {...props}
   />
 );
 
 export const JudgeModelNameInput: React.FC<TeacherJudgeInputProps> = ({
   value,
   setValue,
-  validated,
+  ...props
 }) => (
   <TeacherJudgeInputBase
     label="Model name"
     fieldId="judge-model-name-input"
     value={value}
     setValue={setValue}
-    validated={validated}
+    {...props}
   />
 );
 
 export const JudgeTokenInput: React.FC<TeacherJudgeInputProps> = ({
   value,
   setValue,
-  validated,
+  ...props
 }) => (
   <TeacherJudgeInputBase
     label="Token"
     fieldId="judge-token-input"
     value={value}
     setValue={setValue}
-    validated={validated}
     isPasswordType
+    {...props}
   />
 );
 
@@ -106,7 +105,7 @@ const TeacherJudgeInputBase: React.FC<TeacherJudgeInputBaseProps> = ({
   value,
   setValue,
   isPasswordType,
-  validated,
+  ...props
 }) => (
   <>
     <FormGroup isRequired label={label} fieldId={fieldId}>
@@ -119,7 +118,7 @@ const TeacherJudgeInputBase: React.FC<TeacherJudgeInputBaseProps> = ({
           value={value}
           data-testid={fieldId}
           onChange={(_, newValue) => setValue(newValue)}
-          validated={validated}
+          {...props}
         />
       ) : (
         <TextInput
@@ -130,7 +129,7 @@ const TeacherJudgeInputBase: React.FC<TeacherJudgeInputBaseProps> = ({
           name={fieldId}
           data-testid={fieldId}
           onChange={(_, newValue) => setValue(newValue)}
-          validated={validated}
+          {...props}
         />
       )}
     </FormGroup>

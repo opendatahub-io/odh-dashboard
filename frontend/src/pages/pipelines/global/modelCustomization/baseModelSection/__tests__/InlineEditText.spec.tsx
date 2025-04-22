@@ -6,12 +6,14 @@ import '@testing-library/jest-dom';
 describe('InlineEditText', () => {
   const mockOnSave = jest.fn();
   const mockCheckSupported = jest.fn();
+  const mockOnEdit = jest.fn();
 
   const defaultProps = {
     text: 'Initial Text',
     onSave: mockOnSave,
     checkSupported: mockCheckSupported,
     unsupportedMessage: 'Unsupported text!',
+    onEdit: mockOnEdit,
   };
 
   beforeEach(() => {

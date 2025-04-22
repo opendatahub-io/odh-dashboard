@@ -14,7 +14,7 @@ class NotebookImageSettingsTableToolbar extends TableToolbar {}
 
 class NotebookImageSettings {
   visit(wait = true) {
-    cy.visitWithLogin('/notebookImages');
+    cy.visitWithLogin('/workbenchImages');
     if (wait) {
       this.wait();
     }
@@ -31,7 +31,7 @@ class NotebookImageSettings {
   }
 
   findNavItem() {
-    return appChrome.findNavItem('Notebook images', 'Settings');
+    return appChrome.findNavItem('Workbench images', 'Settings');
   }
 
   findErrorIcon() {

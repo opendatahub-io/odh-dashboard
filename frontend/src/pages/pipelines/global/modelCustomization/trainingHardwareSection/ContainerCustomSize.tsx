@@ -7,26 +7,24 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { ZodIssue } from 'zod';
 import { ContainerResources } from '~/types';
 import MemoryField from '~/components/MemoryField';
 import CPUField from '~/components/CPUField';
 import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
+import { useZodFormValidation } from '~/hooks/useZodFormValidation';
+import { podSpecSizeSchema } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 
 type ContainerCustomSizeProps = {
   resources: ContainerResources;
   setSize: React.Dispatch<React.SetStateAction<ContainerResources>>;
-  cpuValidationIssue?: ZodIssue[];
-  memoryValidationIssue?: ZodIssue[];
 };
 
-export const ContainerCustomSize: React.FC<ContainerCustomSizeProps> = ({
-  resources,
-  setSize,
-  cpuValidationIssue = [],
-  memoryValidationIssue = [],
-}) => {
+export const ContainerCustomSize: React.FC<ContainerCustomSizeProps> = ({ resources, setSize }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
+  const { getFieldValidation, getFieldValidationProps } = useZodFormValidation(
+    { cpuCount: resources.requests?.cpu ?? 0, memoryCount: resources.requests?.memory },
+    podSpecSizeSchema,
+  );
 
   const renderField = (identifier: string, renderType: 'requests' | 'limits') => {
     const value = resources[renderType]?.[identifier];
@@ -49,9 +47,9 @@ export const ContainerCustomSize: React.FC<ContainerCustomSizeProps> = ({
                 onChange={onChange}
                 dataTestId={`${identifier}-${renderType}`}
                 min={0}
-                validated={cpuValidationIssue.length > 0 ? 'error' : 'default'}
+                {...getFieldValidationProps(['cpuCount'])}
               />
-              <ZodErrorHelperText zodIssue={cpuValidationIssue} />
+              <ZodErrorHelperText zodIssue={getFieldValidation(['cpuCount'])} />
             </>
           );
         case 'memory':
@@ -62,9 +60,9 @@ export const ContainerCustomSize: React.FC<ContainerCustomSizeProps> = ({
                 onChange={onChange}
                 dataTestId={`${identifier}-${renderType}`}
                 min={0}
-                validated={memoryValidationIssue.length > 0 ? 'error' : 'default'}
+                {...getFieldValidationProps(['memoryCount'])}
               />
-              <ZodErrorHelperText zodIssue={memoryValidationIssue} />
+              <ZodErrorHelperText zodIssue={getFieldValidation(['memoryCount'])} />
             </>
           );
         default:
@@ -72,7 +70,11 @@ export const ContainerCustomSize: React.FC<ContainerCustomSizeProps> = ({
       }
     })();
 
-    return <FormGroup label={`${identifier} ${renderType}`}>{field}</FormGroup>;
+    return (
+      <FormGroup label={`${identifier} ${renderType}`} isRequired>
+        {field}
+      </FormGroup>
+    );
   };
 
   return (

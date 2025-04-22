@@ -11,7 +11,7 @@ import { ImageVersionDependencyType } from '~/pages/projects/screens/spawner/typ
 
 type NotebookPackageDetailsProps = {
   dependencies: ImageVersionDependencyType[];
-  title?: string;
+  title?: React.ReactNode;
 };
 
 const NotebookImagePackageDetails: React.FC<NotebookPackageDetailsProps> = ({

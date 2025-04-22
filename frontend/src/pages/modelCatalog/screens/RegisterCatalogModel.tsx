@@ -26,7 +26,7 @@ import {
 import { SubmitLabel } from '~/pages/modelRegistry/screens/RegisterModel/const';
 import RegisterModelDetailsFormSection from '~/pages/modelRegistry/screens/RegisterModel/RegisterModelDetailsFormSection';
 import RegistrationFormFooter from '~/pages/modelRegistry/screens/RegisterModel/RegistrationFormFooter';
-import { registeredModelUrl } from '~/pages/modelRegistry/screens/routeUtils';
+import { getCatalogModelDetailsRoute, registeredModelRoute } from '~/routes';
 import { useAppSelector } from '~/redux/hooks';
 import { ModelCatalogContext } from '~/concepts/modelCatalog/context/ModelCatalogContext';
 import { CatalogModel } from '~/concepts/modelCatalog/types';
@@ -43,7 +43,6 @@ import {
   ModelRegistryMetadataType,
 } from '~/concepts/modelRegistry/types';
 import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
-import { getCatalogModelDetailsUrl } from '~/pages/modelCatalog/routeUtils';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 
@@ -169,7 +168,7 @@ const RegisterCatalogModel: React.FC = () => {
         success: true,
         model: params.modelName,
       });
-      navigate(registeredModelUrl(registeredModel.id, preferredModelRegistry?.metadata.name));
+      navigate(registeredModelRoute(registeredModel.id, preferredModelRegistry?.metadata.name));
     } else if (Object.keys(errors).length > 0) {
       setIsSubmitting(false);
       setSubmittedRegisteredModelName(formData.modelName);
@@ -187,20 +186,27 @@ const RegisterCatalogModel: React.FC = () => {
   };
   const onCancel = () => {
     fireFormTrackingEvent(eventName, { outcome: TrackingOutcome.cancel, model: params.modelName });
-    navigate(getCatalogModelDetailsUrl(params));
+    navigate(getCatalogModelDetailsRoute(params));
   };
 
   return (
     <ApplicationsPage
-      title={`Register ${params.modelName || ''} model`}
+      title={`Register ${decodedParams.modelName || ''} model`}
       description="Create a new model and register the first version of your new model."
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem render={() => <Link to="/modelCatalog">Model catalog</Link>} />
           <BreadcrumbItem
-            render={() => (
-              <Link to={getCatalogModelDetailsUrl(params)}>{params.modelName || 'Loading...'}</Link>
-            )}
+            data-testid="breadcrumb-model-name"
+            render={() =>
+              !decodedParams.modelName ? (
+                'Loading...'
+              ) : (
+                <Link to={getCatalogModelDetailsRoute(decodedParams)}>
+                  {decodedParams.modelName}
+                </Link>
+              )
+            }
           />
           <BreadcrumbItem data-testid="breadcrumb-version-name" isActive>
             Register model

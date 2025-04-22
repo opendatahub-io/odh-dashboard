@@ -5,40 +5,36 @@ import {
   getImageVersionSoftwareString,
 } from '~/pages/projects/screens/spawner/spawnerUtils';
 import useNotebookImageData from './useNotebookImageData';
-import { NotebookImageAvailability } from './const';
+import { NotebookImageStatus } from './const';
 import { NotebookImage } from './types';
 
 const useNotebookImage = (
   notebook: NotebookKind | undefined,
   project: string,
-  isProjectScopedAvailable?: boolean,
 ):
   | [notebookImage: null, loaded: false, loadError?: Error]
   | [notebookImage: NotebookImage, loaded: true, loadError: undefined] => {
-  const [data, loaded, loadError] = useNotebookImageData(
-    notebook,
-    isProjectScopedAvailable ? project : undefined,
-  );
+  const [data, loaded, loadError] = useNotebookImageData(project, notebook);
 
   if (!notebook || !loaded) {
     return [null, false, loadError];
   }
 
-  const { imageDisplayName, imageAvailability } = data;
+  const { imageDisplayName, imageStatus } = data;
 
   // if the image is deleted, return the image name if it is available (based on notebook annotations)
-  if (imageAvailability === NotebookImageAvailability.DELETED) {
+  if (imageStatus === NotebookImageStatus.DELETED) {
     return [
       {
         imageDisplayName,
-        imageAvailability,
+        imageStatus,
       },
       true,
       undefined,
     ];
   }
 
-  const { imageStream, imageVersion } = data;
+  const { imageStream, imageAvailability, imageVersion, latestImageVersion } = data;
 
   return [
     {
@@ -46,6 +42,10 @@ const useNotebookImage = (
       tagSoftware: getImageVersionSoftwareString(imageVersion),
       dependencies: getImageVersionDependencies(imageVersion, false),
       imageAvailability,
+      imageStatus,
+      imageStream,
+      imageVersion,
+      latestImageVersion,
     },
     true,
     undefined,

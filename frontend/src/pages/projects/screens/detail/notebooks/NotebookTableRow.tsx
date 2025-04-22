@@ -25,7 +25,7 @@ import StopNotebookConfirmModal from '~/pages/projects/notebook/StopNotebookConf
 import { useNotebookKindPodSpecOptionsState } from '~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import NotebookTableRowHardwareProfile from '~/pages/projects/screens/detail/notebooks/NotebookTableRowHardwareProfile';
-import { NotebookImageAvailability } from './const';
+import { NotebookImageStatus } from './const';
 import { NotebookImageDisplayName } from './NotebookImageDisplayName';
 import NotebookStorageBars from './NotebookStorageBars';
 import NotebookSizeDetails from './NotebookSizeDetails';
@@ -33,6 +33,7 @@ import useNotebookImage from './useNotebookImage';
 import useNotebookDeploymentSize from './useNotebookDeploymentSize';
 import { extractAcceleratorResources } from './utils';
 import useNotebookImageData from './useNotebookImageData';
+import NotebookUpdateImageModal from './NotebookUpdateImageModal';
 
 type NotebookTableRowProps = {
   obj: NotebookState;
@@ -56,7 +57,6 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const acceleratorResources = extractAcceleratorResources(
     obj.notebook.spec.template.spec.containers[0].resources,
   );
-  const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
 
   const lastDeployedSize: NotebookSize = {
     name: 'Custom',
@@ -68,16 +68,16 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const [notebookImage, loaded, loadError] = useNotebookImage(
     obj.notebook,
     currentProject.metadata.name,
-    isProjectScopedAvailable,
   );
   const [data, notebookImageStreamLoaded] = useNotebookImageData(
-    obj.notebook,
     currentProject.metadata.name,
+    obj.notebook,
   );
   const podSpecOptionsState = useNotebookKindPodSpecOptionsState(obj.notebook);
   const [dontShowModalValue] = useStopNotebookModalAvailability();
   const { dashboardConfig } = useAppContext();
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
   const { name: notebookName, namespace: notebookNamespace } = obj.notebook.metadata;
   const isHardwareProfileAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
@@ -110,6 +110,22 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
       setOpenConfirm(true);
     }
   }, [dontShowModalValue, handleStop]);
+
+  const onModalClose = () => {
+    setIsModalOpen(false);
+  };
+
+  const onUpdateImageClick = () => {
+    if (
+      notebookImage &&
+      notebookImage.imageStatus !== NotebookImageStatus.DELETED &&
+      notebookImage.latestImageVersion
+    ) {
+      setIsModalOpen(true);
+    } else {
+      navigate(`/projects/${currentProject.metadata.name}/spawner/${obj.notebook.metadata.name}`);
+    }
+  };
 
   return (
     <Tbody isExpanded={isExpanded}>
@@ -144,13 +160,14 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
               <NotebookImageDisplayName
                 isImageStreamProjectScoped={
                   notebookImageStreamLoaded &&
-                  data.imageAvailability !== NotebookImageAvailability.DELETED &&
+                  data.imageStatus !== NotebookImageStatus.DELETED &&
                   data.imageStream.metadata.namespace === currentProject.metadata.name
                 }
                 notebookImage={notebookImage}
                 loaded={loaded}
                 loadError={loadError}
                 isExpanded
+                onUpdateImageClick={onUpdateImageClick}
               />
             </SplitItem>
             {showOutOfDateElyraInfo && (
@@ -233,8 +250,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
         </Td>
         <Td dataLabel="Packages">
           <ExpandableRowContent>
-            {notebookImage &&
-            notebookImage.imageAvailability !== NotebookImageAvailability.DELETED ? (
+            {notebookImage && notebookImage.imageStatus !== NotebookImageStatus.DELETED ? (
               <NotebookImagePackageDetails dependencies={notebookImage.dependencies} />
             ) : (
               'Unknown package info'
@@ -264,6 +280,13 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
           }}
         />
       ) : null}
+      {isModalOpen && notebookImage && (
+        <NotebookUpdateImageModal
+          notebookImage={notebookImage}
+          notebook={obj.notebook}
+          onModalClose={onModalClose}
+        />
+      )}
     </Tbody>
   );
 };
