@@ -66,14 +66,14 @@ const CullerSettings: React.FC<CullerSettingsProps> = ({
 
   return (
     <SettingSection
-      title="Stop idle notebooks"
-      description="Set the time limit for idle notebooks to be stopped."
+      title="Idle workbench timeout"
+      description="Define if and when idle workbenches are stopped."
       footer={
         <HelperText>
           <HelperTextItem>
-            All idle notebooks are stopped at cluster log out. To edit the cluster log out time,
-            discuss with your OpenShift administrator to see if the OpenShift Authentication Timeout
-            value can be modified.
+            All idle workbenches are stopped upon cluster logout. Cluster logout time is determined
+            by the OpenShift Authentication Timeout value, which is set by your OpenShift
+            administrator.
           </HelperTextItem>
         </HelperText>
       }
@@ -85,7 +85,7 @@ const CullerSettings: React.FC<CullerSettingsProps> = ({
               <Radio
                 id="culler-timeout-unlimited"
                 data-testid="culler-timeout-unlimited"
-                label="Do not stop idle notebooks"
+                label="Do not stop idle workbenches"
                 isChecked={cullerTimeoutChecked === CULLER_TIMEOUT_UNLIMITED}
                 name={CULLER_TIMEOUT_UNLIMITED}
                 onChange={radioCheckedChange}
@@ -96,7 +96,7 @@ const CullerSettings: React.FC<CullerSettingsProps> = ({
               <Radio
                 id="culler-timeout-limited"
                 data-testid="culler-timeout-limited"
-                label="Stop idle notebooks after"
+                label="Stop idle workbenches after defined period"
                 isChecked={cullerTimeoutChecked === CULLER_TIMEOUT_LIMITED}
                 name={CULLER_TIMEOUT_LIMITED}
                 onChange={radioCheckedChange}
@@ -175,7 +175,7 @@ const CullerSettings: React.FC<CullerSettingsProps> = ({
               data-testid="culler-timeout-helper-text"
               variant={cullerTimeout < MIN_CULLER_TIMEOUT ? 'error' : 'default'}
             >
-              Note: Notebook culler timeout must be between 10 minutes and 1000 hours.
+              Timeout period must be between 10 minutes and 1000 hours.
             </HelperTextItem>
           </HelperText>
         </StackItem>
