@@ -5,8 +5,8 @@ import { NotificationWatcherContext } from '~/concepts/notificationWatcher/Notif
 import { getInferenceService } from '~/api';
 import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
 import {
+  getInferenceServiceLastFailureReason,
   getInferenceServiceModelState,
-  getInferenceServiceStatusMessage,
 } from '~/pages/modelServing/screens/global/utils';
 import { useModelStatus } from '~/pages/modelServing/screens/global/useModelStatus';
 
@@ -36,7 +36,7 @@ export const useModelDeploymentNotification = (
               'Insufficient resources to schedule the model deployment. Please check your resource quotas and try again.',
             actions: [
               {
-                title: 'View details',
+                title: 'View deployment',
                 onClick: () => {
                   navigate(`/modelServing/${namespace}`);
                 },
@@ -48,15 +48,19 @@ export const useModelDeploymentNotification = (
         try {
           const inferenceService = await getInferenceService(modelName, namespace, { signal });
           const modelState = getInferenceServiceModelState(inferenceService);
-          const statusMessage = getInferenceServiceStatusMessage(inferenceService);
-
+          const lastFailureReason = getInferenceServiceLastFailureReason(inferenceService);
           switch (modelState) {
             case InferenceServiceModelState.FAILED_TO_LOAD:
               notification.error(
                 'Model deployment failed',
-                statusMessage ||
+                lastFailureReason ||
                   'Failed to load the model. Please check the model configuration and try again.',
-                [{ title: 'View details', onClick: () => navigate(`/modelServing/${namespace}`) }],
+                [
+                  {
+                    title: 'View deployment',
+                    onClick: () => navigate(`/modelServing/${namespace}`),
+                  },
+                ],
               );
               return { status: 'stop' };
             case InferenceServiceModelState.LOADED:
@@ -69,21 +73,13 @@ export const useModelDeploymentNotification = (
               return { status: 'repoll' };
           }
         } catch (error: unknown) {
-          if (
-            typeof error === 'object' &&
-            error !== null &&
-            'statusObject' in error &&
-            error.statusObject &&
-            typeof error.statusObject === 'object' &&
-            'code' in error.statusObject &&
-            error.statusObject.code === 404
-          ) {
-            return { status: 'repoll' };
-          }
+          // Let the user know if there's an error but continue polling for model state updates
+          notification.error(
+            'Error checking model deployment',
+            error instanceof Error ? error.message : 'Unknown error',
+          );
           return {
-            status: 'error',
-            title: 'Error checking model deployment',
-            message: error instanceof Error ? error.message : 'Unknown error',
+            status: 'repoll',
           };
         }
       },
