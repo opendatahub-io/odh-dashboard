@@ -4,7 +4,6 @@ import useDimensions from 'react-cool-dimensions';
 import { conditionalArea, SupportedArea } from '~/concepts/areas';
 import EvenlySpacedGallery from '~/components/EvenlySpacedGallery';
 import ModelCatalogSectionHeader from '~/pages/home/modelCatalog/ModelCatalogSectionHeader';
-import { ModelCatalogCard } from '~/pages/modelCatalog/components/ModelCatalogCard';
 import ModelCatalogHint from '~/pages/home/modelCatalog/ModelCatalogHint';
 import { useBrowserStorage } from '~/components/browserStorage';
 import ProjectsLoading from '~/pages/home/projects/ProjectsLoading';
@@ -13,6 +12,7 @@ import ModelCatalogSectionFooter from '~/pages/home/modelCatalog/ModelCatalogSec
 import { MAX_SHOWN_MODELS, MIN_CARD_WIDTH } from '~/concepts/modelCatalog/const';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import { useModelCatalogSources } from '~/concepts/modelCatalog/useModelCatalogSources';
+import { ModelCatalogCard } from '~/concepts/modelCatalog/content/ModelCatalogCard';
 
 const ModelCatalogSection: React.FC = conditionalArea(
   SupportedArea.MODEL_CATALOG,
@@ -81,6 +81,7 @@ const ModelCatalogSection: React.FC = conditionalArea(
                       <ModelCatalogCard
                         model={model}
                         source={model.source}
+                        truncate
                         data-testid="model-catalog-card"
                       />
                     </GalleryItem>
