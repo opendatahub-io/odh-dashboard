@@ -7,10 +7,11 @@ export const ModelCatalogLabels: React.FC<{
   labels?: string[];
   tasks?: string[];
   showNonILabLabels?: boolean;
-}> = ({ labels = [], tasks = [], showNonILabLabels = false }) => (
-  <LabelGroup data-testid="model-catalog-label-group">
-    {getILabLabels(labels).map((l) => {
-      switch (l) {
+  numLabels?: number;
+}> = ({ labels = [], tasks = [], showNonILabLabels = false, numLabels }) => (
+  <LabelGroup numLabels={numLabels} data-testid="model-catalog-label-group">
+    {getILabLabels(labels).map((label) => {
+      switch (label) {
         case ReservedILabLabel.LabBase:
           return (
             <Label data-testid="model-catalog-label" color="yellow" variant="filled">
@@ -31,8 +32,8 @@ export const ModelCatalogLabels: React.FC<{
           );
         default:
           return (
-            <Label data-testid="model-catalog-label" key={l} variant="outline">
-              {l}
+            <Label data-testid="model-catalog-label" key={label} variant="outline">
+              {label}
             </Label>
           );
       }

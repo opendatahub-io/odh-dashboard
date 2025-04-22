@@ -1,31 +1,34 @@
 import React from 'react';
 import {
   Card,
-  CardHeader,
   CardBody,
+  CardFooter,
+  CardHeader,
   CardTitle,
   Flex,
   FlexItem,
-  Label,
-  Stack,
-  StackItem,
   Icon,
+  Label,
+  Skeleton,
   Split,
   SplitItem,
-  CardFooter,
-  Skeleton,
+  Stack,
+  StackItem,
+  Truncate,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { CatalogModel } from '~/concepts/modelCatalog/types';
 import { getCatalogModelDetailsRouteFromModel } from '~/routes';
 import { getTagFromModel } from '~/pages/modelCatalog/utils';
 import { RhUiTagIcon } from '~/images/icons';
-import { ModelCatalogLabels } from '~/pages/modelCatalog/components/ModelCatalogLabels';
+import { ModelCatalogLabels } from '~/concepts/modelCatalog/content/ModelCatalogLabels';
+import TruncatedText from '~/components/TruncatedText';
 
-export const ModelCatalogCard: React.FC<{ model: CatalogModel; source: string }> = ({
-  model,
-  source,
-}) => (
+export const ModelCatalogCard: React.FC<{
+  model: CatalogModel;
+  source: string;
+  truncate?: boolean;
+}> = ({ model, source, truncate = false }) => (
   <Card isFullHeight data-testid="model-catalog-card">
     <CardHeader>
       <CardTitle>
@@ -57,7 +60,16 @@ export const ModelCatalogCard: React.FC<{ model: CatalogModel; source: string }>
               fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
             }}
           >
-            {model.name}
+            {truncate ? (
+              <Truncate
+                content={model.name}
+                position="middle"
+                tooltipPosition="top"
+                style={{ textDecoration: 'underline' }}
+              />
+            ) : (
+              <span>{model.name}</span>
+            )}
           </Link>
           <Split hasGutter>
             <SplitItem>
@@ -70,11 +82,17 @@ export const ModelCatalogCard: React.FC<{ model: CatalogModel; source: string }>
             </SplitItem>
           </Split>
         </StackItem>
-        <StackItem isFilled>{model.description}</StackItem>
+        <StackItem isFilled>
+          {truncate ? (
+            <TruncatedText maxLines={2} content={model.description} />
+          ) : (
+            model.description
+          )}
+        </StackItem>
       </Stack>
     </CardBody>
     <CardFooter>
-      <ModelCatalogLabels labels={model.labels} tasks={model.tasks} />
+      <ModelCatalogLabels labels={model.labels} tasks={model.tasks} numLabels={2} />
     </CardFooter>
   </Card>
 );
