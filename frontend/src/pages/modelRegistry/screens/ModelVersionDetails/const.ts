@@ -14,4 +14,5 @@ export type ModelVersionPipelineDescriptionProps = {
     runId: string;
     runName: string;
   };
+  catalogModelUrl?: string;
 };

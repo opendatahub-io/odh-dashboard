@@ -10,17 +10,12 @@ import {
   Spinner,
   Alert,
 } from '@patternfly/react-core';
-import { Link } from 'react-router';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
 import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
 import EditableTextDescriptionListGroup from '~/components/EditableTextDescriptionListGroup';
 import { EditableLabelsDescriptionListGroup } from '~/components/EditableLabelsDescriptionListGroup';
 import ModelPropertiesDescriptionListGroup from '~/pages/modelRegistry/screens/ModelPropertiesDescriptionListGroup';
-import {
-  getLabels,
-  mergeUpdatedLabels,
-  getCatalogModelDetailsProps,
-} from '~/pages/modelRegistry/screens/utils';
+import { getLabels, mergeUpdatedLabels } from '~/pages/modelRegistry/screens/utils';
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
@@ -32,7 +27,6 @@ import {
 } from '~/concepts/modelRegistry/utils/updateTimestamps';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { getCatalogModelDetailsRoute } from '~/routes';
-import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
 import ModelVersionPipelineDescription from './ModelVersionPipelineDescription';
 
 type ModelVersionDetailsViewProps = {
@@ -92,8 +86,28 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
     }
   };
 
-  const catalogModelCustomProps: CatalogModelDetailsParams = getCatalogModelDetailsProps(mv);
-  const catalogModelDetailsUrl = getCatalogModelDetailsRoute(catalogModelCustomProps);
+  // Extract catalog information from model artifact
+  // Use modelSource fields as fallbacks when explicit catalog fields aren't available
+  const sourceName =
+    (modelArtifact && (modelArtifact.catalogSourceName || modelArtifact.modelSourceGroup)) || '';
+  const repositoryName = (modelArtifact && modelArtifact.catalogRepositoryName) || 'rhelai1'; // Default repository for Red Hat models
+  const modelName =
+    (modelArtifact && (modelArtifact.catalogModelName || modelArtifact.modelSourceName)) || '';
+  const tag =
+    (modelArtifact && (modelArtifact.catalogModelTag || modelArtifact.modelSourceId)) || '';
+
+  // Check if we have enough information to create a catalog URL
+  const hasCatalogInfo = Boolean(modelArtifact && sourceName && modelName && tag);
+
+  // Create the catalog model URL if we have enough information
+  const catalogModelUrl = hasCatalogInfo
+    ? getCatalogModelDetailsRoute({
+        sourceName,
+        repositoryName,
+        modelName,
+        tag,
+      })
+    : '';
 
   return (
     <Flex
@@ -151,26 +165,45 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
           >
             <InlineTruncatedClipboardCopy testId="model-version-id" textToCopy={mv.id} />
           </DashboardDescriptionListGroup>
-          {mv.modelSourceId && mv.modelSourceName && mv.modelSourceGroup && (
+          {modelArtifact &&
+          (modelArtifact.modelSourceKind === 'dsp' ||
+            (!modelArtifact.modelSourceKind &&
+              modelArtifact.modelSourceId &&
+              modelArtifact.modelSourceName &&
+              modelArtifact.modelSourceGroup)) ? (
             <DashboardDescriptionListGroup title="Registered from">
               <ModelVersionPipelineDescription
                 sourceInfo={{
-                  project: mv.modelSourceGroup,
-                  runId: mv.modelSourceId,
-                  runName: mv.modelSourceName,
+                  project: modelArtifact.modelSourceGroup || '',
+                  runId: modelArtifact.modelSourceId || '',
+                  runName: modelArtifact.modelSourceName || '',
                 }}
+                catalogModelUrl={catalogModelUrl}
               />
             </DashboardDescriptionListGroup>
-          )}
-          {catalogModelDetailsUrl && (
-            <DashboardDescriptionListGroup title="Registered from" isEmpty={!mv.id}>
-              <Link to={catalogModelDetailsUrl} data-testid="registered-from-catalog">
-                <span style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
-                  {catalogModelCustomProps.modelName} ({catalogModelCustomProps.tag})
-                </span>
-              </Link>{' '}
-              in Model catalog
-            </DashboardDescriptionListGroup>
+          ) : (
+            catalogModelUrl && (
+              <DashboardDescriptionListGroup
+                title="Registered from"
+                isEmpty={!modelArtifact || !modelArtifact.id}
+              >
+                <a
+                  href={catalogModelUrl}
+                  data-testid="registered-from-catalog"
+                  style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
+                >
+                  <span style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
+                    {modelArtifact && (
+                      <>
+                        {modelArtifact.catalogModelName || modelArtifact.modelSourceName || ''} (
+                        {modelArtifact.catalogModelTag || modelArtifact.modelSourceId || ''})
+                      </>
+                    )}
+                  </span>
+                </a>{' '}
+                in Model catalog
+              </DashboardDescriptionListGroup>
+            )
           )}
         </DescriptionList>
 
@@ -233,12 +266,12 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                   <>
                     <DashboardDescriptionListGroup
                       title="URI"
-                      isEmpty={!modelArtifact?.uri}
+                      isEmpty={!modelArtifact || !modelArtifact.uri}
                       contentWhenEmpty="No URI"
                     >
                       <InlineTruncatedClipboardCopy
                         testId="storage-uri"
-                        textToCopy={modelArtifact?.uri || ''}
+                        textToCopy={modelArtifact ? modelArtifact.uri || '' : ''}
                       />
                     </DashboardDescriptionListGroup>
                   </>
@@ -253,13 +286,13 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                 editableVariant="TextInput"
                 baseTestId="source-model-format"
                 isArchive={isArchiveVersion}
-                value={modelArtifact?.modelFormatName || ''}
+                value={modelArtifact ? modelArtifact.modelFormatName || '' : ''}
                 saveEditedValue={(value) =>
                   handleArtifactUpdate(
                     apiState.api.patchModelArtifact(
                       {},
                       { modelFormatName: value },
-                      modelArtifact?.id || '',
+                      modelArtifact ? modelArtifact.id || '' : '',
                     ),
                   )
                 }
@@ -269,14 +302,14 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
               <EditableTextDescriptionListGroup
                 editableVariant="TextInput"
                 baseTestId="source-model-version"
-                value={modelArtifact?.modelFormatVersion || ''}
+                value={modelArtifact ? modelArtifact.modelFormatVersion || '' : ''}
                 isArchive={isArchiveVersion}
                 saveEditedValue={(newVersion) =>
                   handleArtifactUpdate(
                     apiState.api.patchModelArtifact(
                       {},
                       { modelFormatVersion: newVersion },
-                      modelArtifact?.id || '',
+                      modelArtifact ? modelArtifact.id || '' : '',
                     ),
                   )
                 }

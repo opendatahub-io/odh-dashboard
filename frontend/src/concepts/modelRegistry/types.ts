@@ -89,6 +89,13 @@ export type ModelRegistryBase = {
   description?: string;
   createTimeSinceEpoch: string;
   lastUpdateTimeSinceEpoch: string;
+  customProperties?: ModelRegistryCustomProperties;
+  modelSourceKind?: string;
+  modelSourceClass?: string;
+  catalogSourceName?: string;
+  catalogRepositoryName?: string;
+  catalogModelName?: string;
+  catalogModelTag?: string;
 };
 
 export type ModelArtifact = ModelRegistryBase & {
@@ -105,6 +112,8 @@ export type ModelArtifact = ModelRegistryBase & {
   modelSourceGroup?: string;
   modelSourceId?: string;
   modelSourceName?: string;
+  modelSourceKind?: string;
+  modelSourceClass?: string;
   catalogSourceName?: string;
   catalogRepositoryName?: string;
   catalogModelName?: string;
@@ -124,7 +133,8 @@ export type ModelVersion = ModelRegistryBase & {
   catalogRepositoryName?: string;
   catalogModelName?: string;
   catalogModelTag?: string;
-  customProperties?: ModelRegistryCustomProperties;
+  modelSourceKind?: string;
+  modelSourceClass?: string;
 };
 
 export type RegisteredModel = ModelRegistryBase & {
@@ -133,11 +143,12 @@ export type RegisteredModel = ModelRegistryBase & {
   modelSourceGroup?: string;
   modelSourceId?: string;
   modelSourceName?: string;
+  modelSourceKind?: string;
+  modelSourceClass?: string;
   catalogSourceName?: string;
   catalogRepositoryName?: string;
   catalogModelName?: string;
   catalogModelTag?: string;
-  customProperties?: ModelRegistryCustomProperties;
 };
 
 export type InferenceService = ModelRegistryBase & {

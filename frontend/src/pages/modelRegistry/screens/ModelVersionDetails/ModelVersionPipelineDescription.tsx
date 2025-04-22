@@ -12,11 +12,20 @@ import { ModelVersionPipelineDescriptionProps } from './const';
 
 const ModelVersionPipelineDescription: React.FC<ModelVersionPipelineDescriptionProps> = ({
   sourceInfo: { project, runId, runName },
+  catalogModelUrl,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
   const registeredPipelineProject = projects.find((p) => p.metadata.name === project);
 
-  const renderRunLink = registeredPipelineProject ? (
+  const renderRunLink = catalogModelUrl ? (
+    <Link
+      to={catalogModelUrl}
+      style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
+      data-testid="catalog-model-link"
+    >
+      {runName}
+    </Link>
+  ) : registeredPipelineProject ? (
     <Link
       style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
       to={globalPipelineRunDetailsRoute(project, runId)}
@@ -48,7 +57,14 @@ const ModelVersionPipelineDescription: React.FC<ModelVersionPipelineDescriptionP
       <FlexItem>
         <b>{renderProject}</b>
       </FlexItem>
-      {!registeredPipelineProject && (
+      {catalogModelUrl && (
+        <FlexItem data-testid="catalog-model-info">
+          <span style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
+            (from Model Catalog)
+          </span>
+        </FlexItem>
+      )}
+      {!registeredPipelineProject && !catalogModelUrl && (
         <FlexItem>
           <Popover
             data-testid="project-access-info-popover"
