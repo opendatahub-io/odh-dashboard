@@ -1,8 +1,6 @@
 import React from 'react';
-import { ToolbarItem } from '@patternfly/react-core';
 import { BYONImage } from '~/types';
 import { Table } from '~/components/table';
-import DashboardSearchField, { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import { useDashboardNamespace } from '~/redux/selectors';
 import useAcceleratorProfiles from '~/pages/notebookController/screens/server/useAcceleratorProfiles';
@@ -13,7 +11,8 @@ import ManageBYONImageModal from './BYONImageModal/ManageBYONImageModal';
 import DeleteBYONImageModal from './BYONImageModal/DeleteBYONImageModal';
 import { columns } from './tableData';
 import BYONImagesTableRow from './BYONImagesTableRow';
-import ImportBYONImageButton from './ImportBYONImageButton';
+import BYONImagesToolbar from './BYONImagesToolbar';
+import { initialBYONImagesFilterData, BYONImagesFilterDataType } from './const';
 
 export type BYONImagesTableProps = {
   images: BYONImage[];
@@ -21,28 +20,28 @@ export type BYONImagesTableProps = {
 };
 
 export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, refresh }) => {
-  const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
-  const [search, setSearch] = React.useState('');
-  const filteredImages = images.filter((image) => {
-    if (!search) {
-      return true;
-    }
+  const [filterData, setFilterData] = React.useState<BYONImagesFilterDataType>(
+    initialBYONImagesFilterData,
+  );
 
-    switch (searchType) {
-      case SearchType.NAME:
-        return image.display_name.toLowerCase().includes(search.toLowerCase());
-      case SearchType.PROVIDER:
-        return image.provider.toLowerCase().includes(search.toLowerCase());
-      default:
-        return true;
-    }
-  });
+  const filteredImages = React.useMemo(
+    () =>
+      images.filter((image) => {
+        const nameFilter = filterData.Name?.toLowerCase();
+        const providerFilter = filterData.Provider?.toLowerCase();
+
+        if (nameFilter && !image.display_name.toLowerCase().includes(nameFilter)) {
+          return false;
+        }
+
+        return !providerFilter || image.provider.toLowerCase().includes(providerFilter);
+      }),
+    [images, filterData],
+  );
 
   const resetFilters = () => {
-    setSearch('');
+    setFilterData(initialBYONImagesFilterData);
   };
-
-  const searchTypes = React.useMemo(() => [SearchType.NAME, SearchType.PROVIDER], []);
 
   const [editImage, setEditImage] = React.useState<BYONImage>();
   const [deleteImage, setDeleteImage] = React.useState<BYONImage>();
@@ -54,6 +53,17 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, refres
   ]);
 
   const isHardwareProfileAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
+
+  const onFilterUpdate = React.useCallback(
+    (key: string, value: string | { label: string; value: string } | undefined) =>
+      setFilterData((prevValues) => ({ ...prevValues, [key]: value })),
+    [setFilterData],
+  );
+
+  const onClearFilters = React.useCallback(
+    () => setFilterData(initialBYONImagesFilterData),
+    [setFilterData],
+  );
 
   return (
     <>
@@ -81,25 +91,13 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, refres
             hardwareProfiles={hardwareProfiles}
           />
         )}
+        onClearFilters={onClearFilters}
         toolbarContent={
-          <>
-            <ToolbarItem>
-              <DashboardSearchField
-                types={searchTypes}
-                searchType={searchType}
-                searchValue={search}
-                onSearchTypeChange={(newSearchType) => {
-                  setSearchType(newSearchType);
-                }}
-                onSearchValueChange={(searchValue) => {
-                  setSearch(searchValue);
-                }}
-              />
-            </ToolbarItem>
-            <ToolbarItem>
-              <ImportBYONImageButton refresh={refresh} />
-            </ToolbarItem>
-          </>
+          <BYONImagesToolbar
+            refresh={refresh}
+            filterData={filterData}
+            onFilterUpdate={onFilterUpdate}
+          />
         }
       />
       {deleteImage ? (
