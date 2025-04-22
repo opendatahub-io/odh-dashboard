@@ -1,6 +1,7 @@
 import {
   checkModelStatus,
   getInferenceServiceStatusMessage,
+  getInferenceServiceLastFailureReason,
 } from '~/pages/modelServing/screens/global/utils';
 import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
 import { mockInferenceServiceK8sResource } from '~/__mocks__';
@@ -79,5 +80,31 @@ describe('getInferenceServiceStatusMessage', () => {
       targetModelState: '',
     });
     expect(getInferenceServiceStatusMessage(inferenceService)).toEqual('');
+  });
+});
+
+describe('getInferenceServiceLastFailureReason', () => {
+  it('Should return last failure reason when present', () => {
+    const inferenceService = mockInferenceServiceK8sResource({
+      lastFailureInfoReason: 'RuntimeUnhealthy',
+    });
+    expect(getInferenceServiceLastFailureReason(inferenceService)).toEqual('RuntimeUnhealthy');
+  });
+
+  it('Should return undefined when no status exists', () => {
+    const inferenceService = mockInferenceServiceK8sResource({
+      missingStatus: true,
+    });
+    expect(getInferenceServiceLastFailureReason(inferenceService)).toEqual('Unknown');
+  });
+
+  it('Should return status message when reason is missing', () => {
+    const inferenceService = mockInferenceServiceK8sResource({
+      activeModelState: 'FailedToLoad',
+      lastFailureInfoMessage: 'Some message',
+      lastFailureInfoReason: undefined,
+    });
+
+    expect(getInferenceServiceLastFailureReason(inferenceService)).toEqual('Some message');
   });
 });

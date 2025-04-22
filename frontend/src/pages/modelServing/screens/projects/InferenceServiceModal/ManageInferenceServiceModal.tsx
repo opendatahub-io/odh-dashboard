@@ -115,13 +115,13 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     createData.servingRuntimeName === '' ||
     !storageCanCreate();
 
+  const onSuccess = () => {
+    onClose(true);
+  };
+
   const setErrorModal = (e: Error) => {
     setError(e);
     setActionInProgress(false);
-  };
-
-  const onSuccess = () => {
-    onClose(true);
   };
 
   const submit = () => {

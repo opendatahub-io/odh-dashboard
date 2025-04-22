@@ -18,6 +18,12 @@ jest.mock('~/app/AppContext', () => ({
   useAppContext: jest.fn(),
 }));
 
+jest.mock('~/pages/modelServing/screens/projects/useModelDeploymentNotification', () => ({
+  useModelDeploymentNotification: () => ({
+    watchDeployment: jest.fn(),
+  }),
+}));
+
 const useServingRuntimesMock = jest.mocked(useServingRuntimes);
 const useAppContextMock = jest.mocked(useAppContext);
 
