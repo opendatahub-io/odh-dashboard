@@ -54,14 +54,15 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
   const createProjectRoleBinding = (
     subjectName: string,
     newRBObject: RoleBindingKind,
-    rb: RoleBindingKind,
+    oldRBObject?: RoleBindingKind,
   ) => {
     const roleType = newRBObject.subjects[0].kind.toLowerCase();
     const usedNames: string[] = permissions
       .map((p) => p.subjects[0].name)
-      .filter((name) => isAdding || name !== rb.subjects[0].name);
+      .filter((name) => isAdding || name !== oldRBObject?.subjects[0].name);
     const isDuplicateName = usedNames.includes(subjectName);
     if (isDuplicateName) {
+      // Prevent duplicate role binding
       onError(
         <>
           The {roleType} <strong>{subjectName}</strong> already exists. Edit the {roleType}
@@ -70,6 +71,7 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
       );
       refresh();
     } else if (isAdding) {
+      // Add new role binding
       createRoleBinding(newRBObject)
         .then(() => {
           onDismissNewRow();
@@ -79,22 +81,25 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
           onError(<>{e}</>);
         });
     } else {
+      // Edit existing role binding
       createRoleBinding(newRBObject)
-        .then(() =>
-          deleteRoleBinding(rb.metadata.name, rb.metadata.namespace)
-            .then(() => refresh())
-            .catch((e) => {
-              onError(<>{e}</>);
-              setEditCell((prev) => prev.filter((cell) => cell !== rb.metadata.name));
-            }),
-        )
+        .then(() => {
+          if (oldRBObject) {
+            deleteRoleBinding(oldRBObject.metadata.name, oldRBObject.metadata.namespace)
+              .then(() => refresh())
+              .catch((e) => {
+                onError(<>{e}</>);
+                setEditCell((prev) => prev.filter((cell) => cell !== oldRBObject.metadata.name));
+              });
+          }
+        })
         .then(() => {
           onDismissNewRow();
           refresh();
         })
         .catch((e) => {
           onError(<>{e}</>);
-          setEditCell((prev) => prev.filter((cell) => cell !== rb.metadata.name));
+          setEditCell((prev) => prev.filter((cell) => cell !== oldRBObject?.metadata.name));
         });
     }
   };
@@ -125,11 +130,9 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
                 labels,
                 ownerReference,
               );
-              createProjectRoleBinding(subjectName, newRBObject, newRBObject);
+              createProjectRoleBinding(subjectName, newRBObject);
             }}
             onCancel={onDismissNewRow}
-            onDelete={() => null}
-            onEdit={() => null}
           />
         ) : null
       }

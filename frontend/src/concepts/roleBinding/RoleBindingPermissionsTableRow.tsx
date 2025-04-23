@@ -41,8 +41,8 @@ type RoleBindingPermissionsTableRowProps = {
   isProjectSubject?: boolean;
   onChange: (name: string, roleType: RoleBindingPermissionsRoleType) => void;
   onCancel: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
 };
 
 const defaultValueName = (
@@ -211,14 +211,14 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
                 {
                   title: 'Edit',
                   onClick: () => {
-                    onEdit();
+                    onEdit?.();
                   },
                 },
                 { isSeparator: true },
                 {
                   title: 'Delete',
                   onClick: () => {
-                    onDelete();
+                    onDelete?.();
                   },
                 },
               ]}
