@@ -54,8 +54,7 @@ type K8sNameDescriptionFieldProps = {
 // using enum to make the type; cannot use enum directly
 type Validate = `${ValidatedOptions}`;
 type NameError = 'tooShort' | 'tooLong' | 'none';
-const makeTooLongErrorText = (fieldName: string) =>
-  `Please shorten the ${fieldName}; the maximum length is ${K8S_MAX_LENGTH.toLocaleString()} characters.`;
+const tooLongErrorText = `Must be ${K8S_MAX_LENGTH.toLocaleString()} characters or less.`
 /**
  * Use in place of any K8s Resource creation / edit.
  *
@@ -80,9 +79,6 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   const [descValidated, setDescValidated] = React.useState<Validate>('default');
 
   const [nameError, setNameError] = React.useState<NameError>('none');
-
-  const nameErrorText = makeTooLongErrorText('name');
-  const descErrorText = makeTooLongErrorText('description');
 
   const onNameChange = (_event: FormEvent<HTMLInputElement>, value: string) => {
     const isValid = value.length > 0 && value.length <= K8S_MAX_LENGTH;
@@ -132,8 +128,8 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
           <FormHelperText>
             <HelperText>
               <HelperTextItem icon={<ExclamationCircleIcon />} variant={nameValidated}>
-                {nameError === 'tooLong' && nameErrorText}
-                {nameError === 'tooShort' && 'Name is required'}
+                {nameError === 'tooLong' && tooLongErrorText}
+                {nameError === 'tooShort' && 'Required'}
               </HelperTextItem>
             </HelperText>
           </FormHelperText>
@@ -186,7 +182,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
             <FormHelperText>
               <HelperText>
                 <HelperTextItem icon={<ExclamationCircleIcon />} variant={descValidated}>
-                  {descErrorText}
+                  {tooLongErrorText}
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>
