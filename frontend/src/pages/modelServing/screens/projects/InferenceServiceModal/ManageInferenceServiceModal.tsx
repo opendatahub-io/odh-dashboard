@@ -57,7 +57,6 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     useK8sNameDescriptionFieldData({ initialData: editInfo });
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
-  const [isLoading, setIsLoading] = React.useState(!!modelDeployPrefillInfo);
 
   const currentProjectName = projectContext?.currentProject.metadata.name || '';
   const currentServingRuntimeName = projectContext?.currentServingRuntime?.metadata.name || '';
@@ -69,6 +68,11 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     connectionsLoaded,
     connectionsLoadError,
   } = usePrefillModelDeployModal(projectContext, createData, setCreateData, modelDeployPrefillInfo);
+
+  const isDataReady =
+    !modelDeployPrefillInfo ||
+    (!!inferenceServiceNameDesc.name && (!projectContext || connectionsLoaded));
+  const isLoading = !isDataReady;
 
   const modelMeshConnections = React.useMemo(
     () =>
@@ -102,19 +106,10 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
   };
 
   React.useEffect(() => {
-    if (createData.name && createData.name !== inferenceServiceNameDesc.name) {
+    if (createData.name) {
       setInferenceServiceNameDesc('name', createData.name);
     }
-    setIsLoading(false);
-  }, [inferenceServiceNameDesc.name, createData.name, setInferenceServiceNameDesc]);
-
-  React.useEffect(() => {
-    if (modelDeployPrefillInfo) {
-      const isDataReady = !!inferenceServiceNameDesc.name && (!projectContext || connectionsLoaded);
-
-      setIsLoading(!isDataReady);
-    }
-  }, [inferenceServiceNameDesc.name, projectContext, connectionsLoaded, modelDeployPrefillInfo]);
+  }, [createData.name, setInferenceServiceNameDesc]);
 
   const isDisabled =
     actionInProgress ||

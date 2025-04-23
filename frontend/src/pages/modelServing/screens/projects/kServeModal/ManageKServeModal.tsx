@@ -162,7 +162,6 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const servingRuntimeParamsEnabled = useIsAreaAvailable(
     SupportedArea.SERVING_RUNTIME_PARAMS,
   ).status;
-  const [isLoading, setIsLoading] = React.useState(!!modelDeployPrefillInfo);
 
   React.useEffect(() => {
     if (currentProjectName) {
@@ -186,28 +185,16 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [createDataInferenceService.name, setKserveNameDesc]);
 
-  React.useEffect(() => {
-    if (modelDeployPrefillInfo) {
-      const isDataReady =
-        !!kServeNameDesc.name &&
-        Array.isArray(servingRuntimeTemplates) &&
-        servingRuntimeTemplates.length > 0 &&
-        (!projectContext || connectionsLoaded) &&
-        (podSpecOptionsState.acceleratorProfile.loaded ||
-          podSpecOptionsState.hardwareProfile.profilesLoaded);
+  const isDataReady =
+    !modelDeployPrefillInfo ||
+    (!!kServeNameDesc.name &&
+      Array.isArray(servingRuntimeTemplates) &&
+      servingRuntimeTemplates.length > 0 &&
+      (!projectContext || connectionsLoaded) &&
+      (podSpecOptionsState.acceleratorProfile.loaded ||
+        podSpecOptionsState.hardwareProfile.profilesLoaded));
 
-      setIsLoading(!isDataReady);
-    }
-  }, [
-    kServeNameDesc.name,
-    servingRuntimeTemplates,
-    projectTemplates,
-    projectContext,
-    connectionsLoaded,
-    modelDeployPrefillInfo,
-    podSpecOptionsState.acceleratorProfile.loaded,
-    podSpecOptionsState.hardwareProfile.profilesLoaded,
-  ]);
+  const isLoading = !isDataReady;
 
   // Serving Runtime Validation
   const isDisabledServingRuntime = namespace === '' || actionInProgress;
