@@ -2,6 +2,8 @@ import {
   HTPASSWD_CLUSTER_ADMIN_USER,
   LDAP_CONTRIBUTOR_USER,
 } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+// eslint-disable-next-line no-restricted-syntax
+import { DEFAULT_PVC_SIZE } from '~/pages/clusterSettings/const';
 import { clusterSettings } from '~/__tests__/cypress/cypress/pages/clusterSettings';
 import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
 import type {
@@ -27,12 +29,23 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
     cy.getDashboardConfig().then((config) => {
       dashboardConfig = config as DashboardConfig;
       cy.log('Dashboard Config:', JSON.stringify(dashboardConfig, null, 2));
+
+      // If PVC size is not set, use the default value
+      if (!dashboardConfig.notebookController.pvcSize) {
+        dashboardConfig.notebookController = {
+          ...dashboardConfig.notebookController,
+          pvcSize: `${DEFAULT_PVC_SIZE}Gi`,
+        };
+        cy.log('Using default PVC size:', DEFAULT_PVC_SIZE);
+      }
     });
+
     // Retrieve the Notebook controller configuration
     cy.getNotebookControllerConfig().then((config) => {
       notebookControllerConfig = config as NotebookControllerConfig;
       cy.log('Controller Config:', JSON.stringify(notebookControllerConfig, null, 2));
     });
+
     // Retrieve the Notebook controller culler configuration
     cy.getNotebookControllerCullerConfig().then((config) => {
       cy.log('Raw Controller Culler Config Response:', JSON.stringify(config));
