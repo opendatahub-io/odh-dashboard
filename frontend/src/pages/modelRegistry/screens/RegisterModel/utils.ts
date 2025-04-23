@@ -130,12 +130,6 @@ export const registerVersion = async (
           : formData.modelLocationURI,
       artifactType: 'model-artifact',
     };
-
-    modelArtifact = await apiState.api.createModelArtifactForModelVersion(
-      {},
-      modelVersion.id,
-      artifactData,
-    );
   } catch (e) {
     if (e instanceof Error) {
       errors[RegistrationErrorType.MODEL_ARTIFACT] = e;

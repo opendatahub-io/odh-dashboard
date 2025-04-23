@@ -95,8 +95,6 @@ export type ModelRegistryBase = {
   createTimeSinceEpoch: string;
   lastUpdateTimeSinceEpoch: string;
   customProperties: ModelRegistryCustomProperties;
-  modelSourceKind?: string;
-  modelSourceClass?: string;
 };
 
 export type ModelArtifact = ModelRegistryBase & {
