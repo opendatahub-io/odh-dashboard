@@ -17,7 +17,7 @@ import {
 } from '~/concepts/pipelines/kfTypes';
 import ProjectAndExperimentSection from '~/concepts/pipelines/content/createRun/contentSections/ProjectAndExperimentSection';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import usePipelineVersionsForPipeline from '~/concepts/pipelines/apiHooks/usePipelineVersionsForPipeline';
+import { useLatestPipelineVersion } from '~/concepts/pipelines/apiHooks/useLatestPipelineVersion';
 import { getNameEqualsFilter } from '~/concepts/pipelines/utils';
 import { DuplicateNameHelperText } from '~/concepts/pipelines/content/DuplicateNameHelperText';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
@@ -40,18 +40,7 @@ type RunFormProps = {
 
 const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) => {
   const { api } = usePipelinesAPI();
-
-  const [{ items }, versionsLoaded] = usePipelineVersionsForPipeline(data.pipeline?.pipeline_id, {
-    pageSize: 1,
-    sortField: 'created_at',
-    sortDirection: 'desc',
-  });
-
-  const latestVersion = React.useMemo(
-    () => items.find((item) => !isArgoWorkflow(item.pipeline_spec)) ?? null,
-    [items],
-  );
-
+  const [latestVersion, latestVersionLoaded] = useLatestPipelineVersion(data.pipeline?.pipeline_id);
   // Use this state to avoid the pipeline version being set as the latest version at the initial load
   const [initialLoadedState, setInitialLoadedState] = React.useState(true);
   const selectedVersion = React.useMemo(() => {
@@ -164,11 +153,12 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) 
         pipeline={data.pipeline}
         selectedVersion={selectedVersion}
         latestVersion={latestVersion}
-        latestVersionLoaded={versionsLoaded}
+        latestVersionLoaded={latestVersionLoaded}
         versionToUse={data.versionToUse}
         onValueChange={onValueChange}
         updateInputParams={updateInputParams}
         setInitialLoadedState={setInitialLoadedState}
+        isSchedule={isSchedule}
       />
 
       <ParamsSection

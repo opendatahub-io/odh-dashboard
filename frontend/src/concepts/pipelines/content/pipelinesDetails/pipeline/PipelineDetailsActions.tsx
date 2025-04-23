@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Divider, Dropdown, DropdownItem, DropdownList, MenuToggle } from '@patternfly/react-core';
 
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { PipelineVersionToUse } from '~/concepts/pipelines/content/createRun/types';
 import PipelineVersionImportModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
 import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import {
@@ -74,7 +75,13 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
               key="create-run"
               onClick={() =>
                 navigate(createRunRoute(namespace), {
-                  state: { contextData: { pipeline, version: pipelineVersion } },
+                  state: {
+                    contextData: {
+                      pipeline,
+                      version: pipelineVersion,
+                      versionToUse: PipelineVersionToUse.PROVIDED,
+                    },
+                  },
                 })
               }
             >
@@ -90,7 +97,13 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
               key="create-schedule"
               onClick={() =>
                 navigate(createRecurringRunRoute(namespace), {
-                  state: { contextData: { pipeline, version: pipelineVersion } },
+                  state: {
+                    contextData: {
+                      pipeline,
+                      version: pipelineVersion,
+                      versionToUse: PipelineVersionToUse.PROVIDED,
+                    },
+                  },
                 })
               }
             >

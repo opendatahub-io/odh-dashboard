@@ -96,7 +96,7 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
                     contextData: {
                       pipeline,
                       version,
-                      versionToUse: PipelineVersionToUse.SPECIFIC,
+                      versionToUse: PipelineVersionToUse.PROVIDED,
                     },
                   },
                 });
@@ -114,7 +114,7 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
                     contextData: {
                       pipeline,
                       version,
-                      versionToUse: PipelineVersionToUse.SPECIFIC,
+                      versionToUse: PipelineVersionToUse.PROVIDED,
                     },
                   },
                 });

@@ -136,7 +136,7 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                         contextData: {
                           pipeline,
                           version,
-                          versionToUse: PipelineVersionToUse.LATEST,
+                          versionToUse: PipelineVersionToUse.PROVIDED,
                         },
                       },
                     });
@@ -153,7 +153,6 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                       state: {
                         contextData: {
                           pipeline,
-                          version,
                           versionToUse: PipelineVersionToUse.LATEST,
                         },
                       },

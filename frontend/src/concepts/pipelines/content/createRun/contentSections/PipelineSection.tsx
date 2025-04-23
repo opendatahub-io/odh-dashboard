@@ -10,9 +10,11 @@ import {
 import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
 import PipelineSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineSelector';
 import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipelineButton';
+import PipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
 import RunForm from '~/concepts/pipelines/content/createRun/RunForm';
 import { PipelineVersionToUse } from '~/concepts/pipelines/content/createRun/types';
 import PipelineVersionRadioGroup from '~/concepts/pipelines/content/createRun/contentSections/PipelineVersionRadioGroup';
+import ImportPipelineVersionButton from '~/concepts/pipelines/content/import/ImportPipelineVersionButton';
 
 type PipelineSectionProps = Pick<React.ComponentProps<typeof RunForm>, 'onValueChange'> & {
   pipeline: PipelineKF | null;
@@ -22,6 +24,7 @@ type PipelineSectionProps = Pick<React.ComponentProps<typeof RunForm>, 'onValueC
   versionToUse: PipelineVersionToUse;
   updateInputParams: (version: PipelineVersionKF | undefined) => void;
   setInitialLoadedState: (isInitial: boolean) => void;
+  isSchedule: boolean;
 };
 
 const PipelineSection: React.FC<PipelineSectionProps> = ({
@@ -33,6 +36,7 @@ const PipelineSection: React.FC<PipelineSectionProps> = ({
   onValueChange,
   updateInputParams,
   setInitialLoadedState,
+  isSchedule,
 }) => {
   const onPipelineChange = React.useCallback(
     (value: PipelineKF) => {
@@ -77,14 +81,39 @@ const PipelineSection: React.FC<PipelineSectionProps> = ({
       </FormGroup>
 
       <FormGroup label="Pipeline version" isRequired>
-        <PipelineVersionRadioGroup
-          pipeline={pipeline}
-          selectedVersion={selectedVersion}
-          latestVersion={latestVersion}
-          latestVersionLoaded={latestVersionLoaded}
-          versionToUse={versionToUse}
-          onVersionChange={onVersionChange}
-        />
+        {isSchedule ? (
+          <PipelineVersionRadioGroup
+            pipeline={pipeline}
+            selectedVersion={selectedVersion}
+            latestVersion={latestVersion}
+            latestVersionLoaded={latestVersionLoaded}
+            versionToUse={versionToUse}
+            onVersionChange={onVersionChange}
+          />
+        ) : (
+          <Stack hasGutter>
+            <StackItem>
+              <PipelineVersionSelector
+                selection={selectedVersion?.display_name}
+                pipelineId={pipeline?.pipeline_id}
+                onSelect={(value) => {
+                  onVersionChange({ value, versionToUse: PipelineVersionToUse.PROVIDED });
+                }}
+                isCreatePage
+              />
+            </StackItem>
+            <StackItem>
+              <ImportPipelineVersionButton
+                selectedPipeline={pipeline}
+                variant="link"
+                icon={<PlusCircleIcon />}
+                onCreate={(value) => {
+                  onVersionChange({ value, versionToUse: PipelineVersionToUse.PROVIDED });
+                }}
+              />
+            </StackItem>
+          </Stack>
+        )}
       </FormGroup>
     </FormSection>
   );

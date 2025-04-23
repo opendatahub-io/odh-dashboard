@@ -88,7 +88,7 @@ const RunPage: React.FC<RunPageProps> = ({
       return contextVersionToUse;
     }
     return locationVersion || contextPipelineVersion
-      ? PipelineVersionToUse.SPECIFIC
+      ? PipelineVersionToUse.PROVIDED
       : PipelineVersionToUse.LATEST;
   }, [contextVersionToUse, locationVersion, contextPipelineVersion]);
 

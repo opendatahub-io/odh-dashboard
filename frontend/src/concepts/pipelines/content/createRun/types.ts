@@ -46,7 +46,7 @@ export type RunType = OneTriggerRunType | ScheduledRunType;
 
 export enum PipelineVersionToUse {
   LATEST = 'latest',
-  SPECIFIC = 'specific',
+  PROVIDED = 'provided',
 }
 
 export type RunFormData = {

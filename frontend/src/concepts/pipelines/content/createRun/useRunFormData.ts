@@ -138,7 +138,7 @@ const useUpdateDuplicateData = (
     setFunction('experiment', duplicateExperiment);
     setFunction('pipeline', duplicateRunPipeline);
     setFunction('version', duplicateRunPipelineVersion);
-    setFunction('versionToUse', PipelineVersionToUse.SPECIFIC);
+    setFunction('versionToUse', PipelineVersionToUse.PROVIDED);
   }, [
     setFunction,
     initialData,

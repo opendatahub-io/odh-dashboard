@@ -11,7 +11,6 @@ import {
   mockSecretK8sResource,
   mockSuccessGoogleRpcStatus,
   mockArgoWorkflowPipelineVersion,
-  buildMockExperimentKF,
 } from '~/__mocks__';
 import {
   pipelinesGlobal,
@@ -23,7 +22,6 @@ import {
   viewPipelineServerModal,
   PipelineSort,
   pipelineDetails,
-  createRunPage,
 } from '~/__tests__/cypress/cypress/pages/pipelines';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import {
@@ -1085,126 +1083,6 @@ describe('Pipelines', () => {
       .click();
 
     verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
-  });
-
-  it('should select the latest pipeline version when creating a run from the pipeline', () => {
-    initIntercepts({});
-
-    const mockExperiments = [
-      buildMockExperimentKF({
-        display_name: 'Test experiment 1',
-        experiment_id: 'experiment-1',
-        created_at: '2024-01-30T15:46:33Z',
-      }),
-    ];
-    const mockPipeline = buildMockPipeline();
-    const mockPipelineVersion = buildMockPipelineVersion({ pipeline_id: mockPipeline.pipeline_id });
-    const mockPipelineVersions = [
-      {
-        ...mockPipelineVersion,
-        display_name: 'Test pipeline version (latest)',
-      },
-      {
-        ...mockPipelineVersion,
-        display_name: 'Test pipeline version (old)',
-      },
-      {
-        ...mockPipelineVersion,
-        display_name: 'Test pipeline version (oldest)',
-      },
-    ];
-
-    pipelinesGlobal.visit(projectName);
-
-    createRunPage.mockGetExperiments(projectName, mockExperiments);
-    createRunPage.mockGetPipelines(projectName, [mockPipeline]);
-    createRunPage.mockGetPipelineVersions(
-      projectName,
-      mockPipelineVersions,
-      mockPipelineVersion.pipeline_id,
-    );
-
-    pipelinesTable.find();
-    pipelinesTable.getRowById(mockPipeline.pipeline_id).findKebabAction('Create run').click();
-
-    createRunPage.find();
-    createRunPage.pipelineSelect
-      .findToggleButton()
-      .should('not.be.disabled')
-      .should('have.text', mockPipeline.display_name);
-    createRunPage.findUseLatestVersionRadio().should('be.checked');
-    createRunPage.findViewLatestVersionButton().click();
-    createRunPage
-      .findViewLatestVersionPopover()
-      .findByText(mockPipelineVersions[0].display_name)
-      .should('exist');
-    createRunPage.findUseFixedVersionRadio().click();
-    createRunPage.pipelineVersionSelect
-      .findToggleButton()
-      .should('not.be.disabled')
-      .should('have.text', mockPipelineVersions[0].display_name);
-  });
-
-  it('should select the same version when creating a run from a specific pipeline version', () => {
-    initIntercepts({});
-
-    const mockExperiments = [
-      buildMockExperimentKF({
-        display_name: 'Test experiment 1',
-        experiment_id: 'experiment-1',
-        created_at: '2024-01-30T15:46:33Z',
-      }),
-    ];
-    const mockPipeline = buildMockPipeline();
-    const mockPipelineVersion = buildMockPipelineVersion({ pipeline_id: mockPipeline.pipeline_id });
-    const mockPipelineVersions = [
-      {
-        ...mockPipelineVersion,
-        display_name: 'Test pipeline version (latest)',
-        pipeline_version_id: 'latest',
-      },
-      {
-        ...mockPipelineVersion,
-        display_name: 'Test pipeline version (old)',
-        pipeline_version_id: 'old',
-      },
-      {
-        ...mockPipelineVersion,
-        display_name: 'Test pipeline version (oldest)',
-        pipeline_version_id: 'oldest',
-      },
-    ];
-
-    pipelinesGlobal.visit(projectName);
-
-    createRunPage.mockGetExperiments(projectName, mockExperiments);
-    createRunPage.mockGetPipelines(projectName, [mockPipeline]);
-    createRunPage.mockGetPipelineVersions(
-      projectName,
-      mockPipelineVersions,
-      mockPipelineVersion.pipeline_id,
-    );
-
-    pipelinesTable.find();
-
-    const selectedPipelineVersion = mockPipelineVersions[1];
-    const pipelineRow = pipelinesTable.getRowById(mockPipeline.pipeline_id);
-    pipelineRow.findExpandButton().click();
-    const pipelineVersionRow = pipelineRow.getPipelineVersionRowById(
-      selectedPipelineVersion.pipeline_version_id,
-    );
-    pipelineVersionRow.findKebabAction('Create run').click();
-
-    createRunPage.find();
-    createRunPage.pipelineSelect
-      .findToggleButton()
-      .should('not.be.disabled')
-      .should('have.text', mockPipeline.display_name);
-    createRunPage.findUseFixedVersionRadio().should('be.checked');
-    createRunPage.pipelineVersionSelect
-      .findToggleButton()
-      .should('not.be.disabled')
-      .should('have.text', selectedPipelineVersion.display_name);
   });
 
   it('run and schedule dropdown action should be disabled when pipeline and pipeline version is not supported', () => {

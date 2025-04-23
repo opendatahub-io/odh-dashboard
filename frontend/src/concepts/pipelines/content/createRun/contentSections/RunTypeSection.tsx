@@ -9,7 +9,11 @@ import {
   runPageSectionTitles,
 } from '~/concepts/pipelines/content/createRun/const';
 import { createRecurringRunRoute, createRunRoute } from '~/routes';
-import { RunFormData, RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
+import {
+  PipelineVersionToUse,
+  RunFormData,
+  RunTypeOption,
+} from '~/concepts/pipelines/content/createRun/types';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
 
@@ -29,7 +33,12 @@ export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ data, isDuplicat
       To create a schedule that executes recurring runs,{' '}
       <Link
         to={createRecurringRunRoute(namespace, experiment?.experiment_id)}
-        state={{ locationData: data }}
+        state={{
+          locationData: data,
+          contextData: {
+            versionToUse: PipelineVersionToUse.LATEST,
+          },
+        }}
         data-testid="run-type-section-alert-link"
         replace
       >
@@ -46,7 +55,12 @@ export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ data, isDuplicat
         To create a non-recurring run,{' '}
         <Link
           to={createRunRoute(namespace, experiment?.experiment_id)}
-          state={{ locationData: data }}
+          state={{
+            locationData: data,
+            contextData: {
+              versionToUse: PipelineVersionToUse.PROVIDED,
+            },
+          }}
           data-testid="run-type-section-alert-link"
           replace
         >
