@@ -28,9 +28,9 @@ export type BaseMetric = {
 
 // Request type only for user input
 export type BaseMetricRequestInput = {
-  favorableOutcome: string;
-  privilegedAttribute: string;
-  unprivilegedAttribute: string;
+  favorableOutcome: string | number | boolean;
+  privilegedAttribute: string | number | boolean;
+  unprivilegedAttribute: string | number | boolean;
 } & BaseMetric;
 
 // Request type for creating
