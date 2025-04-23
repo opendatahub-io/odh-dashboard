@@ -161,8 +161,7 @@ class NotebookImageUpdateModal {
 
 class NotebookRow extends TableRow {
   shouldHaveNotebookImageName(name: string) {
-    return cy.findByTestId('image-display-name').should('contain.text', name);
-    return this;
+    return this.find().findByTestId('image-display-name').should('contain.text', name);
   }
 
   findNotebookImageAvailability() {
