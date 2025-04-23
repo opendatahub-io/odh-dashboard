@@ -143,6 +143,11 @@
             "group": ["@patternfly/react-core"],
             "importNames": ["Select"],
             "message": "Import 'SimpleSelect', 'MultiSelection' or 'TypeaheadSelect' from '~/components' instead."
+          },
+          {
+            "group": ["@patternfly/react-core"],
+            "importNames": ["NumberInput"],
+            "message": "Import 'NumberInputWrapper' from '~/components' instead."
           }
         ]
       }
