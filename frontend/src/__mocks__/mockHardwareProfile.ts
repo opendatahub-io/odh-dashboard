@@ -60,9 +60,7 @@ export const mockHardwareProfile = ({
       effect: TolerationEffect.NO_SCHEDULE,
     },
   ],
-  nodeSelector = {
-    test: 'value',
-  },
+  nodeSelector,
   annotations,
   labels,
 }: MockResourceConfigType): HardwareProfileKind => ({
@@ -83,7 +81,7 @@ export const mockHardwareProfile = ({
     displayName,
     enabled,
     tolerations,
-    nodeSelector,
+    ...(nodeSelector ? { nodeSelector } : {}),
     description,
   },
 });
