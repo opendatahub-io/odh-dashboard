@@ -52,6 +52,7 @@ import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { isModelPathValid } from '~/pages/modelServing/screens/projects/utils';
 import usePersistentData from '~/pages/projects/screens/detail/connections/usePersistentData';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+import { AccessTypes } from '~/pages/projects/dataConnections/const';
 import ConnectionS3FolderPathField from './ConnectionS3FolderPathField';
 import ConnectionOciPathField from './ConnectionOciPathField';
 import { ConnectionOciAlert } from './ConnectionOciAlert';
@@ -332,7 +333,7 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
         onValidate={(field, error, value) => {
           let newError = error;
           if (field.envVar === 'ACCESS_TYPE' && Array.isArray(value)) {
-            if (value.includes('Push') && !value.includes('Pull')) {
+            if (value.includes(AccessTypes.PUSH) && !value.includes(AccessTypes.PULL)) {
               newError = 'Access type must include pull';
             }
           }

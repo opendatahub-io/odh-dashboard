@@ -3,7 +3,7 @@ import { Connection } from '~/concepts/connectionTypes/types';
 import { convertObjectStorageSecretData } from '~/concepts/connectionTypes/utils';
 import { ModelLocation, uriToModelLocation } from '~/concepts/modelRegistry/utils';
 import { LabeledConnection } from '~/pages/modelServing/screens/types';
-import { AwsKeys } from '~/pages/projects/dataConnections/const';
+import { AwsKeys, AccessTypes } from '~/pages/projects/dataConnections/const';
 
 const useLabeledConnections = (
   modelArtifactUri: string | undefined,
@@ -43,7 +43,7 @@ const useLabeledConnections = (
       if (modelLocation.ociUri && connection.data?.OCI_HOST) {
         const findURI = modelLocation.ociUri.includes(window.atob(connection.data.OCI_HOST));
         const accessTypes = connection.data.ACCESS_TYPE && window.atob(connection.data.ACCESS_TYPE);
-        if (findURI && accessTypes.includes('Pull')) {
+        if (findURI && accessTypes.includes(AccessTypes.PULL)) {
           return { connection, isRecommended: true };
         }
       }
