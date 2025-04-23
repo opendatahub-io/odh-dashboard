@@ -14,7 +14,6 @@ import {
   Text,
   TextContent,
   Tooltip,
-  AlertVariant,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { OdhApplication } from '~/types';
@@ -23,14 +22,12 @@ import { markdownConverter } from '~/utilities/markdown';
 import { useAppContext } from '~/app/AppContext';
 import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { useIntegratedAppStatus } from '~/pages/exploreApplication/useIntegratedAppStatus';
-import { addNotification } from '~/redux/actions/actions';
-import { useAppDispatch } from '~/redux/hooks';
 import { useUser } from '~/redux/selectors';
 
 const DEFAULT_BETA_TEXT =
-  'This application is available for early access prior to official ' +
-  ' release. It won’t appear in the *Enabled* view, but you can access it by' +
-  ' [signing up for beta access.](https://www.starburst.io/platform/starburst-galaxy/).';
+  'This application is available for early access prior to official release. ' +
+  'It won’t appear in the *Enabled* view, but you can access it by ' +
+  '[signing up for beta access.](https://www.starburst.io/platform/starburst-galaxy/).';
 
 type GetStartedPanelProps = {
   selectedApp?: OdhApplication;
@@ -38,67 +35,23 @@ type GetStartedPanelProps = {
   onEnable: () => void;
 };
 
-const fetchNimIntegrationStatus = async (): Promise<boolean> => {
-  try {
-    const res = await fetch('/api/integrations/nim');
-    const data = await res.json();
-    return data?.isEnabled === true;
-  } catch (err) {
-    return false;
-  }
-};
-
 const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose, onEnable }) => {
   const { dashboardConfig } = useAppContext();
   const { enablement } = dashboardConfig.spec.dashboardConfig;
-  const [{ isInstalled, canInstall, error }, loaded] = useIntegratedAppStatus(selectedApp);
-  const [isActuallyEnabled, setIsActuallyEnabled] = React.useState(false);
   const { isAdmin } = useUser();
-
-  const dispatch = useAppDispatch();
-  const hasNotifiedRef = React.useRef(false);
-
-  React.useEffect(() => {
-    if (selectedApp?.metadata.name !== 'nvidia-nim' || isActuallyEnabled) {
-      return;
-    }
-
-    const checkEnabled = async () => {
-      const enabled = await fetchNimIntegrationStatus();
-      if (enabled) {
-        setIsActuallyEnabled(true);
-        clearInterval(interval);
-
-        if (!hasNotifiedRef.current) {
-          dispatch(
-            addNotification({
-              status: AlertVariant.success,
-              title: `${selectedApp.spec.displayName} has been added to the Enabled page.`,
-              timestamp: new Date(),
-            }),
-          );
-          hasNotifiedRef.current = true;
-        }
-      }
-    };
-
-    checkEnabled();
-    const interval = setInterval(checkEnabled, 2000);
-    return () => clearInterval(interval);
-  }, [selectedApp?.metadata.name, isActuallyEnabled, dispatch, selectedApp?.spec.displayName]);
+  const [{ isInstalled, canInstall, isEnabled }, loaded] = useIntegratedAppStatus(selectedApp);
 
   if (!selectedApp) {
     return null;
   }
 
   const renderEnableButton = () => {
-    const isNim = selectedApp.metadata.name === 'nvidia-nim';
     const shouldHide =
       !selectedApp.spec.enable ||
       selectedApp.spec.isEnabled ||
       isInstalled ||
-      isActuallyEnabled ||
-      (isNim && !isAdmin);
+      isEnabled ||
+      (!isAdmin && selectedApp.metadata.name === 'nvidia-nim');
 
     if (shouldHide) {
       return null;
@@ -109,7 +62,7 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
         variant={ButtonVariant.secondary}
         onClick={onEnable}
         isDisabled={!enablement || !canInstall}
-        isLoading={!loaded && !error}
+        isLoading={!loaded}
       >
         Enable
       </Button>
@@ -175,7 +128,7 @@ const GetStartedPanel: React.FC<GetStartedPanelProps> = ({ selectedApp, onClose,
       <DrawerPanelBody style={{ paddingTop: 0 }}>
         {selectedApp.spec.beta && (
           <Alert
-            variantLabel="error"
+            variantLabel="info"
             variant="info"
             title={
               selectedApp.spec.betaTitle || `${selectedApp.spec.displayName} is currently in beta.`

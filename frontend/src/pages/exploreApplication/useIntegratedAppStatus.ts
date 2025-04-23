@@ -9,8 +9,8 @@ export const useIntegratedAppStatus = (app?: OdhApplication): FetchState<Integra
     if (!app) {
       return Promise.reject(new NotReadyError('Need an app to check'));
     }
+
     if (!isIntegrationApp(app)) {
-      // Silently ignore apps who aren't an integration app -- the logic is not needed
       return Promise.resolve({
         isInstalled: false,
         isEnabled: false,
