@@ -1,6 +1,17 @@
 import * as React from 'react';
-import { GalleryItem, Grid, GridItem, PageSection, Stack, StackItem } from '@patternfly/react-core';
+import {
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
+  GalleryItem,
+  Grid,
+  GridItem,
+  PageSection,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import useDimensions from 'react-cool-dimensions';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { conditionalArea, SupportedArea } from '~/concepts/areas';
 import EvenlySpacedGallery from '~/components/EvenlySpacedGallery';
 import ModelCatalogSectionHeader from '~/pages/home/modelCatalog/ModelCatalogSectionHeader';
@@ -9,7 +20,7 @@ import { useBrowserStorage } from '~/components/browserStorage';
 import ProjectsLoading from '~/pages/home/projects/ProjectsLoading';
 import { CatalogModel, ModelCatalogSource } from '~/concepts/modelCatalog/types';
 import ModelCatalogSectionFooter from '~/pages/home/modelCatalog/ModelCatalogSectionFooter';
-import { MAX_SHOWN_MODELS, MIN_CARD_WIDTH } from '~/concepts/modelCatalog/const';
+import { FEATURED_LABEL, MAX_SHOWN_MODELS, MIN_CARD_WIDTH } from '~/concepts/modelCatalog/const';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import { useModelCatalogSources } from '~/concepts/modelCatalog/useModelCatalogSources';
 import { ModelCatalogCard } from '~/concepts/modelCatalog/content/ModelCatalogCard';
@@ -19,16 +30,18 @@ const ModelCatalogSection: React.FC = conditionalArea(
   false,
 )(() => {
   const modelCatalogSources = useMakeFetchObject(useModelCatalogSources());
-  const { data, loaded } = modelCatalogSources;
+  const { data, loaded, error } = modelCatalogSources;
 
-  const models = data.flatMap((sourceModels: ModelCatalogSource) =>
-    sourceModels.models.map((vals: CatalogModel) => ({ source: sourceModels.source, ...vals })),
-  );
+  const models = data
+    .flatMap((sourceModels: ModelCatalogSource) =>
+      sourceModels.models.map((vals: CatalogModel) => ({ source: sourceModels.source, ...vals })),
+    )
+    .filter((model) => model.labels && model.labels.find((l) => l === FEATURED_LABEL));
 
   const [visibleCardCount, setVisibleCardCount] = React.useState<number>(MAX_SHOWN_MODELS);
   const numCards = Math.min(models.length, visibleCardCount);
 
-  const shownModels = loaded ? models.slice(0, visibleCardCount) : [];
+  const shownModels = models.length ? models.slice(0, visibleCardCount) : [];
 
   const [hintHidden, setHintHidden] = useBrowserStorage<boolean>(
     'odh.dashboard.homepage.model.catalog.hint',
@@ -45,8 +58,22 @@ const ModelCatalogSection: React.FC = conditionalArea(
     },
   });
 
+  if (error) {
+    return (
+      <EmptyState
+        headingLevel="h3"
+        icon={ExclamationCircleIcon}
+        titleText="Error loading model catalog"
+        variant={EmptyStateVariant.lg}
+        data-testid="error-loading"
+      >
+        <EmptyStateBody data-testid="error-loading-message">{error.message}</EmptyStateBody>
+      </EmptyState>
+    );
+  }
+
   if (!loaded) {
-    return <ProjectsLoading data-testid="model-catalog-loading" />;
+    return <ProjectsLoading />;
   }
 
   if (models.length === 0) {
@@ -75,15 +102,14 @@ const ModelCatalogSection: React.FC = conditionalArea(
                 sm={hintHidden ? 12 : 6}
                 span={12}
               >
-                <EvenlySpacedGallery hasGutter itemCount={numCards}>
+                <EvenlySpacedGallery
+                  hasGutter
+                  itemCount={numCards}
+                  data-testid="model-catalog-card-gallery"
+                >
                   {shownModels.map((model, index) => (
                     <GalleryItem key={`${model.source}-${index}`}>
-                      <ModelCatalogCard
-                        model={model}
-                        source={model.source}
-                        truncate
-                        data-testid="model-catalog-card"
-                      />
+                      <ModelCatalogCard model={model} source={model.source} truncate />
                     </GalleryItem>
                   ))}
                 </EvenlySpacedGallery>
