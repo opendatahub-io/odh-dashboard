@@ -17,7 +17,7 @@ describe('convertInputType', () => {
       expect(convertInputType('-123')).toBe(-123);
       expect(convertInputType('0')).toBe(0);
     });
-    it('should handle number mixed with string input', () => {
+    it('should handle number input directly', () => {
       expect(convertInputType(123)).toBe(123);
       expect(convertInputType(-123)).toBe(-123);
       expect(convertInputType(1.23)).toBe(1.23);
