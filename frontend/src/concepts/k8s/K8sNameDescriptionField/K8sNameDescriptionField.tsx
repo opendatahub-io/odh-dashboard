@@ -54,7 +54,7 @@ type K8sNameDescriptionFieldProps = {
 // using enum to make the type; cannot use enum directly
 type Validate = `${ValidatedOptions}`;
 type NameError = 'tooShort' | 'tooLong' | 'none';
-const tooLongErrorText = `Must be ${K8S_MAX_LENGTH.toLocaleString()} characters or less.`
+const tooLongErrorText = `Must be ${K8S_MAX_LENGTH.toLocaleString()} characters or less.`;
 /**
  * Use in place of any K8s Resource creation / edit.
  *
