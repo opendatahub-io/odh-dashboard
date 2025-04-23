@@ -44,8 +44,6 @@ export const resourceTypeLimits: Record<LimitNameResourceType, number> = {
   [LimitNameResourceType.PVC]: MAX_PVC_NAME_LENGTH,
 };
 
-// let's try a shorter one.....
-// export const K8S_MAX_LENGTH = 25000; // 25Kb or so
 export const K8S_MAX_LENGTH = 262000; // almost 256Kb
 
 export const isK8sNameDescriptionType = (
