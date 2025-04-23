@@ -82,7 +82,7 @@ const App: React.FC = () => {
 
     // Default error handling for other cases
     return (
-      <Page className="pf-m-no-sidebar">
+      <Page sidebar={null}>
         <PageSection hasBodyWrapper={false}>
           <Stack hasGutter>
             <StackItem>
@@ -127,7 +127,7 @@ const App: React.FC = () => {
               masthead={
                 <Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />
               }
-              sidebar={isAllowed ? <NavSidebar /> : null}
+              sidebar={isAllowed ? <NavSidebar /> : undefined}
               notificationDrawer={
                 <AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />
               }
