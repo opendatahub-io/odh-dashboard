@@ -271,9 +271,16 @@ export const createBiasSelectOption = (biasMetricConfig: BiasMetricConfig): Bias
     compareTo: byId(id),
   };
 };
-export const convertInputType = (input: string): number | boolean | string => {
-  if (input !== '' && !Number.isNaN(Number(input))) {
-    return Number(input);
+export const convertInputType = (input: string | number | boolean): string | number | boolean => {
+  if (typeof input !== 'string') {
+    return input;
+  }
+  if (input === '') {
+    return input;
+  }
+  const numberValue = Number(input);
+  if (!Number.isNaN(numberValue)) {
+    return numberValue;
   }
   if (input.toLowerCase() === 'true') {
     return true;
