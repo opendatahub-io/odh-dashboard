@@ -1,7 +1,10 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import useNotification from '~/utilities/useNotification';
-import { NotificationWatcherContext } from '~/concepts/notificationWatcher/NotificationWatcherContext';
+import {
+  NotificationResponseStatus,
+  NotificationWatcherContext,
+} from '~/concepts/notificationWatcher/NotificationWatcherContext';
 import { getInferenceService } from '~/api';
 import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
 import {
@@ -30,7 +33,7 @@ export const useModelDeploymentNotification = (
         // Early failure detection from pod scheduling
         if (modelStatus?.failedToSchedule) {
           return {
-            status: 'error',
+            status: NotificationResponseStatus.ERROR,
             title: 'Model deployment failed',
             message:
               'Insufficient resources to schedule the model deployment. Please check your resource quotas and try again.',
@@ -62,24 +65,23 @@ export const useModelDeploymentNotification = (
                   },
                 ],
               );
-              return { status: 'stop' };
+              return { status: NotificationResponseStatus.STOP };
             case InferenceServiceModelState.LOADED:
             case InferenceServiceModelState.STANDBY:
-              return { status: 'stop' };
+              return { status: NotificationResponseStatus.STOP };
             case InferenceServiceModelState.PENDING:
             case InferenceServiceModelState.LOADING:
             case InferenceServiceModelState.UNKNOWN:
             default:
-              return { status: 'repoll' };
+              return { status: NotificationResponseStatus.REPOLL };
           }
         } catch (error: unknown) {
-          // Let the user know if there's an error but continue polling for model state updates
           notification.error(
             'Error checking model deployment',
             error instanceof Error ? error.message : 'Unknown error',
           );
           return {
-            status: 'repoll',
+            status: NotificationResponseStatus.STOP,
           };
         }
       },
