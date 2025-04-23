@@ -226,7 +226,11 @@ describe('ClusterStorage', () => {
 
     cy.interceptK8sList(PVCModel, mockK8sResourceList([mockPVCK8sResource({})]));
 
-    addClusterStorageModal.findSubmitButton().click();
+    // verify text here:
+    const submitBtn = addClusterStorageModal.findSubmitButton();
+    submitBtn.should('contain.text', 'Add storage');
+    submitBtn.click();
+//     addClusterStorageModal.findSubmitButton().click();
     cy.wait('@addClusterStorage').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
       expect(interception.request.body).to.eql([
@@ -299,7 +303,10 @@ describe('ClusterStorage', () => {
 
     cy.interceptK8s('PATCH', NotebookModel, anotherNotebook).as('updateClusterStorage');
 
-    updateClusterStorageModal.findSubmitButton().click();
+    const submitBtn = updateClusterStorageModal.findSubmitButton();
+    submitBtn.should('contain.text', 'Update storage');
+    submitBtn.click();
+    
     cy.wait('@updateClusterStorage').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
       expect(interception.request.body).to.eql([
