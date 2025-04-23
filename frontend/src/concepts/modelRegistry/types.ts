@@ -110,15 +110,11 @@ export type ModelArtifact = ModelRegistryBase & {
   serviceAccountName?: string;
   modelLocationType?: ModelLocationType;
   artifactType: string;
-  modelSourceGroup?: string;
-  modelSourceId?: string;
-  modelSourceName?: string;
-  modelSourceKind?: string;
+  modelSourceKind?: ModelSourceKind;
   modelSourceClass?: string;
-  catalogSourceName?: string;
-  catalogRepositoryName?: string;
-  catalogModelName?: string;
-  catalogModelTag?: string;
+  modelSourceGroup?: string;
+  modelSourceName?: string;
+  modelSourceId?: string;
   customProperties?: ModelRegistryCustomProperties;
 };
 
