@@ -123,7 +123,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
           <TextInput
             id="privileged-value"
             data-testid="privileged-value"
-            value={configuration.privilegedAttribute}
+            value={String(configuration.privilegedAttribute)}
             onChange={(e, value) => setConfiguration('privilegedAttribute', value)}
           />
         </FormGroup>
@@ -137,7 +137,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
           <TextInput
             id="unprivileged-value"
             data-testid="unprivileged-value"
-            value={configuration.unprivilegedAttribute}
+            value={String(configuration.unprivilegedAttribute)}
             onChange={(e, value) => setConfiguration('unprivilegedAttribute', value)}
           />
         </FormGroup>
@@ -165,7 +165,7 @@ const ManageBiasConfigurationModal: React.FC<ManageBiasConfigurationModalProps> 
           <TextInput
             id="output-value"
             data-testid="output-value"
-            value={configuration.favorableOutcome}
+            value={String(configuration.favorableOutcome)}
             onChange={(e, value) => setConfiguration('favorableOutcome', value)}
           />
         </FormGroup>
