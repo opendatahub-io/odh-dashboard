@@ -105,7 +105,9 @@ describe('Application', () => {
   it('should show the about modal for RHOAI application', () => {
     // Validate RHOAI about settings
     const mockConfig = mockDashboardConfig({});
-    mockConfig.metadata!.namespace = 'redhat-ods-applications';
+    if (mockConfig.metadata) {
+      mockConfig.metadata.namespace = 'redhat-ods-applications';
+    }
     cy.interceptOdh('GET /api/config', mockConfig);
     cy.interceptOdh('GET /api/operator-subscription-status', {
       channel: 'fast',
