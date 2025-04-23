@@ -32,20 +32,17 @@ export const useModelDeploymentNotification = (
       callback: async (signal) => {
         // Early failure detection from pod scheduling
         if (modelStatus?.failedToSchedule) {
-          return {
-            status: NotificationResponseStatus.ERROR,
-            title: 'Model deployment failed',
-            message:
-              'Insufficient resources to schedule the model deployment. Please check your resource quotas and try again.',
-            actions: [
+          notification.error(
+            'Model deployment failed',
+            'Insufficient resources to schedule the model deployment. Please check your resource quotas and try again.',
+            [
               {
                 title: 'View deployment',
-                onClick: () => {
-                  navigate(`/modelServing/${namespace}`);
-                },
+                onClick: () => navigate(`/modelServing/${namespace}`),
               },
             ],
-          };
+          );
+          return { status: NotificationResponseStatus.STOP };
         }
 
         try {
