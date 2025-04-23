@@ -9,7 +9,7 @@ export type ModelRegistryContextType = {
 
 type ModelRegistryContextProviderProps = {
   children: React.ReactNode;
-  modelRegistryName: string;
+  modelRegistryName: string | null;
 };
 
 export const ModelRegistryContext = React.createContext<ModelRegistryContextType>({

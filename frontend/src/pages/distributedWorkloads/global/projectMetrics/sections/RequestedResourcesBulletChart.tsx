@@ -104,6 +104,7 @@ export const RequestedResourcesBulletChart: React.FC<RequestedResourcesBulletCha
     <div ref={containerRef} style={{ height: `${chartHeight}px` }}>
       <svg viewBox={`0 0 ${width} ${chartHeight}`} preserveAspectRatio="none" width="100%">
         <ChartBullet
+          constrainToVisibleArea
           standalone={false}
           title={metricLabel}
           subTitle={capitalize(unitLabel)}
@@ -125,11 +126,10 @@ export const RequestedResourcesBulletChart: React.FC<RequestedResourcesBulletCha
           titlePosition="top-left"
           legendPosition="bottom-left"
           legendOrientation="vertical"
-          constrainToVisibleArea
           width={width}
           padding={{
             bottom: 100, // Adjusted to accommodate legend
-            left: 50,
+            left: 100,
             right: 50,
             top: 100, // Adjusted to accommodate labels
           }}
