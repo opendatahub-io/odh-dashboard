@@ -472,6 +472,35 @@ describe('Deploy model version', () => {
     kserveModal.findLocationPathInput().should('have.value', 'demo-models/test-path');
   });
 
+  it('Selects Create Connection in case of no matching URI connections', () => {
+    initIntercepts({});
+    cy.interceptK8sList(
+      SecretModel,
+      mockK8sResourceList([
+        mockCustomSecretK8sResource({
+          namespace: 'kserve-project',
+          name: 'test-secret',
+          annotations: {
+            'opendatahub.io/connection-type': 'uri-v1-1',
+            'openshift.io/display-name': 'Test Secret-1',
+          },
+          data: { URI: 'aHR0cDovL3Rlc3Rz' },
+        }),
+      ]),
+    );
+    cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
+    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 2');
+    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDeployModal.selectProjectByName('KServe project');
+    kserveModal
+      .findConnectionFieldInput('URI')
+      .should('have.value', 'https://demo-models/some-path.zip');
+    kserveModal.selectConnectionType(
+      'OCI compliant registry - v1 Connection type description Category: Database, Testing',
+    );
+    kserveModal.findOCIModelURI().should('have.value', '');
+  });
+
   it('Check whether all data is still persistent, if user changes connection types', () => {
     initIntercepts({});
     cy.interceptK8sList(
