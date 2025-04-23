@@ -6,6 +6,8 @@ import {
   ModelRegistryStringCustomProperties,
   ModelVersion,
   RegisteredModel,
+  ModelArtifact,
+  ModelSourceKind,
 } from '~/concepts/modelRegistry/types';
 import { ServiceKind } from '~/k8sTypes';
 import { KeyValuePair } from '~/types';
@@ -98,29 +100,18 @@ export const getCustomPropString = <
   return '';
 };
 
-export const getCatalogModelDetailsProps = (
-  model: ModelVersion | RegisteredModel,
-): CatalogModelDetailsParams => {
-  // First, check for the new dedicated catalog top-level properties
-  if (model.catalogSourceName && model.catalogModelName) {
+export const getCatalogModelDetailsProps = (artifact: ModelArtifact): CatalogModelDetailsParams => {
+  // Check for modelSource* properties using the new standardized approach
+  if (artifact.modelSourceKind === ModelSourceKind.CATALOG && artifact.modelSourceName) {
     return {
-      sourceName: model.catalogSourceName,
-      repositoryName: model.catalogRepositoryName || '',
-      modelName: model.catalogModelName,
-      tag: model.catalogModelTag || '',
+      sourceName: artifact.modelSourceClass || '',
+      repositoryName: artifact.modelSourceGroup || '',
+      modelName: artifact.modelSourceName,
+      tag: artifact.modelSourceId || '',
     };
   }
 
-  if (model.modelSourceGroup && model.modelSourceName && model.modelSourceId) {
-    // We're assuming the model source details match the expected format
-    return {
-      sourceName: model.modelSourceGroup,
-      repositoryName: '', // No direct mapping for repository
-      modelName: model.modelSourceName,
-      tag: model.modelSourceId,
-    };
-  }
-  // Return empty values if neither catalog nor pipeline sources are available
+  // Return empty values if no valid catalog information is available
   return {
     sourceName: '',
     repositoryName: '',
@@ -145,18 +136,12 @@ export const filterModelVersions = (
       case SearchType.KEYWORD:
         return (
           mv.name.toLowerCase().includes(searchLower) ||
-          (mv.description && mv.description.toLowerCase().includes(searchLower)) ||
-          (mv.customProperties &&
-            getLabels(mv.customProperties).some((label) =>
-              label.toLowerCase().includes(searchLower),
-            )) ||
-          (mv.modelSourceName && mv.modelSourceName.toLowerCase().includes(searchLower)) ||
-          (mv.modelSourceId && mv.modelSourceId.toLowerCase().includes(searchLower)) ||
-          (mv.modelSourceGroup && mv.modelSourceGroup.toLowerCase().includes(searchLower))
+          mv.description?.toLowerCase().includes(searchLower) ||
+          getLabels(mv.customProperties).some((label) => label.toLowerCase().includes(searchLower))
         );
 
       case SearchType.AUTHOR: {
-        return mv.author && mv.author.toLowerCase().includes(searchLower);
+        return mv.author?.toLowerCase().includes(searchLower) || false;
       }
 
       default:
@@ -190,32 +175,22 @@ export const filterRegisteredModels = (
       case SearchType.KEYWORD: {
         const matchesModel =
           rm.name.toLowerCase().includes(searchLower) ||
-          (rm.description && rm.description.toLowerCase().includes(searchLower)) ||
-          (rm.customProperties &&
-            getLabels(rm.customProperties).some((label) =>
-              label.toLowerCase().includes(searchLower),
-            )) ||
-          (rm.modelSourceName && rm.modelSourceName.toLowerCase().includes(searchLower)) ||
-          (rm.modelSourceId && rm.modelSourceId.toLowerCase().includes(searchLower)) ||
-          (rm.modelSourceGroup && rm.modelSourceGroup.toLowerCase().includes(searchLower));
+          rm.description?.toLowerCase().includes(searchLower) ||
+          getLabels(rm.customProperties).some((label) => label.toLowerCase().includes(searchLower));
 
         const matchesVersion = modelVersions.some(
           (mv: ModelVersion) =>
             mv.name.toLowerCase().includes(searchLower) ||
-            (mv.description && mv.description.toLowerCase().includes(searchLower)) ||
-            (mv.customProperties &&
-              getLabels(mv.customProperties).some((label) =>
-                label.toLowerCase().includes(searchLower),
-              )) ||
-            (mv.modelSourceName && mv.modelSourceName.toLowerCase().includes(searchLower)) ||
-            (mv.modelSourceId && mv.modelSourceId.toLowerCase().includes(searchLower)) ||
-            (mv.modelSourceGroup && mv.modelSourceGroup.toLowerCase().includes(searchLower)),
+            mv.description?.toLowerCase().includes(searchLower) ||
+            getLabels(mv.customProperties).some((label) =>
+              label.toLowerCase().includes(searchLower),
+            ),
         );
 
         return matchesModel || matchesVersion;
       }
       case SearchType.OWNER: {
-        return rm.owner && rm.owner.toLowerCase().includes(searchLower);
+        return rm.owner?.toLowerCase().includes(searchLower) || false;
       }
 
       default:

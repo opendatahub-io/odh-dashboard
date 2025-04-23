@@ -11,9 +11,6 @@ type MockRegisteredModelType = {
   state?: ModelState;
   description?: string;
   customProperties?: ModelRegistryCustomProperties;
-  modelSourceGroup?: string;
-  modelSourceId?: string;
-  modelSourceName?: string;
 };
 
 export const mockRegisteredModel = ({
@@ -23,9 +20,6 @@ export const mockRegisteredModel = ({
   description = '',
   customProperties = {},
   id = '1',
-  modelSourceGroup = '',
-  modelSourceId = '',
-  modelSourceName = '',
 }: MockRegisteredModelType): RegisteredModel => ({
   createTimeSinceEpoch: '1710404288975',
   description,
@@ -36,7 +30,4 @@ export const mockRegisteredModel = ({
   state,
   owner,
   customProperties,
-  modelSourceGroup,
-  modelSourceId,
-  modelSourceName,
 });

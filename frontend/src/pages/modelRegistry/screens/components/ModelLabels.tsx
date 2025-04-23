@@ -17,7 +17,7 @@ const ModelLabels: React.FC<ModelLabelsProps> = ({ name, customProperties }) => 
   const [isLabelModalOpen, setIsLabelModalOpen] = React.useState(false);
   const [searchValue, setSearchValue] = React.useState('');
 
-  const allLabels = getLabels(customProperties || {});
+  const allLabels = getLabels(customProperties);
   const filteredLabels = allLabels.filter(
     (label) => label && label.toLowerCase().includes(searchValue.toLowerCase()),
   );
@@ -102,7 +102,7 @@ const ModelLabels: React.FC<ModelLabelsProps> = ({ name, customProperties }) => 
     </Modal>
   ) : null;
 
-  if (Object.keys(customProperties || {}).length === 0) {
+  if (Object.keys(customProperties).length === 0) {
     return '-';
   }
 

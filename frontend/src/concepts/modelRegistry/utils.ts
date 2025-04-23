@@ -7,7 +7,8 @@ import {
   getModelServingConnectionTypeName,
   ModelServingCompatibleTypes,
 } from '~/concepts/connectionTypes/utils';
-import { ModelVersion, ModelState, RegisteredModel } from './types';
+import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
+import { ModelVersion, ModelState, RegisteredModel, ModelSourceKind } from './types';
 
 export type ObjectStorageFields = {
   endpoint: string;
@@ -113,3 +114,80 @@ export const filterArchiveModels = (registeredModels: RegisteredModel[]): Regist
 
 export const filterLiveModels = (registeredModels: RegisteredModel[]): RegisteredModel[] =>
   registeredModels.filter((rm) => rm.state === ModelState.LIVE);
+
+/**
+ * Converts model source properties to catalog parameters
+ * @param modelSourceKind - The kind of model source
+ * @param modelSourceClass - The class of model source (maps to catalog source name)
+ * @param modelSourceGroup - The group of model source (maps to catalog repository name)
+ * @param modelSourceName - The name of model source (maps to catalog model name)
+ * @param modelSourceId - The ID of model source (maps to catalog model tag)
+ * @returns CatalogModelDetailsParams object or null if not a catalog source
+ */
+export const modelSourcePropertiesToCatalogParams = (
+  modelSourceKind?: string,
+  modelSourceClass?: string,
+  modelSourceGroup?: string,
+  modelSourceName?: string,
+  modelSourceId?: string,
+): CatalogModelDetailsParams | null => {
+  if (modelSourceKind !== ModelSourceKind.CATALOG) {
+    return null;
+  }
+
+  return {
+    sourceName: modelSourceClass || '',
+    repositoryName: modelSourceGroup || 'default',
+    modelName: modelSourceName || '',
+    tag: modelSourceId || '',
+  };
+};
+
+/**
+ * Converts catalog parameters to model source properties
+ * @param params - The catalog model details parameters
+ * @returns Object containing model source properties
+ */
+export const catalogParamsToModelSourceProperties = (
+  params: CatalogModelDetailsParams,
+): {
+  modelSourceKind: ModelSourceKind;
+  modelSourceClass?: string;
+  modelSourceGroup?: string;
+  modelSourceName?: string;
+  modelSourceId?: string;
+} => ({
+  modelSourceKind: ModelSourceKind.CATALOG,
+  modelSourceClass: params.sourceName,
+  modelSourceGroup: params.repositoryName,
+  modelSourceName: params.modelName,
+  modelSourceId: params.tag,
+});
+
+/**
+ * Converts model source properties to pipeline run reference
+ * @param modelSourceKind - The kind of model source
+ * @param modelSourceGroup - The group of model source (project name)
+ * @param modelSourceId - The ID of model source (run ID)
+ * @param modelSourceName - The name of model source (run name)
+ * @returns PipelineRunRef object or null if not a DSP source
+ */
+export const modelSourcePropertiesToPipelineRunRef = (
+  modelSourceKind?: string,
+  modelSourceGroup?: string,
+  modelSourceId?: string,
+  modelSourceName?: string,
+): { project: string; runId: string; runName: string } | null => {
+  if (modelSourceKind !== ModelSourceKind.DSP) {
+    // For backward compatibility, also check if the fields exist without explicit DSP kind
+    if (!modelSourceGroup || !modelSourceId || !modelSourceName) {
+      return null;
+    }
+  }
+
+  return {
+    project: modelSourceGroup || '',
+    runId: modelSourceId || '',
+    runName: modelSourceName || '',
+  };
+};

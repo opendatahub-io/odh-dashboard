@@ -1,5 +1,4 @@
 import {
-  ModelRegistryMetadataType,
   ModelState,
   ModelArtifactState,
   ModelArtifact,
@@ -81,65 +80,6 @@ export const registerVersion = async (
   let modelArtifact;
   const errors: { [key: string]: Error | undefined } = {};
 
-  const versionCustomProperties = { ...(formData.versionCustomProperties || {}) };
-
-  if (formData.modelSourceGroup) {
-    versionCustomProperties.modelSourceGroup = {
-      metadataType: ModelRegistryMetadataType.STRING,
-      // eslint-disable-next-line camelcase
-      string_value: formData.modelSourceGroup,
-    };
-  }
-
-  if (formData.modelSourceId) {
-    versionCustomProperties.modelSourceId = {
-      metadataType: ModelRegistryMetadataType.STRING,
-      // eslint-disable-next-line camelcase
-      string_value: formData.modelSourceId,
-    };
-  }
-
-  if (formData.modelSourceName) {
-    versionCustomProperties.modelSourceName = {
-      metadataType: ModelRegistryMetadataType.STRING,
-      // eslint-disable-next-line camelcase
-      string_value: formData.modelSourceName,
-    };
-  }
-
-  // For backward compatibility, set catalog custom properties if catalog properties exist
-  if (formData.catalogSourceName) {
-    versionCustomProperties._registeredFromCatalogSourceName = {
-      metadataType: ModelRegistryMetadataType.STRING,
-      // eslint-disable-next-line camelcase
-      string_value: formData.catalogSourceName,
-    };
-  }
-
-  if (formData.catalogRepositoryName) {
-    versionCustomProperties._registeredFromCatalogRepositoryName = {
-      metadataType: ModelRegistryMetadataType.STRING,
-      // eslint-disable-next-line camelcase
-      string_value: formData.catalogRepositoryName,
-    };
-  }
-
-  if (formData.catalogModelName) {
-    versionCustomProperties._registeredFromCatalogModelName = {
-      metadataType: ModelRegistryMetadataType.STRING,
-      // eslint-disable-next-line camelcase
-      string_value: formData.catalogModelName,
-    };
-  }
-
-  if (formData.catalogModelTag) {
-    versionCustomProperties._registeredFromCatalogTag = {
-      metadataType: ModelRegistryMetadataType.STRING,
-      // eslint-disable-next-line camelcase
-      string_value: formData.catalogModelTag,
-    };
-  }
-
   try {
     modelVersion = await apiState.api.createModelVersionForRegisteredModel(
       {},
@@ -147,7 +87,7 @@ export const registerVersion = async (
       {
         name: formData.versionName,
         description: formData.versionDescription,
-        customProperties: versionCustomProperties,
+        customProperties: formData.versionCustomProperties || {},
         state: ModelState.LIVE,
         author,
         registeredModelId: registeredModel.id,
@@ -165,81 +105,20 @@ export const registerVersion = async (
   try {
     const artifactCustomProperties: ModelRegistryCustomProperties = {};
 
-    // For backward compatibility, set pipeline custom properties
-    if (formData.modelSourceGroup) {
-      artifactCustomProperties.modelSourceGroup = {
-        metadataType: ModelRegistryMetadataType.STRING,
-        // eslint-disable-next-line camelcase
-        string_value: formData.modelSourceGroup,
-      };
-    }
-
-    if (formData.modelSourceId) {
-      artifactCustomProperties.modelSourceId = {
-        metadataType: ModelRegistryMetadataType.STRING,
-        // eslint-disable-next-line camelcase
-        string_value: formData.modelSourceId,
-      };
-    }
-
-    if (formData.modelSourceName) {
-      artifactCustomProperties.modelSourceName = {
-        metadataType: ModelRegistryMetadataType.STRING,
-        // eslint-disable-next-line camelcase
-        string_value: formData.modelSourceName,
-      };
-    }
-
-    // For backward compatibility, set catalog custom properties
-    if (formData.catalogSourceName) {
-      artifactCustomProperties._registeredFromCatalogSourceName = {
-        metadataType: ModelRegistryMetadataType.STRING,
-        // eslint-disable-next-line camelcase
-        string_value: formData.catalogSourceName,
-      };
-    }
-
-    if (formData.catalogRepositoryName) {
-      artifactCustomProperties._registeredFromCatalogRepositoryName = {
-        metadataType: ModelRegistryMetadataType.STRING,
-        // eslint-disable-next-line camelcase
-        string_value: formData.catalogRepositoryName,
-      };
-    }
-
-    if (formData.catalogModelName) {
-      artifactCustomProperties._registeredFromCatalogModelName = {
-        metadataType: ModelRegistryMetadataType.STRING,
-        // eslint-disable-next-line camelcase
-        string_value: formData.catalogModelName,
-      };
-    }
-
-    if (formData.catalogModelTag) {
-      artifactCustomProperties._registeredFromCatalogTag = {
-        metadataType: ModelRegistryMetadataType.STRING,
-        // eslint-disable-next-line camelcase
-        string_value: formData.catalogModelTag,
-      };
-    }
-
     const artifactData: CreateModelArtifactData = {
       name: `${formData.versionName}`,
-      description: formData.versionDescription || '',
+      description: formData.versionDescription,
       customProperties: artifactCustomProperties,
       state: ModelArtifactState.LIVE,
       author,
       modelFormatName: formData.sourceModelFormat,
       modelFormatVersion: formData.sourceModelFormatVersion,
-      // Set top-level pipeline source properties
-      modelSourceGroup: formData.modelSourceGroup,
-      modelSourceId: formData.modelSourceId,
-      modelSourceName: formData.modelSourceName,
-      // Set top-level catalog properties
-      catalogSourceName: formData.catalogSourceName,
-      catalogRepositoryName: formData.catalogRepositoryName,
-      catalogModelName: formData.catalogModelName,
-      catalogModelTag: formData.catalogModelTag,
+      // TODO fill in the name of the data connection we used to prefill if we used one
+      // TODO this should be done as part of https://issues.redhat.com/browse/RHOAIENG-9914
+      // TODO should be fixed via https://issues.redhat.com/browse/RHOAIENG-19921
+      // storageKey: 'TODO',
+      // Include additional artifact properties (source info)
+      ...(formData.additionalArtifactProperties || {}),
       uri:
         formData.modelLocationType === ModelLocationType.ObjectStorage
           ? objectStorageFieldsToUri({
@@ -247,7 +126,7 @@ export const registerVersion = async (
               bucket: formData.modelLocationBucket,
               region: formData.modelLocationRegion,
               path: formData.modelLocationPath,
-            }) || ''
+            }) || '' // We'll only hit this case if required fields are empty strings, so form validation should catch it.
           : formData.modelLocationURI,
       artifactType: 'model-artifact',
     };

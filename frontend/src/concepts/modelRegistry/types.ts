@@ -11,6 +11,11 @@ export enum InferenceServiceState {
   UNDEPLOYED = 'UNDEPLOYED',
 }
 
+export enum ModelSourceKind {
+  CATALOG = 'catalog',
+  DSP = 'dsp',
+}
+
 export enum ExecutionState {
   UNKNOWN = 'UNKNOWN',
   NEW = 'NEW',
@@ -89,13 +94,9 @@ export type ModelRegistryBase = {
   description?: string;
   createTimeSinceEpoch: string;
   lastUpdateTimeSinceEpoch: string;
-  customProperties?: ModelRegistryCustomProperties;
+  customProperties: ModelRegistryCustomProperties;
   modelSourceKind?: string;
   modelSourceClass?: string;
-  catalogSourceName?: string;
-  catalogRepositoryName?: string;
-  catalogModelName?: string;
-  catalogModelTag?: string;
 };
 
 export type ModelArtifact = ModelRegistryBase & {
@@ -126,29 +127,11 @@ export type ModelVersion = ModelRegistryBase & {
   author?: string;
   registeredModelId: string;
   labels?: string[];
-  modelSourceGroup?: string;
-  modelSourceId?: string;
-  modelSourceName?: string;
-  catalogSourceName?: string;
-  catalogRepositoryName?: string;
-  catalogModelName?: string;
-  catalogModelTag?: string;
-  modelSourceKind?: string;
-  modelSourceClass?: string;
 };
 
 export type RegisteredModel = ModelRegistryBase & {
   state?: ModelState;
   owner?: string;
-  modelSourceGroup?: string;
-  modelSourceId?: string;
-  modelSourceName?: string;
-  modelSourceKind?: string;
-  modelSourceClass?: string;
-  catalogSourceName?: string;
-  catalogRepositoryName?: string;
-  catalogModelName?: string;
-  catalogModelTag?: string;
 };
 
 export type InferenceService = ModelRegistryBase & {
@@ -184,9 +167,7 @@ export type CreateModelVersionData = Omit<
 export type CreateModelArtifactData = Omit<
   ModelArtifact,
   'lastUpdateTimeSinceEpoch' | 'createTimeSinceEpoch' | 'id'
-> & {
-  customProperties?: ModelRegistryCustomProperties;
-};
+>;
 
 export type ModelRegistryListParams = {
   size: number;

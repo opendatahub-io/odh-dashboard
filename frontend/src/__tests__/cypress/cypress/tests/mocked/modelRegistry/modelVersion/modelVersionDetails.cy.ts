@@ -25,7 +25,11 @@ import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import { modelVersionDetails } from '~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDetails';
 import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
 import { modelServingGlobal } from '~/__tests__/cypress/cypress/pages/modelServing';
-import { ModelRegistryMetadataType, ModelState } from '~/concepts/modelRegistry/types';
+import {
+  ModelRegistryMetadataType,
+  ModelSourceKind,
+  ModelState,
+} from '~/concepts/modelRegistry/types';
 import { KnownLabels } from '~/k8sTypes';
 import { asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 
@@ -33,13 +37,11 @@ const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 const mockModelVersions = mockModelVersion({
   id: '1',
   name: 'Version 1',
-  modelSourceGroup: 'test-project',
-  modelSourceId: 'pipelinerun1',
-  modelSourceName: 'pipeline-run-test',
-  catalogSourceName: 'test-catalog-source',
-  catalogRepositoryName: 'test-catalog-repo',
-  catalogModelName: 'test-catalog-model',
-  catalogModelTag: 'test-catalog-tag',
+  modelSourceKind: ModelSourceKind.CATALOG,
+  modelSourceClass: 'test-catalog-source',
+  modelSourceGroup: 'test-catalog-repo',
+  modelSourceName: 'test-catalog-model',
+  modelSourceId: 'test-catalog-tag',
   customProperties: {
     a1: {
       metadataType: ModelRegistryMetadataType.STRING,
@@ -118,22 +120,6 @@ const mockModelVersions = mockModelVersion({
       metadataType: ModelRegistryMetadataType.STRING,
       string_value: 'pipeline-run-test',
     },
-    _registeredFromCatalogSourceName: {
-      metadataType: ModelRegistryMetadataType.STRING,
-      string_value: 'test-catalog-source',
-    },
-    _registeredFromCatalogRepositoryName: {
-      metadataType: ModelRegistryMetadataType.STRING,
-      string_value: 'test-catalog-repo',
-    },
-    _registeredFromCatalogModelName: {
-      metadataType: ModelRegistryMetadataType.STRING,
-      string_value: 'test-catalog-model',
-    },
-    _registeredFromCatalogTag: {
-      metadataType: ModelRegistryMetadataType.STRING,
-      string_value: 'test-catalog-tag',
-    },
   },
 });
 
@@ -210,6 +196,7 @@ const initIntercepts = (isEmptyProject = false) => {
           name: 'Version 1',
           author: 'Author 1',
           registeredModelId: '1',
+          modelSourceKind: ModelSourceKind.DSP,
           modelSourceGroup: 'test-project',
           modelSourceId: 'pipelinerun1',
           modelSourceName: 'pipeline-run-test',
@@ -368,22 +355,6 @@ describe('Model version details', () => {
               metadataType: 'MetadataStringValue',
               string_value: 'pipeline-run-test',
             },
-            _registeredFromCatalogSourceName: {
-              metadataType: ModelRegistryMetadataType.STRING,
-              string_value: 'test-catalog-source',
-            },
-            _registeredFromCatalogRepositoryName: {
-              metadataType: ModelRegistryMetadataType.STRING,
-              string_value: 'test-catalog-repo',
-            },
-            _registeredFromCatalogModelName: {
-              metadataType: ModelRegistryMetadataType.STRING,
-              string_value: 'test-catalog-model',
-            },
-            _registeredFromCatalogTag: {
-              metadataType: ModelRegistryMetadataType.STRING,
-              string_value: 'test-catalog-tag',
-            },
             edit_key: { string_value: 'edit_value', metadataType: 'MetadataStringValue' },
           },
         });
@@ -426,22 +397,6 @@ describe('Model version details', () => {
             _registeredFromPipelineRunName: {
               metadataType: 'MetadataStringValue',
               string_value: 'pipeline-run-test',
-            },
-            _registeredFromCatalogSourceName: {
-              metadataType: ModelRegistryMetadataType.STRING,
-              string_value: 'test-catalog-source',
-            },
-            _registeredFromCatalogRepositoryName: {
-              metadataType: ModelRegistryMetadataType.STRING,
-              string_value: 'test-catalog-repo',
-            },
-            _registeredFromCatalogModelName: {
-              metadataType: ModelRegistryMetadataType.STRING,
-              string_value: 'test-catalog-model',
-            },
-            _registeredFromCatalogTag: {
-              metadataType: ModelRegistryMetadataType.STRING,
-              string_value: 'test-catalog-tag',
             },
           },
         });

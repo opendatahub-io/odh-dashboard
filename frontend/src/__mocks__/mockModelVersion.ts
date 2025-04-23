@@ -14,13 +14,11 @@ type MockModelVersionType = {
   createTimeSinceEpoch?: string;
   lastUpdateTimeSinceEpoch?: string;
   customProperties?: ModelRegistryCustomProperties;
+  modelSourceKind?: string;
+  modelSourceClass?: string;
   modelSourceGroup?: string;
   modelSourceId?: string;
   modelSourceName?: string;
-  catalogSourceName?: string;
-  catalogRepositoryName?: string;
-  catalogModelName?: string;
-  catalogModelTag?: string;
 };
 
 export const mockModelVersion = ({
@@ -33,28 +31,25 @@ export const mockModelVersion = ({
   description = 'Description of model version',
   createTimeSinceEpoch = '1712234877179',
   lastUpdateTimeSinceEpoch = '1712234877179',
+  modelSourceKind = '',
+  modelSourceClass = '',
   modelSourceGroup = '',
   modelSourceId = '',
   modelSourceName = '',
-  catalogSourceName = '',
-  catalogRepositoryName = '',
-  catalogModelName = '',
-  catalogModelTag = '',
-}: MockModelVersionType): ModelVersion => ({
-  author,
-  createTimeSinceEpoch,
-  customProperties,
-  id,
-  lastUpdateTimeSinceEpoch,
-  name,
-  state,
-  registeredModelId,
-  description,
-  modelSourceGroup,
-  modelSourceId,
-  modelSourceName,
-  catalogSourceName,
-  catalogRepositoryName,
-  catalogModelName,
-  catalogModelTag,
-});
+}: MockModelVersionType): ModelVersion =>
+  ({
+    author,
+    createTimeSinceEpoch,
+    customProperties,
+    id,
+    lastUpdateTimeSinceEpoch,
+    name,
+    state,
+    registeredModelId,
+    description,
+    modelSourceKind,
+    modelSourceClass,
+    modelSourceGroup,
+    modelSourceId,
+    modelSourceName,
+  } as ModelVersion);

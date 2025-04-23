@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import { mockModelVersion } from '~/__mocks__/mockModelVersion';
 import { mockRegisteredModel } from '~/__mocks__/mockRegisteredModel';
+import { mockModelArtifact } from '~/__mocks__/mockModelArtifact';
 import {
   ModelRegistryCustomProperties,
   ModelRegistryStringCustomProperties,
@@ -8,6 +9,7 @@ import {
   RegisteredModel,
   ModelVersion,
   ModelState,
+  ModelSourceKind,
 } from '~/concepts/modelRegistry/types';
 import {
   filterModelVersions,
@@ -192,15 +194,17 @@ describe('getCustomPropString', () => {
 
 describe('getCatalogModelDetailsProps', () => {
   it('should return a CatalogModelDetailsParams object from top-level properties when available', () => {
-    const modelVersion = mockModelVersion({
+    const modelArtifact = mockModelArtifact({
+      modelSourceKind: ModelSourceKind.CATALOG,
+      modelSourceClass: 'sourceClass',
       modelSourceGroup: 'sourceGroup',
       modelSourceName: 'sourceName',
       modelSourceId: 'sourceId',
     });
-    const result = getCatalogModelDetailsProps(modelVersion);
+    const result = getCatalogModelDetailsProps(modelArtifact);
     expect(result).toEqual({
-      sourceName: 'sourceGroup',
-      repositoryName: '',
+      sourceName: 'sourceClass',
+      repositoryName: 'sourceGroup',
       modelName: 'sourceName',
       tag: 'sourceId',
     });

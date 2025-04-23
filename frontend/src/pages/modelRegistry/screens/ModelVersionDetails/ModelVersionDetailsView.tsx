@@ -26,8 +26,7 @@ import {
   bumpRegisteredModelTimestamp,
 } from '~/concepts/modelRegistry/utils/updateTimestamps';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
-import { getCatalogModelDetailsRoute } from '~/routes';
-import ModelVersionPipelineDescription from './ModelVersionPipelineDescription';
+import ModelVersionRegisteredFromLink from './ModelVersionRegisteredFromLink';
 
 type ModelVersionDetailsViewProps = {
   modelVersion: ModelVersion;
@@ -86,29 +85,6 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
     }
   };
 
-  // Extract catalog information from model artifact
-  // Use modelSource fields as fallbacks when explicit catalog fields aren't available
-  const sourceName =
-    (modelArtifact && (modelArtifact.catalogSourceName || modelArtifact.modelSourceGroup)) || '';
-  const repositoryName = (modelArtifact && modelArtifact.catalogRepositoryName) || 'rhelai1'; // Default repository for Red Hat models
-  const modelName =
-    (modelArtifact && (modelArtifact.catalogModelName || modelArtifact.modelSourceName)) || '';
-  const tag =
-    (modelArtifact && (modelArtifact.catalogModelTag || modelArtifact.modelSourceId)) || '';
-
-  // Check if we have enough information to create a catalog URL
-  const hasCatalogInfo = Boolean(modelArtifact && sourceName && modelName && tag);
-
-  // Create the catalog model URL if we have enough information
-  const catalogModelUrl = hasCatalogInfo
-    ? getCatalogModelDetailsRoute({
-        sourceName,
-        repositoryName,
-        modelName,
-        tag,
-      })
-    : '';
-
   return (
     <Flex
       direction={{ default: 'column', md: 'row' }}
@@ -129,16 +105,16 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             }
           />
           <EditableLabelsDescriptionListGroup
-            labels={getLabels(mv.customProperties || {})}
+            labels={getLabels(mv.customProperties)}
             isArchive={isArchiveVersion}
-            allExistingKeys={Object.keys(mv.customProperties || {})}
+            allExistingKeys={Object.keys(mv.customProperties)}
             title="Labels"
             contentWhenEmpty="No labels"
             onLabelsChange={(editedLabels) =>
               handleVersionUpdate(
                 apiState.api.patchModelVersion(
                   {},
-                  { customProperties: mergeUpdatedLabels(mv.customProperties || {}, editedLabels) },
+                  { customProperties: mergeUpdatedLabels(mv.customProperties, editedLabels) },
                   mv.id,
                 ),
               )
@@ -147,7 +123,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
           />
           <ModelPropertiesDescriptionListGroup
             isArchive={isArchiveVersion}
-            customProperties={mv.customProperties || {}}
+            customProperties={mv.customProperties}
             saveEditedCustomProperties={(editedProperties) =>
               apiState.api
                 .patchModelVersion({}, { customProperties: editedProperties }, mv.id)
@@ -165,45 +141,10 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
           >
             <InlineTruncatedClipboardCopy testId="model-version-id" textToCopy={mv.id} />
           </DashboardDescriptionListGroup>
-          {modelArtifact &&
-          (modelArtifact.modelSourceKind === 'dsp' ||
-            (!modelArtifact.modelSourceKind &&
-              modelArtifact.modelSourceId &&
-              modelArtifact.modelSourceName &&
-              modelArtifact.modelSourceGroup)) ? (
+          {modelArtifact && (
             <DashboardDescriptionListGroup title="Registered from">
-              <ModelVersionPipelineDescription
-                sourceInfo={{
-                  project: modelArtifact.modelSourceGroup || '',
-                  runId: modelArtifact.modelSourceId || '',
-                  runName: modelArtifact.modelSourceName || '',
-                }}
-                catalogModelUrl={catalogModelUrl}
-              />
+              <ModelVersionRegisteredFromLink modelArtifact={modelArtifact} />
             </DashboardDescriptionListGroup>
-          ) : (
-            catalogModelUrl && (
-              <DashboardDescriptionListGroup
-                title="Registered from"
-                isEmpty={!modelArtifact || !modelArtifact.id}
-              >
-                <a
-                  href={catalogModelUrl}
-                  data-testid="registered-from-catalog"
-                  style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
-                >
-                  <span style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
-                    {modelArtifact && (
-                      <>
-                        {modelArtifact.catalogModelName || modelArtifact.modelSourceName || ''} (
-                        {modelArtifact.catalogModelTag || modelArtifact.modelSourceId || ''})
-                      </>
-                    )}
-                  </span>
-                </a>{' '}
-                in Model catalog
-              </DashboardDescriptionListGroup>
-            )
           )}
         </DescriptionList>
 
