@@ -38,6 +38,7 @@ export const WorkloadResourceUsageBar: React.FC<WorkloadResourceUsageBarProps> =
       }
     >
       <ProgressBarWithLabels
+        textMinWidth="30px"
         inUseLabel={roundNumber(used)}
         maxValueLabel={roundNumber(requested)}
         value={used}

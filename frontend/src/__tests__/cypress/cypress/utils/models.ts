@@ -1,3 +1,5 @@
+/* eslint-disable no-barrel-files/no-barrel-files */
+
 import { modelServingSection } from '~/__tests__/cypress/cypress/pages/modelServing';
 // Re-exports all api/models to allow tests to reference models.
 

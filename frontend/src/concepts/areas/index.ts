@@ -1,3 +1,5 @@
+/* eslint-disable no-barrel-files/no-barrel-files */
+
 /*
   This section of concepts is intended to be for all things understanding our state with respect to
   areas of the application and the stack components that may relate.

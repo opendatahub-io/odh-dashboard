@@ -61,7 +61,7 @@ class PVCSizeSettings extends ClusterSettings {
 
 class CullterSettings extends ClusterSettings {
   findStopIdleNotebooks() {
-    return cy.findByText('Stop idle notebooks', { exact: true });
+    return cy.findByText('Idle workbench timeout', { exact: true });
   }
 
   findHint() {
