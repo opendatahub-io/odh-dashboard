@@ -138,7 +138,6 @@ const ClusterStorageModal: React.FC<ClusterStorageModalProps> = ({ existingPvc, 
     <BaseStorageModal
       onSubmit={(dataSubmit) => submit(dataSubmit)}
       title={existingPvc ? 'Update cluster storage' : 'Add cluster storage'}
-      submitLabel={existingPvc ? 'Update storage' : 'Add storage'}
       description={
         existingPvc
           ? 'Make changes to cluster storage, or connect it to additional workspaces.'
