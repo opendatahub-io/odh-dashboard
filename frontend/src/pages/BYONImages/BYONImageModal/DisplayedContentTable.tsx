@@ -37,8 +37,8 @@ const DisplayedContentTable: React.FC<DisplayedContentTableProps> = ({
   return (
     <Panel>
       <PanelHeader>
-        Add the {content} labels that will be displayed with this notebook image. Modifying the{' '}
-        {content} here does not effect the contents of the notebook image.
+        Add the {content} labels that will be displayed with this workbench image. Modifying the{' '}
+        {content} here does not affect the contents of the workbench image.
       </PanelHeader>
       <PanelMainBody>
         <Table
