@@ -45,11 +45,20 @@ export const mockNimImages = (): ConfigMapKind =>
     },
   });
 
-export const mockNimInferenceService = (): InferenceServiceKind => {
+type NimInferenceService = {
+  namespace?: string;
+  displayName?: string;
+};
+
+export const mockNimInferenceService = ({
+  displayName = 'Test Name',
+  namespace = 'test-project',
+}: NimInferenceService = {}): InferenceServiceKind => {
   const inferenceService = mockInferenceServiceK8sResource({
     name: 'test-name',
     modelName: 'test-name',
-    displayName: 'Test Name',
+    displayName,
+    namespace,
     kserveInternalLabel: true,
     resources: {
       limits: { cpu: '16', memory: '64Gi' },
@@ -124,10 +133,25 @@ export const mockNvidiaNimImagePullSecret = (): SecretKind => {
   return secret;
 };
 
-export const mockNimProject = (hasAllModels: boolean): ProjectKind => {
+type NimProjectType = {
+  hasAllModels?: boolean;
+  k8sName?: string;
+  displayName?: string;
+  enableNIM?: boolean;
+};
+
+export const mockNimProject = ({
+  hasAllModels,
+  k8sName,
+  displayName,
+  enableNIM,
+}: NimProjectType): ProjectKind => {
   const project = mockProjectK8sResource({
     hasAnnotations: true,
     enableModelMesh: hasAllModels ? undefined : false,
+    k8sName,
+    displayName,
+    enableNIM,
   });
   if (project.metadata.annotations != null) {
     project.metadata.annotations['opendatahub.io/nim-support'] = 'true';
