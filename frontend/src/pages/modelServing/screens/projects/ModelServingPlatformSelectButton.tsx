@@ -47,7 +47,7 @@ const ModelServingPlatformSelectButton: React.FC<ModelServingPlatformSelectButto
       aria-label={isResetAction ? 'Change model serving platform' : undefined}
       icon={isResetAction ? <PencilAltIcon /> : undefined}
       isLoading={isLoading}
-      isDisabled={isDisabled}
+      isAriaDisabled={isDisabled}
       onClick={async () => {
         try {
           setError(undefined);

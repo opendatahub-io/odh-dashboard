@@ -41,6 +41,7 @@ import { NamespaceApplicationCase } from '~/pages/projects/types';
 import { mockNimServingRuntimeTemplate } from '~/__mocks__/mockNimResource';
 import { mockNimAccount } from '~/__mocks__/mockNimAccount';
 import { mockOdhApplication } from '~/__mocks__/mockOdhApplication';
+import type { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 
 type HandlersProps = {
   isEmpty?: boolean;
@@ -64,6 +65,8 @@ type HandlersProps = {
   disableWorkbenches?: boolean;
   namespace?: string;
   disableLlamaStackChatBot?: boolean;
+  inferenceServices?: InferenceServiceKind[];
+  servingRuntimes?: ServingRuntimeKind[];
 };
 
 const initIntercepts = ({
@@ -88,6 +91,8 @@ const initIntercepts = ({
   disableWorkbenches = false,
   namespace = 'test-project',
   disableLlamaStackChatBot = false,
+  inferenceServices = [],
+  servingRuntimes = [],
 }: HandlersProps) => {
   cy.interceptK8sList(
     { model: SecretModel, ns: namespace },
@@ -328,6 +333,9 @@ const initIntercepts = ({
     },
   );
   cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
+
+  cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(servingRuntimes));
+  cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList(inferenceServices));
 };
 
 describe('Project Details', () => {
@@ -862,6 +870,72 @@ describe('Project Details', () => {
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findResetPlatformButton().click();
       projectDetails.findErrorSelectingPlatform().should('exist');
+    });
+
+    it('Change serving platform button should be disabled with tooltip when non-dashboard inference service exists', () => {
+      // Create a non-dashboard inference service
+      const nonDashboardInferenceService = mockInferenceServiceK8sResource({
+        name: 'non-dashboard-inference',
+        namespace: 'test-project',
+        isNonDashboardItem: true,
+      });
+
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+        enableModelMesh: false,
+        inferenceServices: [nonDashboardInferenceService],
+        servingRuntimes: [],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+
+      // Find the change serving platform button
+      projectDetails.findResetPlatformButton().should('have.attr', 'aria-disabled');
+
+      // Verify the tooltip content
+      projectDetails
+        .findResetPlatformButton()
+        .trigger('mouseenter')
+        .then(() => {
+          cy.findByRole('tooltip').should(
+            'have.text',
+            'To change the model serving platform, delete all models and model servers in the project. This project contains models or servers not managed by the dashboard.',
+          );
+        });
+    });
+
+    it('Change serving platform button should be disabled with tooltip when non-dashboard serving runtime exists', () => {
+      // Create a non-dashboard serving runtime
+      const nonDashboardServingRuntime = mockServingRuntimeK8sResource({
+        name: 'non-dashboard-runtime',
+        namespace: 'test-project',
+        isNonDashboardItem: true,
+      });
+
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+        enableModelMesh: false,
+        inferenceServices: [],
+        servingRuntimes: [nonDashboardServingRuntime],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+
+      // Find the change serving platform button
+      projectDetails.findResetPlatformButton().should('have.attr', 'aria-disabled');
+
+      // Verify the tooltip content
+      projectDetails
+        .findResetPlatformButton()
+        .trigger('mouseenter')
+        .then(() => {
+          cy.findByRole('tooltip').should(
+            'have.text',
+            'To change the model serving platform, delete all models and model servers in the project. This project contains models or servers not managed by the dashboard.',
+          );
+        });
     });
   });
 
