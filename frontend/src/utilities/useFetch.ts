@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { FetchStateObject } from '~/types';
 import { K8sAPIOptions } from '~/k8sTypes';
 
 /**
@@ -35,13 +34,13 @@ export const isCommonStateError = (e: Error): boolean => {
 export type FetchStateRefreshPromise<Type> = () => Promise<Type | undefined>;
 
 /** Return state */
-export type FetchState<Type> = [
-  data: Type,
-  loaded: boolean,
-  loadError: Error | undefined,
+export type FetchStateObject<T, E = Error> = {
+  data: T;
+  loaded: boolean;
+  error?: E;
   /** This promise should never throw to the .catch */
-  refresh: FetchStateRefreshPromise<Type>,
-];
+  refresh: FetchStateRefreshPromise<T>;
+};
 
 type SetStateLazy<Type> = (lastState: Type) => Type;
 export type AdHocUpdate<Type> = (updateLater: (updater: SetStateLazy<Type>) => void) => void;

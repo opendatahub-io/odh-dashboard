@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { FetchStateObject, PrometheusQueryResponse } from '~/types';
+import { PrometheusQueryResponse } from '~/types';
+import { FetchStateObject } from '~/utilities/useFetch';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import { DEFAULT_VALUE_FETCH_STATE } from '~/utilities/const';
 import { WorkloadKind, WorkloadOwnerType } from '~/k8sTypes';

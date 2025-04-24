@@ -695,13 +695,6 @@ export type CustomWatchK8sResult<R extends K8sResourceCommon | K8sResourceCommon
   loadError: Error | undefined,
 ];
 
-export type FetchStateObject<T, E = Error> = {
-  data: T;
-  loaded: boolean;
-  error?: E;
-  refresh: () => void;
-};
-
 // TODO this and useContextResourceData should probably be removed in favor of useMakeFetchObject
 export type ContextResourceData<T> = FetchStateObject<T[], Error | AxiosError>;
 export type PendingContextResourceData<T> = ContextResourceData<T> & { pending: boolean };

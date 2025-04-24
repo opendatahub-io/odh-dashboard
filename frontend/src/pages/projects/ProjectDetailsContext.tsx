@@ -18,7 +18,8 @@ import {
 } from '~/utilities/const';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
 import useInferenceServices from '~/pages/modelServing/useInferenceServices';
-import { CustomWatchK8sResult, FetchStateObject, ListWithNonDashboardPresence } from '~/types';
+import { CustomWatchK8sResult, ListWithNonDashboardPresence } from '~/types';
+import { FetchStateObject } from '~/utilities/useFetch';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import useServingRuntimeSecrets from '~/pages/modelServing/screens/projects/useServingRuntimeSecrets';
 import { PipelineContextProvider } from '~/concepts/pipelines/context';

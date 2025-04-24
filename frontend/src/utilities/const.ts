@@ -1,10 +1,10 @@
 import {
   ContextResourceData,
   CustomWatchK8sResult,
-  FetchStateObject,
   ListWithNonDashboardPresence,
   OdhDocumentType,
 } from '~/types';
+import { FetchStateObject } from '~/utilities/useFetch';
 
 const WS_HOSTNAME = process.env.WS_HOSTNAME || location.host;
 const DEV_MODE = process.env.APP_ENV === 'development';
