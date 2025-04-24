@@ -4,10 +4,10 @@ import { KubeFastifyInstance, VariablesValidationStatus } from '../../../../type
 import { isString } from 'lodash';
 import {
   apiKeyValidationStatus,
-  apiKeyValidationTimestamp,
   createNIMAccount,
   deleteNIMAccount,
   errorMsgList,
+  getLastAccountCheckTimestamp,
   getNIMAccount,
   isAppEnabled,
   manageNIMSecret,
@@ -23,13 +23,13 @@ module.exports = async (fastify: KubeFastifyInstance) => {
           // Installed
           const isEnabled = isAppEnabled(response);
           const keyValidationStatus: string = apiKeyValidationStatus(response);
-          const keyValidationTimestamp: string = apiKeyValidationTimestamp(response);
+          const accountStatusTimestamp: string = getLastAccountCheckTimestamp(response);
           const errorMsg: string = errorMsgList(response)[0];
           reply.send({
             isInstalled: true,
             isEnabled: isEnabled,
             variablesValidationStatus: keyValidationStatus,
-            variablesValidationTimestamp: keyValidationTimestamp,
+            variablesValidationTimestamp: accountStatusTimestamp,
             canInstall: !isEnabled,
             error: errorMsg,
           });
@@ -96,12 +96,12 @@ module.exports = async (fastify: KubeFastifyInstance) => {
             const nimAccount = !account ? await createNIMAccount(fastify) : account;
             const isEnabled = isAppEnabled(nimAccount);
             const keyValidationStatus: string = apiKeyValidationStatus(nimAccount);
-            const keyValidationTimeStamp: string = apiKeyValidationTimestamp(nimAccount);
+            const accountStatusTimestamp: string = getLastAccountCheckTimestamp(nimAccount);
             reply.send({
               isInstalled: true,
               isEnabled: isEnabled,
               variablesValidationStatus: keyValidationStatus,
-              variablesValidationTimestamp: keyValidationTimeStamp,
+              variablesValidationTimestamp: accountStatusTimestamp,
               canInstall: !isEnabled,
               error: '',
             });
