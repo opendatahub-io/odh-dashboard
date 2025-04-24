@@ -14,11 +14,6 @@ type MockModelVersionType = {
   createTimeSinceEpoch?: string;
   lastUpdateTimeSinceEpoch?: string;
   customProperties?: ModelRegistryCustomProperties;
-  modelSourceKind?: string;
-  modelSourceClass?: string;
-  modelSourceGroup?: string;
-  modelSourceId?: string;
-  modelSourceName?: string;
 };
 
 export const mockModelVersion = ({
