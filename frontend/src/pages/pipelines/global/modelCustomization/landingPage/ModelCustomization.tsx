@@ -26,6 +26,8 @@ const title = 'Model customization';
 const description =
   'Optionally customize foundation models to adhere more to domain-specific capabilities, output formats, and styles, using the Large-scale Alignment for chatBots (LAB) method or your own fine-tuning workflow.';
 
+const maxWidth = '485px';
+
 const ModelCustomization: React.FC = () => {
   const drawerContentRef = React.useRef<ModelCustomizationDrawerContentRef>(null);
   const [isDrawerExpanded, setIsDrawerExpanded] = React.useState(false);
@@ -55,7 +57,7 @@ const ModelCustomization: React.FC = () => {
               <TitleWithIcon title={title} objectType={ProjectObjectType.modelCustomization} />
             }
             provideChildrenPadding
-            description={description}
+            description={<div style={{ maxWidth }}>{description}</div>}
             loaded
             empty={false}
           >
@@ -66,7 +68,7 @@ const ModelCustomization: React.FC = () => {
                   objectType={ProjectObjectType.labTuning}
                 />
               </CardTitle>
-              <CardBody style={{ maxWidth: '485px' }}>
+              <CardBody style={{ maxWidth }}>
                 <Stack hasGutter>
                   <StackItem>
                     LAB-tuning significantly reduces limitations associated with traditional

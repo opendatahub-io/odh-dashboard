@@ -15,7 +15,7 @@ import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
 import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
-import { TolerationEffect, TolerationOperator } from '~/types';
+import { IdentifierResourceType, TolerationEffect, TolerationOperator } from '~/types';
 
 const initIntercepts = () => {
   cy.interceptOdh(
@@ -373,36 +373,155 @@ describe('legacy profiles table', () => {
     });
 
     it('should migrate', () => {
+      // mocked model server size
+      const modelServerSize = {
+        name: 'Test Model Server Size',
+        resources: { requests: { cpu: '2', memory: '2Gi' }, limits: { cpu: '3', memory: '3Gi' } },
+      };
+      // mocked notebook size
+      const notebookSize = {
+        name: 'Test Notebook Size',
+        resources: { requests: { cpu: '1', memory: '1Gi' }, limits: { cpu: '2', memory: '2Gi' } },
+      };
+      // mock dashboard config
+      const dashboardConfig = mockDashboardConfig({
+        modelServerSizes: [modelServerSize],
+        notebookSizes: [notebookSize],
+      });
+
+      cy.interceptOdh('GET /api/config', dashboardConfig);
+
+      const originalAcceleratorProfile = mockAcceleratorProfile({
+        namespace: 'opendatahub',
+        name: 'legacy-hardware-profile',
+        displayName: 'Legacy Hardware Profile',
+        description: 'Legacy profile to be migrated',
+        identifier: 'nvidia.com/gpu',
+        enabled: true,
+        tolerations: [
+          {
+            key: 'nvidia.com/gpu',
+            operator: TolerationOperator.EXISTS,
+            effect: TolerationEffect.NO_SCHEDULE,
+          },
+        ],
+      });
+
+      // Mock the accelerator profile that will be migrated
+      cy.interceptK8sList(
+        { model: AcceleratorProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList([originalAcceleratorProfile]),
+      );
+
+      const migratedServingHardwareProfile = mockHardwareProfile({
+        namespace: 'opendatahub',
+        name: `${originalAcceleratorProfile.metadata.name}-serving`,
+        displayName: originalAcceleratorProfile.spec.displayName,
+        description: originalAcceleratorProfile.spec.description,
+        annotations: {
+          'opendatahub.io/dashboard-feature-visibility': '["model-serving","pipelines"]',
+        },
+        identifiers: [
+          {
+            displayName: 'CPU',
+            identifier: 'cpu',
+            minCount: modelServerSize.resources.requests.cpu,
+            maxCount: modelServerSize.resources.limits.cpu,
+            defaultCount: modelServerSize.resources.requests.cpu,
+            resourceType: IdentifierResourceType.CPU,
+          },
+          {
+            displayName: 'Memory',
+            identifier: 'memory',
+            minCount: modelServerSize.resources.requests.memory,
+            maxCount: modelServerSize.resources.limits.memory,
+            defaultCount: modelServerSize.resources.requests.memory,
+            resourceType: IdentifierResourceType.MEMORY,
+          },
+          {
+            displayName: originalAcceleratorProfile.spec.identifier,
+            identifier: originalAcceleratorProfile.spec.identifier,
+            minCount: 1,
+            defaultCount: 1,
+          },
+        ],
+        tolerations: originalAcceleratorProfile.spec.tolerations,
+      });
+
+      const migratedNotebooksHardwareProfile = mockHardwareProfile({
+        namespace: 'opendatahub',
+        name: `${originalAcceleratorProfile.metadata.name}-notebooks`,
+        annotations: {
+          'opendatahub.io/dashboard-feature-visibility': '["workbench"]',
+        },
+        displayName: originalAcceleratorProfile.spec.displayName,
+        description: originalAcceleratorProfile.spec.description,
+        identifiers: [
+          {
+            displayName: 'CPU',
+            identifier: 'cpu',
+            minCount: notebookSize.resources.requests.cpu,
+            maxCount: notebookSize.resources.limits.cpu,
+            defaultCount: notebookSize.resources.requests.cpu,
+          },
+          {
+            displayName: 'Memory',
+            identifier: 'memory',
+            minCount: notebookSize.resources.requests.memory,
+            maxCount: notebookSize.resources.limits.memory,
+            defaultCount: notebookSize.resources.requests.memory,
+          },
+          {
+            displayName: originalAcceleratorProfile.spec.identifier,
+            identifier: originalAcceleratorProfile.spec.identifier,
+            minCount: 0,
+            defaultCount: 1,
+          },
+        ],
+        tolerations: [
+          ...(originalAcceleratorProfile.spec.tolerations || []),
+          {
+            key: 'NotebooksOnlyChange',
+            operator: TolerationOperator.EXISTS,
+            effect: TolerationEffect.NO_SCHEDULE,
+          },
+        ],
+      });
+
+      // Mock the API calls for migration
       cy.interceptK8s(
         'DELETE',
-        {
-          model: AcceleratorProfileModel,
-          ns: testNamespace,
-          name: testProfileName,
-        },
+        { model: AcceleratorProfileModel, ns: 'opendatahub', name: 'legacy-hardware-profile' },
         mock200Status({}),
       ).as('deleteSource');
 
-      cy.interceptK8s(
-        'POST',
-        { model: HardwareProfileModel },
-        mockHardwareProfile({
-          name: testProfileName,
-          displayName: testProfileDisplayName,
-        }),
-      ).as('createTarget');
+      // Mock the creation of the new hardware profiles
+      cy.interceptK8s('POST', { model: HardwareProfileModel, ns: 'opendatahub' }, (req) => {
+        // Check if the request body has the specific annotation
+        const annotations =
+          req.body.metadata?.annotations?.['opendatahub.io/dashboard-feature-visibility'];
+
+        if (annotations?.includes('model-serving')) {
+          req.reply(migratedServingHardwareProfile);
+        } else if (annotations?.includes('workbench')) {
+          req.reply(migratedNotebooksHardwareProfile);
+        }
+      }).as('create');
 
       legacyHardwareProfile.visit();
       legacyHardwareProfile.findExpandButton().click();
-      legacyHardwareProfile.getRow(testProfileDisplayName).findKebabAction('Migrate').click();
+      legacyHardwareProfile
+        .getRow(originalAcceleratorProfile.spec.displayName)
+        .findKebabAction('Migrate')
+        .click();
       migrationModal.findSubmitButton().should('be.enabled').click();
 
+      // assert the creation of the new hardware profiles
       cy.wait('@deleteSource');
-      cy.wait('@createTarget').then((interception) => {
+      cy.wait('@create').then((interception) => {
         // Assert individually the properties that include random values
         const { name, annotations } = interception.request.body.metadata;
         expect(annotations).to.have.property('opendatahub.io/modified-date');
-        expect(name).to.include(testProfileName);
 
         const actual = Cypress._.omit(
           interception.request.body,
@@ -410,102 +529,38 @@ describe('legacy profiles table', () => {
           'metadata.name',
         );
 
-        expect(actual).to.eql({
-          apiVersion: 'dashboard.opendatahub.io/v1alpha1',
-          kind: 'HardwareProfile',
-          metadata: {
-            namespace: 'opendatahub',
-            annotations: {
-              'opendatahub.io/dashboard-feature-visibility': '["workbench"]',
-            },
-          },
-          spec: {
-            displayName: 'Test Accelerator Profile',
-            description: '',
-            enabled: true,
-            tolerations: [
-              { key: 'NotebooksOnlyChange', effect: 'NoSchedule', operator: 'Exists' },
-              { key: 'nvidia.com/gpu', operator: 'Exists', effect: 'NoSchedule' },
-            ],
-            identifiers: [
-              {
-                displayName: 'CPU',
-                resourceType: 'CPU',
-                identifier: 'cpu',
-                minCount: '1',
-                defaultCount: '1',
-              },
-              {
-                displayName: 'Memory',
-                resourceType: 'Memory',
-                identifier: 'memory',
-                minCount: '1Mi',
-                defaultCount: '1Mi',
-              },
-              {
-                identifier: 'nvidia.com/gpu',
-                displayName: 'nvidia.com/gpu',
-                minCount: 1,
-                defaultCount: 1,
-              },
-            ],
-          },
-        });
-      });
-      cy.wait('@deleteSource');
-      cy.wait('@createTarget').then((interception) => {
-        // Assert individually the properties that include random values
-        const { name, annotations } = interception.request.body.metadata;
-        expect(annotations).to.have.property('opendatahub.io/modified-date');
-        expect(name).to.include(testProfileName);
+        const visibility =
+          interception.request.body.metadata?.annotations?.[
+            'opendatahub.io/dashboard-feature-visibility'
+          ];
 
-        const actual = Cypress._.omit(
-          interception.request.body,
-          'metadata.annotations["opendatahub.io/modified-date"]',
-          'metadata.name',
-        );
-
-        expect(actual).to.eql({
-          apiVersion: 'dashboard.opendatahub.io/v1alpha1',
-          kind: 'HardwareProfile',
-          metadata: {
-            namespace: 'opendatahub',
-            annotations: {
-              'opendatahub.io/dashboard-feature-visibility': '["workbench"]',
+        if (visibility?.includes('model-serving')) {
+          expect(name).to.match(
+            new RegExp(`${originalAcceleratorProfile.metadata.name}-.*-serving`),
+          );
+          expect(actual).to.eql({
+            ...migratedServingHardwareProfile,
+            metadata: {
+              namespace: 'opendatahub',
+              annotations: {
+                'opendatahub.io/dashboard-feature-visibility': '["model-serving","pipelines"]',
+              },
             },
-          },
-          spec: {
-            displayName: 'Test Accelerator Profile',
-            description: '',
-            enabled: true,
-            tolerations: [
-              { key: 'NotebooksOnlyChange', effect: 'NoSchedule', operator: 'Exists' },
-              { key: 'nvidia.com/gpu', operator: 'Exists', effect: 'NoSchedule' },
-            ],
-            identifiers: [
-              {
-                displayName: 'CPU',
-                resourceType: 'CPU',
-                identifier: 'cpu',
-                minCount: '1',
-                defaultCount: '1',
+          });
+        } else if (visibility?.includes('workbench')) {
+          expect(name).to.match(
+            new RegExp(`${originalAcceleratorProfile.metadata.name}-.*-notebooks`),
+          );
+          expect(actual).to.eql({
+            ...migratedNotebooksHardwareProfile,
+            metadata: {
+              namespace: 'opendatahub',
+              annotations: {
+                'opendatahub.io/dashboard-feature-visibility': '["workbench"]',
               },
-              {
-                displayName: 'Memory',
-                resourceType: 'Memory',
-                identifier: 'memory',
-                minCount: '1Mi',
-                defaultCount: '1Mi',
-              },
-              {
-                identifier: 'nvidia.com/gpu',
-                displayName: 'nvidia.com/gpu',
-                minCount: 1,
-                defaultCount: 1,
-              },
-            ],
-          },
-        });
+            },
+          });
+        }
       });
     });
 
