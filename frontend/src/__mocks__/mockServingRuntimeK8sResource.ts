@@ -20,6 +20,7 @@ type MockResourceConfigType = {
   templateDisplayName?: string;
   isProjectScoped?: boolean;
   scope?: string;
+  isNonDashboardItem?: boolean;
 };
 
 export const mockServingRuntimeK8sResourceLegacy = ({
@@ -128,6 +129,7 @@ export const mockServingRuntimeK8sResource = ({
   templateDisplayName = 'OpenVINO Serving Runtime (Supports GPUs)',
   isProjectScoped = false,
   scope,
+  isNonDashboardItem = false,
 }: MockResourceConfigType): ServingRuntimeKind => ({
   apiVersion: 'serving.kserve.io/v1alpha1',
   kind: 'ServingRuntime',
@@ -135,7 +137,7 @@ export const mockServingRuntimeK8sResource = ({
     creationTimestamp: '2023-06-22T16:05:55Z',
     labels: {
       name,
-      [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+      ...(isNonDashboardItem ? {} : { [KnownLabels.DASHBOARD_RESOURCE]: 'true' }),
     },
     annotations: {
       'opendatahub.io/template-display-name': templateDisplayName,
