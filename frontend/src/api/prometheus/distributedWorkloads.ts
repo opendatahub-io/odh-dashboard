@@ -52,6 +52,7 @@ const useWorkloadMetricIndexedByOwner = (
     () => ({
       ...promQueryFetchObj,
       data: indexWorkloadMetricByOwner(promQueryFetchObj.data),
+      refresh: async () => indexWorkloadMetricByOwner((await promQueryFetchObj.refresh()) || null),
     }),
     [promQueryFetchObj],
   );
@@ -128,6 +129,7 @@ export const DEFAULT_DW_PROJECT_CURRENT_METRICS: DWProjectCurrentMetrics = {
     cpuCoresUsed: { totalUsage: 0, topWorkloads: [], otherUsage: undefined },
     memoryBytesUsed: { totalUsage: 0, topWorkloads: [], otherUsage: undefined },
   },
+  refresh: () => Promise.resolve(undefined),
 };
 
 const getDWProjectCurrentMetricsQueries = (
@@ -175,10 +177,21 @@ export const useDWProjectCurrentMetrics = (
   );
   return {
     data,
-    refresh: React.useCallback(() => {
-      cpuCoresUsedByWorkloadOwnerRefresh();
-      memoryBytesUsedByWorkloadOwnerRefresh();
-    }, [cpuCoresUsedByWorkloadOwnerRefresh, memoryBytesUsedByWorkloadOwnerRefresh]),
+    refresh: React.useCallback(
+      async () => ({
+        cpuCoresUsedByWorkloadOwner: {
+          data: await cpuCoresUsedByWorkloadOwnerRefresh(),
+          loaded: true,
+          refresh: cpuCoresUsedByWorkloadOwnerRefresh,
+        },
+        memoryBytesUsedByWorkloadOwner: {
+          data: await memoryBytesUsedByWorkloadOwnerRefresh(),
+          loaded: true,
+          refresh: memoryBytesUsedByWorkloadOwnerRefresh,
+        },
+      }),
+      [cpuCoresUsedByWorkloadOwnerRefresh, memoryBytesUsedByWorkloadOwnerRefresh],
+    ),
     loaded: Object.values(data).every(({ loaded }) => loaded),
     error: Object.values(data).find(({ error }) => !!error)?.error,
     getWorkloadCurrentUsage,

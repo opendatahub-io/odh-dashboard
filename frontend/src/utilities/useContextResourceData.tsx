@@ -4,8 +4,9 @@ import { FetchState } from '~/utilities/useFetchState';
 import { POLL_INTERVAL } from './const';
 import { useMakeFetchObject } from './useMakeFetchObject';
 
-// TODO this should probably be removed in favor of useMakeFetchObject.
-//      useFetchState already supports a refreshRate option, and useMakeFetchObject supports single values and not just arrays.
+/**
+ * @deprecated Use useFetch with the refreshRate option instead to get the refresh behavior that was default in useContextResourceData.
+ */
 export const useContextResourceData = <T,>(
   resourceData: FetchState<T[]>,
   refreshInterval = POLL_INTERVAL,
