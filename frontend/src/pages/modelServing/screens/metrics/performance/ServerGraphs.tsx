@@ -29,11 +29,18 @@ const ServerGraphs: React.FC = () => {
       <StackItem>
         <MetricsChart
           metrics={data[ServerMetricType.AVG_RESPONSE_TIME].data.map(
-            (line): NamedMetricChartLine => ({
+            (line, index): NamedMetricChartLine => ({
               name: line.metric.pod || '',
               metric: {
                 ...data[ServerMetricType.AVG_RESPONSE_TIME],
                 data: convertPrometheusNaNToZero(line.values),
+                refresh: async () => {
+                  const refreshedData = await data[ServerMetricType.AVG_RESPONSE_TIME].refresh();
+                  if (!refreshedData?.[index]?.values) {
+                    return [];
+                  }
+                  return convertPrometheusNaNToZero(refreshedData[index].values);
+                },
               },
             }),
           )}
