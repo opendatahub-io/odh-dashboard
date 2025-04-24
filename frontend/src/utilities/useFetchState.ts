@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { FetchStateObject } from '~/types';
 import { K8sAPIOptions } from '~/k8sTypes';
 
 /**
@@ -109,7 +110,7 @@ export type FetchOptions = {
  *
  * Note: Your callback *should* support the opts property so the call can be cancelled.
  */
-const useFetchState = <Type>(
+const useFetch = <Type>(
   /** React.useCallback result. */
   fetchCallbackPromise: FetchStateCallbackPromise<Type | AdHocUpdate<Type>>,
   /**
@@ -119,7 +120,7 @@ const useFetchState = <Type>(
   initialDefaultState: Type,
   /** Configurable features */
   { refreshRate = 0, initialPromisePurity = false }: Partial<FetchOptions> = {},
-): FetchState<Type> => {
+): FetchStateObject<Type> => {
   const initialDefaultStateRef = React.useRef(initialDefaultState);
   const [result, setResult] = React.useState<Type>(initialDefaultState);
   const [loaded, setLoaded] = React.useState(false);
@@ -157,7 +158,7 @@ const useFetchState = <Type>(
             // Undefined is an unacceptable response. If you want "nothing", pass `null` -- this is likely an API issue though.
             // eslint-disable-next-line no-console
             console.error(
-              'useFetchState Error: Got undefined back from a promise. This is likely an error with your call. Preventing setting.',
+              'useFetch Error: Got undefined back from a promise. This is likely an error with your call. Preventing setting.',
             );
             return undefined;
           }
@@ -249,10 +250,26 @@ const useFetchState = <Type>(
 
   // Return the default reset state if a change is pending and initialPromisePurity is true
   if (initialPromisePurity && changePendingRef.current) {
-    return [initialDefaultStateRef.current, false, undefined, refresh];
+    return React.useMemo(
+      () => ({
+        data: initialDefaultStateRef.current,
+        loaded: false,
+        error: undefined,
+        refresh,
+      }),
+      [refresh],
+    );
   }
 
-  return [result, loaded, loadError, refresh];
+  return React.useMemo(
+    () => ({
+      data: result,
+      loaded,
+      error: loadError,
+      refresh,
+    }),
+    [result, loaded, loadError, refresh],
+  );
 };
 
-export default useFetchState;
+export default useFetch;
