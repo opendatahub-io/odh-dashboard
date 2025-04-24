@@ -4,7 +4,6 @@ import {
   Alert,
   Button,
   Content,
-  ContentVariants,
   Popover,
   Radio,
   Skeleton,
@@ -74,68 +73,60 @@ const PipelineVersionRadioGroup: React.FC<PipelineVersionRadioGroupProps> = ({
                   versionToUse: PipelineVersionToUse.LATEST,
                 });
               }}
+              description="The system will automatically use the most recent pipeline version for each recurring run."
               body={
-                <Stack hasGutter>
-                  <StackItem>
-                    <Content component={ContentVariants.small} style={{ marginBottom: 0 }}>
-                      The system will automatically use the most recent pipeline version for each
-                      recurring run.
-                    </Content>
-                  </StackItem>
-                  <StackItem>
-                    <Popover
-                      aria-label="Hoverable popover"
-                      data-testid="view-latest-version-popover"
-                      isVisible={isVersionPopoverVisible}
-                      shouldOpen={() => setIsVersionPopoverVisible(true)}
-                      shouldClose={() => setIsVersionPopoverVisible(false)}
-                      bodyContent={
-                        <>
-                          <Content>
-                            Currently, <strong>{latestVersion.display_name}</strong> is the latest
-                            pipeline version.
-                          </Content>
-                          <Button
-                            variant="link"
-                            isDisabled={!apiAvailable}
-                            onClick={() => {
-                              setIsVersionPopoverVisible(false);
-                              setIsUploadPipelineVersionModalOpen(true);
-                            }}
-                          >
-                            Upload new version
-                          </Button>
-                        </>
-                      }
+                <>
+                  <Popover
+                    aria-label="Hoverable popover"
+                    data-testid="view-latest-version-popover"
+                    isVisible={isVersionPopoverVisible}
+                    shouldOpen={() => setIsVersionPopoverVisible(true)}
+                    shouldClose={() => setIsVersionPopoverVisible(false)}
+                    bodyContent={
+                      <>
+                        <Content>
+                          Currently, <strong>{latestVersion.display_name}</strong> is the latest
+                          pipeline version.
+                        </Content>
+                        <Button
+                          variant="link"
+                          isDisabled={!apiAvailable}
+                          onClick={() => {
+                            setIsVersionPopoverVisible(false);
+                            setIsUploadPipelineVersionModalOpen(true);
+                          }}
+                        >
+                          Upload new version
+                        </Button>
+                      </>
+                    }
+                  >
+                    <Button
+                      style={{ paddingLeft: 0 }}
+                      icon={<OutlinedQuestionCircleIcon />}
+                      iconPosition="right"
+                      data-testid="view-latest-version-button"
+                      variant="link"
                     >
-                      <Button
-                        style={{ paddingLeft: 0 }}
-                        icon={<OutlinedQuestionCircleIcon />}
-                        iconPosition="right"
-                        data-testid="view-latest-version-button"
-                        variant="link"
-                        disabled
-                      >
-                        View the current latest version name
-                      </Button>
-                    </Popover>
-                    {isUploadPipelineVersionModalOpen && (
-                      <PipelineVersionImportModal
-                        existingPipeline={pipeline}
-                        onClose={(value) => {
-                          setIsUploadPipelineVersionModalOpen(false);
-                          if (value) {
-                            onVersionChange({
-                              value,
-                              versionToUse: PipelineVersionToUse.PROVIDED,
-                            });
-                            refreshAllAPI();
-                          }
-                        }}
-                      />
-                    )}
-                  </StackItem>
-                </Stack>
+                      View the current latest version name
+                    </Button>
+                  </Popover>
+                  {isUploadPipelineVersionModalOpen && (
+                    <PipelineVersionImportModal
+                      existingPipeline={pipeline}
+                      onClose={(value) => {
+                        setIsUploadPipelineVersionModalOpen(false);
+                        if (value) {
+                          onVersionChange({
+                            value,
+                            versionToUse: PipelineVersionToUse.PROVIDED,
+                          });
+                          refreshAllAPI();
+                        }
+                      }}
+                    />
+                  )}
+                </>
               }
             />
           </StackItem>
@@ -152,46 +143,38 @@ const PipelineVersionRadioGroup: React.FC<PipelineVersionRadioGroupProps> = ({
                   versionToUse: PipelineVersionToUse.PROVIDED,
                 });
               }}
+              description="The system will use the selected pipeline version for all recurring runs."
               body={
-                <Stack hasGutter>
-                  <StackItem>
-                    <Content component={ContentVariants.small} style={{ marginBottom: 0 }}>
-                      The system will use the selected pipeline version for all recurring runs.
-                    </Content>
-                  </StackItem>
-                  {versionToUse === PipelineVersionToUse.PROVIDED && (
+                versionToUse === PipelineVersionToUse.PROVIDED && (
+                  <Stack>
                     <StackItem>
-                      <Stack>
-                        <StackItem>
-                          <PipelineVersionSelector
-                            selection={(selectedVersion ?? latestVersion).display_name}
-                            pipelineId={pipeline.pipeline_id}
-                            onSelect={(value) => {
-                              onVersionChange({
-                                value,
-                                versionToUse: PipelineVersionToUse.PROVIDED,
-                              });
-                            }}
-                            isCreatePage
-                          />
-                        </StackItem>
-                        <StackItem>
-                          <ImportPipelineVersionButton
-                            selectedPipeline={pipeline}
-                            variant="link"
-                            icon={<PlusCircleIcon />}
-                            onCreate={(value) => {
-                              onVersionChange({
-                                value,
-                                versionToUse: PipelineVersionToUse.PROVIDED,
-                              });
-                            }}
-                          />
-                        </StackItem>
-                      </Stack>
+                      <PipelineVersionSelector
+                        selection={(selectedVersion ?? latestVersion).display_name}
+                        pipelineId={pipeline.pipeline_id}
+                        onSelect={(value) => {
+                          onVersionChange({
+                            value,
+                            versionToUse: PipelineVersionToUse.PROVIDED,
+                          });
+                        }}
+                        isCreatePage
+                      />
                     </StackItem>
-                  )}
-                </Stack>
+                    <StackItem>
+                      <ImportPipelineVersionButton
+                        selectedPipeline={pipeline}
+                        variant="link"
+                        icon={<PlusCircleIcon />}
+                        onCreate={(value) => {
+                          onVersionChange({
+                            value,
+                            versionToUse: PipelineVersionToUse.PROVIDED,
+                          });
+                        }}
+                      />
+                    </StackItem>
+                  </Stack>
+                )
               }
             />
           </StackItem>
