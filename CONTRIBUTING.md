@@ -73,10 +73,12 @@ or log in using the makefile and `.env.local` settings
 
 ```.env.local
 OC_URL=https://specify.in.env:6443
-OC_PROJECT=my-project
+OC_PROJECT=opendatahub
 OC_USER=kubeadmin
 OC_PASSWORD=my-password
 ```
+
+> Note: Set `OC_PROJECT` to `opendatahub` (for Open Data Hub deployments) or `redhat-ods-applications` (for Red Hat OpenShift AI deployments). Leaving this variable unset will cause failures when trying to run the project with local frontend and backend.
     
 ```bash
 make login

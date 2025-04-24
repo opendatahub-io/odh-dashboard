@@ -105,13 +105,13 @@ const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({ existingIma
     <Modal
       onEscapePress={(e) => e.preventDefault()}
       variant={ModalVariant.medium}
-      title={`${existingImage ? 'Update' : 'Import'} notebook image`}
+      title={`${existingImage ? 'Update' : 'Import'} workbench image`}
       isOpen
       onClose={() => onClose(false)}
       footer={
         <DashboardModalFooter
           error={error}
-          alertTitle={`Error ${existingImage ? 'updating' : 'importing'} notebook image`}
+          alertTitle={`Error ${existingImage ? 'updating' : 'importing'} workbench image`}
           submitLabel={existingImage ? 'Update' : 'Import'}
           isSubmitDisabled={
             isProgress || !isK8sNameDescriptionDataValid(byonNameDesc) || repository === ''
@@ -120,7 +120,7 @@ const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({ existingIma
           onCancel={() => onClose(false)}
         />
       }
-      data-testid="notebook-image-modal"
+      data-testid="workbench-image-modal"
     >
       <Form
         onSubmit={(e) => {

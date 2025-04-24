@@ -90,7 +90,7 @@ class ImportUpdateNotebookImageModal extends Modal {
   k8sNameDescription = new K8sNameDescriptionField('byon-image');
 
   constructor(private edit = false) {
-    super(`${edit ? 'Update' : 'Import'} notebook image`);
+    super(`${edit ? 'Update' : 'Import'} workbench image`);
   }
 
   findSubmitButton() {

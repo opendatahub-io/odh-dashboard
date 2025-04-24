@@ -14,7 +14,7 @@
     "tsconfigRootDir": "."
   },
   // includes the typescript specific rules found here: https://github.com/typescript-eslint/typescript-eslint/tree/master/packages/eslint-plugin#supported-rules
-  "plugins": ["@typescript-eslint"],
+  "plugins": ["@typescript-eslint", "no-barrel-files"],
   "extends": [
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",
@@ -32,6 +32,7 @@
   },
   "settings": {},
   "rules": {
+    "no-barrel-files/no-barrel-files": "error",
     "eqeqeq": ["error", "always", { "null": "ignore" }],
     "no-restricted-properties": [
       "error",
