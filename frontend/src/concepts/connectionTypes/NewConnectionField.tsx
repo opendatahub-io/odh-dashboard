@@ -57,21 +57,37 @@ export const useNewConnectionField = (
     [connectionTypes, extraConnectionTypeModifiers],
   );
 
-  const [selectedConnectionType, setSelectedConnectionType] = React.useState<
-    ConnectionTypeConfigMapObj | undefined
-  >(
-    initialConnectionType ?? enabledConnectionTypes.length === 1
-      ? enabledConnectionTypes[0]
-      : undefined,
-  );
+  const [tmpSelectedConnectionType, setSelectedConnectionType] =
+    React.useState<ConnectionTypeConfigMapObj>();
+  const selectedConnectionType = React.useMemo(() => {
+    if (tmpSelectedConnectionType === undefined) {
+      if (initialConnectionType) {
+        return initialConnectionType;
+      }
+      if (enabledConnectionTypes.length === 1) {
+        return enabledConnectionTypes[0];
+      }
+      return undefined;
+    }
+    return tmpSelectedConnectionType;
+  }, [tmpSelectedConnectionType, initialConnectionType, enabledConnectionTypes]);
+
   const { data: nameDescData, onDataChange: setNameDescData } = useK8sNameDescriptionFieldData();
-  const [connectionValues, setConnectionValues] = React.useState<{
+  const [tmpConnectionValues, setConnectionValues] = React.useState<{
     [key: string]: ConnectionTypeValueType;
-  }>(
-    initialConnectionValues ?? enabledConnectionTypes.length === 1
-      ? getDefaultValues(enabledConnectionTypes[0])
-      : {},
-  );
+  }>();
+  const connectionValues = React.useMemo(() => {
+    if (tmpConnectionValues === undefined) {
+      if (initialConnectionValues) {
+        return initialConnectionValues;
+      }
+      if (enabledConnectionTypes.length === 1) {
+        return getDefaultValues(enabledConnectionTypes[0]);
+      }
+      return {};
+    }
+    return tmpConnectionValues;
+  }, [tmpConnectionValues, initialConnectionValues, enabledConnectionTypes]);
 
   const [connectionErrors, setConnectionErrors] = React.useState<{
     [key: string]: boolean | string;
