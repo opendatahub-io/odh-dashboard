@@ -20,7 +20,7 @@ export {
 } from './useFetch';
 
 /**
- * @deprecated Use FetchStateObject from useFetch instead. This type will be removed in a future version.
+ * @deprecated Use FetchStateObject from useFetch instead.
  */
 export type FetchState<Type> = [
   data: Type,
@@ -31,11 +31,11 @@ export type FetchState<Type> = [
 ];
 
 /**
- * @deprecated Use useFetch instead. This function will be removed in a future version.
+ * @deprecated Use useFetch instead.
  * useFetchState has been renamed to useFetch and changed to return an object instead of an array.
  * This useFetchState is a new deprecated wrapper that matches the old type signature.
  */
-export const useFetchState = <Type>(
+const useFetchState = <Type>(
   /** React.useCallback result. */
   fetchCallbackPromise: FetchStateCallbackPromise<Type | AdHocUpdate<Type>>,
   /**

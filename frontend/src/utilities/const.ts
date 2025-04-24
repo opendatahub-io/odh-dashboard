@@ -70,13 +70,13 @@ export const DEFAULT_LIST_WATCH_RESULT: CustomWatchK8sResult<never | never[]> = 
 export const DEFAULT_LIST_FETCH_STATE: FetchStateObject<never[]> = {
   data: [],
   loaded: false,
-  refresh: () => undefined,
+  refresh: () => Promise.resolve(undefined),
 };
 
 export const DEFAULT_VALUE_FETCH_STATE: FetchStateObject<never | undefined> = {
   data: undefined,
   loaded: false,
-  refresh: () => undefined,
+  refresh: () => Promise.resolve(undefined),
 };
 
 export const DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE: ListWithNonDashboardPresence<never> = {
@@ -85,7 +85,7 @@ export const DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE: ListWithNonDashboardPrese
 };
 
 export const DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE_FETCH_STATE: FetchStateObject<
-  ListWithNonDashboardPresence<never>
+  ListWithNonDashboardPresence<never> | undefined
 > = {
   ...DEFAULT_VALUE_FETCH_STATE,
   data: DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE,
