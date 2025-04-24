@@ -33,17 +33,10 @@ rules:
   - apiGroups:
       - batch
     verbs:
-      - create
-      - delete
       - get
-      - list
-      - patch
       - update
-      - watch
     resources:
       - cronjobs
-      - jobs
-      - jobs/status
   - apiGroups:
       - image.openshift.io
     verbs:
@@ -58,16 +51,10 @@ rules:
   - apiGroups:
       - build.openshift.io
     verbs:
-      - get
       - list
-      - watch
-      - create
-      - patch
-      - delete
     resources:
       - builds
       - buildconfigs
-      - buildconfigs/instantiate
   - apiGroups:
       - apps
     verbs:
