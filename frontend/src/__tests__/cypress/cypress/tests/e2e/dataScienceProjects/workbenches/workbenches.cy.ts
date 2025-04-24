@@ -17,7 +17,7 @@ import {
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
-describe('[Automation Bug: RHOAIENG-24129] Workbench and PVSs tests', () => {
+describe('Workbench and PVSs tests', () => {
   let projectName: string;
   let PVCName: string;
   let PVCDisplayName: string;
@@ -75,7 +75,7 @@ describe('[Automation Bug: RHOAIENG-24129] Workbench and PVSs tests', () => {
 
   it(
     'Verify users can create a workbench and connect an existent PersistentVolume',
-    { tags: ['@Smoke', '@SmokeSet1', '@ODS-1814', '@Dashboard', '@Maintain'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@ODS-1814', '@Dashboard'] },
     () => {
       const workbenchName = projectName.replace('dsp-', '');
 
