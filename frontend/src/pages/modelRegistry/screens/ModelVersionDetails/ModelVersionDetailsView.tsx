@@ -141,11 +141,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
           >
             <InlineTruncatedClipboardCopy testId="model-version-id" textToCopy={mv.id} />
           </DashboardDescriptionListGroup>
-          {modelArtifact && (
-            <DashboardDescriptionListGroup title="Registered from">
-              <ModelVersionRegisteredFromLink modelArtifact={modelArtifact} />
-            </DashboardDescriptionListGroup>
-          )}
+          {modelArtifact && <ModelVersionRegisteredFromLink modelArtifact={modelArtifact} />}
         </DescriptionList>
 
         <Title style={{ margin: '1em 0' }} headingLevel={ContentVariants.h3}>
@@ -207,12 +203,12 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                   <>
                     <DashboardDescriptionListGroup
                       title="URI"
-                      isEmpty={!modelArtifact || !modelArtifact.uri}
+                      isEmpty={!modelArtifact?.uri}
                       contentWhenEmpty="No URI"
                     >
                       <InlineTruncatedClipboardCopy
                         testId="storage-uri"
-                        textToCopy={modelArtifact ? modelArtifact.uri || '' : ''}
+                        textToCopy={modelArtifact?.uri || ''}
                       />
                     </DashboardDescriptionListGroup>
                   </>
@@ -227,13 +223,13 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                 editableVariant="TextInput"
                 baseTestId="source-model-format"
                 isArchive={isArchiveVersion}
-                value={modelArtifact ? modelArtifact.modelFormatName || '' : ''}
+                value={modelArtifact?.modelFormatName || ''}
                 saveEditedValue={(value) =>
                   handleArtifactUpdate(
                     apiState.api.patchModelArtifact(
                       {},
                       { modelFormatName: value },
-                      modelArtifact ? modelArtifact.id || '' : '',
+                      modelArtifact?.id || '',
                     ),
                   )
                 }
@@ -243,14 +239,14 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
               <EditableTextDescriptionListGroup
                 editableVariant="TextInput"
                 baseTestId="source-model-version"
-                value={modelArtifact ? modelArtifact.modelFormatVersion || '' : ''}
+                value={modelArtifact?.modelFormatVersion || ''}
                 isArchive={isArchiveVersion}
                 saveEditedValue={(newVersion) =>
                   handleArtifactUpdate(
                     apiState.api.patchModelArtifact(
                       {},
                       { modelFormatVersion: newVersion },
-                      modelArtifact ? modelArtifact.id || '' : '',
+                      modelArtifact?.id || '',
                     ),
                   )
                 }

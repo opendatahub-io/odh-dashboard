@@ -25,11 +25,7 @@ import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import { modelVersionDetails } from '~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDetails';
 import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
 import { modelServingGlobal } from '~/__tests__/cypress/cypress/pages/modelServing';
-import {
-  ModelRegistryMetadataType,
-  ModelSourceKind,
-  ModelState,
-} from '~/concepts/modelRegistry/types';
+import { ModelRegistryMetadataType, ModelState } from '~/concepts/modelRegistry/types';
 import { KnownLabels } from '~/k8sTypes';
 import { asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 
@@ -37,11 +33,6 @@ const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 const mockModelVersions = mockModelVersion({
   id: '1',
   name: 'Version 1',
-  modelSourceKind: ModelSourceKind.CATALOG,
-  modelSourceClass: 'test-catalog-source',
-  modelSourceGroup: 'test-catalog-repo',
-  modelSourceName: 'test-catalog-model',
-  modelSourceId: 'test-catalog-tag',
   customProperties: {
     a1: {
       metadataType: ModelRegistryMetadataType.STRING,
@@ -196,10 +187,6 @@ const initIntercepts = (isEmptyProject = false) => {
           name: 'Version 1',
           author: 'Author 1',
           registeredModelId: '1',
-          modelSourceKind: ModelSourceKind.DSP,
-          modelSourceGroup: 'test-project',
-          modelSourceId: 'pipelinerun1',
-          modelSourceName: 'pipeline-run-test',
         }),
         mockModelVersion({
           author: 'Author 2',

@@ -106,15 +106,8 @@ const RegisterCatalogModel: React.FC = () => {
       setData('modelLocationURI', model.artifacts?.map((artifact) => artifact.uri)[0] || '');
       setData('modelRegistry', preferredModelRegistry?.metadata.name || '');
 
-      // Use the utility function to convert catalog params to model source properties
       const sourceProperties = catalogParamsToModelSourceProperties(decodedParams);
-      // Set additional artifact properties in one object
-      setData('additionalArtifactProperties', {
-        ...sourceProperties,
-        modelSourceName: model.name,
-        modelSourceId:
-          model.artifacts?.map((artifact) => artifact.tags && artifact.tags[0])[0] ?? '',
-      });
+      setData('additionalArtifactProperties', sourceProperties);
 
       setData('modelCustomProperties', labels);
       setData('versionCustomProperties', {

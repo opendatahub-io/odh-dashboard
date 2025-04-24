@@ -100,7 +100,9 @@ export const getCustomPropString = <
   return '';
 };
 
-export const getCatalogModelDetailsProps = (artifact: ModelArtifact): CatalogModelDetailsParams => {
+export const getCatalogModelDetailsProps = (
+  artifact: ModelArtifact,
+): CatalogModelDetailsParams | null => {
   // Check for modelSource* properties using the new standardized approach
   if (artifact.modelSourceKind === ModelSourceKind.CATALOG && artifact.modelSourceName) {
     return {
@@ -110,14 +112,7 @@ export const getCatalogModelDetailsProps = (artifact: ModelArtifact): CatalogMod
       tag: artifact.modelSourceId || '',
     };
   }
-
-  // Return empty values if no valid catalog information is available
-  return {
-    sourceName: '',
-    repositoryName: '',
-    modelName: '',
-    tag: '',
-  };
+  return null;
 };
 
 export const filterModelVersions = (
@@ -136,12 +131,12 @@ export const filterModelVersions = (
       case SearchType.KEYWORD:
         return (
           mv.name.toLowerCase().includes(searchLower) ||
-          mv.description?.toLowerCase().includes(searchLower) ||
+          (mv.description && mv.description.toLowerCase().includes(searchLower)) ||
           getLabels(mv.customProperties).some((label) => label.toLowerCase().includes(searchLower))
         );
 
       case SearchType.AUTHOR: {
-        return mv.author?.toLowerCase().includes(searchLower) || false;
+        return mv.author && mv.author.toLowerCase().includes(searchLower);
       }
 
       default:
@@ -175,13 +170,13 @@ export const filterRegisteredModels = (
       case SearchType.KEYWORD: {
         const matchesModel =
           rm.name.toLowerCase().includes(searchLower) ||
-          rm.description?.toLowerCase().includes(searchLower) ||
+          (rm.description && rm.description.toLowerCase().includes(searchLower)) ||
           getLabels(rm.customProperties).some((label) => label.toLowerCase().includes(searchLower));
 
         const matchesVersion = modelVersions.some(
           (mv: ModelVersion) =>
             mv.name.toLowerCase().includes(searchLower) ||
-            mv.description?.toLowerCase().includes(searchLower) ||
+            (mv.description && mv.description.toLowerCase().includes(searchLower)) ||
             getLabels(mv.customProperties).some((label) =>
               label.toLowerCase().includes(searchLower),
             ),
@@ -190,7 +185,7 @@ export const filterRegisteredModels = (
         return matchesModel || matchesVersion;
       }
       case SearchType.OWNER: {
-        return rm.owner?.toLowerCase().includes(searchLower) || false;
+        return rm.owner && rm.owner.toLowerCase().includes(searchLower);
       }
 
       default:

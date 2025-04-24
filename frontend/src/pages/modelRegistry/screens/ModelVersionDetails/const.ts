@@ -1,3 +1,5 @@
+import { PipelineRunReference } from '~/concepts/modelRegistry/types';
+
 export enum ModelVersionDetailsTab {
   DETAILS = 'details',
   DEPLOYMENTS = 'deployments',
@@ -9,10 +11,6 @@ export enum ModelVersionDetailsTabTitle {
 }
 
 export type ModelVersionPipelineDescriptionProps = {
-  sourceInfo: {
-    project: string;
-    runId: string;
-    runName: string;
-  };
+  sourceInfo: PipelineRunReference;
   catalogModelUrl?: string;
 };

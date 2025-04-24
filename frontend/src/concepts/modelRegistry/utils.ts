@@ -8,7 +8,14 @@ import {
   ModelServingCompatibleTypes,
 } from '~/concepts/connectionTypes/utils';
 import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
-import { ModelVersion, ModelState, RegisteredModel, ModelSourceKind } from './types';
+import {
+  ModelVersion,
+  ModelState,
+  RegisteredModel,
+  ModelSourceKind,
+  ModelSourceProperties,
+  PipelineRunReference,
+} from './types';
 
 export type ObjectStorageFields = {
   endpoint: string;
@@ -117,46 +124,38 @@ export const filterLiveModels = (registeredModels: RegisteredModel[]): Registere
 
 /**
  * Converts model source properties to catalog parameters
- * @param modelSourceKind - The kind of model source
- * @param modelSourceClass - The class of model source (maps to catalog source name)
- * @param modelSourceGroup - The group of model source (maps to catalog repository name)
- * @param modelSourceName - The name of model source (maps to catalog model name)
- * @param modelSourceId - The ID of model source (maps to catalog model tag)
- * @returns CatalogModelDetailsParams object or null if not a catalog source
+ * @param properties - The model source properties
+ * @returns CatalogModelDetailsParams object or null if not a catalog source or if required properties are missing
  */
 export const modelSourcePropertiesToCatalogParams = (
-  modelSourceKind?: string,
-  modelSourceClass?: string,
-  modelSourceGroup?: string,
-  modelSourceName?: string,
-  modelSourceId?: string,
+  properties: ModelSourceProperties,
 ): CatalogModelDetailsParams | null => {
-  if (modelSourceKind !== ModelSourceKind.CATALOG) {
+  if (
+    properties.modelSourceKind !== ModelSourceKind.CATALOG ||
+    !properties.modelSourceClass ||
+    !properties.modelSourceGroup ||
+    !properties.modelSourceName ||
+    !properties.modelSourceId
+  ) {
     return null;
   }
 
   return {
-    sourceName: modelSourceClass || '',
-    repositoryName: modelSourceGroup || 'default',
-    modelName: modelSourceName || '',
-    tag: modelSourceId || '',
+    sourceName: properties.modelSourceClass,
+    repositoryName: properties.modelSourceGroup,
+    modelName: properties.modelSourceName,
+    tag: properties.modelSourceId,
   };
 };
 
 /**
  * Converts catalog parameters to model source properties
  * @param params - The catalog model details parameters
- * @returns Object containing model source properties
+ * @returns ModelSourceProperties object
  */
 export const catalogParamsToModelSourceProperties = (
   params: CatalogModelDetailsParams,
-): {
-  modelSourceKind: ModelSourceKind;
-  modelSourceClass?: string;
-  modelSourceGroup?: string;
-  modelSourceName?: string;
-  modelSourceId?: string;
-} => ({
+): ModelSourceProperties => ({
   modelSourceKind: ModelSourceKind.CATALOG,
   modelSourceClass: params.sourceName,
   modelSourceGroup: params.repositoryName,
@@ -166,28 +165,24 @@ export const catalogParamsToModelSourceProperties = (
 
 /**
  * Converts model source properties to pipeline run reference
- * @param modelSourceKind - The kind of model source
- * @param modelSourceGroup - The group of model source (project name)
- * @param modelSourceId - The ID of model source (run ID)
- * @param modelSourceName - The name of model source (run name)
- * @returns PipelineRunRef object or null if not a DSP source
+ * @param properties - The model source properties
+ * @returns PipelineRunReference object or null if not a DSP source or if required properties are missing
  */
 export const modelSourcePropertiesToPipelineRunRef = (
-  modelSourceKind?: string,
-  modelSourceGroup?: string,
-  modelSourceId?: string,
-  modelSourceName?: string,
-): { project: string; runId: string; runName: string } | null => {
-  if (modelSourceKind !== ModelSourceKind.DSP) {
-    // For backward compatibility, also check if the fields exist without explicit DSP kind
-    if (!modelSourceGroup || !modelSourceId || !modelSourceName) {
-      return null;
-    }
+  properties: ModelSourceProperties,
+): PipelineRunReference | null => {
+  if (
+    properties.modelSourceKind !== ModelSourceKind.DSP ||
+    !properties.modelSourceGroup ||
+    !properties.modelSourceId ||
+    !properties.modelSourceName
+  ) {
+    return null;
   }
 
   return {
-    project: modelSourceGroup || '',
-    runId: modelSourceId || '',
-    runName: modelSourceName || '',
+    project: properties.modelSourceGroup,
+    runId: properties.modelSourceId,
+    runName: properties.modelSourceName,
   };
 };

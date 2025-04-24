@@ -6,7 +6,6 @@ import {
   ModelVersion,
   RegisteredModel,
   RegisteredModelList,
-  ModelRegistryCustomProperties,
 } from '~/concepts/modelRegistry/types';
 import { ModelRegistryAPIState } from '~/concepts/modelRegistry/context/useModelRegistryAPIState';
 import { objectStorageFieldsToUri } from '~/concepts/modelRegistry/utils';
@@ -103,12 +102,10 @@ export const registerVersion = async (
   }
 
   try {
-    const artifactCustomProperties: ModelRegistryCustomProperties = {};
-
     const artifactData: CreateModelArtifactData = {
       name: `${formData.versionName}`,
       description: formData.versionDescription,
-      customProperties: artifactCustomProperties,
+      customProperties: {},
       state: ModelArtifactState.LIVE,
       author,
       modelFormatName: formData.sourceModelFormat,
