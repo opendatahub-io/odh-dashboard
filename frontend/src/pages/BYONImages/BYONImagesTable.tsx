@@ -39,10 +39,6 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, refres
     [images, filterData],
   );
 
-  const resetFilters = () => {
-    setFilterData(initialBYONImagesFilterData);
-  };
-
   const [editImage, setEditImage] = React.useState<BYONImage>();
   const [deleteImage, setDeleteImage] = React.useState<BYONImage>();
 
@@ -78,7 +74,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, refres
             : columns.filter((column) => column.field !== 'recommendedHardwareProfiles')
         }
         defaultSortColumn={1}
-        emptyTableView={<DashboardEmptyTableView onClearFilters={resetFilters} />}
+        emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
         disableRowRenderSupport
         rowRenderer={(image, index) => (
           <BYONImagesTableRow

@@ -56,10 +56,6 @@ const AcceleratorProfilesTable: React.FC<AcceleratorProfilesTableProps> = ({
     [setFilterData],
   );
 
-  const resetFilters = () => {
-    setFilterData(initialAcceleratorProfilesFilterData);
-  };
-
   return (
     <>
       <Table
@@ -68,7 +64,7 @@ const AcceleratorProfilesTable: React.FC<AcceleratorProfilesTableProps> = ({
         enablePagination
         data={filteredAcceleratorProfiles}
         columns={columns}
-        emptyTableView={<DashboardEmptyTableView onClearFilters={resetFilters} />}
+        emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
         rowRenderer={(cr) => (
           <AcceleratorProfilesTableRow
             key={cr.metadata.name}

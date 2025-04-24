@@ -52,10 +52,6 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
     [projects, filterData, unfilteredInferenceServices],
   );
 
-  const resetFilters = () => {
-    setFilterData(initialModelServingFilterData);
-  };
-
   const onFilterUpdate = React.useCallback(
     (key: string, value: string | { label: string; value: string } | undefined) =>
       setFilterData((prevValues) => ({ ...prevValues, [key]: value })),
@@ -65,7 +61,7 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
   return (
     <InferenceServiceTable
       isGlobal
-      clearFilters={resetFilters}
+      clearFilters={onClearFilters}
       servingRuntimes={servingRuntimes}
       inferenceServices={filteredInferenceServices}
       refresh={() => {
