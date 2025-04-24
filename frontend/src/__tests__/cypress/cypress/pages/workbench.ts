@@ -161,7 +161,7 @@ class NotebookImageUpdateModal {
 
 class NotebookRow extends TableRow {
   shouldHaveNotebookImageName(name: string) {
-    this.find().find(`[data-label="Workbench image"]`).find('span').should('have.text', name);
+    this.find().findByTestId('image-display-name').find('span').should('have.text', name);
     return this;
   }
 
