@@ -1,0 +1,56 @@
+import useFetch, {
+  AdHocUpdate,
+  FetchOptions,
+  FetchStateCallbackPromise,
+  FetchStateRefreshPromise,
+} from './useFetch';
+
+// This file is a deprecated wrapper and needs to export everything the useFetchState file used to.
+// We need to disable the barrel file lint rule until all imports move to the new file.
+// See deprecation comments on useFetchState below.
+/* eslint-disable no-barrel-files/no-barrel-files */
+export {
+  NotReadyError,
+  isCommonStateError,
+  FetchStateRefreshPromise,
+  AdHocUpdate,
+  FetchStateCallbackPromise,
+  FetchStateCallbackPromiseAdHoc,
+  FetchOptions,
+} from './useFetch';
+
+/**
+ * @deprecated Use FetchStateObject from useFetch instead. This type will be removed in a future version.
+ */
+export type FetchState<Type> = [
+  data: Type,
+  loaded: boolean,
+  loadError: Error | undefined,
+  /** This promise should never throw to the .catch */
+  refresh: FetchStateRefreshPromise<Type>,
+];
+
+/**
+ * @deprecated Use useFetch instead. This function will be removed in a future version.
+ * useFetchState has been renamed to useFetch and changed to return an object instead of an array.
+ * This useFetchState is a new deprecated wrapper that matches the old type signature.
+ */
+export const useFetchState = <Type>(
+  /** React.useCallback result. */
+  fetchCallbackPromise: FetchStateCallbackPromise<Type | AdHocUpdate<Type>>,
+  /**
+   * A preferred default states - this is ignored after the first render
+   * Note: This is only read as initial value; changes do nothing.
+   */
+  initialDefaultState: Type,
+  /** Configurable features */
+  { refreshRate = 0, initialPromisePurity = false }: Partial<FetchOptions> = {},
+): FetchState<Type> => {
+  const { data, loaded, error, refresh } = useFetch(fetchCallbackPromise, initialDefaultState, {
+    refreshRate,
+    initialPromisePurity,
+  });
+  return [data, loaded, error, refresh];
+};
+
+export default useFetchState;

@@ -21,7 +21,8 @@ import {
   DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE_FETCH_STATE,
   POLL_INTERVAL,
 } from '~/utilities/const';
-import { CustomWatchK8sResult, FetchStateObject, ListWithNonDashboardPresence } from '~/types';
+import { CustomWatchK8sResult, ListWithNonDashboardPresence } from '~/types';
+import { FetchStateObject } from '~/utilities/useFetch';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import { useDashboardNamespace } from '~/redux/selectors';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
