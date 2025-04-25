@@ -1,4 +1,6 @@
 import type { DataScienceProjectData, DashboardConfig } from '~/__tests__/cypress/cypress/types';
+// eslint-disable-next-line no-restricted-syntax
+import { DEFAULT_PVC_SIZE } from '~/pages/clusterSettings/const';
 import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
@@ -29,6 +31,16 @@ describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
     cy.getDashboardConfig().then((config) => {
       dashboardConfig = config as DashboardConfig;
       cy.log('Dashboard Config:', JSON.stringify(dashboardConfig, null, 2));
+
+      // If PVC size is not set, use the default value
+      if (!dashboardConfig.notebookController.pvcSize) {
+        dashboardConfig.notebookController = {
+          ...dashboardConfig.notebookController,
+          pvcSize: `${DEFAULT_PVC_SIZE}Gi`,
+        };
+        cy.log('Using default PVC size:', DEFAULT_PVC_SIZE);
+      }
+
       const { pvcSize } = dashboardConfig.notebookController;
       cy.log(`Value of PVC Size: ${String(pvcSize)}`);
     });

@@ -181,6 +181,8 @@ Tests are parameterized using tags and applied to the 'it' block:
 * `Dashboard/NIM etc.`: High-Level Team
 * `Workbenches/Pipelines etc.`: Functional Area
 * `Destructive`: Tests that have the potential to break other tests (changing configuration etc.) 
+* `Bug`: Tests that are currently failing due to a Product Bug
+* `Maintain`: Tests that are currently failing and require maintenance 
 
 **Usage in tests:**
 ```javascript
