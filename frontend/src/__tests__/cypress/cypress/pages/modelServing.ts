@@ -133,6 +133,10 @@ class InferenceServiceModal extends Modal {
     return this.k8sNameDescription.findDisplayNameInput();
   }
 
+  findSpinner() {
+    return this.find().findByTestId('spinner');
+  }
+
   findServingRuntimeSelect() {
     return this.find().findByTestId('inference-service-model-selection');
   }
