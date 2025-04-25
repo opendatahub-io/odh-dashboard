@@ -11,6 +11,11 @@ export enum InferenceServiceState {
   UNDEPLOYED = 'UNDEPLOYED',
 }
 
+export enum ModelSourceKind {
+  CATALOG = 'catalog',
+  DSP = 'dsp',
+}
+
 export enum ExecutionState {
   UNKNOWN = 'UNKNOWN',
   NEW = 'NEW',
@@ -92,18 +97,33 @@ export type ModelRegistryBase = {
   customProperties: ModelRegistryCustomProperties;
 };
 
-export type ModelArtifact = ModelRegistryBase & {
-  uri?: string;
-  state?: ModelArtifactState;
-  author?: string;
-  modelFormatName?: string;
-  storageKey?: string;
-  storagePath?: string;
-  modelFormatVersion?: string;
-  serviceAccountName?: string;
-  modelLocationType?: ModelLocationType;
-  artifactType: string;
+export type PipelineRunReference = {
+  project: string;
+  runId: string;
+  runName: string;
 };
+
+export type ModelSourceProperties = {
+  modelSourceKind?: ModelSourceKind;
+  modelSourceClass?: string;
+  modelSourceGroup?: string;
+  modelSourceName?: string;
+  modelSourceId?: string;
+};
+
+export type ModelArtifact = ModelRegistryBase &
+  ModelSourceProperties & {
+    uri?: string;
+    state?: ModelArtifactState;
+    author?: string;
+    modelFormatName?: string;
+    storageKey?: string;
+    storagePath?: string;
+    modelFormatVersion?: string;
+    serviceAccountName?: string;
+    modelLocationType?: ModelLocationType;
+    artifactType: string;
+  };
 
 export type ModelVersion = ModelRegistryBase & {
   state?: ModelState;

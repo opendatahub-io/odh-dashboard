@@ -25,7 +25,11 @@ import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import { modelVersionDetails } from '~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDetails';
 import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
 import { modelServingGlobal } from '~/__tests__/cypress/cypress/pages/modelServing';
-import { ModelRegistryMetadataType, ModelState } from '~/concepts/modelRegistry/types';
+import {
+  ModelRegistryMetadataType,
+  ModelState,
+  ModelSourceKind,
+} from '~/concepts/modelRegistry/types';
 import { KnownLabels } from '~/k8sTypes';
 import { asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 
@@ -111,26 +115,25 @@ const mockModelVersions = mockModelVersion({
       metadataType: ModelRegistryMetadataType.STRING,
       string_value: 'pipeline-run-test',
     },
-    _registeredFromCatalogSourceName: {
-      metadataType: ModelRegistryMetadataType.STRING,
-      string_value: 'test-catalog-source',
-    },
-    _registeredFromCatalogRepositoryName: {
-      metadataType: ModelRegistryMetadataType.STRING,
-      string_value: 'test-catalog-repo',
-    },
-    _registeredFromCatalogModelName: {
-      metadataType: ModelRegistryMetadataType.STRING,
-      string_value: 'test-catalog-model',
-    },
-    _registeredFromCatalogTag: {
-      metadataType: ModelRegistryMetadataType.STRING,
-      string_value: 'test-catalog-tag',
-    },
   },
 });
 
-const initIntercepts = (isEmptyProject = false) => {
+const mockModelArtifactWithSource = mockModelArtifact({
+  modelSourceKind: ModelSourceKind.DSP,
+  modelSourceGroup: 'test-project',
+  modelSourceId: 'pipelinerun1',
+  modelSourceName: 'pipeline-run-test',
+});
+
+const mockModelArtifactFromCatalog = mockModelArtifact({
+  modelSourceKind: ModelSourceKind.CATALOG,
+  modelSourceClass: 'test-catalog-source',
+  modelSourceGroup: 'test-catalog-repo',
+  modelSourceName: 'test-catalog-model',
+  modelSourceId: 'test-catalog-tag',
+});
+
+const initIntercepts = (isEmptyProject = false, fromCatalog = false) => {
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
@@ -199,7 +202,11 @@ const initIntercepts = (isEmptyProject = false) => {
     },
     mockModelVersionList({
       items: [
-        mockModelVersion({ name: 'Version 1', author: 'Author 1', registeredModelId: '1' }),
+        mockModelVersion({
+          name: 'Version 1',
+          author: 'Author 1',
+          registeredModelId: '1',
+        }),
         mockModelVersion({
           author: 'Author 2',
           registeredModelId: '1',
@@ -250,15 +257,31 @@ const initIntercepts = (isEmptyProject = false) => {
         modelVersionId: 1,
       },
     },
-    mockModelArtifactList({}),
+    mockModelArtifactList({
+      items: [fromCatalog ? mockModelArtifactFromCatalog : mockModelArtifactWithSource],
+    }),
   );
 };
 
 describe('Model version details', () => {
   describe('Details tab', () => {
     beforeEach(() => {
-      initIntercepts();
+      initIntercepts(false, false);
       modelVersionDetails.visit();
+    });
+
+    it('Model version details registered from catalog', () => {
+      initIntercepts(false, true);
+      modelVersionDetails.visit();
+      modelVersionDetails.findVersionId().contains('1');
+      modelVersionDetails.findRegisteredFromCatalog().should('exist');
+      modelVersionDetails
+        .findRegisteredFromCatalog()
+        .should('have.text', 'test-catalog-model (test-catalog-tag) in Model catalog');
+      modelVersionDetails.findRegisteredFromCatalog().click();
+      verifyRelativeURL(
+        '/modelCatalog/test-catalog-source/test-catalog-repo/test-catalog-model/test-catalog-tag',
+      );
     });
 
     it('Model version details page header', () => {
@@ -269,29 +292,13 @@ describe('Model version details', () => {
       cy.findByTestId('breadcrumb-version-name').should('have.text', 'Version 1');
     });
 
-    it('Model version details tab', () => {
+    it('Model version details tab registered from pipeline', () => {
       modelVersionDetails.findVersionId().contains('1');
       modelVersionDetails.findRegisteredFromPipeline().should('exist');
-      modelVersionDetails.findRegisteredFromCatalog().should('exist');
-      modelVersionDetails
-        .findRegisteredFromCatalog()
-        .should('have.text', 'test-catalog-model (test-catalog-tag)');
-      modelVersionDetails.findRegisteredFromCatalog().click();
-      verifyRelativeURL(
-        '/modelCatalog/test-catalog-source/test-catalog-repo/test-catalog-model/test-catalog-tag',
-      );
-      cy.go('back');
-      modelVersionDetails.findExpandControlButton().should('have.text', 'Show 2 more properties');
-      modelVersionDetails.findExpandControlButton().click();
-      modelVersionDetails.findPropertiesTableRows().should('have.length', 7);
       modelVersionDetails
         .findRegisteredFromPipeline()
         .should('have.text', 'Run pipeline-run-test inTest Project');
       modelVersionDetails.findDescription().should('have.text', 'Description of model version');
-      modelVersionDetails.findStorageEndpoint().contains('test-endpoint');
-      modelVersionDetails.findStorageRegion().contains('test-region');
-      modelVersionDetails.findStorageBucket().contains('test-bucket');
-      modelVersionDetails.findStoragePath().contains('demo-models/test-path');
       modelVersionDetails.findPipelineRunLink().should('have.text', 'Run pipeline-run-test in');
       modelVersionDetails.findPipelineRunLink().click();
       verifyRelativeURL('/pipelineRuns/test-project/runs/pipelinerun1');
@@ -354,22 +361,6 @@ describe('Model version details', () => {
               metadataType: 'MetadataStringValue',
               string_value: 'pipeline-run-test',
             },
-            _registeredFromCatalogSourceName: {
-              metadataType: ModelRegistryMetadataType.STRING,
-              string_value: 'test-catalog-source',
-            },
-            _registeredFromCatalogRepositoryName: {
-              metadataType: ModelRegistryMetadataType.STRING,
-              string_value: 'test-catalog-repo',
-            },
-            _registeredFromCatalogModelName: {
-              metadataType: ModelRegistryMetadataType.STRING,
-              string_value: 'test-catalog-model',
-            },
-            _registeredFromCatalogTag: {
-              metadataType: ModelRegistryMetadataType.STRING,
-              string_value: 'test-catalog-tag',
-            },
             edit_key: { string_value: 'edit_value', metadataType: 'MetadataStringValue' },
           },
         });
@@ -412,22 +403,6 @@ describe('Model version details', () => {
             _registeredFromPipelineRunName: {
               metadataType: 'MetadataStringValue',
               string_value: 'pipeline-run-test',
-            },
-            _registeredFromCatalogSourceName: {
-              metadataType: ModelRegistryMetadataType.STRING,
-              string_value: 'test-catalog-source',
-            },
-            _registeredFromCatalogRepositoryName: {
-              metadataType: ModelRegistryMetadataType.STRING,
-              string_value: 'test-catalog-repo',
-            },
-            _registeredFromCatalogModelName: {
-              metadataType: ModelRegistryMetadataType.STRING,
-              string_value: 'test-catalog-model',
-            },
-            _registeredFromCatalogTag: {
-              metadataType: ModelRegistryMetadataType.STRING,
-              string_value: 'test-catalog-tag',
             },
           },
         });

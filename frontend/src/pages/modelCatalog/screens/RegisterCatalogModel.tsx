@@ -1,7 +1,6 @@
 import {
   Breadcrumb,
   BreadcrumbItem,
-  capitalize,
   Form,
   FormGroup,
   FormHelperText,
@@ -42,14 +41,12 @@ import {
   findModelFromModelCatalogSources,
   getTagFromModel,
 } from '~/pages/modelCatalog/utils';
-import {
-  ModelRegistryCustomProperties,
-  ModelRegistryMetadataType,
-} from '~/concepts/modelRegistry/types';
+import { ModelRegistryMetadataType } from '~/concepts/modelRegistry/types';
 import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegisteredModels';
+import { catalogParamsToModelSourceProperties } from '~/concepts/modelRegistry/utils';
 
 const RegisterCatalogModel: React.FC = () => {
   const navigate = useNavigate();
@@ -109,24 +106,12 @@ const RegisterCatalogModel: React.FC = () => {
       setData('modelLocationURI', model.artifacts?.map((artifact) => artifact.uri)[0] || '');
       setData('modelRegistry', preferredModelRegistry?.metadata.name || '');
 
-      const registeredFromReferenceCustomProperties: ModelRegistryCustomProperties = Object.entries(
-        decodedParams,
-      )
-        .filter(([key]) => /^\w+$/.test(key))
-        .reduce((acc: ModelRegistryCustomProperties, [key, value]) => {
-          if (typeof value === 'string') {
-            acc[`_registeredFromCatalog${capitalize(key)}`] = {
-              // eslint-disable-next-line camelcase
-              string_value: value,
-              metadataType: ModelRegistryMetadataType.STRING,
-            };
-          }
-          return acc;
-        }, {});
+      const sourceProperties = catalogParamsToModelSourceProperties(decodedParams);
+      setData('additionalArtifactProperties', sourceProperties);
+
       setData('modelCustomProperties', labels);
       setData('versionCustomProperties', {
         ...labels,
-        ...registeredFromReferenceCustomProperties,
         License: {
           // eslint-disable-next-line camelcase
           string_value: model.licenseLink || '',

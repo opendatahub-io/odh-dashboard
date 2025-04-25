@@ -9,8 +9,16 @@ import {
   objectStorageFieldsToUri,
   uriToConnectionTypeName,
   uriToModelLocation,
+  modelSourcePropertiesToCatalogParams,
+  catalogParamsToModelSourceProperties,
+  modelSourcePropertiesToPipelineRunRef,
 } from '~/concepts/modelRegistry/utils';
-import { RegisteredModel, ModelState, ModelVersion } from '~/concepts/modelRegistry/types';
+import {
+  RegisteredModel,
+  ModelState,
+  ModelVersion,
+  ModelSourceKind,
+} from '~/concepts/modelRegistry/types';
 
 describe('objectStorageFieldsToUri', () => {
   it('converts fields to URI with all fields present', () => {
@@ -277,5 +285,99 @@ describe('Filter model version state', () => {
       const result = filterLiveVersions([]);
       expect(result).toEqual([]);
     });
+  });
+});
+
+describe('modelSourcePropertiesToCatalogParams', () => {
+  it('should convert valid catalog source properties', () => {
+    const properties = {
+      modelSourceKind: ModelSourceKind.CATALOG,
+      modelSourceClass: 'class1',
+      modelSourceGroup: 'group1',
+      modelSourceName: 'name1',
+      modelSourceId: 'id1',
+    };
+    expect(modelSourcePropertiesToCatalogParams(properties)).toEqual({
+      sourceName: 'class1',
+      repositoryName: 'group1',
+      modelName: 'name1',
+      tag: 'id1',
+    });
+  });
+
+  it('should return null for non-catalog source', () => {
+    const properties = {
+      modelSourceKind: ModelSourceKind.DSP,
+      modelSourceClass: 'class1',
+      modelSourceGroup: 'group1',
+      modelSourceName: 'name1',
+      modelSourceId: 'id1',
+    };
+    expect(modelSourcePropertiesToCatalogParams(properties)).toBeNull();
+  });
+
+  it('should return null if required properties are missing', () => {
+    const properties = {
+      modelSourceKind: ModelSourceKind.CATALOG,
+      modelSourceClass: 'class1',
+      // missing modelSourceGroup
+      modelSourceName: 'name1',
+      modelSourceId: 'id1',
+    };
+    expect(modelSourcePropertiesToCatalogParams(properties)).toBeNull();
+  });
+});
+
+describe('catalogParamsToModelSourceProperties', () => {
+  it('should convert catalog params to source properties', () => {
+    const params = {
+      sourceName: 'class1',
+      repositoryName: 'group1',
+      modelName: 'name1',
+      tag: 'id1',
+    };
+    expect(catalogParamsToModelSourceProperties(params)).toEqual({
+      modelSourceKind: ModelSourceKind.CATALOG,
+      modelSourceClass: 'class1',
+      modelSourceGroup: 'group1',
+      modelSourceName: 'name1',
+      modelSourceId: 'id1',
+    });
+  });
+});
+
+describe('modelSourcePropertiesToPipelineRunRef', () => {
+  it('should convert valid DSP source properties', () => {
+    const properties = {
+      modelSourceKind: ModelSourceKind.DSP,
+      modelSourceGroup: 'project1',
+      modelSourceId: 'run1',
+      modelSourceName: 'name1',
+    };
+    expect(modelSourcePropertiesToPipelineRunRef(properties)).toEqual({
+      project: 'project1',
+      runId: 'run1',
+      runName: 'name1',
+    });
+  });
+
+  it('should return null for non-DSP source', () => {
+    const properties = {
+      modelSourceKind: ModelSourceKind.CATALOG,
+      modelSourceGroup: 'project1',
+      modelSourceId: 'run1',
+      modelSourceName: 'name1',
+    };
+    expect(modelSourcePropertiesToPipelineRunRef(properties)).toBeNull();
+  });
+
+  it('should return null if required properties are missing', () => {
+    const properties = {
+      modelSourceKind: ModelSourceKind.DSP,
+      modelSourceGroup: 'project1',
+      // missing modelSourceId
+      modelSourceName: 'name1',
+    };
+    expect(modelSourcePropertiesToPipelineRunRef(properties)).toBeNull();
   });
 });
