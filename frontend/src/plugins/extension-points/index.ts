@@ -1,4 +1,6 @@
-import type { AnyObject, CodeRef } from '@openshift/dynamic-plugin-sdk';
+import type { AnyObject, CodeRef, Extension } from '@openshift/dynamic-plugin-sdk';
+import * as React from 'react';
+import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
 
 export type ComponentCodeRef<Props = AnyObject> = CodeRef<{ default: React.ComponentType<Props> }>;
 
@@ -11,15 +13,15 @@ export type ComponentCodeRef<Props = AnyObject> = CodeRef<{ default: React.Compo
  * Re-export all extension point types and functions in this file.
 /**
  * Extension Point Naming Convention
- * 
+ *
  * When creating a new extension point, follow this format:
  * `namespace.section/sub-section`
- * 
+ *
  * Where:
  * - namespace: The application or plugin context identifier
  * - section: Describes the primary purpose of the extension point
  * - sub-section: Optional additional categorization for like extension points
- * 
+ *
  * Example:
  * `app.table/column` - Add a table column
  */
@@ -34,3 +36,24 @@ export type ComponentCodeRef<Props = AnyObject> = CodeRef<{ default: React.Compo
 // >;
 // export const isTabExtension = (extension: Extension): extension is TabExtension =>
 //   extension.type === 'app.tab';
+
+export type ProjectDetailsTab = Extension<
+  'app.project-details/tab',
+  {
+    label: string;
+    tabId: string;
+    content: ComponentCodeRef<
+      Pick<React.ComponentProps<typeof DetailsSection>, 'objectType' | 'id' | 'title'>
+    >;
+    /**
+     * Importance / order weight.
+     *
+     * Overview = Infinity
+     * ... ideally some value in between ...
+     * Settings = -Infinity
+     */
+    weight?: number;
+  }
+>;
+export const isProjectDetailsTab = (extension: Extension): extension is ProjectDetailsTab =>
+  extension.type === 'app.project-details/tab';

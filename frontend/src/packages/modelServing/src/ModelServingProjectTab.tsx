@@ -15,15 +15,22 @@ import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconBut
 import DetailsSection from '~/pages/projects/screens/detail/DetailsSection'; // TODO: pages import is weird
 import EmptyDetailsView from '~/components/EmptyDetailsView';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
-import EmptyModelServingPlatform from '~/concepts/modelServing/shared/EmptyModelServingPlatform';
-import { ModelServingContext } from '~/concepts/modelServing/foundation/ModelServingContext';
-import useDetermineProjectServingPlatform from '~/concepts/modelServing/foundation/useDetermineProjectServingPlatform';
-import { ServingLabel, ProjectEnableCards } from '~/concepts/modelServing/platforms/exports';
-import useAvailableServingPlatforms from '~/concepts/modelServing/foundation/useAvailableServingPlatforms';
-import { trimForActiveServing } from '~/concepts/modelServing/foundation/utils';
-import ModelServingPlatformSelectButton from '~/concepts/modelServing/shared/ModelServingPlatformSelectButton';
-import ModelServingPlatformSelectErrorAlert from '~/concepts/modelServing/shared/ModelServingPlatformSelectErrorAlert';
+import EmptyModelServingPlatform from '~/packages/modelServing/src/components/EmptyModelServingPlatform';
+import { ModelServingContext } from '~/packages/modelServing/src/ModelServingContext';
+import useDetermineProjectServingPlatform from '~/packages/modelServing/src/useDetermineProjectServingPlatform';
+import useAvailableServingPlatforms from '~/packages/modelServing/src/useAvailableServingPlatforms';
+import { trimForActiveServing } from '~/packages/modelServing/src/utils';
+import ModelServingPlatformSelectButton from '~/packages/modelServing/src/components/ModelServingPlatformSelectButton';
+import ModelServingPlatformSelectErrorAlert from '~/packages/modelServing/src/components/ModelServingPlatformSelectErrorAlert';
 import { NamespaceApplicationCase } from '~/concepts/projects/const';
+import { useExtensions } from '~/plugins/useExtensions';
+import {
+  isServingLabel,
+  isServingPlatformSelectionCard,
+  ServingPlatformSelectionCard,
+} from '~/packages/modelServing/extension-points';
+import ServingTypeLabel from '~/packages/modelServing/src/components/ServingTypeLabel';
+import EmptyPlatformServingCard from '~/packages/modelServing/src/components/EmptyPlatformServingCard';
 
 type ModelServingProjectTabProps = Pick<
   React.ComponentProps<typeof DetailsSection>,
@@ -48,9 +55,19 @@ const ModelServingProjectTab: React.FC<ModelServingProjectTabProps> = ({
 
   const availableServingPlatforms = useAvailableServingPlatforms();
   const servingPlatform = useDetermineProjectServingPlatform(project);
-  const ServingPlatformLabel = servingPlatform ? ServingLabel[servingPlatform] : null;
-  const SelectServingCards = trimForActiveServing(ProjectEnableCards, availableServingPlatforms);
 
+  const servingLabelExtensions = useExtensions(isServingLabel);
+  const servingPlatformLabel = servingLabelExtensions.find(
+    ({ properties: { servingId } }) => servingId === servingPlatform,
+  );
+
+  const platformEnableCardExtensions = useExtensions(isServingPlatformSelectionCard);
+  const activePlatformEnableCardExtensions = trimForActiveServing<ServingPlatformSelectionCard>(
+    platformEnableCardExtensions,
+    availableServingPlatforms,
+  );
+
+  // eslint-disable-next-line
   console.debug(
     'Data',
     '\n\tavailableServingPlatforms',
@@ -155,7 +172,7 @@ const ModelServingProjectTab: React.FC<ModelServingProjectTabProps> = ({
         isEmpty={shouldShowPlatformSelection}
         loadError={servingRuntimeError || templateError}
         emptyState={
-          SelectServingCards.length > 1 ? (
+          activePlatformEnableCardExtensions.length > 1 ? (
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapLg' }}>
               <FlexItem
                 flex={{ default: 'flex_1' }}
@@ -177,13 +194,15 @@ const ModelServingProjectTab: React.FC<ModelServingProjectTabProps> = ({
                   </StackItem>
                   <StackItem>
                     <Gallery hasGutter>
-                      {SelectServingCards.map((ServingCard, idx) => (
+                      {activePlatformEnableCardExtensions.map(({ properties: props }, idx) => (
                         <GalleryItem key={idx}>
-                          <ServingCard
+                          <EmptyPlatformServingCard
+                            title={props.title}
+                            description={props.description}
                             resetButton={
                               <ModelServingPlatformSelectButton
                                 namespace={project.metadata.name}
-                                servingPlatform={NamespaceApplicationCase.KSERVE_PROMOTION}
+                                servingPlatform={props.promotionKey}
                                 setError={setErrorSelectingPlatform}
                                 variant="secondary"
                                 data-testid="single-serving-select-button"
@@ -218,10 +237,10 @@ const ModelServingProjectTab: React.FC<ModelServingProjectTabProps> = ({
           )
         }
         labels={
-          ServingPlatformLabel
+          servingPlatformLabel
             ? [
                 <Flex gap={{ default: 'gapSm' }} key="serving-platform-label">
-                  <ServingPlatformLabel />
+                  <ServingTypeLabel text={servingPlatformLabel.properties.text} />
 
                   {emptyModelServer && availableServingPlatforms.length > 1 && (
                     <ModelServingPlatformSelectButton

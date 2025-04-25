@@ -1,5 +1,0 @@
-- Model Serving foundation items
-- Understands generic concept points
-    - which serving is selected (Context)
-- Understands nothing serving-type related as first-class
-    - Imports concepts from platforms/export generically

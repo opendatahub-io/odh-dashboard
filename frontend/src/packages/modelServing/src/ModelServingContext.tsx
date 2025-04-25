@@ -10,7 +10,7 @@ import useNamespaces from '~/pages/notebookController/useNamespaces';
 import { DEFAULT_CONTEXT_DATA, DEFAULT_LIST_WATCH_RESULT } from '~/utilities/const';
 import { ContextResourceData, CustomWatchK8sResult } from '~/types';
 import { SupportedServingPlatform } from '~/concepts/modelServing/platforms/const';
-import useDetermineProjectServingPlatform from '~/concepts/modelServing/foundation/useDetermineProjectServingPlatform';
+import useDetermineProjectServingPlatform from '~/packages/modelServing/src/useDetermineProjectServingPlatform';
 
 type ModelServingContextType = {
   // Metadata
@@ -74,6 +74,8 @@ const ModelServingContextProvider: React.FC<ModelServingContextProviderProps> = 
     }),
     [
       inferenceServices,
+      project,
+      selectedServing,
       servingRuntimeTemplateDisablement,
       servingRuntimeTemplateOrder,
       servingRuntimeTemplates,
