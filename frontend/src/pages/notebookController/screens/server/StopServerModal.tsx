@@ -23,7 +23,7 @@ const StopServerModal: React.FC<StopServerModalProps> = ({ notebooksToStop, onNo
   }
 
   const hasMultipleServers = notebooksToStop.length > 1;
-  const textToShow = hasMultipleServers ? 'all servers' : 'server';
+  const textToShow = hasMultipleServers ? 'all workbenches' : 'workbench';
 
   const onClose = () => {
     onNotebooksStop(false);
@@ -62,8 +62,8 @@ const StopServerModal: React.FC<StopServerModalProps> = ({ notebooksToStop, onNo
 
   const modalActions = [
     <Button
-      data-id="stop-nb-button"
-      data-testid="stop-nb-server-button"
+      data-id="stop-workbench-button"
+      data-testid="stop-workbench-button"
       isDisabled={isDeleting}
       key="confirm"
       variant="primary"
@@ -78,7 +78,7 @@ const StopServerModal: React.FC<StopServerModalProps> = ({ notebooksToStop, onNo
 
   return (
     <Modal
-      aria-label="Stop server modal"
+      aria-label="Stop workbench modal"
       appendTo={document.body}
       variant={ModalVariant.small}
       title={`Stop ${textToShow}`}

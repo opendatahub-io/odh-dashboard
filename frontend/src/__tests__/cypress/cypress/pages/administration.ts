@@ -102,11 +102,11 @@ class AdministrationUsersRow extends TableRow {
 
 class StopNotebookModal extends Modal {
   constructor() {
-    super('Stop server modal Stop server');
+    super('Stop workbench modal Stop workbench');
   }
 
   findStopNotebookServerButton() {
-    return this.find().findByTestId('stop-nb-server-button');
+    return this.find().findByTestId('stop-workbench-button');
   }
 }
 

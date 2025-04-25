@@ -41,7 +41,7 @@ const NotebookServer: React.FC = () => {
     <>
       <ImpersonateAlert />
       <ApplicationsPage
-        title="Notebook server control panel"
+        title="Workbench control panel"
         description={null}
         loaded
         provideChildrenPadding
@@ -63,19 +63,23 @@ const NotebookServer: React.FC = () => {
                     if (link === '#') {
                       e.preventDefault();
                       notification.error(
-                        'Error accessing notebook server',
-                        'Failed to redirect page due to missing notebook URL, please try to refresh the page and try it again.',
+                        'Error accessing workbench',
+                        'Failed to redirect page due to missing workbench URL, please try to refresh the page and try it again.',
                       );
                     }
                   }}
                 >
                   <Button component="a" href={link} data-id="return-nb-button">
-                    Access notebook server
+                    Access workbench
                   </Button>
                 </ActionListItem>
                 <ActionListItem onClick={() => setNotebooksToStop([notebook])}>
-                  <Button data-id="stop-nb-button" data-testid="stop-nb-button" variant="secondary">
-                    Stop notebook server
+                  <Button
+                    data-id="stop-workbench-button"
+                    data-testid="stop-workbench-button"
+                    variant="secondary"
+                  >
+                    Stop workbench
                   </Button>
                 </ActionListItem>
               </ActionList>
