@@ -25,6 +25,7 @@ import AreaContextProvider from '~/concepts/areas/AreaContext';
 import { NimContextProvider } from '~/concepts/nimServing/NIMAvailabilityContext';
 import { NotificationWatcherContextProvider } from '~/concepts/notificationWatcher/NotificationWatcherContext';
 import { AccessReviewProvider } from '~/concepts/userSSAR';
+import { ExtensibilityContextProvider } from '~/plugins/ExtensibilityContext';
 import useDevFeatureFlags from './useDevFeatureFlags';
 import Header from './Header';
 import AppRoutes from './AppRoutes';
@@ -120,43 +121,45 @@ const App: React.FC = () => {
       ) : (
         <AppContext.Provider value={contextValue}>
           <AccessReviewProvider>
-            <Page
-              className="odh-dashboard"
-              isManagedSidebar
-              isContentFilled
-              masthead={
-                <Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />
-              }
-              sidebar={isAllowed ? <NavSidebar /> : undefined}
-              notificationDrawer={
-                <AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />
-              }
-              isNotificationDrawerExpanded={notificationsOpen}
-              mainContainerId={DASHBOARD_MAIN_CONTAINER_ID}
-              data-testid={DASHBOARD_MAIN_CONTAINER_ID}
-              banner={
-                <DevFeatureFlagsBanner
-                  dashboardConfig={dashboardConfig.spec.dashboardConfig}
-                  {...devFeatureFlagsProps}
-                />
-              }
-            >
-              <ErrorBoundary>
-                <NimContextProvider>
-                  <ProjectsContextProvider>
-                    <ModelRegistrySelectorContextProvider>
-                      <QuickStarts>
-                        <NotificationWatcherContextProvider>
-                          <AppRoutes />
-                        </NotificationWatcherContextProvider>
-                      </QuickStarts>
-                    </ModelRegistrySelectorContextProvider>
-                  </ProjectsContextProvider>
-                </NimContextProvider>
-                <ToastNotifications />
-                <TelemetrySetup />
-              </ErrorBoundary>
-            </Page>
+            <ExtensibilityContextProvider>
+              <Page
+                className="odh-dashboard"
+                isManagedSidebar
+                isContentFilled
+                masthead={
+                  <Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />
+                }
+                sidebar={isAllowed ? <NavSidebar /> : undefined}
+                notificationDrawer={
+                  <AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />
+                }
+                isNotificationDrawerExpanded={notificationsOpen}
+                mainContainerId={DASHBOARD_MAIN_CONTAINER_ID}
+                data-testid={DASHBOARD_MAIN_CONTAINER_ID}
+                banner={
+                  <DevFeatureFlagsBanner
+                    dashboardConfig={dashboardConfig.spec.dashboardConfig}
+                    {...devFeatureFlagsProps}
+                  />
+                }
+              >
+                <ErrorBoundary>
+                  <NimContextProvider>
+                    <ProjectsContextProvider>
+                      <ModelRegistrySelectorContextProvider>
+                        <QuickStarts>
+                          <NotificationWatcherContextProvider>
+                            <AppRoutes />
+                          </NotificationWatcherContextProvider>
+                        </QuickStarts>
+                      </ModelRegistrySelectorContextProvider>
+                    </ProjectsContextProvider>
+                  </NimContextProvider>
+                  <ToastNotifications />
+                  <TelemetrySetup />
+                </ErrorBoundary>
+              </Page>
+            </ExtensibilityContextProvider>
           </AccessReviewProvider>
         </AppContext.Provider>
       )}
