@@ -1,12 +1,11 @@
 import * as React from 'react';
-import { ToolbarItem } from '@patternfly/react-core';
 import { InferenceServiceKind, SecretKind, ServingRuntimeKind } from '~/k8sTypes';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import DashboardSearchField, { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { getInferenceServiceProjectDisplayName } from './utils';
 import InferenceServiceTable from './InferenceServiceTable';
-import ServeModelButton from './ServeModelButton';
+import ModelServingToolbar from './ModelServingToolbar';
+import { ModelServingFilterDataType, initialModelServingFilterData } from './const';
 
 type InferenceServiceListViewProps = {
   inferenceServices: InferenceServiceKind[];
@@ -22,36 +21,47 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
   filterTokens,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
-  const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
-  const [search, setSearch] = React.useState('');
+  const [filterData, setFilterData] = React.useState<ModelServingFilterDataType>(
+    initialModelServingFilterData,
+  );
+  const onClearFilters = React.useCallback(
+    () => setFilterData(initialModelServingFilterData),
+    [setFilterData],
+  );
 
-  const filteredInferenceServices = unfilteredInferenceServices.filter((project) => {
-    if (!search) {
-      return true;
-    }
+  const filteredInferenceServices = React.useMemo(
+    () =>
+      unfilteredInferenceServices.filter((project) => {
+        const nameFilter = filterData.Name?.toLowerCase();
+        const projectFilter = filterData.Project?.toLowerCase();
 
-    switch (searchType) {
-      case SearchType.NAME:
-        return getDisplayNameFromK8sResource(project).toLowerCase().includes(search.toLowerCase());
-      case SearchType.PROJECT:
-        return getInferenceServiceProjectDisplayName(project, projects)
-          .toLowerCase()
-          .includes(search.toLowerCase());
-      default:
-        return true;
-    }
-  });
+        if (
+          nameFilter &&
+          !getDisplayNameFromK8sResource(project).toLowerCase().includes(nameFilter)
+        ) {
+          return false;
+        }
 
-  const resetFilters = () => {
-    setSearch('');
-  };
+        return (
+          !projectFilter ||
+          getInferenceServiceProjectDisplayName(project, projects)
+            .toLowerCase()
+            .includes(projectFilter)
+        );
+      }),
+    [projects, filterData, unfilteredInferenceServices],
+  );
 
-  const searchTypes = React.useMemo(() => [SearchType.NAME, SearchType.PROJECT], []);
+  const onFilterUpdate = React.useCallback(
+    (key: string, value: string | { label: string; value: string } | undefined) =>
+      setFilterData((prevValues) => ({ ...prevValues, [key]: value })),
+    [setFilterData],
+  );
 
   return (
     <InferenceServiceTable
       isGlobal
-      clearFilters={resetFilters}
+      clearFilters={onClearFilters}
       servingRuntimes={servingRuntimes}
       inferenceServices={filteredInferenceServices}
       refresh={() => {
@@ -59,25 +69,9 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
       }}
       filterTokens={filterTokens}
       enablePagination
+      onClearFilters={onClearFilters}
       toolbarContent={
-        <>
-          <ToolbarItem>
-            <DashboardSearchField
-              types={searchTypes}
-              searchType={searchType}
-              searchValue={search}
-              onSearchTypeChange={(newSearchType) => {
-                setSearchType(newSearchType);
-              }}
-              onSearchValueChange={(searchValue) => {
-                setSearch(searchValue);
-              }}
-            />
-          </ToolbarItem>
-          <ToolbarItem>
-            <ServeModelButton />
-          </ToolbarItem>
-        </>
+        <ModelServingToolbar filterData={filterData} onFilterUpdate={onFilterUpdate} />
       }
     />
   );

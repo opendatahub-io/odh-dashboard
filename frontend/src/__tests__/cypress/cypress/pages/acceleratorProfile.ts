@@ -1,9 +1,21 @@
 import { K8sNameDescriptionField } from '~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
 import { Modal } from './components/Modal';
-import { TableToolbar } from './components/TableToolbar';
+import { Contextual } from './components/Contextual';
 import { TableRow } from './components/table';
 
-class AcceleratorTableToolbar extends TableToolbar {}
+class AcceleratorTableToolbar extends Contextual<HTMLElement> {
+  findToggleButton(id: string) {
+    return this.find().pfSwitch(id).click();
+  }
+
+  findFilterMenuOption(id: string, name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findToggleButton(id).parents().findByRole('menuitem', { name });
+  }
+
+  findSearchInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('filter-toolbar-text-field');
+  }
+}
 class AcceleratorRow extends TableRow {
   findDescription() {
     return this.find().findByTestId('table-row-title-description');
@@ -82,7 +94,7 @@ class AcceleratorProfile {
   }
 
   getTableToolbar() {
-    return new AcceleratorTableToolbar(() => cy.findByTestId('dashboard-table-toolbar'));
+    return new AcceleratorTableToolbar(() => cy.findByTestId('accelerator-profiles-table-toolbar'));
   }
 }
 

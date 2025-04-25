@@ -1,13 +1,15 @@
 import * as React from 'react';
-import { Button, ToolbarItem } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
-import DashboardSearchField, { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import { Table } from '~/components/table';
 import AcceleratorProfilesTableRow from '~/pages/acceleratorProfiles/screens/list/AcceleratorProfilesTableRow';
 import { AcceleratorProfileKind } from '~/k8sTypes';
-import { columns } from '~/pages/acceleratorProfiles/screens/list/const';
+import {
+  columns,
+  initialAcceleratorProfilesFilterData,
+  AcceleratorProfilesFilterDataType,
+} from '~/pages/acceleratorProfiles/screens/list/const';
 import DeleteAcceleratorProfileModal from './DeleteAcceleratorProfileModal';
+import AcceleratorProfilesToolbar from './AcceleratorProfilesToolbar';
 
 type AcceleratorProfilesTableProps = {
   acceleratorProfiles: AcceleratorProfileKind[];
@@ -18,28 +20,41 @@ const AcceleratorProfilesTable: React.FC<AcceleratorProfilesTableProps> = ({
   acceleratorProfiles,
   refreshAcceleratorProfiles,
 }) => {
-  const navigate = useNavigate();
-  const [searchType, setSearchType] = React.useState<SearchType>(SearchType.NAME);
-  const [search, setSearch] = React.useState('');
+  const [filterData, setFilterData] = React.useState<AcceleratorProfilesFilterDataType>(
+    initialAcceleratorProfilesFilterData,
+  );
   const [deleteAcceleratorProfile, setDeleteAcceleratorProfile] = React.useState<
     AcceleratorProfileKind | undefined
   >();
-  const filteredAcceleratorProfiles = acceleratorProfiles.filter((cr) => {
-    if (!search) {
-      return true;
-    }
 
-    switch (searchType) {
-      case SearchType.NAME:
-        return cr.spec.displayName.toLowerCase().includes(search.toLowerCase());
-      case SearchType.IDENTIFIER:
-        return cr.spec.identifier.toLowerCase().includes(search.toLowerCase());
-      default:
-        return true;
-    }
-  });
+  const filteredAcceleratorProfiles = React.useMemo(
+    () =>
+      acceleratorProfiles.filter((cr) => {
+        const nameFilter = filterData.Name?.toLowerCase();
+        const indentifierFilter = filterData.Identifier?.toLowerCase();
 
-  const searchTypes = React.useMemo(() => [SearchType.NAME, SearchType.IDENTIFIER], []);
+        if (nameFilter && !cr.spec.displayName.toLowerCase().includes(nameFilter.toLowerCase())) {
+          return false;
+        }
+
+        return (
+          !indentifierFilter ||
+          cr.spec.identifier.toLowerCase().includes(indentifierFilter.toLowerCase())
+        );
+      }),
+    [acceleratorProfiles, filterData],
+  );
+
+  const onFilterUpdate = React.useCallback(
+    (key: string, value: string | { label: string; value: string } | undefined) =>
+      setFilterData((prevValues) => ({ ...prevValues, [key]: value })),
+    [setFilterData],
+  );
+
+  const onClearFilters = React.useCallback(
+    () => setFilterData(initialAcceleratorProfilesFilterData),
+    [setFilterData],
+  );
 
   return (
     <>
@@ -49,7 +64,7 @@ const AcceleratorProfilesTable: React.FC<AcceleratorProfilesTableProps> = ({
         enablePagination
         data={filteredAcceleratorProfiles}
         columns={columns}
-        emptyTableView={<DashboardEmptyTableView onClearFilters={() => setSearch('')} />}
+        emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
         rowRenderer={(cr) => (
           <AcceleratorProfilesTableRow
             key={cr.metadata.name}
@@ -57,30 +72,9 @@ const AcceleratorProfilesTable: React.FC<AcceleratorProfilesTableProps> = ({
             handleDelete={(acceleratorProfile) => setDeleteAcceleratorProfile(acceleratorProfile)}
           />
         )}
+        onClearFilters={onClearFilters}
         toolbarContent={
-          <>
-            <ToolbarItem>
-              <DashboardSearchField
-                types={searchTypes}
-                searchType={searchType}
-                searchValue={search}
-                onSearchTypeChange={(newSearchType) => {
-                  setSearchType(newSearchType);
-                }}
-                onSearchValueChange={(searchValue) => {
-                  setSearch(searchValue);
-                }}
-              />
-            </ToolbarItem>
-            <ToolbarItem>
-              <Button
-                data-testid="create-accelerator-profile"
-                onClick={() => navigate(`/acceleratorProfiles/create`)}
-              >
-                Create accelerator profile
-              </Button>
-            </ToolbarItem>
-          </>
+          <AcceleratorProfilesToolbar filterData={filterData} onFilterUpdate={onFilterUpdate} />
         }
       />
       {deleteAcceleratorProfile ? (
