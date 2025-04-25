@@ -15,7 +15,7 @@ const ModelCatalogSectionFooter: React.FC<{
       {shownModelCount ? (
         <Content component="small">
           {shownModelCount < totalModelCount
-            ? `Showing ${shownModelCount} of all models`
+            ? `${shownModelCount} of ${totalModelCount} models`
             : 'Showing all models'}
         </Content>
       ) : null}
