@@ -9,12 +9,16 @@ export class HomeModelCatalog extends Contextual<HTMLElement> {
     return this.find().findByTestId('model-catalog-hint-close');
   }
 
-  getModelCatalogCard(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('model-catalog-card');
+  getModelCatalogCardGallery(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('model-catalog-card-gallery');
   }
 
-  getModelCatalogLoading(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('model-catalog-loading');
+  getModelCatalogCardDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('model-catalog-card-description');
+  }
+
+  getModelCatalogCardDescriptionTooltip(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().get('.pf-v6-c-tooltip');
   }
 
   getModelCatalogFooter(): Cypress.Chainable<JQuery<HTMLElement>> {

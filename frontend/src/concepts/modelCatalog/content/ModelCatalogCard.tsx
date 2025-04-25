@@ -82,7 +82,7 @@ export const ModelCatalogCard: React.FC<{
             </SplitItem>
           </Split>
         </StackItem>
-        <StackItem isFilled>
+        <StackItem isFilled data-testid="model-catalog-card-description">
           {truncate ? (
             <TruncatedText maxLines={2} content={model.description} />
           ) : (

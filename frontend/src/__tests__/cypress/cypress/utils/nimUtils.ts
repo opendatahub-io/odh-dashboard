@@ -77,7 +77,7 @@ export const initInterceptsToEnableNim = ({ hasAllModels = false }: EnableNimCon
   );
 
   cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
-  cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockNimProject(hasAllModels)]));
+  cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockNimProject({ hasAllModels })]));
 
   const templateMock = mockNimServingRuntimeTemplate();
   cy.interceptK8sList(TemplateModel, mockK8sResourceList([templateMock]));
