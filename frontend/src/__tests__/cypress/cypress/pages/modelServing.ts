@@ -97,6 +97,10 @@ class ModelServingGlobal {
   findServingRuntime(name: string) {
     return this.findModelsTable().find(`[data-label=Serving Runtime]`).contains(name);
   }
+
+  findModalTitle() {
+    return cy.findByTestId('modal-title');
+  }
 }
 
 class ServingRuntimeGroup extends Contextual<HTMLElement> {}

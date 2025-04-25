@@ -325,7 +325,11 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
 
   return (
     <Modal
-      title={`${editInfo ? 'Edit' : 'Deploy'} model with NVIDIA NIM`}
+      title={
+        <span data-testid="modal-title">{`${
+          editInfo ? 'Edit' : 'Deploy'
+        } model with NVIDIA NIM`}</span>
+      }
       description="Configure properties for deploying your model using an NVIDIA NIM."
       variant="medium"
       isOpen
