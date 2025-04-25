@@ -43,6 +43,7 @@ import {
   mockProjectScopedHardwareProfiles,
 } from '~/__mocks__/mockHardwareProfile';
 import { initInterceptsForAllProjects } from '~/__tests__/cypress/cypress/utils/servingUtils';
+import { nimDeployModal } from '~/__tests__/cypress/cypress/pages/components/NIMDeployModal';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -336,11 +337,9 @@ describe('Model Serving Global', () => {
     inferenceServiceModalEdit.findConfigurationParamsSection().should('not.exist');
     inferenceServiceModalEdit.findCancelButton().click();
 
-    // NIM Modal is essentially the same layout as KServe so we check the runtime is correct
     modelServingGlobal.getModelRow('NIM Model').findKebabAction('Edit').click();
-    // NIM Modal has NVIDIA NIM in the title
-    kserveModalEdit.find().contains('NVIDIA NIM').should('exist');
-    kserveModalEdit.findCancelButton().click();
+    // NIM Modal is the only one that has pvc-size
+    nimDeployModal.findNimStorageSizeInput().should('exist');
   });
 
   it('Empty State No Project Selected', () => {
