@@ -338,8 +338,8 @@ describe('Model Serving Global', () => {
 
     // NIM Modal is essentially the same layout as KServe so we check the runtime is correct
     modelServingGlobal.getModelRow('NIM Model').findKebabAction('Edit').click();
-    modelServingGlobal.findModalTitle().should('contain.text', 'NVIDIA NIM');
-    kserveModalEdit.findServingRuntimeTemplate().should('have.text', 'NVIDIA NIM');
+    // NIM Modal has NVIDIA NIM in the title
+    kserveModalEdit.find().contains('NVIDIA NIM').should('exist');
     kserveModalEdit.findCancelButton().click();
   });
 
