@@ -5,7 +5,6 @@ import { Skeleton } from '@patternfly/react-core';
 import { PipelineKF } from '~/concepts/pipelines/kfTypes';
 import { CheckboxTd, TableRowTitleDescription } from '~/components/table';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineVersionToUse } from '~/concepts/pipelines/content/createRun/types';
 import PipelinesTableExpandedRow from '~/concepts/pipelines/content/tables/pipeline/PipelinesTableExpandedRow';
 import PipelineVersionUploadModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
@@ -136,7 +135,6 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                         contextData: {
                           pipeline,
                           version,
-                          versionToUse: PipelineVersionToUse.PROVIDED,
                         },
                       },
                     });
@@ -153,7 +151,6 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                       state: {
                         contextData: {
                           pipeline,
-                          versionToUse: PipelineVersionToUse.LATEST,
                         },
                       },
                     });

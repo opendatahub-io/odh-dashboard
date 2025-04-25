@@ -13,7 +13,6 @@ import {
   globalPipelineRunsVersionRoute,
   pipelineVersionDetailsRoute,
 } from '~/routes';
-import { PipelineVersionToUse } from '~/concepts/pipelines/content/createRun/types';
 import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
 import {
   PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR,
@@ -96,7 +95,6 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
                     contextData: {
                       pipeline,
                       version,
-                      versionToUse: PipelineVersionToUse.PROVIDED,
                     },
                   },
                 });
@@ -114,7 +112,6 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
                     contextData: {
                       pipeline,
                       version,
-                      versionToUse: PipelineVersionToUse.PROVIDED,
                     },
                   },
                 });

@@ -41,11 +41,8 @@ const RunPage: React.FC<RunPageProps> = ({
 }) => {
   const location = useLocation();
   // the data passed in when creating a run from a pipeline version
-  const {
-    pipeline: contextPipeline,
-    version: contextPipelineVersion,
-    versionToUse: contextVersionToUse,
-  } = location.state?.contextData || {};
+  const { pipeline: contextPipeline, version: contextPipelineVersion } =
+    location.state?.contextData || {};
   // the data passed in when switching between runs and schedules
   const {
     nameDesc: locationNameDesc,
@@ -83,14 +80,13 @@ const RunPage: React.FC<RunPageProps> = ({
     [isSchedule, triggerType],
   );
 
-  const versionToUseData = React.useMemo<PipelineVersionToUse>(() => {
-    if (Object.values(PipelineVersionToUse).includes(contextVersionToUse)) {
-      return contextVersionToUse;
-    }
-    return locationVersion || contextPipelineVersion
-      ? PipelineVersionToUse.PROVIDED
-      : PipelineVersionToUse.LATEST;
-  }, [contextVersionToUse, locationVersion, contextPipelineVersion]);
+  const versionToUseData = React.useMemo<PipelineVersionToUse>(
+    () =>
+      locationVersion || contextPipelineVersion
+        ? PipelineVersionToUse.PROVIDED
+        : PipelineVersionToUse.LATEST,
+    [locationVersion, contextPipelineVersion],
+  );
 
   const [formData, setFormDataValue] = useRunFormData(duplicateRun, {
     nameDesc: duplicateRun
