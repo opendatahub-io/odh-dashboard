@@ -36,7 +36,7 @@ describe('Workbench image settings', () => {
     asProductAdminUser();
   });
 
-  it('Table filtering, sorting, searching and pagination', () => {
+  it('Table sorting and pagination', () => {
     const totalItems = 1000;
     cy.interceptOdh(
       'GET /api/images/byon',
@@ -85,16 +85,67 @@ describe('Workbench image settings', () => {
 
     // bottom pagination
     testPagination({ totalItems, firstElement: 'image-0', paginationVariant: 'bottom' });
+  });
+
+  it('Table filtering and searching by name', () => {
+    const totalItems = 1000;
+    cy.interceptOdh(
+      'GET /api/images/byon',
+      Array.from(
+        { length: totalItems },
+        (_, i) =>
+          mockByon([
+            {
+              id: `id-${i}`,
+              /* eslint-disable camelcase */
+              display_name: `image-${i}`,
+              /* eslint-enable camelcase */
+              name: `byon-${i}`,
+              description: `description-${i}`,
+              provider: `provider-${i}`,
+              visible: i % 3 === 0,
+            },
+          ])[0],
+      ),
+    );
+    projectListPage.visit();
+    notebookImageSettings.navigate();
 
     // test filtering
     // by name
     const notebookImageTableToolbar = notebookImageSettings.getTableToolbar();
+    notebookImageTableToolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Name').click();
     notebookImageTableToolbar.findSearchInput().type('123');
     notebookImageSettings.getRow('image-123').find().should('exist');
+  });
+
+  it('Table filtering and searching by provider', () => {
+    const totalItems = 1000;
+    cy.interceptOdh(
+      'GET /api/images/byon',
+      Array.from(
+        { length: totalItems },
+        (_, i) =>
+          mockByon([
+            {
+              id: `id-${i}`,
+              /* eslint-disable camelcase */
+              display_name: `image-${i}`,
+              /* eslint-enable camelcase */
+              name: `byon-${i}`,
+              description: `description-${i}`,
+              provider: `provider-${i}`,
+              visible: i % 3 === 0,
+            },
+          ])[0],
+      ),
+    );
+    projectListPage.visit();
+    notebookImageSettings.navigate();
 
     // by provider
-    notebookImageTableToolbar.findResetButton().click();
-    notebookImageTableToolbar.findFilterMenuOption('filter-dropdown-select', 'Provider').click();
+    const notebookImageTableToolbar = notebookImageSettings.getTableToolbar();
+    notebookImageTableToolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Provider').click();
     notebookImageTableToolbar.findSearchInput().type('provider-321');
     notebookImageSettings.getRow('image-321').find().should('exist');
   });
