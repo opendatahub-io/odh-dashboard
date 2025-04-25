@@ -26,15 +26,15 @@ const ServerStatus: React.FC<ServerStatusProps> = ({ data, username }) => {
 
   let buttonText = '';
   if (!data.isNotebookRunning) {
-    buttonText = forStateUser ? 'Start your server' : 'Start server';
+    buttonText = forStateUser ? 'Start your workbench' : 'Start workbench';
   } else {
-    buttonText = forStateUser ? 'View your server' : 'View server';
+    buttonText = forStateUser ? 'View your workbench' : 'View workbench';
   }
 
   return (
     <Button
-      data-id={`server-button-${username}`}
-      data-testid="server-button"
+      data-id={`workbench-button-${username}`}
+      data-testid="workbench-button"
       variant="link"
       isInline
       onClick={onClickServerAction}
