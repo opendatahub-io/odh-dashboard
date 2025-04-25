@@ -109,7 +109,6 @@ export type ModelSourceProperties = {
   modelSourceGroup?: string;
   modelSourceName?: string;
   modelSourceId?: string;
-  pipelineRunReference?: PipelineRunReference;
 };
 
 export type ModelArtifact = ModelRegistryBase &

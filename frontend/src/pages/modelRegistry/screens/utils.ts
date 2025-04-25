@@ -6,12 +6,9 @@ import {
   ModelRegistryStringCustomProperties,
   ModelVersion,
   RegisteredModel,
-  ModelArtifact,
-  ModelSourceKind,
 } from '~/concepts/modelRegistry/types';
 import { ServiceKind } from '~/k8sTypes';
 import { KeyValuePair } from '~/types';
-import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
 
 // Retrieves the labels from customProperties that have non-empty string_value.
 export const getLabels = <T extends ModelRegistryCustomProperties>(customProperties: T): string[] =>
@@ -98,21 +95,6 @@ export const getCustomPropString = <
     return prop.string_value;
   }
   return '';
-};
-
-export const getCatalogModelDetailsProps = (
-  artifact: ModelArtifact,
-): CatalogModelDetailsParams | null => {
-  // Check for modelSource* properties using the new standardized approach
-  if (artifact.modelSourceKind === ModelSourceKind.CATALOG && artifact.modelSourceName) {
-    return {
-      sourceName: artifact.modelSourceClass || '',
-      repositoryName: artifact.modelSourceGroup || '',
-      modelName: artifact.modelSourceName,
-      tag: artifact.modelSourceId || '',
-    };
-  }
-  return null;
 };
 
 export const filterModelVersions = (

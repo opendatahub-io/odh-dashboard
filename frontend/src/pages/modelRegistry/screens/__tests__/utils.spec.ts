@@ -21,10 +21,10 @@ import {
   sortModelVersionsByCreateTime,
   isValidHttpUrl,
   isRedHatRegistryUri,
-  getCatalogModelDetailsProps,
   getCustomPropString,
 } from '~/pages/modelRegistry/screens/utils';
 import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
+import { modelSourcePropertiesToCatalogParams } from '~/concepts/modelRegistry/utils';
 
 describe('getLabels', () => {
   it('should return an empty array when customProperties is empty', () => {
@@ -201,7 +201,7 @@ describe('getCatalogModelDetailsProps', () => {
       modelSourceName: 'sourceName',
       modelSourceId: 'sourceId',
     });
-    const result = getCatalogModelDetailsProps(modelArtifact);
+    const result = modelSourcePropertiesToCatalogParams(modelArtifact);
     expect(result).toEqual({
       sourceName: 'sourceClass',
       repositoryName: 'sourceGroup',
