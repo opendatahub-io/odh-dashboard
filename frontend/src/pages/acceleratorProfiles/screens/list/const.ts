@@ -45,3 +45,23 @@ export const columns: SortableData<AcceleratorProfileKind>[] = [
     sortable: false,
   },
 ];
+
+export enum AcceleratorProfilesToolbarFilterOptions {
+  name = 'Name',
+  identifier = 'Identifier',
+}
+
+export const acceleratorProfilesFilterOptions = {
+  [AcceleratorProfilesToolbarFilterOptions.name]: 'Name',
+  [AcceleratorProfilesToolbarFilterOptions.identifier]: 'Identifier',
+};
+
+export type AcceleratorProfilesFilterDataType = Record<
+  AcceleratorProfilesToolbarFilterOptions,
+  string | undefined
+>;
+
+export const initialAcceleratorProfilesFilterData: AcceleratorProfilesFilterDataType = {
+  [AcceleratorProfilesToolbarFilterOptions.name]: '',
+  [AcceleratorProfilesToolbarFilterOptions.identifier]: '',
+};

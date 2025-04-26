@@ -23,6 +23,7 @@ type InferenceServiceTableProps = {
   getColumns?: (projects: ProjectKind[]) => SortableData<InferenceServiceKind>[];
   refresh?: () => void;
   clearFilters?: () => void;
+  onClearFilters?: () => void;
   filterTokens?: (servingRuntime?: string | undefined) => SecretKind[];
 } & Partial<Pick<React.ComponentProps<typeof Table>, 'enablePagination' | 'toolbarContent'>>;
 
@@ -34,6 +35,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
   filterTokens,
   clearFilters,
   enablePagination,
+  onClearFilters,
   toolbarContent,
   isGlobal,
   isLoading,
@@ -69,6 +71,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
         columns={mappedColumns}
         loading={isLoading}
         variant={isGlobal ? undefined : 'compact'}
+        onClearFilters={onClearFilters}
         toolbarContent={toolbarContent}
         enablePagination={enablePagination}
         emptyTableView={

@@ -46,7 +46,7 @@ describe('Accelerator Profile', () => {
     acceleratorProfile.findAddButton().should('be.enabled');
   });
 
-  it('list accelerator profiles and Table filtering, sorting, searching and pagination', () => {
+  it('list accelerator profiles and Table sorting and pagination', () => {
     const totalItems = 50;
     cy.interceptK8sList(
       { model: AcceleratorProfileModel, ns: 'opendatahub' },
@@ -100,14 +100,58 @@ describe('Accelerator Profile', () => {
     acceleratorProfile.findTableHeaderButton('Last modified').should(be.sortDescending);
 
     acceleratorProfile.findCreateButton().should('be.enabled');
+  });
 
+  it('list accelerator profiles and Table filtering and searching by name', () => {
+    const totalItems = 50;
+    cy.interceptK8sList(
+      { model: AcceleratorProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList(
+        Array.from({ length: totalItems }, (_, i) =>
+          mockAcceleratorProfile({
+            displayName: `Test Accelerator - ${i}`,
+            identifier: 'tensor.com/gpu',
+            description: `accelerator profile ${i}`,
+          }),
+        ),
+      ),
+    );
+    acceleratorProfile.visit();
+    const tableRow = acceleratorProfile.getRow('Test Accelerator - 0');
+    tableRow.findDescription().contains('accelerator profile 0');
+    tableRow.shouldHaveIdentifier('tensor.com/gpu');
+
+    // test filtering
+    // by name
     const acceleratorTableToolbar = acceleratorProfile.getTableToolbar();
-    acceleratorTableToolbar.findFilterMenuOption('filter-dropdown-select', 'Name').click();
+    acceleratorTableToolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Name').click();
     acceleratorTableToolbar.findSearchInput().fill('Test');
     acceleratorProfile.getRow('Test Accelerator - 0').shouldHaveIdentifier('tensor.com/gpu');
+  });
 
-    acceleratorTableToolbar.findFilterMenuOption('filter-dropdown-select', 'Identifier').click();
-    acceleratorTableToolbar.findResetButton().click();
+  it('list accelerator profiles and Table filtering and searching by identifier', () => {
+    const totalItems = 50;
+    cy.interceptK8sList(
+      { model: AcceleratorProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList(
+        Array.from({ length: totalItems }, (_, i) =>
+          mockAcceleratorProfile({
+            displayName: `Test Accelerator - ${i}`,
+            identifier: 'tensor.com/gpu',
+            description: `accelerator profile ${i}`,
+          }),
+        ),
+      ),
+    );
+    acceleratorProfile.visit();
+    const tableRow = acceleratorProfile.getRow('Test Accelerator - 0');
+    tableRow.findDescription().contains('accelerator profile 0');
+    tableRow.shouldHaveIdentifier('tensor.com/gpu');
+
+    // test filtering
+    // by identifier
+    const acceleratorTableToolbar = acceleratorProfile.getTableToolbar();
+    acceleratorTableToolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Identifier').click();
     acceleratorTableToolbar.findSearchInput().fill('tensor.com/gpu');
     tableRow.shouldHaveIdentifier('tensor.com/gpu');
   });

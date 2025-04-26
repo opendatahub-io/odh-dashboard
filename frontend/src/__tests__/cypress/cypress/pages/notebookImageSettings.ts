@@ -3,14 +3,26 @@ import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 import { K8sNameDescriptionField } from '~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
 import { DeleteModal } from './components/DeleteModal';
-import { TableToolbar } from './components/TableToolbar';
+import { Contextual } from './components/Contextual';
 
 class NotebookRow extends TableRow {
   findDisplayedSoftware() {
     return this.find().findByTestId('displayed-software');
   }
 }
-class NotebookImageSettingsTableToolbar extends TableToolbar {}
+class NotebookImageSettingsTableToolbar extends Contextual<HTMLElement> {
+  findToggleButton(id: string) {
+    return this.find().pfSwitch(id).click();
+  }
+
+  findFilterMenuOption(id: string, name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findToggleButton(id).parents().findByRole('menuitem', { name });
+  }
+
+  findSearchInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('filter-toolbar-text-field');
+  }
+}
 
 class NotebookImageSettings {
   visit(wait = true) {
@@ -65,7 +77,7 @@ class NotebookImageSettings {
   }
 
   getTableToolbar() {
-    return new NotebookImageSettingsTableToolbar(() => cy.findByTestId('dashboard-table-toolbar'));
+    return new NotebookImageSettingsTableToolbar(() => cy.findByTestId('byonImages-table-toolbar'));
   }
 }
 

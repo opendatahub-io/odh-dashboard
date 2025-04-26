@@ -33,6 +33,7 @@ type HandlersProps = {
   kServeInstalled?: boolean;
   disableProjectScoped?: boolean;
   disableHardwareProfiles?: boolean;
+  isEmpty?: boolean;
 };
 
 const registeredModelMocked = mockRegisteredModel({ name: 'test-1' });
@@ -61,12 +62,14 @@ const initIntercepts = ({
   kServeInstalled = true,
   disableProjectScoped = true,
   disableHardwareProfiles = true,
+  isEmpty = false,
 }: HandlersProps) => {
   initDeployPrefilledModelIntercepts({
     modelMeshInstalled,
     kServeInstalled,
     disableProjectScoped,
     disableHardwareProfiles,
+    isEmpty,
   });
 
   cy.interceptK8sList(
@@ -672,5 +675,14 @@ describe('Deploy model version', () => {
       .findExistingConnectionSelectValueField()
       .findSelectOption('Test Secret Match 2 Recommended Type: URI - v1')
       .should('exist');
+  });
+
+  it('Deploy modal will show spinner, if the data is still loading', () => {
+    initIntercepts({ isEmpty: true });
+    cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
+    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 3');
+    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDeployModal.selectProjectByName('KServe project');
+    kserveModal.findSpinner().should('exist');
   });
 });

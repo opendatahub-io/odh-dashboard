@@ -33,7 +33,7 @@ class ModelVersionDetails {
   }
 
   shouldNotHavePipelineRunLink() {
-    this.findPipelineRunLink().find('a').should('not.exist');
+    this.findProjectAccessInfoButton().should('exist');
     return this;
   }
 

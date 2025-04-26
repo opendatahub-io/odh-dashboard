@@ -410,6 +410,19 @@
           }
         ]
       }
+    // },
+    // {
+    //   "files": ["src/plugins/extensions.ts"],
+    //   "rules": {
+    //     "@typescript-eslint/consistent-type-imports": "error",
+    //     "no-restricted-syntax": [
+    //       "error",
+    //       {
+    //         "selector":"ImportDeclaration[importKind!='type']",
+    //         "message": "Must use 'import type' when importing. Use dynamic imports for code references (eg. `() => import('~/Test')`)."
+    //       }
+    //     ]
+    //   }
     }
   ]
 }
