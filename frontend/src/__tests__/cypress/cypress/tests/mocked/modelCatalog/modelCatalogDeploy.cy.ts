@@ -16,14 +16,16 @@ type HandlersProps = {
   catalogModels?: ModelCatalogSource[];
   modelMeshInstalled?: boolean;
   kServeInstalled?: boolean;
+  isEmpty?: boolean;
 };
 
 const initIntercepts = ({
   catalogModels = [mockModelCatalogSource({})],
   modelMeshInstalled = true,
   kServeInstalled = true,
+  isEmpty = false,
 }: HandlersProps) => {
-  initDeployPrefilledModelIntercepts({ modelMeshInstalled, kServeInstalled });
+  initDeployPrefilledModelIntercepts({ modelMeshInstalled, kServeInstalled, isEmpty });
 
   cy.interceptK8s(
     {
@@ -77,6 +79,7 @@ describe('Deploy catalog model', () => {
 
     // Validate name input field
     kserveModal.findModelNameInput().should('exist');
+    kserveModal.findModelNameInput().should('have.value', 'granite-8b-code-instruct - 1.3.0');
 
     // Validate model framework section
     kserveModal.findModelFrameworkSelect().should('be.disabled');
@@ -89,5 +92,13 @@ describe('Deploy catalog model', () => {
         'oci://registry.redhat.io/rhelai1/granite-8b-code-instruct:1.3-1732870892',
       ).should('exist');
     });
+  });
+
+  it('Deploy modal will show spinner, if the data is still loading', () => {
+    initIntercepts({ isEmpty: true });
+    modelDetailsPage.visit();
+    modelDetailsPage.findDeployModelButton().click();
+    modelCatalogDeployModal.selectProjectByName('KServe project');
+    kserveModal.findSpinner().should('exist');
   });
 });

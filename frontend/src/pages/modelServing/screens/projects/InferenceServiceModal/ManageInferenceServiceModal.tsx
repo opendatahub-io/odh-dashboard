@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Form, FormSection, HelperTextItem } from '@patternfly/react-core';
+import { Form, FormSection, HelperTextItem, Spinner } from '@patternfly/react-core';
 import { Modal } from '@patternfly/react-core/deprecated';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
@@ -69,6 +69,11 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     connectionsLoadError,
   } = usePrefillModelDeployModal(projectContext, createData, setCreateData, modelDeployPrefillInfo);
 
+  const isDataReady =
+    !modelDeployPrefillInfo ||
+    (!!inferenceServiceNameDesc.name && (!projectContext || connectionsLoaded));
+  const isLoading = !isDataReady;
+
   const modelMeshConnections = React.useMemo(
     () =>
       connections.filter(
@@ -99,6 +104,12 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     }
     return isConnectionValid;
   };
+
+  React.useEffect(() => {
+    if (createData.name) {
+      setInferenceServiceNameDesc('name', createData.name);
+    }
+  }, [createData.name, setInferenceServiceNameDesc]);
 
   const isDisabled =
     actionInProgress ||
@@ -173,7 +184,8 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
             }
           />
         )}
-        {!shouldFormHidden && (
+        {!shouldFormHidden && isLoading && <Spinner />}
+        {!shouldFormHidden && !isLoading && (
           <>
             <K8sNameDescriptionField
               data={inferenceServiceNameDesc}
