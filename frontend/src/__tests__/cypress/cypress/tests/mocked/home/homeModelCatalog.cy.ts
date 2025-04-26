@@ -15,6 +15,7 @@ import {
   mockK8sResourceList,
   mockModelRegistryService,
 } from '~/__mocks__';
+import { mockCatalogModel } from '~/__mocks__/mockCatalogModel';
 
 type HandlersProps = {
   modelRegistries?: K8sResourceCommon[];
@@ -98,17 +99,12 @@ describe('Homepage Model Catalog section', () => {
         ns: 'opendatahub',
         name: 'model-catalog-sources',
       },
-      {
-        apiVersion: 'v1',
-        kind: 'ConfigMap',
-        metadata: {
-          name: 'model-catalog-sources',
-          namespace: 'opendatahub',
-        },
-        data: {
-          modelCatalogSources: JSON.stringify({ sources: [] }),
-        },
-      },
+      mockModelCatalogConfigMap([
+        mockModelCatalogSource({
+          source: 'Red Hat',
+          models: [],
+        }),
+      ]),
     );
     homePage.visit();
     homePage.getHomeModelCatalogSection().find().should('not.exist');
@@ -121,7 +117,12 @@ describe('Homepage Model Catalog section', () => {
         ns: 'opendatahub',
         name: 'model-catalog-sources',
       },
-      mockModelCatalogConfigMap(),
+      mockModelCatalogConfigMap([
+        mockModelCatalogSource({
+          source: 'Red Hat',
+          models: [mockCatalogModel({ labels: ['featured'] })],
+        }),
+      ]),
     );
     homePage.visit();
     homePage.getHomeModelCatalogSection().find().should('exist');
@@ -134,7 +135,12 @@ describe('Homepage Model Catalog section', () => {
         ns: 'opendatahub',
         name: 'model-catalog-sources',
       },
-      mockModelCatalogConfigMap(),
+      mockModelCatalogConfigMap([
+        mockModelCatalogSource({
+          source: 'Red Hat',
+          models: [mockCatalogModel({ labels: ['featured'] })],
+        }),
+      ]),
     );
     window.localStorage.setItem('odh.dashboard.model.catalog.hint', 'false');
     homePage.visit();
@@ -151,25 +157,75 @@ describe('Homepage Model Catalog section', () => {
         ns: 'opendatahub',
         name: 'model-catalog-sources',
       },
-      mockModelCatalogConfigMap(),
+      mockModelCatalogConfigMap([
+        mockModelCatalogSource({
+          source: 'Red Hat',
+          models: [
+            mockCatalogModel({ name: 'model-1', labels: ['featured'] }),
+            mockCatalogModel({ name: 'model-2', labels: ['featured'] }),
+          ],
+        }),
+      ]),
     );
     homePage.visit();
-    const modelCatalogSection = homePage.getHomeModelCatalogSection();
-    modelCatalogSection.getModelCatalogCard().should('have.length', 1);
+    homePage
+      .getHomeModelCatalogSection()
+      .getModelCatalogCardGallery()
+      .children()
+      .should('have.length', 2);
   });
 
-  it('should show footer text with model count', () => {
+  it('should show footer text with visible model count - not all models are visible', () => {
     cy.interceptK8s(
       {
         model: ConfigMapModel,
         ns: 'opendatahub',
         name: 'model-catalog-sources',
       },
-      mockModelCatalogConfigMap(),
+      mockModelCatalogConfigMap([
+        mockModelCatalogSource({
+          source: 'Red Hat',
+          models: [
+            mockCatalogModel({ name: 'model-1', labels: ['featured'] }),
+            mockCatalogModel({ name: 'model-2', labels: ['featured'] }),
+            mockCatalogModel({ name: 'model-3', labels: ['featured'] }),
+            mockCatalogModel({ name: 'model-4', labels: ['featured'] }),
+            mockCatalogModel({ name: 'model-5', labels: ['featured'] }),
+          ],
+        }),
+      ]),
     );
     homePage.visit();
-    const modelCatalogSection = homePage.getHomeModelCatalogSection();
-    modelCatalogSection.getModelCatalogFooter().should('contain', 'Showing all models');
+    homePage
+      .getHomeModelCatalogSection()
+      .getModelCatalogFooter()
+      .should('contain', 'Showing 4 of all models');
+  });
+
+  it('should show footer text with visible model count - all models are visible', () => {
+    cy.interceptK8s(
+      {
+        model: ConfigMapModel,
+        ns: 'opendatahub',
+        name: 'model-catalog-sources',
+      },
+      mockModelCatalogConfigMap([
+        mockModelCatalogSource({
+          source: 'Red Hat',
+          models: [
+            mockCatalogModel({ name: 'model-1', labels: ['featured'] }),
+            mockCatalogModel({ name: 'model-2', labels: ['featured'] }),
+            mockCatalogModel({ name: 'model-3', labels: ['featured'] }),
+            mockCatalogModel({ name: 'model-4', labels: ['featured'] }),
+          ],
+        }),
+      ]),
+    );
+    homePage.visit();
+    homePage
+      .getHomeModelCatalogSection()
+      .getModelCatalogFooter()
+      .should('contain', 'Showing all models');
   });
 
   it('should navigate to model catalog page', () => {
@@ -179,11 +235,115 @@ describe('Homepage Model Catalog section', () => {
         ns: 'opendatahub',
         name: 'model-catalog-sources',
       },
-      mockModelCatalogConfigMap(),
+      mockModelCatalogConfigMap([
+        mockModelCatalogSource({
+          source: 'Red Hat',
+          models: [mockCatalogModel({ labels: ['featured'] })],
+        }),
+      ]),
     );
     homePage.visit();
-    const modelCatalogSection = homePage.getHomeModelCatalogSection();
-    modelCatalogSection.getModelCatalogFooterLink().click();
+    homePage.getHomeModelCatalogSection().getModelCatalogFooterLink().click();
     cy.url().should('include', '/modelCatalog');
+  });
+
+  it('should display error message when fails to load', () => {
+    cy.interceptK8s(
+      {
+        model: ConfigMapModel,
+        ns: 'opendatahub',
+        name: 'model-catalog-sources',
+      },
+      {
+        statusCode: 500,
+        body: {
+          kind: 'Status',
+          apiVersion: 'v1',
+          status: 'Failure',
+          message: 'Internal server error',
+          reason: 'InternalError',
+          code: 500,
+        },
+      },
+    );
+    homePage.visit();
+    cy.findByTestId('error-loading').should('be.visible');
+    cy.findByTestId('error-loading-message').should('have.text', 'Internal server error');
+  });
+
+  it('should show a loading spin while loading data', () => {
+    const response = mockModelCatalogConfigMap([
+      mockModelCatalogSource({
+        source: 'Red Hat',
+        models: [
+          mockCatalogModel({ name: 'model-1', labels: ['featured'] }),
+          mockCatalogModel({ name: 'model-2', labels: ['featured'] }),
+        ],
+      }),
+    ]);
+    let sendResponse: (value: void) => void;
+    const trigger = new Promise((resolve) => {
+      sendResponse = resolve;
+    });
+    cy.interceptK8s(
+      {
+        model: ConfigMapModel,
+        ns: 'opendatahub',
+        name: 'model-catalog-sources',
+      },
+      async (request) => {
+        await trigger;
+        request.reply(response);
+      },
+    );
+
+    homePage.visit();
+    cy.findByTestId('loading-empty-state')
+      .should('exist')
+      .then(() => {
+        sendResponse();
+        homePage.getHomeModelCatalogSection().find().should('exist');
+      });
+  });
+
+  it('should not load models that are not featured', () => {
+    cy.interceptK8s(
+      {
+        model: ConfigMapModel,
+        ns: 'opendatahub',
+        name: 'model-catalog-sources',
+      },
+      mockModelCatalogConfigMap([
+        mockModelCatalogSource({
+          source: 'Red Hat',
+          models: [mockCatalogModel({ labels: [] })],
+        }),
+      ]),
+    );
+    homePage.visit();
+    homePage.getHomeModelCatalogSection().find().should('not.exist');
+  });
+
+  it('should truncate model catalog card when description is exceeds 2 lines, and show tooltip with full description', () => {
+    const description =
+      'Mauris dignissim pretium augue non blandit. Nullam sodales, nisl sed egestas tempus, mauris quam aliquet massa, ut euismod massa magna in neque. Aliquam at tortor sem. Nulla rutrum in turpis in condimentum. Sed condimentum rutrum velit, vel porttitor massa auctor sed. Vivamus lacinia arcu tortor, sit amet pretium nibh venenatis sit amet. Aenean eget condimentum sapien. Ut viverra mauris quam, quis malesuada velit fringilla et. Curabitur bibendum volutpat lorem, vel euismod justo rutrum a. Donec placerat dui eget nisl consectetur tristique. Aliquam sodales sed neque sed mollis.';
+    cy.interceptK8s(
+      {
+        model: ConfigMapModel,
+        ns: 'opendatahub',
+        name: 'model-catalog-sources',
+      },
+      mockModelCatalogConfigMap([
+        mockModelCatalogSource({
+          source: 'Red Hat',
+          models: [mockCatalogModel({ labels: ['featured'], description })],
+        }),
+      ]),
+    );
+
+    homePage.visit();
+    const modelCatalogSection = homePage.getHomeModelCatalogSection();
+    modelCatalogSection.getModelCatalogCardDescription().trigger('mouseenter');
+    modelCatalogSection.getModelCatalogCardDescriptionTooltip().should('have.text', description);
   });
 });

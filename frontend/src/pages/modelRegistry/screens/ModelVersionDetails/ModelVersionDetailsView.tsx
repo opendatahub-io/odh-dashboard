@@ -10,18 +10,12 @@ import {
   Spinner,
   Alert,
 } from '@patternfly/react-core';
-import { Link } from 'react-router';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
 import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
 import EditableTextDescriptionListGroup from '~/components/EditableTextDescriptionListGroup';
 import { EditableLabelsDescriptionListGroup } from '~/components/EditableLabelsDescriptionListGroup';
 import ModelPropertiesDescriptionListGroup from '~/pages/modelRegistry/screens/ModelPropertiesDescriptionListGroup';
-import {
-  getLabels,
-  mergeUpdatedLabels,
-  getCatalogModelDetailsProps,
-  getPipelineModelCustomProps,
-} from '~/pages/modelRegistry/screens/utils';
+import { getLabels, mergeUpdatedLabels } from '~/pages/modelRegistry/screens/utils';
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
@@ -32,9 +26,7 @@ import {
   bumpRegisteredModelTimestamp,
 } from '~/concepts/modelRegistry/utils/updateTimestamps';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
-import { getCatalogModelDetailsRoute } from '~/routes';
-import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
-import ModelVersionPipelineDescription from './ModelVersionPipelineDescription';
+import ModelVersionRegisteredFromLink from './ModelVersionRegisteredFromLink';
 
 type ModelVersionDetailsViewProps = {
   modelVersion: ModelVersion;
@@ -52,7 +44,6 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
   const modelArtifact = modelArtifacts.items.length ? modelArtifacts.items[0] : null;
   const { apiState } = React.useContext(ModelRegistryContext);
   const storageFields = uriToModelLocation(modelArtifact?.uri || '');
-  const pipelineCustomProperties = getPipelineModelCustomProps(mv.customProperties);
   const [registeredModel, registeredModelLoaded, registeredModelLoadError, refreshRegisteredModel] =
     useRegisteredModelById(mv.registeredModelId);
   const loaded = modelArtifactsLoaded && registeredModelLoaded;
@@ -93,11 +84,6 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
       );
     }
   };
-
-  const catalogModelCustomProps: CatalogModelDetailsParams = getCatalogModelDetailsProps(
-    mv.customProperties,
-  );
-  const catalogModelDetailsUrl = getCatalogModelDetailsRoute(catalogModelCustomProps);
 
   return (
     <Flex
@@ -155,23 +141,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
           >
             <InlineTruncatedClipboardCopy testId="model-version-id" textToCopy={mv.id} />
           </DashboardDescriptionListGroup>
-          {Object.values(pipelineCustomProperties).every((value) => !!value) && (
-            <DashboardDescriptionListGroup title="Registered from">
-              <ModelVersionPipelineDescription
-                pipelineCustomProperties={pipelineCustomProperties}
-              />
-            </DashboardDescriptionListGroup>
-          )}
-          {catalogModelDetailsUrl && (
-            <DashboardDescriptionListGroup title="Registered from" isEmpty={!mv.id}>
-              <Link to={catalogModelDetailsUrl} data-testid="registered-from-catalog">
-                <span style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
-                  {catalogModelCustomProps.modelName} ({catalogModelCustomProps.tag})
-                </span>
-              </Link>{' '}
-              in Model catalog
-            </DashboardDescriptionListGroup>
-          )}
+          {modelArtifact && <ModelVersionRegisteredFromLink modelArtifact={modelArtifact} />}
         </DescriptionList>
 
         <Title style={{ margin: '1em 0' }} headingLevel={ContentVariants.h3}>

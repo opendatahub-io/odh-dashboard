@@ -93,7 +93,7 @@ class TelemetrySettings extends ClusterSettings {
 
 class NotebookTolerationSettings extends ClusterSettings {
   findNotebookPodTolerationsText() {
-    return cy.findByText('Notebook pod tolerations', { exact: true });
+    return cy.findByText('Workbench pod tolerations', { exact: true });
   }
 
   findEnabledCheckbox() {

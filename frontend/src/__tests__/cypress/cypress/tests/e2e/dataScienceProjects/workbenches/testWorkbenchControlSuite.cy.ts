@@ -152,10 +152,10 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
       cy.step('Click on Running status and stop the workbench');
       const notebookRow = workbenchPage.getNotebookRow(workbenchName);
       notebookRow.findHaveNotebookStatusText().click();
-      workbenchStatusModal.getNotebookStatus('Starting');
+      workbenchStatusModal.getNotebookStatus('Starting', 120000);
       workbenchStatusModal.findStopWorkbenchFooterButton().click();
       workbenchStatusModal.findStopWorkbenchButton().click();
-      workbenchStatusModal.getNotebookStatus('Stopped');
+      workbenchStatusModal.getNotebookStatus('Stopped', 120000);
 
       // Start the Workbench and validate it has started successfully
       cy.step('Restart the workbench and confirm the workbench has started successfully');

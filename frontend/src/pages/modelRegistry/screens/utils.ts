@@ -9,8 +9,6 @@ import {
 } from '~/concepts/modelRegistry/types';
 import { ServiceKind } from '~/k8sTypes';
 import { KeyValuePair } from '~/types';
-import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
-import { PipelineModelCustomProps } from './ModelVersionDetails/const';
 
 // Retrieves the labels from customProperties that have non-empty string_value.
 export const getLabels = <T extends ModelRegistryCustomProperties>(customProperties: T): string[] =>
@@ -98,23 +96,6 @@ export const getCustomPropString = <
   }
   return '';
 };
-
-export const getCatalogModelDetailsProps = (
-  customProps: ModelRegistryCustomProperties,
-): CatalogModelDetailsParams => ({
-  sourceName: getCustomPropString(customProps, '_registeredFromCatalogSourceName'),
-  repositoryName: getCustomPropString(customProps, '_registeredFromCatalogRepositoryName'),
-  modelName: getCustomPropString(customProps, '_registeredFromCatalogModelName'),
-  tag: getCustomPropString(customProps, '_registeredFromCatalogTag'),
-});
-
-export const getPipelineModelCustomProps = (
-  customProps: ModelRegistryCustomProperties,
-): PipelineModelCustomProps => ({
-  project: getCustomPropString(customProps, '_registeredFromPipelineProject'),
-  runId: getCustomPropString(customProps, '_registeredFromPipelineRunId'),
-  runName: getCustomPropString(customProps, '_registeredFromPipelineRunName'),
-});
 
 export const filterModelVersions = (
   unfilteredModelVersions: ModelVersion[],
