@@ -32,7 +32,7 @@ spec:
     - version=v2.21.0
     - io.openshift.tags=odh-dashboard
   - name: output-image
-    value: quay.io/rhoai/odh-dashboard-rhel8:{{target_branch}}
+    value: quay.io/rhoai/odh-dashboard-rhel9:{{target_branch}}
   - name: build-platforms
     value:
     - linux/x86_64
@@ -45,7 +45,14 @@ spec:
   - name: hermetic
     value: true
   - name: prefetch-input
-    value: [{"type": "npm", "path": "."}, {"type": "npm", "path": "frontend"}, {"type": "npm", "path": "backend"}]
+    value: |
+      [
+        {"type": "npm", "path": "."}, 
+        {"type": "npm", "path": "frontend"}, 
+        {"type": "npm", "path": "backend"}
+      ]
+  - name: build-image-index
+    value: true
   pipelineRef:
     resolver: git
     params:
