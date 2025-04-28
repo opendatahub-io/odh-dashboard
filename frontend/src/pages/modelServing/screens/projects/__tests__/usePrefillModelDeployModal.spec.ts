@@ -584,19 +584,20 @@ describe('usePrefillModelDeployModal', () => {
         mockSetCreateData,
         mockRegisteredModelDeployInfo,
       );
-
-      expect(renderResult).hookToStrictEqual({
-        connections: [
-          {
-            connection: mockConnection({}),
+      waitFor(() => {
+        expect(renderResult).hookToStrictEqual({
+          connections: [
+            {
+              connection: mockConnection({}),
+            },
+          ],
+          connectionsLoadError: undefined,
+          connectionsLoaded: true,
+          initialNewConnectionType: undefined,
+          initialNewConnectionValues: {
+            ACCESS_TYPE: ['Pull'],
           },
-        ],
-        connectionsLoadError: undefined,
-        connectionsLoaded: true,
-        initialNewConnectionType: undefined,
-        initialNewConnectionValues: {
-          ACCESS_TYPE: ['Pull'],
-        },
+        });
       });
 
       expect(mockSetCreateData.mock.calls).toEqual([
@@ -790,34 +791,34 @@ describe('usePrefillModelDeployModal', () => {
         mockSetCreateData,
         mockRegisteredModelDeployInfo,
       );
-
-      expect(renderResult).hookToStrictEqual({
-        connections: [
-          {
-            connection: mockConnection({
-              data: {
-                OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=',
-                ACCESS_TYPE: 'WyJQdWxsIl0',
-              },
-            }),
-            isRecommended: true,
-          },
-          {
-            connection: mockConnection({
-              data: {
-                OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=',
-                ACCESS_TYPE: 'WyJQdWxsIl0',
-              },
-            }),
-            isRecommended: true,
-          },
-        ],
-        connectionsLoadError: undefined,
-        connectionsLoaded: true,
-        initialNewConnectionType: undefined,
-        initialNewConnectionValues: {},
+      waitFor(() => {
+        expect(renderResult).hookToStrictEqual({
+          connections: [
+            {
+              connection: mockConnection({
+                data: {
+                  OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=',
+                  ACCESS_TYPE: 'WyJQdWxsIl0',
+                },
+              }),
+              isRecommended: true,
+            },
+            {
+              connection: mockConnection({
+                data: {
+                  OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=',
+                  ACCESS_TYPE: 'WyJQdWxsIl0',
+                },
+              }),
+              isRecommended: true,
+            },
+          ],
+          connectionsLoadError: undefined,
+          connectionsLoaded: true,
+          initialNewConnectionType: undefined,
+          initialNewConnectionValues: {},
+        });
       });
-
       expect(mockSetCreateData.mock.calls).toEqual([
         ['name', 'test-model'],
         [

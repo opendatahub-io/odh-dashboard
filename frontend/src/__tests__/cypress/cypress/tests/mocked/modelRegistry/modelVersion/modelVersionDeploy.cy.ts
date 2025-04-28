@@ -623,6 +623,7 @@ describe('Deploy model version', () => {
           data: {
             '.dockerconfigjson': 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw',
             OCI_HOST: 'dGVzdC5pby90ZXN0',
+            ACCESS_TYPE: 'WyJQdWxsIl0',
           },
         }),
       ]),
