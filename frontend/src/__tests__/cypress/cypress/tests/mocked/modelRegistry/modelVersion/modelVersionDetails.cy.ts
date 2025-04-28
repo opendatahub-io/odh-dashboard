@@ -119,7 +119,7 @@ const mockModelVersions = mockModelVersion({
 });
 
 const mockModelArtifactWithSource = mockModelArtifact({
-  modelSourceKind: ModelSourceKind.DSP,
+  modelSourceKind: ModelSourceKind.KFP,
   modelSourceGroup: 'test-project',
   modelSourceId: 'pipelinerun1',
   modelSourceName: 'pipeline-run-test',
