@@ -105,7 +105,7 @@ const usePrefillModelDeployModal = (
         if (recommendedConnections.length === 0) {
           setCreateData('storage', {
             awsData: prefilledAWSData,
-            dataConnection: '',
+            dataConnection: modelDeployPrefillInfo.modelArtifactStorageKey || '',
             path: modelLocation.s3Fields.path,
             type: InferenceServiceStorageType.NEW_STORAGE,
             alert,
@@ -140,7 +140,7 @@ const usePrefillModelDeployModal = (
           setCreateData('storage', {
             awsData: EMPTY_AWS_SECRET_DATA,
             uri: '',
-            dataConnection: '',
+            dataConnection: modelDeployPrefillInfo.modelArtifactStorageKey || '',
             path: '',
             type: InferenceServiceStorageType.NEW_STORAGE,
             alert,
