@@ -420,7 +420,7 @@ describe('usePrefillModelDeployModal', () => {
             dataConnection: '',
             path: '',
             type: 'new-storage',
-            uri: 'http://test',
+            uri: '',
           },
         ],
       ]);
