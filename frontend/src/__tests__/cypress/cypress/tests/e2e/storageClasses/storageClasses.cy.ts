@@ -34,7 +34,7 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
 
   it(
     'An admin user can enable a disabled Storage Class',
-    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonCI'] },
     () => {
       cy.step('Navigate to Storage Classes view');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -71,7 +71,7 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
 
   it(
     'An admin user can disable an enabled Storage Class',
-    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonCI'] },
     () => {
       cy.step('Navigate to Storage Classes view');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -103,7 +103,7 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
 
   it(
     'An admin user can set an enabled Storage Class as the default one',
-    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonCI'] },
     () => {
       cy.step('Navigate to Storage Classes view');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);

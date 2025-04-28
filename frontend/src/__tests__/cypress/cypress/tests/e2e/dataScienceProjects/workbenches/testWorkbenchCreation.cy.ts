@@ -24,6 +24,7 @@ import { addConnectionModal, connectionsPage } from '~/__tests__/cypress/cypress
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { AWS_BUCKETS } from '~/__tests__/cypress/cypress/utils/s3Buckets';
 import { clusterStorage } from '~/__tests__/cypress/cypress/pages/clusterStorage';
+import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Create, Delete and Edit - Workbench Tests', () => {
   let editTestNamespace: string;
@@ -35,12 +36,13 @@ describe('Create, Delete and Edit - Workbench Tests', () => {
   let s3Config: AWSS3BucketDetails;
   let s3AccessKey: string;
   let s3SecretKey: string;
+  const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
   retryableBefore(() => {
     return loadPVCEditFixture('e2e/dataScienceProjects/testWorkbenchEditing.yaml')
       .then((fixtureData: WBEditTestData) => {
-        editTestNamespace = fixtureData.editTestNamespace;
+        editTestNamespace = `${fixtureData.editTestNamespace}-${uuid}`;
         editedTestNamespace = fixtureData.editedTestNamespace;
         editedTestDescription = fixtureData.editedTestDescription;
         pvcEditDisplayName = fixtureData.pvcEditDisplayName;

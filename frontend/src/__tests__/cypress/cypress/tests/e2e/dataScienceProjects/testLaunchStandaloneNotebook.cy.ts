@@ -24,7 +24,7 @@ describe('Verify a Jupyter Notebook can be launched directly from the Data Scien
 
   it(
     'Verify User Can Access Jupyter Launcher From DS Project Page',
-    { tags: ['@Smoke', '@SmokeSet1', '@ODS-1877', '@Dashboard'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@ODS-1877', '@Dashboard', '@NonCI'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');

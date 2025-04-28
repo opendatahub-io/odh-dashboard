@@ -17,16 +17,18 @@ import {
   findRefreshIntervalList,
   verifyRequestedResources,
 } from '~/__tests__/cypress/cypress/utils/workloadMetricsUtils';
+import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Verify Workload Metrics Default page Contents', () => {
   let testData: WorkloadMetricsTestData;
   let projectName: string;
+  const uuid = generateTestUUID();
 
   retryableBefore(() => {
     cy.fixture('e2e/workloadMetricsResources/testWorkloadMetricsResources.yaml', 'utf8')
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as WorkloadMetricsTestData;
-        projectName = testData.projectName;
+        projectName = `${testData.projectName}-${uuid}`;
       })
       .then(() => {
         cy.log('Creating Namespace ${projectName}');
@@ -37,7 +39,7 @@ describe('Verify Workload Metrics Default page Contents', () => {
           testData.resourceFlavour,
           testData.clusterQueue,
           testData.localQueue,
-          testData.projectName,
+          projectName,
           testData.cpuQuota,
           testData.memoryQuota,
         );
@@ -50,10 +52,10 @@ describe('Verify Workload Metrics Default page Contents', () => {
       testData.localQueue,
       testData.clusterQueue,
       testData.resourceFlavour,
-      testData.projectName,
+      projectName,
     );
     cy.log('Deleting Namespace ${projectName}');
-    deleteOpenShiftProject(testData.projectName);
+    deleteOpenShiftProject(projectName);
   });
 
   it(

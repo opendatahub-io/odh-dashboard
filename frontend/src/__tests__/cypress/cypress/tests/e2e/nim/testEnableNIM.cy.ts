@@ -11,7 +11,7 @@ describe('[Automation Bug: RHOAIENG-21549] Verify NIM enable flow', () => {
     cy.step('Delete odh-nim-account');
     deleteNIMAccount();
   });
-  it('Enable and validate NIM flow', { tags: ['@NIM', '@Sanity', '@Maintain'] }, () => {
+  it('Enable and validate NIM flow', { tags: ['@NIM', '@Sanity', '@Maintain', '@NonCI'] }, () => {
     cy.step('Login to the application');
     cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
     cy.step('Navigate to the Explore page');

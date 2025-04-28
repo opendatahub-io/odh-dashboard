@@ -13,10 +13,12 @@ import {
   retryableBeforeEach,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Workbenches - negative tests', () => {
   let testData: WBNegativeTestsData;
   let projectName: string;
+  const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
   retryableBeforeEach(() => {
@@ -24,7 +26,7 @@ describe('Workbenches - negative tests', () => {
       .fixture('e2e/dataScienceProjects/testWorkbenchNegativeTests.yaml', 'utf8')
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as WBNegativeTestsData;
-        projectName = testData.wbNegativeTestNamespace;
+        projectName = `${testData.wbNegativeTestNamespace}-${uuid}`;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
