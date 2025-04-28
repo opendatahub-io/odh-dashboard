@@ -251,7 +251,7 @@ describe('Deploy model version', () => {
     cy.findByTestId('oci-deploy-kserve-alert').should('exist');
   });
 
-  it('Selects Create Connection in case of no matching OCI connections', () => {
+  it('Selects Create Connection in case of no matching OCI connections and verifies the prepopulation of Pull Access type', () => {
     initIntercepts({});
     cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version 3');
@@ -268,6 +268,12 @@ describe('Deploy model version', () => {
     // Validate connection section
     kserveModal.findNewConnectionOption().should('be.checked');
     kserveModal.findModelURITextBox().should('have.value', 'test.io/test/private:test');
+    kserveModal
+      .findConnectionFieldInput('ACCESS_TYPE')
+      .click()
+      .then(() => {
+        kserveModal.verifyPullSecretCheckbox();
+      });
   });
 
   it('Selects Current URI in case of built-in registry OCI connections', () => {
@@ -617,6 +623,7 @@ describe('Deploy model version', () => {
           data: {
             '.dockerconfigjson': 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw',
             OCI_HOST: 'dGVzdC5pby90ZXN0',
+            ACCESS_TYPE: 'WyJQdWxsIl0',
           },
         }),
       ]),
