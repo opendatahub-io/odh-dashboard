@@ -127,6 +127,17 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
     }
   }, [mr]);
 
+  if (!modelRegistryNamespace) {
+    return (
+      <ApplicationsPage loaded empty={false}>
+        <RedirectErrorState
+          title="Could not load component state"
+          errorMessage="No registries namespace could be found"
+        />
+      </ApplicationsPage>
+    );
+  }
+
   const onCancelClose = () => {
     fireFormTrackingEvent(mr ? updateEventName : createEventName, {
       outcome: TrackingOutcome.cancel,
@@ -206,7 +217,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
         kind: 'ModelRegistry',
         metadata: {
           name: nameDesc.k8sName.value || translateDisplayNameForK8s(nameDesc.name),
-          namespace: modelRegistryNamespace || '',
+          namespace: modelRegistryNamespace,
           annotations: {
             'openshift.io/description': nameDesc.description,
             'openshift.io/display-name': nameDesc.name.trim(),
@@ -277,17 +288,6 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
     hasContent(username) &&
     hasContent(database) &&
     (!addSecureDB || (secureDBInfo.isValid && !configSecretsError));
-
-  if (!modelRegistryNamespace) {
-    return (
-      <ApplicationsPage loaded empty={false}>
-        <RedirectErrorState
-          title="Could not load component state"
-          errorMessage="No registries namespace could be found"
-        />
-      </ApplicationsPage>
-    );
-  }
 
   return (
     <Modal
