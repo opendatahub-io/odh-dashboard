@@ -31,7 +31,7 @@ const GlobalPipelineCoreDetailsInner: React.FC<GlobalPipelineCoreDetailsProps> =
   // Use this value to reset home link path
   // e.g. Navigate to archived/schedules tab for pipeline run details
   const [homePath, setHomePath] = React.useState(redirectPath(namespace));
-
+console.log("44a sigh; in global pipelines core details inner:", homePath);
   return (
     <BreadcrumbDetailsComponent
       breadcrumbPath={[
