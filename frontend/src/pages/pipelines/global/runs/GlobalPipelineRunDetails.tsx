@@ -24,8 +24,6 @@ const GlobalPipelineRunDetails: BreadcrumbDetailsComponentProps = ({
     setHomePath(contextPath);
   }, [contextPath, setHomePath]);
 
-
-  console.log("44a in global pipeline run details:", breadcrumbPath, contextPath, fetchedRun);
   return (
     <PipelineRunDetails
       breadcrumbPath={breadcrumbPath}

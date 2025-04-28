@@ -16,7 +16,6 @@ const ExperimentPipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadc
   const { namespace } = usePipelinesAPI();
   const [run] = fetchedRun;
   const isRunArchived = run?.storage_state === StorageStateKF.ARCHIVED;
-  console.log("in experiment pipeline run details:", breadcrumbPath, fetchedRun);
   return (
     <PipelineRunDetails
       breadcrumbPath={[

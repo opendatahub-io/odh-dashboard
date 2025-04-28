@@ -11,9 +11,6 @@ const ExperimentDuplicateRunPage: React.FC<PathProps> = ({ breadcrumbPath }) => 
   const { experiment } = React.useContext(ExperimentContext);
   const { namespace } = usePipelinesAPI();
 
-const contextPath = experimentRunsRoute(namespace, experiment?.experiment_id);
-console.log("44a sigh2; in experiment duplicate run page:", breadcrumbPath, contextPath);
-
   return (
     <DuplicateRunPage
       breadcrumbPath={[
@@ -29,7 +26,7 @@ console.log("44a sigh2; in experiment duplicate run page:", breadcrumbPath, cont
           )}
         </BreadcrumbItem>,
       ]}
-      contextPath={contextPath}
+      contextPath={experimentRunsRoute(namespace, experiment?.experiment_id)}
       contextExperiment={experiment}
       detailsRedirect={(runId) => runDetailsRoute(namespace, runId, experiment?.experiment_id)}
     />
