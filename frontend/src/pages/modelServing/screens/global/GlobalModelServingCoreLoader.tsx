@@ -3,7 +3,7 @@ import { Navigate, Outlet, useParams } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import InvalidProject from '~/concepts/projects/InvalidProject';
-import ModelServingContextProvider from '~/pages/modelServing/ModelServingContext';
+import ModelServingContextProvider from '~/concepts/modelServing/context/ModelServingContext';
 import ModelServingNoProjects from '~/pages/modelServing/screens/global/ModelServingNoProjects';
 import ModelServingProjectSelection from '~/pages/modelServing/screens/global/ModelServingProjectSelection';
 

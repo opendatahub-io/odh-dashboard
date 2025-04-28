@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button, Truncate } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
+import { ModelServingContext } from '~/concepts/modelServing/context/ModelServingContext';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import EmptyDetailsView from '~/components/EmptyDetailsView';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';

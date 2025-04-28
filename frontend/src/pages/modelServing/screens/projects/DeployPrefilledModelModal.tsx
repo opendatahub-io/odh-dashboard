@@ -11,7 +11,7 @@ import { ServingRuntimePlatform } from '~/types';
 import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
 import ModelServingContextProvider, {
   ModelServingContext,
-} from '~/pages/modelServing/ModelServingContext';
+} from '~/concepts/modelServing/context/ModelServingContext';
 import { getKServeTemplates } from '~/pages/modelServing/customServingRuntimes/utils';
 import { isRedHatRegistryUri } from '~/pages/modelRegistry/screens/utils';
 import useServingConnections from '~/pages/projects/screens/detail/connections/useServingConnections';

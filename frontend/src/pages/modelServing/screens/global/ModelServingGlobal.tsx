@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
+import { ModelServingContext } from '~/concepts/modelServing/context/ModelServingContext';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/projects/utils';
 import { ProjectObjectType } from '~/concepts/design/utils';

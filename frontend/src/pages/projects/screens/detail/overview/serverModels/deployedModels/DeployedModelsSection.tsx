@@ -29,7 +29,7 @@ import OverviewCard from '~/pages/projects/screens/detail/overview/components/Ov
 import AddModelFooter from '~/pages/projects/screens/detail/overview/serverModels/AddModelFooter';
 import { InferenceServiceKind } from '~/k8sTypes';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import ModelServingContextProvider from '~/pages/modelServing/ModelServingContext';
+import ModelServingContextProvider from '~/concepts/modelServing/context/ModelServingContext';
 import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import ModelServingPlatformSelectButton from '~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';

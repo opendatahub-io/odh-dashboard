@@ -5,7 +5,7 @@ import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import { useAccessReview } from '~/api';
 import { useAppContext } from '~/app/AppContext';
 import { ServingRuntimeKind } from '~/k8sTypes';
-import { ModelServingContextType } from '~/pages/modelServing/ModelServingContext';
+import { ModelServingContextType } from '~/concepts/modelServing/context/ModelServingContext';
 import useProjectErrorForPrefilledModel from '~/pages/modelServing/screens/projects/useProjectErrorForPrefilledModel';
 import { ServingRuntimePlatform } from '~/types';
 

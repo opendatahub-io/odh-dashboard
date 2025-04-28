@@ -25,12 +25,12 @@ import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformS
 import { useTemplates } from '~/api';
 import { Connection } from '~/concepts/connectionTypes/types';
 import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
-import useInferenceServices from './useInferenceServices';
-import useServingRuntimes from './useServingRuntimes';
-import useTemplateOrder from './customServingRuntimes/useTemplateOrder';
-import useTemplateDisablement from './customServingRuntimes/useTemplateDisablement';
-import { getTokenNames } from './utils';
-import useServingRuntimeSecrets from './screens/projects/useServingRuntimeSecrets';
+import useInferenceServices from '~/pages/modelServing/useInferenceServices';
+import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
+import useTemplateOrder from '~/pages/modelServing/customServingRuntimes/useTemplateOrder';
+import useTemplateDisablement from '~/pages/modelServing/customServingRuntimes/useTemplateDisablement';
+import { getTokenNames } from '~/pages/modelServing/utils';
+import useServingRuntimeSecrets from '~/pages/modelServing/screens/projects/useServingRuntimeSecrets';
 
 export type ModelServingContextType = {
   refreshAllData: () => void;

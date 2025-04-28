@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Button, Tooltip } from '@patternfly/react-core';
 import { useParams } from 'react-router-dom';
 import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
-import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
+import { ModelServingContext } from '~/concepts/modelServing/context/ModelServingContext';
 import {
   getSortedTemplates,
   getTemplateEnabled,
