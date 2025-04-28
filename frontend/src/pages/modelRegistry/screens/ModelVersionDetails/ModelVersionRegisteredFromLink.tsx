@@ -17,14 +17,22 @@ import {
 
 type ModelVersionRegisteredFromLinkProps = {
   modelArtifact: ModelArtifact;
+  isModelCatalogAvailable: boolean;
 };
 
 const ModelVersionRegisteredFromLink: React.FC<ModelVersionRegisteredFromLinkProps> = ({
   modelArtifact,
+  isModelCatalogAvailable,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
   const registeredFromCatalogDetails = modelSourcePropertiesToCatalogParams(modelArtifact);
   const registeredFromPipelineDetails = modelSourcePropertiesToPipelineRunRef(modelArtifact);
+
+  const registeredfromText = (
+    <span style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
+      {registeredFromCatalogDetails?.modelName} ({registeredFromCatalogDetails?.tag})
+    </span>
+  );
 
   if (!registeredFromCatalogDetails && !registeredFromPipelineDetails) {
     return null;
@@ -109,12 +117,16 @@ const ModelVersionRegisteredFromLink: React.FC<ModelVersionRegisteredFromLinkPro
     if (registeredFromCatalogDetails) {
       const catalogModelUrl = getCatalogModelDetailsRoute(registeredFromCatalogDetails);
       return (
-        <Link to={catalogModelUrl} data-testid="registered-from-catalog">
-          <span style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
-            {registeredFromCatalogDetails.modelName} ({registeredFromCatalogDetails.tag})
-          </span>{' '}
+        <>
+          {isModelCatalogAvailable ? (
+            <Link to={catalogModelUrl} data-testid="registered-from-catalog">
+              {registeredfromText}
+            </Link>
+          ) : (
+            registeredfromText
+          )}{' '}
           in Model catalog
-        </Link>
+        </>
       );
     }
 
