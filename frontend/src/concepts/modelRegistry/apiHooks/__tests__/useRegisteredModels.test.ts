@@ -1,7 +1,7 @@
 import { testHook, standardUseFetchState } from '~/__tests__/unit/testUtils/hooks';
 import { useModelRegistryAPI } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { RegisteredModelList } from '~/concepts/modelRegistry/types';
-import useRegisteredModels from '../useRegisteredModels';
+import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegisteredModels';
 
 // Mock the useModelRegistryAPI hook
 jest.mock('~/concepts/modelRegistry/context/ModelRegistryContext', () => ({
