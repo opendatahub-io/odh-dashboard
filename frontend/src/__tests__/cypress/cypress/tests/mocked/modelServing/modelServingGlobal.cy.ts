@@ -34,6 +34,13 @@ import {
   mockModelServingFields,
   mockOciConnectionTypeConfigMap,
 } from '~/__mocks__/mockConnectionType';
+import { hardwareProfileSection } from '~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
+import {
+  mockGlobalScopedHardwareProfiles,
+  mockProjectScopedHardwareProfiles,
+} from '~/__mocks__/mockHardwareProfile';
+import { initInterceptsForAllProjects } from '~/__tests__/cypress/cypress/utils/servingUtils';
+import { nimDeployModal } from '~/__tests__/cypress/cypress/pages/components/NIMDeployModal';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -230,6 +237,56 @@ describe('Model Serving Global', () => {
     cy.wait('@getInferenceServices').then((response) => {
       expect(response.error?.message).to.eq('Socket closed before finished writing response');
     });
+  });
+
+  it('All projects with every type of serving listed', () => {
+    asClusterAdminUser();
+    initInterceptsForAllProjects();
+
+    // Visit the all-projects view and ensure each project type is listed
+    modelServingGlobal.visit();
+    [
+      {
+        model: 'KServe Model',
+        project: 'KServe Project',
+        servingType: 'Single-model serving enabled',
+      },
+      {
+        model: 'Model Mesh Model',
+        project: 'Model Mesh Project',
+        servingType: 'Multi-model serving enabled',
+      },
+      {
+        model: 'NIM Model',
+        project: 'NIM Project',
+        servingType: 'NVIDIA NIM serving enabled',
+      },
+    ].forEach((row) => {
+      modelServingSection.getInferenceServiceRow(row.model).findProject().findByText(row.project);
+      modelServingSection
+        .getInferenceServiceRow(row.model)
+        .findProject()
+        .findByText(row.servingType);
+    });
+    // Double check NIM Runtime is listed
+    modelServingSection
+      .getInferenceServiceRow('NIM Model')
+      .findServingRuntime()
+      .should('have.text', 'NVIDIA NIM');
+
+    // Open each modal and make sure it is the correct one
+    modelServingGlobal.getModelRow('KServe Model').findKebabAction('Edit').click();
+    // KServe Modal has section at the bottom for configuring params where as Model Mesh does not
+    kserveModalEdit.findConfigurationParamsSection().should('exist');
+    kserveModalEdit.findCancelButton().click();
+
+    modelServingGlobal.getModelRow('Model Mesh Model').findKebabAction('Edit').click();
+    inferenceServiceModalEdit.findConfigurationParamsSection().should('not.exist');
+    inferenceServiceModalEdit.findCancelButton().click();
+
+    modelServingGlobal.getModelRow('NIM Model').findKebabAction('Edit').click();
+    // NIM Modal is the only one that has pvc-size
+    nimDeployModal.findNimStorageSizeInput().should('exist');
   });
 
   it('Empty State No Project Selected', () => {
