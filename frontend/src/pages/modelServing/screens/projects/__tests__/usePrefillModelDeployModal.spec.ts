@@ -420,7 +420,7 @@ describe('usePrefillModelDeployModal', () => {
             dataConnection: '',
             path: '',
             type: 'new-storage',
-            uri: 'http://test',
+            uri: '',
           },
         ],
       ]);
@@ -584,7 +584,6 @@ describe('usePrefillModelDeployModal', () => {
         mockSetCreateData,
         mockRegisteredModelDeployInfo,
       );
-
       waitFor(() => {
         expect(renderResult).hookToStrictEqual({
           connections: [
@@ -595,7 +594,9 @@ describe('usePrefillModelDeployModal', () => {
           connectionsLoadError: undefined,
           connectionsLoaded: true,
           initialNewConnectionType: undefined,
-          initialNewConnectionValues: {},
+          initialNewConnectionValues: {
+            ACCESS_TYPE: ['Pull'],
+          },
         });
       });
 
@@ -695,6 +696,7 @@ describe('usePrefillModelDeployModal', () => {
             data: {
               OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=',
               '.dockerconfigjson': 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw',
+              ACCESS_TYPE: 'WyJQdWxsIl0',
             },
           }),
         ],
@@ -725,6 +727,7 @@ describe('usePrefillModelDeployModal', () => {
                 data: {
                   OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=',
                   '.dockerconfigjson': 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw',
+                  ACCESS_TYPE: 'WyJQdWxsIl0',
                 },
               }),
               isRecommended: true,
@@ -766,10 +769,10 @@ describe('usePrefillModelDeployModal', () => {
       mockUseConnections.mockReturnValue([
         [
           mockConnection({
-            data: { OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=' },
+            data: { OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=', ACCESS_TYPE: 'WyJQdWxsIl0' },
           }),
           mockConnection({
-            data: { OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=' },
+            data: { OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=', ACCESS_TYPE: 'WyJQdWxsIl0' },
           }),
         ],
         true,
@@ -788,7 +791,6 @@ describe('usePrefillModelDeployModal', () => {
         mockSetCreateData,
         mockRegisteredModelDeployInfo,
       );
-
       waitFor(() => {
         expect(renderResult).hookToStrictEqual({
           connections: [
@@ -796,6 +798,7 @@ describe('usePrefillModelDeployModal', () => {
               connection: mockConnection({
                 data: {
                   OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=',
+                  ACCESS_TYPE: 'WyJQdWxsIl0',
                 },
               }),
               isRecommended: true,
@@ -804,6 +807,7 @@ describe('usePrefillModelDeployModal', () => {
               connection: mockConnection({
                 data: {
                   OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=',
+                  ACCESS_TYPE: 'WyJQdWxsIl0',
                 },
               }),
               isRecommended: true,
@@ -815,7 +819,6 @@ describe('usePrefillModelDeployModal', () => {
           initialNewConnectionValues: {},
         });
       });
-
       expect(mockSetCreateData.mock.calls).toEqual([
         ['name', 'test-model'],
         [

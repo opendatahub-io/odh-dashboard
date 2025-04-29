@@ -2,7 +2,6 @@ import * as React from 'react';
 import {
   ClipboardCopy,
   FormGroup,
-  NumberInput,
   Split,
   SplitItem,
   Stack,
@@ -18,6 +17,7 @@ import {
   DEFAULT_CRON_STRING,
   DEFAULT_PERIODIC_OPTION,
 } from '~/concepts/pipelines/content/createRun/const';
+import NumberInputWrapper from '~/components/NumberInputWrapper';
 import { extractNumberAndTimeUnit } from './utils';
 
 type TriggerTypeFieldProps = {
@@ -52,18 +52,19 @@ const TriggerTypeField: React.FC<TriggerTypeFieldProps> = ({ data, onChange }) =
         <FormGroup label="Run every" data-testid="run-every-group">
           <Split hasGutter>
             <SplitItem>
-              <NumberInput
+              <NumberInputWrapper
                 min={1}
                 value={numberPart}
                 onChange={(newNumberPart) => {
-                  const updatedValue = `${Number(newNumberPart.currentTarget.value).toLocaleString(
-                    'fullwide',
-                    { useGrouping: false },
-                  )}${unitPart}`;
-                  onChange({
-                    ...data,
-                    value: updatedValue,
-                  });
+                  if (typeof newNumberPart === 'number') {
+                    const updatedValue = `${newNumberPart.toLocaleString('fullwide', {
+                      useGrouping: false,
+                    })}${unitPart}`;
+                    onChange({
+                      ...data,
+                      value: updatedValue,
+                    });
+                  }
                 }}
               />
             </SplitItem>
