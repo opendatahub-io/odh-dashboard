@@ -163,18 +163,29 @@ const useRunFormData = (
     versionToUse: versionToUse ?? PipelineVersionToUse.LATEST,
     experiment: experiment ?? null,
     runType: { type: RunTypeOption.ONE_TRIGGER },
-    params:
-      run?.runtime_config?.parameters ||
-      Object.entries(getInputDefinitionParams(version) || {}).reduce(
+    params: {},  // Start with empty params
+    ...initialFormData,
+  }));
+  const [formData, setFormValue] = formState;
+
+  // Handle parameter updates when version or run changes
+  React.useEffect(() => {
+    if (formData.version) {
+      const inputDefinitionParams = getInputDefinitionParams(formData.version) || {};
+      const newParams = Object.entries(inputDefinitionParams).reduce(
         (acc: RuntimeConfigParameters, [paramKey, paramValue]) => {
-          acc[paramKey] = paramValue.defaultValue ?? '';
+          // Use run params if available, otherwise use defaults
+          // else; when doing a duplicate run, only parameters that have values will be included
+          // (this way all the empty defaults are also included in a duplicate run)
+          acc[paramKey] = run?.runtime_config?.parameters?.[paramKey] ?? paramValue.defaultValue ?? '';
           return acc;
         },
         {},
-      ),
-    ...initialFormData,
-  }));
-  const [, setFormValue] = formState;
+      );
+      console.log('(avo44: newParams', newParams);
+      setFormValue('params', newParams);
+    }
+  }, [formData.version, run, setFormValue]);
 
   useUpdateExperimentFormData(formState, experiment);
   useUpdateRunType(setFormValue, run);

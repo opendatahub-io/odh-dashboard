@@ -35,6 +35,8 @@ export const ParamsSection: React.FC<ParamsSectionProps> = ({
       return <Alert variant="info" isInline isPlain title="This pipeline has no parameters." />;
     }
 
+    console.log("431: showing params section:", runParams);
+    console.log("432: params (json):", JSON.stringify(runParams, null, 2));
     return Object.entries(runParams).map(([label, value]) => {
       const inputDefinitionParams = getInputDefinitionParams(version);
       const { parameterType, isOptional, description } = inputDefinitionParams?.[label] || {};
@@ -59,7 +61,7 @@ export const ParamsSection: React.FC<ParamsSectionProps> = ({
         />
       );
     });
-  };
+  }; //end of renderContent
 
   return (
     <FormSection
