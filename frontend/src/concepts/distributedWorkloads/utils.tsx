@@ -267,3 +267,11 @@ export const getTotalSharedQuota = (
     ),
   };
 };
+export const getWorkloadStatusMessage = (statusInfo: WorkloadStatusInfo): string => {
+  const DEFAULT_MESSAGE = 'No message';
+  const SUCCESS_MESSAGE = 'Finished';
+  const isSuccessWithNoMessage =
+    statusInfo.status === WorkloadStatusType.Succeeded && statusInfo.message === DEFAULT_MESSAGE;
+
+  return isSuccessWithNoMessage ? SUCCESS_MESSAGE : statusInfo.message;
+};

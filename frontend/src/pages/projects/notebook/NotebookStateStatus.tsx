@@ -121,9 +121,11 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
                 key="edit"
                 variant="link"
                 onClick={() => {
-                  navigate(
-                    `/projects/${notebook!.metadata.namespace}/spawner/${notebook!.metadata.name}`,
-                  );
+                  if (notebook.metadata.namespace && notebook.metadata.name) {
+                    navigate(
+                      `/projects/${notebook.metadata.namespace}/spawner/${notebook.metadata.name}`,
+                    );
+                  }
                 }}
               >
                 Edit workbench

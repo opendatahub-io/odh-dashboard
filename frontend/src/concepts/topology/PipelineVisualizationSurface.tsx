@@ -123,16 +123,17 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
       const model = controller.toModel();
 
       // Get all the non-spacer nodes, mark them all visible again
-      const nonSpacerNodes = model
-        .nodes!.filter((n) => n.type !== DEFAULT_SPACER_NODE_TYPE)
-        .map((n) => ({
-          ...n,
-          visible: true,
-        }));
+      const nonSpacerNodes = model.nodes
+        ? model.nodes.filter((n) => n.type !== DEFAULT_SPACER_NODE_TYPE)
+        : [];
+      const visibleNodes = nonSpacerNodes.map((n) => ({
+        ...n,
+        visible: true,
+      }));
 
       // If collapsing, set the size of the collapsed group nodes
       if (collapseAll) {
-        nonSpacerNodes.forEach((node) => {
+        visibleNodes.forEach((node) => {
           const newNode = node;
           if (node.group && node.collapsed) {
             newNode.width = NODE_WIDTH;
@@ -141,7 +142,7 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
         });
       }
       // Determine the new set of nodes, including the spacer nodes
-      const pipelineNodes = addSpacerNodes(nonSpacerNodes);
+      const pipelineNodes = addSpacerNodes(visibleNodes);
 
       // Determine the new edges
       const edges = getEdgesFromNodes(

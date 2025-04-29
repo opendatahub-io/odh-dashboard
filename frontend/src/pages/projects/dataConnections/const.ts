@@ -9,6 +9,10 @@ export enum AwsKeys {
   DEFAULT_REGION = 'AWS_DEFAULT_REGION',
   AWS_S3_BUCKET = 'AWS_S3_BUCKET',
 }
+export enum AccessTypes {
+  PULL = 'Pull',
+  PUSH = 'Push',
+}
 export const PIPELINE_AWS_KEY = [
   AwsKeys.ACCESS_KEY_ID,
   AwsKeys.SECRET_ACCESS_KEY,
