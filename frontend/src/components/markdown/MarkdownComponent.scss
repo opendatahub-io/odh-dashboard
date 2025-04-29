@@ -37,4 +37,12 @@
       white-space: pre;
     }
   }
+
+  // Images
+  img {
+    display: block;
+    margin: var(--pf-t--global--spacer--md) auto;
+    max-width: 100%;
+    height: auto;
+  }
 }
