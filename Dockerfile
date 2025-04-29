@@ -19,7 +19,7 @@ USER default
 
 RUN npm cache clean --force
 
-RUN npm ci --omit=optional
+RUN npm ci
 
 RUN npm run build
 
