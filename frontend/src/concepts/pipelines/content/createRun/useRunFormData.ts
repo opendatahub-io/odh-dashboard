@@ -163,7 +163,7 @@ const useRunFormData = (
     versionToUse: versionToUse ?? PipelineVersionToUse.LATEST,
     experiment: experiment ?? null,
     runType: { type: RunTypeOption.ONE_TRIGGER },
-    params: {},  // Start with empty params
+    params: {}, // Start with empty params
     ...initialFormData,
   }));
   const [formData, setFormValue] = formState;
@@ -177,12 +177,12 @@ const useRunFormData = (
           // Use run params if available, otherwise use defaults
           // else; when doing a duplicate run, only parameters that have values will be included
           // (this way all the empty defaults are also included in a duplicate run)
-          acc[paramKey] = run?.runtime_config?.parameters?.[paramKey] ?? paramValue.defaultValue ?? '';
+          acc[paramKey] =
+            run?.runtime_config?.parameters[paramKey] ?? paramValue.defaultValue ?? '';
           return acc;
         },
         {},
       );
-      console.log('(avo44: newParams', newParams);
       setFormValue('params', newParams);
     }
   }, [formData.version, run, setFormValue]);

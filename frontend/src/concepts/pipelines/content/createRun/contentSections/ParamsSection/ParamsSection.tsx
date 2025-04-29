@@ -1,12 +1,12 @@
-import * as React from 'react';
 import { Alert, FormSection } from '@patternfly/react-core';
+import * as React from 'react';
+import ParamsDefaultFields from '~/components/ParamsDefaultFields';
 import {
   CreateRunPageSections,
   runPageSectionTitles,
 } from '~/concepts/pipelines/content/createRun/const';
-import { PipelineVersionKF, RuntimeConfigParameters } from '~/concepts/pipelines/kfTypes';
 import { getInputDefinitionParams } from '~/concepts/pipelines/content/createRun/utils';
-import ParamsDefaultFields from '~/components/ParamsDefaultFields';
+import { PipelineVersionKF, RuntimeConfigParameters } from '~/concepts/pipelines/kfTypes';
 
 type ParamsSectionProps = {
   runParams: RuntimeConfigParameters | undefined;
@@ -35,8 +35,6 @@ export const ParamsSection: React.FC<ParamsSectionProps> = ({
       return <Alert variant="info" isInline isPlain title="This pipeline has no parameters." />;
     }
 
-    console.log("431: showing params section:", runParams);
-    console.log("432: params (json):", JSON.stringify(runParams, null, 2));
     return Object.entries(runParams).map(([label, value]) => {
       const inputDefinitionParams = getInputDefinitionParams(version);
       const { parameterType, isOptional, description } = inputDefinitionParams?.[label] || {};

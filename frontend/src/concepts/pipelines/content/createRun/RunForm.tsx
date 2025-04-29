@@ -52,9 +52,6 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) 
     return version;
   }, [data.version, latestVersion, onValueChange]);
 
-
-  console.log("431; in run form:", data, JSON.stringify(data));
-
   const paramsRef = React.useRef(data.params);
   const isSchedule = data.runType.type === RunTypeOption.SCHEDULED;
   const { name } = data.nameDesc;

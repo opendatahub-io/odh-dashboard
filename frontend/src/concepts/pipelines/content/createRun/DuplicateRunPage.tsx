@@ -22,7 +22,7 @@ const DuplicateRunPage: React.FC<PathProps & DuplicateRunPageProps> = ({
 }) => {
   const { runId } = useParams();
   const [run, loaded, error] = usePipelineRunById(runId);
-console.log("44a sigh1; in duplicate run page:", breadcrumbPath, contextPath, props);
+
   return (
     <ApplicationsPage
       title="Duplicate run"
