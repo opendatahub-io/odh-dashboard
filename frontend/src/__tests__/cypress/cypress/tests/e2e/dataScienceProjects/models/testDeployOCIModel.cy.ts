@@ -59,7 +59,7 @@ describe(
 
     it(
       'Verify User Can Create an OCI Connection in DS Connections Page And Deploy the Model',
-      { tags: ['@Smoke', '@Dashboard', '@Modelserving'] },
+      { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving'] },
       () => {
         cy.step(`Navigate to DS Project ${projectName}`);
         cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);

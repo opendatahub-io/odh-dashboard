@@ -54,7 +54,7 @@ describe('Settings - User Management - Unauthorized Permission Change', () => {
 
   it(
     'Set up initial permissions as admin',
-    { tags: ['@Destructive', '@ODS-1660', '@Dashboard', '@NonCI'] },
+    { tags: ['@Destructive', '@ODS-1660', '@Dashboard', '@Parallel=False'] },
     () => {
       // Start as admin user
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -105,7 +105,7 @@ describe('Settings - User Management - Unauthorized Permission Change', () => {
 
   it(
     'Verify unauthorized user cannot access settings',
-    { tags: ['@Destructive', '@ODS-1660', '@Dashboard', '@NonCI'] },
+    { tags: ['@Destructive', '@ODS-1660', '@Dashboard', '@Parallel=False'] },
     () => {
       cy.step('Login as unauthorized user');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);

@@ -24,7 +24,7 @@ describe('[Product Bug:RHOAIENG-24546] Verify a Jupyter Notebook can be launched
 
   it(
     'Verify User Can Access Jupyter Launcher From DS Project Page',
-    { tags: ['@Smoke', '@SmokeSet1', '@ODS-1877', '@Dashboard', '@NonCI', '@Bug'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@ODS-1877', '@Dashboard', '@Parallel=False', '@Bug'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');

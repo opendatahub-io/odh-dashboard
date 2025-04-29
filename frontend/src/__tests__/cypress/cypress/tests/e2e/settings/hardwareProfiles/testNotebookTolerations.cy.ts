@@ -49,7 +49,9 @@ describe('Notebooks - tolerations tests', () => {
     'Verify Juypter Notebook Creation using Hardware Profiles and applying Tolerations',
     // TODO: Add the below tags once this feature is enabled in 2.20+
     //  { tags: ['@Sanity', '@SanitySet2', '@Dashboard'] },
-    { tags: ['@Featureflagged', '@HardwareProfileNotebook', '@HardwareProfiles', '@NonCI'] },
+    {
+      tags: ['@Featureflagged', '@HardwareProfileNotebook', '@HardwareProfiles', '@Parallel=False'],
+    },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');

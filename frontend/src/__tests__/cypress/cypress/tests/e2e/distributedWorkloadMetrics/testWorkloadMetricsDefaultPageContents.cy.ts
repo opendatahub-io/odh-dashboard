@@ -60,7 +60,7 @@ describe('Verify Workload Metrics Default page Contents', () => {
 
   it(
     'Verify Workload Metrics Home page Contents',
-    { tags: ['@Sanity', '@WorkloadMetrics'] },
+    { tags: ['@Sanity', '@SanitySet3', '@WorkloadMetrics'] },
     () => {
       cy.step('Login to the Application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -79,7 +79,7 @@ describe('Verify Workload Metrics Default page Contents', () => {
 
   it(
     'Verify Project Metrics Default Page contents',
-    { tags: ['@Sanity', '@WorkloadMetrics'] },
+    { tags: ['@Sanity', '@SanitySet3', '@WorkloadMetrics'] },
     () => {
       cy.step('Login to the Application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -120,7 +120,7 @@ describe('Verify Workload Metrics Default page Contents', () => {
 
   it(
     'Verify Distributed Workload status Default Page contents',
-    { tags: ['@Sanity', '@WorkloadMetrics'] },
+    { tags: ['@Sanity', '@SanitySet3', '@WorkloadMetrics'] },
     () => {
       cy.step('Login to the Application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);

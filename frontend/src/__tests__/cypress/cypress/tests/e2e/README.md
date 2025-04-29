@@ -183,6 +183,7 @@ Tests are parameterized using tags and applied to the 'it' block:
 * `Destructive`: Tests that have the potential to break other tests (changing configuration etc.) 
 * `Bug`: Tests that are currently failing due to a Product Bug
 * `Maintain`: Tests that are currently failing and require maintenance 
+* `Paralell=False`: Tests that cannot run concurrently (to prevent resource conflicts)
 
 **Usage in tests:**
 ```javascript
