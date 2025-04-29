@@ -10,11 +10,16 @@ import {
   CreatingInferenceServiceObject,
   InferenceServiceStorageType,
 } from '~/pages/modelServing/screens/types';
-import { AwsKeys, EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
+import {
+  AccessTypes,
+  AwsKeys,
+  EMPTY_AWS_SECRET_DATA,
+} from '~/pages/projects/dataConnections/const';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { isRedHatRegistryUri } from '~/pages/modelRegistry/screens/utils';
 import {
   getMRConnectionValues,
+  OCIAccessTypeKey,
   OCIConnectionTypeKeys,
   S3ConnectionTypeKeys,
   URIConnectionTypeKeys,
@@ -134,7 +139,7 @@ const usePrefillModelDeployModal = (
         if (recommendedConnections.length === 0) {
           setCreateData('storage', {
             awsData: EMPTY_AWS_SECRET_DATA,
-            uri: modelLocation.uri,
+            uri: '',
             dataConnection: '',
             path: '',
             type: InferenceServiceStorageType.NEW_STORAGE,
@@ -185,6 +190,7 @@ const usePrefillModelDeployModal = (
             type: InferenceServiceStorageType.NEW_STORAGE,
             alert,
           });
+          setinitialNewConnectionValues({ [`${OCIAccessTypeKey}`]: [AccessTypes.PULL] });
           setInitialNewConnectionType(
             withRequiredFields(
               connectionTypes.find(

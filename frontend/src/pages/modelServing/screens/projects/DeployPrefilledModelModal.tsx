@@ -82,7 +82,9 @@ const DeployPrefilledModelModalContents: React.FC<
   const loadError = prefillInfoLoadError; // Note: serving context load errors are handled/rendered in ModelServingContextProvider
 
   const handleSubmit = React.useCallback(async () => {
-    onSubmit?.(selectedProject!);
+    if (selectedProject) {
+      onSubmit?.(selectedProject);
+    }
   }, [onSubmit, selectedProject]);
 
   const onClose = React.useCallback(

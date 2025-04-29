@@ -1,4 +1,5 @@
 import * as React from 'react';
+// eslint-disable-next-line no-restricted-imports
 import { NumberInput } from '@patternfly/react-core';
 
 import './NumberInputWrapper.scss';

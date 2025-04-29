@@ -74,7 +74,9 @@ describe('AboutDialog', () => {
 
   beforeEach(() => {
     dashboardConfig = mockDashboardConfig({});
-    dashboardConfig.metadata!.namespace = 'odh-dashboard';
+    if (dashboardConfig.metadata) {
+      dashboardConfig.metadata.namespace = 'odh-dashboard';
+    }
     appContext = {
       buildStatuses: [],
       dashboardConfig,
@@ -167,11 +169,14 @@ describe('AboutDialog', () => {
   });
 
   it('should show the appropriate RHOAI values', async () => {
-    dashboardConfig.metadata!.namespace = 'redhat-ods-applications';
+    if (dashboardConfig.metadata) {
+      dashboardConfig.metadata.namespace = 'redhat-ods-applications';
+    }
     appContext.isRHOAI = true;
     userInfo.isAdmin = true;
-    dsciStatus.release!.name = 'OpenShift AI Self-Managed version';
-
+    if (dsciStatus.release) {
+      dsciStatus.release.name = 'OpenShift AI Self-Managed version';
+    }
     useAppContextMock.mockReturnValue(appContext);
     useUserMock.mockReturnValue(userInfo);
     useClusterInfoMock.mockReturnValue(clusterInfo);
