@@ -13,6 +13,7 @@ export type OperatorStatus = {
 
 export type DashboardConfig = K8sResourceCommon & {
   spec: {
+    // Optional in CRD -- normalized when cached in ResourceWatcher
     dashboardConfig: {
       enablement: boolean;
       disableInfo: boolean;

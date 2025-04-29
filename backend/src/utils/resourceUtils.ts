@@ -91,6 +91,7 @@ const fetchOrCreateDashboardCR = async (fastify: KubeFastifyInstance): Promise<D
       const dashboardCR = res?.body as DashboardConfig;
       if (
         dashboardCR &&
+        dashboardCR.spec.dashboardConfig &&
         dashboardCR.spec.dashboardConfig.disableKServe === undefined &&
         dashboardCR.spec.dashboardConfig.disableModelMesh === undefined
       ) {
