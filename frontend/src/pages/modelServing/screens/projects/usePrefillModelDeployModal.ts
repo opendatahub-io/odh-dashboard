@@ -36,7 +36,7 @@ export type ModelDeployPrefillInfo = {
   modelFormat?: string;
   modelArtifactUri?: string;
   connectionTypeName?: string;
-  modelArtifactStorageKey?: string;
+  initialConnectionName?: string;
   modelRegistryInfo?: {
     modelVersionId?: string;
     registeredModelId?: string;
@@ -96,7 +96,7 @@ const usePrefillModelDeployModal = (
           AwsKeys.DEFAULT_REGION,
         ];
         const prefilledAWSData = [
-          { key: AwsKeys.NAME, value: modelDeployPrefillInfo.modelArtifactStorageKey || '' },
+          { key: AwsKeys.NAME, value: modelDeployPrefillInfo.initialConnectionName || '' },
           { key: AwsKeys.AWS_S3_BUCKET, value: modelLocation.s3Fields.bucket },
           { key: AwsKeys.S3_ENDPOINT, value: modelLocation.s3Fields.endpoint },
           { key: AwsKeys.DEFAULT_REGION, value: modelLocation.s3Fields.region || '' },
@@ -105,7 +105,7 @@ const usePrefillModelDeployModal = (
         if (recommendedConnections.length === 0) {
           setCreateData('storage', {
             awsData: prefilledAWSData,
-            dataConnection: modelDeployPrefillInfo.modelArtifactStorageKey || '',
+            dataConnection: modelDeployPrefillInfo.initialConnectionName || '',
             path: modelLocation.s3Fields.path,
             type: InferenceServiceStorageType.NEW_STORAGE,
             alert,
@@ -140,7 +140,7 @@ const usePrefillModelDeployModal = (
           setCreateData('storage', {
             awsData: EMPTY_AWS_SECRET_DATA,
             uri: '',
-            dataConnection: modelDeployPrefillInfo.modelArtifactStorageKey || '',
+            dataConnection: modelDeployPrefillInfo.initialConnectionName || '',
             path: '',
             type: InferenceServiceStorageType.NEW_STORAGE,
             alert,
