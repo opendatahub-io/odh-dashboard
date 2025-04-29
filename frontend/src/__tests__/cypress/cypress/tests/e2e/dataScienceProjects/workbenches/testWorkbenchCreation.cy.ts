@@ -47,7 +47,7 @@ describe('Create, Delete and Edit - Workbench Tests', () => {
         editedTestDescription = fixtureData.editedTestDescription;
         pvcEditDisplayName = fixtureData.pvcEditDisplayName;
         contributor = LDAP_CONTRIBUTOR_USER.USERNAME;
-        pvcStorageName = fixtureData.pvcStorageName;
+        pvcStorageName = `${fixtureData.pvcStorageName}-${uuid}-storage`;
         const bucketKey = 'BUCKET_1' as const;
         const bucketConfig = AWS_BUCKETS[bucketKey];
 
