@@ -3,6 +3,7 @@ import React from 'react';
 import Markdown from 'react-markdown';
 import rehypeUnwrapImages from 'rehype-unwrap-images';
 import remarkGfm from 'remark-gfm';
+import rehypeSanitize from 'rehype-sanitize';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import LinkComponent from '~/components/markdown/components/Link';
 import Details from '~/components/markdown/components/Details';
@@ -145,7 +146,7 @@ const MarkdownComponent = ({
             return <img src={src} alt={alt || 'Model documentation image'} {...props} />;
           },
         }}
-        rehypePlugins={[rehypeUnwrapImages]}
+        rehypePlugins={[rehypeUnwrapImages, rehypeSanitize]}
         remarkPlugins={[remarkGfm]}
       >
         {data}
