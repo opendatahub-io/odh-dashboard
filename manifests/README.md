@@ -14,8 +14,7 @@ Each deployment type will have a `params.env` file where the Operator can inject
 A common inquiry from the developers working on the Dashboard repo is "how" do these manifests impact installations and what happens during the varying states the given Dashboard component on a cluster goes through; eg. Upgrades, fresh installations, and how does it all work.
 
 A couple key points to get out of the way first:
- <!-- TODO: Update ADR link once merged -->
-1. There are multiple "types" of manifest files (specifics can be found in [this ADR](https://github.com/opendatahub-io/architecture-decision-records/pull/93))
+1. There are multiple "types" of manifest files (specifics can be found in [this ADR](https://github.com/opendatahub-io/architecture-decision-records/blob/main/architecture-decision-records/operator/ODH-ADR-Operator-0008-resources-lifecycle.md))
     * **Unmanaged** (Rare) -- An "install once" mentality; gets onto a cluster but after that it's a user-resource (never to be managed by us again)
     * **Fully Managed** (Very Common) -- Part of the ecosystem of the Dashboard; upgrades, user-changes, and effectively anything you do to the resources on the cluster should result in the Operator setting it back to what is in the manifest file -- this is the most desired state for most of our manifests
     * **Partially Managed** (Rare) -- Some resources (like the [Dashboard Deployment](./core-bases/base/deployment.yaml)) can have some fields modified (like replica count or resource requests/limits) but the rest falls under the managed state -- this is handled as internal Operator logic and not something we typically have any control over
