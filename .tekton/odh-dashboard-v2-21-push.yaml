@@ -19,6 +19,8 @@ metadata:
   name: odh-dashboard-v2-21-on-push
   namespace: rhoai-tenant
 spec:
+  timeouts:
+    pipeline: 8h
   params:
   - name: git-url
     value: '{{source_url}}'
