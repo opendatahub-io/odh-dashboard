@@ -127,6 +127,22 @@ Run tests by Test Spec from the command line:
   npx cypress run --spec "cypress/tests/e2e/<test-Name1>.ts,cypress/tests/e2e/<test-Name2>.cy.ts" --browser chrome
   ```
 
+### Running Tests Concurrently
+
+When running tests concurrently against the same cluster (e.g., in multiple terminals/prs), it's important to skip certain tests to prevent conflicts:
+
+```bash
+npx cypress run \
+  --env grepTags="@Smoke" \
+  --env skipTags="@Bug @Maintain @Parallel=False" \
+  --browser chrome
+```
+
+**Skip Tags Explanation:**
+- `@Bug`: Skip tests that are currently failing due to product bugs
+- `@Maintain`: Skip tests that require maintenance
+- `@Parallel=False`: Skip tests that cannot run concurrently (to prevent resource conflicts)
+
 ## Writing Tests
 
 e2e tests should focus on user journeys through the application, validating that features work as intended from the user's perspective.
