@@ -133,6 +133,10 @@ class InferenceServiceModal extends Modal {
     return this.k8sNameDescription.findDisplayNameInput();
   }
 
+  findSpinner() {
+    return this.find().findByTestId('spinner');
+  }
+
   findServingRuntimeSelect() {
     return this.find().findByTestId('inference-service-model-selection');
   }
@@ -289,6 +293,15 @@ class InferenceServiceModal extends Modal {
 
   findConnectionFieldInput(envVar: string) {
     return this.find().findByTestId(`field ${envVar}`);
+  }
+
+  verifyPullSecretCheckbox() {
+    return this.find()
+      .get('.pf-v6-c-menu')
+      .contains('Pull secret')
+      .parent()
+      .find('input[type="checkbox"]')
+      .should('be.checked');
   }
 
   findOCIModelURI() {

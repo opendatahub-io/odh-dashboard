@@ -56,6 +56,7 @@
   },
   "rules": {
     "no-barrel-files/no-barrel-files": "error",
+    "@typescript-eslint/no-non-null-assertion": "error",
     "jsx-a11y/no-autofocus": ["error", { "ignoreNonDOM": true }],
     "jsx-a11y/anchor-is-valid": [
       "error",
@@ -145,6 +146,11 @@
             "group": ["@patternfly/react-core"],
             "importNames": ["Select"],
             "message": "Import 'SimpleSelect', 'MultiSelection' or 'TypeaheadSelect' from '~/components' instead."
+          },
+          {
+            "group": ["@patternfly/react-core"],
+            "importNames": ["NumberInput"],
+            "message": "Import 'NumberInputWrapper' from '~/components' instead."
           }
         ]
       }
@@ -410,6 +416,19 @@
           }
         ]
       }
+    // },
+    // {
+    //   "files": ["src/plugins/extensions.ts"],
+    //   "rules": {
+    //     "@typescript-eslint/consistent-type-imports": "error",
+    //     "no-restricted-syntax": [
+    //       "error",
+    //       {
+    //         "selector":"ImportDeclaration[importKind!='type']",
+    //         "message": "Must use 'import type' when importing. Use dynamic imports for code references (eg. `() => import('~/Test')`)."
+    //       }
+    //     ]
+    //   }
     }
   ]
 }

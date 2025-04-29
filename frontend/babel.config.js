@@ -8,6 +8,7 @@ module.exports = {
         },
         useBuiltIns: 'usage',
         corejs: '3',
+        exclude: ['@babel/plugin-transform-dynamic-import'],
       },
     ],
     '@babel/preset-react',

@@ -7,7 +7,15 @@ import {
   getModelServingConnectionTypeName,
   ModelServingCompatibleTypes,
 } from '~/concepts/connectionTypes/utils';
-import { ModelVersion, ModelState, RegisteredModel } from './types';
+import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
+import {
+  ModelVersion,
+  ModelState,
+  RegisteredModel,
+  ModelSourceKind,
+  ModelSourceProperties,
+  PipelineRunReference,
+} from './types';
 
 export type ObjectStorageFields = {
   endpoint: string;
@@ -113,3 +121,68 @@ export const filterArchiveModels = (registeredModels: RegisteredModel[]): Regist
 
 export const filterLiveModels = (registeredModels: RegisteredModel[]): RegisteredModel[] =>
   registeredModels.filter((rm) => rm.state === ModelState.LIVE);
+
+/**
+ * Converts model source properties to catalog parameters
+ * @param properties - The model source properties
+ * @returns CatalogModelDetailsParams object or null if not a catalog source or if required properties are missing
+ */
+export const modelSourcePropertiesToCatalogParams = (
+  properties: ModelSourceProperties,
+): CatalogModelDetailsParams | null => {
+  if (
+    properties.modelSourceKind !== ModelSourceKind.CATALOG ||
+    !properties.modelSourceClass ||
+    !properties.modelSourceGroup ||
+    !properties.modelSourceName ||
+    !properties.modelSourceId
+  ) {
+    return null;
+  }
+
+  return {
+    sourceName: properties.modelSourceClass,
+    repositoryName: properties.modelSourceGroup,
+    modelName: properties.modelSourceName,
+    tag: properties.modelSourceId,
+  };
+};
+
+/**
+ * Converts catalog parameters to model source properties
+ * @param params - The catalog model details parameters
+ * @returns ModelSourceProperties object
+ */
+export const catalogParamsToModelSourceProperties = (
+  params: CatalogModelDetailsParams,
+): ModelSourceProperties => ({
+  modelSourceKind: ModelSourceKind.CATALOG,
+  modelSourceClass: params.sourceName,
+  modelSourceGroup: params.repositoryName,
+  modelSourceName: params.modelName,
+  modelSourceId: params.tag,
+});
+
+/**
+ * Converts model source properties to pipeline run reference
+ * @param properties - The model source properties
+ * @returns PipelineRunReference object or null if not a KFP source or if required properties are missing
+ */
+export const modelSourcePropertiesToPipelineRunRef = (
+  properties: ModelSourceProperties,
+): PipelineRunReference | null => {
+  if (
+    properties.modelSourceKind !== ModelSourceKind.KFP ||
+    !properties.modelSourceGroup ||
+    !properties.modelSourceId ||
+    !properties.modelSourceName
+  ) {
+    return null;
+  }
+
+  return {
+    project: properties.modelSourceGroup,
+    runId: properties.modelSourceId,
+    runName: properties.modelSourceName,
+  };
+};
