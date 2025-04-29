@@ -28,8 +28,33 @@ export const KServeDeploymentModeDropdown: React.FC<Props> = ({ isRaw, setIsRaw,
       fieldId="deployment-mode"
       isRequired
       labelHelp={
-        <Popover bodyContent="Deployment modes define which technology stack will be used to deploy a model, offering different levels of management and scalability.">
-          <Icon aria-label="Model server replicas info" role="button">
+        <Popover
+          bodyContent={
+            <>
+              <div>Deployment modes determine the technology used to deploy your model:</div>
+              <ul style={{ paddingLeft: '1.2em', margin: 0 }}>
+                <li>
+                  <strong>Advanced</strong>: Knative Serverless, autoscaling, some customization
+                  limits.
+                </li>
+                <li>
+                  <strong>Standard</strong>: Kubernetes resources, simpler setup, no autoscaling to
+                  zero.
+                </li>
+              </ul>
+              <div style={{ marginTop: '0.5em' }}>
+                <a
+                  href="https://github.com/opendatahub-io/opendatahub-documentation/blob/main/modules/about-kserve-deployment-modes.adoc"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Learn more about deployment modes
+                </a>
+              </div>
+            </>
+          }
+        >
+          <Icon aria-label="Deployment mode info" role="button">
             <OutlinedQuestionCircleIcon />
           </Icon>
         </Popover>
