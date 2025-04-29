@@ -56,7 +56,7 @@ const RoleBindingPermissionsTableSection: React.FC<RoleBindingPermissionsTableSe
   isProjectSubject,
 }) => {
   const [addField, setAddField] = React.useState(false);
-  const [error, setError] = React.useState<Error | undefined>(undefined);
+  const [error, setError] = React.useState<React.ReactNode>();
 
   return (
     <Stack hasGutter>
@@ -103,6 +103,7 @@ const RoleBindingPermissionsTableSection: React.FC<RoleBindingPermissionsTableSe
           isAdding={addField}
           onDismissNewRow={() => {
             setAddField(false);
+            setError(undefined);
           }}
           onError={(e) => {
             setError(e);
@@ -122,7 +123,7 @@ const RoleBindingPermissionsTableSection: React.FC<RoleBindingPermissionsTableSe
             title="Error"
             actionClose={<AlertActionCloseButton onClose={() => setError(undefined)} />}
           >
-            <p>{error.message}</p>
+            <p>{error}</p>
           </Alert>
         </StackItem>
       )}

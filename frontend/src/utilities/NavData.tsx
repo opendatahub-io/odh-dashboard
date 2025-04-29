@@ -100,26 +100,34 @@ const useDSProjectsNav = (): NavDataItem[] =>
     { id: 'dsg', label: 'Data science projects', href: '/projects' },
   ]);
 
-const useModelsNav = (): NavDataItem[] => [
-  {
-    id: 'models',
-    group: { id: 'models', title: 'Models' },
-    children: [
-      ...useAreaCheck(SupportedArea.MODEL_CATALOG, [
-        { id: 'modelCatalog', label: 'Model catalog', href: '/modelCatalog' },
-      ]),
-      ...useAreaCheck(SupportedArea.MODEL_REGISTRY, [
-        { id: 'modelRegistry', label: 'Model registry', href: '/modelRegistry' },
-      ]),
-      ...useAreaCheck(SupportedArea.MODEL_SERVING, [
-        { id: 'modelServing', label: 'Model deployments', href: '/modelServing' },
-      ]),
-      ...useAreaCheck(SupportedArea.FINE_TUNING, [
-        { id: 'modelCustomization', label: 'Model customization', href: '/modelCustomization' },
-      ]),
-    ],
-  },
-];
+const useModelsNav = (): NavDataItem[] => {
+  const modelCatalog = useAreaCheck(SupportedArea.MODEL_CATALOG, [
+    { id: 'modelCatalog', label: 'Model catalog', href: '/modelCatalog' },
+  ]);
+  const modelRegistry = useAreaCheck(SupportedArea.MODEL_REGISTRY, [
+    { id: 'modelRegistry', label: 'Model registry', href: '/modelRegistry' },
+  ]);
+  const modelServing = useAreaCheck(SupportedArea.MODEL_SERVING, [
+    { id: 'modelServing', label: 'Model deployments', href: '/modelServing' },
+  ]);
+  const fineTuning = useAreaCheck(SupportedArea.FINE_TUNING, [
+    { id: 'modelCustomization', label: 'Model customization', href: '/modelCustomization' },
+  ]);
+
+  const children = [...modelCatalog, ...modelRegistry, ...modelServing, ...fineTuning];
+
+  if (children.length === 0) {
+    return [];
+  }
+
+  return [
+    {
+      id: 'models',
+      group: { id: 'models', title: 'Models' },
+      children,
+    },
+  ];
+};
 
 const useDSPipelinesNav = (): NavDataItem[] => {
   const isAvailable = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
