@@ -16,7 +16,7 @@ USER default
 
 RUN npm cache clean --force
 
-RUN npm ci --omit=optional
+RUN npm ci
 
 # Set Red Hat Openshift AI logo and links
 ENV ODH_LOGO=../images/rhoai-logo.svg
