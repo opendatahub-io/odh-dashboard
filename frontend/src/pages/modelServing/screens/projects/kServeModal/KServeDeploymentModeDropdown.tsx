@@ -34,23 +34,14 @@ export const KServeDeploymentModeDropdown: React.FC<Props> = ({ isRaw, setIsRaw,
               <div>Deployment modes determine the technology used to deploy your model:</div>
               <ul style={{ paddingLeft: '1.2em', margin: 0 }}>
                 <li>
-                  <strong>Advanced</strong>: Knative Serverless, autoscaling, some customization
-                  limits.
+                  <strong>Advanced</strong>: Uses Knative Serverless but requires some manual
+                  customization. Supports autoscaling.
                 </li>
                 <li>
-                  <strong>Standard</strong>: Kubernetes resources, simpler setup, no autoscaling to
-                  zero.
+                  <strong>Standard</strong>: Uses Kubernetes resources with fewer dependencies and a
+                  simpler setup. Does not support autoscaling.
                 </li>
               </ul>
-              <div style={{ marginTop: '0.5em' }}>
-                <a
-                  href="https://github.com/opendatahub-io/opendatahub-documentation/blob/main/modules/about-kserve-deployment-modes.adoc"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Learn more about deployment modes
-                </a>
-              </div>
             </>
           }
         >
