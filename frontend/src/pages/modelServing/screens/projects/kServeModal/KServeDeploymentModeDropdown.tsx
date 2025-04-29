@@ -28,8 +28,31 @@ export const KServeDeploymentModeDropdown: React.FC<Props> = ({ isRaw, setIsRaw,
       fieldId="deployment-mode"
       isRequired
       labelHelp={
-        <Popover bodyContent="Deployment modes define which technology stack will be used to deploy a model, offering different levels of management and scalability.">
-          <Icon aria-label="Model server replicas info" role="button">
+        <Popover
+          bodyContent={
+            <>
+              <div>Deployment modes determine the technology used to deploy your model:</div>
+              <ul
+                style={{
+                  listStyleType: 'disc',
+                  paddingLeft: '1.5rem',
+                  marginTop: '0.5rem',
+                  marginBottom: 0,
+                }}
+              >
+                <li>
+                  <strong>Advanced</strong>: Uses Knative Serverless but requires some manual
+                  customization. Supports autoscaling.
+                </li>
+                <li>
+                  <strong>Standard</strong>: Uses Kubernetes resources with fewer dependencies and a
+                  simpler setup. Does not support autoscaling.
+                </li>
+              </ul>
+            </>
+          }
+        >
+          <Icon aria-label="Deployment mode info" role="button">
             <OutlinedQuestionCircleIcon />
           </Icon>
         </Popover>
