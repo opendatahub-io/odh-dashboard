@@ -307,7 +307,7 @@ describe('modelSourcePropertiesToCatalogParams', () => {
 
   it('should return null for non-catalog source', () => {
     const properties = {
-      modelSourceKind: ModelSourceKind.DSP,
+      modelSourceKind: ModelSourceKind.KFP,
       modelSourceClass: 'class1',
       modelSourceGroup: 'group1',
       modelSourceName: 'name1',
@@ -347,9 +347,9 @@ describe('catalogParamsToModelSourceProperties', () => {
 });
 
 describe('modelSourcePropertiesToPipelineRunRef', () => {
-  it('should convert valid DSP source properties', () => {
+  it('should convert valid KFP source properties', () => {
     const properties = {
-      modelSourceKind: ModelSourceKind.DSP,
+      modelSourceKind: ModelSourceKind.KFP,
       modelSourceGroup: 'project1',
       modelSourceId: 'run1',
       modelSourceName: 'name1',
@@ -361,7 +361,7 @@ describe('modelSourcePropertiesToPipelineRunRef', () => {
     });
   });
 
-  it('should return null for non-DSP source', () => {
+  it('should return null for non-KFP source', () => {
     const properties = {
       modelSourceKind: ModelSourceKind.CATALOG,
       modelSourceGroup: 'project1',
@@ -373,7 +373,7 @@ describe('modelSourcePropertiesToPipelineRunRef', () => {
 
   it('should return null if required properties are missing', () => {
     const properties = {
-      modelSourceKind: ModelSourceKind.DSP,
+      modelSourceKind: ModelSourceKind.KFP,
       modelSourceGroup: 'project1',
       // missing modelSourceId
       modelSourceName: 'name1',
