@@ -77,7 +77,7 @@ export const useNewConnectionField = (
     [key: string]: ConnectionTypeValueType;
   }>();
   const connectionValues = React.useMemo(() => {
-    if (tmpConnectionValues === undefined) {
+    if (tmpConnectionValues === undefined || Object.entries(tmpConnectionValues).length === 0) {
       if (initialConnectionValues) {
         return initialConnectionValues;
       }
