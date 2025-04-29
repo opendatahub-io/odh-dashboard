@@ -32,7 +32,14 @@ export const KServeDeploymentModeDropdown: React.FC<Props> = ({ isRaw, setIsRaw,
           bodyContent={
             <>
               <div>Deployment modes determine the technology used to deploy your model:</div>
-              <ul style={{ paddingLeft: '1.2em', margin: 0 }}>
+              <ul
+                style={{
+                  listStyleType: 'disc',
+                  paddingLeft: '1.5rem',
+                  marginTop: '0.5rem',
+                  marginBottom: 0,
+                }}
+              >
                 <li>
                   <strong>Advanced</strong>: Uses Knative Serverless but requires some manual
                   customization. Supports autoscaling.
