@@ -12,6 +12,7 @@ import {
   TabTitleText,
   EmptyState,
   EmptyStateVariant,
+  TabContentBody,
 } from '@patternfly/react-core';
 
 import PipelineRunDrawerRightContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
@@ -48,7 +49,10 @@ export const ArtifactNodeDrawerContent: React.FC<ArtifactNodeDrawerContentProps>
           <DrawerCloseButton onClick={onClose} />
         </DrawerActions>
       </DrawerHead>
-      <DrawerPanelBody className="pipeline-run__drawer-panel-body pf-v6-u-pr-sm">
+      <DrawerPanelBody
+        className="pipeline-run__drawer-panel-body pf-v6-u-p-sm"
+        data-testid="pipeline-run-drawer-right-content"
+      >
         {artifact ? (
           <Tabs
             aria-label="Artifact node detail tabs"
@@ -61,7 +65,9 @@ export const ArtifactNodeDrawerContent: React.FC<ArtifactNodeDrawerContentProps>
               title={<TabTitleText>Artifact details</TabTitleText>}
               aria-label="Artifact details"
             >
-              <ArtifactNodeDetails artifact={artifact} upstreamTaskName={upstreamTaskName} />
+              <TabContentBody hasPadding>
+                <ArtifactNodeDetails artifact={artifact} upstreamTaskName={upstreamTaskName} />
+              </TabContentBody>
             </Tab>
             {isMetricsArtifactType(artifact.getType()) && (
               <Tab
@@ -69,7 +75,9 @@ export const ArtifactNodeDrawerContent: React.FC<ArtifactNodeDrawerContentProps>
                 title={<TabTitleText>Visualization</TabTitleText>}
                 aria-label="Visualization"
               >
-                <ArtifactVisualization artifact={artifact} />
+                <TabContentBody hasPadding>
+                  <ArtifactVisualization artifact={artifact} />
+                </TabContentBody>
               </Tab>
             )}
           </Tabs>

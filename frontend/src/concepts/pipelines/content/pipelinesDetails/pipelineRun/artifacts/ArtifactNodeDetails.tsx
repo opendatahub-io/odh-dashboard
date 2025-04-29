@@ -35,11 +35,7 @@ export const ArtifactNodeDetails: React.FC<ArtifactNodeDetailsProps> = ({
   const artifactName = getArtifactName(artifact);
 
   return (
-    <Flex
-      spaceItems={{ default: 'spaceItems2xl' }}
-      direction={{ default: 'column' }}
-      className="pf-v6-u-pt-lg pf-v6-u-pb-lg"
-    >
+    <Flex spaceItems={{ default: 'spaceItems2xl' }} direction={{ default: 'column' }}>
       <FlexItem>
         <Stack hasGutter>
           <Title headingLevel="h3">Artifact details</Title>
