@@ -15,16 +15,18 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
   let controlSuiteTestNamespace: string;
   let controlSuiteTestDescription: string;
+  const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
   retryableBefore(() => {
     return loadWBControlSuiteFixture('e2e/dataScienceProjects/testWorkbenchControlSuite.yaml')
       .then((fixtureData: WBControlSuiteTestData) => {
-        controlSuiteTestNamespace = fixtureData.controlSuiteTestNamespace;
+        controlSuiteTestNamespace = `${fixtureData.controlSuiteTestNamespace}-${uuid}`;
         controlSuiteTestDescription = fixtureData.controlSuiteTestDescription;
 
         if (!controlSuiteTestNamespace) {

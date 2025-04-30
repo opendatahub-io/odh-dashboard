@@ -19,12 +19,14 @@ import {
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 import { attemptToClickTooltip } from '~/__tests__/cypress/cypress/utils/models';
+import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 let testData: DataScienceProjectData;
 let projectName: string;
 let modelName: string;
 let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
+const uuid = generateTestUUID();
 
 describe('Verify Admin Multi Model Creation and Validation using the UI', () => {
   retryableBefore(() => {
@@ -38,7 +40,7 @@ describe('Verify Admin Multi Model Creation and Validation using the UI', () => 
     return loadDSPFixture('e2e/dataScienceProjects/testMultiModelAdminCreation.yaml').then(
       (fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
-        projectName = testData.projectMultiModelAdminResourceName;
+        projectName = `${testData.projectMultiModelAdminResourceName}-${uuid}`;
         modelName = testData.multiModelAdminName;
         modelFilePath = testData.modelOpenVinoExamplePath;
 
@@ -75,12 +77,10 @@ describe('Verify Admin Multi Model Creation and Validation using the UI', () => 
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       // Project navigation
-      cy.step(
-        `Navigate to the Project list tab and search for ${testData.projectMultiModelAdminResourceName}`,
-      );
+      cy.step(`Navigate to the Project list tab and search for ${projectName}`);
       projectListPage.navigate();
-      projectListPage.filterProjectByName(testData.projectMultiModelAdminResourceName);
-      projectListPage.findProjectLink(testData.projectMultiModelAdminResourceName).click();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
 
       // Navigate to Model Serving tab and Deploy a Multi Model
       cy.step('Navigate to Model Serving and click to Deploy a Model Server');

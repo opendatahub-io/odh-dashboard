@@ -1,6 +1,6 @@
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
+import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
 import {
   retryableBefore,
   wasSetupPerformed,
@@ -15,6 +15,7 @@ import {
 import { checkInferenceServiceState } from '~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
 import type { DeployOCIModelData } from '~/__tests__/cypress/cypress/types';
 import { loadDeployOCIModelFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
+import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 let projectName: string;
 let connectionName: string;
@@ -22,6 +23,7 @@ let secretDetailsFile: string;
 let ociRegistryHost: string;
 let modelDeploymentURI: string;
 let modelDeploymentName: string;
+const uuid = generateTestUUID();
 
 describe(
   'A user can create an OCI connection and deploy a model with it',
@@ -34,7 +36,7 @@ describe(
       return loadDeployOCIModelFixture('e2e/dataScienceProjects/testDeployOCIModel.yaml').then(
         (fixtureData: DeployOCIModelData) => {
           testData = fixtureData;
-          projectName = testData.projectName;
+          projectName = `${testData.projectName}-${uuid}`;
           connectionName = testData.connectionName;
           secretDetailsFile = Cypress.env('OCI_SECRET_DETAILS_FILE');
           ociRegistryHost = testData.ociRegistryHost;
@@ -57,7 +59,7 @@ describe(
 
     it(
       'Verify User Can Create an OCI Connection in DS Connections Page And Deploy the Model',
-      { tags: ['@Smoke', '@Dashboard', '@Modelserving'] },
+      { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving'] },
       () => {
         cy.step(`Navigate to DS Project ${projectName}`);
         cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -66,9 +68,7 @@ describe(
         projectListPage.findProjectLink(projectName).click();
 
         cy.step('Create an OCI Connection');
-        // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-        // Reapply projectDetails.findSectionTab('connections').click();
-        cy.visit(`projects/${projectName}?section=connections`);
+        projectDetails.findSectionTab('connections').click();
         connectionsPage.findCreateConnectionButton().click();
         addConnectionModal.findConnectionTypeDropdown().click();
         addConnectionModal.findOciConnectionType().click();
@@ -82,9 +82,7 @@ describe(
         addConnectionModal.findCreateButton().click();
 
         cy.step('Deploy OCI Connection with KServe');
-        // TODO: Revert the cy.visit(...) method once RHOAIENG-21039 is resolved
-        // Reapply projectDetails.findSectionTab('model-server').click();
-        cy.visit(`projects/${projectName}?section=model-server`);
+        projectDetails.findSectionTab('model-server').click();
         modelServingGlobal.findSingleServingModelButton().click();
         modelServingGlobal.findDeployModelButton().click();
         inferenceServiceModal.findModelNameInput().type(modelDeploymentName);
