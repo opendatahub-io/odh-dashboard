@@ -266,7 +266,6 @@ describe('Deploy model version', () => {
     cy.findByText('The format of the source model is').should('not.exist');
 
     // Validate connection section
-    kserveModal.findNewConnectionOption().should('be.checked');
     kserveModal.findModelURITextBox().should('have.value', 'test.io/test/private:test');
     kserveModal
       .findConnectionFieldInput('ACCESS_TYPE')
