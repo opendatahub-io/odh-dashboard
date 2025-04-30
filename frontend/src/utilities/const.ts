@@ -1,9 +1,4 @@
-import {
-  ContextResourceData,
-  CustomWatchK8sResult,
-  ListWithNonDashboardPresence,
-  OdhDocumentType,
-} from '~/types';
+import { CustomWatchK8sResult, ListWithNonDashboardPresence, OdhDocumentType } from '~/types';
 import { FetchStateObject } from '~/utilities/useFetch';
 
 const WS_HOSTNAME = process.env.WS_HOSTNAME || location.host;
@@ -54,12 +49,6 @@ export const DOC_TYPE_TOOLTIPS = {
 };
 
 export const CATEGORY_ANNOTATION = 'opendatahub.io/categories';
-
-export const DEFAULT_CONTEXT_DATA: ContextResourceData<never> = {
-  data: [],
-  loaded: false,
-  refresh: () => Promise.resolve(undefined),
-};
 
 export const DEFAULT_LIST_WATCH_RESULT: CustomWatchK8sResult<never | never[]> = [
   [],

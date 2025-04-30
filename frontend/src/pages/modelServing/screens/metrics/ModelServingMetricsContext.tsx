@@ -1,11 +1,8 @@
 import * as React from 'react';
 import { useModelServingMetrics } from '~/api';
-import {
-  ContextResourceData,
-  PrometheusQueryRangeResponseDataResult,
-  PrometheusQueryRangeResultValue,
-} from '~/types';
-import { DEFAULT_CONTEXT_DATA } from '~/utilities/const';
+import { PrometheusQueryRangeResponseDataResult, PrometheusQueryRangeResultValue } from '~/types';
+import { FetchStateObject } from '~/utilities/useFetch';
+import { DEFAULT_LIST_FETCH_STATE } from '~/utilities/const';
 import { PerformanceMetricType } from '~/pages/modelServing/screens/types';
 import { MetricsCommonContext } from '~/concepts/metrics/MetricsCommonContext';
 
@@ -25,14 +22,16 @@ export enum ModelMetricType {
 
 type ModelServingMetricsContextType = {
   data: {
-    [ServerMetricType.REQUEST_COUNT]: ContextResourceData<PrometheusQueryRangeResultValue>;
-    [ServerMetricType.AVG_RESPONSE_TIME]: ContextResourceData<PrometheusQueryRangeResponseDataResult>;
-    [ServerMetricType.CPU_UTILIZATION]: ContextResourceData<PrometheusQueryRangeResultValue>;
-    [ServerMetricType.MEMORY_UTILIZATION]: ContextResourceData<PrometheusQueryRangeResultValue>;
-    [ModelMetricType.REQUEST_COUNT_FAILED]: ContextResourceData<PrometheusQueryRangeResultValue>;
-    [ModelMetricType.REQUEST_COUNT_SUCCESS]: ContextResourceData<PrometheusQueryRangeResultValue>;
-    [ModelMetricType.TRUSTY_AI_SPD]: ContextResourceData<PrometheusQueryRangeResponseDataResult>;
-    [ModelMetricType.TRUSTY_AI_DIR]: ContextResourceData<PrometheusQueryRangeResponseDataResult>;
+    [ServerMetricType.REQUEST_COUNT]: FetchStateObject<PrometheusQueryRangeResultValue[]>;
+    [ServerMetricType.AVG_RESPONSE_TIME]: FetchStateObject<
+      PrometheusQueryRangeResponseDataResult[]
+    >;
+    [ServerMetricType.CPU_UTILIZATION]: FetchStateObject<PrometheusQueryRangeResultValue[]>;
+    [ServerMetricType.MEMORY_UTILIZATION]: FetchStateObject<PrometheusQueryRangeResultValue[]>;
+    [ModelMetricType.REQUEST_COUNT_FAILED]: FetchStateObject<PrometheusQueryRangeResultValue[]>;
+    [ModelMetricType.REQUEST_COUNT_SUCCESS]: FetchStateObject<PrometheusQueryRangeResultValue[]>;
+    [ModelMetricType.TRUSTY_AI_SPD]: FetchStateObject<PrometheusQueryRangeResponseDataResult[]>;
+    [ModelMetricType.TRUSTY_AI_DIR]: FetchStateObject<PrometheusQueryRangeResponseDataResult[]>;
   };
   refresh: () => void;
   namespace: string;
@@ -40,14 +39,14 @@ type ModelServingMetricsContextType = {
 
 export const ModelServingMetricsContext = React.createContext<ModelServingMetricsContextType>({
   data: {
-    [ServerMetricType.REQUEST_COUNT]: DEFAULT_CONTEXT_DATA,
-    [ServerMetricType.AVG_RESPONSE_TIME]: DEFAULT_CONTEXT_DATA,
-    [ServerMetricType.CPU_UTILIZATION]: DEFAULT_CONTEXT_DATA,
-    [ServerMetricType.MEMORY_UTILIZATION]: DEFAULT_CONTEXT_DATA,
-    [ModelMetricType.REQUEST_COUNT_FAILED]: DEFAULT_CONTEXT_DATA,
-    [ModelMetricType.REQUEST_COUNT_SUCCESS]: DEFAULT_CONTEXT_DATA,
-    [ModelMetricType.TRUSTY_AI_SPD]: DEFAULT_CONTEXT_DATA,
-    [ModelMetricType.TRUSTY_AI_DIR]: DEFAULT_CONTEXT_DATA,
+    [ServerMetricType.REQUEST_COUNT]: DEFAULT_LIST_FETCH_STATE,
+    [ServerMetricType.AVG_RESPONSE_TIME]: DEFAULT_LIST_FETCH_STATE,
+    [ServerMetricType.CPU_UTILIZATION]: DEFAULT_LIST_FETCH_STATE,
+    [ServerMetricType.MEMORY_UTILIZATION]: DEFAULT_LIST_FETCH_STATE,
+    [ModelMetricType.REQUEST_COUNT_FAILED]: DEFAULT_LIST_FETCH_STATE,
+    [ModelMetricType.REQUEST_COUNT_SUCCESS]: DEFAULT_LIST_FETCH_STATE,
+    [ModelMetricType.TRUSTY_AI_SPD]: DEFAULT_LIST_FETCH_STATE,
+    [ModelMetricType.TRUSTY_AI_DIR]: DEFAULT_LIST_FETCH_STATE,
   },
   refresh: () => undefined,
   namespace: '',
