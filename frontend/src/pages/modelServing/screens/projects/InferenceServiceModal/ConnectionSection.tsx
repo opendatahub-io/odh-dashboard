@@ -209,6 +209,7 @@ type NewConnectionFieldProps = {
   initialNewConnectionValues: {
     [key: string]: ConnectionTypeValueType;
   };
+  initialConnectionName?: string;
   setNewConnection: (connection: Connection) => void;
   modelUri?: string;
   setModelUri: (uri?: string) => void;
@@ -221,6 +222,7 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
   setData,
   initialNewConnectionType,
   initialNewConnectionValues,
+  initialConnectionName,
   setNewConnection,
   modelUri,
   setModelUri,
@@ -238,7 +240,15 @@ const NewConnectionField: React.FC<NewConnectionFieldProps> = ({
         ? withRequiredFields(connectionTypes[0], S3ConnectionTypeKeys)
         : undefined),
   );
-  const { data: nameDescData, onDataChange: setNameDescData } = useK8sNameDescriptionFieldData();
+  const { data: nameDescData, onDataChange: setNameDescData } = useK8sNameDescriptionFieldData({
+    initialData: initialConnectionName
+      ? {
+          name: initialConnectionName,
+          k8sName: '',
+        }
+      : undefined,
+  });
+
   const [connectionValues, setConnectionValues] = React.useState<{
     [key: string]: ConnectionTypeValueType;
   }>(
@@ -533,6 +543,7 @@ export const ConnectionSection: React.FC<Props> = ({
                 setData={setData}
                 initialNewConnectionType={initialNewConnectionType}
                 initialNewConnectionValues={initialNewConnectionValues}
+                initialConnectionName={data.storage.dataConnection}
                 setNewConnection={setConnection}
                 modelUri={data.storage.uri}
                 setModelUri={(uri) => setData('storage', { ...data.storage, uri })}

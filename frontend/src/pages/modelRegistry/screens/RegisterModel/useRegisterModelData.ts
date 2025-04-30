@@ -20,6 +20,7 @@ export type RegistrationCommonFormData = {
   versionCustomProperties?: ModelRegistryCustomProperties;
   modelCustomProperties?: ModelRegistryCustomProperties;
   additionalArtifactProperties?: Partial<ModelArtifact>;
+  storageKey?: string;
 };
 
 export type RegisterModelFormData = RegistrationCommonFormData & {
@@ -48,6 +49,7 @@ const registrationCommonFormDataDefaults: RegistrationCommonFormData = {
   modelLocationURI: '',
   modelCustomProperties: {},
   versionCustomProperties: {},
+  storageKey: '',
 };
 
 const registerModelFormDataDefaults: RegisterModelFormData = {

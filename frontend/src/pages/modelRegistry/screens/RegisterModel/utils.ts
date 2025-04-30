@@ -110,11 +110,7 @@ export const registerVersion = async (
       author,
       modelFormatName: formData.sourceModelFormat,
       modelFormatVersion: formData.sourceModelFormatVersion,
-      // TODO fill in the name of the data connection we used to prefill if we used one
-      // TODO this should be done as part of https://issues.redhat.com/browse/RHOAIENG-9914
-      // TODO should be fixed via https://issues.redhat.com/browse/RHOAIENG-19921
-      // storageKey: 'TODO',
-      // Include additional artifact properties (source info)
+      storageKey: formData.storageKey,
       ...(formData.additionalArtifactProperties || {}),
       uri:
         formData.modelLocationType === ModelLocationType.ObjectStorage
