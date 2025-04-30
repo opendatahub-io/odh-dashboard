@@ -3,12 +3,12 @@ import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { getServingRuntimeContext, listServingRuntimes, useAccessReview } from '~/api';
 import { AccessReviewResourceAttributes, KnownLabels, ServingRuntimeKind } from '~/k8sTypes';
 import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
-import useFetchState, {
+import useFetch, {
   FetchOptions,
-  FetchState,
+  FetchStateObject,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '~/utilities/useFetchState';
+} from '~/utilities/useFetch';
 import { ListWithNonDashboardPresence } from '~/types';
 import { DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE } from '~/utilities/const';
 
@@ -22,7 +22,7 @@ const useServingRuntimes = (
   namespace?: string,
   notReady?: boolean,
   fetchOptions?: Partial<FetchOptions>,
-): FetchState<ListWithNonDashboardPresence<ServingRuntimeKind>> => {
+): FetchStateObject<ListWithNonDashboardPresence<ServingRuntimeKind>> => {
   const modelServingEnabled = useModelServingEnabled();
 
   const [allowCreate, rbacLoaded] = useAccessReview({
@@ -63,7 +63,7 @@ const useServingRuntimes = (
     [namespace, modelServingEnabled, notReady, rbacLoaded, allowCreate],
   );
 
-  return useFetchState(callback, DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE, {
+  return useFetch(callback, DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE, {
     initialPromisePurity: true,
     ...fetchOptions,
   });

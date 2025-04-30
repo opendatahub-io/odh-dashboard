@@ -2,12 +2,12 @@ import * as React from 'react';
 import { getInferenceServiceContext, listInferenceService, useAccessReview } from '~/api';
 import { AccessReviewResourceAttributes, InferenceServiceKind, KnownLabels } from '~/k8sTypes';
 import { ListWithNonDashboardPresence } from '~/types';
-import useFetchState, {
+import useFetch, {
   FetchOptions,
-  FetchState,
+  FetchStateObject,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '~/utilities/useFetchState';
+} from '~/utilities/useFetch';
 import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
 import { DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE } from '~/utilities/const';
 
@@ -23,7 +23,7 @@ const useInferenceServices = (
   modelVersionId?: string,
   mrName?: string,
   fetchOptions?: Partial<FetchOptions>,
-): FetchState<ListWithNonDashboardPresence<InferenceServiceKind>> => {
+): FetchStateObject<ListWithNonDashboardPresence<InferenceServiceKind>> => {
   const modelServingEnabled = useModelServingEnabled();
 
   const [allowCreate, rbacLoaded] = useAccessReview({
@@ -80,7 +80,7 @@ const useInferenceServices = (
     ],
   );
 
-  return useFetchState(callback, DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE, {
+  return useFetch(callback, DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE, {
     initialPromisePurity: true,
     ...fetchOptions,
   });

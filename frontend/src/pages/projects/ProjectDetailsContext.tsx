@@ -20,7 +20,6 @@ import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
 import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import { CustomWatchK8sResult, ListWithNonDashboardPresence } from '~/types';
 import { FetchStateObject } from '~/utilities/useFetch';
-import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import useServingRuntimeSecrets from '~/pages/modelServing/screens/projects/useServingRuntimeSecrets';
 import { PipelineContextProvider } from '~/concepts/pipelines/context';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
@@ -80,37 +79,20 @@ const ProjectDetailsContextProvider: React.FC = () => {
     [namespace, projects],
   );
   useSyncPreferredProject(project);
-  const notebooks = useMakeFetchObject<NotebookState[]>(
-    useProjectNotebookStates(namespace, { refreshRate: POLL_INTERVAL }),
-  );
-  const pvcs = useMakeFetchObject<PersistentVolumeClaimKind[]>(
-    useProjectPvcs(namespace, { refreshRate: POLL_INTERVAL }),
-  );
-  const connections = useMakeFetchObject<Connection[]>(
-    useConnections(namespace, { refreshRate: POLL_INTERVAL }),
-  );
-  const servingRuntimes = useMakeFetchObject<ListWithNonDashboardPresence<ServingRuntimeKind>>(
-    useServingRuntimes(namespace, undefined, { refreshRate: POLL_INTERVAL }),
-  );
-  const servingRuntimeTemplates = useTemplates(dashboardNamespace);
+  const notebooks = useProjectNotebookStates(namespace, { refreshRate: POLL_INTERVAL });
 
-  const servingRuntimeTemplateOrder = useMakeFetchObject<string[]>(
-    useTemplateOrder(dashboardNamespace),
-  );
-  const servingRuntimeTemplateDisablement = useMakeFetchObject<string[]>(
-    useTemplateDisablement(dashboardNamespace),
-  );
-  const inferenceServices = useMakeFetchObject<ListWithNonDashboardPresence<InferenceServiceKind>>(
-    useInferenceServices(namespace, undefined, undefined, undefined, {
-      refreshRate: POLL_INTERVAL,
-    }),
-  );
-  const serverSecrets = useMakeFetchObject<SecretKind[]>(
-    useServingRuntimeSecrets(namespace, { refreshRate: POLL_INTERVAL }),
-  );
-  const projectSharingRB = useMakeFetchObject<RoleBindingKind[]>(
-    useProjectSharing(namespace, { refreshRate: POLL_INTERVAL }),
-  );
+  const pvcs = useProjectPvcs(namespace, { refreshRate: POLL_INTERVAL });
+  const connections = useConnections(namespace, { refreshRate: POLL_INTERVAL });
+  const servingRuntimes = useServingRuntimes(namespace, undefined, { refreshRate: POLL_INTERVAL });
+  const servingRuntimeTemplates = useTemplates(dashboardNamespace);
+  const servingRuntimeTemplateOrder = useTemplateOrder(dashboardNamespace);
+  const servingRuntimeTemplateDisablement = useTemplateDisablement(dashboardNamespace);
+  const inferenceServices = useInferenceServices(namespace, undefined, undefined, undefined, {
+    refreshRate: POLL_INTERVAL,
+  });
+  const serverSecrets = useServingRuntimeSecrets(namespace, { refreshRate: POLL_INTERVAL });
+  const projectSharingRB = useProjectSharing(namespace, { refreshRate: POLL_INTERVAL });
+
   const groups = useGroups();
   const pageName = 'project details';
 

@@ -23,7 +23,6 @@ import {
 } from '~/utilities/const';
 import { CustomWatchK8sResult, ListWithNonDashboardPresence } from '~/types';
 import { FetchStateObject } from '~/utilities/useFetch';
-import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import { useDashboardNamespace } from '~/redux/selectors';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { conditionalArea, SupportedArea } from '~/concepts/areas';
@@ -84,24 +83,18 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
   const project = projects.find(byName(namespace)) ?? null;
   const servingRuntimeTemplates = useTemplates(dashboardNamespace);
 
-  const servingRuntimeTemplateOrder = useMakeFetchObject<string[]>(
-    useTemplateOrder(dashboardNamespace, undefined, { refreshRate: POLL_INTERVAL }),
-  );
-  const servingRuntimeTemplateDisablement = useMakeFetchObject<string[]>(
-    useTemplateDisablement(dashboardNamespace, undefined, { refreshRate: POLL_INTERVAL }),
-  );
-  const serverSecrets = useMakeFetchObject<SecretKind[]>(
-    useServingRuntimeSecrets(namespace, { refreshRate: POLL_INTERVAL }),
-  );
-  const servingRuntimes = useMakeFetchObject<ListWithNonDashboardPresence<ServingRuntimeKind>>(
-    useServingRuntimes(namespace, undefined, { refreshRate: POLL_INTERVAL }),
-  );
-  const inferenceServices = useMakeFetchObject<ListWithNonDashboardPresence<InferenceServiceKind>>(
-    useInferenceServices(namespace, undefined, undefined, undefined, {
-      refreshRate: POLL_INTERVAL,
-    }),
-  );
-  const connections = useMakeFetchObject<Connection[]>(useConnections(namespace));
+  const servingRuntimeTemplateOrder = useTemplateOrder(dashboardNamespace, undefined, {
+    refreshRate: POLL_INTERVAL,
+  });
+  const servingRuntimeTemplateDisablement = useTemplateDisablement(dashboardNamespace, undefined, {
+    refreshRate: POLL_INTERVAL,
+  });
+  const serverSecrets = useServingRuntimeSecrets(namespace, { refreshRate: POLL_INTERVAL });
+  const servingRuntimes = useServingRuntimes(namespace, undefined, { refreshRate: POLL_INTERVAL });
+  const inferenceServices = useInferenceServices(namespace, undefined, undefined, undefined, {
+    refreshRate: POLL_INTERVAL,
+  });
+  const connections = useConnections(namespace);
 
   const servingRuntimeRefresh = servingRuntimes.refresh;
   const inferenceServiceRefresh = inferenceServices.refresh;

@@ -5,7 +5,7 @@ import { FetchState } from '~/utilities/useFetchState';
 import useConnections from './useConnections';
 
 const useServingConnections = (namespace?: string): FetchState<Connection[]> => {
-  const [connections, loaded, error, refresh] = useConnections(namespace);
+  const { data: connections, loaded, error, refresh } = useConnections(namespace);
 
   return React.useMemo(
     () => [connections.filter((c) => isModelServingCompatible(c)), loaded, error, refresh],
