@@ -163,6 +163,7 @@ const NewModelConnectionField: React.FC<NewConnectionFieldProps> = ({
   const newConnectionData = useNewConnectionField(
     data.project,
     connectionTypes,
+    initialConnectionName,
     initialNewConnectionType,
     initialNewConnectionValues,
     s3BucketRequired,

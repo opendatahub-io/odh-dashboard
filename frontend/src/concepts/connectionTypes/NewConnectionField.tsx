@@ -42,6 +42,7 @@ export type UseNewConnectionFieldData = {
 export const useNewConnectionField = (
   projectName: string,
   connectionTypes: ConnectionTypeConfigMapObj[],
+  initialConnectionName?: string,
   initialConnectionType?: ConnectionTypeConfigMapObj,
   initialConnectionValues?: {
     [key: string]: ConnectionTypeValueType;
@@ -72,7 +73,14 @@ export const useNewConnectionField = (
     return tmpSelectedConnectionType;
   }, [tmpSelectedConnectionType, initialConnectionType, enabledConnectionTypes]);
 
-  const { data: nameDescData, onDataChange: setNameDescData } = useK8sNameDescriptionFieldData();
+  const { data: nameDescData, onDataChange: setNameDescData } = useK8sNameDescriptionFieldData({
+    initialData: initialConnectionName
+      ? {
+          name: initialConnectionName,
+          k8sName: '',
+        }
+      : undefined,
+  });
   const [tmpConnectionValues, setConnectionValues] = React.useState<{
     [key: string]: ConnectionTypeValueType;
   }>();
