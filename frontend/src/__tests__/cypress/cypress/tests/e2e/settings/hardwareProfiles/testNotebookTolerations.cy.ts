@@ -50,7 +50,7 @@ describe('Notebooks - tolerations tests', () => {
     // TODO: Add the below tags once this feature is enabled in 2.20+
     //  { tags: ['@Sanity', '@SanitySet2', '@Dashboard'] },
     {
-      tags: ['@Featureflagged', '@HardwareProfileNotebook', '@HardwareProfiles', '@Parallel=False'],
+      tags: ['@Featureflagged', '@HardwareProfileNotebook', '@HardwareProfiles', '@NonConcurrent'],
     },
     () => {
       // Authentication and navigation

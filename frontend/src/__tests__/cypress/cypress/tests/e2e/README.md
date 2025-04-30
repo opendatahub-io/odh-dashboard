@@ -134,14 +134,14 @@ When running tests concurrently against the same cluster (e.g., in multiple term
 ```bash
 npx cypress run \
   --env grepTags="@Smoke" \
-  --env skipTags="@Bug @Maintain @Parallel=False" \
+  --env skipTags="@Bug @Maintain @NonConcurrent" \
   --browser chrome
 ```
 
 **Skip Tags Explanation:**
 - `@Bug`: Skip tests that are currently failing due to product bugs
 - `@Maintain`: Skip tests that require maintenance
-- `@Parallel=False`: Skip tests that cannot run concurrently (to prevent resource conflicts)
+- `@NonConcurrent`: Skip tests that cannot run concurrently (to prevent resource conflicts)
 
 ## Writing Tests
 
@@ -199,7 +199,7 @@ Tests are parameterized using tags and applied to the 'it' block:
 * `Destructive`: Tests that have the potential to break other tests (changing configuration etc.) 
 * `Bug`: Tests that are currently failing due to a Product Bug
 * `Maintain`: Tests that are currently failing and require maintenance 
-* `Paralell=False`: Tests that cannot run concurrently (to prevent resource conflicts)
+* `NonConcurrent`: Tests that cannot run concurrently (to prevent resource conflicts)
 
 **Usage in tests:**
 ```javascript

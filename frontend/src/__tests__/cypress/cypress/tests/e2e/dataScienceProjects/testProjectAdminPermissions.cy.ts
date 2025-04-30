@@ -91,7 +91,7 @@ describe('Verify that users can provide admin project permissions to non-admin u
         '@ODS-2201',
         '@ODS-2208',
         '@Dashboard',
-        '@Parallel=False',
+        '@NonConcurrent',
       ],
     },
     () => {
@@ -127,7 +127,7 @@ describe('Verify that users can provide admin project permissions to non-admin u
         '@ODS-2201',
         '@ODS-2208',
         '@Dashboard',
-        '@Parallel=False',
+        '@NonConcurrent',
       ],
     },
     () => {
