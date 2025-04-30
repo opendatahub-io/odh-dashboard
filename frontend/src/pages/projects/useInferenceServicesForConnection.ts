@@ -13,6 +13,7 @@ export const useInferenceServicesForConnection = (
 
   return inferenceServices.filter(
     (inferenceService) =>
+      // Known issue: this only works for OCI and S3 connections
       inferenceService.spec.predictor.model?.storage?.key === connectionName ||
       inferenceService.spec.predictor.imagePullSecrets?.[0].name === connectionName,
   );
