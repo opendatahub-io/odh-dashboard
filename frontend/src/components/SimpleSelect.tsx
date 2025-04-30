@@ -46,7 +46,7 @@ type Exact<T, Shape> = T extends Shape
 type SimpleSelectProps = {
   options?: Exact<SimpleSelectOption, SimpleSelectOption>[];
   groupedOptions?: Exact<SimpleGroupSelectOption, SimpleGroupSelectOption>[];
-  value: string;
+  value: string | undefined;
   toggleLabel?: React.ReactNode;
   placeholder?: string;
   onChange: (key: string, isPlaceholder: boolean) => void;

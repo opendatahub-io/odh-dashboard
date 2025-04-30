@@ -84,7 +84,8 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
             ? `${imageStream.metadata.name}-${selectedImageVersion.name}`
             : undefined
         }
-        toggleLabel={selectedImageVersion?.name ?? 'Select one'}
+        toggleLabel={selectedImageVersion?.name}
+        placeholder="Select one"
         aria-label="Image version select"
         popperProps={{ appendTo: 'inline' }}
       />

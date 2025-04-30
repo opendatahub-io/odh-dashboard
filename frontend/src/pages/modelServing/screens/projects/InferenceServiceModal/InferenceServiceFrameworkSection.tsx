@@ -66,10 +66,10 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
         isSkeleton={!modelContext && !loaded && data.servingRuntimeName !== ''}
         isFullWidth
         toggleLabel={
-          dataFormatVersion
-            ? `${dataFormatName} - ${dataFormatVersion}`
-            : dataFormatName || placeholderText
+          dataFormatVersion ? `${dataFormatName} - ${dataFormatVersion}` : dataFormatName
         }
+        placeholder={placeholderText}
+        value={dataFormatName}
         onChange={(option) => {
           const [name, version] = option.split(' - ');
           setData('format', { name, version });

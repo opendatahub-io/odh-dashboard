@@ -84,6 +84,7 @@ const PipelineRunTableToolbarBase: React.FC<PipelineRunTableToolbarBaseProps> = 
           <SimpleSelect
             {...props}
             value={value}
+            placeholder="Select a status"
             aria-label="Select a status"
             options={Object.values(statusRuntimeStates).map((v) => ({
               key: v,

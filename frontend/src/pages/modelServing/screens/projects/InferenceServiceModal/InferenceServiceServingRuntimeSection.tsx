@@ -57,9 +57,9 @@ const InferenceServiceServingRuntimeSection: React.FC<
         isFullWidth
         value={data.servingRuntimeName}
         toggleLabel={
-          (selectedServingRuntime && getDisplayNameFromK8sResource(selectedServingRuntime)) ||
-          placeholderText
+          selectedServingRuntime && getDisplayNameFromK8sResource(selectedServingRuntime)
         }
+        placeholder={placeholderText}
         onChange={(option) => {
           if (option !== data.servingRuntimeName) {
             setData('servingRuntimeName', option);

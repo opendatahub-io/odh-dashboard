@@ -261,7 +261,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
           aria-label="Select an image"
           options={options}
           placeholder="Select one"
-          value={selectedImageStream?.metadata.name ?? ''}
+          value={selectedImageStream?.metadata.name}
           popperProps={{ appendTo: 'inline' }}
           onChange={(key) => {
             const imageStream = imageStreams.find(

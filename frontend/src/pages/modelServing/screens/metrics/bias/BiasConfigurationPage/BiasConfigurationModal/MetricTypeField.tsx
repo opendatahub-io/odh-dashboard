@@ -30,8 +30,6 @@ const MetricTypeField: React.FC<MetricTypeFieldProps> = ({ fieldId, value, onCha
         description: METRIC_TYPE_DESCRIPTION[type],
       }))}
       value={value}
-      placeholder="Select"
-      toggleLabel={value ? METRIC_TYPE_DISPLAY_NAME[value] : undefined}
       toggleProps={{ id: fieldId }}
       popperProps={{ maxWidth: undefined }}
     />

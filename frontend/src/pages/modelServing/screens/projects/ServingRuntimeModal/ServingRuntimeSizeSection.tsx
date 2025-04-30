@@ -114,9 +114,7 @@ const ServingRuntimeSizeSection = ({
                 options={sizeOptions()}
                 value={podSpecOptionState.modelSize.selectedSize.name}
                 toggleProps={{ id: 'model-server-size-selection' }}
-                toggleLabel={
-                  podSpecOptionState.modelSize.selectedSize.name || 'Select a model server size'
-                }
+                placeholder="Select a model server size"
                 onChange={(option) => {
                   const valuesSelected = sizeCustom.find((element) => element.name === option);
                   if (valuesSelected) {

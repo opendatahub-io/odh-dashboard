@@ -19,7 +19,7 @@ export const MetricsTimeRangeSelect: React.FC = () => {
         key: value,
         label: value,
       }))}
-      toggleLabel={currentTimeframe}
+      value={currentTimeframe}
       toggleProps={{
         style: { width: '15ch' },
       }}

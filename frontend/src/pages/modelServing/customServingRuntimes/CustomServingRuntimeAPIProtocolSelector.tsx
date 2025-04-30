@@ -43,7 +43,7 @@ const CustomServingRuntimeAPIProtocolSelector: React.FC<
         aria-label="Select a model serving api protocol"
         placeholder="Select a value"
         options={options}
-        value={selectedAPIProtocol || ''}
+        value={selectedAPIProtocol}
         onChange={(key) => {
           const enumValue = asEnumMember(key, ServingRuntimeAPIProtocol);
           if (enumValue !== null) {

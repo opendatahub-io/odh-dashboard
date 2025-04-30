@@ -499,7 +499,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                 options={options}
                 value={
                   hardwareProfileConfig.selectedProfile?.metadata.name ??
-                  (hardwareProfileConfig.useExistingSettings ? EXISTING_SETTINGS_KEY : '')
+                  (hardwareProfileConfig.useExistingSettings ? EXISTING_SETTINGS_KEY : undefined)
                 }
                 onChange={(key) => {
                   if (key === EXISTING_SETTINGS_KEY) {

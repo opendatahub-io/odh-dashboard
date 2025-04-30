@@ -75,7 +75,8 @@ const EnvironmentVariablesRow: React.FC<EnvironmentVariablesRowProps> = ({
       <Flex>
         <SimpleSelect
           toggleProps={{ style: { width: '70%' } }}
-          toggleLabel={variableRow.variableType}
+          value={variableRow.variableType}
+          placeholder="Select a variable type"
           aria-labelledby="container-size"
           options={[
             { key: CUSTOM_VARIABLE, label: CUSTOM_VARIABLE },

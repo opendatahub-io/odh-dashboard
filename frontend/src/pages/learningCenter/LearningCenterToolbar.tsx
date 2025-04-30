@@ -17,7 +17,6 @@ import {
 
 import {
   ThIcon,
-  CheckIcon,
   FilterIcon,
   ListIcon,
   PficonSortCommonAscIcon,
@@ -117,17 +116,7 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
   const sortTypeDropdownItems = Object.entries(sortTypes).map(([key, val]) => ({
     key,
     label: key,
-    dropdownLabel: (
-      <>
-        <CheckIcon
-          className={`odh-learning-paths__toolbar__filter-check ${
-            sortType === key ? 'odh-m-filtered' : ''
-          }`}
-          data-key={key}
-        />
-        {val}
-      </>
-    ),
+    dropdownLabel: <>{val}</>,
   }));
   const onSortOrderSelect = React.useCallback(
     (value: string) => setQueryArgument(navigate, DOC_SORT_ORDER_KEY, value),
@@ -139,12 +128,6 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
     label: key,
     dropdownLabel: (
       <>
-        <CheckIcon
-          className={`odh-learning-paths__toolbar__filter-check ${
-            sortOrder === key ? 'odh-m-filtered' : ''
-          }`}
-          data-key={key}
-        />
         {key === SORT_ASC ? (
           <PficonSortCommonAscIcon data-key={key} alt={val} />
         ) : (
@@ -218,6 +201,7 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
                 options={sortTypeDropdownItems}
                 aria-label="Select sort type"
                 toggleLabel={`Sort by ${sortTypes[sortType]}`}
+                value={sortType}
                 onChange={onSortTypeSelect}
               />
             </ToolbarItem>
@@ -225,13 +209,14 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
               <SimpleSelect
                 aria-label="Select sort order"
                 options={sortOrderDropdownItems}
-                toggleLabel={
+                icon={
                   sortOrder === SORT_ASC ? (
                     <PficonSortCommonAscIcon data-key={sortOrder} alt={sortOrders.ASC} />
                   ) : (
                     <PficonSortCommonDescIcon data-key={sortOrder} alt={sortOrders.DESC} />
                   )
                 }
+                value={sortOrder}
                 onChange={onSortOrderSelect}
                 popperProps={{ appendTo: 'inline' }}
               />

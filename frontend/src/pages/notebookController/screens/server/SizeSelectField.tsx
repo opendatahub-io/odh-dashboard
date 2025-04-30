@@ -34,7 +34,6 @@ const SizeSelectField: React.FC<SizeSelectFieldProps> = ({ value, setValue, size
         popperProps={{ appendTo: getDashboardMainContainer() }}
         options={sizeOptions()}
         toggleProps={{ style: { width: '70%' } }}
-        toggleLabel={value.name}
         value={value.name}
         onChange={setValue}
       />

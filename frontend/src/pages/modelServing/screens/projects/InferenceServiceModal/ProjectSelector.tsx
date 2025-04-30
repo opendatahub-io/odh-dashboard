@@ -61,11 +61,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
               label: getDisplayNameFromK8sResource(project),
             }))}
             dataTestId="deploy-model-project-selector"
-            toggleLabel={
-              selectedProject
-                ? getDisplayNameFromK8sResource(selectedProject)
-                : 'Select target project'
-            }
+            placeholder="Select target project"
             toggleProps={{ id: 'deploy-model-project-selector' }}
           />
         </StackItem>

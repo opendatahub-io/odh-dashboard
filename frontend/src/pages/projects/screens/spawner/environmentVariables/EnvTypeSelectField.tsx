@@ -27,7 +27,8 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
               toggleProps={{ id: 'environment-variable-type-select' }}
               popperProps={{ appendTo: getDashboardMainContainer() }}
               isFullWidth
-              toggleLabel={envVariable.type || 'Select environment variable type'}
+              value={envVariable.type ?? undefined}
+              placeholder="Select environment variable type"
               options={Object.values(EnvironmentVariableType).map((type) => ({
                 key: type,
                 label: type,

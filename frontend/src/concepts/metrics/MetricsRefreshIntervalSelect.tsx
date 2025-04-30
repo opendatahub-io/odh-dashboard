@@ -11,6 +11,7 @@ export const MetricsRefreshIntervalSelect: React.FC = () => {
 
   return (
     <SimpleSelect
+      value={currentRefreshInterval}
       onChange={(selection) => {
         const value = asEnumMember(selection, RefreshIntervalTitle);
         if (isRefreshIntervalTitle(value)) {
@@ -21,7 +22,6 @@ export const MetricsRefreshIntervalSelect: React.FC = () => {
         key: value,
         label: value,
       }))}
-      toggleLabel={currentRefreshInterval}
       toggleProps={{
         id: 'metrics-toolbar-refresh-interval-select-toggle',
         style: { width: '15ch' },
