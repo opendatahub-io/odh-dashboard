@@ -8,7 +8,6 @@ import { CustomWatchK8sResult } from '~/types';
 import { useDashboardNamespace } from '~/redux/selectors';
 import { useTemplates } from '~/api';
 import { FetchStateObject } from '~/utilities/useFetch';
-import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import useTemplateOrder from './useTemplateOrder';
 import useTemplateDisablement from './useTemplateDisablement';
 
@@ -32,14 +31,14 @@ const CustomServingRuntimeContextProvider: React.FC = () => {
   const servingRuntimeTemplates = useTemplates(dashboardNamespace);
 
   // TODO: Disable backend workaround when we migrate admin panel to Passthrough API
-  const servingRuntimeTemplateOrder = useMakeFetchObject(
-    useTemplateOrder(dashboardNamespace, true, { refreshRate: 2 * 60 * 1000 }),
-  );
+  const servingRuntimeTemplateOrder = useTemplateOrder(dashboardNamespace, true, {
+    refreshRate: 2 * 60 * 1000,
+  });
 
   // TODO: Disable backend workaround when we migrate admin panel to Passthrough API
-  const servingRuntimeTemplateDisablement = useMakeFetchObject(
-    useTemplateDisablement(dashboardNamespace, true, { refreshRate: 2 * 60 * 1000 }),
-  );
+  const servingRuntimeTemplateDisablement = useTemplateDisablement(dashboardNamespace, true, {
+    refreshRate: 2 * 60 * 1000,
+  });
 
   const servingRuntimeTemplateOrderRefresh = servingRuntimeTemplateOrder.refresh;
   const servingRuntimeTemplateDisablementRefresh = servingRuntimeTemplateOrder.refresh;

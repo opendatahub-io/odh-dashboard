@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { getSecretsByLabel } from '~/api';
-import useFetchState, {
+import useFetch, {
   FetchOptions,
-  FetchState,
+  FetchStateObject,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '~/utilities/useFetchState';
+} from '~/utilities/useFetch';
 import { Connection } from '~/concepts/connectionTypes/types';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '~/const';
 import { isConnection } from '~/concepts/connectionTypes/utils';
@@ -13,7 +13,7 @@ import { isConnection } from '~/concepts/connectionTypes/utils';
 const useConnections = (
   namespace?: string,
   fetchOptions?: Partial<FetchOptions>,
-): FetchState<Connection[]> => {
+): FetchStateObject<Connection[]> => {
   const callback = React.useCallback<FetchStateCallbackPromise<Connection[]>>(
     async (opts) => {
       if (!namespace) {
@@ -32,7 +32,7 @@ const useConnections = (
     [namespace],
   );
 
-  return useFetchState(callback, [], fetchOptions);
+  return useFetch(callback, [], fetchOptions);
 };
 
 export default useConnections;

@@ -16,10 +16,11 @@ type InferenceServiceServingRuntimeSectionProps = {
 const InferenceServiceServingRuntimeSection: React.FC<
   InferenceServiceServingRuntimeSectionProps
 > = ({ data, setData, currentServingRuntime }) => {
-  const [{ items: servingRuntimes }, loaded, loadError] = useServingRuntimes(
-    data.project,
-    data.project === '' || !!currentServingRuntime,
-  );
+  const {
+    data: { items: servingRuntimes },
+    loaded,
+    error,
+  } = useServingRuntimes(data.project, data.project === '' || !!currentServingRuntime);
 
   const selectedServingRuntime = servingRuntimes.find(
     (servingRuntime) => servingRuntime.metadata.name === data.servingRuntimeName,
@@ -28,10 +29,10 @@ const InferenceServiceServingRuntimeSection: React.FC<
   const placeholderText =
     servingRuntimes.length === 0 ? 'No model servers available to select' : 'Select a model server';
 
-  if (loadError) {
+  if (error) {
     return (
       <Alert title="Error loading model servers" variant="danger">
-        {loadError.message}
+        {error.message}
       </Alert>
     );
   }

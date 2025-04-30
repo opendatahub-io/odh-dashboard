@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { getNotebook, getNotebooks } from '~/api';
-import useFetchState, {
+import useFetch, {
   AdHocUpdate,
   FetchOptions,
-  FetchState,
+  FetchStateObject,
   FetchStateCallbackPromiseAdHoc,
   NotReadyError,
-} from '~/utilities/useFetchState';
+} from '~/utilities/useFetch';
 import { NotebookKind } from '~/k8sTypes';
 import { NotebookDataState, NotebookState } from './types';
 import { getNotebooksStatus, getNotebookStatus } from './service';
@@ -68,7 +68,7 @@ export const getNotebooksStates = (
 const useProjectNotebookStates = (
   namespace?: string,
   fetchOptions?: Partial<FetchOptions>,
-): FetchState<NotebookState[]> => {
+): FetchStateObject<NotebookState[]> => {
   const fetchAllNotebooks = React.useCallback<
     FetchStateCallbackPromiseAdHoc<NotebookState[]>
   >(() => {
@@ -85,7 +85,7 @@ const useProjectNotebookStates = (
     });
   }, [namespace]);
 
-  return useFetchState<NotebookState[]>(fetchAllNotebooks, [], fetchOptions);
+  return useFetch<NotebookState[]>(fetchAllNotebooks, [], fetchOptions);
 };
 
 export default useProjectNotebookStates;

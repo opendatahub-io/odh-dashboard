@@ -8,7 +8,6 @@ import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegiste
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { ModelState } from '~/concepts/modelRegistry/types';
 import { registeredModelArchiveDetailsRoute } from '~/routes';
-import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import ModelVersionsTabs from './ModelVersionsTabs';
 import ModelVersionsHeaderActions from './ModelVersionsHeaderActions';
@@ -29,8 +28,11 @@ const ModelVersions: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
   const loadError = mvLoadError || rmLoadError;
   const loaded = mvLoaded && rmLoaded;
   const navigate = useNavigate();
-  const inferenceServices = useMakeFetchObject(
-    useInferenceServices(undefined, rmId, undefined, preferredModelRegistry?.metadata.name),
+  const inferenceServices = useInferenceServices(
+    undefined,
+    rmId,
+    undefined,
+    preferredModelRegistry?.metadata.name,
   );
 
   useEffect(() => {
